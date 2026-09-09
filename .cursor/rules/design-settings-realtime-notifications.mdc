@@ -1,34 +1,32 @@
 ---
-description: Design, theme, settings contract, realtime policy, notifications baseline.
-globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/docs/**"]
+description: Settings contract, realtime policy, notifications baseline. UI/UX is NOT this file.
+globs: ["backend/**", "frontend/**", ".cursor/docs/**"]
 alwaysApply: false
 ---
 
-# Design + Theme + Settings + Realtime + Notifications
+# Settings + Realtime + Notifications
+
+UI/UX source of truth: `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`.
+Ovaj fajl ne definiše stil, layout ni paletu.
 
 ## Realtime (opt-in)
 
-- Socket.IO je obavezan kada projekat implementira realtime za: reservations, notifications, settings.
+- Socket.IO je obavezan kada projekat implementira realtime za: tickets/chat, notifications, settings.
   Ako projektni zahtjev kaže drugačije, dokumentuj odluku u planu i matrici.
-
-## Design + Theme
-
-- Stil: Apple-linear, clean, minimal.
-- Public web: default one-page; pitati owner-a ako treba multipage.
-- Tema: owner daje 5–6 boja + mapu upotrebe (primary/background/text/accent/success/danger). Držati definisano u `.cursor/docs/theme.md`.
 
 ## Settings contract (obavezno)
 
 - Imati registry (public/private) + secret handling.
   UI: boolean→switch, number→number input, string→text; opis uz svaki key.
+  Vizuelni tretman settings ekrana prati Constitution (ne card-grid, ne dekoracija).
 
 ## Responsive UX
 
-- Full responsive.
+- Full responsive. Desktop je primarni workspace (Constitution §33).
   Mobile breakpoint: prefer drawer/sheet umjesto modal dialoga.
 
 ## Notifications baseline
 
 - In-app obavezno.
   Email/push samo kad je eksplicitno traženo (može feature-flagged stub).
-
+  Hijerarhija i toast disciplina: Constitution §32 (ne toast za svaku trivijalnu akciju).

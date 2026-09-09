@@ -15,15 +15,6 @@ $traefikStack = Ask "Traefik stack slug (used in router/service names)" "cmt"
 $traefikNetwork = Ask "Traefik external network name" "web"
 $backendPrefix = Ask "Backend path prefix" "/backend"
 
-$publicStyle = Ask "Public web style (one-page|multipage)" "one-page"
-
-$colorPrimary = Ask "Theme color: primary (hex)" ""
-$colorBackground = Ask "Theme color: background (hex)" ""
-$colorText = Ask "Theme color: text (hex)" ""
-$colorAccent = Ask "Theme color: accent (hex)" ""
-$colorSuccess = Ask "Theme color: success (hex)" ""
-$colorDanger = Ask "Theme color: danger (hex)" ""
-
 $dbHost = Ask "DB host" "localhost"
 $dbPort = Ask "DB port" "3306"
 $dbName = Ask "DB name" $projectName
@@ -61,30 +52,6 @@ Write-Host "Wrote frontend/.env"
 
 if (-not (Test-Path -LiteralPath ".cursor/docs/matrices")) {
   New-Item -ItemType Directory -Force ".cursor/docs/matrices" | Out-Null
-}
-
-if (-not (Test-Path -LiteralPath ".cursor/docs/theme.md")) {
-  $themeDoc = @"
-# Theme
-
-## Public style
-
-- $publicStyle
-
-## Color scheme
-
-- primary: $colorPrimary
-- background: $colorBackground
-- text: $colorText
-- accent: $colorAccent
-- success: $colorSuccess
-- danger: $colorDanger
-
-Notes:
-- Owner should define exact meaning/usage for each color (buttons, links, surfaces, alerts).
-"@
-  Set-Content -LiteralPath ".cursor/docs/theme.md" -Value $themeDoc -Encoding UTF8
-  Write-Host "Wrote .cursor/docs/theme.md"
 }
 
 if (-not (Test-Path -LiteralPath ".cursor/docs/matrices/.first-raw-task")) {

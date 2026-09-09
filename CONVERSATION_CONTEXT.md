@@ -17,6 +17,7 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 ## Trenutni source-of-truth deliverable
 
 - `RAW_PROJECT_EPHELPDESK.md` je glavni “enterprise” RAW projekat (najbitnije odluke su tu).
+- `Master UI-UX Design Constitution.md` je source of truth za sav UI/UX (tokeni: `.cursor/docs/theme.md`).
 - Dodatni dokumenti:
   - `EPBIH_START_INPUTS.md`
   - `EPBIH_IT_EMAIL_CHECKLIST.md`
@@ -25,6 +26,7 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 ## Ključne odluke (sažetak)
 
 - **Tech baseline**: Backend NestJS + TS strict + Prisma 7 + MySQL/MariaDB; Frontend React (Vite) + TS + Tailwind + shadcn/Radix.
+- **UI/UX**: Constitution (enterprise HelpDesk workspace). Nije Apple-linear one-page, nije Linear clone.
 - **Mobile**: **nema mobilne aplikacije** za ovaj projekat (sve reference uklonjene iz RAW-a).
 - **Realtime**: Socket.IO opt-in, ali obavezno za notifications + settings refresh + ticket updates/chat.
 - **Auth (kasnije)**: AD/LDAPS + Entra SSO je planirano, ali u implementaciji prvo **lokalni dev useri** koji moraju prolaziti identične tokove i permission checkove kao “AD user”.

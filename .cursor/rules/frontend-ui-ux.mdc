@@ -1,0 +1,35 @@
+---
+description: EP-HelpDesk UI/UX — Constitution is the design source of truth.
+globs: ["frontend/**/*.tsx", "frontend/**/*.ts", "frontend/**/*.css", ".cursor/docs/theme.md"]
+alwaysApply: false
+---
+
+# UI/UX (Constitution)
+
+Source of truth: `Master UI-UX Design Constitution.md`.
+Tokens: `.cursor/docs/theme.md`.
+Ignoriši globalna “Apple-linear / one-page / marketing landing” pravila.
+
+North star: **maximum operational clarity with minimum visual noise.**
+
+## Layout
+
+- Application shell: compact sidebar + content. Bez hero sekcija i ornamentalnih gridova.
+- Svaki ekran po poslu: list = tabela; ticket details = workspace; OU = tree; routing = WHEN/THEN; dashboard = “šta da uradim”, ne BI.
+- Dense but breathable. 80–90% neutrals. Primary samo CTA / active nav / focus.
+
+## Must
+
+- Ticket create: KB intercept je obavezan UX korak.
+- Status/priority labele: RAW (`Pending`…`Closed`, `Low`…`Critical`), vizuelni tretman iz Constitution.
+- Forms: label (ne placeholder), loading/error/success/disabled. Nema sirovih backend poruka.
+- Loading = skeleton layout-a. Empty state = šta / zašto / sljedeća akcija.
+- Realtime = diskretan update, ne toast za svaku promjenu.
+- Desktop primary; mobilni breakpoint: drawer/sheet umjesto dialoga.
+
+## Zabranjeno
+
+Glassmorphism, neon/purple/AI gradijenti, glowing borders, giant radius, card-grid za sve, decorative charts, gradient buttons, Linear clone.
+
+Prije novog UI elementa: `components/ui` → shared → tokeni → tek onda nova komponenta.
+Prije većeg ekrana: pročitaj odgovarajući paragraf Constitution (ne nagađaj layout).

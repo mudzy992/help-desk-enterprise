@@ -367,26 +367,20 @@
 
 ---
 
-## 2) UX / Design (Apple-linear, clean)
+## 2) UX / Design (Constitution)
 
-- **Public web style**:
-  - multipage (app shell): login/SSO callback, dashboard, tickets, KB, admin/routing, analytics
-- **Design keywords** (3–6 riječi): Apple-linear, minimal, clean, enterprise, calm, readable
-- **Color scheme (5–6 boja)**:
-  - primary: #2563EB
-  - background: #0B1220
-  - text: #E5E7EB
-  - accent: #22C55E
-  - success: #16A34A
-  - danger: #EF4444
-- **Color usage map** (kratko: gdje ide koja boja; npr. primary=CTA, accent=links/badges, danger=errors)
-  - primary=CTA/buttons + active nav
-  - accent=badges (status/priority), highlight metrics
-  - success=resolved/closed confirmations
-  - danger=errors + critical priority + destructive actions
-  - background/text=app shell (dark, high-contrast, low noise)
-- **Typography** (ako ima preference; inače default Inter): Inter (default)
-- **Mobile UX rule**: drawer/sheet umjesto dialoga na mobilnom gdje je moguće (obavezno).
+Source of truth: `Master UI-UX Design Constitution.md`.
+Tokeni (hex + usage): `.cursor/docs/theme.md`.
+
+Sva template/globalna design pravila (Apple-linear, one-page marketing, generički SaaS dashboard) su **poništena** za ovaj projekat.
+
+- **App shape**: multipage application shell (sidebar + content). Nije public one-page.
+- **North star**: maximum operational clarity with minimum visual noise.
+- **Visual personality**: profesionalan, precizan, smiren, informacijski gust, diskretno premium. Nije Linear clone — Linear/Stripe/Raycast su samo referentni principi.
+- **Color / tokens**: paleta i mape upotrebe žive u `.cursor/docs/theme.md`. Upotreba (80–90% neutrals, semantic štedljivo, radius/motion/anti-patterni) prati Constitution, ne “oboj sve primary-om”.
+- **Typography**: Inter. Veličine i hijerarhija: Constitution §23.
+- **Responsive**: desktop je primarni workspace. Na mobilnom breakpointu: drawer/sheet umjesto dialoga.
+- **Domain labels**: ticket status i priority ostaju iz ovog RAW-a / domain modela (`Pending`…`Closed`, `Low`…`Critical`). Constitution definiše vizuelni tretman.
 
 ---
 

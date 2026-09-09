@@ -12,7 +12,7 @@ Svrha ovog fajla: agent (i vi) uvijek znate šta JE, a šta NIJE dio trenutne is
 - Time Tracking: start/stop + backend heartbeat validacija
 - Knowledge Base: CRUD članaka + KB intercept prije kreiranja tiketa (full-text search, BEZ AI/semantic search)
 - Notifikacije: email (O365) + in-app, BEZ Edge ekstenzije u prvoj iteraciji
-- Osnovni dashboard: broj tiketa po OU, prosječno vrijeme rješavanja
+- Osnovni dashboard: broj tiketa po OU, prosječno vrijeme rješavanja (UI: Constitution — actionable “šta da uradim”, ne BI/donut dashboard)
 - RBAC: USER / AGENT / ADMIN / SUPER_ADMIN + OU izolacija
 
 ## FAZA 2 (nakon MVP-a, posebna grana/task)

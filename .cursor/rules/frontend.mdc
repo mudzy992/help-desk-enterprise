@@ -11,4 +11,5 @@ alwaysApply: false
 - State: koristi React Query (ili sličan) za server state; izbjegavaj globalni Redux-style chaos za jednostavne stvari.
 - Svaka forma: validacija prije submit-a, eksplicitan loading i error state — nema "tihih" grešaka.
 - Prije nego praviš novu UI komponentu, provjeri `components/ui` (ShadCN) — ne izmišljaj novu ako već postoji slična.
+- Sav UI/UX prati `Master UI-UX Design Constitution.md` i `.cursor/docs/theme.md` (ne globalni Apple-linear / one-page template).
 - KB intercept flow (prije submit tiketa) je poseban UX korak — ne smije se preskočiti ni u jednoj verziji forme za kreiranje tiketa.
