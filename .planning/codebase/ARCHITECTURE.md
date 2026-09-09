@@ -4,7 +4,7 @@
 
 ## Pattern Overview
 
-**Overall:** Monorepo template with three apps (`backend/`, `frontend/`, `mobile/`) and Docker/Traefik deployment wiring.
+**Overall:** Monorepo template with two apps (`backend/`, `frontend/`) and Docker/Traefik deployment wiring.
 
 **Key Characteristics:**
 - App manifests and infra wiring exist; application source code is not present in this repository snapshot.
@@ -55,22 +55,12 @@ Evidence: `docker-compose.yml`, `frontend/nginx.conf`, `backend/.env.example`.
 - Location: `frontend/` (no `src/` detected; infra files only)
 - Evidence of intent: `frontend/package.json`, `frontend/.env.example`, `frontend/Dockerfile`
 
-**Mobile (intended; code not present):**
-- Purpose: Expo Router app consuming backend API; secure storage; push notifications.
-- Location: `mobile/` (no app source detected; `package.json` + `.env.example` only)
-- Evidence of intent: `mobile/package.json`, `mobile/.env.example`
-
 ## Data Flow
 
 **Web SPA → API (intended):**
 1. Frontend reads API base URL from `VITE_API_BASE_URL`: `frontend/.env.example`
 2. Frontend calls backend endpoints via `axios` / React Query (declared): `frontend/package.json`
 3. Backend uses `DATABASE_URL` to talk to DB via Prisma (declared): `backend/.env.example`, `backend/package.json`
-
-**Mobile → API (intended):**
-1. Mobile reads base URL from `EXPO_PUBLIC_API_BASE_URL`: `mobile/.env.example`
-2. Mobile calls backend via `axios` (declared): `mobile/package.json`
-3. Secure tokens are expected to be stored using `expo-secure-store` (declared): `mobile/package.json`
 
 ## Key Abstractions
 
@@ -91,7 +81,7 @@ Evidence: `docker-compose.yml`, `frontend/nginx.conf`, `backend/.env.example`.
 
 ## Error Handling
 
-**Strategy:** Not implemented (backend/frontend/mobile source code absent).
+**Strategy:** Not implemented (backend/frontend source code absent).
 
 ## Cross-Cutting Concerns
 

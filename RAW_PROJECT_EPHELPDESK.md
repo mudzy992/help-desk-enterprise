@@ -878,7 +878,6 @@ Tražim od agenta:
 
 - prvo Plan mode (faze, rizici, test plan)
 - ako plan ima >3 faze → `.cursor/plans/<slug>/` + `HANDOFF.md`
-- prva implementacijska faza: ukloniti sve vezano za mobile iz repozitorija (npr. `mobile/` app, build/CI reference, dependencies, docs)
 - odmah u planu definisati MVP constraints (šta je “in”, šta je “out”) i zamrznuti scope za prvu isporuku
 - u planu eksplicitno definisati “routing safety” operativno pravilo: ko je owner za “unrouted queue”, i očekivani SLA za čišćenje (npr. isti radni dan)
 - u planu definisati “basic dueDate” očekivanja (bez SLA engine-a): minimalna pravila, izvještaji i upozorenja za overdue

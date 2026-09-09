@@ -1,6 +1,6 @@
 ---
 description: Token-efficient workflow (project-level).
-globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**"]
+globs: ["backend/**", "frontend/**", ".cursor/**"]
 alwaysApply: false
 ---
 

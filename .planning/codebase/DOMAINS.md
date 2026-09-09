@@ -9,7 +9,6 @@
 Evidence: no application source trees were detected:
 - Backend has no `backend/src/` (only `backend/package.json`, `backend/Dockerfile`, `backend/.env*`).
 - Frontend has no `frontend/src/` (only infra/env files).
-- Mobile has no Expo Router `app/` directory (only `mobile/package.json`, `mobile/.env.example`).
 
 ## Intended Domains (based on declared dependencies + repo policy docs)
 
@@ -30,14 +29,6 @@ These are *intended* modules implied by manifests and `.cursor` docs, but are no
 - **Realtime consumption** (socket.io-client): `frontend/package.json`
 - **i18n** (i18next): `frontend/package.json`
 
-**Mobile (Expo):**
-- **Navigation** (Expo Router): `mobile/package.json`
-- **Secure auth token storage** (SecureStore): `mobile/package.json`
-- **Push notifications** (expo-notifications): `mobile/package.json`
-- **HTTP** (axios): `mobile/package.json`
-- **i18n** (i18next): `mobile/package.json`
-- **Styling** (NativeWind + Tailwind): `mobile/package.json`
-
 ## Where domains would live (conventions to follow when code is added)
 
 **Backend:**
@@ -46,9 +37,6 @@ These are *intended* modules implied by manifests and `.cursor` docs, but are no
 
 **Frontend:**
 - Feature areas under `frontend/src/features/<domain>/...` (not present; proposed placement only)
-
-**Mobile:**
-- Expo Router routes under `mobile/app/(tabs|auth|...)/...` (not present; proposed placement only)
 
 ---
 

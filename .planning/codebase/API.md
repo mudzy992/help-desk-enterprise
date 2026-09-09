@@ -16,7 +16,7 @@ This section lists expected API concerns implied by manifests and infra wiring; 
 
 **Base URL / routing:**
 - Backend is routed behind Traefik at `https://${TRAEFIK_HOST}${BACKEND_PATH_PREFIX}`: `docker-compose.yml`, `scripts/init-project.ps1`
-- Local dev env examples point to `http://localhost:3000` for frontend/mobile base URL: `frontend/.env.example`, `mobile/.env.example`
+- Local dev env examples point to `http://localhost:3000` for frontend base URL: `frontend/.env.example`
 
 **Auth (JWT):**
 - Declared libs: `@nestjs/jwt`, `passport`, `passport-jwt`, `bcrypt`: `backend/package.json`
@@ -33,13 +33,12 @@ This section lists expected API concerns implied by manifests and infra wiring; 
 - Policy docs exist (no code): `.cursor/docs/notifications.md`, `.cursor/docs/settings-contract.md`, `.cursor/rules/design-settings-realtime-notifications.mdc`
 - Endpoints: Not implemented yet.
 
-## Frontend & Mobile Consumption (implemented)
+## Frontend Consumption (implemented)
 
-**Not detected** (no application source present in `frontend/` or `mobile/` beyond manifests).
+**Not detected** (no application source present in `frontend/` beyond manifests).
 
 Evidence:
 - `frontend/` contains only `package.json`, `.env*`, `Dockerfile`, `nginx.conf`.
-- `mobile/` contains only `package.json`, `.env.example`.
 
 ---
 

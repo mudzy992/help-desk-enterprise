@@ -114,7 +114,6 @@ Obavezno od starta:
 Po potrebi (odmah ili kasnije):
 
 - **Email**: da/ne (ako da: SMTP parametri ili “stub + feature flag”)
-- **Push (mobile)**: da/ne (ako da: Expo Notifications/FCM detalji ili “stub + feature flag”)
 
 ---
 

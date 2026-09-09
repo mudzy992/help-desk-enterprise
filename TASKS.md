@@ -10,7 +10,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 ---
 
 ## Faza 0 — Repo + walking skeleton
-- [ ] Ukloni `mobile/` i sve reference (RAW: nije dio projekta)
+- [x] Ukloni `mobile/` i sve reference (RAW: nije dio projekta)
 - [ ] NestJS + Prisma 7 + PostgreSQL; prva migracija (enterprise šema, Coolify `DATABASE_URL`)
 - [ ] React (Vite) + Tailwind + shadcn; app shell po Constitution + `.cursor/docs/theme.md`
 - [ ] i18n infrastruktura (BS default, EN fallback)

@@ -1,6 +1,6 @@
 ---
 description: Obavezni standard za čistoću koda i matrice kao source-of-truth.
-globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/docs/**"]
+globs: ["backend/**", "frontend/**", ".cursor/docs/**"]
 alwaysApply: false
 ---
 

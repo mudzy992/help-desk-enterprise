@@ -18,9 +18,6 @@
 **Web client integration code:** Not detected.
 - No `frontend/src/` directory exists; therefore no socket initialization/usage is present.
 
-**Mobile client:** Not detected.
-- `mobile/package.json` does not include `socket.io-client`.
-
 ## Realtime policy docs (repo guidance; not implementation)
 
 - Settings/notifications realtime guidance is documented in `.cursor/rules/design-settings-realtime-notifications.mdc`.

@@ -5,7 +5,7 @@
 ## Languages
 
 **Primary:**
-- TypeScript - intended across `backend/`, `frontend/`, `mobile/` via their `package.json` files
+- TypeScript - intended across `backend/` and `frontend/` via their `package.json` files
 
 **Secondary:**
 - PowerShell - automation scripts in `scripts/*.ps1`
@@ -37,16 +37,6 @@
 - Routing: `react-router-dom`: `frontend/package.json`
 - i18n: `i18next`, `react-i18next`: `frontend/package.json`
 
-**Mobile (declared deps; application code not present):**
-- Expo SDK `~55.0.17` + Expo Router `~55.0.13`: `mobile/package.json`
-- React Native `0.83.6`, React `19.2.0`: `mobile/package.json`
-- Storage: `expo-secure-store`: `mobile/package.json`
-- Notifications: `expo-notifications`: `mobile/package.json`
-- HTTP: `axios`: `mobile/package.json`
-- State: `zustand`: `mobile/package.json`
-- Styling: `nativewind` preview + Tailwind v4: `mobile/package.json`
-- i18n: `i18next`, `react-i18next`: `mobile/package.json`
-
 ## Key Dependencies
 
 **Critical (declared):**
@@ -64,7 +54,6 @@
 - Root template env keys: `.env.example`
 - Backend env keys: `backend/.env.example` (`DATABASE_URL`, `PORT`, `UPLOAD_ROOT`)
 - Frontend env keys: `frontend/.env.example` (`VITE_API_BASE_URL`)
-- Mobile env keys: `mobile/.env.example` (`EXPO_PUBLIC_API_BASE_URL`)
 - Env generation script: `scripts/init-project.ps1`
 
 **Build:**

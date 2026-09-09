@@ -4,12 +4,11 @@
 
 ## What can run today (from this repo snapshot)
 
-This repository is a **template skeleton**: infra + manifests exist, but application source code is not present in `backend/`, `frontend/`, or `mobile/`. As a result, builds/starts may not succeed beyond container build stubs.
+This repository is a **template skeleton**: infra + manifests exist, but application source code is not present in `backend/` or `frontend/`. As a result, builds/starts may not succeed beyond container build stubs.
 
 Evidence:
 - Backend has no `backend/src/` (only `backend/package.json`, `backend/Dockerfile`, `backend/.env*`).
 - Frontend has no `frontend/src/` (only `frontend/package.json`, `frontend/Dockerfile`, `frontend/nginx.conf`, `.env*`).
-- Mobile has no route tree (no `mobile/app/` directory; only `mobile/package.json`, `mobile/.env.example`).
 
 ## Initialize env files (required)
 
@@ -61,17 +60,6 @@ npm run dev
 Notes:
 - Requires Vite app source (`frontend/src/`) which is not present in this repo snapshot: `frontend/package.json`
 
-### Mobile
-
-```powershell
-cd mobile
-npm install
-npm run start
-```
-
-Notes:
-- Requires Expo app/router source which is not present in this repo snapshot: `mobile/package.json`
-
 ## Environment Variables (current examples)
 
 ### Root (`.env`)
@@ -97,13 +85,6 @@ Template keys:
 - `VITE_API_BASE_URL`
 
 Evidence: `frontend/.env.example`, `scripts/init-project.ps1`.
-
-### Mobile (`mobile/.env`)
-
-Template keys:
-- `EXPO_PUBLIC_API_BASE_URL`
-
-Evidence: `mobile/.env.example`.
 
 ## Common failure modes (with this repo snapshot)
 

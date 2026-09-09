@@ -1,6 +1,6 @@
 ---
 description: Standard za plan-first rad, plan strukturu i handoff.
-globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**"]
+globs: ["backend/**", "frontend/**", ".cursor/**"]
 alwaysApply: false
 ---
 
