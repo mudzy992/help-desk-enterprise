@@ -2,12 +2,14 @@ FROM node:22-alpine AS build
 
 WORKDIR /usr/app
 
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 COPY package*.json ./
 RUN npm ci || npm install
 
 COPY . .
 
-# Stub: allow template to build even before real code exists
 RUN npm run build || true
 
 FROM nginx:alpine AS runtime
@@ -18,4 +20,3 @@ COPY --from=build /usr/app/dist ./
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 10000
-

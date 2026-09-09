@@ -1,21 +1,19 @@
 ---
 description: Globalni workflow (project-level) za standardni stack.
-globs: ["backend/**", "frontend/**", "mobile/**", "docker-compose.yml"]
+globs: ["backend/**", "frontend/**", "docker-compose.yml"]
 alwaysApply: false
 ---
 
 # Full-Stack Workflow
 
-- **Struktura**: ROOT/{backend, frontend, mobile}. Svaki ima svoj `package.json`.
-- **Backend**: NestJS + Prisma + strict TypeScript + MySQL/MariaDB.
-- **Frontend**: React (Vite) + Tailwind + Radix/shadcn-style komponente.
-- **Mobile**: Expo (React Native) + i18n + light/dark/system theme.
-- **Mobile skills**: Za mobilne zadatke koristi globalne Expo skillove kada je relevantno: `expo-api-routes`, `expo-cicd-workflows`, `expo-deployment`, `expo-dev-client`, `expo-tailwind-setup`.
-- **Uploads**: backend servis; u bazi samo putanje; slike imaju renditions (original/thumb/small/medium) gdje je relevantno.
-- **Matrice**: za bitne funkcionalnosti održavaj matrice u `.cursor/docs/matrices/<feature>/MATRIX.md` + `CHANGELOG.md` (promjena logike ⇒ update matrice + changelog + brisanje dead code-a).
+- **Struktura**: ROOT/{backend, frontend}. Nema mobile.
+- **Backend**: NestJS + Prisma 7 + PostgreSQL + BullMQ/Redis worker.
+- **Frontend**: React (Vite) + Tailwind + Radix/shadcn-style.
+- **Deploy**: Coolify (`.cursor/docs/05-infra-coolify.md`, `ops/COOLIFY.md`). Bez Traefik labela.
+- **Uploads**: disk path u DB; volume na backend + worker.
+- **Matrice**: `.cursor/docs/matrices/<feature>/MATRIX.md` + `CHANGELOG.md`.
 
 ## Task Type → Working Mode (vendor-neutral)
 
-- Veće funkcionalnosti / refaktori / cross-layer promjene: prvo Plan mode, zatim implementacija.
-- Bugfix sa nejasnim uzrokom: repro → hipoteza → dokaz → minimalna korekcija + test.
-
+- Veće funkcionalnosti / refaktori / cross-layer: prvo Plan mode, zatim implementacija.
+- Bugfix: repro → hipoteza → dokaz → minimalna korekcija + test.

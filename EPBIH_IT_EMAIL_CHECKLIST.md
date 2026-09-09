@@ -59,10 +59,11 @@ radimo na pokretanju MVP verzije EP-HelpDesk sistema. Da bismo mogli startati im
 
 ## H) Infrastruktura / deploy
 
-- Prod domen (npr. `helpdesk.<domain>`) + staging domen (preporuka)
-- Traefik parametri (ako koristite Traefik): `TRAEFIK_HOST`, `TRAEFIK_STACK`, `TRAEFIK_NETWORK`
-- MySQL/MariaDB: host/port/db/user/pass + backup politika
-- Uploads/shared path (npr. `/mnt/shared-app-files/ephelpdesk`) ili alternativno objekt storage
+- Prod/staging domeni: app + API poddomena (`desk…`, `api.desk…`)
+- Coolify (ne Traefik labele u compose-u)
+- PostgreSQL: connection string + backup politika
+- Redis ACL user za app (scoped, vidi `ops/redis-acl.line`)
+- Uploads persistent volume
 
 ## I) Compliance/retention
 

@@ -6,6 +6,7 @@ alwaysApply: false
 
 # WebSocket pravila
 
+- Gateway sluša na API procesu (`API_PUBLIC_URL`). Coolify mora pustiti WebSocket upgrade na API FQDN.
 - Kanali: `user:{userId}`, `group:{groupId}`, `ticket:{ticketId}` — ne izmišljaj nove bez ažuriranja ovog fajla.
 - Servisi NIKAD direktno ne šalju podatke preko socketa — uvijek emituju event, gateway sluša i šalje.
 - Edge ekstenzija se tretira kao još jedan klijent na istim kanalima — nema posebne logike za nju na backendu.

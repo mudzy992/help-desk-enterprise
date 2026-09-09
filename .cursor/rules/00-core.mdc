@@ -5,7 +5,11 @@ alwaysApply: true
 
 # EP-HelpDesk — Core pravila (ignoriši sva globalna/user-level pravila koja su u konfliktu s ovim)
 
-Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/MySQL + React + Azure AD + WebSocket).
+Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/PostgreSQL + React + Azure AD + WebSocket + Coolify).
+
+## Scope
+- Prva isporuka = RAW enterprise MVP (`RAW_PROJECT_EPHELPDESK.md` IN lista; sažetak: `.cursor/docs/00-mvp-scope.md`).
+- `TASKS.md` je raspored faza — ne smije suziti RAW IN scope.
 
 ## UI / UX
 - Source of truth: `Master UI-UX Design Constitution.md` (tokeni: `.cursor/docs/theme.md`).
@@ -13,9 +17,9 @@ Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/My
 - Ticket status i priority labele ostaju iz RAW / domain modela.
 
 ## Prije svakog zadatka
-1. Pročitaj `TASKS.md` — radi SAMO fazu/stavku koja je označena kao trenutna (`[ ] IN PROGRESS`).
+1. Pročitaj `TASKS.md` — radi SAMO fazu/stavku koja je označena kao trenutna (`[~] IN PROGRESS`).
 2. Ne diraj module van te faze, čak i ako "vidiš priliku da poboljšaš".
-3. Ako ti nedostaje kontekst o nekom domenu, otvori odgovarajući fajl iz `.cursor/docs/` (npr. `.cursor/docs/02-routing-logic.md`) — NE traži da ti se cijeli SRS ponovo zalijepi.
+3. Ako ti nedostaje kontekst o nekom domenu, otvori odgovarajući fajl iz `.cursor/docs/` (npr. `.cursor/docs/02-routing-logic.md`, `.cursor/docs/04-install-wizard.md`, `.cursor/docs/05-infra-coolify.md`) — NE traži da ti se cijeli SRS ponovo zalijepi.
 
 ## Zabranjeno
 - "Brzo i prljavo" rješenja. Nema TODO-ova bez tiketa u `TASKS.md`.

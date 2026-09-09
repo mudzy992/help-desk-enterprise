@@ -163,13 +163,11 @@
   - Teams integracija (stub, feature-flagged):
     - definisati event/webhook interface i interne evente, ali bez obaveze isporuke Teams konektora u MVP-u
   - Durable integration queue + retry/backoff (enterprise reliability) (obavezno):
-    - sve outgoing integracije idu kroz durable “job queue” (DB-based za start):
-      - email notifikacije
-      - Edge extension notifikacije/eventi (uključujući remote request)
-      - Teams stub webhook (ako je uključen)
-    - queue ima retry/backoff politiku + dead-letter (DLQ) za trajne greške
-    - API upis (ticket/status/message) ne smije zavisiti od dostupnosti integracija: sistem snimi job i nastavi, a worker šalje asinkrono
-    - admin UI: pregled queue/DLQ + “retry now”
+    - outgoing integracije idu kroz **BullMQ + Redis** (`redis-core` / `redis-net`); worker servis izvršava asinkrono
+    - Postgres `IntegrationJob` čuva status za admin UI (PENDING/FAILED/DLQ + retry now)
+    - tipovi: email, Edge eventi (uključujući remote request), Teams stub (ako addon)
+    - API upis ne čeka integracije: enqueue pa nastavi
+    - Redis ACL scoped (`ops/redis-acl.line`), nije `+@all`
   - Dashboard/KPI: tiketi po OU, avg resolution, opterećenje admina, KB resolution rate (target ≥ 30%)
   - NFR: response time < 300ms; ≥1000 simultanih korisnika; 99.9% uptime; horizontalno skaliranje backenda
   - Sigurnost: RBAC + OU isolation + audit log svih akcija
@@ -386,7 +384,7 @@ Sva template/globalna design pravila (Apple-linear, one-page marketing, generič
 
 ## 3) Tech stack (standard)
 
-- **Backend**: NestJS + Prisma + MySQL/MariaDB (Modular Monolith Phase 1; DDD-light; event-driven interno)
+- **Backend**: NestJS + Prisma 7 + PostgreSQL + BullMQ worker (Modular Monolith Phase 1; DDD-light; event-driven interno)
 - **Frontend**: React (Vite) + Tailwind + Radix/shadcn-style + TanStack Query + Zustand
 
 Napomena za implementaciju:
@@ -397,38 +395,36 @@ Ako projekat odstupa od standarda, navedi tačno:
 
 - **Exceptions**:
   - Web frontend preferirano “React / Next.js” u SRS; za ovaj template ostajemo na React (Vite) standardu osim ako izričito ne prebacimo na Next.js.
-  - Obavezna Edge ekstenzija (Manifest V3) kao zaseban “client” (nije standardni dio template-a).
+  - Edge ekstenzija (Manifest V3) kao zaseban client.
+  - Deploy na Coolify; API na poddomeni (`API_PUBLIC_URL`), ne path prefix `/backend`.
 
 ---
 
 ## 4) Database (obavezno sve)
 
-- **DB vendor**: MySQL/MariaDB
-- **HOST**: TBD
-- **PORT**: TBD
+- **DB vendor**: PostgreSQL (Coolify Database resource)
+- **Connection**: samo `DATABASE_URL` (katalog: `.env.example`)
 - **DB_NAME**: ephelpdesk
-- **USER**: TBD
-- **PASS**: TBD
-- **Notes** (prod/dev razlike, read replicas, …):
-  - DB detalji (HOST/PORT/USER/PASS) će se popuniti čim budu dostupni podaci za target VM/DB instancu.
-  - Prisma schema kao source-of-truth + migracije (bez manual DB izmjena).
-  - OU isolation: svi upiti moraju biti scoped po `organizationalUnitId` osim za `SUPER_ADMIN`.
-  - Full-text search:
-    - KB: full-text pretraga (inicijalno MySQL FULLTEXT), uz mogućnost kasnije migracije na semantičku pretragu (faza 2).
-    - Tickets: indeksirana pretraga po naslovu/opisu + filteri (status, OU, service, assignee, priority).
-  - Attachments storage: u DB samo metadata + path; fajlovi na disk (uploads dir) ili objekt storage (ako se uvede kasnije).
+- **Notes**:
+  - Prisma schema + migracije; `migrate deploy` samo na backend kontejneru.
+  - OU isolation: upiti scoped po `organizationalUnitId` osim `SUPER_ADMIN`.
+  - KB full-text: Postgres `tsvector` + GIN (ne MySQL FULLTEXT). Semantic search ostaje OUT.
+  - Tickets: indeks + filteri (status, OU, service, assignee, priority).
+  - Attachments: u DB metadata + path; fajlovi na volume `/usr/app/uploads` (backend + worker).
 
 ---
 
-## 5) Deploy / Traefik (obavezno sve)
+## 5) Deploy / Coolify
 
-- **Domain (TRAEFIK_HOST)**: `desk.epbih.ba`
-- **Stack slug (TRAEFIK_STACK)**: `ephelpdesk`
-- **External network (TRAEFIK_NETWORK)**: `web`
-- **EntryPoint**: `websecure`
-- **TLS**: true
-- **Backend path prefix**: `/backend`
-- **Uploads host dir**: `/mnt/shared-app-files/ephelpdesk`
+Source of truth: `.cursor/docs/05-infra-coolify.md`, `ops/COOLIFY.md`.
+
+- **App URL**: `APP_PUBLIC_URL` (staging `https://desk.ba101.top`; prod `https://desk.epbih.ba`)
+- **API URL**: `API_PUBLIC_URL` (staging `https://api.desk.ba101.top`)
+- **Nema** Traefik labela, **nema** `BACKEND_PATH_PREFIX`.
+- **Servisi**: frontend, backend (migrate + API/WS), worker (BullMQ). Worker bez public FQDN.
+- **Redis**: `redis-core` na `redis-net`; ACL iz `ops/redis-acl.line`.
+- **Env**: Coolify UI iz `.env.example`. `.env` nije u gitu. `VITE_API_BASE_URL` = build arg.
+- **Uploads**: Coolify persistent storage → `/usr/app/uploads`.
 
 ---
 
@@ -460,7 +456,9 @@ Navedi prve settings ključeve koje želiš (min 10):
   - `public.maintenance.affectedServicesCsv` (string): lista servisa (names ili ids) koji su pogođeni (opciono; koristi se za `per_service`/`both`)
   - `public.maintenance.isBlocking` (boolean): ako je true može blokirati kreiranje tiketa za pogođene servise (default false; u ovom projektu treba ostati false)
 - private:
-  - `private.auth.mode` (string): `local_dev` | `entra_ad` (u MVP dev: `local_dev`, AD kasnije)
+  - `private.install.completedAt` (string): ISO datetime kad je first-run wizard završen (prazno = gate aktivan)
+  - `private.addons.*` (boolean): feature flags iz install wizarda (katalog u `.cursor/docs/04-install-wizard.md`)
+  - `private.auth.mode` (string): `local` | `entra_ad` (postavlja install wizard; SuperAdmin ostaje lokalni break-glass)
   - `private.auth.localDevUsersJson` (secret string): lista lokalnih korisnika (email, displayName, role, OU DN/path, company/department) za dev/test
   - `private.auth.jwtSigningSecret` (secret string): signing secret za lokalni dev JWT (ne dijeliti izvan dev okruženja)
   - `private.auth.adRead.enabled` (boolean): dev-only flag za čitanje iz AD-a (default false; ručno uključiti kad testiraš)
@@ -854,7 +852,7 @@ Za svaki feature: `.cursor/docs/matrices/<feature_slug>/MATRIX.md` + `CHANGELOG.
     - RPO: ≤ 24h (minimum)
     - RTO: ≤ 4h (minimum)
   - backup policy:
-    - MySQL/MariaDB backup (daily) + retention
+    - PostgreSQL backup (daily) + retention (Coolify Database)
     - uploads dir backup (daily) + retention
     - config exports (settings/routing/SLA/forms) kao dio backup-a
   - restore drill:
@@ -1063,6 +1061,7 @@ Tražim od agenta:
 ## MVP constraints (zamrznuti scope za prvu isporuku)
 
 - IN:
+  - Install wizard (first-run): local SuperAdmin, auth mode local|AD, SMTP, seed grupa/servisa/OU, addon flags — vidi `.cursor/docs/04-install-wizard.md`
   - Ticketing + routing + assignment + chat/audit + KB intercept
   - Service catalog + schema-driven forme (minimalno za top servise) + form versioning
   - Approvals (minimalno za 1–3 osjetljiva servisa)

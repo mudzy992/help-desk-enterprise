@@ -7,8 +7,7 @@ COPY prisma ./prisma/
 RUN npm ci || npm install
 COPY . .
 
-# Prisma generate treba DATABASE_URL u nekim setupima; placeholder je dovoljan u template-u
-ENV DATABASE_URL="mysql://user:pass@host:3306/db"
+ENV DATABASE_URL="postgresql://user:pass@host:5432/db"
 RUN npx prisma generate || true
 RUN npm run build || true
 
@@ -27,6 +26,4 @@ ENV UPLOAD_ROOT=/usr/app/uploads
 
 EXPOSE 10001
 
-# Stub: real projects will have dist/src/main.js
 CMD ["node", "dist/src/main.js"]
-

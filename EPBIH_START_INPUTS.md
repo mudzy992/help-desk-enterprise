@@ -92,10 +92,11 @@ Pravilo:
 
 ## 5) Infrastruktura (minimalno)
 
-- Domen + DNS: `desk.epbih.ba`
-- VM server (OS + IP) + pravila firewall-a (posebno prema DC-ovima za LDAPS)
-- MySQL/MariaDB: host/port/db/user/pass + backup politika
-- Uploads/shared path (npr. `/mnt/shared-app-files/ephelpdesk`)
+- Domen + DNS: app `desk.epbih.ba`, API `api.desk.epbih.ba` (staging: `*.ba101.top` na Coolify)
+- Coolify deploy (bez Traefik path prefixa)
+- PostgreSQL (Coolify Database) + backup politika
+- Redis: postojeći `redis-core` / `redis-net` + ACL user `ephelpdesk`
+- Uploads: persistent volume `/usr/app/uploads`
 
 ---
 

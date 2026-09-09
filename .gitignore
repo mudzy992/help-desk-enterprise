@@ -3,4 +3,7 @@ dist
 coverage
 .expo
 .env
+.env.local
+backend/.env
+frontend/.env
 

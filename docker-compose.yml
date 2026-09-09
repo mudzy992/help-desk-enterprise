@@ -1,40 +1,44 @@
+# Coolify: bez Traefik labela, bez /backend prefixa.
+# FQDN i TLS postavlja Coolify. Env dolazi iz Coolify UI (.env.example).
+# Postgres NIJE ovdje — Coolify Database → DATABASE_URL.
+# Redis: external mreža redis-net, host redis-core.
+
 services:
   frontend:
-    build: ./frontend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${TRAEFIK_STACK}-frontend.rule=Host(`${TRAEFIK_HOST}`)"
-      - "traefik.http.routers.${TRAEFIK_STACK}-frontend.entrypoints=${TRAEFIK_ENTRYPOINT}"
-      - "traefik.http.routers.${TRAEFIK_STACK}-frontend.tls=${TRAEFIK_TLS}"
-      - "traefik.http.services.${TRAEFIK_STACK}-frontend.loadbalancer.server.port=10000"
-    env_file:
-      - ./frontend/.env
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
     restart: unless-stopped
-    networks:
-      - ${TRAEFIK_NETWORK}
+    expose:
+      - "10000"
 
   backend:
     build: ./backend
-    environment:
-      - PORT=10001
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ${UPLOADS_HOST_DIR}:/usr/app/uploads
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.${TRAEFIK_STACK}-backend.rule=Host(`${TRAEFIK_HOST}`) && PathPrefix(`${BACKEND_PATH_PREFIX}`)"
-      - "traefik.http.routers.${TRAEFIK_STACK}-backend.entrypoints=${TRAEFIK_ENTRYPOINT}"
-      - "traefik.http.routers.${TRAEFIK_STACK}-backend.tls=${TRAEFIK_TLS}"
-      - "traefik.http.routers.${TRAEFIK_STACK}-backend.middlewares=${TRAEFIK_STACK}-stripprefix"
-      - "traefik.http.middlewares.${TRAEFIK_STACK}-stripprefix.stripprefix.prefixes=${BACKEND_PATH_PREFIX}"
-      - "traefik.http.services.${TRAEFIK_STACK}-backend.loadbalancer.server.port=10001"
+    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
     restart: unless-stopped
+    expose:
+      - "10001"
+    volumes:
+      - uploads:/usr/app/uploads
     networks:
-      - ${TRAEFIK_NETWORK}
+      - default
+      - redis-net
+
+  worker:
+    build: ./backend
+    command: node dist/src/worker.js
+    restart: unless-stopped
+    volumes:
+      - uploads:/usr/app/uploads
+    networks:
+      - default
+      - redis-net
+
+volumes:
+  uploads:
 
 networks:
-  traefik:
+  redis-net:
     external: true
-    name: ${TRAEFIK_NETWORK}
-
+    name: redis-net

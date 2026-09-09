@@ -1,0 +1,1 @@
+ACL SETUSER ephelpdesk on >CHANGE_ME ~bull:ephelpdesk:* ~ephelpdesk:* +ping +hello +info +select +eval +evalsha +script|exists +script|load +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection -@dangerous

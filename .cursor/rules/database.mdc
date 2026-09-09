@@ -1,14 +1,15 @@
 ---
-description: Prisma/MySQL database rules for EP-HelpDesk
-globs: ["prisma/**/*.prisma", "prisma/**/*.ts"]
+description: Prisma/PostgreSQL database rules for EP-HelpDesk
+globs: ["backend/prisma/**/*.prisma", "backend/prisma/**/*.ts"]
 alwaysApply: false
 ---
 
 # Database pravila
 
-- `prisma/schema.prisma` je jedini izvor istine za model podataka — vidi `docs/01-domain-model.md` za pregled 6 domena.
-- OrganizationalUnit je self-referencing tree (parentId/children) — nikad ne pravi zasebne tabele za Direkciju/Podružnicu/Poslovnicu.
-- Svaka nova relacija mora imati eksplicitan foreign key i, gdje ima smisla, unique constraint.
-- Migracije SAMO kroz `prisma migrate` — nikad ručna izmjena baze.
-- Izbjegavaj N+1: koristi `include`/`select` eksplicitno, nikad ne oslanjaj se na lazy loading u petlji.
-- Prije dodavanja novog modela, provjeri da li već postoji u `docs/01-domain-model.md` — ako ne postoji, prvo ažuriraj taj dokument pa onda schema.
+- Vendor: **PostgreSQL**. Prisma 7 + `@prisma/adapter-pg`. MySQL/MariaDB nije dozvoljen.
+- `backend/prisma/schema.prisma` je izvor istine. Pregled: `.cursor/docs/01-domain-model.md` (proširiti na RAW enterprise modele).
+- OrganizationalUnit je self-referencing tree (parentId/children) — nikad zasebne tabele po nivou OU.
+- KB full-text: Postgres `tsvector` + GIN, ne MySQL FULLTEXT.
+- Migracije SAMO `prisma migrate`. `migrate deploy` samo na **backend** startu, ne na workeru.
+- Svaka relacija: eksplicitan FK; unique gdje treba. Izbjegavaj N+1 (`include`/`select`).
+- Prije novog modela: ažuriraj domain doc pa schema.

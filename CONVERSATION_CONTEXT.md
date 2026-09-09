@@ -18,6 +18,7 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 
 - `RAW_PROJECT_EPHELPDESK.md` je glavni “enterprise” RAW projekat (najbitnije odluke su tu).
 - `Master UI-UX Design Constitution.md` je source of truth za sav UI/UX (tokeni: `.cursor/docs/theme.md`).
+- Infra: `.cursor/docs/05-infra-coolify.md`, `.cursor/docs/04-install-wizard.md`.
 - Dodatni dokumenti:
   - `EPBIH_START_INPUTS.md`
   - `EPBIH_IT_EMAIL_CHECKLIST.md`
@@ -25,11 +26,12 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 
 ## Ključne odluke (sažetak)
 
-- **Tech baseline**: Backend NestJS + TS strict + Prisma 7 + MySQL/MariaDB; Frontend React (Vite) + TS + Tailwind + shadcn/Radix.
+- **Tech baseline**: NestJS + Prisma 7 + PostgreSQL; React Vite; Coolify; Redis/BullMQ worker.
+- **Infra**: `.cursor/docs/05-infra-coolify.md`, `ops/COOLIFY.md`, `.env.example`. API na `API_PUBLIC_URL` (npr. `api.desk.ba101.top`).
 - **UI/UX**: Constitution (enterprise HelpDesk workspace). Nije Apple-linear one-page, nije Linear clone.
 - **Mobile**: **nema mobilne aplikacije** za ovaj projekat (sve reference uklonjene iz RAW-a).
 - **Realtime**: Socket.IO opt-in, ali obavezno za notifications + settings refresh + ticket updates/chat.
-- **Auth (kasnije)**: AD/LDAPS + Entra SSO je planirano, ali u implementaciji prvo **lokalni dev useri** koji moraju prolaziti identične tokove i permission checkove kao “AD user”.
+- **Auth**: install wizard bira `local` | `entra_ad`. SuperAdmin je uvijek lokalni break-glass. Isti permission tok, bez `if (test)` grana.
 - **AD dev read**: u dev se može privremeno koristiti lični AD user za read, uz throttling/caching i “manual_only” sync (definisano u RAW-u).
 - **OU source-of-truth**: `DistinguishedName` / OU path; standard:
   - `OU=Korisnici,DC=epbih,DC=ba` (users)
