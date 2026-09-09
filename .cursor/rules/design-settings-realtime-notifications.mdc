@@ -1,0 +1,34 @@
+---
+description: Design, theme, settings contract, realtime policy, notifications baseline.
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/docs/**"]
+alwaysApply: false
+---
+
+# Design + Theme + Settings + Realtime + Notifications
+
+## Realtime (opt-in)
+
+- Socket.IO je obavezan kada projekat implementira realtime za: reservations, notifications, settings.
+  Ako projektni zahtjev kaže drugačije, dokumentuj odluku u planu i matrici.
+
+## Design + Theme
+
+- Stil: Apple-linear, clean, minimal.
+- Public web: default one-page; pitati owner-a ako treba multipage.
+- Tema: owner daje 5–6 boja + mapu upotrebe (primary/background/text/accent/success/danger). Držati definisano u `.cursor/docs/theme.md`.
+
+## Settings contract (obavezno)
+
+- Imati registry (public/private) + secret handling.
+  UI: boolean→switch, number→number input, string→text; opis uz svaki key.
+
+## Responsive UX
+
+- Full responsive.
+  Mobile breakpoint: prefer drawer/sheet umjesto modal dialoga.
+
+## Notifications baseline
+
+- In-app obavezno.
+  Email/push samo kad je eksplicitno traženo (može feature-flagged stub).
+

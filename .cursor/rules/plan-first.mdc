@@ -1,0 +1,20 @@
+---
+description: Standard za plan-first rad, plan strukturu i handoff.
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**"]
+alwaysApply: false
+---
+
+# Plan-first Standard
+
+- Svaka veća funkcionalnost ide prvo u Plan mode, tek nakon odobrenog plana ide implementacija.
+
+## Standardizacija planova
+
+- Ako plan ima **više od 3 faze**, koristi folder:
+  - `.cursor/plans/<plan-slug>/`
+  - `00_overview.md`, `01_phase-*.md`, `CHECKLIST.md`, `CHANGELOG.md`, `HANDOFF.md`
+
+## Handoff (obavezno)
+
+- Kad kontekst dođe na ~80–90%: popuni `HANDOFF.md` (urađeno, odluke, otvorena pitanja, next steps, test status).
+

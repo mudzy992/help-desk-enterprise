@@ -1,0 +1,1172 @@
+# RAW PROJECT — EP-HelpDesk (popunjeno iz SRS @EPHELPDESK.pdf)
+
+---
+
+## 1) Project identity
+
+- **Project name**: EP-HelpDesk
+- **Short description** (1–2 rečenice): Centralizovan, skalabilan i “inteligentan” HelpDesk sistem za Elektroprivredu BiH, sa SSO preko Microsoft Entra ID, OU-hijerarhijom, automatskim routingom tiketa, self-service knowledge base, real-time komunikacijom i naprednom analitikom.
+- **Tenant / isolation definition (kritično)**:
+  - Tenant = jedna organizacija (EPBiH) sa hijerarhijskim OU-ovima (nije “SaaS multi-tenant” sa više kompanija).
+  - “Tenant-like” izolacija je po OU scope-u: **Admin/Agent** vidi i radi samo unutar OU-a za koji je ovlašten (default), a **SuperAdmin** ima globalni pristup.
+  - Cross-OU radnje su dozvoljene samo eksplicitno kroz permissione i auditovane su (npr. forwarding tiketa u drugu grupu/OU).
+- **AD OU mapping (source-of-truth) (kritično)**:
+  - Source-of-truth za OU membership je **AD `DistinguishedName` / OU path** (ne samo `Company/Department`).
+  - Standard struktura:
+    - `DC=epbih,DC=ba`
+    - `OU=Korisnici,DC=epbih,DC=ba` (root za korisnike u scope-u)
+    - Top-level pod `OU=Korisnici` su npr. `OU=Direkcija` i `OU=ED <grad>` (npr. `OU=ED Zenica`)
+    - Pod `OU=Direkcija` su “službe” (direktni children)
+    - Pod `OU=ED <grad>` su “poslovnice/podružnice” (direktni children) npr. `OU=Breza`, `OU=Visoko`
+  - Dublji podfolderi ispod službe/poslovnice (ako postoje) **ne mijenjaju** OU scope u MVP-u; svi korisnici ispod te grane pripadaju toj službi/poslovnici.
+  - `Company/Department` se koriste sekundarno za reporting/routing detalje i izuzetke/normalizaciju.
+- **Target users / roles**:
+  - User (zaposlenik / klijent)
+  - Agent (operater podrške / admin koji obrađuje tikete)
+  - Admin (lokalni admin OU / podružnice)
+  - SuperAdmin (Direkcija IKT / globalni admin)
+- **Core features** (bullet):
+  - SSO autentikacija preko Active Directory / Azure AD (Entra ID), bez lokalnih lozinki
+  - Sync korisnika iz AD-a (ime, email, Company, Department, opcionalno Manager) + mapiranje na OU
+  - Organizacijska hijerarhija (Direkcija → Podružnice → Poslovnice → Sektori/Službe) kao tree model
+  - Service catalog + forme:
+    - servis se bira iz kataloga (kategorije → servisi)
+    - svaki servis može imati svoju “smart” formu (definisanu kroz schema) sa obaveznim poljima i validacijom
+    - odluka: podržati da **svaki servis u katalogu** može imati **posebna polja** (1:1 servis → form schema); u MVP-u se može krenuti postepeno, ali model mora to podržavati od starta
+    - Form versioning (obavezno):
+      - svaka forma ima verziju; novi tiketi koriste najnoviju aktivnu verziju forme za taj servis
+      - stari tiketi zadržavaju referencu na verziju forme kojom su kreirani (nema “breaking changes” historije)
+      - admin može aktivirati novu verziju forme bez migracije starih tiketa
+      - Notes (schema evolucija, obavezno):
+        - uklanjanje/rename polja: stara verzija forme ostaje dostupna za prikaz/validaciju istorijskih tiketa (bez “breaking history”)
+        - nova required polja: važe samo za nove tikete (nova verzija), stari tiketi ostaju validni bez backfill-a
+        - promjena tipa polja: raditi kroz novo polje + (opciono) backfill/migration; staro polje ostaje read-only za stare tikete
+        - UI rendering: detalji tiketa renderuju formu prema `formVersionRef` vezanom za tiket
+    - form data se čuva strukturalno (JSON) uz tiket radi analitike i kasnijih automatizacija
+    - katalog nije samo za IT: podržati servise i tokove za druge službe (npr. finansije, kadrovska, pravna, nabavke) kroz isti mehanizam kataloga + form schema
+  - Service availability status (per service):
+    - svaki servis u katalogu ima status: `OPERATIONAL` | `DEGRADED` | `DOWN` | `MAINTENANCE`
+    - status je settings/admin-driven i služi za informisanje korisnika; kreiranje tiketa ostaje dozvoljeno (non-blocking)
+  - Service downtime scheduling (enterprise):
+    - admin može planirati downtime prozor (from/to) za servis
+    - sistem automatski postavi status na `MAINTENANCE` u tom periodu i prikaže obavijest (global/per-service, non-blocking)
+    - po isteku prozora sistem automatski vraća status na `OPERATIONAL` (uz audit + changelog)
+  - Ticketing: kreiranje tiketa (service → request type → due date → opis), statusi (Pending/Assigned/In Progress/Waiting for User/Resolved/Closed)
+  - Group inbox (obavezno):
+    - svaki novi tiket se inicijalno dodjeljuje **handler grupi** (ne pojedincu)
+    - agenti unutar grupe “preuzimaju” tiket (assign to self) kada počnu raditi
+    - SLA response time se računa od kreiranja do prve meaningful reakcije (ne zavisi od individualnog assignee)
+  - Priority (impact/urgency) matrix:
+    - user pri kreiranju tiketa bira **impact** i **urgency** (brzo, 1–2 klika)
+    - sistem predlaže `priority` (LOW/MEDIUM/HIGH/CRITICAL) po matrici, uz mogućnost da Admin/SuperAdmin podešava pravila
+    - agent/admin može override priority, ali promjena mora biti auditovana
+  - Kritično: automatski routing tiketa na osnovu (origin_unit + service_type) preko DB-driven routing pravila
+  - Dodjela tiketa: manuelno preuzimanje + opcionalno auto-assign (Least Busy / Round Robin)
+  - Prosljeđivanje/eskalacija tiketa (promjena grupe, eskalacije)
+  - Cross-OU forwarding (podržano, auditovano):
+    - agent/admin može proslijediti tiket u drugu OU/grupu kada je to realno nadležno (npr. ED Zenica → Direkcija)
+    - prosljeđivanje je eksplicitna radnja sa obaveznim “reason” tekstom (slobodan tekst), i mora biti auditovana
+    - nakon forwarding-a, pristup tiketu se mijenja prema OU/group pravilima (novi handleri imaju pristup; stari samo ako su ostavljeni kao watchers/participants po politici)
+  - Approval flow (ITIL-lite, settings-driven): za odabrane servise tiket ide u “Pending Approval” prije dodjele/obrade
+  - Knowledge Base intercept prije kreiranja: predloži članke; “pomoglo” ⇒ ne kreira se tiket
+  - Waiting for User automatika:
+    - kad agent zatraži dodatne informacije, tiket ide u `WAITING_FOR_USER`
+    - nakon X dana bez odgovora: podsjetnik; nakon Y dana: auto-close (reopen moguće u roku)
+    - sva automatika je settings-driven i auditovana
+  - Reopen policy:
+    - nakon `RESOLVED/CLOSED` korisnik može reopen u roku N dana; nakon toga se kreira novi tiket (link na prethodni)
+    - reopen i close reason se bilježe u audit trail
+  - SLA engine (professional):
+    - SLA pravila definisana po: **service + OU + priority**, uz fallback default profile
+    - SLA metrike:
+      - **response time** (vrijeme do prve meaningful reakcije)
+      - **resolution time** (vrijeme do `RESOLVED`)
+    - Business Hours (BH) kalendari:
+      - SLA se računa u okviru BH kalendara (npr. Pon–Pet 08:00–16:00), uz mogućnost više kalendara
+      - praznici/neradni dani su dio kalendara (admin upravlja)
+    - Pause pravila (settings-driven):
+      - pause dok je `WAITING_FOR_USER`
+      - pause dok je `PENDING_APPROVAL`
+    - Overdue + eskalacije:
+      - upozorenja prije overdue (T-minus)
+      - eskalacije po pravilima (role/group/user), uz audit
+    - Administracija (obavezno, CRUD):
+      - admin može kreirati/mijenjati/brisati: BH kalendare, SLA profile i SLA rule setove
+      - svaka promjena ide kroz change log (reason + diff)
+    - Startni “must-use” set (default, odmah u MVP-u):
+      - BH kalendar: `BH_STANDARD` (Pon–Pet 08:00–16:00, lokalna zona)
+      - SLA profili: `INCIDENT`, `ACCESS`, `STANDARD_REQUEST`, `FINANCE`, `HR`
+      - Default priority baseline (ako servis nema svoj override):
+        - P1/CRITICAL: response 15m, resolution 4h (BH)
+        - P2/HIGH: response 1h, resolution 8h (BH)
+        - P3/MEDIUM: response 4h, resolution 3 BD (BH)
+        - P4/LOW: response 1 BD, resolution 10 BD (BH)
+  - Ticket templates (agent-side, opcionalno, light):
+    - za odabrane servise agent/admin ima “template odgovora” i/ili checklistu koraka (playbook) radi konzistentnosti (ne mijenja ticket model; samo UX pomoć)
+  - In-app chat + audit trail svih akcija i poruka
+  - Ticket participants model (obavezno):
+    - tiket eksplicitno vodi “participants” (učesnike) radi audit-a, prava pristupa i istorije:
+      - `REQUESTER` (user koji je prijavio)
+      - `ASSIGNEE` (agent koji je preuzeo) (opciono)
+      - `HANDLER_GROUP` (grupa kojoj tiket pripada)
+      - `APPROVER` (ako approvals)
+      - `FORWARDED_FROM_GROUP` / `FORWARDED_TO_GROUP`
+      - `SYSTEM` (sistemske promjene)
+    - default participants na kreiranju: REQUESTER + HANDLER_GROUP (+ APPROVER ako policy zahtijeva)
+  - Message types u chatu (obavezno):
+    - poruke imaju tip radi jasnog audit-a i UX-a:
+      - `USER_REPLY`, `AGENT_REPLY`, `INTERNAL_NOTE`, `SYSTEM_EVENT`, `APPROVAL_DECISION`
+    - internal note je vidljiv samo handlerima (i po confidential pravilima)
+  - Confidential tickets (per-ticket restricted visibility, obavezno):
+    - tiket može biti označen kao `CONFIDENTIAL` (manualno ili po servisu)
+    - confidential tiket je vidljiv samo:
+      - requesteru
+      - dodijeljenom agentu i njegovoj handler grupi
+      - eksplicitno dozvoljenim rolama/grupama (npr. HR/Pravna “restricted”)
+      - SuperAdmin samo kroz “break-glass” (reason + audit), ne implicitno
+    - confidential tiketi se moraju sakriti iz listi/pretraga za neovlaštene korisnike (ne smije curiti ni naslov/opis)
+    - sve view/access i promjene na confidential tiketu su auditovane
+  - Attachments: upload fajlova uz tiket/poruke (slike/dokumenti), sa OU-scope access kontrolom
+  - KB feedback loop:
+    - “pomoglo / nije pomoglo” se bilježi per user i per članak
+    - feedback utiče na rangiranje sličnih KB rezultata u intercept-u
+  - KB ownership + review cycle:
+    - svaki KB članak ima owner-a (user ili grupa) i “review due date”
+    - sistem podsjeti owner-a kad članak treba review; nakon isteka članci mogu biti označeni kao “stale” (UX oznaka)
+  - Dedup/merge tiketa (incident mode): admin može spojiti duplikate u “parent” tiket i broadcast-ovati update svim vezanim tiketima
+  - Ticket split (obavezno):
+    - agent/admin može “split” tiketa na 2+ pod-tiketa kada jedan tiket pokriva više tema/odgovornosti
+    - split mora:
+      - zadržati link (parent/child) između tiketa
+      - kopirati osnovni kontekst (naslov, servis, opis, form data snapshot) u child tikete
+      - poruke/attachments: agent bira šta se prenosi (default: ništa osim referenci)
+      - poštovati OU/confidential/participants pravila (child dobije svoj handler group po routing-u ili ručno)
+      - auditovati split event kao `SYSTEM_EVENT` sa reason + listom kreiranih child tiketa
+  - Bulk akcije (oprezno, enterprise-safe):
+    - scope: bulk akcije važe samo za tikete **unutar iste OU/grupe** (Admin/Agent); **SuperAdmin** može cross-OU
+    - bulk close: **nije dozvoljen**
+    - preporučeni set bulk akcija:
+      - bulk assign (group/user) (Admin/SuperAdmin; Agent opcionalno samo unutar svoje grupe)
+      - bulk status update (bez close; uz obavezni reason/note gdje ima smisla)
+      - bulk priority update (Admin/SuperAdmin; obavezno obrazloženje; audit)
+      - bulk broadcast message (incident update): in-app + email (po templates/settings), uz preview broja primaoca i rate limit
+        - structured broadcast (obavezno): poruka se šalje kroz formu sa poljima: “šta se dešava”, “koga pogađa”, “ETA”, “workaround” (opciono), da komunikacija bude standardizovana
+      - bulk merge helper (odaberi više tiketa → merge u parent) (Admin/SuperAdmin; audit)
+  - Saved views (agent/admin UX):
+    - korisnik (Agent/Admin/SuperAdmin) može sačuvati personalizovane filtere i prikaze liste tiketa (npr. “Moja grupa + High + overdue”)
+    - saved view sadrži: filtere (status, priority, service, assignee, date range), sort, kolone, i opcionalno default view
+    - saved views su per-user (ne globalne), ne utiču na sigurnost (OU/group guardovi se i dalje primjenjuju)
+    - SuperAdmin može imati “global view” preko cross-OU prava, ali saved view i dalje ostaje lični
+  - Time tracking (Start/Stop), anti-abuse (auto pause kad tab nije aktivan > X min; spriječiti “infinite”)
+  - Remote Desktop “Request Remote” flow preko Quick Assist (ms-quick-assist: protokol) + GPO preduvjeti
+  - Notifikacije: in-app + email (Office 365) + Edge/Windows toast (preko Edge ekstenzije)
+  - Teams integracija (stub, feature-flagged):
+    - definisati event/webhook interface i interne evente, ali bez obaveze isporuke Teams konektora u MVP-u
+  - Durable integration queue + retry/backoff (enterprise reliability) (obavezno):
+    - sve outgoing integracije idu kroz durable “job queue” (DB-based za start):
+      - email notifikacije
+      - Edge extension notifikacije/eventi (uključujući remote request)
+      - Teams stub webhook (ako je uključen)
+    - queue ima retry/backoff politiku + dead-letter (DLQ) za trajne greške
+    - API upis (ticket/status/message) ne smije zavisiti od dostupnosti integracija: sistem snimi job i nastavi, a worker šalje asinkrono
+    - admin UI: pregled queue/DLQ + “retry now”
+  - Dashboard/KPI: tiketi po OU, avg resolution, opterećenje admina, KB resolution rate (target ≥ 30%)
+  - NFR: response time < 300ms; ≥1000 simultanih korisnika; 99.9% uptime; horizontalno skaliranje backenda
+  - Sigurnost: RBAC + OU isolation + audit log svih akcija
+  - Granular RBAC permissions (obavezno):
+    - pored rola (USER/AGENT/ADMIN/SUPER_ADMIN) sistem ima granular permissione (feature flags po akcijama)
+    - permissioni se evaluiraju uz OU scoping (permission ≠ cross-OU)
+    - primjer permissiona (minimalni “enterprise set”):
+      - `ticket.forward.cross_ou`
+      - `ticket.merge`
+      - `ticket.bulk.assign`
+      - `ticket.bulk.status_update`
+      - `ticket.bulk.priority_update`
+      - `ticket.bulk.broadcast`
+      - `ticket.attachments.upload`
+      - `ticket.attachments.download`
+      - `service.catalog.write`
+      - `service.forms.write`
+      - `service.availability.write`
+      - `sla.write`
+      - `routing.write`
+      - `settings.write`
+      - `audit.export`
+      - `supportBundle.export`
+      - `confidential.break_glass`
+    - Default mapping (rola → permissions) (standardni start):
+      - USER:
+        - (nema admin permissiona) koristi samo svoje tikete/KB i standardne user akcije
+      - AGENT:
+        - `ticket.attachments.upload`
+        - `ticket.attachments.download`
+        - `ticket.merge` (samo unutar svoje OU/grupe; ako želite strože, prebaciti na ADMIN)
+        - `ticket.bulk.assign` (opciono: samo unutar svoje grupe)
+        - `ticket.bulk.status_update` (bez close; samo za tikete koje smije vidjeti)
+        - `ticket.forward.cross_ou` (dozvoljeno, ali OU scoping + audit; ako želite strože, prebaciti na ADMIN)
+      - ADMIN:
+        - sve iz AGENT +
+        - `ticket.bulk.priority_update`
+        - `ticket.bulk.broadcast` (in-app + email; scoped na OU/grupu)
+        - `routing.write`
+        - `service.catalog.write`
+        - `service.forms.write`
+        - `service.availability.write`
+        - `sla.write`
+        - `settings.write` (samo u svojoj OU, ako budete imali OU-scoped settings; u suprotnom ograničiti na SUPER_ADMIN)
+        - `audit.export` (scoped)
+        - `supportBundle.export`
+      - SUPER_ADMIN:
+        - sve permissions +
+        - implicitno cross-OU mogućnosti (uz audit), uključujući bulk cross-OU i routing/global settings
+        - `confidential.break_glass`
+    - Napomena:
+      - OU/group guardovi su i dalje obavezni; permissions ne smiju “otključati” podatke van scope-a osim za SUPER_ADMIN.
+      - Mapping je izmjenjiv kroz admin UI i ide u change log (reason + diff).
+  - Permission scopes (enterprise) (obavezno):
+    - permissions mogu biti scoped na:
+      - OU scope (npr. `routing.write` samo za OU=ED Zenica)
+      - Service scope (npr. `service.forms.write` samo za HR servise)
+    - super admin ima global scope po defaultu
+    - scope se evaluira zajedno sa OU/group guardovima i **nikad** ne smije zaobići confidential per-ticket ACL
+  - Shadow permission check (enterprise) (obavezno):
+    - prije aktivacije promjene permissions/scopes, sistem prikazuje diff “ko dobija/gubi” pristup (preview impact)
+    - promjena se ne može aktivirati bez pregleda (settings-driven), i ulazi u change log (reason + diff)
+  - RBAC test suite (CI) (obavezno):
+    - automatizovani testovi provjeravaju access kontrolu:
+      - role→permissions mapping
+      - permission scopes (OU/service)
+      - confidential per-ticket ACL + break-glass pravila
+      - bulk akcije (OU/group scoping, bez bulk close)
+      - exports (OU scoping)
+    - test matrice su dio repozitorija i dio CI pipeline-a
+  - Audit export + tamper-evident audit (light):
+    - audit export (CSV/JSON) uz OU scoping
+    - opcionalno “hash chain” (tamper-evident): svaki audit zapis sadrži hash prethodnog zapisa
+  - Data classification (za sigurnost attachments):
+    - servis i/ili tiket ima classification: `INTERNAL` | `CONFIDENTIAL` | `RESTRICTED`
+    - classification utiče na attachment policy (max size, allowed types, download prava)
+    - Attachment classification inheritance (obavezno):
+      - attachment automatski nasljeđuje classification tiketa/servisa
+      - attachment ne može imati “niži” nivo od tiketa (npr. RESTRICTED tiket ⇒ RESTRICTED attachments)
+      - promjena classification tiketa propagira minimalni nivo na postojeće attachment metapodatke
+  - Policy: PII/secret redaction (obavezno):
+    - sistem detektuje potencijalne tajne/PII u ticket title/description/chat (npr. lozinke, tokeni, API ključevi) i reaguje po politici
+    - default: **warn-only** (UI upozorenje + audit); opcionalno: soft-block za high-risk pattern-e (settings-driven)
+  - Legal/HR safe logging mode (enterprise) (obavezno):
+    - za `CONFIDENTIAL/RESTRICTED` tikete, aplikacijski logovi ne smiju sadržavati title/description/message content
+    - loguju se samo metadata (ids, actorId, actionType, timestamps, correlation id), dok je audit trail i dalje kompletan i access-controlled
+  - Workflow state machine guards (obavezno):
+    - statusi imaju dozvoljene tranzicije; zabranjeni skokovi se odbijaju (uz jasnu poruku)
+    - pravila ko smije koju tranziciju (permission + role)
+    - state machine mora biti kompatibilan sa approvals, waiting-for-user i reopen flow-om
+  - Close codes + analytics:
+    - pri `RESOLVED` agent bira “resolution code” iz allow-list (i opcionalni tekst)
+    - close codes se koriste za analitiku i poboljšanje KB
+  - Config versioning + rollback (admin safety):
+    - promjene ključnih konfiguracija (settings/routing/SLA/service forms/catalog) se grupišu u “config version”
+    - moguće je vidjeti diffs, dodati release notes i rollback na prethodnu verziju (permission-gated, audit + changelog)
+    - Dry-run/validate prije aktivacije (obavezno):
+      - prije aktivacije config verzije sistem izvrši validaciju (bez side-effecta):
+        - routing coverage check + fallback pravila
+        - SLA rules completeness + sanity check (BH kalendari, profili, priority map)
+        - service forms schema validacija (required fields, versioning konzistentnost)
+        - permissions/settings sanity (npr. required keys, invalid combos)
+      - ako validacija padne: aktivacija se blokira i prikazuje se lista grešaka
+    - Shadow mode (opciono, ali podržano):
+      - nova routing/SLA pravila se računaju “u pozadini” za nove tikete (bez primjene), radi uporedbe sa aktivnim pravilima
+      - admin vidi diffs (koliko tiketa bi otišlo drugoj grupi, koliko SLA promjena), prije nego “promijeni” aktivnu verziju
+  - Report packs (predefinisani exporti) (enterprise reporting):
+    - predefinisani set izvještaja/exporta (CSV/JSON) sa OU scoping-om, npr. “Monthly KPI”, “Overdue by service”, “Top close codes”, “KB helpfulness”
+    - dostupno Admin/SuperAdmin uz permission `audit.export`/`reports.export`
+  - Bottleneck dashboard (enterprise ops):
+    - dashboard koji prikazuje gdje tiketi “stoje”: `PENDING_APPROVAL`, `WAITING_FOR_USER`, `UNROUTED`, `OVERDUE`, itd.
+    - breakdown po OU / service / priority, trend kroz vrijeme
+    - pomaže identifikaciju uskih grla i optimizaciju procesa/SLA
+  - Smart required fields enforcement (data quality):
+    - sistem enforce-uje ključna polja prije `RESOLVED/CLOSED` (npr. close code, resolution note, required form fields)
+    - pravila su settings-driven i mogu biti različita po servisu/profilu
+  - Data lifecycle: auto-archive closed tickets:
+    - nakon X dana od `CLOSED`, tiket ide u `ARCHIVED` (read-only)
+    - archived tiketi ostaju searchable (uz permission), ali su odvojeni od “active” listi radi performansi i urednosti
+  - Anti-spam / anti-loop guardrails (enterprise safety):
+    - zaštita od slučajnih duplikata: “isti requester + isti servis + sličan opis u X minuta” ⇒ upozorenje + opcionalno soft-block
+    - zaštita masovnih akcija: bulk broadcast ima dodatnu potvrdu ako je broj primaoca iznad praga
+    - sve je settings-driven i auditovano (bez “hard rate limiting-a”)
+  - Policy packs (bundle konfiguracija) (enterprise):
+    - paket konfiguracije koji kombinuje: permissions/scopes + SLA profile + required fields + classification policy + approvals defaults
+    - policy pack se može dodijeliti servisu ili cijeloj OU (admin bira), i služi za standardizaciju između službi
+    - default paketi (start):
+      - `PACK_IT_STANDARD`
+      - `PACK_HR_RESTRICTED`
+      - `PACK_FINANCE_RESTRICTED`
+  - Service catalog lifecycle (obavezno):
+    - servis ima lifecycle status: `DRAFT` | `ACTIVE` | `DEPRECATED`
+    - `DRAFT`: vidljiv samo adminima (može se konfigurirati kroz wizard)
+    - `ACTIVE`: vidljiv korisnicima i može se birati pri kreiranju tiketa
+    - `DEPRECATED`: više se ne nudi korisnicima, ali historijski tiketi ostaju i servis ostaje vidljiv u adminu/reportingu
+  - Read-only mode (maintenance) (settings-driven):
+    - admin može privremeno staviti odabrane module u read-only (npr. settings, routing, service catalog)
+    - ticket create ostaje dozvoljen (kao što je definisano), ali admin dijelovi mogu biti zaključani
+  - Obavezno: Edge ekstenzija (background listener + popup UI + quick reply, remote initiation, WS + polling fallback)
+  - Edge ekstenzija je **interni dodatak**: namijenjena samo korisnicima `epbih.ba` (enterprise distribution/policy; bez “public” ekstenzije)
+  - Edge integracija (chat + remote) — contract (obavezno):
+    - Ekstenzija je “companion client”, ne puni replacement web app-a:
+      - notifikacije
+      - lightweight chat (quick reply)
+      - remote request → otvaranje Quick Assist
+      - link “Open in Desk” na `desk.epbih.ba`
+    - Komponente (Manifest V3):
+      - background service worker: WS connect/reconnect, prima evente, prikazuje notifikacije, pokreće Quick Assist
+      - popup UI: mini inbox + quick reply + open-in-desk
+      - content script: ne koristiti u MVP-u (samo ako kasnije bude potrebno)
+    - Auth/session:
+      - tokeni osjetljivi: u memoriji (bez localStorage za tajne); standardni backend auth/claims model
+      - u dev: local_dev auth; u produkciji: Entra/AD provider (kasnije)
+    - Delivery/pouzdanost:
+      - outgoing edge eventi idu kroz durable integration queue (retry/backoff + DLQ)
+      - polling fallback (ako WS padne): strogo throttled (npr. 60–120s) samo za unread notifs/messages
+    - Event kanali:
+      - `user:{userId}` (notifs + remote requests + quick reply)
+      - `ticket:{ticketId}` (chat/status update kad user otvori tiket u popupu)
+    - Message types:
+      - extension end-user nikad ne prikazuje `INTERNAL_NOTE`
+    - Confidential:
+      - extension ne smije curiti sadržaj/titlove; backend enforce + UI “no access” state
+    - Enterprise hardening (preporučeno, ali u scope-u):
+      - redacted previews: notifikacije iz extension-a ne smiju prikazivati sadržaj poruke/tiketa; samo tip eventa + ticketId (i opcionalno service name)
+      - ack/receipts:
+        - extension šalje backendu “delivered” i “opened” receipt za notifikacije (audit + troubleshooting)
+        - quick reply šalje “sent” i dobija “accepted/rejected” sa error code
+      - replay protection:
+        - WS eventi imaju `eventId` + `createdAt`; extension dedup-uje evente po `eventId`
+      - kill switch:
+        - SuperAdmin može globalno isključiti Edge module (feature flag) u slučaju incidenta
+      - permissions:
+        - Edge action permissioni su granularni (`edge.connect`, `edge.notify.receive`, `ticket.message.send`, `ticket.remote.open_quick_assist`)
+      - safe logging:
+        - extension i backend logovi poštuju safe logging (bez sadržaja za confidential/restricted)
+      - versioning:
+        - extension šalje `extensionVersion` u handshake; backend može blokirati zastarjele verzije (minVersion)
+  - i18n (obavezno):
+    - default jezik: BS
+    - EN postoji kao fallback/infrastruktura (UI copy + email templates + public settings copy)
+  - Service onboarding wizard (admin):
+    - vođeni koraci za kreiranje servisa: servis → forma → routing → SLA profil → approvals → availability
+    - wizard radi validacije i pomaže da se servis “ispravno” aktivira bez rupa
+    - auto-fill (enterprise):
+      - wizard predlaže default routing target group i fallback za servis (prema OU i/ili policy pack-u), uz obaveznu potvrdu admina
+      - upozorava ako servis nema routing coverage ili fallback
+  - CSAT (customer satisfaction) nakon resolve/close:
+    - user dobija kratku ocjenu (1–5) + opcionalni komentar
+    - CSAT ulazi u KPI/dashboard po OU/servisu/grupi
+- **Non-goals** (šta ne radimo sada):
+  - AI klasifikacija / SLA predikcija / advanced routing engine (faze 2+)
+  - Teams integracija (pun konektor) — samo stub u MVP-u
+  - Mobilna aplikacija (ne radimo uopšte u ovom projektu)
+
+---
+
+## 2) UX / Design (Apple-linear, clean)
+
+- **Public web style**:
+  - multipage (app shell): login/SSO callback, dashboard, tickets, KB, admin/routing, analytics
+- **Design keywords** (3–6 riječi): Apple-linear, minimal, clean, enterprise, calm, readable
+- **Color scheme (5–6 boja)**:
+  - primary: #2563EB
+  - background: #0B1220
+  - text: #E5E7EB
+  - accent: #22C55E
+  - success: #16A34A
+  - danger: #EF4444
+- **Color usage map** (kratko: gdje ide koja boja; npr. primary=CTA, accent=links/badges, danger=errors)
+  - primary=CTA/buttons + active nav
+  - accent=badges (status/priority), highlight metrics
+  - success=resolved/closed confirmations
+  - danger=errors + critical priority + destructive actions
+  - background/text=app shell (dark, high-contrast, low noise)
+- **Typography** (ako ima preference; inače default Inter): Inter (default)
+- **Mobile UX rule**: drawer/sheet umjesto dialoga na mobilnom gdje je moguće (obavezno).
+
+---
+
+## 3) Tech stack (standard)
+
+- **Backend**: NestJS + Prisma + MySQL/MariaDB (Modular Monolith Phase 1; DDD-light; event-driven interno)
+- **Frontend**: React (Vite) + Tailwind + Radix/shadcn-style + TanStack Query + Zustand
+
+Napomena za implementaciju:
+
+- U dev okruženju koristimo **lokalne test korisnike** (bez AD/Entra integracije), ali **sa identičnim user modelom/claims-ovima** kao što će doći iz AD-a. AD integracija se implementira kasnije kao “provider” bez promjene domen logike.
+
+Ako projekat odstupa od standarda, navedi tačno:
+
+- **Exceptions**:
+  - Web frontend preferirano “React / Next.js” u SRS; za ovaj template ostajemo na React (Vite) standardu osim ako izričito ne prebacimo na Next.js.
+  - Obavezna Edge ekstenzija (Manifest V3) kao zaseban “client” (nije standardni dio template-a).
+
+---
+
+## 4) Database (obavezno sve)
+
+- **DB vendor**: MySQL/MariaDB
+- **HOST**: TBD
+- **PORT**: TBD
+- **DB_NAME**: ephelpdesk
+- **USER**: TBD
+- **PASS**: TBD
+- **Notes** (prod/dev razlike, read replicas, …):
+  - DB detalji (HOST/PORT/USER/PASS) će se popuniti čim budu dostupni podaci za target VM/DB instancu.
+  - Prisma schema kao source-of-truth + migracije (bez manual DB izmjena).
+  - OU isolation: svi upiti moraju biti scoped po `organizationalUnitId` osim za `SUPER_ADMIN`.
+  - Full-text search:
+    - KB: full-text pretraga (inicijalno MySQL FULLTEXT), uz mogućnost kasnije migracije na semantičku pretragu (faza 2).
+    - Tickets: indeksirana pretraga po naslovu/opisu + filteri (status, OU, service, assignee, priority).
+  - Attachments storage: u DB samo metadata + path; fajlovi na disk (uploads dir) ili objekt storage (ako se uvede kasnije).
+
+---
+
+## 5) Deploy / Traefik (obavezno sve)
+
+- **Domain (TRAEFIK_HOST)**: `desk.epbih.ba`
+- **Stack slug (TRAEFIK_STACK)**: `ephelpdesk`
+- **External network (TRAEFIK_NETWORK)**: `web`
+- **EntryPoint**: `websecure`
+- **TLS**: true
+- **Backend path prefix**: `/backend`
+- **Uploads host dir**: `/mnt/shared-app-files/ephelpdesk`
+
+---
+
+## 6) Settings contract (obavezno)
+
+Za ovaj projekat želim:
+
+- **Settings registry** od starta (public/private + types + validation + secret handling)
+- **UI pravila**:
+  - boolean → switch
+  - number → number input
+  - string → text input
+  - svaki key ima opis “za šta je”
+- **Public settings**: branding/copy/contact/maintenance (minimum)
+- **Private settings**: system/admin config (minimum)
+
+Navedi prve settings ključeve koje želiš (min 10):
+
+- public:
+  - `public.branding.appName` (string): naziv aplikacije u headeru
+  - `public.branding.logoUrl` (string): URL logo-a (ako se koristi)
+  - `public.support.contactEmail` (string): kontakt email za opšte upite
+  - `public.support.contactPhone` (string): kontakt telefon (opciono)
+  - `public.maintenance.enabled` (boolean): uključi maintenance banner
+  - `public.maintenance.message` (string): tekst maintenance obavijesti
+  - `public.maintenance.fromAt` (string): početak perioda (ISO datetime string)
+  - `public.maintenance.toAt` (string): kraj perioda (ISO datetime string)
+  - `public.maintenance.scope` (string): `global` | `per_service` | `both` (default `both`)
+  - `public.maintenance.affectedServicesCsv` (string): lista servisa (names ili ids) koji su pogođeni (opciono; koristi se za `per_service`/`both`)
+  - `public.maintenance.isBlocking` (boolean): ako je true može blokirati kreiranje tiketa za pogođene servise (default false; u ovom projektu treba ostati false)
+- private:
+  - `private.auth.mode` (string): `local_dev` | `entra_ad` (u MVP dev: `local_dev`, AD kasnije)
+  - `private.auth.localDevUsersJson` (secret string): lista lokalnih korisnika (email, displayName, role, OU DN/path, company/department) za dev/test
+  - `private.auth.jwtSigningSecret` (secret string): signing secret za lokalni dev JWT (ne dijeliti izvan dev okruženja)
+  - `private.auth.adRead.enabled` (boolean): dev-only flag za čitanje iz AD-a (default false; ručno uključiti kad testiraš)
+  - `private.auth.adRead.strategy` (string): `manual_only` (dev default) | `scheduled` (kasnije)
+  - `private.auth.adRead.usersBaseDn` (string): npr. `OU=Korisnici,DC=epbih,DC=ba` (ne koristiti široki `DC=epbih,DC=ba`)
+  - `private.auth.adRead.groupsBaseDn` (string): npr. `OU=Grupe,DC=epbih,DC=ba`
+  - `private.auth.adRead.maxQueriesPerSecond` (number): dev throttle (default 0.5)
+  - `private.auth.adRead.syncCooldownMinutes` (number): minimalni razmak između “heavy sync” (default 15)
+  - `private.auth.adRead.cacheTtlMinutes` (number): cache za AD lookups (default 30)
+  - `private.auth.adRead.ouTreeCacheTtlHours` (number): cache za OU tree/top-level OU listu (default 12)
+  - `private.auth.adRead.retryBackoffMinutes` (number): backoff na greške/timeouts (default 3)
+  - `private.auth.adRead.pageSize` (number): LDAP page size (default 500)
+  - `private.auth.adRead.userFilter` (string): LDAP filter (npr. “has mail”, exclude disabled + exclude admin/service accounts) — definisati u implementaciji
+  - `private.auth.azureTenantId` (secret string): Entra tenant id
+  - `private.auth.azureClientId` (secret string): Entra app client id
+  - `private.auth.azureClientSecret` (secret string): Entra client secret
+  - `private.auth.graphScopes` (string): minimalne Graph permissione (npr. `User.Read Directory.Read.All`)
+  - `private.auth.roleSource` (string): `local_db` | `entra_groups` (kako se role dodjeljuju)
+  - `private.auth.entraGroupRoleMappingJson` (secret string): mapiranje Entra groupId → role (ako se koristi)
+  - `private.auth.ouMappingStrategy` (string): `by_dn_ou_path` | `by_company_department` | `by_custom_mapping` (kako mapiramo AD identitet u OU)
+  - `private.auth.ouMappingOverridesJson` (secret string): override mapping pravila (ako treba)
+  - `private.auth.adBaseDn` (string): npr. `DC=epbih,DC=ba`
+  - `private.auth.adUsersRootOuDn` (string): npr. `OU=Korisnici,DC=epbih,DC=ba`
+  - `private.auth.adGroupsRootOuDn` (string): npr. `OU=Grupe,DC=epbih,DC=ba`
+  - `private.auth.adLdapsUrlsCsv` (string): npr. `ldaps://dc1.epbih.ba:636,ldaps://dc2.epbih.ba:636`
+  - `private.auth.adBindDn` (secret string): DN servisnog read-only naloga (ako se koristi simple bind)
+  - `private.auth.adBindPassword` (secret string): password read-only naloga (ako se koristi simple bind)
+  - `private.auth.adRoleGroupDnSuperAdmin` (string): DN grupe `EPHELPDESK_ROLE_SUPER_ADMIN`
+  - `private.auth.adRoleGroupDnAdmin` (string): DN grupe `EPHELPDESK_ROLE_ADMIN`
+  - `private.auth.adRoleGroupDnAgent` (string): DN grupe `EPHELPDESK_ROLE_AGENT`
+  - `private.ticket.autoAssign.enabled` (boolean): uključi auto-assign
+  - `private.ticket.autoAssign.strategy` (string): `least_busy` | `round_robin`
+  - `private.ticket.routing.fallbackGroupId` (string): fallback handler grupa kad nema routing match-a
+  - `private.ticket.routing.requireCoverage` (boolean): blokiraj aktivaciju servisa/OU ako nema routing pravila
+  - `private.ticket.priorityMatrix.enabled` (boolean): uključi impact/urgency → priority matrix (default true)
+  - `private.ticket.priorityMatrix.impactOptionsCsv` (string): npr. `self,team,unit,company` (default `self,team,unit,company`)
+  - `private.ticket.priorityMatrix.urgencyOptionsCsv` (string): npr. `low,medium,high` (default `low,medium,high`)
+  - `private.ticket.priorityMatrix.rulesJson` (secret string): matrix rules (impact+urgency → priority) (default prazno; popuniti kasnije)
+  - `private.ticket.waitingForUser.enabled` (boolean): uključi waiting-for-user automatiku (default true)
+  - `private.ticket.waitingForUser.reminderAfterDays` (number): podsjetnik nakon X dana (default 2)
+  - `private.ticket.waitingForUser.autoCloseAfterDays` (number): auto-close nakon Y dana (default 7)
+  - `private.ticket.reopen.enabled` (boolean): omogući reopen (default true)
+  - `private.ticket.reopen.windowDays` (number): koliko dana nakon resolve/close je reopen dozvoljen (default 7)
+  - `private.ticket.sla.enabled` (boolean): uključi SLA engine (default true)
+  - `private.ticket.sla.rulesJson` (secret string): SLA rules (service+OU+priority → response/resolution + BH calendar + escalations) (default: startni “must-use” set; admin može mijenjati)
+  - `private.ticket.sla.defaultCalendarKey` (string): default BH kalendar (default `BH_STANDARD`)
+  - `private.ticket.sla.calendarsJson` (secret string): definicije BH kalendara + praznici (default: `BH_STANDARD`)
+  - `private.ticket.sla.profilesJson` (secret string): SLA profili (default: INCIDENT/ACCESS/STANDARD_REQUEST/FINANCE/HR)
+  - `private.ticket.sla.pauseOnWaitingForUser` (boolean): pause SLA dok je `WAITING_FOR_USER` (default true)
+  - `private.ticket.sla.pauseOnPendingApproval` (boolean): pause SLA dok je `PENDING_APPROVAL` (default true)
+  - `private.ticket.sla.notifyBeforeOverdueMinutes` (number): pre-overdue upozorenje (default 30)
+  - `private.ticket.sla.escalationsEnabled` (boolean): omogući eskalacije (default true)
+  - `private.ticket.sla.escalationTargetsJson` (secret string): kome idu eskalacije (role/group/user) (default prazno)
+  - `private.ticket.sla.escalations.inAppEnabled` (boolean): eskalacije idu in-app (default true)
+  - `private.ticket.sla.escalations.emailEnabled` (boolean): eskalacije idu emailom (default false)
+  - `private.ticket.sla.requireAdminReasonForRuleChanges` (boolean): obavezan reason za promjene SLA pravila (default true)
+  - `private.ticket.sla.allowServiceOverrides` (boolean): servis može override SLA profil/pravila (default true)
+  - `private.ticket.sla.allowOuOverrides` (boolean): OU može override SLA (default true)
+  - `private.ticket.sla.maxEscalationLevels` (number): max nivoa eskalacije (default 3)
+  - `private.ticket.forwarding.allowCrossOu` (boolean): dozvoli cross-OU forwarding (default true)
+  - `private.ticket.forwarding.requireReason` (boolean): obavezan reason (slobodan tekst) (default true)
+  - `private.ticket.forwarding.keepPreviousHandlersAsWatchers` (boolean): da li prethodni handleri ostaju watchers nakon forwarding-a (default false)
+  - `private.ticket.savedViews.enabled` (boolean): uključi saved views (default true)
+  - `private.ticket.savedViews.maxPerUser` (number): limit saved views po useru (default 20)
+  - `private.ticket.savedViews.allowDefaultView` (boolean): omogućiti postavljanje default saved view (default true)
+  - `private.ticket.savedViews.allowSharing` (boolean): sharing saved views (default false u MVP)
+  - `private.ticket.bulkActions.enabled` (boolean): uključi bulk akcije (default true)
+  - `private.ticket.bulkActions.allowCrossOuForSuperAdmin` (boolean): super admin može cross-OU (default true)
+  - `private.ticket.bulkActions.requireSameOuAndGroup` (boolean): enforce same OU+group za non-superadmin (default true)
+  - `private.ticket.bulkActions.disallowBulkClose` (boolean): zabrani bulk close (default true)
+  - `private.ticket.bulkActions.allowedActionTypesCsv` (string): allow-list bulk akcija (default `assign_group,assign_user,set_status,set_priority,broadcast_message,merge_into_parent`)
+  - `private.ticket.bulkActions.broadcast.enableInApp` (boolean): in-app broadcast (default true)
+  - `private.ticket.bulkActions.broadcast.enableEmail` (boolean): email broadcast (default true; po templates/settings)
+  - `private.ticket.bulkActions.broadcast.requirePreview` (boolean): prikaz broja primaoca prije slanja (default true)
+  - `private.ticket.bulkActions.broadcast.rateLimitPerMinute` (number): rate limit (default 10)
+  - `private.ticket.bulkActions.broadcast.structuredEnabled` (boolean): structured broadcast forma (default true)
+  - `private.ticket.bulkActions.broadcast.requiredFieldsCsv` (string): default `what_happened,who_affected,eta`
+  - `private.ticket.bulkActions.broadcast.allowWorkaround` (boolean): workaround polje (default true)
+  - `private.ticket.bulkActions.broadcast.allowLinks` (boolean): allow links u poruci (default true)
+  - `private.ticket.bulkActions.auditBatchIdEnabled` (boolean): batch id za audit (default true)
+  - `private.integrations.teams.stubEnabled` (boolean): uključi Teams stub (default false)
+  - `private.integrations.teams.webhookUrl` (secret string): Teams webhook url (ako/nekad bude trebalo)
+  - `private.integrations.teams.eventTypesCsv` (string): koji eventi bi se slali (default prazno)
+  - `private.integrations.queue.enabled` (boolean): uključi durable integration queue (default true)
+  - `private.integrations.queue.typesCsv` (string): koji tipovi integracija idu kroz queue (default `email,edge,teams`)
+  - `private.integrations.queue.maxAttempts` (number): max retry attempts (default 10)
+  - `private.integrations.queue.initialBackoffSeconds` (number): default 60
+  - `private.integrations.queue.maxBackoffSeconds` (number): default 3600
+  - `private.integrations.queue.deadLetterAfterAttempts` (number): nakon koliko pokušaja ide u DLQ (default 10)
+  - `private.integrations.queue.deadLetterRetentionDays` (number): retention DLQ (default 30)
+  - `private.integrations.queue.workerPollSeconds` (number): polling interval (default 5)
+  - `private.integrations.queue.adminUiEnabled` (boolean): admin UI za queue/DLQ (default true)
+  - `private.ticket.unroutedQueue.enabled` (boolean): omogući “unrouted queue” za tikete bez routing match-a (default true)
+  - `private.ticket.unroutedQueue.ownerRole` (string): ko je owner queue-a (default `SUPER_ADMIN`)
+  - `private.ticket.unroutedQueue.targetGroupId` (string): opcionalno: grupa koja prima sve unrouted tikete (ako se koristi umjesto role-based queue)
+  - `private.ticket.unroutedQueue.cleanupSlaHours` (number): operativni rok za obradu unrouted (default 8)
+  - `private.ticket.attachments.enabled` (boolean): uključi attachments
+  - `private.ticket.attachments.maxFileSizeMb` (number): max veličina fajla (default 25)
+  - `private.ticket.attachments.allowedMimeTypesCsv` (string): allow-list MIME tipova (default `application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+  - `private.ticket.attachments.allowedExtensionsCsv` (string): allow-list ekstenzija (default `pdf,png,jpg,jpeg,docx,xlsx`)
+  - `private.ticket.attachments.maxFilesPerTicket` (number): max fajlova po tiketu (default 10)
+  - `private.ticket.attachments.maxFilesPerMessage` (number): max fajlova po poruci (default 5)
+  - `private.ticket.attachments.dangerousExtensionsBlocklistCsv` (string): block-list (default `exe,msi,bat,cmd,ps1,vbs,js,jar,com,scr`)
+  - `private.ticket.attachments.retentionDays` (number): retention za attachments (default 365)
+  - `private.ticket.forms.enabled` (boolean): uključi service-based forme (default true)
+  - `private.ticket.forms.schemaRegistryJson` (secret string): registry form schema po serviceId (JSON)
+  - `private.ticket.forms.requireStructuredFields` (boolean): enforce required fields iz schema (default true)
+  - `private.ticket.forms.versioning.enabled` (boolean): uključi form versioning (default true)
+  - `private.ticket.forms.versioning.allowMultipleActiveVersions` (boolean): dozvoli više aktivnih verzija (default false)
+  - `private.ticket.forms.versioning.requireVersionOnTicket` (boolean): tiket mora imati formVersionRef (default true)
+  - `private.services.availability.enabled` (boolean): uključi service availability status (default true)
+  - `private.services.availability.allowedStatusesCsv` (string): allow-list statusa (default `OPERATIONAL,DEGRADED,DOWN,MAINTENANCE`)
+  - `private.services.availability.showStatusInCatalog` (boolean): prikaz statusa u katalogu (default true)
+  - `private.services.availability.showStatusInTicketCreate` (boolean): prikaz statusa pri kreiranju tiketa (default true)
+  - `private.services.availability.changeRequiresReason` (boolean): obavezan reason pri promjeni statusa servisa (default true)
+  - `private.services.downtimeScheduling.enabled` (boolean): uključi downtime scheduling (default true)
+  - `private.services.downtimeScheduling.autoSetMaintenanceStatus` (boolean): automatski postavi status (default true)
+  - `private.services.downtimeScheduling.autoRestoreOperational` (boolean): automatski restore status (default true)
+  - `private.services.downtimeScheduling.requireReason` (boolean): obavezan reason (default true)
+  - `private.services.lifecycle.enabled` (boolean): uključi service lifecycle (default true)
+  - `private.services.lifecycle.allowedStatesCsv` (string): default `DRAFT,ACTIVE,DEPRECATED`
+  - `private.services.lifecycle.defaultStateOnCreate` (string): default `DRAFT`
+  - `private.ticket.confidential.enabled` (boolean): uključi confidential tikete (default true)
+  - `private.ticket.confidential.defaultForServicesCsv` (string): lista servisa koji po defaultu kreiraju confidential tikete (default prazno)
+  - `private.ticket.confidential.allowedViewerRolesCsv` (string): role koje mogu vidjeti confidential bez break-glass (default prazno)
+  - `private.ticket.confidential.allowedViewerGroupIdsCsv` (string): groupId lista koja može vidjeti confidential (default prazno)
+  - `private.ticket.confidential.breakGlassEnabled` (boolean): omogući break-glass (default true)
+  - `private.ticket.confidential.breakGlassAllowedRolesCsv` (string): ko smije break-glass (default `SUPER_ADMIN`)
+  - `private.ticket.confidential.breakGlassRequiresReason` (boolean): obavezan reason (default true)
+  - `private.ticket.confidential.auditViews` (boolean): auditovati view/access (default true)
+  - `private.security.permissions.enabled` (boolean): uključi granular permissions (default true)
+  - `private.security.permissions.registryJson` (secret string): definicija permissiona + mapiranje role→permissions (default: minimalni set)
+  - `private.security.permissions.scopes.enabled` (boolean): uključi permission scopes (default true)
+  - `private.security.permissions.scopes.policyJson` (secret string): definicija scope pravila (OU/service) (default prazno)
+  - `private.security.permissions.shadowCheck.enabled` (boolean): uključi shadow permission check (default true)
+  - `private.security.permissions.shadowCheck.requirePreviewBeforeActivate` (boolean): obavezno pregledati diff (default true)
+  - `private.security.permissions.shadowCheck.maxImpactedUsersPreview` (number): limit prikaza (default 200)
+  - `private.quality.rbacTestSuite.enabled` (boolean): uključi RBAC test suite u CI (default true)
+  - `private.quality.rbacTestSuite.matrixJson` (secret string): test matrica (role/permission/scope scenarios) (default minimalni set)
+  - `private.audit.export.enabled` (boolean): omogući audit export (default true)
+  - `private.audit.export.allowedFormatsCsv` (string): `csv,json` (default `csv,json`)
+  - `private.audit.tamperEvident.enabled` (boolean): uključi hash-chain audit (default true)
+  - `private.audit.tamperEvident.hashAlgorithm` (string): default `sha256`
+  - `private.dataClassification.enabled` (boolean): uključi data classification (default true)
+  - `private.dataClassification.allowedLevelsCsv` (string): default `INTERNAL,CONFIDENTIAL,RESTRICTED`
+  - `private.dataClassification.defaultLevel` (string): default `INTERNAL`
+  - `private.dataClassification.attachmentPolicyByLevelJson` (secret string): per-level attachment policy overrides (default prazno)
+  - `private.dataClassification.inheritance.enabled` (boolean): uključi classification inheritance za attachments (default true)
+  - `private.dataClassification.inheritance.propagateOnTicketChange` (boolean): propagiraj minimalni nivo na postojeće attachment metapodatke (default true)
+  - `private.ticket.closeCodes.enabled` (boolean): uključi close codes (default true)
+  - `private.ticket.closeCodes.allowedCodesCsv` (string): allow-list (default `solved_by_user,howto,access_granted,config_change,bug_fixed,hardware_replaced,other`)
+  - `private.ticket.closeCodes.requireOnResolve` (boolean): obavezan close code na `RESOLVED` (default true)
+  - `private.i18n.enabled` (boolean): uključi i18n (default true)
+  - `private.i18n.defaultLocale` (string): default `bs`
+  - `private.i18n.fallbackLocale` (string): default `en`
+  - `private.i18n.supportedLocalesCsv` (string): default `bs,en`
+  - `private.services.onboardingWizard.enabled` (boolean): uključi service onboarding wizard (default true)
+  - `private.services.onboardingWizard.requireValidationBeforeActivate` (boolean): blokiraj aktivaciju bez validacije (default true)
+  - `private.services.onboardingWizard.autoFillRouting.enabled` (boolean): uključi routing auto-fill u wizardu (default true)
+  - `private.services.onboardingWizard.autoFillRouting.requireConfirm` (boolean): obavezna potvrda admina (default true)
+  - `private.ticket.groupInbox.enabled` (boolean): uključi group inbox model (default true)
+  - `private.ticket.groupInbox.requireGroupAssignmentOnCreate` (boolean): tiket mora imati handler grupu na kreiranju (default true)
+  - `private.ticket.participants.enabled` (boolean): uključi participants model (default true)
+  - `private.ticket.participants.defaultOnCreateCsv` (string): default `REQUESTER,HANDLER_GROUP` (+ APPROVER kad treba)
+  - `private.ticket.chat.messageTypes.enabled` (boolean): uključi message types (default true)
+  - `private.ticket.chat.messageTypes.allowedCsv` (string): default `USER_REPLY,AGENT_REPLY,INTERNAL_NOTE,SYSTEM_EVENT,APPROVAL_DECISION`
+  - `private.ticket.split.enabled` (boolean): uključi ticket split (default true)
+  - `private.ticket.split.allowAttachmentMove` (boolean): dozvoli “move” attachmenta u child (default false; prefer copy/link)
+  - `private.ticket.split.allowMessageCopy` (boolean): dozvoli kopiranje odabranih poruka u child (default true)
+  - `private.ticket.split.requireReason` (boolean): obavezan reason (default true)
+  - `private.knowledgeBase.reviewCycle.enabled` (boolean): uključi review cycle (default true)
+  - `private.knowledgeBase.reviewCycle.defaultReviewDays` (number): default 180
+  - `private.knowledgeBase.reviewCycle.staleAfterDays` (number): default 365
+  - `private.csat.enabled` (boolean): uključi CSAT (default true)
+  - `private.csat.scaleMax` (number): default 5
+  - `private.csat.askOnResolved` (boolean): pitaj na `RESOLVED` (default true)
+  - `private.csat.askOnClosed` (boolean): pitaj na `CLOSED` (default false)
+  - `private.csat.samplingRate` (number): default 1.0
+  - `private.security.redaction.enabled` (boolean): uključi PII/secret redaction policy (default true)
+  - `private.security.redaction.mode` (string): `warn_only` | `soft_block` (default `warn_only`)
+  - `private.security.redaction.patternsJson` (secret string): regex/pattern registry (default minimalni set)
+  - `private.security.redaction.applyToFieldsCsv` (string): `ticket_title,ticket_description,chat_message` (default `ticket_title,ticket_description,chat_message`)
+  - `private.security.safeLogging.enabled` (boolean): uključi safe logging mode (default true)
+  - `private.security.safeLogging.levelsCsv` (string): za koje classification nivoe se primjenjuje (default `CONFIDENTIAL,RESTRICTED`)
+  - `private.security.safeLogging.redactFieldsCsv` (string): šta se redaktuje iz app logova (default `ticket_title,ticket_description,chat_message`)
+  - `private.workflow.stateMachine.enabled` (boolean): uključi state machine guards (default true)
+  - `private.workflow.stateMachine.transitionsJson` (secret string): allowed transitions + required permissions (default minimalni set)
+  - `private.configVersioning.enabled` (boolean): uključi config versioning (default true)
+  - `private.configVersioning.scopesCsv` (string): `settings,routing,sla,service_catalog,service_forms` (default isto)
+  - `private.configVersioning.allowRollback` (boolean): omogući rollback (default true)
+  - `private.configVersioning.validation.enabled` (boolean): uključi dry-run/validate prije aktivacije (default true)
+  - `private.configVersioning.validation.blockActivationOnError` (boolean): blokiraj aktivaciju ako padne validacija (default true)
+  - `private.configVersioning.shadowMode.enabled` (boolean): uključi shadow mode uporedbu (default true)
+  - `private.configVersioning.shadowMode.sampleRate` (number): procenat tiketa za uporedno računanje (default 1.0)
+  - `private.configVersioning.shadowMode.storeDiffDays` (number): koliko dana čuvati diff rezultate (default 14)
+  - `private.reports.enabled` (boolean): uključi report packs (default true)
+  - `private.reports.packsJson` (secret string): definicija report pack-ova (default minimalni set)
+  - `private.reports.exportFormatsCsv` (string): `csv,json` (default `csv,json`)
+  - `private.dashboard.bottlenecks.enabled` (boolean): uključi bottleneck dashboard (default true)
+  - `private.dashboard.bottlenecks.defaultWindowDays` (number): default vremenski prozor (default 30)
+  - `private.workflow.requiredFields.enabled` (boolean): uključi smart required fields (default true)
+  - `private.workflow.requiredFields.globalRequiredOnResolveCsv` (string): npr. `close_code,resolution_note` (default `close_code,resolution_note`)
+  - `private.workflow.requiredFields.byServiceJson` (secret string): per-service override required fields (default prazno)
+  - `private.guardrails.antiLoop.enabled` (boolean): uključi anti-loop guardrails (default true)
+  - `private.guardrails.antiLoop.duplicateWindowMinutes` (number): X minuta za detekciju duplikata (default 2)
+  - `private.guardrails.antiLoop.similarityThreshold` (number): prag sličnosti (default 0.9)
+  - `private.guardrails.antiLoop.mode` (string): `warn_only` | `soft_block` (default `warn_only`)
+  - `private.guardrails.bulkBroadcast.confirmAboveRecipients` (number): dodatna potvrda iznad praga (default 200)
+  - `private.policyPacks.enabled` (boolean): uključi policy packs (default true)
+  - `private.policyPacks.defaultPacksJson` (secret string): definicija default paketa (PACK_IT_STANDARD, PACK_HR_RESTRICTED, PACK_FINANCE_RESTRICTED)
+  - `private.policyPacks.assignmentJson` (secret string): mapiranje OU/service → pack (default prazno)
+  - `private.dataLifecycle.archive.enabled` (boolean): uključi auto-archive (default true)
+  - `private.dataLifecycle.archive.afterClosedDays` (number): nakon koliko dana ide u archive (default 30)
+  - `private.dataLifecycle.archive.archivedReadOnly` (boolean): archived je read-only (default true)
+  - `private.dataLifecycle.archive.searchable` (boolean): archived searchable (default true)
+  - `private.readOnlyMode.enabled` (boolean): global enable read-only mode (default true)
+  - `private.readOnlyMode.modulesCsv` (string): moduli koje je moguće zaključati (default `settings,routing,service_catalog,service_forms,sla`)
+  - `private.readOnlyMode.activeModulesCsv` (string): trenutno zaključani moduli (default prazno)
+  - `private.readOnlyMode.bypassRolesCsv` (string): ko može raditi promjene i kad je read-only (default `SUPER_ADMIN`)
+  - `private.ticket.templates.enabled` (boolean): uključi ticket templates/playbooks (default true)
+  - `private.ticket.templates.registryJson` (secret string): registry templates po serviceId (default prazno)
+  - `private.knowledgeBase.feedback.enabled` (boolean): uključi KB feedback (default true)
+  - `private.knowledgeBase.feedback.oneVotePerUserPerArticle` (boolean): jedna ocjena po useru po članku (default true)
+  - `private.knowledgeBase.ranking.useFeedbackWeight` (boolean): feedback utiče na ranking (default true)
+  - `private.ticket.approvals.enabled` (boolean): uključi approvals (default true)
+  - `private.ticket.approvals.requiredByServiceJson` (secret string): mapa serviceId → approval policy (JSON)
+  - `private.ticket.approvals.defaultApproverRole` (string): default approver (npr. `ADMIN`)
+  - `private.ticket.approvals.allowRequesterManager` (boolean): koristi AD manager kao approver kad AD bude aktivan (default false u MVP)
+  - `private.timeTracking.inactiveTabAutoPauseMinutes` (number): X min do auto pause
+  - `private.timeTracking.maxSessionHours` (number): hard limit po session-u (anti-abuse)
+  - `private.notifications.email.enabled` (boolean): uključi email notifikacije
+  - `private.notifications.edge.enabled` (boolean): uključi Edge/Windows notifikacije
+  - `private.edgeExtension.enabled` (boolean): uključi edge extension module (default true)
+  - `private.edgeExtension.allowedEmailDomain` (string): allow domain za korisnike (default `epbih.ba`)
+  - `private.edgeExtension.ws.enabled` (boolean): WS u extension-u (default true)
+  - `private.edgeExtension.ws.reconnectMaxBackoffSeconds` (number): default 60
+  - `private.edgeExtension.ws.minClientVersion` (string): minimalna dozvoljena verzija extension-a (default prazno)
+  - `private.edgeExtension.notifications.redactedPreviews` (boolean): ne prikazivati sadržaj u OS toastovima (default true)
+  - `private.edgeExtension.receipts.enabled` (boolean): slati delivery/open receipts (default true)
+  - `private.edgeExtension.events.dedupEnabled` (boolean): dedup po eventId (default true)
+  - `private.edgeExtension.killSwitchEnabled` (boolean): global kill switch (default true)
+  - `private.edgeExtension.pollingFallback.enabled` (boolean): fallback polling ako WS padne (default true)
+  - `private.edgeExtension.pollingFallback.intervalSeconds` (number): default 90
+  - `private.edgeExtension.chat.enabled` (boolean): quick reply chat u popupu (default true)
+  - `private.edgeExtension.chat.maxMessagesPerTicket` (number): default 50
+  - `private.edgeExtension.attachments.enabled` (boolean): attachments u extension chat-u (default false u MVP)
+  - `private.edgeExtension.remote.enabled` (boolean): remote flow kroz extension (default true)
+  - `private.edgeExtension.remote.rateLimitMinutesPerTicket` (number): default 10
+  - `private.edgeExtension.remote.requireUserClickToOpenQuickAssist` (boolean): default true
+  - `private.edgeExtension.remote.auditAcknowledge` (boolean): audit user click/ack (default true)
+  - `private.notifications.templates.enabled` (boolean): uključi template sistem (subject/body)
+  - `private.notifications.email.internalOnly` (boolean): internal-only delivery (default true)
+  - `private.notifications.email.allowedExternalDomainsCsv` (string): allow-list domena za eksterno slanje (default prazno)
+  - `private.notifications.email.allowedExternalEmailsCsv` (string): allow-list emailova za eksterno slanje (default prazno)
+  - `private.observability.auditRetentionDays` (number): koliko dana čuvamo audit log
+  - `private.observability.requestLogRetentionDays` (number): koliko dana čuvamo request logove
+  - `private.observability.supportBundle.enabled` (boolean): omogući “support bundle” export (default true)
+  - `private.observability.supportBundle.includeConfigSnapshot` (boolean): uključi snapshot settings/config (default true)
+  - `private.observability.supportBundle.includeRecentLogs` (boolean): uključi zadnjih N minuta logova (default true)
+  - `private.observability.supportBundle.includeAuditExport` (boolean): uključi audit export (default true)
+  - `private.observability.supportBundle.recentLogsMinutes` (number): koliko minuta logova (default 60)
+  - `private.security.ouAccessEnforcementMode` (string): `strict` | `permissive` (strict u produkciji)
+  - `private.routing.strictOuIsolation` (boolean): enforce OU scoping (osim super admin)
+  - `private.changeLog.settings.enabled` (boolean): change log za settings (default true)
+  - `private.changeLog.routing.enabled` (boolean): change log za routing pravila (default true)
+  - `private.changeLog.includeDiff` (boolean): čuvati diff (before/after) za promjene (default true)
+  - `private.changeLog.requireReason` (boolean): obavezan reason za promjene (default true)
+
+---
+
+## 7) Realtime (Socket.IO) — opt-in (ali obavezno kad treba)
+
+Za ovaj projekat realtime treba za (označi):
+
+- notifications
+- settings
+- other: ticket updates + chat + edge extension listener
+
+Eventi koje očekujem (bullet):
+
+- `ticket.created` (target: group:{groupId}, user:{requesterId})
+- `ticket.updated` (status/priority/assignment) (target: ticket:{ticketId})
+- `ticket.message.created` (chat) (target: ticket:{ticketId}, user:{requesterId}, group:{groupId})
+- `ticket.attachment.created` (target: ticket:{ticketId}) (metadata only; download ide preko HTTPS)
+- `notification.created` (target: user:{userId})
+- `settings.updated` (target: admins/superadmins; plus edge extension)
+- `remote.requested` (target: user:{requesterId} + edge extension background listener)
+- `routing.rules.updated` (target: admins/superadmins)
+
+---
+
+## 8) Notifications baseline
+
+Obavezno od starta:
+
+- **In-app notifications** (list, unread state, mark-as-read)
+
+Po potrebi (odmah ili kasnije):
+
+- **Email**: da (Office 365) — implementirati kao kanal u Notification engine-u (settings-driven)
+- **Email delivery scope**:
+  - default: internal-only (primaoci unutar `@epbih.ba`)
+  - izuzetak: ako postoje legitimni eksterni primaoci koji moraju dobijati potvrde/status (npr. vanjski saradnici), onda omogućiti eksterno slanje kroz settings + allow-list domena/emaileva
+- **Push (mobilna aplikacija)**: ne primjenjuje se (mobilna aplikacija nije dio projekta)
+- **Templates**: da (minimalno: “new ticket”, “assigned”, “new message”, “resolved/closed”, “remote requested”)
+
+---
+
+## 9) Matrices (source-of-truth) — obavezno
+
+Navedeni feature-i moraju dobiti matrice:
+
+- `organizational-structure-ou-tree`:
+- `auth-sso-and-ad-sync`:
+- `ticketing-core`:
+- `ticket-priority-impact-urgency-matrix`:
+- `routing-rules`:
+- `routing-fallback-and-coverage`:
+- `knowledge-base-intercept`:
+- `knowledge-base-feedback-ranking`:
+- `ticket-chat-audit`:
+- `ticket-attachments-uploads`:
+- `ticket-templates-playbooks`:
+- `ticket-dedup-merge`:
+- `ticket-bulk-actions`:
+- `structured-broadcast-incident-updates`:
+- `ticket-waiting-for-user-automation`:
+- `ticket-reopen-policy`:
+- `ticket-forwarding-cross-ou`:
+- `ticket-saved-views`:
+- `time-tracking-anti-abuse`:
+- `ticket-sla-engine`:
+- `service-availability-status`:
+- `service-downtime-scheduling`:
+- `service-forms-versioning`:
+- `ticket-confidential-visibility`:
+- `security-permissions-rbac`:
+- `security-permission-scopes`:
+- `audit-tamper-evident-export`:
+- `ticket-participants-model`:
+- `ticket-chat-message-types`:
+- `data-classification-attachments-policy`:
+- `data-classification-inheritance`:
+- `ticket-close-codes-analytics`:
+- `read-only-mode-maintenance`:
+- `security-redaction-pii-secrets`:
+- `security-safe-logging`:
+- `workflow-state-machine-guards`:
+- `config-versioning-rollback`:
+- `config-validation-dry-run`:
+- `config-shadow-mode`:
+- `reports-export-packs`:
+- `dashboard-bottlenecks`:
+- `workflow-required-fields`:
+- `data-lifecycle-archive`:
+- `i18n-bs-en`:
+- `service-onboarding-wizard`:
+- `guardrails-anti-loop-anti-spam`:
+- `policy-packs`:
+- `permissions-shadow-check`:
+- `quality-rbac-test-suite`:
+- `ticket-group-inbox`:
+- `knowledge-base-ownership-review-cycle`:
+- `csat-feedback`:
+- `ticket-split`:
+- `service-catalog-lifecycle`:
+- `in-app-notifications`:
+- `edge-extension-client`:
+- `edge-extension-chat-remote-contract`:
+- `observability-audit-and-logs`:
+- `changelog-settings-and-routing`:
+- `integrations-teams-stub`:
+- `integrations-durable-queue`:
+- `ops-disaster-recovery`:
+- `quality-e2e-critical-flows`:
+
+Za svaki feature: `.cursor/docs/matrices/<feature_slug>/MATRIX.md` + `CHANGELOG.md`.
+
+---
+
+## 10) Quality rules (obavezno)
+
+- **Code hygiene**:
+  - cilj 100–150 linija po fajlu (ekstrahuj u helpers/utils kad preraste)
+  - dead code se briše odmah pri promjeni logike
+- **Token efficiency**:
+  - min reads (1–3 fajla + usko pretraživanje)
+  - mali diffovi, bez rewrite bez plana
+- **Disaster recovery (DR) / backup-restore (enterprise ops)**:
+  - definisati RPO/RTO za MVP (target):
+    - RPO: ≤ 24h (minimum)
+    - RTO: ≤ 4h (minimum)
+  - backup policy:
+    - MySQL/MariaDB backup (daily) + retention
+    - uploads dir backup (daily) + retention
+    - config exports (settings/routing/SLA/forms) kao dio backup-a
+  - restore drill:
+    - najmanje 1x mjesečno test restore na dev/prod-like okruženju
+    - verifikacija: login, create ticket, attachments download, audit export
+- **E2E test plan (kritični tokovi)**:
+  - testovi moraju pokriti end-to-end tokove (dev/prod config), minimalno:
+    - Ticket create: service catalog → form validation → KB intercept → create ticket → group inbox
+    - Routing/fallback: match routing rule, unrouted queue fallback
+    - Approvals: pending approval → approve/reject → nastavak routing/assignment
+    - Realtime/Notifications: in-app notifs + email (internal-only) + edge event (ako uključen) ide kroz durable queue
+    - Bulk broadcast (structured): required fields enforced + preview + rate limit
+    - Confidential: ne vidi se u listama/pretrazi bez prava; break-glass audit
+    - SLA: timers + pause rules + overdue badge/filter
+    - Close codes + CSAT: resolve requires close code; CSAT prompt i KPI agregacije
+    - Config ops: activate config version → validate (dry-run) → shadow mode diff → rollback
+
+---
+
+## 11) Plan-first execution
+
+Tražim od agenta:
+
+- prvo Plan mode (faze, rizici, test plan)
+- ako plan ima >3 faze → `.cursor/plans/<slug>/` + `HANDOFF.md`
+- prva implementacijska faza: ukloniti sve vezano za mobile iz repozitorija (npr. `mobile/` app, build/CI reference, dependencies, docs)
+- odmah u planu definisati MVP constraints (šta je “in”, šta je “out”) i zamrznuti scope za prvu isporuku
+- u planu eksplicitno definisati “routing safety” operativno pravilo: ko je owner za “unrouted queue”, i očekivani SLA za čišćenje (npr. isti radni dan)
+- u planu definisati “basic dueDate” očekivanja (bez SLA engine-a): minimalna pravila, izvještaji i upozorenja za overdue
+- u planu definisati default limite za attachments (max veličina i allow-list MIME tipova) i potvrditi da se fajlovi čuvaju kao paths van DB
+- u dev-u: ako se uopšte koristi čitanje iz AD-a, mora biti “manual-only” (bez background sync-a/polling-a), uz throttle+cache+scoping da ne optereti DC/firewall
+- implementacija fazno, bez velikih rewrite-ova
+- dokumentovanje odluka (matrice + changelog)
+
+---
+
+## 12) Acceptance criteria (šta znači “gotovo”)
+
+- Backend:
+  - Dev/test autentikacija radi bez AD-a:
+    - postoji `local_dev` auth mode sa lokalnim userima (seed/config)
+    - generisani token/claims imaju istu strukturu kao kasniji AD korisnik (email, displayName, role, OU info)
+    - svi dev testovi prolaze koristeći te lokalne korisnike, bez posebnih “if (test)” grana u domen logici
+  - Dev AD read (privremeno, za testiranje):
+    - u dev okruženju je dozvoljeno koristiti lični AD user kao bind account (privremeno), ali **samo** za read operacije
+    - AD čitanje je isključeno po defaultu i aktivira se ručno (`manual_only`)
+    - sve AD operacije su scoped na `OU=Korisnici` i `OU=Grupe`, imaju throttle+cache, i imaju backoff na greške
+  - SSO login radi (Entra ID), nema lokalnih lozinki; token validacija + guards
+  - OU tree postoji i korisnici se mapiraju iz AD atributa (Company/Department) na OU, sa jasnim fallback/override pravilima (settings-driven)
+  - RBAC + OU access enforcement: Admin/Agent defaultno scoped na OU; SuperAdmin global; sve cross-OU radnje auditovane
+  - Ticket creation flow: KB intercept → create ticket → routing (DB rules) → assignment (manual + opcionalno auto) → event emit
+  - Priority matrix:
+    - user bira impact/urgency; backend izračuna suggested `priority` po matrix rules
+    - priority override (agent/admin) je auditovan
+  - Routing je “safe by default”:
+    - ako nema match-a ⇒ koristi se `fallbackGroupId` ili tiket ide u “unrouted queue” vidljiv SuperAdmin-u (bez gubitka tiketa)
+    - admin UI ima “routing coverage” provjeru (nema silent rupa)
+  - Service catalog + forme:
+    - servisi/kategorije postoje u DB i prikazuju se u UI
+    - za odabrane servise forma je schema-driven; required polja se validiraju backendom
+    - structured form data se čuva uz tiket i može se filtrirati/izvještavati
+    - form versioning: tiket čuva referencu na verziju forme; validacija se radi prema toj verziji
+  - Confidential tickets:
+    - confidential tiketi imaju per-ticket ACL i ne pojavljuju se u listama/pretragama neovlaštenim korisnicima
+    - break-glass radi samo za ovlaštene role uz reason + audit (view/access)
+  - Approval flow:
+  - Dedup/merge:
+    - admin može spojiti duplikate (npr. outage) u jedan parent tiket
+    - “child” tiketi prate status parent-a i dobijaju broadcast poruke/updates (uz audit)
+  - Bulk akcije:
+    - bulk akcije su ograničene na istu OU/grupu za non-superadmin korisnike
+    - bulk close nije dostupan
+    - bulk broadcast šalje in-app + email (po templates/settings), uz preview i rate limit
+    - structured broadcast je obavezan (šta se dešava / koga pogađa / ETA / workaround)
+  - Ticket templates (agent-side):
+    - admin može definisati template odgovor/playbook po servisu i koristiti ga u rješavanju (bez uticaja na sigurnost/OU scope)
+    - za servise koji traže odobrenje tiket ide u “Pending Approval”
+    - approver može approve/reject sa razlogom; sve se audit-uje
+    - nakon approve-a routing/assignment nastavlja normalno
+  - Statusi, forwarding/eskalacija, audit trail i time tracking funkcionalni + anti-abuse
+  - Waiting for User + reopen policy:
+    - kad agent zatraži info, tiket prelazi u `WAITING_FOR_USER`
+    - reminder + auto-close su settings-driven i auditovani
+    - reopen radi u definisanom prozoru; nakon isteka prozora kreira se novi tiket i linka na stari
+  - SLA engine:
+    - SLA timeri rade za response/resolution, imaju pause pravila (waiting-for-user, pending-approval)
+    - overdue state je vidljiv i filterabilan; eskalacije se šalju po pravilima
+    - admin UI omogućava CRUD nad BH kalendarima, SLA profilima i SLA pravilima, uz change log (reason+diff)
+  - Forwarding:
+    - cross-OU forwarding je dozvoljen (npr. ED → Direkcija) uz obavezan reason i audit
+    - access nakon forwarding-a mora poštovati OU/group guardove
+  - Attachments rade: upload/download sa auth + OU check; u audit trail-u se vidi ko je dodao/skin’o fajl (metadata)
+  - Observability minimum:
+    - korelacioni `requestId` u logovima
+    - audit retention i export (barem CSV/JSON) za compliance potrebe
+    - support bundle export (config snapshot + audit export + recent logs) dostupan SuperAdmin-u
+  - Notification engine isporučuje in-app + (po settings) email + WS events
+  - Durable integration queue:
+    - outgoing integracije (email/edge/teams) idu kroz durable queue sa retry/backoff + DLQ; UI omogućava pregled i ručni retry
+  - Edge chat + remote:
+    - Edge eventi se šalju kroz queue i isporučuju preko WS kanala `user:{userId}` / `ticket:{ticketId}`
+    - receipts/dedup:
+      - extension šalje “delivered/opened” receipts za notifikacije (ako je uključeno)
+      - extension dedup-uje evente po `eventId`
+    - notification privacy:
+      - OS toastovi su redacted (bez sadržaja) po defaultu
+    - remote request workflow:
+      - agent klik “Request Remote” → backend kreira record + emituje `remote.requested`
+      - extension prikazuje toast + dugme “Open Quick Assist”
+      - klik okida `ms-quick-assist:` i šalje audit “acknowledged/opened”
+    - anti-spam: rate limit remote request po tiketu
+  - Teams stub:
+    - postoje interni eventi + feature flag; bez obaveze stvarnog Teams delivery-a u MVP-u
+  - Change log:
+    - promjene settings i routing pravila imaju reason + diff (before/after) i audit trail
+  - Disaster recovery:
+    - dokumentovana backup/restore procedura postoji i verified je kroz test restore drill
+  - E2E tests:
+    - kritični tokovi imaju E2E pokrivenost i prolaze u dev (i po mogućnosti u CI)
+  - RBAC permissions:
+    - granular permissioni se provjeravaju za osjetljive akcije (routing/settings/sla/bulk/broadcast/confidential/audit export)
+    - permission scopes ograničavaju gdje permission važi (OU/service), uz obavezno poštivanje confidential ACL
+  - Participants + message types:
+    - ticket ima participants; chat poruke imaju tipove; internal note je ograničen na handlere (uz confidential pravila)
+  - Ticket split:
+    - split kreira child tikete sa parent/child linkom; audit `SYSTEM_EVENT` bilježi reason i listu child tiketa
+    - agent bira šta se prenosi (poruke/attachments); OU/confidential ACL se primjenjuju po child tiketu
+  - Guardrails:
+    - anti-loop/anti-spam pravila sprječavaju duple tikete i prevelike masovne akcije (warn/soft-block)
+  - Policy packs:
+    - policy pack se može dodijeliti servisu/OU i utiče na default konfiguraciju (SLA/required fields/classification/approvals/permissions scopes)
+  - Shadow permission check:
+    - prije aktivacije promjene permissions/scopes prikazuje se preview impact (ko dobija/gubi)
+  - Audit export + tamper-evident:
+    - export audit logova po OU scoping-u; hash-chain omogućava tamper-evident provjeru
+  - Redaction policy:
+    - warn/soft-block pri unosu tajni/PII u title/description/chat; zapis u audit
+  - Safe logging:
+    - app logovi su minimizirani za confidential/restricted (bez sadržaja), uz očuvan audit trail
+  - State machine guards:
+    - backend odbija nedozvoljene tranzicije statusa; svaka promjena statusa prolazi kroz allowed transitions
+  - Data classification:
+    - classification utiče na attachment policy i download prava
+    - classification inheritance garantuje da attachment ne može biti niže klasifikacije od tiketa/servisa
+  - Close codes:
+    - code se upisuje na resolve i ulazi u analytics
+  - Config versioning:
+    - promjene u settings/routing/SLA/forms/catalog se grupišu u config versions; rollback je auditovan
+    - aktivacija config verzije prolazi dry-run/validate; shadow mode omogućava uporedbu prije aktivacije
+  - Reports/export:
+    - predefinisani report packs rade uz OU scoping; export u csv/json
+  - Bottleneck dashboard:
+    - backend izračunava agregacije po statusima i vremenu (OU/service/priority), uz OU scoping
+  - Smart required fields:
+    - backend ne dozvoljava resolve/close bez required fields (global + per-service), uz jasne greške
+  - Data lifecycle:
+    - auto-archive nakon X dana od closed; archived je read-only i odvojen od aktivnih listi
+  - Group inbox:
+    - ticket create zahtijeva handler grupu; individual assignee je opcionalan (preuzimanje)
+  - i18n:
+    - backend podržava locale (BS default + EN fallback) za templates i settings copy
+  - KB review cycle:
+    - podsjetnici i stale oznake rade po pravilima; owner je vidljiv i auditovan
+  - CSAT:
+    - CSAT se bilježi i agregira po OU/servisu/grupi
+  - Read-only mode:
+    - zaključani moduli odbijaju write operacije (osim bypass role); ticket create ostaje dozvoljen
+- Frontend:
+  - User portal: kreiranje tiketa sa KB intercept, pregled statusa, chat unutar tiketa, notifikacije
+  - Agent/Admin: queue po OU/grupi, preuzimanje i dodjela, promjene statusa, routing admin UI
+  - Saved views: agent/admin može kreirati lične saved views (filters/sort/columns) i postaviti default view
+  - Attachments UX: upload na ticket/message, prikaz liste i download (sa jasnim limitima)
+  - Service catalog: prikaz statusa servisa u listi (OPERATIONAL/DEGRADED/DOWN/MAINTENANCE)
+  - Service downtime scheduling: admin UI omogućava zakazivanje downtime (from/to) i prikaz aktivnih/budućih prozora u katalogu/servisu
+  - Service catalog lifecycle: `DRAFT/ACTIVE/DEPRECATED` je vidljiv u adminu; deprecated se ne prikazuje userima u katalogu
+  - Search UX: KB pretraga + ticket pretraga sa filterima (OU/service/status/assignee/priority)
+  - Dashboard: osnovni KPI prikazi (tickets by OU, avg resolution, workload, KB resolution rate)
+  - Home: prikaz maintenance/obavijesti (settings-driven) globalno i/ili per-service (scope), uključujući period i pogođene servise (opciono)
+  - Kreiranje tiketa ostaje dozvoljeno čak i kad je servis pogođen maintenance-om (banner je informativan, non-blocking)
+  - SLA: prikaz SLA statusa (npr. “due in”, “overdue”), filteri i badge-ovi
+  - KB: prikaz “pomoglo / nije pomoglo” u KB intercept-u i/ili na KB članku
+  - Confidential: UI jasno označava confidential tiket i ograničava vidljivost (ne pokazivati sadržaj neovlaštenim korisnicima)
+  - Admin UI: prikaz/uređivanje permissiona (role→permissions), close codes, classification policy i read-only status (za SuperAdmin)
+  - Admin UI: upravljanje redaction policy, workflow transitions, config versions (diff/rollback) i report packs
+  - Admin UI: bottleneck dashboard, required fields pravila i data lifecycle/archive postavke (SuperAdmin)
+  - Admin UI: service onboarding wizard
+  - Admin UI: durable integration queue (PENDING/FAILED/DLQ) + retry now
+  - Edge: quick reply chat + remote request UX (extension popup) (MVP: bez attachments)
+  - i18n: UI podržava BS default + EN fallback
+  - Group inbox UX: lista “unassigned in group” + “assign to me”
+  - Ticket split UX: agent/admin može split-ati tiket u child tikete, izabrati target servis/grupu i odabrati koje poruke/attachments prenosi
+  - KB: prikaz owner-a i review/stale statusa
+  - CSAT: forma ocjene nakon resolve/close + prikaz u dashboardu
+- Settings:
+  - Registry + UI za public/private settings sa validacijom i secret handlingom
+  - Settings update propagiran realtime-om prema web + edge ekstenziji
+- Realtime/Notifications:
+  - Socket.IO radi za: ticket updates, chat messages, notifications, settings updates, remote request evente
+  - Edge ekstenzija održava background WS konekciju + polling fallback; prikazuje toasts i quick reply
+  - “Request Remote” okida event i pokreće `ms-quick-assist:` na korisničkoj strani
+- Docs/Matrices:
+  - Matrice kreirane za navedene feature slugove + changelog update pri svakoj promjeni logike
+
+---
+
+## MVP constraints (zamrznuti scope za prvu isporuku)
+
+- IN:
+  - Ticketing + routing + assignment + chat/audit + KB intercept
+  - Service catalog + schema-driven forme (minimalno za top servise) + form versioning
+  - Approvals (minimalno za 1–3 osjetljiva servisa)
+  - Priority (impact/urgency) matrix
+  - Waiting-for-user automatika + reopen policy
+  - Saved views (per-user)
+  - SLA engine (professional)
+  - Edge ekstenzija: notifikacije + quick reply + remote initiation (Quick Assist)
+  - Edge integracija contract (chat + remote) (WS + throttled polling fallback + queue delivery)
+  - In-app notifikacije + email kanal (Office 365) kroz settings
+  - Attachments: allow-list MIME + allow-list extensions + block-list “opasnih” ekstenzija + max size + storage na disk
+  - Osnovna pretraga (KB + tickets) i dashboard KPI
+  - Minimalna observability + support bundle export
+  - Teams integracija: samo stub (feature-flagged, bez punog konektora)
+  - Durable integration queue + retry/backoff (email/edge/teams)
+  - Disaster recovery (backup/restore)
+  - E2E test plan (kritični tokovi)
+  - Bulk akcije (safe subset, OU/group scoped; bez bulk close)
+  - KB feedback loop (ranking)
+  - Change log za settings i routing (reason + diff)
+  - Service availability status (per service)
+  - Confidential tickets (per-ticket restricted visibility + break-glass)
+  - Granular RBAC permissions
+  - Audit export + tamper-evident audit (hash chain)
+  - Data classification (attachments policy)
+  - Close codes + analytics
+  - Read-only mode (maintenance) za admin module
+  - PII/secret redaction policy
+  - Workflow state machine guards
+  - Config versioning + rollback
+  - Dry-run/validate + shadow mode za config promjene (admin safety)
+  - Report packs + scoped exports
+  - Bottleneck dashboard (ops)
+  - Smart required fields enforcement
+  - Data lifecycle: auto-archive closed tickets
+  - i18n (BS default + EN fallback)
+  - Service onboarding wizard (admin)
+  - Group inbox (group-owned tickets + agent takeover)
+  - KB ownership + review cycle
+  - CSAT feedback
+  - Permission scopes (OU/service scoped)
+  - Ticket participants model + message types
+  - Anti-loop/anti-spam guardrails
+  - Policy packs (default IT/HR/Finance)
+  - Shadow permission check (preview impact)
+  - Ticket split (parent/child link)
+  - Service catalog lifecycle (draft/active/deprecated)
+  - Attachment classification inheritance
+  - RBAC test suite (CI)
+  - Safe logging mode (confidential/restricted)
+  - Service downtime scheduling
+- OUT:
+  - AI (semantička pretraga, klasifikacija, chatbot), SLA predikcija, advanced routing engine
+  - Teams integracija: puni konektor/production rollout
+  - Mobilna aplikacija
+
+---
+
+## Startni SLA profili (default vrijednosti) — BH_STANDARD
+
+Napomena:
+- Ovo su **default** vrijednosti u startnom paketu; u administraciji moraju biti izmjenjive (CRUD).
+- Eskalacije idu **samo in-app** (bez email), settings-driven.
+- Profil se dodjeljuje servisu (`service.slaProfileKey`), uz mogućnost override po servisu/OU/priority.
+
+Definicije:
+- **Response**: prva meaningful reakcija agenta (prva poruka ili prelazak u `IN_PROGRESS`)
+- **Resolution**: do `RESOLVED`
+
+Profile matrice (Response / Resolution):
+
+- **INCIDENT**
+  - P1/CRITICAL: 10 min / 2h
+  - P2/HIGH: 30 min / 4h
+  - P3/MEDIUM: 2h / 1 BD
+  - P4/LOW: 4h / 3 BD
+
+- **ACCESS**
+  - P1/CRITICAL: 30 min / 8h
+  - P2/HIGH: 2h / 2 BD
+  - P3/MEDIUM: 1 BD / 5 BD
+  - P4/LOW: 2 BD / 10 BD
+
+- **STANDARD_REQUEST**
+  - P1/CRITICAL: 15 min / 4h
+  - P2/HIGH: 1h / 8h
+  - P3/MEDIUM: 4h / 3 BD
+  - P4/LOW: 1 BD / 10 BD
+
+- **FINANCE**
+  - P1/CRITICAL: 1h / 1 BD
+  - P2/HIGH: 4h / 3 BD
+  - P3/MEDIUM: 1 BD / 7 BD
+  - P4/LOW: 2 BD / 15 BD
+
+- **HR**
+  - P1/CRITICAL: 4h / 2 BD
+  - P2/HIGH: 1 BD / 5 BD
+  - P3/MEDIUM: 2 BD / 10 BD
+  - P4/LOW: 5 BD / 20 BD
+

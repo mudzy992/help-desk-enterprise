@@ -1,0 +1,14 @@
+---
+description: React/Next.js frontend rules for EP-HelpDesk
+globs: ["frontend/**/*.tsx", "frontend/**/*.ts"]
+alwaysApply: false
+---
+
+# Frontend pravila (React / Next.js, ShadCN)
+
+- Struktura: `pages/`, `components/`, `services/` — odvojeno, bez miješanja.
+- Sav API pristup ide kroz centralizovani API klijent (`services/api.ts`), nikad direktan fetch po komponentama.
+- State: koristi React Query (ili sličan) za server state; izbjegavaj globalni Redux-style chaos za jednostavne stvari.
+- Svaka forma: validacija prije submit-a, eksplicitan loading i error state — nema "tihih" grešaka.
+- Prije nego praviš novu UI komponentu, provjeri `components/ui` (ShadCN) — ne izmišljaj novu ako već postoji slična.
+- KB intercept flow (prije submit tiketa) je poseban UX korak — ne smije se preskočiti ni u jednoj verziji forme za kreiranje tiketa.

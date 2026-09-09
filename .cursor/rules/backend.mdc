@@ -1,0 +1,25 @@
+---
+description: NestJS backend architecture rules for EP-HelpDesk
+globs: ["src/modules/**/*.ts", "src/common/**/*.ts"]
+alwaysApply: false
+---
+
+# Backend pravila (NestJS)
+
+## Struktura modula
+Svaki modul u `src/modules/<domain>/` mora imati:
+- `*.controller.ts` — SAMO HTTP routing, bez business logike
+- `*.service.ts` — SVA business logika ovdje
+- `dto/*.dto.ts` — class-validator, svaki input se validira
+- `*.repository.ts` (opciono) — Prisma pristup
+- `*.events.ts` — event emiteri za side-effects
+
+## Pravila
+- Prisma se poziva SAMO iz service ili repository sloja, nikad iz controllera.
+- Svaki side-effect (notifikacija, audit log, websocket update) ide kroz event, ne direktan poziv.
+- Guard-ovi (AuthGuard, RoleGuard, OUAccessGuard) su obavezni na svakom endpointu osim eksplicitno javnih.
+- TicketRoutingService i TicketAssignmentService su odvojeni servisi — nikad ne miješaj routing i assignment logiku u jednu funkciju.
+- Vidi `docs/02-routing-logic.md` prije bilo kakve izmjene u routing/assignment servisima.
+
+## Error handling
+Standardni format: `{ code, message, details }` kroz globalni ExceptionFilter — ne bacaj sirove greške.

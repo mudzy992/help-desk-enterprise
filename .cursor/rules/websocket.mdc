@@ -1,0 +1,13 @@
+---
+description: WebSocket / real-time rules for EP-HelpDesk
+globs: ["src/modules/websocket/**/*.ts", "**/*.gateway.ts"]
+alwaysApply: false
+---
+
+# WebSocket pravila
+
+- Kanali: `user:{userId}`, `group:{groupId}`, `ticket:{ticketId}` — ne izmišljaj nove bez ažuriranja ovog fajla.
+- Servisi NIKAD direktno ne šalju podatke preko socketa — uvijek emituju event, gateway sluša i šalje.
+- Edge ekstenzija se tretira kao još jedan klijent na istim kanalima — nema posebne logike za nju na backendu.
+- Fallback na polling ako WS konekcija padne (vidi `docs/03-edge-extension.md`).
+- Heartbeat mehanizam za Time Tracking (anti-abuse) mora biti backend-validiran, nikad se ne vjeruje frontend timestamp-u.

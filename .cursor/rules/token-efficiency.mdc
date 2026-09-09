@@ -1,0 +1,12 @@
+---
+description: Token-efficient workflow (project-level).
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**"]
+alwaysApply: false
+---
+
+# Token efficiency
+
+- Prije izmjene: pročitaj 1–3 relevantna fajla + usko pretraživanje (simbol/string).
+- Ne kopirati velike blokove koda u chat; referencirati fajlove i kratke izvatke.
+- Preferiraj male, lokalne izmjene; izbjegni rewrite bez plana.
+

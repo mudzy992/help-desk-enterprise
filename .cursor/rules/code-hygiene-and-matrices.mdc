@@ -1,0 +1,29 @@
+---
+description: Obavezni standard za čistoću koda i matrice kao source-of-truth.
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/docs/**"]
+alwaysApply: false
+---
+
+# Code hygiene + matrices (obavezno)
+
+## Code hygiene
+
+- **Fajlovi**: ciljaj da produkcijski fajlovi budu oko **100–150 linija**. Ako prelazi, ekstrahuj u manje module/metode ili u shared helpers/utils.
+- **No dead code**: pri izmjeni logike/refaktoru **odmah obriši** kod koji se više ne koristi.
+- **Helpers/Utils**: ponavljajuću logiku ekstrahuj (backend prefer `src/common/utils` ili modul `utils/`).
+
+## Matrices + source-of-truth
+
+- Za svaku bitnu funkcionalnost održavaj matricu/pravila u `.cursor/docs/matrices/<feature_slug>/`.
+- Obavezni fajlovi:
+  - `MATRIX.md` — definicija logike
+  - `CHANGELOG.md` — evidencija promjena (datum + šta + zašto)
+
+Pravilo: promjena logike ⇒ update `MATRIX.md` + upis u `CHANGELOG.md` + uklanjanje dead code-a.
+
+## “First raw task” automatika
+
+- Ako projekat još nema matricu za feature koji se implementira, prvo kreiraj folder:
+  - `.cursor/docs/matrices/<feature_slug>/` kopiranjem template-a iz `example_feature` i preimenuj sadržaj.
+  - Zatim nastavi implementaciju.
+
