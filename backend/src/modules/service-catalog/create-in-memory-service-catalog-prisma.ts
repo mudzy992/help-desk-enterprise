@@ -1,12 +1,16 @@
+import { createInMemoryFormVersionDelegate } from './create-in-memory-form-version-delegate';
 import { createInMemoryServiceCategoryDelegate } from './create-in-memory-service-category-delegate';
 import { createInMemoryServiceDelegate } from './create-in-memory-service-delegate';
 import { createInMemoryServiceDowntimeWindowDelegate } from './create-in-memory-service-downtime-window-delegate';
+import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
 import {
   emptyServiceDependents,
   type ServiceDependents,
 } from './in-memory-service-catalog-store';
 import type { DowntimeWindowRecord } from './service-availability.types';
 import type { ServiceCategoryRecord, ServiceRecord } from './service-catalog.types';
+import type { FormVersionRecord } from './service-forms.types';
+import type { TicketFormVersionRecord } from './create-in-memory-ticket-delegate';
 
 export type InMemoryServiceCategory = ServiceCategoryRecord;
 export type InMemoryService = ServiceRecord;
@@ -24,6 +28,8 @@ export function createInMemoryServiceCatalogPrisma(): {
     serviceCategory: Record<string, unknown>;
     service: Record<string, unknown>;
     serviceDowntimeWindow: Record<string, unknown>;
+    formVersion: Record<string, unknown>;
+    ticket: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
@@ -37,6 +43,8 @@ export function createInMemoryServiceCatalogPrisma(): {
   const categories = new Map<string, InMemoryServiceCategory>();
   const services = new Map<string, InMemoryService>();
   const downtimeWindows = new Map<string, DowntimeWindowRecord>();
+  const formVersions = new Map<string, FormVersionRecord>();
+  const tickets = new Map<string, TicketFormVersionRecord>();
   const policyPacks = new Set<string>();
   const dependents = new Map<string, ServiceDependents>();
   const changeLogs: InMemoryServiceCatalogChangeLog[] = [];
@@ -52,7 +60,11 @@ export function createInMemoryServiceCatalogPrisma(): {
       nextId,
       now,
       downtimeWindows,
+      formVersions,
+      tickets,
     ),
+    formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
+    ticket: createInMemoryTicketDelegate(tickets, nextId),
     serviceDowntimeWindow: createInMemoryServiceDowntimeWindowDelegate(
       downtimeWindows,
       nextId,

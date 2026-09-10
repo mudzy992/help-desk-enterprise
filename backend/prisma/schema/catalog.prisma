@@ -57,6 +57,7 @@ model ServiceDowntimeWindow {
 }
 
 model FormVersion {
+  /// Stable formVersionRef stored on Ticket.formVersionId.
   id        String            @id @default(cuid())
   serviceId String
   version   Int

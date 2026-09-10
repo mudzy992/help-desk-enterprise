@@ -19,6 +19,8 @@ export function createInMemoryServiceDelegate(
   nextId: () => string,
   now: () => Date,
   downtimeWindows: Map<string, { serviceId: string }> = new Map(),
+  formVersions: Map<string, { serviceId: string }> = new Map(),
+  tickets: Map<string, { serviceId: string }> = new Map(),
 ) {
   return {
     findUnique: async ({
@@ -33,9 +35,19 @@ export function createInMemoryServiceDelegate(
         return null;
       }
       if (select?._count !== undefined) {
+        const seeded = dependents.get(record.id) ?? emptyServiceDependents();
         return {
           ...record,
-          _count: dependents.get(record.id) ?? emptyServiceDependents(),
+          _count: {
+            tickets:
+              seeded.tickets +
+              countByServiceId(tickets, record.id),
+            formVersions:
+              seeded.formVersions +
+              countByServiceId(formVersions, record.id),
+            routingRules: seeded.routingRules,
+            userRoles: seeded.userRoles,
+          },
         };
       }
       if (select === undefined) {
@@ -114,6 +126,14 @@ export function createInMemoryServiceDelegate(
       return current;
     },
   };
+}
+
+function countByServiceId(
+  records: Map<string, { serviceId: string }>,
+  serviceId: string,
+): number {
+  return [...records.values()].filter((item) => item.serviceId === serviceId)
+    .length;
 }
 
 function matchesServiceWhere(

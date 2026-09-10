@@ -60,3 +60,8 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.services.downtimeScheduling.autoSetMaintenanceStatus` (private, boolean, default `true`)
 - `private.services.downtimeScheduling.autoRestoreOperational` (private, boolean, default `true`)
 - `private.services.downtimeScheduling.requireReason` (private, boolean, default `true`)
+- `private.ticket.forms.enabled` (private, boolean, default `true`)
+- `private.ticket.forms.requireStructuredFields` (private, boolean, default `true`)
+- `private.ticket.forms.versioning.enabled` (private, boolean, default `true`)
+- `private.ticket.forms.versioning.allowMultipleActiveVersions` (private, boolean, default `false`)
+- `private.ticket.forms.versioning.requireVersionOnTicket` (private, boolean, default `true`)

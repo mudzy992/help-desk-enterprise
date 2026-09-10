@@ -3,6 +3,7 @@ import { directorySyncSettings } from './directory-sync-settings';
 import { foundationalSettings } from './foundational-settings';
 import { readOnlyModeSettings } from './read-only-mode-settings';
 import { serviceAvailabilitySettings } from './service-availability-settings';
+import { serviceFormsSettings } from './service-forms-settings';
 import { serviceLifecycleSettings } from './service-lifecycle-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
@@ -11,4 +12,5 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...readOnlyModeSettings,
   ...serviceLifecycleSettings,
   ...serviceAvailabilitySettings,
+  ...serviceFormsSettings,
 ];

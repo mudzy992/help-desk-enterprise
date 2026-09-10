@@ -128,4 +128,27 @@ describe('classifyAdminReadOnlyRequest', () => {
       })?.isMutation,
     ).toBe(true);
   });
+
+  it('classifies service form writes as service_forms mutations', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'GET',
+        path: '/services/service-1/form',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceForms,
+      isMutation: false,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/services/service-1/form/versions',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceForms,
+      isMutation: true,
+    });
+  });
 });

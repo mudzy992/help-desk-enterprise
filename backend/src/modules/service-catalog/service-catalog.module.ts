@@ -7,6 +7,9 @@ import { ServiceAvailabilityController } from './service-availability.controller
 import { ServiceAvailabilityService } from './service-availability.service';
 import { ServiceCategoriesController } from './service-categories.controller';
 import { ServiceCatalogService } from './service-catalog.service';
+import { ServiceFormsConfigurationLoader } from './service-forms-configuration.loader';
+import { ServiceFormsController } from './service-forms.controller';
+import { ServiceFormsService } from './service-forms.service';
 import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
 import { ServicesController } from './services.controller';
 
@@ -16,13 +19,20 @@ import { ServicesController } from './services.controller';
     ServiceCategoriesController,
     ServicesController,
     ServiceAvailabilityController,
+    ServiceFormsController,
   ],
   providers: [
     ServiceLifecycleConfigurationLoader,
     ServiceAvailabilityConfigurationLoader,
+    ServiceFormsConfigurationLoader,
     ServiceCatalogService,
     ServiceAvailabilityService,
+    ServiceFormsService,
   ],
-  exports: [ServiceCatalogService, ServiceAvailabilityService],
+  exports: [
+    ServiceCatalogService,
+    ServiceAvailabilityService,
+    ServiceFormsService,
+  ],
 })
 export class ServiceCatalogModule {}

@@ -2,6 +2,7 @@ import {
   adminReadOnlyMutatingMethods,
   adminReadOnlyReadMutationPaths,
   adminReadOnlyRouteModules,
+  adminReadOnlyModuleKeys,
 } from './read-only-mode.constants';
 import type { AdminReadOnlyRoute } from './read-only-mode.types';
 
@@ -54,8 +55,15 @@ function normalizeHttpMethod(value: unknown): string {
 }
 
 function resolveModuleKey(path: string): string | null {
+  if (isServiceFormsPath(path)) {
+    return adminReadOnlyModuleKeys.serviceForms;
+  }
   const match = routeModules.find(
     (route) => path === route.pathPrefix || path.startsWith(`${route.pathPrefix}/`),
   );
   return match?.moduleKey ?? null;
+}
+
+function isServiceFormsPath(path: string): boolean {
+  return /^\/services\/[^/]+\/form(?:\/|$)/.test(path);
 }

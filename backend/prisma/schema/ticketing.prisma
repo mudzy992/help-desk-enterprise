@@ -12,6 +12,7 @@ model Ticket {
   formData             Json?
   originUnitId         String
   serviceId            String
+  /// Persisted formVersionRef. Historical tickets resolve this exact FormVersion.id and never the current/latest form.
   formVersionId        String
   requesterId          String
   assignedGroupId      String?
@@ -61,6 +62,7 @@ model Ticket {
   @@index([priority])
   @@index([requesterId])
   @@index([isConfidential])
+  @@index([formVersionId])
 }
 
 model TicketParticipant {

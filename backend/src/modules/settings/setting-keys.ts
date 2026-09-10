@@ -38,6 +38,14 @@ export const settingKeys = {
     'private.services.downtimeScheduling.autoRestoreOperational',
   privateServicesDowntimeSchedulingRequireReason:
     'private.services.downtimeScheduling.requireReason',
+  privateTicketFormsEnabled: 'private.ticket.forms.enabled',
+  privateTicketFormsRequireStructuredFields:
+    'private.ticket.forms.requireStructuredFields',
+  privateTicketFormsVersioningEnabled: 'private.ticket.forms.versioning.enabled',
+  privateTicketFormsVersioningAllowMultipleActiveVersions:
+    'private.ticket.forms.versioning.allowMultipleActiveVersions',
+  privateTicketFormsVersioningRequireVersionOnTicket:
+    'private.ticket.forms.versioning.requireVersionOnTicket',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

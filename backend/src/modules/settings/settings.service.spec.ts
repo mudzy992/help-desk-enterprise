@@ -114,6 +114,11 @@ describe('SettingsService', () => {
       [settingKeys.privateServicesDowntimeSchedulingAutoSetMaintenanceStatus]: true,
       [settingKeys.privateServicesDowntimeSchedulingAutoRestoreOperational]: true,
       [settingKeys.privateServicesDowntimeSchedulingRequireReason]: true,
+      [settingKeys.privateTicketFormsEnabled]: true,
+      [settingKeys.privateTicketFormsRequireStructuredFields]: true,
+      [settingKeys.privateTicketFormsVersioningEnabled]: true,
+      [settingKeys.privateTicketFormsVersioningAllowMultipleActiveVersions]: false,
+      [settingKeys.privateTicketFormsVersioningRequireVersionOnTicket]: true,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
