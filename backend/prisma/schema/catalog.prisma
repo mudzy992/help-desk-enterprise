@@ -1,0 +1,114 @@
+model ServiceCategory {
+  id        String            @id @default(cuid())
+  name      String
+  slug      String            @unique
+  sortOrder Int               @default(0)
+  parentId  String?
+  parent    ServiceCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children  ServiceCategory[] @relation("CategoryTree")
+  services  Service[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model Service {
+  id                   String                  @id @default(cuid())
+  name                 String
+  slug                 String                  @unique
+  categoryId           String
+  lifecycle            ServiceLifecycle        @default(DRAFT)
+  availability         ServiceAvailability     @default(OPERATIONAL)
+  classification       DataClassification      @default(INTERNAL)
+  requiresApproval     Boolean                 @default(false)
+  isConfidentialDefault Boolean                @default(false)
+  autoAssignStrategy   AutoAssignStrategy      @default(NONE)
+  slaProfileId         String?
+  policyPackId         String?
+  category             ServiceCategory         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  slaProfile           SlaProfile?             @relation(fields: [slaProfileId], references: [id], onDelete: SetNull)
+  policyPack           PolicyPack?             @relation(fields: [policyPackId], references: [id], onDelete: SetNull)
+  formVersions         FormVersion[]
+  downtimeWindows      ServiceDowntimeWindow[]
+  routingRules         RoutingRule[]
+  tickets              Ticket[]
+  slaRules             SlaRule[]
+  knowledgeArticles    KnowledgeArticle[]
+  closeCodes           CloseCode[]
+  userRoles            UserRole[]
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  @@index([categoryId])
+  @@index([lifecycle])
+  @@index([slaProfileId])
+}
+
+model ServiceDowntimeWindow {
+  id        String   @id @default(cuid())
+  serviceId String
+  startsAt  DateTime
+  endsAt    DateTime
+  message   String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId, startsAt, endsAt])
+}
+
+model FormVersion {
+  id        String            @id @default(cuid())
+  serviceId String
+  version   Int
+  schema    Json
+  status    FormVersionStatus @default(DRAFT)
+  service   Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  tickets   Ticket[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([serviceId, version])
+  @@index([serviceId, status])
+}
+
+model RoutingRule {
+  id           String             @id @default(cuid())
+  originUnitId String
+  serviceId    String
+  groupId      String
+  isFallback   Boolean            @default(false)
+  originUnit   OrganizationalUnit @relation(fields: [originUnitId], references: [id], onDelete: Restrict)
+  service      Service            @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  group        Group              @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([originUnitId, serviceId, isFallback])
+  @@index([serviceId])
+  @@index([groupId])
+}
+
+model PriorityMatrixRule {
+  id        String         @id @default(cuid())
+  impact    TicketImpact
+  urgency   TicketUrgency
+  priority  TicketPriority
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([impact, urgency])
+}
+
+model ChangeLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  reason     String
+  diff       Json
+  actorUserId String?
+  actor      User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+}

@@ -1,0 +1,27 @@
+model OrganizationalUnit {
+  id                 String                  @id @default(cuid())
+  name               String
+  type               OrganizationalUnitType
+  distinguishedName  String                  @unique
+  ouPath             String
+  company            String?
+  department         String?
+  parentId           String?
+  policyPackId       String?
+  parent             OrganizationalUnit?     @relation("OuTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children           OrganizationalUnit[]    @relation("OuTree")
+  policyPack         PolicyPack?             @relation(fields: [policyPackId], references: [id], onDelete: SetNull)
+  users              User[]
+  groups             Group[]
+  originTickets      Ticket[]                @relation("TicketOriginUnit")
+  routingRules       RoutingRule[]
+  slaRules           SlaRule[]
+  knowledgeArticles  KnowledgeArticle[]
+  userRoles          UserRole[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([parentId])
+  @@index([ouPath])
+  @@index([policyPackId])
+}

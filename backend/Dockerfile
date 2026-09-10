@@ -19,6 +19,7 @@ COPY --from=builder /usr/app/node_modules ./node_modules
 COPY --from=builder /usr/app/dist ./dist
 COPY --from=builder /usr/app/package*.json ./
 COPY --from=builder /usr/app/prisma ./prisma/
+COPY --from=builder /usr/app/prisma.config.ts ./prisma.config.ts
 
 ENV NODE_ENV=production
 ENV PORT=10001

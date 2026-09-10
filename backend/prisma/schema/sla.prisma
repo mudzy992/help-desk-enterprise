@@ -1,0 +1,81 @@
+model BusinessHoursCalendar {
+  id           String            @id @default(cuid())
+  key          String            @unique
+  name         String
+  timezone     String
+  weeklyHours  Json
+  holidays     CalendarHoliday[]
+  slaProfiles  SlaProfile[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model CalendarHoliday {
+  id         String                 @id @default(cuid())
+  calendarId String
+  date       DateTime               @db.Date
+  name       String
+  calendar   BusinessHoursCalendar  @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@unique([calendarId, date])
+}
+
+model SlaProfile {
+  id          String                 @id @default(cuid())
+  key         String                 @unique
+  name        String
+  calendarId  String
+  calendar    BusinessHoursCalendar  @relation(fields: [calendarId], references: [id], onDelete: Restrict)
+  rules       SlaRule[]
+  escalations SlaEscalationRule[]
+  services    Service[]
+  policyPacks PolicyPack[]
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+}
+
+model SlaRule {
+  id                   String              @id @default(cuid())
+  slaProfileId         String
+  priority             TicketPriority
+  responseMinutes      Int
+  resolutionMinutes    Int
+  organizationalUnitId String?
+  serviceId            String?
+  slaProfile           SlaProfile          @relation(fields: [slaProfileId], references: [id], onDelete: Cascade)
+  organizationalUnit   OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: Cascade)
+  service              Service?            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([slaProfileId, priority])
+  @@index([organizationalUnitId])
+  @@index([serviceId])
+}
+
+model TicketSlaState {
+  id                   String    @id @default(cuid())
+  ticketId             String    @unique
+  responseDueAt        DateTime?
+  resolutionDueAt      DateTime?
+  respondedAt          DateTime?
+  pausedAt             DateTime?
+  isResponseBreached   Boolean   @default(false)
+  isResolutionBreached Boolean   @default(false)
+  ticket               Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  updatedAt            DateTime  @updatedAt
+}
+
+model SlaEscalationRule {
+  id                   String   @id @default(cuid())
+  slaProfileId         String
+  triggerOffsetMinutes Int
+  targetGroupId        String?
+  slaProfile           SlaProfile @relation(fields: [slaProfileId], references: [id], onDelete: Cascade)
+  targetGroup          Group?     @relation(fields: [targetGroupId], references: [id], onDelete: SetNull)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([slaProfileId])
+  @@index([targetGroupId])
+}

@@ -1,0 +1,123 @@
+enum OrganizationalUnitType {
+  DIRECTORATE
+  BRANCH
+  OFFICE
+  SECTOR
+  SERVICE
+}
+
+enum TicketStatus {
+  PENDING
+  UNROUTED
+  PENDING_APPROVAL
+  ASSIGNED
+  IN_PROGRESS
+  WAITING_FOR_USER
+  RESOLVED
+  CLOSED
+  ARCHIVED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketImpact {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ServiceLifecycle {
+  DRAFT
+  ACTIVE
+  DEPRECATED
+}
+
+enum ServiceAvailability {
+  OPERATIONAL
+  DEGRADED
+  DOWN
+  MAINTENANCE
+}
+
+enum FormVersionStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum ParticipantRole {
+  REQUESTER
+  ASSIGNEE
+  HANDLER_GROUP
+  APPROVER
+  FORWARDED_FROM_GROUP
+  FORWARDED_TO_GROUP
+  WATCHER
+  SYSTEM
+}
+
+enum MessageType {
+  USER_REPLY
+  AGENT_REPLY
+  INTERNAL_NOTE
+  SYSTEM_EVENT
+  APPROVAL_DECISION
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DataClassification {
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+enum AutoAssignStrategy {
+  NONE
+  LEAST_BUSY
+  ROUND_ROBIN
+}
+
+enum IntegrationJobType {
+  EMAIL
+  EDGE_EVENT
+  TEAMS_STUB
+}
+
+enum IntegrationJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DLQ
+}
+
+enum ConfigVersionStatus {
+  DRAFT
+  VALIDATED
+  SHADOW
+  ACTIVE
+  ROLLED_BACK
+}
+
+enum SettingScope {
+  PUBLIC
+  PRIVATE
+}

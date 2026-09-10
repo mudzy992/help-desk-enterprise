@@ -1,13 +1,17 @@
-# Domain Model — sažetak (za pun Prisma schema vidi prisma/schema.prisma)
+# Domain Model — EP-HelpDesk
 
-6 domena:
-1. **Organizational Structure** — `OrganizationalUnit` (self-referencing tree: DIRECTORATE → BRANCH → OFFICE → SECTOR → SERVICE)
-2. **Identity & Access** — `User`, `Role`, `Group`, `GroupMember`
-3. **Ticketing** — `Ticket`, `TicketActivity`, `TicketTimeLog` (napomena: SRS pominje i TicketAssignment kao zaseban entitet — u MVP schema-i assignment se prati direktno na Ticket-u preko assignedGroupId/assignedUserId; TicketAssignment kao zaseban audit-log entitet je Faza 2)
-4. **Knowledge Base** — `KnowledgeArticle`, `KnowledgeFeedback`
-5. **Routing & Configuration** — `Service`, `ServiceCategory`, `RoutingRule`
-6. **System & Audit** — `Notification`, `AuditLog`
+Source of truth: `backend/prisma/schema/` (Prisma 7, PostgreSQL). This file is a map, not a substitute for the schema.
 
-Ključna arhitektonska odluka: OrganizationalUnit je JEDNA tabela za cijelu hijerarhiju (Direkcija/Podružnica/Poslovnica/Sektor/Služba) preko `parentId`/`children` self-relacije. Nikad ne praviti zasebne tabele po nivou.
+OrganizationalUnit is a single self-referencing tree (`parentId` / `children`). Never split OU levels into separate tables.
 
-Kompletna Prisma šema (svi modeli, enumi, relacije) je već definisana i treba je prekopirati direktno u `prisma/schema.prisma` u Fazi 0 (scaffold) — ne treba je ponovo generisati kroz agenta, samo primijeniti.
+## Domains
+
+1. **Organization** — `OrganizationalUnit`
+2. **Identity & access** — `User`, `Role`, `Permission`, `RolePermission`, `UserRole` (optional OU/service scope), `Group`, `GroupMember`, `PolicyPack`
+3. **Catalog & routing** — `ServiceCategory`, `Service`, `ServiceDowntimeWindow`, `FormVersion`, `RoutingRule` (`originUnit + service → group`, `isFallback`), `PriorityMatrixRule`, `ChangeLog`
+4. **Ticketing** — `Ticket` (`formVersionId`, parent/split/merge/reopen links, confidential flag), `TicketParticipant`, `TicketMessage`, `TicketActivity`, `TicketTimeLog`, `TicketAttachment` (classification inheritance fields), `TicketApproval`, `CloseCode`, `SavedView`, `TicketCsat`, `TicketConfidentialGrant`, `BreakGlassEvent`
+5. **Knowledge** — `KnowledgeArticle` (`tsvector` + GIN), `KnowledgeFeedback`
+6. **SLA** — `BusinessHoursCalendar`, `CalendarHoliday`, `SlaProfile`, `SlaRule`, `TicketSlaState`, `SlaEscalationRule`
+7. **Ops** — `Notification`, `AuditLog` (hash chain), `IntegrationJob`, `ConfigVersion`, `AppSetting`
+
+Ticket assignment lives on `Ticket.assignedGroupId` / `assignedUserId`. Separate assignment-audit entities are not part of this schema.

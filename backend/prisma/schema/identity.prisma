@@ -1,0 +1,133 @@
+model User {
+  id                   String                     @id @default(cuid())
+  email                String                     @unique
+  displayName          String
+  isLocalOnly          Boolean                    @default(false)
+  isActive             Boolean                    @default(true)
+  localPasswordHash    String?
+  entraObjectId        String?                    @unique
+  distinguishedName    String?
+  company              String?
+  department           String?
+  organizationalUnitId String?
+  managerUserId        String?
+  organizationalUnit   OrganizationalUnit?        @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
+  manager              User?                      @relation("UserManager", fields: [managerUserId], references: [id], onDelete: SetNull)
+  directReports        User[]                     @relation("UserManager")
+  userRoles            UserRole[]
+  groupMembers         GroupMember[]
+  requestedTickets     Ticket[]                   @relation("TicketRequester")
+  assignedTickets      Ticket[]                   @relation("TicketAssignee")
+  ticketParticipants   TicketParticipant[]
+  authoredMessages     TicketMessage[]
+  ticketActivities     TicketActivity[]
+  timeLogs             TicketTimeLog[]
+  approvals            TicketApproval[]
+  savedViews           SavedView[]
+  csatSubmissions      TicketCsat[]
+  confidentialGrants   TicketConfidentialGrant[]  @relation("ConfidentialGrantSubject")
+  grantedConfidential  TicketConfidentialGrant[]  @relation("ConfidentialGrantActor")
+  breakGlassEvents     BreakGlassEvent[]
+  ownedArticles        KnowledgeArticle[]
+  knowledgeFeedbacks   KnowledgeFeedback[]
+  notifications        Notification[]
+  auditLogs            AuditLog[]
+  changeLogs           ChangeLog[]
+  configVersions       ConfigVersion[]
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  @@index([organizationalUnitId])
+  @@index([managerUserId])
+}
+
+model Role {
+  id              String           @id @default(cuid())
+  key             String           @unique
+  name            String
+  isSystem        Boolean          @default(false)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  key             String           @unique
+  description     String
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id                   String              @id @default(cuid())
+  userId               String
+  roleId               String
+  organizationalUnitId String?
+  serviceId            String?
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                 Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organizationalUnit   OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: Cascade)
+  service              Service?            @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([organizationalUnitId])
+  @@index([serviceId])
+}
+
+model Group {
+  id                   String                 @id @default(cuid())
+  name                 String
+  key                  String                 @unique
+  organizationalUnitId String
+  isFallback           Boolean                @default(false)
+  organizationalUnit   OrganizationalUnit     @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  members              GroupMember[]
+  assignedTickets      Ticket[]               @relation("TicketAssignedGroup")
+  participants         TicketParticipant[]
+  routingRules         RoutingRule[]
+  ownedArticles        KnowledgeArticle[]
+  escalationRules      SlaEscalationRule[]
+  confidentialGrants   TicketConfidentialGrant[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@index([organizationalUnitId])
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, userId])
+}
+
+model PolicyPack {
+  id                     String               @id @default(cuid())
+  key                    String               @unique
+  name                   String
+  description            String?
+  defaultClassification  DataClassification   @default(INTERNAL)
+  requiresApproval       Boolean              @default(false)
+  slaProfileId           String?
+  slaProfile             SlaProfile?          @relation(fields: [slaProfileId], references: [id], onDelete: SetNull)
+  organizationalUnits    OrganizationalUnit[]
+  services               Service[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+}

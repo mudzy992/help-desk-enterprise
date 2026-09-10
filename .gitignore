@@ -6,4 +6,5 @@ coverage
 .env.local
 backend/.env
 frontend/.env
+backend/src/generated
 

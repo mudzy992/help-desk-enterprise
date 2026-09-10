@@ -1,0 +1,118 @@
+model TicketTimeLog {
+  id              String    @id @default(cuid())
+  ticketId        String
+  userId          String
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationSeconds Int?
+  ticket          Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt       DateTime  @default(now())
+
+  @@index([ticketId])
+  @@index([userId])
+}
+
+model TicketAttachment {
+  id             String             @id @default(cuid())
+  ticketId       String
+  messageId      String?
+  storagePath    String
+  originalName   String
+  mimeType       String
+  extension      String
+  sizeBytes      Int
+  classification DataClassification
+  ticket         Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message        TicketMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  createdAt      DateTime           @default(now())
+
+  @@index([ticketId])
+  @@index([messageId])
+}
+
+model TicketApproval {
+  id             String         @id @default(cuid())
+  ticketId       String
+  stepOrder      Int            @default(1)
+  status         ApprovalStatus @default(PENDING)
+  approverUserId String?
+  comment        String?
+  decidedAt      DateTime?
+  ticket         Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  approver       User?          @relation(fields: [approverUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([ticketId])
+  @@index([approverUserId])
+}
+
+model CloseCode {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  serviceId String?
+  isActive  Boolean  @default(true)
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  filters   Json
+  sort      Json?
+  columns   Json?
+  isDefault Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+}
+
+model TicketCsat {
+  id                 String   @id @default(cuid())
+  ticketId           String   @unique
+  rating             Int
+  comment            String?
+  submittedByUserId  String
+  ticket             Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  submittedBy        User     @relation(fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  createdAt          DateTime @default(now())
+}
+
+model TicketConfidentialGrant {
+  id               String   @id @default(cuid())
+  ticketId         String
+  userId           String?
+  groupId          String?
+  grantedByUserId  String
+  ticket           Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user             User?    @relation("ConfidentialGrantSubject", fields: [userId], references: [id], onDelete: Cascade)
+  group            Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  grantedBy        User     @relation("ConfidentialGrantActor", fields: [grantedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+model BreakGlassEvent {
+  id          String    @id @default(cuid())
+  ticketId    String
+  actorUserId String
+  reason      String
+  expiresAt   DateTime?
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor       User      @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
+
+  @@index([ticketId])
+  @@index([actorUserId])
+}

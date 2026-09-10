@@ -1,0 +1,1 @@
+export const SETTINGS_REGISTRY = Symbol('SETTINGS_REGISTRY');

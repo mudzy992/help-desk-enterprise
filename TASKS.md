@@ -14,8 +14,8 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] NestJS + Prisma 7 + PostgreSQL; prva migracija (enterprise šema, Coolify `DATABASE_URL`)
 - [x] React (Vite) + Tailwind + shadcn; app shell po Constitution + `.cursor/docs/theme.md`
 - [x] i18n infrastruktura (BS default, EN fallback)
-- [ ] Settings registry skeleton (public/private + secret handling)
-- [ ] Socket.IO gateway skeleton (auth handshake)
+- [x] Settings registry skeleton (public/private + secret handling)
+- [x] Socket.IO gateway skeleton (auth handshake)
 - [ ] Redis/BullMQ klijent + worker entry (`dist/src/worker.js`); compose servis `worker`
 - [ ] Root `.env.example` usklađen; bez `.env` u gitu
 
