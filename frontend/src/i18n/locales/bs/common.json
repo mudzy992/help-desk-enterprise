@@ -1,0 +1,22 @@
+{
+  "navigation": {
+    "dashboard": "Nadzorna ploča",
+    "tickets": "Tiketi",
+    "knowledgeBase": "Baza znanja",
+    "users": "Korisnici",
+    "organizationalUnits": "Organizacijske jedinice",
+    "routing": "Usmjeravanje / Administracija",
+    "settings": "Postavke"
+  },
+  "shell": {
+    "openNavigation": "Otvori navigaciju",
+    "navigation": "Navigacija",
+    "applicationSections": "Sekcije aplikacije",
+    "primaryNavigation": "Glavna navigacija"
+  },
+  "locale": {
+    "label": "Jezik",
+    "bosnian": "Bosanski",
+    "english": "English"
+  }
+}

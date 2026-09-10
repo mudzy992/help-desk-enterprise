@@ -11,9 +11,9 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 
 ## Faza 0 — Repo + walking skeleton
 - [x] Ukloni `mobile/` i sve reference (RAW: nije dio projekta)
-- [ ] NestJS + Prisma 7 + PostgreSQL; prva migracija (enterprise šema, Coolify `DATABASE_URL`)
-- [ ] React (Vite) + Tailwind + shadcn; app shell po Constitution + `.cursor/docs/theme.md`
-- [ ] i18n infrastruktura (BS default, EN fallback)
+- [x] NestJS + Prisma 7 + PostgreSQL; prva migracija (enterprise šema, Coolify `DATABASE_URL`)
+- [x] React (Vite) + Tailwind + shadcn; app shell po Constitution + `.cursor/docs/theme.md`
+- [x] i18n infrastruktura (BS default, EN fallback)
 - [ ] Settings registry skeleton (public/private + secret handling)
 - [ ] Socket.IO gateway skeleton (auth handshake)
 - [ ] Redis/BullMQ klijent + worker entry (`dist/src/worker.js`); compose servis `worker`
@@ -94,4 +94,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** nije početo — prvu stavku Faze 0 označi `[~] IN PROGRESS` prije prvog implementacijskog prompta.
+**Trenutni status:** Faza 0 — i18n infrastruktura (BS default, EN fallback) zatvorena.

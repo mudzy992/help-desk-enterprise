@@ -1,0 +1,22 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "tickets": "Tickets",
+    "knowledgeBase": "Knowledge Base",
+    "users": "Users",
+    "organizationalUnits": "Organizational Units",
+    "routing": "Routing / Administration",
+    "settings": "Settings"
+  },
+  "shell": {
+    "openNavigation": "Open navigation",
+    "navigation": "Navigation",
+    "applicationSections": "Application sections",
+    "primaryNavigation": "Primary navigation"
+  },
+  "locale": {
+    "label": "Language",
+    "bosnian": "Bosanski",
+    "english": "English"
+  }
+}
