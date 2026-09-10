@@ -1,3 +1,4 @@
+import { AuthenticationError } from './authentication.error';
 import { authenticationConstants } from './authentication.constants';
 import type { AuthenticationUserRecord } from './authentication.types';
 import { EntraAuthenticationProvider } from './entra-authentication.provider';
@@ -6,6 +7,9 @@ import { hashLocalPassword } from './hash-local-password';
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+
+const entraObjectId = '33333333-3333-3333-3333-333333333333';
+const idToken = 'signed.entra.id-token';
 
 function createUser(
   overrides: Partial<AuthenticationUserRecord> = {},
@@ -26,15 +30,28 @@ function createUser(
 describe('EntraAuthenticationProvider', () => {
   const findByEmail = jest.fn();
   const findByEntraObjectId = jest.fn();
-  const provider = new EntraAuthenticationProvider({
-    findByEmail,
-    findByEntraObjectId,
-  } as never);
+  const loadConfiguration = jest.fn();
+  const verifyIdToken = jest.fn();
+  const provider = new EntraAuthenticationProvider(
+    { findByEmail, findByEntraObjectId } as never,
+    { load: loadConfiguration } as never,
+    { verify: verifyIdToken } as never,
+  );
 
   beforeEach(() => {
     findByEmail.mockReset();
     findByEntraObjectId.mockReset();
+    loadConfiguration.mockReset();
+    verifyIdToken.mockReset();
     findByEntraObjectId.mockResolvedValue(null);
+    loadConfiguration.mockResolvedValue({
+      tenantId: '11111111-1111-1111-1111-111111111111',
+      clientId: '22222222-2222-2222-2222-222222222222',
+      issuer:
+        'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0',
+      jwksUrl:
+        'https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/discovery/v2.0/keys',
+    });
   });
 
   it('authenticates local-only SuperAdmin with a password while entra mode is selected', async () => {
@@ -53,6 +70,8 @@ describe('EntraAuthenticationProvider', () => {
       isLocalOnly: true,
     });
     expect(principal).not.toHaveProperty('provider');
+    expect(loadConfiguration).not.toHaveBeenCalled();
+    expect(verifyIdToken).not.toHaveBeenCalled();
   });
 
   it('does not authenticate directory users with a local password', async () => {
@@ -63,7 +82,7 @@ describe('EntraAuthenticationProvider', () => {
         isLocalOnly: false,
         localPasswordHash,
         roleKeys: ['AGENT'],
-        entraObjectId: 'entra-object-1',
+        entraObjectId,
       }),
     );
     await expect(
@@ -75,39 +94,99 @@ describe('EntraAuthenticationProvider', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
-  it('fails closed for external identity and never binds it to SuperAdmin', async () => {
-    findByEntraObjectId.mockResolvedValue(null);
-    findByEmail.mockResolvedValue(createUser());
-    await expect(
-      provider.authenticate({
-        kind: 'external_identity',
-        externalSubject: 'entra-object-superadmin',
-        email: 'admin@example.com',
-        displayName: 'Directory Admin',
+  it('returns the same normalized principal for a valid Entra identity', async () => {
+    findByEntraObjectId.mockResolvedValue(
+      createUser({
+        email: 'agent@example.com',
+        displayName: 'Directory Agent',
+        isLocalOnly: false,
+        entraObjectId,
+        roleKeys: ['AGENT'],
       }),
+    );
+    verifyIdToken.mockResolvedValue({
+      externalSubject: entraObjectId,
+      email: 'token-email@example.com',
+      displayName: 'Token Display Name',
+      tenantId: '11111111-1111-1111-1111-111111111111',
+    });
+    const principal = await provider.authenticate({
+      kind: 'entra_id_token',
+      idToken,
+    });
+    expect(principal).toEqual({
+      subjectId: 'user-1',
+      email: 'agent@example.com',
+      displayName: 'Directory Agent',
+      isLocalOnly: false,
+    });
+    expect(principal).not.toHaveProperty('provider');
+    expect(JSON.stringify(principal)).not.toContain(idToken);
+    expect(findByEmail).not.toHaveBeenCalled();
+  });
+
+  it('never binds an Entra identity to SuperAdmin or local-only users', async () => {
+    verifyIdToken.mockResolvedValue({
+      externalSubject: entraObjectId,
+      email: 'admin@example.com',
+      displayName: 'Directory Admin',
+      tenantId: '11111111-1111-1111-1111-111111111111',
+    });
+    findByEntraObjectId.mockResolvedValue(createUser({ entraObjectId }));
+    await expect(
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
     findByEntraObjectId.mockResolvedValue(
-      createUser({ entraObjectId: 'entra-object-superadmin' }),
+      createUser({
+        isLocalOnly: true,
+        entraObjectId,
+        roleKeys: ['AGENT'],
+      }),
     );
     await expect(
-      provider.authenticate({
-        kind: 'external_identity',
-        externalSubject: 'entra-object-superadmin',
-        email: 'admin@example.com',
-        displayName: 'Directory Admin',
-      }),
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
-  it('does not call external Microsoft services', async () => {
-    findByEmail.mockResolvedValue(null);
+  it('fails closed when the Entra user is missing or inactive', async () => {
+    verifyIdToken.mockResolvedValue({
+      externalSubject: entraObjectId,
+      email: 'agent@example.com',
+      displayName: 'Agent',
+      tenantId: '11111111-1111-1111-1111-111111111111',
+    });
     await expect(
-      provider.authenticate({
-        kind: 'external_identity',
-        externalSubject: 'entra-object-1',
-        email: 'user@example.com',
-        displayName: 'User',
-      }),
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    findByEntraObjectId.mockResolvedValue(
+      createUser({
+        isActive: false,
+        isLocalOnly: false,
+        entraObjectId,
+        roleKeys: ['AGENT'],
+      }),
+    );
+    await expect(
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    expect(findByEmail).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when Entra configuration is unavailable', async () => {
+    loadConfiguration.mockRejectedValue(
+      new AuthenticationError('AUTHENTICATION_UNAVAILABLE'),
+    );
+    await expect(
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_UNAVAILABLE' });
+    expect(verifyIdToken).not.toHaveBeenCalled();
+  });
+
+  it('does not authenticate from unverified identity fields', async () => {
+    await expect(
+      provider.authenticate({ kind: 'entra_id_token', idToken: '   ' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    expect(loadConfiguration).not.toHaveBeenCalled();
+    expect(verifyIdToken).not.toHaveBeenCalled();
   });
 });

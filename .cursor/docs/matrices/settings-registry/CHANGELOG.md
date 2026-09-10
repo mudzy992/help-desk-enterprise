@@ -3,3 +3,4 @@
 ## 2026-09-10
 - Inicijalna matrica: public/private/secret visibility, retrieval granice, AppSetting overlay, secret isolation za Faza 0 skeleton.
 - Dodani `private.auth.adRead.*` ključevi za directory-sync stub (`manual_only`, throttle, cache, base DN scope). Nema AD/LDAP/Graph kredencijala.
+- Dodani `private.auth.azureTenantId` i `private.auth.azureClientId` (secret) za Entra/MSAL token validaciju. Nema client secret-a ni Graph kredencijala.

@@ -98,13 +98,11 @@ describe('LocalAuthenticationProvider', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
-  it('rejects external-identity credentials in the local provider', async () => {
+  it('rejects Entra ID token credentials in the local provider', async () => {
     await expect(
       provider.authenticate({
-        kind: 'external_identity',
-        externalSubject: 'entra-object-1',
-        email: 'agent@example.com',
-        displayName: 'Agent',
+        kind: 'entra_id_token',
+        idToken: 'unsigned.entra.id-token',
       }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
     expect(findByEmail).not.toHaveBeenCalled();

@@ -6,16 +6,14 @@ export type PasswordAuthenticationCredentials = {
   readonly password: string;
 };
 
-export type ExternalIdentityAuthenticationCredentials = {
-  readonly kind: 'external_identity';
-  readonly externalSubject: string;
-  readonly email: string;
-  readonly displayName: string;
+export type EntraIdTokenAuthenticationCredentials = {
+  readonly kind: 'entra_id_token';
+  readonly idToken: string;
 };
 
 export type AuthenticationCredentials =
   | PasswordAuthenticationCredentials
-  | ExternalIdentityAuthenticationCredentials;
+  | EntraIdTokenAuthenticationCredentials;
 
 export type AuthenticatedPrincipal = {
   readonly subjectId: string;

@@ -2,6 +2,7 @@ import { SettingsError } from '../settings/settings.error';
 import { settingKeys } from '../settings/setting-keys';
 import { AuthenticationError } from './authentication.error';
 import { AuthenticationModeLoader } from './authentication-mode.loader';
+import { EntraAuthenticationConfigurationLoader } from './entra-authentication-configuration.loader';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -62,6 +63,54 @@ describe('JwtSigningSecretLoader', () => {
       code: 'AUTHENTICATION_UNAVAILABLE',
     });
     getSecretForInternalUse.mockResolvedValue('short');
+    await expect(loader.load()).rejects.toMatchObject({
+      code: 'AUTHENTICATION_UNAVAILABLE',
+    });
+  });
+});
+
+describe('EntraAuthenticationConfigurationLoader', () => {
+  const getSecretForInternalUse = jest.fn();
+  const loader = new EntraAuthenticationConfigurationLoader({
+    getSecretForInternalUse,
+  } as never);
+  const tenantId = '11111111-1111-4111-8111-111111111111';
+  const clientId = '22222222-2222-4222-8222-222222222222';
+
+  beforeEach(() => {
+    getSecretForInternalUse.mockReset();
+    getSecretForInternalUse.mockImplementation((key: string) => {
+      if (key === settingKeys.privateAuthAzureTenantId) {
+        return Promise.resolve(tenantId);
+      }
+      if (key === settingKeys.privateAuthAzureClientId) {
+        return Promise.resolve(clientId);
+      }
+      return Promise.resolve(undefined);
+    });
+  });
+
+  it('loads tenant and client identifiers from settings secrets', async () => {
+    await expect(loader.load()).resolves.toEqual({
+      tenantId,
+      clientId,
+      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
+      jwksUrl: `https://login.microsoftonline.com/${tenantId}/discovery/v2.0/keys`,
+    });
+    expect(getSecretForInternalUse).toHaveBeenCalledWith(
+      settingKeys.privateAuthAzureTenantId,
+    );
+    expect(getSecretForInternalUse).toHaveBeenCalledWith(
+      settingKeys.privateAuthAzureClientId,
+    );
+  });
+
+  it('fails closed when Entra settings are missing', async () => {
+    getSecretForInternalUse.mockResolvedValue(undefined);
+    await expect(loader.load()).rejects.toMatchObject({
+      code: 'AUTHENTICATION_UNAVAILABLE',
+    });
+    getSecretForInternalUse.mockRejectedValue(new SettingsError('denied'));
     await expect(loader.load()).rejects.toMatchObject({
       code: 'AUTHENTICATION_UNAVAILABLE',
     });

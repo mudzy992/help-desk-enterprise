@@ -7,6 +7,7 @@ import { authenticationConstants } from './authentication.constants';
 import { AuthenticationError } from './authentication.error';
 import { AuthenticationProviderResolver } from './authentication-provider.resolver';
 import type {
+  AuthenticationCredentials,
   AuthenticationSessionResponse,
   PasswordAuthenticationCredentials,
 } from './authentication.types';
@@ -29,6 +30,21 @@ export class AuthenticationService {
       email: input.email,
       password: input.password,
     };
+    return this.completeLogin(credentials);
+  }
+
+  async loginWithEntraIdToken(
+    idToken: string,
+  ): Promise<AuthenticationSessionResponse> {
+    return this.completeLogin({
+      kind: 'entra_id_token',
+      idToken,
+    });
+  }
+
+  private async completeLogin(
+    credentials: AuthenticationCredentials,
+  ): Promise<AuthenticationSessionResponse> {
     try {
       const provider = await this.authenticationProviderResolver.resolve();
       const principal = await provider.authenticate(credentials);

@@ -9,13 +9,14 @@ import type {
   AuthenticationCredentials,
   AuthenticationProvider,
   AuthenticationUserRecord,
-  ExternalIdentityAuthenticationCredentials,
+  EntraIdTokenAuthenticationCredentials,
   PasswordAuthenticationCredentials,
 } from './authentication.types';
 import { AuthenticationUserLoader } from './authentication-user.loader';
 import { canBindExternalIdentity } from './can-bind-external-identity';
 import { createAuthenticatedPrincipal } from './create-authenticated-principal';
-import { normalizeEmailAddress } from './normalize-email-address';
+import { EntraAuthenticationConfigurationLoader } from './entra-authentication-configuration.loader';
+import { MicrosoftEntraIdTokenVerifier } from './microsoft-entra-id-token.verifier';
 import {
   isAcceptedLocalPasswordAuthentication,
   selectLocalPasswordHashForVerification,
@@ -26,6 +27,8 @@ import { verifyLocalPassword } from './verify-local-password';
 export class EntraAuthenticationProvider implements AuthenticationProvider {
   constructor(
     private readonly authenticationUserLoader: AuthenticationUserLoader,
+    private readonly entraAuthenticationConfigurationLoader: EntraAuthenticationConfigurationLoader,
+    private readonly entraIdTokenVerifier: MicrosoftEntraIdTokenVerifier,
   ) {}
 
   async authenticate(
@@ -34,7 +37,7 @@ export class EntraAuthenticationProvider implements AuthenticationProvider {
     if (credentials.kind === 'password') {
       return this.authenticateLocalOnlyPassword(credentials);
     }
-    return this.rejectExternalIdentity(credentials);
+    return this.authenticateEntraIdToken(credentials);
   }
 
   private async authenticateLocalOnlyPassword(
@@ -51,48 +54,58 @@ export class EntraAuthenticationProvider implements AuthenticationProvider {
     if (!isAcceptedLocalPasswordAuthentication(user, isPasswordMatch, true)) {
       throw createInvalidCredentialsError();
     }
-    try {
-      assertSuperAdminIsLocalOnly({
-        isLocalOnly: user.isLocalOnly,
-        entraObjectId: user.entraObjectId,
-        roleKeys: user.roleKeys,
-      });
-    } catch (error) {
-      if (error instanceof AuthenticationError) {
-        throw createInvalidCredentialsError();
-      }
-      throw error;
+    return materializeAuthenticatedPrincipal(user);
+  }
+
+  private async authenticateEntraIdToken(
+    credentials: EntraIdTokenAuthenticationCredentials,
+  ): Promise<AuthenticatedPrincipal> {
+    if (credentials.idToken.trim().length === 0) {
+      throw createInvalidCredentialsError();
     }
+    const configuration =
+      await this.entraAuthenticationConfigurationLoader.load();
+    const identity = await this.entraIdTokenVerifier.verify({
+      idToken: credentials.idToken,
+      configuration,
+    });
+    const user = await this.authenticationUserLoader.findByEntraObjectId(
+      identity.externalSubject,
+    );
+    if (
+      user === null ||
+      !user.isActive ||
+      !canBindExternalIdentity(user)
+    ) {
+      throw createInvalidCredentialsError();
+    }
+    return materializeAuthenticatedPrincipal(user);
+  }
+}
+
+function materializeAuthenticatedPrincipal(
+  user: AuthenticationUserRecord,
+): AuthenticatedPrincipal {
+  try {
+    assertSuperAdminIsLocalOnly({
+      isLocalOnly: user.isLocalOnly,
+      entraObjectId: user.entraObjectId,
+      roleKeys: user.roleKeys,
+    });
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      throw createInvalidCredentialsError();
+    }
+    throw error;
+  }
+  try {
     return createAuthenticatedPrincipal({
       subjectId: user.id,
       email: user.email,
       displayName: user.displayName,
       isLocalOnly: user.isLocalOnly,
     });
-  }
-
-  private async rejectExternalIdentity(
-    credentials: ExternalIdentityAuthenticationCredentials,
-  ): Promise<AuthenticatedPrincipal> {
-    const user = await this.findExternalIdentityCandidate(credentials);
-    if (user !== null && !canBindExternalIdentity(user)) {
-      throw createInvalidCredentialsError();
-    }
+  } catch {
     throw createInvalidCredentialsError();
-  }
-
-  private async findExternalIdentityCandidate(
-    credentials: ExternalIdentityAuthenticationCredentials,
-  ): Promise<AuthenticationUserRecord | null> {
-    const byExternalSubject =
-      await this.authenticationUserLoader.findByEntraObjectId(
-        credentials.externalSubject,
-      );
-    if (byExternalSubject !== null) {
-      return byExternalSubject;
-    }
-    return this.authenticationUserLoader.findByEmail(
-      normalizeEmailAddress(credentials.email),
-    );
   }
 }

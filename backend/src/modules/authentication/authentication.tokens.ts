@@ -1,0 +1,1 @@
+export const ENTRA_ID_TOKEN_FETCH = Symbol('ENTRA_ID_TOKEN_FETCH');

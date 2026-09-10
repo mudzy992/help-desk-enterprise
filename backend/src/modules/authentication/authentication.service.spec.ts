@@ -79,4 +79,32 @@ describe('AuthenticationService', () => {
       }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
+
+  it('issues the same session shape for a valid Entra ID token', async () => {
+    authenticate.mockResolvedValue(principal);
+    issue.mockResolvedValue('signed.jwt.token');
+    const idToken = 'signed.entra.id-token';
+    const session = await service.loginWithEntraIdToken(idToken);
+    expect(session).toEqual({
+      accessToken: 'signed.jwt.token',
+      tokenType: 'Bearer',
+      expiresInSeconds: authenticationConstants.sessionTtlSeconds,
+      principal,
+    });
+    expect(session.principal).not.toHaveProperty('provider');
+    expect(JSON.stringify(session)).not.toContain(idToken);
+    expect(authenticate).toHaveBeenCalledWith({
+      kind: 'entra_id_token',
+      idToken,
+    });
+  });
+
+  it('fails closed when Entra configuration is unavailable', async () => {
+    authenticate.mockRejectedValue(
+      new AuthenticationError('AUTHENTICATION_UNAVAILABLE'),
+    );
+    await expect(
+      service.loginWithEntraIdToken('signed.entra.id-token'),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
 });

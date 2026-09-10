@@ -1,6 +1,7 @@
 import { Body, Controller, Post, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import type { AuthenticationSessionResponse } from './authentication.types';
+import { EntraLoginDto } from './dto/entra-login.dto';
 import { LocalLoginDto } from './dto/local-login.dto';
 
 @Controller('auth')
@@ -20,5 +21,12 @@ export class AuthenticationController {
       email: body.email,
       password: body.password,
     });
+  }
+
+  @Post('entra')
+  loginWithEntra(
+    @Body() body: EntraLoginDto,
+  ): Promise<AuthenticationSessionResponse> {
+    return this.authenticationService.loginWithEntraIdToken(body.idToken);
   }
 }

@@ -37,4 +37,18 @@ export const foundationalSettings: readonly SettingDefinition[] = [
       'Signing secret for local development JWT; never expose outside trusted backend use',
     isRequired: false,
   }),
+  defineSecretSetting({
+    key: settingKeys.privateAuthAzureTenantId,
+    valueType: 'string',
+    description:
+      'Microsoft Entra tenant identifier used to validate issuer and tenant claims',
+    isRequired: false,
+  }),
+  defineSecretSetting({
+    key: settingKeys.privateAuthAzureClientId,
+    valueType: 'string',
+    description:
+      'Microsoft Entra application client identifier used as the expected token audience',
+    isRequired: false,
+  }),
 ];

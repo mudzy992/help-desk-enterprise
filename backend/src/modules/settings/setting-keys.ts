@@ -3,6 +3,8 @@ export const settingKeys = {
   privateInstallCompletedAt: 'private.install.completedAt',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
+  privateAuthAzureTenantId: 'private.auth.azureTenantId',
+  privateAuthAzureClientId: 'private.auth.azureClientId',
   privateAuthAdReadEnabled: 'private.auth.adRead.enabled',
   privateAuthAdReadStrategy: 'private.auth.adRead.strategy',
   privateAuthAdReadUsersBaseDn: 'private.auth.adRead.usersBaseDn',

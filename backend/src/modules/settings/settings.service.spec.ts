@@ -55,6 +55,12 @@ describe('SettingsService', () => {
       if (where.key === settingKeys.privateAuthJwtSigningSecret) {
         return Promise.resolve({ value: 'plaintext-secret' });
       }
+      if (where.key === settingKeys.privateAuthAzureTenantId) {
+        return Promise.resolve({ value: 'plaintext-tenant' });
+      }
+      if (where.key === settingKeys.privateAuthAzureClientId) {
+        return Promise.resolve({ value: 'plaintext-client' });
+      }
       return Promise.resolve(null);
     });
     const service = await createService();
@@ -65,7 +71,15 @@ describe('SettingsService', () => {
     expect(publicSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
     );
+    expect(publicSettings).not.toHaveProperty(
+      settingKeys.privateAuthAzureTenantId,
+    );
+    expect(publicSettings).not.toHaveProperty(
+      settingKeys.privateAuthAzureClientId,
+    );
     expect(JSON.stringify(publicSettings)).not.toContain('plaintext-secret');
+    expect(JSON.stringify(publicSettings)).not.toContain('plaintext-tenant');
+    expect(JSON.stringify(publicSettings)).not.toContain('plaintext-client');
   });
 
   it('returns private settings without secrets', async () => {
@@ -84,6 +98,12 @@ describe('SettingsService', () => {
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
+    );
+    expect(privateSettings).not.toHaveProperty(
+      settingKeys.privateAuthAzureTenantId,
+    );
+    expect(privateSettings).not.toHaveProperty(
+      settingKeys.privateAuthAzureClientId,
     );
   });
 
