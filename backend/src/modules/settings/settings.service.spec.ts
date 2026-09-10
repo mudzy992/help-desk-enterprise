@@ -95,6 +95,11 @@ describe('SettingsService', () => {
       [settingKeys.privateAuthAdReadMaxQueriesPerSecond]: 0.5,
       [settingKeys.privateAuthAdReadCacheTtlMinutes]: 30,
       [settingKeys.privateAuthAdReadOuTreeCacheTtlHours]: 12,
+      [settingKeys.privateReadOnlyModeEnabled]: true,
+      [settingKeys.privateReadOnlyModeModulesCsv]:
+        'admin,settings,routing,service_catalog,service_forms,sla',
+      [settingKeys.privateReadOnlyModeActiveModulesCsv]: '',
+      [settingKeys.privateReadOnlyModeBypassRolesCsv]: 'SUPER_ADMIN',
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,

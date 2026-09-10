@@ -44,10 +44,13 @@ Oba zovu isti `evaluateAuthorizationAccess` kroz `AuthorizationService.authorize
 
 Nema principal-a ⇒ 401 `INVALID_CREDENTIALS`. Principal postoji, odluka deny ⇒ 403 `FORBIDDEN`. Nema test bypass-a, `NODE_ENV` grana, ili token/credential logovanja.
 
+## Read-only admin mode
+`AdminReadOnlyInterceptor` je dodatni sloj nakon `RoleGuard` / `OuAccessGuard`. Ne mijenja `authorize` odluku. Detalji: `.cursor/docs/matrices/read-only-mode-maintenance/MATRIX.md`.
+
 ## Shadow permission check
 `ShadowAuthorizationService.evaluate` koristi isti `evaluateAuthorizationRequest` + `decideAuthorizationAccess` tok kao `AuthorizationService.authorize`. Vraća ne-enforcing report (`kind: shadow`, `isEnforcing: false`, `ALLOW`/`DENY` + deterministic reason). Shadow ALLOW nije autorizacija. Guardovi ne zovu shadow API. Detalji: `.cursor/docs/matrices/permissions-shadow-check/MATRIX.md`.
 
 ## Namjerno NIJE implementirano
-Read-only admin mode, frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula, config versioning/rollback/admin preview UI.
+Frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula, config versioning/rollback/admin preview UI.
 
 Policy packovi žive u `policy-packs` modulu i samo materijalizuju `UserRole` / `RolePermission` zapise koje ovaj evaluator već čita.

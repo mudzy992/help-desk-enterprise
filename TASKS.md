@@ -27,7 +27,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] Granular permissions + scopes (OU/service) + RoleGuard / OuAccessGuard
 - [x] Shadow permission check (preview impact)
 - [x] Policy packs (IT / HR / Finance defaults)
-- [ ] Read-only mode za admin module
+- [x] Read-only mode za admin module
 
 ## Faza 2 — Katalog, forme, routing
 - [ ] Service catalog + lifecycle (`DRAFT` / `ACTIVE` / `DEPRECATED`)

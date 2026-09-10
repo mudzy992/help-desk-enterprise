@@ -52,7 +52,7 @@ TTL:
 Expiry je eksplicitan (`expiresAtMs`). TTL 0 = bez cache-a.
 
 ## API
-`POST /directory-sync/read` — tanki controller → service → port. Validacija DTO + fail-closed parse scope. Nema admin UI, jobova, writova.
+`POST /directory-sync/read` — tanki controller → service → port. Validacija DTO + fail-closed parse scope. Označen kao admin read (`@AdminReadOperation`); ostaje dostupan u read-only mode-u. Nema admin UI, jobova, writova. Budući sync POST bi bio mutacija.
 
 ## Sigurnost
 Read-only. Nema auto User/OU/role sync. Nema Graph/MSAL/LDAP. Nema secreta u git. Ne loguju se credentials ni puni directory payloadi.

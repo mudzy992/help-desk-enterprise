@@ -28,7 +28,7 @@ Ručno dodijeljeni `UserRole` i extra `RolePermission` ostaju. Ponovni apply ne 
 ## Authorization reuse
 Nakon apply, `AuthorizationContextLoader` čita iste `UserRole` + `RolePermission` zapise. `RoleGuard`, `OuAccessGuard` i `ShadowAuthorizationService` koriste isti `evaluateAuthorizationRequest` tok. Shadow ALLOW nije grant.
 
-HTTP: `GET /policy-packs` (`RoleGuard`, `ADMIN` + `settings.write`). `POST /policy-packs/validate` i `POST /policy-packs/apply` (`OuAccessGuard`, isti role/permission + OU iz body). Session guard na svim rutama. Shadow se koristi za compatibility, ne kao grant.
+HTTP: `GET /policy-packs` (`RoleGuard`, `ADMIN` + `settings.write`). `POST /policy-packs/validate` i `POST /policy-packs/apply` (`OuAccessGuard`, isti role/permission + OU iz body). Session guard na svim rutama. Shadow se koristi za compatibility, ne kao grant. Read-only mode: validate ostaje read; apply je mutacija.
 
 ## Namjerno NIJE implementirano
-Read-only admin mode, frontend UI, SLA/required-fields/classification enforcement izvan pack metadata, config versioning/rollback, settings `private.policyPacks.*`, brisanje grantova pri reassign packa.
+Frontend UI, SLA/required-fields/classification enforcement izvan pack metadata, config versioning/rollback, settings `private.policyPacks.*`, brisanje grantova pri reassign packa.

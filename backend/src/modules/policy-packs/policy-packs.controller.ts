@@ -8,6 +8,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -41,6 +42,7 @@ export class PolicyPacksController {
   }
 
   @Post('validate')
+  @AdminReadOperation()
   @UseGuards(OuAccessGuard)
   @RequireRoles(authorizationRoleKeys.admin)
   @RequirePermissions(permissionKeys.settingsWrite)

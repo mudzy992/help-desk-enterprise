@@ -38,7 +38,7 @@ Child DN mora biti descendant parent DN (`endsWith(',' + parentDn)`). `Company/D
 | GET | `/organizational-units/:id/users` | users in OU |
 | PUT | `/organizational-units/user-mappings` | assign / reassign / unassign |
 
-HTTP `OuAccessGuard` / `RoleGuard` žive u `authorization` modulu i nisu vezani na ove CRUD rute u ovom tasku.
+HTTP `OuAccessGuard` / `RoleGuard` žive u `authorization` modulu i nisu vezani na ove CRUD rute. Admin read-only interceptor blokira mutacije (create/update/delete/assign) kad je `admin` modul zaključan; GET ostaje.
 
 ## Namjerno NIJE implementirano
 AD sync, Microsoft Graph, Entra/MSAL, granular permissions/scopes, RoleGuard, OuAccessGuard, policy packs, frontend OU administration UI.

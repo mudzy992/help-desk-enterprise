@@ -44,3 +44,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.auth.adRead.maxQueriesPerSecond` (private, number, default `0.5`)
 - `private.auth.adRead.cacheTtlMinutes` (private, number, default `30`)
 - `private.auth.adRead.ouTreeCacheTtlHours` (private, number, default `12`)
+- `private.readOnlyMode.enabled` (private, boolean, default `true`)
+- `private.readOnlyMode.modulesCsv` (private, string, default `admin,settings,routing,service_catalog,service_forms,sla`)
+- `private.readOnlyMode.activeModulesCsv` (private, string, default `""`)
+- `private.readOnlyMode.bypassRolesCsv` (private, string, default `SUPER_ADMIN`)

@@ -12,6 +12,10 @@ export const settingKeys = {
   privateAuthAdReadMaxQueriesPerSecond: 'private.auth.adRead.maxQueriesPerSecond',
   privateAuthAdReadCacheTtlMinutes: 'private.auth.adRead.cacheTtlMinutes',
   privateAuthAdReadOuTreeCacheTtlHours: 'private.auth.adRead.ouTreeCacheTtlHours',
+  privateReadOnlyModeEnabled: 'private.readOnlyMode.enabled',
+  privateReadOnlyModeModulesCsv: 'private.readOnlyMode.modulesCsv',
+  privateReadOnlyModeActiveModulesCsv: 'private.readOnlyMode.activeModulesCsv',
+  privateReadOnlyModeBypassRolesCsv: 'private.readOnlyMode.bypassRolesCsv',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

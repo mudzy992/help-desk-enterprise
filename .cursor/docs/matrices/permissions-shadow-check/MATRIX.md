@@ -53,4 +53,4 @@ Fail closed. SuperAdmin dobija `SUPER_ADMIN_ALLOWED` samo ako je `isLocalOnly` i
 - `RoleGuard` / `OuAccessGuard` i dalje zovu samo `AuthorizationService.authorize`.
 
 ## Namjerno NIJE implementirano
-Read-only admin mode, frontend preview UI, `private.security.permissions.shadowCheck.*` settings gating, config versioning/rollback, impacted-users preview limit.
+Frontend preview UI, `private.security.permissions.shadowCheck.*` settings gating, config versioning/rollback, impacted-users preview limit. Shadow ALLOW ne zaobilazi admin read-only mode.
