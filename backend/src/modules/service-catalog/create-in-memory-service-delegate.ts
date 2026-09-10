@@ -18,6 +18,7 @@ export function createInMemoryServiceDelegate(
   dependents: Map<string, ServiceDependents>,
   nextId: () => string,
   now: () => Date,
+  downtimeWindows: Map<string, { serviceId: string }> = new Map(),
 ) {
   return {
     findUnique: async ({
@@ -105,6 +106,11 @@ export function createInMemoryServiceDelegate(
     delete: async ({ where }: { where: { id: string } }) => {
       const current = services.get(where.id);
       services.delete(where.id);
+      for (const [windowId, window] of downtimeWindows) {
+        if (window.serviceId === where.id) {
+          downtimeWindows.delete(windowId);
+        }
+      }
       return current;
     },
   };

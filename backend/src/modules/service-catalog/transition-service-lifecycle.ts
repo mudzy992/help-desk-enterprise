@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertServiceLifecycleTransition } from './assert-service-lifecycle-transition';
+import { buildServiceResponse } from './build-service-response';
 import { loadService } from './load-service';
 import {
   recordServiceCatalogChange,
@@ -11,7 +12,6 @@ import type {
   ServiceResponse,
   TransitionServiceLifecycleInput,
 } from './service-catalog.types';
-import { toServiceResponse } from './to-service-response';
 
 export async function transitionServiceLifecycle(
   prisma: PrismaService,
@@ -43,5 +43,5 @@ export async function transitionServiceLifecycle(
     });
     return service;
   });
-  return toServiceResponse(updated);
+  return buildServiceResponse(prisma, updated);
 }

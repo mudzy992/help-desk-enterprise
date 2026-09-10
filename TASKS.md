@@ -31,7 +31,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 
 ## Faza 2 — Katalog, forme, routing
 - [x] Service catalog + lifecycle (`DRAFT` / `ACTIVE` / `DEPRECATED`)
-- [ ] Availability status + downtime scheduling (create ostaje non-blocking)
+- [x] Availability status + downtime scheduling (create ostaje non-blocking)
 - [ ] Schema-driven forme + form versioning (`formVersionRef` na tiketu)
 - [ ] Service onboarding wizard (servis → forma → routing → SLA → approvals)
 - [ ] Routing tabela `(originUnit + service) → group` + parent fallback + unrouted queue + coverage UI

@@ -30,3 +30,7 @@ export function serviceChangeLogEntityType(): string {
 export function serviceCategoryChangeLogEntityType(): string {
   return serviceCatalogChangeLogEntityTypes.serviceCategory;
 }
+
+export function serviceDowntimeWindowChangeLogEntityType(): string {
+  return serviceCatalogChangeLogEntityTypes.serviceDowntimeWindow;
+}

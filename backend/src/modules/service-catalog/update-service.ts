@@ -1,6 +1,7 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertPolicyPackExists } from './assert-policy-pack-exists';
 import { assertServiceCategoryExists } from './assert-service-category-exists';
+import { buildServiceResponse } from './build-service-response';
 import { loadService } from './load-service';
 import { normalizeServiceName } from './normalize-service-name';
 import {
@@ -12,7 +13,6 @@ import type {
   ServiceResponse,
   UpdateServiceInput,
 } from './service-catalog.types';
-import { toServiceResponse } from './to-service-response';
 
 export async function updateService(
   prisma: PrismaService,
@@ -56,5 +56,5 @@ export async function updateService(
     });
     return service;
   });
-  return toServiceResponse(updated);
+  return buildServiceResponse(prisma, updated);
 }

@@ -16,7 +16,7 @@ A user has at most one primary OU (`User.organizationalUnitId`). Deleting an OU 
 
 1. **Organization** — `OrganizationalUnit`
 2. **Identity & access** — `User`, `Role`, `Permission`, `RolePermission`, `UserRole` (optional OU/service scope), `Group`, `GroupMember`, `PolicyPack` (IT/HR/Finance registry applies additive `UserRole` grants; never SuperAdmin)
-3. **Catalog & routing** — `ServiceCategory`, `Service` (`id` + unique `slug` are identity; `lifecycle` is state only), `ServiceDowntimeWindow`, `FormVersion`, `RoutingRule` (`originUnit + service → group`, `isFallback`), `PriorityMatrixRule`, `ChangeLog`
+3. **Catalog & routing** — `ServiceCategory`, `Service` (`id` + unique `slug` are identity; `lifecycle` is catalog publish state only; `availability` is admin-set runtime status, overlaid by `ServiceDowntimeWindow` `[startsAt, endsAt)` and never blocks ticket creation), `FormVersion`, `RoutingRule` (`originUnit + service → group`, `isFallback`), `PriorityMatrixRule`, `ChangeLog`
 4. **Ticketing** — `Ticket` (`formVersionId`, parent/split/merge/reopen links, confidential flag), `TicketParticipant`, `TicketMessage`, `TicketActivity`, `TicketTimeLog`, `TicketAttachment` (classification inheritance fields), `TicketApproval`, `CloseCode`, `SavedView`, `TicketCsat`, `TicketConfidentialGrant`, `BreakGlassEvent`
 5. **Knowledge** — `KnowledgeArticle` (`tsvector` + GIN), `KnowledgeFeedback`
 6. **SLA** — `BusinessHoursCalendar`, `CalendarHoliday`, `SlaProfile`, `SlaRule`, `TicketSlaState`, `SlaEscalationRule`

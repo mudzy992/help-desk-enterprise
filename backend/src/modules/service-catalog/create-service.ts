@@ -5,6 +5,7 @@ import {
   isAllowedServiceLifecycleState,
 } from './assert-service-lifecycle-transition';
 import { assertServiceSlugIsAvailable } from './assert-slug-is-available';
+import { buildServiceResponse } from './build-service-response';
 import { normalizeServiceName } from './normalize-service-name';
 import { normalizeServiceSlug } from './normalize-service-slug';
 import {
@@ -19,7 +20,6 @@ import type {
   ServiceResponse,
 } from './service-catalog.types';
 import { throwIfSlugConstraintViolated } from './throw-if-slug-constraint-violated';
-import { toServiceResponse } from './to-service-response';
 
 export async function createService(
   prisma: PrismaService,
@@ -71,7 +71,7 @@ export async function createService(
       });
       return service;
     });
-    return toServiceResponse(created);
+    return buildServiceResponse(prisma, created);
   } catch (error) {
     throwIfSlugConstraintViolated(error);
     throw error;

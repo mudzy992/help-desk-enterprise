@@ -1,9 +1,11 @@
 import { createInMemoryServiceCategoryDelegate } from './create-in-memory-service-category-delegate';
 import { createInMemoryServiceDelegate } from './create-in-memory-service-delegate';
+import { createInMemoryServiceDowntimeWindowDelegate } from './create-in-memory-service-downtime-window-delegate';
 import {
   emptyServiceDependents,
   type ServiceDependents,
 } from './in-memory-service-catalog-store';
+import type { DowntimeWindowRecord } from './service-availability.types';
 import type { ServiceCategoryRecord, ServiceRecord } from './service-catalog.types';
 
 export type InMemoryServiceCategory = ServiceCategoryRecord;
@@ -21,6 +23,7 @@ export function createInMemoryServiceCatalogPrisma(): {
   prisma: {
     serviceCategory: Record<string, unknown>;
     service: Record<string, unknown>;
+    serviceDowntimeWindow: Record<string, unknown>;
     policyPack: Record<string, unknown>;
     changeLog: Record<string, unknown>;
     $transaction: (callback: (client: unknown) => Promise<unknown>) => Promise<unknown>;
@@ -33,6 +36,7 @@ export function createInMemoryServiceCatalogPrisma(): {
 } {
   const categories = new Map<string, InMemoryServiceCategory>();
   const services = new Map<string, InMemoryService>();
+  const downtimeWindows = new Map<string, DowntimeWindowRecord>();
   const policyPacks = new Set<string>();
   const dependents = new Map<string, ServiceDependents>();
   const changeLogs: InMemoryServiceCatalogChangeLog[] = [];
@@ -42,7 +46,18 @@ export function createInMemoryServiceCatalogPrisma(): {
 
   const prisma = {
     serviceCategory: createInMemoryServiceCategoryDelegate(categories, nextId, now),
-    service: createInMemoryServiceDelegate(services, dependents, nextId, now),
+    service: createInMemoryServiceDelegate(
+      services,
+      dependents,
+      nextId,
+      now,
+      downtimeWindows,
+    ),
+    serviceDowntimeWindow: createInMemoryServiceDowntimeWindowDelegate(
+      downtimeWindows,
+      nextId,
+      now,
+    ),
     policyPack: {
       findUnique: async ({ where }: { where: { id: string } }) =>
         policyPacks.has(where.id) ? { id: where.id } : null,

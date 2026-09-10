@@ -21,6 +21,23 @@ export const settingKeys = {
     'private.services.lifecycle.allowedStatesCsv',
   privateServicesLifecycleDefaultStateOnCreate:
     'private.services.lifecycle.defaultStateOnCreate',
+  privateServicesAvailabilityEnabled: 'private.services.availability.enabled',
+  privateServicesAvailabilityAllowedStatusesCsv:
+    'private.services.availability.allowedStatusesCsv',
+  privateServicesAvailabilityShowStatusInCatalog:
+    'private.services.availability.showStatusInCatalog',
+  privateServicesAvailabilityShowStatusInTicketCreate:
+    'private.services.availability.showStatusInTicketCreate',
+  privateServicesAvailabilityChangeRequiresReason:
+    'private.services.availability.changeRequiresReason',
+  privateServicesDowntimeSchedulingEnabled:
+    'private.services.downtimeScheduling.enabled',
+  privateServicesDowntimeSchedulingAutoSetMaintenanceStatus:
+    'private.services.downtimeScheduling.autoSetMaintenanceStatus',
+  privateServicesDowntimeSchedulingAutoRestoreOperational:
+    'private.services.downtimeScheduling.autoRestoreOperational',
+  privateServicesDowntimeSchedulingRequireReason:
+    'private.services.downtimeScheduling.requireReason',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

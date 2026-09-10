@@ -104,6 +104,16 @@ describe('SettingsService', () => {
       [settingKeys.privateServicesLifecycleAllowedStatesCsv]:
         'DRAFT,ACTIVE,DEPRECATED',
       [settingKeys.privateServicesLifecycleDefaultStateOnCreate]: 'DRAFT',
+      [settingKeys.privateServicesAvailabilityEnabled]: true,
+      [settingKeys.privateServicesAvailabilityAllowedStatusesCsv]:
+        'OPERATIONAL,DEGRADED,DOWN,MAINTENANCE',
+      [settingKeys.privateServicesAvailabilityShowStatusInCatalog]: true,
+      [settingKeys.privateServicesAvailabilityShowStatusInTicketCreate]: true,
+      [settingKeys.privateServicesAvailabilityChangeRequiresReason]: true,
+      [settingKeys.privateServicesDowntimeSchedulingEnabled]: true,
+      [settingKeys.privateServicesDowntimeSchedulingAutoSetMaintenanceStatus]: true,
+      [settingKeys.privateServicesDowntimeSchedulingAutoRestoreOperational]: true,
+      [settingKeys.privateServicesDowntimeSchedulingRequireReason]: true,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,

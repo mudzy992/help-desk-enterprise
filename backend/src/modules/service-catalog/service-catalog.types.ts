@@ -4,6 +4,7 @@ import type {
   ServiceAvailability,
   ServiceLifecycle,
 } from '../../generated/prisma/enums';
+import type { ServiceRuntimeAvailability } from './service-availability.types';
 
 export type ServiceCategoryRecord = {
   readonly id: string;
@@ -50,6 +51,7 @@ export type ServiceResponse = {
   readonly lifecycle: ServiceLifecycle;
   readonly offeredToRequesters: boolean;
   readonly availability: ServiceAvailability;
+  readonly runtimeAvailability: ServiceRuntimeAvailability;
   readonly classification: DataClassification;
   readonly requiresApproval: boolean;
   readonly isConfidentialDefault: boolean;

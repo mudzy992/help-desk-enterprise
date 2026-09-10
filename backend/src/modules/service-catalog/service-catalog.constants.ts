@@ -25,6 +25,7 @@ export const defaultServiceLifecycleConfiguration: ServiceLifecycleConfiguration
 export const serviceCatalogChangeLogEntityTypes = {
   service: 'service',
   serviceCategory: 'service_category',
+  serviceDowntimeWindow: 'service_downtime_window',
 } as const;
 
 export const serviceCatalogConstants = {

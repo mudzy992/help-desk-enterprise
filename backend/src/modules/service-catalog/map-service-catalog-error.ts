@@ -12,6 +12,7 @@ const notFoundCodes: readonly ServiceCatalogErrorCode[] = [
   'NOT_FOUND',
   'CATEGORY_NOT_FOUND',
   'POLICY_PACK_NOT_FOUND',
+  'DOWNTIME_NOT_FOUND',
 ];
 
 const conflictCodes: readonly ServiceCatalogErrorCode[] = [
@@ -20,6 +21,7 @@ const conflictCodes: readonly ServiceCatalogErrorCode[] = [
   'CATEGORY_HAS_SERVICES',
   'HAS_DEPENDENCIES',
   'NOT_DELETABLE',
+  'OVERLAPPING_DOWNTIME_WINDOW',
 ];
 
 const messages: Record<ServiceCatalogErrorCode, string> = {
@@ -41,6 +43,16 @@ const messages: Record<ServiceCatalogErrorCode, string> = {
   SLUG_IMMUTABLE: 'Service slug cannot be changed',
   NOT_DELETABLE: 'Only draft services without dependents can be deleted',
   HAS_DEPENDENCIES: 'Service still has dependent records',
+  INVALID_AVAILABILITY_STATUS: 'Availability status is not allowed',
+  AVAILABILITY_DISABLED: 'Service availability updates are disabled',
+  AVAILABILITY_UNAVAILABLE: 'Service availability configuration is unavailable',
+  REASON_REQUIRED: 'A reason is required for this availability change',
+  INVALID_DOWNTIME_RANGE: 'Downtime window end must be after start',
+  OVERLAPPING_DOWNTIME_WINDOW: 'Downtime windows must not overlap',
+  DOWNTIME_DISABLED: 'Service downtime scheduling is disabled',
+  DOWNTIME_UNAVAILABLE: 'Service downtime configuration is unavailable',
+  DOWNTIME_NOT_FOUND: 'Service downtime window was not found',
+  INVALID_DOWNTIME_MESSAGE: 'Downtime message is invalid',
 };
 
 export function mapServiceCatalogError(error: unknown): HttpException {
@@ -54,7 +66,11 @@ export function mapServiceCatalogError(error: unknown): HttpException {
   if (conflictCodes.includes(error.code)) {
     return new ConflictException(body);
   }
-  if (error.code === 'LIFECYCLE_UNAVAILABLE') {
+  if (
+    error.code === 'LIFECYCLE_UNAVAILABLE' ||
+    error.code === 'AVAILABILITY_UNAVAILABLE' ||
+    error.code === 'DOWNTIME_UNAVAILABLE'
+  ) {
     return new ServiceUnavailableException(body);
   }
   return new BadRequestException(body);

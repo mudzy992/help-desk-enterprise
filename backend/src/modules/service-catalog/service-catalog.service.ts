@@ -9,6 +9,12 @@ import { getServiceCategory } from './get-service-category';
 import { listServiceCategories } from './list-service-categories';
 import { listServices } from './list-services';
 import { mapServiceCatalogError } from './map-service-catalog-error';
+import { defaultServiceAvailabilityConfigurationBundle } from './service-availability.constants';
+import { ServiceAvailabilityConfigurationLoader } from './service-availability-configuration.loader';
+import type {
+  ServiceAvailabilityConfigurationBundle,
+  ServiceAvailabilityEvaluationContext,
+} from './service-availability.types';
 import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
 import type {
   CatalogMutationContext,
@@ -26,12 +32,20 @@ import { updateService } from './update-service';
 import { updateServiceCategory } from './update-service-category';
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
+const defaultAvailabilityLoader = {
+  load: async (): Promise<ServiceAvailabilityConfigurationBundle> =>
+    defaultServiceAvailabilityConfigurationBundle,
+};
 
 @Injectable()
 export class ServiceCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
+    private readonly availabilityConfigurationLoader: Pick<
+      ServiceAvailabilityConfigurationLoader,
+      'load'
+    > = defaultAvailabilityLoader,
   ) {}
 
   createCategory(
@@ -78,12 +92,22 @@ export class ServiceCatalogService {
     });
   }
 
-  list(input: ListServicesInput = {}): Promise<readonly ServiceResponse[]> {
-    return this.execute(() => listServices(this.prisma, input));
+  list(
+    input: ListServicesInput = {},
+    evaluatedAt: Date = new Date(),
+  ): Promise<readonly ServiceResponse[]> {
+    return this.execute(async () =>
+      listServices(this.prisma, input, await this.evaluation(evaluatedAt)),
+    );
   }
 
-  getById(serviceId: string): Promise<ServiceResponse> {
-    return this.execute(() => getService(this.prisma, serviceId));
+  getById(
+    serviceId: string,
+    evaluatedAt: Date = new Date(),
+  ): Promise<ServiceResponse> {
+    return this.execute(async () =>
+      getService(this.prisma, serviceId, await this.evaluation(evaluatedAt)),
+    );
   }
 
   update(
@@ -116,6 +140,11 @@ export class ServiceCatalogService {
     context: CatalogMutationContext = emptyContext,
   ): Promise<void> {
     return this.execute(() => deleteService(this.prisma, serviceId, context));
+  }
+
+  async evaluation(now: Date): Promise<ServiceAvailabilityEvaluationContext> {
+    const bundle = await this.availabilityConfigurationLoader.load();
+    return { now, ...bundle };
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
