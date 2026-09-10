@@ -9,6 +9,7 @@ const authorizationFacingFiles = [
   'to-authorization-principal.ts',
   'authentication.service.ts',
   'assert-super-admin-is-local-only.ts',
+  'session-authentication.guard.ts',
 ] as const;
 
 describe('normalized principal', () => {

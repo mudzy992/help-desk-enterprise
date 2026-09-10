@@ -43,4 +43,4 @@ Oba providera vraćaju isti `AuthenticatedPrincipal`: `{ subjectId, email, displ
 - Socket.IO: postojeći `SocketAuthenticationVerifier` verifikuje isti JWT (`JwtSocketAuthenticationVerifier`). Handshake i dalje prima samo `handshake.auth.token`.
 
 ## Namjerno NIJE implementirano
-AD/Graph sync, RBAC/RoleGuard/OuAccessGuard, permissions/scopes, install wizard, break-glass audit tok, frontend MSAL login UI. OU CRUD živi u zasebnom `organizational-units` modulu.
+AD/Graph sync, install wizard, break-glass audit tok, frontend MSAL login UI. Granular permissions / `RoleGuard` / `OuAccessGuard` žive u `authorization` modulu. OU CRUD živi u zasebnom `organizational-units` modulu.

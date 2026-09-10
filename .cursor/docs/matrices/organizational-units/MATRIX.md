@@ -38,7 +38,7 @@ Child DN mora biti descendant parent DN (`endsWith(',' + parentDn)`). `Company/D
 | GET | `/organizational-units/:id/users` | users in OU |
 | PUT | `/organizational-units/user-mappings` | assign / reassign / unassign |
 
-Nema authorization guardova (OuAccessGuard je kasniji task).
+HTTP `OuAccessGuard` / `RoleGuard` žive u `authorization` modulu i nisu vezani na ove CRUD rute u ovom tasku.
 
 ## Namjerno NIJE implementirano
 AD sync, Microsoft Graph, Entra/MSAL, granular permissions/scopes, RoleGuard, OuAccessGuard, policy packs, frontend OU administration UI.

@@ -12,6 +12,7 @@ import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 import { JwtSocketAuthenticationVerifier } from './jwt-socket-authentication.verifier';
 import { LocalAuthenticationProvider } from './local-authentication.provider';
 import { MicrosoftEntraIdTokenVerifier } from './microsoft-entra-id-token.verifier';
+import { SessionAuthenticationGuard } from './session-authentication.guard';
 import { SessionTokenService } from './session-token.service';
 
 @Module({
@@ -28,8 +29,13 @@ import { SessionTokenService } from './session-token.service';
     AuthenticationProviderResolver,
     SessionTokenService,
     JwtSocketAuthenticationVerifier,
+    SessionAuthenticationGuard,
     AuthenticationService,
   ],
-  exports: [JwtSocketAuthenticationVerifier, AuthenticationService],
+  exports: [
+    JwtSocketAuthenticationVerifier,
+    AuthenticationService,
+    SessionAuthenticationGuard,
+  ],
 })
 export class AuthenticationModule {}

@@ -56,6 +56,21 @@ export class AuthenticationUserLoader {
     return mapAuthenticationUser(user);
   }
 
+  async findById(subjectId: string): Promise<AuthenticationUserRecord | null> {
+    const id = subjectId.trim();
+    if (id.length === 0) {
+      return null;
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: authenticationUserInclude,
+    });
+    if (user === null) {
+      return null;
+    }
+    return mapAuthenticationUser(user);
+  }
+
   async findByEntraObjectId(
     entraObjectId: string,
   ): Promise<AuthenticationUserRecord | null> {

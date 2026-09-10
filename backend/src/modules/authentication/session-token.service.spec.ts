@@ -71,4 +71,13 @@ describe('readSessionSubjectId', () => {
       readSessionSubjectId({ sub: 'user-1', password: 'secret' }),
     ).toThrow(/invalid/);
   });
+
+  it('rejects payloads that carry provider or authorization claims', () => {
+    expect(() =>
+      readSessionSubjectId({ sub: 'user-1', roles: ['SUPER_ADMIN'], oid: 'oid-1' }),
+    ).toThrow(/invalid/);
+    expect(() =>
+      readSessionSubjectId({ sub: 'user-1', provider: 'entra_ad' }),
+    ).toThrow(/invalid/);
+  });
 });
