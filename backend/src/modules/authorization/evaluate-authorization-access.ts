@@ -1,6 +1,8 @@
+import { authorizationDecisionReasons } from './authorization-decision-reason';
 import { doesOrganizationalUnitScopeCover } from './does-organizational-unit-scope-cover';
 import { doesServiceScopeCover } from './does-service-scope-cover';
 import type {
+  AuthorizationAccessDecision,
   AuthorizationAssignment,
   AuthorizationDecisionInput,
 } from './authorization.types';
@@ -9,6 +11,18 @@ function hasInvalidRequirementTokens(
   tokens: readonly string[],
 ): boolean {
   return tokens.some((token) => token.trim().length === 0);
+}
+
+function deny(
+  reason: AuthorizationAccessDecision['reason'],
+): AuthorizationAccessDecision {
+  return { allowed: false, reason };
+}
+
+function allow(
+  reason: AuthorizationAccessDecision['reason'],
+): AuthorizationAccessDecision {
+  return { allowed: true, reason };
 }
 
 function doesAssignmentGrant(
@@ -65,22 +79,22 @@ function doesAssignmentGrant(
   return true;
 }
 
-export function evaluateAuthorizationAccess(
+export function decideAuthorizationAccess(
   input: AuthorizationDecisionInput,
-): boolean {
+): AuthorizationAccessDecision {
   if (input.context === null || input.context.subjectId.trim().length === 0) {
-    return false;
+    return deny(authorizationDecisionReasons.missingAuthorizationContext);
   }
   if (
     hasInvalidRequirementTokens(input.requiredRoles) ||
     hasInvalidRequirementTokens(input.requiredPermissions)
   ) {
-    return false;
+    return deny(authorizationDecisionReasons.invalidRequirementTokens);
   }
   const hasRoleOrPermissionRequirement =
     input.requiredRoles.length > 0 || input.requiredPermissions.length > 0;
   if (!hasRoleOrPermissionRequirement && !input.requireOrganizationalUnitScope) {
-    return false;
+    return deny(authorizationDecisionReasons.missingAuthorizationRequirement);
   }
   if (input.requireOrganizationalUnitScope) {
     if (
@@ -89,18 +103,30 @@ export function evaluateAuthorizationAccess(
       input.organizationalUnitPath === null ||
       input.organizationalUnitPath.trim().length === 0
     ) {
-      return false;
+      return deny(authorizationDecisionReasons.missingOrganizationalUnitScope);
     }
   }
   if (input.requireServiceScope) {
     if (input.serviceId === null || input.serviceId.trim().length === 0) {
-      return false;
+      return deny(authorizationDecisionReasons.missingServiceScope);
     }
   }
   if (input.context.isSuperAdmin) {
-    return input.context.isLocalOnly;
+    if (!input.context.isLocalOnly) {
+      return deny(authorizationDecisionReasons.superAdminNotLocalOnly);
+    }
+    return allow(authorizationDecisionReasons.superAdminAllowed);
   }
-  return input.context.assignments.some((assignment) =>
+  const grants = input.context.assignments.some((assignment) =>
     doesAssignmentGrant(assignment, input),
   );
+  return grants
+    ? allow(authorizationDecisionReasons.assignmentAllowed)
+    : deny(authorizationDecisionReasons.noMatchingAssignment);
+}
+
+export function evaluateAuthorizationAccess(
+  input: AuthorizationDecisionInput,
+): boolean {
+  return decideAuthorizationAccess(input).allowed;
 }

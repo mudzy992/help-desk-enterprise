@@ -1,3 +1,5 @@
+import type { AuthorizationDecisionReason } from './authorization-decision-reason';
+
 export type AuthorizationAssignment = {
   readonly roleKey: string;
   readonly permissionKeys: readonly string[];
@@ -43,4 +45,9 @@ export type AuthorizationRequirements = {
   readonly serviceScope: AuthorizationScopeLocator | null;
   readonly requireOrganizationalUnitScope: boolean;
   readonly requireServiceScope: boolean;
+};
+
+export type AuthorizationAccessDecision = {
+  readonly allowed: boolean;
+  readonly reason: AuthorizationDecisionReason;
 };

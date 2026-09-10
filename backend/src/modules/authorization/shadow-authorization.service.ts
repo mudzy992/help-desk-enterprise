@@ -1,30 +1,28 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import type { AuthorizationPrincipal } from '../authentication/authentication.types';
 import { AuthorizationContextLoader } from './authorization-context.loader';
+import { createShadowAuthorizationReport } from './create-shadow-authorization-report';
 import {
   createAuthorizationLookups,
   evaluateAuthorizationRequest,
+  type AuthorizationRequestInput,
 } from './evaluate-authorization-request';
-import type { AuthorizationRequirements } from './authorization.types';
+import type { ShadowAuthorizationReport } from './shadow-authorization.types';
 
 @Injectable()
-export class AuthorizationService {
+export class ShadowAuthorizationService {
   constructor(
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly prisma: PrismaService,
   ) {}
 
-  async authorize(input: {
-    readonly principal: AuthorizationPrincipal | null;
-    readonly requirements: AuthorizationRequirements;
-    readonly organizationalUnitId: string | null;
-    readonly serviceId: string | null;
-  }): Promise<boolean> {
+  async evaluate(
+    input: AuthorizationRequestInput,
+  ): Promise<ShadowAuthorizationReport> {
     const evaluation = await evaluateAuthorizationRequest(
       input,
       createAuthorizationLookups(this.authorizationContextLoader, this.prisma),
     );
-    return evaluation.allowed;
+    return createShadowAuthorizationReport(evaluation);
   }
 }

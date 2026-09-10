@@ -25,7 +25,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] AD sync provider stub; dev read `manual_only` (throttle + cache + scope)
 - [x] Entra/MSAL kao kasniji provider (isti permission tok)
 - [x] Granular permissions + scopes (OU/service) + RoleGuard / OuAccessGuard
-- [ ] Shadow permission check (preview impact)
+- [x] Shadow permission check (preview impact)
 - [ ] Policy packs (IT / HR / Finance defaults)
 - [ ] Read-only mode za admin module
 

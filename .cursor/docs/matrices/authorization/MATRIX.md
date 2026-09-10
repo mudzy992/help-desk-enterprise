@@ -44,5 +44,8 @@ Oba zovu isti `evaluateAuthorizationAccess` kroz `AuthorizationService.authorize
 
 Nema principal-a ⇒ 401 `INVALID_CREDENTIALS`. Principal postoji, odluka deny ⇒ 403 `FORBIDDEN`. Nema test bypass-a, `NODE_ENV` grana, ili token/credential logovanja.
 
+## Shadow permission check
+`ShadowAuthorizationService.evaluate` koristi isti `evaluateAuthorizationRequest` + `decideAuthorizationAccess` tok kao `AuthorizationService.authorize`. Vraća ne-enforcing report (`kind: shadow`, `isEnforcing: false`, `ALLOW`/`DENY` + deterministic reason). Shadow ALLOW nije autorizacija. Guardovi ne zovu shadow API. Detalji: `.cursor/docs/matrices/permissions-shadow-check/MATRIX.md`.
+
 ## Namjerno NIJE implementirano
-Shadow permission check, policy packs, read-only admin mode, frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula.
+Policy packs, read-only admin mode, frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula, config versioning/rollback/admin preview UI.
