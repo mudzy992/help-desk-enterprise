@@ -15,7 +15,7 @@ A user has at most one primary OU (`User.organizationalUnitId`). Deleting an OU 
 ## Domains
 
 1. **Organization** — `OrganizationalUnit`
-2. **Identity & access** — `User`, `Role`, `Permission`, `RolePermission`, `UserRole` (optional OU/service scope), `Group`, `GroupMember`, `PolicyPack`
+2. **Identity & access** — `User`, `Role`, `Permission`, `RolePermission`, `UserRole` (optional OU/service scope), `Group`, `GroupMember`, `PolicyPack` (IT/HR/Finance registry applies additive `UserRole` grants; never SuperAdmin)
 3. **Catalog & routing** — `ServiceCategory`, `Service`, `ServiceDowntimeWindow`, `FormVersion`, `RoutingRule` (`originUnit + service → group`, `isFallback`), `PriorityMatrixRule`, `ChangeLog`
 4. **Ticketing** — `Ticket` (`formVersionId`, parent/split/merge/reopen links, confidential flag), `TicketParticipant`, `TicketMessage`, `TicketActivity`, `TicketTimeLog`, `TicketAttachment` (classification inheritance fields), `TicketApproval`, `CloseCode`, `SavedView`, `TicketCsat`, `TicketConfidentialGrant`, `BreakGlassEvent`
 5. **Knowledge** — `KnowledgeArticle` (`tsvector` + GIN), `KnowledgeFeedback`

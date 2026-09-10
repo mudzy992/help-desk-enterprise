@@ -9,6 +9,11 @@
     "test",
     "**/*spec.ts",
     "**/create-in-memory-organizational-unit-prisma.ts",
-    "**/match-in-memory-organizational-unit.ts"
+    "**/match-in-memory-organizational-unit.ts",
+    "**/create-in-memory-policy-pack-prisma.ts",
+    "**/create-in-memory-policy-pack-delegates.ts",
+    "**/create-policy-pack-test-world.ts",
+    "**/in-memory-policy-pack.types.ts",
+    "**/map-in-memory-policy-pack-assignments.ts"
   ]
 }

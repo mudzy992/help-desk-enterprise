@@ -6,6 +6,7 @@ import { AuthenticationModule } from './modules/authentication/authentication.mo
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
 import { OrganizationalUnitsModule } from './modules/organizational-units/organizational-units.module';
+import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -22,6 +23,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     AuthorizationModule,
     DirectorySyncModule,
     OrganizationalUnitsModule,
+    PolicyPacksModule,
     WebsocketModule,
   ],
 })

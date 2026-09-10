@@ -6,7 +6,7 @@ Provider-neutral shadow authorization: predvidjeti šta bi `authorize` odlučio,
 ## API
 `ShadowAuthorizationService.evaluate(input)` prima isti input kao `AuthorizationService.authorize` (`principal`, `requirements`, `organizationalUnitId`, `serviceId`) i vraća `ShadowAuthorizationReport`.
 
-Nema HTTP/admin UI u ovoj fazi. Policy Packs i admin tooling konzumiraju ovaj servis.
+Nema HTTP/admin UI u authorization fazi. Policy Packs konzumiraju ovaj servis za preview compatibility (ne-enforcing).
 
 ## Reuse
 Jedan tok: `evaluateAuthorizationRequest` → `decideAuthorizationAccess` → boolean za `authorize`, report za shadow.
@@ -53,4 +53,4 @@ Fail closed. SuperAdmin dobija `SUPER_ADMIN_ALLOWED` samo ako je `isLocalOnly` i
 - `RoleGuard` / `OuAccessGuard` i dalje zovu samo `AuthorizationService.authorize`.
 
 ## Namjerno NIJE implementirano
-Policy packs, read-only admin mode, frontend preview UI, `private.security.permissions.shadowCheck.*` settings gating, config versioning/rollback, impacted-users preview limit.
+Read-only admin mode, frontend preview UI, `private.security.permissions.shadowCheck.*` settings gating, config versioning/rollback, impacted-users preview limit.
