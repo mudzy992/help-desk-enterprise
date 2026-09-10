@@ -46,6 +46,14 @@ export const settingKeys = {
     'private.ticket.forms.versioning.allowMultipleActiveVersions',
   privateTicketFormsVersioningRequireVersionOnTicket:
     'private.ticket.forms.versioning.requireVersionOnTicket',
+  privateServicesOnboardingWizardEnabled:
+    'private.services.onboardingWizard.enabled',
+  privateServicesOnboardingWizardRequireValidationBeforeActivate:
+    'private.services.onboardingWizard.requireValidationBeforeActivate',
+  privateServicesOnboardingWizardAutoFillRoutingEnabled:
+    'private.services.onboardingWizard.autoFillRouting.enabled',
+  privateServicesOnboardingWizardAutoFillRoutingRequireConfirm:
+    'private.services.onboardingWizard.autoFillRouting.requireConfirm',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

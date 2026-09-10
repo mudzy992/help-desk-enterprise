@@ -119,6 +119,12 @@ describe('SettingsService', () => {
       [settingKeys.privateTicketFormsVersioningEnabled]: true,
       [settingKeys.privateTicketFormsVersioningAllowMultipleActiveVersions]: false,
       [settingKeys.privateTicketFormsVersioningRequireVersionOnTicket]: true,
+      [settingKeys.privateServicesOnboardingWizardEnabled]: true,
+      [settingKeys.privateServicesOnboardingWizardRequireValidationBeforeActivate]:
+        true,
+      [settingKeys.privateServicesOnboardingWizardAutoFillRoutingEnabled]: true,
+      [settingKeys.privateServicesOnboardingWizardAutoFillRoutingRequireConfirm]:
+        true,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,

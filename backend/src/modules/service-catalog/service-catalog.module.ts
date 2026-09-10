@@ -33,6 +33,7 @@ import { ServicesController } from './services.controller';
     ServiceCatalogService,
     ServiceAvailabilityService,
     ServiceFormsService,
+    ServiceLifecycleConfigurationLoader,
   ],
 })
 export class ServiceCatalogModule {}

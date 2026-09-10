@@ -8,6 +8,7 @@ import { DirectorySyncModule } from './modules/directory-sync/directory-sync.mod
 import { OrganizationalUnitsModule } from './modules/organizational-units/organizational-units.module';
 import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
+import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -26,6 +27,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     OrganizationalUnitsModule,
     PolicyPacksModule,
     ServiceCatalogModule,
+    ServiceOnboardingModule,
     WebsocketModule,
   ],
 })

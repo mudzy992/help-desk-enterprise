@@ -65,3 +65,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.ticket.forms.versioning.enabled` (private, boolean, default `true`)
 - `private.ticket.forms.versioning.allowMultipleActiveVersions` (private, boolean, default `false`)
 - `private.ticket.forms.versioning.requireVersionOnTicket` (private, boolean, default `true`)
+- `private.services.onboardingWizard.enabled` (private, boolean, default `true`)
+- `private.services.onboardingWizard.requireValidationBeforeActivate` (private, boolean, default `true`)
+- `private.services.onboardingWizard.autoFillRouting.enabled` (private, boolean, default `true`)
+- `private.services.onboardingWizard.autoFillRouting.requireConfirm` (private, boolean, default `true`)

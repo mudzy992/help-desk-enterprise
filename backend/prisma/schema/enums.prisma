@@ -58,6 +58,21 @@ enum FormVersionStatus {
   RETIRED
 }
 
+enum ServiceOnboardingStatus {
+  IN_PROGRESS
+  READY_FOR_FINALIZATION
+  COMPLETED
+  ABANDONED
+}
+
+enum ServiceOnboardingStep {
+  SERVICE
+  FORM
+  ROUTING
+  SLA
+  APPROVALS
+}
+
 enum ParticipantRole {
   REQUESTER
   ASSIGNEE

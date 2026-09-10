@@ -5,6 +5,7 @@ import { readOnlyModeSettings } from './read-only-mode-settings';
 import { serviceAvailabilitySettings } from './service-availability-settings';
 import { serviceFormsSettings } from './service-forms-settings';
 import { serviceLifecycleSettings } from './service-lifecycle-settings';
+import { serviceOnboardingSettings } from './service-onboarding-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -13,4 +14,5 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...serviceLifecycleSettings,
   ...serviceAvailabilitySettings,
   ...serviceFormsSettings,
+  ...serviceOnboardingSettings,
 ];

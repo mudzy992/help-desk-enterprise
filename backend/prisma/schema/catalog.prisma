@@ -28,6 +28,7 @@ model Service {
   slaProfile           SlaProfile?             @relation(fields: [slaProfileId], references: [id], onDelete: SetNull)
   policyPack           PolicyPack?             @relation(fields: [policyPackId], references: [id], onDelete: SetNull)
   formVersions         FormVersion[]
+  onboarding           ServiceOnboarding?
   downtimeWindows      ServiceDowntimeWindow[]
   routingRules         RoutingRule[]
   tickets              Ticket[]
@@ -58,18 +59,39 @@ model ServiceDowntimeWindow {
 
 model FormVersion {
   /// Stable formVersionRef stored on Ticket.formVersionId.
-  id        String            @id @default(cuid())
-  serviceId String
-  version   Int
-  schema    Json
-  status    FormVersionStatus @default(DRAFT)
-  service   Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  tickets   Ticket[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id          String              @id @default(cuid())
+  serviceId   String
+  version     Int
+  schema      Json
+  status      FormVersionStatus   @default(DRAFT)
+  service     Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  tickets     Ticket[]
+  onboardings ServiceOnboarding[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   @@unique([serviceId, version])
   @@index([serviceId, status])
+}
+
+model ServiceOnboarding {
+  id                          String                   @id @default(cuid())
+  serviceId                   String                   @unique
+  status                      ServiceOnboardingStatus  @default(IN_PROGRESS)
+  currentStep                 ServiceOnboardingStep    @default(SERVICE)
+  formVersionRef              String?
+  routingConfigurationRef     String?
+  slaConfigurationRef         String?
+  approvalsConfigurationRef   String?
+  completedSteps              Json                     @default("[]")
+  lastValidationErrors        Json?
+  service                     Service                  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  formVersion                 FormVersion?             @relation(fields: [formVersionRef], references: [id], onDelete: SetNull)
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+
+  @@index([status])
+  @@index([formVersionRef])
 }
 
 model RoutingRule {
