@@ -16,8 +16,8 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] i18n infrastruktura (BS default, EN fallback)
 - [x] Settings registry skeleton (public/private + secret handling)
 - [x] Socket.IO gateway skeleton (auth handshake)
-- [ ] Redis/BullMQ klijent + worker entry (`dist/src/worker.js`); compose servis `worker`
-- [ ] Root `.env.example` usklađen; bez `.env` u gitu
+- [x] Redis/BullMQ klijent + worker entry (`dist/src/worker.js`); compose servis `worker`
+- [x] Root `.env.example` usklađen; bez `.env` u gitu
 
 ## Faza 1 — Identitet, OU, RBAC
 - [ ] Auth provider: `local` | `entra_ad` (isti claims/permission tok, bez `if (test)` u domenu); SuperAdmin uvijek `isLocalOnly`
