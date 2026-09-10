@@ -27,7 +27,7 @@ SocketAuthenticationVerifier
 - **Failure:** klijent dobija samo `AUTHENTICATION_FAILED`. Razlog (`missing_credentials` | `invalid_credentials`) ide samo u log uz `connectionId`.
 
 ## Default verifier
-Dok Faza 1 auth ne postoji, `UnavailableSocketAuthenticationVerifier` uvijek vraća unauthenticated. Nema fake usera, hardcoded tokena, niti `NODE_ENV` bypass-a.
+`JwtSocketAuthenticationVerifier` (authentication modul) verifikuje session JWT iz `handshake.auth.token`. Nevažeći/istekli token ili nedostajući signing secret → unauthenticated. Nema fake usera, hardcoded tokena, niti `NODE_ENV` bypass-a.
 
 ## Lifecycle
 `afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala. `handleDisconnect` samo loguje. Nema business eventa.
@@ -36,4 +36,4 @@ Dok Faza 1 auth ne postoji, `UnavailableSocketAuthenticationVerifier` uvijek vra
 `CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS se ne dira.
 
 ## Namjerno NIJE implementirano
-Auth provider (`local` | `entra_ad`), JWT, RBAC, rooms, ticket/chat/notification eventi, Redis adapter, frontend klijent, settings ključevi za socket.
+RBAC, rooms, ticket/chat/notification eventi, Redis adapter, frontend klijent, settings ključevi za socket. Auth provider i JWT žive u authentication modulu; ovaj sloj i dalje vidi samo `{ subjectId }`.

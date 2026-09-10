@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { foundationalSettings } from './definitions/foundational-settings';
+import { applicationSettings } from './definitions/application-settings';
 import { createSettingsRegistry } from './registry/create-settings-registry';
 import { SETTINGS_REGISTRY } from './settings.registry-token';
 import { SettingsService } from './settings.service';
@@ -8,7 +8,7 @@ import { SettingsService } from './settings.service';
   providers: [
     {
       provide: SETTINGS_REGISTRY,
-      useFactory: () => createSettingsRegistry(foundationalSettings),
+      useFactory: () => createSettingsRegistry(applicationSettings),
     },
     SettingsService,
   ],

@@ -3,5 +3,12 @@
   "compilerOptions": {
     "incremental": false
   },
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*spec.ts",
+    "**/create-in-memory-organizational-unit-prisma.ts",
+    "**/match-in-memory-organizational-unit.ts"
+  ]
 }

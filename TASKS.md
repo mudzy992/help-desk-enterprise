@@ -20,9 +20,9 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] Root `.env.example` usklađen; bez `.env` u gitu
 
 ## Faza 1 — Identitet, OU, RBAC
-- [ ] Auth provider: `local` | `entra_ad` (isti claims/permission tok, bez `if (test)` u domenu); SuperAdmin uvijek `isLocalOnly`
-- [ ] OU tree (DN/OU path) + CRUD/tree query; mapiranje korisnika
-- [ ] AD sync provider stub; dev read `manual_only` (throttle + cache + scope)
+- [x] Auth provider: `local` | `entra_ad` (isti claims/permission tok, bez `if (test)` u domenu); SuperAdmin uvijek `isLocalOnly`
+- [x] OU tree (DN/OU path) + CRUD/tree query; mapiranje korisnika
+- [x] AD sync provider stub; dev read `manual_only` (throttle + cache + scope)
 - [ ] Entra/MSAL kao kasniji provider (isti permission tok)
 - [ ] Granular permissions + scopes (OU/service) + RoleGuard / OuAccessGuard
 - [ ] Shadow permission check (preview impact)

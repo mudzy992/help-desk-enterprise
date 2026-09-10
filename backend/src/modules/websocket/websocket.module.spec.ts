@@ -1,8 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { Server, Socket } from 'socket.io';
+import { PrismaModule } from '../../common/prisma/prisma.module';
 import { SOCKET_AUTHENTICATION_FAILED_MESSAGE } from './socket-authentication-failed-message';
 import { WebsocketGateway } from './websocket.gateway';
 import { WebsocketModule } from './websocket.module';
+
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 
 type HandshakeMiddleware = (
   socket: Socket,
@@ -10,9 +15,9 @@ type HandshakeMiddleware = (
 ) => void;
 
 describe('WebsocketModule', () => {
-  it('initializes the gateway and rejects handshake until an auth provider exists', async () => {
+  it('initializes the gateway and rejects handshake with an invalid session token', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [WebsocketModule],
+      imports: [PrismaModule, WebsocketModule],
     }).compile();
     const gateway = moduleRef.get(WebsocketGateway);
     expect(gateway).toBeDefined();

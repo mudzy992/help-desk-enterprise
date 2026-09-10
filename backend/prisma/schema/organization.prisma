@@ -3,7 +3,7 @@ model OrganizationalUnit {
   name               String
   type               OrganizationalUnitType
   distinguishedName  String                  @unique
-  ouPath             String
+  ouPath             String                  @unique
   company            String?
   department         String?
   parentId           String?
@@ -22,6 +22,5 @@ model OrganizationalUnit {
   updatedAt          DateTime                @updatedAt
 
   @@index([parentId])
-  @@index([ouPath])
   @@index([policyPackId])
 }

@@ -1,0 +1,15 @@
+export const directorySyncConstants = {
+  strategies: ['manual_only', 'scheduled'] as const,
+  implementedStrategy: 'manual_only' as const,
+  operations: ['users', 'groups', 'organizational_units'] as const,
+  maximumCacheEntries: 64,
+  defaultMaxQueriesPerSecond: 0.5,
+  defaultCacheTimeToLiveMinutes: 30,
+  defaultOrganizationalUnitCacheTimeToLiveHours: 12,
+  maximumDistinguishedNameLength: 1024,
+  maximumOrganizationalUnitPathLength: 1024,
+  millisecondsPerSecond: 1000,
+  millisecondsPerMinute: 60_000,
+  millisecondsPerHour: 3_600_000,
+  allowedDistinguishedNameAttributeTypes: ['OU', 'DC', 'CN', 'O'] as const,
+} as const;

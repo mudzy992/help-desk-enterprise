@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
+import { AuthenticationModule } from '../authentication/authentication.module';
+import { JwtSocketAuthenticationVerifier } from '../authentication/jwt-socket-authentication.verifier';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
-import { UnavailableSocketAuthenticationVerifier } from './unavailable-socket-authentication.verifier';
 import { WebsocketGateway } from './websocket.gateway';
 
 @Module({
+  imports: [AuthenticationModule],
   providers: [
     {
       provide: SOCKET_AUTHENTICATION_VERIFIER,
-      useClass: UnavailableSocketAuthenticationVerifier,
+      useExisting: JwtSocketAuthenticationVerifier,
     },
     SocketAuthenticationService,
     WebsocketGateway,

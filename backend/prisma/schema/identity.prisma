@@ -2,16 +2,19 @@ model User {
   id                   String                     @id @default(cuid())
   email                String                     @unique
   displayName          String
+  /// SuperAdmin identities must always be true. External providers cannot bind here.
   isLocalOnly          Boolean                    @default(false)
   isActive             Boolean                    @default(true)
+  /// bcrypt hash for local credentials. Never log or return this value.
   localPasswordHash    String?
+  /// Directory object id for linked users. Must remain null for SuperAdmin.
   entraObjectId        String?                    @unique
   distinguishedName    String?
   company              String?
   department           String?
   organizationalUnitId String?
   managerUserId        String?
-  organizationalUnit   OrganizationalUnit?        @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
+  organizationalUnit   OrganizationalUnit?        @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
   manager              User?                      @relation("UserManager", fields: [managerUserId], references: [id], onDelete: SetNull)
   directReports        User[]                     @relation("UserManager")
   userRoles            UserRole[]

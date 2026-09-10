@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { foundationalSettings } from './definitions/foundational-settings';
+import { applicationSettings } from './definitions/application-settings';
 import { createSettingsRegistry } from './registry/create-settings-registry';
 import { settingKeys } from './setting-keys';
 import { SettingsError } from './settings.error';
@@ -21,7 +21,7 @@ describe('SettingsService', () => {
         SettingsService,
         {
           provide: SETTINGS_REGISTRY,
-          useValue: createSettingsRegistry(foundationalSettings),
+          useValue: createSettingsRegistry(applicationSettings),
         },
         {
           provide: PrismaService,
@@ -74,6 +74,13 @@ describe('SettingsService', () => {
     expect(privateSettings).toEqual({
       [settingKeys.privateInstallCompletedAt]: '',
       [settingKeys.privateAuthMode]: 'local',
+      [settingKeys.privateAuthAdReadEnabled]: false,
+      [settingKeys.privateAuthAdReadStrategy]: 'manual_only',
+      [settingKeys.privateAuthAdReadUsersBaseDn]: '',
+      [settingKeys.privateAuthAdReadGroupsBaseDn]: '',
+      [settingKeys.privateAuthAdReadMaxQueriesPerSecond]: 0.5,
+      [settingKeys.privateAuthAdReadCacheTtlMinutes]: 30,
+      [settingKeys.privateAuthAdReadOuTreeCacheTtlHours]: 12,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
