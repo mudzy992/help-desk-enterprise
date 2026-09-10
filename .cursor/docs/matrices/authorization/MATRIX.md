@@ -44,6 +44,8 @@ Oba zovu isti `evaluateAuthorizationAccess` kroz `AuthorizationService.authorize
 
 Nema principal-a ⇒ 401 `INVALID_CREDENTIALS`. Principal postoji, odluka deny ⇒ 403 `FORBIDDEN`. Nema test bypass-a, `NODE_ENV` grana, ili token/credential logovanja.
 
+Service catalog HTTP rute koriste isti `RoleGuard` + `service.catalog.write` + `RequireServiceScope`. Catalog lifecycle nije authorization scope; lookup ostaje `{ id }`.
+
 ## Read-only admin mode
 `AdminReadOnlyInterceptor` je dodatni sloj nakon `RoleGuard` / `OuAccessGuard`. Ne mijenja `authorize` odluku. Detalji: `.cursor/docs/matrices/read-only-mode-maintenance/MATRIX.md`.
 

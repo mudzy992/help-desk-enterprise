@@ -48,3 +48,6 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.readOnlyMode.modulesCsv` (private, string, default `admin,settings,routing,service_catalog,service_forms,sla`)
 - `private.readOnlyMode.activeModulesCsv` (private, string, default `""`)
 - `private.readOnlyMode.bypassRolesCsv` (private, string, default `SUPER_ADMIN`)
+- `private.services.lifecycle.enabled` (private, boolean, default `true`)
+- `private.services.lifecycle.allowedStatesCsv` (private, string, default `DRAFT,ACTIVE,DEPRECATED`)
+- `private.services.lifecycle.defaultStateOnCreate` (private, string, default `DRAFT`)

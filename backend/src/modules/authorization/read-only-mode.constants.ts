@@ -34,6 +34,14 @@ export const adminReadOnlyRouteModules: readonly {
     pathPrefix: '/directory-sync',
     moduleKey: adminReadOnlyModuleKeys.admin,
   },
+  {
+    pathPrefix: '/services',
+    moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+  },
+  {
+    pathPrefix: '/service-categories',
+    moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+  },
 ];
 
 export const adminReadOnlyReadMutationPaths = [

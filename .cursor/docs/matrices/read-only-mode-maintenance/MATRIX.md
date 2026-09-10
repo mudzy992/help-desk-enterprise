@@ -19,6 +19,8 @@ Modul je zaključan samo ako je `enabled` i key je u `activeModulesCsv` ∩ `mod
 | `/organizational-units` | `admin` | GET tree/detail/users | POST create, PATCH, DELETE, PUT assign |
 | `/policy-packs` | `settings` | GET list, POST validate | POST apply |
 | `/directory-sync` | `admin` | POST read | bilo koji drugi write/sync POST |
+| `/services` | `service_catalog` | GET list/detail | POST create, PATCH, DELETE, POST lifecycle |
+| `/service-categories` | `service_catalog` | GET list/detail | POST create, PATCH, DELETE |
 
 GET/HEAD/OPTIONS su read. POST/PUT/PATCH/DELETE su mutacije osim `POST /directory-sync/read` i `POST /policy-packs/validate` (`@AdminReadOperation`). Ticket/auth rute nisu admin.
 

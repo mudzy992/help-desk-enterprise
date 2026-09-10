@@ -100,6 +100,10 @@ describe('SettingsService', () => {
         'admin,settings,routing,service_catalog,service_forms,sla',
       [settingKeys.privateReadOnlyModeActiveModulesCsv]: '',
       [settingKeys.privateReadOnlyModeBypassRolesCsv]: 'SUPER_ADMIN',
+      [settingKeys.privateServicesLifecycleEnabled]: true,
+      [settingKeys.privateServicesLifecycleAllowedStatesCsv]:
+        'DRAFT,ACTIVE,DEPRECATED',
+      [settingKeys.privateServicesLifecycleDefaultStateOnCreate]: 'DRAFT',
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,

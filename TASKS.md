@@ -30,7 +30,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] Read-only mode za admin module
 
 ## Faza 2 — Katalog, forme, routing
-- [ ] Service catalog + lifecycle (`DRAFT` / `ACTIVE` / `DEPRECATED`)
+- [x] Service catalog + lifecycle (`DRAFT` / `ACTIVE` / `DEPRECATED`)
 - [ ] Availability status + downtime scheduling (create ostaje non-blocking)
 - [ ] Schema-driven forme + form versioning (`formVersionRef` na tiketu)
 - [ ] Service onboarding wizard (servis → forma → routing → SLA → approvals)

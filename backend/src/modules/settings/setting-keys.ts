@@ -16,6 +16,11 @@ export const settingKeys = {
   privateReadOnlyModeModulesCsv: 'private.readOnlyMode.modulesCsv',
   privateReadOnlyModeActiveModulesCsv: 'private.readOnlyMode.activeModulesCsv',
   privateReadOnlyModeBypassRolesCsv: 'private.readOnlyMode.bypassRolesCsv',
+  privateServicesLifecycleEnabled: 'private.services.lifecycle.enabled',
+  privateServicesLifecycleAllowedStatesCsv:
+    'private.services.lifecycle.allowedStatesCsv',
+  privateServicesLifecycleDefaultStateOnCreate:
+    'private.services.lifecycle.defaultStateOnCreate',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

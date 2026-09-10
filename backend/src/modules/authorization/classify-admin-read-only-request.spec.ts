@@ -98,4 +98,34 @@ describe('classifyAdminReadOnlyRequest', () => {
       }),
     ).toBeNull();
   });
+
+  it('classifies service catalog writes as service_catalog mutations', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'GET',
+        path: '/services',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+      isMutation: false,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/services/service-1/lifecycle',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+      isMutation: true,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'DELETE',
+        path: '/service-categories/category-1',
+        isDecoratedReadOperation: false,
+      })?.isMutation,
+    ).toBe(true);
+  });
 });
