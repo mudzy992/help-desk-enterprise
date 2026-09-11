@@ -10,16 +10,19 @@ import { getTicket } from './get-ticket';
 import { listTickets } from './list-tickets';
 import { mapTicketError } from './map-ticket-error';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
-import { toTicketResponse } from './to-ticket-response';
+import { toTicketClientResponse } from './to-ticket-response';
 import { updateTicket } from './update-ticket';
 import type {
   CreateTicketInput,
   ListTicketsQuery,
   TicketMutationContext,
+  TicketRecord,
   TicketResponse,
   UpdateTicketInput,
 } from './tickets.types';
+import type { TicketReopenConfiguration } from './reopen/reopen.types';
 
 @Injectable()
 export class TicketsService {
@@ -29,6 +32,7 @@ export class TicketsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
+    private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -53,7 +57,7 @@ export class TicketsService {
         messages,
       );
       publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
-      return toTicketResponse(assigned);
+      return this.respond(assigned);
     });
   }
 
@@ -68,17 +72,16 @@ export class TicketsService {
         query,
         context,
       );
-      return records.map(toTicketResponse);
+      return this.respondAll(records);
     });
   }
 
   listInbox(
     context: TicketMutationContext,
   ): Promise<readonly TicketResponse[]> {
-    return this.execute(async () => {
-      const records = await this.ticketAssignmentService.listInbox(context);
-      return records.map(toTicketResponse);
-    });
+    return this.execute(async () =>
+      this.respondAll(await this.ticketAssignmentService.listInbox(context)),
+    );
   }
 
   getById(
@@ -86,7 +89,7 @@ export class TicketsService {
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
     return this.execute(async () =>
-      toTicketResponse(
+      this.respond(
         await getTicket(
           this.prisma,
           this.authorizationContextLoader,
@@ -109,7 +112,7 @@ export class TicketsService {
         messages,
       );
       publishPersistedTicketMessages(this.realtimeHub, claimed, messages);
-      return toTicketResponse(claimed);
+      return this.respond(claimed);
     });
   }
 
@@ -118,17 +121,36 @@ export class TicketsService {
     input: UpdateTicketInput,
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
-    return this.execute(async () =>
-      toTicketResponse(
-        await updateTicket(
-          this.prisma,
-          this.authorizationContextLoader,
-          ticketId,
-          input,
-          context,
-        ),
-      ),
+    return this.execute(async () => {
+      const messages: TicketPersistedMessageSink = [];
+      const updated = await updateTicket(
+        this.prisma,
+        this.authorizationContextLoader,
+        ticketId,
+        input,
+        context,
+        messages,
+      );
+      publishPersistedTicketMessages(this.realtimeHub, updated, messages);
+      return this.respond(updated);
+    });
+  }
+
+  private async respond(record: TicketRecord): Promise<TicketResponse> {
+    return toTicketClientResponse(record, await this.loadReopenConfig());
+  }
+
+  private async respondAll(
+    records: readonly TicketRecord[],
+  ): Promise<readonly TicketResponse[]> {
+    const configuration = await this.loadReopenConfig();
+    return records.map((record) =>
+      toTicketClientResponse(record, configuration),
     );
+  }
+
+  private loadReopenConfig(): Promise<TicketReopenConfiguration> {
+    return this.reopenConfigurationLoader.load();
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

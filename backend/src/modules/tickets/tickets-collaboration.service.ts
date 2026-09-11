@@ -8,6 +8,7 @@ import type {
   TicketActorAccess,
   TicketMessageResponse,
   TicketParticipantResponse,
+  TicketPersistedMessageSink,
 } from './collaboration.types';
 import { createTicketMessage } from './create-ticket-message';
 import { executeTicketOperation } from './execute-ticket-operation';
@@ -21,6 +22,8 @@ import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-c
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { toTicketMessageResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
+import { resumeWaitingForUserOnReply } from './waiting-for-user/resume-waiting-for-user-on-reply';
+import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 
 @Injectable()
 export class TicketsCollaborationService {
@@ -28,6 +31,7 @@ export class TicketsCollaborationService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly configurationLoader: TicketCollaborationConfigurationLoader,
+    private readonly waitingForUserConfigurationLoader: WaitingForUserConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -114,7 +118,16 @@ export class TicketsCollaborationService {
         input,
         context,
       );
-      publishPersistedTicketMessages(this.realtimeHub, ticket, [message]);
+      const messages: TicketPersistedMessageSink = [message];
+      const resumed = await resumeWaitingForUserOnReply({
+        prisma: this.prisma,
+        ticket,
+        message,
+        configuration: await this.waitingForUserConfigurationLoader.load(),
+        context,
+        messages,
+      });
+      publishPersistedTicketMessages(this.realtimeHub, resumed, messages);
       return toTicketMessageResponse(message);
     });
   }

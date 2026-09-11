@@ -16,6 +16,9 @@ describe('ticket status transitions', () => {
       assertTicketStatusTransition('IN_PROGRESS', 'RESOLVED'),
     ).not.toThrow();
     expect(() =>
+      assertTicketStatusTransition('WAITING_FOR_USER', 'CLOSED'),
+    ).not.toThrow();
+    expect(() =>
       assertTicketStatusTransition('RESOLVED', 'CLOSED'),
     ).not.toThrow();
     expect(() =>

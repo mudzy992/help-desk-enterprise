@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canShowClaimAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
+import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import type { TicketResponse } from "@/services/tickets-api";
 
 const base: TicketResponse = {
@@ -32,10 +32,29 @@ describe("ticket actions", () => {
     expect(canShowClaimAction({ ...base, status: "RESOLVED" })).toBe(false);
   });
 
-  it("offers backend-allowed status transitions without approval or archive", () => {
+  it("offers backend-allowed status transitions without approval, archive, or reopen shortcuts", () => {
     expect(nextTicketStatuses("PENDING")).toEqual(["ASSIGNED", "IN_PROGRESS"]);
     expect(nextTicketStatuses("PENDING_APPROVAL")).toEqual([]);
     expect(nextTicketStatuses("IN_PROGRESS")).toContain("RESOLVED");
+    expect(nextTicketStatuses("WAITING_FOR_USER")).toContain("CLOSED");
+    expect(nextTicketStatuses("RESOLVED")).toEqual(["CLOSED"]);
+    expect(nextTicketStatuses("CLOSED")).toEqual([]);
     expect(nextTicketStatuses("ARCHIVED")).toEqual([]);
+  });
+
+  it("shows reopen when the server marks the ticket eligible", () => {
+    expect(canShowReopenAction(base)).toBe(false);
+    expect(
+      canShowReopenAction({
+        ...base,
+        status: "RESOLVED",
+        reopen: {
+          enabled: true,
+          eligible: true,
+          createsNewTicket: false,
+          windowEndsAt: "2026-01-08T00:00:00.000Z",
+        },
+      }),
+    ).toBe(true);
   });
 });

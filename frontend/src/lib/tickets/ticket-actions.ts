@@ -16,6 +16,6 @@ export function canShowClaimAction(ticket: TicketResponse): boolean {
   );
 }
 
-export function isUnassignedWork(ticket: TicketResponse): boolean {
-  return ticket.assignedUserId === null;
+export function canShowReopenAction(ticket: TicketResponse): boolean {
+  return ticket.reopen?.eligible === true;
 }

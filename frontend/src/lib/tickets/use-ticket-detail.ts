@@ -27,6 +27,7 @@ import {
   claimTicket,
   getTicket,
   listGroupInbox,
+  reopenTicket,
   updateTicket,
   type TicketResponse,
   type TicketStatus,
@@ -133,7 +134,26 @@ export function useTicketDetail(ticketId: string | undefined) {
       onTicket((id) => runAction(async () => {
         const created = await createTicketMessage(id, { type, body });
         setMessages((current) => [...current, created]);
+        setTicket(await getTicket(id));
       })),
+    reopen: async () => {
+      if (ticketId === undefined) {
+        return null;
+      }
+      setActionError(null);
+      try {
+        const updated = await reopenTicket(ticketId);
+        setTicket(updated);
+        return updated;
+      } catch (error) {
+        const mapped = mapTicketError(error);
+        if (error instanceof ApiError && error.code === "STATUS_CHANGE_FORBIDDEN") {
+          setCanChangeStatus(false);
+        }
+        setActionError(mapped);
+        return null;
+      }
+    },
     addParticipant: (role: ParticipantRole, userId: string) =>
       onTicket((id) => runAction(async () => {
         const created = await addTicketParticipant(id, { role, userId });

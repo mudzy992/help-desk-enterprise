@@ -53,10 +53,21 @@ export async function createTicket(
   if (authContext === null) {
     throw new TicketsError('FORBIDDEN');
   }
-  const requester = await prisma.user.findUnique({
+  const actor = await prisma.user.findUnique({
     where: { id: context.actorUserId },
     select: { id: true, organizationalUnitId: true },
   });
+  if (actor === null) {
+    throw new TicketsError('REQUESTER_NOT_FOUND');
+  }
+  const requesterId = input.requesterUserId ?? actor.id;
+  const requester =
+    requesterId === actor.id
+      ? actor
+      : await prisma.user.findUnique({
+          where: { id: requesterId },
+          select: { id: true, organizationalUnitId: true },
+        });
   if (requester === null) {
     throw new TicketsError('REQUESTER_NOT_FOUND');
   }
@@ -73,7 +84,7 @@ export async function createTicket(
     context: authContext,
     originUnitId,
     serviceId,
-    actorHomeUnitId: requester.organizationalUnitId,
+    actorHomeUnitId: actor.organizationalUnitId,
   });
   const service = await loadOfferedService(prisma, serviceId);
   const formVersionRef = await resolveCreateFormVersionRef(prisma, {
@@ -115,6 +126,7 @@ export async function createTicket(
         requesterId: requester.id,
         assignedGroupId: routing.assignedGroupId,
         assignedUserId: null,
+        reopenedFromTicketId: input.reopenedFromTicketId ?? null,
       },
     })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {

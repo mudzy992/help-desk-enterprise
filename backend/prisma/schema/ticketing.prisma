@@ -27,6 +27,8 @@ model Ticket {
   resolvedAt           DateTime?
   closedAt             DateTime?
   archivedAt           DateTime?
+  waitingForUserEnteredAt      DateTime?
+  waitingForUserReminderSentAt DateTime?
   originUnit           OrganizationalUnit         @relation("TicketOriginUnit", fields: [originUnitId], references: [id], onDelete: Restrict)
   service              Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   formVersion          FormVersion                @relation(fields: [formVersionId], references: [id], onDelete: Restrict)
@@ -63,6 +65,7 @@ model Ticket {
   @@index([requesterId])
   @@index([isConfidential])
   @@index([formVersionId])
+  @@index([status, waitingForUserEnteredAt])
 }
 
 model TicketParticipant {

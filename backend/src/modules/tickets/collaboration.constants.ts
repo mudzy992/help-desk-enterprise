@@ -64,6 +64,12 @@ export const ticketSystemEventActions = {
   approvalRequested: 'ticket_approval_requested',
   approvalApproved: 'ticket_approval_approved',
   approvalRejected: 'ticket_approval_rejected',
+  waitingForUserEntered: 'ticket_waiting_for_user_entered',
+  waitingForUserResumed: 'ticket_waiting_for_user_resumed',
+  waitingForUserReminder: 'ticket_waiting_for_user_reminder',
+  waitingForUserAutoClosed: 'ticket_waiting_for_user_auto_closed',
+  ticketReopened: 'ticket_reopened',
+  ticketReopenedNew: 'ticket_reopened_new',
 } as const;
 
 export const ticketRealtimeEventNames = {

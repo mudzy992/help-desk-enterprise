@@ -1,14 +1,15 @@
+import { applyTicketLifecycleTimestamps } from './apply-ticket-lifecycle-timestamps';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { changeLogActions } from '../change-log/change-log.constants';
-import { assertTicketStatusTransition } from './assert-ticket-status-transition';
-import {
-  assertTicketVisible,
-  canChangeTicketStatus,
-} from './authorize-ticket-actor';
+import { assertPatchTicketStatus } from './assert-patch-ticket-status';
+import { assertTicketVisible } from './authorize-ticket-actor';
 import { calculateTicketPriority } from './calculate-ticket-priority';
 import { loadOrganizationalUnitPath } from '../authorization/load-authorization-scope';
 import { getTicket } from './get-ticket';
+import { ticketSystemEventActions } from './collaboration.constants';
+import type { TicketPersistedMessageSink } from './collaboration.types';
+import { insertSystemTicketEvent } from './insert-system-ticket-event';
 import {
   normalizeTicketDescription,
   normalizeTicketTitle,
@@ -29,6 +30,7 @@ export async function updateTicket(
   ticketId: string,
   input: UpdateTicketInput,
   context: TicketMutationContext,
+  messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
   const current = await getTicket(
     prisma,
@@ -56,20 +58,22 @@ export async function updateTicket(
     originUnitPath,
     serviceId: current.serviceId,
   });
-  if (input.status !== undefined && input.status !== current.status) {
-    if (!canChangeTicketStatus(authContext)) {
-      throw new TicketsError('STATUS_CHANGE_FORBIDDEN');
-    }
-    if (current.status === 'PENDING_APPROVAL') {
-      throw new TicketsError('APPROVAL_DECISION_REQUIRED');
-    }
-    if (input.status === 'PENDING_APPROVAL') {
-      throw new TicketsError('APPROVAL_TRANSITION_FORBIDDEN');
-    }
-    assertTicketStatusTransition(current.status, input.status);
+  const nextStatus = input.status ?? current.status;
+  if (input.status !== undefined) {
+    assertPatchTicketStatus({
+      context: authContext,
+      from: current.status,
+      to: input.status,
+    });
   }
   const impact = input.impact ?? current.impact;
   const urgency = input.urgency ?? current.urgency;
+  const now = new Date();
+  const timestamps = applyTicketLifecycleTimestamps({
+    current,
+    nextStatus,
+    now,
+  });
   const updated = await prisma.$transaction(async (transaction) => {
     const record = (await transaction.ticket.update({
       where: { id: ticketId },
@@ -85,10 +89,11 @@ export async function updateTicket(
         impact,
         urgency,
         priority: calculateTicketPriority(impact, urgency),
-        status: input.status ?? current.status,
+        status: nextStatus,
         formData: toTicketFormDataInput(
           input.formData === undefined ? current.formData : input.formData,
         ),
+        ...timestamps,
       },
     })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {
@@ -98,6 +103,18 @@ export async function updateTicket(
       after: record,
       actorUserId: context.actorUserId,
     });
+    if (
+      current.status !== 'WAITING_FOR_USER' &&
+      record.status === 'WAITING_FOR_USER'
+    ) {
+      messages.push(
+        await insertSystemTicketEvent(transaction as PrismaService, {
+          ticketId: record.id,
+          action: ticketSystemEventActions.waitingForUserEntered,
+          actorUserId: context.actorUserId,
+        }),
+      );
+    }
     return record;
   });
   return updated;

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
@@ -22,9 +23,15 @@ import { resolveUploadRoot } from './attachments/resolve-upload-root';
 import { TicketAttachmentConfigurationLoader } from './attachments/ticket-attachment-configuration.loader';
 import { TicketsAttachmentsController } from './attachments/tickets-attachments.controller';
 import { TicketsAttachmentsService } from './attachments/tickets-attachments.service';
+import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
+import { TicketsReopenController } from './reopen/tickets-reopen.controller';
+import { TicketsReopenService } from './reopen/tickets-reopen.service';
+import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
+import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     AuthenticationModule,
     AuthorizationModule,
     RoutingModule,
@@ -35,11 +42,16 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
     TicketsCollaborationController,
     TicketsAttachmentsController,
     TicketsApprovalsController,
+    TicketsReopenController,
   ],
   providers: [
     TicketsService,
     TicketsApprovalsService,
     TicketApprovalsConfigurationLoader,
+    TicketsReopenService,
+    TicketReopenConfigurationLoader,
+    WaitingForUserConfigurationLoader,
+    WaitingForUserAutomationService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,
@@ -57,6 +69,7 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
   exports: [
     TicketsService,
     TicketsApprovalsService,
+    TicketsReopenService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,

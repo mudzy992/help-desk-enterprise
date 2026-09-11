@@ -94,6 +94,13 @@ export const settingKeys = {
     'private.ticket.approvals.defaultApproverRole',
   privateTicketApprovalsAllowRequesterManager:
     'private.ticket.approvals.allowRequesterManager',
+  privateTicketWaitingForUserEnabled: 'private.ticket.waitingForUser.enabled',
+  privateTicketWaitingForUserReminderAfterDays:
+    'private.ticket.waitingForUser.reminderAfterDays',
+  privateTicketWaitingForUserAutoCloseAfterDays:
+    'private.ticket.waitingForUser.autoCloseAfterDays',
+  privateTicketReopenEnabled: 'private.ticket.reopen.enabled',
+  privateTicketReopenWindowDays: 'private.ticket.reopen.windowDays',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',

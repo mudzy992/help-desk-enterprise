@@ -37,4 +37,4 @@ PATCH status iz `PENDING_APPROVAL` ⇒ `APPROVAL_DECISION_REQUIRED`. PATCH u `PE
 | POST | `/tickets/:ticketId/approvals/:approvalId/reject` |
 
 ## Namjerno NIJE
-Waiting-for-user, reopen, close codes, SLA pause, confidential ACL, AD manager approver, multi-step lanci, notifications.
+Waiting-for-user automatika i reopen policy su zasebne matrice. Close codes, SLA pause, confidential ACL, AD manager approver, multi-step lanci, notifications.

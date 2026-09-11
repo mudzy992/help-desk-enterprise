@@ -53,7 +53,7 @@ export const allowedTicketStatusTransitions: Readonly<
   PENDING_APPROVAL: ['PENDING', 'CLOSED'],
   ASSIGNED: ['IN_PROGRESS', 'PENDING', 'WAITING_FOR_USER'],
   IN_PROGRESS: ['WAITING_FOR_USER', 'RESOLVED', 'ASSIGNED'],
-  WAITING_FOR_USER: ['IN_PROGRESS', 'RESOLVED'],
+  WAITING_FOR_USER: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
   RESOLVED: ['CLOSED', 'IN_PROGRESS'],
   CLOSED: ['ARCHIVED', 'IN_PROGRESS'],
   ARCHIVED: [],
@@ -76,4 +76,8 @@ export const ticketChangeLogReasons = {
   timeStop: 'ticket_time_stop',
   attachmentUpload: 'ticket_attachment_upload',
   attachmentDelete: 'ticket_attachment_delete',
+  waitingReminder: 'ticket_waiting_for_user_reminder',
+  waitingAutoClose: 'ticket_waiting_for_user_auto_close',
+  reopen: 'ticket_reopened',
+  reopenNew: 'ticket_reopened_new',
 } as const;

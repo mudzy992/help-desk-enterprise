@@ -33,8 +33,20 @@ export type TicketResponse = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly reopenedFromTicketId?: string | null;
+  readonly resolvedAt?: string | null;
+  readonly closedAt?: string | null;
+  readonly waitingForUserEnteredAt?: string | null;
+  readonly reopen?: TicketReopenDescriptor;
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type TicketReopenDescriptor = {
+  readonly enabled: boolean;
+  readonly eligible: boolean;
+  readonly createsNewTicket: boolean;
+  readonly windowEndsAt: string | null;
 };
 
 export type CreateTicketInput = {
@@ -105,6 +117,16 @@ export function updateTicket(
 ): Promise<TicketResponse> {
   return apiRequest(`/tickets/${ticketId}`, {
     method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function reopenTicket(
+  ticketId: string,
+  input: { comment?: string } = {},
+): Promise<TicketResponse> {
+  return apiRequest(`/tickets/${ticketId}/reopen`, {
+    method: "POST",
     body: JSON.stringify(input),
   });
 }

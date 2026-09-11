@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
@@ -21,6 +21,7 @@ import { listOrganizationalUnitTree } from "@/services/organizational-units-api"
 
 export function TicketDetailPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
   const { currentUserId } = useSession();
   const detail = useTicketDetail(ticketId);
@@ -31,6 +32,7 @@ export function TicketDetailPage() {
   const [isTimeSaving, setIsTimeSaving] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
 
   useEffect(() => {
     if (detail.ticket === null) {
@@ -90,6 +92,7 @@ export function TicketDetailPage() {
           canChangeStatus={detail.canChangeStatus && canManageParticipants}
           claiming={isClaiming}
           savingStatus={isSavingStatus}
+          reopening={isReopening}
           onClaim={() => {
             setIsClaiming(true);
             void detail.claim().finally(() => setIsClaiming(false));
@@ -97,6 +100,16 @@ export function TicketDetailPage() {
           onStatusChange={(status) => {
             setIsSavingStatus(true);
             void detail.changeStatus(status).finally(() => setIsSavingStatus(false));
+          }}
+          onReopen={() => {
+            setIsReopening(true);
+            void detail.reopen()
+              .then((updated) => {
+                if (updated !== null && updated.id !== ticket.id) {
+                  navigate(`/tickets/${updated.id}`);
+                }
+              })
+              .finally(() => setIsReopening(false));
           }}
         />
       </div>
@@ -179,8 +192,7 @@ export function TicketDetailPage() {
             onStop={(timeLogId) => {
               setIsTimeSaving(true);
               void detail.stopTimer(timeLogId).finally(() => setIsTimeSaving(false));
-            }}
-          />
+            }} />
         </div>
       </div>
     </section>

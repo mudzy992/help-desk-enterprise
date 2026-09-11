@@ -1,7 +1,7 @@
 # MATRIX — workflow-state-machine-guards
 
 ## Cilj
-Eksplicitne dozvoljene tranzicije `TicketStatus`. Zabranjeni skokovi se odbijaju na serveru (`INVALID_STATUS_TRANSITION`). Frontend restrikcije nisu izvor istine. Matrica je kompatibilna sa kasnijim approvals / waiting-for-user / reopen tokovima, ali ih ne implementira.
+Eksplicitne dozvoljene tranzicije `TicketStatus`. Zabranjeni skokovi se odbijaju na serveru (`INVALID_STATUS_TRANSITION`). Frontend restrikcije nisu izvor istine. Approvals, waiting-for-user i reopen koriste ovu matricu; PATCH iz `RESOLVED`/`CLOSED` u `IN_PROGRESS` ide kroz reopen endpoint.
 
 ## Početni status
 Vidi ticketing-core: routed create ⇒ `PENDING`; unrouted ⇒ `UNROUTED`.
@@ -14,7 +14,7 @@ Vidi ticketing-core: routed create ⇒ `PENDING`; unrouted ⇒ `UNROUTED`.
 | `PENDING_APPROVAL` | `PENDING`, `CLOSED` |
 | `ASSIGNED` | `IN_PROGRESS`, `PENDING`, `WAITING_FOR_USER` |
 | `IN_PROGRESS` | `WAITING_FOR_USER`, `RESOLVED`, `ASSIGNED` |
-| `WAITING_FOR_USER` | `IN_PROGRESS`, `RESOLVED` |
+| `WAITING_FOR_USER` | `IN_PROGRESS`, `RESOLVED`, `CLOSED` |
 | `RESOLVED` | `CLOSED`, `IN_PROGRESS` |
 | `CLOSED` | `ARCHIVED`, `IN_PROGRESS` |
 | `ARCHIVED` | _(none)_ |
@@ -27,4 +27,4 @@ Status mijenjaju AGENT, ADMIN i SuperAdmin (`canChangeTicketStatus` preko postoj
 Kod: `assertTicketStatusTransition` + `allowedTicketStatusTransitions`.
 
 ## Namjerno NIJE
-Waiting-for-user automatika, reopen policy, approvals engine, close codes, smart required fields, group inbox claiming koje postavlja `ASSIGNED`.
+Close codes, smart required fields, group inbox claiming koje postavlja `ASSIGNED`. Waiting-for-user automatika i reopen policy su zasebne matrice.

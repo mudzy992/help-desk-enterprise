@@ -4,6 +4,7 @@ import { changeLogActions } from '../../change-log/change-log.constants';
 import { loadOrganizationalUnitPath } from '../../authorization/load-authorization-scope';
 import { assertTicketStatusTransition } from '../assert-ticket-status-transition';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
+import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { recordTicketChange } from '../record-ticket-change';
 import { ticketSystemEventActions } from '../collaboration.constants';
@@ -64,10 +65,15 @@ export async function decideTicketApproval(
     originUnitPath,
     configuration,
   });
-  const nextStatus = decision === 'APPROVED' ? 'PENDING' : 'CLOSED';
+    const nextStatus = decision === 'APPROVED' ? 'PENDING' : 'CLOSED';
   assertTicketStatusTransition(ticket.status, nextStatus);
   const normalizedComment = normalizeApprovalComment(comment);
   const decidedAt = new Date();
+  const timestamps = applyTicketLifecycleTimestamps({
+    current: ticket,
+    nextStatus,
+    now: decidedAt,
+  });
   return prisma.$transaction(async (transaction) => {
     await transaction.ticketApproval.update({
       where: { id: approval.id },
@@ -80,7 +86,7 @@ export async function decideTicketApproval(
     });
     const updated = (await transaction.ticket.update({
       where: { id: ticket.id },
-      data: { status: nextStatus },
+      data: { status: nextStatus, ...timestamps },
     })) as TicketRecord;
     await recordTicketChange(transaction as PrismaService, {
       action: changeLogActions.update,

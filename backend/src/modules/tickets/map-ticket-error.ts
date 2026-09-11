@@ -34,6 +34,7 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'ATTACHMENTS_DISABLED',
   'APPROVALS_DISABLED',
   'APPROVAL_SELF_FORBIDDEN',
+  'REOPEN_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -41,6 +42,8 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'ASSIGNMENT_UNAVAILABLE',
   'ATTACHMENTS_STORAGE_UNAVAILABLE',
   'APPROVALS_UNAVAILABLE',
+  'WAITING_FOR_USER_UNAVAILABLE',
+  'REOPEN_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -101,6 +104,13 @@ const messages: Record<TicketsErrorCode, string> = {
   APPROVAL_SELF_FORBIDDEN: 'You cannot approve or reject your own ticket',
   APPROVAL_COMMENT_REQUIRED: 'An approval comment is required',
   INVALID_APPROVAL_COMMENT: 'Approval comment is invalid',
+  REOPEN_DISABLED: 'Ticket reopen is disabled',
+  REOPEN_REQUIRED:
+    'Resolved or closed tickets can only return to in progress through reopen',
+  REOPEN_NOT_ELIGIBLE: 'This ticket cannot be reopened',
+  INVALID_REOPEN_COMMENT: 'Reopen comment is invalid',
+  WAITING_FOR_USER_UNAVAILABLE: 'Waiting-for-user automation is unavailable',
+  REOPEN_UNAVAILABLE: 'Ticket reopen policy is unavailable',
 };
 
 export function mapTicketError(error: unknown): HttpException {

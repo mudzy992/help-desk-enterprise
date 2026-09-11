@@ -25,6 +25,11 @@ export type TicketRecord = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly reopenedFromTicketId: string | null;
+  readonly resolvedAt: Date | null;
+  readonly closedAt: Date | null;
+  readonly waitingForUserEnteredAt: Date | null;
+  readonly waitingForUserReminderSentAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -47,8 +52,20 @@ export type TicketResponse = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly reopenedFromTicketId: string | null;
+  readonly resolvedAt: string | null;
+  readonly closedAt: string | null;
+  readonly waitingForUserEnteredAt: string | null;
+  readonly reopen?: TicketReopenDescriptor;
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type TicketReopenDescriptor = {
+  readonly enabled: boolean;
+  readonly eligible: boolean;
+  readonly createsNewTicket: boolean;
+  readonly windowEndsAt: string | null;
 };
 
 export type CreateTicketInput = {
@@ -60,6 +77,8 @@ export type CreateTicketInput = {
   readonly originUnitId?: string;
   readonly formVersionRef?: string;
   readonly formData?: unknown;
+  readonly requesterUserId?: string;
+  readonly reopenedFromTicketId?: string;
 };
 
 export type UpdateTicketInput = {

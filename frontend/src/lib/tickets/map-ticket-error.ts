@@ -9,6 +9,9 @@ export type TicketErrorKey =
   | "tickets.errorNotClaimable"
   | "tickets.errorStatusForbidden"
   | "tickets.errorInvalidTransition"
+  | "tickets.errorReopenDisabled"
+  | "tickets.errorReopenRequired"
+  | "tickets.errorReopenNotEligible"
   | "tickets.errorConflict"
   | "tickets.errorGeneric";
 
@@ -19,6 +22,9 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   GROUP_INBOX_DISABLED: "tickets.errorInboxDisabled",
   TICKET_NOT_CLAIMABLE: "tickets.errorNotClaimable",
   INVALID_STATUS_TRANSITION: "tickets.errorInvalidTransition",
+  REOPEN_DISABLED: "tickets.errorReopenDisabled",
+  REOPEN_REQUIRED: "tickets.errorReopenRequired",
+  REOPEN_NOT_ELIGIBLE: "tickets.errorReopenNotEligible",
   NOT_FOUND: "tickets.errorNotFound",
   OVERLAPPING_TIMER: "tickets.errorConflict",
   INVALID_TITLE: "tickets.errorValidation",

@@ -3,7 +3,7 @@ import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/tic
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
-import { canShowClaimAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
+import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
 
 interface TicketDetailHeaderProperties {
@@ -12,8 +12,10 @@ interface TicketDetailHeaderProperties {
   readonly canChangeStatus: boolean;
   readonly claiming: boolean;
   readonly savingStatus: boolean;
+  readonly reopening: boolean;
   readonly onClaim: () => void;
   readonly onStatusChange: (status: TicketStatus) => void;
+  readonly onReopen: () => void;
 }
 
 export function TicketDetailHeader({
@@ -22,8 +24,10 @@ export function TicketDetailHeader({
   canChangeStatus,
   claiming,
   savingStatus,
+  reopening,
   onClaim,
   onStatusChange,
+  onReopen,
 }: TicketDetailHeaderProperties) {
   const { t } = useTranslation();
   const nextStatuses = nextTicketStatuses(ticket.status);
@@ -46,9 +50,23 @@ export function TicketDetailHeader({
                 {claiming ? t("tickets.claiming") : t("tickets.claim")}
               </Button>
             ) : null}
+            {canShowReopenAction(ticket) ? (
+              <Button type="button" size="sm" disabled={reopening} onClick={onReopen}>
+                {reopening
+                  ? t("tickets.detail.reopening")
+                  : ticket.reopen?.createsNewTicket
+                    ? t("tickets.detail.reopenAsNew")
+                    : t("tickets.detail.reopen")}
+              </Button>
+            ) : null}
           </div>
         }
       />
+      {ticket.status === "WAITING_FOR_USER" ? (
+        <p className="mt-2 text-[12.5px] text-muted-foreground">
+          {t("tickets.detail.waitingForUserHint")}
+        </p>
+      ) : null}
       {canChangeStatus && nextStatuses.length > 0 ? (
         <label className={`mt-1 max-w-xs ${labelClassName}`}>
           {t("tickets.detail.changeStatus")}
