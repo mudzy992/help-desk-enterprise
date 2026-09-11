@@ -86,4 +86,5 @@ export const ticketChangeLogReasons = {
   bulkPriority: 'ticket_bulk_priority',
   bulkBroadcast: 'ticket_bulk_broadcast',
   bulkMerge: 'ticket_bulk_merge',
+  redactionWarned: 'ticket_redaction_warned',
 } as const;

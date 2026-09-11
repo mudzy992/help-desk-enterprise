@@ -5,6 +5,8 @@ import type {
   TicketStatus,
   TicketUrgency,
 } from '../../generated/prisma/enums';
+import type { TicketClosePolicy } from './close-codes/close-codes.types';
+import type { RedactionMatch } from './redaction/redaction.types';
 import type { JsonValue } from '../change-log/change-log.types';
 
 export type TicketRecord = {
@@ -28,6 +30,8 @@ export type TicketRecord = {
   readonly parentTicketId: string | null;
   readonly mergedIntoTicketId: string | null;
   readonly reopenedFromTicketId: string | null;
+  readonly closeCodeId: string | null;
+  readonly resolutionNote: string | null;
   readonly resolvedAt: Date | null;
   readonly closedAt: Date | null;
   readonly waitingForUserEnteredAt: Date | null;
@@ -61,6 +65,8 @@ export type TicketResponse = {
   readonly closedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
   readonly reopen?: TicketReopenDescriptor;
+  readonly closePolicy?: TicketClosePolicy;
+  readonly redactionWarnings?: readonly RedactionMatch[];
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -96,6 +102,8 @@ export type UpdateTicketInput = {
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
   readonly formData?: unknown;
+  readonly closeCode?: string;
+  readonly resolutionNote?: string;
 };
 
 export type ListTicketsQuery = {

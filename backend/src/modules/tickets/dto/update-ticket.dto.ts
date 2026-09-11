@@ -41,4 +41,15 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsObject()
   formData?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(64)
+  closeCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  resolutionNote?: string;
 }

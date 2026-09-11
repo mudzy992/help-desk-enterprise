@@ -2,6 +2,7 @@ import type {
   MessageType,
   ParticipantRole,
 } from '../../generated/prisma/enums';
+import type { RedactionMatch } from './redaction/redaction.types';
 
 export type TicketParticipantRecord = {
   readonly id: string;
@@ -43,6 +44,7 @@ export type TicketMessageResponse = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: string;
+  readonly redactionWarnings?: readonly RedactionMatch[];
 };
 
 export type CreateTicketMessageInput = {

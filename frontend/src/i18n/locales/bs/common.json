@@ -374,6 +374,12 @@
       "reopenAsNew": "Otvori novi tiket",
       "reopening": "Otvaranje…",
       "waitingForUserHint": "Tiket čeka odgovor korisnika. Javni odgovor korisnika vraća tiket u obradu. Interna napomena ne resetuje čekanje.",
+      "closeCode": "Šifra zatvaranja",
+      "closeCodePlaceholder": "Izaberite šifru",
+      "resolutionNote": "Napomena o rješenju",
+      "resolveHint": "Prije statusa {{status}} unesite obavezna polja.",
+      "confirmStatus": "Primijeni status",
+      "cancelStatus": "Odustani",
       "approvals": "Odobrenja",
       "approve": "Odobri",
       "reject": "Odbij",
@@ -476,6 +482,19 @@
     "errorBulkCloseForbidden": "Masovno zatvaranje tiketa nije dozvoljeno.",
     "errorBulkScope": "Masovne akcije važe samo unutar iste OU i grupe.",
     "errorConflict": "Akcija je u konfliktu s trenutnim stanjem.",
+    "errorRequiredFields": "Prije rješavanja ili zatvaranja unesite obavezna polja.",
+    "errorCloseCodeInvalid": "Šifra zatvaranja nije na dozvoljenoj listi.",
+    "errorRedactionBlocked": "Sadržaj izgleda kao tajna ili lični podatak i nije sačuvan.",
+    "redactionWarning": "Detektovan je mogući tajni ili lični podatak. Sadržaj je sačuvan, a događaj je zabilježen.",
+    "closeCodes": {
+      "solved_by_user": "Riješio korisnik",
+      "howto": "Uputstvo",
+      "access_granted": "Pristup odobren",
+      "config_change": "Izmjena konfiguracije",
+      "bug_fixed": "Ispravljena greška",
+      "hardware_replaced": "Zamijenjen hardver",
+      "other": "Ostalo"
+    },
     "errorGeneric": "Tiketi trenutno nisu dostupni.",
     "errorCatalog": "Katalog servisa trenutno nije dostupan."
   }

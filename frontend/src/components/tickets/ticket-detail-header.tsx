@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
 import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
+import { isResolveOrCloseStatus } from "@/lib/tickets/is-resolve-or-close-status";
+import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
 interface TicketDetailHeaderProperties {
   readonly ticket: TicketResponse;
@@ -14,7 +17,7 @@ interface TicketDetailHeaderProperties {
   readonly savingStatus: boolean;
   readonly reopening: boolean;
   readonly onClaim: () => void;
-  readonly onStatusChange: (status: TicketStatus) => void;
+  readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
 }
 
@@ -31,6 +34,9 @@ export function TicketDetailHeader({
 }: TicketDetailHeaderProperties) {
   const { t } = useTranslation();
   const nextStatuses = nextTicketStatuses(ticket.status);
+  const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null);
+  const [closeCode, setCloseCode] = useState(ticket.closePolicy?.closeCode?.key ?? "");
+  const [resolutionNote, setResolutionNote] = useState(ticket.closePolicy?.resolutionNote ?? "");
   return (
     <header>
       <PageHeader
@@ -73,11 +79,17 @@ export function TicketDetailHeader({
           <select
             className={controlClassName}
             value=""
-            disabled={savingStatus}
+            disabled={savingStatus || pendingStatus !== null}
             onChange={(event) => {
-              if (event.target.value.length > 0) {
-                onStatusChange(event.target.value as TicketStatus);
+              if (event.target.value.length === 0) {
+                return;
               }
+              const status = event.target.value as TicketStatus;
+              if (isResolveOrCloseStatus(status)) {
+                setPendingStatus(status);
+                return;
+              }
+              onStatusChange(status);
             }}
           >
             <option value="">{savingStatus ? t("tickets.detail.saving") : "—"}</option>
@@ -88,6 +100,24 @@ export function TicketDetailHeader({
             ))}
           </select>
         </label>
+      ) : null}
+      {pendingStatus !== null && ticket.status !== pendingStatus ? (
+        <TicketResolveFields
+          pendingStatus={pendingStatus}
+          closePolicy={ticket.closePolicy}
+          closeCode={closeCode}
+          resolutionNote={resolutionNote}
+          saving={savingStatus}
+          onCloseCodeChange={setCloseCode}
+          onResolutionNoteChange={setResolutionNote}
+          onConfirm={() => {
+            onStatusChange(pendingStatus, {
+              closeCode: closeCode.length > 0 ? closeCode : undefined,
+              resolutionNote: resolutionNote.length > 0 ? resolutionNote : undefined,
+            });
+          }}
+          onCancel={() => setPendingStatus(null)}
+        />
       ) : null}
     </header>
   );

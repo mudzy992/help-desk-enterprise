@@ -7,6 +7,7 @@ import type {
   TicketTimeLogRecord,
   TicketTimeLogResponse,
 } from './collaboration.types';
+import type { RedactionMatch } from './redaction/redaction.types';
 import { ticketMessageVisibility } from './ticket-message-visibility';
 import type { TicketRecord } from './tickets.types';
 
@@ -25,6 +26,7 @@ export function toTicketParticipantResponse(
 
 export function toTicketMessageResponse(
   record: TicketMessageRecord,
+  redactionWarnings?: readonly RedactionMatch[],
 ): TicketMessageResponse {
   return {
     id: record.id,
@@ -33,6 +35,7 @@ export function toTicketMessageResponse(
     body: record.body,
     authorUserId: record.authorUserId,
     createdAt: record.createdAt.toISOString(),
+    redactionWarnings,
   };
 }
 

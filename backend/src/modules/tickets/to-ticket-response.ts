@@ -1,4 +1,7 @@
 import type { JsonValue } from '../change-log/change-log.types';
+import type { CloseCodeDescriptor, TicketCloseCodesConfiguration } from './close-codes/close-codes.types';
+import { listConfiguredCloseCodes } from './close-codes/resolve-close-code-record';
+import type { RedactionMatch } from './redaction/redaction.types';
 import { describeTicketReopen } from './reopen/resolve-ticket-reopen-policy';
 import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -35,12 +38,25 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
 
 export function toTicketClientResponse(
   record: TicketRecord,
-  configuration: TicketReopenConfiguration,
-  now = new Date(),
+  input: {
+    readonly reopen: TicketReopenConfiguration;
+    readonly closeCodes: TicketCloseCodesConfiguration;
+    readonly closeCode: CloseCodeDescriptor | null;
+    readonly redactionWarnings?: readonly RedactionMatch[];
+    readonly now?: Date;
+  },
 ): TicketResponse {
   return {
     ...toTicketResponse(record),
-    reopen: describeTicketReopen(record, configuration, now),
+    reopen: describeTicketReopen(record, input.reopen, input.now ?? new Date()),
+    closePolicy: {
+      enabled: input.closeCodes.enabled,
+      requireOnResolve: input.closeCodes.requireOnResolve,
+      allowedCodes: listConfiguredCloseCodes(input.closeCodes),
+      closeCode: input.closeCode,
+      resolutionNote: record.resolutionNote,
+    },
+    redactionWarnings: input.redactionWarnings,
   };
 }
 

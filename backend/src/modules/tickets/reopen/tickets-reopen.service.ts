@@ -8,7 +8,8 @@ import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
-import { toTicketClientResponse } from '../to-ticket-response';
+import { toSingleTicketClientResponse } from '../to-ticket-client-responses';
+import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import type { TicketMutationContext, TicketResponse } from '../tickets.types';
 import { reopenTicket } from './reopen-ticket';
 import type { ReopenTicketInput } from './reopen.types';
@@ -22,6 +23,7 @@ export class TicketsReopenService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
+    private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
@@ -56,7 +58,11 @@ export class TicketsReopenService {
               messages,
             );
       publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
-      return toTicketClientResponse(assigned, configuration, now);
+      return toSingleTicketClientResponse(this.prisma, assigned, {
+        reopen: configuration,
+        closeCodes: await this.closeCodesConfigurationLoader.load(),
+        now,
+      });
     });
   }
 }

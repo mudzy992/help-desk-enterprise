@@ -33,6 +33,12 @@ import { seedDefaultTicketParticipants } from './seed-default-ticket-participant
 import { insertSystemTicketEvent } from './insert-system-ticket-event';
 import { ticketSystemEventActions } from './collaboration.constants';
 import type { TicketPersistedMessageSink } from './collaboration.types';
+import type { TicketRedactionConfiguration } from './redaction/redaction.types';
+import {
+  assertRedactionAllowed,
+  scanTicketContent,
+} from './redaction/assert-ticket-content-redaction';
+import { recordRedactionWarning } from './redaction/record-redaction-warning';
 import type {
   CreateTicketInput,
   TicketMutationContext,
@@ -47,6 +53,7 @@ export async function createTicket(
   input: CreateTicketInput,
   context: TicketMutationContext,
   messages: TicketPersistedMessageSink = [],
+  redaction?: TicketRedactionConfiguration,
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -109,6 +116,19 @@ export async function createTicket(
       serviceRequiresApproval: service.requiresApproval,
     }),
   });
+  const title = normalizeTicketTitle(input.title);
+  const description = normalizeTicketDescription(input.description);
+  const scan = scanTicketContent({
+    configuration: redaction ?? {
+      enabled: false,
+      mode: 'warn_only',
+      applyToFields: [],
+      patterns: [],
+    },
+    title,
+    description,
+  });
+  assertRedactionAllowed(scan);
   const created = await prisma.$transaction(async (transaction) => {
     const ticketNumber = await nextTicketNumber(() =>
       transaction.ticket.count(),
@@ -116,8 +136,8 @@ export async function createTicket(
     const record = (await transaction.ticket.create({
       data: {
         ticketNumber,
-        title: normalizeTicketTitle(input.title),
-        description: normalizeTicketDescription(input.description),
+        title,
+        description,
         status,
         priority: calculateTicketPriority(input.impact, input.urgency),
         impact: input.impact,
@@ -141,6 +161,7 @@ export async function createTicket(
       before: null,
       after: record,
       actorUserId: context.actorUserId,
+      redaction,
     });
     await seedDefaultTicketParticipants(transaction as PrismaService, record);
     messages.push(
@@ -150,6 +171,13 @@ export async function createTicket(
         actorUserId: context.actorUserId,
       }),
     );
+    await recordRedactionWarning({
+      prisma: transaction as PrismaService,
+      ticketId: record.id,
+      actorUserId: context.actorUserId,
+      scan,
+      messages,
+    });
     if (record.status === 'PENDING_APPROVAL') {
       await createPendingTicketApproval(transaction as PrismaService, record);
       messages.push(

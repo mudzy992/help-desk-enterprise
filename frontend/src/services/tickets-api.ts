@@ -40,8 +40,29 @@ export type TicketResponse = {
   readonly closedAt?: string | null;
   readonly waitingForUserEnteredAt?: string | null;
   readonly reopen?: TicketReopenDescriptor;
+  readonly closePolicy?: TicketClosePolicy;
+  readonly redactionWarnings?: readonly RedactionMatch[];
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type RedactionMatch = {
+  readonly field: string;
+  readonly patternId: string;
+  readonly risk: "standard" | "high";
+};
+
+export type CloseCodeDescriptor = {
+  readonly key: string;
+  readonly name: string;
+};
+
+export type TicketClosePolicy = {
+  readonly enabled: boolean;
+  readonly requireOnResolve: boolean;
+  readonly allowedCodes: readonly CloseCodeDescriptor[];
+  readonly closeCode: CloseCodeDescriptor | null;
+  readonly resolutionNote: string | null;
 };
 
 export type TicketReopenDescriptor = {
@@ -69,6 +90,8 @@ export type UpdateTicketInput = {
   readonly urgency?: TicketUrgency;
   readonly status?: TicketStatus;
   readonly formData?: Record<string, unknown>;
+  readonly closeCode?: string;
+  readonly resolutionNote?: string;
 };
 
 export type ListTicketsQuery = {

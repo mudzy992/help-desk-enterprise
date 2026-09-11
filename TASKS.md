@@ -60,7 +60,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Approvals (1–3 servisa): Pending Approval → approve/reject
 - [x] Waiting-for-user automatika + reopen policy
 - [x] Ticket split (parent/child) + bulk akcije (bez bulk close) + saved views
-- [ ] Close codes + smart required fields + PII/secret redaction
+- [x] Close codes + smart required fields + PII/secret redaction
 - [ ] Confidential ACL + break-glass + safe logging
 - [ ] Anti-loop / anti-spam guardrails
 - [ ] CSAT + auto-archive closed tickets
@@ -94,4 +94,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 2 — `.cursor/docs/02-routing-logic.md` ažuriran (auto-assign i unrouted su IN). Sljedeće: Change log (reason + diff) za settings i routing.
+**Trenutni status:** Faza 5 — Close codes + smart required fields + PII/secret redaction. Sljedeće: Confidential ACL + break-glass + safe logging.

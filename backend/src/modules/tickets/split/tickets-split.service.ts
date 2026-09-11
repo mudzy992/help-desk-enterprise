@@ -9,7 +9,8 @@ import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
-import { toTicketClientResponse } from '../to-ticket-response';
+import { toSingleTicketClientResponse } from '../to-ticket-client-responses';
+import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import type { TicketMutationContext } from '../tickets.types';
 import { splitTicket } from './split-ticket';
 import type { SplitTicketInput, SplitTicketResult } from './split.types';
@@ -24,6 +25,7 @@ export class TicketsSplitService {
     private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
     private readonly splitConfigurationLoader: TicketSplitConfigurationLoader,
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
+    private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
@@ -36,6 +38,7 @@ export class TicketsSplitService {
     return executeTicketOperation(async () => {
       const configuration = await this.splitConfigurationLoader.load();
       const reopen = await this.reopenConfigurationLoader.load();
+      const closeCodes = await this.closeCodesConfigurationLoader.load();
       const messages: TicketPersistedMessageSink = [];
       const result = await splitTicket({
         prisma: this.prisma,
@@ -56,11 +59,19 @@ export class TicketsSplitService {
           messages,
         );
         publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
-        children.push(toTicketClientResponse(assigned, reopen));
+        children.push(
+          await toSingleTicketClientResponse(this.prisma, assigned, {
+            reopen,
+            closeCodes,
+          }),
+        );
       }
       publishPersistedTicketMessages(this.realtimeHub, result.parent, messages);
       return {
-        parent: toTicketClientResponse(result.parent, reopen),
+        parent: await toSingleTicketClientResponse(this.prisma, result.parent, {
+          reopen,
+          closeCodes,
+        }),
         children,
       };
     });

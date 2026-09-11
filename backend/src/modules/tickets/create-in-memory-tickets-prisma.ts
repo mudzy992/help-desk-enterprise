@@ -26,6 +26,8 @@ import type {
 import type { TicketAttachmentRecord } from './attachments/attachments.types';
 import { createInMemorySavedViewDelegate } from './create-in-memory-saved-view-delegate';
 import type { SavedViewRecord } from './saved-views/saved-views.types';
+import { createInMemoryCloseCodeDelegate } from './create-in-memory-close-code-delegate';
+import type { CloseCodeRecord } from './close-codes/close-codes.types';
 import type { TicketRecord } from './tickets.types';
 import type {
   InMemoryTicketChangeLog,
@@ -44,6 +46,7 @@ export function createInMemoryTicketsPrisma() {
   const rules = new Map<string, RoutingRuleRecord>();
   const formVersions = new Map<string, FormVersionRecord>();
   const tickets = new Map<string, TicketRecord>();
+  const closeCodes = new Map<string, CloseCodeRecord>();
   const participants = new Map<string, TicketParticipantRecord>();
   const messages = new Map<string, TicketMessageRecord>();
   const timeLogs = new Map<string, TicketTimeLogRecord>();
@@ -86,6 +89,7 @@ export function createInMemoryTicketsPrisma() {
     formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
     groupMember: createInMemoryGroupMemberDelegate(members),
     ticket: createInMemoryTicketDelegate(tickets, nextId, now),
+    closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),
     ticketParticipant: createInMemoryTicketParticipantDelegate(
       participants,
       nextId,
@@ -118,6 +122,7 @@ export function createInMemoryTicketsPrisma() {
     prisma,
     changeLogs,
     tickets,
+    closeCodes,
     participants,
     messages,
     timeLogs,

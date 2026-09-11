@@ -80,12 +80,20 @@ export type TicketsErrorCode =
   | 'SAVED_VIEW_LIMIT'
   | 'SAVED_VIEW_NAME_TAKEN'
   | 'INVALID_SAVED_VIEW'
-  | 'HANDLER_GROUP_NOT_FOUND';
+  | 'HANDLER_GROUP_NOT_FOUND'
+  | 'CLOSE_CODES_UNAVAILABLE'
+  | 'CLOSE_CODE_INVALID'
+  | 'INVALID_RESOLUTION_NOTE'
+  | 'REQUIRED_FIELDS_MISSING'
+  | 'REQUIRED_FIELDS_UNAVAILABLE'
+  | 'REDACTION_BLOCKED'
+  | 'REDACTION_UNAVAILABLE';
 
 export class TicketsError extends Error {
   constructor(
     readonly code: TicketsErrorCode,
     message = code,
+    readonly details?: Readonly<Record<string, unknown>>,
   ) {
     super(message);
     this.name = 'TicketsError';

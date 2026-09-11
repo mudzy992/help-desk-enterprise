@@ -374,6 +374,12 @@
       "reopenAsNew": "Open a new ticket",
       "reopening": "Reopening…",
       "waitingForUserHint": "This ticket is waiting for the requester. A public user reply returns it to in progress. An internal note does not reset waiting.",
+      "closeCode": "Close code",
+      "closeCodePlaceholder": "Select a close code",
+      "resolutionNote": "Resolution note",
+      "resolveHint": "Required fields must be completed before {{status}}.",
+      "confirmStatus": "Apply status",
+      "cancelStatus": "Cancel",
       "approvals": "Approvals",
       "approve": "Approve",
       "reject": "Reject",
@@ -476,6 +482,19 @@
     "errorBulkCloseForbidden": "Bulk close is not allowed.",
     "errorBulkScope": "Bulk actions apply only within the same OU and group.",
     "errorConflict": "This action conflicts with the current state.",
+    "errorRequiredFields": "Required fields must be completed before resolve or close.",
+    "errorCloseCodeInvalid": "That close code is not on the allow-list.",
+    "errorRedactionBlocked": "This looks like a secret or personal data and was not saved.",
+    "redactionWarning": "Possible secret or personal data was detected. The content was saved and the event was recorded.",
+    "closeCodes": {
+      "solved_by_user": "Solved by user",
+      "howto": "How-to",
+      "access_granted": "Access granted",
+      "config_change": "Configuration change",
+      "bug_fixed": "Bug fixed",
+      "hardware_replaced": "Hardware replaced",
+      "other": "Other"
+    },
     "errorGeneric": "Tickets are currently unavailable.",
     "errorCatalog": "The service catalog is currently unavailable."
   }

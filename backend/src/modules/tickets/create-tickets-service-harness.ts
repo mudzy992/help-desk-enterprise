@@ -9,6 +9,9 @@ import { TicketAssignmentService } from './assignment/ticket-assignment.service'
 import { defaultTicketCollaborationConfiguration } from './collaboration.constants';
 import { createInMemoryTicketsPrisma } from './create-in-memory-tickets-prisma';
 import { defaultTicketReopenConfiguration } from './reopen/reopen.constants';
+import { defaultTicketCloseCodesConfiguration } from './close-codes/close-codes.constants';
+import { defaultTicketRequiredFieldsConfiguration } from './required-fields/required-fields.constants';
+import { defaultTicketRedactionConfiguration } from './redaction/redaction.constants';
 import { TicketsReopenService } from './reopen/tickets-reopen.service';
 import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
 import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
@@ -63,6 +66,27 @@ export function createTicketsServiceHarness() {
     enabled: defaultTicketReopenConfiguration.enabled,
     windowDays: defaultTicketReopenConfiguration.windowDays,
   };
+  const closeCodesConfig = {
+    enabled: defaultTicketCloseCodesConfiguration.enabled as boolean,
+    allowedCodes: [...defaultTicketCloseCodesConfiguration.allowedCodes],
+    requireOnResolve:
+      defaultTicketCloseCodesConfiguration.requireOnResolve as boolean,
+  };
+  const requiredFieldsConfig = {
+    enabled: defaultTicketRequiredFieldsConfiguration.enabled as boolean,
+    globalRequiredOnResolve: [
+      ...defaultTicketRequiredFieldsConfiguration.globalRequiredOnResolve,
+    ],
+    byService: {} as Record<string, readonly string[]>,
+    enforceSchemaRequiredFields:
+      defaultTicketRequiredFieldsConfiguration.enforceSchemaRequiredFields as boolean,
+  };
+  const redactionConfig = {
+    enabled: defaultTicketRedactionConfiguration.enabled as boolean,
+    mode: defaultTicketRedactionConfiguration.mode,
+    applyToFields: [...defaultTicketRedactionConfiguration.applyToFields],
+    patterns: [...defaultTicketRedactionConfiguration.patterns],
+  };
   const authorizationContextLoader = {
     loadBySubjectId: async (subjectId: string) =>
       contexts.get(subjectId) ?? null,
@@ -78,6 +102,9 @@ export function createTicketsServiceHarness() {
   const approvalsLoader = { load: async () => ({ ...approvalsConfig }) };
   const waitingLoader = { load: async () => ({ ...waitingForUserConfig }) };
   const reopenLoader = { load: async () => ({ ...reopenConfig }) };
+  const closeCodesLoader = { load: async () => ({ ...closeCodesConfig }) };
+  const requiredFieldsLoader = { load: async () => ({ ...requiredFieldsConfig }) };
+  const redactionLoader = { load: async () => ({ ...redactionConfig }) };
   const realtimeHub = new TicketRealtimeHub();
   const tickets = new TicketsService(
     memory.prisma as never,
@@ -86,6 +113,9 @@ export function createTicketsServiceHarness() {
     assignment,
     approvalsLoader as never,
     reopenLoader as never,
+    closeCodesLoader as never,
+    requiredFieldsLoader as never,
+    redactionLoader as never,
     realtimeHub,
   );
   const approvals = new TicketsApprovalsService(
@@ -101,6 +131,7 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader as never,
     approvalsLoader as never,
     reopenLoader as never,
+    closeCodesLoader as never,
     assignment,
     realtimeHub,
   );
@@ -111,6 +142,7 @@ export function createTicketsServiceHarness() {
       load: async () => ({ ...defaultTicketCollaborationConfiguration }),
     } as never,
     waitingLoader as never,
+    redactionLoader as never,
     realtimeHub,
   );
   const timeTracking = new TicketsTimeTrackingService(
@@ -129,6 +161,7 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader,
     approvalsLoader,
     reopenLoader,
+    closeCodesLoader,
     assignment,
     realtimeHub,
   });
@@ -149,6 +182,9 @@ export function createTicketsServiceHarness() {
     approvalsConfig,
     waitingForUserConfig,
     reopenConfig,
+    closeCodesConfig,
+    requiredFieldsConfig,
+    redactionConfig,
     authorizationContextLoader,
     ...governance,
   };

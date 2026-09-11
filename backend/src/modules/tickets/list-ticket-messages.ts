@@ -24,5 +24,5 @@ export async function listTicketMessages(
   });
   return records
     .filter((record) => canViewTicketMessage(access.visibility, record.type))
-    .map(toTicketMessageResponse);
+    .map((record) => toTicketMessageResponse(record));
 }

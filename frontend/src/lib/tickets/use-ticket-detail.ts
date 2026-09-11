@@ -127,9 +127,9 @@ export function useTicketDetail(ticketId: string | undefined) {
     claim: () => onTicket((id) => runAction(async () => {
       setTicket(await claimTicket(id));
     })),
-    changeStatus: (status: TicketStatus) =>
+    changeStatus: (status: TicketStatus, extras: { closeCode?: string; resolutionNote?: string } = {}) =>
       onTicket((id) => runAction(async () => {
-        setTicket(await updateTicket(id, { status }));
+        setTicket(await updateTicket(id, { status, ...extras }));
       })),
     sendMessage: (type: MessageType, body: string) =>
       onTicket((id) => runAction(async () => {

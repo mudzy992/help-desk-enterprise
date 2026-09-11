@@ -17,6 +17,7 @@ export function createTicketsGovernanceHarness(input: {
   };
   readonly approvalsLoader: unknown;
   readonly reopenLoader: unknown;
+  readonly closeCodesLoader: unknown;
   readonly assignment: TicketAssignmentService;
   readonly realtimeHub: TicketRealtimeHub;
 }) {
@@ -49,6 +50,7 @@ export function createTicketsGovernanceHarness(input: {
     input.approvalsLoader as never,
     { load: async () => ({ ...splitConfig }) } as never,
     input.reopenLoader as never,
+    input.closeCodesLoader as never,
     input.assignment,
     input.realtimeHub,
   );
@@ -57,6 +59,7 @@ export function createTicketsGovernanceHarness(input: {
     input.authorizationContextLoader as never,
     { load: async () => ({ ...bulkConfig }) } as never,
     input.reopenLoader as never,
+    input.closeCodesLoader as never,
     input.realtimeHub,
   );
   const savedViews = new TicketsSavedViewsService(

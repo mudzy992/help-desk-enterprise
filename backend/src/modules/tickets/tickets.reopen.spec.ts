@@ -78,7 +78,11 @@ async function createResolvedTicket(
   );
   await harness.tickets.update(
     created.id,
-    { status: 'RESOLVED' },
+    {
+      status: 'RESOLVED',
+      closeCode: 'bug_fixed',
+      resolutionNote: 'VPN concentrator restored',
+    },
     { actorUserId: ticketsTestIds.agentIt },
   );
   return created.id;

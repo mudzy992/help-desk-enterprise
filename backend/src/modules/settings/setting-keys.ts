@@ -175,6 +175,23 @@ export const settingKeys = {
     'private.knowledgeBase.feedback.oneVotePerUserPerArticle',
   privateKnowledgeBaseRankingUseFeedbackWeight:
     'private.knowledgeBase.ranking.useFeedbackWeight',
+  privateTicketCloseCodesEnabled: 'private.ticket.closeCodes.enabled',
+  privateTicketCloseCodesAllowedCodesCsv:
+    'private.ticket.closeCodes.allowedCodesCsv',
+  privateTicketCloseCodesRequireOnResolve:
+    'private.ticket.closeCodes.requireOnResolve',
+  privateWorkflowRequiredFieldsEnabled:
+    'private.workflow.requiredFields.enabled',
+  privateWorkflowRequiredFieldsGlobalRequiredOnResolveCsv:
+    'private.workflow.requiredFields.globalRequiredOnResolveCsv',
+  privateWorkflowRequiredFieldsByServiceJson:
+    'private.workflow.requiredFields.byServiceJson',
+  privateSecurityRedactionEnabled: 'private.security.redaction.enabled',
+  privateSecurityRedactionMode: 'private.security.redaction.mode',
+  privateSecurityRedactionPatternsJson:
+    'private.security.redaction.patternsJson',
+  privateSecurityRedactionApplyToFieldsCsv:
+    'private.security.redaction.applyToFieldsCsv',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

@@ -4,15 +4,19 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { RoutingService } from '../routing/routing.service';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import { createTicket } from './create-ticket';
 import { getTicket } from './get-ticket';
 import { listTickets } from './list-tickets';
 import { mapTicketError } from './map-ticket-error';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
+import { scanTicketContent } from './redaction/assert-ticket-content-redaction';
+import { TicketRequiredFieldsConfigurationLoader } from './required-fields/ticket-required-fields-configuration.loader';
 import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
-import { toTicketClientResponse } from './to-ticket-response';
+import { toSingleTicketClientResponse, toTicketClientResponses } from './to-ticket-client-responses';
 import { updateTicket } from './update-ticket';
 import type {
   CreateTicketInput,
@@ -22,7 +26,7 @@ import type {
   TicketResponse,
   UpdateTicketInput,
 } from './tickets.types';
-import type { TicketReopenConfiguration } from './reopen/reopen.types';
+import type { RedactionMatch } from './redaction/redaction.types';
 
 @Injectable()
 export class TicketsService {
@@ -33,6 +37,9 @@ export class TicketsService {
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
+    private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
+    private readonly requiredFieldsConfigurationLoader: TicketRequiredFieldsConfigurationLoader,
+    private readonly redactionConfigurationLoader: TicketRedactionConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -42,6 +49,7 @@ export class TicketsService {
   ): Promise<TicketResponse> {
     return this.execute(async () => {
       const messages: TicketPersistedMessageSink = [];
+      const redaction = await this.redactionConfigurationLoader.load();
       const created = await createTicket(
         this.prisma,
         this.routingService,
@@ -50,6 +58,7 @@ export class TicketsService {
         input,
         context,
         messages,
+        redaction,
       );
       const assigned = await this.ticketAssignmentService.applyAfterCreate(
         created,
@@ -57,7 +66,14 @@ export class TicketsService {
         messages,
       );
       publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
-      return this.respond(assigned);
+      return this.respond(
+        assigned,
+        scanTicketContent({
+          configuration: redaction,
+          title: assigned.title,
+          description: assigned.description,
+        }).matches,
+      );
     });
   }
 
@@ -123,6 +139,11 @@ export class TicketsService {
   ): Promise<TicketResponse> {
     return this.execute(async () => {
       const messages: TicketPersistedMessageSink = [];
+      const [closeCodes, requiredFields, redaction] = await Promise.all([
+        this.closeCodesConfigurationLoader.load(),
+        this.requiredFieldsConfigurationLoader.load(),
+        this.redactionConfigurationLoader.load(),
+      ]);
       const updated = await updateTicket(
         this.prisma,
         this.authorizationContextLoader,
@@ -130,27 +151,39 @@ export class TicketsService {
         input,
         context,
         messages,
+        { closeCodes, requiredFields, redaction },
       );
       publishPersistedTicketMessages(this.realtimeHub, updated, messages);
-      return this.respond(updated);
+      return this.respond(
+        updated,
+        scanTicketContent({
+          configuration: redaction,
+          title: input.title === undefined ? undefined : updated.title,
+          description:
+            input.description === undefined ? undefined : updated.description,
+        }).matches,
+      );
     });
   }
 
-  private async respond(record: TicketRecord): Promise<TicketResponse> {
-    return toTicketClientResponse(record, await this.loadReopenConfig());
+  private async respond(
+    record: TicketRecord,
+    redactionWarnings?: readonly RedactionMatch[],
+  ): Promise<TicketResponse> {
+    return toSingleTicketClientResponse(this.prisma, record, {
+      reopen: await this.reopenConfigurationLoader.load(),
+      closeCodes: await this.closeCodesConfigurationLoader.load(),
+      redactionWarnings,
+    });
   }
 
   private async respondAll(
     records: readonly TicketRecord[],
   ): Promise<readonly TicketResponse[]> {
-    const configuration = await this.loadReopenConfig();
-    return records.map((record) =>
-      toTicketClientResponse(record, configuration),
-    );
-  }
-
-  private loadReopenConfig(): Promise<TicketReopenConfiguration> {
-    return this.reopenConfigurationLoader.load();
+    return toTicketClientResponses(this.prisma, records, {
+      reopen: await this.reopenConfigurationLoader.load(),
+      closeCodes: await this.closeCodesConfigurationLoader.load(),
+    });
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

@@ -94,9 +94,9 @@ export function TicketDetailPage() {
             setIsClaiming(true);
             void detail.claim().finally(() => setIsClaiming(false));
           }}
-          onStatusChange={(status) => {
+          onStatusChange={(status, extras) => {
             setIsSavingStatus(true);
-            void detail.changeStatus(status).finally(() => setIsSavingStatus(false));
+            void detail.changeStatus(status, extras).finally(() => setIsSavingStatus(false));
           }}
           onReopen={() => {
             setIsReopening(true);
@@ -113,6 +113,10 @@ export function TicketDetailPage() {
       {detail.actionError || approvals.errorKey ? (
         <p className="mt-3 text-[12.5px] text-danger">
           {t(detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric")}
+        </p>
+      ) : ticket.redactionWarnings && ticket.redactionWarnings.length > 0 ? (
+        <p className="mt-3 text-[12.5px] text-warning">
+          {t("tickets.redactionWarning")}
         </p>
       ) : null}
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">

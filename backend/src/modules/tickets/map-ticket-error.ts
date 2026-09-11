@@ -56,6 +56,9 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'SPLIT_UNAVAILABLE',
   'BULK_UNAVAILABLE',
   'SAVED_VIEWS_UNAVAILABLE',
+  'CLOSE_CODES_UNAVAILABLE',
+  'REQUIRED_FIELDS_UNAVAILABLE',
+  'REDACTION_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -145,13 +148,27 @@ const messages: Record<TicketsErrorCode, string> = {
   SAVED_VIEW_NAME_TAKEN: 'A saved view with this name already exists',
   INVALID_SAVED_VIEW: 'Saved view is invalid',
   HANDLER_GROUP_NOT_FOUND: 'Handler group was not found',
+  CLOSE_CODES_UNAVAILABLE: 'Close codes policy is unavailable',
+  CLOSE_CODE_INVALID: 'Close code is not in the allow-list',
+  INVALID_RESOLUTION_NOTE: 'Resolution note is invalid',
+  REQUIRED_FIELDS_MISSING: 'Required fields are missing for resolve or close',
+  REQUIRED_FIELDS_UNAVAILABLE: 'Required fields policy is unavailable',
+  REDACTION_BLOCKED: 'Potential secret or PII content was blocked',
+  REDACTION_UNAVAILABLE: 'Redaction policy is unavailable',
 };
 
 export function mapTicketError(error: unknown): HttpException {
   if (!(error instanceof TicketsError)) {
     throw error;
   }
-  const body = { code: error.code, message: messages[error.code] };
+  const body =
+    error.details === undefined
+      ? { code: error.code, message: messages[error.code] }
+      : {
+          code: error.code,
+          message: messages[error.code],
+          details: error.details,
+        };
   if (notFoundCodes.includes(error.code)) {
     return new NotFoundException(body);
   }

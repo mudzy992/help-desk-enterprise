@@ -9,6 +9,7 @@ export function vpnCreateInput(
     description: 'Cannot connect from the office',
     impact: 'MEDIUM',
     urgency: 'HIGH',
+    formData: { asset_tag: 'LPT-001' },
     serviceId: ticketsTestIds.serviceVpn,
     originUnitId: ticketsTestIds.ouIt,
     ...overrides,

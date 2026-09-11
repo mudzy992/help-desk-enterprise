@@ -33,6 +33,11 @@ export type TicketMessageResponse = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: string;
+  readonly redactionWarnings?: readonly {
+    readonly field: string;
+    readonly patternId: string;
+    readonly risk: "standard" | "high";
+  }[];
 };
 
 export type TicketTimeLogResponse = {

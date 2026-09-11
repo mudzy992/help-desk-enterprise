@@ -19,6 +19,15 @@ export function TicketDetailSidebar({ ticket, originName }: TicketDetailSidebarP
     [t("tickets.impact"), t(`tickets.severity.${ticket.impact}`)],
     [t("tickets.urgency"), t(`tickets.severity.${ticket.urgency}`)],
     [t("tickets.detail.classification"), ticket.classification],
+    [
+      t("tickets.detail.closeCode"),
+      ticket.closePolicy?.closeCode
+        ? t(`tickets.closeCodes.${ticket.closePolicy.closeCode.key}`, {
+            defaultValue: ticket.closePolicy.closeCode.name,
+          })
+        : "—",
+    ],
+    [t("tickets.detail.resolutionNote"), ticket.closePolicy?.resolutionNote ?? "—"],
     [t("tickets.detail.created"), formatTicketTimestamp(ticket.createdAt, i18n.language)],
     [t("tickets.detail.updated"), formatTicketTimestamp(ticket.updatedAt, i18n.language)],
   ] as const;

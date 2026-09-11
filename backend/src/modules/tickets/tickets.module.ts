@@ -26,6 +26,9 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
 import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
 import { TicketsReopenController } from './reopen/tickets-reopen.controller';
 import { TicketsReopenService } from './reopen/tickets-reopen.service';
+import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
+import { TicketRequiredFieldsConfigurationLoader } from './required-fields/ticket-required-fields-configuration.loader';
+import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
 import { TicketSplitConfigurationLoader } from './split/ticket-split-configuration.loader';
 import { TicketsSplitController } from './split/tickets-split.controller';
 import { TicketsSplitService } from './split/tickets-split.service';
@@ -62,6 +65,9 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketApprovalsConfigurationLoader,
     TicketsReopenService,
     TicketReopenConfigurationLoader,
+    TicketCloseCodesConfigurationLoader,
+    TicketRequiredFieldsConfigurationLoader,
+    TicketRedactionConfigurationLoader,
     TicketsSplitService,
     TicketSplitConfigurationLoader,
     TicketsBulkService,

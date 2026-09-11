@@ -7,6 +7,12 @@ import type {
 } from './collaboration.types';
 import { loadAccessibleTicket } from './load-accessible-ticket';
 import { normalizeTicketMessageInput } from './normalize-ticket-message-input';
+import {
+  assertRedactionAllowed,
+  scanTicketContent,
+} from './redaction/assert-ticket-content-redaction';
+import type { TicketRedactionConfiguration } from './redaction/redaction.types';
+import type { RedactionScanResult } from './redaction/redaction.types';
 import type { TicketMutationContext, TicketRecord } from './tickets.types';
 
 export async function createTicketMessage(
@@ -16,7 +22,12 @@ export async function createTicketMessage(
   ticketId: string,
   input: CreateTicketMessageInput,
   context: TicketMutationContext,
-): Promise<{ ticket: TicketRecord; message: TicketMessageRecord }> {
+  redaction?: TicketRedactionConfiguration,
+): Promise<{
+  ticket: TicketRecord;
+  message: TicketMessageRecord;
+  scan: RedactionScanResult;
+}> {
   const { ticket, access } = await loadAccessibleTicket(
     prisma,
     authorizationContextLoader,
@@ -24,6 +35,16 @@ export async function createTicketMessage(
     context,
   );
   const normalized = normalizeTicketMessageInput(input, access, configuration);
+  const scan = scanTicketContent({
+    configuration: redaction ?? {
+      enabled: false,
+      mode: 'warn_only',
+      applyToFields: [],
+      patterns: [],
+    },
+    message: normalized.body,
+  });
+  assertRedactionAllowed(scan);
   const message = (await prisma.ticketMessage.create({
     data: {
       ticketId: ticket.id,
@@ -32,5 +53,5 @@ export async function createTicketMessage(
       authorUserId: context.actorUserId,
     },
   })) as TicketMessageRecord;
-  return { ticket, message };
+  return { ticket, message, scan };
 }

@@ -11,6 +11,8 @@ import type {
 import { recordChangeLog } from '../change-log/record-change-log';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { toTicketResponse } from './to-ticket-response';
+import { redactSensitiveText } from './redaction/redact-sensitive-text';
+import type { TicketRedactionConfiguration } from './redaction/redaction.types';
 import type { TicketRecord } from './tickets.types';
 
 export async function recordTicketChange(
@@ -21,6 +23,7 @@ export async function recordTicketChange(
     readonly before: TicketRecord | null;
     readonly after: TicketRecord;
     readonly actorUserId: string | null;
+    readonly redaction?: TicketRedactionConfiguration;
   },
 ): Promise<void> {
   await recordChangeLog(prisma as unknown as ChangeLogPrismaClient, {
@@ -32,17 +35,30 @@ export async function recordTicketChange(
       action: input.action,
       resourceType: changeLogEntityTypes.ticket,
       resourceId: input.after.id,
-      before: toSnapshot(input.before),
-      after: toSnapshot(input.after),
+      before: toSnapshot(input.before, input.redaction),
+      after: toSnapshot(input.after, input.redaction),
     }),
   });
 }
 
-function toSnapshot(record: TicketRecord | null): JsonValue {
+function toSnapshot(
+  record: TicketRecord | null,
+  redaction?: TicketRedactionConfiguration,
+): JsonValue {
   if (record === null) {
     return {};
   }
-  return JSON.parse(JSON.stringify(toTicketResponse(record))) as JsonValue;
+  const snapshot = toTicketResponse(record);
+  if (redaction === undefined || !redaction.enabled) {
+    return JSON.parse(JSON.stringify(snapshot)) as JsonValue;
+  }
+  return JSON.parse(
+    JSON.stringify({
+      ...snapshot,
+      title: redactSensitiveText(snapshot.title, redaction),
+      description: redactSensitiveText(snapshot.description, redaction),
+    }),
+  ) as JsonValue;
 }
 
 export { changeLogActions };

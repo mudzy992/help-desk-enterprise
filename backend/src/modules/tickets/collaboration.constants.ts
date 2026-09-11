@@ -77,6 +77,7 @@ export const ticketSystemEventActions = {
   ticketBulkPriority: 'ticket_bulk_priority',
   ticketBulkBroadcast: 'ticket_bulk_broadcast',
   ticketBulkMerge: 'ticket_bulk_merge',
+  redactionWarned: 'ticket_redaction_warned',
 } as const;
 
 export const ticketRealtimeEventNames = {

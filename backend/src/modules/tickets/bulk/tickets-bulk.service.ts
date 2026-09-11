@@ -7,7 +7,8 @@ import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
-import { toTicketClientResponse } from '../to-ticket-response';
+import { toTicketClientResponses } from '../to-ticket-client-responses';
+import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
 import { assertBulkTicketScope } from './assert-bulk-ticket-scope';
@@ -28,6 +29,7 @@ export class TicketsBulkService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly bulkConfigurationLoader: TicketBulkConfigurationLoader,
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
+    private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -105,15 +107,17 @@ export class TicketsBulkService {
         messages,
       });
       const reopen = await this.reopenConfigurationLoader.load();
+      const closeCodes = await this.closeCodesConfigurationLoader.load();
       for (const ticket of result.tickets) {
         publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
       }
       return {
         batchId: result.batchId,
         actionType: body.actionType,
-        tickets: result.tickets.map((ticket) =>
-          toTicketClientResponse(ticket, reopen),
-        ),
+        tickets: await toTicketClientResponses(this.prisma, result.tickets, {
+          reopen,
+          closeCodes,
+        }),
         recipientCount: result.recipientCount,
       };
     });

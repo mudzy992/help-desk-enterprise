@@ -16,6 +16,10 @@ export type TicketErrorKey =
   | "tickets.errorBulkCloseForbidden"
   | "tickets.errorBulkScope"
   | "tickets.errorConflict"
+  | "tickets.errorRequiredFields"
+  | "tickets.errorCloseCodeInvalid"
+  | "tickets.errorRedactionBlocked"
+  | "tickets.redactionWarning"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -34,6 +38,10 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   BULK_SCOPE_MISMATCH: "tickets.errorBulkScope",
   BULK_DISABLED: "tickets.errorForbidden",
   SAVED_VIEWS_DISABLED: "tickets.errorForbidden",
+  REQUIRED_FIELDS_MISSING: "tickets.errorRequiredFields",
+  CLOSE_CODE_INVALID: "tickets.errorCloseCodeInvalid",
+  INVALID_RESOLUTION_NOTE: "tickets.errorValidation",
+  REDACTION_BLOCKED: "tickets.errorRedactionBlocked",
   NOT_FOUND: "tickets.errorNotFound",
   OVERLAPPING_TIMER: "tickets.errorConflict",
   INVALID_TITLE: "tickets.errorValidation",

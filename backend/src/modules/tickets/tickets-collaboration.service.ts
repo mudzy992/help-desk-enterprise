@@ -19,11 +19,13 @@ import { publishForTicketId } from './publish-for-ticket-id';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
 import { removeTicketParticipant } from './remove-ticket-participant';
 import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
+import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { toTicketMessageResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
 import { resumeWaitingForUserOnReply } from './waiting-for-user/resume-waiting-for-user-on-reply';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
+import { recordRedactionWarning } from './redaction/record-redaction-warning';
 
 @Injectable()
 export class TicketsCollaborationService {
@@ -32,6 +34,7 @@ export class TicketsCollaborationService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly configurationLoader: TicketCollaborationConfigurationLoader,
     private readonly waitingForUserConfigurationLoader: WaitingForUserConfigurationLoader,
+    private readonly redactionConfigurationLoader: TicketRedactionConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -110,15 +113,25 @@ export class TicketsCollaborationService {
     context: TicketMutationContext,
   ): Promise<TicketMessageResponse> {
     return executeTicketOperation(async () => {
-      const { ticket, message } = await createTicketMessage(
+      const { ticket, message, scan } = await createTicketMessage(
         this.prisma,
         this.authorizationContextLoader,
         await this.configurationLoader.load(),
         ticketId,
         input,
         context,
+        await this.redactionConfigurationLoader.load(),
       );
       const messages: TicketPersistedMessageSink = [message];
+      if (scan.matches.length > 0) {
+        await recordRedactionWarning({
+          prisma: this.prisma,
+          ticketId,
+          actorUserId: context.actorUserId,
+          scan,
+          messages,
+        });
+      }
       const resumed = await resumeWaitingForUserOnReply({
         prisma: this.prisma,
         ticket,
@@ -128,7 +141,7 @@ export class TicketsCollaborationService {
         messages,
       });
       publishPersistedTicketMessages(this.realtimeHub, resumed, messages);
-      return toTicketMessageResponse(message);
+      return toTicketMessageResponse(message, scan.matches);
     });
   }
 

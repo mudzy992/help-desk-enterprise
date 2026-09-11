@@ -19,6 +19,12 @@ describe("mapTicketError", () => {
     expect(mapTicketError(new ApiError(400, "INVALID_TITLE", "no"))).toBe(
       "tickets.errorValidation",
     );
+    expect(mapTicketError(new ApiError(400, "REQUIRED_FIELDS_MISSING", "no"))).toBe(
+      "tickets.errorRequiredFields",
+    );
+    expect(mapTicketError(new ApiError(400, "REDACTION_BLOCKED", "no"))).toBe(
+      "tickets.errorRedactionBlocked",
+    );
     expect(mapTicketError(new Error("network"))).toBe("tickets.errorGeneric");
   });
 });

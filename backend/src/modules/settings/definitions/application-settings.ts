@@ -19,6 +19,9 @@ import { ticketAttachmentSettings } from './ticket-attachment-settings';
 import { ticketCollaborationSettings } from './ticket-collaboration-settings';
 import { ticketRoutingSettings } from './ticket-routing-settings';
 import { knowledgeBaseSettings } from './knowledge-base-settings';
+import { ticketCloseCodesSettings } from './ticket-close-codes-settings';
+import { ticketRequiredFieldsSettings } from './ticket-required-fields-settings';
+import { securityRedactionSettings } from './security-redaction-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -37,6 +40,9 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketSplitSettings,
   ...ticketBulkActionsSettings,
   ...ticketSavedViewsSettings,
+  ...ticketCloseCodesSettings,
+  ...ticketRequiredFieldsSettings,
+  ...securityRedactionSettings,
   ...changeLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

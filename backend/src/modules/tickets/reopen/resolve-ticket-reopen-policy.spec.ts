@@ -26,6 +26,8 @@ function ticket(status: TicketRecord['status']): TicketRecord {
     reopenedFromTicketId: null,
     parentTicketId: null,
     mergedIntoTicketId: null,
+    closeCodeId: null,
+    resolutionNote: null,
     resolvedAt: status === 'PENDING' ? null : resolvedAt,
     closedAt: status === 'CLOSED' ? resolvedAt : null,
     waitingForUserEnteredAt: null,
