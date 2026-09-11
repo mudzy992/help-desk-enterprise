@@ -164,6 +164,14 @@
           "description": "Zakazivanje downtime prozora na servisima."
         }
       }
+    },
+    "complete": {
+      "heading": "Završi podešavanje",
+      "body": "Wizard se zaključava. Dalje izmjene idu kroz Settings.",
+      "submit": "Završi",
+      "saving": "Zaključavanje…",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
     }
   },
   "routing": {

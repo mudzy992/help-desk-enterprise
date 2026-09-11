@@ -3,7 +3,8 @@ export type InstallWizardStep =
   | "loginProvider"
   | "smtp"
   | "seed"
-  | "addons";
+  | "addons"
+  | "complete";
 
 export function resolveInstallWizardStep(input: {
   readonly hasSuperAdmin: boolean;
@@ -39,4 +40,8 @@ export const installWizardCopyKeys = {
   smtp: { heading: "install.smtp.heading", body: "install.smtp.body" },
   seed: { heading: "install.seed.heading", body: "install.seed.body" },
   addons: { heading: "install.addons.heading", body: "install.addons.body" },
+  complete: {
+    heading: "install.complete.heading",
+    body: "install.complete.body",
+  },
 } as const;

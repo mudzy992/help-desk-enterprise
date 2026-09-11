@@ -23,6 +23,14 @@ export const foundationalSettings: readonly SettingDefinition[] = [
     defaultValue: '',
   }),
   definePrivateSetting({
+    key: settingKeys.privateInstallCompletedByUserId,
+    valueType: 'string',
+    description:
+      'User id of the SuperAdmin who locked the first-run install wizard',
+    isRequired: false,
+    defaultValue: '',
+  }),
+  definePrivateSetting({
     key: settingKeys.privateAuthMode,
     valueType: 'string',
     description: 'Authentication provider mode selected at install',

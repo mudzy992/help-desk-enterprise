@@ -35,6 +35,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 ## Seed ključevi (skeleton)
 - `public.branding.appName` (public, string, default `EP-HelpDesk`)
 - `private.install.completedAt` (private, string, default `""`)
+- `private.install.completedByUserId` (private, string, default `""`)
 - `private.auth.mode` (private, `local` | `entra_ad`, default `local`)
 - `private.auth.jwtSigningSecret` (secret, string, bez defaulta, nije required)
 - `private.auth.azureTenantId` (secret, string, bez defaulta, nije required)

@@ -8,15 +8,19 @@ import {
 } from "react";
 import { loadInstallSetupStatus } from "@/services/install-api";
 
-type InstallSetupState = {
+type InstallSetupStatusState = {
   readonly isLoading: boolean;
   readonly isCompleted: boolean;
+};
+
+type InstallSetupState = InstallSetupStatusState & {
+  readonly markCompleted: () => void;
 };
 
 const InstallSetupContext = createContext<InstallSetupState | null>(null);
 
 export function InstallSetupProvider({ children }: { readonly children: ReactNode }) {
-  const [state, setState] = useState<InstallSetupState>({
+  const [state, setState] = useState<InstallSetupStatusState>({
     isLoading: true,
     isCompleted: false,
   });
@@ -43,6 +47,8 @@ export function InstallSetupProvider({ children }: { readonly children: ReactNod
     () => ({
       isLoading: state.isLoading,
       isCompleted: state.isCompleted,
+      markCompleted: () =>
+        setState({ isLoading: false, isCompleted: true }),
     }),
     [state],
   );

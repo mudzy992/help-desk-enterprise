@@ -1,4 +1,5 @@
 export const installRoutePath = "/install";
+export const applicationHomePath = "/";
 
 export function isInstallRoute(pathname: string): boolean {
   return (
@@ -12,7 +13,7 @@ export function resolveInstallGateNavigation(input: {
   readonly isSetupComplete: boolean;
 }): string | null {
   if (input.isSetupComplete) {
-    return null;
+    return isInstallRoute(input.pathname) ? applicationHomePath : null;
   }
   if (isInstallRoute(input.pathname)) {
     return null;

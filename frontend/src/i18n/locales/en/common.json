@@ -164,6 +164,14 @@
           "description": "Scheduled downtime windows for services."
         }
       }
+    },
+    "complete": {
+      "heading": "Finish setup",
+      "body": "The wizard will lock. Further changes go through Settings.",
+      "submit": "Finish",
+      "saving": "Locking…",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "Setup cannot be locked right now."
     }
   },
   "routing": {

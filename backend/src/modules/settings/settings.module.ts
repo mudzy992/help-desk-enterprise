@@ -12,6 +12,6 @@ import { SettingsService } from './settings.service';
     },
     SettingsService,
   ],
-  exports: [SettingsService],
+  exports: [SettingsService, SETTINGS_REGISTRY],
 })
 export class SettingsModule {}

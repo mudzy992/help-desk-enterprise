@@ -39,6 +39,8 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 - Core moduli nisu addoni (vidi `04-install-wizard.md`).
 - Seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu.
 - Completed wizard piše change log (reason=`install_wizard`).
+- `POST /install/complete` atomično postavlja `private.install.completedAt` (i `private.install.completedByUserId`). Ponovni complete je idempotentan i ne prepisuje postojeći timestamp.
+- Nakon COMPLETED, wizard mutacije (`POST /install/*` osim `POST /install/complete`) vraćaju `409 INSTALL_LOCKED`. Dalje izmjene idu kroz Settings.
 
 ## Zabranjeno
 - Preskakanje SuperAdmin koraka.
@@ -49,4 +51,4 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 
 ## UI
 Constitution: linear steps, primary CTA “Dalje” / “Završi”, bez dekoracije.
-SuperAdmin korak je first-run forma bez application shell-a. Nakon SuperAdmin nalog slijedi korak načina prijave (`local` | `entra_ad`), zatim SMTP switch, zatim seed, zatim addons switch katalog. Zaključavanje wizarda nije dio ovog koraka.
+SuperAdmin korak je first-run forma bez application shell-a. Nakon SuperAdmin nalog slijedi korak načina prijave (`local` | `entra_ad`), zatim SMTP switch, zatim seed, zatim addons switch katalog, zatim complete (`Završi`) koji zaključava wizard.

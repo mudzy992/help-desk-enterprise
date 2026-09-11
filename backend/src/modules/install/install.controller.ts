@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -11,10 +12,12 @@ import { SaveInstallAddonsDto } from './dto/save-install-addons.dto';
 import { SaveInstallLoginProviderDto } from './dto/save-install-login-provider.dto';
 import { SaveInstallSmtpDto } from './dto/save-install-smtp.dto';
 import { InstallAddonsService } from './install-addons.service';
+import { InstallCompleteService } from './install-complete.service';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSetupService } from './install-setup.service';
 import { InstallSmtpService } from './install-smtp.service';
 import { InstallSuperAdminService } from './install-super-admin.service';
+import { InstallWizardLockGuard } from './install-wizard-lock.guard';
 import type {
   InstallLoginProviderPublicRecord,
   InstallLoginProviderStatus,
@@ -39,6 +42,7 @@ import type {
 } from './install-super-admin.types';
 
 @Controller('install')
+@UseGuards(InstallWizardLockGuard)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -54,6 +58,7 @@ export class InstallController {
     private readonly installSmtpService: InstallSmtpService,
     private readonly installSeedService: InstallSeedService,
     private readonly installAddonsService: InstallAddonsService,
+    private readonly installCompleteService: InstallCompleteService,
   ) {}
 
   @Get('status')
@@ -115,5 +120,10 @@ export class InstallController {
     @Body() body: SaveInstallAddonsDto,
   ): Promise<InstallAddonsPublicRecord> {
     return this.installAddonsService.save(body);
+  }
+
+  @Post('complete')
+  complete(): Promise<InstallSetupStatus> {
+    return this.installCompleteService.complete();
   }
 }

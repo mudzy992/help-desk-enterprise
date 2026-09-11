@@ -53,6 +53,12 @@ export function loadInstallSetupStatus(): Promise<InstallSetupStatus> {
   return apiRequest<InstallSetupStatus>("/install/status");
 }
 
+export function completeInstallSetup(): Promise<InstallSetupStatus> {
+  return apiRequest<InstallSetupStatus>("/install/complete", {
+    method: "POST",
+  });
+}
+
 export function loadInstallSuperAdmin(): Promise<InstallSuperAdminStatus> {
   return apiRequest<InstallSuperAdminStatus>("/install/super-admin");
 }

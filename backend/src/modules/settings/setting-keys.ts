@@ -3,6 +3,7 @@ import { addonSettingKey } from './addon-catalog';
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
   privateInstallCompletedAt: 'private.install.completedAt',
+  privateInstallCompletedByUserId: 'private.install.completedByUserId',
   privateAuthMode: 'private.auth.mode',
   privateAuthJwtSigningSecret: 'private.auth.jwtSigningSecret',
   privateAuthAzureTenantId: 'private.auth.azureTenantId',

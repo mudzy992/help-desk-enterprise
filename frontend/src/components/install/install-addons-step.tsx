@@ -14,7 +14,11 @@ import {
   type InstallAddonItem,
 } from "@/services/install-addons-api";
 
-export function InstallAddonsStep() {
+export function InstallAddonsStep({
+  onSaved,
+}: {
+  readonly onSaved?: () => void;
+}) {
   const { t } = useTranslation();
   const [items, setItems] = useState<InstallAddonItem[]>([]);
   const [errorKey, setErrorKey] = useState<InstallAddonsErrorKey | null>(null);
@@ -47,6 +51,7 @@ export function InstallAddonsStep() {
     try {
       const saved = await saveInstallAddons(buildInstallAddonsInput(items));
       setItems([...saved.items]);
+      onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallAddonsSaveError(error));
     } finally {

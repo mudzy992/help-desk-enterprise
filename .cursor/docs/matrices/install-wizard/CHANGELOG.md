@@ -1,6 +1,8 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- Implementirano zaključavanje wizarda: `POST /install/complete` atomično piše `private.install.completedAt` kroz Settings Registry i jedan `install_wizard` change log (setting diff). Ponovni complete ne prepisuje timestamp.
+- Nakon complete, wizard mutacije su `409 INSTALL_LOCKED`; HTTP setup gate se gasi; `/install` više nije setup tok. Dalje izmjene idu kroz Settings.
 - Implementiran addons korak: deterministički switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign + ostali ključevi iz `04-install-wizard.md`) kroz `GET/POST /install/addons`.
 - Stanje se čuva isključivo kao `private.addons.<key>` u Settings Registry; SMTP OFF i dalje forsira email off. Retry je idempotentan; nepoznat key se odbija. Nema wizard complete/lock i nema addon business logike.
 - Implementiran seed korak: min 1 OU, 1 fallback grupa (`Group.isFallback`), 1 ACTIVE servis i routing na tu grupu kroz postojeće OU/catalog/routing modele.

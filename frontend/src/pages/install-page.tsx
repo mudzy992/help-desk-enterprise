@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallAddonsStep } from "@/components/install/install-addons-step";
+import { InstallCompleteStep } from "@/components/install/install-complete-step";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
 import { InstallSeedStep } from "@/components/install/install-seed-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
@@ -68,7 +69,10 @@ export function InstallPage() {
           {step === null ? (
             <div className="mt-6 h-40 animate-pulse bg-elevated" />
           ) : null}
-          {step === "addons" ? <InstallAddonsStep /> : null}
+          {step === "complete" ? <InstallCompleteStep /> : null}
+          {step === "addons" ? (
+            <InstallAddonsStep onSaved={() => setStep("complete")} />
+          ) : null}
           {step === "seed" ? (
             <InstallSeedStep onSaved={() => setStep("addons")} />
           ) : null}

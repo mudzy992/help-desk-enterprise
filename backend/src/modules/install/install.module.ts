@@ -4,6 +4,7 @@ import { RoutingModule } from '../routing/routing.module';
 import { ServiceCatalogModule } from '../service-catalog/service-catalog.module';
 import { SettingsModule } from '../settings/settings.module';
 import { InstallAddonsService } from './install-addons.service';
+import { InstallCompleteService } from './install-complete.service';
 import { InstallController } from './install.controller';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSeedService } from './install-seed.service';
@@ -11,6 +12,7 @@ import { InstallSetupGuard } from './install-setup.guard';
 import { InstallSetupService } from './install-setup.service';
 import { InstallSmtpService } from './install-smtp.service';
 import { InstallSuperAdminService } from './install-super-admin.service';
+import { InstallWizardLockGuard } from './install-wizard-lock.guard';
 
 @Module({
   imports: [SettingsModule, ServiceCatalogModule, RoutingModule],
@@ -22,7 +24,9 @@ import { InstallSuperAdminService } from './install-super-admin.service';
     InstallSmtpService,
     InstallSeedService,
     InstallAddonsService,
+    InstallCompleteService,
     InstallSetupGuard,
+    InstallWizardLockGuard,
     {
       provide: APP_GUARD,
       useExisting: InstallSetupGuard,
