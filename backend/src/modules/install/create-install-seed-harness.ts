@@ -1,8 +1,10 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { hashLocalPassword } from '../authentication/hash-local-password';
+import { RoutingConfigurationLoader } from '../routing/routing-configuration.loader';
 import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { defaultServiceLifecycleConfiguration } from '../service-catalog/service-catalog.constants';
 import type { ServiceLifecycleConfiguration } from '../service-catalog/service-catalog.types';
+import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 import { createInMemoryInstallSeedPrisma } from './create-in-memory-install-seed-prisma';
 import { createInstallSuperAdmin } from './create-install-super-admin';
 import { InstallSeedService } from './install-seed.service';
@@ -22,8 +24,10 @@ export async function createInstallSeedHarness(input?: {
     memory.prisma as unknown as PrismaService,
     {
       load: async () => input?.lifecycle ?? defaultServiceLifecycleConfiguration,
-    },
-    { load: async () => defaultRoutingConfiguration },
+    } as unknown as ServiceLifecycleConfigurationLoader,
+    {
+      load: async () => defaultRoutingConfiguration,
+    } as unknown as RoutingConfigurationLoader,
   );
   if (input?.withSuperAdmin !== false) {
     await createInstallSuperAdmin(

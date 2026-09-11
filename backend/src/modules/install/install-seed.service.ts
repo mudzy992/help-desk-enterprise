@@ -14,14 +14,8 @@ import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-
 export class InstallSeedService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly lifecycleConfigurationLoader: Pick<
-      ServiceLifecycleConfigurationLoader,
-      'load'
-    >,
-    private readonly routingConfigurationLoader: Pick<
-      RoutingConfigurationLoader,
-      'load'
-    >,
+    private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
+    private readonly routingConfigurationLoader: RoutingConfigurationLoader,
   ) {}
 
   async getStatus(): Promise<InstallSeedStatus> {

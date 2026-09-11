@@ -1,11 +1,34 @@
-import { installSeedConstants } from './install-seed.constants';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { RoutingConfigurationLoader } from '../routing/routing-configuration.loader';
+import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 import { createInstallSeedHarness } from './create-install-seed-harness';
+import { installSeedConstants } from './install-seed.constants';
+import { InstallSeedService } from './install-seed.service';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 describe('InstallSeedService', () => {
+  it('resolves concrete configuration loaders through Nest DI', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        InstallSeedService,
+        { provide: PrismaService, useValue: {} },
+        {
+          provide: ServiceLifecycleConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
+        {
+          provide: RoutingConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
+      ],
+    }).compile();
+    expect(moduleRef.get(InstallSeedService)).toBeInstanceOf(InstallSeedService);
+  });
+
   it('seeds the minimum OU, fallback group, service, and routing on an empty database', async () => {
     const { service } = await createInstallSeedHarness();
     const seeded = await service.seed();
