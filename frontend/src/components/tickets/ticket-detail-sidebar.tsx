@@ -36,7 +36,7 @@ export function TicketDetailSidebar({ ticket, originName }: TicketDetailSidebarP
       <dl className="grid gap-3">
         {rows.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            <dt className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
               {label}
             </dt>
             <dd className="mt-0.5 text-[13px] text-foreground">{value}</dd>

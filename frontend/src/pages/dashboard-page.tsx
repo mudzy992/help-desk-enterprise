@@ -1,4 +1,4 @@
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardMetricGrid } from "@/components/dashboard/dashboard-metric-grid";
@@ -23,7 +23,9 @@ export function DashboardPage() {
         subtitle={t("dashboard.intro")}
         actions={
           <Button asChild size="sm">
-            <Link to="/tickets/new">{t("tickets.createAction")}</Link>
+            <Link to="/tickets/new">
+              <Plus size={14} /> {t("tickets.createAction")}
+            </Link>
           </Button>
         }
       />

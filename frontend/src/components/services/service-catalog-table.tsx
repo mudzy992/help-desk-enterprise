@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { tableHeadClassName, tableRowClassName } from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
-import type { ServiceLifecycle } from "@/services/service-catalog-api";
+import type { ServiceAvailability, ServiceLifecycle } from "@/services/service-catalog-api";
 
 interface ServiceCatalogTableProperties {
   readonly rows: readonly ServiceCatalogRow[];
@@ -14,9 +14,15 @@ interface ServiceCatalogTableProperties {
 }
 
 const lifecycleTones: Record<ServiceLifecycle, BadgeTone> = {
-  DRAFT: "warning",
+  DRAFT: "neutral",
   ACTIVE: "success",
-  DEPRECATED: "neutral",
+  DEPRECATED: "warning",
+};
+
+const availabilityTones: Record<ServiceAvailability, BadgeTone> = {
+  OPERATIONAL: "success",
+  DEGRADED: "warning",
+  MAINTENANCE: "info",
 };
 
 export function ServiceCatalogTable({
@@ -37,7 +43,7 @@ export function ServiceCatalogTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className={tableWrapClassName}>
       <table className="w-full text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -80,8 +86,10 @@ export function ServiceCatalogTable({
                       : t("services.formMissing")}
                   </Badge>
                 </td>
-                <td className="px-3 py-2 text-[12px] text-muted-foreground">
-                  {t(`services.availability.${service.availability}`)}
+                <td className="px-3 py-2">
+                  <Badge tone={availabilityTones[service.availability]}>
+                    {t(`services.availability.${service.availability}`)}
+                  </Badge>
                 </td>
                 <td className="px-3 py-2 text-right">
                   {isTicketReady ? (

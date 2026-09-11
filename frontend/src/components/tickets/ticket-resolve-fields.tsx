@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, labelClassName, textareaClassName } from "@/components/ui/control";
+import { labelClassName, selectClassName, textareaClassName } from "@/components/ui/control";
 import type { TicketClosePolicy, TicketStatus } from "@/services/tickets-api";
 
 interface TicketResolveFieldsProperties {
@@ -37,7 +37,7 @@ export function TicketResolveFields({
         <label className={labelClassName}>
           {t("tickets.detail.closeCode")}
           <select
-            className={controlClassName}
+            className={selectClassName}
             value={closeCode}
             onChange={(event) => onCloseCodeChange(event.target.value)}
             required={closePolicy.requireOnResolve && pendingStatus === "RESOLVED"}

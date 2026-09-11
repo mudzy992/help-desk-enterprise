@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketErrorState, TicketEmptyState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
@@ -21,7 +22,9 @@ export function TicketListPage() {
         subtitle={t("tickets.intro")}
         actions={
           <Button asChild size="sm">
-            <Link to="/tickets/new">{t("tickets.createAction")}</Link>
+            <Link to="/tickets/new">
+              <Plus size={14} /> {t("tickets.createAction")}
+            </Link>
           </Button>
         }
       />
@@ -53,15 +56,17 @@ export function TicketListPage() {
           ) : list.errorKey ? (
             <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
           ) : list.visible.length === 0 ? (
-            <TicketEmptyState
-              title={t("tickets.emptyTitle")}
-              body={t("tickets.emptyHint")}
-              action={
-                <Button asChild size="sm" variant="outline">
-                  <Link to="/tickets/new">{t("tickets.createAction")}</Link>
-                </Button>
-              }
-            />
+            <div className="rounded-lg border border-border bg-surface">
+              <TicketEmptyState
+                title={t("tickets.emptyTitle")}
+                body={t("tickets.emptyHint")}
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/tickets/new">{t("tickets.createAction")}</Link>
+                  </Button>
+                }
+              />
+            </div>
           ) : (
             <>
               <TicketListTable

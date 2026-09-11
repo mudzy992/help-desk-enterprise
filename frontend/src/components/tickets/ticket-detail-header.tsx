@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
 import { Button } from "@/components/ui/button";
-import { controlClassName, labelClassName } from "@/components/ui/control";
+import { labelClassName, selectClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
 import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import { isResolveOrCloseStatus } from "@/lib/tickets/is-resolve-or-close-status";
@@ -83,7 +83,7 @@ export function TicketDetailHeader({
         <label className={`mt-1 max-w-xs ${labelClassName}`}>
           {t("tickets.detail.changeStatus")}
           <select
-            className={controlClassName}
+            className={selectClassName}
             value=""
             disabled={savingStatus || pendingStatus !== null}
             onChange={(event) => {

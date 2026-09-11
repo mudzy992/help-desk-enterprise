@@ -20,7 +20,20 @@
     "navigation": "Navigacija",
     "applicationSections": "Sekcije aplikacije",
     "primaryNavigation": "Glavna navigacija",
-    "brandTagline": "Enterprise servisni centar"
+    "brandTagline": "Enterprise servisni centar",
+    "searchPlaceholder": "Pretraga tiketa, članaka, korisnika…",
+    "systemsPrefix": "Svi sistemi",
+    "systemsLive": "operativni",
+    "localAccount": "lokalni nalog",
+    "assignedTickets": "Dodijeljeni tiketi",
+    "accountSettings": "Postavke naloga",
+    "switchLanguage": "Prebaci jezik: BS / EN",
+    "roles": {
+      "superAdmin": "SuperAdmin",
+      "admin": "Admin",
+      "agent": "Agent",
+      "user": "Korisnik"
+    }
   },
   "placeholders": {
     "settingsTitle": "Nema dostupnih postavki",
@@ -53,13 +66,21 @@
     "columnPriority": "Prioritet",
     "columnCreated": "Kreiran",
     "metricInbox": "Grupni inbox",
-    "metricOpen": "Otvoreni",
+    "metricOpen": "Otvoreni tiketi",
     "metricAssignedToMe": "Dodijeljeni meni",
     "metricUnassigned": "Bez izvršioca",
     "metricWaitingForUser": "Čeka korisnika",
     "metricPendingApproval": "Čeka odobrenje",
     "metricUnrouted": "Neusmjereni",
-    "metricRequestedByMe": "Moji zahtjevi"
+    "metricRequestedByMe": "Moji zahtjevi",
+    "hintInbox": "grupni red za preuzimanje",
+    "hintOpen": "svi otvoreni tiketi u opsegu",
+    "hintAssigned": "vaš aktivni rad",
+    "hintUnassigned": "čekaju vlasnika u grupi",
+    "hintWaiting": "pauza dok korisnik odgovori",
+    "hintApproval": "lanac odobrenja u toku",
+    "hintUnrouted": "rupa u pokriću — treba pravilo",
+    "hintRequested": "zahtjevi koje ste otvorili"
   },
   "services": {
     "title": "Usluge",
@@ -308,6 +329,8 @@
     "intro": "Pretraga i članci. Owner i review/stale status su vidljivi na svakom članku.",
     "createHeading": "Novi članak",
     "listHeading": "Članci",
+    "rankedByHelpfulness": "rangirano po korisnosti",
+    "searchWidePlaceholder": "Pretražite uputstva, politike i rješenja…",
     "titleField": "Naslov",
     "bodyField": "Sadržaj",
     "serviceId": "Servis",
@@ -348,6 +371,10 @@
     "intro": "Inbox, dodijeljeni rad i kreiranje zahtjeva. Prije slanja tiketa sistem predlaže članke iz baze znanja.",
     "createHeading": "Novi tiket",
     "createAction": "Novi tiket",
+    "createStepDetails": "Detalji",
+    "createStepKnowledge": "Baza znanja",
+    "helpedResolved": "Članak je riješio moj problem",
+    "continueSend": "Nastavi sa slanjem",
     "backToInbox": "Nazad na inbox",
     "openTicket": "Otvori tiket",
     "views": {
@@ -359,11 +386,12 @@
     },
     "filters": {
       "search": "Pretraga",
-      "searchPlaceholder": "Broj, naslov ili opis",
+      "searchPlaceholder": "ID ili naslov tiketa…",
       "status": "Status",
       "priority": "Prioritet",
       "service": "Servis",
-      "all": "Sve"
+      "all": "Sve",
+      "priorityAll": "Svi prioriteti"
     },
     "columns": {
       "number": "Broj",

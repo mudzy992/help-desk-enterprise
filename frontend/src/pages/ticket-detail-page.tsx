@@ -68,7 +68,7 @@ export function TicketDetailPage() {
     <section>
       <Link
         to="/tickets"
-        className="text-[11.5px] text-muted-foreground hover:text-foreground hover:underline"
+        className="text-[11.5px] text-[#7FA8F5] hover:underline"
       >
         {t("tickets.backToInbox")}
       </Link>
@@ -109,11 +109,15 @@ export function TicketDetailPage() {
           {t("tickets.redactionWarning")}
         </p>
       ) : null}
-      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="grid min-w-0 gap-4">
-          <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
-            <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.description")}</h3>
-            <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">{ticket.description}</p>
+          <section className="rounded-lg border border-border bg-surface">
+            <h3 className="border-b border-border/70 px-4 pb-3 pt-3.5 text-[13.5px] font-semibold text-foreground">
+              {t("tickets.detail.description")}
+            </h3>
+            <p className="px-4 py-3.5 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">
+              {ticket.description}
+            </p>
           </section>
           <TicketFormDataView formData={ticket.formData} />
           <TicketDetailConversation

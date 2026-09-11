@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { LifeBuoy } from "lucide-react";
 import { InstallAddonsStep } from "@/components/install/install-addons-step";
 import { InstallCompleteStep } from "@/components/install/install-complete-step";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
@@ -54,7 +55,10 @@ export function InstallPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
+      <header className="flex h-14 items-center gap-3 border-b border-border/70 bg-surface px-4 md:px-6">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <LifeBuoy size={17} strokeWidth={2} />
+        </span>
         <p className="min-w-0 flex-1 truncate text-[13.5px] font-semibold tracking-tight text-foreground">
           EP-HelpDesk
         </p>

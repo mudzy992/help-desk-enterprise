@@ -42,14 +42,14 @@ export function ApplicationShell() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface md:flex md:flex-col">
+    <div className="flex h-full min-h-0">
+      <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface lg:block">
         <AppSidebar />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader onOpenNavigation={() => setIsMobileNavigationOpen(true)} />
         <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
-          <SheetContent side="left" className="flex w-[248px] flex-col p-0">
+          <SheetContent side="left" className="flex w-[270px] flex-col p-0">
             <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
             <SheetDescription className="sr-only">
               {t("shell.applicationSections")}
@@ -57,7 +57,7 @@ export function ApplicationShell() {
             <AppSidebar onNavigate={closeMobileNavigation} />
           </SheetContent>
         </Sheet>
-        <main className="flex-1">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <div
             key={location.pathname}
             className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8"

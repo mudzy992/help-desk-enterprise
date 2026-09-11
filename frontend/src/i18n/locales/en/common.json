@@ -20,7 +20,20 @@
     "navigation": "Navigation",
     "applicationSections": "Application sections",
     "primaryNavigation": "Primary navigation",
-    "brandTagline": "Enterprise service center"
+    "brandTagline": "Enterprise service center",
+    "searchPlaceholder": "Search tickets, articles, users…",
+    "systemsPrefix": "All systems",
+    "systemsLive": "operational",
+    "localAccount": "local account",
+    "assignedTickets": "Assigned tickets",
+    "accountSettings": "Account settings",
+    "switchLanguage": "Switch language: BS / EN",
+    "roles": {
+      "superAdmin": "SuperAdmin",
+      "admin": "Admin",
+      "agent": "Agent",
+      "user": "User"
+    }
   },
   "placeholders": {
     "settingsTitle": "No settings available yet",
@@ -53,13 +66,21 @@
     "columnPriority": "Priority",
     "columnCreated": "Created",
     "metricInbox": "Group inbox",
-    "metricOpen": "Open",
+    "metricOpen": "Open tickets",
     "metricAssignedToMe": "Assigned to me",
     "metricUnassigned": "Unassigned",
     "metricWaitingForUser": "Waiting for user",
     "metricPendingApproval": "Pending approval",
     "metricUnrouted": "Unrouted",
-    "metricRequestedByMe": "My requests"
+    "metricRequestedByMe": "My requests",
+    "hintInbox": "group queue to claim",
+    "hintOpen": "all open tickets in scope",
+    "hintAssigned": "your active work",
+    "hintUnassigned": "waiting for an owner in the group",
+    "hintWaiting": "paused until the requester replies",
+    "hintApproval": "approval chain in progress",
+    "hintUnrouted": "coverage gap — a rule is needed",
+    "hintRequested": "requests you opened"
   },
   "services": {
     "title": "Services",
@@ -308,6 +329,8 @@
     "intro": "Search and articles. Owner and review/stale status are visible on each article.",
     "createHeading": "New article",
     "listHeading": "Articles",
+    "rankedByHelpfulness": "ranked by helpfulness",
+    "searchWidePlaceholder": "Search guides, policies, and solutions…",
     "titleField": "Title",
     "bodyField": "Body",
     "serviceId": "Service",
@@ -348,6 +371,10 @@
     "intro": "Inbox, assigned work, and request creation. Before submitting a ticket, the system suggests knowledge base articles.",
     "createHeading": "New ticket",
     "createAction": "New ticket",
+    "createStepDetails": "Details",
+    "createStepKnowledge": "Knowledge base",
+    "helpedResolved": "The article solved my problem",
+    "continueSend": "Continue with submission",
     "backToInbox": "Back to inbox",
     "openTicket": "Open ticket",
     "views": {
@@ -359,11 +386,12 @@
     },
     "filters": {
       "search": "Search",
-      "searchPlaceholder": "Number, title, or description",
+      "searchPlaceholder": "ID or ticket title…",
       "status": "Status",
       "priority": "Priority",
       "service": "Service",
-      "all": "All"
+      "all": "All",
+      "priorityAll": "All priorities"
     },
     "columns": {
       "number": "Number",

@@ -20,7 +20,7 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
       <dl className="mt-3 grid gap-3">
         {entries.map(([key, value]) => (
           <div key={key}>
-            <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            <dt className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
               {key}
             </dt>
             <dd className="mt-0.5 text-[13px] text-foreground">

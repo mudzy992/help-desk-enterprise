@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useLocale } from "@/i18n/use-locale";
 import { supportedLocales } from "@/i18n/locale";
+import { selectCompactClassName } from "@/components/ui/control";
 
 const localeLabelKeys = {
   bs: "locale.bosnian",
@@ -12,10 +13,10 @@ export function LocaleSelect() {
   const { locale, changeLocale } = useLocale();
 
   return (
-    <label className="flex shrink-0 items-center">
+    <label className="flex w-full shrink-0 items-center">
       <span className="sr-only">{t("locale.label")}</span>
       <select
-        className="h-8 max-w-[9.5rem] rounded-md border border-border bg-background/60 px-2 text-[12.5px] text-foreground transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none"
+        className={selectCompactClassName}
         value={locale}
         onChange={(event) => {
           void changeLocale(event.target.value);

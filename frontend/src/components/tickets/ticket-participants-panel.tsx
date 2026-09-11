@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
+import { hintClassName, labelClassName, selectClassName } from "@/components/ui/control";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type {
   ParticipantRole,
@@ -54,13 +55,24 @@ export function TicketParticipantsPanel({
       <ul className="grid gap-2">
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-            <span>
-              {t(`tickets.participantRole.${item.role}`)} ·{" "}
-              {(item.userId === null
-                ? null
-                : participantNames.get(item.userId)) ??
-                item.userId ??
-                item.groupId}
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Avatar
+                name={
+                  (item.userId === null ? null : participantNames.get(item.userId)) ??
+                  item.userId ??
+                  item.groupId ??
+                  "?"
+                }
+                size="sm"
+              />
+              <span>
+                {t(`tickets.participantRole.${item.role}`)} ·{" "}
+                {(item.userId === null
+                  ? null
+                  : participantNames.get(item.userId)) ??
+                  item.userId ??
+                  item.groupId}
+              </span>
             </span>
             {canManage ? (
               <Button
@@ -89,7 +101,7 @@ export function TicketParticipantsPanel({
               </span>
             ) : (
               <select
-                className={controlClassName}
+                className={selectClassName}
                 value={userId}
                 onChange={(event) => setUserId(event.target.value)}
                 required

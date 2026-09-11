@@ -4,6 +4,7 @@ import {
   controlClassName,
   hintClassName,
   labelClassName,
+  selectClassName,
   textareaClassName,
 } from "@/components/ui/control";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
@@ -43,7 +44,7 @@ export function CreateTicketFields({
           <span className="text-danger"> *</span>
         </span>
         <select
-          className={controlClassName}
+          className={selectClassName}
           value={draft.serviceId}
           onChange={(event) =>
             onChange({
@@ -70,7 +71,7 @@ export function CreateTicketFields({
           <span className="text-danger"> *</span>
         </span>
         <select
-          className={controlClassName}
+          className={selectClassName}
           value={draft.originUnitId}
           onChange={(event) =>
             onChange({ ...draft, originUnitId: event.target.value })
@@ -102,7 +103,7 @@ export function CreateTicketFields({
         <label className={labelClassName}>
           {t("tickets.impact")}
           <select
-            className={controlClassName}
+            className={selectClassName}
             value={draft.impact}
             onChange={(event) =>
               onChange({ ...draft, impact: event.target.value as TicketImpact })
@@ -118,7 +119,7 @@ export function CreateTicketFields({
         <label className={labelClassName}>
           {t("tickets.urgency")}
           <select
-            className={controlClassName}
+            className={selectClassName}
             value={draft.urgency}
             onChange={(event) =>
               onChange({ ...draft, urgency: event.target.value as TicketImpact })

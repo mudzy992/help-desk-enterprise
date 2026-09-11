@@ -14,7 +14,7 @@ export function TicketCreatePage() {
         actions={
           <Link
             to="/tickets"
-            className="text-[12.5px] text-muted-foreground hover:text-foreground hover:underline"
+            className="text-[12.5px] text-[#7FA8F5] hover:underline"
           >
             {t("tickets.backToInbox")}
           </Link>

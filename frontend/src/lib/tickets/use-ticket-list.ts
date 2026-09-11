@@ -44,6 +44,7 @@ export function useTicketList() {
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  const queryFromUrl = searchParams.get("q") ?? "";
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -74,10 +75,15 @@ export function useTicketList() {
   }, [view, filters.status, setSearchParams]);
 
   useEffect(() => {
-    setFilters((current) => ({ ...current, view, currentUserId }));
+    setFilters((current) => ({
+      ...current,
+      view,
+      currentUserId,
+      search: queryFromUrl,
+    }));
     setPage(1);
     setSelectedIds(new Set());
-  }, [view, currentUserId]);
+  }, [view, currentUserId, queryFromUrl]);
 
   useEffect(() => {
     void load();

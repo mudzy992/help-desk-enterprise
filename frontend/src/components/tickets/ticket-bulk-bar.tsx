@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName } from "@/components/ui/control";
+import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { isBulkCloseStatus } from "@/lib/tickets/is-bulk-close-status";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import {
@@ -40,7 +40,7 @@ export function TicketBulkBar({
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
       <span className="tnum text-[12.5px] font-medium">{t("tickets.bulk.selected", { count: selectedIds.size })}</span>
-      <select className={controlClassName} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
+      <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
         <option value="assign_group">{t("tickets.bulk.assignGroup")}</option>
         <option value="assign_user">{t("tickets.bulk.assignUser")}</option>
         <option value="set_status">{t("tickets.bulk.setStatus")}</option>
@@ -49,23 +49,23 @@ export function TicketBulkBar({
         <option value="merge_into_parent">{t("tickets.bulk.merge")}</option>
       </select>
       {actionType === "set_status" ? (
-        <select className={controlClassName} value={value} onChange={(event) => setValue(event.target.value)}>
+        <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
           <option value="">{t("tickets.filters.all")}</option>
           {ticketStatusValues.filter((status) => !isBulkCloseStatus(status)).map((status) => (
             <option key={status} value={status}>{t(`tickets.status.${status}`)}</option>
           ))}
         </select>
       ) : actionType === "set_priority" ? (
-        <select className={controlClassName} value={value} onChange={(event) => setValue(event.target.value)}>
+        <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
           <option value="">{t("tickets.filters.all")}</option>
           {ticketPriorityValues.map((priority) => (
             <option key={priority} value={priority}>{t(`tickets.priority.${priority}`)}</option>
           ))}
         </select>
       ) : (
-        <input className={controlClassName} value={value} onChange={(event) => setValue(event.target.value)} placeholder={t("tickets.bulk.valuePlaceholder")} />
+        <input className={`${controlCompactClassName} w-40`} value={value} onChange={(event) => setValue(event.target.value)} placeholder={t("tickets.bulk.valuePlaceholder")} />
       )}
-      <input className={controlClassName} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("tickets.bulk.reasonPlaceholder")} />
+      <input className={`${controlCompactClassName} w-44`} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("tickets.bulk.reasonPlaceholder")} />
       <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.closeForbidden")}</span>
       {broadcastArmed ? (
         <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>

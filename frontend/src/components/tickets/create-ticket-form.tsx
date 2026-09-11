@@ -2,10 +2,12 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CreateTicketFields } from "@/components/tickets/create-ticket-fields";
-import { KnowledgeInterceptPanel } from "@/components/tickets/knowledge-intercept-panel";
+import { CreateTicketInterceptView } from "@/components/tickets/create-ticket-intercept-view";
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { WizardStepper } from "@/components/ui/wizard-stepper";
 import {
   buildCreateTicketInput,
   isCreateTicketDraftReady,
@@ -149,52 +151,50 @@ export function CreateTicketForm() {
 
   if (step === "intercept") {
     return (
-      <div className="mt-4">
-        {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
-        {displayedError === "tickets.errorDuplicateTicket" ? (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSubmitting}
-            onClick={() => void submitTicket(true)}
-          >
-            {isSubmitting ? t("tickets.creating") : t("tickets.createAnyway")}
-          </Button>
-        ) : null}
-        <KnowledgeInterceptPanel
-          items={suggestions}
-          helped={helped}
-          onHelped={() => setHelped(true)}
-          onContinue={() => void submitTicket()}
-          onBack={() => setStep("compose")}
-          isSubmitting={isSubmitting}
-        />
-      </div>
+      <CreateTicketInterceptView
+        displayedError={displayedError}
+        isSubmitting={isSubmitting}
+        items={suggestions}
+        helped={helped}
+        onHelped={() => setHelped(true)}
+        onContinue={() => void submitTicket()}
+        onBack={() => setStep("compose")}
+        onCreateAnyway={() => void submitTicket(true)}
+      />
     );
   }
 
   return (
-    <form className="mt-4 grid gap-4" onSubmit={(event) => void runIntercept(event)}>
-      <CreateTicketFields
-        draft={draft}
-        services={catalog.services}
-        originUnits={catalog.originUnits}
-        selectedService={selectedService}
-        activeForm={activeForm}
-        fieldErrors={fieldErrors}
-        onChange={setDraft}
+    <form className="mt-1 grid gap-4" onSubmit={(event) => void runIntercept(event)}>
+      <WizardStepper
+        steps={[
+          { key: "compose", label: t("tickets.createStepDetails") },
+          { key: "intercept", label: t("tickets.createStepKnowledge") },
+        ]}
+        activeIndex={0}
       />
-      {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
-      <div>
-        <Button
-          type="submit"
-          disabled={
-            isSubmitting || !isCreateTicketDraftReady(draft) || !isServiceReady
-          }
-        >
-          {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}
-        </Button>
-      </div>
+      <Card className="px-4 py-4">
+        <CreateTicketFields
+          draft={draft}
+          services={catalog.services}
+          originUnits={catalog.originUnits}
+          selectedService={selectedService}
+          activeForm={activeForm}
+          fieldErrors={fieldErrors}
+          onChange={setDraft}
+        />
+        {displayedError ? <div className="mt-4"><TicketErrorState errorKey={displayedError} /></div> : null}
+        <div className="mt-4">
+          <Button
+            type="submit"
+            disabled={
+              isSubmitting || !isCreateTicketDraftReady(draft) || !isServiceReady
+            }
+          >
+            {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}
+          </Button>
+        </div>
+      </Card>
     </form>
   );
 }

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/control";
 import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
+import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface TicketListTableProperties {
@@ -21,7 +22,9 @@ interface TicketListTableProperties {
   readonly onClaim: (ticketId: string) => void;
 }
 
-function assignmentLabelKey(ticket: TicketResponse): "tickets.assignment.unrouted" | "tickets.assignment.groupOnly" | "tickets.assignment.assigned" {
+function assignmentLabelKey(
+  ticket: TicketResponse,
+): "tickets.assignment.unrouted" | "tickets.assignment.groupOnly" | "tickets.assignment.assigned" {
   if (ticket.status === "UNROUTED" || ticket.assignedGroupId === null) {
     return "tickets.assignment.unrouted";
   }
@@ -40,12 +43,13 @@ export function TicketListTable({
   onClaim,
 }: TicketListTableProperties) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   return (
-    <div className={`mt-3 ${tableWrapClassName}`}>
+    <div className={tableWrapClassName}>
       <table className="min-w-full text-left">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
-            <th className="px-3 py-2">
+            <th className="w-10 px-3 py-2">
               <span className="sr-only">{t("tickets.bulk.select")}</span>
             </th>
             <th className="px-3 py-2">{t("tickets.columns.number")}</th>
@@ -54,7 +58,7 @@ export function TicketListTable({
             <th className="hidden px-3 py-2 md:table-cell">{t("tickets.columns.priority")}</th>
             <th className="hidden px-3 py-2 lg:table-cell">{t("tickets.columns.service")}</th>
             <th className="hidden px-3 py-2 lg:table-cell">{t("tickets.columns.assignment")}</th>
-            <th className="px-3 py-2">{t("tickets.columns.updated")}</th>
+            <th className="px-3 py-2 text-right">{t("tickets.columns.updated")}</th>
             <th className="px-3 py-2">
               <span className="sr-only">{t("tickets.claim")}</span>
             </th>
@@ -62,8 +66,12 @@ export function TicketListTable({
         </thead>
         <tbody className="divide-y divide-border/50">
           {tickets.map((ticket) => (
-            <tr key={ticket.id} className={tableRowClassName}>
-              <td className="px-3 py-2">
+            <tr
+              key={ticket.id}
+              className={cn(tableRowClassName, "cursor-pointer")}
+              onClick={() => navigate(`/tickets/${ticket.id}`)}
+            >
+              <td className="w-10 px-3 py-2" onClick={(event) => event.stopPropagation()}>
                 <input
                   type="checkbox"
                   checked={selectedIds.has(ticket.id)}
@@ -77,22 +85,16 @@ export function TicketListTable({
                 </Link>
               </td>
               <td className="px-3 py-2">
-                <Link
-                  to={`/tickets/${ticket.id}`}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground hover:underline"
-                >
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground">
                   {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
                   {ticket.title}
-                </Link>
+                </span>
               </td>
               <td className="px-3 py-2">
                 <TicketStatusBadge status={ticket.status} />
               </td>
               <td className="hidden px-3 py-2 md:table-cell">
-                <TicketPriorityBadge
-                  priority={ticket.priority}
-                  showCriticalMark
-                />
+                <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
               </td>
               <td className="hidden px-3 py-2 text-[12px] text-muted-foreground lg:table-cell">
                 {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
@@ -100,10 +102,10 @@ export function TicketListTable({
               <td className="hidden px-3 py-2 text-[12px] text-muted-foreground lg:table-cell">
                 {t(assignmentLabelKey(ticket))}
               </td>
-              <td className="px-3 py-2 text-[12px] text-muted-foreground tnum">
+              <td className="px-3 py-2 text-right text-[12px] text-muted-foreground tnum">
                 {formatTicketTimestamp(ticket.updatedAt, i18n.language)}
               </td>
-              <td className="px-3 py-2">
+              <td className="px-3 py-2" onClick={(event) => event.stopPropagation()}>
                 {canShowClaimAction(ticket) ? (
                   <Button
                     type="button"

@@ -1,7 +1,8 @@
+import { Bookmark, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName } from "@/components/ui/control";
+import { controlCompactClassName } from "@/components/ui/control";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { filtersFromSavedView, savedViewInputFromFilters } from "@/lib/tickets/saved-view-filters";
@@ -55,8 +56,8 @@ export function TicketSavedViewsPanel({
 
   return (
     <aside className="space-y-1.5">
-      <p className="px-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {t("tickets.savedViews.title")}
+      <p className="flex items-center gap-1.5 px-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">
+        <Bookmark size={11} aria-hidden="true" /> {t("tickets.savedViews.title")}
       </p>
       {views.map((view) => (
         <button
@@ -69,11 +70,11 @@ export function TicketSavedViewsPanel({
           className={
             activeId === view.id
               ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left"
-              : "w-full rounded-md border border-transparent px-3 py-2 text-left hover:bg-elevated/60"
+              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-elevated/60"
           }
         >
           <span className="flex items-center justify-between gap-2">
-            <span className="text-[12.5px] font-medium">{view.name}</span>
+            <span className="text-[12.5px] font-medium text-foreground/90">{view.name}</span>
             {view.isDefault ? (
               <span className="text-[10px] text-muted-foreground">{t("tickets.savedViews.default")}</span>
             ) : null}
@@ -81,7 +82,7 @@ export function TicketSavedViewsPanel({
         </button>
       ))}
       <input
-        className={controlClassName}
+        className={controlCompactClassName}
         value={name}
         onChange={(event) => setName(event.target.value)}
         placeholder={t("tickets.savedViews.namePlaceholder")}
@@ -105,7 +106,7 @@ export function TicketSavedViewsPanel({
             .catch((error) => onError(mapTicketError(error)));
         }}
       >
-        {t("tickets.savedViews.save")}
+        <Plus size={12} /> {t("tickets.savedViews.save")}
       </Button>
       {activeId !== null ? (
         <Button

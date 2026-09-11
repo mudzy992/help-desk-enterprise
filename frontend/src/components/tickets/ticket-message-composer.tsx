@@ -1,7 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, labelClassName, textareaClassName } from "@/components/ui/control";
+import {
+  filterChipActiveClassName,
+  filterChipClassName,
+  filterChipIdleClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
+import { cn } from "@/lib/utils";
 import {
   defaultMessageType,
   messageTypesForAccess,
@@ -36,20 +43,24 @@ export function TicketMessageComposer({
 
   return (
     <form className="mt-4 grid gap-3 border-t border-border/70 pt-4" onSubmit={(event) => void onSubmit(event)}>
-      <label className={labelClassName}>
-        {t("tickets.detail.messageType")}
-        <select
-          className={controlClassName}
-          value={type}
-          onChange={(event) => setType(event.target.value as MessageType)}
-        >
-          {types.map((item) => (
-            <option key={item} value={item}>
-              {t(`tickets.messageType.${item}`)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[12.5px] font-medium text-foreground">
+          {t("tickets.detail.messageType")}
+        </span>
+        {types.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setType(item)}
+            className={cn(
+              filterChipClassName,
+              type === item ? filterChipActiveClassName : filterChipIdleClassName,
+            )}
+          >
+            {t(`tickets.messageType.${item}`)}
+          </button>
+        ))}
+      </div>
       <label className={labelClassName}>
         {t("tickets.detail.compose")}
         <textarea

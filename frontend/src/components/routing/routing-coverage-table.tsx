@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { tableHeadClassName, tableRowClassName } from "@/components/ui/control";
+import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import type { RoutingCoverageItem } from "@/services/routing-api";
 
 interface RoutingCoverageTableProperties {
@@ -45,7 +45,7 @@ export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) 
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className={tableWrapClassName}>
       <table className="w-full text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>

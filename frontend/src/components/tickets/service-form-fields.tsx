@@ -4,6 +4,7 @@ import {
   errorTextClassName,
   hintClassName,
   labelClassName,
+  selectClassName,
   textareaClassName,
 } from "@/components/ui/control";
 
@@ -47,7 +48,7 @@ function FieldControl({
   if (field.type === "select") {
     return (
       <select
-        className={controlClassName}
+        className={selectClassName}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onChange(event.target.value)}
       >

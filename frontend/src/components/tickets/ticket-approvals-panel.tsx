@@ -39,13 +39,25 @@ export function TicketApprovalsPanel({
   return (
     <Card className="grid gap-2 px-4 py-3.5">
       <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.approvals")}</h3>
-      <ul className="grid gap-2">
-        {items.map((item) => (
-          <li key={item.id} className="text-[12.5px] text-foreground">
+      <ul className="grid gap-3">
+        {items.map((item) => {
+          const tone =
+            item.status === "APPROVED"
+              ? "bg-success"
+              : item.status === "REJECTED"
+                ? "bg-danger"
+                : "bg-warning";
+          return (
+          <li
+            key={item.id}
+            className="relative border-l border-border/70 pl-3 text-[12.5px] text-foreground"
+          >
+            <span className={`absolute -left-1 top-1.5 size-2 rounded-full ${tone}`} />
             {t(`tickets.approvalStatus.${item.status}`)}
             {item.comment ? ` · ${item.comment}` : ""}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {pending === undefined ? null : (
         <div className="grid gap-2">

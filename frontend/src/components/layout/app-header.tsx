@@ -1,10 +1,9 @@
 import { Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
-import { LocaleSelect } from "@/components/layout/locale-select";
+import { HeaderSearch } from "@/components/layout/header-search";
 import { SessionControls } from "@/components/layout/session-controls";
+import { SystemStatusChip } from "@/components/layout/system-status-chip";
 import { Button } from "@/components/ui/button";
-import { getActiveNavigationItem } from "@/lib/navigation";
 
 interface AppHeaderProperties {
   readonly onOpenNavigation: () => void;
@@ -12,27 +11,24 @@ interface AppHeaderProperties {
 
 export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
   const { t } = useTranslation();
-  const location = useLocation();
-  const activeItem = getActiveNavigationItem(location.pathname);
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 md:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/70 bg-surface px-4 lg:px-6">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="md:hidden"
+        className="lg:hidden"
         onClick={onOpenNavigation}
         aria-label={t("shell.openNavigation")}
       >
-        <Menu className="h-4 w-4" />
+        <Menu size={17} strokeWidth={1.9} />
       </Button>
-      <p className="min-w-0 truncate text-[12.5px] text-muted-foreground">
-        {t(activeItem.labelKey)}
-      </p>
-      <div className="ml-auto flex min-w-0 items-center gap-2">
+      <HeaderSearch />
+      <div className="ml-auto flex min-w-0 items-center gap-1.5">
+        <SystemStatusChip />
+        <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
         <SessionControls />
-        <LocaleSelect />
       </div>
     </header>
   );

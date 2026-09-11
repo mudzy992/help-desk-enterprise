@@ -2,6 +2,7 @@ import {
   BookOpen,
   GitBranch,
   LayoutDashboard,
+  LayoutGrid,
   LifeBuoy,
   Network,
   Plus,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
+import { SidebarUserCard } from "@/components/layout/sidebar-user-card";
 import { Kbd } from "@/components/ui/kbd";
 import {
   navigationSections,
@@ -22,6 +24,7 @@ import { cn } from "@/lib/utils";
 const navigationIcons: Record<string, LucideIcon> = {
   "/": LayoutDashboard,
   "/tickets": Ticket,
+  "/services": LayoutGrid,
   "/knowledge-base": BookOpen,
   "/users": Users,
   "/organizational-units": Network,
@@ -60,7 +63,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
           className={cn(
             "flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary text-[13px] font-medium text-primary-foreground transition-colors duration-150",
             isCreateActive
-              ? "bg-[#1B44BE]"
+              ? "bg-[#1D4FD8]"
               : "bg-primary hover:bg-[#1D4FD8] active:bg-[#1B44BE]",
           )}
         >
@@ -90,6 +93,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
           </div>
         ))}
       </nav>
+      <SidebarUserCard />
     </div>
   );
 }
@@ -125,10 +129,14 @@ function SidebarLink({ item, onNavigate }: SidebarLinkProperties) {
           <Icon
             size={15.5}
             strokeWidth={1.9}
-            className={isActive ? "text-[#7FA8F5]" : "text-muted-foreground/80 group-hover:text-muted-foreground"}
+            className={
+              isActive
+                ? "text-[#7FA8F5]"
+                : "text-muted-foreground/80 group-hover:text-muted-foreground"
+            }
             aria-hidden="true"
           />
-          <span className="truncate">{t(item.labelKey)}</span>
+          <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
         </>
       )}
     </NavLink>

@@ -17,20 +17,20 @@ interface TicketDetailConversationProperties {
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
   const { t } = useTranslation();
   return (
-    <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
-      <h3 className="text-[13.5px] font-semibold text-foreground">
+    <section className="rounded-lg border border-border bg-surface">
+      <h3 className="border-b border-border/70 px-4 pb-3 pt-3.5 text-[13.5px] font-semibold text-foreground">
         {t("tickets.detail.conversation")}
       </h3>
-      <div className="mt-3">
+      <div className="px-4 py-3.5">
         <TicketConversation messages={props.messages} currentUserId={props.currentUserId} />
+        {props.ticket.status === "ARCHIVED" ? null : (
+          <TicketMessageComposer
+            access={props.access}
+            isSending={props.isSending}
+            onSend={props.onSend}
+          />
+        )}
       </div>
-      {props.ticket.status === "ARCHIVED" ? null : (
-        <TicketMessageComposer
-          access={props.access}
-          isSending={props.isSending}
-          onSend={props.onSend}
-        />
-      )}
     </section>
   );
 }

@@ -4,6 +4,10 @@ export const controlClassName =
 export const controlCompactClassName =
   "h-8 w-full rounded-md border border-border bg-background/60 px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
 
+export const selectClassName = `${controlClassName} cursor-pointer appearance-none bg-[length:12px] bg-[right_10px_center] bg-no-repeat pr-8`;
+
+export const selectCompactClassName = `${controlCompactClassName} cursor-pointer appearance-none bg-[length:12px] bg-[right_8px_center] bg-no-repeat pr-7`;
+
 export const textareaClassName =
   "min-h-[90px] w-full rounded-md border border-border bg-background/60 px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
 
@@ -21,10 +25,22 @@ export const tableWrapClassName =
   "overflow-x-auto rounded-lg border border-border bg-surface";
 
 export const tableHeadClassName =
-  "text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70";
+  "text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70";
 
 export const tableRowClassName =
   "h-11 border-b border-border/50 last:border-0 hover:bg-elevated/40";
 
 export const ticketIdClassName =
   "tnum text-[#7FA8F5] hover:underline";
+
+export const filterChipClassName =
+  "rounded-md border px-2 py-1 text-[11.5px] font-medium transition-colors duration-150";
+
+export const filterChipActiveClassName =
+  "border-primary/50 bg-primary/15 text-[#7FA8F5]";
+
+export const filterChipIdleClassName =
+  "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground";
+
+export const floatingPanelClassName =
+  "pop-in overflow-hidden rounded-lg border border-border bg-elevated shadow-xl shadow-black/40";

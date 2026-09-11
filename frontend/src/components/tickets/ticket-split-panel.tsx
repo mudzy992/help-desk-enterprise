@@ -35,7 +35,7 @@ export function TicketSplitPanel({
       {ticket.parentTicketId ? (
         <p className="mt-2 text-[12px]">
           {t("tickets.split.parent")}:{" "}
-          <Link className="text-primary underline" to={`/tickets/${ticket.parentTicketId}`}>
+          <Link className="tnum text-[#7FA8F5] hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
             {ticket.parentTicketId}
           </Link>
         </p>

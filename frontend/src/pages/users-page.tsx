@@ -1,12 +1,14 @@
-import { useState } from "react";
 import { Users } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
+import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
   controlClassName,
   tableHeadClassName,
   tableRowClassName,
+  tableWrapClassName,
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -66,7 +68,7 @@ export function UsersPage() {
               body={t("directory.usersEmptyBody")}
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div className={tableWrapClassName}>
               <table className="w-full text-left text-[13px]">
                 <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
                   <tr>
@@ -78,8 +80,11 @@ export function UsersPage() {
                 <tbody>
                   {visible.map((user) => (
                     <tr key={user.id} className={tableRowClassName}>
-                      <td className="px-3 py-2 font-medium text-foreground">
-                        {user.displayName}
+                      <td className="px-3 py-2">
+                        <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                          <Avatar name={user.displayName} size="sm" />
+                          {user.displayName}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">
                         {user.email}

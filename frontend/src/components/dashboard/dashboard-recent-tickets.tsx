@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   TicketPriorityBadge,
@@ -20,6 +20,7 @@ export function DashboardRecentTickets({
   items,
 }: DashboardRecentTicketsProperties) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
 
   if (items.length === 0) {
     return (
@@ -44,13 +45,19 @@ export function DashboardRecentTickets({
         </thead>
         <tbody>
           {items.map((ticket) => (
-            <tr key={ticket.id} className={tableRowClassName}>
+            <tr
+              key={ticket.id}
+              className={`${tableRowClassName} cursor-pointer`}
+              onClick={() => navigate(`/tickets/${ticket.id}`)}
+            >
               <td className="px-3 py-2">
                 <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                   {ticket.ticketNumber}
                 </Link>
               </td>
-              <td className="max-w-[26rem] truncate px-3 py-2">{ticket.title}</td>
+              <td className="max-w-[26rem] truncate px-3 py-2 text-[13px] font-medium">
+                {ticket.title}
+              </td>
               <td className="px-3 py-2">
                 <TicketStatusBadge status={ticket.status} />
               </td>
