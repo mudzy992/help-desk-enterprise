@@ -32,20 +32,17 @@ import { updateService } from './update-service';
 import { updateServiceCategory } from './update-service-category';
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
-const defaultAvailabilityLoader = {
+const defaultAvailabilityConfigurationLoader = {
   load: async (): Promise<ServiceAvailabilityConfigurationBundle> =>
     defaultServiceAvailabilityConfigurationBundle,
-};
+} as unknown as ServiceAvailabilityConfigurationLoader;
 
 @Injectable()
 export class ServiceCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
-    private readonly availabilityConfigurationLoader: Pick<
-      ServiceAvailabilityConfigurationLoader,
-      'load'
-    > = defaultAvailabilityLoader,
+    private readonly availabilityConfigurationLoader: ServiceAvailabilityConfigurationLoader = defaultAvailabilityConfigurationLoader,
   ) {}
 
   createCategory(

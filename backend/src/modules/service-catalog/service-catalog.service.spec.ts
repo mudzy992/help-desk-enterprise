@@ -3,16 +3,40 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
+import { ServiceAvailabilityConfigurationLoader } from './service-availability-configuration.loader';
 import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
 import { ServiceCatalogService } from './service-catalog.service';
 import type { ServiceLifecycleConfiguration } from './service-catalog.types';
+import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 describe('ServiceCatalogService CRUD', () => {
+  it('resolves the availability configuration loader through Nest DI', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ServiceCatalogService,
+        { provide: PrismaService, useValue: {} },
+        {
+          provide: ServiceLifecycleConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
+        {
+          provide: ServiceAvailabilityConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
+      ],
+    }).compile();
+    expect(moduleRef.get(ServiceCatalogService)).toBeInstanceOf(
+      ServiceCatalogService,
+    );
+  });
+
   const createHarness = (
     configuration: ServiceLifecycleConfiguration = defaultServiceLifecycleConfiguration,
   ) => {

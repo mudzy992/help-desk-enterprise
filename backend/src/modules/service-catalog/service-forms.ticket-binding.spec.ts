@@ -42,7 +42,7 @@ describe('ticket formVersionRef binding', () => {
     } as never);
     const forms = new ServiceFormsService(memory.prisma as never, {
       load: async () => defaultServiceFormsConfiguration,
-    });
+    } as never);
     return { catalog, forms };
   };
 

@@ -26,18 +26,15 @@ import type {
 import { updateServiceFormVersion } from './update-service-form-version';
 
 const emptyContext: CatalogMutationContext = { actorUserId: null };
-const defaultLoader = {
+const defaultConfigurationLoader = {
   load: async () => defaultServiceFormsConfiguration,
-};
+} as unknown as ServiceFormsConfigurationLoader;
 
 @Injectable()
 export class ServiceFormsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configurationLoader: Pick<
-      ServiceFormsConfigurationLoader,
-      'load'
-    > = defaultLoader,
+    private readonly configurationLoader: ServiceFormsConfigurationLoader = defaultConfigurationLoader,
   ) {}
 
   createForm(

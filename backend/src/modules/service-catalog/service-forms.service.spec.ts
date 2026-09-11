@@ -2,9 +2,12 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
 import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
 import { ServiceCatalogService } from './service-catalog.service';
+import { ServiceFormsConfigurationLoader } from './service-forms-configuration.loader';
 import { defaultServiceFormsConfiguration } from './service-forms.constants';
 import { ServiceFormsService } from './service-forms.service';
 import type { ServiceFormsConfiguration } from './service-forms.types';
@@ -47,6 +50,20 @@ const nextSchema = {
 };
 
 describe('ServiceFormsService', () => {
+  it('resolves the forms configuration loader through Nest DI', async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ServiceFormsService,
+        { provide: PrismaService, useValue: {} },
+        {
+          provide: ServiceFormsConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
+      ],
+    }).compile();
+    expect(moduleRef.get(ServiceFormsService)).toBeInstanceOf(ServiceFormsService);
+  });
+
   const createHarness = (
     configuration: ServiceFormsConfiguration = defaultServiceFormsConfiguration,
   ) => {
@@ -56,7 +73,7 @@ describe('ServiceFormsService', () => {
     } as never);
     const forms = new ServiceFormsService(memory.prisma as never, {
       load: async () => configuration,
-    });
+    } as never);
     return { catalog, forms };
   };
 
