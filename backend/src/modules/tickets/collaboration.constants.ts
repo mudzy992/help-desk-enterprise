@@ -59,6 +59,8 @@ export const ticketSystemEventActions = {
   participantRemoved: 'ticket_participant_removed',
   timeStarted: 'ticket_time_started',
   timeStopped: 'ticket_time_stopped',
+  attachmentUploaded: 'ticket_attachment_uploaded',
+  attachmentDeleted: 'ticket_attachment_deleted',
 } as const;
 
 export const ticketRealtimeEventNames = {

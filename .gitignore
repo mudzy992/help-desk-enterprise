@@ -10,3 +10,5 @@ coverage
 backend/.env
 frontend/.env
 backend/src/generated
+backend/uploads
+uploads

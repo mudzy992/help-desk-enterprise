@@ -14,22 +14,16 @@ import {
 import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
 import { createInMemoryTicketMessageDelegate } from './create-in-memory-ticket-message-delegate';
 import { createInMemoryTicketParticipantDelegate } from './create-in-memory-ticket-participant-delegate';
+import { createInMemoryTicketAttachmentDelegate } from './create-in-memory-ticket-attachment-delegate';
 import { createInMemoryTicketTimeLogDelegate } from './create-in-memory-ticket-time-log-delegate';
 import type {
   TicketMessageRecord,
   TicketParticipantRecord,
   TicketTimeLogRecord,
 } from './collaboration.types';
+import type { TicketAttachmentRecord } from './attachments/attachments.types';
 import type { TicketRecord } from './tickets.types';
 import type {
-  InMemoryTicketChangeLog,
-  InMemoryTicketGroup,
-  InMemoryTicketService,
-  InMemoryTicketUnit,
-  InMemoryTicketUser,
-} from './in-memory-tickets-types';
-
-export type {
   InMemoryTicketChangeLog,
   InMemoryTicketGroup,
   InMemoryTicketService,
@@ -49,6 +43,7 @@ export function createInMemoryTicketsPrisma() {
   const participants = new Map<string, TicketParticipantRecord>();
   const messages = new Map<string, TicketMessageRecord>();
   const timeLogs = new Map<string, TicketTimeLogRecord>();
+  const attachments = new Map<string, TicketAttachmentRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -163,6 +158,11 @@ export function createInMemoryTicketsPrisma() {
     ),
     ticketMessage: createInMemoryTicketMessageDelegate(messages, nextId, now),
     ticketTimeLog: createInMemoryTicketTimeLogDelegate(timeLogs, nextId, now),
+    ticketAttachment: createInMemoryTicketAttachmentDelegate(
+      attachments,
+      nextId,
+      now,
+    ),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -180,6 +180,7 @@ export function createInMemoryTicketsPrisma() {
     participants,
     messages,
     timeLogs,
+    attachments,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {

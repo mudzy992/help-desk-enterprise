@@ -19,7 +19,9 @@ export async function apiRequest<T>(
     ...init,
     headers: {
       Accept: "application/json",
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.body && !(init.body instanceof FormData)
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...init.headers,
     },
   });
@@ -38,4 +40,29 @@ export async function apiRequest<T>(
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+export async function apiBlobRequest(
+  path: string,
+  init: RequestInit = {},
+): Promise<Blob> {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    headers: {
+      Accept: "*/*",
+      ...init.headers,
+    },
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      code?: string;
+      message?: string;
+    } | null;
+    throw new ApiError(
+      response.status,
+      payload?.code ?? "REQUEST_FAILED",
+      payload?.message ?? "Request failed",
+    );
+  }
+  return response.blob();
 }

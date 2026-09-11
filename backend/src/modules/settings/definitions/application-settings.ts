@@ -10,6 +10,7 @@ import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { smtpSettings } from './smtp-settings';
 import { ticketAssignmentSettings } from './ticket-assignment-settings';
+import { ticketAttachmentSettings } from './ticket-attachment-settings';
 import { ticketCollaborationSettings } from './ticket-collaboration-settings';
 import { ticketRoutingSettings } from './ticket-routing-settings';
 
@@ -24,6 +25,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketRoutingSettings,
   ...ticketAssignmentSettings,
   ...ticketCollaborationSettings,
+  ...ticketAttachmentSettings,
   ...changeLogSettings,
   ...smtpSettings,
   ...addonSettings,

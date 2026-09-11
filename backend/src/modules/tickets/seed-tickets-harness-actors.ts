@@ -1,4 +1,7 @@
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import {
+  authorizationRoleKeys,
+  permissionKeys,
+} from '../authorization/authorization.constants';
 import {
   createTestAssignment,
   createTestAuthorizationContext,
@@ -71,6 +74,14 @@ function createScopedContext(
   organizationalUnitId?: string,
   organizationalUnitPath?: string,
 ): AuthorizationContext {
+  const agentPermissions =
+    roleKey === authorizationRoleKeys.agent ||
+    roleKey === authorizationRoleKeys.admin
+      ? [
+          permissionKeys.ticketAttachmentsUpload,
+          permissionKeys.ticketAttachmentsDownload,
+        ]
+      : [];
   return createTestAuthorizationContext({
     subjectId,
     assignments: [
@@ -78,7 +89,7 @@ function createScopedContext(
         roleKey,
         organizationalUnitId: organizationalUnitId ?? null,
         organizationalUnitPath: organizationalUnitPath ?? null,
-        permissionKeys: [],
+        permissionKeys: agentPermissions,
       }),
     ],
   });

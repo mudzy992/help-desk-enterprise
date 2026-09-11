@@ -25,6 +25,7 @@ model User {
   authoredMessages     TicketMessage[]
   ticketActivities     TicketActivity[]
   timeLogs             TicketTimeLog[]
+  uploadedAttachments  TicketAttachment[]         @relation("TicketAttachmentUploader")
   approvals            TicketApproval[]
   savedViews           SavedView[]
   csatSubmissions      TicketCsat[]

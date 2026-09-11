@@ -84,6 +84,7 @@ export function createTicketsServiceHarness() {
     realtimeHub,
     contexts,
     assignmentConfig,
+    authorizationContextLoader,
   };
 }
 

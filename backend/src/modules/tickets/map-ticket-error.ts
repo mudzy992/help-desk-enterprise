@@ -19,6 +19,7 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'PARTICIPANT_USER_NOT_FOUND',
   'PARTICIPANT_GROUP_NOT_FOUND',
   'TIME_LOG_NOT_FOUND',
+  'ATTACHMENT_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [
@@ -29,6 +30,13 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'CHAT_MESSAGE_TYPES_DISABLED',
   'MESSAGE_TYPE_NOT_ALLOWED',
   'PARTICIPANT_LOCKED',
+  'ATTACHMENTS_DISABLED',
+];
+
+const unavailableCodes: readonly TicketsErrorCode[] = [
+  'ROUTING_UNAVAILABLE',
+  'ASSIGNMENT_UNAVAILABLE',
+  'ATTACHMENTS_STORAGE_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -68,6 +76,16 @@ const messages: Record<TicketsErrorCode, string> = {
   OVERLAPPING_TIMER: 'An active timer already exists for this user and ticket',
   TIME_LOG_NOT_ACTIVE: 'Ticket time log is not active',
   TIME_LOG_IMMUTABLE: 'Completed time entries cannot be changed',
+  ATTACHMENTS_DISABLED: 'Ticket attachments are disabled',
+  ATTACHMENT_NOT_FOUND: 'Ticket attachment was not found',
+  ATTACHMENT_REQUIRED: 'An attachment file is required',
+  ATTACHMENT_TOO_LARGE: 'Attachment exceeds the maximum allowed size',
+  ATTACHMENT_TYPE_NOT_ALLOWED: 'Attachment type is not allowed',
+  ATTACHMENT_FILENAME_INVALID: 'Attachment filename is invalid',
+  ATTACHMENT_LIMIT_REACHED: 'Ticket attachment limit was reached',
+  CLASSIFICATION_DOWNGRADE:
+    'Attachment classification cannot be lower than the ticket',
+  ATTACHMENTS_STORAGE_UNAVAILABLE: 'Attachment storage is unavailable',
 };
 
 export function mapTicketError(error: unknown): HttpException {
@@ -81,10 +99,7 @@ export function mapTicketError(error: unknown): HttpException {
   if (forbiddenCodes.includes(error.code)) {
     return new ForbiddenException(body);
   }
-  if (
-    error.code === 'ROUTING_UNAVAILABLE' ||
-    error.code === 'ASSIGNMENT_UNAVAILABLE'
-  ) {
+  if (unavailableCodes.includes(error.code)) {
     return new ServiceUnavailableException(body);
   }
   if (error.code === 'OVERLAPPING_TIMER') {

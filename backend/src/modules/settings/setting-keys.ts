@@ -72,6 +72,21 @@ export const settingKeys = {
     'private.ticket.chat.messageTypes.enabled',
   privateTicketChatMessageTypesAllowedCsv:
     'private.ticket.chat.messageTypes.allowedCsv',
+  privateTicketAttachmentsEnabled: 'private.ticket.attachments.enabled',
+  privateTicketAttachmentsMaxFileSizeMb:
+    'private.ticket.attachments.maxFileSizeMb',
+  privateTicketAttachmentsAllowedMimeTypesCsv:
+    'private.ticket.attachments.allowedMimeTypesCsv',
+  privateTicketAttachmentsAllowedExtensionsCsv:
+    'private.ticket.attachments.allowedExtensionsCsv',
+  privateTicketAttachmentsMaxFilesPerTicket:
+    'private.ticket.attachments.maxFilesPerTicket',
+  privateTicketAttachmentsMaxFilesPerMessage:
+    'private.ticket.attachments.maxFilesPerMessage',
+  privateTicketAttachmentsDangerousExtensionsBlocklistCsv:
+    'private.ticket.attachments.dangerousExtensionsBlocklistCsv',
+  privateTicketAttachmentsRetentionDays:
+    'private.ticket.attachments.retentionDays',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',

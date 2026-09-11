@@ -74,4 +74,6 @@ export const ticketChangeLogReasons = {
   participantRemove: 'ticket_participant_remove',
   timeStart: 'ticket_time_start',
   timeStop: 'ticket_time_stop',
+  attachmentUpload: 'ticket_attachment_upload',
+  attachmentDelete: 'ticket_attachment_delete',
 } as const;

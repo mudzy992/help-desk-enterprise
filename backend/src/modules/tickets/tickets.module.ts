@@ -13,6 +13,12 @@ import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
 import { TicketChatGateway } from '../websocket/ticket-chat.gateway';
+import { TICKET_ATTACHMENT_STORAGE } from './attachments/attachment-storage.token';
+import { DiskTicketAttachmentStorage } from './attachments/disk-ticket-attachment-storage';
+import { resolveUploadRoot } from './attachments/resolve-upload-root';
+import { TicketAttachmentConfigurationLoader } from './attachments/ticket-attachment-configuration.loader';
+import { TicketsAttachmentsController } from './attachments/tickets-attachments.controller';
+import { TicketsAttachmentsService } from './attachments/tickets-attachments.service';
 
 @Module({
   imports: [
@@ -21,14 +27,24 @@ import { TicketChatGateway } from '../websocket/ticket-chat.gateway';
     RoutingModule,
     SettingsModule,
   ],
-  controllers: [TicketsController, TicketsCollaborationController],
+  controllers: [
+    TicketsController,
+    TicketsCollaborationController,
+    TicketsAttachmentsController,
+  ],
   providers: [
     TicketsService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
+    TicketsAttachmentsService,
     TicketAssignmentService,
     TicketAssignmentConfigurationLoader,
     TicketCollaborationConfigurationLoader,
+    TicketAttachmentConfigurationLoader,
+    {
+      provide: TICKET_ATTACHMENT_STORAGE,
+      useFactory: () => new DiskTicketAttachmentStorage(resolveUploadRoot()),
+    },
     TicketRealtimeHub,
     TicketChatGateway,
   ],
@@ -36,6 +52,7 @@ import { TicketChatGateway } from '../websocket/ticket-chat.gateway';
     TicketsService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
+    TicketsAttachmentsService,
     TicketRealtimeHub,
   ],
 })
