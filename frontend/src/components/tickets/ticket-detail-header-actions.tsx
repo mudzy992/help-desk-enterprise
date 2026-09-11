@@ -1,0 +1,96 @@
+import { Pencil, Split, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { canShowClaimAction, canShowReopenAction, nextTicketStatuses } from "@/lib/tickets/ticket-actions";
+import { isResolveOrCloseStatus } from "@/lib/tickets/is-resolve-or-close-status";
+import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
+import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
+
+interface TicketDetailHeaderActionsProperties {
+  readonly ticket: TicketResponse;
+  readonly canChangeStatus: boolean;
+  readonly claiming: boolean;
+  readonly savingStatus: boolean;
+  readonly reopening: boolean;
+  readonly canSplit: boolean;
+  readonly onClaim: () => void;
+  readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
+  readonly onReopen: () => void;
+  readonly onSplit: () => void;
+  readonly onRequestClose: (status: TicketStatus) => void;
+}
+
+export function TicketDetailHeaderActions({
+  ticket,
+  canChangeStatus,
+  claiming,
+  savingStatus,
+  reopening,
+  canSplit,
+  onClaim,
+  onStatusChange,
+  onReopen,
+  onSplit,
+  onRequestClose,
+}: TicketDetailHeaderActionsProperties) {
+  const { t } = useTranslation();
+  const nextStatuses = nextTicketStatuses(ticket.status);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {canShowClaimAction(ticket) ? (
+        <Button type="button" size="sm" disabled={claiming} onClick={onClaim}>
+          <UserCheck size={14} />
+          {claiming ? t("tickets.claiming") : t("tickets.claim")}
+        </Button>
+      ) : null}
+      {canShowReopenAction(ticket) ? (
+        <Button type="button" variant="outline" size="sm" disabled={reopening} onClick={onReopen}>
+          {reopening
+            ? t("tickets.detail.reopening")
+            : ticket.reopen?.createsNewTicket
+              ? t("tickets.detail.reopenAsNew")
+              : t("tickets.detail.reopen")}
+        </Button>
+      ) : null}
+      {canSplit ? (
+        <Button type="button" variant="outline" size="sm" onClick={onSplit}>
+          <Split size={14} /> {t("tickets.split.action")}
+        </Button>
+      ) : null}
+      {canChangeStatus && nextStatuses.length > 0 ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            disabled={savingStatus}
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-[12.5px] font-medium text-foreground transition-all duration-150 hover:border-[#31405C] hover:bg-elevated disabled:opacity-45"
+          >
+            <Pencil size={14} />
+            {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")} ▾
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {nextStatuses.map((status) => (
+              <DropdownMenuItem
+                key={status}
+                onSelect={() => {
+                  if (isResolveOrCloseStatus(status)) {
+                    onRequestClose(status);
+                    return;
+                  }
+                  onStatusChange(status);
+                }}
+              >
+                {ticketText(t, ticketStatusLabelKey[status])}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import { Check, Send, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, ChevronRight, Lightbulb, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
 } from "@/services/knowledge-base-api";
 import { canContinueAfterKnowledgeIntercept } from "@/lib/tickets/can-continue-after-intercept";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { ticketText } from "@/lib/tickets/ticket-text";
 
 interface KnowledgeInterceptPanelProperties {
   readonly items: readonly KnowledgeInterceptSuggestion[];
@@ -55,7 +56,19 @@ export function KnowledgeInterceptPanel({
 
   return (
     <div className="grid gap-3">
-      <p className="text-[13px] leading-5 text-muted-foreground">{t("tickets.interceptIntro")}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-[14px] font-semibold text-foreground">
+            <Lightbulb size={15} className="text-warning" /> {t("tickets.createStepKnowledge")}
+          </h2>
+          <p className="mt-0.5 max-w-lg text-[12px] leading-5 text-muted-foreground">
+            {t("tickets.interceptIntro")}
+          </p>
+        </div>
+        <Badge tone="neutral" dot={false}>
+          {t("tickets.createStepKnowledge")}
+        </Badge>
+      </div>
       {helped ? (
         <p className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-[13px] text-[#4ADE80]">
           {t("tickets.helpedSkip")}
@@ -107,7 +120,7 @@ export function KnowledgeInterceptPanel({
           ))}
         </ul>
       )}
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{ticketText(t, errorKey)}</p> : null}
       <div className="grid gap-3 sm:grid-cols-2">
         <button
           type="button"
@@ -124,10 +137,10 @@ export function KnowledgeInterceptPanel({
           onClick={onContinue}
           className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-3 text-left transition-colors duration-150 hover:border-primary/60"
         >
-          <span className="flex items-center gap-2 text-[13px] font-medium text-[#7FA8F5]">
-            <Send size={15} strokeWidth={2} />
+          <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+            <ChevronRight size={15} className="text-[#7FA8F5]" />
             {isSubmitting ? t("tickets.creating") : t("tickets.continueSend")}
-          </span>
+          </p>
         </button>
       </div>
       <div>

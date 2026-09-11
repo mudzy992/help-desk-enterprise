@@ -1,45 +1,88 @@
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/card";
-import { formatTicketTimestamp, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader } from "@/components/ui/card";
+import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse } from "@/services/tickets-api";
+import type { ReactNode } from "react";
 
 interface TicketDetailSidebarProperties {
   readonly ticket: TicketResponse;
   readonly originName: string;
+  readonly serviceName: string;
+  readonly authorNames: ReadonlyMap<string, string>;
 }
 
-export function TicketDetailSidebar({ ticket, originName }: TicketDetailSidebarProperties) {
-  const { t, i18n } = useTranslation();
-  const rows = [
-    [t("tickets.detail.requester"), truncateIdentifier(ticket.requesterId)],
-    [t("tickets.detail.assignee"), truncateIdentifier(ticket.assignedUserId)],
-    [t("tickets.detail.group"), truncateIdentifier(ticket.assignedGroupId)],
-    [t("tickets.detail.origin"), originName],
-    [t("tickets.split.parent"), ticket.parentTicketId ? truncateIdentifier(ticket.parentTicketId) : "—"],
-    [t("tickets.impact"), t(`tickets.severity.${ticket.impact}`)],
-    [t("tickets.urgency"), t(`tickets.severity.${ticket.urgency}`)],
-    [t("tickets.detail.classification"), ticket.classification],
-    [
-      t("tickets.detail.closeCode"),
-      ticket.closePolicy?.closeCode
-        ? t(`tickets.closeCodes.${ticket.closePolicy.closeCode.key}`, {
-            defaultValue: ticket.closePolicy.closeCode.name,
-          })
-        : "—",
-    ],
-    [t("tickets.detail.resolutionNote"), ticket.closePolicy?.resolutionNote ?? "—"],
-    [t("tickets.detail.created"), formatTicketTimestamp(ticket.createdAt, i18n.language)],
-    [t("tickets.detail.updated"), formatTicketTimestamp(ticket.updatedAt, i18n.language)],
-  ] as const;
+export function TicketDetailSidebar({
+  ticket,
+  originName,
+  serviceName,
+  authorNames,
+}: TicketDetailSidebarProperties) {
+  const { t } = useTranslation();
+  const requester = directoryDisplayName(authorNames, ticket.requesterId) ?? ticket.requesterId;
+  const assignee = directoryDisplayName(authorNames, ticket.assignedUserId);
+  const rows: readonly { readonly label: string; readonly value: ReactNode; readonly hint?: string }[] = [
+    { label: t("tickets.detail.service"), value: serviceName },
+    {
+      label: t("tickets.detail.formVersion"),
+      value: <span className="tnum text-muted-foreground">{ticket.formVersionRef}</span>,
+      hint: t("tickets.detail.formVersionFixed"),
+    },
+    { label: t("tickets.detail.origin"), value: originName },
+    {
+      label: t("tickets.detail.group"),
+      value:
+        ticket.status === "UNROUTED" || ticket.assignedGroupId === null ? (
+          <Badge tone="danger">{t("tickets.detail.unrouted")}</Badge>
+        ) : (
+          truncateIdentifier(ticket.assignedGroupId)
+        ),
+    },
+    {
+      label: t("tickets.detail.assignee"),
+      value: assignee ? (
+        <span className="flex items-center justify-end gap-1.5">
+          <Avatar name={assignee} size="xs" /> {assignee}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">{t("tickets.detail.unassigned")}</span>
+      ),
+    },
+    {
+      label: t("tickets.detail.requester"),
+      value: (
+        <span className="flex items-center justify-end gap-1.5">
+          <Avatar name={requester} size="xs" /> {requester}
+        </span>
+      ),
+    },
+    {
+      label: t("tickets.detail.impactUrgency"),
+      value: `${ticketText(t, ticketSeverityLabelKey[ticket.impact])} × ${ticketText(t, ticketSeverityLabelKey[ticket.urgency])}`,
+      hint: t("tickets.detail.priorityFromMatrix"),
+    },
+    {
+      label: t("tickets.filters.priority"),
+      value: <TicketPriorityBadge priority={ticket.priority} />,
+    },
+  ];
   return (
-    <Card className="px-4 py-3.5">
-      <dl className="grid gap-3">
-        {rows.map(([label, value]) => (
-          <div key={label}>
-            <dt className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
-              {label}
-            </dt>
-            <dd className="mt-0.5 text-[13px] text-foreground">{value}</dd>
+    <Card>
+      <CardHeader title={t("tickets.detail.properties")} />
+      <dl className="space-y-2.5 px-4 py-4 text-[12px]">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-start justify-between gap-3">
+            <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
+            <dd className="text-right text-foreground/90">
+              {row.value}
+              {row.hint ? (
+                <p className="text-[10.5px] text-muted-foreground/60">{row.hint}</p>
+              ) : null}
+            </dd>
           </div>
         ))}
       </dl>

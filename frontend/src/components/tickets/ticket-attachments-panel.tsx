@@ -1,8 +1,10 @@
+import { FileText, Image as ImageIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader } from "@/components/ui/card";
+import { formatByteSize, formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 
 interface TicketAttachmentsPanelProperties {
@@ -12,6 +14,10 @@ interface TicketAttachmentsPanelProperties {
   readonly onUpload: (file: File) => Promise<void>;
   readonly onDownload: (attachment: TicketAttachmentResponse) => Promise<void>;
   readonly onDelete: (attachmentId: string) => Promise<void>;
+}
+
+function isImage(mimeType: string): boolean {
+  return mimeType.startsWith("image/");
 }
 
 export function TicketAttachmentsPanel({
@@ -29,70 +35,86 @@ export function TicketAttachmentsPanel({
     return null;
   }
   return (
-    <Card className="grid gap-2 px-4 py-3.5">
-      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.attachments")}</h3>
+    <Card>
+      <CardHeader
+        title={t("tickets.detail.attachments")}
+        subtitle={t("tickets.detail.attachHint")}
+        actions={
+          canUpload ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={isUploading}
+              onClick={() => inputReference.current?.click()}
+            >
+              {t("tickets.detail.upload")}
+            </Button>
+          ) : null
+        }
+      />
+      <input
+        ref={inputReference}
+        className="sr-only"
+        type="file"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file === undefined) {
+            return;
+          }
+          setIsUploading(true);
+          void onUpload(file).finally(() => {
+            setIsUploading(false);
+            event.target.value = "";
+          });
+        }}
+      />
       {items.length === 0 ? (
-        <p className="text-[12px] text-muted-foreground">{t("tickets.detail.noAttachments")}</p>
+        <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
+          {t("tickets.detail.noAttachments")}
+        </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="divide-y divide-border/50">
           {items.map((item) => (
-            <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-body">
-                {item.originalName}
-                <span className="ml-2 text-[12px] text-muted-foreground tnum">
-                  {formatTicketTimestamp(item.createdAt, i18n.language)}
-                </span>
+            <li
+              key={item.id}
+              className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40"
+            >
+              <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
+                {isImage(item.mimeType) ? <ImageIcon size={15} /> : <FileText size={15} />}
               </span>
-              <div className="flex gap-1">
-                <Button type="button" size="sm" variant="outline" onClick={() => void onDownload(item)}>
-                  {t("tickets.detail.download")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    if (window.confirm(t("tickets.detail.confirmDeleteAttachment"))) {
-                      void onDelete(item.id);
-                    }
-                  }}
-                >
-                  {t("tickets.detail.deleteAttachment")}
-                </Button>
-              </div>
+              <button
+                type="button"
+                className="min-w-0 flex-1 text-left"
+                onClick={() => void onDownload(item)}
+              >
+                <p className="truncate text-[12.5px] font-medium text-foreground/90">
+                  {item.originalName}
+                </p>
+                <p className="text-[11px] text-muted-foreground tnum">
+                  {formatByteSize(item.sizeBytes)} ·{" "}
+                  {formatRelativeTicketTime(item.createdAt, i18n.language)}
+                </p>
+              </button>
+              <Badge tone={item.classification === "CONFIDENTIAL" ? "warning" : "neutral"} dot={false}>
+                {item.classification}
+              </Badge>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                onClick={() => {
+                  if (window.confirm(t("tickets.detail.confirmDeleteAttachment"))) {
+                    void onDelete(item.id);
+                  }
+                }}
+              >
+                {t("tickets.detail.deleteAttachment")}
+              </Button>
             </li>
           ))}
         </ul>
       )}
-      {canUpload ? (
-        <div>
-          <input
-            ref={inputReference}
-            className="sr-only"
-            type="file"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file === undefined) {
-                return;
-              }
-              setIsUploading(true);
-              void onUpload(file).finally(() => {
-                setIsUploading(false);
-                event.target.value = "";
-              });
-            }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={isUploading}
-            onClick={() => inputReference.current?.click()}
-          >
-            {t("tickets.detail.upload")}
-          </Button>
-        </div>
-      ) : null}
     </Card>
   );
 }

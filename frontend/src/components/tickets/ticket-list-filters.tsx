@@ -8,10 +8,8 @@ import {
   selectCompactClassName,
 } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
-import {
-  ticketPriorityValues,
-  ticketStatusValues,
-} from "@/lib/tickets/ticket-constants";
+import { ticketPriorityValues, ticketPriorityLabelKey } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
@@ -46,59 +44,40 @@ export function TicketListFiltersBar({
           placeholder={t("tickets.filters.searchPlaceholder")}
         />
       </div>
-      <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
-      <button
-        type="button"
-        onClick={() => onChange({ ...filters, priority: "" })}
-        className={cn(
-          filterChipClassName,
-          filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
-        )}
-      >
-        {t("tickets.filters.priorityAll")}
-      </button>
-      {ticketPriorityValues.map((priority) => (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
         <button
-          key={priority}
           type="button"
-          onClick={() => onChange({ ...filters, priority })}
+          onClick={() => onChange({ ...filters, priority: "" })}
           className={cn(
             filterChipClassName,
-            filters.priority === priority
-              ? filterChipActiveClassName
-              : filterChipIdleClassName,
+            filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
           )}
         >
-          {t(`tickets.priority.${priority}`)}
+          {t("tickets.filters.priorityAll")}
         </button>
-      ))}
-      <label className="sr-only" htmlFor="ticket-list-status">
-        {t("tickets.filters.status")}
-      </label>
-      <select
-        id="ticket-list-status"
-        className={cn(selectCompactClassName, "w-auto min-w-[9rem]")}
-        value={filters.status}
-        onChange={(event) =>
-          onChange({
-            ...filters,
-            status: event.target.value as TicketListFilters["status"],
-          })
-        }
-      >
-        <option value="">{t("tickets.filters.all")}</option>
-        {ticketStatusValues.map((status) => (
-          <option key={status} value={status}>
-            {t(`tickets.status.${status}`)}
-          </option>
+        {ticketPriorityValues.map((priority) => (
+          <button
+            key={priority}
+            type="button"
+            onClick={() => onChange({ ...filters, priority })}
+            className={cn(
+              filterChipClassName,
+              filters.priority === priority
+                ? filterChipActiveClassName
+                : filterChipIdleClassName,
+            )}
+          >
+            {ticketText(t, ticketPriorityLabelKey[priority])}
+          </button>
         ))}
-      </select>
+      </div>
       <label className="sr-only" htmlFor="ticket-list-service">
         {t("tickets.filters.service")}
       </label>
       <select
         id="ticket-list-service"
-        className={cn(selectCompactClassName, "w-auto min-w-[9rem]")}
+        className={cn(selectCompactClassName, "ml-auto w-auto min-w-[9rem]")}
         value={filters.serviceId}
         onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
       >

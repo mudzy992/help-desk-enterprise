@@ -1,21 +1,34 @@
-import { GitBranch, Lock } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { TicketMessageBubble } from "@/components/tickets/ticket-message-bubble";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
-import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 interface TicketConversationProperties {
   readonly messages: readonly TicketMessageResponse[];
   readonly currentUserId: string | null;
+  readonly authorNames: ReadonlyMap<string, string>;
+  readonly systemOnly?: boolean;
 }
 
 export function TicketConversation({
   messages,
   currentUserId,
+  authorNames,
+  systemOnly = false,
 }: TicketConversationProperties) {
   const { t, i18n } = useTranslation();
-  if (messages.length === 0) {
+  const visible = systemOnly
+    ? messages.filter(
+        (message) =>
+          message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION",
+      )
+    : messages;
+  if (visible.length === 0) {
+    if (!systemOnly) {
+      return null;
+    }
     return (
       <EmptyState
         title={t("tickets.detail.noMessages")}
@@ -24,60 +37,49 @@ export function TicketConversation({
     );
   }
   return (
-    <ol className="grid gap-3">
-      {messages.map((message) => {
-        const isSystem = message.type === "SYSTEM_EVENT";
-        const isInternal = message.type === "INTERNAL_NOTE";
-        const isOwn =
-          currentUserId !== null &&
-          message.authorUserId === currentUserId &&
-          !isSystem &&
-          !isInternal;
+    <div className="space-y-3">
+      {visible.map((message) => {
+        const isSystem =
+          message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
         if (isSystem) {
           return (
-            <li key={message.id} className="flex items-start gap-2 px-1 py-1">
+            <div key={message.id} className="flex items-start gap-2.5 px-1 py-0.5">
               <GitBranch
                 size={13}
-                strokeWidth={1.8}
-                className="mt-0.5 shrink-0 text-muted-foreground/70"
+                className="mt-0.5 shrink-0 text-muted-foreground/60"
                 aria-hidden="true"
               />
               <div>
                 <p className="text-[12px] italic leading-5 text-muted-foreground">
                   {message.body}
                 </p>
-                <time className="mt-0.5 block text-[11px] text-muted-foreground/80 tnum">
+                <p className="text-[10.5px] text-muted-foreground/60 tnum">
                   {formatTicketTimestamp(message.createdAt, i18n.language)}
-                </time>
+                </p>
               </div>
-            </li>
+            </div>
           );
         }
+        if (systemOnly) {
+          return null;
+        }
+        const authorName =
+          (message.authorUserId === null
+            ? null
+            : authorNames.get(message.authorUserId)) ??
+          t("tickets.detail.systemEvent");
+        const isOwn =
+          currentUserId !== null && message.authorUserId === currentUserId;
         return (
-          <li
+          <TicketMessageBubble
             key={message.id}
-            className={cn(
-              "rounded-lg border px-3 py-3",
-              isInternal && "border-warning/30 bg-warning/10",
-              isOwn && "border-primary/35 bg-primary/10",
-              !isInternal && !isOwn && "border-border bg-background/40",
-            )}
-          >
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                {isInternal ? <Lock size={12} strokeWidth={1.8} aria-hidden="true" /> : null}
-                {t(`tickets.messageType.${message.type}`)}
-              </span>
-              <time className="text-[11px] text-muted-foreground tnum">
-                {formatTicketTimestamp(message.createdAt, i18n.language)}
-              </time>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">
-              {message.body}
-            </p>
-          </li>
+            message={message}
+            authorName={authorName}
+            isOwn={isOwn}
+            locale={i18n.language}
+          />
         );
       })}
-    </ol>
+    </div>
   );
 }

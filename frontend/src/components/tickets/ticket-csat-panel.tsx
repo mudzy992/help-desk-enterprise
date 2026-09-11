@@ -1,9 +1,11 @@
+import { Star } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { labelClassName, textareaClassName } from "@/components/ui/control";
+import { Card, CardHeader } from "@/components/ui/card";
+import { textareaClassName } from "@/components/ui/control";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { cn } from "@/lib/utils";
 import { submitTicketCsat } from "@/services/tickets-csat-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -45,47 +47,53 @@ export function TicketCsatPanel({ ticket, onComplete, onError }: TicketCsatPanel
   };
 
   return (
-    <Card className="grid gap-2 px-4 py-3.5">
-      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.csat.title")}</h3>
-      <p className="text-[12.5px] text-muted-foreground">
-        {csat.submitted ? t("tickets.csat.submitted") : t("tickets.csat.hint")}
-      </p>
-      <div className="flex flex-wrap gap-1">
+    <Card>
+      <CardHeader title={t("tickets.csat.title")} subtitle={t("tickets.csat.hint")} />
+      <div className="flex items-center gap-1.5 px-4 py-4">
         {scale.map((value) => (
-          <Button
+          <button
             key={value}
             type="button"
-            size="sm"
-            variant={value === rating ? "default" : "outline"}
             disabled={!canSubmit}
             onClick={() => {
               if (canSubmit) {
                 setRating(value);
               }
             }}
+            className="rounded-md p-0.5 text-border transition-colors duration-150 hover:text-warning disabled:opacity-70"
+            aria-label={String(value)}
           >
-            {value}
-          </Button>
+            <Star
+              size={17}
+              className={cn(value <= rating ? "fill-warning text-warning" : "text-border")}
+            />
+          </button>
         ))}
+        {rating > 0 ? (
+          <span className="ml-1.5 tnum text-[13px] font-medium text-foreground">{rating}.0</span>
+        ) : null}
+        {ticket.closePolicy?.closeCode ? (
+          <span className="ml-auto text-[11px] text-muted-foreground">
+            {ticket.closePolicy.closeCode.name}
+          </span>
+        ) : null}
       </div>
       {csat.submitted && csat.comment ? (
-        <p className="text-[12.5px] text-foreground">{csat.comment}</p>
+        <p className="px-4 pb-4 text-[12.5px] text-foreground">{csat.comment}</p>
       ) : null}
       {canSubmit ? (
-        <>
-          <label className={labelClassName}>
-            {t("tickets.csat.comment")}
-            <textarea
-              className={textareaClassName}
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              rows={3}
-            />
-          </label>
+        <div className="grid gap-2 border-t border-border/70 px-4 py-3">
+          <textarea
+            className={textareaClassName}
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            rows={3}
+            placeholder={t("tickets.csat.comment")}
+          />
           <Button type="button" size="sm" disabled={rating < 1 || isSaving} onClick={() => void submit()}>
             {isSaving ? t("tickets.csat.submitting") : t("tickets.csat.submit")}
           </Button>
-        </>
+        </div>
       ) : null}
     </Card>
   );

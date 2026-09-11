@@ -62,6 +62,9 @@ export default {
         section: ["14px", { lineHeight: "20px" }],
         page: ["19px", { lineHeight: "24px" }],
       },
+      opacity: {
+        6: "0.06",
+      },
       transitionTimingFunction: {
         enterprise: "cubic-bezier(0.22, 0.68, 0.36, 1)",
       },

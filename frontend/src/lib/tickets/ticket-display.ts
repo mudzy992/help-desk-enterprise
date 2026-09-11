@@ -63,3 +63,59 @@ export function truncateIdentifier(value: string | null): string {
   }
   return `${value.slice(0, 8)}…`;
 }
+
+export function formatRelativeTicketTime(value: string, locale: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  const diffMs = date.getTime() - Date.now();
+  const absolute = Math.abs(diffMs);
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const minute = 60_000;
+  const hour = 3_600_000;
+  const day = 86_400_000;
+  if (absolute < minute) {
+    return formatter.format(0, "second");
+  }
+  if (absolute < hour) {
+    return formatter.format(Math.round(diffMs / minute), "minute");
+  }
+  if (absolute < day) {
+    return formatter.format(Math.round(diffMs / hour), "hour");
+  }
+  return formatter.format(Math.round(diffMs / day), "day");
+}
+
+export function formatByteSize(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function formatDurationMinutes(seconds: number | null): string {
+  if (seconds === null) {
+    return "—";
+  }
+  const totalMinutes = Math.max(0, Math.round(seconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) {
+    return `${minutes}m`;
+  }
+  return `${hours}h ${minutes}m`;
+}
+
+export function directoryDisplayName(
+  names: ReadonlyMap<string, string>,
+  userId: string | null,
+): string | null {
+  if (userId === null || userId.length === 0) {
+    return null;
+  }
+  return names.get(userId) ?? truncateIdentifier(userId);
+}

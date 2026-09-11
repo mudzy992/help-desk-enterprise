@@ -140,6 +140,7 @@ export function useTicketList() {
     setPage,
     paged,
     visible,
+    tickets,
     unroutedCount,
     serviceNames,
     services,

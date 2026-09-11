@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { labelClassName, selectClassName, textareaClassName } from "@/components/ui/control";
+import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketClosePolicy, TicketStatus } from "@/services/tickets-api";
 
 interface TicketResolveFieldsProperties {
@@ -28,10 +30,11 @@ export function TicketResolveFields({
 }: TicketResolveFieldsProperties) {
   const { t } = useTranslation();
   const codes = closePolicy?.allowedCodes ?? [];
+  const pendingStatusLabel = ticketText(t, ticketStatusLabelKey[pendingStatus]);
   return (
-    <div className="mt-3 grid max-w-lg gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+    <div className="grid max-w-lg gap-3">
       <p className="text-[12.5px] text-muted-foreground">
-        {t("tickets.detail.resolveHint", { status: t(`tickets.status.${pendingStatus}`) })}
+        {ticketText(t, "tickets.detail.resolveHint", { status: pendingStatusLabel })}
       </p>
       {closePolicy?.enabled === true && codes.length > 0 ? (
         <label className={labelClassName}>
@@ -45,7 +48,7 @@ export function TicketResolveFields({
             <option value="">{t("tickets.detail.closeCodePlaceholder")}</option>
             {codes.map((code) => (
               <option key={code.key} value={code.key}>
-                {t(`tickets.closeCodes.${code.key}`, { defaultValue: code.name })}
+                {code.name}
               </option>
             ))}
           </select>

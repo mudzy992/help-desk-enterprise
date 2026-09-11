@@ -2,8 +2,9 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { hintClassName, labelClassName, selectClassName } from "@/components/ui/control";
+import { Card, CardHeader } from "@/components/ui/card";
+import { hintClassName, selectClassName } from "@/components/ui/control";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type {
   ParticipantRole,
@@ -28,12 +29,12 @@ export function TicketParticipantsPanel({
   const { t } = useTranslation();
   const [userId, setUserId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const participantNames = new Map(
-    directoryUsers.map((user) => [user.id, user.displayName]),
-  );
+  const [adding, setAdding] = useState(false);
+  const names = new Map(directoryUsers.map((user) => [user.id, user.displayName]));
   const assignable = directoryUsers.filter(
     (user) => !items.some((item) => item.userId === user.id),
   );
+  const watchers = items.filter((item) => item.role === "WATCHER");
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -44,85 +45,76 @@ export function TicketParticipantsPanel({
     try {
       await onAdd("WATCHER", userId.trim());
       setUserId("");
+      setAdding(false);
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Card className="grid gap-2 px-4 py-3.5">
-      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.participants")}</h3>
-      <ul className="grid gap-2">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-            <span className="inline-flex min-w-0 items-center gap-2">
-              <Avatar
-                name={
-                  (item.userId === null ? null : participantNames.get(item.userId)) ??
-                  item.userId ??
-                  item.groupId ??
-                  "?"
-                }
-                size="sm"
-              />
-              <span>
-                {t(`tickets.participantRole.${item.role}`)} ·{" "}
-                {(item.userId === null
-                  ? null
-                  : participantNames.get(item.userId)) ??
-                  item.userId ??
-                  item.groupId}
-              </span>
+    <Card>
+      <CardHeader
+        title={t("tickets.detail.participants")}
+        subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
+        actions={
+          canManage ? (
+            <Button type="button" variant="ghost" size="xs" onClick={() => setAdding(true)}>
+              {t("tickets.detail.addWatcher")}
+            </Button>
+          ) : null
+        }
+      />
+      <div className="flex flex-wrap gap-2 px-4 py-4">
+        {items.map((item) => {
+          const name =
+            (item.userId === null ? null : names.get(item.userId)) ??
+            item.userId ??
+            item.groupId ??
+            "?";
+          return (
+            <span
+              key={item.id}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-elevated/50 py-1 pl-1 pr-2"
+            >
+              <Avatar name={name} size="xs" />
+              <span className="text-[11.5px] text-foreground/85">{name}</span>
+              {canManage && item.role === "WATCHER" ? (
+                <button
+                  type="button"
+                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    if (window.confirm(t("tickets.detail.confirmRemove"))) {
+                      void onRemove(item.id);
+                    }
+                  }}
+                >
+                  ×
+                </button>
+              ) : null}
             </span>
-            {canManage ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (window.confirm(t("tickets.detail.confirmRemove"))) {
-                    void onRemove(item.id);
-                  }
-                }}
-              >
-                {t("tickets.detail.removeParticipant")}
-              </Button>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      {canManage ? (
-        <form className="grid gap-2" onSubmit={(event) => void submit(event)}>
-          <label className={labelClassName}>
-            {t("tickets.detail.participantUser")}
-            {assignable.length === 0 ? (
-              <span className={hintClassName}>
-                {t("tickets.detail.participantDirectoryEmpty")}
-              </span>
-            ) : (
-              <select
-                className={selectClassName}
-                value={userId}
-                onChange={(event) => setUserId(event.target.value)}
-                required
-              >
-                <option value="">
-                  {t("tickets.detail.participantPlaceholder")}
+          );
+        })}
+      </div>
+      {canManage && adding ? (
+        <form className="grid gap-2 border-t border-border/70 px-4 py-3" onSubmit={(event) => void submit(event)}>
+          {assignable.length === 0 ? (
+            <span className={hintClassName}>{t("tickets.detail.participantDirectoryEmpty")}</span>
+          ) : (
+            <select
+              className={selectClassName}
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
+              required
+            >
+              <option value="">{t("tickets.detail.participantPlaceholder")}</option>
+              {assignable.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName}
                 </option>
-                {assignable.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.displayName} · {user.email}
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
-          <Button
-            type="submit"
-            size="sm"
-            variant="outline"
-            disabled={isSaving || userId.trim().length === 0}
-          >
+              ))}
+            </select>
+          )}
+          <Button type="submit" size="xs" variant="outline" disabled={isSaving || userId.trim().length === 0}>
             {t("tickets.detail.addParticipant")}
           </Button>
         </form>
@@ -130,4 +122,3 @@ export function TicketParticipantsPanel({
     </Card>
   );
 }
-

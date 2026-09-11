@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckSquare, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
@@ -7,7 +8,10 @@ import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-er
 import {
   ticketPriorityValues,
   ticketStatusValues,
+  ticketPriorityLabelKey,
+  ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   executeTicketBulk,
   previewTicketBulk,
@@ -38,8 +42,10 @@ export function TicketBulkBar({
   }
   const ticketIds = [...selectedIds];
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
-      <span className="tnum text-[12.5px] font-medium">{t("tickets.bulk.selected", { count: selectedIds.size })}</span>
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
+      <CheckSquare size={14} className="text-[#7FA8F5]" />
+      <span className="tnum text-[12.5px] font-medium text-foreground">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
+      <div className="mx-1 h-4 w-px bg-border" />
       <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
         <option value="assign_group">{t("tickets.bulk.assignGroup")}</option>
         <option value="assign_user">{t("tickets.bulk.assignUser")}</option>
@@ -52,14 +58,14 @@ export function TicketBulkBar({
         <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
           <option value="">{t("tickets.filters.all")}</option>
           {ticketStatusValues.filter((status) => !isBulkCloseStatus(status)).map((status) => (
-            <option key={status} value={status}>{t(`tickets.status.${status}`)}</option>
+            <option key={status} value={status}>{ticketText(t, ticketStatusLabelKey[status])}</option>
           ))}
         </select>
       ) : actionType === "set_priority" ? (
         <select className={`${selectCompactClassName} w-auto min-w-[9rem]`} value={value} onChange={(event) => setValue(event.target.value)}>
           <option value="">{t("tickets.filters.all")}</option>
           {ticketPriorityValues.map((priority) => (
-            <option key={priority} value={priority}>{t(`tickets.priority.${priority}`)}</option>
+            <option key={priority} value={priority}>{ticketText(t, ticketPriorityLabelKey[priority])}</option>
           ))}
         </select>
       ) : (
@@ -73,7 +79,9 @@ export function TicketBulkBar({
       <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()}>
         {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
       </Button>
-      <Button type="button" size="sm" variant="outline" onClick={onClear}>{t("tickets.bulk.clear")}</Button>
+      <button type="button" onClick={onClear} className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground">
+        <X size={13} />
+      </button>
     </div>
   );
 

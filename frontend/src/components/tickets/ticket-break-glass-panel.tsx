@@ -1,9 +1,10 @@
+import { ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { labelClassName, textareaClassName, hintClassName, errorTextClassName } from "@/components/ui/control";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import { requestTicketBreakGlass } from "@/services/tickets-confidential-api";
 
 interface TicketBreakGlassPanelProperties {
@@ -21,9 +22,9 @@ export function TicketBreakGlassPanel({
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
 
   return (
-    <section className="max-w-xl rounded-lg border border-warning/35 bg-warning/10 px-4 py-4">
-      <div className="flex items-start gap-2">
-        <ShieldAlert size={16} strokeWidth={1.9} className="mt-0.5 text-warning" />
+    <section className="max-w-xl rounded-lg border border-warning/35 bg-warning/10 px-5 py-4">
+      <div className="flex items-start gap-3">
+        <ShieldAlert size={16} strokeWidth={1.9} className="mt-0.5 shrink-0 text-warning" />
         <div>
           <h2 className="text-[13.5px] font-semibold text-foreground">
             {t("tickets.confidential.breakGlassTitle")}
@@ -42,11 +43,12 @@ export function TicketBreakGlassPanel({
           required
         />
       </label>
-      {errorKey ? <p className={`mt-2 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
+      {errorKey ? <p className={`mt-2 ${errorTextClassName}`}>{ticketText(t, errorKey)}</p> : null}
       <Button
         type="button"
         className="mt-3"
         size="sm"
+        variant="outline"
         disabled={isSaving || reason.trim().length === 0}
         onClick={() => {
           setIsSaving(true);

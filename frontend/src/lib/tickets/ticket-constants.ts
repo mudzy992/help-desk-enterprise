@@ -50,3 +50,38 @@ export const allowedTicketStatusTransitions: Readonly<
   CLOSED: [],
   ARCHIVED: [],
 };
+
+export const ticketStatusLabelKey = {
+  PENDING: "tickets.status.PENDING",
+  UNROUTED: "tickets.status.UNROUTED",
+  PENDING_APPROVAL: "tickets.status.PENDING_APPROVAL",
+  ASSIGNED: "tickets.status.ASSIGNED",
+  IN_PROGRESS: "tickets.status.IN_PROGRESS",
+  WAITING_FOR_USER: "tickets.status.WAITING_FOR_USER",
+  RESOLVED: "tickets.status.RESOLVED",
+  CLOSED: "tickets.status.CLOSED",
+  ARCHIVED: "tickets.status.ARCHIVED",
+} as const;
+
+export const ticketPriorityLabelKey = {
+  LOW: "tickets.priority.LOW",
+  MEDIUM: "tickets.priority.MEDIUM",
+  HIGH: "tickets.priority.HIGH",
+  CRITICAL: "tickets.priority.CRITICAL",
+} as const;
+
+export const ticketSeverityLabelKey = {
+  LOW: "tickets.severity.LOW",
+  MEDIUM: "tickets.severity.MEDIUM",
+  HIGH: "tickets.severity.HIGH",
+  CRITICAL: "tickets.severity.CRITICAL",
+} as const;
+
+export const ticketViewLabelKey = {
+  inbox: "tickets.views.inbox",
+  assigned: "tickets.views.assigned",
+  unassigned: "tickets.views.unassigned",
+  requested: "tickets.views.requested",
+  all: "tickets.views.all",
+} as const;
+

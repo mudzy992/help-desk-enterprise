@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ticketWorkspaceViews, type TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
+import { ticketWorkspaceViews, ticketViewLabelKey, type TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 
 interface TicketWorkspaceNavProperties {
@@ -33,7 +34,7 @@ export function TicketWorkspaceNav({
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          {t(`tickets.views.${item}`)}
+          {ticketText(t, ticketViewLabelKey[item])}
           {view === item ? (
             <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
           ) : null}

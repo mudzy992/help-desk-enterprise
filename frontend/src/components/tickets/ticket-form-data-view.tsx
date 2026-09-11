@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 
 interface TicketFormDataViewProperties {
   readonly formData: unknown;
@@ -15,15 +15,13 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
     return null;
   }
   return (
-    <Card className="px-4 py-3.5">
-      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.formData")}</h3>
-      <dl className="mt-3 grid gap-3">
+    <Card>
+      <CardHeader title={t("tickets.detail.formData")} />
+      <dl className="space-y-2.5 px-4 py-4 text-[12px]">
         {entries.map(([key, value]) => (
-          <div key={key}>
-            <dt className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
-              {key}
-            </dt>
-            <dd className="mt-0.5 text-[13px] text-foreground">
+          <div key={key} className="flex items-start justify-between gap-3">
+            <dt className="shrink-0 text-muted-foreground">{key}</dt>
+            <dd className="text-right text-foreground/90">
               {Array.isArray(value) ? value.join(", ") : String(value)}
             </dd>
           </div>

@@ -1,13 +1,9 @@
 import { type FormEvent, useState } from "react";
+import { MessageSquareLock, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import {
-  filterChipActiveClassName,
-  filterChipClassName,
-  filterChipIdleClassName,
-  labelClassName,
-  textareaClassName,
-} from "@/components/ui/control";
+import { Card } from "@/components/ui/card";
+import { textareaClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 import {
   defaultMessageType,
@@ -19,21 +15,27 @@ import type { MessageType } from "@/services/tickets-collaboration-api";
 interface TicketMessageComposerProperties {
   readonly access: ComposerAccess;
   readonly isSending: boolean;
+  readonly canWaitForUser?: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
+  readonly onWaitForUser?: () => void;
 }
 
 export function TicketMessageComposer({
   access,
   isSending,
+  canWaitForUser = false,
   onSend,
+  onWaitForUser,
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const types = messageTypesForAccess(access);
-  const [type, setType] = useState<MessageType>(defaultMessageType(access));
+  const canInternal = types.includes("INTERNAL_NOTE");
+  const [internal, setInternal] = useState(false);
   const [body, setBody] = useState("");
+  const publicType = defaultMessageType(access);
+  const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submit = async () => {
     if (body.trim().length === 0) {
       return;
     }
@@ -41,40 +43,100 @@ export function TicketMessageComposer({
     setBody("");
   };
 
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submit();
+  };
+
   return (
-    <form className="mt-4 grid gap-3 border-t border-border/70 pt-4" onSubmit={(event) => void onSubmit(event)}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-[12.5px] font-medium text-foreground">
-          {t("tickets.detail.messageType")}
-        </span>
-        {types.map((item) => (
+    <Card className="mt-4">
+      <form onSubmit={(event) => void onSubmit(event)}>
+        <div className="flex items-center gap-1 border-b border-border/70 px-3 py-2">
           <button
-            key={item}
             type="button"
-            onClick={() => setType(item)}
+            onClick={() => setInternal(false)}
             className={cn(
-              filterChipClassName,
-              type === item ? filterChipActiveClassName : filterChipIdleClassName,
+              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
+              !internal
+                ? "bg-primary/15 text-[#7FA8F5]"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t(`tickets.messageType.${item}`)}
+            <Send size={12.5} /> {t("tickets.detail.publicReply")}
           </button>
-        ))}
-      </div>
-      <label className={labelClassName}>
-        {t("tickets.detail.compose")}
-        <textarea
-          className={textareaClassName}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          required
-        />
-      </label>
-      <div>
-        <Button type="submit" disabled={isSending || body.trim().length === 0}>
-          {isSending ? t("tickets.detail.sending") : t("tickets.detail.send")}
-        </Button>
-      </div>
-    </form>
+          {canInternal ? (
+            <button
+              type="button"
+              onClick={() => setInternal(true)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
+                internal
+                  ? "bg-warning/15 text-warning"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <MessageSquareLock size={12.5} /> {t("tickets.detail.internalNote")}
+            </button>
+          ) : null}
+          <span className="ml-auto text-[11px] text-muted-foreground/70">
+            {internal ? t("tickets.detail.internalHint") : t("tickets.detail.publicHint")}
+          </span>
+        </div>
+        <div className="p-3">
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                void submit();
+              }
+            }}
+            placeholder={
+              internal ? t("tickets.detail.composeInternal") : t("tickets.detail.composePublic")
+            }
+            className={cn(textareaClassName, "min-h-20 resize-y")}
+            disabled={isSending}
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-muted-foreground/60">
+              {t("tickets.detail.attachHint")}
+            </span>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              {!internal && canWaitForUser && onWaitForUser ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isSending}
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        if (body.trim().length > 0) {
+                          await submit();
+                        }
+                        onWaitForUser();
+                      } catch {
+                        return;
+                      }
+                    })();
+                  }}
+                >
+                  {t("tickets.detail.waitForUser")}
+                </Button>
+              ) : null}
+              <Button type="submit" size="sm" disabled={isSending || body.trim().length === 0}>
+                <Send size={13} />
+                {isSending
+                  ? t("tickets.detail.sending")
+                  : internal
+                    ? t("tickets.detail.sendNote")
+                    : t("tickets.detail.send")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </Card>
   );
 }
