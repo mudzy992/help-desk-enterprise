@@ -24,6 +24,7 @@ services:
     networks:
       - default
       - redis_net
+      - db_net
 
   worker:
     build: ./backend
@@ -34,11 +35,15 @@ services:
     networks:
       - default
       - redis_net
+      - db_net
 
 volumes:
   uploads:
 
 networks:
+  db_net:
+    external: true
+    name: db_net
   redis_net:
     external: true
     name: redis_net
