@@ -8,6 +8,7 @@ import { calculateTicketPriority } from './calculate-ticket-priority';
 import { applyTicketResolution } from './close-codes/apply-ticket-resolution';
 import type { TicketCloseCodesConfiguration } from './close-codes/close-codes.types';
 import { loadOrganizationalUnitPath } from '../authorization/load-authorization-scope';
+import { assertTicketWritable } from './archive/assert-ticket-writable';
 import { getTicket } from './get-ticket';
 import { ticketSystemEventActions } from './collaboration.constants';
 import type { TicketPersistedMessageSink } from './collaboration.types';
@@ -75,6 +76,7 @@ export async function updateTicket(
     serviceId: current.serviceId,
   });
   const nextStatus = input.status ?? current.status;
+  assertTicketWritable(current, context);
   if (input.status !== undefined) {
     assertPatchTicketStatus({
       context: authContext,

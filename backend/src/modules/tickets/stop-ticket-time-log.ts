@@ -36,6 +36,7 @@ export async function stopTicketTimeLog(
     authorizationContextLoader,
     ticketId,
     context,
+    { writable: true },
   );
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,

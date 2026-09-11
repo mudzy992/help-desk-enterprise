@@ -21,6 +21,9 @@ export async function assertTicketAttachmentPermission(
     authorizationContextLoader,
     ticketId,
     context,
+    {
+      writable: permissionKey === permissionKeys.ticketAttachmentsUpload,
+    },
   );
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,

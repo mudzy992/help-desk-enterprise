@@ -74,6 +74,11 @@ export function TicketDetailHeader({
           {t("tickets.detail.waitingForUserHint")}
         </p>
       ) : null}
+      {ticket.status === "ARCHIVED" ? (
+        <p className="mt-2 text-[12.5px] text-muted-foreground">
+          {t("tickets.detail.archivedHint")}
+        </p>
+      ) : null}
       {canChangeStatus && nextStatuses.length > 0 ? (
         <label className={`mt-1 max-w-xs ${labelClassName}`}>
           {t("tickets.detail.changeStatus")}

@@ -37,6 +37,15 @@ describe("mapTicketError", () => {
     expect(
       mapTicketError(new ApiError(400, "BREAK_GLASS_REASON_REQUIRED", "no")),
     ).toBe("tickets.errorBreakGlassReason");
+    expect(mapTicketError(new ApiError(403, "CSAT_DISABLED", "no"))).toBe(
+      "tickets.errorCsatDisabled",
+    );
+    expect(mapTicketError(new ApiError(409, "CSAT_ALREADY_SUBMITTED", "no"))).toBe(
+      "tickets.errorCsatDuplicate",
+    );
+    expect(mapTicketError(new ApiError(403, "TICKET_ARCHIVED_READ_ONLY", "no"))).toBe(
+      "tickets.errorArchivedReadOnly",
+    );
     expect(mapTicketError(new Error("network"))).toBe("tickets.errorGeneric");
   });
 });

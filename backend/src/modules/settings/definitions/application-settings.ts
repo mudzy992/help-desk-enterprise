@@ -25,6 +25,8 @@ import { securityRedactionSettings } from './security-redaction-settings';
 import { securitySafeLoggingSettings } from './security-safe-logging-settings';
 import { ticketConfidentialSettings } from './ticket-confidential-settings';
 import { guardrailsSettings } from './guardrails-settings';
+import { ticketCsatSettings } from './ticket-csat-settings';
+import { dataLifecycleSettings } from './data-lifecycle-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -49,6 +51,8 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...securitySafeLoggingSettings,
   ...ticketConfidentialSettings,
   ...guardrailsSettings,
+  ...ticketCsatSettings,
+  ...dataLifecycleSettings,
   ...changeLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

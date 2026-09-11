@@ -1,4 +1,5 @@
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
+import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
@@ -26,7 +27,8 @@ interface TicketDetailSideStackProperties {
   readonly currentUserId: string | null;
   readonly isTimeSaving: boolean;
   readonly onSplitComplete: (children: readonly TicketResponse[]) => void;
-  readonly onSplitError: (key: TicketErrorKey) => void;
+  readonly onError: (key: TicketErrorKey) => void;
+  readonly onCsatComplete: (ticket: TicketResponse) => void;
   readonly onApprove: (approvalId: string, comment: string) => Promise<void>;
   readonly onReject: (approvalId: string, comment: string) => Promise<void>;
   readonly onAddParticipant: (role: ParticipantRole, userId: string) => Promise<void>;
@@ -39,11 +41,16 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
   return (
     <div className="grid gap-4">
       <TicketDetailSidebar ticket={props.ticket} originName={props.originName} />
+      <TicketCsatPanel
+        ticket={props.ticket}
+        onComplete={props.onCsatComplete}
+        onError={props.onError}
+      />
       <TicketSplitPanel
         ticket={props.ticket}
         visible={props.canSplit}
         onComplete={props.onSplitComplete}
-        onError={props.onSplitError}
+        onError={props.onError}
       />
       <TicketApprovalsPanel
         items={props.approvals}

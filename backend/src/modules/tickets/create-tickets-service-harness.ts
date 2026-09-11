@@ -19,11 +19,11 @@ import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
-import { TicketsService } from './tickets.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { defaultWaitingForUserConfiguration } from './waiting-for-user/waiting-for-user.constants';
 import { createTicketsGovernanceHarness } from './create-tickets-governance-harness';
 import { createTicketPolicyHarness } from './create-ticket-policy-harness';
+import { createTicketsLifecycleHarness } from './create-tickets-lifecycle-harness';
 
 export { ticketsTestIds } from './tickets-test-ids';
 export { vpnFormSchema } from './seed-tickets-harness-catalog';
@@ -124,21 +124,24 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader,
   );
   const realtimeHub = new TicketRealtimeHub();
-  const tickets = new TicketsService(
-    memory.prisma as never,
+  const lifecycle = createTicketsLifecycleHarness({
+    prisma: memory.prisma,
     routing,
-    authorizationContextLoader as never,
+    authorizationContextLoader,
     assignment,
-    approvalsLoader as never,
-    reopenLoader as never,
-    closeCodesLoader as never,
-    requiredFieldsLoader as never,
-    redactionLoader as never,
-    guardrailsLoader as never,
-    policy.confidentialLoader as never,
-    policy.safeLoggingLoader as never,
+    approvalsLoader,
+    reopenLoader,
+    closeCodesLoader,
+    requiredFieldsLoader,
+    redactionLoader,
+    guardrailsLoader,
+    accessPolicies: policy.accessPolicies,
+    confidentialLoader: policy.confidentialLoader,
+    safeLoggingLoader: policy.safeLoggingLoader,
+    archiveLoader: policy.archiveLoader,
     realtimeHub,
-  );
+  });
+  const tickets = lifecycle.tickets;
   const approvals = new TicketsApprovalsService(
     memory.prisma as never,
     authorizationContextLoader as never,
@@ -204,6 +207,8 @@ export function createTicketsServiceHarness() {
     collaboration,
     timeTracking,
     waitingAutomation,
+    archiveAutomation: lifecycle.archiveAutomation,
+    csat: lifecycle.csat,
     realtimeHub,
     contexts,
     assignmentConfig,
@@ -214,6 +219,8 @@ export function createTicketsServiceHarness() {
     requiredFieldsConfig,
     redactionConfig,
     guardrailsConfig,
+    csatConfig: lifecycle.csatConfig,
+    archiveConfig: policy.archiveConfig,
     confidentialConfig: policy.confidentialConfig,
     safeLoggingConfig: policy.safeLoggingConfig,
     confidential: policy.confidential,

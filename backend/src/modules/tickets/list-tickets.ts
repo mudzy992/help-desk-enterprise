@@ -10,12 +10,15 @@ import type {
   TicketMutationContext,
   TicketRecord,
 } from './tickets.types';
+import type { TicketArchiveConfiguration } from './archive/archive.types';
+import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
 
 export async function listTickets(
   prisma: PrismaService,
   authorizationContextLoader: AuthorizationContextLoader,
   query: ListTicketsQuery,
   context: TicketMutationContext,
+  archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
 ): Promise<readonly TicketRecord[]> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -23,13 +26,20 @@ export async function listTickets(
   if (authContext === null) {
     throw new TicketsError('FORBIDDEN');
   }
+  if (
+    query.status === 'ARCHIVED' &&
+    !archive.searchable &&
+    !authContext.isSuperAdmin
+  ) {
+    return [];
+  }
   const records = (await prisma.ticket.findMany({
     where: {
       ...(query.originUnitId === undefined
         ? {}
         : { originUnitId: query.originUnitId }),
       ...(query.serviceId === undefined ? {} : { serviceId: query.serviceId }),
-      ...(query.status === undefined ? {} : { status: query.status }),
+      ...ticketStatusWhere(query),
     },
     orderBy: { createdAt: 'desc' },
   })) as TicketRecord[];
@@ -89,4 +99,16 @@ function passesBaselineListVisibility(
     originUnitPath,
     serviceId: ticket.serviceId,
   });
+}
+
+function ticketStatusWhere(query: ListTicketsQuery): {
+  status?: ListTicketsQuery['status'] | { not: 'ARCHIVED' };
+} {
+  if (query.status !== undefined) {
+    return { status: query.status };
+  }
+  if (query.includeArchived === true) {
+    return {};
+  }
+  return { status: { not: 'ARCHIVED' } };
 }

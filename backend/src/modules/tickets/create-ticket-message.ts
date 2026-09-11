@@ -33,6 +33,7 @@ export async function createTicketMessage(
     authorizationContextLoader,
     ticketId,
     context,
+    { writable: true },
   );
   const normalized = normalizeTicketMessageInput(input, access, configuration);
   const scan = scanTicketContent({

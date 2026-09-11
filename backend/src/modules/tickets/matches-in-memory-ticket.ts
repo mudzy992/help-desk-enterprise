@@ -17,7 +17,8 @@ export function matchesInMemoryTicket(
     matchesAssignedGroupId(ticket.assignedGroupId, where.assignedGroupId) &&
     matchesAssignedUserId(ticket.assignedUserId, where.assignedUserId) &&
     matchesNullable(ticket.parentTicketId, where.parentTicketId) &&
-    matchesNullable(ticket.mergedIntoTicketId, where.mergedIntoTicketId)
+    matchesNullable(ticket.mergedIntoTicketId, where.mergedIntoTicketId) &&
+    matchesClosedAt(ticket.closedAt, where.closedAt)
   );
 }
 
@@ -47,7 +48,7 @@ function matchesNullable(
 
 function matchesStatus(
   status: string,
-  expected?: string | { in: readonly string[] },
+  expected?: string | { in: readonly string[] } | { not: string },
 ): boolean {
   if (expected === undefined) {
     return true;
@@ -55,7 +56,23 @@ function matchesStatus(
   if (typeof expected === 'string') {
     return status === expected;
   }
+  if ('not' in expected) {
+    return status !== expected.not;
+  }
   return expected.in.includes(status);
+}
+
+function matchesClosedAt(
+  actual: Date | null,
+  expected?: { lte: Date },
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  if (actual === null) {
+    return false;
+  }
+  return actual.getTime() <= expected.lte.getTime();
 }
 
 function matchesAssignedGroupId(

@@ -6,12 +6,14 @@ import type { TicketActorAccess } from './collaboration.types';
 import { loadTicketRecord } from './load-ticket-record';
 import { TicketsError } from './tickets.error';
 import type { TicketMutationContext, TicketRecord } from './tickets.types';
+import { assertTicketWritable } from './archive/assert-ticket-writable';
 
 export async function loadAccessibleTicket(
   prisma: PrismaService,
   authorizationContextLoader: AuthorizationContextLoader,
   ticketId: string,
   context: TicketMutationContext,
+  options: { readonly writable?: boolean } = {},
 ): Promise<{ ticket: TicketRecord; access: TicketActorAccess }> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -33,5 +35,8 @@ export async function loadAccessibleTicket(
     originUnitPath,
     confidential: context.confidential,
   });
+  if (options.writable === true) {
+    assertTicketWritable(ticket, context);
+  }
   return { ticket, access };
 }

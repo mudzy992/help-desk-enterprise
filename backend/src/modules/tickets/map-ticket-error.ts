@@ -47,6 +47,8 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'SAVED_VIEWS_DISABLED',
   'CONFIDENTIAL_ACCESS_DENIED',
   'BREAK_GLASS_DISABLED',
+  'CSAT_DISABLED',
+  'TICKET_ARCHIVED_READ_ONLY',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -64,6 +66,8 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'REDACTION_UNAVAILABLE',
   'CONFIDENTIAL_UNAVAILABLE',
   'GUARDRAILS_UNAVAILABLE',
+  'CSAT_UNAVAILABLE',
+  'ARCHIVE_UNAVAILABLE',
 ];
 
 export function mapTicketError(error: unknown): HttpException {
@@ -90,7 +94,8 @@ export function mapTicketError(error: unknown): HttpException {
   if (
     error.code === 'OVERLAPPING_TIMER' ||
     error.code === 'SAVED_VIEW_NAME_TAKEN' ||
-    error.code === 'DUPLICATE_TICKET_BLOCKED'
+    error.code === 'DUPLICATE_TICKET_BLOCKED' ||
+    error.code === 'CSAT_ALREADY_SUBMITTED'
   ) {
     return new ConflictException(body);
   }

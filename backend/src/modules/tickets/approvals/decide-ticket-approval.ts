@@ -38,6 +38,7 @@ export async function decideTicketApproval(
     authorizationContextLoader,
     ticketId,
     context,
+    { writable: true },
   );
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,

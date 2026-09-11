@@ -37,6 +37,7 @@ export async function splitTicket(input: {
     input.authorizationContextLoader,
     input.ticketId,
     input.context,
+    { writable: true },
   );
   const authContext = await input.authorizationContextLoader.loadBySubjectId(
     input.context.actorUserId,

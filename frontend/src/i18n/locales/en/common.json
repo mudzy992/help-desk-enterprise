@@ -409,7 +409,16 @@
       "messageType": "Message type",
       "noMessages": "No messages yet.",
       "noMessagesHint": "Send the first public reply or an internal note.",
-      "systemEvent": "System event"
+      "systemEvent": "System event",
+      "archivedHint": "This ticket is archived and read-only. Data was not deleted."
+    },
+    "csat": {
+      "title": "CSAT rating",
+      "hint": "Rate the ticket resolution (1 is lowest).",
+      "submitted": "The rating has been recorded.",
+      "comment": "Comment (optional)",
+      "submit": "Submit rating",
+      "submitting": "Submitting…"
     },
     "split": {
       "title": "Split ticket",
@@ -492,6 +501,10 @@
     "errorBulkBroadcastConfirm": "This broadcast is above the recipient threshold and needs extra confirmation.",
     "errorConfidentialBreakGlass": "This confidential ticket requires break-glass access with a reason.",
     "errorBreakGlassReason": "Break-glass access requires a reason.",
+    "errorCsatDisabled": "CSAT feedback is disabled.",
+    "errorCsatNotEligible": "CSAT feedback is not available for this ticket.",
+    "errorCsatDuplicate": "CSAT feedback was already submitted for this ticket.",
+    "errorArchivedReadOnly": "Archived tickets are read-only.",
     "confidential": {
       "badge": "Confidential",
       "breakGlassTitle": "Confidential ticket — break-glass",

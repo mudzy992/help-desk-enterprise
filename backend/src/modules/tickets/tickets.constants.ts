@@ -92,4 +92,6 @@ export const ticketChangeLogReasons = {
   confidentialBreakGlass: 'ticket_confidential_break_glass',
   guardrailDuplicate: 'ticket_guardrail_duplicate',
   guardrailLoopSuppressed: 'ticket_guardrail_loop_suppressed',
+  csatSubmit: 'ticket_csat_submitted',
+  archived: 'ticket_archived',
 } as const;

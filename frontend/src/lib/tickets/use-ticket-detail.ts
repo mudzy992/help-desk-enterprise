@@ -123,6 +123,7 @@ export function useTicketDetail(ticketId: string | undefined) {
     errorKey,
     actionError,
     setActionError,
+    applyTicket: setTicket,
     reload: load,
     claim: () => onTicket((id) => runAction(async () => {
       setTicket(await claimTicket(id));

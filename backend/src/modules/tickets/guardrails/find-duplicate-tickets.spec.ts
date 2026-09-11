@@ -40,6 +40,7 @@ describe('findDuplicateTickets window', () => {
       closedAt: null,
       waitingForUserEnteredAt: null,
       waitingForUserReminderSentAt: null,
+      archivedAt: null,
       createdAt: new Date('2026-09-11T11:00:00.000Z'),
       updatedAt: new Date('2026-09-11T11:00:00.000Z'),
     };

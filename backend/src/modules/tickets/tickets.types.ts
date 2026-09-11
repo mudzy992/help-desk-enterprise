@@ -9,6 +9,8 @@ import type { TicketClosePolicy } from './close-codes/close-codes.types';
 import type { RedactionMatch } from './redaction/redaction.types';
 import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
 import type { JsonValue } from '../change-log/change-log.types';
+import type { TicketArchiveConfiguration } from './archive/archive.types';
+import type { TicketCsatDescriptor } from './csat/csat.types';
 import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
 import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
 
@@ -37,6 +39,7 @@ export type TicketRecord = {
   readonly resolutionNote: string | null;
   readonly resolvedAt: Date | null;
   readonly closedAt: Date | null;
+  readonly archivedAt: Date | null;
   readonly waitingForUserEnteredAt: Date | null;
   readonly waitingForUserReminderSentAt: Date | null;
   readonly createdAt: Date;
@@ -66,9 +69,11 @@ export type TicketResponse = {
   readonly reopenedFromTicketId: string | null;
   readonly resolvedAt: string | null;
   readonly closedAt: string | null;
+  readonly archivedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
+  readonly csat?: TicketCsatDescriptor;
   readonly redactionWarnings?: readonly RedactionMatch[];
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
   readonly createdAt: string;
@@ -115,10 +120,12 @@ export type ListTicketsQuery = {
   readonly originUnitId?: string;
   readonly serviceId?: string;
   readonly status?: TicketStatus;
+  readonly includeArchived?: boolean;
 };
 
 export type TicketMutationContext = {
   readonly actorUserId: string;
   readonly confidential?: TicketConfidentialConfiguration;
   readonly safeLogging?: TicketSafeLoggingConfiguration;
+  readonly archive?: TicketArchiveConfiguration;
 };

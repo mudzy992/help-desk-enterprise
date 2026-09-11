@@ -106,4 +106,12 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   DUPLICATE_TICKET_BLOCKED:
     'A similar ticket was already created; acknowledge to continue',
   GUARDRAILS_UNAVAILABLE: 'Anti-loop guardrails are unavailable',
+  CSAT_DISABLED: 'CSAT feedback is disabled',
+  CSAT_UNAVAILABLE: 'CSAT feedback is unavailable',
+  CSAT_NOT_ELIGIBLE: 'CSAT feedback is not available for this ticket',
+  CSAT_ALREADY_SUBMITTED: 'CSAT feedback was already submitted for this ticket',
+  INVALID_CSAT_RATING: 'CSAT rating is invalid',
+  INVALID_CSAT_COMMENT: 'CSAT comment is invalid',
+  ARCHIVE_UNAVAILABLE: 'Ticket archive policy is unavailable',
+  TICKET_ARCHIVED_READ_ONLY: 'Archived tickets are read-only',
 };

@@ -65,6 +65,7 @@ export function createInMemoryTicketDelegate(
         resolutionNote: data.resolutionNote ?? null,
         resolvedAt: data.resolvedAt ?? null,
         closedAt: data.closedAt ?? null,
+        archivedAt: data.archivedAt ?? null,
         waitingForUserEnteredAt: data.waitingForUserEnteredAt ?? null,
         waitingForUserReminderSentAt: data.waitingForUserReminderSentAt ?? null,
         createdAt: now(),

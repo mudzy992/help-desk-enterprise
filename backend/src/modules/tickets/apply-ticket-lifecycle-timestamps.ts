@@ -11,6 +11,7 @@ export function applyTicketLifecycleTimestamps(input: {
   TicketRecord,
   | 'resolvedAt'
   | 'closedAt'
+  | 'archivedAt'
   | 'waitingForUserEnteredAt'
   | 'waitingForUserReminderSentAt'
 > {
@@ -26,6 +27,10 @@ export function applyTicketLifecycleTimestamps(input: {
   return {
     resolvedAt: nextResolvedAt(input.current, input.nextStatus, input.now, reopened),
     closedAt: nextClosedAt(input.current, input.nextStatus, input.now, reopened),
+    archivedAt:
+      input.nextStatus === 'ARCHIVED'
+        ? (input.current.archivedAt ?? input.now)
+        : input.current.archivedAt,
     waitingForUserEnteredAt: enteringWaiting
       ? input.now
       : leavingWaiting

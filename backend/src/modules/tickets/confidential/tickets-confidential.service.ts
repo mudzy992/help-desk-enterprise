@@ -4,6 +4,7 @@ import { AuthorizationContextLoader } from '../../authorization/authorization-co
 import { executeTicketOperation } from '../execute-ticket-operation';
 import type { TicketMutationContext } from '../tickets.types';
 import { withTicketAccessPolicies } from '../with-ticket-access-policies';
+import { TicketArchiveConfigurationLoader } from '../archive/ticket-archive-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './ticket-confidential-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from '../safe-logging/ticket-safe-logging-configuration.loader';
 import { requestConfidentialBreakGlass } from './request-confidential-break-glass';
@@ -16,6 +17,7 @@ export class TicketsConfidentialService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly confidentialLoader: TicketConfidentialConfigurationLoader,
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
+    private readonly archiveLoader: TicketArchiveConfigurationLoader,
   ) {}
 
   requestBreakGlass(
@@ -27,6 +29,7 @@ export class TicketsConfidentialService {
       const gated = await withTicketAccessPolicies(context, {
         confidential: this.confidentialLoader,
         safeLogging: this.safeLoggingLoader,
+        archive: this.archiveLoader,
       });
       return requestConfidentialBreakGlass(
         this.prisma,

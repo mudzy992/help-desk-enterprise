@@ -4,6 +4,7 @@ import { loadOrganizationalUnitPath } from '../../authorization/load-authorizati
 import { assertTicketVisible } from '../authorize-ticket-actor';
 import { assertConfidentialTicketAccess } from '../confidential/assert-confidential-ticket-access';
 import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
+import { assertTicketWritable } from '../archive/assert-ticket-writable';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 
@@ -51,6 +52,7 @@ export async function loadBulkTickets(
       configuration:
         context.confidential ?? defaultTicketConfidentialConfiguration,
     });
+    assertTicketWritable(ticket, context);
   }
   return records;
 }

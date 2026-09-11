@@ -63,7 +63,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Close codes + smart required fields + PII/secret redaction
 - [x] Confidential ACL + break-glass + safe logging
 - [x] Anti-loop / anti-spam guardrails
-- [ ] CSAT + auto-archive closed tickets
+- [x] CSAT + auto-archive closed tickets
 
 ## Faza 6 — SLA
 - [ ] BH kalendari + SLA profili/rules (CRUD + change log)
@@ -94,4 +94,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 5 — Anti-loop / anti-spam guardrails. Sljedeće: CSAT + auto-archive closed tickets.
+**Trenutni status:** Faza 6 — SLA.

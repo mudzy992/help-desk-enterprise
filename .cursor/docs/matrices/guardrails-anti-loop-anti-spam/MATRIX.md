@@ -37,4 +37,4 @@ Concurrent create za isti requester+service je serializovan (`runExclusiveGuardr
 Ako `recipientCount > confirmAboveRecipients`, preview `requiresBroadcastConfirmation=true` i execute zahtijeva `broadcastConfirmed: true` (`400 BULK_BROADCAST_CONFIRMATION_REQUIRED`). Postojeći preview/rate-limit ostaju.
 
 ## Namjerno NIJE
-CSAT, auto-archive, BullMQ job, AuditLog hash-chain, hard rate limit umjesto warn/soft-block.
+BullMQ job, AuditLog hash-chain, hard rate limit umjesto warn/soft-block.

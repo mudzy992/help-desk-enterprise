@@ -219,6 +219,18 @@ export const settingKeys = {
   privateGuardrailsAntiLoopMode: 'private.guardrails.antiLoop.mode',
   privateGuardrailsBulkBroadcastConfirmAboveRecipients:
     'private.guardrails.bulkBroadcast.confirmAboveRecipients',
+  privateCsatEnabled: 'private.csat.enabled',
+  privateCsatScaleMax: 'private.csat.scaleMax',
+  privateCsatAskOnResolved: 'private.csat.askOnResolved',
+  privateCsatAskOnClosed: 'private.csat.askOnClosed',
+  privateCsatSamplingRate: 'private.csat.samplingRate',
+  privateDataLifecycleArchiveEnabled: 'private.dataLifecycle.archive.enabled',
+  privateDataLifecycleArchiveAfterClosedDays:
+    'private.dataLifecycle.archive.afterClosedDays',
+  privateDataLifecycleArchiveArchivedReadOnly:
+    'private.dataLifecycle.archive.archivedReadOnly',
+  privateDataLifecycleArchiveSearchable:
+    'private.dataLifecycle.archive.searchable',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

@@ -29,6 +29,7 @@ export async function reopenSameTicket(input: {
     input.authorizationContextLoader,
     input.ticketId,
     input.context,
+    { writable: true },
   );
   if (!input.configuration.enabled) {
     throw new TicketsError('REOPEN_DISABLED');

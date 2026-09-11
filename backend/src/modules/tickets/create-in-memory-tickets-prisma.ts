@@ -38,6 +38,8 @@ import type {
 } from './confidential/confidential.types';
 import type { GuardrailClaimRecord } from './guardrails/guardrails.types';
 import { createInMemoryGuardrailClaimDelegate } from './guardrails/create-in-memory-guardrail-claim-delegate';
+import { createInMemoryTicketCsatDelegate } from './create-in-memory-ticket-csat-delegate';
+import type { TicketCsatRecord } from './csat/csat.types';
 import type { TicketRecord } from './tickets.types';
 import type {
   InMemoryTicketChangeLog,
@@ -66,6 +68,7 @@ export function createInMemoryTicketsPrisma() {
   const confidentialGrants = new Map<string, TicketConfidentialGrantRecord>();
   const breakGlassEvents = new Map<string, BreakGlassEventRecord>();
   const guardrailClaims = new Map<string, GuardrailClaimRecord>();
+  const csatSubmissions = new Map<string, TicketCsatRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -136,6 +139,7 @@ export function createInMemoryTicketsPrisma() {
       nextId,
       now,
     ),
+    ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -159,6 +163,7 @@ export function createInMemoryTicketsPrisma() {
     confidentialGrants,
     breakGlassEvents,
     guardrailClaims,
+    csatSubmissions,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {

@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
-import { TicketConversation } from "@/components/tickets/ticket-conversation";
+import { TicketDetailConversation } from "@/components/tickets/ticket-detail-conversation";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
 import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-blocking-state";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
-import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
@@ -83,7 +82,7 @@ export function TicketDetailPage() {
         <TicketDetailHeader
           ticket={ticket}
           serviceName={serviceName}
-          canChangeStatus={detail.canChangeStatus && canManageParticipants}
+          canChangeStatus={detail.canChangeStatus && canManageParticipants && ticket.status !== "ARCHIVED"}
           claiming={isClaiming}
           savingStatus={isSavingStatus}
           reopening={isReopening}
@@ -123,28 +122,25 @@ export function TicketDetailPage() {
             <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">{ticket.description}</p>
           </section>
           <TicketFormDataView formData={ticket.formData} />
-          <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
-            <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.conversation")}</h3>
-            <div className="mt-3">
-              <TicketConversation messages={detail.messages} currentUserId={currentUserId} />
-            </div>
-            <TicketMessageComposer
-              access={access}
-              isSending={isSending}
-              onSend={async (type, body) => {
-                setIsSending(true);
-                try {
-                  await detail.sendMessage(type, body);
-                } finally {
-                  setIsSending(false);
-                }
-              }}
-            />
-          </section>
+          <TicketDetailConversation
+            ticket={ticket}
+            messages={detail.messages}
+            currentUserId={currentUserId}
+            access={access}
+            isSending={isSending}
+            onSend={async (type, body) => {
+              setIsSending(true);
+              try {
+                await detail.sendMessage(type, body);
+              } finally {
+                setIsSending(false);
+              }
+            }}
+          />
           <TicketAttachmentsPanel
             items={detail.attachments}
             visible={detail.attachmentsVisible}
-            canUpload={detail.attachmentsVisible}
+            canUpload={detail.attachmentsVisible && ticket.status !== "ARCHIVED"}
             onUpload={detail.upload}
             onDownload={detail.download}
             onDelete={detail.removeAttachment}
@@ -153,12 +149,12 @@ export function TicketDetailPage() {
         <TicketDetailSideStack
             ticket={ticket}
             originName={originName}
-            canSplit={canManageParticipants}
+            canSplit={canManageParticipants && ticket.status !== "ARCHIVED"}
             approvals={approvals.items}
             approvalsVisible={approvals.visible}
             approvalsSaving={approvals.isSaving}
             participants={detail.participants}
-            canManageParticipants={canManageParticipants}
+            canManageParticipants={canManageParticipants && ticket.status !== "ARCHIVED"}
             timeLogs={detail.timeLogs}
             timeVisible={detail.timeVisible}
             currentUserId={currentUserId}
@@ -168,7 +164,8 @@ export function TicketDetailPage() {
                 navigate(`/tickets/${children[0].id}`);
               }
             }}
-            onSplitError={detail.setActionError}
+            onError={detail.setActionError}
+            onCsatComplete={detail.applyTicket}
             onApprove={async (approvalId, comment) => {
               const updated = await approvals.approve(approvalId, comment);
               if (updated !== null) {

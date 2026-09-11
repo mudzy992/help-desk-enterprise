@@ -3,6 +3,7 @@ import { AuthorizationContextLoader } from '../../authorization/authorization-co
 import { loadOrganizationalUnitPath } from '../../authorization/load-authorization-scope';
 import { TicketsError } from '../tickets.error';
 import { loadTicketRecord } from '../load-ticket-record';
+import { assertTicketWritable } from '../archive/assert-ticket-writable';
 import type { TicketMutationContext } from '../tickets.types';
 import {
   breakGlassDurationMs,
@@ -36,6 +37,7 @@ export async function requestConfidentialBreakGlass(
     throw new TicketsError('BREAK_GLASS_NOT_APPLICABLE');
   }
   const ticket = await loadTicketRecord(prisma, ticketId);
+  assertTicketWritable(ticket, context);
   if (!ticket.isConfidential) {
     throw new TicketsError('BREAK_GLASS_NOT_APPLICABLE');
   }

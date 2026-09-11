@@ -83,6 +83,8 @@ export const ticketSystemEventActions = {
   confidentialBreakGlass: 'ticket_confidential_break_glass',
   guardrailDuplicateWarned: 'ticket_guardrail_duplicate_warned',
   guardrailLoopSuppressed: 'ticket_guardrail_loop_suppressed',
+  csatSubmitted: 'ticket_csat_submitted',
+  ticketArchived: 'ticket_archived',
 } as const;
 
 export const ticketRealtimeEventNames = {

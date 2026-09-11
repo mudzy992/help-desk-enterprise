@@ -69,6 +69,8 @@ model Ticket {
   @@index([parentTicketId])
   @@index([mergedIntoTicketId])
   @@index([status, waitingForUserEnteredAt])
+  @@index([status, closedAt])
+  @@index([archivedAt])
 }
 
 model TicketParticipant {

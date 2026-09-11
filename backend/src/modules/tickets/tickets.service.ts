@@ -4,6 +4,8 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { RoutingService } from '../routing/routing.service';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
 import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
 import type { TicketPersistedMessageSink } from './collaboration.types';
@@ -48,6 +50,8 @@ export class TicketsService {
     private readonly guardrailsConfigurationLoader: TicketGuardrailsConfigurationLoader,
     private readonly confidentialLoader: TicketConfidentialConfigurationLoader,
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
+    private readonly archiveLoader: TicketArchiveConfigurationLoader,
+    private readonly csatLoader: TicketCsatConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -71,50 +75,65 @@ export class TicketsService {
   }
 
   list(query: ListTicketsQuery, context: TicketMutationContext) {
-    return executeTicketOperation(async () =>
-      this.respondAll(
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      return respondLoadedTickets(
+        this.prisma,
         await listTickets(
           this.prisma,
           this.authorizationContextLoader,
           query,
-          await this.gate(context),
+          gated,
+          gated.archive,
         ),
-      ),
-    );
+        this.clientLoaders(gated.actorUserId),
+      );
+    });
   }
 
   listInbox(context: TicketMutationContext): Promise<readonly TicketResponse[]> {
-    return executeTicketOperation(async () =>
-      this.respondAll(
-        await this.ticketAssignmentService.listInbox(await this.gate(context)),
-      ),
-    );
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      return respondLoadedTickets(
+        this.prisma,
+        await this.ticketAssignmentService.listInbox(gated),
+        this.clientLoaders(gated.actorUserId),
+      );
+    });
   }
 
   getById(ticketId: string, context: TicketMutationContext) {
-    return executeTicketOperation(async () =>
-      this.respond(
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      return respondLoadedTicket(
+        this.prisma,
         await getTicket(
           this.prisma,
           this.authorizationContextLoader,
           ticketId,
-          await this.gate(context),
+          gated,
           { auditView: true },
         ),
-      ),
-    );
+        this.clientLoaders(gated.actorUserId),
+      );
+    });
   }
 
   claim(ticketId: string, context: TicketMutationContext) {
     return executeTicketOperation(async () => {
       const messages: TicketPersistedMessageSink = [];
+      const gated = await this.gate(context);
       const claimed = await this.ticketAssignmentService.claim(
         ticketId,
-        await this.gate(context),
+        gated,
         messages,
       );
       publishPersistedTicketMessages(this.realtimeHub, claimed, messages);
-      return this.respond(claimed);
+      return respondLoadedTicket(
+        this.prisma,
+        claimed,
+        this.clientLoaders(gated.actorUserId),
+      );
     });
   }
 
@@ -141,8 +160,10 @@ export class TicketsService {
         { closeCodes, requiredFields, redaction },
       );
       publishPersistedTicketMessages(this.realtimeHub, updated, messages);
-      return this.respond(
+      return respondLoadedTicket(
+        this.prisma,
         updated,
+        this.clientLoaders(gated.actorUserId),
         scanTicketContent({
           configuration: redaction,
           title: input.title === undefined ? undefined : updated.title,
@@ -157,28 +178,16 @@ export class TicketsService {
     return withTicketAccessPolicies(context, {
       confidential: this.confidentialLoader,
       safeLogging: this.safeLoggingLoader,
+      archive: this.archiveLoader,
     });
   }
 
-  private respond(
-    record: Parameters<typeof respondLoadedTicket>[1],
-    redactionWarnings?: Parameters<typeof respondLoadedTicket>[3],
-  ) {
-    return respondLoadedTicket(
-      this.prisma,
-      record,
-      {
-        reopen: this.reopenConfigurationLoader,
-        closeCodes: this.closeCodesConfigurationLoader,
-      },
-      redactionWarnings,
-    );
-  }
-
-  private respondAll(records: Parameters<typeof respondLoadedTickets>[1]) {
-    return respondLoadedTickets(this.prisma, records, {
+  private clientLoaders(actorUserId: string) {
+    return {
       reopen: this.reopenConfigurationLoader,
       closeCodes: this.closeCodesConfigurationLoader,
-    });
+      csat: this.csatLoader,
+      actorUserId,
+    };
   }
 }

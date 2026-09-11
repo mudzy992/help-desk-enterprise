@@ -24,6 +24,10 @@ export type TicketErrorKey =
   | "tickets.errorConfidentialBreakGlass"
   | "tickets.errorBreakGlassReason"
   | "tickets.redactionWarning"
+  | "tickets.errorCsatDisabled"
+  | "tickets.errorCsatNotEligible"
+  | "tickets.errorCsatDuplicate"
+  | "tickets.errorArchivedReadOnly"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -52,6 +56,10 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   BREAK_GLASS_REASON_REQUIRED: "tickets.errorBreakGlassReason",
   BREAK_GLASS_DISABLED: "tickets.errorForbidden",
   BREAK_GLASS_NOT_APPLICABLE: "tickets.errorForbidden",
+  CSAT_DISABLED: "tickets.errorCsatDisabled",
+  CSAT_NOT_ELIGIBLE: "tickets.errorCsatNotEligible",
+  CSAT_ALREADY_SUBMITTED: "tickets.errorCsatDuplicate",
+  TICKET_ARCHIVED_READ_ONLY: "tickets.errorArchivedReadOnly",
   NOT_FOUND: "tickets.errorNotFound",
   OVERLAPPING_TIMER: "tickets.errorConflict",
   INVALID_TITLE: "tickets.errorValidation",

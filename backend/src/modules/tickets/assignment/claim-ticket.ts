@@ -8,6 +8,7 @@ import { recordTicketChange } from '../record-ticket-change';
 import { TicketsError } from '../tickets.error';
 import { assertConfidentialTicketAccess } from '../confidential/assert-confidential-ticket-access';
 import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
+import { assertTicketWritable } from '../archive/assert-ticket-writable';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { ticketAssignmentChangeLogReasons } from './assignment.constants';
 import { assertCanClaimTicket } from './assert-can-claim-ticket';
@@ -33,6 +34,7 @@ export async function claimTicket(
   }
   const configuration = await configurationLoader.load();
   const current = await loadTicketRecord(prisma, ticketId);
+  assertTicketWritable(current, context);
   const originUnitPath = await loadOrganizationalUnitPath(
     prisma,
     current.originUnitId,

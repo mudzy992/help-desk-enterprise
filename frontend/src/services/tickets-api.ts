@@ -38,9 +38,11 @@ export type TicketResponse = {
   readonly reopenedFromTicketId?: string | null;
   readonly resolvedAt?: string | null;
   readonly closedAt?: string | null;
+  readonly archivedAt?: string | null;
   readonly waitingForUserEnteredAt?: string | null;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
+  readonly csat?: TicketCsatDescriptor;
   readonly redactionWarnings?: readonly RedactionMatch[];
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
   readonly createdAt: string;
@@ -77,6 +79,17 @@ export type TicketReopenDescriptor = {
   readonly eligible: boolean;
   readonly createsNewTicket: boolean;
   readonly windowEndsAt: string | null;
+};
+
+export type TicketCsatDescriptor = {
+  readonly enabled: boolean;
+  readonly canSubmit: boolean;
+  readonly submitted: boolean;
+  readonly rating: number | null;
+  readonly comment: string | null;
+  readonly scaleMax: number;
+  readonly askOnResolved: boolean;
+  readonly askOnClosed: boolean;
 };
 
 export type CreateTicketInput = {

@@ -46,6 +46,12 @@ import { TicketsConfidentialController } from './confidential/tickets-confidenti
 import { TicketsConfidentialService } from './confidential/tickets-confidential.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
+import { TicketArchiveAutomationService } from './archive/ticket-archive-automation.service';
+import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
+import { TicketsCsatController } from './csat/tickets-csat.controller';
+import { TicketsCsatSummaryController } from './csat/tickets-csat-summary.controller';
+import { TicketsCsatService } from './csat/tickets-csat.service';
 
 @Module({
   imports: [
@@ -65,6 +71,8 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketsBulkController,
     TicketsSavedViewsController,
     TicketsConfidentialController,
+    TicketsCsatController,
+    TicketsCsatSummaryController,
   ],
   providers: [
     TicketsService,
@@ -78,8 +86,11 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketGuardrailsConfigurationLoader,
     TicketConfidentialConfigurationLoader,
     TicketSafeLoggingConfigurationLoader,
+    TicketArchiveConfigurationLoader,
+    TicketCsatConfigurationLoader,
     TicketAccessPolicyBinder,
     TicketsConfidentialService,
+    TicketsCsatService,
     TicketsSplitService,
     TicketSplitConfigurationLoader,
     TicketsBulkService,
@@ -88,6 +99,7 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketSavedViewsConfigurationLoader,
     WaitingForUserConfigurationLoader,
     WaitingForUserAutomationService,
+    TicketArchiveAutomationService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,

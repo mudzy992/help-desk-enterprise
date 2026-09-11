@@ -409,7 +409,16 @@
       "messageType": "Tip poruke",
       "noMessages": "Još nema poruka.",
       "noMessagesHint": "Pošaljite prvu javnu poruku ili internu napomenu.",
-      "systemEvent": "Sistemski događaj"
+      "systemEvent": "Sistemski događaj",
+      "archivedHint": "Tiket je arhiviran i ostaje samo za čitanje. Podaci nisu obrisani."
+    },
+    "csat": {
+      "title": "CSAT ocjena",
+      "hint": "Ocijenite rješenje tiketa (1 najniže).",
+      "submitted": "Ocjena je zabilježena.",
+      "comment": "Komentar (opcionalno)",
+      "submit": "Pošalji ocjenu",
+      "submitting": "Slanje…"
     },
     "split": {
       "title": "Razdvoji tiket",
@@ -492,6 +501,10 @@
     "errorBulkBroadcastConfirm": "Broadcast prelazi prag primalaca i treba dodatnu potvrdu.",
     "errorConfidentialBreakGlass": "Povjerljivi tiket. Pristup je moguć samo kroz break-glass uz razlog.",
     "errorBreakGlassReason": "Break-glass zahtijeva razlog.",
+    "errorCsatDisabled": "CSAT ocjena je isključena.",
+    "errorCsatNotEligible": "CSAT ocjena nije dostupna za ovaj tiket.",
+    "errorCsatDuplicate": "CSAT ocjena je već poslana za ovaj tiket.",
+    "errorArchivedReadOnly": "Arhivirani tiket je samo za čitanje.",
     "confidential": {
       "badge": "Povjerljivo",
       "breakGlassTitle": "Povjerljivi tiket — break-glass",

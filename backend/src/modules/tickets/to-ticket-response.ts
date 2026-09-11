@@ -31,6 +31,7 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     reopenedFromTicketId: record.reopenedFromTicketId,
     resolvedAt: toIso(record.resolvedAt),
     closedAt: toIso(record.closedAt),
+    archivedAt: toIso(record.archivedAt),
     waitingForUserEnteredAt: toIso(record.waitingForUserEnteredAt),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
