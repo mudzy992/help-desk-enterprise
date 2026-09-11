@@ -21,9 +21,22 @@
   },
   "install": {
     "title": "Initial setup",
-    "heading": "The application is not ready yet",
-    "body": "Until first-run setup is complete, access is limited to this screen. SuperAdmin, sign-in, SMTP, seed, and add-on steps continue here.",
-    "loading": "Checking setup status"
+    "heading": "SuperAdmin account",
+    "body": "The first step creates a local SuperAdmin account. The password is stored only as a hash. Break-glass sign-in remains available after Entra AD is selected later.",
+    "loading": "Checking setup status",
+    "email": "Email",
+    "displayName": "Display name",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "submit": "Continue",
+    "saving": "Saving…",
+    "createdHeading": "SuperAdmin is created",
+    "createdBody": "This account is local-only and remains available for break-glass sign-in. Later wizard steps continue after this one.",
+    "localOnly": "Local-only account",
+    "passwordMismatch": "Password and confirmation do not match.",
+    "errorInvalid": "SuperAdmin details are invalid. Check the email, display name, and password (at least 12 characters).",
+    "errorDuplicate": "The initial SuperAdmin already exists or the email is already in use.",
+    "errorGeneric": "The SuperAdmin account cannot be saved right now."
   },
   "routing": {
     "title": "Routing",

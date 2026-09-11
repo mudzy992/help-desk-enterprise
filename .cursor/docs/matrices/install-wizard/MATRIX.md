@@ -24,6 +24,8 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 
 ## Pravila
 - SuperAdmin iz wizarda je uvijek lokalni (`isLocalOnly`).
+- Kreira se kroz `POST /install/super-admin` (`email`, `displayName`, `password`); `GET /install/super-admin` vraća postojeći nalog bez lozinke/hasha da refresh ne izgubi korak.
+- Password ide u `User.localPasswordHash` (bcrypt), nikad u settings JSON ili API odgovor.
 - Zadnji local SuperAdmin se ne smije deaktivirati.
 - `entra_ad` ne uklanja local break-glass login.
 - SMTP OFF ⇒ `private.addons.email=false` (forsirano).
@@ -39,4 +41,4 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 
 ## UI
 Constitution: linear steps, primary CTA “Dalje” / “Završi”, bez dekoracije.
-Dok wizard koraci nisu implementirani, `/install` je first-run ekran bez application shell-a.
+SuperAdmin korak je first-run forma bez application shell-a. Dok kasniji koraci nisu implementirani, ostaju izvan ovog ekrana.

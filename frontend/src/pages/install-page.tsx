@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { LocaleSelect } from "@/components/layout/locale-select";
 
 export function InstallPage() {
@@ -20,6 +21,7 @@ export function InstallPage() {
           <p className="mt-2 text-body leading-6 text-muted-foreground">
             {t("install.body")}
           </p>
+          <InstallSuperAdminStep />
         </section>
       </main>
     </div>

@@ -1,0 +1,181 @@
+import { type FormEvent, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
+import { ApiError } from "@/services/api";
+import {
+  createInstallSuperAdmin,
+  loadInstallSuperAdmin,
+  type InstallSuperAdminRecord,
+} from "@/services/install-api";
+
+type InstallSuperAdminErrorKey =
+  | "install.passwordMismatch"
+  | "install.errorInvalid"
+  | "install.errorDuplicate"
+  | "install.errorGeneric";
+
+export function InstallSuperAdminStep() {
+  const { t } = useTranslation();
+  const [superAdmin, setSuperAdmin] = useState<InstallSuperAdminRecord | null>(
+    null,
+  );
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errorKey, setErrorKey] = useState<InstallSuperAdminErrorKey | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    void loadInstallSuperAdmin()
+      .then((status) => {
+        if (!isCancelled) {
+          setSuperAdmin(status.superAdmin);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (password !== confirmPassword) {
+      setErrorKey("install.passwordMismatch");
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorKey(null);
+    try {
+      setSuperAdmin(
+        await createInstallSuperAdmin({ email, displayName, password }),
+      );
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      setErrorKey(mapCreateError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+  }
+
+  if (superAdmin !== null) {
+    return (
+      <section className="mt-6 grid max-w-xl gap-3">
+        <h3 className="text-body font-medium text-foreground">
+          {t("install.createdHeading")}
+        </h3>
+        <p className="text-body leading-6 text-muted-foreground">
+          {t("install.createdBody")}
+        </p>
+        <dl className="grid gap-2 text-body">
+          <div>
+            <dt className="text-muted-foreground">{t("install.email")}</dt>
+            <dd className="text-foreground">{superAdmin.email}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">{t("install.displayName")}</dt>
+            <dd className="text-foreground">{superAdmin.displayName}</dd>
+          </div>
+        </dl>
+        {superAdmin.isLocalOnly ? (
+          <p className="text-body text-muted-foreground">
+            {t("install.localOnly")}
+          </p>
+        ) : null}
+      </section>
+    );
+  }
+
+  return (
+    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
+      <label className="grid gap-1 text-body">
+        {t("install.email")}
+        <input
+          className="h-9 border border-input bg-surface px-2"
+          type="email"
+          autoComplete="username"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </label>
+      <label className="grid gap-1 text-body">
+        {t("install.displayName")}
+        <input
+          className="h-9 border border-input bg-surface px-2"
+          type="text"
+          autoComplete="name"
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
+          required
+        />
+      </label>
+      <label className="grid gap-1 text-body">
+        {t("install.password")}
+        <input
+          className="h-9 border border-input bg-surface px-2"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
+      </label>
+      <label className="grid gap-1 text-body">
+        {t("install.confirmPassword")}
+        <input
+          className="h-9 border border-input bg-surface px-2"
+          type="password"
+          autoComplete="new-password"
+          minLength={12}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+          required
+        />
+      </label>
+      {errorKey ? (
+        <p className="text-body text-destructive">{t(errorKey)}</p>
+      ) : null}
+      <div>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? t("install.saving") : t("install.submit")}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function mapCreateError(error: unknown): InstallSuperAdminErrorKey {
+  if (!(error instanceof ApiError)) {
+    return "install.errorGeneric";
+  }
+  if (
+    error.status === 400 ||
+    error.code === "INVALID_SUPER_ADMIN_CREDENTIALS"
+  ) {
+    return "install.errorInvalid";
+  }
+  if (
+    error.code === "SUPER_ADMIN_ALREADY_EXISTS" ||
+    error.code === "SUPER_ADMIN_EMAIL_TAKEN"
+  ) {
+    return "install.errorDuplicate";
+  }
+  return "install.errorGeneric";
+}

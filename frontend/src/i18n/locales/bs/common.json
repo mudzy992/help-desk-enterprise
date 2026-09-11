@@ -21,9 +21,22 @@
   },
   "install": {
     "title": "Početno podešavanje",
-    "heading": "Aplikacija još nije spremna",
-    "body": "Dok first-run podešavanje nije završeno, pristup je ograničen na ovaj ekran. Koraci SuperAdmin, prijava, SMTP, seed i dodaci slijede ovdje.",
-    "loading": "Provjera stanja podešavanja"
+    "heading": "SuperAdmin nalog",
+    "body": "Prvi korak kreira lokalni SuperAdmin nalog. Lozinka se čuva samo kao hash. Break-glass prijava ostaje i kad se kasnije izabere Entra AD.",
+    "loading": "Provjera stanja podešavanja",
+    "email": "Email",
+    "displayName": "Ime i prezime",
+    "password": "Lozinka",
+    "confirmPassword": "Potvrda lozinke",
+    "submit": "Dalje",
+    "saving": "Spremanje…",
+    "createdHeading": "SuperAdmin je kreiran",
+    "createdBody": "Ovaj nalog je lokalni i ostaje dostupan za break-glass prijavu. Sljedeći koraci wizarda slijede nakon ovog koraka.",
+    "localOnly": "Samo lokalni nalog",
+    "passwordMismatch": "Lozinka i potvrda se ne poklapaju.",
+    "errorInvalid": "Podaci za SuperAdmin nisu ispravni. Provjerite email, ime i lozinku (najmanje 12 znakova).",
+    "errorDuplicate": "Početni SuperAdmin već postoji ili je email zauzet.",
+    "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati."
   },
   "routing": {
     "title": "Usmjeravanje",
