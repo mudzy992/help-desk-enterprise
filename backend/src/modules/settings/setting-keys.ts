@@ -65,6 +65,13 @@ export const settingKeys = {
   privateTicketAutoAssignEnabled: 'private.ticket.autoAssign.enabled',
   privateTicketAutoAssignStrategy: 'private.ticket.autoAssign.strategy',
   privateTicketGroupInboxEnabled: 'private.ticket.groupInbox.enabled',
+  privateTicketParticipantsEnabled: 'private.ticket.participants.enabled',
+  privateTicketParticipantsDefaultOnCreateCsv:
+    'private.ticket.participants.defaultOnCreateCsv',
+  privateTicketChatMessageTypesEnabled:
+    'private.ticket.chat.messageTypes.enabled',
+  privateTicketChatMessageTypesAllowedCsv:
+    'private.ticket.chat.messageTypes.allowedCsv',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',

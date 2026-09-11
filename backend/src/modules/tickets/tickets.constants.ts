@@ -62,6 +62,7 @@ export const allowedTicketStatusTransitions: Readonly<
 export const ticketConstants = {
   maximumTitleLength: 200,
   maximumDescriptionLength: 8000,
+  maximumMessageBodyLength: 8000,
   ticketNumberPrefix: 'T-',
   ticketNumberPad: 6,
 } as const;
@@ -69,4 +70,8 @@ export const ticketConstants = {
 export const ticketChangeLogReasons = {
   create: 'ticket_create',
   update: 'ticket_update',
+  participantAdd: 'ticket_participant_add',
+  participantRemove: 'ticket_participant_remove',
+  timeStart: 'ticket_time_start',
+  timeStop: 'ticket_time_stop',
 } as const;

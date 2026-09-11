@@ -77,6 +77,7 @@ model TicketParticipant {
   createdAt DateTime        @default(now())
 
   @@index([ticketId])
+  @@index([ticketId, role])
   @@index([userId])
   @@index([groupId])
 }
@@ -93,6 +94,8 @@ model TicketMessage {
   createdAt    DateTime          @default(now())
 
   @@index([ticketId])
+  @@index([ticketId, type])
+  @@index([ticketId, createdAt])
   @@index([authorUserId])
 }
 

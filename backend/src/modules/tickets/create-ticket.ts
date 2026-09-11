@@ -22,6 +22,10 @@ import { resolveCreateFormVersionRef } from './resolve-create-form-version-ref';
 import { ticketChangeLogReasons } from './tickets.constants';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
+import { seedDefaultTicketParticipants } from './seed-default-ticket-participants';
+import { insertSystemTicketEvent } from './insert-system-ticket-event';
+import { ticketSystemEventActions } from './collaboration.constants';
+import type { TicketPersistedMessageSink } from './collaboration.types';
 import type {
   CreateTicketInput,
   TicketMutationContext,
@@ -34,6 +38,7 @@ export async function createTicket(
   authorizationContextLoader: AuthorizationContextLoader,
   input: CreateTicketInput,
   context: TicketMutationContext,
+  messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -103,6 +108,14 @@ export async function createTicket(
       after: record,
       actorUserId: context.actorUserId,
     });
+    await seedDefaultTicketParticipants(transaction as PrismaService, record);
+    messages.push(
+      await insertSystemTicketEvent(transaction as PrismaService, {
+        ticketId: record.id,
+        action: ticketSystemEventActions.created,
+        actorUserId: context.actorUserId,
+      }),
+    );
     return record;
   });
   return created;

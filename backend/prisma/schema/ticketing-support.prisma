@@ -11,6 +11,7 @@ model TicketTimeLog {
 
   @@index([ticketId])
   @@index([userId])
+  @@index([userId, ticketId])
 }
 
 model TicketAttachment {

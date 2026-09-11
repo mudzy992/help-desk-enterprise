@@ -14,6 +14,7 @@ import { createSocketAuthenticationFailureError } from './create-socket-authenti
 import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
+import { userRoomName } from './ticket-socket-rooms';
 
 @WebSocketGateway({
   cors: {
@@ -44,6 +45,7 @@ export class WebsocketGateway
       client.disconnect(true);
       return;
     }
+    void client.join(userRoomName(principal.subjectId));
     this.logger.log(`socket_connected connectionId=${client.id}`);
   }
 

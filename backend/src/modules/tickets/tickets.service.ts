@@ -3,10 +3,13 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import type { TicketPersistedMessageSink } from './collaboration.types';
 import { createTicket } from './create-ticket';
 import { getTicket } from './get-ticket';
 import { listTickets } from './list-tickets';
 import { mapTicketError } from './map-ticket-error';
+import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { toTicketResponse } from './to-ticket-response';
 import { updateTicket } from './update-ticket';
 import type {
@@ -24,6 +27,7 @@ export class TicketsService {
     private readonly routingService: RoutingService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
+    private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
   create(
@@ -31,16 +35,22 @@ export class TicketsService {
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
     return this.execute(async () => {
+      const messages: TicketPersistedMessageSink = [];
       const created = await createTicket(
         this.prisma,
         this.routingService,
         this.authorizationContextLoader,
         input,
         context,
+        messages,
       );
-      return toTicketResponse(
-        await this.ticketAssignmentService.applyAfterCreate(created, context),
+      const assigned = await this.ticketAssignmentService.applyAfterCreate(
+        created,
+        context,
+        messages,
       );
+      publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
+      return toTicketResponse(assigned);
     });
   }
 
@@ -88,11 +98,16 @@ export class TicketsService {
     ticketId: string,
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
-    return this.execute(async () =>
-      toTicketResponse(
-        await this.ticketAssignmentService.claim(ticketId, context),
-      ),
-    );
+    return this.execute(async () => {
+      const messages: TicketPersistedMessageSink = [];
+      const claimed = await this.ticketAssignmentService.claim(
+        ticketId,
+        context,
+        messages,
+      );
+      publishPersistedTicketMessages(this.realtimeHub, claimed, messages);
+      return toTicketResponse(claimed);
+    });
   }
 
   update(

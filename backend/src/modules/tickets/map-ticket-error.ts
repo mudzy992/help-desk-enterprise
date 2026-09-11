@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   NotFoundException,
@@ -14,12 +15,20 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'SERVICE_NOT_FOUND',
   'FORM_VERSION_NOT_FOUND',
   'REQUESTER_NOT_FOUND',
+  'PARTICIPANT_NOT_FOUND',
+  'PARTICIPANT_USER_NOT_FOUND',
+  'PARTICIPANT_GROUP_NOT_FOUND',
+  'TIME_LOG_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [
   'FORBIDDEN',
   'STATUS_CHANGE_FORBIDDEN',
   'GROUP_INBOX_DISABLED',
+  'PARTICIPANTS_DISABLED',
+  'CHAT_MESSAGE_TYPES_DISABLED',
+  'MESSAGE_TYPE_NOT_ALLOWED',
+  'PARTICIPANT_LOCKED',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -43,6 +52,22 @@ const messages: Record<TicketsErrorCode, string> = {
   ASSIGNMENT_UNAVAILABLE: 'Ticket assignment is unavailable',
   GROUP_INBOX_DISABLED: 'Group inbox is disabled',
   TICKET_NOT_CLAIMABLE: 'Ticket cannot be claimed',
+  PARTICIPANTS_DISABLED: 'Ticket participants are disabled',
+  PARTICIPANT_NOT_FOUND: 'Ticket participant was not found',
+  PARTICIPANT_DUPLICATE: 'Ticket participant already exists',
+  INVALID_PARTICIPANT_ROLE: 'Ticket participant role is invalid',
+  PARTICIPANT_IDENTITY_REQUIRED: 'Ticket participant needs a user or group',
+  PARTICIPANT_USER_NOT_FOUND: 'Participant user was not found',
+  PARTICIPANT_GROUP_NOT_FOUND: 'Participant group was not found',
+  PARTICIPANT_LOCKED: 'This ticket participant cannot be changed',
+  CHAT_MESSAGE_TYPES_DISABLED: 'Ticket chat message types are disabled',
+  INVALID_MESSAGE_TYPE: 'Ticket message type is invalid',
+  INVALID_MESSAGE_BODY: 'Ticket message body is invalid',
+  MESSAGE_TYPE_NOT_ALLOWED: 'You cannot create this ticket message type',
+  TIME_LOG_NOT_FOUND: 'Ticket time log was not found',
+  OVERLAPPING_TIMER: 'An active timer already exists for this user and ticket',
+  TIME_LOG_NOT_ACTIVE: 'Ticket time log is not active',
+  TIME_LOG_IMMUTABLE: 'Completed time entries cannot be changed',
 };
 
 export function mapTicketError(error: unknown): HttpException {
@@ -61,6 +86,9 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'ASSIGNMENT_UNAVAILABLE'
   ) {
     return new ServiceUnavailableException(body);
+  }
+  if (error.code === 'OVERLAPPING_TIMER') {
+    return new ConflictException(body);
   }
   return new BadRequestException(body);
 }

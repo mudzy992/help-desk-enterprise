@@ -3,8 +3,12 @@ import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { RoutingService } from '../routing/routing.service';
 import { defaultTicketAssignmentConfiguration } from './assignment/assignment.constants';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import { defaultTicketCollaborationConfiguration } from './collaboration.constants';
 import { createInMemoryTicketsPrisma } from './create-in-memory-tickets-prisma';
 import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
+import { TicketsCollaborationService } from './tickets-collaboration.service';
+import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
+import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { ticketsTestIds } from './tickets-test-ids';
 import { TicketsService } from './tickets.service';
 
@@ -48,15 +52,39 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader as never,
     { load: async () => ({ ...assignmentConfig }) } as never,
   );
+  const realtimeHub = new TicketRealtimeHub();
   const tickets = new TicketsService(
     memory.prisma as never,
     routing,
     authorizationContextLoader as never,
     assignment,
+    realtimeHub,
+  );
+  const collaboration = new TicketsCollaborationService(
+    memory.prisma as never,
+    authorizationContextLoader as never,
+    {
+      load: async () => ({ ...defaultTicketCollaborationConfiguration }),
+    } as never,
+    realtimeHub,
+  );
+  const timeTracking = new TicketsTimeTrackingService(
+    memory.prisma as never,
+    authorizationContextLoader as never,
+    realtimeHub,
   );
   seedHarnessCatalog(memory);
   seedTicketsHarnessActors(contexts);
-  return { memory, routing, tickets, contexts, assignmentConfig };
+  return {
+    memory,
+    routing,
+    tickets,
+    collaboration,
+    timeTracking,
+    realtimeHub,
+    contexts,
+    assignmentConfig,
+  };
 }
 
 function seedHarnessCatalog(
@@ -99,7 +127,15 @@ function seedHarnessCatalog(
     organizationalUnitId: ticketsTestIds.ouIt,
   });
   memory.seedUser({
+    id: ticketsTestIds.watcher,
+    organizationalUnitId: ticketsTestIds.ouIt,
+  });
+  memory.seedUser({
     id: ticketsTestIds.agentIt,
+    organizationalUnitId: ticketsTestIds.ouIt,
+  });
+  memory.seedUser({
+    id: ticketsTestIds.agentItPeer,
     organizationalUnitId: ticketsTestIds.ouIt,
   });
   memory.seedUser({

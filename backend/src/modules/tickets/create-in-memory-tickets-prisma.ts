@@ -12,41 +12,30 @@ import {
   type InMemoryGroupMember,
 } from './create-in-memory-group-member-delegate';
 import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
+import { createInMemoryTicketMessageDelegate } from './create-in-memory-ticket-message-delegate';
+import { createInMemoryTicketParticipantDelegate } from './create-in-memory-ticket-participant-delegate';
+import { createInMemoryTicketTimeLogDelegate } from './create-in-memory-ticket-time-log-delegate';
+import type {
+  TicketMessageRecord,
+  TicketParticipantRecord,
+  TicketTimeLogRecord,
+} from './collaboration.types';
 import type { TicketRecord } from './tickets.types';
+import type {
+  InMemoryTicketChangeLog,
+  InMemoryTicketGroup,
+  InMemoryTicketService,
+  InMemoryTicketUnit,
+  InMemoryTicketUser,
+} from './in-memory-tickets-types';
 
-export type InMemoryTicketUnit = {
-  readonly id: string;
-  readonly parentId: string | null;
-  readonly ouPath: string;
-};
-
-export type InMemoryTicketService = {
-  readonly id: string;
-  readonly name: string;
-  readonly lifecycle: string;
-  readonly availability: string;
-  readonly classification: string;
-  readonly isConfidentialDefault: boolean;
-  readonly autoAssignStrategy?: string;
-};
-
-export type InMemoryTicketUser = {
-  readonly id: string;
-  readonly organizationalUnitId: string | null;
-};
-
-export type InMemoryTicketGroup = {
-  readonly id: string;
-  readonly name: string;
-};
-
-export type InMemoryTicketChangeLog = {
-  entityType: string;
-  entityId: string;
-  reason: string;
-  diff: object;
-  actorUserId: string | null;
-};
+export type {
+  InMemoryTicketChangeLog,
+  InMemoryTicketGroup,
+  InMemoryTicketService,
+  InMemoryTicketUnit,
+  InMemoryTicketUser,
+} from './in-memory-tickets-types';
 
 export function createInMemoryTicketsPrisma() {
   const units = new Map<string, InMemoryTicketUnit>();
@@ -57,6 +46,9 @@ export function createInMemoryTicketsPrisma() {
   const rules = new Map<string, RoutingRuleRecord>();
   const formVersions = new Map<string, FormVersionRecord>();
   const tickets = new Map<string, TicketRecord>();
+  const participants = new Map<string, TicketParticipantRecord>();
+  const messages = new Map<string, TicketMessageRecord>();
+  const timeLogs = new Map<string, TicketTimeLogRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -164,6 +156,13 @@ export function createInMemoryTicketsPrisma() {
     formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
     groupMember: createInMemoryGroupMemberDelegate(members),
     ticket: createInMemoryTicketDelegate(tickets, nextId, now),
+    ticketParticipant: createInMemoryTicketParticipantDelegate(
+      participants,
+      nextId,
+      now,
+    ),
+    ticketMessage: createInMemoryTicketMessageDelegate(messages, nextId, now),
+    ticketTimeLog: createInMemoryTicketTimeLogDelegate(timeLogs, nextId, now),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -178,6 +177,9 @@ export function createInMemoryTicketsPrisma() {
     prisma,
     changeLogs,
     tickets,
+    participants,
+    messages,
+    timeLogs,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {

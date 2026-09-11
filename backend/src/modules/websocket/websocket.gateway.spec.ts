@@ -21,6 +21,7 @@ function createSocket(auth: unknown): Socket {
     handshake: { auth },
     data: {},
     disconnect: jest.fn(),
+    join: jest.fn(),
   } as unknown as Socket;
 }
 

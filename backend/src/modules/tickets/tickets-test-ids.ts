@@ -9,6 +9,7 @@ export const ticketsTestIds = {
   formOther: 'form-other',
   groupIt: 'group-it',
   requester: 'user-requester',
+  watcher: 'user-watcher',
   agentIt: 'user-agent-it',
   agentItPeer: 'user-agent-it-peer',
   agentHr: 'user-agent-hr',

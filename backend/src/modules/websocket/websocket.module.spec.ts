@@ -32,6 +32,7 @@ describe('WebsocketModule', () => {
       id: 'connection-module-1',
       handshake: { auth: { token: 'synthetic-handshake-token-test-only' } },
       data: {},
+      join: jest.fn(),
     } as unknown as Socket;
     const error = await new Promise<Error | undefined>((resolve) => {
       middleware?.(socket, (handshakeError?: Error) => {

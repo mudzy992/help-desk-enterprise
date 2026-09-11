@@ -19,6 +19,10 @@ import {
   selectRoundRobinAgent,
 } from './select-auto-assign-agent';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
+import { syncAssigneeParticipant } from '../sync-assignee-participant';
+import { insertSystemTicketEvent } from '../insert-system-ticket-event';
+import { ticketSystemEventActions } from '../collaboration.constants';
+import type { TicketPersistedMessageSink } from '../collaboration.types';
 
 export async function applyTicketAutoAssignment(
   prisma: PrismaService,
@@ -26,6 +30,7 @@ export async function applyTicketAutoAssignment(
   configurationLoader: TicketAssignmentConfigurationLoader,
   ticket: TicketRecord,
   actorUserId: string,
+  messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
   if (ticket.assignedGroupId === null || ticket.assignedUserId !== null) {
     return ticket;
@@ -92,6 +97,14 @@ export async function applyTicketAutoAssignment(
       after: updated,
       actorUserId,
     });
+    await syncAssigneeParticipant(transaction as PrismaService, updated);
+    messages.push(
+      await insertSystemTicketEvent(transaction as PrismaService, {
+        ticketId: updated.id,
+        action: ticketSystemEventActions.assigned,
+        actorUserId,
+      }),
+    );
     return updated;
   });
 }

@@ -10,6 +10,10 @@ import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { ticketAssignmentChangeLogReasons } from './assignment.constants';
 import { assertCanClaimTicket } from './assert-can-claim-ticket';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
+import { syncAssigneeParticipant } from '../sync-assignee-participant';
+import { insertSystemTicketEvent } from '../insert-system-ticket-event';
+import { ticketSystemEventActions } from '../collaboration.constants';
+import type { TicketPersistedMessageSink } from '../collaboration.types';
 
 export async function claimTicket(
   prisma: PrismaService,
@@ -17,6 +21,7 @@ export async function claimTicket(
   configurationLoader: TicketAssignmentConfigurationLoader,
   ticketId: string,
   context: TicketMutationContext,
+  messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -59,6 +64,14 @@ export async function claimTicket(
       after: updated,
       actorUserId: context.actorUserId,
     });
+    await syncAssigneeParticipant(transaction as PrismaService, updated);
+    messages.push(
+      await insertSystemTicketEvent(transaction as PrismaService, {
+        ticketId: updated.id,
+        action: ticketSystemEventActions.claimed,
+        actorUserId: context.actorUserId,
+      }),
+    );
     return updated;
   });
 }

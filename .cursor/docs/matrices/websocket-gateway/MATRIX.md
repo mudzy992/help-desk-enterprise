@@ -36,4 +36,4 @@ SocketAuthenticationVerifier
 `CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS koristi isti ključ (`.cursor/docs/matrices/http-cors/MATRIX.md`).
 
 ## Namjerno NIJE implementirano
-RBAC, rooms, ticket/chat/notification eventi, Redis adapter, frontend klijent, settings ključevi za socket. Auth provider i JWT žive u authentication modulu; ovaj sloj i dalje vidi samo `{ subjectId }`.
+RBAC rooms osim ticket chat join (vidi `ticket-chat-audit`), notification/settings eventi, Redis adapter, frontend workspace. Handshake i dalje vidi samo `{ subjectId }`. Ticket join evaluira postojeći ticket OU/service/requester access u `TicketsCollaborationService`.

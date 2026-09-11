@@ -14,6 +14,10 @@ export function seedTicketsHarnessActors(
     createScopedContext(ticketsTestIds.requester, authorizationRoleKeys.user),
   );
   contexts.set(
+    ticketsTestIds.watcher,
+    createScopedContext(ticketsTestIds.watcher, authorizationRoleKeys.user),
+  );
+  contexts.set(
     ticketsTestIds.agentIt,
     createScopedContext(
       ticketsTestIds.agentIt,

@@ -5,6 +5,7 @@ import { applyTicketAutoAssignment } from './apply-ticket-auto-assignment';
 import { claimTicket } from './claim-ticket';
 import { listGroupInboxTickets } from './list-group-inbox-tickets';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
+import type { TicketPersistedMessageSink } from '../collaboration.types';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class TicketAssignmentService {
   applyAfterCreate(
     ticket: TicketRecord,
     context: TicketMutationContext,
+    messages: TicketPersistedMessageSink = [],
   ): Promise<TicketRecord> {
     return applyTicketAutoAssignment(
       this.prisma,
@@ -25,6 +27,7 @@ export class TicketAssignmentService {
       this.configurationLoader,
       ticket,
       context.actorUserId,
+      messages,
     );
   }
 
@@ -42,6 +45,7 @@ export class TicketAssignmentService {
   claim(
     ticketId: string,
     context: TicketMutationContext,
+    messages: TicketPersistedMessageSink = [],
   ): Promise<TicketRecord> {
     return claimTicket(
       this.prisma,
@@ -49,6 +53,7 @@ export class TicketAssignmentService {
       this.configurationLoader,
       ticketId,
       context,
+      messages,
     );
   }
 }
