@@ -36,6 +36,8 @@ import { SessionTokenService } from './session-token.service';
     JwtSocketAuthenticationVerifier,
     AuthenticationService,
     SessionAuthenticationGuard,
+    SessionTokenService,
+    AuthenticationUserLoader,
   ],
 })
 export class AuthenticationModule {}
