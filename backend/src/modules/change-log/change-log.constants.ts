@@ -1,6 +1,7 @@
 export const changeLogEntityTypes = {
   setting: 'setting',
   routingRule: 'routing_rule',
+  ticket: 'ticket',
 } as const;
 
 export const changeLogActions = {

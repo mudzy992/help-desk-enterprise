@@ -33,7 +33,7 @@ SocketAuthenticationVerifier
 `afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala. `handleDisconnect` samo loguje. Nema business eventa.
 
 ## CORS
-`CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS se ne dira.
+`CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS koristi isti ključ (`.cursor/docs/matrices/http-cors/MATRIX.md`).
 
 ## Namjerno NIJE implementirano
 RBAC, rooms, ticket/chat/notification eventi, Redis adapter, frontend klijent, settings ključevi za socket. Auth provider i JWT žive u authentication modulu; ovaj sloj i dalje vidi samo `{ subjectId }`.

@@ -26,6 +26,7 @@ import { ShadowAuthorizationService } from './shadow-authorization.service';
     },
   ],
   exports: [
+    AuthorizationContextLoader,
     AuthorizationService,
     ShadowAuthorizationService,
     RoleGuard,

@@ -49,7 +49,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Zaključavanje wizarda nakon complete; dalje samo Settings. Change log `install_wizard`
 
 ## Faza 4 — Ticketing workspace
-- [ ] Ticket CRUD + state machine guards + impact/urgency → priority
+- [x] Ticket CRUD + state machine guards + impact/urgency → priority
 - [ ] Group inbox + preuzimanje; auto-assign Least Busy / Round Robin
 - [ ] Participants + message types + chat/audit + time tracking
 - [ ] Attachments (MIME/ext allow-list, size, disk) + classification inheritance
