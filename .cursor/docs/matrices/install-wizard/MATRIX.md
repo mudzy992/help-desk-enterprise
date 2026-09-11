@@ -27,6 +27,9 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 - Kreira se kroz `POST /install/super-admin` (`email`, `displayName`, `password`); `GET /install/super-admin` vraća postojeći nalog bez lozinke/hasha da refresh ne izgubi korak.
 - Password ide u `User.localPasswordHash` (bcrypt), nikad u settings JSON ili API odgovor.
 - Zadnji local SuperAdmin se ne smije deaktivirati.
+- Način prijave: `POST /install/login-provider` (`mode`: `local` | `entra_ad`). `GET /install/login-provider` vraća mode i konfiguracijske flagove, nikad secret vrijednosti.
+- `local` postavlja `private.auth.mode=local` bez AD/Entra polja.
+- `entra_ad` zahtijeva validan Entra tenant+client **ili** LDAPS bind (URLs + bind DN + bind password) prije complete; secret polja idu kroz Settings Registry (`getSecretForInternalUse` / `isSecret`).
 - `entra_ad` ne uklanja local break-glass login.
 - SMTP OFF ⇒ `private.addons.email=false` (forsirano).
 - Core moduli nisu addoni (vidi `04-install-wizard.md`).
@@ -35,10 +38,11 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 
 ## Zabranjeno
 - Preskakanje SuperAdmin koraka.
+- Preskakanje validacije AD/Entra polja kad je `entra_ad` izabran.
 - Seed demo tiketa.
 - Ponovni javni wizard nakon COMPLETED.
 - Čuvanje SuperAdmin lozinke u settings JSON.
 
 ## UI
 Constitution: linear steps, primary CTA “Dalje” / “Završi”, bez dekoracije.
-SuperAdmin korak je first-run forma bez application shell-a. Dok kasniji koraci nisu implementirani, ostaju izvan ovog ekrana.
+SuperAdmin korak je first-run forma bez application shell-a. Nakon SuperAdmin nalog slijedi korak načina prijave (`local` | `entra_ad`). Dok kasniji koraci nisu implementirani, ostaju izvan ovog ekrana.

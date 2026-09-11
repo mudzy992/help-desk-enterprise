@@ -1,6 +1,10 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- Implementiran korak načina prijave: `local` | `entra_ad` kroz `GET/POST /install/login-provider`.
+- `local` čuva `private.auth.mode` bez AD/Entra polja; `entra_ad` zahtijeva tenant+client ili LDAPS bind, secret kroz Settings Registry.
+- API ne izlaže tenant/client/bind secret vrijednosti; change log redaktuje secreta.
+- SuperAdmin local break-glass ostaje na postojećem `entra_ad` provideru.
 - Implementiran SuperAdmin korak: lokalni user, `isLocalOnly`, password hash u `User`, bez plaintext-a u settings/API.
 - `POST /install/super-admin` odbija neispravne kredencijale i drugi početni SuperAdmin.
 - `GET /install/super-admin` vraća kreirani nalog (email/displayName/isLocalOnly) da refresh ne gubi korak.

@@ -14,7 +14,11 @@ type InstallSuperAdminErrorKey =
   | "install.errorDuplicate"
   | "install.errorGeneric";
 
-export function InstallSuperAdminStep() {
+export function InstallSuperAdminStep({
+  onCreated,
+}: {
+  readonly onCreated?: (record: InstallSuperAdminRecord) => void;
+}) {
   const { t } = useTranslation();
   const [superAdmin, setSuperAdmin] = useState<InstallSuperAdminRecord | null>(
     null,
@@ -57,9 +61,13 @@ export function InstallSuperAdminStep() {
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      setSuperAdmin(
-        await createInstallSuperAdmin({ email, displayName, password }),
-      );
+      const created = await createInstallSuperAdmin({
+        email,
+        displayName,
+        password,
+      });
+      setSuperAdmin(created);
+      onCreated?.(created);
       setPassword("");
       setConfirmPassword("");
     } catch (error) {

@@ -58,6 +58,12 @@ describe('SettingsService', () => {
       if (where.key === settingKeys.privateAuthAzureClientId) {
         return Promise.resolve({ value: 'plaintext-client' });
       }
+      if (where.key === settingKeys.privateAuthAdBindDn) {
+        return Promise.resolve({ value: 'plaintext-bind-dn' });
+      }
+      if (where.key === settingKeys.privateAuthAdBindPassword) {
+        return Promise.resolve({ value: 'plaintext-bind-password' });
+      }
       return Promise.resolve(null);
     });
     const service = await createService();
@@ -77,6 +83,10 @@ describe('SettingsService', () => {
     expect(JSON.stringify(publicSettings)).not.toContain('plaintext-secret');
     expect(JSON.stringify(publicSettings)).not.toContain('plaintext-tenant');
     expect(JSON.stringify(publicSettings)).not.toContain('plaintext-client');
+    expect(JSON.stringify(publicSettings)).not.toContain('plaintext-bind-dn');
+    expect(JSON.stringify(publicSettings)).not.toContain(
+      'plaintext-bind-password',
+    );
   });
 
   it('returns private settings without secrets', async () => {
@@ -85,6 +95,7 @@ describe('SettingsService', () => {
     expect(privateSettings).toEqual({
       [settingKeys.privateInstallCompletedAt]: '',
       [settingKeys.privateAuthMode]: 'local',
+      [settingKeys.privateAuthAdLdapsUrlsCsv]: '',
       [settingKeys.privateAuthAdReadEnabled]: false,
       [settingKeys.privateAuthAdReadStrategy]: 'manual_only',
       [settingKeys.privateAuthAdReadUsersBaseDn]: '',
@@ -137,6 +148,10 @@ describe('SettingsService', () => {
     );
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthAzureClientId,
+    );
+    expect(privateSettings).not.toHaveProperty(settingKeys.privateAuthAdBindDn);
+    expect(privateSettings).not.toHaveProperty(
+      settingKeys.privateAuthAdBindPassword,
     );
   });
 

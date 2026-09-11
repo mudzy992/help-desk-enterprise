@@ -7,8 +7,14 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { CreateInstallSuperAdminDto } from './dto/create-install-super-admin.dto';
+import { SaveInstallLoginProviderDto } from './dto/save-install-login-provider.dto';
+import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSetupService } from './install-setup.service';
 import { InstallSuperAdminService } from './install-super-admin.service';
+import type {
+  InstallLoginProviderPublicRecord,
+  InstallLoginProviderStatus,
+} from './install-login-provider.types';
 import type { InstallSetupStatus } from './install-setup.types';
 import type {
   InstallSuperAdminPublicRecord,
@@ -27,6 +33,7 @@ export class InstallController {
   constructor(
     private readonly installSetupService: InstallSetupService,
     private readonly installSuperAdminService: InstallSuperAdminService,
+    private readonly installLoginProviderService: InstallLoginProviderService,
   ) {}
 
   @Get('status')
@@ -44,5 +51,17 @@ export class InstallController {
     @Body() body: CreateInstallSuperAdminDto,
   ): Promise<InstallSuperAdminPublicRecord> {
     return this.installSuperAdminService.create(body);
+  }
+
+  @Get('login-provider')
+  getLoginProvider(): Promise<InstallLoginProviderStatus> {
+    return this.installLoginProviderService.getStatus();
+  }
+
+  @Post('login-provider')
+  saveLoginProvider(
+    @Body() body: SaveInstallLoginProviderDto,
+  ): Promise<InstallLoginProviderPublicRecord> {
+    return this.installLoginProviderService.save(body);
   }
 }

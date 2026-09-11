@@ -36,7 +36,29 @@
     "passwordMismatch": "Lozinka i potvrda se ne poklapaju.",
     "errorInvalid": "Podaci za SuperAdmin nisu ispravni. Provjerite email, ime i lozinku (najmanje 12 znakova).",
     "errorDuplicate": "Početni SuperAdmin već postoji ili je email zauzet.",
-    "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati."
+    "errorGeneric": "SuperAdmin nalog trenutno nije moguće sačuvati.",
+    "loginProvider": {
+      "heading": "Način prijave",
+      "body": "Izaberite tačno jedan način prijave. SuperAdmin ostaje lokalni break-glass nalog i kad je izabran Entra AD.",
+      "mode": "Provajder autentikacije",
+      "local": "Lokalni nalozi",
+      "entraAd": "Microsoft Entra AD",
+      "localHint": "Prijava ostaje na lokalnim nalozima. AD/Entra polja nisu potrebna.",
+      "entraHint": "Unesite Entra tenant i client identifikatore ili LDAPS bind podatke. Role mapping ostaje u Settings.",
+      "azureTenantId": "Entra tenant ID",
+      "azureClientId": "Entra client ID",
+      "ldapsUrls": "LDAPS URL-ovi (CSV)",
+      "bindDn": "LDAPS bind DN",
+      "bindPassword": "LDAPS bind lozinka",
+      "configured": "Već sačuvano. Ostavite prazno da zadržite postojeću vrijednost.",
+      "breakGlass": "Lokalni SuperAdmin ostaje dostupan za break-glass prijavu.",
+      "submit": "Dalje",
+      "saving": "Spremanje…",
+      "errorIncomplete": "Za Entra AD unesite tenant i client ili kompletne LDAPS bind podatke.",
+      "errorInvalid": "Konfiguracija prijave nije ispravna ili nije potpuna.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Način prijave trenutno nije moguće sačuvati."
+    }
   },
   "routing": {
     "title": "Usmjeravanje",

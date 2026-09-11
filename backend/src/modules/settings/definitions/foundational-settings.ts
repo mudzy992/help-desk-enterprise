@@ -51,4 +51,26 @@ export const foundationalSettings: readonly SettingDefinition[] = [
       'Microsoft Entra application client identifier used as the expected token audience',
     isRequired: false,
   }),
+  definePrivateSetting({
+    key: settingKeys.privateAuthAdLdapsUrlsCsv,
+    valueType: 'string',
+    description:
+      'Comma-separated LDAPS URLs used for directory bind when authentication mode is entra_ad',
+    isRequired: false,
+    defaultValue: '',
+  }),
+  defineSecretSetting({
+    key: settingKeys.privateAuthAdBindDn,
+    valueType: 'string',
+    description:
+      'Distinguished name of the read-only LDAPS bind account; never expose outside trusted backend use',
+    isRequired: false,
+  }),
+  defineSecretSetting({
+    key: settingKeys.privateAuthAdBindPassword,
+    valueType: 'string',
+    description:
+      'Password of the read-only LDAPS bind account; never expose outside trusted backend use',
+    isRequired: false,
+  }),
 ];
