@@ -1,10 +1,21 @@
-import { PlaceholderPage } from "@/pages/placeholder-page";
+import { LayoutDashboard } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   return (
-    <PlaceholderPage
-      heading="No operational snapshot yet"
-      body="Open tickets, attention items, and current workload will appear here when the dashboard module is implemented."
-    />
+    <section>
+      <PageHeader
+        crumbs={["EP-HelpDesk", t("navigation.dashboard")]}
+        title={t("navigation.dashboard")}
+      />
+      <EmptyState
+        icon={<LayoutDashboard size={18} strokeWidth={1.8} />}
+        title={t("placeholders.dashboardTitle")}
+        body={t("placeholders.dashboardBody")}
+      />
+    </section>
   );
 }

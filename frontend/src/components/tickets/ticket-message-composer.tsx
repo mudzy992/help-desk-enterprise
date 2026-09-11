@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { controlClassName, labelClassName, textareaClassName } from "@/components/ui/control";
 import {
   defaultMessageType,
   messageTypesForAccess,
@@ -34,11 +35,11 @@ export function TicketMessageComposer({
   };
 
   return (
-    <form className="mt-4 grid gap-2" onSubmit={(event) => void onSubmit(event)}>
-      <label className="grid gap-1 text-metadata text-muted-foreground">
+    <form className="mt-4 grid gap-3 border-t border-border/70 pt-4" onSubmit={(event) => void onSubmit(event)}>
+      <label className={labelClassName}>
         {t("tickets.detail.messageType")}
         <select
-          className="h-8 rounded-md border border-input bg-surface px-2 text-metadata"
+          className={controlClassName}
           value={type}
           onChange={(event) => setType(event.target.value as MessageType)}
         >
@@ -49,10 +50,10 @@ export function TicketMessageComposer({
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("tickets.detail.compose")}
         <textarea
-          className="min-h-24 rounded-md border border-input bg-surface px-2 py-2 text-body"
+          className={textareaClassName}
           value={body}
           onChange={(event) => setBody(event.target.value)}
           required

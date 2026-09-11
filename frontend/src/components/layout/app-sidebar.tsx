@@ -2,18 +2,19 @@ import {
   BookOpen,
   GitBranch,
   LayoutDashboard,
+  LifeBuoy,
   Network,
+  Plus,
   Settings,
   Ticket,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NavLink } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
+import { NavLink, useLocation } from "react-router-dom";
+import { Kbd } from "@/components/ui/kbd";
 import {
-  primaryNavigationItems,
-  settingsNavigationItem,
+  navigationSections,
   type NavigationItem,
 } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -34,27 +35,60 @@ interface AppSidebarProperties {
 
 export function AppSidebar({ onNavigate }: AppSidebarProperties) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const isCreateActive = location.pathname === "/tickets/new";
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-12 items-center px-3 pr-10">
-        <span className="text-[13px] font-medium tracking-tight text-foreground">
-          EP-HelpDesk
+      <div className="flex h-14 items-center gap-2.5 border-b border-border/70 px-4">
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <LifeBuoy size={17} strokeWidth={2} />
         </span>
+        <div className="leading-tight">
+          <p className="text-[13.5px] font-semibold tracking-tight text-foreground">
+            EP-HelpDesk
+          </p>
+          <p className="text-[10.5px] text-muted-foreground/80">
+            {t("shell.brandTagline")}
+          </p>
+        </div>
       </div>
-      <Separator />
-      <nav className="flex flex-1 flex-col gap-6 py-3" aria-label={t("shell.primaryNavigation")}>
-        <div className="flex flex-col gap-0.5">
-          {primaryNavigationItems.map((item) => (
-            <SidebarLink item={item} key={item.path} onNavigate={onNavigate} />
-          ))}
-        </div>
-        <div className="mt-auto flex flex-col gap-0.5">
-          <SidebarLink
-            item={settingsNavigationItem}
-            onNavigate={onNavigate}
-          />
-        </div>
+      <div className="px-3 pt-3">
+        <NavLink
+          to="/tickets/new"
+          onClick={onNavigate}
+          className={cn(
+            "flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary text-[13px] font-medium text-primary-foreground transition-colors duration-150",
+            isCreateActive
+              ? "bg-[#1B44BE]"
+              : "bg-primary hover:bg-[#1D4FD8] active:bg-[#1B44BE]",
+          )}
+        >
+          <Plus size={15} strokeWidth={2.2} />
+          {t("tickets.createAction")}
+          <span className="ml-1 opacity-70">
+            <Kbd>N</Kbd>
+          </span>
+        </NavLink>
+      </div>
+      <nav
+        className="flex-1 overflow-y-auto px-3 py-3"
+        aria-label={t("shell.primaryNavigation")}
+      >
+        {navigationSections.map((section) => (
+          <div key={section.labelKey} className="mb-4">
+            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+              {t(section.labelKey)}
+            </p>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => (
+                <li key={item.path}>
+                  <SidebarLink item={item} onNavigate={onNavigate} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
     </div>
   );
@@ -76,15 +110,27 @@ function SidebarLink({ item, onNavigate }: SidebarLinkProperties) {
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "flex h-8 items-center gap-2 border-l-2 px-3 text-[13px] leading-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "group relative flex h-[34px] w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
           isActive
-            ? "border-primary bg-elevated text-foreground"
-            : "border-transparent text-muted-foreground hover:bg-elevated/70 hover:text-foreground",
+            ? "bg-elevated font-medium text-foreground"
+            : "text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
         )
       }
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-      <span className="truncate">{t(item.labelKey)}</span>
+      {({ isActive }) => (
+        <>
+          {isActive ? (
+            <span className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-full bg-primary" />
+          ) : null}
+          <Icon
+            size={15.5}
+            strokeWidth={1.9}
+            className={isActive ? "text-[#7FA8F5]" : "text-muted-foreground/80 group-hover:text-muted-foreground"}
+            aria-hidden="true"
+          />
+          <span className="truncate">{t(item.labelKey)}</span>
+        </>
+      )}
     </NavLink>
   );
 }

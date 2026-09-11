@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ServiceFormFields } from "@/components/tickets/service-form-fields";
+import { controlClassName, labelClassName, textareaClassName } from "@/components/ui/control";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
 import { ticketPriorityValues } from "@/lib/tickets/ticket-constants";
 import type {
@@ -7,9 +8,6 @@ import type {
   ServiceResponse,
 } from "@/services/service-catalog-api";
 import type { TicketImpact } from "@/services/tickets-api";
-
-const fieldClass =
-  "h-9 rounded-md border border-input bg-surface px-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 interface CreateTicketFieldsProperties {
   readonly draft: CreateTicketDraft;
@@ -31,10 +29,13 @@ export function CreateTicketFields({
   const { t } = useTranslation();
   return (
     <div className="grid gap-4">
-      <label className="grid gap-1 text-body">
-        {t("tickets.service")}
+      <label className={labelClassName}>
+        <span>
+          {t("tickets.service")}
+          <span className="text-danger"> *</span>
+        </span>
         <select
-          className={fieldClass}
+          className={controlClassName}
           value={draft.serviceId}
           onChange={(event) =>
             onChange({
@@ -56,22 +57,22 @@ export function CreateTicketFields({
         </select>
       </label>
       {selectedService ? (
-        <div className="border border-border bg-elevated/40 px-3 py-3">
-          <p className="text-metadata font-medium text-foreground">{t("tickets.context")}</p>
-          <p className="mt-1 text-body text-muted-foreground">{selectedService.name}</p>
+        <div className="rounded-lg border border-border bg-elevated/40 px-3 py-3">
+          <p className="text-[12.5px] font-medium text-foreground">{t("tickets.context")}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">{selectedService.name}</p>
           {selectedService.runtimeAvailability.showStatusInTicketCreate &&
           selectedService.runtimeAvailability.isCurrentlyUnavailable ? (
-            <p className="mt-2 text-metadata text-warning">
+            <p className="mt-2 text-[12px] text-warning">
               {t("tickets.availabilityUnavailable")}
             </p>
           ) : null}
         </div>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="grid gap-1 text-body">
+        <label className={labelClassName}>
           {t("tickets.impact")}
           <select
-            className={fieldClass}
+            className={controlClassName}
             value={draft.impact}
             onChange={(event) =>
               onChange({ ...draft, impact: event.target.value as TicketImpact })
@@ -84,10 +85,10 @@ export function CreateTicketFields({
             ))}
           </select>
         </label>
-        <label className="grid gap-1 text-body">
+        <label className={labelClassName}>
           {t("tickets.urgency")}
           <select
-            className={fieldClass}
+            className={controlClassName}
             value={draft.urgency}
             onChange={(event) =>
               onChange({ ...draft, urgency: event.target.value as TicketImpact })
@@ -101,20 +102,26 @@ export function CreateTicketFields({
           </select>
         </label>
       </div>
-      <p className="text-metadata text-muted-foreground">{t("tickets.priorityHint")}</p>
-      <label className="grid gap-1 text-body">
-        {t("tickets.titleField")}
+      <p className="text-[11.5px] text-muted-foreground">{t("tickets.priorityHint")}</p>
+      <label className={labelClassName}>
+        <span>
+          {t("tickets.titleField")}
+          <span className="text-danger"> *</span>
+        </span>
         <input
-          className={fieldClass}
+          className={controlClassName}
           value={draft.title}
           onChange={(event) => onChange({ ...draft, title: event.target.value })}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
-        {t("tickets.descriptionField")}
+      <label className={labelClassName}>
+        <span>
+          {t("tickets.descriptionField")}
+          <span className="text-danger"> *</span>
+        </span>
         <textarea
-          className="min-h-28 rounded-md border border-input bg-surface px-2 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={textareaClassName}
           value={draft.description}
           onChange={(event) => onChange({ ...draft, description: event.target.value })}
           required
@@ -122,7 +129,7 @@ export function CreateTicketFields({
       </label>
       {activeForm ? (
         <div className="grid gap-2">
-          <p className="text-body font-medium">{t("tickets.formFields")}</p>
+          <p className="text-[13.5px] font-semibold text-foreground">{t("tickets.formFields")}</p>
           <ServiceFormFields
             schema={activeForm.schema}
             values={draft.formData}
@@ -133,7 +140,7 @@ export function CreateTicketFields({
           />
         </div>
       ) : selectedService ? (
-        <p className="text-metadata text-muted-foreground">{t("tickets.noActiveForm")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("tickets.noActiveForm")}</p>
       ) : null}
     </div>
   );

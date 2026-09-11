@@ -1,7 +1,10 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { controlCompactClassName } from "@/components/ui/control";
 import { useSession } from "@/lib/session/use-session";
+import { cn } from "@/lib/utils";
 import { ApiError } from "@/services/api";
 
 export function SessionControls() {
@@ -15,7 +18,8 @@ export function SessionControls() {
   if (session !== null) {
     return (
       <div className="flex min-w-0 items-center gap-2">
-        <span className="hidden max-w-[10rem] truncate text-metadata text-muted-foreground sm:inline">
+        <Avatar name={session.principal.displayName} size="sm" />
+        <span className="hidden max-w-[10rem] truncate text-[12px] text-muted-foreground sm:inline">
           {session.principal.displayName}
         </span>
         <Button type="button" variant="ghost" size="sm" onClick={signOut}>
@@ -46,7 +50,7 @@ export function SessionControls() {
       </label>
       <input
         id="session-email"
-        className="h-8 w-28 rounded-md border border-input bg-surface px-2 text-metadata sm:w-36"
+        className={cn(controlCompactClassName, "w-28 sm:w-36")}
         type="email"
         autoComplete="username"
         value={email}
@@ -59,7 +63,7 @@ export function SessionControls() {
       </label>
       <input
         id="session-password"
-        className="h-8 w-24 rounded-md border border-input bg-surface px-2 text-metadata sm:w-32"
+        className={cn(controlCompactClassName, "w-24 sm:w-32")}
         type="password"
         autoComplete="current-password"
         value={password}

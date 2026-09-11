@@ -1,6 +1,12 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import {
+  controlClassName,
+  errorTextClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
 import { ApiError } from "@/services/api";
 import { createKnowledgeArticle } from "@/services/knowledge-base-api";
 
@@ -48,62 +54,62 @@ export function CreateKnowledgeArticleForm({
   };
 
   return (
-    <form className="mt-3 grid max-w-xl gap-3" onSubmit={onSubmit}>
-      <label className="grid gap-1 text-body">
+    <form className="grid max-w-xl gap-3" onSubmit={onSubmit}>
+      <label className={labelClassName}>
         {t("knowledgeBase.titleField")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("knowledgeBase.bodyField")}
         <textarea
-          className="min-h-28 border border-input bg-surface px-2 py-2"
+          className={textareaClassName}
           value={body}
           onChange={(event) => setBody(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("knowledgeBase.serviceId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("knowledgeBase.organizationalUnitId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={organizationalUnitId}
           onChange={(event) => setOrganizationalUnitId(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("knowledgeBase.ownerUserId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={ownerUserId}
           onChange={(event) => setOwnerUserId(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("knowledgeBase.reason")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           required
         />
       </label>
-      {errorKey ? <p className="text-body text-destructive">{t(errorKey)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? t("knowledgeBase.saving") : t("knowledgeBase.create")}

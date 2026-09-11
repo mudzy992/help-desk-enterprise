@@ -5,14 +5,31 @@
     "knowledgeBase": "Baza znanja",
     "users": "Korisnici",
     "organizationalUnits": "Organizacijske jedinice",
-    "routing": "Usmjeravanje / Administracija",
-    "settings": "Postavke"
+    "routing": "Usmjeravanje",
+    "settings": "Postavke",
+    "sections": {
+      "overview": "Pregled",
+      "tickets": "Tiketi",
+      "services": "Usluge i znanje",
+      "administration": "Administracija"
+    }
   },
   "shell": {
     "openNavigation": "Otvori navigaciju",
     "navigation": "Navigacija",
     "applicationSections": "Sekcije aplikacije",
-    "primaryNavigation": "Glavna navigacija"
+    "primaryNavigation": "Glavna navigacija",
+    "brandTagline": "Enterprise servisni centar"
+  },
+  "placeholders": {
+    "dashboardTitle": "Nema operativnog pregleda",
+    "dashboardBody": "Otvoreni tiketi, stavke koje traže pažnju i trenutno opterećenje pojavit će se ovdje kad modul bude implementiran.",
+    "usersTitle": "Nema zapisa u imeniku",
+    "usersBody": "Imenik korisnika pojavit će se ovdje kad identitet i pristup budu dostupni na ovom ekranu.",
+    "organizationalUnitsTitle": "Nema organizacijskih jedinica",
+    "organizationalUnitsBody": "Stablo OU hijerarhije pojavit će se ovdje kad upravljanje organizacijom bude dostupno na ovom ekranu.",
+    "settingsTitle": "Nema dostupnih postavki",
+    "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."
   },
   "locale": {
     "label": "Jezik",
@@ -185,6 +202,12 @@
     "createRule": "Spremi pravilo",
     "saving": "Spremanje…",
     "coverageEmpty": "Nema kombinacija servisa i OU za prikaz pokrića.",
+    "coverageEmptyTitle": "Nema pokrića usmjeravanja",
+    "coverageEmptyHint": "Dodajte WHEN/THEN pravilo ili sačekajte da katalog i OU budu spremni.",
+    "markExact": "E",
+    "markFallback": "N",
+    "markUnrouted": "×",
+    "unroutedVisible": "Rupa u usmjeravanju — zahtjev ostaje bez grupe.",
     "columnService": "Servis",
     "columnOriginUnit": "Origin OU",
     "columnExact": "Tačno pravilo",
@@ -215,6 +238,8 @@
     "create": "Spremi nacrt",
     "saving": "Spremanje…",
     "empty": "Nema članaka koje smijete vidjeti.",
+    "emptyTitle": "Nema članaka",
+    "emptyHint": "Kreirajte nacrt članka ili provjerite dozvole za pregled.",
     "owner": "Vlasnik",
     "reviewDue": "Review do",
     "stale": "Zastarjelo",
@@ -271,6 +296,9 @@
     },
     "loading": "Učitavanje tiketa…",
     "empty": "Nema tiketa za ovaj prikaz.",
+    "emptyTitle": "Nema tiketa",
+    "emptyHint": "Promijenite filtere ili kreirajte novi tiket.",
+    "unroutedBanner": "Postoje neusmjerene stavke. UNROUTED je rupa u pokriću — preuzmite ili dopunite routing.",
     "retry": "Pokušaj ponovo",
     "page": "Stranica {{page}} / {{total}}",
     "previous": "Prethodna",
@@ -361,6 +389,7 @@
       "sending": "Slanje…",
       "messageType": "Tip poruke",
       "noMessages": "Još nema poruka.",
+      "noMessagesHint": "Pošaljite prvu javnu poruku ili internu napomenu.",
       "systemEvent": "Sistemski događaj"
     },
     "messageType": {

@@ -1,6 +1,10 @@
+import { Inbox } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 
 interface TicketLoadingStateProperties {
   readonly label?: string;
@@ -8,23 +12,24 @@ interface TicketLoadingStateProperties {
 
 export function TicketLoadingState({ label }: TicketLoadingStateProperties) {
   const { t } = useTranslation();
-  return (
-    <div
-      className="mt-3 h-32 animate-pulse rounded-md bg-elevated"
-      role="status"
-      aria-live="polite"
-    >
-      <span className="sr-only">{label ?? t("tickets.loading")}</span>
-    </div>
-  );
+  return <PanelSkeleton label={label ?? t("tickets.loading")} />;
 }
 
 interface TicketEmptyStateProperties {
-  readonly message: string;
+  readonly title: string;
+  readonly body: string;
+  readonly action?: ReactNode;
 }
 
-export function TicketEmptyState({ message }: TicketEmptyStateProperties) {
-  return <p className="mt-3 text-body text-muted-foreground">{message}</p>;
+export function TicketEmptyState({ title, body, action }: TicketEmptyStateProperties) {
+  return (
+    <EmptyState
+      icon={<Inbox size={18} strokeWidth={1.8} />}
+      title={title}
+      body={body}
+      action={action}
+    />
+  );
 }
 
 interface TicketErrorStateProperties {
@@ -35,15 +40,16 @@ interface TicketErrorStateProperties {
 export function TicketErrorState({ errorKey, onRetry }: TicketErrorStateProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mt-3 grid gap-2">
-      <p className="text-body text-destructive">{t(errorKey)}</p>
-      {onRetry ? (
-        <div>
-          <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
+    <EmptyState
+      title={t(errorKey)}
+      body={t("tickets.emptyHint")}
+      action={
+        onRetry ? (
+          <Button type="button" variant="outline" size="sm" onClick={onRetry}>
             {t("tickets.retry")}
           </Button>
-        </div>
-      ) : null}
-    </div>
+        ) : undefined
+      }
+    />
   );
 }

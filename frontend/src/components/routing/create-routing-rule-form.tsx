@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
 import { createRoutingRule } from "@/services/routing-api";
 import { ApiError } from "@/services/api";
 
@@ -42,36 +43,36 @@ export function CreateRoutingRuleForm({
   };
 
   return (
-    <form className="mt-3 grid max-w-xl gap-3" onSubmit={onSubmit}>
-      <label className="grid gap-1 text-body">
+    <form className="grid max-w-xl gap-3" onSubmit={onSubmit}>
+      <label className={labelClassName}>
         {t("routing.originUnitId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={originUnitId}
           onChange={(event) => setOriginUnitId(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("routing.serviceId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("routing.groupId")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           value={groupId}
           onChange={(event) => setGroupId(event.target.value)}
           required
         />
       </label>
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>

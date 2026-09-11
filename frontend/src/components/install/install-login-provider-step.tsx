@@ -9,6 +9,8 @@ import {
   isDirectoryBindConfigured,
 } from "@/components/install/install-ldaps-bind-fields";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildInstallLoginProviderInput,
   isInstallLoginProviderFormReady,
@@ -106,16 +108,16 @@ export function InstallLoginProviderStep({
   }
 
   if (isLoading) {
-    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
   }
 
   return (
     <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
       <fieldset className="grid gap-2">
-        <legend className="text-body font-medium text-foreground">
+        <legend className="text-[12.5px] font-medium text-foreground">
           {t("install.loginProvider.mode")}
         </legend>
-        <label className="flex items-center gap-2 text-body">
+        <label className="flex items-center gap-2 text-[13px] text-foreground">
           <input
             type="radio"
             name="login-provider-mode"
@@ -125,7 +127,7 @@ export function InstallLoginProviderStep({
           />
           {t("install.loginProvider.local")}
         </label>
-        <label className="flex items-center gap-2 text-body">
+        <label className="flex items-center gap-2 text-[13px] text-foreground">
           <input
             type="radio"
             name="login-provider-mode"
@@ -137,12 +139,12 @@ export function InstallLoginProviderStep({
         </label>
       </fieldset>
       {mode === "local" ? (
-        <p className="text-body leading-6 text-muted-foreground">
+        <p className="text-[12.5px] leading-5 text-muted-foreground">
           {t("install.loginProvider.localHint")}
         </p>
       ) : (
         <>
-          <p className="text-body leading-6 text-muted-foreground">
+          <p className="text-[12.5px] leading-5 text-muted-foreground">
             {t("install.loginProvider.entraHint")}
           </p>
           <InstallEntraAdFields
@@ -172,13 +174,13 @@ export function InstallLoginProviderStep({
             onBindDnChange={setAdBindDn}
             onBindPasswordChange={setAdBindPassword}
           />
-          <p className="text-body text-muted-foreground">
+          <p className="text-[12.5px] text-muted-foreground">
             {t("install.loginProvider.breakGlass")}
           </p>
         </>
       )}
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button

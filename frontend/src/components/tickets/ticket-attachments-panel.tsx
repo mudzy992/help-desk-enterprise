@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 
@@ -28,17 +29,17 @@ export function TicketAttachmentsPanel({
     return null;
   }
   return (
-    <section className="grid gap-2">
-      <h3 className="text-body font-medium">{t("tickets.detail.attachments")}</h3>
+    <Card className="grid gap-2 px-4 py-3.5">
+      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.attachments")}</h3>
       {items.length === 0 ? (
-        <p className="text-metadata text-muted-foreground">{t("tickets.detail.noAttachments")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("tickets.detail.noAttachments")}</p>
       ) : (
         <ul className="grid gap-2">
           {items.map((item) => (
             <li key={item.id} className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-body">
                 {item.originalName}
-                <span className="ml-2 text-metadata text-muted-foreground">
+                <span className="ml-2 text-[12px] text-muted-foreground tnum">
                   {formatTicketTimestamp(item.createdAt, i18n.language)}
                 </span>
               </span>
@@ -84,7 +85,7 @@ export function TicketAttachmentsPanel({
           <Button
             type="button"
             size="sm"
-            variant="secondary"
+            variant="outline"
             disabled={isUploading}
             onClick={() => inputReference.current?.click()}
           >
@@ -92,6 +93,6 @@ export function TicketAttachmentsPanel({
           </Button>
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

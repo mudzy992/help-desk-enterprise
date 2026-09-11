@@ -1,4 +1,5 @@
 import type { InstallLoginProviderRecord } from "@/services/install-api";
+import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
 
 export function InstallLdapsBindFields({
   urls,
@@ -29,42 +30,42 @@ export function InstallLdapsBindFields({
 }) {
   return (
     <div className="grid gap-3">
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {urlsLabel}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="text"
           autoComplete="off"
           value={urls}
           onChange={(event) => onUrlsChange(event.target.value)}
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {bindDnLabel}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="text"
           autoComplete="off"
           value={bindDn}
           onChange={(event) => onBindDnChange(event.target.value)}
         />
         {bindDnConfigured ? (
-          <span className="text-metadata text-muted-foreground">
+          <span className={hintClassName}>
             {configuredLabel}
           </span>
         ) : null}
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {bindPasswordLabel}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="password"
           autoComplete="off"
           value={bindPassword}
           onChange={(event) => onBindPasswordChange(event.target.value)}
         />
         {bindPasswordConfigured ? (
-          <span className="text-metadata text-muted-foreground">
+          <span className={hintClassName}>
             {configuredLabel}
           </span>
         ) : null}

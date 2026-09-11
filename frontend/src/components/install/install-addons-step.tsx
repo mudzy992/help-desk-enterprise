@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { buildInstallAddonsInput } from "@/lib/build-install-addons-input";
 import { resolveInstallAddonCopy } from "@/lib/install-addon-copy";
@@ -60,7 +62,7 @@ export function InstallAddonsStep({
   };
 
   if (isLoading) {
-    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
   }
 
   return (
@@ -82,7 +84,7 @@ export function InstallAddonsStep({
         />
       ))}
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting || items.length === 0}>
@@ -103,8 +105,8 @@ function AddonSwitch(input: {
   const label = copy === null ? input.item.key : t(copy.label);
   const description = copy === null ? "" : t(copy.description);
   return (
-    <div className="grid gap-1 border-b border-border py-2 last:border-b-0">
-      <label className="flex items-center gap-2 text-body">
+    <div className="rounded-lg border border-border bg-surface px-3 py-3">
+      <label className="flex items-center gap-2 text-[13px] font-medium text-foreground">
         <Switch
           checked={input.item.enabled}
           disabled={input.disabled || !input.item.canEnable}
@@ -113,7 +115,7 @@ function AddonSwitch(input: {
         />
         {label}
       </label>
-      <p className="text-metadata leading-5 text-muted-foreground">
+      <p className="mt-1 text-[11.5px] leading-5 text-muted-foreground">
         {description}
         {input.item.key === "email" && !input.item.canEnable
           ? ` ${t("install.addons.emailDisabledHint")}`

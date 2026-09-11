@@ -1,7 +1,11 @@
 import type { ServiceFormField, ServiceFormSchema } from "@/services/service-catalog-api";
-
-const fieldClass =
-  "h-9 rounded-md border border-input bg-surface px-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+import {
+  controlClassName,
+  errorTextClassName,
+  hintClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
 
 interface ServiceFormFieldsProperties {
   readonly schema: ServiceFormSchema;
@@ -24,7 +28,7 @@ function FieldControl({
     return (
       <input
         type="checkbox"
-        className="h-4 w-4 accent-primary"
+        className="h-4 w-4 rounded-md border-border accent-primary"
         checked={value === true}
         onChange={(event) => onChange(event.target.checked)}
       />
@@ -33,7 +37,7 @@ function FieldControl({
   if (field.type === "textarea") {
     return (
       <textarea
-        className="min-h-24 rounded-md border border-input bg-surface px-2 py-2 text-body focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={textareaClassName}
         value={typeof value === "string" ? value : ""}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
@@ -43,7 +47,7 @@ function FieldControl({
   if (field.type === "select") {
     return (
       <select
-        className={fieldClass}
+        className={controlClassName}
         value={typeof value === "string" ? value : ""}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -68,7 +72,7 @@ function FieldControl({
             : "text";
   return (
     <input
-      className={fieldClass}
+      className={controlClassName}
       type={inputType}
       value={typeof value === "string" || typeof value === "number" ? String(value) : ""}
       placeholder={placeholder}
@@ -88,10 +92,10 @@ export function ServiceFormFields({
   return (
     <div className="grid gap-3">
       {schema.fields.map((field) => (
-        <label key={field.id} className="grid gap-1 text-body">
+        <label key={field.id} className={labelClassName}>
           <span>
             {field.label}
-            {field.required ? " *" : ""}
+            {field.required ? <span className="text-danger"> *</span> : null}
           </span>
           <FieldControl
             field={field}
@@ -99,10 +103,10 @@ export function ServiceFormFields({
             onChange={(value) => onChange(field.id, value)}
           />
           {field.config?.helpText ? (
-            <span className="text-metadata text-muted-foreground">{field.config.helpText}</span>
+            <span className={hintClassName}>{field.config.helpText}</span>
           ) : null}
           {errors.get(field.id) ? (
-            <span className="text-metadata text-destructive">{errors.get(field.id)}</span>
+            <span className={errorTextClassName}>{errors.get(field.id)}</span>
           ) : null}
         </label>
       ))}

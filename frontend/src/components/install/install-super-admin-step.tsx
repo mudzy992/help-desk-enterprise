@@ -1,6 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/services/api";
 import {
   createInstallSuperAdmin,
@@ -78,7 +80,7 @@ export function InstallSuperAdminStep({
   };
 
   if (isLoading) {
-    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
   }
 
   if (superAdmin !== null) {
@@ -111,10 +113,10 @@ export function InstallSuperAdminStep({
 
   return (
     <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.email")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="email"
           autoComplete="username"
           value={email}
@@ -122,10 +124,10 @@ export function InstallSuperAdminStep({
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.displayName")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="text"
           autoComplete="name"
           value={displayName}
@@ -133,10 +135,10 @@ export function InstallSuperAdminStep({
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.password")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="password"
           autoComplete="new-password"
           minLength={12}
@@ -145,10 +147,10 @@ export function InstallSuperAdminStep({
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.confirmPassword")}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="password"
           autoComplete="new-password"
           minLength={12}
@@ -158,7 +160,7 @@ export function InstallSuperAdminStep({
         />
       </label>
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>

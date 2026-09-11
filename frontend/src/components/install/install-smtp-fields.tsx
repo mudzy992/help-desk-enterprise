@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
-
-const inputClassName = "h-9 border border-input bg-surface px-2";
+import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
 
 export function InstallSmtpFields({
   host,
@@ -35,20 +34,20 @@ export function InstallSmtpFields({
   const { t } = useTranslation();
   return (
     <>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.smtp.host")}
         <input
-          className={inputClassName}
+          className={controlClassName}
           value={host}
           onChange={(event) => onHostChange(event.target.value)}
           autoComplete="off"
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.smtp.port")}
         <input
-          className={inputClassName}
+          className={controlClassName}
           type="number"
           min={1}
           max={65535}
@@ -57,7 +56,7 @@ export function InstallSmtpFields({
           required
         />
       </label>
-      <label className="flex items-center gap-2 text-body">
+      <label className="flex items-center gap-2 text-[13px] font-medium text-foreground">
         <Switch
           checked={tls}
           onCheckedChange={onTlsChange}
@@ -65,20 +64,20 @@ export function InstallSmtpFields({
         />
         {t("install.smtp.tls")}
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.smtp.username")}
         <input
-          className={inputClassName}
+          className={controlClassName}
           value={username}
           onChange={(event) => onUsernameChange(event.target.value)}
           autoComplete="off"
           required
         />
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.smtp.password")}
         <input
-          className={inputClassName}
+          className={controlClassName}
           type="password"
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
@@ -86,14 +85,14 @@ export function InstallSmtpFields({
         />
       </label>
       {passwordConfigured ? (
-        <p className="text-body text-muted-foreground">
+        <p className={hintClassName}>
           {t("install.smtp.configured")}
         </p>
       ) : null}
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {t("install.smtp.fromAddress")}
         <input
-          className={inputClassName}
+          className={controlClassName}
           type="email"
           value={fromAddress}
           onChange={(event) => onFromAddressChange(event.target.value)}

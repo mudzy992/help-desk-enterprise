@@ -5,14 +5,31 @@
     "knowledgeBase": "Knowledge Base",
     "users": "Users",
     "organizationalUnits": "Organizational Units",
-    "routing": "Routing / Administration",
-    "settings": "Settings"
+    "routing": "Routing",
+    "settings": "Settings",
+    "sections": {
+      "overview": "Overview",
+      "tickets": "Tickets",
+      "services": "Services and knowledge",
+      "administration": "Administration"
+    }
   },
   "shell": {
     "openNavigation": "Open navigation",
     "navigation": "Navigation",
     "applicationSections": "Application sections",
-    "primaryNavigation": "Primary navigation"
+    "primaryNavigation": "Primary navigation",
+    "brandTagline": "Enterprise service center"
+  },
+  "placeholders": {
+    "dashboardTitle": "No operational snapshot yet",
+    "dashboardBody": "Open tickets, attention items, and current workload will appear here when the dashboard module is implemented.",
+    "usersTitle": "No directory records yet",
+    "usersBody": "The user directory will appear here when identity and access management is available on this screen.",
+    "organizationalUnitsTitle": "No organizational units yet",
+    "organizationalUnitsBody": "The OU tree and hierarchy will appear here when organization management is available on this screen.",
+    "settingsTitle": "No settings available yet",
+    "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
   },
   "locale": {
     "label": "Language",
@@ -185,6 +202,12 @@
     "createRule": "Save rule",
     "saving": "Saving…",
     "coverageEmpty": "No service and OU combinations are available for coverage.",
+    "coverageEmptyTitle": "No routing coverage",
+    "coverageEmptyHint": "Add a WHEN/THEN rule, or wait until the catalog and OU tree are ready.",
+    "markExact": "E",
+    "markFallback": "N",
+    "markUnrouted": "×",
+    "unroutedVisible": "Routing gap — the request stays without a group.",
     "columnService": "Service",
     "columnOriginUnit": "Origin OU",
     "columnExact": "Exact rule",
@@ -215,6 +238,8 @@
     "create": "Save draft",
     "saving": "Saving…",
     "empty": "No articles you are allowed to see.",
+    "emptyTitle": "No articles",
+    "emptyHint": "Create a draft article or check that you have permission to view published ones.",
     "owner": "Owner",
     "reviewDue": "Review due",
     "stale": "Stale",
@@ -271,6 +296,9 @@
     },
     "loading": "Loading tickets…",
     "empty": "No tickets for this view.",
+    "emptyTitle": "No tickets",
+    "emptyHint": "Change filters or create a new ticket.",
+    "unroutedBanner": "There are unrouted items. UNROUTED is a coverage gap — claim them or complete routing.",
     "retry": "Try again",
     "page": "Page {{page}} / {{total}}",
     "previous": "Previous",
@@ -361,6 +389,7 @@
       "sending": "Sending…",
       "messageType": "Message type",
       "noMessages": "No messages yet.",
+      "noMessagesHint": "Send the first public reply or an internal note.",
       "systemEvent": "System event"
     },
     "messageType": {

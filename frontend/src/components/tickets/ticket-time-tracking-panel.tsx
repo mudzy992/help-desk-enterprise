@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketTimeLogResponse } from "@/services/tickets-collaboration-api";
 
@@ -37,12 +38,12 @@ export function TicketTimeTrackingPanel({
     (item) => item.endedAt === null && item.userId === currentUserId,
   );
   return (
-    <section className="grid gap-2">
-      <h3 className="text-body font-medium">{t("tickets.detail.time")}</h3>
+    <Card className="grid gap-2 px-4 py-3.5">
+      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.time")}</h3>
       {items.length === 0 ? (
-        <p className="text-metadata text-muted-foreground">{t("tickets.detail.noTimeLogs")}</p>
+        <p className="text-[12px] text-muted-foreground">{t("tickets.detail.noTimeLogs")}</p>
       ) : (
-        <ul className="grid gap-1 text-metadata text-muted-foreground">
+        <ul className="grid gap-1 text-[12px] text-muted-foreground tnum">
           {items.map((item) => (
             <li key={item.id}>
               {formatTicketTimestamp(item.startedAt, i18n.language)} · {formatDuration(item.durationSeconds)}
@@ -55,10 +56,10 @@ export function TicketTimeTrackingPanel({
           {t("tickets.detail.stopTimer")}
         </Button>
       ) : (
-        <Button type="button" size="sm" variant="secondary" disabled={isSaving} onClick={onStart}>
+        <Button type="button" size="sm" variant="outline" disabled={isSaving} onClick={onStart}>
           {t("tickets.detail.startTimer")}
         </Button>
       )}
-    </section>
+    </Card>
   );
 }

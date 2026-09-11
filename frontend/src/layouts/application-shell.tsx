@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -8,11 +8,34 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 export function ApplicationShell() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
 
   useEffect(() => {
     setIsMobileNavigationOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "n" && event.key !== "N") {
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target.closest("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      event.preventDefault();
+      navigate("/tickets/new");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navigate]);
 
   const closeMobileNavigation = () => {
     setIsMobileNavigationOpen(false);
@@ -20,13 +43,13 @@ export function ApplicationShell() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="hidden w-56 shrink-0 border-r border-border bg-surface md:flex md:flex-col">
+      <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface md:flex md:flex-col">
         <AppSidebar />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader onOpenNavigation={() => setIsMobileNavigationOpen(true)} />
         <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
-          <SheetContent side="left" className="flex w-56 flex-col p-0">
+          <SheetContent side="left" className="flex w-[248px] flex-col p-0">
             <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
             <SheetDescription className="sr-only">
               {t("shell.applicationSections")}
@@ -34,8 +57,13 @@ export function ApplicationShell() {
             <AppSidebar onNavigate={closeMobileNavigation} />
           </SheetContent>
         </Sheet>
-        <main className="flex-1 p-4 md:p-6">
-          <Outlet />
+        <main className="flex-1">
+          <div
+            key={location.pathname}
+            className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8"
+          >
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

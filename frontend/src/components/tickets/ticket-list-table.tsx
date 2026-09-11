@@ -2,6 +2,12 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
+import {
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+  ticketIdClassName,
+} from "@/components/ui/control";
 import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -31,38 +37,34 @@ export function TicketListTable({
 }: TicketListTableProperties) {
   const { t, i18n } = useTranslation();
   return (
-    <div className="mt-3 overflow-x-auto border border-border">
+    <div className={`mt-3 ${tableWrapClassName}`}>
       <table className="min-w-full text-left">
-        <thead className="border-b border-border bg-elevated/50 text-metadata text-muted-foreground">
+        <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
-            <th className="px-3 py-2 font-medium">{t("tickets.columns.number")}</th>
-            <th className="px-3 py-2 font-medium">{t("tickets.columns.subject")}</th>
-            <th className="px-3 py-2 font-medium">{t("tickets.columns.status")}</th>
-            <th className="hidden px-3 py-2 font-medium md:table-cell">
-              {t("tickets.columns.priority")}
-            </th>
-            <th className="hidden px-3 py-2 font-medium lg:table-cell">
-              {t("tickets.columns.service")}
-            </th>
-            <th className="hidden px-3 py-2 font-medium lg:table-cell">
-              {t("tickets.columns.assignment")}
-            </th>
-            <th className="px-3 py-2 font-medium">{t("tickets.columns.updated")}</th>
-            <th className="px-3 py-2 font-medium">
+            <th className="px-3 py-2">{t("tickets.columns.number")}</th>
+            <th className="px-3 py-2">{t("tickets.columns.subject")}</th>
+            <th className="px-3 py-2">{t("tickets.columns.status")}</th>
+            <th className="hidden px-3 py-2 md:table-cell">{t("tickets.columns.priority")}</th>
+            <th className="hidden px-3 py-2 lg:table-cell">{t("tickets.columns.service")}</th>
+            <th className="hidden px-3 py-2 lg:table-cell">{t("tickets.columns.assignment")}</th>
+            <th className="px-3 py-2">{t("tickets.columns.updated")}</th>
+            <th className="px-3 py-2">
               <span className="sr-only">{t("tickets.claim")}</span>
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
+        <tbody className="divide-y divide-border/50">
           {tickets.map((ticket) => (
-            <tr key={ticket.id} className="align-top">
-              <td className="px-3 py-2 text-metadata text-muted-foreground">
-                {ticket.ticketNumber}
+            <tr key={ticket.id} className={tableRowClassName}>
+              <td className="px-3 py-2">
+                <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+                  {ticket.ticketNumber}
+                </Link>
               </td>
               <td className="px-3 py-2">
                 <Link
                   to={`/tickets/${ticket.id}`}
-                  className="text-body font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="text-[13px] font-medium text-foreground hover:underline"
                 >
                   {ticket.title}
                 </Link>
@@ -71,15 +73,18 @@ export function TicketListTable({
                 <TicketStatusBadge status={ticket.status} />
               </td>
               <td className="hidden px-3 py-2 md:table-cell">
-                <TicketPriorityBadge priority={ticket.priority} />
+                <TicketPriorityBadge
+                  priority={ticket.priority}
+                  showCriticalMark
+                />
               </td>
-              <td className="hidden px-3 py-2 text-metadata text-muted-foreground lg:table-cell">
+              <td className="hidden px-3 py-2 text-[12px] text-muted-foreground lg:table-cell">
                 {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
               </td>
-              <td className="hidden px-3 py-2 text-metadata text-muted-foreground lg:table-cell">
+              <td className="hidden px-3 py-2 text-[12px] text-muted-foreground lg:table-cell">
                 {t(assignmentLabelKey(ticket))}
               </td>
-              <td className="px-3 py-2 text-metadata text-muted-foreground">
+              <td className="px-3 py-2 text-[12px] text-muted-foreground tnum">
                 {formatTicketTimestamp(ticket.updatedAt, i18n.language)}
               </td>
               <td className="px-3 py-2">

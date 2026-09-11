@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useInstallSetup } from "@/app/install-setup-provider";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
 import {
   mapInstallCompleteError,
   type InstallCompleteErrorKey,
@@ -31,7 +32,7 @@ export function InstallCompleteStep() {
   return (
     <form className="mt-6 grid max-w-xl gap-3" onSubmit={(event) => void onSubmit(event)}>
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button type="submit" disabled={isSubmitting}>

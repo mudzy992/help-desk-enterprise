@@ -7,6 +7,8 @@ import { InstallSeedStep } from "@/components/install/install-seed-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { LocaleSelect } from "@/components/layout/locale-select";
+import { PageHeader } from "@/components/ui/page-header";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   installWizardCopyKeys,
   resolveInstallWizardStep,
@@ -52,22 +54,21 @@ export function InstallPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex h-12 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
-        <h1 className="min-w-0 truncate text-section font-medium text-foreground">
-          {t("install.title")}
-        </h1>
+      <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
+        <p className="min-w-0 flex-1 truncate text-[13.5px] font-semibold tracking-tight text-foreground">
+          EP-HelpDesk
+        </p>
         <LocaleSelect />
       </header>
-      <main className="flex-1 p-4 md:p-6">
-        <section className="max-w-2xl">
-          <h2 className="text-section font-medium text-foreground">
-            {t(copy?.heading ?? "install.heading")}
-          </h2>
-          <p className="mt-2 text-body leading-6 text-muted-foreground">
-            {t(copy?.body ?? "install.body")}
-          </p>
+      <main className="flex-1">
+        <section className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
+          <PageHeader
+            crumbs={["EP-HelpDesk", t("install.title")]}
+            title={t(copy?.heading ?? "install.heading")}
+            subtitle={t(copy?.body ?? "install.body")}
+          />
           {step === null ? (
-            <div className="mt-6 h-40 animate-pulse bg-elevated" />
+            <PanelSkeleton label={t("install.loading")} />
           ) : null}
           {step === "complete" ? <InstallCompleteStep /> : null}
           {step === "addons" ? (

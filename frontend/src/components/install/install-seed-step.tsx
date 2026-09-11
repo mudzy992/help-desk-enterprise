@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   mapInstallSeedError,
   type InstallSeedErrorKey,
@@ -55,7 +57,7 @@ export function InstallSeedStep({
   };
 
   if (isLoading) {
-    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
   }
 
   if (record?.isSeeded === true) {
@@ -72,7 +74,7 @@ export function InstallSeedStep({
   return (
     <div className="mt-6 grid max-w-xl gap-3">
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button type="button" disabled={isSubmitting} onClick={() => void onSubmit()}>

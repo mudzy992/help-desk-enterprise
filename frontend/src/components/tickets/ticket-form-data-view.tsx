@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Card } from "@/components/ui/card";
 
 interface TicketFormDataViewProperties {
   readonly formData: unknown;
@@ -14,18 +15,20 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
     return null;
   }
   return (
-    <section className="grid gap-2">
-      <h3 className="text-body font-medium">{t("tickets.detail.formData")}</h3>
-      <dl className="grid gap-2">
+    <Card className="px-4 py-3.5">
+      <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.formData")}</h3>
+      <dl className="mt-3 grid gap-3">
         {entries.map(([key, value]) => (
           <div key={key}>
-            <dt className="text-metadata text-muted-foreground">{key}</dt>
-            <dd className="text-body">
+            <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {key}
+            </dt>
+            <dd className="mt-0.5 text-[13px] text-foreground">
               {Array.isArray(value) ? value.join(", ") : String(value)}
             </dd>
           </div>
         ))}
       </dl>
-    </section>
+    </Card>
   );
 }

@@ -18,29 +18,27 @@ export function TicketWorkspaceNav({
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <nav className="flex min-w-0 flex-1 flex-wrap gap-1" aria-label={t("tickets.title")}>
-        {views.map((item) => (
-          <NavLink
-            key={item}
-            to={item === "inbox" ? "/tickets" : `/tickets?view=${item}`}
-            className={cn(
-              "h-8 rounded-md px-2 text-metadata focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              view === item
-                ? "bg-elevated text-foreground"
-                : "text-muted-foreground hover:bg-elevated/70 hover:text-foreground",
-            )}
-          >
-            {t(`tickets.views.${item}`)}
-          </NavLink>
-        ))}
-      </nav>
-      <NavLink
-        to="/tickets/new"
-        className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-metadata font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {t("tickets.createAction")}
-      </NavLink>
-    </div>
+    <nav
+      className="flex items-center gap-1 overflow-x-auto border-b border-border/70"
+      aria-label={t("tickets.title")}
+    >
+      {views.map((item) => (
+        <NavLink
+          key={item}
+          to={item === "inbox" ? "/tickets" : `/tickets?view=${item}`}
+          className={cn(
+            "relative flex h-[38px] items-center whitespace-nowrap px-3 text-[12.5px] font-medium transition-colors duration-150",
+            view === item
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {t(`tickets.views.${item}`)}
+          {view === item ? (
+            <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-primary" />
+          ) : null}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

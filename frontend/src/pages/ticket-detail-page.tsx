@@ -55,7 +55,7 @@ export function TicketDetailPage() {
   }
   if (detail.errorKey || detail.ticket === null) {
     return (
-      <section className="max-w-6xl">
+      <section className="max-w-[1400px]">
         <TicketErrorState
           errorKey={detail.errorKey ?? "tickets.errorNotFound"}
           onRetry={() => void detail.reload()}
@@ -73,14 +73,14 @@ export function TicketDetailPage() {
   const canManageParticipants = access !== "requester";
 
   return (
-    <section className="max-w-6xl">
+    <section>
       <Link
         to="/tickets"
-        className="text-metadata text-muted-foreground hover:text-foreground hover:underline"
+        className="text-[11.5px] text-muted-foreground hover:text-foreground hover:underline"
       >
         {t("tickets.backToInbox")}
       </Link>
-      <div className="mt-4">
+      <div className="mt-3">
         <TicketDetailHeader
           ticket={ticket}
           serviceName={serviceName}
@@ -98,19 +98,22 @@ export function TicketDetailPage() {
         />
       </div>
       {detail.actionError ? (
-        <p className="mt-3 text-body text-destructive">{t(detail.actionError)}</p>
+        <p className="mt-3 text-[12.5px] text-danger">{t(detail.actionError)}</p>
       ) : null}
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
-        <div className="grid min-w-0 gap-6">
-          <section>
-            <h3 className="text-body font-medium">{t("tickets.detail.description")}</h3>
-            <p className="mt-2 whitespace-pre-wrap text-body text-foreground">{ticket.description}</p>
+      <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <div className="grid min-w-0 gap-4">
+          <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
+            <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.description")}</h3>
+            <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">{ticket.description}</p>
           </section>
           <TicketFormDataView formData={ticket.formData} />
-          <section>
-            <h3 className="text-body font-medium">{t("tickets.detail.conversation")}</h3>
+          <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
+            <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.conversation")}</h3>
             <div className="mt-3">
-              <TicketConversation messages={detail.messages} />
+              <TicketConversation
+                messages={detail.messages}
+                currentUserId={currentUserId}
+              />
             </div>
             <TicketMessageComposer
               access={access}
@@ -134,7 +137,7 @@ export function TicketDetailPage() {
             onDelete={detail.removeAttachment}
           />
         </div>
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           <TicketDetailSidebar ticket={ticket} originName={originName} />
           <TicketParticipantsPanel
             items={detail.participants}

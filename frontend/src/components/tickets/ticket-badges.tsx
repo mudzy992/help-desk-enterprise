@@ -1,24 +1,25 @@
+import { Flame } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 
-const statusClass: Record<TicketStatus, string> = {
-  PENDING: "border-warning/40 text-warning",
-  UNROUTED: "border-warning/40 text-warning",
-  PENDING_APPROVAL: "border-info/40 text-info",
-  ASSIGNED: "border-info/40 text-info",
-  IN_PROGRESS: "border-primary/40 text-primary",
-  WAITING_FOR_USER: "border-warning/40 text-warning",
-  RESOLVED: "border-success/40 text-success",
-  CLOSED: "border-border text-muted-foreground",
-  ARCHIVED: "border-border text-muted-foreground",
+const statusTone: Record<TicketStatus, BadgeTone> = {
+  PENDING: "info",
+  UNROUTED: "danger",
+  PENDING_APPROVAL: "warning",
+  ASSIGNED: "primary",
+  IN_PROGRESS: "primary",
+  WAITING_FOR_USER: "warning",
+  RESOLVED: "success",
+  CLOSED: "neutral",
+  ARCHIVED: "neutral",
 };
 
-const priorityClass: Record<TicketPriority, string> = {
-  LOW: "border-border text-muted-foreground",
-  MEDIUM: "border-info/40 text-info",
-  HIGH: "border-warning/40 text-warning",
-  CRITICAL: "border-destructive/50 text-destructive",
+const priorityTone: Record<TicketPriority, BadgeTone> = {
+  LOW: "neutral",
+  MEDIUM: "info",
+  HIGH: "warning",
+  CRITICAL: "danger",
 };
 
 interface TicketStatusBadgeProperties {
@@ -28,31 +29,28 @@ interface TicketStatusBadgeProperties {
 export function TicketStatusBadge({ status }: TicketStatusBadgeProperties) {
   const { t } = useTranslation();
   return (
-    <span
-      className={cn(
-        "inline-flex h-6 items-center rounded-md border px-2 text-metadata",
-        statusClass[status],
-      )}
-    >
+    <Badge tone={statusTone[status]} dot>
       {t(`tickets.status.${status}`)}
-    </span>
+    </Badge>
   );
 }
 
 interface TicketPriorityBadgeProperties {
   readonly priority: TicketPriority;
+  readonly showCriticalMark?: boolean;
 }
 
-export function TicketPriorityBadge({ priority }: TicketPriorityBadgeProperties) {
+export function TicketPriorityBadge({
+  priority,
+  showCriticalMark = false,
+}: TicketPriorityBadgeProperties) {
   const { t } = useTranslation();
   return (
-    <span
-      className={cn(
-        "inline-flex h-6 items-center rounded-md border px-2 text-metadata",
-        priorityClass[priority],
-      )}
-    >
+    <Badge tone={priorityTone[priority]} dot>
+      {showCriticalMark && priority === "CRITICAL" ? (
+        <Flame size={11} strokeWidth={2} className="text-danger" aria-hidden="true" />
+      ) : null}
       {t(`tickets.priority.${priority}`)}
-    </span>
+    </Badge>
   );
 }

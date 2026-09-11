@@ -1,13 +1,11 @@
 import { useTranslation } from "react-i18next";
+import { controlClassName, labelClassName } from "@/components/ui/control";
 import {
   ticketPriorityValues,
   ticketStatusValues,
 } from "@/lib/tickets/ticket-constants";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
-
-const fieldClass =
-  "h-8 rounded-md border border-input bg-surface px-2 text-metadata text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 interface TicketListFiltersBarProperties {
   readonly filters: TicketListFilters;
@@ -22,20 +20,20 @@ export function TicketListFiltersBar({
 }: TicketListFiltersBarProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mt-4 grid gap-2 md:grid-cols-4">
-      <label className="grid gap-1 text-metadata text-muted-foreground">
+    <div className="mt-4 grid gap-3 md:grid-cols-4">
+      <label className={labelClassName}>
         {t("tickets.filters.search")}
         <input
-          className={fieldClass}
+          className={controlClassName}
           value={filters.search}
           onChange={(event) => onChange({ ...filters, search: event.target.value })}
           placeholder={t("tickets.filters.searchPlaceholder")}
         />
       </label>
-      <label className="grid gap-1 text-metadata text-muted-foreground">
+      <label className={labelClassName}>
         {t("tickets.filters.status")}
         <select
-          className={fieldClass}
+          className={controlClassName}
           value={filters.status}
           onChange={(event) =>
             onChange({
@@ -52,10 +50,10 @@ export function TicketListFiltersBar({
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-metadata text-muted-foreground">
+      <label className={labelClassName}>
         {t("tickets.filters.priority")}
         <select
-          className={fieldClass}
+          className={controlClassName}
           value={filters.priority}
           onChange={(event) =>
             onChange({
@@ -72,10 +70,10 @@ export function TicketListFiltersBar({
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-metadata text-muted-foreground">
+      <label className={labelClassName}>
         {t("tickets.filters.service")}
         <select
-          className={fieldClass}
+          className={controlClassName}
           value={filters.serviceId}
           onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
         >

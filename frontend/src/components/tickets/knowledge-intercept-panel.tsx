@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { errorTextClassName } from "@/components/ui/control";
 import {
   Sheet,
   SheetContent,
@@ -52,25 +54,23 @@ export function KnowledgeInterceptPanel({
 
   return (
     <div className="grid gap-3">
-      <p className="text-body text-muted-foreground">{t("tickets.interceptIntro")}</p>
+      <p className="text-[13px] leading-5 text-muted-foreground">{t("tickets.interceptIntro")}</p>
       {helped ? (
-        <p className="text-body">{t("tickets.helpedSkip")}</p>
+        <p className="text-[13px] text-foreground">{t("tickets.helpedSkip")}</p>
       ) : null}
       {canContinueAfterKnowledgeIntercept(items) && items.length === 0 ? (
-        <p className="text-body text-muted-foreground">{t("tickets.interceptEmpty")}</p>
+        <p className="text-[13px] text-muted-foreground">{t("tickets.interceptEmpty")}</p>
       ) : (
-        <ul className="divide-y divide-border border border-border">
+        <ul className="grid gap-3">
           {items.map((item) => (
-            <li key={item.id} className="grid gap-2 px-3 py-3">
+            <li key={item.id} className="grid gap-2 rounded-lg border border-border bg-surface px-3 py-3 hover:border-[#31405C]">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-body font-medium">{item.title}</h3>
+                <h3 className="text-[13.5px] font-semibold text-foreground">{item.title}</h3>
                 {item.isStale ? (
-                  <span className="text-metadata text-muted-foreground">
-                    {t("knowledgeBase.stale")}
-                  </span>
+                  <Badge tone="warning">{t("knowledgeBase.stale")}</Badge>
                 ) : null}
               </div>
-              <p className="text-body text-muted-foreground">{item.bodyPreview}</p>
+              <p className="text-[13px] leading-5 text-muted-foreground">{item.bodyPreview}</p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -106,9 +106,9 @@ export function KnowledgeInterceptPanel({
           ))}
         </ul>
       )}
-      {errorKey ? <p className="text-body text-destructive">{t(errorKey)}</p> : null}
+      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack}>
           {t("tickets.backToForm")}
         </Button>
         <Button type="button" disabled={isSubmitting} onClick={onContinue}>
@@ -119,7 +119,7 @@ export function KnowledgeInterceptPanel({
         <SheetContent side="right" className="flex w-full max-w-lg flex-col overflow-y-auto p-4">
           <SheetTitle>{article?.title ?? t("tickets.openArticle")}</SheetTitle>
           <SheetDescription className="sr-only">{t("tickets.openArticle")}</SheetDescription>
-          <div className="mt-4 whitespace-pre-wrap text-body text-foreground">
+          <div className="mt-4 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">
             {article?.body}
           </div>
         </SheetContent>

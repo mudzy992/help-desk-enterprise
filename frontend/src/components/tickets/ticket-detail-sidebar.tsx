@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
+import { Card } from "@/components/ui/card";
 import { formatTicketTimestamp, truncateIdentifier } from "@/lib/tickets/ticket-display";
-import { Separator } from "@/components/ui/separator";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface TicketDetailSidebarProperties {
@@ -22,14 +22,17 @@ export function TicketDetailSidebar({ ticket, originName }: TicketDetailSidebarP
     [t("tickets.detail.updated"), formatTicketTimestamp(ticket.updatedAt, i18n.language)],
   ] as const;
   return (
-    <aside className="grid gap-3 lg:max-w-xs">
-      {rows.map(([label, value]) => (
-        <div key={label}>
-          <p className="text-metadata text-muted-foreground">{label}</p>
-          <p className="text-body text-foreground">{value}</p>
-        </div>
-      ))}
-      <Separator />
-    </aside>
+    <Card className="px-4 py-3.5">
+      <dl className="grid gap-3">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+              {label}
+            </dt>
+            <dd className="mt-0.5 text-[13px] text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }

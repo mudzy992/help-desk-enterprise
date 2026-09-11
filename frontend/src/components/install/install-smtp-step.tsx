@@ -2,6 +2,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallSmtpFields } from "@/components/install/install-smtp-fields";
 import { Button } from "@/components/ui/button";
+import { errorTextClassName } from "@/components/ui/control";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
   buildInstallSmtpInput,
@@ -96,7 +98,7 @@ export function InstallSmtpStep({
   }
 
   if (isLoading) {
-    return <div className="mt-6 h-40 animate-pulse bg-elevated" />;
+    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
   }
 
   return (
@@ -130,7 +132,7 @@ export function InstallSmtpStep({
         />
       ) : null}
       {errorKey ? (
-        <p className="text-body text-destructive">{t(errorKey)}</p>
+        <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}
       <div>
         <Button

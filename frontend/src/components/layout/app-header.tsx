@@ -16,7 +16,7 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
   const activeItem = getActiveNavigationItem(location.pathname);
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 md:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 md:px-6">
       <Button
         type="button"
         variant="ghost"
@@ -27,9 +27,9 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
       >
         <Menu className="h-4 w-4" />
       </Button>
-      <h1 className="min-w-0 truncate text-section font-medium text-foreground">
+      <p className="min-w-0 truncate text-[12.5px] text-muted-foreground">
         {t(activeItem.labelKey)}
-      </h1>
+      </p>
       <div className="ml-auto flex min-w-0 items-center gap-2">
         <SessionControls />
         <LocaleSelect />

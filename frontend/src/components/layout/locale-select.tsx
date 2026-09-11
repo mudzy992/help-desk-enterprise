@@ -15,7 +15,7 @@ export function LocaleSelect() {
     <label className="flex shrink-0 items-center">
       <span className="sr-only">{t("locale.label")}</span>
       <select
-        className="h-8 max-w-[9.5rem] rounded-md border border-border bg-surface px-2 text-metadata text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-8 max-w-[9.5rem] rounded-md border border-border bg-background/60 px-2 text-[12.5px] text-foreground transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none"
         value={locale}
         onChange={(event) => {
           void changeLocale(event.target.value);

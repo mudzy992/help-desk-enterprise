@@ -1,4 +1,5 @@
 import type { InstallLoginProviderRecord } from "@/services/install-api";
+import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
 
 export function InstallEntraAdFields({
   tenantId,
@@ -23,32 +24,32 @@ export function InstallEntraAdFields({
 }) {
   return (
     <div className="grid gap-3">
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {tenantIdLabel}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="text"
           autoComplete="off"
           value={tenantId}
           onChange={(event) => onTenantIdChange(event.target.value)}
         />
         {tenantIdConfigured ? (
-          <span className="text-metadata text-muted-foreground">
+          <span className={hintClassName}>
             {configuredLabel}
           </span>
         ) : null}
       </label>
-      <label className="grid gap-1 text-body">
+      <label className={labelClassName}>
         {clientIdLabel}
         <input
-          className="h-9 border border-input bg-surface px-2"
+          className={controlClassName}
           type="text"
           autoComplete="off"
           value={clientId}
           onChange={(event) => onClientIdChange(event.target.value)}
         />
         {clientIdConfigured ? (
-          <span className="text-metadata text-muted-foreground">
+          <span className={hintClassName}>
             {configuredLabel}
           </span>
         ) : null}

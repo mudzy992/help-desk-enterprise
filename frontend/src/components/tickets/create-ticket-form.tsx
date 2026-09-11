@@ -5,6 +5,7 @@ import { CreateTicketFields } from "@/components/tickets/create-ticket-fields";
 import { KnowledgeInterceptPanel } from "@/components/tickets/knowledge-intercept-panel";
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildCreateTicketInput,
   isCreateTicketDraftReady,
@@ -128,7 +129,7 @@ export function CreateTicketForm() {
   };
 
   if (isLoading) {
-    return <div className="mt-3 h-32 animate-pulse bg-elevated" />;
+    return <PanelSkeleton label={t("tickets.loading")} />;
   }
 
   if (step === "intercept") {

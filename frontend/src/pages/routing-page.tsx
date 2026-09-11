@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateRoutingRuleForm } from "@/components/routing/create-routing-rule-form";
 import { RoutingCoverageTable } from "@/components/routing/routing-coverage-table";
+import { Card, CardHeader } from "@/components/ui/card";
+import { errorTextClassName } from "@/components/ui/control";
+import { PageHeader } from "@/components/ui/page-header";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/services/api";
 import {
   listRoutingCoverage,
@@ -38,25 +42,30 @@ export function RoutingPage() {
   }, [loadCoverage]);
 
   return (
-    <section className="max-w-6xl">
-      <h2 className="text-section font-medium text-foreground">
-        {t("routing.title")}
-      </h2>
-      <p className="mt-2 text-body text-muted-foreground">{t("routing.intro")}</p>
-      <h3 className="mt-6 text-body font-medium text-foreground">
-        {t("routing.createHeading")}
-      </h3>
-      <CreateRoutingRuleForm onCreated={loadCoverage} />
-      <h3 className="mt-8 text-body font-medium text-foreground">
-        {t("routing.coverageHeading")}
-      </h3>
-      {isLoading ? (
-        <div className="mt-3 h-32 animate-pulse bg-elevated" />
-      ) : errorKey ? (
-        <p className="mt-3 text-body text-destructive">{t(errorKey)}</p>
-      ) : (
-        <RoutingCoverageTable items={items} />
-      )}
+    <section>
+      <PageHeader
+        crumbs={["EP-HelpDesk", t("routing.title")]}
+        title={t("routing.title")}
+        subtitle={t("routing.intro")}
+      />
+      <Card className="mb-4">
+        <CardHeader title={t("routing.createHeading")} />
+        <div className="px-4 py-3.5">
+          <CreateRoutingRuleForm onCreated={loadCoverage} />
+        </div>
+      </Card>
+      <Card>
+        <CardHeader title={t("routing.coverageHeading")} />
+        <div className="px-4 py-3.5">
+          {isLoading ? (
+            <PanelSkeleton className="mt-0" label={t("routing.coverageHeading")} />
+          ) : errorKey ? (
+            <p className={errorTextClassName}>{t(errorKey)}</p>
+          ) : (
+            <RoutingCoverageTable items={items} />
+          )}
+        </div>
+      </Card>
     </section>
   );
 }

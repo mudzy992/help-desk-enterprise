@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketErrorState, TicketEmptyState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketListFiltersBar } from "@/components/tickets/ticket-list-filters";
 import { TicketListTable } from "@/components/tickets/ticket-list-table";
 import { TicketWorkspaceNav } from "@/components/tickets/ticket-workspace-nav";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { paginateItems } from "@/lib/tickets/paginate-items";
@@ -88,6 +89,10 @@ export function TicketListPage() {
     [tickets, filters, view, currentUserId],
   );
   const paged = paginateItems(visible, page, ticketListPageSize);
+  const unroutedCount = useMemo(
+    () => tickets.filter((ticket) => ticket.status === "UNROUTED").length,
+    [tickets],
+  );
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
@@ -107,12 +112,23 @@ export function TicketListPage() {
   };
 
   return (
-    <section className="max-w-6xl">
-      <h2 className="text-section font-medium text-foreground">{t("tickets.title")}</h2>
-      <p className="mt-2 text-body text-muted-foreground">{t("tickets.intro")}</p>
-      <div className="mt-4">
-        <TicketWorkspaceNav view={view} inboxHidden={inboxHidden} />
-      </div>
+    <section>
+      <PageHeader
+        crumbs={["EP-HelpDesk", t("tickets.title")]}
+        title={t("tickets.title")}
+        subtitle={t("tickets.intro")}
+        actions={
+          <Button asChild size="sm">
+            <Link to="/tickets/new">{t("tickets.createAction")}</Link>
+          </Button>
+        }
+      />
+      <TicketWorkspaceNav view={view} inboxHidden={inboxHidden} />
+      {view === "inbox" && unroutedCount > 0 ? (
+        <p className="mt-3 rounded-lg border border-danger/35 bg-danger/10 px-3 py-2 text-[12.5px] text-danger">
+          {t("tickets.unroutedBanner")}
+        </p>
+      ) : null}
       <TicketListFiltersBar
         filters={{ ...filters, view, currentUserId }}
         services={services}
@@ -126,7 +142,15 @@ export function TicketListPage() {
       ) : errorKey ? (
         <TicketErrorState errorKey={errorKey} onRetry={() => void load()} />
       ) : visible.length === 0 ? (
-        <TicketEmptyState message={t("tickets.empty")} />
+        <TicketEmptyState
+          title={t("tickets.emptyTitle")}
+          body={t("tickets.emptyHint")}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link to="/tickets/new">{t("tickets.createAction")}</Link>
+            </Button>
+          }
+        />
       ) : (
         <>
           <TicketListTable
@@ -146,7 +170,7 @@ export function TicketListPage() {
               >
                 {t("tickets.previous")}
               </Button>
-              <span className="text-metadata text-muted-foreground">
+              <span className="text-[12px] text-muted-foreground tnum">
                 {t("tickets.page", { page: paged.page, total: paged.totalPages })}
               </span>
               <Button

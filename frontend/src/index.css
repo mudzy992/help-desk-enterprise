@@ -2,21 +2,131 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/*
+  EP-HelpDesk theme tokens — source: .cursor/docs/theme.md
+  Dark hierarchy: background → surface → elevated.
+*/
 
+@layer base {
   html,
   body,
   #root {
+    height: 100%;
     min-height: 100%;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: Inter, system-ui, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
     font-size: 14px;
-    line-height: 20px;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
   }
+
+  ::selection {
+    background: rgba(37, 99, 235, 0.35);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.7);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--tw-color-primary, #2563eb);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #243044 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #243044;
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #31405c;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-in {
+  animation: page-in 0.24s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.18s ease both;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pop-in {
+  animation: pop-in 0.16s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0);
+  }
+}
+
+.dot-pulse {
+  animation: dot-pulse 2.4s ease-in-out infinite;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }

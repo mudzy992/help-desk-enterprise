@@ -1,44 +1,70 @@
+import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 interface TicketConversationProperties {
   readonly messages: readonly TicketMessageResponse[];
+  readonly currentUserId: string | null;
 }
 
-export function TicketConversation({ messages }: TicketConversationProperties) {
+export function TicketConversation({
+  messages,
+  currentUserId,
+}: TicketConversationProperties) {
   const { t, i18n } = useTranslation();
   if (messages.length === 0) {
-    return <p className="text-body text-muted-foreground">{t("tickets.detail.noMessages")}</p>;
+    return (
+      <EmptyState
+        title={t("tickets.detail.noMessages")}
+        body={t("tickets.detail.noMessagesHint")}
+      />
+    );
   }
   return (
     <ol className="grid gap-3">
       {messages.map((message) => {
         const isSystem = message.type === "SYSTEM_EVENT";
         const isInternal = message.type === "INTERNAL_NOTE";
+        const isOwn =
+          currentUserId !== null &&
+          message.authorUserId === currentUserId &&
+          !isSystem &&
+          !isInternal;
+        if (isSystem) {
+          return (
+            <li key={message.id} className="px-1 py-1">
+              <p className="text-[12px] italic leading-5 text-muted-foreground">
+                {message.body}
+              </p>
+              <time className="mt-0.5 block text-[11px] text-muted-foreground/80 tnum">
+                {formatTicketTimestamp(message.createdAt, i18n.language)}
+              </time>
+            </li>
+          );
+        }
         return (
           <li
             key={message.id}
             className={cn(
-              "border border-border px-3 py-3",
-              isInternal ? "bg-elevated/60" : "bg-surface",
+              "rounded-lg border px-3 py-3",
+              isInternal && "border-warning/30 bg-warning/10",
+              isOwn && "border-primary/35 bg-primary/10",
+              !isInternal && !isOwn && "border-border bg-surface",
             )}
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-metadata text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                {isInternal ? <Lock size={12} strokeWidth={1.8} aria-hidden="true" /> : null}
                 {t(`tickets.messageType.${message.type}`)}
               </span>
-              <time className="text-metadata text-muted-foreground">
+              <time className="text-[11px] text-muted-foreground tnum">
                 {formatTicketTimestamp(message.createdAt, i18n.language)}
               </time>
             </div>
-            <p
-              className={cn(
-                "mt-2 whitespace-pre-wrap text-body",
-                isSystem ? "text-muted-foreground" : "text-foreground",
-              )}
-            >
+            <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-relaxed text-foreground">
               {message.body}
             </p>
           </li>
