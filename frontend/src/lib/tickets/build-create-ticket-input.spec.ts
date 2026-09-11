@@ -11,6 +11,7 @@ const draft = {
   impact: "HIGH" as const,
   urgency: "MEDIUM" as const,
   serviceId: "svc-1",
+  originUnitId: " ou-it ",
   formVersionRef: "form-1",
   formData: { hostname: "pc-1" },
 };
@@ -19,12 +20,14 @@ describe("buildCreateTicketInput", () => {
   it("builds the ticket API payload and keeps intercept optional", () => {
     expect(isCreateTicketDraftReady(draft)).toBe(true);
     expect(isCreateTicketDraftReady({ ...draft, title: " " })).toBe(false);
+    expect(isCreateTicketDraftReady({ ...draft, originUnitId: " " })).toBe(false);
     expect(buildCreateTicketInput(draft)).toEqual({
       title: "VPN issue",
       description: "Cannot connect",
       impact: "HIGH",
       urgency: "MEDIUM",
       serviceId: "svc-1",
+      originUnitId: "ou-it",
       formVersionRef: "form-1",
       formData: { hostname: "pc-1" },
     });
@@ -35,6 +38,7 @@ describe("buildCreateTicketInput", () => {
       impact: "HIGH",
       urgency: "MEDIUM",
       serviceId: "svc-1",
+      originUnitId: "ou-it",
     });
   });
 });

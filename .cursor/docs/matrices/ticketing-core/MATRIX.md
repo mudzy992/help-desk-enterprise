@@ -6,7 +6,7 @@ Ticket CRUD na postojećem enterprise modelu (`Ticket`, `formVersionId` kao `for
 ## Create
 Ulaz: `title`, `description`, `impact`, `urgency`, `serviceId`, opciono `originUnitId` / `formVersionRef` / `formData`.
 `priority` se **ne** prima od klijenta. Računa se samo kroz `calculateTicketPriority`.
-`requesterId` je session principal. Ako `originUnitId` nije poslan, koristi se `User.organizationalUnitId`.
+`requesterId` je session principal. Ako `originUnitId` nije poslan, koristi se `User.organizationalUnitId`. SuperAdmin i korisnici bez home OU **moraju** poslati `originUnitId`. Create UI uvijek prikuplja origin OU i šalje ga u `POST /tickets`.
 
 Servis mora biti `ACTIVE` (`offeredToRequesters`). Availability/downtime **ne** blokira create.
 `formVersionRef` mora pripadati servisu i biti `ACTIVE`. Ako nije poslan, uzima se najnoviji ACTIVE. Persistira se tačan `Ticket.formVersionId`; later form versions ne diraju historijski tiket.

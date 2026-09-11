@@ -1,8 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { ServiceFormFields } from "@/components/tickets/service-form-fields";
-import { controlClassName, labelClassName, textareaClassName } from "@/components/ui/control";
+import {
+  controlClassName,
+  hintClassName,
+  labelClassName,
+  textareaClassName,
+} from "@/components/ui/control";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
 import { ticketPriorityValues } from "@/lib/tickets/ticket-constants";
+import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
 import type {
   FormVersionResponse,
   ServiceResponse,
@@ -12,6 +18,7 @@ import type { TicketImpact } from "@/services/tickets-api";
 interface CreateTicketFieldsProperties {
   readonly draft: CreateTicketDraft;
   readonly services: readonly ServiceResponse[];
+  readonly originUnits: readonly OriginUnitOption[];
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
@@ -21,6 +28,7 @@ interface CreateTicketFieldsProperties {
 export function CreateTicketFields({
   draft,
   services,
+  originUnits,
   selectedService,
   activeForm,
   fieldErrors,
@@ -55,6 +63,28 @@ export function CreateTicketFields({
             </option>
           ))}
         </select>
+      </label>
+      <label className={labelClassName}>
+        <span>
+          {t("tickets.originUnit")}
+          <span className="text-danger"> *</span>
+        </span>
+        <select
+          className={controlClassName}
+          value={draft.originUnitId}
+          onChange={(event) =>
+            onChange({ ...draft, originUnitId: event.target.value })
+          }
+          required
+        >
+          <option value="">{t("tickets.originUnitPlaceholder")}</option>
+          {originUnits.map((unit) => (
+            <option key={unit.id} value={unit.id}>
+              {unit.label}
+            </option>
+          ))}
+        </select>
+        <span className={hintClassName}>{t("tickets.originUnitHint")}</span>
       </label>
       {selectedService ? (
         <div className="rounded-lg border border-border bg-elevated/40 px-3 py-3">

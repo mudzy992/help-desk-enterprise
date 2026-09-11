@@ -86,4 +86,24 @@ describe('TicketsService authorization and status guards', () => {
       response: { code: 'FORBIDDEN' },
     });
   });
+
+  it('requires originUnitId when SuperAdmin has no home OU', async () => {
+    const { tickets } = createTicketsServiceHarness();
+    await expect(
+      tickets.create(vpnCreateInput({ originUnitId: undefined }), {
+        actorUserId: ticketsTestIds.superAdmin,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'ORIGIN_UNIT_REQUIRED' },
+    });
+  });
+
+  it('lets SuperAdmin create when originUnitId is supplied', async () => {
+    const { tickets } = createTicketsServiceHarness();
+    const created = await tickets.create(vpnCreateInput(), {
+      actorUserId: ticketsTestIds.superAdmin,
+    });
+    expect(created.originUnitId).toBe(ticketsTestIds.ouIt);
+    expect(created.requesterId).toBe(ticketsTestIds.superAdmin);
+  });
 });

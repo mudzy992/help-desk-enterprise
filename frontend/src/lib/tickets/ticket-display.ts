@@ -1,5 +1,10 @@
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
+export type OriginUnitOption = {
+  readonly id: string;
+  readonly label: string;
+};
+
 export function flattenOrganizationalUnitNames(
   nodes: readonly OrganizationalUnitTreeNode[],
 ): ReadonlyMap<string, string> {
@@ -12,6 +17,30 @@ export function flattenOrganizationalUnitNames(
   };
   visit(nodes);
   return names;
+}
+
+export function flattenOriginUnitOptions(
+  nodes: readonly OrganizationalUnitTreeNode[],
+): readonly OriginUnitOption[] {
+  const options: OriginUnitOption[] = [];
+  const visit = (items: readonly OrganizationalUnitTreeNode[]): void => {
+    for (const item of items) {
+      options.push({
+        id: item.id,
+        label: item.ouPath.length > 0 ? item.ouPath : item.name,
+      });
+      visit(item.children);
+    }
+  };
+  visit(nodes);
+  return options;
+}
+
+export function defaultOriginUnitId(
+  options: readonly OriginUnitOption[],
+): string {
+  const only = options.length === 1 ? options[0] : undefined;
+  return only?.id ?? "";
 }
 
 export function formatTicketTimestamp(value: string, locale: string): string {

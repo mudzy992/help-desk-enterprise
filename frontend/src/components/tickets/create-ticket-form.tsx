@@ -13,13 +13,13 @@ import {
   type CreateTicketDraft,
 } from "@/lib/tickets/build-create-ticket-input";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { defaultOriginUnitId } from "@/lib/tickets/ticket-display";
+import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import {
   activeFormVersion,
   getServiceForm,
-  listOfferedServices,
   type FormVersionResponse,
-  type ServiceResponse,
 } from "@/services/service-catalog-api";
 import { interceptKnowledgeArticles } from "@/services/knowledge-base-api";
 import type { KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
@@ -31,6 +31,7 @@ const emptyDraft: CreateTicketDraft = {
   impact: "MEDIUM",
   urgency: "MEDIUM",
   serviceId: "",
+  originUnitId: "",
   formVersionRef: null,
   formData: {},
 };
@@ -38,25 +39,32 @@ const emptyDraft: CreateTicketDraft = {
 export function CreateTicketForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const catalog = useCreateTicketCatalog();
   const [draft, setDraft] = useState<CreateTicketDraft>(emptyDraft);
-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
   const [step, setStep] = useState<"compose" | "intercept">("compose");
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
   const [helped, setHelped] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
-  const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const selectedService = services.find((service) => service.id === draft.serviceId) ?? null;
+  const selectedService =
+    catalog.services.find((service) => service.id === draft.serviceId) ?? null;
+  const displayedError = errorKey ?? catalog.errorKey;
 
   useEffect(() => {
-    void listOfferedServices()
-      .then(setServices)
-      .catch(() => setErrorKey("tickets.errorCatalog"))
-      .finally(() => setIsLoading(false));
-  }, []);
+    const fallback = defaultOriginUnitId(catalog.originUnits);
+    if (fallback.length === 0) {
+      return;
+    }
+    setDraft((current) =>
+      current.originUnitId.length > 0
+        ? current
+        : { ...current, originUnitId: fallback },
+    );
+  }, [catalog.originUnits]);
 
   useEffect(() => {
     if (draft.serviceId.length === 0) {
@@ -128,14 +136,14 @@ export function CreateTicketForm() {
     }
   };
 
-  if (isLoading) {
+  if (catalog.isLoading) {
     return <PanelSkeleton label={t("tickets.loading")} />;
   }
 
   if (step === "intercept") {
     return (
       <div className="mt-4">
-        {errorKey ? <TicketErrorState errorKey={errorKey} /> : null}
+        {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
         <KnowledgeInterceptPanel
           items={suggestions}
           helped={helped}
@@ -152,13 +160,14 @@ export function CreateTicketForm() {
     <form className="mt-4 grid gap-4" onSubmit={(event) => void runIntercept(event)}>
       <CreateTicketFields
         draft={draft}
-        services={services}
+        services={catalog.services}
+        originUnits={catalog.originUnits}
         selectedService={selectedService}
         activeForm={activeForm}
         fieldErrors={fieldErrors}
         onChange={setDraft}
       />
-      {errorKey ? <TicketErrorState errorKey={errorKey} /> : null}
+      {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
       <div>
         <Button type="submit" disabled={isSubmitting || !isCreateTicketDraftReady(draft)}>
           {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}

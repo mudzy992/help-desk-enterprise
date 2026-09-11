@@ -6,6 +6,7 @@ export type CreateTicketDraft = {
   readonly impact: TicketImpact;
   readonly urgency: TicketUrgency;
   readonly serviceId: string;
+  readonly originUnitId: string;
   readonly formVersionRef: string | null;
   readonly formData: Record<string, unknown>;
 };
@@ -14,7 +15,8 @@ export function isCreateTicketDraftReady(draft: CreateTicketDraft): boolean {
   return (
     draft.title.trim().length > 0 &&
     draft.description.trim().length > 0 &&
-    draft.serviceId.trim().length > 0
+    draft.serviceId.trim().length > 0 &&
+    draft.originUnitId.trim().length > 0
   );
 }
 
@@ -25,6 +27,7 @@ export function buildCreateTicketInput(draft: CreateTicketDraft): CreateTicketIn
     impact: draft.impact,
     urgency: draft.urgency,
     serviceId: draft.serviceId,
+    originUnitId: draft.originUnitId.trim(),
     ...(draft.formVersionRef === null
       ? {}
       : { formVersionRef: draft.formVersionRef }),
