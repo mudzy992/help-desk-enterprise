@@ -1,6 +1,7 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- `POST /install/complete` provisionira `private.auth.jwtSigningSecret` (Settings secret, ≥32 znaka) ako nedostaje; postojeći secret se ne rotira. Već completed instalacije dobiju secret na boot (`onModuleInit`) ili ponovnom complete-u.
 - Implementirano zaključavanje wizarda: `POST /install/complete` atomično piše `private.install.completedAt` kroz Settings Registry i jedan `install_wizard` change log (setting diff). Ponovni complete ne prepisuje timestamp.
 - Nakon complete, wizard mutacije su `409 INSTALL_LOCKED`; HTTP setup gate se gasi; `/install` više nije setup tok. Dalje izmjene idu kroz Settings.
 - Implementiran addons korak: deterministički switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign + ostali ključevi iz `04-install-wizard.md`) kroz `GET/POST /install/addons`.

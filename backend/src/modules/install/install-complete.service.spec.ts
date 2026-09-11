@@ -102,11 +102,25 @@ describe('InstallCompleteService', () => {
       harness.settingsMemory.getStored(settingKeys.privateInstallCompletedAt)
         ?.value,
     ).toBe(firstCompletedAt);
-    expect(harness.settingsMemory.changeLogs).toHaveLength(1);
-    expect(harness.settingsMemory.changeLogs[0]).toMatchObject({
-      entityId: settingKeys.privateInstallCompletedAt,
-      reason: 'install_wizard',
-    });
+    expect(
+      harness.settingsMemory.getStored(settingKeys.privateAuthJwtSigningSecret)
+        ?.value,
+    ).toEqual(expect.any(String));
+    expect(
+      String(
+        harness.settingsMemory.getStored(
+          settingKeys.privateAuthJwtSigningSecret,
+        )?.value,
+      ).length,
+    ).toBeGreaterThanOrEqual(32);
+    expect(harness.settingsMemory.changeLogs).toHaveLength(2);
+    expect(
+      harness.settingsMemory.changeLogs.some(
+        (entry) =>
+          entry.entityId === settingKeys.privateInstallCompletedAt &&
+          entry.reason === 'install_wizard',
+      ),
+    ).toBe(true);
   });
 
   it('rejects completion before SuperAdmin exists', async () => {
@@ -119,5 +133,34 @@ describe('InstallCompleteService', () => {
     expect(
       settingsMemory.getStored(settingKeys.privateInstallCompletedAt),
     ).toBeUndefined();
+  });
+
+  it('provisions a missing JWT signing secret when install is already completed', async () => {
+    const harness = await createHarness();
+    await harness.settingsMemory.prisma.appSetting.upsert({
+      where: { key: settingKeys.privateInstallCompletedAt },
+      create: {
+        key: settingKeys.privateInstallCompletedAt,
+        value: firstCompletedAt,
+        scope: 'PRIVATE',
+        isSecret: false,
+        description: 'completed',
+      },
+      update: {
+        value: firstCompletedAt,
+        scope: 'PRIVATE',
+        isSecret: false,
+        description: 'completed',
+      },
+    });
+    await harness.completeService.onModuleInit();
+    expect(
+      String(
+        harness.settingsMemory.getStored(
+          settingKeys.privateAuthJwtSigningSecret,
+        )?.value,
+      ).length,
+    ).toBeGreaterThanOrEqual(32);
+    await expect(harness.setupService.isCompleted()).resolves.toBe(true);
   });
 });

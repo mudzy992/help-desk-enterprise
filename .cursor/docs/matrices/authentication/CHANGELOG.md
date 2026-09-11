@@ -1,5 +1,8 @@
 # CHANGELOG — authentication
 
+## 2026-09-11
+- Install complete (i boot nakon completed installa) provisionira `private.auth.jwtSigningSecret` kroz Settings Registry. Login i dalje fail-closed ako secret nije upotrebljiv.
+
 ## 2026-09-10
 - Entra/MSAL ID token verifikacija iza postojeće provider granice: Settings tenant/client, issuer/audience/signature/claims, isti principal/session tok, SuperAdmin ostaje `isLocalOnly`.
 - Session JWT odbija authorization/provider claimove (`roles`, `oid`, `permissions`, …). HTTP `SessionAuthenticationGuard` materijalizuje principal samo iz lokalnog User zapisa.

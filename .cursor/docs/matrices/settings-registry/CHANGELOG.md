@@ -1,6 +1,7 @@
 # CHANGELOG — settings-registry
 
 ## 2026-09-11
+- `private.auth.jwtSigningSecret` ostaje secret bez defaulta; install complete ga provisionira kad nedostaje. Nema env JWT ključa.
 - Dodani `private.knowledgeBase.reviewCycle.*`, `private.knowledgeBase.feedback.*` i `private.knowledgeBase.ranking.useFeedbackWeight` za KB review/stale, feedback i ranking. Nema paralelnog settings sistema.
 - Dodani `private.ticket.participants.*` i `private.ticket.chat.messageTypes.*` za participants model i typed chat. Time tracking ostaje na postojećem `private.addons.timeTracking`.
 - Dodani `private.ticket.autoAssign.enabled`, `private.ticket.autoAssign.strategy` i `private.ticket.groupInbox.enabled` za group inbox i server-side auto-assign. Nisu routing ključevi i ne mijenjaju UNROUTED ponašanje.

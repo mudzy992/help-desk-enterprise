@@ -37,7 +37,7 @@ Oba providera vraćaju isti `AuthenticatedPrincipal`: `{ subjectId, email, displ
 - Lozinka/hash se ne loguju i ne vraćaju u API/JWT.
 
 ## Session / JWT
-- Secret: `private.auth.jwtSigningSecret` (Settings secret). Nedostaje ili < 32 znaka → fail closed.
+- Secret: `private.auth.jwtSigningSecret` (Settings secret). Install complete provisionira secret ako nedostaje ili je < 32 znaka. Login i dalje fail-closed ako secret nije upotrebljiv.
 - Claims: samo `{ sub }`. Expiry: 8h. Nema password/email/provider/secret u tokenu.
 - HTTP: `POST /auth/login` → `{ accessToken, tokenType, expiresInSeconds, principal }`.
 - Socket.IO: postojeći `SocketAuthenticationVerifier` verifikuje isti JWT (`JwtSocketAuthenticationVerifier`). Handshake i dalje prima samo `handshake.auth.token`.

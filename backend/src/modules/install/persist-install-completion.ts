@@ -4,52 +4,18 @@ import { recordChangeLog } from '../change-log/record-change-log';
 import { requireChangeReason } from '../change-log/require-change-reason';
 import { buildSettingChangeLogDiff } from '../settings/build-setting-change-log-diff';
 import { settingKeys } from '../settings/setting-keys';
-import { mapVisibilityToPersistence } from '../settings/settings.persistence-map';
 import {
   getSettingDefaultValue,
   validateSettingValue,
 } from '../settings/settings-value';
+import type { SettingsRegistry } from '../settings/settings.types';
+import { ensureInstallJwtSigningSecret } from './ensure-install-jwt-signing-secret';
 import type {
-  SettingDefinition,
-  SettingsRegistry,
-  SettingValue,
-} from '../settings/settings.types';
-import type { InstallCompletionPersistResult } from './install-complete.types';
+  InstallCompletionPersistResult,
+  InstallCompletionPrisma,
+} from './install-complete.types';
 import { isInstallSetupComplete } from './is-install-setup-complete';
-
-type InstallCompletionTransaction = {
-  readonly appSetting: {
-    findUnique: (args: {
-      where: { key: string };
-      select: { value: true };
-    }) => Promise<{ value: unknown } | null>;
-    upsert: (args: {
-      where: { key: string };
-      create: {
-        key: string;
-        value: SettingValue;
-        scope: 'PUBLIC' | 'PRIVATE';
-        isSecret: boolean;
-        description: string;
-      };
-      update: {
-        value: SettingValue;
-        scope: 'PUBLIC' | 'PRIVATE';
-        isSecret: boolean;
-        description: string;
-      };
-    }) => Promise<unknown>;
-  };
-  readonly changeLog: {
-    create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
-  };
-};
-
-export type InstallCompletionPrisma = {
-  readonly $transaction: <T>(
-    callback: (transaction: InstallCompletionTransaction) => Promise<T>,
-  ) => Promise<T>;
-};
+import { upsertInstallSetting } from './upsert-install-setting';
 
 export async function persistInstallCompletion(
   prisma: InstallCompletionPrisma,
@@ -75,6 +41,10 @@ export async function persistInstallCompletion(
     throw new Error('Install completion timestamp must be a valid ISO datetime');
   }
   return prisma.$transaction(async (transaction) => {
+    await ensureInstallJwtSigningSecret(transaction, registry, {
+      actorUserId: input.actorUserId,
+      reason,
+    });
     const stored = await transaction.appSetting.findUnique({
       where: { key: completedAtDefinition.key },
       select: { value: true },
@@ -112,30 +82,5 @@ export async function persistInstallCompletion(
       }),
     });
     return { completedAt, alreadyCompleted: false };
-  });
-}
-
-async function upsertInstallSetting(
-  transaction: InstallCompletionTransaction,
-  definition: SettingDefinition,
-  value: SettingValue,
-): Promise<void> {
-  const persistence = mapVisibilityToPersistence(definition.visibility);
-  const validated = validateSettingValue(definition, value);
-  await transaction.appSetting.upsert({
-    where: { key: definition.key },
-    create: {
-      key: definition.key,
-      value: validated,
-      scope: persistence.scope,
-      isSecret: persistence.isSecret,
-      description: definition.description,
-    },
-    update: {
-      value: validated,
-      scope: persistence.scope,
-      isSecret: persistence.isSecret,
-      description: definition.description,
-    },
   });
 }

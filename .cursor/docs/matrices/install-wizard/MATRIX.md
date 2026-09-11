@@ -39,7 +39,7 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 - Core moduli nisu addoni (vidi `04-install-wizard.md`).
 - Seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu.
 - Completed wizard piše change log (reason=`install_wizard`).
-- `POST /install/complete` atomično postavlja `private.install.completedAt` (i `private.install.completedByUserId`). Ponovni complete je idempotentan i ne prepisuje postojeći timestamp.
+- `POST /install/complete` atomično postavlja `private.install.completedAt` (i `private.install.completedByUserId`) i provisionira `private.auth.jwtSigningSecret` ako nedostaje ili je kraći od 32 znaka. Ponovni complete je idempotentan, ne prepisuje timestamp i ne rotira postojeći signing secret.
 - Nakon COMPLETED, wizard mutacije (`POST /install/*` osim `POST /install/complete`) vraćaju `409 INSTALL_LOCKED`. Dalje izmjene idu kroz Settings.
 
 ## Zabranjeno

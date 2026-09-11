@@ -37,7 +37,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.install.completedAt` (private, string, default `""`)
 - `private.install.completedByUserId` (private, string, default `""`)
 - `private.auth.mode` (private, `local` | `entra_ad`, default `local`)
-- `private.auth.jwtSigningSecret` (secret, string, bez defaulta, nije required)
+- `private.auth.jwtSigningSecret` (secret, string, bez defaulta, nije required; install complete ga provisionira)
 - `private.auth.azureTenantId` (secret, string, bez defaulta, nije required)
 - `private.auth.azureClientId` (secret, string, bez defaulta, nije required)
 - `private.auth.adRead.enabled` (private, boolean, default `false`)

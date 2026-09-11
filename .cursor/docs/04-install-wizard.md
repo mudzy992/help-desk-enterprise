@@ -64,6 +64,7 @@ Isključen dodatak: API + UI skrivaju/odbijaju feature (`403 ADDON_DISABLED`). N
 - `private.install.completedAt` (string ISO | empty)
 - `private.install.completedByUserId` (string)
 - `private.auth.mode` (`local` | `entra_ad`)
+- `private.auth.jwtSigningSecret` (secret; wizard ga generiše na complete ako nedostaje)
 - `private.auth.localBreakGlass.enabled` (boolean, default true, nije isključivo iz wizarda)
 - `private.smtp.enabled` + SMTP secret polja
 - `private.addons.<key>` (boolean) za svaki red u tabeli
