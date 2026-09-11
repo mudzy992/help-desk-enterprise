@@ -65,6 +65,8 @@ model Ticket {
   @@index([requesterId])
   @@index([isConfidential])
   @@index([formVersionId])
+  @@index([parentTicketId])
+  @@index([mergedIntoTicketId])
   @@index([status, waitingForUserEnteredAt])
 }
 

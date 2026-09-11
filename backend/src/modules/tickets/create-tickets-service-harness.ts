@@ -18,6 +18,7 @@ import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { TicketsService } from './tickets.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { defaultWaitingForUserConfiguration } from './waiting-for-user/waiting-for-user.constants';
+import { createTicketsGovernanceHarness } from './create-tickets-governance-harness';
 
 export { ticketsTestIds } from './tickets-test-ids';
 export { vpnFormSchema } from './seed-tickets-harness-catalog';
@@ -122,6 +123,15 @@ export function createTicketsServiceHarness() {
     waitingLoader as never,
     realtimeHub,
   );
+  const governance = createTicketsGovernanceHarness({
+    prisma: memory.prisma,
+    routing,
+    authorizationContextLoader,
+    approvalsLoader,
+    reopenLoader,
+    assignment,
+    realtimeHub,
+  });
   seedTicketsHarnessCatalog(memory);
   seedTicketsHarnessActors(contexts);
   return {
@@ -140,5 +150,6 @@ export function createTicketsServiceHarness() {
     waitingForUserConfig,
     reopenConfig,
     authorizationContextLoader,
+    ...governance,
   };
 }

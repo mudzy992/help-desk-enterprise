@@ -15,6 +15,7 @@ export function TicketDetailSidebar({ ticket, originName }: TicketDetailSidebarP
     [t("tickets.detail.assignee"), truncateIdentifier(ticket.assignedUserId)],
     [t("tickets.detail.group"), truncateIdentifier(ticket.assignedGroupId)],
     [t("tickets.detail.origin"), originName],
+    [t("tickets.split.parent"), ticket.parentTicketId ? truncateIdentifier(ticket.parentTicketId) : "—"],
     [t("tickets.impact"), t(`tickets.severity.${ticket.impact}`)],
     [t("tickets.urgency"), t(`tickets.severity.${ticket.urgency}`)],
     [t("tickets.detail.classification"), ticket.classification],

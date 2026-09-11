@@ -25,6 +25,8 @@ export type TicketRecord = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly parentTicketId: string | null;
+  readonly mergedIntoTicketId: string | null;
   readonly reopenedFromTicketId: string | null;
   readonly resolvedAt: Date | null;
   readonly closedAt: Date | null;
@@ -52,6 +54,8 @@ export type TicketResponse = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly parentTicketId: string | null;
+  readonly mergedIntoTicketId: string | null;
   readonly reopenedFromTicketId: string | null;
   readonly resolvedAt: string | null;
   readonly closedAt: string | null;
@@ -79,6 +83,10 @@ export type CreateTicketInput = {
   readonly formData?: unknown;
   readonly requesterUserId?: string;
   readonly reopenedFromTicketId?: string;
+  readonly parentTicketId?: string;
+  readonly assignedGroupId?: string;
+  readonly classification?: DataClassification;
+  readonly isConfidential?: boolean;
 };
 
 export type UpdateTicketInput = {

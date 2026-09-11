@@ -404,6 +404,41 @@
       "noMessagesHint": "Send the first public reply or an internal note.",
       "systemEvent": "System event"
     },
+    "split": {
+      "title": "Split ticket",
+      "hint": "Creates 2+ child tickets with a parent/child link. Messages and attachments transfer only when selected.",
+      "reason": "Split reason",
+      "childOne": "First child title",
+      "childTwo": "Second child title",
+      "action": "Split",
+      "splitting": "Splitting…",
+      "parent": "Parent ticket"
+    },
+    "bulk": {
+      "select": "Select",
+      "selectRow": "Select {{number}}",
+      "selected": "{{count}} selected",
+      "assignGroup": "Assign to group",
+      "assignUser": "Assign to agent",
+      "setStatus": "Change status",
+      "setPriority": "Change priority",
+      "broadcast": "Send update",
+      "merge": "Merge into parent",
+      "valuePlaceholder": "Group, user, or parent ticket id",
+      "reasonPlaceholder": "Justification",
+      "closeForbidden": "Bulk close is not available (quality protection)",
+      "apply": "Apply",
+      "applying": "Applying…",
+      "clear": "Clear selection"
+    },
+    "savedViews": {
+      "title": "Saved views",
+      "default": "default",
+      "namePlaceholder": "View name",
+      "makeDefault": "Set as default",
+      "save": "Save current filters",
+      "delete": "Delete view"
+    },
     "messageType": {
       "USER_REPLY": "User reply",
       "AGENT_REPLY": "Agent reply",
@@ -437,6 +472,9 @@
     "errorReopenDisabled": "Ticket reopen is disabled.",
     "errorReopenRequired": "Resolved or closed tickets reopen through the reopen action, not a status change.",
     "errorReopenNotEligible": "This ticket cannot be reopened.",
+    "errorSplitDisabled": "Ticket split is disabled.",
+    "errorBulkCloseForbidden": "Bulk close is not allowed.",
+    "errorBulkScope": "Bulk actions apply only within the same OU and group.",
     "errorConflict": "This action conflicts with the current state.",
     "errorGeneric": "Tickets are currently unavailable.",
     "errorCatalog": "The service catalog is currently unavailable."

@@ -9,17 +9,39 @@ export function matchesInMemoryTicket(
     return true;
   }
   return (
-    matchesScalar(ticket.id, where.id) &&
+    matchesScalarOrIn(ticket.id, where.id) &&
     matchesScalar(ticket.originUnitId, where.originUnitId) &&
     matchesScalar(ticket.serviceId, where.serviceId) &&
     matchesScalar(ticket.requesterId, where.requesterId) &&
     matchesStatus(ticket.status, where.status) &&
     matchesAssignedGroupId(ticket.assignedGroupId, where.assignedGroupId) &&
-    matchesAssignedUserId(ticket.assignedUserId, where.assignedUserId)
+    matchesAssignedUserId(ticket.assignedUserId, where.assignedUserId) &&
+    matchesNullable(ticket.parentTicketId, where.parentTicketId) &&
+    matchesNullable(ticket.mergedIntoTicketId, where.mergedIntoTicketId)
   );
 }
 
 function matchesScalar(value: string, expected?: string): boolean {
+  return expected === undefined || value === expected;
+}
+
+function matchesScalarOrIn(
+  value: string,
+  expected?: string | { in: readonly string[] },
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  if (typeof expected === 'string') {
+    return value === expected;
+  }
+  return expected.in.includes(value);
+}
+
+function matchesNullable(
+  value: string | null,
+  expected?: string | null,
+): boolean {
   return expected === undefined || value === expected;
 }
 

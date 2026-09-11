@@ -101,6 +101,43 @@ export const settingKeys = {
     'private.ticket.waitingForUser.autoCloseAfterDays',
   privateTicketReopenEnabled: 'private.ticket.reopen.enabled',
   privateTicketReopenWindowDays: 'private.ticket.reopen.windowDays',
+  privateTicketSplitEnabled: 'private.ticket.split.enabled',
+  privateTicketSplitAllowAttachmentMove:
+    'private.ticket.split.allowAttachmentMove',
+  privateTicketSplitAllowMessageCopy: 'private.ticket.split.allowMessageCopy',
+  privateTicketSplitRequireReason: 'private.ticket.split.requireReason',
+  privateTicketSavedViewsEnabled: 'private.ticket.savedViews.enabled',
+  privateTicketSavedViewsMaxPerUser: 'private.ticket.savedViews.maxPerUser',
+  privateTicketSavedViewsAllowDefaultView:
+    'private.ticket.savedViews.allowDefaultView',
+  privateTicketSavedViewsAllowSharing: 'private.ticket.savedViews.allowSharing',
+  privateTicketBulkActionsEnabled: 'private.ticket.bulkActions.enabled',
+  privateTicketBulkActionsAllowCrossOuForSuperAdmin:
+    'private.ticket.bulkActions.allowCrossOuForSuperAdmin',
+  privateTicketBulkActionsRequireSameOuAndGroup:
+    'private.ticket.bulkActions.requireSameOuAndGroup',
+  privateTicketBulkActionsDisallowBulkClose:
+    'private.ticket.bulkActions.disallowBulkClose',
+  privateTicketBulkActionsAllowedActionTypesCsv:
+    'private.ticket.bulkActions.allowedActionTypesCsv',
+  privateTicketBulkActionsBroadcastEnableInApp:
+    'private.ticket.bulkActions.broadcast.enableInApp',
+  privateTicketBulkActionsBroadcastEnableEmail:
+    'private.ticket.bulkActions.broadcast.enableEmail',
+  privateTicketBulkActionsBroadcastRequirePreview:
+    'private.ticket.bulkActions.broadcast.requirePreview',
+  privateTicketBulkActionsBroadcastRateLimitPerMinute:
+    'private.ticket.bulkActions.broadcast.rateLimitPerMinute',
+  privateTicketBulkActionsBroadcastStructuredEnabled:
+    'private.ticket.bulkActions.broadcast.structuredEnabled',
+  privateTicketBulkActionsBroadcastRequiredFieldsCsv:
+    'private.ticket.bulkActions.broadcast.requiredFieldsCsv',
+  privateTicketBulkActionsBroadcastAllowWorkaround:
+    'private.ticket.bulkActions.broadcast.allowWorkaround',
+  privateTicketBulkActionsBroadcastAllowLinks:
+    'private.ticket.bulkActions.broadcast.allowLinks',
+  privateTicketBulkActionsAuditBatchIdEnabled:
+    'private.ticket.bulkActions.auditBatchIdEnabled',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',

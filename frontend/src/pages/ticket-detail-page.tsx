@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
-import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
+import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
-import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
-import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
 import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
@@ -155,12 +152,25 @@ export function TicketDetailPage() {
             onDelete={detail.removeAttachment}
           />
         </div>
-        <div className="grid gap-4">
-          <TicketDetailSidebar ticket={ticket} originName={originName} />
-          <TicketApprovalsPanel
-            items={approvals.items}
-            visible={approvals.visible}
-            isSaving={approvals.isSaving}
+        <TicketDetailSideStack
+            ticket={ticket}
+            originName={originName}
+            canSplit={canManageParticipants}
+            approvals={approvals.items}
+            approvalsVisible={approvals.visible}
+            approvalsSaving={approvals.isSaving}
+            participants={detail.participants}
+            canManageParticipants={canManageParticipants}
+            timeLogs={detail.timeLogs}
+            timeVisible={detail.timeVisible}
+            currentUserId={currentUserId}
+            isTimeSaving={isTimeSaving}
+            onSplitComplete={(children) => {
+              if (children[0] !== undefined) {
+                navigate(`/tickets/${children[0].id}`);
+              }
+            }}
+            onSplitError={detail.setActionError}
             onApprove={async (approvalId, comment) => {
               const updated = await approvals.approve(approvalId, comment);
               if (updated !== null) {
@@ -173,27 +183,17 @@ export function TicketDetailPage() {
                 await detail.reload();
               }
             }}
-          />
-          <TicketParticipantsPanel
-            items={detail.participants}
-            canManage={canManageParticipants}
-            onAdd={detail.addParticipant}
-            onRemove={detail.removeParticipant}
-          />
-          <TicketTimeTrackingPanel
-            items={detail.timeLogs}
-            visible={detail.timeVisible}
-            currentUserId={currentUserId}
-            isSaving={isTimeSaving}
-            onStart={() => {
+            onAddParticipant={detail.addParticipant}
+            onRemoveParticipant={detail.removeParticipant}
+            onStartTimer={() => {
               setIsTimeSaving(true);
               void detail.startTimer().finally(() => setIsTimeSaving(false));
             }}
-            onStop={(timeLogId) => {
+            onStopTimer={(timeLogId) => {
               setIsTimeSaving(true);
               void detail.stopTimer(timeLogId).finally(() => setIsTimeSaving(false));
-            }} />
-        </div>
+            }}
+          />
       </div>
     </section>
   );

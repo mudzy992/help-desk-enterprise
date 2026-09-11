@@ -70,6 +70,13 @@ export const ticketSystemEventActions = {
   waitingForUserAutoClosed: 'ticket_waiting_for_user_auto_closed',
   ticketReopened: 'ticket_reopened',
   ticketReopenedNew: 'ticket_reopened_new',
+  ticketSplit: 'ticket_split',
+  ticketSplitChild: 'ticket_split_child',
+  ticketBulkAssign: 'ticket_bulk_assign',
+  ticketBulkStatus: 'ticket_bulk_status',
+  ticketBulkPriority: 'ticket_bulk_priority',
+  ticketBulkBroadcast: 'ticket_bulk_broadcast',
+  ticketBulkMerge: 'ticket_bulk_merge',
 } as const;
 
 export const ticketRealtimeEventNames = {

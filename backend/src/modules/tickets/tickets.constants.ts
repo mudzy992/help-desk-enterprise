@@ -80,4 +80,10 @@ export const ticketChangeLogReasons = {
   waitingAutoClose: 'ticket_waiting_for_user_auto_close',
   reopen: 'ticket_reopened',
   reopenNew: 'ticket_reopened_new',
+  split: 'ticket_split',
+  bulkAssign: 'ticket_bulk_assign',
+  bulkStatus: 'ticket_bulk_status',
+  bulkPriority: 'ticket_bulk_priority',
+  bulkBroadcast: 'ticket_bulk_broadcast',
+  bulkMerge: 'ticket_bulk_merge',
 } as const;

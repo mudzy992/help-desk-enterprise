@@ -21,6 +21,8 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'TIME_LOG_NOT_FOUND',
   'ATTACHMENT_NOT_FOUND',
   'APPROVAL_NOT_FOUND',
+  'HANDLER_GROUP_NOT_FOUND',
+  'SAVED_VIEW_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [
@@ -35,6 +37,13 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'APPROVALS_DISABLED',
   'APPROVAL_SELF_FORBIDDEN',
   'REOPEN_DISABLED',
+  'SPLIT_DISABLED',
+  'SPLIT_NOT_ALLOWED',
+  'BULK_DISABLED',
+  'BULK_ACTION_NOT_ALLOWED',
+  'BULK_CLOSE_FORBIDDEN',
+  'BULK_SCOPE_MISMATCH',
+  'SAVED_VIEWS_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -44,6 +53,9 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'APPROVALS_UNAVAILABLE',
   'WAITING_FOR_USER_UNAVAILABLE',
   'REOPEN_UNAVAILABLE',
+  'SPLIT_UNAVAILABLE',
+  'BULK_UNAVAILABLE',
+  'SAVED_VIEWS_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -111,6 +123,28 @@ const messages: Record<TicketsErrorCode, string> = {
   INVALID_REOPEN_COMMENT: 'Reopen comment is invalid',
   WAITING_FOR_USER_UNAVAILABLE: 'Waiting-for-user automation is unavailable',
   REOPEN_UNAVAILABLE: 'Ticket reopen policy is unavailable',
+  SPLIT_DISABLED: 'Ticket split is disabled',
+  SPLIT_UNAVAILABLE: 'Ticket split policy is unavailable',
+  SPLIT_REQUIRED: 'A split reason is required',
+  SPLIT_NOT_ALLOWED: 'This ticket cannot be split',
+  INVALID_SPLIT_REASON: 'Split reason is invalid',
+  INVALID_SPLIT_CHILDREN: 'Split requires at least two child tickets',
+  BULK_DISABLED: 'Bulk ticket actions are disabled',
+  BULK_UNAVAILABLE: 'Bulk ticket actions are unavailable',
+  BULK_ACTION_NOT_ALLOWED: 'This bulk action is not allowed',
+  BULK_CLOSE_FORBIDDEN: 'Bulk close is not allowed',
+  BULK_SCOPE_MISMATCH: 'Bulk actions require the same organizational unit and group',
+  BULK_REASON_REQUIRED: 'A reason is required for this bulk action',
+  BULK_PREVIEW_REQUIRED: 'Broadcast preview is required before sending',
+  BULK_RATE_LIMITED: 'Bulk broadcast rate limit was exceeded',
+  BULK_BROADCAST_INVALID: 'Broadcast message is incomplete or invalid',
+  SAVED_VIEWS_DISABLED: 'Saved views are disabled',
+  SAVED_VIEWS_UNAVAILABLE: 'Saved views are unavailable',
+  SAVED_VIEW_NOT_FOUND: 'Saved view was not found',
+  SAVED_VIEW_LIMIT: 'Saved view limit was reached',
+  SAVED_VIEW_NAME_TAKEN: 'A saved view with this name already exists',
+  INVALID_SAVED_VIEW: 'Saved view is invalid',
+  HANDLER_GROUP_NOT_FOUND: 'Handler group was not found',
 };
 
 export function mapTicketError(error: unknown): HttpException {
@@ -127,7 +161,10 @@ export function mapTicketError(error: unknown): HttpException {
   if (unavailableCodes.includes(error.code)) {
     return new ServiceUnavailableException(body);
   }
-  if (error.code === 'OVERLAPPING_TIMER') {
+  if (
+    error.code === 'OVERLAPPING_TIMER' ||
+    error.code === 'SAVED_VIEW_NAME_TAKEN'
+  ) {
     return new ConflictException(body);
   }
   return new BadRequestException(body);

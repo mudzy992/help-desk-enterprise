@@ -24,6 +24,8 @@ import type {
   TicketTimeLogRecord,
 } from './collaboration.types';
 import type { TicketAttachmentRecord } from './attachments/attachments.types';
+import { createInMemorySavedViewDelegate } from './create-in-memory-saved-view-delegate';
+import type { SavedViewRecord } from './saved-views/saved-views.types';
 import type { TicketRecord } from './tickets.types';
 import type {
   InMemoryTicketChangeLog,
@@ -47,6 +49,7 @@ export function createInMemoryTicketsPrisma() {
   const timeLogs = new Map<string, TicketTimeLogRecord>();
   const attachments = new Map<string, TicketAttachmentRecord>();
   const approvals = new Map<string, TicketApprovalRecord>();
+  const savedViews = new Map<string, SavedViewRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -100,6 +103,7 @@ export function createInMemoryTicketsPrisma() {
       nextId,
       now,
     ),
+    savedView: createInMemorySavedViewDelegate(savedViews, nextId, now),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -118,6 +122,7 @@ export function createInMemoryTicketsPrisma() {
     messages,
     timeLogs,
     attachments,
+    savedViews,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {

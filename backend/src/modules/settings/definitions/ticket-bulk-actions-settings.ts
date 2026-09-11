@@ -1,0 +1,105 @@
+import { definePrivateSetting } from '../registry/define-setting';
+import { settingKeys } from '../setting-keys';
+import type { SettingDefinition } from '../settings.types';
+
+export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsEnabled,
+    valueType: 'boolean',
+    description: 'Enable scoped bulk ticket actions',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsAllowCrossOuForSuperAdmin,
+    valueType: 'boolean',
+    description: 'Allow SuperAdmin to run bulk actions across organizational units',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsRequireSameOuAndGroup,
+    valueType: 'boolean',
+    description: 'Require the same origin OU and group for non-SuperAdmin bulk',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsDisallowBulkClose,
+    valueType: 'boolean',
+    description: 'Forbid bulk close; always enforced by the domain',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsAllowedActionTypesCsv,
+    valueType: 'string',
+    description: 'Allow-list of bulk action types',
+    isRequired: true,
+    defaultValue:
+      'assign_group,assign_user,set_status,set_priority,broadcast_message,merge_into_parent',
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastEnableInApp,
+    valueType: 'boolean',
+    description: 'Send bulk broadcast as in-app ticket messages',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastEnableEmail,
+    valueType: 'boolean',
+    description: 'Request email for bulk broadcast when the email channel exists',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastRequirePreview,
+    valueType: 'boolean',
+    description: 'Require a recipient preview before bulk broadcast',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastRateLimitPerMinute,
+    valueType: 'number',
+    description: 'Maximum bulk broadcasts per actor per minute',
+    isRequired: true,
+    defaultValue: 10,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastStructuredEnabled,
+    valueType: 'boolean',
+    description: 'Require the structured incident broadcast form',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastRequiredFieldsCsv,
+    valueType: 'string',
+    description: 'Required structured broadcast fields',
+    isRequired: true,
+    defaultValue: 'what_happened,who_affected,eta',
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastAllowWorkaround,
+    valueType: 'boolean',
+    description: 'Allow an optional workaround field on bulk broadcast',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsBroadcastAllowLinks,
+    valueType: 'boolean',
+    description: 'Allow links inside bulk broadcast text',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketBulkActionsAuditBatchIdEnabled,
+    valueType: 'boolean',
+    description: 'Attach a batch identifier to bulk action audit events',
+    isRequired: true,
+    defaultValue: true,
+  }),
+];

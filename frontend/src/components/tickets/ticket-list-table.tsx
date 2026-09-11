@@ -16,6 +16,8 @@ interface TicketListTableProperties {
   readonly tickets: readonly TicketResponse[];
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly claimingId: string | null;
+  readonly selectedIds: ReadonlySet<string>;
+  readonly onToggleSelected: (ticketId: string) => void;
   readonly onClaim: (ticketId: string) => void;
 }
 
@@ -33,6 +35,8 @@ export function TicketListTable({
   tickets,
   serviceNames,
   claimingId,
+  selectedIds,
+  onToggleSelected,
   onClaim,
 }: TicketListTableProperties) {
   const { t, i18n } = useTranslation();
@@ -41,6 +45,9 @@ export function TicketListTable({
       <table className="min-w-full text-left">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
+            <th className="px-3 py-2">
+              <span className="sr-only">{t("tickets.bulk.select")}</span>
+            </th>
             <th className="px-3 py-2">{t("tickets.columns.number")}</th>
             <th className="px-3 py-2">{t("tickets.columns.subject")}</th>
             <th className="px-3 py-2">{t("tickets.columns.status")}</th>
@@ -56,6 +63,14 @@ export function TicketListTable({
         <tbody className="divide-y divide-border/50">
           {tickets.map((ticket) => (
             <tr key={ticket.id} className={tableRowClassName}>
+              <td className="px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(ticket.id)}
+                  onChange={() => onToggleSelected(ticket.id)}
+                  aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
+                />
+              </td>
               <td className="px-3 py-2">
                 <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                   {ticket.ticketNumber}

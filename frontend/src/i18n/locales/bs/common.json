@@ -404,6 +404,41 @@
       "noMessagesHint": "Pošaljite prvu javnu poruku ili internu napomenu.",
       "systemEvent": "Sistemski događaj"
     },
+    "split": {
+      "title": "Razdvoji tiket",
+      "hint": "Kreira 2+ child tiketa s parent/child vezom. Poruke i prilozi se prenose samo ako ih odaberete.",
+      "reason": "Razlog razdvajanja",
+      "childOne": "Naslov prvog child tiketa",
+      "childTwo": "Naslov drugog child tiketa",
+      "action": "Razdvoji",
+      "splitting": "Razdvajanje…",
+      "parent": "Parent tiket"
+    },
+    "bulk": {
+      "select": "Odabir",
+      "selectRow": "Odaberi {{number}}",
+      "selected": "{{count}} odabrano",
+      "assignGroup": "Dodijeli grupi",
+      "assignUser": "Dodijeli agentu",
+      "setStatus": "Promijeni status",
+      "setPriority": "Promijeni prioritet",
+      "broadcast": "Pošalji update",
+      "merge": "Spoji u parent",
+      "valuePlaceholder": "ID grupe, korisnika ili parent tiketa",
+      "reasonPlaceholder": "Obrazloženje",
+      "closeForbidden": "Bulk zatvaranje nije dostupno (zaštita kvaliteta)",
+      "apply": "Primijeni",
+      "applying": "Primjena…",
+      "clear": "Poništi odabir"
+    },
+    "savedViews": {
+      "title": "Sačuvani pogledi",
+      "default": "default",
+      "namePlaceholder": "Naziv pogleda",
+      "makeDefault": "Postavi kao default",
+      "save": "Sačuvaj trenutni filter",
+      "delete": "Obriši pogled"
+    },
     "messageType": {
       "USER_REPLY": "Odgovor korisnika",
       "AGENT_REPLY": "Odgovor agenta",
@@ -437,6 +472,9 @@
     "errorReopenDisabled": "Ponovno otvaranje tiketa je isključeno.",
     "errorReopenRequired": "Riješeni ili zatvoreni tiket se otvara kroz reopen, ne kroz izmjenu statusa.",
     "errorReopenNotEligible": "Ovaj tiket se ne može ponovo otvoriti.",
+    "errorSplitDisabled": "Razdvajanje tiketa je isključeno.",
+    "errorBulkCloseForbidden": "Masovno zatvaranje tiketa nije dozvoljeno.",
+    "errorBulkScope": "Masovne akcije važe samo unutar iste OU i grupe.",
     "errorConflict": "Akcija je u konfliktu s trenutnim stanjem.",
     "errorGeneric": "Tiketi trenutno nisu dostupni.",
     "errorCatalog": "Katalog servisa trenutno nije dostupan."

@@ -26,6 +26,15 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
 import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
 import { TicketsReopenController } from './reopen/tickets-reopen.controller';
 import { TicketsReopenService } from './reopen/tickets-reopen.service';
+import { TicketSplitConfigurationLoader } from './split/ticket-split-configuration.loader';
+import { TicketsSplitController } from './split/tickets-split.controller';
+import { TicketsSplitService } from './split/tickets-split.service';
+import { TicketBulkConfigurationLoader } from './bulk/ticket-bulk-configuration.loader';
+import { TicketsBulkController } from './bulk/tickets-bulk.controller';
+import { TicketsBulkService } from './bulk/tickets-bulk.service';
+import { TicketSavedViewsConfigurationLoader } from './saved-views/ticket-saved-views-configuration.loader';
+import { TicketsSavedViewsController } from './saved-views/tickets-saved-views.controller';
+import { TicketsSavedViewsService } from './saved-views/tickets-saved-views.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 
@@ -43,6 +52,9 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketsAttachmentsController,
     TicketsApprovalsController,
     TicketsReopenController,
+    TicketsSplitController,
+    TicketsBulkController,
+    TicketsSavedViewsController,
   ],
   providers: [
     TicketsService,
@@ -50,6 +62,12 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketApprovalsConfigurationLoader,
     TicketsReopenService,
     TicketReopenConfigurationLoader,
+    TicketsSplitService,
+    TicketSplitConfigurationLoader,
+    TicketsBulkService,
+    TicketBulkConfigurationLoader,
+    TicketsSavedViewsService,
+    TicketSavedViewsConfigurationLoader,
     WaitingForUserConfigurationLoader,
     WaitingForUserAutomationService,
     TicketsCollaborationService,
@@ -70,6 +88,9 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketsService,
     TicketsApprovalsService,
     TicketsReopenService,
+    TicketsSplitService,
+    TicketsBulkService,
+    TicketsSavedViewsService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,

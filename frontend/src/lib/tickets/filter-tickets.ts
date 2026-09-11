@@ -7,6 +7,9 @@ export type TicketListFilters = {
   readonly status: TicketStatus | "";
   readonly priority: TicketPriority | "";
   readonly serviceId: string;
+  readonly assignedUserId: string;
+  readonly createdFrom: string;
+  readonly createdTo: string;
   readonly currentUserId: string | null;
 };
 
@@ -57,6 +60,15 @@ export function filterTickets(
       return false;
     }
     if (filters.serviceId !== "" && ticket.serviceId !== filters.serviceId) {
+      return false;
+    }
+    if (filters.assignedUserId !== "" && ticket.assignedUserId !== filters.assignedUserId) {
+      return false;
+    }
+    if (filters.createdFrom !== "" && ticket.createdAt < filters.createdFrom) {
+      return false;
+    }
+    if (filters.createdTo !== "" && ticket.createdAt > filters.createdTo) {
       return false;
     }
     return matchesTicketView(ticket, filters.view, filters.currentUserId);

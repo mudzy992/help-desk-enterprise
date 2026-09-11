@@ -78,6 +78,7 @@ model SavedView {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, name])
+  @@index([userId])
 }
 
 model TicketCsat {

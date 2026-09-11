@@ -59,6 +59,8 @@ export function createInMemoryTicketDelegate(
         id: data.id ?? nextId(),
         formData: data.formData ?? null,
         reopenedFromTicketId: data.reopenedFromTicketId ?? null,
+        parentTicketId: data.parentTicketId ?? null,
+        mergedIntoTicketId: data.mergedIntoTicketId ?? null,
         resolvedAt: data.resolvedAt ?? null,
         closedAt: data.closedAt ?? null,
         waitingForUserEnteredAt: data.waitingForUserEnteredAt ?? null,

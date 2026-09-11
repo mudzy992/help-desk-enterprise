@@ -1,0 +1,83 @@
+import { randomUUID } from 'node:crypto';
+import { PrismaService } from '../../../common/prisma/prisma.service';
+import type { AuthorizationContext } from '../../authorization/authorization.types';
+import type { TicketPersistedMessageSink } from '../collaboration.types';
+import { TicketsError } from '../tickets.error';
+import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { applyBulkAssign } from './apply-bulk-assign';
+import { applyBulkBroadcast } from './apply-bulk-broadcast';
+import { applyBulkMerge } from './apply-bulk-merge';
+import { applyBulkPriority } from './apply-bulk-priority';
+import { applyBulkStatus } from './apply-bulk-status';
+import { assertBulkActionAllowed } from './assert-bulk-action-allowed';
+import { assertBulkTicketScope } from './assert-bulk-ticket-scope';
+import type { ExecuteTicketBulkInput, TicketBulkConfiguration } from './bulk.types';
+
+export async function executeTicketBulk(input: {
+  readonly prisma: PrismaService;
+  readonly context: AuthorizationContext;
+  readonly actor: TicketMutationContext;
+  readonly tickets: readonly TicketRecord[];
+  readonly body: ExecuteTicketBulkInput;
+  readonly configuration: TicketBulkConfiguration;
+  readonly messages: TicketPersistedMessageSink;
+}): Promise<{
+  readonly batchId: string | null;
+  readonly tickets: readonly TicketRecord[];
+  readonly recipientCount?: number;
+}> {
+  assertBulkActionAllowed({
+    context: input.context,
+    configuration: input.configuration,
+    body: input.body,
+  });
+  assertBulkTicketScope({
+    context: input.context,
+    configuration: input.configuration,
+    tickets: input.tickets,
+  });
+  const batchId = input.configuration.auditBatchIdEnabled
+    ? randomUUID()
+    : null;
+  const shared = {
+    prisma: input.prisma,
+    actor: input.actor,
+    tickets: input.tickets,
+    body: input.body,
+    batchId,
+    messages: input.messages,
+  };
+  if (
+    input.body.actionType === 'assign_group' ||
+    input.body.actionType === 'assign_user'
+  ) {
+    return {
+      batchId,
+      tickets: await applyBulkAssign({ ...shared, context: input.context }),
+    };
+  }
+  if (input.body.actionType === 'set_status') {
+    return {
+      batchId,
+      tickets: await applyBulkStatus({ ...shared, context: input.context }),
+    };
+  }
+  if (input.body.actionType === 'set_priority') {
+    return { batchId, tickets: await applyBulkPriority(shared) };
+  }
+  if (input.body.actionType === 'broadcast_message') {
+    const broadcast = await applyBulkBroadcast({
+      ...shared,
+      configuration: input.configuration,
+    });
+    return {
+      batchId,
+      tickets: broadcast.tickets,
+      recipientCount: broadcast.recipientCount,
+    };
+  }
+  if (input.body.actionType === 'merge_into_parent') {
+    return { batchId, tickets: await applyBulkMerge(shared) };
+  }
+  throw new TicketsError('BULK_ACTION_NOT_ALLOWED');
+}

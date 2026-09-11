@@ -12,6 +12,9 @@ export type TicketErrorKey =
   | "tickets.errorReopenDisabled"
   | "tickets.errorReopenRequired"
   | "tickets.errorReopenNotEligible"
+  | "tickets.errorSplitDisabled"
+  | "tickets.errorBulkCloseForbidden"
+  | "tickets.errorBulkScope"
   | "tickets.errorConflict"
   | "tickets.errorGeneric";
 
@@ -25,6 +28,12 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   REOPEN_DISABLED: "tickets.errorReopenDisabled",
   REOPEN_REQUIRED: "tickets.errorReopenRequired",
   REOPEN_NOT_ELIGIBLE: "tickets.errorReopenNotEligible",
+  SPLIT_DISABLED: "tickets.errorSplitDisabled",
+  SPLIT_NOT_ALLOWED: "tickets.errorForbidden",
+  BULK_CLOSE_FORBIDDEN: "tickets.errorBulkCloseForbidden",
+  BULK_SCOPE_MISMATCH: "tickets.errorBulkScope",
+  BULK_DISABLED: "tickets.errorForbidden",
+  SAVED_VIEWS_DISABLED: "tickets.errorForbidden",
   NOT_FOUND: "tickets.errorNotFound",
   OVERLAPPING_TIMER: "tickets.errorConflict",
   INVALID_TITLE: "tickets.errorValidation",

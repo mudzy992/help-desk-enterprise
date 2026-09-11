@@ -2,6 +2,7 @@ import type { TicketMessageRecord } from './collaboration.types';
 import { pickInMemoryRecord } from './in-memory-record';
 
 type MessageWhere = {
+  readonly id?: string | { in: readonly string[] };
   readonly ticketId?: string;
   readonly type?: string;
 };
@@ -13,6 +14,14 @@ export function createInMemoryTicketMessageDelegate(
 ) {
   const matching = (where?: MessageWhere) =>
     [...records.values()].filter((record) => {
+      if (where?.id !== undefined) {
+        if (typeof where.id === 'string' && record.id !== where.id) {
+          return false;
+        }
+        if (typeof where.id !== 'string' && !where.id.in.includes(record.id)) {
+          return false;
+        }
+      }
       if (where?.ticketId !== undefined && record.ticketId !== where.ticketId) {
         return false;
       }

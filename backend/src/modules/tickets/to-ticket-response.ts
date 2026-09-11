@@ -22,6 +22,8 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     requesterId: record.requesterId,
     assignedGroupId: record.assignedGroupId,
     assignedUserId: record.assignedUserId,
+    parentTicketId: record.parentTicketId,
+    mergedIntoTicketId: record.mergedIntoTicketId,
     reopenedFromTicketId: record.reopenedFromTicketId,
     resolvedAt: toIso(record.resolvedAt),
     closedAt: toIso(record.closedAt),

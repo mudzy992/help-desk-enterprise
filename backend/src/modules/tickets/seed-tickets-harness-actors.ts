@@ -89,6 +89,15 @@ function createScopedContext(
       ? [
           permissionKeys.ticketAttachmentsUpload,
           permissionKeys.ticketAttachmentsDownload,
+          permissionKeys.ticketMerge,
+          permissionKeys.ticketBulkAssign,
+          permissionKeys.ticketBulkStatusUpdate,
+          ...(roleKey === authorizationRoleKeys.admin
+            ? [
+                permissionKeys.ticketBulkPriorityUpdate,
+                permissionKeys.ticketBulkBroadcast,
+              ]
+            : []),
         ]
       : [];
   return createTestAuthorizationContext({

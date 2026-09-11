@@ -25,6 +25,7 @@ import {
 } from './normalize-ticket-text';
 import { recordTicketChange } from './record-ticket-change';
 import { resolveCreateFormVersionRef } from './resolve-create-form-version-ref';
+import { resolveCreateTicketHandlerGroup } from './resolve-create-ticket-handler-group';
 import { ticketChangeLogReasons } from './tickets.constants';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
@@ -91,10 +92,14 @@ export async function createTicket(
     serviceId,
     formVersionRef: input.formVersionRef,
   });
-  const routing = await applyCreateTicketRouting(routingService, {
-    originUnitId,
-    serviceId,
-  }).catch(mapCreateDependencyError);
+  const routing = await resolveCreateTicketHandlerGroup(
+    prisma,
+    await applyCreateTicketRouting(routingService, {
+      originUnitId,
+      serviceId,
+    }).catch(mapCreateDependencyError),
+    input.assignedGroupId,
+  );
   const approvalsConfiguration = await approvalsConfigurationLoader.load();
   const status = resolveCreateTicketApprovalStatus({
     routingStatus: routing.status,
@@ -117,8 +122,8 @@ export async function createTicket(
         priority: calculateTicketPriority(input.impact, input.urgency),
         impact: input.impact,
         urgency: input.urgency,
-        classification: service.classification,
-        isConfidential: service.isConfidentialDefault,
+        classification: input.classification ?? service.classification,
+        isConfidential: input.isConfidential ?? service.isConfidentialDefault,
         formData: toTicketFormDataInput(input.formData),
         originUnitId,
         serviceId,
@@ -126,6 +131,7 @@ export async function createTicket(
         requesterId: requester.id,
         assignedGroupId: routing.assignedGroupId,
         assignedUserId: null,
+        parentTicketId: input.parentTicketId ?? null,
         reopenedFromTicketId: input.reopenedFromTicketId ?? null,
       },
     })) as TicketRecord;

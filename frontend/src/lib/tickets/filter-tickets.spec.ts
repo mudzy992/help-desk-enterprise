@@ -50,6 +50,9 @@ describe("filterTickets", () => {
         status: "",
         priority: "",
         serviceId: "",
+        assignedUserId: "",
+        createdFrom: "",
+        createdTo: "",
         currentUserId: "agent-1",
       }).map((item) => item.id),
     ).toEqual(["a"]);
@@ -60,6 +63,9 @@ describe("filterTickets", () => {
         status: "ASSIGNED",
         priority: "LOW",
         serviceId: "svc-2",
+        assignedUserId: "",
+        createdFrom: "",
+        createdTo: "",
         currentUserId: "agent-1",
       }).map((item) => item.id),
     ).toEqual(["b"]);
@@ -73,6 +79,9 @@ describe("filterTickets", () => {
         status: "",
         priority: "",
         serviceId: "",
+        assignedUserId: "",
+        createdFrom: "",
+        createdTo: "",
         currentUserId: "agent-1",
       }).map((item) => item.id),
     ).toEqual(["b"]);
@@ -83,6 +92,9 @@ describe("filterTickets", () => {
         status: "",
         priority: "",
         serviceId: "",
+        assignedUserId: "",
+        createdFrom: "",
+        createdTo: "",
         currentUserId: "user-1",
       }).map((item) => item.id),
     ).toEqual(["a"]);
@@ -93,6 +105,9 @@ describe("filterTickets", () => {
         status: "",
         priority: "",
         serviceId: "",
+        assignedUserId: "",
+        createdFrom: "",
+        createdTo: "",
         currentUserId: "agent-1",
       }).map((item) => item.id),
     ).toEqual(["a"]);

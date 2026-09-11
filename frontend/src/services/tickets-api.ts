@@ -33,6 +33,8 @@ export type TicketResponse = {
   readonly requesterId: string;
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
+  readonly parentTicketId?: string | null;
+  readonly mergedIntoTicketId?: string | null;
   readonly reopenedFromTicketId?: string | null;
   readonly resolvedAt?: string | null;
   readonly closedAt?: string | null;
