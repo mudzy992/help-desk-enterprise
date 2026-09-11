@@ -46,7 +46,7 @@ export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) 
 
   return (
     <div className={tableWrapClassName}>
-      <table className="w-full text-left text-[13px]">
+      <table className="w-full min-w-[960px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
             <th className="px-3 py-2">{t("routing.columnService")}</th>
@@ -70,8 +70,10 @@ export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) 
                 <td className="px-3 py-2">
                   {item.hasExactRule ? (
                     <Badge tone="success">{t("routing.exactYes")}</Badge>
-                  ) : (
+                  ) : item.resolution.outcome === "UNROUTED" ? (
                     <Badge tone="danger">{t("routing.missing")}</Badge>
+                  ) : (
+                    <Badge tone="info">{t("routing.outcomeInherited")}</Badge>
                   )}
                 </td>
                 <td className="px-3 py-2">

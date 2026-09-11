@@ -2,6 +2,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 export const Sheet = SheetPrimitive.Root;
@@ -52,20 +53,23 @@ interface SheetContentProperties
 export const SheetContent = forwardRef<
   ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProperties
->(({ side = "right", className, children, ...properties }, reference) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={reference}
-      className={cn(sheetVariants({ side }), className)}
-      {...properties}
-    >
-      {children}
-      <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-elevated hover:text-foreground">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
+>(({ side = "right", className, children, ...properties }, reference) => {
+  const { t } = useTranslation();
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={reference}
+        className={cn(sheetVariants({ side }), className)}
+        {...properties}
+      >
+        {children}
+        <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-elevated hover:text-foreground">
+          <X className="h-4 w-4" />
+          <span className="sr-only">{t("shell.close")}</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+});
 SheetContent.displayName = SheetPrimitive.Content.displayName;

@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
-import { formatDurationMinutes, formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { formatDurationMinutes } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketTimeLogResponse } from "@/services/tickets-collaboration-api";
 
@@ -62,12 +63,14 @@ export function TicketTimeTrackingPanel({
               <Avatar name={item.userId} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-[12.5px] text-foreground/90">
-                  {formatRelativeTicketTime(item.startedAt, i18n.language)}
+                  <RelativeTime value={item.startedAt} locale={i18n.language} />
                 </p>
-                <p className="text-[11px] text-muted-foreground tnum">
+                <p className="text-[11px] text-muted-foreground">
                   {item.endedAt === null
                     ? t("tickets.detail.startTimer")
-                    : formatRelativeTicketTime(item.startedAt, i18n.language)}
+                    : (
+                      <RelativeTime value={item.startedAt} locale={i18n.language} />
+                    )}
                 </p>
               </div>
               <Badge tone="neutral" className="tnum">

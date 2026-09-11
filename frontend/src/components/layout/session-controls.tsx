@@ -4,7 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { controlCompactClassName } from "@/components/ui/control";
+import {
+  controlCompactClassName,
+  errorTextClassName,
+} from "@/components/ui/control";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +48,8 @@ export function SessionControls() {
       }
     };
     return (
-      <form className="flex min-w-0 items-center gap-2" onSubmit={(event) => void onSubmit(event)}>
+      <div className="flex min-w-0 flex-col items-end gap-1">
+      <form className="flex min-w-0 flex-wrap items-center justify-end gap-2" onSubmit={(event) => void onSubmit(event)}>
         <label className="sr-only" htmlFor="session-email">{t("session.email")}</label>
         <input
           id="session-email"
@@ -71,8 +75,13 @@ export function SessionControls() {
         <Button type="submit" size="sm" disabled={isSubmitting}>
           {isSubmitting ? t("session.signingIn") : t("session.signIn")}
         </Button>
-        {hasError ? <span className="sr-only" role="alert">{t("session.error")}</span> : null}
       </form>
+        {hasError ? (
+          <p className={errorTextClassName} role="alert">
+            {t("session.error")}
+          </p>
+        ) : null}
+      </div>
     );
   }
 
@@ -87,7 +96,7 @@ export function SessionControls() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-elevated"
+          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary/70"
         >
           <Avatar name={displayName} size="sm" />
           <span className="hidden text-left leading-tight md:block">

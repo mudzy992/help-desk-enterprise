@@ -1,4 +1,4 @@
-import { GitBranch } from "lucide-react";
+import { CheckCheck, GitBranch } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TicketMessageBubble } from "@/components/tickets/ticket-message-bubble";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -42,18 +42,27 @@ export function TicketConversation({
         const isSystem =
           message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
         if (isSystem) {
+          const isApproval = message.type === "APPROVAL_DECISION";
+          const SystemIcon = isApproval ? CheckCheck : GitBranch;
           return (
             <div key={message.id} className="flex items-start gap-2.5 px-1 py-0.5">
-              <GitBranch
+              <SystemIcon
                 size={13}
-                className="mt-0.5 shrink-0 text-muted-foreground/60"
+                className={
+                  isApproval
+                    ? "mt-0.5 shrink-0 text-[#4ADE80]"
+                    : "mt-0.5 shrink-0 text-info"
+                }
                 aria-hidden="true"
               />
               <div>
                 <p className="text-[12px] italic leading-5 text-muted-foreground">
                   {message.body}
                 </p>
-                <p className="text-[10.5px] text-muted-foreground/60 tnum">
+                <p
+                  className="text-[10.5px] text-muted-foreground/60 tnum"
+                  title={formatTicketTimestamp(message.createdAt, i18n.language)}
+                >
                   {formatTicketTimestamp(message.createdAt, i18n.language)}
                 </p>
               </div>

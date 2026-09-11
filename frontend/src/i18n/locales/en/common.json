@@ -28,6 +28,7 @@
     "assignedTickets": "Assigned tickets",
     "accountSettings": "Account settings",
     "switchLanguage": "Switch language: BS / EN",
+    "close": "Close",
     "roles": {
       "superAdmin": "SuperAdmin",
       "admin": "Admin",
@@ -542,6 +543,8 @@
       "reopenAsNew": "Open a new ticket",
       "reopening": "Reopening…",
       "waitingForUserHint": "This ticket is waiting for the requester. A public user reply returns it to in progress. An internal note does not reset waiting.",
+      "pauseBadge": "Paused",
+      "pendingApprovalHint": "Approval is in progress. The SLA timer is paused until the approval chain completes.",
       "closeCode": "Close code",
       "closeCodePlaceholder": "Select a close code",
       "resolutionNote": "Resolution note",

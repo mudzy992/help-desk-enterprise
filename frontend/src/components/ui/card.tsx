@@ -29,7 +29,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-3 border-b border-border/70 px-4 pb-3 pt-3.5",
+        "flex flex-wrap items-start justify-between gap-3 border-b border-border/70 px-4 pb-3 pt-3.5",
         className,
       )}
     >

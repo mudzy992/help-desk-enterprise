@@ -2,7 +2,7 @@ import { MessageSquareLock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
@@ -28,7 +28,7 @@ export function TicketMessageBubble({
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-medium text-foreground">{authorName}</span>
           <span className="text-[10.5px] text-muted-foreground/70">
-            {formatRelativeTicketTime(message.createdAt, locale)}
+            <RelativeTime value={message.createdAt} locale={locale} />
           </span>
           {isInternal ? (
             <Badge tone="warning" className="px-1">

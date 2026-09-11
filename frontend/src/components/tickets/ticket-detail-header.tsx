@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { TicketConfidentialBanner } from "@/components/tickets/ticket-confidential-banner";
 import { TicketDetailHeaderActions } from "@/components/tickets/ticket-detail-header-actions";
 import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { formatRelativeTicketTime, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
 interface TicketDetailHeaderProperties {
@@ -80,7 +82,7 @@ export function TicketDetailHeader({
               {" · "}
               {originName}
               {" · "}
-              {formatRelativeTicketTime(ticket.createdAt, i18n.language)}
+              <RelativeTime value={ticket.createdAt} locale={i18n.language} />
               {" · "}
               {formVersionLabel}{" "}
               <span className="tnum">{truncateIdentifier(ticket.formVersionRef)}</span> ({serviceName})
@@ -102,8 +104,17 @@ export function TicketDetailHeader({
         </div>
         {ticket.isConfidential ? <TicketConfidentialBanner /> : null}
         {ticket.status === "WAITING_FOR_USER" ? (
-          <p className="border-t border-border/70 px-5 py-2.5 text-[12px] text-muted-foreground">
-            {t("tickets.detail.waitingForUserHint")}
+          <p className="flex flex-wrap items-center gap-2 border-t border-warning/25 bg-warning/6 px-5 py-2.5 text-[12px] text-foreground/90">
+            <Pause size={14} className="shrink-0 text-warning" aria-hidden="true" />
+            <Badge tone="warning">{t("tickets.detail.pauseBadge")}</Badge>
+            <span>{t("tickets.detail.waitingForUserHint")}</span>
+          </p>
+        ) : null}
+        {ticket.status === "PENDING_APPROVAL" ? (
+          <p className="flex flex-wrap items-center gap-2 border-t border-warning/25 bg-warning/6 px-5 py-2.5 text-[12px] text-foreground/90">
+            <Pause size={14} className="shrink-0 text-warning" aria-hidden="true" />
+            <Badge tone="warning">{t("tickets.detail.pauseBadge")}</Badge>
+            <span>{t("tickets.detail.pendingApprovalHint")}</span>
           </p>
         ) : null}
         {ticket.status === "ARCHIVED" ? (

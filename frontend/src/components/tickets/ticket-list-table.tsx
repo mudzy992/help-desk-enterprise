@@ -7,9 +7,9 @@ import {
   tableWrapClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
-import { formatRelativeTicketTime, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import { useTicketText } from "@/lib/tickets/use-ticket-text";
-import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface TicketListTableProperties {
@@ -58,10 +58,10 @@ export function TicketListTable({
             </th>
             <th className="px-2 py-2.5 font-medium">{t("tickets.columns.ticket")}</th>
             <th className="px-4 py-2.5 font-medium">{t("tickets.columns.service")}</th>
-            <th className="hidden px-4 py-2.5 font-medium lg:table-cell">{t("tickets.columns.unit")}</th>
+            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.unit")}</th>
             <th className="px-4 py-2.5 font-medium">{t("tickets.columns.status")}</th>
-            <th className="hidden px-4 py-2.5 font-medium md:table-cell">{t("tickets.columns.priority")}</th>
-            <th className="hidden px-4 py-2.5 font-medium lg:table-cell">{t("tickets.columns.assignment")}</th>
+            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.priority")}</th>
+            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.assignment")}</th>
             <th className="px-4 py-2.5 text-right font-medium">{t("tickets.columns.updated")}</th>
           </tr>
         </thead>
@@ -69,7 +69,7 @@ export function TicketListTable({
           {tickets.map((ticket) => (
             <tr
               key={ticket.id}
-              className="group cursor-pointer transition-colors duration-150 hover:bg-elevated/40"
+              className="group min-h-9 cursor-pointer transition-colors duration-150 hover:bg-elevated/40"
               onClick={() => navigate(`/tickets/${ticket.id}`)}
             >
               <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
@@ -99,20 +99,21 @@ export function TicketListTable({
                   {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
                 </span>
               </td>
-              <td className="hidden px-4 py-2.5 text-[12px] text-muted-foreground lg:table-cell">
-                {originNames?.get(ticket.originUnitId) ?? ticket.originUnitId}
+              <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
+                {originNames?.get(ticket.originUnitId) ??
+                  truncateIdentifier(ticket.originUnitId)}
               </td>
               <td className="px-4 py-2.5">
                 <TicketStatusBadge status={ticket.status} />
               </td>
-              <td className="hidden px-4 py-2.5 md:table-cell">
+              <td className="px-4 py-2.5">
                 <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
               </td>
-              <td className={cn("hidden px-4 py-2.5 lg:table-cell")}>
+              <td className="px-4 py-2.5">
                 {assignmentCell(ticket, t)}
               </td>
-              <td className="px-4 py-2.5 text-right text-[12px] text-muted-foreground tnum">
-                {formatRelativeTicketTime(ticket.updatedAt, i18n.language)}
+              <td className="px-4 py-2.5 text-right text-[12px] text-muted-foreground">
+                <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
               </td>
             </tr>
           ))}

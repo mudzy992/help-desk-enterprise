@@ -44,7 +44,7 @@ export function ServiceCatalogTable({
 
   return (
     <div className={tableWrapClassName}>
-      <table className="w-full text-left text-[13px]">
+      <table className="w-full min-w-[880px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
             <th className="px-3 py-2">{t("services.columnName")}</th>

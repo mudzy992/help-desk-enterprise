@@ -33,7 +33,7 @@ export function DashboardRecentTickets({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-[13px]">
+      <table className="w-full min-w-[720px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
             <th className="px-3 py-2">{t("dashboard.columnTicket")}</th>

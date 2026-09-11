@@ -1,11 +1,12 @@
-import { Flame, Hourglass, UserCheck } from "lucide-react";
+import { Clock3, Flame, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ticketIdClassName } from "@/components/ui/control";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
-import { formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -30,7 +31,7 @@ export function TicketInboxList({
         {tickets.map((ticket) => (
           <li
             key={ticket.id}
-            className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40"
+            className="flex flex-wrap items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40 sm:flex-nowrap"
           >
             {ticket.priority === "CRITICAL" ? (
               <Flame size={15} className="shrink-0 text-danger" aria-hidden="true" />
@@ -43,7 +44,7 @@ export function TicketInboxList({
               className="min-w-0 flex-1 text-left"
             >
               <p className="flex items-center gap-2">
-                <span className="tnum text-[12px] font-medium text-[#7FA8F5]">
+                <span className={ticketIdClassName}>
                   {ticket.ticketNumber}
                 </span>
                 <span className="truncate text-[13px] font-medium text-foreground/95">
@@ -53,20 +54,22 @@ export function TicketInboxList({
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-muted-foreground">
                 <span>{serviceNames.get(ticket.serviceId) ?? ticket.serviceId}</span>
                 <span className="text-border">·</span>
-                <span>{formatRelativeTicketTime(ticket.createdAt, i18n.language)}</span>
+                <span>
+                  <RelativeTime value={ticket.createdAt} locale={i18n.language} />
+                </span>
               </p>
             </button>
-            <div className="hidden items-center gap-1.5 md:flex">
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
               <TicketStatusBadge status={ticket.status} />
               <TicketPriorityBadge priority={ticket.priority} />
               <span
                 className={cn(
-                  "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10.5px] tnum",
+                  "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10.5px]",
                   "border-border bg-background/60 text-muted-foreground",
                 )}
               >
-                <Hourglass size={10} />
-                {formatRelativeTicketTime(ticket.updatedAt, i18n.language)}
+                <Clock3 size={10} aria-hidden="true" />
+                <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
               </span>
             </div>
             {canShowClaimAction(ticket) ? (

@@ -42,7 +42,7 @@ export function ApplicationShell() {
   };
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-0 overflow-x-hidden">
       <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface lg:block">
         <AppSidebar />
       </aside>

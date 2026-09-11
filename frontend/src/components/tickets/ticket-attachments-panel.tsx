@@ -1,10 +1,11 @@
 import { FileText, Image as ImageIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { formatByteSize, formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { formatByteSize } from "@/lib/tickets/ticket-display";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 
 interface TicketAttachmentsPanelProperties {
@@ -91,9 +92,10 @@ export function TicketAttachmentsPanel({
                 <p className="truncate text-[12.5px] font-medium text-foreground/90">
                   {item.originalName}
                 </p>
-                <p className="text-[11px] text-muted-foreground tnum">
-                  {formatByteSize(item.sizeBytes)} ·{" "}
-                  {formatRelativeTicketTime(item.createdAt, i18n.language)}
+                <p className="text-[11px] text-muted-foreground">
+                  <span className="tnum">{formatByteSize(item.sizeBytes)}</span>
+                  {" · "}
+                  <RelativeTime value={item.createdAt} locale={i18n.language} />
                 </p>
               </button>
               <Badge tone={item.classification === "CONFIDENTIAL" ? "warning" : "neutral"} dot={false}>

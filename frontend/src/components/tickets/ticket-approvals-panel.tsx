@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { textareaClassName } from "@/components/ui/control";
-import { directoryDisplayName, formatRelativeTicketTime } from "@/lib/tickets/ticket-display";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { directoryDisplayName } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketApprovalResponse } from "@/services/tickets-approvals-api";
@@ -80,7 +81,7 @@ export function TicketApprovalsPanel({
                 <p className="text-[11.5px] text-muted-foreground">
                   {name ?? "—"} ·{" "}
                   {item.status === "APPROVED" && item.decidedAt
-                    ? formatRelativeTicketTime(item.decidedAt, i18n.language)
+                    ? <RelativeTime value={item.decidedAt} locale={i18n.language} />
                     : item.status === "PENDING"
                       ? t("tickets.detail.pendingDecision")
                       : ticketText(

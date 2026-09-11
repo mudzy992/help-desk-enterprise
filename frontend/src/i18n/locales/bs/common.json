@@ -28,6 +28,7 @@
     "assignedTickets": "Dodijeljeni tiketi",
     "accountSettings": "Postavke naloga",
     "switchLanguage": "Prebaci jezik: BS / EN",
+    "close": "Zatvori",
     "roles": {
       "superAdmin": "SuperAdmin",
       "admin": "Admin",
@@ -542,6 +543,8 @@
       "reopenAsNew": "Otvori novi tiket",
       "reopening": "Otvaranje…",
       "waitingForUserHint": "Tiket čeka odgovor korisnika. Javni odgovor korisnika vraća tiket u obradu. Interna napomena ne resetuje čekanje.",
+      "pauseBadge": "Pauza",
+      "pendingApprovalHint": "Odobrenje je u toku. SLA tajmer je pauziran dok lanac odobrenja traje.",
       "closeCode": "Šifra zatvaranja",
       "closeCodePlaceholder": "Izaberite šifru",
       "resolutionNote": "Napomena o rješenju",

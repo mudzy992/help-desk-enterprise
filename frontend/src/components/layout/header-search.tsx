@@ -42,7 +42,7 @@ export function HeaderSearch() {
   };
 
   return (
-    <form className="relative w-full max-w-md" onSubmit={onSubmit}>
+    <form className="relative min-w-0 w-full max-w-md" onSubmit={onSubmit}>
       <Search
         size={14.5}
         className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
@@ -57,9 +57,9 @@ export function HeaderSearch() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={t("shell.searchPlaceholder")}
-        className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-16 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none"
+        className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-4 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none sm:pr-16"
       />
-      <span className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
+      <span className="absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-1 sm:flex">
         <Kbd>
           <Command size={10} aria-hidden="true" />
         </Kbd>

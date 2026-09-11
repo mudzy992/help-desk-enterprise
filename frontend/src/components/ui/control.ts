@@ -28,7 +28,7 @@ export const tableHeadClassName =
   "text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70";
 
 export const tableRowClassName =
-  "group border-b border-border/50 last:border-0 transition-colors duration-150 hover:bg-elevated/40";
+  "group border-b border-border/50 last:border-0 transition-colors duration-150 hover:bg-elevated/40 [&>td]:min-h-9 [&>td]:py-2.5";
 
 export const ticketIdClassName =
   "tnum text-[12px] font-medium text-[#7FA8F5] underline-offset-2 hover:underline group-hover:underline";
