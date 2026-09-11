@@ -8,6 +8,7 @@ import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
 import { TicketReopenConfigurationLoader } from '../reopen/ticket-reopen-configuration.loader';
+import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
 import { toSingleTicketClientResponse } from '../to-ticket-client-responses';
 import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
@@ -27,6 +28,7 @@ export class TicketsSplitService {
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
     private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -36,6 +38,7 @@ export class TicketsSplitService {
     context: TicketMutationContext,
   ): Promise<SplitTicketResult> {
     return executeTicketOperation(async () => {
+      const gated = await this.accessPolicies.bind(context);
       const configuration = await this.splitConfigurationLoader.load();
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();
@@ -48,14 +51,14 @@ export class TicketsSplitService {
         configuration,
         ticketId,
         body: input,
-        context,
+        context: gated,
         messages,
       });
       const children = [];
       for (const child of result.children) {
         const assigned = await this.ticketAssignmentService.applyAfterCreate(
           child,
-          context,
+          gated,
           messages,
         );
         publishPersistedTicketMessages(this.realtimeHub, assigned, messages);

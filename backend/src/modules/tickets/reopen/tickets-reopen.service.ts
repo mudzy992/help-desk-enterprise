@@ -7,6 +7,7 @@ import { TicketAssignmentService } from '../assignment/ticket-assignment.service
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
+import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
 import { toSingleTicketClientResponse } from '../to-ticket-client-responses';
 import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
@@ -25,6 +26,7 @@ export class TicketsReopenService {
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
     private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -35,6 +37,7 @@ export class TicketsReopenService {
     now = new Date(),
   ): Promise<TicketResponse> {
     return executeTicketOperation(async () => {
+      const gated = await this.accessPolicies.bind(context);
       const configuration = await this.reopenConfigurationLoader.load();
       const messages: TicketPersistedMessageSink = [];
       const record = await reopenTicket({
@@ -45,7 +48,7 @@ export class TicketsReopenService {
         configuration,
         ticketId,
         body: input,
-        context,
+        context: gated,
         now,
         messages,
       });
@@ -54,7 +57,7 @@ export class TicketsReopenService {
           ? record
           : await this.ticketAssignmentService.applyAfterCreate(
               record,
-              context,
+              gated,
               messages,
             );
       publishPersistedTicketMessages(this.realtimeHub, assigned, messages);

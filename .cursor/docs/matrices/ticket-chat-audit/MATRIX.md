@@ -4,7 +4,7 @@
 In-ticket audit kao `TicketMessage` `SYSTEM_EVENT` plus postojeći `ChangeLog`. Nije drugi generic audit engine (`AuditLog` hash-chain / `TicketActivity`).
 
 ## SYSTEM_EVENT akcije
-`ticket_created`, `ticket_claimed`, `ticket_assigned`, `ticket_participant_added`, `ticket_participant_removed`, `ticket_time_started`, `ticket_time_stopped`, `ticket_attachment_uploaded`, `ticket_attachment_deleted`.
+`ticket_created`, `ticket_claimed`, `ticket_assigned`, `ticket_participant_added`, `ticket_participant_removed`, `ticket_time_started`, `ticket_time_stopped`, `ticket_attachment_uploaded`, `ticket_attachment_deleted`, `ticket_confidential_viewed`, `ticket_confidential_denied`, `ticket_confidential_break_glass`.
 
 Tijelo poruke je action key. `authorUserId` je actor kad postoji. Vidljivost: staff-only.
 

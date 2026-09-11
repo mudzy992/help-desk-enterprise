@@ -3,6 +3,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishForTicketId } from '../publish-for-ticket-id';
+import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
 import type { TicketMutationContext } from '../tickets.types';
 import { TICKET_ATTACHMENT_STORAGE } from './attachment-storage.token';
@@ -23,18 +24,19 @@ export class TicketsAttachmentsService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly configurationLoader: TicketAttachmentConfigurationLoader,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     @Inject(TICKET_ATTACHMENT_STORAGE)
     private readonly storage: TicketAttachmentStorage,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
   list(ticketId: string, context: TicketMutationContext) {
-    return executeTicketOperation(() =>
+    return executeTicketOperation(async () =>
       listTicketAttachments(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
       ),
     );
   }
@@ -52,7 +54,7 @@ export class TicketsAttachmentsService {
         await this.configurationLoader.load(),
         ticketId,
         file,
-        context,
+        await this.accessPolicies.bind(context),
       );
       await publishForTicketId(
         this.prisma,
@@ -69,14 +71,14 @@ export class TicketsAttachmentsService {
     attachmentId: string,
     context: TicketMutationContext,
   ) {
-    return executeTicketOperation(() =>
+    return executeTicketOperation(async () =>
       downloadTicketAttachment(
         this.prisma,
         this.authorizationContextLoader,
         this.storage,
         ticketId,
         attachmentId,
-        context,
+        await this.accessPolicies.bind(context),
       ),
     );
   }
@@ -93,7 +95,7 @@ export class TicketsAttachmentsService {
         this.storage,
         ticketId,
         attachmentId,
-        context,
+        await this.accessPolicies.bind(context),
       );
       await publishForTicketId(
         this.prisma,

@@ -2,6 +2,8 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 import { canManageTicketsInScope } from '../authorize-ticket-actor';
+import { isConfidentialTicketVisible } from '../confidential/assert-confidential-ticket-access';
+import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
@@ -40,9 +42,13 @@ export async function listGroupInboxTickets(
     select: { id: true, ouPath: true },
   });
   const pathById = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-  return records.filter((ticket) =>
-    isInboxTicketVisible(authContext, ticket, pathById),
-  );
+  const visible: TicketRecord[] = [];
+  for (const ticket of records) {
+    if (await isInboxTicketVisible(prisma, authContext, ticket, pathById, context)) {
+      visible.push(ticket);
+    }
+  }
+  return visible;
 }
 
 async function resolveInboxGroupWhere(
@@ -63,25 +69,41 @@ async function resolveInboxGroupWhere(
   return { in: groupIds };
 }
 
-function isInboxTicketVisible(
+async function isInboxTicketVisible(
+  prisma: PrismaService,
   context: AuthorizationContext,
   ticket: TicketRecord,
   pathById: ReadonlyMap<string, string>,
-): boolean {
+  mutation: TicketMutationContext,
+): Promise<boolean> {
   if (ticket.assignedGroupId === null || ticket.assignedUserId !== null) {
     return false;
   }
-  if (context.isSuperAdmin) {
-    return true;
+  if (!context.isSuperAdmin) {
+    const originUnitPath = pathById.get(ticket.originUnitId);
+    if (originUnitPath === undefined) {
+      return false;
+    }
+    if (
+      !canManageTicketsInScope({
+        context,
+        originUnitId: ticket.originUnitId,
+        originUnitPath,
+        serviceId: ticket.serviceId,
+      })
+    ) {
+      return false;
+    }
   }
   const originUnitPath = pathById.get(ticket.originUnitId);
   if (originUnitPath === undefined) {
     return false;
   }
-  return canManageTicketsInScope({
+  return isConfidentialTicketVisible(prisma, {
     context,
-    originUnitId: ticket.originUnitId,
+    ticket,
     originUnitPath,
-    serviceId: ticket.serviceId,
+    configuration:
+      mutation.confidential ?? defaultTicketConfidentialConfiguration,
   });
 }

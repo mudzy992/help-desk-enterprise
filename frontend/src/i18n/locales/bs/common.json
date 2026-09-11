@@ -485,6 +485,16 @@
     "errorRequiredFields": "Prije rješavanja ili zatvaranja unesite obavezna polja.",
     "errorCloseCodeInvalid": "Šifra zatvaranja nije na dozvoljenoj listi.",
     "errorRedactionBlocked": "Sadržaj izgleda kao tajna ili lični podatak i nije sačuvan.",
+    "errorConfidentialBreakGlass": "Povjerljivi tiket. Pristup je moguć samo kroz break-glass uz razlog.",
+    "errorBreakGlassReason": "Break-glass zahtijeva razlog.",
+    "confidential": {
+      "badge": "Povjerljivo",
+      "breakGlassTitle": "Povjerljivi tiket — break-glass",
+      "breakGlassHint": "Sadržaj nije prikazan. Hitni pristup ostavlja audit trag (actor, vrijeme, razlog, rezultat) bez povjerljivog sadržaja.",
+      "reason": "Razlog pristupa",
+      "request": "Zatraži break-glass pristup",
+      "requesting": "Zahtjev…"
+    },
     "redactionWarning": "Detektovan je mogući tajni ili lični podatak. Sadržaj je sačuvan, a događaj je zabilježen.",
     "closeCodes": {
       "solved_by_user": "Riješio korisnik",

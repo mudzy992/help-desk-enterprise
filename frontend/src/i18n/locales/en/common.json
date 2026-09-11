@@ -485,6 +485,16 @@
     "errorRequiredFields": "Required fields must be completed before resolve or close.",
     "errorCloseCodeInvalid": "That close code is not on the allow-list.",
     "errorRedactionBlocked": "This looks like a secret or personal data and was not saved.",
+    "errorConfidentialBreakGlass": "This confidential ticket requires break-glass access with a reason.",
+    "errorBreakGlassReason": "Break-glass access requires a reason.",
+    "confidential": {
+      "badge": "Confidential",
+      "breakGlassTitle": "Confidential ticket — break-glass",
+      "breakGlassHint": "Content is hidden. Emergency access writes an audit trail (actor, time, reason, result) without confidential content.",
+      "reason": "Access reason",
+      "request": "Request break-glass access",
+      "requesting": "Requesting…"
+    },
     "redactionWarning": "Possible secret or personal data was detected. The content was saved and the event was recorded.",
     "closeCodes": {
       "solved_by_user": "Solved by user",

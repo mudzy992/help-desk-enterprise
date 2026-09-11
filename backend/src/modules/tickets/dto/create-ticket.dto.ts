@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsObject,
   IsOptional,
@@ -46,4 +47,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsObject()
   formData?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
+  isConfidential?: boolean;
 }

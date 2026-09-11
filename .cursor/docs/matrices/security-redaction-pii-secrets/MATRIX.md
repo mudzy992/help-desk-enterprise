@@ -17,4 +17,4 @@ Ugrađeni high-risk: password/lozinka assignment, api_key/secret_key/access_toke
 Autorizovani viewer i dalje vidi original na tiketu/chatu. ChangeLog snapshot redacta title/description. SYSTEM_EVENT `ticket_redaction_warned:<patternIds>` ne sadrži matched plaintext.
 
 ## Namjerno NIJE
-Confidential/RESTRICTED safe logging, break-glass, Edge redacted toasts, custom admin pattern UI.
+Confidential/RESTRICTED safe logging: `security-safe-logging`. Break-glass, Edge redacted toasts, custom admin pattern UI.

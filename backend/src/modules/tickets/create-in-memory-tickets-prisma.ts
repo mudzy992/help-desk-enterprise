@@ -28,6 +28,14 @@ import { createInMemorySavedViewDelegate } from './create-in-memory-saved-view-d
 import type { SavedViewRecord } from './saved-views/saved-views.types';
 import { createInMemoryCloseCodeDelegate } from './create-in-memory-close-code-delegate';
 import type { CloseCodeRecord } from './close-codes/close-codes.types';
+import {
+  createInMemoryBreakGlassEventDelegate,
+  createInMemoryConfidentialGrantDelegate,
+} from './create-in-memory-confidential-delegates';
+import type {
+  BreakGlassEventRecord,
+  TicketConfidentialGrantRecord,
+} from './confidential/confidential.types';
 import type { TicketRecord } from './tickets.types';
 import type {
   InMemoryTicketChangeLog,
@@ -53,6 +61,8 @@ export function createInMemoryTicketsPrisma() {
   const attachments = new Map<string, TicketAttachmentRecord>();
   const approvals = new Map<string, TicketApprovalRecord>();
   const savedViews = new Map<string, SavedViewRecord>();
+  const confidentialGrants = new Map<string, TicketConfidentialGrantRecord>();
+  const breakGlassEvents = new Map<string, BreakGlassEventRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -108,6 +118,16 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     savedView: createInMemorySavedViewDelegate(savedViews, nextId, now),
+    ticketConfidentialGrant: createInMemoryConfidentialGrantDelegate(
+      confidentialGrants,
+      nextId,
+      now,
+    ),
+    breakGlassEvent: createInMemoryBreakGlassEventDelegate(
+      breakGlassEvents,
+      nextId,
+      now,
+    ),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -128,6 +148,8 @@ export function createInMemoryTicketsPrisma() {
     timeLogs,
     attachments,
     savedViews,
+    confidentialGrants,
+    breakGlassEvents,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {

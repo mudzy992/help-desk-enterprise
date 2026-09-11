@@ -8,6 +8,8 @@ import type {
 import type { TicketClosePolicy } from './close-codes/close-codes.types';
 import type { RedactionMatch } from './redaction/redaction.types';
 import type { JsonValue } from '../change-log/change-log.types';
+import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
+import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
 
 export type TicketRecord = {
   readonly id: string;
@@ -114,4 +116,6 @@ export type ListTicketsQuery = {
 
 export type TicketMutationContext = {
   readonly actorUserId: string;
+  readonly confidential?: TicketConfidentialConfiguration;
+  readonly safeLogging?: TicketSafeLoggingConfiguration;
 };

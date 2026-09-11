@@ -1,6 +1,7 @@
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { RoutingService } from '../routing/routing.service';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { defaultTicketBulkConfiguration } from './bulk/bulk.constants';
 import { TicketsBulkService } from './bulk/tickets-bulk.service';
 import { defaultTicketSavedViewsConfiguration } from './saved-views/saved-views.constants';
@@ -19,6 +20,7 @@ export function createTicketsGovernanceHarness(input: {
   readonly reopenLoader: unknown;
   readonly closeCodesLoader: unknown;
   readonly assignment: TicketAssignmentService;
+  readonly accessPolicies: TicketAccessPolicyBinder;
   readonly realtimeHub: TicketRealtimeHub;
 }) {
   const splitConfig = {
@@ -52,6 +54,7 @@ export function createTicketsGovernanceHarness(input: {
     input.reopenLoader as never,
     input.closeCodesLoader as never,
     input.assignment,
+    input.accessPolicies,
     input.realtimeHub,
   );
   const bulk = new TicketsBulkService(
@@ -60,6 +63,7 @@ export function createTicketsGovernanceHarness(input: {
     { load: async () => ({ ...bulkConfig }) } as never,
     input.reopenLoader as never,
     input.closeCodesLoader as never,
+    input.accessPolicies,
     input.realtimeHub,
   );
   const savedViews = new TicketsSavedViewsService(

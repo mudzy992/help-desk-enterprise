@@ -25,6 +25,12 @@ describe("mapTicketError", () => {
     expect(mapTicketError(new ApiError(400, "REDACTION_BLOCKED", "no"))).toBe(
       "tickets.errorRedactionBlocked",
     );
+    expect(
+      mapTicketError(new ApiError(403, "CONFIDENTIAL_ACCESS_DENIED", "no")),
+    ).toBe("tickets.errorConfidentialBreakGlass");
+    expect(
+      mapTicketError(new ApiError(400, "BREAK_GLASS_REASON_REQUIRED", "no")),
+    ).toBe("tickets.errorBreakGlassReason");
     expect(mapTicketError(new Error("network"))).toBe("tickets.errorGeneric");
   });
 });

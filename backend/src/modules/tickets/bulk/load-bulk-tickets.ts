@@ -2,6 +2,8 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { loadOrganizationalUnitPath } from '../../authorization/load-authorization-scope';
 import { assertTicketVisible } from '../authorize-ticket-actor';
+import { assertConfidentialTicketAccess } from '../confidential/assert-confidential-ticket-access';
+import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 
@@ -41,6 +43,13 @@ export async function loadBulkTickets(
       originUnitId: ticket.originUnitId,
       originUnitPath,
       serviceId: ticket.serviceId,
+    });
+    await assertConfidentialTicketAccess(prisma, {
+      context: authContext,
+      ticket,
+      originUnitPath,
+      configuration:
+        context.confidential ?? defaultTicketConfidentialConfiguration,
     });
   }
   return records;

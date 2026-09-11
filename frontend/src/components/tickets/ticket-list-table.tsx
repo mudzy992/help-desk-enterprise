@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import {
   tableHeadClassName,
@@ -79,8 +79,9 @@ export function TicketListTable({
               <td className="px-3 py-2">
                 <Link
                   to={`/tickets/${ticket.id}`}
-                  className="text-[13px] font-medium text-foreground hover:underline"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-medium text-foreground hover:underline"
                 >
+                  {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
                   {ticket.title}
                 </Link>
               </td>

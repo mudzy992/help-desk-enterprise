@@ -7,6 +7,7 @@ import { listTicketTimeLogs } from './list-ticket-time-logs';
 import { publishForTicketId } from './publish-for-ticket-id';
 import { startTicketTimeLog } from './start-ticket-time-log';
 import { stopTicketTimeLog } from './stop-ticket-time-log';
+import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import type { TicketMutationContext } from './tickets.types';
 
@@ -15,16 +16,17 @@ export class TicketsTimeTrackingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
   listTimeLogs(ticketId: string, context: TicketMutationContext) {
-    return executeTicketOperation(() =>
+    return executeTicketOperation(async () =>
       listTicketTimeLogs(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
       ),
     );
   }
@@ -39,7 +41,7 @@ export class TicketsTimeTrackingService {
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
         now,
       );
       await publishForTicketId(
@@ -64,7 +66,7 @@ export class TicketsTimeTrackingService {
         this.authorizationContextLoader,
         ticketId,
         timeLogId,
-        context,
+        await this.accessPolicies.bind(context),
         now,
       );
       await publishForTicketId(

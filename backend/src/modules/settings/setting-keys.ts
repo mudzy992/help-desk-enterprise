@@ -192,6 +192,25 @@ export const settingKeys = {
     'private.security.redaction.patternsJson',
   privateSecurityRedactionApplyToFieldsCsv:
     'private.security.redaction.applyToFieldsCsv',
+  privateTicketConfidentialEnabled: 'private.ticket.confidential.enabled',
+  privateTicketConfidentialDefaultForServicesCsv:
+    'private.ticket.confidential.defaultForServicesCsv',
+  privateTicketConfidentialAllowedViewerRolesCsv:
+    'private.ticket.confidential.allowedViewerRolesCsv',
+  privateTicketConfidentialAllowedViewerGroupIdsCsv:
+    'private.ticket.confidential.allowedViewerGroupIdsCsv',
+  privateTicketConfidentialBreakGlassEnabled:
+    'private.ticket.confidential.breakGlassEnabled',
+  privateTicketConfidentialBreakGlassAllowedRolesCsv:
+    'private.ticket.confidential.breakGlassAllowedRolesCsv',
+  privateTicketConfidentialBreakGlassRequiresReason:
+    'private.ticket.confidential.breakGlassRequiresReason',
+  privateTicketConfidentialAuditViews: 'private.ticket.confidential.auditViews',
+  privateSecuritySafeLoggingEnabled: 'private.security.safeLogging.enabled',
+  privateSecuritySafeLoggingLevelsCsv:
+    'private.security.safeLogging.levelsCsv',
+  privateSecuritySafeLoggingRedactFieldsCsv:
+    'private.security.safeLogging.redactFieldsCsv',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

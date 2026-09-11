@@ -29,4 +29,4 @@ Postojeći `ChangeLog` (`ticket_attachment`, reason `ticket_attachment_upload` /
 | DELETE | `/tickets/:ticketId/attachments/:attachmentId` |
 
 ## Namjerno NIJE
-KB, full ticket UI, SLA, notifications, approvals, confidential ACL/break-glass, retention job, AV scan.
+Confidential ACL/break-glass: `ticket-confidential-visibility`. Retention job, AV scan.

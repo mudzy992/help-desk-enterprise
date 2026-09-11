@@ -40,4 +40,4 @@ Uspješan create/update piše postojeći `ChangeLog` (`entityType=ticket`, reaso
 | PATCH | `/tickets/:ticketId` |
 
 ## Namjerno NIJE
-Group inbox, auto-assign, participants, messages, time tracking, attachments, KB, SLA, approvals, notifications, full ticket workspace, delete endpoint, priority override, confidential ACL.
+Group inbox, auto-assign, participants, messages, time tracking, attachments, KB, SLA, approvals, notifications, full ticket workspace, delete endpoint, priority override. Confidential ACL: `ticket-confidential-visibility`.

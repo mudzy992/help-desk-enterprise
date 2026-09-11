@@ -1,9 +1,7 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { changeLogActions } from '../change-log/change-log.constants';
 import { RoutingService } from '../routing/routing.service';
 import { applyCreateTicketRouting } from './apply-create-ticket-routing';
-import { createPendingTicketApproval } from './approvals/create-pending-ticket-approval';
 import {
   resolveCreateTicketApprovalStatus,
   resolveTicketApprovalRequirement,
@@ -23,22 +21,19 @@ import {
   normalizeTicketDescription,
   normalizeTicketTitle,
 } from './normalize-ticket-text';
-import { recordTicketChange } from './record-ticket-change';
 import { resolveCreateFormVersionRef } from './resolve-create-form-version-ref';
 import { resolveCreateTicketHandlerGroup } from './resolve-create-ticket-handler-group';
-import { ticketChangeLogReasons } from './tickets.constants';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
-import { seedDefaultTicketParticipants } from './seed-default-ticket-participants';
-import { insertSystemTicketEvent } from './insert-system-ticket-event';
-import { ticketSystemEventActions } from './collaboration.constants';
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import type { TicketRedactionConfiguration } from './redaction/redaction.types';
 import {
   assertRedactionAllowed,
   scanTicketContent,
 } from './redaction/assert-ticket-content-redaction';
-import { recordRedactionWarning } from './redaction/record-redaction-warning';
+import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
+import { resolveCreateConfidentialFlag } from './confidential/resolve-create-confidential-flag';
+import { writeCreatedTicketFollowUp } from './write-created-ticket-follow-up';
 import type {
   CreateTicketInput,
   TicketMutationContext,
@@ -143,7 +138,12 @@ export async function createTicket(
         impact: input.impact,
         urgency: input.urgency,
         classification: input.classification ?? service.classification,
-        isConfidential: input.isConfidential ?? service.isConfidentialDefault,
+        isConfidential: resolveCreateConfidentialFlag({
+          requested: input.isConfidential,
+          serviceId,
+          serviceDefault: service.isConfidentialDefault,
+          configuration: context.confidential ?? defaultTicketConfidentialConfiguration,
+        }),
         formData: toTicketFormDataInput(input.formData),
         originUnitId,
         serviceId,
@@ -155,39 +155,14 @@ export async function createTicket(
         reopenedFromTicketId: input.reopenedFromTicketId ?? null,
       },
     })) as TicketRecord;
-    await recordTicketChange(transaction as PrismaService, {
-      action: changeLogActions.create,
-      reason: ticketChangeLogReasons.create,
-      before: null,
-      after: record,
-      actorUserId: context.actorUserId,
-      redaction,
-    });
-    await seedDefaultTicketParticipants(transaction as PrismaService, record);
-    messages.push(
-      await insertSystemTicketEvent(transaction as PrismaService, {
-        ticketId: record.id,
-        action: ticketSystemEventActions.created,
-        actorUserId: context.actorUserId,
-      }),
-    );
-    await recordRedactionWarning({
-      prisma: transaction as PrismaService,
-      ticketId: record.id,
-      actorUserId: context.actorUserId,
-      scan,
+    await writeCreatedTicketFollowUp(
+      transaction as PrismaService,
+      record,
+      context,
       messages,
-    });
-    if (record.status === 'PENDING_APPROVAL') {
-      await createPendingTicketApproval(transaction as PrismaService, record);
-      messages.push(
-        await insertSystemTicketEvent(transaction as PrismaService, {
-          ticketId: record.id,
-          action: ticketSystemEventActions.approvalRequested,
-          actorUserId: context.actorUserId,
-        }),
-      );
-    }
+      scan,
+      redaction,
+    );
     return record;
   });
   return created;

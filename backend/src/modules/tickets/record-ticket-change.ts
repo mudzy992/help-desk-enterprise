@@ -13,6 +13,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { toTicketResponse } from './to-ticket-response';
 import { redactSensitiveText } from './redaction/redact-sensitive-text';
 import type { TicketRedactionConfiguration } from './redaction/redaction.types';
+import { redactConfidentialSnapshotFields } from './safe-logging/format-safe-ticket-log';
+import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
 import type { TicketRecord } from './tickets.types';
 
 export async function recordTicketChange(
@@ -24,6 +26,7 @@ export async function recordTicketChange(
     readonly after: TicketRecord;
     readonly actorUserId: string | null;
     readonly redaction?: TicketRedactionConfiguration;
+    readonly safeLogging?: TicketSafeLoggingConfiguration;
   },
 ): Promise<void> {
   await recordChangeLog(prisma as unknown as ChangeLogPrismaClient, {
@@ -35,8 +38,8 @@ export async function recordTicketChange(
       action: input.action,
       resourceType: changeLogEntityTypes.ticket,
       resourceId: input.after.id,
-      before: toSnapshot(input.before, input.redaction),
-      after: toSnapshot(input.after, input.redaction),
+      before: toSnapshot(input.before, input.redaction, input.safeLogging),
+      after: toSnapshot(input.after, input.redaction, input.safeLogging),
     }),
   });
 }
@@ -44,11 +47,18 @@ export async function recordTicketChange(
 function toSnapshot(
   record: TicketRecord | null,
   redaction?: TicketRedactionConfiguration,
+  safeLogging?: TicketSafeLoggingConfiguration,
 ): JsonValue {
   if (record === null) {
     return {};
   }
-  const snapshot = toTicketResponse(record);
+  const confidential = redactConfidentialSnapshotFields(record, safeLogging);
+  const snapshot = {
+    ...toTicketResponse(record),
+    title: confidential.title,
+    description: confidential.description,
+    formData: confidential.formData as JsonValue | null,
+  };
   if (redaction === undefined || !redaction.enabled) {
     return JSON.parse(JSON.stringify(snapshot)) as JsonValue;
   }

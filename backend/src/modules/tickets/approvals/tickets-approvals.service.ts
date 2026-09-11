@@ -5,6 +5,7 @@ import { TicketAssignmentService } from '../assignment/ticket-assignment.service
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { executeTicketOperation } from '../execute-ticket-operation';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
+import { TicketAccessPolicyBinder } from '../ticket-access-policy-binder';
 import { TicketRealtimeHub } from '../ticket-realtime.hub';
 import { toTicketResponse } from '../to-ticket-response';
 import type { TicketMutationContext, TicketResponse } from '../tickets.types';
@@ -24,6 +25,7 @@ export class TicketsApprovalsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly configurationLoader: TicketApprovalsConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -36,7 +38,7 @@ export class TicketsApprovalsService {
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
         await this.configurationLoader.load(),
       ),
     );
@@ -68,6 +70,7 @@ export class TicketsApprovalsService {
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
     return executeTicketOperation(async () => {
+      const gated = await this.accessPolicies.bind(context);
       const messages: TicketPersistedMessageSink = [];
       const updated = await decideTicketApproval(
         this.prisma,
@@ -77,14 +80,14 @@ export class TicketsApprovalsService {
         approvalId,
         decision,
         input.comment,
-        context,
+        gated,
         messages,
       );
       const assigned =
         decision === 'APPROVED'
           ? await this.ticketAssignmentService.applyAfterCreate(
               updated,
-              context,
+              gated,
               messages,
             )
           : updated;

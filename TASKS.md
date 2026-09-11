@@ -61,7 +61,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Waiting-for-user automatika + reopen policy
 - [x] Ticket split (parent/child) + bulk akcije (bez bulk close) + saved views
 - [x] Close codes + smart required fields + PII/secret redaction
-- [ ] Confidential ACL + break-glass + safe logging
+- [x] Confidential ACL + break-glass + safe logging
 - [ ] Anti-loop / anti-spam guardrails
 - [ ] CSAT + auto-archive closed tickets
 
@@ -94,4 +94,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 5 — Close codes + smart required fields + PII/secret redaction. Sljedeće: Confidential ACL + break-glass + safe logging.
+**Trenutni status:** Faza 5 — Confidential ACL + break-glass + safe logging. Sljedeće: Anti-loop / anti-spam guardrails.

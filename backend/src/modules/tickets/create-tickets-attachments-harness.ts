@@ -19,6 +19,7 @@ export function createTicketsAttachmentsHarness() {
     {
       load: async () => ({ ...defaultTicketAttachmentConfiguration }),
     } as never,
+    harness.accessPolicies,
     new DiskTicketAttachmentStorage(uploadRoot),
     harness.realtimeHub,
   );

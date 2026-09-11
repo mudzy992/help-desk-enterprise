@@ -20,6 +20,7 @@ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messa
 import { removeTicketParticipant } from './remove-ticket-participant';
 import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
 import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
+import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { toTicketMessageResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
@@ -35,16 +36,17 @@ export class TicketsCollaborationService {
     private readonly configurationLoader: TicketCollaborationConfigurationLoader,
     private readonly waitingForUserConfigurationLoader: WaitingForUserConfigurationLoader,
     private readonly redactionConfigurationLoader: TicketRedactionConfigurationLoader,
+    private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
   listParticipants(ticketId: string, context: TicketMutationContext) {
-    return executeTicketOperation(() =>
+    return executeTicketOperation(async () =>
       listTicketParticipants(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
       ),
     );
   }
@@ -61,7 +63,7 @@ export class TicketsCollaborationService {
         await this.configurationLoader.load(),
         ticketId,
         input,
-        context,
+        await this.accessPolicies.bind(context),
       );
       await publishForTicketId(
         this.prisma,
@@ -85,7 +87,7 @@ export class TicketsCollaborationService {
         await this.configurationLoader.load(),
         ticketId,
         participantId,
-        context,
+        await this.accessPolicies.bind(context),
       );
       await publishForTicketId(
         this.prisma,
@@ -97,12 +99,12 @@ export class TicketsCollaborationService {
   }
 
   listMessages(ticketId: string, context: TicketMutationContext) {
-    return executeTicketOperation(() =>
+    return executeTicketOperation(async () =>
       listTicketMessages(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
       ),
     );
   }
@@ -113,13 +115,14 @@ export class TicketsCollaborationService {
     context: TicketMutationContext,
   ): Promise<TicketMessageResponse> {
     return executeTicketOperation(async () => {
+      const gated = await this.accessPolicies.bind(context);
       const { ticket, message, scan } = await createTicketMessage(
         this.prisma,
         this.authorizationContextLoader,
         await this.configurationLoader.load(),
         ticketId,
         input,
-        context,
+        gated,
         await this.redactionConfigurationLoader.load(),
       );
       const messages: TicketPersistedMessageSink = [message];
@@ -137,7 +140,7 @@ export class TicketsCollaborationService {
         ticket,
         message,
         configuration: await this.waitingForUserConfigurationLoader.load(),
-        context,
+        context: gated,
         messages,
       });
       publishPersistedTicketMessages(this.realtimeHub, resumed, messages);
@@ -154,7 +157,7 @@ export class TicketsCollaborationService {
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
-        context,
+        await this.accessPolicies.bind(context),
       );
       return loaded.access;
     });

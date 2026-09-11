@@ -31,6 +31,7 @@ export async function loadAccessibleTicket(
     context: authContext,
     ticket,
     originUnitPath,
+    confidential: context.confidential,
   });
   return { ticket, access };
 }

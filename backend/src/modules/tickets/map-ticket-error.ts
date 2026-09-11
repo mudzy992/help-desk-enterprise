@@ -44,6 +44,8 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'BULK_CLOSE_FORBIDDEN',
   'BULK_SCOPE_MISMATCH',
   'SAVED_VIEWS_DISABLED',
+  'CONFIDENTIAL_ACCESS_DENIED',
+  'BREAK_GLASS_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -59,6 +61,7 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'CLOSE_CODES_UNAVAILABLE',
   'REQUIRED_FIELDS_UNAVAILABLE',
   'REDACTION_UNAVAILABLE',
+  'CONFIDENTIAL_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -155,6 +158,13 @@ const messages: Record<TicketsErrorCode, string> = {
   REQUIRED_FIELDS_UNAVAILABLE: 'Required fields policy is unavailable',
   REDACTION_BLOCKED: 'Potential secret or PII content was blocked',
   REDACTION_UNAVAILABLE: 'Redaction policy is unavailable',
+  CONFIDENTIAL_ACCESS_DENIED:
+    'Confidential ticket requires authorized access or break-glass',
+  CONFIDENTIAL_UNAVAILABLE: 'Confidential ticket policy is unavailable',
+  BREAK_GLASS_DISABLED: 'Break-glass access is disabled',
+  BREAK_GLASS_REASON_REQUIRED: 'Break-glass access requires a reason',
+  BREAK_GLASS_NOT_APPLICABLE: 'Break-glass is not applicable for this ticket',
+  INVALID_BREAK_GLASS_REASON: 'Break-glass reason is invalid',
 };
 
 export function mapTicketError(error: unknown): HttpException {

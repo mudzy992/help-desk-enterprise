@@ -2,6 +2,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { canManageTicketsInScope } from './authorize-ticket-actor';
+import { isConfidentialTicketVisible } from './confidential/assert-confidential-ticket-access';
+import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
 import { TicketsError } from './tickets.error';
 import type {
   ListTicketsQuery,
@@ -35,12 +37,41 @@ export async function listTickets(
     select: { id: true, ouPath: true },
   });
   const pathById = new Map(units.map((unit) => [unit.id, unit.ouPath]));
-  return records.filter((ticket) =>
-    isListedTicketVisible(authContext, ticket, pathById),
-  );
+  const visible: TicketRecord[] = [];
+  for (const ticket of records) {
+    if (
+      await isListedTicketVisible(prisma, authContext, ticket, pathById, context)
+    ) {
+      visible.push(ticket);
+    }
+  }
+  return visible;
 }
 
-function isListedTicketVisible(
+async function isListedTicketVisible(
+  prisma: PrismaService,
+  context: AuthorizationContext,
+  ticket: TicketRecord,
+  pathById: ReadonlyMap<string, string>,
+  mutation: TicketMutationContext,
+): Promise<boolean> {
+  if (!passesBaselineListVisibility(context, ticket, pathById)) {
+    return false;
+  }
+  const originUnitPath = pathById.get(ticket.originUnitId);
+  if (originUnitPath === undefined) {
+    return false;
+  }
+  return isConfidentialTicketVisible(prisma, {
+    context,
+    ticket,
+    originUnitPath,
+    configuration:
+      mutation.confidential ?? defaultTicketConfidentialConfiguration,
+  });
+}
+
+function passesBaselineListVisibility(
   context: AuthorizationContext,
   ticket: TicketRecord,
   pathById: ReadonlyMap<string, string>,

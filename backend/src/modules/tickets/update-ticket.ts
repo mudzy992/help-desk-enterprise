@@ -143,6 +143,7 @@ export async function updateTicket(
       after: record,
       actorUserId: context.actorUserId,
       redaction: policies?.redaction,
+      safeLogging: context.safeLogging,
     });
     if (
       current.status !== 'WAITING_FOR_USER' &&

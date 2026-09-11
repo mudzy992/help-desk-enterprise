@@ -47,3 +47,33 @@ export async function toSingleTicketClientResponse(
   const [response] = await toTicketClientResponses(prisma, [record], input);
   return response;
 }
+
+export async function respondLoadedTicket(
+  prisma: PrismaService,
+  record: TicketRecord,
+  loaders: {
+    readonly reopen: { load: () => Promise<TicketReopenConfiguration> };
+    readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
+  },
+  redactionWarnings?: readonly RedactionMatch[],
+): Promise<TicketResponse> {
+  return toSingleTicketClientResponse(prisma, record, {
+    reopen: await loaders.reopen.load(),
+    closeCodes: await loaders.closeCodes.load(),
+    redactionWarnings,
+  });
+}
+
+export async function respondLoadedTickets(
+  prisma: PrismaService,
+  records: readonly TicketRecord[],
+  loaders: {
+    readonly reopen: { load: () => Promise<TicketReopenConfiguration> };
+    readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
+  },
+): Promise<readonly TicketResponse[]> {
+  return toTicketClientResponses(prisma, records, {
+    reopen: await loaders.reopen.load(),
+    closeCodes: await loaders.closeCodes.load(),
+  });
+}

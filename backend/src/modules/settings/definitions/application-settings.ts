@@ -22,6 +22,8 @@ import { knowledgeBaseSettings } from './knowledge-base-settings';
 import { ticketCloseCodesSettings } from './ticket-close-codes-settings';
 import { ticketRequiredFieldsSettings } from './ticket-required-fields-settings';
 import { securityRedactionSettings } from './security-redaction-settings';
+import { securitySafeLoggingSettings } from './security-safe-logging-settings';
+import { ticketConfidentialSettings } from './ticket-confidential-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -43,6 +45,8 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketCloseCodesSettings,
   ...ticketRequiredFieldsSettings,
   ...securityRedactionSettings,
+  ...securitySafeLoggingSettings,
+  ...ticketConfidentialSettings,
   ...changeLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

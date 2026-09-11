@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
 import { Button } from "@/components/ui/button";
 import { controlClassName, labelClassName } from "@/components/ui/control";
@@ -51,6 +51,7 @@ export function TicketDetailHeader({
               priority={ticket.priority}
               showCriticalMark
             />
+            {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
             {canShowClaimAction(ticket) ? (
               <Button type="button" size="sm" disabled={claiming} onClick={onClaim}>
                 {claiming ? t("tickets.claiming") : t("tickets.claim")}

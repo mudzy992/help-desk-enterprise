@@ -1,4 +1,4 @@
-import { Flame } from "lucide-react";
+import { Flame, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
@@ -51,6 +51,16 @@ export function TicketPriorityBadge({
         <Flame size={11} strokeWidth={2} className="text-danger" aria-hidden="true" />
       ) : null}
       {t(`tickets.priority.${priority}`)}
+    </Badge>
+  );
+}
+
+export function TicketConfidentialBadge() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone="warning">
+      <ShieldAlert size={11} strokeWidth={2} aria-hidden="true" />
+      {t("tickets.confidential.badge")}
     </Badge>
   );
 }

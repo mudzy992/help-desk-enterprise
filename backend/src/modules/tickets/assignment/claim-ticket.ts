@@ -6,6 +6,8 @@ import { assertTicketStatusTransition } from '../assert-ticket-status-transition
 import { loadTicketRecord } from '../load-ticket-record';
 import { recordTicketChange } from '../record-ticket-change';
 import { TicketsError } from '../tickets.error';
+import { assertConfidentialTicketAccess } from '../confidential/assert-confidential-ticket-access';
+import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { ticketAssignmentChangeLogReasons } from './assignment.constants';
 import { assertCanClaimTicket } from './assert-can-claim-ticket';
@@ -38,6 +40,13 @@ export async function claimTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
+  await assertConfidentialTicketAccess(prisma, {
+    context: authContext,
+    ticket: current,
+    originUnitPath,
+    configuration:
+      context.confidential ?? defaultTicketConfidentialConfiguration,
+  });
   await assertCanClaimTicket(prisma, {
     context: authContext,
     ticket: current,

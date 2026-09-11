@@ -38,6 +38,11 @@ import { TicketsBulkService } from './bulk/tickets-bulk.service';
 import { TicketSavedViewsConfigurationLoader } from './saved-views/ticket-saved-views-configuration.loader';
 import { TicketsSavedViewsController } from './saved-views/tickets-saved-views.controller';
 import { TicketsSavedViewsService } from './saved-views/tickets-saved-views.service';
+import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
+import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
+import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
+import { TicketsConfidentialController } from './confidential/tickets-confidential.controller';
+import { TicketsConfidentialService } from './confidential/tickets-confidential.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 
@@ -58,6 +63,7 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketsSplitController,
     TicketsBulkController,
     TicketsSavedViewsController,
+    TicketsConfidentialController,
   ],
   providers: [
     TicketsService,
@@ -68,6 +74,10 @@ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-fo
     TicketCloseCodesConfigurationLoader,
     TicketRequiredFieldsConfigurationLoader,
     TicketRedactionConfigurationLoader,
+    TicketConfidentialConfigurationLoader,
+    TicketSafeLoggingConfigurationLoader,
+    TicketAccessPolicyBinder,
+    TicketsConfidentialService,
     TicketsSplitService,
     TicketSplitConfigurationLoader,
     TicketsBulkService,

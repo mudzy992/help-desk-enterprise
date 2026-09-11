@@ -53,6 +53,6 @@ Service catalog HTTP rute koriste isti `RoleGuard` + `service.catalog.write` + `
 `ShadowAuthorizationService.evaluate` koristi isti `evaluateAuthorizationRequest` + `decideAuthorizationAccess` tok kao `AuthorizationService.authorize`. Vraća ne-enforcing report (`kind: shadow`, `isEnforcing: false`, `ALLOW`/`DENY` + deterministic reason). Shadow ALLOW nije autorizacija. Guardovi ne zovu shadow API. Detalji: `.cursor/docs/matrices/permissions-shadow-check/MATRIX.md`.
 
 ## Namjerno NIJE implementirano
-Frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula, config versioning/rollback/admin preview UI.
+Frontend authorization UI, vezivanje guardova na postojeće OU/directory-sync kontrolere, RBAC CI matrica izvan unit testova ovog modula, config versioning/rollback/admin preview UI. Confidential per-ticket ACL: `ticket-confidential-visibility`.
 
 Policy packovi žive u `policy-packs` modulu i samo materijalizuju `UserRole` / `RolePermission` zapise koje ovaj evaluator već čita.

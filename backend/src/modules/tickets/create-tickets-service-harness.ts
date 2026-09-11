@@ -22,6 +22,7 @@ import { TicketsService } from './tickets.service';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { defaultWaitingForUserConfiguration } from './waiting-for-user/waiting-for-user.constants';
 import { createTicketsGovernanceHarness } from './create-tickets-governance-harness';
+import { createTicketPolicyHarness } from './create-ticket-policy-harness';
 
 export { ticketsTestIds } from './tickets-test-ids';
 export { vpnFormSchema } from './seed-tickets-harness-catalog';
@@ -105,6 +106,10 @@ export function createTicketsServiceHarness() {
   const closeCodesLoader = { load: async () => ({ ...closeCodesConfig }) };
   const requiredFieldsLoader = { load: async () => ({ ...requiredFieldsConfig }) };
   const redactionLoader = { load: async () => ({ ...redactionConfig }) };
+  const policy = createTicketPolicyHarness(
+    memory.prisma,
+    authorizationContextLoader,
+  );
   const realtimeHub = new TicketRealtimeHub();
   const tickets = new TicketsService(
     memory.prisma as never,
@@ -116,6 +121,8 @@ export function createTicketsServiceHarness() {
     closeCodesLoader as never,
     requiredFieldsLoader as never,
     redactionLoader as never,
+    policy.confidentialLoader as never,
+    policy.safeLoggingLoader as never,
     realtimeHub,
   );
   const approvals = new TicketsApprovalsService(
@@ -123,6 +130,7 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader as never,
     approvalsLoader as never,
     assignment,
+    policy.accessPolicies,
     realtimeHub,
   );
   const reopen = new TicketsReopenService(
@@ -133,6 +141,7 @@ export function createTicketsServiceHarness() {
     reopenLoader as never,
     closeCodesLoader as never,
     assignment,
+    policy.accessPolicies,
     realtimeHub,
   );
   const collaboration = new TicketsCollaborationService(
@@ -143,11 +152,13 @@ export function createTicketsServiceHarness() {
     } as never,
     waitingLoader as never,
     redactionLoader as never,
+    policy.accessPolicies,
     realtimeHub,
   );
   const timeTracking = new TicketsTimeTrackingService(
     memory.prisma as never,
     authorizationContextLoader as never,
+    policy.accessPolicies,
     realtimeHub,
   );
   const waitingAutomation = new WaitingForUserAutomationService(
@@ -163,6 +174,7 @@ export function createTicketsServiceHarness() {
     reopenLoader,
     closeCodesLoader,
     assignment,
+    accessPolicies: policy.accessPolicies,
     realtimeHub,
   });
   seedTicketsHarnessCatalog(memory);
@@ -185,6 +197,10 @@ export function createTicketsServiceHarness() {
     closeCodesConfig,
     requiredFieldsConfig,
     redactionConfig,
+    confidentialConfig: policy.confidentialConfig,
+    safeLoggingConfig: policy.safeLoggingConfig,
+    confidential: policy.confidential,
+    accessPolicies: policy.accessPolicies,
     authorizationContextLoader,
     ...governance,
   };

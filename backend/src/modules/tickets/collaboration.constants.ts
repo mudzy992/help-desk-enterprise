@@ -78,6 +78,9 @@ export const ticketSystemEventActions = {
   ticketBulkBroadcast: 'ticket_bulk_broadcast',
   ticketBulkMerge: 'ticket_bulk_merge',
   redactionWarned: 'ticket_redaction_warned',
+  confidentialViewed: 'ticket_confidential_viewed',
+  confidentialDenied: 'ticket_confidential_denied',
+  confidentialBreakGlass: 'ticket_confidential_break_glass',
 } as const;
 
 export const ticketRealtimeEventNames = {

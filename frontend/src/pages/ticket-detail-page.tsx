@@ -5,7 +5,7 @@ import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
-import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
+import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-blocking-state";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
@@ -52,17 +52,14 @@ export function TicketDetailPage() {
       .catch(() => setOriginName(detail.ticket?.originUnitId ?? ""));
   }, [detail.ticket]);
 
-  if (detail.isLoading) {
-    return <TicketLoadingState />;
-  }
-  if (detail.errorKey || detail.ticket === null) {
+  if (detail.isLoading || detail.ticket === null) {
     return (
-      <section className="max-w-[1400px]">
-        <TicketErrorState
-          errorKey={detail.errorKey ?? "tickets.errorNotFound"}
-          onRetry={() => void detail.reload()}
-        />
-      </section>
+      <TicketDetailBlockingState
+        isLoading={detail.isLoading}
+        errorKey={detail.errorKey}
+        ticketId={ticketId}
+        onReload={() => void detail.reload()}
+      />
     );
   }
 
@@ -129,10 +126,7 @@ export function TicketDetailPage() {
           <section className="rounded-lg border border-border bg-surface px-4 py-3.5">
             <h3 className="text-[13.5px] font-semibold text-foreground">{t("tickets.detail.conversation")}</h3>
             <div className="mt-3">
-              <TicketConversation
-                messages={detail.messages}
-                currentUserId={currentUserId}
-              />
+              <TicketConversation messages={detail.messages} currentUserId={currentUserId} />
             </div>
             <TicketMessageComposer
               access={access}
