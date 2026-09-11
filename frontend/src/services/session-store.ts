@@ -12,11 +12,42 @@ export type StoredSession = {
 
 const sessionStorageKey = "ep-helpdesk.session";
 
+let cachedRaw: string | null | undefined;
+let cachedSession: StoredSession | null = null;
+
 export function readStoredSession(): StoredSession | null {
   if (typeof window === "undefined") {
     return null;
   }
   const raw = window.localStorage.getItem(sessionStorageKey);
+  if (raw === cachedRaw) {
+    return cachedSession;
+  }
+  cachedRaw = raw;
+  cachedSession = parseStoredSession(raw);
+  return cachedSession;
+}
+
+export function writeStoredSession(session: StoredSession): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const raw = JSON.stringify(session);
+  window.localStorage.setItem(sessionStorageKey, raw);
+  cachedRaw = raw;
+  cachedSession = session;
+}
+
+export function clearStoredSession(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem(sessionStorageKey);
+  cachedRaw = null;
+  cachedSession = null;
+}
+
+function parseStoredSession(raw: string | null): StoredSession | null {
   if (raw === null) {
     return null;
   }
@@ -34,18 +65,4 @@ export function readStoredSession(): StoredSession | null {
   } catch {
     return null;
   }
-}
-
-export function writeStoredSession(session: StoredSession): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(sessionStorageKey, JSON.stringify(session));
-}
-
-export function clearStoredSession(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.removeItem(sessionStorageKey);
 }

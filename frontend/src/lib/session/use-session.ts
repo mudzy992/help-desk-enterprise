@@ -26,8 +26,16 @@ function getSnapshot(): StoredSession | null {
   return readStoredSession();
 }
 
+function getServerSnapshot(): StoredSession | null {
+  return null;
+}
+
 export function useSession() {
-  const session = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const session = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   const signIn = useCallback(async (email: string, password: string) => {
     const response = await loginWithPassword({ email, password });
