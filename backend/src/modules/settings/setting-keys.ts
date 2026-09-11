@@ -140,8 +140,15 @@ export const settingKeys = {
     'private.ticket.bulkActions.auditBatchIdEnabled',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
+  privateChangeLogSlaEnabled: 'private.changeLog.sla.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',
   privateChangeLogRequireReason: 'private.changeLog.requireReason',
+  privateTicketSlaEnabled: 'private.ticket.sla.enabled',
+  privateTicketSlaRequireAdminReasonForRuleChanges:
+    'private.ticket.sla.requireAdminReasonForRuleChanges',
+  privateTicketSlaAllowServiceOverrides:
+    'private.ticket.sla.allowServiceOverrides',
+  privateTicketSlaAllowOuOverrides: 'private.ticket.sla.allowOuOverrides',
   privateSmtpEnabled: 'private.smtp.enabled',
   privateSmtpHost: 'private.smtp.host',
   privateSmtpPort: 'private.smtp.port',

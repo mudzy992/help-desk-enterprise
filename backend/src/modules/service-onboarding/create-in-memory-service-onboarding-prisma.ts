@@ -39,7 +39,7 @@ export function createInMemoryServiceOnboardingPrisma(): {
   prisma.serviceOnboarding = createOnboardingDelegate(onboardings);
   prisma.slaProfile = {
     findUnique: async ({ where }: { where: { id: string } }) =>
-      slaProfiles.has(where.id) ? { id: where.id } : null,
+      slaProfiles.has(where.id) ? { id: where.id, isActive: true } : null,
   };
   return {
     prisma,

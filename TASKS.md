@@ -66,7 +66,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] CSAT + auto-archive closed tickets
 
 ## Faza 6 — SLA
-- [ ] BH kalendari + SLA profili/rules (CRUD + change log)
+- [x] BH kalendari + SLA profili/rules (CRUD + change log)
 - [ ] Response/resolution timeri, pause (waiting-for-user, pending-approval)
 - [ ] Overdue + in-app eskalacije; UI badge/filter
 - [ ] Seed startnih profila iz RAW (INCIDENT, ACCESS, STANDARD_REQUEST, FINANCE, HR)

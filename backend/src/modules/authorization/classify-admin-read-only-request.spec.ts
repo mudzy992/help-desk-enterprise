@@ -175,6 +175,43 @@ describe('classifyAdminReadOnlyRequest', () => {
     });
   });
 
+  it('classifies SLA calendar and rule writes as sla mutations', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'GET',
+        path: '/sla/calendars',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.sla,
+      isMutation: false,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/sla/calendars',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.sla,
+      isMutation: true,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'PATCH',
+        path: '/sla/profiles/profile-1',
+        isDecoratedReadOperation: false,
+      })?.isMutation,
+    ).toBe(true);
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'DELETE',
+        path: '/sla/rules/rule-1',
+        isDecoratedReadOperation: false,
+      })?.isMutation,
+    ).toBe(true);
+  });
+
   it('classifies settings writes as settings mutations', () => {
     expect(
       classifyAdminReadOnlyRequest({

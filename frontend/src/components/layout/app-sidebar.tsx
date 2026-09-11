@@ -8,6 +8,7 @@ import {
   Plus,
   Settings,
   Ticket,
+  Timer,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/users": Users,
   "/organizational-units": Network,
   "/routing": GitBranch,
+  "/sla": Timer,
   "/settings": Settings,
 };
 

@@ -50,6 +50,10 @@ export const adminReadOnlyRouteModules: readonly {
     pathPrefix: '/routing',
     moduleKey: adminReadOnlyModuleKeys.routing,
   },
+  {
+    pathPrefix: '/sla',
+    moduleKey: adminReadOnlyModuleKeys.sla,
+  },
 ];
 
 export const adminReadOnlyReadMutationPaths = [

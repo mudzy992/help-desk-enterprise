@@ -12,6 +12,7 @@ import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
 import { RoutingModule } from './modules/routing/routing.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
 import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
+import { SlaModule } from './modules/sla/sla.module';
 import { SettingsHttpModule } from './modules/settings/settings-http.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
@@ -38,6 +39,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     RoutingModule,
     ServiceCatalogModule,
     ServiceOnboardingModule,
+    SlaModule,
     TicketsModule,
     KnowledgeBaseModule,
     WebsocketModule,

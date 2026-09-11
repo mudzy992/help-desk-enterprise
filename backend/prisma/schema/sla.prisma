@@ -4,6 +4,7 @@ model BusinessHoursCalendar {
   name         String
   timezone     String
   weeklyHours  Json
+  isActive     Boolean           @default(true)
   holidays     CalendarHoliday[]
   slaProfiles  SlaProfile[]
   createdAt    DateTime          @default(now())
@@ -24,7 +25,9 @@ model SlaProfile {
   id          String                 @id @default(cuid())
   key         String                 @unique
   name        String
+  description String?
   calendarId  String
+  isActive    Boolean                @default(true)
   calendar    BusinessHoursCalendar  @relation(fields: [calendarId], references: [id], onDelete: Restrict)
   rules       SlaRule[]
   escalations SlaEscalationRule[]
@@ -32,6 +35,9 @@ model SlaProfile {
   policyPacks PolicyPack[]
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
+
+  @@index([calendarId])
+  @@index([isActive])
 }
 
 model SlaRule {
@@ -40,6 +46,7 @@ model SlaRule {
   priority             TicketPriority
   responseMinutes      Int
   resolutionMinutes    Int
+  evaluationOrder      Int                 @default(100)
   organizationalUnitId String?
   serviceId            String?
   slaProfile           SlaProfile          @relation(fields: [slaProfileId], references: [id], onDelete: Cascade)
@@ -49,6 +56,7 @@ model SlaRule {
   updatedAt            DateTime            @updatedAt
 
   @@index([slaProfileId, priority])
+  @@index([slaProfileId, evaluationOrder])
   @@index([organizationalUnitId])
   @@index([serviceId])
 }

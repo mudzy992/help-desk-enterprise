@@ -5,8 +5,9 @@ export const navigationLabelKeys = {
   knowledgeBase: "navigation.knowledgeBase",
   users: "navigation.users",
   organizationalUnits: "navigation.organizationalUnits",
-  routing: "navigation.routing",
-  settings: "navigation.settings",
+    routing: "navigation.routing",
+    sla: "navigation.sla",
+    settings: "navigation.settings",
 } as const;
 
 export type NavigationLabelKey =
@@ -75,6 +76,12 @@ export const routingNavigationItem: NavigationItem = {
   end: false,
 };
 
+export const slaNavigationItem: NavigationItem = {
+  path: "/sla",
+  labelKey: navigationLabelKeys.sla,
+  end: false,
+};
+
 export const settingsNavigationItem: NavigationItem = {
   path: "/settings",
   labelKey: navigationLabelKeys.settings,
@@ -100,6 +107,7 @@ export const navigationSections: readonly NavigationSection[] = [
       usersNavigationItem,
       organizationalUnitsNavigationItem,
       routingNavigationItem,
+      slaNavigationItem,
       settingsNavigationItem,
     ],
   },

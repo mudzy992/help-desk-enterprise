@@ -1,0 +1,37 @@
+export type SlaErrorCode =
+  | 'REASON_REQUIRED'
+  | 'INVALID_KEY'
+  | 'INVALID_NAME'
+  | 'INVALID_TIMEZONE'
+  | 'INVALID_WEEKLY_HOURS'
+  | 'OVERLAPPING_INTERVALS'
+  | 'INVALID_HOLIDAY'
+  | 'DUPLICATE_HOLIDAY'
+  | 'CALENDAR_NOT_FOUND'
+  | 'CALENDAR_INACTIVE'
+  | 'CALENDAR_IN_USE'
+  | 'CALENDAR_HAS_NO_BUSINESS_HOURS'
+  | 'DUPLICATE_KEY'
+  | 'PROFILE_NOT_FOUND'
+  | 'PROFILE_INACTIVE'
+  | 'PROFILE_IN_USE'
+  | 'RULE_NOT_FOUND'
+  | 'DUPLICATE_RULE'
+  | 'INVALID_SLA_TARGETS'
+  | 'INVALID_EVALUATION_ORDER'
+  | 'SERVICE_NOT_FOUND'
+  | 'ORGANIZATIONAL_UNIT_NOT_FOUND'
+  | 'SERVICE_OVERRIDE_DISABLED'
+  | 'OU_OVERRIDE_DISABLED'
+  | 'NO_MATCHING_RULE'
+  | 'UNAVAILABLE';
+
+export class SlaError extends Error {
+  constructor(
+    readonly code: SlaErrorCode,
+    message = code,
+  ) {
+    super(message);
+    this.name = 'SlaError';
+  }
+}

@@ -50,5 +50,8 @@ Registry ključevi `private.changeLog.*` postoje (default `true`). U ovoj fazi r
 ## Knowledge articles
 KB lifecycle/ownership/review mutacije pišu isti `ChangeLog` (`entityType=knowledge_article`, obavezan `reason` + diff). Nije drugi audit engine.
 
+## SLA
+BH kalendar, SLA profil i SLA rule mutacije pišu isti `ChangeLog` (`business_hours_calendar` / `sla_profile` / `sla_rule`). Reason je obavezan. Snapshot je before/after konfiguracije (weekly hours, holidays, targets, match keys). Nije ticket timer engine niti config versioning.
+
 ## Namjerno NIJE
-Config versioning, dry-run, rollback, audit export/hash chain, auto-assign, SLA changelog, UI lista change logova.
+Config versioning, dry-run, rollback, audit export/hash chain, auto-assign, ticket SLA timers.

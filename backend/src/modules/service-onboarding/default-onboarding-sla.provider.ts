@@ -20,11 +20,11 @@ export class DefaultOnboardingSlaProvider implements ServiceOnboardingSlaProvide
     );
     const profile = await this.prisma.slaProfile.findUnique({
       where: { id: reference },
-      select: { id: true },
+      select: { id: true, isActive: true },
     });
     return {
       reference,
-      resolvedEntityId: profile?.id ?? null,
+      resolvedEntityId: profile?.isActive ? profile.id : null,
     };
   }
 }
