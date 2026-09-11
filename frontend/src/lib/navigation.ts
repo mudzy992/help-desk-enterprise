@@ -1,6 +1,7 @@
 export const navigationLabelKeys = {
   dashboard: "navigation.dashboard",
   tickets: "navigation.tickets",
+  services: "navigation.services",
   knowledgeBase: "navigation.knowledgeBase",
   users: "navigation.users",
   organizationalUnits: "navigation.organizationalUnits",
@@ -41,6 +42,12 @@ export const dashboardNavigationItem: NavigationItem = {
 export const ticketsNavigationItem: NavigationItem = {
   path: "/tickets",
   labelKey: navigationLabelKeys.tickets,
+  end: false,
+};
+
+export const servicesNavigationItem: NavigationItem = {
+  path: "/services",
+  labelKey: navigationLabelKeys.services,
   end: false,
 };
 
@@ -85,7 +92,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.services,
-    items: [knowledgeBaseNavigationItem],
+    items: [servicesNavigationItem, knowledgeBaseNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.administration,

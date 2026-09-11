@@ -5,6 +5,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { AdminReadOnlyInterceptor } from './admin-read-only.interceptor';
 import { AuthorizationContextLoader } from './authorization-context.loader';
 import { AuthorizationService } from './authorization.service';
+import { CurrentSessionController } from './current-session.controller';
 import { OuAccessGuard } from './ou-access.guard';
 import { ReadOnlyModeConfigurationLoader } from './read-only-mode.configuration-loader';
 import { RoleGuard } from './role.guard';
@@ -12,6 +13,7 @@ import { ShadowAuthorizationService } from './shadow-authorization.service';
 
 @Module({
   imports: [AuthenticationModule, SettingsModule],
+  controllers: [CurrentSessionController],
   providers: [
     AuthorizationContextLoader,
     AuthorizationService,

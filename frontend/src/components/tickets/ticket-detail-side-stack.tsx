@@ -4,6 +4,7 @@ import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar"
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
+import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { TicketApprovalResponse } from "@/services/tickets-approvals-api";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -21,6 +22,7 @@ interface TicketDetailSideStackProperties {
   readonly approvalsVisible: boolean;
   readonly approvalsSaving: boolean;
   readonly participants: readonly TicketParticipantResponse[];
+  readonly directoryUsers: readonly DirectoryUser[];
   readonly canManageParticipants: boolean;
   readonly timeLogs: readonly TicketTimeLogResponse[];
   readonly timeVisible: boolean;
@@ -62,6 +64,7 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
       <TicketParticipantsPanel
         items={props.participants}
         canManage={props.canManageParticipants}
+        directoryUsers={props.directoryUsers}
         onAdd={props.onAddParticipant}
         onRemove={props.onRemoveParticipant}
       />

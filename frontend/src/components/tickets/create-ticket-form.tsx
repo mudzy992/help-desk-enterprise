@@ -9,6 +9,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildCreateTicketInput,
   isCreateTicketDraftReady,
+  isServiceReadyForTicketCreation,
   knowledgeInterceptQuery,
   type CreateTicketDraft,
 } from "@/lib/tickets/build-create-ticket-input";
@@ -53,6 +54,10 @@ export function CreateTicketForm() {
   const selectedService =
     catalog.services.find((service) => service.id === draft.serviceId) ?? null;
   const displayedError = errorKey ?? catalog.errorKey;
+  const isServiceReady = isServiceReadyForTicketCreation(
+    draft,
+    activeForm !== null,
+  );
 
   useEffect(() => {
     const fallback = defaultOriginUnitId(catalog.originUnits);
@@ -181,7 +186,12 @@ export function CreateTicketForm() {
       />
       {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
       <div>
-        <Button type="submit" disabled={isSubmitting || !isCreateTicketDraftReady(draft)}>
+        <Button
+          type="submit"
+          disabled={
+            isSubmitting || !isCreateTicketDraftReady(draft) || !isServiceReady
+          }
+        >
           {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}
         </Button>
       </div>

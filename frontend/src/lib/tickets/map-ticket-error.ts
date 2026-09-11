@@ -28,6 +28,7 @@ export type TicketErrorKey =
   | "tickets.errorCsatNotEligible"
   | "tickets.errorCsatDuplicate"
   | "tickets.errorArchivedReadOnly"
+  | "tickets.errorFormVersionMissing"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -66,8 +67,9 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   INVALID_DESCRIPTION: "tickets.errorValidation",
   SERVICE_REQUIRED: "tickets.errorValidation",
   SERVICE_NOT_OFFERED: "tickets.errorValidation",
-  FORM_VERSION_REQUIRED: "tickets.errorValidation",
-  FORM_VERSION_NOT_ACTIVE: "tickets.errorValidation",
+  FORM_VERSION_REQUIRED: "tickets.errorFormVersionMissing",
+  FORM_VERSION_NOT_ACTIVE: "tickets.errorFormVersionMissing",
+  FORM_VERSION_NOT_FOUND: "tickets.errorFormVersionMissing",
   INVALID_MESSAGE_BODY: "tickets.errorValidation",
   INVALID_MESSAGE_TYPE: "tickets.errorValidation",
   MESSAGE_TYPE_NOT_ALLOWED: "tickets.errorForbidden",

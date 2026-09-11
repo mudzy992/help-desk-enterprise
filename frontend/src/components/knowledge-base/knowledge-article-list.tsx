@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { KnowledgeLifecycleActions } from "@/components/knowledge-base/knowledge-lifecycle-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -7,6 +8,7 @@ import { submitKnowledgeFeedback } from "@/services/knowledge-base-api";
 
 interface KnowledgeArticleListProperties {
   readonly items: readonly KnowledgeArticleResponse[];
+  readonly canManageLifecycle: boolean;
   readonly onFeedback: () => Promise<void>;
 }
 
@@ -22,6 +24,7 @@ function statusTone(status: string): "success" | "warning" | "neutral" {
 
 export function KnowledgeArticleList({
   items,
+  canManageLifecycle,
   onFeedback,
 }: KnowledgeArticleListProperties) {
   const { t } = useTranslation();
@@ -78,6 +81,12 @@ export function KnowledgeArticleList({
               </Button>
             </div>
           ) : null}
+          <KnowledgeLifecycleActions
+            articleId={item.id}
+            status={item.status}
+            canManage={canManageLifecycle}
+            onChanged={onFeedback}
+          />
         </li>
       ))}
     </ul>

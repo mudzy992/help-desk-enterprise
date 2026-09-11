@@ -2,7 +2,8 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { controlClassName, labelClassName } from "@/components/ui/control";
+import { controlClassName, hintClassName, labelClassName } from "@/components/ui/control";
+import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type {
   ParticipantRole,
   TicketParticipantResponse,
@@ -11,6 +12,7 @@ import type {
 interface TicketParticipantsPanelProperties {
   readonly items: readonly TicketParticipantResponse[];
   readonly canManage: boolean;
+  readonly directoryUsers: readonly DirectoryUser[];
   readonly onAdd: (role: ParticipantRole, userId: string) => Promise<void>;
   readonly onRemove: (participantId: string) => Promise<void>;
 }
@@ -18,12 +20,19 @@ interface TicketParticipantsPanelProperties {
 export function TicketParticipantsPanel({
   items,
   canManage,
+  directoryUsers,
   onAdd,
   onRemove,
 }: TicketParticipantsPanelProperties) {
   const { t } = useTranslation();
   const [userId, setUserId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const participantNames = new Map(
+    directoryUsers.map((user) => [user.id, user.displayName]),
+  );
+  const assignable = directoryUsers.filter(
+    (user) => !items.some((item) => item.userId === user.id),
+  );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,7 +55,12 @@ export function TicketParticipantsPanel({
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 text-[12.5px]">
             <span>
-              {t(`tickets.participantRole.${item.role}`)} · {item.userId ?? item.groupId}
+              {t(`tickets.participantRole.${item.role}`)} ·{" "}
+              {(item.userId === null
+                ? null
+                : participantNames.get(item.userId)) ??
+                item.userId ??
+                item.groupId}
             </span>
             {canManage ? (
               <Button
@@ -68,15 +82,35 @@ export function TicketParticipantsPanel({
       {canManage ? (
         <form className="grid gap-2" onSubmit={(event) => void submit(event)}>
           <label className={labelClassName}>
-            {t("tickets.detail.userId")}
-            <input
-              className={controlClassName}
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
-              required
-            />
+            {t("tickets.detail.participantUser")}
+            {assignable.length === 0 ? (
+              <span className={hintClassName}>
+                {t("tickets.detail.participantDirectoryEmpty")}
+              </span>
+            ) : (
+              <select
+                className={controlClassName}
+                value={userId}
+                onChange={(event) => setUserId(event.target.value)}
+                required
+              >
+                <option value="">
+                  {t("tickets.detail.participantPlaceholder")}
+                </option>
+                {assignable.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.displayName} · {user.email}
+                  </option>
+                ))}
+              </select>
+            )}
           </label>
-          <Button type="submit" size="sm" variant="outline" disabled={isSaving}>
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            disabled={isSaving || userId.trim().length === 0}
+          >
             {t("tickets.detail.addParticipant")}
           </Button>
         </form>

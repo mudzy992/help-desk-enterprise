@@ -21,6 +21,7 @@ export function toInstallSeedPublicRecord(input: {
     input.fallbackGroup.isFallback &&
     input.service !== null &&
     input.service.lifecycle === 'ACTIVE' &&
+    (input.service.activeFormVersionRef ?? '').length > 0 &&
     input.routingRule !== null &&
     input.routingRule.groupId === input.fallbackGroup.id &&
     input.resolution?.outcome === routingOutcomes.exact &&
@@ -52,6 +53,7 @@ export function toInstallSeedPublicRecord(input: {
             name: input.service.name,
             slug: input.service.slug,
             lifecycle: input.service.lifecycle,
+            activeFormVersionRef: input.service.activeFormVersionRef ?? null,
           },
     routingRule:
       input.routingRule === null

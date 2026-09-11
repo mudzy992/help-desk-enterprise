@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCreateTicketInput,
   isCreateTicketDraftReady,
+  isServiceReadyForTicketCreation,
   knowledgeInterceptQuery,
 } from "@/lib/tickets/build-create-ticket-input";
 
@@ -40,5 +41,18 @@ describe("buildCreateTicketInput", () => {
       serviceId: "svc-1",
       originUnitId: "ou-it",
     });
+  });
+});
+
+describe("isServiceReadyForTicketCreation", () => {
+  it("blocks submission for a selected service without an active form version", () => {
+    expect(isServiceReadyForTicketCreation(draft, true)).toBe(true);
+    expect(isServiceReadyForTicketCreation(draft, false)).toBe(false);
+  });
+
+  it("stays ready while no service is selected yet", () => {
+    expect(
+      isServiceReadyForTicketCreation({ ...draft, serviceId: "" }, false),
+    ).toBe(true);
   });
 });

@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateKnowledgeArticleForm } from "@/components/knowledge-base/create-knowledge-article-form";
 import { KnowledgeArticleList } from "@/components/knowledge-base/knowledge-article-list";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
+import { controlClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { ApiError } from "@/services/api";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { permissionKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
   listKnowledgeArticles,
   type KnowledgeArticleResponse,
@@ -14,24 +17,23 @@ import {
 
 export function KnowledgeBasePage() {
   const { t } = useTranslation();
+  const { hasPermission } = useSessionCapabilities();
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<
-    "knowledgeBase.errorUnauthorized" | "knowledgeBase.errorGeneric" | null
-  >(null);
+  const [search, setSearch] = useState("");
+  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const loadArticles = useCallback(async () => {
     setIsLoading(true);
     setErrorKey(null);
+    setRequestId(null);
     try {
       setItems(await listKnowledgeArticles());
     } catch (error) {
       setItems([]);
-      setErrorKey(
-        error instanceof ApiError && error.status === 401
-          ? "knowledgeBase.errorUnauthorized"
-          : "knowledgeBase.errorGeneric",
-      );
+      setErrorKey(mapApiError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       setIsLoading(false);
     }
@@ -41,6 +43,23 @@ export function KnowledgeBasePage() {
     void loadArticles();
   }, [loadArticles]);
 
+  const visibleItems = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (needle.length === 0) {
+      return items;
+    }
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(needle) ||
+        item.body.toLowerCase().includes(needle),
+    );
+  }, [items, search]);
+
+  const canWrite = hasPermission(permissionKeys.knowledgeArticleWrite);
+  const canManageLifecycle =
+    hasPermission(permissionKeys.knowledgeArticleReview) ||
+    hasPermission(permissionKeys.knowledgeArticlePublish);
+
   return (
     <section>
       <PageHeader
@@ -48,21 +67,39 @@ export function KnowledgeBasePage() {
         title={t("knowledgeBase.title")}
         subtitle={t("knowledgeBase.intro")}
       />
-      <Card className="mb-4">
-        <CardHeader title={t("knowledgeBase.createHeading")} />
-        <div className="px-4 py-3.5">
-          <CreateKnowledgeArticleForm onCreated={loadArticles} />
-        </div>
-      </Card>
+      {canWrite ? (
+        <Card className="mb-4">
+          <CardHeader title={t("knowledgeBase.createHeading")} />
+          <div className="px-4 py-3.5">
+            <CreateKnowledgeArticleForm onCreated={loadArticles} />
+          </div>
+        </Card>
+      ) : null}
       <Card>
-        <CardHeader title={t("knowledgeBase.listHeading")} />
+        <CardHeader
+          title={t("knowledgeBase.listHeading")}
+          actions={
+            <input
+              className={`${controlClassName} w-full sm:w-64`}
+              type="search"
+              value={search}
+              placeholder={t("knowledgeBase.searchPlaceholder")}
+              aria-label={t("knowledgeBase.searchPlaceholder")}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          }
+        />
         <div className="px-4 py-3.5">
           {isLoading ? (
             <PanelSkeleton className="mt-0" label={t("knowledgeBase.listHeading")} />
           ) : errorKey ? (
-            <p className={errorTextClassName}>{t(errorKey)}</p>
+            <ApiErrorText messageKey={errorKey} requestId={requestId} />
           ) : (
-            <KnowledgeArticleList items={items} onFeedback={loadArticles} />
+            <KnowledgeArticleList
+              items={visibleItems}
+              canManageLifecycle={canManageLifecycle}
+              onFeedback={loadArticles}
+            />
           )}
         </div>
       </Card>

@@ -6,6 +6,7 @@ import { InstallPage } from "@/pages/install-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { RoutingPage } from "@/pages/routing-page";
+import { ServicesPage } from "@/pages/services-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { TicketsPage } from "@/pages/tickets-page";
 import { TicketCreatePage } from "@/pages/ticket-create-page";
@@ -25,6 +26,7 @@ export function AppRouter() {
             <Route path="new" element={<TicketCreatePage />} />
             <Route path=":ticketId" element={<TicketDetailPage />} />
           </Route>
+          <Route path="services" element={<ServicesPage />} />
           <Route path="knowledge-base" element={<KnowledgeBasePage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="organizational-units" element={<OrganizationalUnitsPage />} />

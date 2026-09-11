@@ -170,7 +170,17 @@ export function CreateTicketFields({
           />
         </div>
       ) : selectedService ? (
-        <p className="text-[12px] text-muted-foreground">{t("tickets.noActiveForm")}</p>
+        <div
+          role="alert"
+          className="rounded-lg border border-danger/35 bg-danger/10 px-3 py-2.5"
+        >
+          <p className="text-[12.5px] font-medium text-danger">
+            {t("tickets.noActiveForm")}
+          </p>
+          <p className={`mt-0.5 ${hintClassName}`}>
+            {t("tickets.noActiveFormHint")}
+          </p>
+        </div>
       ) : null}
     </div>
   );

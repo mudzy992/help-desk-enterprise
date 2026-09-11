@@ -48,6 +48,20 @@ export type CreateKnowledgeArticleInput = {
   readonly reason: string;
 };
 
+export type UpdateKnowledgeArticleInput = {
+  readonly title?: string;
+  readonly body?: string;
+  readonly classification?: string;
+  readonly reason: string;
+};
+
+export type KnowledgeLifecycleAction =
+  | "submit-review"
+  | "approve-review"
+  | "reject-review"
+  | "publish"
+  | "archive";
+
 export function listKnowledgeArticles(
   serviceId?: string,
 ): Promise<readonly KnowledgeArticleResponse[]> {
@@ -71,6 +85,27 @@ export function getKnowledgeArticle(
   articleId: string,
 ): Promise<KnowledgeArticleResponse> {
   return apiRequest(`/knowledge-base/articles/${articleId}`);
+}
+
+export function updateKnowledgeArticle(
+  articleId: string,
+  input: UpdateKnowledgeArticleInput,
+): Promise<KnowledgeArticleResponse> {
+  return apiRequest(`/knowledge-base/articles/${articleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function runKnowledgeLifecycleAction(
+  articleId: string,
+  action: KnowledgeLifecycleAction,
+  reason: string,
+): Promise<KnowledgeArticleResponse> {
+  return apiRequest(`/knowledge-base/articles/${articleId}/${action}`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
 }
 
 export function interceptKnowledgeArticles(input: {

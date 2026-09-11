@@ -61,18 +61,20 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     RoutingModule,
     SettingsModule,
   ],
+  // Controllers with a static path segment under /tickets must register before
+  // TicketsController, otherwise its GET /tickets/:ticketId route shadows them.
   controllers: [
+    TicketsSavedViewsController,
+    TicketsCsatSummaryController,
+    TicketsBulkController,
     TicketsController,
     TicketsCollaborationController,
     TicketsAttachmentsController,
     TicketsApprovalsController,
     TicketsReopenController,
     TicketsSplitController,
-    TicketsBulkController,
-    TicketsSavedViewsController,
     TicketsConfidentialController,
     TicketsCsatController,
-    TicketsCsatSummaryController,
   ],
   providers: [
     TicketsService,

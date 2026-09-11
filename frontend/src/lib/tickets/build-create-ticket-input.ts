@@ -20,6 +20,16 @@ export function isCreateTicketDraftReady(draft: CreateTicketDraft): boolean {
   );
 }
 
+/// A ticket always stores a formVersionRef, so the backend rejects creation for
+/// a service whose form has no ACTIVE version. Blocking here keeps the user
+/// from submitting a request that cannot succeed.
+export function isServiceReadyForTicketCreation(
+  draft: CreateTicketDraft,
+  hasActiveForm: boolean,
+): boolean {
+  return draft.serviceId.trim().length === 0 || hasActiveForm;
+}
+
 export function buildCreateTicketInput(
   draft: CreateTicketDraft,
   options: { readonly acknowledgeDuplicate?: boolean } = {},

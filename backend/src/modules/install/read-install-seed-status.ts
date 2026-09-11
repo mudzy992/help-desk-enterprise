@@ -20,7 +20,16 @@ export async function readInstallSeedStatus(
     })) ??
     (await prisma.service.findMany({ where: { lifecycle: 'ACTIVE' } }))[0] ??
     null;
-  const service = serviceRecord === null ? null : toSeedService(serviceRecord);
+  const service =
+    serviceRecord === null
+      ? null
+      : {
+          ...toSeedService(serviceRecord),
+          activeFormVersionRef: await findActiveFormVersionRef(
+            prisma,
+            serviceRecord.id,
+          ),
+        };
   const routingRule =
     organizationalUnit === null || service === null
       ? null
@@ -43,4 +52,16 @@ export async function readInstallSeedStatus(
     routingRule,
     resolution,
   });
+}
+
+async function findActiveFormVersionRef(
+  prisma: PrismaService,
+  serviceId: string,
+): Promise<string | null> {
+  const active = await prisma.formVersion.findFirst({
+    where: { serviceId, status: 'ACTIVE' },
+    orderBy: { version: 'desc' },
+    select: { id: true },
+  });
+  return active?.id ?? null;
 }

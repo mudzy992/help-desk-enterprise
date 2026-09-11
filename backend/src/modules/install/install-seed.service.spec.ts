@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RoutingConfigurationLoader } from '../routing/routing-configuration.loader';
+import { ServiceFormsConfigurationLoader } from '../service-catalog/service-forms-configuration.loader';
 import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 import { createInstallSeedHarness } from './create-install-seed-harness';
 import { installSeedConstants } from './install-seed.constants';
@@ -24,6 +25,10 @@ describe('InstallSeedService', () => {
           provide: RoutingConfigurationLoader,
           useValue: { load: async () => undefined },
         },
+        {
+          provide: ServiceFormsConfigurationLoader,
+          useValue: { load: async () => undefined },
+        },
       ],
     }).compile();
     expect(moduleRef.get(InstallSeedService)).toBeInstanceOf(InstallSeedService);
@@ -38,6 +43,7 @@ describe('InstallSeedService', () => {
       fallbackGroup: true,
       serviceCategory: true,
       service: true,
+      serviceFormVersion: true,
       routingRule: true,
     });
     expect(seeded.organizationalUnit).toMatchObject({
@@ -54,6 +60,7 @@ describe('InstallSeedService', () => {
       slug: installSeedConstants.serviceSlug,
       lifecycle: 'ACTIVE',
     });
+    expect(seeded.service?.activeFormVersionRef).toEqual(expect.any(String));
     expect(seeded.routingRule).toMatchObject({
       originUnitId: seeded.organizationalUnit?.id,
       serviceId: seeded.service?.id,
@@ -75,6 +82,7 @@ describe('InstallSeedService', () => {
       fallbackGroup: false,
       serviceCategory: false,
       service: false,
+      serviceFormVersion: false,
       routingRule: false,
     });
     expect(second.organizationalUnit?.id).toBe(first.organizationalUnit?.id);
@@ -85,6 +93,7 @@ describe('InstallSeedService', () => {
     expect(memory.countGroups()).toBe(1);
     expect(memory.countServices()).toBe(1);
     expect(memory.countRules()).toBe(1);
+    expect(memory.countFormVersions()).toBe(1);
   });
 
   it('returns seeded status after a successful seed', async () => {

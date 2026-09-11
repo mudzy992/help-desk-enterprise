@@ -1,4 +1,5 @@
 import type { InMemoryOrganizationalUnit } from '../organizational-units/create-in-memory-organizational-unit-prisma';
+import { createInMemoryFormVersionDelegate } from '../service-catalog/create-in-memory-form-version-delegate';
 import { createInMemoryServiceCategoryDelegate } from '../service-catalog/create-in-memory-service-category-delegate';
 import { createInMemoryServiceDelegate } from '../service-catalog/create-in-memory-service-delegate';
 import type { ServiceDependents } from '../service-catalog/in-memory-service-catalog-store';
@@ -6,6 +7,7 @@ import type {
   ServiceCategoryRecord,
   ServiceRecord,
 } from '../service-catalog/service-catalog.types';
+import type { FormVersionRecord } from '../service-catalog/service-forms.types';
 import {
   matchesInMemoryRoutingRule,
   type InMemoryRoutingRuleWhere,
@@ -27,6 +29,7 @@ export function createInMemoryInstallSeedPrisma() {
   const categories = new Map<string, ServiceCategoryRecord>();
   const services = new Map<string, ServiceRecord>();
   const dependents = new Map<string, ServiceDependents>();
+  const formVersions = new Map<string, FormVersionRecord>();
   const rules = new Map<string, RoutingRuleRecord>();
   const changeLogs: InMemoryInstallSeedChangeLog[] = [];
   const users = createInMemoryInstallSuperAdminPrisma();
@@ -46,6 +49,7 @@ export function createInMemoryInstallSeedPrisma() {
       now,
     ),
     service: createInMemoryServiceDelegate(services, dependents, nextId, now),
+    formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
     routingRule: createSeedRoutingRuleDelegate(rules, nextId, now, () => {
       if (!failRoutingCreate) {
         return false;
@@ -68,6 +72,7 @@ export function createInMemoryInstallSeedPrisma() {
         categories,
         services,
         dependents,
+        formVersions,
         rules,
         changeLogs,
       });
@@ -80,6 +85,7 @@ export function createInMemoryInstallSeedPrisma() {
           categories,
           services,
           dependents,
+          formVersions,
           rules,
           changeLogs,
         });
@@ -104,6 +110,7 @@ export function createInMemoryInstallSeedPrisma() {
     countUnits: () => units.size,
     countGroups: () => groups.size,
     countServices: () => services.size,
+    countFormVersions: () => formVersions.size,
     countRules: () => rules.size,
   };
 }

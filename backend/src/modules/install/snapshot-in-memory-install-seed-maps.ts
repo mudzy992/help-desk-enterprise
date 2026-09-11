@@ -7,6 +7,7 @@ import type {
   ServiceCategoryRecord,
   ServiceRecord,
 } from '../service-catalog/service-catalog.types';
+import type { FormVersionRecord } from '../service-catalog/service-forms.types';
 import type { RoutingRuleRecord } from '../routing/routing.types';
 import type { InMemoryInstallSeedGroup } from './create-in-memory-install-seed-group-delegate';
 
@@ -24,6 +25,7 @@ export type InMemoryInstallSeedMaps = {
   categories: Map<string, ServiceCategoryRecord>;
   services: Map<string, ServiceRecord>;
   dependents: Map<string, ServiceDependents>;
+  formVersions: Map<string, FormVersionRecord>;
   rules: Map<string, RoutingRuleRecord>;
   changeLogs: InMemoryInstallSeedChangeLog[];
 };
@@ -42,6 +44,7 @@ export function snapshotInstallSeedMaps(input: InMemoryInstallSeedMaps) {
         { ...emptyServiceDependents(), ...item },
       ]),
     ),
+    formVersions: new Map(input.formVersions),
     rules: new Map(input.rules),
     changeLogs: [...input.changeLogs],
   };
@@ -56,6 +59,7 @@ export function restoreInstallSeedMaps(
   replaceMap(target.categories, snapshot.categories);
   replaceMap(target.services, snapshot.services);
   replaceMap(target.dependents, snapshot.dependents);
+  replaceMap(target.formVersions, snapshot.formVersions);
   replaceMap(target.rules, snapshot.rules);
   target.changeLogs.splice(0, target.changeLogs.length, ...snapshot.changeLogs);
 }

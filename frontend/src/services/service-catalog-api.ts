@@ -66,12 +66,15 @@ export type ServiceFormSchema = {
   readonly fields: readonly ServiceFormField[];
 };
 
+export type FormVersionStatus = "DRAFT" | "ACTIVE" | "RETIRED";
+
 export type FormVersionResponse = {
   readonly formVersionRef: string;
   readonly serviceId: string;
   readonly version: number;
-  readonly status: "DRAFT" | "ACTIVE" | "RETIRED";
+  readonly status: FormVersionStatus;
   readonly schema: ServiceFormSchema;
+  readonly isImmutable?: boolean;
 };
 
 export type ServiceFormResponse = {
@@ -89,6 +92,30 @@ export type ServiceTicketCreationEligibility = {
 
 export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
   return apiRequest("/services?offeredOnly=true");
+}
+
+export function listServices(): Promise<readonly ServiceResponse[]> {
+  return apiRequest("/services");
+}
+
+export function createServiceForm(
+  serviceId: string,
+  schema: ServiceFormSchema,
+): Promise<FormVersionResponse> {
+  return apiRequest(`/services/${serviceId}/form`, {
+    method: "POST",
+    body: JSON.stringify({ schema }),
+  });
+}
+
+export function activateServiceFormVersion(
+  serviceId: string,
+  formVersionRef: string,
+): Promise<FormVersionResponse> {
+  return apiRequest(
+    `/services/${serviceId}/form/versions/${formVersionRef}/activate`,
+    { method: "POST" },
+  );
 }
 
 export function getService(serviceId: string): Promise<ServiceResponse> {

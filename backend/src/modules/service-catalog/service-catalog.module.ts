@@ -34,6 +34,7 @@ import { ServicesController } from './services.controller';
     ServiceAvailabilityService,
     ServiceFormsService,
     ServiceLifecycleConfigurationLoader,
+    ServiceFormsConfigurationLoader,
   ],
 })
 export class ServiceCatalogModule {}

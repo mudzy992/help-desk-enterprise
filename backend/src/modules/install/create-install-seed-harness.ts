@@ -4,6 +4,8 @@ import { RoutingConfigurationLoader } from '../routing/routing-configuration.loa
 import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { defaultServiceLifecycleConfiguration } from '../service-catalog/service-catalog.constants';
 import type { ServiceLifecycleConfiguration } from '../service-catalog/service-catalog.types';
+import { defaultServiceFormsConfiguration } from '../service-catalog/service-forms.constants';
+import { ServiceFormsConfigurationLoader } from '../service-catalog/service-forms-configuration.loader';
 import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 import { createInMemoryInstallSeedPrisma } from './create-in-memory-install-seed-prisma';
 import { createInstallSuperAdmin } from './create-install-super-admin';
@@ -28,6 +30,9 @@ export async function createInstallSeedHarness(input?: {
     {
       load: async () => defaultRoutingConfiguration,
     } as unknown as RoutingConfigurationLoader,
+    {
+      load: async () => defaultServiceFormsConfiguration,
+    } as unknown as ServiceFormsConfigurationLoader,
   );
   if (input?.withSuperAdmin !== false) {
     await createInstallSuperAdmin(

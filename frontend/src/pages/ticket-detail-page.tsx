@@ -7,13 +7,13 @@ import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
 import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-blocking-state";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
+import { useDirectory } from "@/lib/directory/use-directory";
 import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
 import { useSession } from "@/lib/session/use-session";
 import { listOfferedServices } from "@/services/service-catalog-api";
-import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 
 export function TicketDetailPage() {
   const { t } = useTranslation();
@@ -22,8 +22,8 @@ export function TicketDetailPage() {
   const { currentUserId } = useSession();
   const detail = useTicketDetail(ticketId);
   const approvals = useTicketApprovals(ticketId);
+  const directory = useDirectory();
   const [serviceName, setServiceName] = useState("");
-  const [originName, setOriginName] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isTimeSaving, setIsTimeSaving] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -40,15 +40,6 @@ export function TicketDetailPage() {
         setServiceName(match?.name ?? detail.ticket?.serviceId ?? "");
       })
       .catch(() => setServiceName(detail.ticket?.serviceId ?? ""));
-    void listOrganizationalUnitTree()
-      .then((tree) => {
-        setOriginName(
-          flattenOrganizationalUnitNames(tree).get(detail.ticket?.originUnitId ?? "") ??
-            detail.ticket?.originUnitId ??
-            "",
-        );
-      })
-      .catch(() => setOriginName(detail.ticket?.originUnitId ?? ""));
   }, [detail.ticket]);
 
   if (detail.isLoading || detail.ticket === null) {
@@ -69,6 +60,9 @@ export function TicketDetailPage() {
     inboxAccessible: detail.inboxAccessible,
   });
   const canManageParticipants = access !== "requester";
+  const originName =
+    flattenOrganizationalUnitNames(directory.tree).get(ticket.originUnitId) ??
+    ticket.originUnitId;
 
   return (
     <section>
@@ -154,6 +148,7 @@ export function TicketDetailPage() {
             approvalsVisible={approvals.visible}
             approvalsSaving={approvals.isSaving}
             participants={detail.participants}
+            directoryUsers={directory.users}
             canManageParticipants={canManageParticipants && ticket.status !== "ARCHIVED"}
             timeLogs={detail.timeLogs}
             timeVisible={detail.timeVisible}

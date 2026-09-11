@@ -8,6 +8,7 @@ import { mapInstallSeedError } from './map-install-seed-error';
 import { readInstallSeedStatus } from './read-install-seed-status';
 import { seedInstallMinimum } from './seed-install-minimum';
 import { RoutingConfigurationLoader } from '../routing/routing-configuration.loader';
+import { ServiceFormsConfigurationLoader } from '../service-catalog/service-forms-configuration.loader';
 import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class InstallSeedService {
     private readonly prisma: PrismaService,
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
     private readonly routingConfigurationLoader: RoutingConfigurationLoader,
+    private readonly formsConfigurationLoader: ServiceFormsConfigurationLoader,
   ) {}
 
   async getStatus(): Promise<InstallSeedStatus> {
@@ -34,6 +36,7 @@ export class InstallSeedService {
         actorUserId: superAdmin.id,
         lifecycle: await this.lifecycleConfigurationLoader.load(),
         routing: await this.routingConfigurationLoader.load(),
+        forms: await this.formsConfigurationLoader.load(),
       });
     });
   }

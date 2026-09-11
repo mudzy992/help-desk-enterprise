@@ -64,6 +64,7 @@ async function seedInstallMinimumWithClient(
     fallbackGroup: fallbackGroup.created,
     serviceCategory: seededService.categoryCreated,
     service: seededService.serviceCreated,
+    serviceFormVersion: seededService.formVersionCreated,
     routingRule: routingRule.created,
   };
   return {

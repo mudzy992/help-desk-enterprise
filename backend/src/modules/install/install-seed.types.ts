@@ -1,6 +1,7 @@
 import type { ServiceLifecycle } from '../../generated/prisma/enums';
 import type { RoutingConfiguration } from '../routing/routing.types';
 import type { ServiceLifecycleConfiguration } from '../service-catalog/service-catalog.types';
+import type { ServiceFormsConfiguration } from '../service-catalog/service-forms.types';
 
 export type InstallSeedOrganizationalUnit = {
   readonly id: string;
@@ -20,6 +21,7 @@ export type InstallSeedService = {
   readonly name: string;
   readonly slug: string;
   readonly lifecycle: ServiceLifecycle;
+  readonly activeFormVersionRef?: string | null;
 };
 
 export type InstallSeedRoutingRule = {
@@ -49,6 +51,7 @@ export type InstallSeedCreatedFlags = {
   readonly fallbackGroup: boolean;
   readonly serviceCategory: boolean;
   readonly service: boolean;
+  readonly serviceFormVersion: boolean;
   readonly routingRule: boolean;
 };
 
@@ -64,4 +67,5 @@ export type InstallSeedContext = {
   readonly actorUserId: string;
   readonly lifecycle: ServiceLifecycleConfiguration;
   readonly routing: RoutingConfiguration;
+  readonly forms: ServiceFormsConfiguration;
 };

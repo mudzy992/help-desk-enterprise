@@ -15,10 +15,29 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    readonly requestId: string | null = null,
   ) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+type ApiErrorPayload = {
+  code?: string;
+  message?: string;
+  requestId?: string;
+};
+
+async function readApiError(response: Response): Promise<ApiError> {
+  const payload = (await response
+    .json()
+    .catch(() => null)) as ApiErrorPayload | null;
+  return new ApiError(
+    response.status,
+    payload?.code ?? "REQUEST_FAILED",
+    payload?.message ?? "Request failed",
+    payload?.requestId ?? null,
+  );
 }
 
 export async function apiRequest<T>(
@@ -37,15 +56,7 @@ export async function apiRequest<T>(
     },
   });
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as {
-      code?: string;
-      message?: string;
-    } | null;
-    throw new ApiError(
-      response.status,
-      payload?.code ?? "REQUEST_FAILED",
-      payload?.message ?? "Request failed",
-    );
+    throw await readApiError(response);
   }
   if (response.status === 204) {
     return undefined as T;
@@ -66,15 +77,7 @@ export async function apiBlobRequest(
     },
   });
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as {
-      code?: string;
-      message?: string;
-    } | null;
-    throw new ApiError(
-      response.status,
-      payload?.code ?? "REQUEST_FAILED",
-      payload?.message ?? "Request failed",
-    );
+    throw await readApiError(response);
   }
   return response.blob();
 }
