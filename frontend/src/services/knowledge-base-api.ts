@@ -67,6 +67,12 @@ export function createKnowledgeArticle(
   });
 }
 
+export function getKnowledgeArticle(
+  articleId: string,
+): Promise<KnowledgeArticleResponse> {
+  return apiRequest(`/knowledge-base/articles/${articleId}`);
+}
+
 export function interceptKnowledgeArticles(input: {
   readonly serviceId: string;
   readonly query?: string;

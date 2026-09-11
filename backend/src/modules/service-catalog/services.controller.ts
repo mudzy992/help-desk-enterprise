@@ -23,6 +23,7 @@ import { RequirePermissions } from '../authorization/require-permissions.decorat
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RequireServiceScope } from '../authorization/require-service-scope.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { catalogTicketCreateReadRoles } from './catalog-ticket-create-read-roles';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ListServicesQueryDto } from './dto/list-services-query.dto';
 import { TransitionServiceLifecycleDto } from './dto/transition-service-lifecycle.dto';
@@ -54,11 +55,13 @@ export class ServicesController {
   }
 
   @Get()
+  @RequireRoles(...catalogTicketCreateReadRoles)
   list(@Query() query: ListServicesQueryDto): Promise<readonly ServiceResponse[]> {
     return this.serviceCatalogService.list(query);
   }
 
   @Get(':serviceId')
+  @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
   getById(@Param('serviceId') serviceId: string): Promise<ServiceResponse> {
     return this.serviceCatalogService.getById(serviceId);

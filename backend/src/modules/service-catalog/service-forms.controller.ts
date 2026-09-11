@@ -20,6 +20,7 @@ import { RequirePermissions } from '../authorization/require-permissions.decorat
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RequireServiceScope } from '../authorization/require-service-scope.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { catalogTicketCreateReadRoles } from './catalog-ticket-create-read-roles';
 import { CreateServiceFormDto } from './dto/create-service-form.dto';
 import { CreateServiceFormVersionDto } from './dto/create-service-form-version.dto';
 import { UpdateServiceFormVersionDto } from './dto/update-service-form-version.dto';
@@ -59,6 +60,7 @@ export class ServiceFormsController {
   }
 
   @Get(':serviceId/form')
+  @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
   getForm(@Param('serviceId') serviceId: string): Promise<ServiceFormResponse> {
     return this.serviceFormsService.getForm(serviceId);
@@ -80,6 +82,7 @@ export class ServiceFormsController {
   }
 
   @Get(':serviceId/form/versions/:formVersionRef')
+  @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
   getFormVersion(
     @Param('serviceId') serviceId: string,

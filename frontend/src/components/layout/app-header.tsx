@@ -2,6 +2,7 @@ import { Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { LocaleSelect } from "@/components/layout/locale-select";
+import { SessionControls } from "@/components/layout/session-controls";
 import { Button } from "@/components/ui/button";
 import { getActiveNavigationItem } from "@/lib/navigation";
 
@@ -29,7 +30,10 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
       <h1 className="min-w-0 truncate text-section font-medium text-foreground">
         {t(activeItem.labelKey)}
       </h1>
-      <LocaleSelect />
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        <SessionControls />
+        <LocaleSelect />
+      </div>
     </header>
   );
 }

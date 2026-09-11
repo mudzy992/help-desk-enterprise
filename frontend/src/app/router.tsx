@@ -8,6 +8,9 @@ import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { TicketsPage } from "@/pages/tickets-page";
+import { TicketCreatePage } from "@/pages/ticket-create-page";
+import { TicketDetailPage } from "@/pages/ticket-detail-page";
+import { TicketListPage } from "@/pages/ticket-list-page";
 import { UsersPage } from "@/pages/users-page";
 
 export function AppRouter() {
@@ -17,7 +20,11 @@ export function AppRouter() {
         <Route path="install" element={<InstallPage />} />
         <Route element={<ApplicationShell />}>
           <Route index element={<DashboardPage />} />
-          <Route path="tickets" element={<TicketsPage />} />
+          <Route path="tickets" element={<TicketsPage />}>
+            <Route index element={<TicketListPage />} />
+            <Route path="new" element={<TicketCreatePage />} />
+            <Route path=":ticketId" element={<TicketDetailPage />} />
+          </Route>
           <Route path="knowledge-base" element={<KnowledgeBasePage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="organizational-units" element={<OrganizationalUnitsPage />} />

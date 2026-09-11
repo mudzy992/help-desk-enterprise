@@ -54,7 +54,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Participants + message types + chat/audit + time tracking
 - [x] Attachments (MIME/ext allow-list, size, disk) + classification inheritance
 - [x] KB CRUD + intercept + feedback ranking + ownership/review cycle
-- [ ] Frontend: create / list / detail / inbox po Constitution (KB intercept obavezan)
+- [x] Frontend: create / list / detail / inbox po Constitution (KB intercept obavezan)
 
 ## Faza 5 — Tokovi i governance
 - [ ] Approvals (1–3 servisa): Pending Approval → approve/reject

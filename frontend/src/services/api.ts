@@ -1,4 +1,14 @@
+import { readStoredSession } from "@/services/session-store";
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
+function authorizationHeaders(): HeadersInit {
+  const session = readStoredSession();
+  if (session === null) {
+    return {};
+  }
+  return { Authorization: `Bearer ${session.accessToken}` };
+}
 
 export class ApiError extends Error {
   constructor(
@@ -19,6 +29,7 @@ export async function apiRequest<T>(
     ...init,
     headers: {
       Accept: "application/json",
+      ...authorizationHeaders(),
       ...(init.body && !(init.body instanceof FormData)
         ? { "Content-Type": "application/json" }
         : {}),
@@ -50,6 +61,7 @@ export async function apiBlobRequest(
     ...init,
     headers: {
       Accept: "*/*",
+      ...authorizationHeaders(),
       ...init.headers,
     },
   });

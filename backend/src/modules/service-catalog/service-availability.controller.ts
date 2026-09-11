@@ -22,6 +22,7 @@ import { RequirePermissions } from '../authorization/require-permissions.decorat
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RequireServiceScope } from '../authorization/require-service-scope.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import { catalogTicketCreateReadRoles } from './catalog-ticket-create-read-roles';
 import { CreateServiceDowntimeWindowDto } from './dto/create-service-downtime-window.dto';
 import { DeleteServiceDowntimeWindowQueryDto } from './dto/delete-service-downtime-window-query.dto';
 import { UpdateServiceAvailabilityDto } from './dto/update-service-availability.dto';
@@ -123,6 +124,7 @@ export class ServiceAvailabilityController {
   }
 
   @Get(':serviceId/ticket-creation-eligibility')
+  @RequireRoles(...catalogTicketCreateReadRoles)
   @RequireServiceScope({ field: 'serviceId' })
   evaluateTicketCreationEligibility(
     @Param('serviceId') serviceId: string,
