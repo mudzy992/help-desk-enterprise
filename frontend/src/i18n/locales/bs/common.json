@@ -370,6 +370,11 @@
       "updated": "Ažurirano",
       "changeStatus": "Promijeni status",
       "saving": "Spremanje…",
+      "approvals": "Odobrenja",
+      "approve": "Odobri",
+      "reject": "Odbij",
+      "approvalComment": "Razlog odluke",
+      "deciding": "Spremanje…",
       "participants": "Učesnici",
       "addParticipant": "Dodaj učesnika",
       "removeParticipant": "Ukloni",
@@ -401,6 +406,11 @@
       "INTERNAL_NOTE": "Interna napomena",
       "SYSTEM_EVENT": "Sistem",
       "APPROVAL_DECISION": "Odobrenje"
+    },
+    "approvalStatus": {
+      "PENDING": "Na čekanju",
+      "APPROVED": "Odobreno",
+      "REJECTED": "Odbijeno"
     },
     "participantRole": {
       "REQUESTER": "Podnosilac",

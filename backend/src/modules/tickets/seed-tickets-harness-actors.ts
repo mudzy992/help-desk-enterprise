@@ -39,6 +39,15 @@ export function seedTicketsHarnessActors(
     ),
   );
   contexts.set(
+    ticketsTestIds.adminIt,
+    createScopedContext(
+      ticketsTestIds.adminIt,
+      authorizationRoleKeys.admin,
+      ticketsTestIds.ouIt,
+      '/Korisnici/IT',
+    ),
+  );
+  contexts.set(
     ticketsTestIds.superAdmin,
     createTestAuthorizationContext({
       subjectId: ticketsTestIds.superAdmin,

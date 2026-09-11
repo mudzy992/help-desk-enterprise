@@ -61,6 +61,9 @@ export const ticketSystemEventActions = {
   timeStopped: 'ticket_time_stopped',
   attachmentUploaded: 'ticket_attachment_uploaded',
   attachmentDeleted: 'ticket_attachment_deleted',
+  approvalRequested: 'ticket_approval_requested',
+  approvalApproved: 'ticket_approval_approved',
+  approvalRejected: 'ticket_approval_rejected',
 } as const;
 
 export const ticketRealtimeEventNames = {

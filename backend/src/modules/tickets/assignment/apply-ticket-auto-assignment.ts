@@ -32,7 +32,11 @@ export async function applyTicketAutoAssignment(
   actorUserId: string,
   messages: TicketPersistedMessageSink = [],
 ): Promise<TicketRecord> {
-  if (ticket.assignedGroupId === null || ticket.assignedUserId !== null) {
+  if (
+    ticket.status !== 'PENDING' ||
+    ticket.assignedGroupId === null ||
+    ticket.assignedUserId !== null
+  ) {
     return ticket;
   }
   let configuration: Awaited<

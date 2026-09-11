@@ -12,6 +12,7 @@ export type InMemoryTicketService = {
   readonly classification: string;
   readonly isConfidentialDefault: boolean;
   readonly autoAssignStrategy?: string;
+  readonly requiresApproval?: boolean;
 };
 
 export type InMemoryTicketUser = {

@@ -57,7 +57,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Frontend: create / list / detail / inbox po Constitution (KB intercept obavezan)
 
 ## Faza 5 — Tokovi i governance
-- [ ] Approvals (1–3 servisa): Pending Approval → approve/reject
+- [x] Approvals (1–3 servisa): Pending Approval → approve/reject
 - [ ] Waiting-for-user automatika + reopen policy
 - [ ] Ticket split (parent/child) + bulk akcije (bez bulk close) + saved views
 - [ ] Close codes + smart required fields + PII/secret redaction

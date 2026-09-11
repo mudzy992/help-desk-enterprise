@@ -2,7 +2,6 @@ import { createInMemoryFormVersionDelegate } from '../service-catalog/create-in-
 import type { FormVersionRecord } from '../service-catalog/service-forms.types';
 import {
   matchesInMemoryRoutingRule,
-  pickInMemoryFields,
   type InMemoryRoutingRuleWhere,
 } from '../routing/in-memory-routing-store';
 import type { RoutingRuleRecord } from '../routing/routing.types';
@@ -11,6 +10,9 @@ import {
   seedInMemoryGroupMember,
   type InMemoryGroupMember,
 } from './create-in-memory-group-member-delegate';
+import { createInMemoryTicketApprovalDelegate } from './approvals/create-in-memory-ticket-approval-delegate';
+import type { TicketApprovalRecord } from './approvals/approvals.types';
+import { createInMemoryTicketsLookups } from './create-in-memory-tickets-lookups';
 import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
 import { createInMemoryTicketMessageDelegate } from './create-in-memory-ticket-message-delegate';
 import { createInMemoryTicketParticipantDelegate } from './create-in-memory-ticket-participant-delegate';
@@ -44,84 +46,14 @@ export function createInMemoryTicketsPrisma() {
   const messages = new Map<string, TicketMessageRecord>();
   const timeLogs = new Map<string, TicketTimeLogRecord>();
   const attachments = new Map<string, TicketAttachmentRecord>();
+  const approvals = new Map<string, TicketApprovalRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
   const nextId = () => `ticket-record-${nextIdentifier++}`;
 
   const prisma = {
-    organizationalUnit: {
-      findUnique: async ({
-        where,
-        select,
-      }: {
-        where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(units.get(where.id), select),
-      findMany: async ({
-        where,
-        select,
-      }: {
-        where?: { id?: { in: readonly string[] } };
-        select?: Record<string, boolean>;
-      } = {}) =>
-        [...units.values()]
-          .filter((unit) =>
-            where?.id === undefined ? true : where.id.in.includes(unit.id),
-          )
-          .map((unit) => pickInMemoryFields(unit, select)),
-    },
-    service: {
-      findUnique: async ({
-        where,
-        select,
-      }: {
-        where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(services.get(where.id), select),
-      findMany: async ({
-        where,
-        select,
-      }: {
-        where?: { id?: { in: readonly string[] } };
-        select?: Record<string, boolean>;
-      } = {}) =>
-        [...services.values()]
-          .filter((service) =>
-            where?.id === undefined ? true : where.id.in.includes(service.id),
-          )
-          .map((service) => pickInMemoryFields(service, select)),
-    },
-    group: {
-      findUnique: async ({
-        where,
-        select,
-      }: {
-        where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(groups.get(where.id), select),
-      findMany: async ({
-        where,
-        select,
-      }: {
-        where?: { id?: { in: readonly string[] } };
-        select?: Record<string, boolean>;
-      } = {}) =>
-        [...groups.values()]
-          .filter((group) =>
-            where?.id === undefined ? true : where.id.in.includes(group.id),
-          )
-          .map((group) => pickInMemoryFields(group, select)),
-    },
-    user: {
-      findUnique: async ({
-        where,
-        select,
-      }: {
-        where: { id: string };
-        select?: Record<string, boolean>;
-      }) => pickInMemoryFields(users.get(where.id), select),
-    },
+    ...createInMemoryTicketsLookups({ units, services, groups, users }),
     routingRule: {
       findMany: async ({
         where,
@@ -163,6 +95,11 @@ export function createInMemoryTicketsPrisma() {
       nextId,
       now,
     ),
+    ticketApproval: createInMemoryTicketApprovalDelegate(
+      approvals,
+      nextId,
+      now,
+    ),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -185,6 +122,7 @@ export function createInMemoryTicketsPrisma() {
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {
         autoAssignStrategy: 'NONE',
+        requiresApproval: false,
         ...service,
       }),
     seedGroup: (group: InMemoryTicketGroup) => groups.set(group.id, group),

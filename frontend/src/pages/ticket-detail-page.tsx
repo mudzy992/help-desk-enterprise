@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
@@ -12,6 +13,7 @@ import { TicketParticipantsPanel } from "@/components/tickets/ticket-participant
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
 import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
+import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
 import { useSession } from "@/lib/session/use-session";
 import { listOfferedServices } from "@/services/service-catalog-api";
@@ -22,6 +24,7 @@ export function TicketDetailPage() {
   const { ticketId } = useParams<{ ticketId: string }>();
   const { currentUserId } = useSession();
   const detail = useTicketDetail(ticketId);
+  const approvals = useTicketApprovals(ticketId);
   const [serviceName, setServiceName] = useState("");
   const [originName, setOriginName] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -97,8 +100,10 @@ export function TicketDetailPage() {
           }}
         />
       </div>
-      {detail.actionError ? (
-        <p className="mt-3 text-[12.5px] text-danger">{t(detail.actionError)}</p>
+      {detail.actionError || approvals.errorKey ? (
+        <p className="mt-3 text-[12.5px] text-danger">
+          {t(detail.actionError ?? approvals.errorKey ?? "tickets.errorGeneric")}
+        </p>
       ) : null}
       <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <div className="grid min-w-0 gap-4">
@@ -139,6 +144,23 @@ export function TicketDetailPage() {
         </div>
         <div className="grid gap-4">
           <TicketDetailSidebar ticket={ticket} originName={originName} />
+          <TicketApprovalsPanel
+            items={approvals.items}
+            visible={approvals.visible}
+            isSaving={approvals.isSaving}
+            onApprove={async (approvalId, comment) => {
+              const updated = await approvals.approve(approvalId, comment);
+              if (updated !== null) {
+                await detail.reload();
+              }
+            }}
+            onReject={async (approvalId, comment) => {
+              const updated = await approvals.reject(approvalId, comment);
+              if (updated !== null) {
+                await detail.reload();
+              }
+            }}
+          />
           <TicketParticipantsPanel
             items={detail.participants}
             canManage={canManageParticipants}

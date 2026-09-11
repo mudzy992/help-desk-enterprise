@@ -87,6 +87,13 @@ export const settingKeys = {
     'private.ticket.attachments.dangerousExtensionsBlocklistCsv',
   privateTicketAttachmentsRetentionDays:
     'private.ticket.attachments.retentionDays',
+  privateTicketApprovalsEnabled: 'private.ticket.approvals.enabled',
+  privateTicketApprovalsRequiredByServiceJson:
+    'private.ticket.approvals.requiredByServiceJson',
+  privateTicketApprovalsDefaultApproverRole:
+    'private.ticket.approvals.defaultApproverRole',
+  privateTicketApprovalsAllowRequesterManager:
+    'private.ticket.approvals.allowRequesterManager',
   privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',

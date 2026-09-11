@@ -20,6 +20,7 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'PARTICIPANT_GROUP_NOT_FOUND',
   'TIME_LOG_NOT_FOUND',
   'ATTACHMENT_NOT_FOUND',
+  'APPROVAL_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [
@@ -31,12 +32,15 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'MESSAGE_TYPE_NOT_ALLOWED',
   'PARTICIPANT_LOCKED',
   'ATTACHMENTS_DISABLED',
+  'APPROVALS_DISABLED',
+  'APPROVAL_SELF_FORBIDDEN',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
   'ROUTING_UNAVAILABLE',
   'ASSIGNMENT_UNAVAILABLE',
   'ATTACHMENTS_STORAGE_UNAVAILABLE',
+  'APPROVALS_UNAVAILABLE',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -86,6 +90,17 @@ const messages: Record<TicketsErrorCode, string> = {
   CLASSIFICATION_DOWNGRADE:
     'Attachment classification cannot be lower than the ticket',
   ATTACHMENTS_STORAGE_UNAVAILABLE: 'Attachment storage is unavailable',
+  APPROVALS_DISABLED: 'Ticket approvals are disabled',
+  APPROVALS_UNAVAILABLE: 'Ticket approvals are unavailable',
+  APPROVAL_NOT_FOUND: 'Ticket approval was not found',
+  APPROVAL_NOT_PENDING: 'Ticket approval is not pending',
+  APPROVAL_DECISION_REQUIRED:
+    'Pending approval tickets can only change status through approve or reject',
+  APPROVAL_TRANSITION_FORBIDDEN:
+    'Pending approval status can only be set by the approvals engine',
+  APPROVAL_SELF_FORBIDDEN: 'You cannot approve or reject your own ticket',
+  APPROVAL_COMMENT_REQUIRED: 'An approval comment is required',
+  INVALID_APPROVAL_COMMENT: 'Approval comment is invalid',
 };
 
 export function mapTicketError(error: unknown): HttpException {

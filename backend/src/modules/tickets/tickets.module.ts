@@ -3,6 +3,9 @@ import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
 import { SettingsModule } from '../settings/settings.module';
+import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
+import { TicketsApprovalsController } from './approvals/tickets-approvals.controller';
+import { TicketsApprovalsService } from './approvals/tickets-approvals.service';
 import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignment-configuration.loader';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
@@ -31,9 +34,12 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
     TicketsController,
     TicketsCollaborationController,
     TicketsAttachmentsController,
+    TicketsApprovalsController,
   ],
   providers: [
     TicketsService,
+    TicketsApprovalsService,
+    TicketApprovalsConfigurationLoader,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,
@@ -50,6 +56,7 @@ import { TicketsAttachmentsService } from './attachments/tickets-attachments.ser
   ],
   exports: [
     TicketsService,
+    TicketsApprovalsService,
     TicketsCollaborationService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,

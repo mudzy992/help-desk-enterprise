@@ -60,6 +60,12 @@ export async function updateTicket(
     if (!canChangeTicketStatus(authContext)) {
       throw new TicketsError('STATUS_CHANGE_FORBIDDEN');
     }
+    if (current.status === 'PENDING_APPROVAL') {
+      throw new TicketsError('APPROVAL_DECISION_REQUIRED');
+    }
+    if (input.status === 'PENDING_APPROVAL') {
+      throw new TicketsError('APPROVAL_TRANSITION_FORBIDDEN');
+    }
     assertTicketStatusTransition(current.status, input.status);
   }
   const impact = input.impact ?? current.impact;

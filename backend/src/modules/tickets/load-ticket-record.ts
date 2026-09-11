@@ -28,6 +28,7 @@ export async function loadOfferedService(
       lifecycle: true,
       classification: true,
       isConfidentialDefault: true,
+      requiresApproval: true,
     },
   });
   if (service === null) {

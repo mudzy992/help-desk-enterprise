@@ -34,6 +34,7 @@ describe("ticket actions", () => {
 
   it("offers backend-allowed status transitions without approval or archive", () => {
     expect(nextTicketStatuses("PENDING")).toEqual(["ASSIGNED", "IN_PROGRESS"]);
+    expect(nextTicketStatuses("PENDING_APPROVAL")).toEqual([]);
     expect(nextTicketStatuses("IN_PROGRESS")).toContain("RESOLVED");
     expect(nextTicketStatuses("ARCHIVED")).toEqual([]);
   });

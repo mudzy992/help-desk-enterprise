@@ -370,6 +370,11 @@
       "updated": "Updated",
       "changeStatus": "Change status",
       "saving": "Saving…",
+      "approvals": "Approvals",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approvalComment": "Decision reason",
+      "deciding": "Saving…",
       "participants": "Participants",
       "addParticipant": "Add participant",
       "removeParticipant": "Remove",
@@ -401,6 +406,11 @@
       "INTERNAL_NOTE": "Internal note",
       "SYSTEM_EVENT": "System",
       "APPROVAL_DECISION": "Approval"
+    },
+    "approvalStatus": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
     },
     "participantRole": {
       "REQUESTER": "Requester",

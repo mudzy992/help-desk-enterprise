@@ -3,6 +3,12 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { changeLogActions } from '../change-log/change-log.constants';
 import { RoutingService } from '../routing/routing.service';
 import { applyCreateTicketRouting } from './apply-create-ticket-routing';
+import { createPendingTicketApproval } from './approvals/create-pending-ticket-approval';
+import {
+  resolveCreateTicketApprovalStatus,
+  resolveTicketApprovalRequirement,
+} from './approvals/resolve-ticket-approval-requirement';
+import type { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import {
   assertCanCreateTicket,
   resolveCreateOriginUnitId,
@@ -36,6 +42,7 @@ export async function createTicket(
   prisma: PrismaService,
   routingService: RoutingService,
   authorizationContextLoader: AuthorizationContextLoader,
+  approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
   input: CreateTicketInput,
   context: TicketMutationContext,
   messages: TicketPersistedMessageSink = [],
@@ -77,6 +84,15 @@ export async function createTicket(
     originUnitId,
     serviceId,
   }).catch(mapCreateDependencyError);
+  const approvalsConfiguration = await approvalsConfigurationLoader.load();
+  const status = resolveCreateTicketApprovalStatus({
+    routingStatus: routing.status,
+    requiresApproval: resolveTicketApprovalRequirement({
+      configuration: approvalsConfiguration,
+      serviceId,
+      serviceRequiresApproval: service.requiresApproval,
+    }),
+  });
   const created = await prisma.$transaction(async (transaction) => {
     const ticketNumber = await nextTicketNumber(() =>
       transaction.ticket.count(),
@@ -86,7 +102,7 @@ export async function createTicket(
         ticketNumber,
         title: normalizeTicketTitle(input.title),
         description: normalizeTicketDescription(input.description),
-        status: routing.status,
+        status,
         priority: calculateTicketPriority(input.impact, input.urgency),
         impact: input.impact,
         urgency: input.urgency,
@@ -116,6 +132,16 @@ export async function createTicket(
         actorUserId: context.actorUserId,
       }),
     );
+    if (record.status === 'PENDING_APPROVAL') {
+      await createPendingTicketApproval(transaction as PrismaService, record);
+      messages.push(
+        await insertSystemTicketEvent(transaction as PrismaService, {
+          ticketId: record.id,
+          action: ticketSystemEventActions.approvalRequested,
+          actorUserId: context.actorUserId,
+        }),
+      );
+    }
     return record;
   });
   return created;

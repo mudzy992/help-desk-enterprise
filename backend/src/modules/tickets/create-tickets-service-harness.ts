@@ -1,31 +1,22 @@
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { RoutingService } from '../routing/routing.service';
+import { defaultTicketApprovalsConfiguration } from './approvals/approvals.constants';
+import { TicketsApprovalsService } from './approvals/tickets-approvals.service';
+import type { TicketApprovalsConfiguration } from './approvals/approvals.types';
 import { defaultTicketAssignmentConfiguration } from './assignment/assignment.constants';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { defaultTicketCollaborationConfiguration } from './collaboration.constants';
 import { createInMemoryTicketsPrisma } from './create-in-memory-tickets-prisma';
 import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
+import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
-import { ticketsTestIds } from './tickets-test-ids';
 import { TicketsService } from './tickets.service';
 
 export { ticketsTestIds } from './tickets-test-ids';
-
-const formSchema = {
-  schemaVersion: 1,
-  fields: [
-    {
-      id: 'asset_tag',
-      label: 'Asset tag',
-      type: 'text',
-      required: true,
-      order: 0,
-    },
-  ],
-};
+export { vpnFormSchema } from './seed-tickets-harness-catalog';
 
 export function createTicketsServiceHarness() {
   const memory = createInMemoryTicketsPrisma();
@@ -40,6 +31,19 @@ export function createTicketsServiceHarness() {
     autoAssignStrategy:
       defaultTicketAssignmentConfiguration.autoAssignStrategy,
   };
+  const approvalsConfig: {
+    enabled: boolean;
+    requiredByService: Record<string, boolean>;
+    defaultApproverRole: TicketApprovalsConfiguration['defaultApproverRole'];
+    allowRequesterManager: boolean;
+  } = {
+    enabled: defaultTicketApprovalsConfiguration.enabled,
+    requiredByService: {},
+    defaultApproverRole:
+      defaultTicketApprovalsConfiguration.defaultApproverRole,
+    allowRequesterManager:
+      defaultTicketApprovalsConfiguration.allowRequesterManager,
+  };
   const authorizationContextLoader = {
     loadBySubjectId: async (subjectId: string) =>
       contexts.get(subjectId) ?? null,
@@ -52,11 +56,22 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader as never,
     { load: async () => ({ ...assignmentConfig }) } as never,
   );
+  const approvalsLoader = {
+    load: async () => ({ ...approvalsConfig }),
+  };
   const realtimeHub = new TicketRealtimeHub();
   const tickets = new TicketsService(
     memory.prisma as never,
     routing,
     authorizationContextLoader as never,
+    assignment,
+    approvalsLoader as never,
+    realtimeHub,
+  );
+  const approvals = new TicketsApprovalsService(
+    memory.prisma as never,
+    authorizationContextLoader as never,
+    approvalsLoader as never,
     assignment,
     realtimeHub,
   );
@@ -73,105 +88,19 @@ export function createTicketsServiceHarness() {
     authorizationContextLoader as never,
     realtimeHub,
   );
-  seedHarnessCatalog(memory);
+  seedTicketsHarnessCatalog(memory);
   seedTicketsHarnessActors(contexts);
   return {
     memory,
     routing,
     tickets,
+    approvals,
     collaboration,
     timeTracking,
     realtimeHub,
     contexts,
     assignmentConfig,
+    approvalsConfig,
     authorizationContextLoader,
   };
 }
-
-function seedHarnessCatalog(
-  memory: ReturnType<typeof createInMemoryTicketsPrisma>,
-): void {
-  memory.seedUnit({
-    id: ticketsTestIds.ouRoot,
-    parentId: null,
-    ouPath: '/Korisnici',
-  });
-  memory.seedUnit({
-    id: ticketsTestIds.ouIt,
-    parentId: ticketsTestIds.ouRoot,
-    ouPath: '/Korisnici/IT',
-  });
-  memory.seedUnit({
-    id: ticketsTestIds.ouHr,
-    parentId: ticketsTestIds.ouRoot,
-    ouPath: '/Korisnici/HR',
-  });
-  memory.seedService({
-    id: ticketsTestIds.serviceVpn,
-    name: 'VPN access',
-    lifecycle: 'ACTIVE',
-    availability: 'OPERATIONAL',
-    classification: 'INTERNAL',
-    isConfidentialDefault: false,
-  });
-  memory.seedService({
-    id: ticketsTestIds.serviceDraft,
-    name: 'Draft only',
-    lifecycle: 'DRAFT',
-    availability: 'OPERATIONAL',
-    classification: 'INTERNAL',
-    isConfidentialDefault: false,
-  });
-  memory.seedGroup({ id: ticketsTestIds.groupIt, name: 'IT Support' });
-  memory.seedUser({
-    id: ticketsTestIds.requester,
-    organizationalUnitId: ticketsTestIds.ouIt,
-  });
-  memory.seedUser({
-    id: ticketsTestIds.watcher,
-    organizationalUnitId: ticketsTestIds.ouIt,
-  });
-  memory.seedUser({
-    id: ticketsTestIds.agentIt,
-    organizationalUnitId: ticketsTestIds.ouIt,
-  });
-  memory.seedUser({
-    id: ticketsTestIds.agentItPeer,
-    organizationalUnitId: ticketsTestIds.ouIt,
-  });
-  memory.seedUser({
-    id: ticketsTestIds.agentHr,
-    organizationalUnitId: ticketsTestIds.ouHr,
-  });
-  memory.seedUser({
-    id: ticketsTestIds.superAdmin,
-    organizationalUnitId: null,
-  });
-  seedDefaultFormVersions(memory);
-}
-
-function seedDefaultFormVersions(
-  memory: ReturnType<typeof createInMemoryTicketsPrisma>,
-): void {
-  const now = new Date('2026-09-11T12:00:00.000Z');
-  memory.seedFormVersion({
-    id: ticketsTestIds.formVpnV1,
-    serviceId: ticketsTestIds.serviceVpn,
-    version: 1,
-    schema: formSchema,
-    status: 'ACTIVE',
-    createdAt: now,
-    updatedAt: now,
-  });
-  memory.seedFormVersion({
-    id: ticketsTestIds.formOther,
-    serviceId: ticketsTestIds.serviceDraft,
-    version: 1,
-    schema: formSchema,
-    status: 'ACTIVE',
-    createdAt: now,
-    updatedAt: now,
-  });
-}
-
-export const vpnFormSchema = formSchema;

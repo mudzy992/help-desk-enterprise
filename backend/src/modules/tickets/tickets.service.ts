@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
+import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import { createTicket } from './create-ticket';
@@ -27,6 +28,7 @@ export class TicketsService {
     private readonly routingService: RoutingService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
+    private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -40,6 +42,7 @@ export class TicketsService {
         this.prisma,
         this.routingService,
         this.authorizationContextLoader,
+        this.approvalsConfigurationLoader,
         input,
         context,
         messages,
