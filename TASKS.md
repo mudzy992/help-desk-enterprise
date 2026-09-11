@@ -45,7 +45,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Korak prijava: `local` | `entra_ad` (+ AD/Entra polja ako AD)
 - [x] Korak SMTP: switch + secret postavke; OFF forsirano gasi email addon
 - [x] Korak seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu
-- [ ] Korak dodaci: switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign, …)
+- [x] Korak dodaci: switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign, …)
 - [ ] Zaključavanje wizarda nakon complete; dalje samo Settings. Change log `install_wizard`
 
 ## Faza 4 — Ticketing workspace

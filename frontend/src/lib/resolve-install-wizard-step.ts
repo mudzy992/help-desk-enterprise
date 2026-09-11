@@ -2,7 +2,8 @@ export type InstallWizardStep =
   | "superAdmin"
   | "loginProvider"
   | "smtp"
-  | "seed";
+  | "seed"
+  | "addons";
 
 export function resolveInstallWizardStep(input: {
   readonly hasSuperAdmin: boolean;
@@ -23,5 +24,19 @@ export function resolveInstallWizardStep(input: {
   if (!input.isSmtpConfigured && !input.isSeeded) {
     return "smtp";
   }
-  return "seed";
+  if (!input.isSeeded) {
+    return "seed";
+  }
+  return "addons";
 }
+
+export const installWizardCopyKeys = {
+  superAdmin: { heading: "install.heading", body: "install.body" },
+  loginProvider: {
+    heading: "install.loginProvider.heading",
+    body: "install.loginProvider.body",
+  },
+  smtp: { heading: "install.smtp.heading", body: "install.smtp.body" },
+  seed: { heading: "install.seed.heading", body: "install.seed.body" },
+  addons: { heading: "install.addons.heading", body: "install.addons.body" },
+} as const;

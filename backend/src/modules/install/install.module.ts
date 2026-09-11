@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { RoutingModule } from '../routing/routing.module';
 import { ServiceCatalogModule } from '../service-catalog/service-catalog.module';
 import { SettingsModule } from '../settings/settings.module';
+import { InstallAddonsService } from './install-addons.service';
 import { InstallController } from './install.controller';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSeedService } from './install-seed.service';
@@ -20,6 +21,7 @@ import { InstallSuperAdminService } from './install-super-admin.service';
     InstallLoginProviderService,
     InstallSmtpService,
     InstallSeedService,
+    InstallAddonsService,
     InstallSetupGuard,
     {
       provide: APP_GUARD,

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InstallAddonsStep } from "@/components/install/install-addons-step";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
 import { InstallSeedStep } from "@/components/install/install-seed-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { LocaleSelect } from "@/components/layout/locale-select";
 import {
+  installWizardCopyKeys,
   resolveInstallWizardStep,
   type InstallWizardStep,
 } from "@/lib/resolve-install-wizard-step";
@@ -45,22 +47,7 @@ export function InstallPage() {
     };
   }, []);
 
-  const headingKey =
-    step === "seed"
-      ? "install.seed.heading"
-      : step === "smtp"
-        ? "install.smtp.heading"
-        : step === "loginProvider"
-          ? "install.loginProvider.heading"
-          : "install.heading";
-  const bodyKey =
-    step === "seed"
-      ? "install.seed.body"
-      : step === "smtp"
-        ? "install.smtp.body"
-        : step === "loginProvider"
-          ? "install.loginProvider.body"
-          : "install.body";
+  const copy = step === null ? null : installWizardCopyKeys[step];
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -73,15 +60,18 @@ export function InstallPage() {
       <main className="flex-1 p-4 md:p-6">
         <section className="max-w-2xl">
           <h2 className="text-section font-medium text-foreground">
-            {t(headingKey)}
+            {t(copy?.heading ?? "install.heading")}
           </h2>
           <p className="mt-2 text-body leading-6 text-muted-foreground">
-            {t(bodyKey)}
+            {t(copy?.body ?? "install.body")}
           </p>
           {step === null ? (
             <div className="mt-6 h-40 animate-pulse bg-elevated" />
           ) : null}
-          {step === "seed" ? <InstallSeedStep /> : null}
+          {step === "addons" ? <InstallAddonsStep /> : null}
+          {step === "seed" ? (
+            <InstallSeedStep onSaved={() => setStep("addons")} />
+          ) : null}
           {step === "smtp" ? (
             <InstallSmtpStep onSaved={() => setStep("seed")} />
           ) : null}

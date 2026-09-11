@@ -91,6 +91,79 @@
       "routing": "Routing resolution",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The initial data cannot be saved right now."
+    },
+    "addons": {
+      "heading": "Add-ons",
+      "body": "Turn optional modules on or off. Core capabilities (ticketing, routing, inbox, RBAC, audit, in-app notifications, attachments) stay on. A disabled add-on can be enabled later in Settings.",
+      "submit": "Continue",
+      "saving": "Saving…",
+      "emailDisabledHint": "Email stays off until SMTP is enabled.",
+      "errorInvalid": "The add-on configuration is invalid.",
+      "errorUnsupported": "One or more add-ons are not in the catalog.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The add-ons cannot be saved right now.",
+      "catalog": {
+        "sla": {
+          "label": "SLA",
+          "description": "SLA profiles, calendars, and overdue escalation."
+        },
+        "email": {
+          "label": "Email",
+          "description": "Outbound email channel. Requires SMTP to be enabled."
+        },
+        "edge": {
+          "label": "Edge",
+          "description": "Browser extension for quick replies and remote requests."
+        },
+        "teamsStub": {
+          "label": "Teams (stub)",
+          "description": "Teams feature flag without actual message delivery."
+        },
+        "csat": {
+          "label": "CSAT",
+          "description": "Satisfaction survey after a ticket is closed."
+        },
+        "autoAssign": {
+          "label": "Auto-assign",
+          "description": "Least Busy / Round Robin assignment inside a group."
+        },
+        "approvals": {
+          "label": "Approvals",
+          "description": "Approval flows on services that require them."
+        },
+        "confidential": {
+          "label": "Confidential tickets",
+          "description": "ACL and break-glass for confidential requests."
+        },
+        "kbIntercept": {
+          "label": "KB intercept",
+          "description": "Show knowledge base articles before submitting a ticket."
+        },
+        "timeTracking": {
+          "label": "Time tracking",
+          "description": "Track time spent on a ticket."
+        },
+        "ticketSplit": {
+          "label": "Ticket split",
+          "description": "Parent/child ticket split."
+        },
+        "bulkActions": {
+          "label": "Bulk actions",
+          "description": "Bulk inbox actions, without bulk close."
+        },
+        "savedViews": {
+          "label": "Saved views",
+          "description": "Saved inbox filters and views."
+        },
+        "reports": {
+          "label": "Reports",
+          "description": "Report packs and bottleneck overview."
+        },
+        "serviceDowntime": {
+          "label": "Service downtime",
+          "description": "Scheduled downtime windows for services."
+        }
+      }
     }
   },
   "routing": {

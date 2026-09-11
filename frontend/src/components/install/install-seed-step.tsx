@@ -11,7 +11,11 @@ import {
   type InstallSeedRecord,
 } from "@/services/install-seed-api";
 
-export function InstallSeedStep() {
+export function InstallSeedStep({
+  onSaved,
+}: {
+  readonly onSaved?: () => void;
+}) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallSeedRecord | null>(null);
   const [errorKey, setErrorKey] = useState<InstallSeedErrorKey | null>(null);
@@ -42,6 +46,7 @@ export function InstallSeedStep() {
     setErrorKey(null);
     try {
       setRecord(await runInstallSeed());
+      onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallSeedError(error));
     } finally {

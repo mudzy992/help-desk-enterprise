@@ -91,6 +91,79 @@
       "routing": "Rezolucija usmjeravanja",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Početne podatke trenutno nije moguće sačuvati."
+    },
+    "addons": {
+      "heading": "Dodaci",
+      "body": "Uključite ili isključite opcione module. Jezgro (tiketi, usmjeravanje, inbox, RBAC, audit, in-app notifikacije, prilozi) ostaje uključeno. Isključen dodatak se kasnije može uključiti u Settings.",
+      "submit": "Dalje",
+      "saving": "Spremanje…",
+      "emailDisabledHint": "Email ostaje ugašen dok SMTP nije uključen.",
+      "errorInvalid": "Konfiguracija dodataka nije ispravna.",
+      "errorUnsupported": "Jedan ili više dodataka nije u katalogu.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Dodatke trenutno nije moguće sačuvati.",
+      "catalog": {
+        "sla": {
+          "label": "SLA",
+          "description": "SLA profili, kalendari i eskalacije prekoračenja."
+        },
+        "email": {
+          "label": "Email",
+          "description": "Odlazni email kanal. Zahtijeva uključen SMTP."
+        },
+        "edge": {
+          "label": "Edge",
+          "description": "Preglednička ekstenzija za brze odgovore i remote zahtjeve."
+        },
+        "teamsStub": {
+          "label": "Teams (stub)",
+          "description": "Teams feature flag bez stvarne isporuke poruka."
+        },
+        "csat": {
+          "label": "CSAT",
+          "description": "Anketa zadovoljstva nakon zatvaranja tiketa."
+        },
+        "autoAssign": {
+          "label": "Automatska dodjela",
+          "description": "Least Busy / Round Robin dodjela tiketa u grupi."
+        },
+        "approvals": {
+          "label": "Odobrenja",
+          "description": "Tokovi odobrenja na servisima koji to zahtijevaju."
+        },
+        "confidential": {
+          "label": "Povjerljivi tiketi",
+          "description": "ACL i break-glass za povjerljive zahtjeve."
+        },
+        "kbIntercept": {
+          "label": "KB presretanje",
+          "description": "Prikaz baze znanja prije slanja novog tiketa."
+        },
+        "timeTracking": {
+          "label": "Evidencija vremena",
+          "description": "Praćenje utrošenog vremena na tiketu."
+        },
+        "ticketSplit": {
+          "label": "Podjela tiketa",
+          "description": "Parent/child podjela tiketa."
+        },
+        "bulkActions": {
+          "label": "Skupne akcije",
+          "description": "Skupne akcije na listi tiketa, bez skupnog zatvaranja."
+        },
+        "savedViews": {
+          "label": "Sačuvani prikazi",
+          "description": "Sačuvani filteri i pregledi inboxa."
+        },
+        "reports": {
+          "label": "Izvještaji",
+          "description": "Paketi izvještaja i bottleneck pregled."
+        },
+        "serviceDowntime": {
+          "label": "Nedostupnost servisa",
+          "description": "Zakazivanje downtime prozora na servisima."
+        }
+      }
     }
   },
   "routing": {

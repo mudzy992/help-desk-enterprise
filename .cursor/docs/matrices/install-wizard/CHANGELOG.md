@@ -1,6 +1,8 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- Implementiran addons korak: deterministički switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign + ostali ključevi iz `04-install-wizard.md`) kroz `GET/POST /install/addons`.
+- Stanje se čuva isključivo kao `private.addons.<key>` u Settings Registry; SMTP OFF i dalje forsira email off. Retry je idempotentan; nepoznat key se odbija. Nema wizard complete/lock i nema addon business logike.
 - Implementiran seed korak: min 1 OU, 1 fallback grupa (`Group.isFallback`), 1 ACTIVE servis i routing na tu grupu kroz postojeće OU/catalog/routing modele.
 - Seed je idempotentan (reuse postojećih kompatibilnih zapisa) i transakcionan; rezolucija mora biti `EXACT` na fallback grupu. Nema demo tiketa.
 - Implementiran SMTP korak: switch `private.smtp.enabled`; ON validira i čuva host/port/TLS/username/from kroz registry, password kao secret. OFF ne zahtijeva polja i forsira `private.addons.email=false`.

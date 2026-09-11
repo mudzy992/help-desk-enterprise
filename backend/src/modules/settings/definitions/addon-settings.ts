@@ -1,14 +1,17 @@
+import {
+  addonSettingKey,
+  installAddonCatalog,
+} from '../addon-catalog';
 import { definePrivateSetting } from '../registry/define-setting';
-import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
 
-export const addonSettings: readonly SettingDefinition[] = [
-  definePrivateSetting({
-    key: settingKeys.privateAddonsEmail,
-    valueType: 'boolean',
-    description:
-      'Email addon flag from the install wizard catalog; SMTP off always wins',
-    isRequired: true,
-    defaultValue: false,
-  }),
-];
+export const addonSettings: readonly SettingDefinition[] =
+  installAddonCatalog.map((item) =>
+    definePrivateSetting({
+      key: addonSettingKey(item.key),
+      valueType: 'boolean',
+      description: item.description,
+      isRequired: true,
+      defaultValue: item.defaultEnabled,
+    }),
+  );

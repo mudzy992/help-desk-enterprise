@@ -4,6 +4,7 @@ import { applicationSettings } from './definitions/application-settings';
 import { createSettingsRegistry } from './registry/create-settings-registry';
 import { settingKeys } from './setting-keys';
 import { SettingsError } from './settings.error';
+import { getSettingDefaultValue } from './settings-value';
 import { SETTINGS_REGISTRY } from './settings.registry-token';
 import { SettingsService } from './settings.service';
 
@@ -98,75 +99,29 @@ describe('SettingsService', () => {
   it('returns private settings without secrets', async () => {
     const service = await createService();
     const privateSettings = await service.getPrivateSettings();
-    expect(privateSettings).toEqual({
-      [settingKeys.privateInstallCompletedAt]: '',
-      [settingKeys.privateAuthMode]: 'local',
-      [settingKeys.privateAuthAdLdapsUrlsCsv]: '',
-      [settingKeys.privateAuthAdReadEnabled]: false,
-      [settingKeys.privateAuthAdReadStrategy]: 'manual_only',
-      [settingKeys.privateAuthAdReadUsersBaseDn]: '',
-      [settingKeys.privateAuthAdReadGroupsBaseDn]: '',
-      [settingKeys.privateAuthAdReadMaxQueriesPerSecond]: 0.5,
-      [settingKeys.privateAuthAdReadCacheTtlMinutes]: 30,
-      [settingKeys.privateAuthAdReadOuTreeCacheTtlHours]: 12,
-      [settingKeys.privateReadOnlyModeEnabled]: true,
-      [settingKeys.privateReadOnlyModeModulesCsv]:
-        'admin,settings,routing,service_catalog,service_forms,sla',
-      [settingKeys.privateReadOnlyModeActiveModulesCsv]: '',
-      [settingKeys.privateReadOnlyModeBypassRolesCsv]: 'SUPER_ADMIN',
-      [settingKeys.privateServicesLifecycleEnabled]: true,
-      [settingKeys.privateServicesLifecycleAllowedStatesCsv]:
-        'DRAFT,ACTIVE,DEPRECATED',
-      [settingKeys.privateServicesLifecycleDefaultStateOnCreate]: 'DRAFT',
-      [settingKeys.privateServicesAvailabilityEnabled]: true,
-      [settingKeys.privateServicesAvailabilityAllowedStatusesCsv]:
-        'OPERATIONAL,DEGRADED,DOWN,MAINTENANCE',
-      [settingKeys.privateServicesAvailabilityShowStatusInCatalog]: true,
-      [settingKeys.privateServicesAvailabilityShowStatusInTicketCreate]: true,
-      [settingKeys.privateServicesAvailabilityChangeRequiresReason]: true,
-      [settingKeys.privateServicesDowntimeSchedulingEnabled]: true,
-      [settingKeys.privateServicesDowntimeSchedulingAutoSetMaintenanceStatus]: true,
-      [settingKeys.privateServicesDowntimeSchedulingAutoRestoreOperational]: true,
-      [settingKeys.privateServicesDowntimeSchedulingRequireReason]: true,
-      [settingKeys.privateTicketFormsEnabled]: true,
-      [settingKeys.privateTicketFormsRequireStructuredFields]: true,
-      [settingKeys.privateTicketFormsVersioningEnabled]: true,
-      [settingKeys.privateTicketFormsVersioningAllowMultipleActiveVersions]: false,
-      [settingKeys.privateTicketFormsVersioningRequireVersionOnTicket]: true,
-      [settingKeys.privateServicesOnboardingWizardEnabled]: true,
-      [settingKeys.privateServicesOnboardingWizardRequireValidationBeforeActivate]:
-        true,
-      [settingKeys.privateServicesOnboardingWizardAutoFillRoutingEnabled]: true,
-      [settingKeys.privateServicesOnboardingWizardAutoFillRoutingRequireConfirm]:
-        true,
-      [settingKeys.privateTicketUnroutedQueueEnabled]: true,
-      [settingKeys.privateTicketUnroutedQueueOwnerRole]: 'SUPER_ADMIN',
-      [settingKeys.privateChangeLogSettingsEnabled]: true,
-      [settingKeys.privateChangeLogRoutingEnabled]: true,
-      [settingKeys.privateChangeLogIncludeDiff]: true,
-      [settingKeys.privateChangeLogRequireReason]: true,
-      [settingKeys.privateSmtpEnabled]: false,
-      [settingKeys.privateSmtpHost]: '',
-      [settingKeys.privateSmtpPort]: 587,
-      [settingKeys.privateSmtpTls]: true,
-      [settingKeys.privateSmtpUsername]: '',
-      [settingKeys.privateSmtpFromAddress]: '',
+    expect(privateSettings).toEqual(
+      Object.fromEntries(
+        applicationSettings
+          .filter((definition) => definition.visibility === 'private')
+          .map((definition) => [
+            definition.key,
+            getSettingDefaultValue(definition),
+          ]),
+      ),
+    );
+    for (const definition of applicationSettings) {
+      if (definition.visibility === 'secret') {
+        expect(privateSettings).not.toHaveProperty(definition.key);
+      }
+    }
+    expect(privateSettings).toMatchObject({
+      [settingKeys.privateAddonsSla]: true,
       [settingKeys.privateAddonsEmail]: false,
+      [settingKeys.privateAddonsEdge]: false,
+      [settingKeys.privateAddonsTeamsStub]: false,
+      [settingKeys.privateAddonsCsat]: true,
+      [settingKeys.privateAddonsAutoAssign]: false,
     });
-    expect(privateSettings).not.toHaveProperty(
-      settingKeys.privateAuthJwtSigningSecret,
-    );
-    expect(privateSettings).not.toHaveProperty(
-      settingKeys.privateAuthAzureTenantId,
-    );
-    expect(privateSettings).not.toHaveProperty(
-      settingKeys.privateAuthAzureClientId,
-    );
-    expect(privateSettings).not.toHaveProperty(settingKeys.privateAuthAdBindDn);
-    expect(privateSettings).not.toHaveProperty(
-      settingKeys.privateAuthAdBindPassword,
-    );
-    expect(privateSettings).not.toHaveProperty(settingKeys.privateSmtpPassword);
   });
 
   it('refuses generic secret reads and allows explicit internal secret access', async () => {

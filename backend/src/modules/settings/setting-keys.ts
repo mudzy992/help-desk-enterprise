@@ -1,3 +1,5 @@
+import { addonSettingKey } from './addon-catalog';
+
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
   privateInstallCompletedAt: 'private.install.completedAt',
@@ -70,7 +72,21 @@ export const settingKeys = {
   privateSmtpUsername: 'private.smtp.username',
   privateSmtpPassword: 'private.smtp.password',
   privateSmtpFromAddress: 'private.smtp.fromAddress',
-  privateAddonsEmail: 'private.addons.email',
+  privateAddonsSla: addonSettingKey('sla'),
+  privateAddonsEmail: addonSettingKey('email'),
+  privateAddonsEdge: addonSettingKey('edge'),
+  privateAddonsTeamsStub: addonSettingKey('teamsStub'),
+  privateAddonsCsat: addonSettingKey('csat'),
+  privateAddonsAutoAssign: addonSettingKey('autoAssign'),
+  privateAddonsApprovals: addonSettingKey('approvals'),
+  privateAddonsConfidential: addonSettingKey('confidential'),
+  privateAddonsKbIntercept: addonSettingKey('kbIntercept'),
+  privateAddonsTimeTracking: addonSettingKey('timeTracking'),
+  privateAddonsTicketSplit: addonSettingKey('ticketSplit'),
+  privateAddonsBulkActions: addonSettingKey('bulkActions'),
+  privateAddonsSavedViews: addonSettingKey('savedViews'),
+  privateAddonsReports: addonSettingKey('reports'),
+  privateAddonsServiceDowntime: addonSettingKey('serviceDowntime'),
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

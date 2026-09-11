@@ -35,7 +35,7 @@ describe("resolveInstallWizardStep", () => {
     ).toBe("smtp");
   });
 
-  it("shows seed after SMTP is configured or seed already exists", () => {
+  it("shows seed after SMTP is configured and before seed exists", () => {
     expect(
       resolveInstallWizardStep({
         hasSuperAdmin: true,
@@ -44,6 +44,9 @@ describe("resolveInstallWizardStep", () => {
         isSeeded: false,
       }),
     ).toBe("seed");
+  });
+
+  it("shows addons after seed is complete", () => {
     expect(
       resolveInstallWizardStep({
         hasSuperAdmin: true,
@@ -51,6 +54,6 @@ describe("resolveInstallWizardStep", () => {
         loginProviderSaved: true,
         isSeeded: true,
       }),
-    ).toBe("seed");
+    ).toBe("addons");
   });
 });

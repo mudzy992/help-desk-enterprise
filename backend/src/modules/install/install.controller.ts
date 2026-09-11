@@ -7,8 +7,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { CreateInstallSuperAdminDto } from './dto/create-install-super-admin.dto';
+import { SaveInstallAddonsDto } from './dto/save-install-addons.dto';
 import { SaveInstallLoginProviderDto } from './dto/save-install-login-provider.dto';
 import { SaveInstallSmtpDto } from './dto/save-install-smtp.dto';
+import { InstallAddonsService } from './install-addons.service';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSetupService } from './install-setup.service';
 import { InstallSmtpService } from './install-smtp.service';
@@ -18,6 +20,10 @@ import type {
   InstallLoginProviderStatus,
 } from './install-login-provider.types';
 import type { InstallSetupStatus } from './install-setup.types';
+import type {
+  InstallAddonsPublicRecord,
+  InstallAddonsStatus,
+} from './install-addons.types';
 import type {
   InstallSmtpPublicRecord,
   InstallSmtpStatus,
@@ -47,6 +53,7 @@ export class InstallController {
     private readonly installLoginProviderService: InstallLoginProviderService,
     private readonly installSmtpService: InstallSmtpService,
     private readonly installSeedService: InstallSeedService,
+    private readonly installAddonsService: InstallAddonsService,
   ) {}
 
   @Get('status')
@@ -96,5 +103,17 @@ export class InstallController {
   @Post('seed')
   createSeed(): Promise<InstallSeedResult> {
     return this.installSeedService.seed();
+  }
+
+  @Get('addons')
+  getAddons(): Promise<InstallAddonsStatus> {
+    return this.installAddonsService.getStatus();
+  }
+
+  @Post('addons')
+  saveAddons(
+    @Body() body: SaveInstallAddonsDto,
+  ): Promise<InstallAddonsPublicRecord> {
+    return this.installAddonsService.save(body);
   }
 }
