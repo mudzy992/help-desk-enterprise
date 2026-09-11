@@ -51,6 +51,15 @@ export class SettingsService {
     return this.resolveValue(definition);
   }
 
+  async hasStoredValue(key: string): Promise<boolean> {
+    this.registry.requireDefinition(key);
+    const stored = await this.prisma.appSetting.findUnique({
+      where: { key },
+      select: { key: true },
+    });
+    return stored !== null;
+  }
+
   async setSettingValue(
     key: string,
     value: SettingValue,

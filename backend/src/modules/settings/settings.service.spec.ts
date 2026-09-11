@@ -64,6 +64,9 @@ describe('SettingsService', () => {
       if (where.key === settingKeys.privateAuthAdBindPassword) {
         return Promise.resolve({ value: 'plaintext-bind-password' });
       }
+      if (where.key === settingKeys.privateSmtpPassword) {
+        return Promise.resolve({ value: 'plaintext-smtp-password' });
+      }
       return Promise.resolve(null);
     });
     const service = await createService();
@@ -86,6 +89,9 @@ describe('SettingsService', () => {
     expect(JSON.stringify(publicSettings)).not.toContain('plaintext-bind-dn');
     expect(JSON.stringify(publicSettings)).not.toContain(
       'plaintext-bind-password',
+    );
+    expect(JSON.stringify(publicSettings)).not.toContain(
+      'plaintext-smtp-password',
     );
   });
 
@@ -139,6 +145,13 @@ describe('SettingsService', () => {
       [settingKeys.privateChangeLogRoutingEnabled]: true,
       [settingKeys.privateChangeLogIncludeDiff]: true,
       [settingKeys.privateChangeLogRequireReason]: true,
+      [settingKeys.privateSmtpEnabled]: false,
+      [settingKeys.privateSmtpHost]: '',
+      [settingKeys.privateSmtpPort]: 587,
+      [settingKeys.privateSmtpTls]: true,
+      [settingKeys.privateSmtpUsername]: '',
+      [settingKeys.privateSmtpFromAddress]: '',
+      [settingKeys.privateAddonsEmail]: false,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
@@ -153,6 +166,7 @@ describe('SettingsService', () => {
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthAdBindPassword,
     );
+    expect(privateSettings).not.toHaveProperty(settingKeys.privateSmtpPassword);
   });
 
   it('refuses generic secret reads and allows explicit internal secret access', async () => {
@@ -179,6 +193,31 @@ describe('SettingsService', () => {
   it('rejects unknown keys deterministically', async () => {
     const service = await createService();
     await expect(service.getSetting('smtp.host')).rejects.toBeInstanceOf(
+      SettingsError,
+    );
+  });
+
+  it('reads SMTP password only through secret access', async () => {
+    findUnique.mockResolvedValue({ value: 'plaintext-smtp-password' });
+    const service = await createService();
+    await expect(
+      service.getSetting(settingKeys.privateSmtpPassword),
+    ).rejects.toBeInstanceOf(SettingsError);
+    await expect(
+      service.getSecretForInternalUse(settingKeys.privateSmtpPassword),
+    ).resolves.toBe('plaintext-smtp-password');
+  });
+
+  it('reports whether a registry key is stored without changing defaults', async () => {
+    const service = await createService();
+    await expect(
+      service.hasStoredValue(settingKeys.privateSmtpEnabled),
+    ).resolves.toBe(false);
+    findUnique.mockResolvedValue({ key: settingKeys.privateSmtpEnabled });
+    await expect(
+      service.hasStoredValue(settingKeys.privateSmtpEnabled),
+    ).resolves.toBe(true);
+    await expect(service.hasStoredValue('smtp.host')).rejects.toBeInstanceOf(
       SettingsError,
     );
   });

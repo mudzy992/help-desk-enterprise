@@ -1,6 +1,7 @@
 # CHANGELOG — settings-registry
 
 ## 2026-09-11
+- Dodani `private.smtp.*` i `private.addons.email` ključevi za install SMTP korak. Password je secret; SMTP off forsira email addon na `false` kroz postojeći addon ključ.
 - Settings mutacija (`setSettingValue` + `PUT /settings`) zahtijeva `reason` i piše `ChangeLog` sa redacted secretima. Dodani `private.changeLog.*` ključevi. Nema versioning/rollback/UI liste.
 
 ## 2026-09-10

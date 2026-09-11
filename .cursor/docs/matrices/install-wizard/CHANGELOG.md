@@ -1,6 +1,8 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- Implementiran SMTP korak: switch `private.smtp.enabled`; ON validira i čuva host/port/TLS/username/from kroz registry, password kao secret. OFF ne zahtijeva polja i forsira `private.addons.email=false`.
+- Email addon se čita kroz `resolveEmailAddonEnabled` (SMTP OFF uvijek pobjedi). Nema paralelnog SMTP/email sistema.
 - Implementiran korak načina prijave: `local` | `entra_ad` kroz `GET/POST /install/login-provider`.
 - `local` čuva `private.auth.mode` bez AD/Entra polja; `entra_ad` zahtijeva tenant+client ili LDAPS bind, secret kroz Settings Registry.
 - API ne izlaže tenant/client/bind secret vrijednosti; change log redaktuje secreta.

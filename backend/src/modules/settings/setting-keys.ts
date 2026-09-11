@@ -63,6 +63,14 @@ export const settingKeys = {
   privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',
   privateChangeLogRequireReason: 'private.changeLog.requireReason',
+  privateSmtpEnabled: 'private.smtp.enabled',
+  privateSmtpHost: 'private.smtp.host',
+  privateSmtpPort: 'private.smtp.port',
+  privateSmtpTls: 'private.smtp.tls',
+  privateSmtpUsername: 'private.smtp.username',
+  privateSmtpPassword: 'private.smtp.password',
+  privateSmtpFromAddress: 'private.smtp.fromAddress',
+  privateAddonsEmail: 'private.addons.email',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

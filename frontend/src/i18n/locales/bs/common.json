@@ -58,6 +58,26 @@
       "errorInvalid": "Konfiguracija prijave nije ispravna ili nije potpuna.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Način prijave trenutno nije moguće sačuvati."
+    },
+    "smtp": {
+      "heading": "SMTP",
+      "body": "Uključite SMTP za odlazni email ili ostavite isključeno. Isključeno forsira email dodatak na off.",
+      "enabled": "SMTP omogućen",
+      "offHint": "SMTP polja nisu obavezna. Email dodatak ostaje ugašen i ne može se uključiti dok je SMTP isključen.",
+      "onHint": "Unesite SMTP host, port, TLS, korisnika, lozinku i from adresu. Lozinka se čuva kao secret.",
+      "host": "SMTP host",
+      "port": "SMTP port",
+      "tls": "TLS",
+      "username": "SMTP korisnik",
+      "password": "SMTP lozinka",
+      "fromAddress": "From adresa",
+      "configured": "Lozinka je već sačuvana. Ostavite prazno da zadržite postojeću vrijednost.",
+      "submit": "Dalje",
+      "saving": "Spremanje…",
+      "errorIncomplete": "Za uključen SMTP unesite host, port, korisnika, lozinku i validnu from adresu.",
+      "errorInvalid": "SMTP konfiguracija nije ispravna ili nije potpuna.",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati."
     }
   },
   "routing": {

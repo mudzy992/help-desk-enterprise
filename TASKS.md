@@ -43,7 +43,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Gate: dok nije `private.install.completedAt` → `/install` i API `503 SETUP_REQUIRED`
 - [x] Korak SuperAdmin: uvijek lokalni user (`isLocalOnly`), password hash u User, break-glass login ostaje i uz AD
 - [x] Korak prijava: `local` | `entra_ad` (+ AD/Entra polja ako AD)
-- [ ] Korak SMTP: switch + secret postavke; OFF forsirano gasi email addon
+- [x] Korak SMTP: switch + secret postavke; OFF forsirano gasi email addon
 - [ ] Korak seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu
 - [ ] Korak dodaci: switch katalog (SLA, email, Edge, Teams stub, CSAT, auto-assign, …)
 - [ ] Zaključavanje wizarda nakon complete; dalje samo Settings. Change log `install_wizard`

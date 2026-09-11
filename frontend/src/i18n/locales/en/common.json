@@ -58,6 +58,26 @@
       "errorInvalid": "The sign-in configuration is invalid or incomplete.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The sign-in method cannot be saved right now."
+    },
+    "smtp": {
+      "heading": "SMTP",
+      "body": "Enable SMTP for outbound email or leave it off. Off forcibly disables the email addon.",
+      "enabled": "SMTP enabled",
+      "offHint": "SMTP fields are not required. The email addon stays off and cannot be enabled while SMTP is off.",
+      "onHint": "Enter SMTP host, port, TLS, username, password, and from address. The password is stored as a secret.",
+      "host": "SMTP host",
+      "port": "SMTP port",
+      "tls": "TLS",
+      "username": "SMTP username",
+      "password": "SMTP password",
+      "fromAddress": "From address",
+      "configured": "A password is already saved. Leave empty to keep the current value.",
+      "submit": "Continue",
+      "saving": "Saving…",
+      "errorIncomplete": "When SMTP is on, enter host, port, username, password, and a valid from address.",
+      "errorInvalid": "The SMTP configuration is invalid or incomplete.",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The SMTP configuration cannot be saved right now."
     }
   },
   "routing": {

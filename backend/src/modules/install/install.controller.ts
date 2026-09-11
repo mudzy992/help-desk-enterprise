@@ -8,14 +8,20 @@ import {
 } from '@nestjs/common';
 import { CreateInstallSuperAdminDto } from './dto/create-install-super-admin.dto';
 import { SaveInstallLoginProviderDto } from './dto/save-install-login-provider.dto';
+import { SaveInstallSmtpDto } from './dto/save-install-smtp.dto';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSetupService } from './install-setup.service';
+import { InstallSmtpService } from './install-smtp.service';
 import { InstallSuperAdminService } from './install-super-admin.service';
 import type {
   InstallLoginProviderPublicRecord,
   InstallLoginProviderStatus,
 } from './install-login-provider.types';
 import type { InstallSetupStatus } from './install-setup.types';
+import type {
+  InstallSmtpPublicRecord,
+  InstallSmtpStatus,
+} from './install-smtp.types';
 import type {
   InstallSuperAdminPublicRecord,
   InstallSuperAdminStatus,
@@ -34,6 +40,7 @@ export class InstallController {
     private readonly installSetupService: InstallSetupService,
     private readonly installSuperAdminService: InstallSuperAdminService,
     private readonly installLoginProviderService: InstallLoginProviderService,
+    private readonly installSmtpService: InstallSmtpService,
   ) {}
 
   @Get('status')
@@ -63,5 +70,15 @@ export class InstallController {
     @Body() body: SaveInstallLoginProviderDto,
   ): Promise<InstallLoginProviderPublicRecord> {
     return this.installLoginProviderService.save(body);
+  }
+
+  @Get('smtp')
+  getSmtp(): Promise<InstallSmtpStatus> {
+    return this.installSmtpService.getStatus();
+  }
+
+  @Post('smtp')
+  saveSmtp(@Body() body: SaveInstallSmtpDto): Promise<InstallSmtpPublicRecord> {
+    return this.installSmtpService.save(body);
   }
 }

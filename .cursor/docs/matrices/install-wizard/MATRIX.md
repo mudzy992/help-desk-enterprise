@@ -31,7 +31,9 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 - `local` postavlja `private.auth.mode=local` bez AD/Entra polja.
 - `entra_ad` zahtijeva validan Entra tenant+client **ili** LDAPS bind (URLs + bind DN + bind password) prije complete; secret polja idu kroz Settings Registry (`getSecretForInternalUse` / `isSecret`).
 - `entra_ad` ne uklanja local break-glass login.
-- SMTP OFF ⇒ `private.addons.email=false` (forsirano).
+- SMTP korak: `GET/POST /install/smtp`. Switch `private.smtp.enabled`. Ako ON: host, port, TLS, username, password (secret), from address kroz Settings Registry. Ako OFF: konfiguracija nije obavezna; `private.addons.email=false` forsirano.
+- SMTP OFF ima prednost nad sačuvanim `private.addons.email=true` (`resolveEmailAddonEnabled`). Nema paralelnog email flag-a.
+- API ne izlaže SMTP password; change log redaktuje secret.
 - Core moduli nisu addoni (vidi `04-install-wizard.md`).
 - Seed: min 1 OU, 1 fallback grupa, 1 servis + routing na tu grupu.
 - Completed wizard piše change log (reason=`install_wizard`).
@@ -45,4 +47,4 @@ Nakon validnog `completedAt`: HTTP gate je neaktivan; auth/API/aplikacija rade k
 
 ## UI
 Constitution: linear steps, primary CTA “Dalje” / “Završi”, bez dekoracije.
-SuperAdmin korak je first-run forma bez application shell-a. Nakon SuperAdmin nalog slijedi korak načina prijave (`local` | `entra_ad`). Dok kasniji koraci nisu implementirani, ostaju izvan ovog ekrana.
+SuperAdmin korak je first-run forma bez application shell-a. Nakon SuperAdmin nalog slijedi korak načina prijave (`local` | `entra_ad`), zatim SMTP switch. Dok seed/addons nisu implementirani, ostaju izvan ovog ekrana.

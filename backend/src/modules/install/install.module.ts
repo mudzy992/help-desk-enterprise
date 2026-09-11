@@ -5,6 +5,7 @@ import { InstallController } from './install.controller';
 import { InstallLoginProviderService } from './install-login-provider.service';
 import { InstallSetupGuard } from './install-setup.guard';
 import { InstallSetupService } from './install-setup.service';
+import { InstallSmtpService } from './install-smtp.service';
 import { InstallSuperAdminService } from './install-super-admin.service';
 
 @Module({
@@ -14,6 +15,7 @@ import { InstallSuperAdminService } from './install-super-admin.service';
     InstallSetupService,
     InstallSuperAdminService,
     InstallLoginProviderService,
+    InstallSmtpService,
     InstallSetupGuard,
     {
       provide: APP_GUARD,

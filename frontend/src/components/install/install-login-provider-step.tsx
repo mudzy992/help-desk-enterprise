@@ -25,7 +25,11 @@ import {
   type InstallLoginProviderRecord,
 } from "@/services/install-api";
 
-export function InstallLoginProviderStep() {
+export function InstallLoginProviderStep({
+  onSaved,
+}: {
+  readonly onSaved?: () => void;
+}) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallLoginProviderRecord | null>(null);
   const [mode, setMode] = useState<InstallLoginProviderMode>("local");
@@ -87,6 +91,7 @@ export function InstallLoginProviderStep() {
       setAzureClientId("");
       setAdBindDn("");
       setAdBindPassword("");
+      onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallLoginProviderSaveError(error));
     } finally {
