@@ -20,7 +20,10 @@ export function isCreateTicketDraftReady(draft: CreateTicketDraft): boolean {
   );
 }
 
-export function buildCreateTicketInput(draft: CreateTicketDraft): CreateTicketInput {
+export function buildCreateTicketInput(
+  draft: CreateTicketDraft,
+  options: { readonly acknowledgeDuplicate?: boolean } = {},
+): CreateTicketInput {
   return {
     title: draft.title.trim(),
     description: draft.description.trim(),
@@ -32,6 +35,7 @@ export function buildCreateTicketInput(draft: CreateTicketDraft): CreateTicketIn
       ? {}
       : { formVersionRef: draft.formVersionRef }),
     ...(Object.keys(draft.formData).length === 0 ? {} : { formData: draft.formData }),
+    ...(options.acknowledgeDuplicate === true ? { acknowledgeDuplicate: true } : {}),
   };
 }
 

@@ -123,11 +123,13 @@ export function CreateTicketForm() {
     }
   };
 
-  const submitTicket = async () => {
+  const submitTicket = async (acknowledgeDuplicate = false) => {
     setIsSubmitting(true);
     setErrorKey(null);
     try {
-      const created = await createTicket(buildCreateTicketInput(draft));
+      const created = await createTicket(
+        buildCreateTicketInput(draft, { acknowledgeDuplicate }),
+      );
       void navigate(`/tickets/${created.id}`);
     } catch (error) {
       setErrorKey(mapTicketError(error));
@@ -144,6 +146,16 @@ export function CreateTicketForm() {
     return (
       <div className="mt-4">
         {displayedError ? <TicketErrorState errorKey={displayedError} /> : null}
+        {displayedError === "tickets.errorDuplicateTicket" ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => void submitTicket(true)}
+          >
+            {isSubmitting ? t("tickets.creating") : t("tickets.createAnyway")}
+          </Button>
+        ) : null}
         <KnowledgeInterceptPanel
           items={suggestions}
           helped={helped}

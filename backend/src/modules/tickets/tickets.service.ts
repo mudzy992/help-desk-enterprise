@@ -7,16 +7,17 @@ import { TicketAssignmentService } from './assignment/ticket-assignment.service'
 import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
 import type { TicketPersistedMessageSink } from './collaboration.types';
-import { createTicket } from './create-ticket';
 import { executeTicketOperation } from './execute-ticket-operation';
 import { getTicket } from './get-ticket';
 import { listTickets } from './list-tickets';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
 import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
 import { scanTicketContent } from './redaction/assert-ticket-content-redaction';
 import { TicketRequiredFieldsConfigurationLoader } from './required-fields/ticket-required-fields-configuration.loader';
 import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configuration.loader';
 import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
+import { runTicketsServiceCreate } from './run-tickets-service-create';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import {
   respondLoadedTicket,
@@ -44,41 +45,29 @@ export class TicketsService {
     private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly requiredFieldsConfigurationLoader: TicketRequiredFieldsConfigurationLoader,
     private readonly redactionConfigurationLoader: TicketRedactionConfigurationLoader,
+    private readonly guardrailsConfigurationLoader: TicketGuardrailsConfigurationLoader,
     private readonly confidentialLoader: TicketConfidentialConfigurationLoader,
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
   create(input: CreateTicketInput, context: TicketMutationContext) {
-    return executeTicketOperation(async () => {
-      const gated = await this.gate(context);
-      const messages: TicketPersistedMessageSink = [];
-      const redaction = await this.redactionConfigurationLoader.load();
-      const created = await createTicket(
-        this.prisma,
-        this.routingService,
-        this.authorizationContextLoader,
-        this.approvalsConfigurationLoader,
-        input,
-        gated,
-        messages,
-        redaction,
-      );
-      const assigned = await this.ticketAssignmentService.applyAfterCreate(
-        created,
-        gated,
-        messages,
-      );
-      publishPersistedTicketMessages(this.realtimeHub, assigned, messages);
-      return this.respond(
-        assigned,
-        scanTicketContent({
-          configuration: redaction,
-          title: assigned.title,
-          description: assigned.description,
-        }).matches,
-      );
-    });
+    return executeTicketOperation(async () =>
+      runTicketsServiceCreate({
+        prisma: this.prisma,
+        routingService: this.routingService,
+        authorizationContextLoader: this.authorizationContextLoader,
+        approvalsConfigurationLoader: this.approvalsConfigurationLoader,
+        assignmentService: this.ticketAssignmentService,
+        redactionLoader: this.redactionConfigurationLoader,
+        guardrailsLoader: this.guardrailsConfigurationLoader,
+        reopenLoader: this.reopenConfigurationLoader,
+        closeCodesLoader: this.closeCodesConfigurationLoader,
+        realtimeHub: this.realtimeHub,
+        body: input,
+        context: await this.gate(context),
+      }),
+    );
   }
 
   list(query: ListTicketsQuery, context: TicketMutationContext) {

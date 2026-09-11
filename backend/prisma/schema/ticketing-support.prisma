@@ -122,3 +122,23 @@ model BreakGlassEvent {
   @@index([ticketId])
   @@index([actorUserId])
 }
+
+model GuardrailClaim {
+  id          String    @id @default(cuid())
+  kind        String
+  subjectKey  String
+  fingerprint String
+  ticketId    String?
+  actorUserId String?
+  ticket      Ticket?   @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  actor       User?     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  claimedAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([kind, subjectKey, fingerprint])
+  @@index([kind, subjectKey, claimedAt])
+  @@index([ticketId])
+  @@index([expiresAt])
+}

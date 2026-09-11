@@ -2,6 +2,7 @@ import type { JsonValue } from '../change-log/change-log.types';
 import type { CloseCodeDescriptor, TicketCloseCodesConfiguration } from './close-codes/close-codes.types';
 import { listConfiguredCloseCodes } from './close-codes/resolve-close-code-record';
 import type { RedactionMatch } from './redaction/redaction.types';
+import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
 import { describeTicketReopen } from './reopen/resolve-ticket-reopen-policy';
 import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -43,6 +44,7 @@ export function toTicketClientResponse(
     readonly closeCodes: TicketCloseCodesConfiguration;
     readonly closeCode: CloseCodeDescriptor | null;
     readonly redactionWarnings?: readonly RedactionMatch[];
+    readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
     readonly now?: Date;
   },
 ): TicketResponse {
@@ -57,6 +59,7 @@ export function toTicketClientResponse(
       resolutionNote: record.resolutionNote,
     },
     redactionWarnings: input.redactionWarnings,
+    duplicateWarnings: input.duplicateWarnings,
   };
 }
 

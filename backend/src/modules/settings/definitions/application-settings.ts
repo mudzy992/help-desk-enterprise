@@ -24,6 +24,7 @@ import { ticketRequiredFieldsSettings } from './ticket-required-fields-settings'
 import { securityRedactionSettings } from './security-redaction-settings';
 import { securitySafeLoggingSettings } from './security-safe-logging-settings';
 import { ticketConfidentialSettings } from './ticket-confidential-settings';
+import { guardrailsSettings } from './guardrails-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -47,6 +48,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...securityRedactionSettings,
   ...securitySafeLoggingSettings,
   ...ticketConfidentialSettings,
+  ...guardrailsSettings,
   ...changeLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

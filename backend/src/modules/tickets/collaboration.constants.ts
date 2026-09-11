@@ -81,6 +81,8 @@ export const ticketSystemEventActions = {
   confidentialViewed: 'ticket_confidential_viewed',
   confidentialDenied: 'ticket_confidential_denied',
   confidentialBreakGlass: 'ticket_confidential_break_glass',
+  guardrailDuplicateWarned: 'ticket_guardrail_duplicate_warned',
+  guardrailLoopSuppressed: 'ticket_guardrail_loop_suppressed',
 } as const;
 
 export const ticketRealtimeEventNames = {

@@ -331,6 +331,7 @@
     "openArticle": "Otvori članak",
     "closeArticle": "Zatvori članak",
     "continueCreate": "Kreiraj tiket",
+    "createAnyway": "Svejedno kreiraj",
     "creating": "Kreiranje…",
     "helpedSkip": "Označili ste da je članak pomogao. Tiket i dalje možete kreirati ako treba.",
     "created": "Tiket je kreiran.",
@@ -434,6 +435,8 @@
       "reasonPlaceholder": "Obrazloženje",
       "closeForbidden": "Bulk zatvaranje nije dostupno (zaštita kvaliteta)",
       "apply": "Primijeni",
+      "confirmSend": "Potvrdi slanje",
+      "confirmRecipients": "Broj primalaca je iznad praga. Kliknite ponovo za potvrdu.",
       "applying": "Primjena…",
       "clear": "Poništi odabir"
     },
@@ -485,6 +488,8 @@
     "errorRequiredFields": "Prije rješavanja ili zatvaranja unesite obavezna polja.",
     "errorCloseCodeInvalid": "Šifra zatvaranja nije na dozvoljenoj listi.",
     "errorRedactionBlocked": "Sadržaj izgleda kao tajna ili lični podatak i nije sačuvan.",
+    "errorDuplicateTicket": "Već postoji sličan tiket. Potvrdite ako i dalje trebate novi.",
+    "errorBulkBroadcastConfirm": "Broadcast prelazi prag primalaca i treba dodatnu potvrdu.",
     "errorConfidentialBreakGlass": "Povjerljivi tiket. Pristup je moguć samo kroz break-glass uz razlog.",
     "errorBreakGlassReason": "Break-glass zahtijeva razlog.",
     "confidential": {

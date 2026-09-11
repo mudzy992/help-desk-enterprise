@@ -1,6 +1,7 @@
 # CHANGELOG — settings-registry
 
 ## 2026-09-11
+- Dodani `private.guardrails.antiLoop.*` i `private.guardrails.bulkBroadcast.confirmAboveRecipients` za anti-loop/anti-spam. Nema paralelnog settings sistema.
 - Dodani `private.ticket.confidential.*` i `private.security.safeLogging.*` za confidential ACL, break-glass i safe logging. Addon flag ostaje `private.addons.confidential`.
 - Dodani `private.ticket.approvals.*` ključevi (`enabled`, secret `requiredByServiceJson`, `defaultApproverRole`, `allowRequesterManager`) za Pending Approval hold. Addon flag ostaje `private.addons.approvals`. Nema AD manager lookup-a.
 - `private.auth.jwtSigningSecret` ostaje secret bez defaulta; install complete ga provisionira kad nedostaje. Nema env JWT ključa.

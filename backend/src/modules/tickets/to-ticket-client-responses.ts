@@ -2,6 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { loadCloseCodesByIds } from './close-codes/resolve-close-code-record';
 import type { TicketCloseCodesConfiguration } from './close-codes/close-codes.types';
 import type { RedactionMatch } from './redaction/redaction.types';
+import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
 import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -13,6 +14,7 @@ export async function toTicketClientResponses(
     readonly reopen: TicketReopenConfiguration;
     readonly closeCodes: TicketCloseCodesConfiguration;
     readonly redactionWarnings?: readonly RedactionMatch[];
+    readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
     readonly now?: Date;
   },
 ): Promise<readonly TicketResponse[]> {
@@ -29,6 +31,7 @@ export async function toTicketClientResponses(
           ? null
           : (closeCodes.get(record.closeCodeId) ?? null),
       redactionWarnings: input.redactionWarnings,
+      duplicateWarnings: input.duplicateWarnings,
       now: input.now,
     }),
   );
@@ -41,6 +44,7 @@ export async function toSingleTicketClientResponse(
     readonly reopen: TicketReopenConfiguration;
     readonly closeCodes: TicketCloseCodesConfiguration;
     readonly redactionWarnings?: readonly RedactionMatch[];
+    readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
     readonly now?: Date;
   },
 ): Promise<TicketResponse> {
@@ -56,11 +60,13 @@ export async function respondLoadedTicket(
     readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
   },
   redactionWarnings?: readonly RedactionMatch[],
+  duplicateWarnings?: readonly DuplicateTicketMatch[],
 ): Promise<TicketResponse> {
   return toSingleTicketClientResponse(prisma, record, {
     reopen: await loaders.reopen.load(),
     closeCodes: await loaders.closeCodes.load(),
     redactionWarnings,
+    duplicateWarnings,
   });
 }
 

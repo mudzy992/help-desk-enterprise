@@ -32,6 +32,7 @@ model User {
   confidentialGrants   TicketConfidentialGrant[]  @relation("ConfidentialGrantSubject")
   grantedConfidential  TicketConfidentialGrant[]  @relation("ConfidentialGrantActor")
   breakGlassEvents     BreakGlassEvent[]
+  guardrailClaims      GuardrailClaim[]
   ownedArticles        KnowledgeArticle[]         @relation("KnowledgeArticleOwner")
   reviewedArticles     KnowledgeArticle[]         @relation("KnowledgeArticleReviewer")
   knowledgeFeedbacks   KnowledgeFeedback[]

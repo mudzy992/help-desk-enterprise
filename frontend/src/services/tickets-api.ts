@@ -42,6 +42,7 @@ export type TicketResponse = {
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
   readonly redactionWarnings?: readonly RedactionMatch[];
+  readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -50,6 +51,12 @@ export type RedactionMatch = {
   readonly field: string;
   readonly patternId: string;
   readonly risk: "standard" | "high";
+};
+
+export type DuplicateTicketMatch = {
+  readonly ticketId: string;
+  readonly ticketNumber: string;
+  readonly similarity: number;
 };
 
 export type CloseCodeDescriptor = {
@@ -81,6 +88,7 @@ export type CreateTicketInput = {
   readonly originUnitId?: string;
   readonly formVersionRef?: string;
   readonly formData?: Record<string, unknown>;
+  readonly acknowledgeDuplicate?: boolean;
 };
 
 export type UpdateTicketInput = {

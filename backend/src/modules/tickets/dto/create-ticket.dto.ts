@@ -51,4 +51,8 @@ export class CreateTicketDto {
   @IsOptional()
   @IsBoolean()
   isConfidential?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  acknowledgeDuplicate?: boolean;
 }

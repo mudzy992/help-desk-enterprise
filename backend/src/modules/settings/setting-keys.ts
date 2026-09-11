@@ -211,6 +211,14 @@ export const settingKeys = {
     'private.security.safeLogging.levelsCsv',
   privateSecuritySafeLoggingRedactFieldsCsv:
     'private.security.safeLogging.redactFieldsCsv',
+  privateGuardrailsAntiLoopEnabled: 'private.guardrails.antiLoop.enabled',
+  privateGuardrailsAntiLoopDuplicateWindowMinutes:
+    'private.guardrails.antiLoop.duplicateWindowMinutes',
+  privateGuardrailsAntiLoopSimilarityThreshold:
+    'private.guardrails.antiLoop.similarityThreshold',
+  privateGuardrailsAntiLoopMode: 'private.guardrails.antiLoop.mode',
+  privateGuardrailsBulkBroadcastConfirmAboveRecipients:
+    'private.guardrails.bulkBroadcast.confirmAboveRecipients',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

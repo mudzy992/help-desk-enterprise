@@ -22,6 +22,11 @@ import type {
 import { executeTicketBulk } from './execute-ticket-bulk';
 import { loadBulkTickets } from './load-bulk-tickets';
 import { TicketBulkConfigurationLoader } from './ticket-bulk-configuration.loader';
+import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
+import {
+  assertBulkBroadcastConfirmation,
+  requiresBulkBroadcastConfirmation,
+} from '../guardrails/assert-bulk-broadcast-confirmation';
 
 @Injectable()
 export class TicketsBulkService {
@@ -29,6 +34,7 @@ export class TicketsBulkService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly bulkConfigurationLoader: TicketBulkConfigurationLoader,
+    private readonly guardrailsConfigurationLoader: TicketGuardrailsConfigurationLoader,
     private readonly reopenConfigurationLoader: TicketReopenConfigurationLoader,
     private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
@@ -71,11 +77,19 @@ export class TicketsBulkService {
         configuration,
         tickets,
       });
+      const guardrails = await this.guardrailsConfigurationLoader.load();
+      const recipientCount = countBroadcastRecipients(tickets);
+      const requiresBroadcastConfirmation = requiresBulkBroadcastConfirmation({
+        configuration: guardrails,
+        recipientCount,
+      });
       return {
         ticketCount: tickets.length,
-        recipientCount: countBroadcastRecipients(tickets),
+        recipientCount,
         emailRequested: configuration.broadcastEnableEmail,
-        requiresConfirmation: configuration.broadcastRequirePreview,
+        requiresConfirmation:
+          configuration.broadcastRequirePreview || requiresBroadcastConfirmation,
+        requiresBroadcastConfirmation,
       };
     });
   }
@@ -101,6 +115,13 @@ export class TicketsBulkService {
         body.ticketIds,
         gated,
       );
+      if (body.actionType === 'broadcast_message') {
+        assertBulkBroadcastConfirmation({
+          configuration: await this.guardrailsConfigurationLoader.load(),
+          recipientCount: countBroadcastRecipients(tickets),
+          broadcastConfirmed: body.broadcastConfirmed,
+        });
+      }
       const result = await executeTicketBulk({
         prisma: this.prisma,
         context: authContext,

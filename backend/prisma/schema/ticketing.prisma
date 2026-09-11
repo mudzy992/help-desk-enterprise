@@ -51,6 +51,7 @@ model Ticket {
   csat                 TicketCsat?
   confidentialGrants   TicketConfidentialGrant[]
   breakGlassEvents     BreakGlassEvent[]
+  guardrailClaims      GuardrailClaim[]
   slaState             TicketSlaState?
   notifications        Notification[]
   createdAt            DateTime                   @default(now())

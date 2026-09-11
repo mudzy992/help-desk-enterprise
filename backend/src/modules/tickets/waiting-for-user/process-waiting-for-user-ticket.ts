@@ -8,12 +8,15 @@ import { recordTicketChange } from '../record-ticket-change';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import type { TicketRecord } from '../tickets.types';
 import { evaluateWaitingForUserAction } from './evaluate-waiting-for-user-action';
+import { claimWaitingForUserAutomation } from './claim-waiting-for-user-automation';
 import type { WaitingForUserConfiguration } from './waiting-for-user.types';
+import type { TicketGuardrailsConfiguration } from '../guardrails/guardrails.types';
 
 export async function processWaitingForUserTicket(input: {
   readonly prisma: PrismaService;
   readonly ticket: TicketRecord;
   readonly configuration: WaitingForUserConfiguration;
+  readonly guardrails: TicketGuardrailsConfiguration;
   readonly now: Date;
   readonly messages?: TicketPersistedMessageSink;
 }): Promise<TicketRecord> {
@@ -24,6 +27,17 @@ export async function processWaitingForUserTicket(input: {
     now: input.now,
   });
   if (action === 'none' || input.ticket.status !== 'WAITING_FOR_USER') {
+    return input.ticket;
+  }
+  const allowed = await claimWaitingForUserAutomation({
+    prisma: input.prisma,
+    ticket: input.ticket,
+    action,
+    guardrails: input.guardrails,
+    now: input.now,
+    messages: input.messages,
+  });
+  if (!allowed) {
     return input.ticket;
   }
   if (action === 'remind') {

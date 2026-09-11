@@ -9,6 +9,8 @@ import type {
   RedactionScanResult,
   TicketRedactionConfiguration,
 } from './redaction/redaction.types';
+import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
+import { recordDuplicateTicketWarning } from './guardrails/record-guardrail-warning';
 import { recordTicketChange } from './record-ticket-change';
 import { seedDefaultTicketParticipants } from './seed-default-ticket-participants';
 import { ticketChangeLogReasons } from './tickets.constants';
@@ -21,6 +23,7 @@ export async function writeCreatedTicketFollowUp(
   messages: TicketPersistedMessageSink,
   scan: RedactionScanResult,
   redaction?: TicketRedactionConfiguration,
+  duplicateWarnings: readonly DuplicateTicketMatch[] = [],
 ): Promise<void> {
   await recordTicketChange(prisma, {
     action: changeLogActions.create,
@@ -44,6 +47,13 @@ export async function writeCreatedTicketFollowUp(
     ticketId: record.id,
     actorUserId: context.actorUserId,
     scan,
+    messages,
+  });
+  await recordDuplicateTicketWarning({
+    prisma,
+    ticket: record,
+    actorUserId: context.actorUserId,
+    matches: duplicateWarnings,
     messages,
   });
   if (record.status !== 'PENDING_APPROVAL') {

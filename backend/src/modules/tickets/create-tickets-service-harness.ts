@@ -12,6 +12,7 @@ import { defaultTicketReopenConfiguration } from './reopen/reopen.constants';
 import { defaultTicketCloseCodesConfiguration } from './close-codes/close-codes.constants';
 import { defaultTicketRequiredFieldsConfiguration } from './required-fields/required-fields.constants';
 import { defaultTicketRedactionConfiguration } from './redaction/redaction.constants';
+import { defaultTicketGuardrailsConfiguration } from './guardrails/guardrails.constants';
 import { TicketsReopenService } from './reopen/tickets-reopen.service';
 import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
 import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
@@ -88,6 +89,17 @@ export function createTicketsServiceHarness() {
     applyToFields: [...defaultTicketRedactionConfiguration.applyToFields],
     patterns: [...defaultTicketRedactionConfiguration.patterns],
   };
+  const guardrailsConfig = {
+    enabled: defaultTicketGuardrailsConfiguration.enabled as boolean,
+    duplicateWindowMinutes: 24 * 60,
+    similarityThreshold:
+      defaultTicketGuardrailsConfiguration.similarityThreshold as number,
+    mode: defaultTicketGuardrailsConfiguration.mode as 'warn_only' | 'soft_block',
+    confirmAboveRecipients:
+      defaultTicketGuardrailsConfiguration.confirmAboveRecipients as number,
+    maxRepeatsPerSubject:
+      defaultTicketGuardrailsConfiguration.maxRepeatsPerSubject as number,
+  };
   const authorizationContextLoader = {
     loadBySubjectId: async (subjectId: string) =>
       contexts.get(subjectId) ?? null,
@@ -106,6 +118,7 @@ export function createTicketsServiceHarness() {
   const closeCodesLoader = { load: async () => ({ ...closeCodesConfig }) };
   const requiredFieldsLoader = { load: async () => ({ ...requiredFieldsConfig }) };
   const redactionLoader = { load: async () => ({ ...redactionConfig }) };
+  const guardrailsLoader = { load: async () => ({ ...guardrailsConfig }) };
   const policy = createTicketPolicyHarness(
     memory.prisma,
     authorizationContextLoader,
@@ -121,6 +134,7 @@ export function createTicketsServiceHarness() {
     closeCodesLoader as never,
     requiredFieldsLoader as never,
     redactionLoader as never,
+    guardrailsLoader as never,
     policy.confidentialLoader as never,
     policy.safeLoggingLoader as never,
     realtimeHub,
@@ -164,6 +178,7 @@ export function createTicketsServiceHarness() {
   const waitingAutomation = new WaitingForUserAutomationService(
     memory.prisma as never,
     waitingLoader as never,
+    guardrailsLoader as never,
     realtimeHub,
   );
   const governance = createTicketsGovernanceHarness({
@@ -176,6 +191,7 @@ export function createTicketsServiceHarness() {
     assignment,
     accessPolicies: policy.accessPolicies,
     realtimeHub,
+    guardrailsLoader,
   });
   seedTicketsHarnessCatalog(memory);
   seedTicketsHarnessActors(contexts);
@@ -197,6 +213,7 @@ export function createTicketsServiceHarness() {
     closeCodesConfig,
     requiredFieldsConfig,
     redactionConfig,
+    guardrailsConfig,
     confidentialConfig: policy.confidentialConfig,
     safeLoggingConfig: policy.safeLoggingConfig,
     confidential: policy.confidential,

@@ -33,6 +33,15 @@ import {
 } from './redaction/assert-ticket-content-redaction';
 import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
 import { resolveCreateConfidentialFlag } from './confidential/resolve-create-confidential-flag';
+import {
+  applyCreateTicketGuardrails,
+  duplicateGuardrailSubjectKey,
+} from './guardrails/apply-create-ticket-guardrails';
+import { runExclusiveGuardrail } from './guardrails/run-exclusive-guardrail';
+import type {
+  DuplicateTicketMatch,
+  TicketGuardrailsConfiguration,
+} from './guardrails/guardrails.types';
 import { writeCreatedTicketFollowUp } from './write-created-ticket-follow-up';
 import type {
   CreateTicketInput,
@@ -49,6 +58,8 @@ export async function createTicket(
   context: TicketMutationContext,
   messages: TicketPersistedMessageSink = [],
   redaction?: TicketRedactionConfiguration,
+  guardrails?: TicketGuardrailsConfiguration,
+  duplicateWarnings: DuplicateTicketMatch[] = [],
 ): Promise<TicketRecord> {
   const authContext = await authorizationContextLoader.loadBySubjectId(
     context.actorUserId,
@@ -124,46 +135,62 @@ export async function createTicket(
     description,
   });
   assertRedactionAllowed(scan);
-  const created = await prisma.$transaction(async (transaction) => {
-    const ticketNumber = await nextTicketNumber(() =>
-      transaction.ticket.count(),
-    );
-    const record = (await transaction.ticket.create({
-      data: {
-        ticketNumber,
-        title,
-        description,
-        status,
-        priority: calculateTicketPriority(input.impact, input.urgency),
-        impact: input.impact,
-        urgency: input.urgency,
-        classification: input.classification ?? service.classification,
-        isConfidential: resolveCreateConfidentialFlag({
-          requested: input.isConfidential,
-          serviceId,
-          serviceDefault: service.isConfidentialDefault,
-          configuration: context.confidential ?? defaultTicketConfidentialConfiguration,
-        }),
-        formData: toTicketFormDataInput(input.formData),
-        originUnitId,
-        serviceId,
-        formVersionId: formVersionRef,
+  const created = await runExclusiveGuardrail(
+    duplicateGuardrailSubjectKey(requester.id, serviceId),
+    async () => {
+      await applyCreateTicketGuardrails({
+        prisma,
+        createInput: input,
         requesterId: requester.id,
-        assignedGroupId: routing.assignedGroupId,
-        assignedUserId: null,
-        parentTicketId: input.parentTicketId ?? null,
-        reopenedFromTicketId: input.reopenedFromTicketId ?? null,
-      },
-    })) as TicketRecord;
-    await writeCreatedTicketFollowUp(
-      transaction as PrismaService,
-      record,
-      context,
-      messages,
-      scan,
-      redaction,
-    );
-    return record;
-  });
+        serviceId,
+        description,
+        configuration: guardrails,
+        sink: duplicateWarnings,
+      });
+      return prisma.$transaction(async (transaction) => {
+        const ticketNumber = await nextTicketNumber(() =>
+          transaction.ticket.count(),
+        );
+        const record = (await transaction.ticket.create({
+          data: {
+            ticketNumber,
+            title,
+            description,
+            status,
+            priority: calculateTicketPriority(input.impact, input.urgency),
+            impact: input.impact,
+            urgency: input.urgency,
+            classification: input.classification ?? service.classification,
+            isConfidential: resolveCreateConfidentialFlag({
+              requested: input.isConfidential,
+              serviceId,
+              serviceDefault: service.isConfidentialDefault,
+              configuration:
+                context.confidential ?? defaultTicketConfidentialConfiguration,
+            }),
+            formData: toTicketFormDataInput(input.formData),
+            originUnitId,
+            serviceId,
+            formVersionId: formVersionRef,
+            requesterId: requester.id,
+            assignedGroupId: routing.assignedGroupId,
+            assignedUserId: null,
+            parentTicketId: input.parentTicketId ?? null,
+            reopenedFromTicketId: input.reopenedFromTicketId ?? null,
+          },
+        })) as TicketRecord;
+        await writeCreatedTicketFollowUp(
+          transaction as PrismaService,
+          record,
+          context,
+          messages,
+          scan,
+          redaction,
+          duplicateWarnings,
+        );
+        return record;
+      });
+    },
+  );
   return created;
 }

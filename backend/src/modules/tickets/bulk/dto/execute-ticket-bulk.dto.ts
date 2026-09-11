@@ -59,6 +59,10 @@ export class ExecuteTicketBulkDto implements ExecuteTicketBulkInput {
   previewConfirmed?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  broadcastConfirmed?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(ticketBulkConstants.maximumBroadcastFieldLength)
   whatHappened?: string;

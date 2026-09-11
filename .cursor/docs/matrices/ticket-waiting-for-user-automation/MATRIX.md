@@ -21,7 +21,7 @@ Prozori su 24h periodi od `waitingForUserEnteredAt`. Nisu BH/SLA kalendari.
 | remind | ≥ X dana, reminder nije poslan, još nije Y | `waitingForUserReminderSentAt`, `SYSTEM_EVENT`, ChangeLog `ticket_waiting_for_user_reminder` |
 | auto-close | ≥ Y dana | `CLOSED` + `closedAt`/`resolvedAt`, `SYSTEM_EVENT`, ChangeLog `ticket_waiting_for_user_auto_close` |
 
-Ako su oba prozora dospjela, auto-close pobjeđuje. Sweep: `WaitingForUserAutomationService` interval 15 min na API procesu. Nije BullMQ job (Faza 7).
+Ako su oba prozora dospjela, auto-close pobjeđuje. Sweep: `WaitingForUserAutomationService` interval 15 min na API procesu. Nije BullMQ job (Faza 7). Remind/auto-close prolaze kroz `GuardrailClaim` (`guardrails-anti-loop-anti-spam`) da concurrent sweep i isti trigger ne pošalju dupli event.
 
 ## Reply resume
 `USER_REPLY` dok je `WAITING_FOR_USER` i `enabled=true` ⇒ `IN_PROGRESS`, čisti waiting timestampove. `INTERNAL_NOTE` / `AGENT_REPLY` ne diraju status. Ako je `enabled=false`, status ostaje `WAITING_FOR_USER` (nema reminder/auto-close/resume).

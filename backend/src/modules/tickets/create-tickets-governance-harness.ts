@@ -4,6 +4,7 @@ import { TicketAssignmentService } from './assignment/ticket-assignment.service'
 import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { defaultTicketBulkConfiguration } from './bulk/bulk.constants';
 import { TicketsBulkService } from './bulk/tickets-bulk.service';
+import { defaultTicketGuardrailsConfiguration } from './guardrails/guardrails.constants';
 import { defaultTicketSavedViewsConfiguration } from './saved-views/saved-views.constants';
 import { TicketsSavedViewsService } from './saved-views/tickets-saved-views.service';
 import { defaultTicketSplitConfiguration } from './split/split.constants';
@@ -22,6 +23,7 @@ export function createTicketsGovernanceHarness(input: {
   readonly assignment: TicketAssignmentService;
   readonly accessPolicies: TicketAccessPolicyBinder;
   readonly realtimeHub: TicketRealtimeHub;
+  readonly guardrailsLoader?: { load: () => Promise<unknown> };
 }) {
   const splitConfig = {
     enabled: defaultTicketSplitConfiguration.enabled as boolean,
@@ -57,10 +59,14 @@ export function createTicketsGovernanceHarness(input: {
     input.accessPolicies,
     input.realtimeHub,
   );
+  const guardrailsLoader = input.guardrailsLoader ?? {
+    load: async () => ({ ...defaultTicketGuardrailsConfiguration }),
+  };
   const bulk = new TicketsBulkService(
     input.prisma as never,
     input.authorizationContextLoader as never,
     { load: async () => ({ ...bulkConfig }) } as never,
+    guardrailsLoader as never,
     input.reopenLoader as never,
     input.closeCodesLoader as never,
     input.accessPolicies,

@@ -8,12 +8,14 @@ import type { TicketRecord } from '../tickets.types';
 import { processWaitingForUserTicket } from './process-waiting-for-user-ticket';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user-configuration.loader';
 import { waitingForUserAutomationIntervalMs } from './waiting-for-user.constants';
+import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
 
 @Injectable()
 export class WaitingForUserAutomationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: WaitingForUserConfigurationLoader,
+    private readonly guardrailsLoader: TicketGuardrailsConfigurationLoader,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -24,6 +26,7 @@ export class WaitingForUserAutomationService {
 
   async processDue(now = new Date()): Promise<readonly TicketRecord[]> {
     const configuration = await this.configurationLoader.load();
+    const guardrails = await this.guardrailsLoader.load();
     if (!configuration.enabled) {
       return [];
     }
@@ -37,6 +40,7 @@ export class WaitingForUserAutomationService {
         prisma: this.prisma,
         ticket,
         configuration,
+        guardrails,
         now,
         messages,
       });

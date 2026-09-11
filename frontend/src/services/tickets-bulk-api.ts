@@ -19,6 +19,7 @@ export type ExecuteTicketBulkInput = {
   readonly reason?: string;
   readonly parentTicketId?: string;
   readonly previewConfirmed?: boolean;
+  readonly broadcastConfirmed?: boolean;
   readonly whatHappened?: string;
   readonly whoAffected?: string;
   readonly eta?: string;
@@ -30,6 +31,7 @@ export type TicketBulkPreview = {
   readonly recipientCount: number;
   readonly emailRequested: boolean;
   readonly requiresConfirmation: boolean;
+  readonly requiresBroadcastConfirmation: boolean;
 };
 
 export type TicketBulkResult = {

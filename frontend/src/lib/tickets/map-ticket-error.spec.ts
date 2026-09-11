@@ -25,6 +25,12 @@ describe("mapTicketError", () => {
     expect(mapTicketError(new ApiError(400, "REDACTION_BLOCKED", "no"))).toBe(
       "tickets.errorRedactionBlocked",
     );
+    expect(mapTicketError(new ApiError(409, "DUPLICATE_TICKET_BLOCKED", "no"))).toBe(
+      "tickets.errorDuplicateTicket",
+    );
+    expect(
+      mapTicketError(new ApiError(400, "BULK_BROADCAST_CONFIRMATION_REQUIRED", "no")),
+    ).toBe("tickets.errorBulkBroadcastConfirm");
     expect(
       mapTicketError(new ApiError(403, "CONFIDENTIAL_ACCESS_DENIED", "no")),
     ).toBe("tickets.errorConfidentialBreakGlass");

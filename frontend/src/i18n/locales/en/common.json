@@ -331,6 +331,7 @@
     "openArticle": "Open article",
     "closeArticle": "Close article",
     "continueCreate": "Create ticket",
+    "createAnyway": "Create anyway",
     "creating": "Creating…",
     "helpedSkip": "You marked an article as helpful. You can still create a ticket if needed.",
     "created": "The ticket was created.",
@@ -434,6 +435,8 @@
       "reasonPlaceholder": "Justification",
       "closeForbidden": "Bulk close is not available (quality protection)",
       "apply": "Apply",
+      "confirmSend": "Confirm send",
+      "confirmRecipients": "Recipient count is above the broadcast threshold. Click again to confirm.",
       "applying": "Applying…",
       "clear": "Clear selection"
     },
@@ -485,6 +488,8 @@
     "errorRequiredFields": "Required fields must be completed before resolve or close.",
     "errorCloseCodeInvalid": "That close code is not on the allow-list.",
     "errorRedactionBlocked": "This looks like a secret or personal data and was not saved.",
+    "errorDuplicateTicket": "A similar ticket already exists. Confirm if you still need a new one.",
+    "errorBulkBroadcastConfirm": "This broadcast is above the recipient threshold and needs extra confirmation.",
     "errorConfidentialBreakGlass": "This confidential ticket requires break-glass access with a reason.",
     "errorBreakGlassReason": "Break-glass access requires a reason.",
     "confidential": {

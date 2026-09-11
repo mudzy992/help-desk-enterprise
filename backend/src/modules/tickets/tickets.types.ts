@@ -7,6 +7,7 @@ import type {
 } from '../../generated/prisma/enums';
 import type { TicketClosePolicy } from './close-codes/close-codes.types';
 import type { RedactionMatch } from './redaction/redaction.types';
+import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
 import type { JsonValue } from '../change-log/change-log.types';
 import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
 import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
@@ -69,6 +70,7 @@ export type TicketResponse = {
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
   readonly redactionWarnings?: readonly RedactionMatch[];
+  readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -95,6 +97,7 @@ export type CreateTicketInput = {
   readonly assignedGroupId?: string;
   readonly classification?: DataClassification;
   readonly isConfidential?: boolean;
+  readonly acknowledgeDuplicate?: boolean;
 };
 
 export type UpdateTicketInput = {

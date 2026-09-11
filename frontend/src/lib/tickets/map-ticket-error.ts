@@ -19,6 +19,8 @@ export type TicketErrorKey =
   | "tickets.errorRequiredFields"
   | "tickets.errorCloseCodeInvalid"
   | "tickets.errorRedactionBlocked"
+  | "tickets.errorDuplicateTicket"
+  | "tickets.errorBulkBroadcastConfirm"
   | "tickets.errorConfidentialBreakGlass"
   | "tickets.errorBreakGlassReason"
   | "tickets.redactionWarning"
@@ -44,6 +46,8 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   CLOSE_CODE_INVALID: "tickets.errorCloseCodeInvalid",
   INVALID_RESOLUTION_NOTE: "tickets.errorValidation",
   REDACTION_BLOCKED: "tickets.errorRedactionBlocked",
+  DUPLICATE_TICKET_BLOCKED: "tickets.errorDuplicateTicket",
+  BULK_BROADCAST_CONFIRMATION_REQUIRED: "tickets.errorBulkBroadcastConfirm",
   CONFIDENTIAL_ACCESS_DENIED: "tickets.errorConfidentialBreakGlass",
   BREAK_GLASS_REASON_REQUIRED: "tickets.errorBreakGlassReason",
   BREAK_GLASS_DISABLED: "tickets.errorForbidden",

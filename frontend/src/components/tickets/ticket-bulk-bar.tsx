@@ -32,6 +32,7 @@ export function TicketBulkBar({
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [broadcastArmed, setBroadcastArmed] = useState(false);
   if (selectedIds.size === 0) {
     return null;
   }
@@ -66,8 +67,11 @@ export function TicketBulkBar({
       )}
       <input className={controlClassName} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("tickets.bulk.reasonPlaceholder")} />
       <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.closeForbidden")}</span>
+      {broadcastArmed ? (
+        <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>
+      ) : null}
       <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()}>
-        {busy ? t("tickets.bulk.applying") : t("tickets.bulk.apply")}
+        {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
       </Button>
       <Button type="button" size="sm" variant="outline" onClick={onClear}>{t("tickets.bulk.clear")}</Button>
     </div>
@@ -78,14 +82,20 @@ export function TicketBulkBar({
     try {
       if (actionType === "broadcast_message") {
         const preview = await previewTicketBulk(ticketIds);
+        if (preview.requiresBroadcastConfirmation && !broadcastArmed) {
+          setBroadcastArmed(true);
+          return;
+        }
         await executeTicketBulk({
           ticketIds,
           actionType,
           previewConfirmed: true,
+          broadcastConfirmed: preview.requiresBroadcastConfirmation ? true : undefined,
           whatHappened: reason || value,
           whoAffected: preview.recipientCount.toString(),
           eta: value || "n/a",
         });
+        setBroadcastArmed(false);
       } else {
         await executeTicketBulk({
           ticketIds,
