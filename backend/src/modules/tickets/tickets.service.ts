@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
+import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { createTicket } from './create-ticket';
 import { getTicket } from './get-ticket';
 import { listTickets } from './list-tickets';
@@ -22,23 +23,25 @@ export class TicketsService {
     private readonly prisma: PrismaService,
     private readonly routingService: RoutingService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly ticketAssignmentService: TicketAssignmentService,
   ) {}
 
   create(
     input: CreateTicketInput,
     context: TicketMutationContext,
   ): Promise<TicketResponse> {
-    return this.execute(async () =>
-      toTicketResponse(
-        await createTicket(
-          this.prisma,
-          this.routingService,
-          this.authorizationContextLoader,
-          input,
-          context,
-        ),
-      ),
-    );
+    return this.execute(async () => {
+      const created = await createTicket(
+        this.prisma,
+        this.routingService,
+        this.authorizationContextLoader,
+        input,
+        context,
+      );
+      return toTicketResponse(
+        await this.ticketAssignmentService.applyAfterCreate(created, context),
+      );
+    });
   }
 
   list(
@@ -56,6 +59,15 @@ export class TicketsService {
     });
   }
 
+  listInbox(
+    context: TicketMutationContext,
+  ): Promise<readonly TicketResponse[]> {
+    return this.execute(async () => {
+      const records = await this.ticketAssignmentService.listInbox(context);
+      return records.map(toTicketResponse);
+    });
+  }
+
   getById(
     ticketId: string,
     context: TicketMutationContext,
@@ -68,6 +80,17 @@ export class TicketsService {
           ticketId,
           context,
         ),
+      ),
+    );
+  }
+
+  claim(
+    ticketId: string,
+    context: TicketMutationContext,
+  ): Promise<TicketResponse> {
+    return this.execute(async () =>
+      toTicketResponse(
+        await this.ticketAssignmentService.claim(ticketId, context),
       ),
     );
   }

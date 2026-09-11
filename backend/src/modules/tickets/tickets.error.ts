@@ -15,7 +15,10 @@ export type TicketsErrorCode =
   | 'INVALID_TITLE'
   | 'INVALID_DESCRIPTION'
   | 'REQUESTER_NOT_FOUND'
-  | 'ROUTING_UNAVAILABLE';
+  | 'ROUTING_UNAVAILABLE'
+  | 'ASSIGNMENT_UNAVAILABLE'
+  | 'GROUP_INBOX_DISABLED'
+  | 'TICKET_NOT_CLAIMABLE';
 
 export class TicketsError extends Error {
   constructor(

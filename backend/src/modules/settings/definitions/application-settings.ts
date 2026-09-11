@@ -9,6 +9,7 @@ import { serviceLifecycleSettings } from './service-lifecycle-settings';
 import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { smtpSettings } from './smtp-settings';
+import { ticketAssignmentSettings } from './ticket-assignment-settings';
 import { ticketRoutingSettings } from './ticket-routing-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
@@ -20,6 +21,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...serviceFormsSettings,
   ...serviceOnboardingSettings,
   ...ticketRoutingSettings,
+  ...ticketAssignmentSettings,
   ...changeLogSettings,
   ...smtpSettings,
   ...addonSettings,

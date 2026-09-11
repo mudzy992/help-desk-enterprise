@@ -1,6 +1,7 @@
 # CHANGELOG — settings-registry
 
 ## 2026-09-11
+- Dodani `private.ticket.autoAssign.enabled`, `private.ticket.autoAssign.strategy` i `private.ticket.groupInbox.enabled` za group inbox i server-side auto-assign. Nisu routing ključevi i ne mijenjaju UNROUTED ponašanje.
 - Dodan `private.install.completedByUserId` (private string, default `""`) uz postojeći `private.install.completedAt` za first-run wizard lock. Nema paralelnog install-state sistema.
 - Dodani preostali `private.addons.*` ključevi iz install-wizard kataloga (`sla`, `edge`, `teamsStub`, `csat`, `autoAssign`, `approvals`, `confidential`, `kbIntercept`, `timeTracking`, `ticketSplit`, `bulkActions`, `savedViews`, `reports`, `serviceDowntime`). Email i dalje default `false`; SMTP off forsira email off. Nema paralelnog feature-flag sistema.
 - Dodani `private.smtp.*` i `private.addons.email` ključevi za install SMTP korak. Password je secret; SMTP off forsira email addon na `false` kroz postojeći addon ključ.

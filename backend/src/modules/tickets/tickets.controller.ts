@@ -58,12 +58,30 @@ export class TicketsController {
     return this.ticketsService.list(query, readTicketMutationContext(request));
   }
 
+  @Get('inbox')
+  listInbox(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<readonly TicketResponse[]> {
+    return this.ticketsService.listInbox(readTicketMutationContext(request));
+  }
+
   @Get(':ticketId')
   getById(
     @Param('ticketId') ticketId: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<TicketResponse> {
     return this.ticketsService.getById(
+      ticketId,
+      readTicketMutationContext(request),
+    );
+  }
+
+  @Post(':ticketId/claim')
+  claim(
+    @Param('ticketId') ticketId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<TicketResponse> {
+    return this.ticketsService.claim(
       ticketId,
       readTicketMutationContext(request),
     );

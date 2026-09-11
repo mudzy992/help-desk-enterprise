@@ -50,7 +50,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Faza 4 — Ticketing workspace
 - [x] Ticket CRUD + state machine guards + impact/urgency → priority
-- [ ] Group inbox + preuzimanje; auto-assign Least Busy / Round Robin
+- [x] Group inbox + preuzimanje; auto-assign Least Busy / Round Robin
 - [ ] Participants + message types + chat/audit + time tracking
 - [ ] Attachments (MIME/ext allow-list, size, disk) + classification inheritance
 - [ ] KB CRUD + intercept + feedback ranking + ownership/review cycle

@@ -6,6 +6,11 @@ import {
   type InMemoryRoutingRuleWhere,
 } from '../routing/in-memory-routing-store';
 import type { RoutingRuleRecord } from '../routing/routing.types';
+import {
+  createInMemoryGroupMemberDelegate,
+  seedInMemoryGroupMember,
+  type InMemoryGroupMember,
+} from './create-in-memory-group-member-delegate';
 import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
 import type { TicketRecord } from './tickets.types';
 
@@ -22,6 +27,7 @@ export type InMemoryTicketService = {
   readonly availability: string;
   readonly classification: string;
   readonly isConfidentialDefault: boolean;
+  readonly autoAssignStrategy?: string;
 };
 
 export type InMemoryTicketUser = {
@@ -46,6 +52,7 @@ export function createInMemoryTicketsPrisma() {
   const units = new Map<string, InMemoryTicketUnit>();
   const services = new Map<string, InMemoryTicketService>();
   const groups = new Map<string, InMemoryTicketGroup>();
+  const members = new Map<string, InMemoryGroupMember>();
   const users = new Map<string, InMemoryTicketUser>();
   const rules = new Map<string, RoutingRuleRecord>();
   const formVersions = new Map<string, FormVersionRecord>();
@@ -155,6 +162,7 @@ export function createInMemoryTicketsPrisma() {
       },
     },
     formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
+    groupMember: createInMemoryGroupMemberDelegate(members),
     ticket: createInMemoryTicketDelegate(tickets, nextId, now),
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
@@ -172,8 +180,13 @@ export function createInMemoryTicketsPrisma() {
     tickets,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
-      services.set(service.id, service),
+      services.set(service.id, {
+        autoAssignStrategy: 'NONE',
+        ...service,
+      }),
     seedGroup: (group: InMemoryTicketGroup) => groups.set(group.id, group),
+    seedGroupMember: (input: { groupId: string; userId: string }) =>
+      seedInMemoryGroupMember(members, nextId, input),
     seedUser: (user: InMemoryTicketUser) => users.set(user.id, user),
     seedFormVersion: (version: FormVersionRecord) =>
       formVersions.set(version.id, version),

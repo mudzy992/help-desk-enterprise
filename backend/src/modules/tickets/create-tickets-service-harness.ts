@@ -1,29 +1,14 @@
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
-import {
-  createTestAssignment,
-  createTestAuthorizationContext,
-} from '../authorization/create-test-authorization-context';
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { RoutingService } from '../routing/routing.service';
+import { defaultTicketAssignmentConfiguration } from './assignment/assignment.constants';
+import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { createInMemoryTicketsPrisma } from './create-in-memory-tickets-prisma';
+import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
+import { ticketsTestIds } from './tickets-test-ids';
 import { TicketsService } from './tickets.service';
 
-export const ticketsTestIds = {
-  ouIt: 'ou-it',
-  ouHr: 'ou-hr',
-  ouRoot: 'ou-root',
-  serviceVpn: 'service-vpn',
-  serviceDraft: 'service-draft',
-  formVpnV1: 'form-vpn-v1',
-  formVpnV2: 'form-vpn-v2',
-  formOther: 'form-other',
-  groupIt: 'group-it',
-  requester: 'user-requester',
-  agentIt: 'user-agent-it',
-  agentHr: 'user-agent-hr',
-  superAdmin: 'user-super-admin',
-} as const;
+export { ticketsTestIds } from './tickets-test-ids';
 
 const formSchema = {
   schemaVersion: 1,
@@ -41,15 +26,47 @@ const formSchema = {
 export function createTicketsServiceHarness() {
   const memory = createInMemoryTicketsPrisma();
   const contexts = new Map<string, AuthorizationContext>();
+  const assignmentConfig: {
+    groupInboxEnabled: boolean;
+    autoAssignEnabled: boolean;
+    autoAssignStrategy: 'LEAST_BUSY' | 'ROUND_ROBIN';
+  } = {
+    groupInboxEnabled: defaultTicketAssignmentConfiguration.groupInboxEnabled,
+    autoAssignEnabled: defaultTicketAssignmentConfiguration.autoAssignEnabled,
+    autoAssignStrategy:
+      defaultTicketAssignmentConfiguration.autoAssignStrategy,
+  };
+  const authorizationContextLoader = {
+    loadBySubjectId: async (subjectId: string) =>
+      contexts.get(subjectId) ?? null,
+  };
   const routing = new RoutingService(memory.prisma as never, {
     load: async () => defaultRoutingConfiguration,
   } as never);
-  const tickets = new TicketsService(memory.prisma as never, routing, {
-    loadBySubjectId: async (subjectId: string) =>
-      contexts.get(subjectId) ?? null,
-  } as never);
+  const assignment = new TicketAssignmentService(
+    memory.prisma as never,
+    authorizationContextLoader as never,
+    { load: async () => ({ ...assignmentConfig }) } as never,
+  );
+  const tickets = new TicketsService(
+    memory.prisma as never,
+    routing,
+    authorizationContextLoader as never,
+    assignment,
+  );
+  seedHarnessCatalog(memory);
+  seedTicketsHarnessActors(contexts);
+  return { memory, routing, tickets, contexts, assignmentConfig };
+}
 
-  memory.seedUnit({ id: ticketsTestIds.ouRoot, parentId: null, ouPath: '/Korisnici' });
+function seedHarnessCatalog(
+  memory: ReturnType<typeof createInMemoryTicketsPrisma>,
+): void {
+  memory.seedUnit({
+    id: ticketsTestIds.ouRoot,
+    parentId: null,
+    ouPath: '/Korisnici',
+  });
   memory.seedUnit({
     id: ticketsTestIds.ouIt,
     parentId: ticketsTestIds.ouRoot,
@@ -94,8 +111,6 @@ export function createTicketsServiceHarness() {
     organizationalUnitId: null,
   });
   seedDefaultFormVersions(memory);
-  seedDefaultContexts(contexts);
-  return { memory, routing, tickets, contexts };
 }
 
 function seedDefaultFormVersions(
@@ -120,65 +135,6 @@ function seedDefaultFormVersions(
     createdAt: now,
     updatedAt: now,
   });
-}
-
-function seedDefaultContexts(
-  contexts: Map<string, AuthorizationContext>,
-): void {
-  contexts.set(
-    ticketsTestIds.requester,
-    createTestAuthorizationContext({
-      subjectId: ticketsTestIds.requester,
-      assignments: [
-        createTestAssignment({
-          roleKey: authorizationRoleKeys.user,
-          permissionKeys: [],
-        }),
-      ],
-    }),
-  );
-  contexts.set(
-    ticketsTestIds.agentIt,
-    createTestAuthorizationContext({
-      subjectId: ticketsTestIds.agentIt,
-      assignments: [
-        createTestAssignment({
-          roleKey: authorizationRoleKeys.agent,
-          organizationalUnitId: ticketsTestIds.ouIt,
-          organizationalUnitPath: '/Korisnici/IT',
-          permissionKeys: [],
-        }),
-      ],
-    }),
-  );
-  contexts.set(
-    ticketsTestIds.agentHr,
-    createTestAuthorizationContext({
-      subjectId: ticketsTestIds.agentHr,
-      assignments: [
-        createTestAssignment({
-          roleKey: authorizationRoleKeys.agent,
-          organizationalUnitId: ticketsTestIds.ouHr,
-          organizationalUnitPath: '/Korisnici/HR',
-          permissionKeys: [],
-        }),
-      ],
-    }),
-  );
-  contexts.set(
-    ticketsTestIds.superAdmin,
-    createTestAuthorizationContext({
-      subjectId: ticketsTestIds.superAdmin,
-      isLocalOnly: true,
-      isSuperAdmin: true,
-      assignments: [
-        createTestAssignment({
-          roleKey: authorizationRoleKeys.superAdmin,
-          permissionKeys: [],
-        }),
-      ],
-    }),
-  );
 }
 
 export const vpnFormSchema = formSchema;

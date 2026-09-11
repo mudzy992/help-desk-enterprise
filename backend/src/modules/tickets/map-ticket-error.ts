@@ -19,6 +19,7 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
 const forbiddenCodes: readonly TicketsErrorCode[] = [
   'FORBIDDEN',
   'STATUS_CHANGE_FORBIDDEN',
+  'GROUP_INBOX_DISABLED',
 ];
 
 const messages: Record<TicketsErrorCode, string> = {
@@ -39,6 +40,9 @@ const messages: Record<TicketsErrorCode, string> = {
   INVALID_DESCRIPTION: 'Description is invalid',
   REQUESTER_NOT_FOUND: 'Requester was not found',
   ROUTING_UNAVAILABLE: 'Ticket routing is unavailable',
+  ASSIGNMENT_UNAVAILABLE: 'Ticket assignment is unavailable',
+  GROUP_INBOX_DISABLED: 'Group inbox is disabled',
+  TICKET_NOT_CLAIMABLE: 'Ticket cannot be claimed',
 };
 
 export function mapTicketError(error: unknown): HttpException {
@@ -52,7 +56,10 @@ export function mapTicketError(error: unknown): HttpException {
   if (forbiddenCodes.includes(error.code)) {
     return new ForbiddenException(body);
   }
-  if (error.code === 'ROUTING_UNAVAILABLE') {
+  if (
+    error.code === 'ROUTING_UNAVAILABLE' ||
+    error.code === 'ASSIGNMENT_UNAVAILABLE'
+  ) {
     return new ServiceUnavailableException(body);
   }
   return new BadRequestException(body);

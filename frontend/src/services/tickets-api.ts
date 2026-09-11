@@ -70,6 +70,14 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
   });
 }
 
+export function listGroupInbox(): Promise<readonly TicketResponse[]> {
+  return apiRequest("/tickets/inbox");
+}
+
+export function claimTicket(ticketId: string): Promise<TicketResponse> {
+  return apiRequest(`/tickets/${ticketId}/claim`, { method: "POST" });
+}
+
 export function listTickets(
   query: ListTicketsQuery = {},
 ): Promise<readonly TicketResponse[]> {

@@ -107,25 +107,16 @@ Nema silent rupa: rupa je vidljiva kao `UNROUTED`, ne kao nasumična grupa.
 
 ---
 
-## Auto-assignment (IN prve isporuke — **nije implementirano**)
+## Auto-assignment (IN prve isporuke — TicketAssignmentService)
 
 Dva odvojena koraka:
 
 | Korak | Šta | Status |
 |---|---|---|
 | **Routing → grupa** | `(originUnit + service)` → handler `groupId` ili `UNROUTED` | Implementirano (`RoutingService`) |
-| **Assignment → agent** | Tiket u grupi → `Ticket.assignedUserId` (preuzimanje ili auto-assign) | **Nije implementirano** (TASKS Faza 4) |
+| **Assignment → agent** | Tiket u grupi → `Ticket.assignedUserId` (preuzimanje ili auto-assign) | Implementirano (`TicketAssignmentService`) |
 
-Auto-assign je RAW IN (`00-mvp-scope.md`), uz ručno preuzimanje. Raspored: Faza 4 — *Group inbox + preuzimanje; auto-assign Least Busy / Round Robin*.
-
-Trenutno stanje koda:
-
-- `Service.autoAssignStrategy` (`NONE` / `LEAST_BUSY` / `ROUND_ROBIN`) je **katalog metadata**. Nije engine.
-- Least Busy i Round Robin **nisu** implementirani. Nema queue picker-a, nema load brojanja, nema round-robin kursora.
-- Settings `private.ticket.autoAssign.*` **ne postoje** u registry-ju.
-- `Ticket.assignedGroupId` / `assignedUserId` postoje u šemi; ticketing ih ne puni iz routinga.
-
-Manuelno preuzimanje iz group inbox-a je također Faza 4, ne ovaj modul.
+Routing i dalje **ne** bira agenta. Auto-assign i group inbox žive u ticketing assignment sloju. Matrica: `.cursor/docs/matrices/ticket-group-inbox/`.
 
 **Ne** dodavati auto-assign logiku u `RoutingService`. Routing staje na grupi (ili `UNROUTED`).
 

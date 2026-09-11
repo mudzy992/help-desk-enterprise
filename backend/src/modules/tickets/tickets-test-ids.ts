@@ -1,0 +1,16 @@
+export const ticketsTestIds = {
+  ouIt: 'ou-it',
+  ouHr: 'ou-hr',
+  ouRoot: 'ou-root',
+  serviceVpn: 'service-vpn',
+  serviceDraft: 'service-draft',
+  formVpnV1: 'form-vpn-v1',
+  formVpnV2: 'form-vpn-v2',
+  formOther: 'form-other',
+  groupIt: 'group-it',
+  requester: 'user-requester',
+  agentIt: 'user-agent-it',
+  agentItPeer: 'user-agent-it-peer',
+  agentHr: 'user-agent-hr',
+  superAdmin: 'user-super-admin',
+} as const;
