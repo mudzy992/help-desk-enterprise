@@ -10,6 +10,6 @@ import { RoutingService } from './routing.service';
   imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
   controllers: [RoutingController],
   providers: [RoutingConfigurationLoader, RoutingService],
-  exports: [RoutingService],
+  exports: [RoutingService, RoutingConfigurationLoader],
 })
 export class RoutingModule {}

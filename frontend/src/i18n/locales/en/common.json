@@ -78,6 +78,19 @@
       "errorInvalid": "The SMTP configuration is invalid or incomplete.",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "The SMTP configuration cannot be saved right now."
+    },
+    "seed": {
+      "heading": "Initial data",
+      "body": "This creates the minimum needed for routing: one organizational unit, a fallback group, one service, and routing to that group. Demo tickets are not created.",
+      "submit": "Continue",
+      "saving": "Saving…",
+      "createdBody": "Minimum data is ready. The origin OU and service resolve to the fallback group.",
+      "organizationalUnit": "Organizational unit",
+      "fallbackGroup": "Fallback group",
+      "service": "Service",
+      "routing": "Routing resolution",
+      "errorSuperAdmin": "Create the SuperAdmin account first.",
+      "errorGeneric": "The initial data cannot be saved right now."
     }
   },
   "routing": {

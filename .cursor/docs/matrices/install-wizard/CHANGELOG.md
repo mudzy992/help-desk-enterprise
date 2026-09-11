@@ -1,6 +1,8 @@
 # CHANGELOG — install-wizard
 
 ## 2026-09-11
+- Implementiran seed korak: min 1 OU, 1 fallback grupa (`Group.isFallback`), 1 ACTIVE servis i routing na tu grupu kroz postojeće OU/catalog/routing modele.
+- Seed je idempotentan (reuse postojećih kompatibilnih zapisa) i transakcionan; rezolucija mora biti `EXACT` na fallback grupu. Nema demo tiketa.
 - Implementiran SMTP korak: switch `private.smtp.enabled`; ON validira i čuva host/port/TLS/username/from kroz registry, password kao secret. OFF ne zahtijeva polja i forsira `private.addons.email=false`.
 - Email addon se čita kroz `resolveEmailAddonEnabled` (SMTP OFF uvijek pobjedi). Nema paralelnog SMTP/email sistema.
 - Implementiran korak načina prijave: `local` | `entra_ad` kroz `GET/POST /install/login-provider`.

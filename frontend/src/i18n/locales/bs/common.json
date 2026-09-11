@@ -78,6 +78,19 @@
       "errorInvalid": "SMTP konfiguracija nije ispravna ili nije potpuna.",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "SMTP konfiguraciju trenutno nije moguće sačuvati."
+    },
+    "seed": {
+      "heading": "Početni podaci",
+      "body": "Kreira se minimum potreban za usmjeravanje: jedna organizacijska jedinica, fallback grupa, jedan servis i routing na tu grupu. Demo tiketi se ne kreiraju.",
+      "submit": "Dalje",
+      "saving": "Spremanje…",
+      "createdBody": "Minimalni podaci su spremni. Origin OU i servis se rješavaju na fallback grupu.",
+      "organizationalUnit": "Organizacijska jedinica",
+      "fallbackGroup": "Fallback grupa",
+      "service": "Servis",
+      "routing": "Rezolucija usmjeravanja",
+      "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+      "errorGeneric": "Početne podatke trenutno nije moguće sačuvati."
     }
   },
   "routing": {

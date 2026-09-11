@@ -23,6 +23,11 @@ import type {
   InstallSmtpStatus,
 } from './install-smtp.types';
 import type {
+  InstallSeedResult,
+  InstallSeedStatus,
+} from './install-seed.types';
+import { InstallSeedService } from './install-seed.service';
+import type {
   InstallSuperAdminPublicRecord,
   InstallSuperAdminStatus,
 } from './install-super-admin.types';
@@ -41,6 +46,7 @@ export class InstallController {
     private readonly installSuperAdminService: InstallSuperAdminService,
     private readonly installLoginProviderService: InstallLoginProviderService,
     private readonly installSmtpService: InstallSmtpService,
+    private readonly installSeedService: InstallSeedService,
   ) {}
 
   @Get('status')
@@ -80,5 +86,15 @@ export class InstallController {
   @Post('smtp')
   saveSmtp(@Body() body: SaveInstallSmtpDto): Promise<InstallSmtpPublicRecord> {
     return this.installSmtpService.save(body);
+  }
+
+  @Get('seed')
+  getSeed(): Promise<InstallSeedStatus> {
+    return this.installSeedService.getStatus();
+  }
+
+  @Post('seed')
+  createSeed(): Promise<InstallSeedResult> {
+    return this.installSeedService.seed();
   }
 }

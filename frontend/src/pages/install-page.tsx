@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
+import { InstallSeedStep } from "@/components/install/install-seed-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { LocaleSelect } from "@/components/layout/locale-select";
@@ -9,6 +10,7 @@ import {
   type InstallWizardStep,
 } from "@/lib/resolve-install-wizard-step";
 import { loadInstallSuperAdmin } from "@/services/install-api";
+import { loadInstallSeed } from "@/services/install-seed-api";
 import { loadInstallSmtp } from "@/services/install-smtp-api";
 
 export function InstallPage() {
@@ -22,7 +24,10 @@ export function InstallPage() {
       loadInstallSmtp()
         .then((status) => status.smtp.isConfigured)
         .catch(() => false),
-    ]).then(([adminStatus, isSmtpConfigured]) => {
+      loadInstallSeed()
+        .then((status) => status.seed.isSeeded)
+        .catch(() => false),
+    ]).then(([adminStatus, isSmtpConfigured, isSeeded]) => {
       if (isCancelled) {
         return;
       }
@@ -31,6 +36,7 @@ export function InstallPage() {
           hasSuperAdmin: adminStatus.superAdmin !== null,
           isSmtpConfigured,
           loginProviderSaved: false,
+          isSeeded,
         }),
       );
     });
@@ -40,17 +46,21 @@ export function InstallPage() {
   }, []);
 
   const headingKey =
-    step === "smtp"
-      ? "install.smtp.heading"
-      : step === "loginProvider"
-        ? "install.loginProvider.heading"
-        : "install.heading";
+    step === "seed"
+      ? "install.seed.heading"
+      : step === "smtp"
+        ? "install.smtp.heading"
+        : step === "loginProvider"
+          ? "install.loginProvider.heading"
+          : "install.heading";
   const bodyKey =
-    step === "smtp"
-      ? "install.smtp.body"
-      : step === "loginProvider"
-        ? "install.loginProvider.body"
-        : "install.body";
+    step === "seed"
+      ? "install.seed.body"
+      : step === "smtp"
+        ? "install.smtp.body"
+        : step === "loginProvider"
+          ? "install.loginProvider.body"
+          : "install.body";
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -71,7 +81,10 @@ export function InstallPage() {
           {step === null ? (
             <div className="mt-6 h-40 animate-pulse bg-elevated" />
           ) : null}
-          {step === "smtp" ? <InstallSmtpStep /> : null}
+          {step === "seed" ? <InstallSeedStep /> : null}
+          {step === "smtp" ? (
+            <InstallSmtpStep onSaved={() => setStep("seed")} />
+          ) : null}
           {step === "loginProvider" ? (
             <InstallLoginProviderStep onSaved={() => setStep("smtp")} />
           ) : null}

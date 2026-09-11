@@ -1,7 +1,7 @@
 # Coolify: bez Traefik labela, bez /backend prefixa.
 # FQDN i TLS postavlja Coolify. Env dolazi iz Coolify UI (.env.example).
 # Postgres NIJE ovdje — Coolify Database → DATABASE_URL.
-# Redis: external mreža redis-net, host redis-core.
+# Redis: external mreža redis_net, host redis-core.
 
 services:
   frontend:
@@ -23,7 +23,7 @@ services:
       - uploads:/usr/app/uploads
     networks:
       - default
-      - redis-net
+      - redis_net
 
   worker:
     build: ./backend
@@ -33,12 +33,12 @@ services:
       - uploads:/usr/app/uploads
     networks:
       - default
-      - redis-net
+      - redis_net
 
 volumes:
   uploads:
 
 networks:
-  redis-net:
+  redis_net:
     external: true
-    name: redis-net
+    name: redis_net

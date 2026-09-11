@@ -18,7 +18,11 @@ import {
   type InstallSmtpRecord,
 } from "@/services/install-smtp-api";
 
-export function InstallSmtpStep() {
+export function InstallSmtpStep({
+  onSaved,
+}: {
+  readonly onSaved?: () => void;
+}) {
   const { t } = useTranslation();
   const [record, setRecord] = useState<InstallSmtpRecord | null>(null);
   const [enabled, setEnabled] = useState(false);
@@ -73,6 +77,7 @@ export function InstallSmtpStep() {
     try {
       applyRecord(await saveInstallSmtp(buildInstallSmtpInput(formValues)));
       setPassword("");
+      onSaved?.();
     } catch (error) {
       setErrorKey(mapInstallSmtpSaveError(error));
     } finally {

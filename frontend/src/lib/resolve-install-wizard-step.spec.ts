@@ -8,25 +8,9 @@ describe("resolveInstallWizardStep", () => {
         hasSuperAdmin: false,
         isSmtpConfigured: false,
         loginProviderSaved: false,
+        isSeeded: false,
       }),
     ).toBe("superAdmin");
-  });
-
-  it("shows SMTP after login provider save or a stored SMTP step", () => {
-    expect(
-      resolveInstallWizardStep({
-        hasSuperAdmin: true,
-        isSmtpConfigured: false,
-        loginProviderSaved: true,
-      }),
-    ).toBe("smtp");
-    expect(
-      resolveInstallWizardStep({
-        hasSuperAdmin: true,
-        isSmtpConfigured: true,
-        loginProviderSaved: false,
-      }),
-    ).toBe("smtp");
   });
 
   it("shows login provider after SuperAdmin and before SMTP", () => {
@@ -35,7 +19,38 @@ describe("resolveInstallWizardStep", () => {
         hasSuperAdmin: true,
         isSmtpConfigured: false,
         loginProviderSaved: false,
+        isSeeded: false,
       }),
     ).toBe("loginProvider");
+  });
+
+  it("shows SMTP after login provider save and before seed", () => {
+    expect(
+      resolveInstallWizardStep({
+        hasSuperAdmin: true,
+        isSmtpConfigured: false,
+        loginProviderSaved: true,
+        isSeeded: false,
+      }),
+    ).toBe("smtp");
+  });
+
+  it("shows seed after SMTP is configured or seed already exists", () => {
+    expect(
+      resolveInstallWizardStep({
+        hasSuperAdmin: true,
+        isSmtpConfigured: true,
+        loginProviderSaved: false,
+        isSeeded: false,
+      }),
+    ).toBe("seed");
+    expect(
+      resolveInstallWizardStep({
+        hasSuperAdmin: true,
+        isSmtpConfigured: true,
+        loginProviderSaved: true,
+        isSeeded: true,
+      }),
+    ).toBe("seed");
   });
 });
