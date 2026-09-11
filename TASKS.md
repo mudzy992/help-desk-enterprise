@@ -35,7 +35,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] Schema-driven forme + form versioning (`formVersionRef` na tiketu)
 - [x] Service onboarding wizard (servis → forma → routing → SLA → approvals)
 - [x] Routing tabela `(originUnit + service) → group` + parent fallback + unrouted queue + coverage UI
-- [ ] Ažuriraj `.cursor/docs/02-routing-logic.md` (auto-assign i unrouted su IN)
+- [x] Ažuriraj `.cursor/docs/02-routing-logic.md` (auto-assign i unrouted su IN)
 - [ ] Change log (reason + diff) za settings i routing
 
 ## Faza 3 — Install wizard (first-run)
@@ -94,4 +94,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 2 — Routing tabela `(originUnit + service) → group` + parent fallback + unrouted queue + coverage UI zatvoren.
+**Trenutni status:** Faza 2 — `.cursor/docs/02-routing-logic.md` ažuriran (auto-assign i unrouted su IN). Sljedeće: Change log (reason + diff) za settings i routing.
