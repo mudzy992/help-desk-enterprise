@@ -25,6 +25,9 @@ export const permissionKeys = {
   auditExport: 'audit.export',
   supportBundleExport: 'supportBundle.export',
   confidentialBreakGlass: 'confidential.break_glass',
+  knowledgeArticleWrite: 'knowledge.article.write',
+  knowledgeArticleReview: 'knowledge.article.review',
+  knowledgeArticlePublish: 'knowledge.article.publish',
 } as const;
 
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
@@ -36,6 +39,7 @@ const agentPermissionKeys = [
   permissionKeys.ticketBulkAssign,
   permissionKeys.ticketBulkStatusUpdate,
   permissionKeys.ticketForwardCrossOu,
+  permissionKeys.knowledgeArticleWrite,
 ] as const;
 
 const adminPermissionKeys = [
@@ -50,6 +54,8 @@ const adminPermissionKeys = [
   permissionKeys.settingsWrite,
   permissionKeys.auditExport,
   permissionKeys.supportBundleExport,
+  permissionKeys.knowledgeArticleReview,
+  permissionKeys.knowledgeArticlePublish,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =

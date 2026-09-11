@@ -1,0 +1,15 @@
+export const knowledgeBaseTestIds = {
+  ouRoot: 'ou-root',
+  ouIt: 'ou-it',
+  ouHr: 'ou-hr',
+  serviceVpn: 'service-vpn',
+  servicePayroll: 'service-payroll',
+  groupIt: 'group-it',
+  requester: 'user-requester',
+  ownerUser: 'user-owner',
+  reviewerUser: 'user-reviewer',
+  agentIt: 'user-agent-it',
+  agentHr: 'user-agent-hr',
+  adminIt: 'user-admin-it',
+  superAdmin: 'user-super-admin',
+} as const;

@@ -104,6 +104,13 @@ enum DataClassification {
   RESTRICTED
 }
 
+enum KnowledgeArticleStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
 enum AutoAssignStrategy {
   NONE
   LEAST_BUSY

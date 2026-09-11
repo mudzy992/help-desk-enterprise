@@ -13,6 +13,7 @@ import { ticketAssignmentSettings } from './ticket-assignment-settings';
 import { ticketAttachmentSettings } from './ticket-attachment-settings';
 import { ticketCollaborationSettings } from './ticket-collaboration-settings';
 import { ticketRoutingSettings } from './ticket-routing-settings';
+import { knowledgeBaseSettings } from './knowledge-base-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
@@ -27,6 +28,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketCollaborationSettings,
   ...ticketAttachmentSettings,
   ...changeLogSettings,
+  ...knowledgeBaseSettings,
   ...smtpSettings,
   ...addonSettings,
 ];

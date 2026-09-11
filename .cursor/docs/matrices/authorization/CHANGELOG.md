@@ -1,5 +1,8 @@
 # CHANGELOG — authorization
 
+## 2026-09-11
+- Default mapa: AGENT `knowledge.article.write`; ADMIN + `knowledge.article.review` / `knowledge.article.publish`. Evaluator, OU i service scope nisu mijenjani.
+
 ## 2026-09-10
 - Service catalog koristi postojeći `RoleGuard` / `service.catalog.write` / service scope; lifecycle ostaje izvan authorization lookup-a.
 - Admin read-only mode: centralni interceptor iznad postojećeg `RoleGuard` / `OuAccessGuard` / shadow toka; `authorize` ostaje nepromijenjen.

@@ -5,6 +5,7 @@ export const changeLogEntityTypes = {
   ticketParticipant: 'ticket_participant',
   ticketTimeLog: 'ticket_time_log',
   ticketAttachment: 'ticket_attachment',
+  knowledgeArticle: 'knowledge_article',
 } as const;
 
 export const changeLogActions = {

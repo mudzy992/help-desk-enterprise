@@ -47,5 +47,8 @@ Change-log se piše u istoj Prisma `$transaction` kao mutacija. Neuspjeh/deny (g
 
 Registry ključevi `private.changeLog.*` postoje (default `true`). U ovoj fazi reason je uvijek obavezan i diff se uvijek upisuje; ključevi nisu runtime gate za versioning.
 
+## Knowledge articles
+KB lifecycle/ownership/review mutacije pišu isti `ChangeLog` (`entityType=knowledge_article`, obavezan `reason` + diff). Nije drugi audit engine.
+
 ## Namjerno NIJE
 Config versioning, dry-run, rollback, audit export/hash chain, auto-assign, SLA changelog, UI lista change logova.

@@ -22,7 +22,21 @@ describe('default role permission mapping', () => {
         permissionKeys.auditExport,
       ]),
     );
-    expect(admin).not.toContain(permissionKeys.confidentialBreakGlass);
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.admin]).not.toContain(
+      permissionKeys.confidentialBreakGlass,
+    );
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.agent]).toContain(
+      permissionKeys.knowledgeArticleWrite,
+    );
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.agent]).not.toContain(
+      permissionKeys.knowledgeArticlePublish,
+    );
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.admin]).toEqual(
+      expect.arrayContaining([
+        permissionKeys.knowledgeArticleReview,
+        permissionKeys.knowledgeArticlePublish,
+      ]),
+    );
   });
 
   it('documents SuperAdmin as the full catalog including break-glass', () => {

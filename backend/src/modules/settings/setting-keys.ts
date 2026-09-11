@@ -113,6 +113,17 @@ export const settingKeys = {
   privateAddonsSavedViews: addonSettingKey('savedViews'),
   privateAddonsReports: addonSettingKey('reports'),
   privateAddonsServiceDowntime: addonSettingKey('serviceDowntime'),
+  privateKnowledgeBaseReviewCycleEnabled:
+    'private.knowledgeBase.reviewCycle.enabled',
+  privateKnowledgeBaseReviewCycleDefaultReviewDays:
+    'private.knowledgeBase.reviewCycle.defaultReviewDays',
+  privateKnowledgeBaseReviewCycleStaleAfterDays:
+    'private.knowledgeBase.reviewCycle.staleAfterDays',
+  privateKnowledgeBaseFeedbackEnabled: 'private.knowledgeBase.feedback.enabled',
+  privateKnowledgeBaseFeedbackOneVotePerUserPerArticle:
+    'private.knowledgeBase.feedback.oneVotePerUserPerArticle',
+  privateKnowledgeBaseRankingUseFeedbackWeight:
+    'private.knowledgeBase.ranking.useFeedbackWeight',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];
