@@ -151,4 +151,27 @@ describe('classifyAdminReadOnlyRequest', () => {
       isMutation: true,
     });
   });
+
+  it('classifies routing coverage as a read and rule writes as routing mutations', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'GET',
+        path: '/routing/coverage',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.routing,
+      isMutation: false,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/routing/rules',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.routing,
+      isMutation: true,
+    });
+  });
 });

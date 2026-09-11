@@ -7,6 +7,7 @@ import { AuthorizationModule } from './modules/authorization/authorization.modul
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
 import { OrganizationalUnitsModule } from './modules/organizational-units/organizational-units.module';
 import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
+import { RoutingModule } from './modules/routing/routing.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
 import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -26,6 +27,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     DirectorySyncModule,
     OrganizationalUnitsModule,
     PolicyPacksModule,
+    RoutingModule,
     ServiceCatalogModule,
     ServiceOnboardingModule,
     WebsocketModule,

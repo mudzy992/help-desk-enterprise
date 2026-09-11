@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { mapServiceCatalogError } from '../service-catalog/map-service-catalog-error';
 import { mapServiceFormsError } from '../service-catalog/map-service-forms-error';
@@ -6,16 +6,17 @@ import { ServiceCatalogError } from '../service-catalog/service-catalog.error';
 import { ServiceFormsError } from '../service-catalog/service-forms.error';
 import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
 import { DefaultOnboardingApprovalsProvider } from './default-onboarding-approvals.provider';
-import { DefaultOnboardingRoutingProvider } from './default-onboarding-routing.provider';
 import { DefaultOnboardingSlaProvider } from './default-onboarding-sla.provider';
 import { getServiceOnboarding } from './get-service-onboarding';
 import { mapServiceOnboardingError } from './map-service-onboarding-error';
+import { SERVICE_ONBOARDING_ROUTING_PROVIDER } from './service-onboarding.constants';
 import { ServiceOnboardingConfigurationLoader } from './service-onboarding-configuration.loader';
 import { ServiceOnboardingError } from './service-onboarding.error';
 import type {
   OnboardingMutationContext,
   ServiceOnboardingRecord,
   ServiceOnboardingResponse,
+  ServiceOnboardingRoutingProvider,
 } from './service-onboarding.types';
 import type { OnboardingDomainProviders } from './validate-onboarding-steps';
 
@@ -25,7 +26,8 @@ export class ServiceOnboardingExecutor {
     readonly prisma: PrismaService,
     readonly onboardingConfigurationLoader: ServiceOnboardingConfigurationLoader,
     readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
-    readonly routingProvider: DefaultOnboardingRoutingProvider,
+    @Inject(SERVICE_ONBOARDING_ROUTING_PROVIDER)
+    readonly routingProvider: ServiceOnboardingRoutingProvider,
     readonly slaProvider: DefaultOnboardingSlaProvider,
     readonly approvalsProvider: DefaultOnboardingApprovalsProvider,
   ) {}

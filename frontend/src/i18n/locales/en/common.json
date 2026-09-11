@@ -18,5 +18,32 @@
     "label": "Language",
     "bosnian": "Bosanski",
     "english": "English"
+  },
+  "routing": {
+    "title": "Routing",
+    "intro": "WHEN origin OU + service THEN group. If there is no exact rule, the parent OU is used. If no route exists, the request stays UNROUTED.",
+    "createHeading": "WHEN / THEN rule",
+    "coverageHeading": "Routing coverage",
+    "originUnitId": "Origin organizational unit",
+    "serviceId": "Service",
+    "groupId": "Target group",
+    "createRule": "Save rule",
+    "saving": "Saving…",
+    "coverageEmpty": "No service and OU combinations are available for coverage.",
+    "columnService": "Service",
+    "columnOriginUnit": "Origin OU",
+    "columnExact": "Exact rule",
+    "columnResolved": "Resolution",
+    "columnGroup": "Group",
+    "columnPath": "Fallback path",
+    "exactYes": "Yes",
+    "missing": "Missing",
+    "outcomeExact": "Exact",
+    "outcomeInherited": "Inherited",
+    "outcomeUnrouted": "UNROUTED",
+    "errorUnauthorized": "Sign in is required to view routing.",
+    "errorForbidden": "You do not have permission to change routing.",
+    "errorDuplicate": "A rule already exists for this OU and service.",
+    "errorGeneric": "Routing is currently unavailable."
   }
 }

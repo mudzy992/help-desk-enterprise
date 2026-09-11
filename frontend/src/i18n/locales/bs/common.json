@@ -18,5 +18,32 @@
     "label": "Jezik",
     "bosnian": "Bosanski",
     "english": "English"
+  },
+  "routing": {
+    "title": "Usmjeravanje",
+    "intro": "WHEN origin OU + servis THEN grupa. Ako nema tačnog pravila, koristi se parent OU. Ako nema rute, zahtjev ostaje UNROUTED.",
+    "createHeading": "WHEN / THEN pravilo",
+    "coverageHeading": "Pokriće usmjeravanja",
+    "originUnitId": "Origin organizacijska jedinica",
+    "serviceId": "Servis",
+    "groupId": "Ciljna grupa",
+    "createRule": "Spremi pravilo",
+    "saving": "Spremanje…",
+    "coverageEmpty": "Nema kombinacija servisa i OU za prikaz pokrića.",
+    "columnService": "Servis",
+    "columnOriginUnit": "Origin OU",
+    "columnExact": "Tačno pravilo",
+    "columnResolved": "Rezolucija",
+    "columnGroup": "Grupa",
+    "columnPath": "Putanja fallbacka",
+    "exactYes": "Da",
+    "missing": "Nedostaje",
+    "outcomeExact": "Tačno",
+    "outcomeInherited": "Naslijeđeno",
+    "outcomeUnrouted": "UNROUTED",
+    "errorUnauthorized": "Prijava je potrebna za pregled usmjeravanja.",
+    "errorForbidden": "Nemate dozvolu za izmjenu usmjeravanja.",
+    "errorDuplicate": "Pravilo za ovu kombinaciju OU i servisa već postoji.",
+    "errorGeneric": "Usmjeravanje trenutno nije dostupno."
   }
 }

@@ -42,6 +42,10 @@ export const adminReadOnlyRouteModules: readonly {
     pathPrefix: '/service-categories',
     moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
   },
+  {
+    pathPrefix: '/routing',
+    moduleKey: adminReadOnlyModuleKeys.routing,
+  },
 ];
 
 export const adminReadOnlyReadMutationPaths = [

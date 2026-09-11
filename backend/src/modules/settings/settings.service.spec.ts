@@ -125,6 +125,8 @@ describe('SettingsService', () => {
       [settingKeys.privateServicesOnboardingWizardAutoFillRoutingEnabled]: true,
       [settingKeys.privateServicesOnboardingWizardAutoFillRoutingRequireConfirm]:
         true,
+      [settingKeys.privateTicketUnroutedQueueEnabled]: true,
+      [settingKeys.privateTicketUnroutedQueueOwnerRole]: 'SUPER_ADMIN',
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,

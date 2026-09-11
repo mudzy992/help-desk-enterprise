@@ -53,7 +53,7 @@ Uvijek re-validira svih 5 koraka. `requireValidationBeforeActivate=true` (defaul
 | `private.services.onboardingWizard.autoFillRouting.enabled` | `true` |
 | `private.services.onboardingWizard.autoFillRouting.requireConfirm` | `true` |
 
-Auto-fill samo predlaže; `requireConfirm` zabranjuje silent persist. Default provider nema routing engine pa je suggestion `null`.
+Auto-fill samo predlaže; `requireConfirm` zabranjuje silent persist. Persisted routing provider predlaže `routing:{serviceId}` samo kad postoji bar jedno `RoutingRule` za servis.
 
 ## Authorization
 Postojeći `SessionAuthenticationGuard` + `RoleGuard` + `ADMIN`. Nema drugog RBAC engine-a. Create: `service.catalog.write` (bez service scope). Ostalo: `RequireServiceScope({ field: 'serviceId' })`.
@@ -89,4 +89,4 @@ Read-only: `/services` → `service_catalog`.
 | POST | `/services/:serviceId/onboarding/resume` |
 
 ## Namjerno NIJE
-Frontend wizard, full Routing/SLA/Approvals moduli, routing fallback, SLA timeri, approval execution, ticket CRUD, availability/downtime izmjene, config versioning.
+Frontend wizard, SLA/Approvals moduli, SLA timeri, approval execution, ticket CRUD, availability/downtime izmjene, config versioning.

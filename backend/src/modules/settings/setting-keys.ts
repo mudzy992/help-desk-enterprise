@@ -54,6 +54,8 @@ export const settingKeys = {
     'private.services.onboardingWizard.autoFillRouting.enabled',
   privateServicesOnboardingWizardAutoFillRoutingRequireConfirm:
     'private.services.onboardingWizard.autoFillRouting.requireConfirm',
+  privateTicketUnroutedQueueEnabled: 'private.ticket.unroutedQueue.enabled',
+  privateTicketUnroutedQueueOwnerRole: 'private.ticket.unroutedQueue.ownerRole',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];
