@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { createRoutingServiceHarness } from './create-routing-service-harness';
+import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -12,6 +12,7 @@ describe('RoutingService rules', () => {
       originUnitId: 'ou-leaf',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     expect(created.originUnitId).toBe('ou-leaf');
     expect(created.serviceId).toBe('service-vpn');
@@ -26,12 +27,14 @@ describe('RoutingService rules', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     await expect(
       routing.createRule({
         originUnitId: 'ou-root',
         serviceId: 'service-vpn',
         groupId: 'group-it',
+      reason: routingChangeReason,
       }),
     ).rejects.toMatchObject({
       response: { code: 'DUPLICATE_RULE' },
@@ -41,6 +44,7 @@ describe('RoutingService rules', () => {
         originUnitId: 'ou-root',
         serviceId: 'service-vpn',
         groupId: 'group-it',
+      reason: routingChangeReason,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -52,6 +56,7 @@ describe('RoutingService rules', () => {
         originUnitId: 'missing-ou',
         serviceId: 'service-vpn',
         groupId: 'group-it',
+      reason: routingChangeReason,
       }),
     ).rejects.toMatchObject({ response: { code: 'ORIGIN_UNIT_NOT_FOUND' } });
     await expect(
@@ -59,6 +64,7 @@ describe('RoutingService rules', () => {
         originUnitId: 'ou-root',
         serviceId: 'missing-service',
         groupId: 'group-it',
+      reason: routingChangeReason,
       }),
     ).rejects.toMatchObject({ response: { code: 'SERVICE_NOT_FOUND' } });
     await expect(
@@ -66,6 +72,7 @@ describe('RoutingService rules', () => {
         originUnitId: 'ou-root',
         serviceId: 'service-vpn',
         groupId: 'missing-group',
+        reason: routingChangeReason,
       }),
     ).rejects.toMatchObject({ response: { code: 'GROUP_NOT_FOUND' } });
   });

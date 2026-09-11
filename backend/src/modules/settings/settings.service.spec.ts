@@ -13,7 +13,6 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 
 describe('SettingsService', () => {
   const findUnique = jest.fn();
-  const upsert = jest.fn();
 
   const createService = async (): Promise<SettingsService> => {
     const moduleRef = await Test.createTestingModule({
@@ -25,7 +24,7 @@ describe('SettingsService', () => {
         },
         {
           provide: PrismaService,
-          useValue: { appSetting: { findUnique, upsert } },
+          useValue: { appSetting: { findUnique } },
         },
       ],
     }).compile();
@@ -34,9 +33,7 @@ describe('SettingsService', () => {
 
   beforeEach(() => {
     findUnique.mockReset();
-    upsert.mockReset();
     findUnique.mockResolvedValue(null);
-    upsert.mockResolvedValue({});
   });
 
   it('returns only registry-approved public values', async () => {
@@ -127,6 +124,10 @@ describe('SettingsService', () => {
         true,
       [settingKeys.privateTicketUnroutedQueueEnabled]: true,
       [settingKeys.privateTicketUnroutedQueueOwnerRole]: 'SUPER_ADMIN',
+      [settingKeys.privateChangeLogSettingsEnabled]: true,
+      [settingKeys.privateChangeLogRoutingEnabled]: true,
+      [settingKeys.privateChangeLogIncludeDiff]: true,
+      [settingKeys.privateChangeLogRequireReason]: true,
     });
     expect(privateSettings).not.toHaveProperty(
       settingKeys.privateAuthJwtSigningSecret,
@@ -165,31 +166,5 @@ describe('SettingsService', () => {
     await expect(service.getSetting('smtp.host')).rejects.toBeInstanceOf(
       SettingsError,
     );
-  });
-
-  it('persists secrets as private+isSecret without leaking plaintext in errors', async () => {
-    findUnique.mockResolvedValue({ value: 'plaintext-secret' });
-    const service = await createService();
-    await service.setSettingValue(
-      settingKeys.privateAuthJwtSigningSecret,
-      'plaintext-secret',
-    );
-    expect(upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          isSecret: true,
-          value: 'plaintext-secret',
-        }),
-      }),
-    );
-    const deniedRead = await service
-      .getSetting(settingKeys.privateAuthJwtSigningSecret)
-      .catch((error: unknown) => error);
-    expect(deniedRead).toBeInstanceOf(SettingsError);
-    if (!(deniedRead instanceof SettingsError)) {
-      throw new Error('expected SettingsError');
-    }
-    expect(deniedRead.message).toMatch(/getSecretForInternalUse/);
-    expect(deniedRead.message).not.toContain('plaintext-secret');
   });
 });

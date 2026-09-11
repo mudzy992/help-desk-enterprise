@@ -31,6 +31,10 @@ export const adminReadOnlyRouteModules: readonly {
     moduleKey: adminReadOnlyModuleKeys.settings,
   },
   {
+    pathPrefix: '/settings',
+    moduleKey: adminReadOnlyModuleKeys.settings,
+  },
+  {
     pathPrefix: '/directory-sync',
     moduleKey: adminReadOnlyModuleKeys.admin,
   },

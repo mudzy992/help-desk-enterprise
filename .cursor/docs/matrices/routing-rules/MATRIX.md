@@ -19,9 +19,11 @@ Create odbija nepostojeći OU (`ORIGIN_UNIT_NOT_FOUND`), servis (`SERVICE_NOT_FO
 ## API
 | Method | Path | Permission |
 |---|---|---|
-| POST | `/routing/rules` | `ADMIN` + `routing.write` + OU scope (`originUnitId`) + service scope (`serviceId`) |
+| POST | `/routing/rules` | `ADMIN` + `routing.write` + OU scope (`originUnitId`) + service scope (`serviceId`); body uključuje obavezan `reason` |
 | GET | `/routing/rules` | `ADMIN` |
 | GET | `/routing/resolve` | `ADMIN` + OU/service scope |
 
+Uspješan create piše `ChangeLog` (`entityType=routing_rule`) sa effective before/after rezolucijom (origin, service, group, fallback, unrouted). Detalji: `changelog-settings-and-routing`.
+
 ## Namjerno NIJE
-Change log / config versioning, SLA, auto-assign, Least Busy / Round Robin, ticket CRUD, Group Inbox, drugi RBAC evaluator.
+Config versioning, SLA, auto-assign, Least Busy / Round Robin, ticket CRUD, Group Inbox, drugi RBAC evaluator.

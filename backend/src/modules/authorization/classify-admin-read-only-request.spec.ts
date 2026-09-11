@@ -174,4 +174,17 @@ describe('classifyAdminReadOnlyRequest', () => {
       isMutation: true,
     });
   });
+
+  it('classifies settings writes as settings mutations', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'PUT',
+        path: '/settings',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.settings,
+      isMutation: true,
+    });
+  });
 });

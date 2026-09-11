@@ -19,6 +19,7 @@ const messages: Record<RoutingErrorCode, string> = {
   SERVICE_NOT_FOUND: 'Service was not found',
   GROUP_NOT_FOUND: 'Target group was not found',
   DUPLICATE_RULE: 'A routing rule already exists for this origin unit and service',
+  REASON_REQUIRED: 'A reason is required for this routing change',
   UNAVAILABLE: 'Routing configuration is unavailable',
 };
 

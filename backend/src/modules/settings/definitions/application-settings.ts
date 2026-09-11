@@ -6,6 +6,7 @@ import { serviceAvailabilitySettings } from './service-availability-settings';
 import { serviceFormsSettings } from './service-forms-settings';
 import { serviceLifecycleSettings } from './service-lifecycle-settings';
 import { serviceOnboardingSettings } from './service-onboarding-settings';
+import { changeLogSettings } from './change-log-settings';
 import { ticketRoutingSettings } from './ticket-routing-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
@@ -17,4 +18,5 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...serviceFormsSettings,
   ...serviceOnboardingSettings,
   ...ticketRoutingSettings,
+  ...changeLogSettings,
 ];

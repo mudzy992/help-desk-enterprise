@@ -1,5 +1,5 @@
 import { routingOutcomes } from './routing.constants';
-import { createRoutingServiceHarness } from './create-routing-service-harness';
+import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -12,6 +12,7 @@ describe('RoutingService coverage', () => {
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const coverage = await routing.coverage({ serviceId: 'service-vpn' });
     const byOrigin = Object.fromEntries(

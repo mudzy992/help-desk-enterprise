@@ -4,11 +4,14 @@ import {
   Get,
   Post,
   Query,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import {
   authorizationRoleKeys,
   permissionKeys,
@@ -48,8 +51,13 @@ export class RoutingController {
   @RequirePermissions(permissionKeys.routingWrite)
   @RequireOrganizationalUnitScope({ field: 'originUnitId' })
   @RequireServiceScope({ field: 'serviceId' })
-  createRule(@Body() body: CreateRoutingRuleDto): Promise<RoutingRuleResponse> {
-    return this.routingService.createRule(body);
+  createRule(
+    @Body() body: CreateRoutingRuleDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<RoutingRuleResponse> {
+    return this.routingService.createRule(body, {
+      actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    });
   }
 
   @Get('rules')

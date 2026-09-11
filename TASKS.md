@@ -36,7 +36,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 - [x] Service onboarding wizard (servis → forma → routing → SLA → approvals)
 - [x] Routing tabela `(originUnit + service) → group` + parent fallback + unrouted queue + coverage UI
 - [x] Ažuriraj `.cursor/docs/02-routing-logic.md` (auto-assign i unrouted su IN)
-- [ ] Change log (reason + diff) za settings i routing
+- [x] Change log (reason + diff) za settings i routing
 
 ## Faza 3 — Install wizard (first-run)
 Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije service onboarding.

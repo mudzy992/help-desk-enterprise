@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { persistSettingValue } from './persist-setting-value';
 import { SettingsError } from './settings.error';
-import { mapVisibilityToPersistence } from './settings.persistence-map';
 import { SETTINGS_REGISTRY } from './settings.registry-token';
 import {
   getSettingDefaultValue,
@@ -9,6 +9,7 @@ import {
 } from './settings-value';
 import type {
   SettingDefinition,
+  SettingsMutationInput,
   SettingsRegistry,
   SettingValue,
 } from './settings.types';
@@ -50,26 +51,13 @@ export class SettingsService {
     return this.resolveValue(definition);
   }
 
-  async setSettingValue(key: string, value: SettingValue): Promise<void> {
+  async setSettingValue(
+    key: string,
+    value: SettingValue,
+    mutation: SettingsMutationInput,
+  ): Promise<void> {
     const definition = this.registry.requireDefinition(key);
-    const validated = validateSettingValue(definition, value);
-    const persistence = mapVisibilityToPersistence(definition.visibility);
-    await this.prisma.appSetting.upsert({
-      where: { key: definition.key },
-      create: {
-        key: definition.key,
-        value: validated,
-        scope: persistence.scope,
-        isSecret: persistence.isSecret,
-        description: definition.description,
-      },
-      update: {
-        value: validated,
-        scope: persistence.scope,
-        isSecret: persistence.isSecret,
-        description: definition.description,
-      },
-    });
+    await persistSettingValue(this.prisma, definition, value, mutation);
   }
 
   private async collectByVisibility(

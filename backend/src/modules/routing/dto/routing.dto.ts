@@ -1,4 +1,5 @@
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { maximumChangeReasonLength } from '../../change-log/change-log.constants';
 
 export class CreateRoutingRuleDto {
   @IsString()
@@ -12,6 +13,11 @@ export class CreateRoutingRuleDto {
   @IsString()
   @MinLength(1)
   groupId!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(maximumChangeReasonLength)
+  reason!: string;
 }
 
 export class ListRoutingRulesQueryDto {

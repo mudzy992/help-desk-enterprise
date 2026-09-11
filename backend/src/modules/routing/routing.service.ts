@@ -5,9 +5,9 @@ import {
   isRoutingConfigurationReferenceForService,
 } from './build-routing-configuration-reference';
 import { computeRoutingCoverage } from './compute-routing-coverage';
-import { createRoutingRule } from './create-routing-rule';
 import { listRoutingRules } from './list-routing-rules';
 import { mapRoutingError } from './map-routing-error';
+import { persistRoutingRuleChange } from './persist-routing-rule-change';
 import { resolveTicketRouting } from './resolve-ticket-routing';
 import { RoutingConfigurationLoader } from './routing-configuration.loader';
 import { toRoutingRuleResponses } from './to-routing-rule-response';
@@ -17,6 +17,7 @@ import type {
   ResolveRoutingInput,
   RoutingCoverageItem,
   RoutingCoverageQuery,
+  RoutingMutationContext,
   RoutingResolution,
   RoutingRuleResponse,
 } from './routing.types';
@@ -28,9 +29,17 @@ export class RoutingService {
     private readonly configurationLoader: RoutingConfigurationLoader,
   ) {}
 
-  async createRule(input: CreateRoutingRuleInput): Promise<RoutingRuleResponse> {
+  async createRule(
+    input: CreateRoutingRuleInput,
+    context: RoutingMutationContext = { actorUserId: null },
+  ): Promise<RoutingRuleResponse> {
     return this.execute(async () => {
-      const created = await createRoutingRule(this.prisma, input);
+      const created = await persistRoutingRuleChange(
+        this.prisma,
+        input,
+        context,
+        await this.configurationLoader.load(),
+      );
       const [response] = await toRoutingRuleResponses(this.prisma, [created]);
       return response as RoutingRuleResponse;
     });

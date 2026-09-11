@@ -37,3 +37,8 @@ export interface SettingsRegistry {
   requireDefinition(key: string): SettingDefinition;
   listByVisibility(visibility: SettingVisibility): readonly SettingDefinition[];
 }
+
+export type SettingsMutationInput = {
+  readonly reason: string;
+  readonly actorUserId: string | null;
+};

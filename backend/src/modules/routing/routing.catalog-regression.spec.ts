@@ -1,4 +1,4 @@
-import { createRoutingServiceHarness } from './create-routing-service-harness';
+import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -12,6 +12,7 @@ describe('routing catalog regression', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     expect(memory.getService('service-vpn')).toEqual(before);
     expect(before?.lifecycle).toBe('DRAFT');

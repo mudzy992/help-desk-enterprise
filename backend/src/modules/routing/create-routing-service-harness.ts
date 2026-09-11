@@ -2,6 +2,9 @@ import { defaultRoutingConfiguration } from './routing.constants';
 import { createInMemoryRoutingPrisma } from './create-in-memory-routing-prisma';
 import { RoutingService } from './routing.service';
 
+export const routingChangeReason =
+  'Assign handler group for this origin and service';
+
 export function createRoutingServiceHarness() {
   const memory = createInMemoryRoutingPrisma();
   const routing = new RoutingService(memory.prisma as never, {

@@ -10,6 +10,7 @@ import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
 import { RoutingModule } from './modules/routing/routing.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
 import { ServiceOnboardingModule } from './modules/service-onboarding/service-onboarding.module';
+import { SettingsHttpModule } from './modules/settings/settings-http.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -22,6 +23,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     PrismaModule,
     RedisModule,
     SettingsModule,
+    SettingsHttpModule,
     AuthenticationModule,
     AuthorizationModule,
     DirectorySyncModule,

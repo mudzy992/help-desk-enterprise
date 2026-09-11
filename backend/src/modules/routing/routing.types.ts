@@ -21,6 +21,11 @@ export type CreateRoutingRuleInput = {
   readonly originUnitId: string;
   readonly serviceId: string;
   readonly groupId: string;
+  readonly reason: string;
+};
+
+export type RoutingMutationContext = {
+  readonly actorUserId: string | null;
 };
 
 export type ListRoutingRulesQuery = {

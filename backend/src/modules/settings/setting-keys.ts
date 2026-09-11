@@ -56,6 +56,10 @@ export const settingKeys = {
     'private.services.onboardingWizard.autoFillRouting.requireConfirm',
   privateTicketUnroutedQueueEnabled: 'private.ticket.unroutedQueue.enabled',
   privateTicketUnroutedQueueOwnerRole: 'private.ticket.unroutedQueue.ownerRole',
+  privateChangeLogSettingsEnabled: 'private.changeLog.settings.enabled',
+  privateChangeLogRoutingEnabled: 'private.changeLog.routing.enabled',
+  privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',
+  privateChangeLogRequireReason: 'private.changeLog.requireReason',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

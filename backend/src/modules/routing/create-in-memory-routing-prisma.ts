@@ -1,3 +1,4 @@
+import type { ChangeLogDiffPayload } from '../change-log/change-log.types';
 import {
   matchesInMemoryRoutingRule,
   pickInMemoryFields,
@@ -25,11 +26,20 @@ export type InMemoryRoutingGroup = {
 
 type RoutingRuleWhere = InMemoryRoutingRuleWhere;
 
+export type InMemoryRoutingChangeLog = {
+  entityType: string;
+  entityId: string;
+  reason: string;
+  diff: ChangeLogDiffPayload;
+  actorUserId: string | null;
+};
+
 export function createInMemoryRoutingPrisma() {
   const units = new Map<string, InMemoryRoutingUnit>();
   const services = new Map<string, InMemoryRoutingService>();
   const groups = new Map<string, InMemoryRoutingGroup>();
   const rules = new Map<string, RoutingRuleRecord>();
+  const changeLogs: InMemoryRoutingChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T08:00:00.000Z');
   const nextId = () => `routing-${nextIdentifier++}`;
@@ -103,6 +113,14 @@ export function createInMemoryRoutingPrisma() {
           .map((group) => pickInMemoryFields(group, select)),
     },
     routingRule: createRoutingRuleDelegate(rules, nextId, now),
+    changeLog: {
+      create: async ({ data }: { data: InMemoryRoutingChangeLog }) => {
+        changeLogs.push(data);
+        return data;
+      },
+    },
+    $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
+      callback(prisma),
   };
 
   return {
@@ -113,6 +131,7 @@ export function createInMemoryRoutingPrisma() {
     seedGroup: (group: InMemoryRoutingGroup) => groups.set(group.id, group),
     seedRule: (rule: RoutingRuleRecord) => rules.set(rule.id, rule),
     getService: (id: string) => services.get(id),
+    changeLogs,
   };
 }
 

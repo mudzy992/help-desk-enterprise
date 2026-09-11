@@ -1,5 +1,8 @@
 # CHANGELOG — settings-registry
 
+## 2026-09-11
+- Settings mutacija (`setSettingValue` + `PUT /settings`) zahtijeva `reason` i piše `ChangeLog` sa redacted secretima. Dodani `private.changeLog.*` ključevi. Nema versioning/rollback/UI liste.
+
 ## 2026-09-10
 - Dodani `private.services.onboardingWizard.*` ključevi za service onboarding wizard (enabled, requireValidationBeforeActivate, autoFillRouting). Nema frontend wizard settings UI.
 - Dodani `private.ticket.forms.*` ključevi za schema-driven forme i form versioning. Nema settings JSON schema registry.

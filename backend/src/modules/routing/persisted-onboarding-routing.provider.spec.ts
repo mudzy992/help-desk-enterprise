@@ -1,7 +1,7 @@
 import { ServiceOnboardingError } from '../service-onboarding/service-onboarding.error';
 import { PersistedOnboardingRoutingProvider } from '../service-onboarding/persisted-onboarding-routing.provider';
 import { buildRoutingConfigurationReference } from './build-routing-configuration-reference';
-import { createRoutingServiceHarness } from './create-routing-service-harness';
+import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -22,6 +22,7 @@ describe('persisted onboarding routing provider', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const reference = buildRoutingConfigurationReference('service-vpn');
     expect(await provider.suggest('service-vpn')).toBe(reference);

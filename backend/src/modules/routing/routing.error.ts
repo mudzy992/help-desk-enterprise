@@ -3,6 +3,7 @@ export type RoutingErrorCode =
   | 'SERVICE_NOT_FOUND'
   | 'GROUP_NOT_FOUND'
   | 'DUPLICATE_RULE'
+  | 'REASON_REQUIRED'
   | 'UNAVAILABLE';
 
 export class RoutingError extends Error {

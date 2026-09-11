@@ -131,9 +131,15 @@ Manuelno preuzimanje iz group inbox-a je također Faza 4, ne ovaj modul.
 
 ---
 
+## Change log (settings i routing)
+
+Uspješan `POST /routing/rules` zahtijeva `reason` i u istoj transakciji upisuje postojeći `ChangeLog` red. `diff` snima effective rezoluciju prije i poslije (originUnit, service, target group, fallback path/depth, UNROUTED + queue metadata). Rezolucija, parent fallback i unrouted ishod se ne mijenjaju. Nema config versioning/rollback.
+
+---
+
 ## Šta ovaj modul namjerno nije
 
 - Ticket CRUD / state machine / Group Inbox (Faza 4).
 - Advanced routing engine `IF (OU + Service + Priority) THEN (Group + SLA + Priority override)` — RAW **OUT**. Ne proširivati `RoutingRule` uslovima.
-- SLA, approvals, change log / config versioning, drugi RBAC engine.
+- SLA, approvals, config versioning, drugi RBAC engine.
 - Silent `fallbackGroupId` assign.

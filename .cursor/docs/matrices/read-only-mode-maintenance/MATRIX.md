@@ -18,6 +18,7 @@ Modul je zaključan samo ako je `enabled` i key je u `activeModulesCsv` ∩ `mod
 |---|---|---|---|
 | `/organizational-units` | `admin` | GET tree/detail/users | POST create, PATCH, DELETE, PUT assign |
 | `/policy-packs` | `settings` | GET list, POST validate | POST apply |
+| `/settings` | `settings` | — | PUT mutation (`reason` obavezan) |
 | `/directory-sync` | `admin` | POST read | bilo koji drugi write/sync POST |
 | `/services` | `service_catalog` | GET list/detail | POST create, PATCH, DELETE, POST lifecycle |
 | `/service-categories` | `service_catalog` | GET list/detail | POST create, PATCH, DELETE |
@@ -33,4 +34,4 @@ Bypass: `AuthorizationContextLoader` (isti SuperAdmin invariant). `SUPER_ADMIN` 
 Fail closed: nečitljiv settings snapshot ⇒ admin mutacija `403 READ_ONLY_MODE`.
 
 ## Namjerno NIJE implementirano
-Frontend UI, config versioning/rollback, HTTP settings CRUD, vezivanje RoleGuard na OU/directory-sync, ticket create lock.
+Frontend UI, config versioning/rollback, puni settings GET/list CRUD UI, vezivanje RoleGuard na OU/directory-sync, ticket create lock.

@@ -81,6 +81,7 @@ describe('routing authorization compatibility', () => {
         originUnitId: 'ou-it',
         serviceId: 'service-vpn',
         groupId: 'group-it',
+        reason: 'Assign handler group for this origin and service',
       },
     };
     await expect(
@@ -115,6 +116,7 @@ describe('routing authorization compatibility', () => {
         originUnitId: 'ou-it',
         serviceId: 'service-vpn',
         groupId: 'group-it',
+        reason: 'Assign handler group for this origin and service',
       },
     };
     await expect(

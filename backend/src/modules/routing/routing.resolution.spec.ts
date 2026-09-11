@@ -1,5 +1,5 @@
 import { routingOutcomes } from './routing.constants';
-import { createRoutingServiceHarness } from './create-routing-service-harness';
+import { createRoutingServiceHarness, routingChangeReason } from './create-routing-service-harness';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -12,11 +12,13 @@ describe('RoutingService resolution', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     await routing.createRule({
       originUnitId: 'ou-leaf',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const resolved = await routing.resolve({
       originUnitId: 'ou-leaf',
@@ -35,6 +37,7 @@ describe('RoutingService resolution', () => {
       originUnitId: 'ou-child',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const oneLevel = await routing.resolve({
       originUnitId: 'ou-leaf',
@@ -52,6 +55,7 @@ describe('RoutingService resolution', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const twoLevel = await multi.resolve({
       originUnitId: 'ou-leaf',
@@ -98,6 +102,7 @@ describe('RoutingService resolution', () => {
       originUnitId: 'ou-root',
       serviceId: 'service-vpn',
       groupId: 'group-it',
+      reason: routingChangeReason,
     });
     const first = await routing.resolve({
       originUnitId: 'ou-leaf',

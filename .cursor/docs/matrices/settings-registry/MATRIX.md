@@ -23,12 +23,14 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - Model: postojeći `AppSetting` (bez schema izmjene).
 - Upis kopira registry classification u `scope` + `isSecret` (secret → `PRIVATE` + `isSecret=true`).
 - Čitanje overlay: stored value > default.
+- Uspješan `setSettingValue` zahtijeva caller `reason` i piše `ChangeLog` (`entityType=setting`, `entityId=key`) u istoj transakciji. Secret vrijednosti u diff-u su `[REDACTED]`. Detalji: `changelog-settings-and-routing`.
+- HTTP mutacija: `PUT /settings` (`ADMIN` + `settings.write`). Nije puni settings CRUD/UI.
 
 ## Zabranjeno
 - Secret default vrijednosti.
 - Logovanje/dump setting vrijednosti na startupu.
-- HTTP CRUD / Settings UI / RBAC u ovom skeletonu.
 - Tumačenje ad-hoc stringova (`smtp.host`) van registryja.
+- Plaintext secret u change logu, public/private snapshotima ili error porukama.
 
 ## Seed ključevi (skeleton)
 - `public.branding.appName` (public, string, default `EP-HelpDesk`)
@@ -69,3 +71,9 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.services.onboardingWizard.requireValidationBeforeActivate` (private, boolean, default `true`)
 - `private.services.onboardingWizard.autoFillRouting.enabled` (private, boolean, default `true`)
 - `private.services.onboardingWizard.autoFillRouting.requireConfirm` (private, boolean, default `true`)
+- `private.ticket.unroutedQueue.enabled` (private, boolean, default `true`)
+- `private.ticket.unroutedQueue.ownerRole` (private, string, default `SUPER_ADMIN`)
+- `private.changeLog.settings.enabled` (private, boolean, default `true`)
+- `private.changeLog.routing.enabled` (private, boolean, default `true`)
+- `private.changeLog.includeDiff` (private, boolean, default `true`)
+- `private.changeLog.requireReason` (private, boolean, default `true`)
