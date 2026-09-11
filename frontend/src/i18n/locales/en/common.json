@@ -19,6 +19,12 @@
     "bosnian": "Bosanski",
     "english": "English"
   },
+  "install": {
+    "title": "Initial setup",
+    "heading": "The application is not ready yet",
+    "body": "Until first-run setup is complete, access is limited to this screen. SuperAdmin, sign-in, SMTP, seed, and add-on steps continue here.",
+    "loading": "Checking setup status"
+  },
   "routing": {
     "title": "Routing",
     "intro": "WHEN origin OU + service THEN group. If there is no exact rule, the parent OU is used. If no route exists, the request stays UNROUTED.",

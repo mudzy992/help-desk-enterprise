@@ -5,6 +5,8 @@ import { RedisModule } from './common/redis/redis.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
+import { HealthModule } from './modules/health/health.module';
+import { InstallModule } from './modules/install/install.module';
 import { OrganizationalUnitsModule } from './modules/organizational-units/organizational-units.module';
 import { PolicyPacksModule } from './modules/policy-packs/policy-packs.module';
 import { RoutingModule } from './modules/routing/routing.module';
@@ -24,6 +26,8 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     RedisModule,
     SettingsModule,
     SettingsHttpModule,
+    HealthModule,
+    InstallModule,
     AuthenticationModule,
     AuthorizationModule,
     DirectorySyncModule,

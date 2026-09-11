@@ -19,6 +19,12 @@
     "bosnian": "Bosanski",
     "english": "English"
   },
+  "install": {
+    "title": "Početno podešavanje",
+    "heading": "Aplikacija još nije spremna",
+    "body": "Dok first-run podešavanje nije završeno, pristup je ograničen na ovaj ekran. Koraci SuperAdmin, prijava, SMTP, seed i dodaci slijede ovdje.",
+    "loading": "Provjera stanja podešavanja"
+  },
   "routing": {
     "title": "Usmjeravanje",
     "intro": "WHEN origin OU + servis THEN grupa. Ako nema tačnog pravila, koristi se parent OU. Ako nema rute, zahtjev ostaje UNROUTED.",

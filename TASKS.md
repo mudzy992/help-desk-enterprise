@@ -40,7 +40,7 @@ Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/d
 
 ## Faza 3 — Install wizard (first-run)
 Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije service onboarding.
-- [ ] Gate: dok nije `private.install.completedAt` → `/install` i API `503 SETUP_REQUIRED`
+- [x] Gate: dok nije `private.install.completedAt` → `/install` i API `503 SETUP_REQUIRED`
 - [ ] Korak SuperAdmin: uvijek lokalni user (`isLocalOnly`), password hash u User, break-glass login ostaje i uz AD
 - [ ] Korak prijava: `local` | `entra_ad` (+ AD/Entra polja ako AD)
 - [ ] Korak SMTP: switch + secret postavke; OFF forsirano gasi email addon
