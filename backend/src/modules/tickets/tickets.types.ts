@@ -73,6 +73,7 @@ export type TicketResponse = {
   readonly closedAt: string | null;
   readonly archivedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
+  readonly isOverdue: boolean;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
   readonly csat?: TicketCsatDescriptor;

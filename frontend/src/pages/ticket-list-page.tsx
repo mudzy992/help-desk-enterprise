@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { ticketStatusValues, ticketViewLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
+import { clearedTicketListFilters } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
 import type { TicketStatus } from "@/services/tickets-api";
 
@@ -107,9 +108,7 @@ export function TicketListPage() {
                     type="button"
                     size="sm"
                     variant="secondary"
-                    onClick={() =>
-                      list.setFilters({ ...list.filters, search: "", priority: "", status: "", serviceId: "" })
-                    }
+                    onClick={() => list.setFilters(clearedTicketListFilters(list.filters))}
                   >
                     {t("tickets.clearFilters")}
                   </Button>

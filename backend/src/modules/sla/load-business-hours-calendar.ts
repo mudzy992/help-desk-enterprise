@@ -30,6 +30,17 @@ export async function requireBusinessHoursCalendar(
   return calendar;
 }
 
+export async function loadBusinessHoursCalendarByKey(
+  prisma: PrismaService,
+  key: string,
+): Promise<BusinessHoursCalendarRecord | null> {
+  const calendar = await prisma.businessHoursCalendar.findUnique({
+    where: { key },
+    include: calendarInclude,
+  });
+  return calendar === null ? null : toCalendarRecord(calendar);
+}
+
 export function toCalendarRecord(calendar: {
   readonly id: string;
   readonly key: string;

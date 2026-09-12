@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { filterTickets } from "@/lib/tickets/filter-tickets";
+import {
+  clearedTicketListFilters,
+  filterTickets,
+  type TicketListFilters,
+} from "@/lib/tickets/filter-tickets";
 import type { TicketResponse } from "@/services/tickets-api";
 
 function ticket(
@@ -28,9 +32,25 @@ function ticket(
   };
 }
 
+function filters(overrides: Partial<TicketListFilters> = {}): TicketListFilters {
+  return {
+    view: "all",
+    search: "",
+    status: "",
+    priority: "",
+    serviceId: "",
+    assignedUserId: "",
+    createdFrom: "",
+    createdTo: "",
+    overdue: false,
+    currentUserId: "agent-1",
+    ...overrides,
+  };
+}
+
 describe("filterTickets", () => {
   const rows = [
-    ticket({ id: "a", title: "VPN down", assignedUserId: null }),
+    ticket({ id: "a", title: "VPN down", assignedUserId: null, isOverdue: true }),
     ticket({
       id: "b",
       title: "Laptop request",
@@ -40,76 +60,68 @@ describe("filterTickets", () => {
       requesterId: "user-2",
       serviceId: "svc-2",
     }),
+    ticket({
+      id: "c",
+      title: "VPN account",
+      priority: "HIGH",
+      isOverdue: true,
+      serviceId: "svc-2",
+    }),
   ];
 
   it("filters by search, status, priority, and service", () => {
+    expect(filterTickets(rows, filters({ search: "vpn" })).map((item) => item.id)).toEqual([
+      "a",
+      "c",
+    ]);
     expect(
-      filterTickets(rows, {
-        view: "all",
-        search: "vpn",
-        status: "",
-        priority: "",
-        serviceId: "",
-        assignedUserId: "",
-        createdFrom: "",
-        createdTo: "",
-        currentUserId: "agent-1",
-      }).map((item) => item.id),
-    ).toEqual(["a"]);
-    expect(
-      filterTickets(rows, {
-        view: "all",
-        search: "",
-        status: "ASSIGNED",
-        priority: "LOW",
-        serviceId: "svc-2",
-        assignedUserId: "",
-        createdFrom: "",
-        createdTo: "",
-        currentUserId: "agent-1",
-      }).map((item) => item.id),
+      filterTickets(
+        rows,
+        filters({ status: "ASSIGNED", priority: "LOW", serviceId: "svc-2" }),
+      ).map((item) => item.id),
     ).toEqual(["b"]);
   });
 
   it("distinguishes assigned, requested, and unassigned views", () => {
+    expect(filterTickets(rows, filters({ view: "assigned" })).map((item) => item.id)).toEqual([
+      "b",
+    ]);
     expect(
-      filterTickets(rows, {
-        view: "assigned",
-        search: "",
-        status: "",
-        priority: "",
-        serviceId: "",
-        assignedUserId: "",
-        createdFrom: "",
-        createdTo: "",
-        currentUserId: "agent-1",
-      }).map((item) => item.id),
-    ).toEqual(["b"]);
+      filterTickets(rows, filters({ view: "requested", currentUserId: "user-1" })).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "c"]);
+    expect(filterTickets(rows, filters({ view: "unassigned" })).map((item) => item.id)).toEqual([
+      "a",
+      "c",
+    ]);
+  });
+
+  it("filters overdue tickets together with search and existing filters", () => {
+    expect(filterTickets(rows, filters({ overdue: true })).map((item) => item.id)).toEqual([
+      "a",
+      "c",
+    ]);
     expect(
-      filterTickets(rows, {
-        view: "requested",
-        search: "",
-        status: "",
-        priority: "",
-        serviceId: "",
-        assignedUserId: "",
-        createdFrom: "",
-        createdTo: "",
-        currentUserId: "user-1",
-      }).map((item) => item.id),
-    ).toEqual(["a"]);
+      filterTickets(rows, filters({ overdue: true, search: "vpn", priority: "HIGH" })).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "c"]);
     expect(
-      filterTickets(rows, {
-        view: "unassigned",
-        search: "",
-        status: "",
-        priority: "",
-        serviceId: "",
-        assignedUserId: "",
-        createdFrom: "",
-        createdTo: "",
-        currentUserId: "agent-1",
-      }).map((item) => item.id),
-    ).toEqual(["a"]);
+      filterTickets(rows, filters({ overdue: true, serviceId: "svc-2" })).map((item) => item.id),
+    ).toEqual(["c"]);
+    expect(
+      filterTickets(rows, filters({ overdue: true, status: "ASSIGNED" })).map((item) => item.id),
+    ).toEqual([]);
+  });
+
+  it("clears overdue and other filters back to the full result", () => {
+    const narrowed = filterTickets(rows, filters({ overdue: true, search: "vpn" }));
+    expect(narrowed.map((item) => item.id)).toEqual(["a", "c"]);
+    expect(
+      filterTickets(rows, clearedTicketListFilters(filters({ overdue: true, search: "vpn" }))).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "b", "c"]);
   });
 });

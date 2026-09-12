@@ -10,6 +10,7 @@ import { SlaProfilesController } from './sla-profiles.controller';
 import { SlaProfilesService } from './sla-profiles.service';
 import { SlaRulesController } from './sla-rules.controller';
 import { SlaRulesService } from './sla-rules.service';
+import { StartingSlaSeedService } from './starting-sla-seed.service';
 import { TicketSlaBreachScannerService } from './ticket-sla-breach-scanner.service';
 import { TicketSlaTimersService } from './ticket-sla-timers.service';
 
@@ -32,6 +33,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaRulesService,
     TicketSlaTimersService,
     TicketSlaBreachScannerService,
+    StartingSlaSeedService,
   ],
   exports: [
     SlaCalendarsService,

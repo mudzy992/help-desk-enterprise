@@ -42,5 +42,8 @@ export const filterChipActiveClassName =
 export const filterChipIdleClassName =
   "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground";
 
+export const filterChipDangerActiveClassName =
+  "border-danger/50 bg-danger/10 text-danger";
+
 export const floatingPanelClassName =
   "pop-in overflow-hidden rounded-lg border border-border bg-elevated shadow-xl shadow-black/40";

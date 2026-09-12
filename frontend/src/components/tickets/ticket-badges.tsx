@@ -66,3 +66,12 @@ export function TicketConfidentialBadge() {
     </Badge>
   );
 }
+
+export function TicketOverdueBadge() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone="danger" dot>
+      {t("tickets.overdue.badge")}
+    </Badge>
+  );
+}

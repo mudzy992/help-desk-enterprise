@@ -490,7 +490,10 @@
       "priority": "Priority",
       "service": "Service",
       "all": "All",
-      "priorityAll": "All priorities"
+      "priorityAll": "All priorities",
+      "overdue": "Overdue",
+      "active": "Active filters",
+      "removeOverdue": "Remove Overdue filter"
     },
     "columns": {
       "ticket": "Ticket",
@@ -754,6 +757,9 @@
     "errorCsatDuplicate": "CSAT feedback was already submitted for this ticket.",
     "errorArchivedReadOnly": "Archived tickets are read-only.",
     "errorFormVersionMissing": "The selected service has no active form version, so the ticket cannot be created. Activate a form on the Services screen.",
+    "overdue": {
+      "badge": "Overdue"
+    },
     "confidential": {
       "badge": "Confidential",
       "banner": "Access is limited to the ACL list. Content is masked in logs and notifications. Emergency access is recorded through break-glass.",

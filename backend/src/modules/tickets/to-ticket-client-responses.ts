@@ -7,6 +7,7 @@ import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketCsatConfiguration } from './csat/csat.types';
 import { describeTicketCsat } from './csat/describe-ticket-csat';
 import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
+import { loadTicketOverdueFlags } from './load-ticket-overdue-flags';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
 
@@ -27,25 +28,27 @@ export async function toTicketClientResponses(
     prisma,
     records.map((record) => record.closeCodeId ?? ''),
   );
+  const ticketIds = records.map((record) => record.id);
+  const overdueByTicketId = await loadTicketOverdueFlags(prisma, ticketIds);
   const submissions =
     input.csat === undefined
       ? new Map()
-      : await loadTicketCsatSubmissions(
-          prisma,
-          records.map((record) => record.id),
-        );
+      : await loadTicketCsatSubmissions(prisma, ticketIds);
   return records.map((record) => {
-    const response = toTicketClientResponse(record, {
-      reopen: input.reopen,
-      closeCodes: input.closeCodes,
-      closeCode:
-        record.closeCodeId === null
-          ? null
-          : (closeCodes.get(record.closeCodeId) ?? null),
-      redactionWarnings: input.redactionWarnings,
-      duplicateWarnings: input.duplicateWarnings,
-      now: input.now,
-    });
+    const response: TicketResponse = {
+      ...toTicketClientResponse(record, {
+        reopen: input.reopen,
+        closeCodes: input.closeCodes,
+        closeCode:
+          record.closeCodeId === null
+            ? null
+            : (closeCodes.get(record.closeCodeId) ?? null),
+        redactionWarnings: input.redactionWarnings,
+        duplicateWarnings: input.duplicateWarnings,
+        now: input.now,
+      }),
+      isOverdue: overdueByTicketId.get(record.id) === true,
+    };
     if (input.csat === undefined || input.actorUserId === undefined) {
       return response;
     }

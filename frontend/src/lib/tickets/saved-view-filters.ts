@@ -14,6 +14,7 @@ export function filtersFromSavedView(
     assignedUserId: view.filters.assignedUserId ?? "",
     createdFrom: view.filters.createdFrom ?? "",
     createdTo: view.filters.createdTo ?? "",
+    overdue: view.filters.overdue === true,
   };
 }
 
@@ -32,6 +33,7 @@ export function savedViewInputFromFilters(
       assignedUserId: filters.assignedUserId,
       createdFrom: filters.createdFrom,
       createdTo: filters.createdTo,
+      overdue: filters.overdue,
     },
     sort: { field: "updatedAt" as const, direction: "desc" as const },
     isDefault,

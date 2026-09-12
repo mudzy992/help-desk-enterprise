@@ -29,6 +29,7 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
   createdFrom: "",
   createdTo: "",
   currentUserId,
+  overdue: false,
 });
 
 export function useTicketList() {

@@ -12,8 +12,8 @@ export function createInMemoryProfileDelegate(
   now: () => Date,
 ) {
   return {
-    findUnique: async ({ where }: { where: { id: string } }) =>
-      profiles.get(where.id) ?? null,
+    findUnique: async ({ where }: { where: { id?: string; key?: string } }) =>
+      findProfile(profiles, where),
     findMany: async ({
       where,
     }: {
@@ -68,4 +68,20 @@ export function createInMemoryProfileDelegate(
       return current ?? null;
     },
   };
+}
+
+function findProfile(
+  profiles: Map<string, SlaProfileRecord>,
+  where: { id?: string; key?: string },
+): SlaProfileRecord | null {
+  if (where.id !== undefined) {
+    return profiles.get(where.id) ?? null;
+  }
+  if (where.key !== undefined) {
+    return (
+      [...profiles.values()].find((profile) => profile.key === where.key) ??
+      null
+    );
+  }
+  return null;
 }

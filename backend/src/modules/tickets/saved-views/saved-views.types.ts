@@ -15,6 +15,7 @@ export type SavedViewFilters = {
   readonly assignedUserId?: string;
   readonly createdFrom?: string;
   readonly createdTo?: string;
+  readonly overdue?: boolean;
 };
 
 export type SavedViewSort = {

@@ -16,7 +16,7 @@ describe('ticket saved views', () => {
     const created = await harness.savedViews.create(
       {
         name: 'My high',
-        filters: { priority: 'HIGH', search: 'vpn' },
+        filters: { priority: 'HIGH', search: 'vpn', overdue: true },
         sort: { field: 'updatedAt', direction: 'desc' },
         columns: ['number', 'subject', 'priority'],
         isDefault: true,
@@ -25,6 +25,7 @@ describe('ticket saved views', () => {
     );
     expect(created.isDefault).toBe(true);
     expect(created.filters.priority).toBe('HIGH');
+    expect(created.filters.overdue).toBe(true);
     const listed = await harness.savedViews.list(agent);
     expect(listed).toHaveLength(1);
     await expect(harness.savedViews.list(other)).resolves.toEqual([]);

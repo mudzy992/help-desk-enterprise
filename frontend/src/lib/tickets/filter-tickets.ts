@@ -10,8 +10,15 @@ export type TicketListFilters = {
   readonly assignedUserId: string;
   readonly createdFrom: string;
   readonly createdTo: string;
+  readonly overdue: boolean;
   readonly currentUserId: string | null;
 };
+
+export function isTicketOverdue(
+  ticket: Pick<TicketResponse, "isOverdue">,
+): boolean {
+  return ticket.isOverdue === true;
+}
 
 export function matchesTicketSearch(
   ticket: TicketResponse,
@@ -45,6 +52,22 @@ export function matchesTicketView(
   return ticket.assignedUserId === null;
 }
 
+export function clearedTicketListFilters(
+  filters: TicketListFilters,
+): TicketListFilters {
+  return {
+    ...filters,
+    search: "",
+    status: "",
+    priority: "",
+    serviceId: "",
+    assignedUserId: "",
+    createdFrom: "",
+    createdTo: "",
+    overdue: false,
+  };
+}
+
 export function filterTickets(
   tickets: readonly TicketResponse[],
   filters: TicketListFilters,
@@ -69,6 +92,9 @@ export function filterTickets(
       return false;
     }
     if (filters.createdTo !== "" && ticket.createdAt > filters.createdTo) {
+      return false;
+    }
+    if (filters.overdue && !isTicketOverdue(ticket)) {
       return false;
     }
     return matchesTicketView(ticket, filters.view, filters.currentUserId);

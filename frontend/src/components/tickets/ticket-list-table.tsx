@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Badge } from "@/components/ui/badge";
 import {
   tableHeadClassName,
@@ -89,6 +89,7 @@ export function TicketListTable({
                   <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                     {ticket.ticketNumber}
                   </Link>
+                  {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
                 </div>
                 <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-foreground/90">
                   {ticket.title}

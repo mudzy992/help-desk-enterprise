@@ -38,6 +38,7 @@ export function normalizeSavedViewFilters(value: unknown): SavedViewFilters {
     assignedUserId: optionalString(raw.assignedUserId, 80),
     createdFrom: optionalString(raw.createdFrom, 40),
     createdTo: optionalString(raw.createdTo, 40),
+    overdue: optionalBoolean(raw.overdue),
   };
 }
 
@@ -72,6 +73,16 @@ export function normalizeSavedViewColumns(
     savedViewColumnKeys.includes(item as SavedViewColumnKey),
   );
   return columns.length > 0 ? columns : savedViewColumnKeys;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== 'boolean') {
+    throw new TicketsError('INVALID_SAVED_VIEW');
+  }
+  return value;
 }
 
 function optionalString(value: unknown, max: number): string | undefined {

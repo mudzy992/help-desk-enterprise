@@ -1,7 +1,7 @@
 import { Clock3, Flame, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ticketIdClassName } from "@/components/ui/control";
@@ -60,6 +60,7 @@ export function TicketInboxList({
               </p>
             </button>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
+              {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
               <TicketStatusBadge status={ticket.status} />
               <TicketPriorityBadge priority={ticket.priority} />
               <span

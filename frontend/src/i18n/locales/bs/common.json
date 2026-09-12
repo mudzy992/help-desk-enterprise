@@ -501,7 +501,10 @@
       "priority": "Prioritet",
       "service": "Servis",
       "all": "Sve",
-      "priorityAll": "Svi prioriteti"
+      "priorityAll": "Svi prioriteti",
+      "overdue": "Prekoračen",
+      "active": "Aktivni filteri",
+      "removeOverdue": "Ukloni filter Prekoračen"
     },
     "assignment": {
       "unassigned": "Nedodijeljeno",
@@ -754,6 +757,9 @@
     "errorCsatDuplicate": "CSAT ocjena je već poslana za ovaj tiket.",
     "errorArchivedReadOnly": "Arhivirani tiket je samo za čitanje.",
     "errorFormVersionMissing": "Odabrana usluga nema aktivnu verziju forme, pa tiket ne može biti kreiran. Aktivirajte formu na ekranu Usluge.",
+    "overdue": {
+      "badge": "Prekoračen"
+    },
     "confidential": {
       "badge": "Povjerljiv",
       "banner": "Pristup ograničen ACL listom. Sadržaj je maskiran u logovima i notifikacijama. Hitni pristup se evidentira kroz break-glass.",

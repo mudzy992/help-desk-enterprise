@@ -1,9 +1,10 @@
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   controlCompactClassName,
   filterChipActiveClassName,
   filterChipClassName,
+  filterChipDangerActiveClassName,
   filterChipIdleClassName,
   selectCompactClassName,
 } from "@/components/ui/control";
@@ -26,68 +27,103 @@ export function TicketListFiltersBar({
 }: TicketListFiltersBarProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
-      <div className="relative w-64 max-w-full">
-        <Search
-          size={13.5}
-          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
-          aria-hidden="true"
-        />
-        <label className="sr-only" htmlFor="ticket-list-search">
-          {t("tickets.filters.search")}
-        </label>
-        <input
-          id="ticket-list-search"
-          className={cn(controlCompactClassName, "pl-8")}
-          value={filters.search}
-          onChange={(event) => onChange({ ...filters, search: event.target.value })}
-          placeholder={t("tickets.filters.searchPlaceholder")}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
-        <button
-          type="button"
-          onClick={() => onChange({ ...filters, priority: "" })}
-          className={cn(
-            filterChipClassName,
-            filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
-          )}
-        >
-          {t("tickets.filters.priorityAll")}
-        </button>
-        {ticketPriorityValues.map((priority) => (
+    <div className="mb-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-64 max-w-full">
+          <Search
+            size={13.5}
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+            aria-hidden="true"
+          />
+          <label className="sr-only" htmlFor="ticket-list-search">
+            {t("tickets.filters.search")}
+          </label>
+          <input
+            id="ticket-list-search"
+            className={cn(controlCompactClassName, "pl-8")}
+            value={filters.search}
+            onChange={(event) => onChange({ ...filters, search: event.target.value })}
+            placeholder={t("tickets.filters.searchPlaceholder")}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
           <button
-            key={priority}
             type="button"
-            onClick={() => onChange({ ...filters, priority })}
+            onClick={() => onChange({ ...filters, priority: "" })}
             className={cn(
               filterChipClassName,
-              filters.priority === priority
-                ? filterChipActiveClassName
-                : filterChipIdleClassName,
+              filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
             )}
           >
-            {ticketText(t, ticketPriorityLabelKey[priority])}
+            {t("tickets.filters.priorityAll")}
           </button>
-        ))}
+          {ticketPriorityValues.map((priority) => (
+            <button
+              key={priority}
+              type="button"
+              onClick={() => onChange({ ...filters, priority })}
+              className={cn(
+                filterChipClassName,
+                filters.priority === priority
+                  ? filterChipActiveClassName
+                  : filterChipIdleClassName,
+              )}
+            >
+              {ticketText(t, ticketPriorityLabelKey[priority])}
+            </button>
+          ))}
+        </div>
+        <span className="hidden h-4 w-px bg-border/70 sm:block" aria-hidden="true" />
+        <button
+          type="button"
+          aria-pressed={filters.overdue}
+          onClick={() => onChange({ ...filters, overdue: !filters.overdue })}
+          className={cn(
+            filterChipClassName,
+            "inline-flex items-center gap-1",
+            filters.overdue ? filterChipDangerActiveClassName : filterChipIdleClassName,
+          )}
+        >
+          {t("tickets.filters.overdue")}
+        </button>
+        <label className="sr-only" htmlFor="ticket-list-service">
+          {t("tickets.filters.service")}
+        </label>
+        <select
+          id="ticket-list-service"
+          className={cn(selectCompactClassName, "ml-auto w-auto min-w-[9rem]")}
+          value={filters.serviceId}
+          onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
+        >
+          <option value="">{t("tickets.filters.all")}</option>
+          {services.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.name}
+            </option>
+          ))}
+        </select>
       </div>
-      <label className="sr-only" htmlFor="ticket-list-service">
-        {t("tickets.filters.service")}
-      </label>
-      <select
-        id="ticket-list-service"
-        className={cn(selectCompactClassName, "ml-auto w-auto min-w-[9rem]")}
-        value={filters.serviceId}
-        onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
-      >
-        <option value="">{t("tickets.filters.all")}</option>
-        {services.map((service) => (
-          <option key={service.id} value={service.id}>
-            {service.name}
-          </option>
-        ))}
-      </select>
+      {filters.overdue ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+            {t("tickets.filters.active")}
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange({ ...filters, overdue: false })}
+            className={cn(
+              filterChipClassName,
+              "inline-flex items-center gap-1",
+              filterChipDangerActiveClassName,
+            )}
+            aria-label={t("tickets.filters.removeOverdue")}
+          >
+            {t("tickets.filters.overdue")}
+            <X size={11} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

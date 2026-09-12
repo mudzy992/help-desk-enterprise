@@ -32,4 +32,4 @@ Match key: `priority` + opcionalni `serviceId` + opcionalni `organizationalUnitI
 `GET /sla/rules/resolve` vraća `responseDueAt` / `resolutionDueAt` u BH vremenu iz povezanog kalendara. Ticket `TicketSlaState` se ovdje ne piše.
 
 ## Namjerno NIJE
-Timer pause, overdue UI badge/filter, seed INCIDENT/ACCESS/… profila, config versioning.
+Timer pause, overdue UI badge/filter, config versioning.

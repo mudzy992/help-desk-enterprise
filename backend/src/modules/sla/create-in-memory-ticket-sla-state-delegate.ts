@@ -1,5 +1,10 @@
 import type { TicketSlaStateRecord } from './ticket-sla.types';
 
+type TicketSlaStateWhere = {
+  readonly resolutionCompletedAt?: null;
+  readonly ticketId?: string | { readonly in: readonly string[] };
+};
+
 export function createInMemoryTicketSlaStateDelegate(
   states: Map<string, TicketSlaStateRecord>,
   nextId: (prefix: string) => string,
@@ -26,12 +31,10 @@ export function createInMemoryTicketSlaStateDelegate(
     findMany: async ({
       where,
     }: {
-      where?: { resolutionCompletedAt?: null };
+      where?: TicketSlaStateWhere;
     } = {}) =>
       [...states.values()].filter((row) =>
-        where?.resolutionCompletedAt === undefined
-          ? true
-          : row.resolutionCompletedAt === null,
+        matchesTicketSlaStateWhere(row, where),
       ),
     create: async ({
       data,
@@ -69,4 +72,26 @@ export function createInMemoryTicketSlaStateDelegate(
       return updated;
     },
   };
+}
+
+function matchesTicketSlaStateWhere(
+  row: TicketSlaStateRecord,
+  where?: TicketSlaStateWhere,
+): boolean {
+  if (where === undefined) {
+    return true;
+  }
+  if (
+    where.resolutionCompletedAt === null &&
+    row.resolutionCompletedAt !== null
+  ) {
+    return false;
+  }
+  if (where.ticketId === undefined) {
+    return true;
+  }
+  if (typeof where.ticketId === 'string') {
+    return row.ticketId === where.ticketId;
+  }
+  return where.ticketId.in.includes(row.ticketId);
 }

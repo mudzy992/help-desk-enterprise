@@ -33,6 +33,7 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     closedAt: toIso(record.closedAt),
     archivedAt: toIso(record.archivedAt),
     waitingForUserEnteredAt: toIso(record.waitingForUserEnteredAt),
+    isOverdue: false,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

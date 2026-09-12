@@ -12,8 +12,8 @@ export function createInMemoryCalendarDelegate(
   now: () => Date,
 ) {
   return {
-    findUnique: async ({ where }: { where: { id: string } }) =>
-      calendars.get(where.id) ?? null,
+    findUnique: async ({ where }: { where: { id?: string; key?: string } }) =>
+      findCalendar(calendars, where),
     findMany: async () =>
       [...calendars.values()].sort((left, right) =>
         left.name.localeCompare(right.name),
@@ -67,6 +67,22 @@ export function createInMemoryCalendarDelegate(
       return current ?? null;
     },
   };
+}
+
+function findCalendar(
+  calendars: Map<string, BusinessHoursCalendarRecord>,
+  where: { id?: string; key?: string },
+): BusinessHoursCalendarRecord | null {
+  if (where.id !== undefined) {
+    return calendars.get(where.id) ?? null;
+  }
+  if (where.key !== undefined) {
+    return (
+      [...calendars.values()].find((calendar) => calendar.key === where.key) ??
+      null
+    );
+  }
+  return null;
 }
 
 function toHolidayRecords(
