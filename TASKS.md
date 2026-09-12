@@ -126,4 +126,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 6 — SLA.
+**Trenutni status:** Faza 7 — Notifikacije, realtime, queue
