@@ -31,6 +31,7 @@ export async function persistTicketSlaState(
     pausedBusinessMinutes: state.pausedBusinessMinutes,
     isResponseBreached: state.isResponseBreached,
     isResolutionBreached: state.isResolutionBreached,
+    firedEscalationKeys: [...(state.firedEscalationKeys ?? [])],
   };
   if (state.id !== undefined && state.id.length > 0) {
     return (await prisma.ticketSlaState.update({

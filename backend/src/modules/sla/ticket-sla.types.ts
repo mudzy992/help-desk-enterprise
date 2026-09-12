@@ -5,7 +5,17 @@ export type TicketSlaTimerEvent =
   | 'created'
   | 'status_changed'
   | 'agent_replied'
-  | 'user_resumed';
+  | 'user_resumed'
+  | 'scanned';
+
+export type SlaClockKind = 'response' | 'resolution';
+
+export type SlaEscalationRuleRecord = {
+  readonly id: string;
+  readonly slaProfileId: string;
+  readonly triggerOffsetMinutes: number;
+  readonly targetGroupId: string | null;
+};
 
 export type TicketSlaTicketRef = {
   readonly id: string;
@@ -34,6 +44,7 @@ export type TicketSlaStateRecord = {
   readonly pausedBusinessMinutes: number;
   readonly isResponseBreached: boolean;
   readonly isResolutionBreached: boolean;
+  readonly firedEscalationKeys: readonly string[];
   readonly updatedAt: Date;
 };
 

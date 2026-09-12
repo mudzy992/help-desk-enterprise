@@ -2,7 +2,26 @@ export const slaChangeLogEntityTypes = {
   calendar: 'business_hours_calendar',
   profile: 'sla_profile',
   rule: 'sla_rule',
+  ticketSlaState: 'ticket_sla_state',
 } as const;
+
+export const slaChangeLogReasons = {
+  responseBreached: 'sla_response_breached',
+  resolutionBreached: 'sla_resolution_breached',
+  responseEscalated: 'sla_response_escalated',
+  resolutionEscalated: 'sla_resolution_escalated',
+} as const;
+
+export const slaSystemEventActions = {
+  responseBreached: 'ticket_sla_response_breached',
+  resolutionBreached: 'ticket_sla_resolution_breached',
+  responseEscalated: 'ticket_sla_response_escalated',
+  resolutionEscalated: 'ticket_sla_resolution_escalated',
+} as const;
+
+export const defaultSlaEscalationRuleId = 'default';
+
+export const ticketSlaBreachScanIntervalMs = 60 * 1000;
 
 export const slaConstants = {
   maximumKeyLength: 64,

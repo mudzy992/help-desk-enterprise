@@ -67,6 +67,7 @@ export type SlaConfiguration = {
   readonly allowOuOverrides: boolean;
   readonly pauseOnWaitingForUser: boolean;
   readonly pauseOnPendingApproval: boolean;
+  readonly escalationsEnabled: boolean;
 };
 
 export type CalendarWriteInput = {

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
+import { scanDueTicketSlaStates } from './scan-due-ticket-sla-states';
 import { syncTicketSlaTimers } from './sync-ticket-sla-timers';
 import type { TicketSlaTimersPort } from './ticket-sla.types';
 
@@ -16,6 +17,13 @@ export class TicketSlaTimersService implements TicketSlaTimersPort {
   ): ReturnType<TicketSlaTimersPort['apply']> {
     return syncTicketSlaTimers(this.prisma, {
       ...input,
+      configuration: await this.configurationLoader.load(),
+    });
+  }
+
+  async scanDue(now = new Date()) {
+    return scanDueTicketSlaStates(this.prisma, {
+      now,
       configuration: await this.configurationLoader.load(),
     });
   }

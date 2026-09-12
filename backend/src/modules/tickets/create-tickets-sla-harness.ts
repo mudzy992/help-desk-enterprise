@@ -8,6 +8,7 @@ export function createTicketsSlaHarness(prisma: unknown) {
     allowOuOverrides: true,
     pauseOnWaitingForUser: true,
     pauseOnPendingApproval: true,
+    escalationsEnabled: true,
   };
   const slaTimers = new TicketSlaTimersService(prisma as never, {
     load: async () => slaConfig,

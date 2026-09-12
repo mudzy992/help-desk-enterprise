@@ -66,6 +66,7 @@ export async function startTicketSlaTimers(
         pausedBusinessMinutes: 0,
         isResponseBreached: false,
         isResolutionBreached: false,
+        firedEscalationKeys: [],
       },
       now,
     ),

@@ -85,6 +85,10 @@ export const ticketSystemEventActions = {
   guardrailLoopSuppressed: 'ticket_guardrail_loop_suppressed',
   csatSubmitted: 'ticket_csat_submitted',
   ticketArchived: 'ticket_archived',
+  slaResponseBreached: 'ticket_sla_response_breached',
+  slaResolutionBreached: 'ticket_sla_resolution_breached',
+  slaResponseEscalated: 'ticket_sla_response_escalated',
+  slaResolutionEscalated: 'ticket_sla_resolution_escalated',
 } as const;
 
 export const ticketRealtimeEventNames = {

@@ -23,6 +23,16 @@ export function createInMemoryTicketSlaStateDelegate(
     }: {
       where: { id?: string; ticketId?: string };
     }) => find(where),
+    findMany: async ({
+      where,
+    }: {
+      where?: { resolutionCompletedAt?: null };
+    } = {}) =>
+      [...states.values()].filter((row) =>
+        where?.resolutionCompletedAt === undefined
+          ? true
+          : row.resolutionCompletedAt === null,
+      ),
     create: async ({
       data,
     }: {
@@ -30,6 +40,7 @@ export function createInMemoryTicketSlaStateDelegate(
     }) => {
       const created: TicketSlaStateRecord = {
         ...data,
+        firedEscalationKeys: [...(data.firedEscalationKeys ?? [])],
         id: data.id ?? nextId('sla'),
         updatedAt: now(),
       };

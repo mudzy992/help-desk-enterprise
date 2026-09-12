@@ -17,6 +17,7 @@ export class SlaConfigurationLoader {
         allowOuOverrides,
         pauseOnWaitingForUser,
         pauseOnPendingApproval,
+        escalationsEnabled,
       ] = await Promise.all([
         this.settingsService.getSetting(settingKeys.privateTicketSlaEnabled),
         this.settingsService.getSetting(
@@ -34,6 +35,9 @@ export class SlaConfigurationLoader {
         this.settingsService.getSetting(
           settingKeys.privateTicketSlaPauseOnPendingApproval,
         ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaEscalationsEnabled,
+        ),
       ]);
       return {
         enabled: enabled === true,
@@ -42,6 +46,7 @@ export class SlaConfigurationLoader {
         allowOuOverrides: allowOuOverrides === true,
         pauseOnWaitingForUser: pauseOnWaitingForUser === true,
         pauseOnPendingApproval: pauseOnPendingApproval === true,
+        escalationsEnabled: escalationsEnabled === true,
       };
     } catch (error) {
       if (error instanceof SlaError) {

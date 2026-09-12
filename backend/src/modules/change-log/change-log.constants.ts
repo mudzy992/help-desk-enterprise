@@ -9,6 +9,7 @@ export const changeLogEntityTypes = {
   businessHoursCalendar: 'business_hours_calendar',
   slaProfile: 'sla_profile',
   slaRule: 'sla_rule',
+  ticketSlaState: 'ticket_sla_state',
 } as const;
 
 export const changeLogActions = {

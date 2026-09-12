@@ -15,6 +15,7 @@ export const defaultSlaConfiguration: SlaConfiguration = {
   allowOuOverrides: true,
   pauseOnWaitingForUser: true,
   pauseOnPendingApproval: true,
+  escalationsEnabled: true,
 };
 
 export function createSlaServiceHarness(

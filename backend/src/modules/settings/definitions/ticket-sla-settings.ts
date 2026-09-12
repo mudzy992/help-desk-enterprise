@@ -45,4 +45,11 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: true,
   }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketSlaEscalationsEnabled,
+    valueType: 'boolean',
+    description: 'Emit SLA escalation events when response or resolution timers expire',
+    isRequired: true,
+    defaultValue: true,
+  }),
 ];

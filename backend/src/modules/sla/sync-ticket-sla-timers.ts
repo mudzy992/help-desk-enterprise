@@ -1,7 +1,12 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { applyDueSlaEscalations } from './apply-due-sla-escalations';
 import { applyTicketSlaPause } from './apply-ticket-sla-pause';
 import { applyTicketSlaResume } from './apply-ticket-sla-resume';
 import type { BusinessMinutesCalendar } from './business-hours-civil-time';
+import {
+  emitTicketSlaRuntimeEvents,
+  emptyTicketSlaRuntimeMarks,
+} from './emit-ticket-sla-runtime-events';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import {
   isSlaFirstResponseStatus,
@@ -9,6 +14,7 @@ import {
   isSlaTerminalStatus,
 } from './is-sla-pause-status';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
+import { loadSlaEscalationRules } from './load-sla-escalation-rules';
 import {
   markTicketSlaResolutionCompleted,
   markTicketSlaResponded,
@@ -30,6 +36,7 @@ export async function syncTicketSlaTimers(
   }
   const now = input.now ?? new Date();
   const existing = await loadTicketSlaState(prisma, input.ticket.id);
+  const previousMarks = existing ?? emptyTicketSlaRuntimeMarks;
   const state =
     existing ??
     (await startTicketSlaTimers(prisma, input.ticket, input.configuration, now));
@@ -37,11 +44,21 @@ export async function syncTicketSlaTimers(
     return null;
   }
   const calendar = await loadCalendarForState(prisma, state);
-  const next = evaluateTicketSlaBreach(
-    applyLifecycle(state, calendar, input, now),
+  const rules = await loadSlaEscalationRules(prisma, state.slaProfileId);
+  const next = applyDueSlaEscalations(
+    evaluateTicketSlaBreach(applyLifecycle(state, calendar, input, now), now),
+    rules,
+    calendar,
+    input.configuration,
     now,
   );
   const persisted = await persistTicketSlaState(prisma, next);
+  await emitTicketSlaRuntimeEvents(prisma, {
+    ticketId: input.ticket.id,
+    previous: previousMarks,
+    next: persisted,
+    rules,
+  });
   if (
     persisted.respondedAt !== null &&
     input.ticket.firstResponseAt === null
@@ -92,7 +109,8 @@ function applyLifecycle(
   if (
     input.event === 'agent_replied' ||
     (isSlaFirstResponseStatus(input.ticket.status) &&
-      input.event !== 'user_resumed')
+      input.event !== 'user_resumed' &&
+      input.event !== 'scanned')
   ) {
     next = markTicketSlaResponded(next, now);
   }
