@@ -25,6 +25,7 @@ import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { toTicketMessageResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
 import { resumeWaitingForUserOnReply } from './waiting-for-user/resume-waiting-for-user-on-reply';
+import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 import { recordRedactionWarning } from './redaction/record-redaction-warning';
 
@@ -143,6 +144,12 @@ export class TicketsCollaborationService {
         context: gated,
         messages,
       });
+      if (message.type === 'AGENT_REPLY') {
+        await applyTicketSlaTimers(gated, {
+          ticket: resumed,
+          event: 'agent_replied',
+        });
+      }
       publishPersistedTicketMessages(this.realtimeHub, resumed, messages);
       return toTicketMessageResponse(message, scan.matches);
     });

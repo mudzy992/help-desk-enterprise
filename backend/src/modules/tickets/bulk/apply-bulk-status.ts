@@ -5,6 +5,7 @@ import { assertPatchTicketStatus } from '../assert-patch-ticket-status';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import {
   auditBulkTicketChange,
   ticketChangeLogReasons,
@@ -57,6 +58,12 @@ export async function applyBulkStatus(input: {
       messages: input.messages,
     });
     updated.push(next);
+    await applyTicketSlaTimers(input.actor, {
+      ticket: next,
+      previousStatus: ticket.status,
+      now,
+      event: 'status_changed',
+    });
   }
   return updated;
 }

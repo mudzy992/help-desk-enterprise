@@ -9,9 +9,12 @@ export { standardWeeklyHours } from './sla.constants';
 export const slaChangeReason = 'Align BH calendar and SLA targets with operations';
 
 export const defaultSlaConfiguration: SlaConfiguration = {
+  enabled: true,
   requireReason: true,
   allowServiceOverrides: true,
   allowOuOverrides: true,
+  pauseOnWaitingForUser: true,
+  pauseOnPendingApproval: true,
 };
 
 export function createSlaServiceHarness(

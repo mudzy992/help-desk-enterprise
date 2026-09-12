@@ -13,6 +13,7 @@ import type { TicketArchiveConfiguration } from './archive/archive.types';
 import type { TicketCsatDescriptor } from './csat/csat.types';
 import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
 import type { TicketSafeLoggingConfiguration } from './safe-logging/safe-logging.types';
+import type { TicketSlaTimersPort } from '../sla/ticket-sla.types';
 
 export type TicketRecord = {
   readonly id: string;
@@ -42,6 +43,7 @@ export type TicketRecord = {
   readonly archivedAt: Date | null;
   readonly waitingForUserEnteredAt: Date | null;
   readonly waitingForUserReminderSentAt: Date | null;
+  readonly firstResponseAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -128,4 +130,5 @@ export type TicketMutationContext = {
   readonly confidential?: TicketConfidentialConfiguration;
   readonly safeLogging?: TicketSafeLoggingConfiguration;
   readonly archive?: TicketArchiveConfiguration;
+  readonly slaTimers?: TicketSlaTimersPort;
 };

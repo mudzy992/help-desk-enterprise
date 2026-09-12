@@ -32,6 +32,7 @@ function ticket(status: TicketRecord['status']): TicketRecord {
     closedAt: status === 'CLOSED' ? resolvedAt : null,
     waitingForUserEnteredAt: null,
     waitingForUserReminderSentAt: null,
+    firstResponseAt: null,
     archivedAt: null,
     createdAt: resolvedAt,
     updatedAt: resolvedAt,

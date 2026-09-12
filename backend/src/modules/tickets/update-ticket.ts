@@ -24,6 +24,7 @@ import {
 import { recordRedactionWarning } from './redaction/record-redaction-warning';
 import type { TicketRedactionConfiguration } from './redaction/redaction.types';
 import { recordTicketChange } from './record-ticket-change';
+import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
 import type { TicketRequiredFieldsConfiguration } from './required-fields/required-fields.types';
 import { ticketChangeLogReasons } from './tickets.constants';
 import { TicketsError } from './tickets.error';
@@ -168,5 +169,13 @@ export async function updateTicket(
     });
     return record;
   });
+  if (current.status !== updated.status) {
+    await applyTicketSlaTimers(context, {
+      ticket: updated,
+      previousStatus: current.status,
+      now,
+      event: 'status_changed',
+    });
+  }
   return updated;
 }

@@ -31,4 +31,18 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: true,
   }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketSlaPauseOnWaitingForUser,
+    valueType: 'boolean',
+    description: 'Pause SLA timers while a ticket is waiting for the user',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketSlaPauseOnPendingApproval,
+    valueType: 'boolean',
+    description: 'Pause SLA timers while a ticket is pending approval',
+    isRequired: true,
+    defaultValue: true,
+  }),
 ];

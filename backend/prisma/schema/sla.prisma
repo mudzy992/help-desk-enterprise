@@ -62,16 +62,27 @@ model SlaRule {
 }
 
 model TicketSlaState {
-  id                   String    @id @default(cuid())
-  ticketId             String    @unique
-  responseDueAt        DateTime?
-  resolutionDueAt      DateTime?
-  respondedAt          DateTime?
-  pausedAt             DateTime?
-  isResponseBreached   Boolean   @default(false)
-  isResolutionBreached Boolean   @default(false)
-  ticket               Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  updatedAt            DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  ticketId                String    @unique
+  slaProfileId            String?
+  slaRuleId               String?
+  responseMinutes         Int       @default(0)
+  resolutionMinutes       Int       @default(0)
+  startedAt               DateTime
+  responseDueAt           DateTime?
+  resolutionDueAt         DateTime?
+  respondedAt             DateTime?
+  resolutionCompletedAt   DateTime?
+  pausedAt                DateTime?
+  pausedBusinessMinutes   Int       @default(0)
+  isResponseBreached      Boolean   @default(false)
+  isResolutionBreached    Boolean   @default(false)
+  ticket                  Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  updatedAt               DateTime  @updatedAt
+
+  @@index([pausedAt])
+  @@index([responseDueAt])
+  @@index([resolutionDueAt])
 }
 
 model SlaEscalationRule {

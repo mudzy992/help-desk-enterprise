@@ -4,6 +4,7 @@ import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
 import { SettingsModule } from '../settings/settings.module';
+import { SlaModule } from '../sla/sla.module';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketsApprovalsController } from './approvals/tickets-approvals.controller';
 import { TicketsApprovalsService } from './approvals/tickets-approvals.service';
@@ -60,6 +61,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     AuthorizationModule,
     RoutingModule,
     SettingsModule,
+    SlaModule,
   ],
   // Controllers with a static path segment under /tickets must register before
   // TicketsController, otherwise its GET /tickets/:ticketId route shadows them.

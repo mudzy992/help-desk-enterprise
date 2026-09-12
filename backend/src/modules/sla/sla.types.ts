@@ -61,9 +61,12 @@ export type SlaMutationContext = {
 };
 
 export type SlaConfiguration = {
+  readonly enabled: boolean;
   readonly requireReason: boolean;
   readonly allowServiceOverrides: boolean;
   readonly allowOuOverrides: boolean;
+  readonly pauseOnWaitingForUser: boolean;
+  readonly pauseOnPendingApproval: boolean;
 };
 
 export type CalendarWriteInput = {

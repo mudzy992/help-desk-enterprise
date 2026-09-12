@@ -7,6 +7,7 @@ import { TicketsConfidentialService } from './confidential/tickets-confidential.
 export function createTicketPolicyHarness(
   prisma: unknown,
   authorizationContextLoader: unknown,
+  slaTimers: unknown,
 ) {
   const confidentialConfig = {
     enabled: defaultTicketConfidentialConfiguration.enabled as boolean,
@@ -63,6 +64,7 @@ export function createTicketPolicyHarness(
     confidentialLoader as never,
     safeLoggingLoader as never,
     archiveLoader as never,
+    slaTimers as never,
   );
   const confidential = new TicketsConfidentialService(
     prisma as never,

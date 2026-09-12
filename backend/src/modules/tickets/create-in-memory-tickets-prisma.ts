@@ -40,6 +40,7 @@ import type { GuardrailClaimRecord } from './guardrails/guardrails.types';
 import { createInMemoryGuardrailClaimDelegate } from './guardrails/create-in-memory-guardrail-claim-delegate';
 import { createInMemoryTicketCsatDelegate } from './create-in-memory-ticket-csat-delegate';
 import type { TicketCsatRecord } from './csat/csat.types';
+import { createInMemoryTicketSlaLayer } from '../sla/create-in-memory-ticket-sla-layer';
 import type { TicketRecord } from './tickets.types';
 import type {
   InMemoryTicketChangeLog,
@@ -73,6 +74,8 @@ export function createInMemoryTicketsPrisma() {
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
   const nextId = () => `ticket-record-${nextIdentifier++}`;
+  const nextPrefixedId = (prefix: string) => `${prefix}-${nextIdentifier++}`;
+  const slaLayer = createInMemoryTicketSlaLayer(nextPrefixedId, now);
 
   const prisma = {
     ...createInMemoryTicketsLookups({ units, services, groups, users }),
@@ -140,6 +143,7 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
+    ...slaLayer.delegates,
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);
@@ -164,11 +168,13 @@ export function createInMemoryTicketsPrisma() {
     breakGlassEvents,
     guardrailClaims,
     csatSubmissions,
+    slaStates: slaLayer.slaStates,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>
       services.set(service.id, {
         autoAssignStrategy: 'NONE',
         requiresApproval: false,
+        slaProfileId: null,
         ...service,
       }),
     seedGroup: (group: InMemoryTicketGroup) => groups.set(group.id, group),
@@ -177,5 +183,11 @@ export function createInMemoryTicketsPrisma() {
     seedUser: (user: InMemoryTicketUser) => users.set(user.id, user),
     seedFormVersion: (version: FormVersionRecord) =>
       formVersions.set(version.id, version),
+    bindServiceSlaProfile: (serviceId: string, slaProfileId: string | null) => {
+      const current = services.get(serviceId);
+      if (current !== undefined) {
+        services.set(serviceId, { ...current, slaProfileId });
+      }
+    },
   };
 }

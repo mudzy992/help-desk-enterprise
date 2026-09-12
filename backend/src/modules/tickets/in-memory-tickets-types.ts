@@ -13,6 +13,7 @@ export type InMemoryTicketService = {
   readonly isConfidentialDefault: boolean;
   readonly autoAssignStrategy?: string;
   readonly requiresApproval?: boolean;
+  readonly slaProfileId?: string | null;
 };
 
 export type InMemoryTicketUser = {

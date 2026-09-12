@@ -9,6 +9,7 @@ import { SlaProfilesController } from './sla-profiles.controller';
 import { SlaProfilesService } from './sla-profiles.service';
 import { SlaRulesController } from './sla-rules.controller';
 import { SlaRulesService } from './sla-rules.service';
+import { TicketSlaTimersService } from './ticket-sla-timers.service';
 
 @Module({
   imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
@@ -22,7 +23,13 @@ import { SlaRulesService } from './sla-rules.service';
     SlaCalendarsService,
     SlaProfilesService,
     SlaRulesService,
+    TicketSlaTimersService,
   ],
-  exports: [SlaCalendarsService, SlaProfilesService, SlaRulesService],
+  exports: [
+    SlaCalendarsService,
+    SlaProfilesService,
+    SlaRulesService,
+    TicketSlaTimersService,
+  ],
 })
 export class SlaModule {}

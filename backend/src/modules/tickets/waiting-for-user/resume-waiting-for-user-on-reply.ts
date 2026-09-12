@@ -10,6 +10,7 @@ import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import { recordTicketChange } from '../record-ticket-change';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import type { WaitingForUserConfiguration } from './waiting-for-user.types';
 
 export async function resumeWaitingForUserOnReply(input: {
@@ -55,5 +56,11 @@ export async function resumeWaitingForUserOnReply(input: {
       actorUserId: input.context.actorUserId,
     }),
   );
+  await applyTicketSlaTimers(input.context, {
+    ticket: updated,
+    previousStatus: input.ticket.status,
+    now,
+    event: 'user_resumed',
+  });
   return updated;
 }

@@ -10,6 +10,7 @@ import type { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-gu
 import { scanTicketContent } from './redaction/assert-ticket-content-redaction';
 import type { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
 import type { TicketRealtimeHub } from './ticket-realtime.hub';
 import { respondLoadedTicket } from './to-ticket-client-responses';
 import type {
@@ -57,6 +58,11 @@ export async function runTicketsServiceCreate(input: {
     input.context,
     messages,
   );
+  await applyTicketSlaTimers(input.context, {
+    ticket: assigned,
+    event: 'created',
+    now: assigned.createdAt,
+  });
   publishPersistedTicketMessages(input.realtimeHub, assigned, messages);
   return respondLoadedTicket(
     input.prisma,

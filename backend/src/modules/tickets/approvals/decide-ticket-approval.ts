@@ -11,6 +11,7 @@ import { ticketSystemEventActions } from '../collaboration.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { TicketsError } from '../tickets.error';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import { assertCanDecideTicketApproval } from './assert-can-decide-ticket-approval';
 import {
   ticketApprovalChangeLogReasons,
@@ -75,7 +76,7 @@ export async function decideTicketApproval(
     nextStatus,
     now: decidedAt,
   });
-  return prisma.$transaction(async (transaction) => {
+  const decided = await prisma.$transaction(async (transaction) => {
     await transaction.ticketApproval.update({
       where: { id: approval.id },
       data: {
@@ -126,6 +127,13 @@ export async function decideTicketApproval(
     );
     return updated;
   });
+  await applyTicketSlaTimers(context, {
+    ticket: decided,
+    previousStatus: ticket.status,
+    now: decidedAt,
+    event: 'status_changed',
+  });
+  return decided;
 }
 
 async function ensureApproverParticipant(

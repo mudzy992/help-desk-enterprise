@@ -149,6 +149,10 @@ export const settingKeys = {
   privateTicketSlaAllowServiceOverrides:
     'private.ticket.sla.allowServiceOverrides',
   privateTicketSlaAllowOuOverrides: 'private.ticket.sla.allowOuOverrides',
+  privateTicketSlaPauseOnWaitingForUser:
+    'private.ticket.sla.pauseOnWaitingForUser',
+  privateTicketSlaPauseOnPendingApproval:
+    'private.ticket.sla.pauseOnPendingApproval',
   privateSmtpEnabled: 'private.smtp.enabled',
   privateSmtpHost: 'private.smtp.host',
   privateSmtpPort: 'private.smtp.port',

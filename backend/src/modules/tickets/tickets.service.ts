@@ -6,6 +6,7 @@ import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
+import { TicketSlaTimersService } from '../sla/ticket-sla-timers.service';
 import { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
 import { TicketConfidentialConfigurationLoader } from './confidential/ticket-confidential-configuration.loader';
 import type { TicketPersistedMessageSink } from './collaboration.types';
@@ -52,6 +53,7 @@ export class TicketsService {
     private readonly safeLoggingLoader: TicketSafeLoggingConfigurationLoader,
     private readonly archiveLoader: TicketArchiveConfigurationLoader,
     private readonly csatLoader: TicketCsatConfigurationLoader,
+    private readonly slaTimers: TicketSlaTimersService,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -179,7 +181,7 @@ export class TicketsService {
       confidential: this.confidentialLoader,
       safeLogging: this.safeLoggingLoader,
       archive: this.archiveLoader,
-    });
+    }).then((gated) => ({ ...gated, slaTimers: this.slaTimers }));
   }
 
   private clientLoaders(actorUserId: string) {

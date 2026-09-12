@@ -10,22 +10,38 @@ export class SlaConfigurationLoader {
 
   async load(): Promise<SlaConfiguration> {
     try {
-      const [requireReason, allowServiceOverrides, allowOuOverrides] =
-        await Promise.all([
-          this.settingsService.getSetting(
-            settingKeys.privateTicketSlaRequireAdminReasonForRuleChanges,
-          ),
-          this.settingsService.getSetting(
-            settingKeys.privateTicketSlaAllowServiceOverrides,
-          ),
-          this.settingsService.getSetting(
-            settingKeys.privateTicketSlaAllowOuOverrides,
-          ),
-        ]);
+      const [
+        enabled,
+        requireReason,
+        allowServiceOverrides,
+        allowOuOverrides,
+        pauseOnWaitingForUser,
+        pauseOnPendingApproval,
+      ] = await Promise.all([
+        this.settingsService.getSetting(settingKeys.privateTicketSlaEnabled),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaRequireAdminReasonForRuleChanges,
+        ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaAllowServiceOverrides,
+        ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaAllowOuOverrides,
+        ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaPauseOnWaitingForUser,
+        ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaPauseOnPendingApproval,
+        ),
+      ]);
       return {
+        enabled: enabled === true,
         requireReason: requireReason === true,
         allowServiceOverrides: allowServiceOverrides === true,
         allowOuOverrides: allowOuOverrides === true,
+        pauseOnWaitingForUser: pauseOnWaitingForUser === true,
+        pauseOnPendingApproval: pauseOnPendingApproval === true,
       };
     } catch (error) {
       if (error instanceof SlaError) {

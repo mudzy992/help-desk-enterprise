@@ -5,6 +5,7 @@ import type { TicketApprovalsConfigurationLoader } from '../approvals/ticket-app
 import { ticketSystemEventActions } from '../collaboration.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { createTicket } from '../create-ticket';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import type { SplitTicketChildInput } from './split.types';
@@ -46,6 +47,11 @@ export async function createSplitChildTicket(input: {
     input.context,
     input.messages,
   );
+  await applyTicketSlaTimers(input.context, {
+    ticket: created,
+    event: 'created',
+    now: created.createdAt,
+  });
   input.messages.push(
     await insertSystemTicketEvent(input.prisma, {
       ticketId: created.id,

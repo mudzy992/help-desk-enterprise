@@ -9,6 +9,7 @@ import { processWaitingForUserTicket } from './process-waiting-for-user-ticket';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user-configuration.loader';
 import { waitingForUserAutomationIntervalMs } from './waiting-for-user.constants';
 import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
+import { TicketSlaTimersService } from '../../sla/ticket-sla-timers.service';
 
 @Injectable()
 export class WaitingForUserAutomationService {
@@ -16,6 +17,7 @@ export class WaitingForUserAutomationService {
     private readonly prisma: PrismaService,
     private readonly configurationLoader: WaitingForUserConfigurationLoader,
     private readonly guardrailsLoader: TicketGuardrailsConfigurationLoader,
+    private readonly slaTimers: TicketSlaTimersService,
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
@@ -43,6 +45,7 @@ export class WaitingForUserAutomationService {
         guardrails,
         now,
         messages,
+        slaTimers: this.slaTimers,
       });
       if (next.id === ticket.id && next.status === ticket.status &&
           next.waitingForUserReminderSentAt === ticket.waitingForUserReminderSentAt) {

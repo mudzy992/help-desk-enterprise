@@ -25,6 +25,7 @@ export function createTicketsLifecycleHarness(input: {
   readonly confidentialLoader: unknown;
   readonly safeLoggingLoader: unknown;
   readonly archiveLoader: unknown;
+  readonly slaTimers: unknown;
   readonly realtimeHub: TicketRealtimeHub;
 }) {
   const csatConfig = {
@@ -50,6 +51,7 @@ export function createTicketsLifecycleHarness(input: {
     input.safeLoggingLoader as never,
     input.archiveLoader as never,
     csatLoader as never,
+    input.slaTimers as never,
     input.realtimeHub,
   );
   const csat = new TicketsCsatService(

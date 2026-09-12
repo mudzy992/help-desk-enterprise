@@ -24,6 +24,7 @@ import { defaultWaitingForUserConfiguration } from './waiting-for-user/waiting-f
 import { createTicketsGovernanceHarness } from './create-tickets-governance-harness';
 import { createTicketPolicyHarness } from './create-ticket-policy-harness';
 import { createTicketsLifecycleHarness } from './create-tickets-lifecycle-harness';
+import { createTicketsSlaHarness } from './create-tickets-sla-harness';
 
 export { ticketsTestIds } from './tickets-test-ids';
 export { vpnFormSchema } from './seed-tickets-harness-catalog';
@@ -119,9 +120,11 @@ export function createTicketsServiceHarness() {
   const requiredFieldsLoader = { load: async () => ({ ...requiredFieldsConfig }) };
   const redactionLoader = { load: async () => ({ ...redactionConfig }) };
   const guardrailsLoader = { load: async () => ({ ...guardrailsConfig }) };
+  const sla = createTicketsSlaHarness(memory.prisma);
   const policy = createTicketPolicyHarness(
     memory.prisma,
     authorizationContextLoader,
+    sla.slaTimers,
   );
   const realtimeHub = new TicketRealtimeHub();
   const lifecycle = createTicketsLifecycleHarness({
@@ -139,6 +142,7 @@ export function createTicketsServiceHarness() {
     confidentialLoader: policy.confidentialLoader,
     safeLoggingLoader: policy.safeLoggingLoader,
     archiveLoader: policy.archiveLoader,
+    slaTimers: sla.slaTimers,
     realtimeHub,
   });
   const tickets = lifecycle.tickets;
@@ -182,6 +186,7 @@ export function createTicketsServiceHarness() {
     memory.prisma as never,
     waitingLoader as never,
     guardrailsLoader as never,
+    sla.slaTimers,
     realtimeHub,
   );
   const governance = createTicketsGovernanceHarness({
@@ -225,6 +230,8 @@ export function createTicketsServiceHarness() {
     safeLoggingConfig: policy.safeLoggingConfig,
     confidential: policy.confidential,
     accessPolicies: policy.accessPolicies,
+    slaConfig: sla.slaConfig,
+    slaTimers: sla.slaTimers,
     authorizationContextLoader,
     ...governance,
   };

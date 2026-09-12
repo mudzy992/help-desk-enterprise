@@ -25,6 +25,7 @@ const baseTicket = {
   archivedAt: null,
   waitingForUserEnteredAt: null,
   waitingForUserReminderSentAt: null,
+  firstResponseAt: null,
   createdAt: new Date('2026-09-11T12:00:00.000Z'),
   updatedAt: new Date('2026-09-11T12:00:00.000Z'),
 } as const;

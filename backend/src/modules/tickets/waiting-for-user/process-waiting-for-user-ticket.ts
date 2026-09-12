@@ -7,6 +7,8 @@ import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import { recordTicketChange } from '../record-ticket-change';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import type { TicketRecord } from '../tickets.types';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
+import type { TicketSlaTimersPort } from '../../sla/ticket-sla.types';
 import { evaluateWaitingForUserAction } from './evaluate-waiting-for-user-action';
 import { claimWaitingForUserAutomation } from './claim-waiting-for-user-automation';
 import type { WaitingForUserConfiguration } from './waiting-for-user.types';
@@ -19,6 +21,7 @@ export async function processWaitingForUserTicket(input: {
   readonly guardrails: TicketGuardrailsConfiguration;
   readonly now: Date;
   readonly messages?: TicketPersistedMessageSink;
+  readonly slaTimers?: TicketSlaTimersPort;
 }): Promise<TicketRecord> {
   const action = evaluateWaitingForUserAction({
     configuration: input.configuration,
@@ -78,6 +81,7 @@ async function autoCloseWaitingForUserTicket(input: {
   readonly ticket: TicketRecord;
   readonly now: Date;
   readonly messages?: TicketPersistedMessageSink;
+  readonly slaTimers?: TicketSlaTimersPort;
 }): Promise<TicketRecord> {
   const timestamps = applyTicketLifecycleTimestamps({
     current: input.ticket,
@@ -104,6 +108,15 @@ async function autoCloseWaitingForUserTicket(input: {
       action: ticketSystemEventActions.waitingForUserAutoClosed,
       actorUserId: null,
     }),
+  );
+  await applyTicketSlaTimers(
+    { actorUserId: 'system', slaTimers: input.slaTimers },
+    {
+      ticket: updated,
+      previousStatus: input.ticket.status,
+      now: input.now,
+      event: 'status_changed',
+    },
   );
   return updated;
 }

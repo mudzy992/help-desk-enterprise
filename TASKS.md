@@ -67,7 +67,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Faza 6 — SLA
 - [x] BH kalendari + SLA profili/rules (CRUD + change log)
-- [ ] Response/resolution timeri, pause (waiting-for-user, pending-approval)
+- [x] Response/resolution timeri, pause (waiting-for-user, pending-approval)
 - [ ] Overdue + in-app eskalacije; UI badge/filter
 - [ ] Seed startnih profila iz RAW (INCIDENT, ACCESS, STANDARD_REQUEST, FINANCE, HR)
 
