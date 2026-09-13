@@ -98,7 +98,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Faza 7 — Notifikacije, realtime, queue
 
-- [ ] In-app notifications (list, unread, mark-as-read)
+- [x] In-app notifications (list, unread, mark-as-read)
 - [ ] Email kanal (O365, internal-only) kroz settings + templates
 - [ ] Socket.IO: ticket/chat, notifications, settings
 - [ ] Durable integration queue (BullMQ + Redis worker; Postgres job red + DLQ + admin retry)

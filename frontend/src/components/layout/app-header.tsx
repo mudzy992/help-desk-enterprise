@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/layout/header-search";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { SessionControls } from "@/components/layout/session-controls";
 import { SystemStatusChip } from "@/components/layout/system-status-chip";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
       <HeaderSearch />
       <div className="ml-auto flex min-w-0 items-center gap-1.5">
         <SystemStatusChip />
+        <NotificationsBell />
         <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
         <SessionControls />
       </div>

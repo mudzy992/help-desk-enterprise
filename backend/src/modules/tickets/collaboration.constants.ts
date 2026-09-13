@@ -64,6 +64,8 @@ export const ticketSystemEventActions = {
   approvalRequested: 'ticket_approval_requested',
   approvalApproved: 'ticket_approval_approved',
   approvalRejected: 'ticket_approval_rejected',
+  resolved: 'ticket_resolved',
+  closed: 'ticket_closed',
   waitingForUserEntered: 'ticket_waiting_for_user_entered',
   waitingForUserResumed: 'ticket_waiting_for_user_resumed',
   waitingForUserReminder: 'ticket_waiting_for_user_reminder',

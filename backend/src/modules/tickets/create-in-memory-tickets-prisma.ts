@@ -40,6 +40,8 @@ import type { GuardrailClaimRecord } from './guardrails/guardrails.types';
 import { createInMemoryGuardrailClaimDelegate } from './guardrails/create-in-memory-guardrail-claim-delegate';
 import { createInMemoryTicketCsatDelegate } from './create-in-memory-ticket-csat-delegate';
 import type { TicketCsatRecord } from './csat/csat.types';
+import { createInMemoryNotificationDelegate } from '../notifications/create-in-memory-notification-delegate';
+import type { NotificationRecord } from '../notifications/notifications.types';
 import { createInMemoryTicketSlaLayer } from '../sla/create-in-memory-ticket-sla-layer';
 import type { TicketRecord } from './tickets.types';
 import type {
@@ -70,6 +72,7 @@ export function createInMemoryTicketsPrisma() {
   const breakGlassEvents = new Map<string, BreakGlassEventRecord>();
   const guardrailClaims = new Map<string, GuardrailClaimRecord>();
   const csatSubmissions = new Map<string, TicketCsatRecord>();
+  const notifications = new Map<string, NotificationRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -143,6 +146,7 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
+    notification: createInMemoryNotificationDelegate(notifications, nextId, now),
     ...slaLayer.delegates,
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
@@ -168,6 +172,7 @@ export function createInMemoryTicketsPrisma() {
     breakGlassEvents,
     guardrailClaims,
     csatSubmissions,
+    notifications,
     slaStates: slaLayer.slaStates,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>

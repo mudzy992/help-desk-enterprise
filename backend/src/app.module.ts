@@ -17,6 +17,7 @@ import { SettingsHttpModule } from './modules/settings/settings-http.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     SlaModule,
     TicketsModule,
     KnowledgeBaseModule,
+    NotificationsModule,
     WebsocketModule,
   ],
 })

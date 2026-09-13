@@ -37,6 +37,26 @@
       "user": "Korisnik"
     }
   },
+  "notifications": {
+    "title": "Obavještenja",
+    "open": "Obavještenja",
+    "unreadCount": "{{count}} nove",
+    "filterAll": "Sve",
+    "filterUnread": "Nepročitane",
+    "markAllRead": "Označi sve",
+    "empty": "Nema obavještenja.",
+    "emptyUnread": "Nema nepročitanih obavještenja.",
+    "items": {
+      "ticketCreated": "Novi tiket {{ticketNumber}}",
+      "ticketAssigned": "Dodijeljen tiket {{ticketNumber}}",
+      "ticketMessage": "Nova poruka na {{ticketNumber}}",
+      "ticketResolved": "Tiket {{ticketNumber}} je riješen",
+      "ticketClosed": "Tiket {{ticketNumber}} je zatvoren",
+      "ticketApproval": "Čeka odobrenje: {{ticketNumber}}",
+      "ticketSla": "SLA događaj: {{ticketNumber}}",
+      "unknown": "Obavještenje"
+    }
+  },
   "placeholders": {
     "settingsTitle": "Nema dostupnih postavki",
     "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."

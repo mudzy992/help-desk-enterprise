@@ -10,9 +10,9 @@ import type { TicketCloseCodesConfiguration } from './close-codes/close-codes.ty
 import { loadOrganizationalUnitPath } from '../authorization/load-authorization-scope';
 import { assertTicketWritable } from './archive/assert-ticket-writable';
 import { getTicket } from './get-ticket';
-import { ticketSystemEventActions } from './collaboration.constants';
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import { insertSystemTicketEvent } from './insert-system-ticket-event';
+import { ticketStatusChangeSystemEvent } from './ticket-status-change-system-event';
 import {
   normalizeTicketDescription,
   normalizeTicketTitle,
@@ -148,14 +148,15 @@ export async function updateTicket(
       redaction: policies?.redaction,
       safeLogging: context.safeLogging,
     });
-    if (
-      current.status !== 'WAITING_FOR_USER' &&
-      record.status === 'WAITING_FOR_USER'
-    ) {
+    const statusEvent = ticketStatusChangeSystemEvent(
+      current.status,
+      record.status,
+    );
+    if (statusEvent !== null) {
       messages.push(
         await insertSystemTicketEvent(transaction as PrismaService, {
           ticketId: record.id,
-          action: ticketSystemEventActions.waitingForUserEntered,
+          action: statusEvent,
           actorUserId: context.actorUserId,
         }),
       );

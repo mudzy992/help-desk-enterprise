@@ -37,6 +37,26 @@
       "user": "User"
     }
   },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications",
+    "unreadCount": "{{count}} new",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "markAllRead": "Mark all read",
+    "empty": "There are no notifications.",
+    "emptyUnread": "There are no unread notifications.",
+    "items": {
+      "ticketCreated": "New ticket {{ticketNumber}}",
+      "ticketAssigned": "Assigned ticket {{ticketNumber}}",
+      "ticketMessage": "New message on {{ticketNumber}}",
+      "ticketResolved": "Ticket {{ticketNumber}} is resolved",
+      "ticketClosed": "Ticket {{ticketNumber}} is closed",
+      "ticketApproval": "Approval needed: {{ticketNumber}}",
+      "ticketSla": "SLA event: {{ticketNumber}}",
+      "unknown": "Notification"
+    }
+  },
   "placeholders": {
     "settingsTitle": "No settings available yet",
     "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
