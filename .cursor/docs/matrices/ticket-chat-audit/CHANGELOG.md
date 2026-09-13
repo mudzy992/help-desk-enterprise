@@ -1,6 +1,7 @@
 # CHANGELOG — ticket-chat-audit
 
 ## 2026-09-13
+- `ticket.updated` slim payload uz postojeći `ticket.message.created` (status/assignment/SLA/approval). Internal notes i confidential akcije ostaju staff-only.
 - `ticket_resolved` / `ticket_closed` SYSTEM_EVENT na status transition (inbox konzumer: `in-app-notifications`).
 
 ## 2026-09-11

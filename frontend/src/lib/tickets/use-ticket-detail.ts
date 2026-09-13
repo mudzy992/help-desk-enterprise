@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { loadTicketDetail } from "@/lib/tickets/load-ticket-detail";
+import { sendTicketMessageOptimistic } from "@/lib/tickets/send-ticket-message-optimistic";
+import { useTicketRealtime } from "@/lib/tickets/use-ticket-realtime";
+import { useSession } from "@/lib/session/use-session";
 import { ApiError } from "@/services/api";
 import { downloadAttachmentFile } from "@/lib/tickets/download-attachment";
 import {
   deleteTicketAttachment,
-  listTicketAttachments,
   uploadTicketAttachment,
   type TicketAttachmentResponse,
 } from "@/services/tickets-attachments-api";
 import {
   addTicketParticipant,
-  createTicketMessage,
-  listTicketMessages,
-  listTicketParticipants,
-  listTicketTimeLogs,
   removeTicketParticipant,
   startTicketTimeLog,
   stopTicketTimeLog,
@@ -25,8 +24,6 @@ import {
 } from "@/services/tickets-collaboration-api";
 import {
   claimTicket,
-  getTicket,
-  listGroupInbox,
   reopenTicket,
   updateTicket,
   type TicketResponse,
@@ -34,6 +31,7 @@ import {
 } from "@/services/tickets-api";
 
 export function useTicketDetail(ticketId: string | undefined) {
+  const { currentUserId } = useSession();
   const [ticket, setTicket] = useState<TicketResponse | null>(null);
   const [messages, setMessages] = useState<readonly TicketMessageResponse[]>([]);
   const [participants, setParticipants] = useState<readonly TicketParticipantResponse[]>([]);
@@ -47,47 +45,43 @@ export function useTicketDetail(ticketId: string | undefined) {
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [actionError, setActionError] = useState<TicketErrorKey | null>(null);
 
+  const detailTarget = {
+    setTicket,
+    setMessages,
+    setParticipants,
+    setTimeLogs,
+    setAttachments,
+    setInboxAccessible,
+    setAttachmentsVisible,
+    setTimeVisible,
+    setErrorKey,
+    setIsLoading,
+  };
+
   const load = useCallback(async () => {
     if (ticketId === undefined) {
       return;
     }
-    setIsLoading(true);
-    setErrorKey(null);
-    try {
-      const loaded = await getTicket(ticketId);
-      setTicket(loaded);
-      const [messageRows, participantRows] = await Promise.all([
-        listTicketMessages(ticketId),
-        listTicketParticipants(ticketId),
-      ]);
-      setMessages(messageRows);
-      setParticipants(participantRows);
-      await listGroupInbox()
-        .then(() => setInboxAccessible(true))
-        .catch(() => setInboxAccessible(false));
-      await listTicketTimeLogs(ticketId)
-        .then((rows) => {
-          setTimeLogs(rows);
-          setTimeVisible(true);
-        })
-        .catch(() => setTimeVisible(false));
-      await listTicketAttachments(ticketId)
-        .then((rows) => {
-          setAttachments(rows);
-          setAttachmentsVisible(true);
-        })
-        .catch(() => setAttachmentsVisible(false));
-    } catch (error) {
-      setTicket(null);
-      setErrorKey(mapTicketError(error));
-    } finally {
-      setIsLoading(false);
+    await loadTicketDetail({ ...detailTarget, ticketId, silent: false });
+  }, [ticketId]);
+
+  const refresh = useCallback(async () => {
+    if (ticketId === undefined) {
+      return;
     }
+    await loadTicketDetail({ ...detailTarget, ticketId, silent: true });
   }, [ticketId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useTicketRealtime({
+    ticketId,
+    applyTicket: setTicket,
+    setMessages,
+    reload: refresh,
+  });
 
   const runAction = async (operation: () => Promise<void>) => {
     setActionError(null);
@@ -133,11 +127,14 @@ export function useTicketDetail(ticketId: string | undefined) {
         setTicket(await updateTicket(id, { status, ...extras }));
       })),
     sendMessage: (type: MessageType, body: string) =>
-      onTicket((id) => runAction(async () => {
-        const created = await createTicketMessage(id, { type, body });
-        setMessages((current) => [...current, created]);
-        setTicket(await getTicket(id));
-      })),
+      onTicket((id) => runAction(() => sendTicketMessageOptimistic({
+        ticketId: id,
+        type,
+        body,
+        authorUserId: currentUserId,
+        setMessages,
+        setTicket,
+      }))),
     reopen: async () => {
       if (ticketId === undefined) {
         return null;

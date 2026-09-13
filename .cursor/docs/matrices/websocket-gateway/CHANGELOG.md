@@ -1,7 +1,7 @@
 # CHANGELOG — websocket-gateway
 
-## 2026-09-11
-- Ticket chat: `ticket:join` / `ticket:leave` i `ticket.message.created` na postojećem gatewayu. Join koristi ticket OU/service/requester authorization. Internal/system poruke idu samo staff room-ovima.
+## 2026-09-13
+- Ticket/chat + notification + settings realtime: `ticket.updated`, `notification.created`/`read`/`unread-count`, `settings.updated`, `session.invalidated`. Auth handshake i ticket join ostaju isti. Nema Redis adaptera ni typing indikatora.
 - HTTP CORS sada dijeli `CORS_ORIGIN` s Socket.IO; origin resolver je u `common/cors`.
 
 ## 2026-09-10

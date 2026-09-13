@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 export function ApplicationShell() {
@@ -43,6 +44,7 @@ export function ApplicationShell() {
 
   return (
     <div className="flex h-full min-h-0 overflow-x-hidden">
+      <HelpdeskSocketHost />
       <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface lg:block">
         <AppSidebar />
       </aside>

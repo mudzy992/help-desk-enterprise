@@ -160,6 +160,15 @@ describe('WebsocketGateway', () => {
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain(SYNTHETIC_TOKEN);
   });
 
+  it('joins the user room after an authenticated connection', async () => {
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    socket.data.principal = { subjectId: 'subject-user-1' };
+    gateway.handleConnection(socket);
+    expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
+    expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
   it('disconnects unauthenticated sockets that reach the connection handler', async () => {
     const gateway = await createGateway();
     const socket = createSocket(undefined);

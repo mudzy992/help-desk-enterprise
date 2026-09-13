@@ -95,9 +95,15 @@ export const ticketSystemEventActions = {
 
 export const ticketRealtimeEventNames = {
   messageCreated: 'ticket.message.created',
+  ticketUpdated: 'ticket.updated',
   join: 'ticket:join',
   leave: 'ticket:leave',
   error: 'ticket:error',
+  notificationCreated: 'notification.created',
+  notificationRead: 'notification.read',
+  notificationUnreadCount: 'notification.unread-count',
+  settingsUpdated: 'settings.updated',
+  sessionInvalidated: 'session.invalidated',
 } as const;
 
 export const defaultTicketCollaborationConfiguration = {

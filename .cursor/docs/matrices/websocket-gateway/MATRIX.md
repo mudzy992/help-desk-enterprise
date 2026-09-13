@@ -1,7 +1,7 @@
 # MATRIX — websocket-gateway
 
 ## Cilj
-Socket.IO handshake skeleton: konekcija se prihvata samo nakon provider-neutral autentikacije. Domain eventi, rooms i pravi auth provider nisu dio ovog sloja.
+Socket.IO handshake: konekcija se prihvata samo nakon provider-neutral autentikacije. Domain eventi idu kroz hubove; handshake i dalje vidi samo `{ subjectId }`.
 
 ## Tok
 ```
@@ -30,10 +30,13 @@ SocketAuthenticationVerifier
 `JwtSocketAuthenticationVerifier` (authentication modul) verifikuje session JWT iz `handshake.auth.token`. Nevažeći/istekli token ili nedostajući signing secret → unauthenticated. Nema fake usera, hardcoded tokena, niti `NODE_ENV` bypass-a.
 
 ## Lifecycle
-`afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala. `handleDisconnect` samo loguje. Nema business eventa.
+`afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala i join-a `user:{subjectId}`. `handleDisconnect` samo loguje.
+
+## Domain eventi
+Gateway sluša `TicketRealtimeHub` / `SettingsRealtimeHub` (servisi ne emituju na socket). Eventi: `ticket.message.created`, `ticket.updated`, `notification.*`, `settings.updated`, `session.invalidated`. Ticket join i dalje ide kroz `TicketsCollaborationService.authorizeSocketJoin`.
 
 ## CORS
 `CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS koristi isti ključ (`.cursor/docs/matrices/http-cors/MATRIX.md`).
 
 ## Namjerno NIJE implementirano
-RBAC rooms osim ticket chat join (vidi `ticket-chat-audit`), notification/settings eventi, Redis adapter, frontend workspace. Handshake i dalje vidi samo `{ subjectId }`. Ticket join evaluira postojeći ticket OU/service/requester access u `TicketsCollaborationService`.
+Redis adapter, typing indicator, message edit/delete (nema REST podrške). Handshake i dalje vidi samo `{ subjectId }`.

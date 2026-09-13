@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { type TicketUpdatedRealtimePayload } from "@/lib/realtime/apply-ticket-updated";
+import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
+import { useSession } from "@/lib/session/use-session";
+import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
+import { ticketSocketEvents } from "@/services/ticket-socket";
 import {
   approveTicketApproval,
   listTicketApprovals,
@@ -9,6 +14,7 @@ import {
 import type { TicketResponse } from "@/services/tickets-api";
 
 export function useTicketApprovals(ticketId: string | undefined) {
+  const { session } = useSession();
   const [items, setItems] = useState<readonly TicketApprovalResponse[]>([]);
   const [visible, setVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +36,27 @@ export function useTicketApprovals(ticketId: string | undefined) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (session === null || ticketId === undefined) {
+      return;
+    }
+    const socket = acquireHelpdeskSocket(session.accessToken);
+    const stop = subscribeSocketEvent<TicketUpdatedRealtimePayload>(
+      socket,
+      ticketSocketEvents.ticketUpdated,
+      (payload) => {
+        if (payload.ticketId !== ticketId || payload.change !== "approval") {
+          return;
+        }
+        void load();
+      },
+    );
+    return () => {
+      stop();
+      releaseHelpdeskSocket();
+    };
+  }, [load, session, ticketId]);
 
   const decide = async (
     run: (id: string, approvalId: string, comment: string) => Promise<TicketResponse>,

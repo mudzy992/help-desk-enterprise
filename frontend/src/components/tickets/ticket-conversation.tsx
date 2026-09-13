@@ -1,4 +1,5 @@
 import { CheckCheck, GitBranch } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketMessageBubble } from "@/components/tickets/ticket-message-bubble";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,6 +20,11 @@ export function TicketConversation({
   systemOnly = false,
 }: TicketConversationProperties) {
   const { t, i18n } = useTranslation();
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "nearest" });
+  }, [messages.length]);
   const visible = systemOnly
     ? messages.filter(
         (message) =>
@@ -89,6 +95,7 @@ export function TicketConversation({
           />
         );
       })}
+      <div ref={bottomRef} />
     </div>
   );
 }

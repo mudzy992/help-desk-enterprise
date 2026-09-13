@@ -1,5 +1,9 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
+import {
+  getSettingsGeneration,
+  subscribeSettingsGeneration,
+} from "@/lib/settings/settings-realtime-store";
 import type { EmailTemplateRegistry } from "@/lib/settings/email-template-keys";
 import {
   isEmailTemplateRegistryValid,
@@ -14,6 +18,11 @@ import {
 } from "@/services/settings-api";
 
 export function useEmailChannelForm() {
+  const settingsGeneration = useSyncExternalStore(
+    subscribeSettingsGeneration,
+    getSettingsGeneration,
+    getSettingsGeneration,
+  );
   const [snapshot, setSnapshot] = useState<EmailChannelSettings | null>(null);
   const [templates, setTemplates] = useState<EmailTemplateRegistry | null>(null);
   const [channelEnabled, setChannelEnabled] = useState(false);
@@ -32,7 +41,7 @@ export function useEmailChannelForm() {
         setErrorKey(null);
       })
       .catch((error: unknown) => setErrorKey(mapApiError(error)));
-  }, []);
+  }, [settingsGeneration]);
 
   const applySnapshot = (loaded: EmailChannelSettings) => {
     setSnapshot(loaded);

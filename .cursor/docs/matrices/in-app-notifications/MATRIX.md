@@ -1,7 +1,7 @@
 # MATRIX — in-app-notifications
 
 ## Cilj
-Persistent per-user inbox (`Notification`): list, unread count, mark-as-read. Fan-out iz postojećih ticket eventa (`TicketRealtimeHub` + `SYSTEM_EVENT`), ne iz novog event bus-a. Email, Socket.IO `notification.created`, BullMQ i Teams nisu ovaj task.
+Persistent per-user inbox (`Notification`): list, unread count, mark-as-read. Fan-out iz postojećih ticket eventa (`TicketRealtimeHub` + `SYSTEM_EVENT`), ne iz novog event bus-a. Socket.IO prenosi već persistovane inbox zapise. Email i BullMQ nisu ovaj sloj.
 
 ## Model
 `userId` + `type` + `title`/`body` + `payload` + optional `ticketId`. `dedupeKey` unique sa `userId` (idempotent skip na `P2002`). `isRead` / `readAt`. Confidential tiket: body je `ticketNumber`, payload bez naslova tiketa.
@@ -31,7 +31,7 @@ Sve rute filterišu isključivo `userId` iz sesije. Tuđi id → `404 NOT_FOUND`
 Auth: `SessionAuthenticationGuard` + `RoleGuard` (USER+). Nema posebnog permission key-a.
 
 ## UI
-Bell u app headeru: list, unread badge, mark one/all. Desktop panel, mobile sheet. Bez Socket.IO; badge poll 30s.
+Bell u app headeru: list, unread badge, mark one/all. Desktop panel, mobile sheet. Socket.IO `notification.created` / `notification.read` / `notification.unread-count` na `user:{userId}`; badge poll 30s ostaje fallback za izgubljene evente.
 
 ## Namjerno NIJE
-Email kanal, `notification.created` WS event, BullMQ queue, Teams stub, Edge receipts.
+BullMQ queue, Teams stub, Edge receipts. Email kanal je odvojeni task.

@@ -12,7 +12,7 @@ Tijelo poruke je action key. `authorUserId` je actor kad postoji. Vidljivost: st
 Mutacije participanta i time-loga pišu postojeći `ChangeLog` (`ticket_participant` / `ticket_time_log`) sa reason + diff. Ticket create/update/claim i dalje koriste postojeći ticket ChangeLog.
 
 ## Realtime
-Isti `ticket.message.created` event; staff rooms dobiju SYSTEM_EVENT, public rooms ne.
+`ticket.message.created` (staff vs public rooms) i `ticket.updated` (slim snapshot, bez title/description). Confidential/time/participant akcije ostaju staff-only.
 
 ## Socket
 `ticket:join` / `ticket:leave` na postojećem Socket.IO gatewayu. Join koristi `TicketsCollaborationService.authorizeSocketJoin` (isti OU/service/requester model). Kanali: `ticket:{id}:public`, `ticket:{id}:staff`, `user:{userId}`, `group:{groupId}`.

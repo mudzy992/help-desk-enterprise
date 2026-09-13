@@ -6,12 +6,19 @@ export const ticketSocketEvents = {
   join: "ticket:join",
   leave: "ticket:leave",
   messageCreated: "ticket.message.created",
+  ticketUpdated: "ticket.updated",
+  notificationCreated: "notification.created",
+  notificationRead: "notification.read",
+  notificationUnreadCount: "notification.unread-count",
+  settingsUpdated: "settings.updated",
+  sessionInvalidated: "session.invalidated",
 } as const;
 
 export function connectTicketSocket(token: string): Socket {
   return io(apiBaseUrl, {
     auth: { token },
     autoConnect: true,
+    reconnection: true,
   });
 }
 

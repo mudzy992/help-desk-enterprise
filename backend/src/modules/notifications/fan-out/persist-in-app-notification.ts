@@ -1,5 +1,5 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { NotificationPayload } from '../notifications.types';
+import type { NotificationPayload, NotificationRecord } from '../notifications.types';
 import type { NotificationType } from '../notifications.constants';
 
 export async function persistInAppNotification(
@@ -13,9 +13,9 @@ export async function persistInAppNotification(
     readonly payload: NotificationPayload;
     readonly dedupeKey: string;
   },
-): Promise<void> {
+): Promise<NotificationRecord | null> {
   try {
-    await prisma.notification.create({
+    return (await prisma.notification.create({
       data: {
         userId: input.userId,
         type: input.type,
@@ -25,10 +25,10 @@ export async function persistInAppNotification(
         payload: input.payload,
         dedupeKey: input.dedupeKey,
       },
-    });
+    })) as NotificationRecord;
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      return;
+      return null;
     }
     throw error;
   }

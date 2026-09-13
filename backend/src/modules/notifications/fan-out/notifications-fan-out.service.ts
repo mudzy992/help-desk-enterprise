@@ -7,6 +7,7 @@ import { fanOutEmailNotifications } from '../email/fan-out-email-notifications';
 import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
 import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
+import { publishCreatedNotifications } from './publish-created-notifications';
 
 @Injectable()
 export class NotificationsFanOutService
@@ -41,7 +42,12 @@ export class NotificationsFanOutService
     payload: TicketRealtimeMessagePayload,
   ): Promise<void> {
     try {
-      await fanOutInAppNotifications(this.prisma, payload);
+      const created = await fanOutInAppNotifications(this.prisma, payload);
+      await publishCreatedNotifications(
+        this.prisma,
+        this.ticketRealtimeHub,
+        created,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to persist in-app notification for ticket ${payload.ticketId}`,

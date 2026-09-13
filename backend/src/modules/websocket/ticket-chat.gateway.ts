@@ -10,19 +10,25 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
-import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
 import { TicketsCollaborationService } from '../tickets/tickets-collaboration.service';
 import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
+import { SettingsRealtimeHub } from '../settings/settings-realtime.hub';
 import { getSocketPrincipal } from './authenticated-socket';
+import {
+  broadcastTicketMessage,
+  broadcastTicketUpdated,
+} from './broadcast-ticket-realtime';
+import {
+  broadcastNotificationRealtime,
+  broadcastSettingsUpdated,
+} from './broadcast-user-realtime';
 import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import {
-  groupRoomName,
   parseTicketSocketPayload,
   ticketPublicRoomName,
   ticketRoomName,
   ticketStaffRoomName,
-  userRoomName,
 } from './ticket-socket-rooms';
 
 @WebSocketGateway({
@@ -34,21 +40,35 @@ export class TicketChatGateway implements OnGatewayInit, OnModuleDestroy {
   @WebSocketServer()
   server!: Server;
 
-  private unsubscribe: (() => void) | undefined;
+  private readonly unsubscribers: Array<() => void> = [];
 
   constructor(
     private readonly ticketsCollaborationService: TicketsCollaborationService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
+    private readonly settingsRealtimeHub: SettingsRealtimeHub,
   ) {}
 
   afterInit(): void {
-    this.unsubscribe = this.ticketRealtimeHub.subscribe((payload) => {
-      this.broadcastMessage(payload);
-    });
+    this.unsubscribers.push(
+      this.ticketRealtimeHub.subscribe((payload) => {
+        broadcastTicketMessage(this.server, payload);
+      }),
+      this.ticketRealtimeHub.subscribeTicketUpdated((payload) => {
+        broadcastTicketUpdated(this.server, payload);
+      }),
+      this.ticketRealtimeHub.subscribeNotification((payload) => {
+        broadcastNotificationRealtime(this.server, payload);
+      }),
+      this.settingsRealtimeHub.subscribe((payload) => {
+        broadcastSettingsUpdated(this.server, payload);
+      }),
+    );
   }
 
   onModuleDestroy(): void {
-    this.unsubscribe?.();
+    for (const unsubscribe of this.unsubscribers) {
+      unsubscribe();
+    }
   }
 
   @SubscribeMessage(ticketRealtimeEventNames.join)
@@ -87,22 +107,6 @@ export class TicketChatGateway implements OnGatewayInit, OnModuleDestroy {
     return this.ticketsCollaborationService.authorizeSocketJoin(ticketId, {
       actorUserId: principal.subjectId,
     });
-  }
-
-  private broadcastMessage(payload: TicketRealtimeMessagePayload): void {
-    const event = ticketRealtimeEventNames.messageCreated;
-    this.server.to(ticketStaffRoomName(payload.ticketId)).emit(event, payload);
-    if (payload.visibility === 'public') {
-      this.server
-        .to(ticketPublicRoomName(payload.ticketId))
-        .emit(event, payload);
-      this.server.to(userRoomName(payload.requesterId)).emit(event, payload);
-    }
-    if (payload.assignedGroupId !== null) {
-      this.server
-        .to(groupRoomName(payload.assignedGroupId))
-        .emit(event, payload);
-    }
   }
 }
 
