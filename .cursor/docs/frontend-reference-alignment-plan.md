@@ -1,6 +1,6 @@
 # Frontend ↔ referenca-dizajn alignment plan
 
-Status: **PLAN CREATED** (nema implementacije u ovom koraku).
+Status: **PLAN VALIDATED** (visual QA baseline korigovan 2026-09-13; nema implementacije).
 Datum audita: 2026-09-13.
 Scope audita: frontend do kraja Faze 7 (Socket.IO ticket/chat, notifications, settings) + kanonski `referenca-dizajn/`.
 
@@ -37,7 +37,7 @@ Pregledano (repo, nije nagađanje):
 | Domain | `.cursor/docs/00-mvp-scope.md`, `02-routing-logic.md`, matrice: catalog, onboarding, KB, routing, SLA, overdue, websocket, ticketing, bulk, participants |
 | Backend ugovor (samo za “šta UI smije raditi”) | routing/sla/services/kb/tickets kontroleri |
 
-Nije rađeno: vizuelni screenshot/browser pass, runtime protiv live API-ja. Gdje API polje nije u DTO-u, označeno je **OPEN BLOCKER** ili **UNVERIFIED**.
+Nije rađeno u auditu: vizuelni screenshot/browser pass, runtime protiv live API-ja. Implementacija **mora** raditi rendered visual QA po §13. Gdje API polje nije u DTO-u, označeno je **OPEN BLOCKER** ili **UNVERIFIED**.
 
 ---
 
@@ -353,6 +353,8 @@ B1 (SLA DTO) može ući paralelno kao mali backend contract task; nije vizuelni-
 
 Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verifikacije.
 
+**Visual zatvaranje:** izvorni kod, JSX i CSS **nisu** dokaz parity. Task koji dira UI smije se označiti `[x]` tek kad prolazi §13.4 na **renderovanom** current page-u, upoređenom s **renderovanom** referentnom stranicom (§13.5 gate na closing tasku modula). Desktop + mobile. Screenshot pair gdje je moguće. Fake/hardcoded production data zabranjen.
+
 ### FE-0 — Audit + Foundation
 
 #### FE-0.1 — Semantic meta + token usage baseline
@@ -420,16 +422,28 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Verification:** build; vizuelni smoke na dashboard tek u FE-2.
 - [ ] FE-0.5 completed
 
-#### FE-0.6 — Visual parity baseline checklist u docs
+#### FE-0.6 — Reference Visual QA Baseline
 
-**Goal:** DoD iz §12 ovog dokumenta kao kratki `frontend` QA snippet (ne novi design system).
-**Scope:** ovaj fajl već sadrži DoD; task = potvrditi da FE-0.1–0.5 prolaze checklist (tokens, radius, no new shadows).
-**Reference:** theme.md §13.
-**Current:** n/a.
+**Goal:** Učiniti visual parity **dokazivom i ponovljivom**. Ovaj task ne implementira module — zaključava protokol iz §13 i prvi put ga izvršava na primitive-ima + trenutnom shell chrome-u.
+**Scope:**
+  - Pokrenuti **oba** UI-ja u browseru (ne uspoređivati samo source/JSX/CSS/tokene):
+    - current: `frontend` Vite (port **5173**, `frontend/vite.config.ts`)
+    - reference: `referenca-dizajn` Vite na **drugom** portu (oba defaultaju na 5173) — npr. `npm run dev -- --port 5174`
+  - Referenca **nema URL rute** (`App.tsx` + `nav.ts` in-memory). Navigacija klikom u `Shell`. Current koristi React Router pathove iz §13.5.
+  - Viewports (DevTools): **desktop 1440×900**, **mobile 390×844**. Desktop je primarni workspace (Constitution §33); mobile mora ostati funkcionalan, ne “umanjeni desktop”.
+  - Screenshot side-by-side (OS/DevTools capture). U repo-u **nema** Playwright / Chromatic / Percy / Storybook — **ne uvoditi** novi visual-regression framework radi ovog plana. Radni snimci nisu git artefakt.
+  - Prvi pass: Button aliases, Badge/MetaBadge, Card, Field/Input/Select/Textarea, Progress, StatCard, Tabs, EmptyState, plus shell chrome (sidebar 248 / overlay 270, topbar h-14, search, bell). Charts rendered smoke **nije** ovdje — to je FE-2.2 gate.
+**Reference:** live `referenca-dizajn` (`Shell.tsx`, `ui.tsx`); theme.md ekrani; theme-source §13.
+**Current:** live `frontend` (`application-shell`, `components/ui/*`).
 **Dependencies:** FE-0.1–0.5.
-**Preserve:** n/a.
-**Acceptance:** checklist prošao na primitive-ima.
-**Verification:** manual + build.
+**Preserve:** ne novi design system; fix samo ako FE-0.1–0.5 primitive padne vizuelno.
+**Acceptance:**
+  - Agent vidi istovremeno reference rendered page i current rendered page.
+  - Protokol §13 je izvršiv (portovi, viewports, screenshot pair, mapping tabela).
+  - Primitive-i prolaze §13.4 na desktop + mobile (nema novog hex/radius/shadow).
+  - Module gateovi iz §13.5 ostaju otvoreni — nisu dio ovog taska.
+**Visual:** §13.4 (layout, type, spacing, tokens, radius, hover/focus).
+**Verification:** browser rendered comparison + screenshot pair shell/primitives. `npm run build` u `frontend/`.
 - [ ] FE-0.6 completed
 
 ### FE-1 — App Shell
@@ -494,7 +508,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** none.
 **Preserve:** login formu, signOut, locale switch, assigned tickets.
 **Acceptance:** nema regresije auth.
-**Verification:** sign-in/out manual + session testovi.
+**Verification:** sign-in/out manual + session testovi + §13.5 Shell visual gate (desktop 1440 + mobile 390).
 - [ ] FE-1.5 completed
 
 ### FE-2 — Dashboard
@@ -547,7 +561,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** FE-2.1; Reports link čeka FE-4.1.
 **Preserve:** crumbs/title i18n.
 **Acceptance:** loading skeleton ostaje.
-**Verification:** build.
+**Verification:** build + §13.5 Dashboard visual gate (rendered `/` vs `Dashboard.tsx`, desktop+mobile).
 - [ ] FE-2.4 completed
 
 ### FE-3 — Tickets
@@ -562,7 +576,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** bulk bez close, saved views, pagination, confidential icon. `TicketOverdueBadge` **već postoji** na list tabeli (`ticket-list-table.tsx`) — ne dirati.
 **Acceptance:** tab “SLA rizik” filtrira `isOverdue`; avatari assignee kad ime postoji u directory (ako list nema ime — skip avatar, ne fake).
 **Visual:** table head 10.5px uppercase; row hover `elevated/40`.
-**Verification:** `filter-tickets` spec + manual.
+**Verification:** `filter-tickets` spec + §13.5 Tickets visual gate (rendered `/tickets` vs `Tickets.tsx`).
 - [ ] FE-3.1 completed
 
 #### FE-3.2 — Inbox visual (group tabs)
@@ -575,7 +589,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** claim API, unrouted copy, Flame na CRITICAL.
 **Acceptance:** **UNROUTED nije group inbox** (ticketing-core / routing matrice). Neusmjereni red je zaseban tab/banner iz `listTickets` `status===UNROUTED`; `listGroupInbox` ostaje samo grupni nepreuzeti. Ne miješati UNROUTED u group tabove.
 **Visual:** danger banner, Preuzmi primary.
-**Verification:** manual inbox.
+**Verification:** §13.5 Inbox visual gate (rendered `/tickets?view=inbox` vs `Inbox.tsx`).
 - [ ] FE-3.2 completed
 
 #### FE-3.3 — Ticket Detail SLA panel (gated B1)
@@ -605,8 +619,8 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** FE-0.1.
 **Preserve:** cijeli workspace, realtime, approvals, split, CSAT, confidential, redaction.
 **Acceptance:** nijedan tab nije uklonjen; composer Ctrl+Enter ostaje.
-**Visual:** header card px-5 py-4, 330px sidebar.
-**Verification:** manual detail + postojeći ticket testovi.
+**Visual:** header card px-5 py-4, 330px sidebar. **Priority visual gate** — §13.5 Ticket Detail (delta, ne rewrite).
+**Verification:** browser rendered vs `TicketDetail.tsx` (desktop + mobile) + postojeći ticket testovi. Screenshot pair. Ne rebuildovati layout.
 - [ ] FE-3.4 completed
 
 #### FE-3.5 — Create ticket wizard chrome
@@ -618,7 +632,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** FE-0.4.
 **Preserve:** KB intercept ne preskakati; schema form; routing preview ako već postoji na create side panel.
 **Acceptance:** completed step = success kvačica, active = primary fill.
-**Verification:** intercept specs + manual create.
+**Verification:** intercept specs + §13.5 NewTicket visual gate (rendered `/tickets/new` vs `NewTicket.tsx`).
 - [ ] FE-3.5 completed
 
 ### FE-4 — Reports
@@ -658,7 +672,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** FE-4.1.
 **Preserve:** ne zvati nepostojeći export.
 **Acceptance:** disabled + aria-disabled; date filter mijenja aggregacije.
-**Verification:** manual.
+**Verification:** §13.5 Reports visual gate (rendered `/reports` vs `Reports.tsx`; export ostaje disabled).
 - [ ] FE-4.3 completed
 
 ### FE-5 — Usluge + Baza znanja
@@ -673,7 +687,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** prepare form akcija, lifecycle/availability badges, empty state.
 **Acceptance:** search po name/slug; prikazati `requiresApproval` i `runtimeAvailability` (warn, nikad blok); downtime traka iz `activeDowntimeWindow`.
 **Visual:** 1/2/3 col cards, hover `#31405C`.
-**Verification:** catalog load + empty.
+**Verification:** catalog load + empty + §13.5 Catalog layout gate (rendered `/services` vs `Catalog.tsx`).
 - [ ] FE-5.1 completed
 
 #### FE-5.2 — Catalog API wrappers + create/edit/lifecycle
@@ -699,7 +713,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** lifecycle ostaje DRAFT do finalize.
 **Acceptance:** koraci redom; finalize zove postojeći endpoint.
 **Visual:** WizardStepper postoji (`wizard-stepper.tsx`) — reuse.
-**Verification:** manual happy path + error.
+**Verification:** manual happy path + error + §13.5 Catalog onboarding stepper vs `Catalog.tsx` stepper chrome.
 - [ ] FE-5.3 completed
 
 #### FE-5.4 — Knowledge list visual + filters
@@ -712,7 +726,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** feedback thumbs, lifecycle+reason, intercept ranking copy.
 **Acceptance:** filter status/service/stale; i18n status; owner ime.
 **Visual:** hover title `#7FA8F5`; search card bez border-input chrome lom.
-**Verification:** list empty/error.
+**Verification:** list empty/error + §13.5 Knowledge list gate (rendered `/knowledge-base` vs `Knowledge.tsx`; bez fake tagova/%).
 - [ ] FE-5.4 completed
 
 #### FE-5.5 — Knowledge article detail + edit
@@ -725,7 +739,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** change log `reason` na update; lifecycle actions.
 **Acceptance:** 404/forbidden mapping; edit samo uz write permission.
 **Visual:** PageHeader crumbs Usluge i znanje / članak.
-**Verification:** get/update error tests + manual.
+**Verification:** get/update error tests + manual. Nema 1:1 reference detail page — chrome vs Knowledge + PageHeader, ne izmišljati ekran.
 - [ ] FE-5.5 completed
 
 ### FE-6 — Routing + SLA
@@ -753,7 +767,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** create reason ako backend zahtijeva (DTO `CreateRoutingRuleInput` trenutno nema `reason` u FE clientu — **provjeriti** backend DTO pri implementaciji; ako je obavezan, dodati polje).
 **Acceptance:** duplicate rule error ostaje.
 **Visual:** UnderlineTabs.
-**Verification:** create error specs.
+**Verification:** create error specs + §13.5 Routing visual gate (rendered `/routing` vs `Routing.tsx`).
 - [ ] FE-6.2 completed
 
 #### FE-6.3 — SLA admin visual (no logic change)
@@ -766,7 +780,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Preserve:** create/update/delete + reason + change log.
 **Acceptance:** ista API ponašanja.
 **Visual:** selected profile `border-primary/50 bg-primary/8`.
-**Verification:** postojeći sla error specs + manual.
+**Verification:** postojeći sla error specs + §13.5 SLA visual gate (rendered `/sla` vs `Sla.tsx`).
 - [ ] FE-6.3 completed
 
 ### FE-7 — Realtime UX consolidation
@@ -830,8 +844,8 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Current:** već dosta usklađeno.
 **Dependencies:** FE-8.1.
 **Preserve:** `N`, `⌘K`.
-**Acceptance:** tab kroz shell + ticket list checkbox.
-**Verification:** manual desktop+mobile viewport.
+**Acceptance:** tab kroz shell + ticket list checkbox; svi §13.5 module gateovi prošli desktop 1440 + mobile 390.
+**Verification:** FE-0.6 protokol — rendered reference vs rendered current, screenshot pair po gateu; ne samo grep/source.
 - [ ] FE-8.2 completed
 
 #### FE-8.3 — Loading/empty/error consistency
@@ -894,7 +908,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
 **Dependencies:** FE-9.1.
 **Preserve:** n/a.
 **Acceptance:** nula mock jobova.
-**Verification:** visual.
+**Verification:** §13.5 Admin skeleton visual gate (rendered `/admin` vs `Admin.tsx` tabs chrome; ops EmptyState).
 - [ ] FE-9.4 completed
 
 ---
@@ -941,6 +955,12 @@ FE-6 + FE-5 + FE-4 + FE-3 + FE-2 → FE-8.*
 FE-1.1 → FE-9.1 → FE-9.2/9.3/9.4
 ```
 
+Visual QA (nije novi task ID; ne mijenja redoslijed gore):
+
+- FE-0.6 zaključava protokol (rendered vs rendered, desktop+mobile, screenshot).
+- Closing task svakog modula u §13.5 = visual gate tog modula.
+- FE-8.2 = globalni ponovni prolaz svih §13.5 gateova.
+
 Linear implementation prompt sequence je u §15.
 
 ---
@@ -962,13 +982,76 @@ Linear implementation prompt sequence je u §15.
 - [ ] responsive ponašanje provjereno (lg sidebar, sheet, stacked ticket grid)
 - [ ] `npm run build` prolazi (`frontend/`)
 - [ ] relevantni testovi prolaze (`frontend` vitest)
+- [ ] svaki modul iz §13.5 ima prošao **browser** visual gate (desktop 1440 + mobile 390; screenshot pair)
+- [ ] Ticket Detail visual gate je delta na KEEP layoutu — nije rewrite
 - [ ] task checkbox označen tek nakon provjere
 
 ---
 
-## 13. Visual QA checklist
+## 13. Visual QA methodology
 
-Po ekranu, prije označavanja taska:
+Dokaz parity je **renderovani UI**, ne source diff.
+
+### 13.1 Browser / rendered validation
+
+Obavezno:
+
+1. Pokrenuti `referenca-dizajn` (Vite, port ≠ 5173) i `frontend` (5173).
+2. Otvoriti referentnu stranicu (klik u reference `Shell` — nema URL rute).
+3. Otvoriti current stranicu (React Router path iz §13.5).
+4. Uporediti **rendered reference page** vs **rendered current page** na istom viewportu.
+
+Nije dovoljno: JSX poređenje, CSS/token grep, “izgleda dobro”. Brojke se **ne** uspoređuju s mock `data/mock.ts`. Layout, hijerarhija, chrome i stanja — da; fake production data — ne.
+
+### 13.2 Desktop + mobile
+
+Svaki §13.5 gate na **oba**:
+
+| Viewport | Size | Šta mora proći |
+| --- | --- | --- |
+| Desktop | 1440×900 | sidebar 248px (`lg:block`), header h-14, page width `max-w-[1400px]` (`px-4 py-6 lg:px-8`; Ticket Detail `max-w-[1440px]`; NewTicket inner `max-w-[1060px]`), spacing `gap-3`, kartice/tabele/forme, tabovi, badge/button, dialog/dropdown |
+| Mobile | 390×844 | hamburger + overlay/Sheet **270px** (`lg:hidden`), nema horizontal overflow osim tabela, stacked gridovi, primary CTA dostupan, search/user chrome ne lomi header |
+
+Na svakom viewportu pregledati: sidebar, header, page width, spacing, cards, tables, forms, dialogs/drawers, tabs, badges, buttons, empty/loading/error, responsive overflow, mobile navigation.
+
+Current mobile nav KEEP: Radix `Sheet` umjesto custom overlay (a11y); vizuelna širina 270px.
+
+### 13.3 Screenshot / diff (bez novog frameworka)
+
+Repo **nema** Playwright, Chromatic, Percy, Storybook, Cypress. Ne uvoditi ih radi ovog plana.
+
+Po gateu, gdje je moguće:
+
+- DevTools screenshot na 1440 i 390, reference + current
+- Side-by-side (dva browser prozora ili dva capture-a)
+- Pixel/vizuelni pregled: spacing, type scale, border, radius, hover/focus (hover state može zahtijevati drugi snimak)
+
+Radni snimci su lokalni, nisu commit. FE-8.1 i dalje radi **grep** (hex/radius/shadow); to je dodatak, ne zamjena browser passa.
+
+### 13.4 Visual acceptance criteria (svaki UI task)
+
+Task nije gotov dok rendered current ne zadovolji, u odnosu na referencu:
+
+| Tema | Mjerljivo (ne “izgleda dobro”) |
+| --- | --- |
+| Layout | shell 248 / overlay 270 / topbar h-14; content max-w 1400 (izuzeća: detail 1440, new ticket 1060); Ticket Detail `xl:grid-cols-[1fr_330px]` KEEP |
+| Typography | Inter; PageHeader breadcrumb 11.5px, title 19px (Ticket Detail ID **16px** KEEP); jedan H1; `.tnum` na ID / brojačima / tajmerima |
+| Spacing | page `px-4 py-6 lg:px-8`; kartice `gap-3`; header `mb-5` |
+| Colors/tokens | hex samo iz theme-source / theme.md + dopušteni (`#7FA8F5`, `#1D4FD8`, `#31405C`, `#1B2436`, `#3B4A6B`, avatar hues) |
+| Borders | `border-border`; card hover border `#31405C`, ne sjena |
+| Radius | controls 6px, cards/panels 8px; nema pill CTA; nema kartica >8px |
+| Shadows | samo floating (`shadow-xl shadow-black/40` + `pop-in`) |
+| Hover/focus | focus-visible 2px primary/70; disabled opacity 45% |
+| Active | nav: `bg-elevated` + crtica 2.5px + ikona `#7FA8F5` |
+| Badges | tekst + tone; UNROUTED danger; boja nije jedini nosilac |
+| Icons | Lucide, ista uloga kao referenca (Flame na Critical u inboxu) |
+| Tables | head 10.5px uppercase; row hover `elevated/40`; ID `#7FA8F5` + hover underline; mobile horizontal scroll |
+| Forms | Field label 12.5px, hint 11.5px, control h-9, `bg-background/60`, required `*` |
+| Dialogs/drawers | notif 380px; Sheet/dropdown elevated + sjena; KEEP Radix |
+| Responsive | Constitution §33: sidebar → mobile nav; tabele scroll; primary actions ostaju |
+| Loading/empty/error | skeleton; EmptyState = šta se desilo + sljedeći korak; `ApiErrorText` + requestId |
+
+Plus postojeća chrome pravila:
 
 1. PageHeader: breadcrumb 11.5px, title 19px (Ticket Detail title ostaje 16px ID — KEEP).
 2. Jedan H1 po stranici.
@@ -982,6 +1065,31 @@ Po ekranu, prije označavanja taska:
 10. Mobile: sidebar sheet 270px; tabele horizontal scroll.
 11. EmptyState: šta se desilo + sljedeći korak.
 12. Relativno vrijeme ima apsolutni `title` (`RelativeTime` KEEP).
+
+### 13.5 Module-by-module visual gates
+
+Nema novih task ID-jeva. Gate se izvršava na **closing tasku**. Nijedan closing task se ne označava `[x]` dok gate ne prođe u browseru (desktop + mobile, screenshot pair).
+
+Ticket Detail je **priority gate** (najbliži referenci) — deep visual/UX delta, **ne** rewrite.
+
+| Reference page/component | Current page/component | Expected parity | Verification (closing task) |
+| --- | --- | --- | --- |
+| `referenca-dizajn` `ui.tsx` + `Shell.tsx` chrome | `frontend/src/components/ui/*` + `application-shell` | primitive-i + shell mjere (248/h-14/270/380); IA još nije FE-1 | **FE-0.6** |
+| `Shell.tsx` + `nav.ts` | `app-sidebar.tsx`, `app-header.tsx`, `header-search.tsx`, `notifications-panel.tsx`, `session-controls.tsx` | sekcije/itemi, bedževi, search overlay, notif filter, user subtitle; KEEP Sheet/⌘K/`N`/real auth | **FE-1.5** (IA od FE-1.1) |
+| `Dashboard.tsx` | `/` `dashboard-page.tsx` | shell + KPI StatCard + Donut/14d bars + watchlist/HBars + attention table + spacing + empty/loading/error. KPI set **proširiti**, ne baciti operativne. Nema fake “26 min” / mock delte | **FE-2.4** |
+| `Tickets.tsx` | `/tickets` `ticket-list-page.tsx` | saved views 220px grid, status+SLA rizik tabovi, ID chrome, avatari, bulk traka; **nema** CSV; SLA remaining kolona samo uz B1 | **FE-3.1** |
+| `Inbox.tsx` | `/tickets?view=inbox` | danger banner, Preuzmi, Flame, group tabovi; UNROUTED ≠ group inbox | **FE-3.2** |
+| `TicketDetail.tsx` | `/tickets/:ticketId` | **KEEP** breadcrumb → header card → `1fr / 330px` → tabs + side stack. Delta: pause chip, assign, composer Paperclip, activity ikone; SLA panel **samo** ako B1. Nema channel badge. Socket.IO KEEP | **FE-3.4** (priority); **FE-3.3** dodatno ako B1 |
+| `NewTicket.tsx` | `/tickets/new` | stepper chrome, inner `max-w-[1060px]`, KB intercept obavezan | **FE-3.5** |
+| `Reports.tsx` | `/reports` (nema rute dok FE-4.1) | layout + KPI + chartovi iz `listTickets` aggregata; export **disabled**; nema mock `248` / `4,6 / 5` / `VOLUME_14D` | **FE-4.3** |
+| `Catalog.tsx` | `/services` | card grid 1/2/3 col, search, lifecycle/availability, downtime iz `runtimeAvailability`; onboarding stepper na FE-5.3. Nema fake kategorija (B5) | **FE-5.1** layout; **FE-5.3** wizard |
+| `Knowledge.tsx` | `/knowledge-base` | 2-col kartice, search, status MetaBadge, owner ime; **nema** tags/views/helpfulPct (B6). Detail ruta **nema** reference page — chrome = Knowledge + PageHeader crumbs, ne izmišljati ekran | **FE-5.4** lista; **FE-5.5** detail (nema 1:1 reference page) |
+| `Routing.tsx` | `/routing` | coverage matrica E/N/×, sticky col, tester, rules list, UnderlineTabs. Nema edit/delete/changelog tab dok nema API (B3) | **FE-6.2** |
+| `Sla.tsx` | `/sla` | profile cards + calendar week grid na **postojećem** CRUD; change log KEEP; ticket timeri nisu ovaj gate (FE-3.3 / B1) | **FE-6.3** |
+| `Admin.tsx` | `/admin` (FE-9) | UnderlineTabs org/users/settings/ops + postojeća tijela. Ops = EmptyState, **nula** mock jobova. Policy packs / audit export / queue retry **ne** u ovoj fazi | **FE-9.4** |
+| svi redovi gore | svi current moduli | ponovni desktop+mobile pass, focus/overflow | **FE-8.2** |
+
+Ne postoje druge reference page-ove u `referenca-dizajn/src/pages/` osim navedenih (+ `Admin.tsx` tabovi). Ne izmišljati.
 
 ---
 
@@ -1027,6 +1135,8 @@ Izvoditi **jedan** prompt po tasku, bez preskakanja dependency-ja:
 
 Napomena: FE-2.4 Reports link može se privremeno sakriti dok FE-4.1 ne doda rutu.
 
+Visual QA nije zaseban prompt u ovom nizu: FE-0.6 zaključava protokol; svaki closing task iz §13.5 uključuje rendered desktop+mobile gate; FE-8.2 ponavlja sve gateove. Redoslijed task ID-jeva se ne mijenja.
+
 ---
 
 ## Audit confirmation log
@@ -1056,6 +1166,7 @@ Napomena: FE-2.4 Reports link može se privremeno sakriti dok FE-4.1 ne doda rut
 | UNROUTED ∉ group inbox | dodano u FE-3.2 |
 | KPI Waiting/Approval/Unrouted deep-link | dodano u FE-2.1 |
 | `connectTicketSocket` | neiskorišten; KEEP singleton `acquireHelpdeskSocket` |
+| Visual QA (FE-0.6 / §13) | korigovano 2026-09-13 — rendered vs rendered, desktop+mobile, module gates, screenshot bez novog frameworka (nema Playwright/Chromatic u repo-u) |
 
 Parallelni auditi (nakon prvog nacrta): [Audit domain matrices docs](cf5f9451-ccbe-464e-818f-d9ddad428e1b), [Audit reference pages](cc6fea0c-492e-4ffe-963c-bd4e67e51ca9), [Audit current frontend modules](4f9473be-a3b2-43d5-bc2b-fbacd7f7bb95). Plan je zakrpan; implementacija i dalje nije krenula.
 
@@ -1063,4 +1174,4 @@ Parallelni auditi (nakon prvog nacrta): [Audit domain matrices docs](cf5f9451-cc
 
 Predložena git poruka kad se ovaj dokument commita (samo na zahtjev):
 
-`docs: add frontend reference alignment plan from Phase 7 audit`
+`docs: tighten frontend alignment plan visual QA baseline`
