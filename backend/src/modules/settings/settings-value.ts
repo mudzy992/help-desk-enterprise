@@ -14,6 +14,15 @@ export function validateSettingValue(
   definition: SettingDefinition,
   value: unknown,
 ): SettingValue {
+  const validated = readTypedSettingValue(definition, value);
+  definition.assertValue?.(validated);
+  return validated;
+}
+
+function readTypedSettingValue(
+  definition: SettingDefinition,
+  value: unknown,
+): SettingValue {
   if (definition.valueType === 'string') {
     if (typeof value !== 'string') {
       throw new SettingsError(`Setting ${definition.key} must be a string`);

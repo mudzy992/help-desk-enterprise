@@ -61,6 +61,44 @@
     "settingsTitle": "Nema dostupnih postavki",
     "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."
   },
+  "settings": {
+    "intro": "Konfiguracija kanala i predložaka. Svaka izmjena zahtijeva razlog i ide u change log.",
+    "forbiddenTitle": "Nema pristupa postavkama",
+    "forbiddenBody": "Email kanal i ostale sistemske postavke dostupne su administratorima.",
+    "email": {
+      "title": "Email kanal (Microsoft 365)",
+      "subtitle": "Odlazne notifikacije preko postojećeg SMTP/O365 setupa, samo internim korisnicima.",
+      "loading": "Učitavanje email postavki…",
+      "smtpRequired": "SMTP i email dodatak moraju biti uključeni (install wizard ili SMTP settings) prije isporuke.",
+      "deliveryHint": "SMTP i email dodatak su uključeni. Kanal šalje mail samo internim @epbih.ba adresama dok je internal-only uključen.",
+      "channelEnabled": "Email notifikacije",
+      "channelEnabledHint": "Uključuje email kanal uz postojeći in-app inbox. Ne šalje se ako su SMTP ili email dodatak ugašeni.",
+      "templatesEnabled": "Email predlošci",
+      "templatesEnabledHint": "Koristi uređene subject/body predloške. Isključeno vraća ugrađene predloške.",
+      "internalOnly": "Samo interne adrese",
+      "internalOnlyHint": "Blokira slanje van @epbih.ba. Allow-list se ignorira dok je ovo uključeno.",
+      "allowedDomains": "Dozvoljene eksterne domene (CSV)",
+      "allowedEmails": "Dozvoljene eksterne adrese (CSV)",
+      "placeholdersHint": "Dozvoljeni placeholderi: {{placeholders}}",
+      "subject": "Naslov",
+      "body": "Tijelo",
+      "templateInvalid": "Predložak mora imati tekst i samo dozvoljene placeholdere.",
+      "reason": "Razlog izmjene",
+      "save": "Sačuvaj",
+      "saving": "Spremanje…",
+      "readOnly": "Imate pregled, ali ne i dozvolu za izmjenu postavki.",
+      "templates": {
+        "ticketCreated": "Novi tiket",
+        "ticketAssigned": "Dodjela",
+        "ticketMessage": "Nova poruka",
+        "ticketResolved": "Riješen",
+        "ticketClosed": "Zatvoren",
+        "ticketApproval": "Odobrenje",
+        "ticketSla": "SLA",
+        "remoteRequested": "Udaljena podrška"
+      }
+    }
+  },
   "errors": {
     "unauthorized": "Sesija je istekla. Prijavite se ponovo.",
     "forbidden": "Nemate dozvolu za ovu radnju.",

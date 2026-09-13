@@ -1,5 +1,8 @@
 # CHANGELOG — settings-registry
 
+## 2026-09-13
+- Dodani `private.notifications.email.*` i `private.notifications.templates.*` za O365 email kanal (internal-only, template registry JSON). SMTP password ostaje secret. Nema paralelnog notification/settings sistema.
+
 ## 2026-09-11
 - Dodani `private.csat.*` i `private.dataLifecycle.archive.*`. Addon flag ostaje `private.addons.csat`. Nema paralelnog feature-flag sistema.
 - Dodani `private.guardrails.antiLoop.*` i `private.guardrails.bulkBroadcast.confirmAboveRecipients` za anti-loop/anti-spam. Nema paralelnog settings sistema.

@@ -10,6 +10,7 @@ interface SettingDefinitionCommon {
   readonly isRequired: boolean;
   readonly valueType: SettingValueTypeName;
   readonly allowedValues?: readonly string[];
+  readonly assertValue?: (value: SettingValue) => void;
 }
 
 export interface PublicSettingDefinition extends SettingDefinitionCommon {

@@ -41,6 +41,10 @@ import { createInMemoryGuardrailClaimDelegate } from './guardrails/create-in-mem
 import { createInMemoryTicketCsatDelegate } from './create-in-memory-ticket-csat-delegate';
 import type { TicketCsatRecord } from './csat/csat.types';
 import { createInMemoryNotificationDelegate } from '../notifications/create-in-memory-notification-delegate';
+import {
+  createInMemoryNotificationEmailDeliveryDelegate,
+  type NotificationEmailDeliveryRecord,
+} from '../notifications/email/create-in-memory-notification-email-delivery-delegate';
 import type { NotificationRecord } from '../notifications/notifications.types';
 import { createInMemoryTicketSlaLayer } from '../sla/create-in-memory-ticket-sla-layer';
 import type { TicketRecord } from './tickets.types';
@@ -73,6 +77,7 @@ export function createInMemoryTicketsPrisma() {
   const guardrailClaims = new Map<string, GuardrailClaimRecord>();
   const csatSubmissions = new Map<string, TicketCsatRecord>();
   const notifications = new Map<string, NotificationRecord>();
+  const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -147,6 +152,11 @@ export function createInMemoryTicketsPrisma() {
     ),
     ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
     notification: createInMemoryNotificationDelegate(notifications, nextId, now),
+    notificationEmailDelivery: createInMemoryNotificationEmailDeliveryDelegate(
+      emailDeliveries,
+      nextPrefixedId.bind(null, 'email-delivery'),
+      now,
+    ),
     ...slaLayer.delegates,
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
@@ -173,6 +183,7 @@ export function createInMemoryTicketsPrisma() {
     guardrailClaims,
     csatSubmissions,
     notifications,
+    emailDeliveries,
     slaStates: slaLayer.slaStates,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>

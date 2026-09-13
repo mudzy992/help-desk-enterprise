@@ -1,7 +1,11 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { SettingsService } from '../../settings/settings.service';
 import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
 import { TicketRealtimeHub } from '../../tickets/ticket-realtime.hub';
+import { fanOutEmailNotifications } from '../email/fan-out-email-notifications';
+import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
+import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 
 @Injectable()
@@ -14,6 +18,8 @@ export class NotificationsFanOutService
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
+    private readonly settingsService: SettingsService,
+    @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
   ) {}
 
   onModuleInit(): void {
@@ -27,11 +33,39 @@ export class NotificationsFanOutService
   }
 
   private async ingest(payload: TicketRealtimeMessagePayload): Promise<void> {
+    await this.persistInApp(payload);
+    await this.deliverEmail(payload);
+  }
+
+  private async persistInApp(
+    payload: TicketRealtimeMessagePayload,
+  ): Promise<void> {
     try {
       await fanOutInAppNotifications(this.prisma, payload);
     } catch (error) {
       this.logger.error(
         `Failed to persist in-app notification for ticket ${payload.ticketId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
+  private async deliverEmail(
+    payload: TicketRealtimeMessagePayload,
+  ): Promise<void> {
+    try {
+      const configuration = await loadEmailChannelConfiguration(
+        this.settingsService,
+      );
+      await fanOutEmailNotifications(
+        this.prisma,
+        configuration,
+        this.mailTransport,
+        payload,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send notification email for ticket ${payload.ticketId}`,
         error instanceof Error ? error.stack : String(error),
       );
     }

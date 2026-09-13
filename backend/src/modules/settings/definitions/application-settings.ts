@@ -10,6 +10,7 @@ import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
+import { notificationEmailSettings } from './notification-email-settings';
 import { ticketApprovalsSettings } from './ticket-approvals-settings';
 import { ticketWaitingAndReopenSettings } from './ticket-waiting-and-reopen-settings';
 import { ticketSplitSettings } from './ticket-split-settings';
@@ -58,5 +59,6 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...changeLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,
+  ...notificationEmailSettings,
   ...addonSettings,
 ];

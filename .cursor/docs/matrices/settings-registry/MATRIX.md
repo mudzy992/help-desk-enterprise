@@ -24,7 +24,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - Upis kopira registry classification u `scope` + `isSecret` (secret → `PRIVATE` + `isSecret=true`).
 - Čitanje overlay: stored value > default.
 - Uspješan `setSettingValue` zahtijeva caller `reason` i piše `ChangeLog` (`entityType=setting`, `entityId=key`) u istoj transakciji. Secret vrijednosti u diff-u su `[REDACTED]`. Detalji: `changelog-settings-and-routing`.
-- HTTP mutacija: `PUT /settings` (`ADMIN` + `settings.write`). Nije puni settings CRUD/UI.
+- HTTP mutacija: `PUT /settings` (`ADMIN` + `settings.write`). `GET /settings/email-channel` čita email kanal (bez secreta). Nije puni settings CRUD.
 
 ## Zabranjeno
 - Secret default vrijednosti.
@@ -142,3 +142,9 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.knowledgeBase.feedback.enabled` (private, boolean, default `true`)
 - `private.knowledgeBase.feedback.oneVotePerUserPerArticle` (private, boolean, default `true`)
 - `private.knowledgeBase.ranking.useFeedbackWeight` (private, boolean, default `true`)
+- `private.notifications.email.enabled` (private, boolean, default `false`)
+- `private.notifications.templates.enabled` (private, boolean, default `true`)
+- `private.notifications.email.internalOnly` (private, boolean, default `true`)
+- `private.notifications.email.allowedExternalDomainsCsv` (private, string, default `""`)
+- `private.notifications.email.allowedExternalEmailsCsv` (private, string, default `""`)
+- `private.notifications.templates.registryJson` (private, string JSON, default ugrađeni email predlošci; unknown placeholder → `INVALID_EMAIL_TEMPLATE`)

@@ -77,6 +77,7 @@ function assertValidDefinition(
       `Setting ${definition.key} default value is not in allowedValues`,
     );
   }
+  definition.assertValue?.(defaultValue);
 }
 
 export function createSettingsRegistry(

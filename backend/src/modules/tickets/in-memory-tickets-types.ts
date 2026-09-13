@@ -19,6 +19,7 @@ export type InMemoryTicketService = {
 export type InMemoryTicketUser = {
   readonly id: string;
   readonly organizationalUnitId: string | null;
+  readonly email?: string;
 };
 
 export type InMemoryTicketGroup = {

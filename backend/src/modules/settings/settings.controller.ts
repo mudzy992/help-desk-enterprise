@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Put,
   Req,
   UseGuards,
@@ -18,6 +19,10 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { UpdateSettingDto } from './dto/update-setting.dto';
 import { mapSettingsError } from './map-settings-error';
+import {
+  readEmailChannelSettings,
+  type EmailChannelSettingsResponse,
+} from './read-email-channel-settings';
 import { readSettingsActorUserId } from './read-settings-actor-user-id';
 import { SettingsService } from './settings.service';
 
@@ -33,6 +38,15 @@ import { SettingsService } from './settings.service';
 )
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
+
+  @Get('email-channel')
+  async getEmailChannelSettings(): Promise<EmailChannelSettingsResponse> {
+    try {
+      return await readEmailChannelSettings(this.settingsService);
+    } catch (error) {
+      throw mapSettingsError(error);
+    }
+  }
 
   @Put()
   @RequirePermissions(permissionKeys.settingsWrite)

@@ -61,6 +61,44 @@
     "settingsTitle": "No settings available yet",
     "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
   },
+  "settings": {
+    "intro": "Channel and template configuration. Every change requires a reason and is written to the change log.",
+    "forbiddenTitle": "No access to settings",
+    "forbiddenBody": "The email channel and other system settings are available to administrators.",
+    "email": {
+      "title": "Email channel (Microsoft 365)",
+      "subtitle": "Outbound notifications through the existing SMTP/O365 setup, internal users only.",
+      "loading": "Loading email settings…",
+      "smtpRequired": "SMTP and the email addon must be enabled (install wizard or SMTP settings) before delivery.",
+      "deliveryHint": "SMTP and the email addon are on. The channel sends mail only to internal @epbih.ba addresses while internal-only is on.",
+      "channelEnabled": "Email notifications",
+      "channelEnabledHint": "Turns on the email channel next to the in-app inbox. Nothing is sent if SMTP or the email addon is off.",
+      "templatesEnabled": "Email templates",
+      "templatesEnabledHint": "Use the edited subject/body templates. When off, built-in templates are used.",
+      "internalOnly": "Internal addresses only",
+      "internalOnlyHint": "Blocks delivery outside @epbih.ba. The allow-list is ignored while this is on.",
+      "allowedDomains": "Allowed external domains (CSV)",
+      "allowedEmails": "Allowed external addresses (CSV)",
+      "placeholdersHint": "Allowed placeholders: {{placeholders}}",
+      "subject": "Subject",
+      "body": "Body",
+      "templateInvalid": "Each template needs text and only allow-listed placeholders.",
+      "reason": "Change reason",
+      "save": "Save",
+      "saving": "Saving…",
+      "readOnly": "You can view these settings but cannot change them.",
+      "templates": {
+        "ticketCreated": "New ticket",
+        "ticketAssigned": "Assigned",
+        "ticketMessage": "New message",
+        "ticketResolved": "Resolved",
+        "ticketClosed": "Closed",
+        "ticketApproval": "Approval",
+        "ticketSla": "SLA",
+        "remoteRequested": "Remote support"
+      }
+    }
+  },
   "errors": {
     "unauthorized": "Your session expired. Please sign in again.",
     "forbidden": "You do not have permission for this action.",

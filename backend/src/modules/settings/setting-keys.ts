@@ -161,6 +161,17 @@ export const settingKeys = {
   privateSmtpUsername: 'private.smtp.username',
   privateSmtpPassword: 'private.smtp.password',
   privateSmtpFromAddress: 'private.smtp.fromAddress',
+  privateNotificationsEmailEnabled: 'private.notifications.email.enabled',
+  privateNotificationsTemplatesEnabled:
+    'private.notifications.templates.enabled',
+  privateNotificationsEmailInternalOnly:
+    'private.notifications.email.internalOnly',
+  privateNotificationsEmailAllowedExternalDomainsCsv:
+    'private.notifications.email.allowedExternalDomainsCsv',
+  privateNotificationsEmailAllowedExternalEmailsCsv:
+    'private.notifications.email.allowedExternalEmailsCsv',
+  privateNotificationsTemplatesRegistryJson:
+    'private.notifications.templates.registryJson',
   privateAddonsSla: addonSettingKey('sla'),
   privateAddonsEmail: addonSettingKey('email'),
   privateAddonsEdge: addonSettingKey('edge'),

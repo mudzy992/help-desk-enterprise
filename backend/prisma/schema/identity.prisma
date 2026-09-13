@@ -36,8 +36,9 @@ model User {
   ownedArticles        KnowledgeArticle[]         @relation("KnowledgeArticleOwner")
   reviewedArticles     KnowledgeArticle[]         @relation("KnowledgeArticleReviewer")
   knowledgeFeedbacks   KnowledgeFeedback[]
-  notifications        Notification[]
-  auditLogs            AuditLog[]
+  notifications                   Notification[]
+  notificationEmailDeliveries     NotificationEmailDelivery[]
+  auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
   configVersions       ConfigVersion[]
   createdAt            DateTime                   @default(now())
