@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
 import { SidebarUserCard } from "@/components/layout/sidebar-user-card";
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -24,6 +25,8 @@ import {
   navigationSections,
   type NavigationItem,
 } from "@/lib/navigation";
+import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
+import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
 import { cn } from "@/lib/utils";
 
 const navigationIcons: Record<string, LucideIcon> = {
@@ -48,6 +51,7 @@ interface AppSidebarProperties {
 export function AppSidebar({ onNavigate }: AppSidebarProperties) {
   const { t } = useTranslation();
   const location = useLocation();
+  const ticketCounts = useSidebarTicketCounts();
   const isCreateActive = location.pathname === "/tickets/new";
 
   return (
@@ -95,7 +99,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
             <ul className="space-y-0.5">
               {section.items.map((item) => (
                 <li key={item.labelKey}>
-                  <SidebarLink item={item} onNavigate={onNavigate} />
+                  <SidebarLink
+                    item={item}
+                    onNavigate={onNavigate}
+                    ticketCounts={ticketCounts}
+                  />
                 </li>
               ))}
             </ul>
@@ -110,9 +118,14 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
 interface SidebarLinkProperties {
   readonly item: NavigationItem;
   readonly onNavigate?: () => void;
+  readonly ticketCounts: SidebarTicketCounts | null;
 }
 
-function SidebarLink({ item, onNavigate }: SidebarLinkProperties) {
+function SidebarLink({
+  item,
+  onNavigate,
+  ticketCounts,
+}: SidebarLinkProperties) {
   const { t } = useTranslation();
   const location = useLocation();
   const Icon = navigationIcons[item.path] ?? LayoutDashboard;
@@ -148,6 +161,7 @@ function SidebarLink({ item, onNavigate }: SidebarLinkProperties) {
         aria-hidden="true"
       />
       <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
+      <SidebarCountBadge item={item} ticketCounts={ticketCounts} />
     </Link>
   );
 }
