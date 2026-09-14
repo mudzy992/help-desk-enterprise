@@ -57,7 +57,7 @@ export function TicketConversation({
                 className={
                   isApproval
                     ? "mt-0.5 shrink-0 text-[#4ADE80]"
-                    : "mt-0.5 shrink-0 text-info"
+                    : "mt-0.5 shrink-0 text-muted-foreground/60"
                 }
                 aria-hidden="true"
               />

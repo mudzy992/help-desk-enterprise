@@ -12,6 +12,11 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
+interface TicketDetailAssignUser {
+  readonly id: string;
+  readonly displayName: string;
+}
+
 interface TicketDetailHeaderProperties {
   readonly ticket: TicketResponse;
   readonly serviceName: string;
@@ -21,8 +26,12 @@ interface TicketDetailHeaderProperties {
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
+  readonly assigning: boolean;
   readonly canSplit: boolean;
+  readonly canAssign: boolean;
+  readonly assignableUsers: readonly TicketDetailAssignUser[];
   readonly onClaim: () => void;
+  readonly onAssignUser: (userId: string) => void;
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
   readonly onSplit: () => void;
@@ -37,8 +46,12 @@ export function TicketDetailHeader({
   claiming,
   savingStatus,
   reopening,
+  assigning,
   canSplit,
+  canAssign,
+  assignableUsers,
   onClaim,
+  onAssignUser,
   onStatusChange,
   onReopen,
   onSplit,
@@ -71,6 +84,11 @@ export function TicketDetailHeader({
               </h1>
               <TicketStatusBadge status={ticket.status} />
               <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+              {ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL" ? (
+                <Badge tone="warning" dot>
+                  {t("tickets.detail.pauseBadge")}
+                </Badge>
+              ) : null}
               {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
             </div>
             <p className="mt-1.5 max-w-2xl text-[14.5px] leading-5 text-foreground/95">
@@ -94,8 +112,12 @@ export function TicketDetailHeader({
             claiming={claiming}
             savingStatus={savingStatus}
             reopening={reopening}
+            assigning={assigning}
             canSplit={canSplit}
+            canAssign={canAssign}
+            assignableUsers={assignableUsers}
             onClaim={onClaim}
+            onAssignUser={onAssignUser}
             onStatusChange={onStatusChange}
             onReopen={onReopen}
             onSplit={onSplit}

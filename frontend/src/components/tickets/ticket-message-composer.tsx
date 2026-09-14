@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from "react";
-import { MessageSquareLock, Send } from "lucide-react";
+import { type FormEvent, useRef, useState } from "react";
+import { MessageSquareLock, Paperclip, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +18,7 @@ interface TicketMessageComposerProperties {
   readonly canWaitForUser?: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
+  readonly onUpload?: (file: File) => Promise<void>;
 }
 
 export function TicketMessageComposer({
@@ -26,12 +27,15 @@ export function TicketMessageComposer({
   canWaitForUser = false,
   onSend,
   onWaitForUser,
+  onUpload,
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const types = messageTypesForAccess(access);
   const canInternal = types.includes("INTERNAL_NOTE");
   const [internal, setInternal] = useState(false);
   const [body, setBody] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputReference = useRef<HTMLInputElement>(null);
   const publicType = defaultMessageType(access);
   const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
 
@@ -99,6 +103,35 @@ export function TicketMessageComposer({
             disabled={isSending}
           />
           <div className="mt-2 flex flex-wrap items-center gap-2">
+            {onUpload ? (
+              <>
+                <input
+                  ref={fileInputReference}
+                  className="sr-only"
+                  type="file"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file === undefined) {
+                      return;
+                    }
+                    setIsUploading(true);
+                    void onUpload(file).finally(() => {
+                      setIsUploading(false);
+                      event.target.value = "";
+                    });
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={isSending || isUploading}
+                  onClick={() => fileInputReference.current?.click()}
+                >
+                  <Paperclip size={14} /> {t("tickets.detail.attach")}
+                </Button>
+              </>
+            ) : null}
             <span className="text-[11px] text-muted-foreground/60">
               {t("tickets.detail.attachHint")}
             </span>

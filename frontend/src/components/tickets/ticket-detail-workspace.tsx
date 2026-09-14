@@ -81,6 +81,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           canWaitForUser={props.canWaitForUser}
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}
+          onUpload={props.canUpload ? props.onUpload : undefined}
         />
       ) : null}
       {tab === "activity" ? (

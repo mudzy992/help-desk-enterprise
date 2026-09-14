@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
@@ -13,37 +13,28 @@ import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
+import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
+import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
-import { listOfferedServices } from "@/services/service-catalog-api";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function TicketDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
   const { currentUserId } = useSession();
+  const { session, hasPermission } = useSessionCapabilities();
   const detail = useTicketDetail(ticketId);
   const approvals = useTicketApprovals(ticketId);
   const directory = useDirectory();
-  const [serviceName, setServiceName] = useState("");
+  const serviceName = useTicketServiceName(detail.ticket);
   const [isSending, setIsSending] = useState(false);
   const [isTimeSaving, setIsTimeSaving] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
-
-  useEffect(() => {
-    if (detail.ticket === null) {
-      return;
-    }
-    void listOfferedServices()
-      .then((services) => {
-        const match = services.find((item) => item.id === detail.ticket?.serviceId);
-        setServiceName(match?.name ?? detail.ticket?.serviceId ?? "");
-      })
-      .catch(() => setServiceName(detail.ticket?.serviceId ?? ""));
-  }, [detail.ticket]);
-
   const authorNames = useMemo(
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
     [directory.users],
@@ -73,6 +64,7 @@ export function TicketDetailPage() {
   const requesterName = authorNames.get(ticket.requesterId) ?? ticket.requesterId;
   const canWaitForUser =
     canManage && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
+  const canAssign = canManage && (session?.isSuperAdmin === true || hasPermission(permissionKeys.ticketBulkAssign));
 
   return (
     <section>
@@ -85,10 +77,17 @@ export function TicketDetailPage() {
         claiming={isClaiming}
         savingStatus={isSavingStatus}
         reopening={isReopening}
+        assigning={isAssigning}
         canSplit={canManage}
+        canAssign={canAssign}
+        assignableUsers={directory.users}
         onClaim={() => {
           setIsClaiming(true);
           void detail.claim().finally(() => setIsClaiming(false));
+        }}
+        onAssignUser={(userId) => {
+          setIsAssigning(true);
+          void detail.assignUser(userId).finally(() => setIsAssigning(false));
         }}
         onStatusChange={(status, extras) => {
           setIsSavingStatus(true);

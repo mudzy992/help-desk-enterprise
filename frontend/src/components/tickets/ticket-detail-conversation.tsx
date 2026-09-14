@@ -17,6 +17,7 @@ interface TicketDetailConversationProperties {
   readonly canWaitForUser: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
+  readonly onUpload?: (file: File) => Promise<void>;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
@@ -53,6 +54,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           canWaitForUser={props.canWaitForUser}
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}
+          onUpload={props.onUpload}
         />
       )}
     </>
