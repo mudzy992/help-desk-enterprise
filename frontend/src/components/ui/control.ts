@@ -4,17 +4,17 @@ export const controlClassName =
 export const controlCompactClassName =
   "h-8 w-full rounded-md border border-border bg-background/60 px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
 
-export const selectClassName = `${controlClassName} cursor-pointer appearance-none bg-[length:12px] bg-[right_10px_center] bg-no-repeat pr-8`;
+export const selectClassName = `${controlClassName} cursor-pointer appearance-none pr-8`;
 
-export const selectCompactClassName = `${controlCompactClassName} cursor-pointer appearance-none bg-[length:12px] bg-[right_8px_center] bg-no-repeat pr-7`;
+export const selectCompactClassName = `${controlCompactClassName} cursor-pointer appearance-none pr-7`;
 
 export const textareaClassName =
-  "min-h-[90px] w-full rounded-md border border-border bg-background/60 px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
+  "min-h-24 w-full rounded-md border border-border bg-background/60 px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
 
 export const labelClassName =
   "grid gap-1.5 text-[12.5px] font-medium text-foreground";
 
-export const hintClassName = "text-[11.5px] text-muted-foreground";
+export const hintClassName = "text-[11.5px] text-muted-foreground/80";
 
 export const errorTextClassName = "text-[12.5px] text-danger";
 

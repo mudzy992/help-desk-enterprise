@@ -16,6 +16,7 @@ import { TicketCreatePage } from "@/pages/ticket-create-page";
 import { TicketDetailPage } from "@/pages/ticket-detail-page";
 import { TicketListPage } from "@/pages/ticket-list-page";
 import { UsersPage } from "@/pages/users-page";
+import { VisualQaPrimitivesPage } from "@/pages/visual-qa-primitives-page";
 
 export function AppRouter() {
   return (
@@ -38,6 +39,7 @@ export function AppRouter() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin/queue" element={<IntegrationQueuePage />} />
           <Route path="admin/config-versions" element={<ConfigVersionsPage />} />
+          <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

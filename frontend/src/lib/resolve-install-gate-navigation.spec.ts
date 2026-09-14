@@ -17,6 +17,24 @@ describe("resolveInstallGateNavigation", () => {
     ).toBe("/install");
   });
 
+  it("allows /_visual-qa while setup is incomplete", () => {
+    expect(
+      resolveInstallGateNavigation({
+        pathname: "/_visual-qa",
+        isSetupComplete: false,
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps /_visual-qa after setup is completed", () => {
+    expect(
+      resolveInstallGateNavigation({
+        pathname: "/_visual-qa",
+        isSetupComplete: true,
+      }),
+    ).toBeNull();
+  });
+
   it("allows /install while setup is incomplete", () => {
     expect(
       resolveInstallGateNavigation({
