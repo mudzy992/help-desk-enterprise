@@ -1,5 +1,8 @@
 # CHANGELOG — settings-registry
 
+## 2026-09-14
+- Dodani `private.reports.*` i `private.dashboard.bottlenecks.*` za report packove i bottleneck window. Addon flag ostaje `private.addons.reports`. `packsJson` je secret.
+
 ## 2026-09-13
 - Dodani `private.notifications.email.*` i `private.notifications.templates.*` za O365 email kanal (internal-only, template registry JSON). SMTP password ostaje secret. Nema paralelnog notification/settings sistema.
 

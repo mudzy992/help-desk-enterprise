@@ -21,6 +21,7 @@ describe('default role permission mapping', () => {
         permissionKeys.settingsWrite,
         permissionKeys.integrationsQueueManage,
         permissionKeys.auditExport,
+        permissionKeys.reportsExport,
       ]),
     );
     expect(defaultRolePermissionKeys[authorizationRoleKeys.admin]).not.toContain(

@@ -8,6 +8,7 @@ type ArticleWhere = {
   readonly slug?: string;
   readonly serviceId?: string;
   readonly status?: KnowledgeArticleRecord['status'];
+  readonly organizationalUnitId?: string | { in: readonly string[] };
 };
 
 export function createInMemoryKnowledgeArticleDelegate(
@@ -80,7 +81,25 @@ function matchesArticle(
   if (where.serviceId !== undefined && article.serviceId !== where.serviceId) {
     return false;
   }
+  if (
+    !matchesOrganizationalUnit(article.organizationalUnitId, where.organizationalUnitId)
+  ) {
+    return false;
+  }
   return where.status === undefined || article.status === where.status;
+}
+
+function matchesOrganizationalUnit(
+  value: string,
+  expected?: string | { in: readonly string[] },
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  if (typeof expected === 'string') {
+    return value === expected;
+  }
+  return expected.in.includes(value);
 }
 
 function sortArticles(

@@ -12,6 +12,7 @@ import type {
 } from './tickets.types';
 import type { TicketArchiveConfiguration } from './archive/archive.types';
 import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
+import { matchesTicketListSearchQuery } from './matches-list-search-query';
 
 export async function listTickets(
   prisma: PrismaService,
@@ -33,16 +34,22 @@ export async function listTickets(
   ) {
     return [];
   }
-  const records = (await prisma.ticket.findMany({
+  const records = ((await prisma.ticket.findMany({
     where: {
       ...(query.originUnitId === undefined
         ? {}
         : { originUnitId: query.originUnitId }),
       ...(query.serviceId === undefined ? {} : { serviceId: query.serviceId }),
+      ...(query.assignedUserId === undefined
+        ? {}
+        : { assignedUserId: query.assignedUserId }),
+      ...(query.priority === undefined ? {} : { priority: query.priority }),
       ...ticketStatusWhere(query),
     },
     orderBy: { createdAt: 'desc' },
-  })) as TicketRecord[];
+  })) as TicketRecord[]).filter((ticket) =>
+    matchesTicketListSearchQuery(ticket, query.q),
+  );
   const units = await prisma.organizationalUnit.findMany({
     select: { id: true, ouPath: true },
   });

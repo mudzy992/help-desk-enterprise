@@ -148,3 +148,8 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.notifications.email.allowedExternalDomainsCsv` (private, string, default `""`)
 - `private.notifications.email.allowedExternalEmailsCsv` (private, string, default `""`)
 - `private.notifications.templates.registryJson` (private, string JSON, default ugrađeni email predlošci; unknown placeholder → `INVALID_EMAIL_TEMPLATE`)
+- `private.reports.enabled` (private, boolean, default `true`)
+- `private.reports.packsJson` (secret, string JSON, default minimalni set 4 packa kad nije upisan)
+- `private.reports.exportFormatsCsv` (private, string, default `csv,json`)
+- `private.dashboard.bottlenecks.enabled` (private, boolean, default `true`)
+- `private.dashboard.bottlenecks.defaultWindowDays` (private, number, default `30`)

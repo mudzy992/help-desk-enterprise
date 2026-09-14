@@ -10,7 +10,7 @@ JWT payload sa authorization/provider claimovima (`roles`, `oid`, `tid`, `permis
 
 ## Permissions i role
 Kanonski role keyevi: `USER`, `AGENT`, `ADMIN`, `SUPER_ADMIN`.
-Kanonski permission keyevi: RAW enterprise set (`ticket.*`, `service.*`, `sla.write`, `routing.write`, `settings.write`, `audit.export`, `supportBundle.export`, `confidential.break_glass`).
+Kanonski permission keyevi: RAW enterprise set (`ticket.*`, `service.*`, `sla.write`, `routing.write`, `settings.write`, `audit.export`, `reports.export`, `supportBundle.export`, `confidential.break_glass`).
 
 Default role→permission mapa živi kao konstanta (nije runtime bypass). Evaluator čita samo assignment.permissionKeys iz baze. Prazan `RolePermission` ⇒ nema permissiona (osim SuperAdmin).
 

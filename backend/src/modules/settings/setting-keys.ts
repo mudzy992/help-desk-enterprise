@@ -283,6 +283,12 @@ export const settingKeys = {
   privateConfigVersioningShadowModeEnabled:
     'private.configVersioning.shadowMode.enabled',
   privateConfigVersioningScopesCsv: 'private.configVersioning.scopesCsv',
+  privateReportsEnabled: 'private.reports.enabled',
+  privateReportsPacksJson: 'private.reports.packsJson',
+  privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',
+  privateDashboardBottlenecksEnabled: 'private.dashboard.bottlenecks.enabled',
+  privateDashboardBottlenecksDefaultWindowDays:
+    'private.dashboard.bottlenecks.defaultWindowDays',
   privateAuditExportEnabled: 'private.audit.export.enabled',
   privateAuditExportAllowedFormatsCsv:
     'private.audit.export.allowedFormatsCsv',

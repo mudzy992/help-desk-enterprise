@@ -111,4 +111,6 @@ export type KnowledgeInterceptResponse = {
 export type ListKnowledgeArticlesQuery = {
   readonly serviceId?: string;
   readonly status?: KnowledgeArticleStatus;
+  readonly organizationalUnitId?: string;
+  readonly q?: string;
 };

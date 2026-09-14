@@ -10,6 +10,7 @@ import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { configVersioningSettings } from './config-versioning-settings';
 import { auditLogSettings } from './audit-log-settings';
+import { reportsSettings } from './reports-settings';
 import { observabilitySettings } from './observability-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
@@ -64,6 +65,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...changeLogSettings,
   ...configVersioningSettings,
   ...auditLogSettings,
+  ...reportsSettings,
   ...observabilitySettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

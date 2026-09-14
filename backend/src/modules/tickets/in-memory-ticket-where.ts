@@ -1,6 +1,6 @@
 export type InMemoryTicketWhere = {
   id?: string | { in: readonly string[] };
-  originUnitId?: string;
+  originUnitId?: string | { in: readonly string[] };
   serviceId?: string;
   status?: string | { in: readonly string[] } | { not: string };
   requesterId?: string;
@@ -9,6 +9,8 @@ export type InMemoryTicketWhere = {
   parentTicketId?: string | null;
   mergedIntoTicketId?: string | null;
   closedAt?: { lte: Date };
+  priority?: string;
+  createdAt?: { gte?: Date; lte?: Date };
 };
 
 export type InMemoryTicketOrderBy =

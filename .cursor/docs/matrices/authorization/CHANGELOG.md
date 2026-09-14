@@ -1,5 +1,8 @@
 # CHANGELOG — authorization
 
+## 2026-09-14
+- Default ADMIN mapa + `reports.export`. Evaluator, OU i service scope nisu mijenjani. Export endpointi prihvataju `reports.export` ili `audit.export`.
+
 ## 2026-09-11
 - Default mapa: AGENT `knowledge.article.write`; ADMIN + `knowledge.article.review` / `knowledge.article.publish`. Evaluator, OU i service scope nisu mijenjani.
 

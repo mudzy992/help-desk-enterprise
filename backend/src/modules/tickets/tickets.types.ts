@@ -123,6 +123,9 @@ export type ListTicketsQuery = {
   readonly originUnitId?: string;
   readonly serviceId?: string;
   readonly status?: TicketStatus;
+  readonly assignedUserId?: string;
+  readonly priority?: TicketPriority;
+  readonly q?: string;
   readonly includeArchived?: boolean;
 };
 

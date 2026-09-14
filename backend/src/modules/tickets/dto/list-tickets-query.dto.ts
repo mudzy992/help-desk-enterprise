@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
-import { TicketStatus } from '../../../generated/prisma/enums';
+import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
 
 export class ListTicketsQueryDto {
   @IsOptional()
@@ -15,4 +15,19 @@ export class ListTicketsQueryDto {
   @IsOptional()
   @IsEnum(TicketStatus)
   status?: TicketStatus;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  assignedUserId?: string;
+
+  @IsOptional()
+  @IsEnum(TicketPriority)
+  priority?: TicketPriority;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  q?: string;
 }

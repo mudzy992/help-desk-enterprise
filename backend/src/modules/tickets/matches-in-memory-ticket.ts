@@ -10,8 +10,10 @@ export function matchesInMemoryTicket(
   }
   return (
     matchesScalarOrIn(ticket.id, where.id) &&
-    matchesScalar(ticket.originUnitId, where.originUnitId) &&
+    matchesScalarOrIn(ticket.originUnitId, where.originUnitId) &&
     matchesScalar(ticket.serviceId, where.serviceId) &&
+    matchesScalar(ticket.priority, where.priority) &&
+    matchesCreatedAt(ticket.createdAt, where.createdAt) &&
     matchesScalar(ticket.requesterId, where.requesterId) &&
     matchesStatus(ticket.status, where.status) &&
     matchesAssignedGroupId(ticket.assignedGroupId, where.assignedGroupId) &&
@@ -60,6 +62,22 @@ function matchesStatus(
     return status !== expected.not;
   }
   return expected.in.includes(status);
+}
+
+function matchesCreatedAt(
+  actual: Date,
+  expected?: { gte?: Date; lte?: Date },
+): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  if (expected.gte !== undefined && actual.getTime() < expected.gte.getTime()) {
+    return false;
+  }
+  if (expected.lte !== undefined && actual.getTime() > expected.lte.getTime()) {
+    return false;
+  }
+  return true;
 }
 
 function matchesClosedAt(

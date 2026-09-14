@@ -22,6 +22,7 @@ import { IntegrationQueueModule } from './modules/integration-queue/integration-
 import { ConfigVersioningModule } from './modules/config-versioning/config-versioning.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
@@ -52,6 +53,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ConfigVersioningModule,
     AuditLogModule,
     ObservabilityModule,
+    ReportsModule,
     WebsocketModule,
   ],
 })

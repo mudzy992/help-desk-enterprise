@@ -19,6 +19,7 @@ Prvi zapis: `previousHash = 64 nule`. Append je u transakciji uz `pg_advisory_xa
 | Audit export | `audit.export` | query OU |
 | Config activate/rollback | `config_version.activate` / `config_version.rollback` | null (global) |
 | Support bundle export | `support_bundle.export` | null (global) |
+| Report pack export | `reports.export` | query OU |
 
 ## HTTP
 | Method | Path | Access |
@@ -39,4 +40,4 @@ Verify: prvi mismatch (`firstMismatchId` / `firstMismatchIndex`). Ako je tamper-
 | `private.audit.tamperEvident.hashAlgorithm` | `sha256` |
 
 ## Namjerno NIJE
-Change-log logika, ticket CRUD/chat/assignment, reports export, support bundle zip format (vidi `observability-support-bundle`), requestId middleware, frontend admin UI, retrofit svih endpointa, role-permission CRUD (ne postoji — pack apply je writer).
+Change-log logika, ticket CRUD/chat/assignment, report pack CSV/JSON format (vidi `report-packs-bottleneck-search`), support bundle zip format (vidi `observability-support-bundle`), requestId middleware, frontend admin UI, retrofit svih endpointa, role-permission CRUD (ne postoji — pack apply je writer).

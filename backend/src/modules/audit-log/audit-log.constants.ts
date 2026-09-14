@@ -19,6 +19,7 @@ export const auditLogActions = {
   ticketConfidentialBreakGlass: 'ticket_confidential_break_glass',
   ticketBulkExecute: 'ticket_bulk.execute',
   auditExport: 'audit.export',
+  reportsExport: 'reports.export',
   supportBundleExport: 'support_bundle.export',
 } as const;
 
@@ -29,6 +30,7 @@ export const auditLogEntityTypes = {
   auditLog: 'audit_log',
   configVersion: 'config_version',
   supportBundle: 'support_bundle',
+  reportPack: 'report_pack',
 } as const;
 
 export const auditLogErrorCodes = {
