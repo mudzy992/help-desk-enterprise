@@ -106,6 +106,7 @@ export function recentTicketsExcluding(
 
 export function groupInboxCounts(
   inboxTickets: readonly TicketResponse[],
+  groupNames: ReadonlyMap<string, string> = new Map(),
 ): readonly InboxGroupCount[] {
   const counts = new Map<string, number>();
   for (const ticket of inboxTickets) {
@@ -115,7 +116,8 @@ export function groupInboxCounts(
   return [...counts.entries()]
     .map(([key, count]) => ({
       groupId: key.length === 0 ? null : key,
-      label: key.length === 0 ? "" : truncateIdentifier(key),
+      label:
+        key.length === 0 ? "" : (groupNames.get(key) ?? truncateIdentifier(key)),
       count,
     }))
     .sort((left, right) => {

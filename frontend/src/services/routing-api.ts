@@ -22,6 +22,11 @@ export type RoutingCoverageItem = {
   readonly resolution: RoutingResolution;
 };
 
+export type RoutingRuleResponse = {
+  readonly groupId: string;
+  readonly groupName: string;
+};
+
 export type CreateRoutingRuleInput = {
   readonly originUnitId: string;
   readonly serviceId: string;
@@ -30,6 +35,10 @@ export type CreateRoutingRuleInput = {
 
 export function listRoutingCoverage(): Promise<readonly RoutingCoverageItem[]> {
   return apiRequest("/routing/coverage");
+}
+
+export function listRoutingRules(): Promise<readonly RoutingRuleResponse[]> {
+  return apiRequest("/routing/rules");
 }
 
 export function createRoutingRule(

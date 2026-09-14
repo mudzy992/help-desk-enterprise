@@ -25,6 +25,7 @@ export function DashboardPage() {
     inboxTickets,
     serviceNames,
     originNames,
+    groupNames,
     isLoading,
     errorKey,
   } = useDashboardSummary();
@@ -83,6 +84,7 @@ export function DashboardPage() {
             <DashboardInboxSnapshot
               unroutedCount={summary.unrouted}
               inboxTickets={inboxTickets}
+              groupNames={groupNames}
             />
             <DashboardActivityFeed />
           </div>

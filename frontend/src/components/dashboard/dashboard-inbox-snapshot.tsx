@@ -11,15 +11,19 @@ import type { TicketResponse } from "@/services/tickets-api";
 interface DashboardInboxSnapshotProperties {
   readonly unroutedCount: number;
   readonly inboxTickets: readonly TicketResponse[] | null;
+  readonly groupNames: ReadonlyMap<string, string>;
 }
 
 export function DashboardInboxSnapshot({
   unroutedCount,
   inboxTickets,
+  groupNames,
 }: DashboardInboxSnapshotProperties) {
   const { t } = useTranslation();
   const groups =
-    inboxTickets === null ? [] : groupInboxCounts(inboxTickets);
+    inboxTickets === null
+      ? []
+      : groupInboxCounts(inboxTickets, groupNames);
   const bars = groups.map((group) => ({
     label:
       group.label.length > 0

@@ -103,4 +103,19 @@ describe("groupInboxCounts", () => {
       { groupId: null, label: "", count: 1 },
     ]);
   });
+
+  it("uses routing group names when they exist", () => {
+    const names = new Map([
+      ["aaaaaaaa-1111-group", "L1 Support"],
+      ["bbbbbbbb-2222-group", "SOC"],
+    ]);
+    const counts = groupInboxCounts(
+      [
+        ticket("1", "ASSIGNED", { assignedGroupId: "aaaaaaaa-1111-group" }),
+        ticket("2", "ASSIGNED", { assignedGroupId: "bbbbbbbb-2222-group" }),
+      ],
+      names,
+    );
+    expect(counts.map((item) => item.label)).toEqual(["L1 Support", "SOC"]);
+  });
 });
