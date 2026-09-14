@@ -1,14 +1,9 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CreateTicketFields } from "@/components/tickets/create-ticket-fields";
+import { CreateTicketDraftView } from "@/components/tickets/create-ticket-draft-view";
 import { CreateTicketInterceptView } from "@/components/tickets/create-ticket-intercept-view";
-import { CreateTicketServicePicker } from "@/components/tickets/create-ticket-service-picker";
-import { CreateTicketSidePanel } from "@/components/tickets/create-ticket-side-panel";
-import { CreateTicketStepNav } from "@/components/tickets/create-ticket-step-nav";
-import { CreateTicketStepper } from "@/components/tickets/create-ticket-stepper";
-import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
-import { Card } from "@/components/ui/card";
+import { CreateTicketReviewView } from "@/components/tickets/create-ticket-review-view";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildCreateTicketInput,
@@ -51,6 +46,7 @@ export function CreateTicketForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const displayedError = errorKey ?? catalog.errorKey;
   const isServiceReady = isServiceReadyForTicketCreation(draft, activeForm !== null);
+  const selectedService = catalog.services.find((service) => service.id === draft.serviceId) ?? null;
 
   useEffect(() => {
     const fallback = defaultOriginUnitId(catalog.originUnits);
@@ -106,6 +102,7 @@ export function CreateTicketForm() {
         query: knowledgeInterceptQuery(draft),
       });
       setSuggestions(result.articles);
+      setHelped(false);
       setStep(2);
     } catch (error) {
       setErrorKey(mapTicketError(error));
@@ -138,56 +135,42 @@ export function CreateTicketForm() {
         items={suggestions}
         helped={helped}
         onHelped={() => setHelped(true)}
-        onContinue={() => void submitTicket()}
+        onContinue={() => setStep(3)}
         onBack={() => setStep(1)}
+      />
+    );
+  }
+  if (step === 3) {
+    return (
+      <CreateTicketReviewView
+        draft={draft}
+        selectedService={selectedService}
+        activeForm={activeForm}
+        displayedError={displayedError}
+        isSubmitting={isSubmitting}
+        onBack={() => setStep(2)}
+        onSubmit={() => void submitTicket()}
         onCreateAnyway={() => void submitTicket(true)}
       />
     );
   }
 
   return (
-    <form className="mt-1" onSubmit={(event) => void onSubmit(event)}>
-      <CreateTicketStepper activeIndex={step} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
-        <Card>
-          {step === 0 ? (
-            <CreateTicketServicePicker
-              services={catalog.services}
-              selectedId={draft.serviceId}
-              onSelect={(serviceId) =>
-                setDraft((current) => ({
-                  ...current,
-                  serviceId,
-                  formData: serviceId === current.serviceId ? current.formData : {},
-                  formVersionRef: serviceId === current.serviceId ? current.formVersionRef : null,
-                }))
-              }
-            />
-          ) : (
-            <CreateTicketFields
-              draft={draft}
-              originUnits={catalog.originUnits}
-              selectedService={catalog.services.find((service) => service.id === draft.serviceId) ?? null}
-              activeForm={activeForm}
-              fieldErrors={fieldErrors}
-              onChange={setDraft}
-            />
-          )}
-          {displayedError ? (
-            <div className="px-5">
-              <TicketErrorState errorKey={displayedError} />
-            </div>
-          ) : null}
-          <CreateTicketStepNav
-            step={step}
-            canNextService={draft.serviceId.length > 0 && isServiceReady}
-            canSubmitDetails={isCreateTicketDraftReady(draft) && isServiceReady}
-            isSubmitting={isSubmitting}
-            onBack={() => setStep(0)}
-          />
-        </Card>
-        <CreateTicketSidePanel />
-      </div>
-    </form>
+    <CreateTicketDraftView
+      step={step}
+      draft={draft}
+      services={catalog.services}
+      originUnits={catalog.originUnits}
+      selectedService={selectedService}
+      activeForm={activeForm}
+      fieldErrors={fieldErrors}
+      displayedError={displayedError}
+      canNextService={draft.serviceId.length > 0 && isServiceReady}
+      canSubmitDetails={isCreateTicketDraftReady(draft) && isServiceReady}
+      isSubmitting={isSubmitting}
+      onDraftChange={setDraft}
+      onBack={() => setStep(0)}
+      onSubmit={(event) => void onSubmit(event)}
+    />
   );
 }

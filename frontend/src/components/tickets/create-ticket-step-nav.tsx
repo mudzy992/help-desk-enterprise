@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { CREATE_TICKET_STEP_TOTAL } from "@/components/tickets/create-ticket-stepper";
 import { Button } from "@/components/ui/button";
 import { ticketText } from "@/lib/tickets/ticket-text";
 
@@ -26,14 +27,14 @@ export function CreateTicketStepNav({
       </Button>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-muted-foreground/70 tnum">
-          {ticketText(t, "tickets.stepCount", { current: step + 1, total: 3 })}
+          {ticketText(t, "tickets.stepCount", { current: step + 1, total: CREATE_TICKET_STEP_TOTAL })}
         </span>
         {step === 0 ? (
-          <Button type="submit" size="sm" disabled={!canNextService}>
+          <Button type="submit" variant="primary" size="sm" disabled={!canNextService}>
             {t("tickets.stepNext")} <ArrowRight size={14} />
           </Button>
         ) : (
-          <Button type="submit" size="sm" disabled={isSubmitting || !canSubmitDetails}>
+          <Button type="submit" variant="primary" size="sm" disabled={isSubmitting || !canSubmitDetails}>
             {isSubmitting ? t("tickets.checkingKb") : t("tickets.checkKb")}
           </Button>
         )}

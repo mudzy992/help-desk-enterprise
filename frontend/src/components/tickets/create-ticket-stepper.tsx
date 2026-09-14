@@ -1,6 +1,8 @@
-import { BookOpen, FileText, ListChecks } from "lucide-react";
+import { BookOpen, FileText, ListChecks, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { WizardStepper } from "@/components/ui/wizard-stepper";
+
+export const CREATE_TICKET_STEP_TOTAL = 4;
 
 interface CreateTicketStepperProperties {
   readonly activeIndex: number;
@@ -8,16 +10,14 @@ interface CreateTicketStepperProperties {
 
 export function CreateTicketStepper({ activeIndex }: CreateTicketStepperProperties) {
   const { t } = useTranslation();
-  const serviceLabel = t("tickets.createStepService");
-  const detailsLabel = t("tickets.createStepDetails");
-  const knowledgeLabel = t("tickets.createStepKnowledge");
   return (
     <WizardStepper
       activeIndex={activeIndex}
       steps={[
-        { key: "service", label: serviceLabel, icon: <ListChecks size={13} /> },
-        { key: "details", label: detailsLabel, icon: <FileText size={13} /> },
-        { key: "kb", label: knowledgeLabel, icon: <BookOpen size={13} /> },
+        { key: "service", label: t("tickets.createStepService"), icon: <ListChecks size={13} /> },
+        { key: "details", label: t("tickets.createStepDetails"), icon: <FileText size={13} /> },
+        { key: "kb", label: t("tickets.createStepKnowledge"), icon: <BookOpen size={13} /> },
+        { key: "review", label: t("tickets.createStepReview"), icon: <Send size={13} /> },
       ]}
     />
   );
