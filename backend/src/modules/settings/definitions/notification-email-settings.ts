@@ -9,6 +9,13 @@ import { assertEmailTemplateRegistryJson } from '../../notifications/email/parse
 
 export const notificationEmailSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
+    key: settingKeys.privateNotificationsEdgeEnabled,
+    valueType: 'boolean',
+    description: 'Enable Edge/Windows notification delivery for the extension',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
     key: settingKeys.privateNotificationsEmailEnabled,
     valueType: 'boolean',
     description:

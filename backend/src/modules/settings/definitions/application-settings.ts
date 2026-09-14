@@ -15,6 +15,7 @@ import { observabilitySettings } from './observability-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
 import { notificationEmailSettings } from './notification-email-settings';
+import { edgeExtensionSettings } from './edge-extension-settings';
 import { integrationQueueSettings } from './integration-queue-settings';
 import { teamsIntegrationSettings } from './teams-integration-settings';
 import { ticketApprovalsSettings } from './ticket-approvals-settings';
@@ -70,6 +71,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...knowledgeBaseSettings,
   ...smtpSettings,
   ...notificationEmailSettings,
+  ...edgeExtensionSettings,
   ...integrationQueueSettings,
   ...teamsIntegrationSettings,
   ...addonSettings,

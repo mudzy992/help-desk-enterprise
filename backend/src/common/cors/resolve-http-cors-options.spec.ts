@@ -28,4 +28,13 @@ describe('resolveHttpCorsOptions', () => {
     delete process.env.CORS_ORIGIN;
     expect(resolveHttpCorsOptions().origin).toBe(false);
   });
+
+  it('parses comma-separated origins and never allows *', () => {
+    process.env.CORS_ORIGIN =
+      'https://desk.ba101.top, chrome-extension://abcdefghijklmnopqrstuvwxyz123456, *';
+    expect(resolveHttpCorsOptions().origin).toEqual([
+      'https://desk.ba101.top',
+      'chrome-extension://abcdefghijklmnopqrstuvwxyz123456',
+    ]);
+  });
 });

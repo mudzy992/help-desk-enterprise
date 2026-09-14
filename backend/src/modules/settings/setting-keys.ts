@@ -161,6 +161,7 @@ export const settingKeys = {
   privateSmtpUsername: 'private.smtp.username',
   privateSmtpPassword: 'private.smtp.password',
   privateSmtpFromAddress: 'private.smtp.fromAddress',
+  privateNotificationsEdgeEnabled: 'private.notifications.edge.enabled',
   privateNotificationsEmailEnabled: 'private.notifications.email.enabled',
   privateNotificationsTemplatesEnabled:
     'private.notifications.templates.enabled',
@@ -309,6 +310,25 @@ export const settingKeys = {
     'private.observability.supportBundle.includeAuditExport',
   privateObservabilitySupportBundleRecentLogsMinutes:
     'private.observability.supportBundle.recentLogsMinutes',
+  privateEdgeExtensionEnabled: 'private.edgeExtension.enabled',
+  privateEdgeExtensionAllowedEmailDomain:
+    'private.edgeExtension.allowedEmailDomain',
+  privateEdgeExtensionWsEnabled: 'private.edgeExtension.ws.enabled',
+  privateEdgeExtensionWsReconnectMaxBackoffSeconds:
+    'private.edgeExtension.ws.reconnectMaxBackoffSeconds',
+  privateEdgeExtensionWsMinClientVersion:
+    'private.edgeExtension.ws.minClientVersion',
+  privateEdgeExtensionNotificationsRedactedPreviews:
+    'private.edgeExtension.notifications.redactedPreviews',
+  privateEdgeExtensionReceiptsEnabled: 'private.edgeExtension.receipts.enabled',
+  privateEdgeExtensionEventsDedupEnabled:
+    'private.edgeExtension.events.dedupEnabled',
+  privateEdgeExtensionKillSwitchEnabled:
+    'private.edgeExtension.killSwitchEnabled',
+  privateEdgeExtensionPollingFallbackEnabled:
+    'private.edgeExtension.pollingFallback.enabled',
+  privateEdgeExtensionPollingFallbackIntervalSeconds:
+    'private.edgeExtension.pollingFallback.intervalSeconds',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

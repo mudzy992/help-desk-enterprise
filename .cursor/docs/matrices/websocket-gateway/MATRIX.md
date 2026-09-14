@@ -21,7 +21,7 @@ SocketAuthenticationVerifier
 ```
 
 ## Handshake ugovor
-- **Input:** `handshake.auth.token` (string). Ostala polja se ignoriraju.
+- **Input:** `handshake.auth.token` (string). Ostala polja se ignoriraju (uključujući `extensionVersion` ako klijent pošalje).
 - **Processing:** `SocketAuthenticationService` parsira input i delegira na `SOCKET_AUTHENTICATION_VERIFIER`.
 - **Success:** `{ subjectId }` kao `socket.data.principal`. Bez tokena, uloga, OU, permisija.
 - **Failure:** klijent dobija samo `AUTHENTICATION_FAILED`. Razlog (`missing_credentials` | `invalid_credentials`) ide samo u log uz `connectionId`.
@@ -33,7 +33,7 @@ SocketAuthenticationVerifier
 `afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala i join-a `user:{subjectId}`. `handleDisconnect` samo loguje.
 
 ## Domain eventi
-Gateway sluša `TicketRealtimeHub` / `SettingsRealtimeHub` (servisi ne emituju na socket). Eventi: `ticket.message.created`, `ticket.updated`, `notification.*`, `settings.updated`, `session.invalidated`. Ticket join i dalje ide kroz `TicketsCollaborationService.authorizeSocketJoin`.
+Gateway sluša `TicketRealtimeHub` / `SettingsRealtimeHub` (servisi ne emituju na socket). Eventi: `ticket.message.created`, `ticket.updated`, `notification.*`, `settings.updated`, `session.invalidated`. `notification.*` client payload uključuje `eventId` + `createdAt`. Ticket join i dalje ide kroz `TicketsCollaborationService.authorizeSocketJoin`.
 
 ## CORS
 `CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS koristi isti ključ (`.cursor/docs/matrices/http-cors/MATRIX.md`).

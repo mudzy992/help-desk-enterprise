@@ -21,6 +21,7 @@ export const auditLogActions = {
   auditExport: 'audit.export',
   reportsExport: 'reports.export',
   supportBundleExport: 'support_bundle.export',
+  notificationReceipt: 'notification.receipt',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -31,6 +32,7 @@ export const auditLogEntityTypes = {
   configVersion: 'config_version',
   supportBundle: 'support_bundle',
   reportPack: 'report_pack',
+  notification: 'notification',
 } as const;
 
 export const auditLogErrorCodes = {

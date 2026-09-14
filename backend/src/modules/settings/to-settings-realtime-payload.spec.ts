@@ -9,6 +9,9 @@ describe('settings realtime broadcast filter', () => {
     expect(shouldBroadcastSetting(settingKeys.privateNotificationsEmailEnabled)).toBe(
       true,
     );
+    expect(
+      shouldBroadcastSetting(settingKeys.privateEdgeExtensionKillSwitchEnabled),
+    ).toBe(true);
     expect(shouldBroadcastSetting(settingKeys.privateAuthJwtSigningSecret)).toBe(
       true,
     );

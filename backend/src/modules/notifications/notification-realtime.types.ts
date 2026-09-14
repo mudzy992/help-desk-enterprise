@@ -15,6 +15,8 @@ export type NotificationRealtimePublish = {
 };
 
 export type NotificationRealtimeClientPayload = {
+  readonly eventId: string;
+  readonly createdAt: string;
   readonly notification: NotificationResponse | null;
   readonly unreadCount: number;
   readonly readAll: boolean;

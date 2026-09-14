@@ -30,11 +30,19 @@ export const permissionKeys = {
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',
   knowledgeArticlePublish: 'knowledge.article.publish',
+  edgeConnect: 'edge.connect',
+  edgeNotifyReceive: 'edge.notify.receive',
 } as const;
 
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
 
+const edgeClientPermissionKeys = [
+  permissionKeys.edgeConnect,
+  permissionKeys.edgeNotifyReceive,
+] as const;
+
 const agentPermissionKeys = [
+  ...edgeClientPermissionKeys,
   permissionKeys.ticketAttachmentsUpload,
   permissionKeys.ticketAttachmentsDownload,
   permissionKeys.ticketMerge,
@@ -64,7 +72,7 @@ const adminPermissionKeys = [
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =
   {
-    [authorizationRoleKeys.user]: [],
+    [authorizationRoleKeys.user]: edgeClientPermissionKeys,
     [authorizationRoleKeys.agent]: agentPermissionKeys,
     [authorizationRoleKeys.admin]: adminPermissionKeys,
     [authorizationRoleKeys.superAdmin]: [

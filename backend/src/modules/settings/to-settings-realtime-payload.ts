@@ -26,6 +26,7 @@ export function shouldBroadcastSetting(key: string): boolean {
     key.startsWith('public.') ||
     key.startsWith('private.readOnlyMode.') ||
     key.startsWith('private.notifications.') ||
+    key.startsWith('private.edgeExtension.') ||
     key.startsWith('private.addons.') ||
     key === settingKeys.privateAuthMode ||
     key === settingKeys.privateAuthJwtSigningSecret ||

@@ -21,4 +21,13 @@ describe('resolveSocketCorsOrigin', () => {
     delete process.env.CORS_ORIGIN;
     expect(resolveSocketCorsOrigin()).toBe(false);
   });
+
+  it('returns multiple origins from a CSV CORS_ORIGIN value', () => {
+    process.env.CORS_ORIGIN =
+      'https://desk.ba101.top,chrome-extension://abcdefghijklmnopqrstuvwxyz123456';
+    expect(resolveSocketCorsOrigin()).toEqual([
+      'https://desk.ba101.top',
+      'chrome-extension://abcdefghijklmnopqrstuvwxyz123456',
+    ]);
+  });
 });

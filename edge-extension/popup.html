@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="bs">
+  <head>
+    <meta charset="utf-8" />
+    <title>EP-HelpDesk</title>
+    <link rel="stylesheet" href="/src/popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1>EP-HelpDesk</h1>
+      <p id="status">Nije prijavljen.</p>
+      <form id="login-form">
+        <label>
+          API URL
+          <input id="api-base-url" type="url" required placeholder="http://localhost:10001" />
+        </label>
+        <label>
+          Email
+          <input id="email" type="email" required autocomplete="username" />
+        </label>
+        <label>
+          Lozinka
+          <input id="password" type="password" required autocomplete="current-password" />
+        </label>
+        <button type="submit">Prijava</button>
+      </form>
+      <p id="error" hidden></p>
+      <button id="open-desk" type="button" hidden>Open in Desk</button>
+      <button id="sign-out" type="button" hidden>Odjava</button>
+    </main>
+    <script type="module" src="/src/popup.ts"></script>
+  </body>
+</html>

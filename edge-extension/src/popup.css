@@ -1,0 +1,38 @@
+:root {
+  color: #1a1a1a;
+  background: #f4f4f1;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+}
+
+main {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+form,
+label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+}
+
+#error {
+  color: #8b1e1e;
+  margin: 0;
+}

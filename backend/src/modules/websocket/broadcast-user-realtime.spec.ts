@@ -45,6 +45,8 @@ describe('broadcastUserRealtime', () => {
         room: userRoomName('user-agent-it'),
         event: ticketRealtimeEventNames.notificationCreated,
         payload: {
+          eventId: 'notif-1',
+          createdAt: '2026-09-13T08:00:00.000Z',
           notification: expect.objectContaining({ id: 'notif-1' }),
           unreadCount: 2,
           readAll: false,

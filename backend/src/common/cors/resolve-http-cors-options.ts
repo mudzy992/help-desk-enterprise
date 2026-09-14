@@ -1,7 +1,7 @@
 import { resolveCorsOrigin } from './resolve-cors-origin';
 
 export function resolveHttpCorsOptions(): {
-  readonly origin: string | false;
+  readonly origin: string | string[] | false;
   readonly credentials: false;
   readonly methods: readonly string[];
   readonly allowedHeaders: readonly string[];

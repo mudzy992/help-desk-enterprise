@@ -113,13 +113,13 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Support bundle + requestId logging
 - [x] Report packs + bottleneck dashboard + pretraga (KB + tickets)
 - [x] DR: backup/restore dokument + restore drill checklist
-- [~] IN PROGRESS Frontend admin: routing, SLA, catalog, permissions, queue, config versions
+- [x] Frontend admin: routing, SLA, catalog, permissions, queue, config versions
 
 
 
 ## Faza 9 — Edge + quality (i dalje prva isporuka)
 
-- [ ] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup
+- [x] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup
 - [ ] Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit
 - [ ] E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
 - [ ] RBAC test suite u CI

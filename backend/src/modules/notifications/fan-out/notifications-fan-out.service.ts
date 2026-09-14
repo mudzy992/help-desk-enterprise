@@ -12,6 +12,7 @@ import { loadEmailChannelConfiguration } from '../email/load-email-channel-confi
 import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
+import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 
 @Injectable()
 export class NotificationsFanOutService
@@ -53,6 +54,12 @@ export class NotificationsFanOutService
         this.ticketRealtimeHub,
         created,
       );
+      await enqueueEdgeNotificationEvents({
+        prisma: this.prisma,
+        settingsService: this.settingsService,
+        enqueueIntegrationJobService: this.enqueueIntegrationJobService,
+        records: created,
+      });
     } catch (error) {
       this.logger.error(
         `Failed to persist in-app notification for ticket ${payload.ticketId}`,

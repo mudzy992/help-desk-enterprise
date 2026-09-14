@@ -7,7 +7,13 @@ import {
 
 describe('default role permission mapping', () => {
   it('keeps USER without admin permissions', () => {
-    expect(defaultRolePermissionKeys[authorizationRoleKeys.user]).toEqual([]);
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.user]).toEqual([
+      permissionKeys.edgeConnect,
+      permissionKeys.edgeNotifyReceive,
+    ]);
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.user]).not.toContain(
+      permissionKeys.settingsWrite,
+    );
   });
 
   it('gives ADMIN every AGENT permission plus catalog and governance writes', () => {
