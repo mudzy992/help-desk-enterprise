@@ -52,6 +52,41 @@ describe("summarizeTickets", () => {
     expect(summary.closed).toBe(1);
     expect(summary.assignedToMe).toBe(1);
     expect(summary.requestedByMe).toBe(1);
+    expect(summary.critical).toBe(0);
+    expect(summary.overdue).toBe(0);
+  });
+
+  it("counts critical, overdue, and tickets created today from real fields", () => {
+    const now = new Date(2026, 8, 14, 15, 0, 0);
+    const todayMorning = new Date(2026, 8, 14, 8, 0, 0).toISOString();
+    const yesterday = new Date(2026, 8, 13, 10, 0, 0).toISOString();
+    const summary = summarizeTickets(
+      [
+        ticket("1", "PENDING", {
+          priority: "CRITICAL",
+          createdAt: todayMorning,
+        }),
+        ticket("2", "IN_PROGRESS", {
+          priority: "CRITICAL",
+          isOverdue: true,
+          createdAt: yesterday,
+        }),
+        ticket("3", "CLOSED", {
+          priority: "CRITICAL",
+          isOverdue: true,
+          createdAt: todayMorning,
+        }),
+        ticket("4", "ASSIGNED", {
+          isOverdue: true,
+          createdAt: todayMorning,
+        }),
+      ],
+      null,
+      now,
+    );
+    expect(summary.critical).toBe(2);
+    expect(summary.overdue).toBe(3);
+    expect(summary.openedToday).toBe(3);
   });
 
   it("excludes terminal tickets from the unassigned count", () => {

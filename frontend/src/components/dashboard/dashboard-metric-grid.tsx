@@ -1,5 +1,6 @@
 import {
   AlarmClock,
+  Flame,
   Inbox,
   ShieldAlert,
   Ticket,
@@ -11,6 +12,7 @@ import {
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import type { BadgeTone } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
 import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
 
@@ -22,6 +24,8 @@ interface DashboardMetricGridProperties {
 type MetricLabelKey =
   | "dashboard.metricInbox"
   | "dashboard.metricOpen"
+  | "dashboard.metricCritical"
+  | "dashboard.metricOverdue"
   | "dashboard.metricAssignedToMe"
   | "dashboard.metricUnassigned"
   | "dashboard.metricWaitingForUser"
@@ -32,6 +36,8 @@ type MetricLabelKey =
 type MetricHintKey =
   | "dashboard.hintInbox"
   | "dashboard.hintOpen"
+  | "dashboard.hintCritical"
+  | "dashboard.hintOverdue"
   | "dashboard.hintAssigned"
   | "dashboard.hintUnassigned"
   | "dashboard.hintWaiting"
@@ -46,6 +52,8 @@ type Metric = {
   readonly to: string;
   readonly icon: ReactNode;
   readonly emphasis?: boolean;
+  readonly delta?: string;
+  readonly deltaTone?: BadgeTone;
 };
 
 export function DashboardMetricGrid({
@@ -53,22 +61,85 @@ export function DashboardMetricGrid({
   inboxCount,
 }: DashboardMetricGridProperties) {
   const { t } = useTranslation();
-  const inboxMetric: Metric = {
-    labelKey: "dashboard.metricInbox",
-    hintKey: "dashboard.hintInbox",
-    value: inboxCount ?? 0,
-    to: "/tickets?view=inbox",
-    icon: <Inbox size={15} strokeWidth={1.8} />,
+  const openedTodayDelta =
+    summary.openedToday > 0
+      ? t("dashboard.deltaOpenedToday", { count: summary.openedToday })
+      : undefined;
+  const metrics = buildDashboardMetrics(summary, inboxCount, openedTodayDelta);
+
+  return (
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      {metrics.map((metric) => (
+        <Link
+          key={metric.labelKey}
+          to={metric.to}
+          className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <StatCard
+            label={t(metric.labelKey)}
+            value={metric.value}
+            hint={t(metric.hintKey)}
+            icon={metric.icon}
+            emphasis={metric.emphasis}
+            delta={metric.delta}
+            deltaTone={metric.deltaTone}
+          />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function buildDashboardMetrics(
+  summary: DashboardSummary,
+  inboxCount: number | null,
+  openedTodayDelta: string | undefined,
+): readonly Metric[] {
+  const inbox: Metric | null =
+    inboxCount === null
+      ? null
+      : {
+          labelKey: "dashboard.metricInbox",
+          hintKey: "dashboard.hintInbox",
+          value: inboxCount,
+          to: "/tickets?view=inbox",
+          icon: <Inbox size={15} strokeWidth={1.8} />,
+        };
+  const unrouted: Metric = {
+    labelKey: "dashboard.metricUnrouted",
+    hintKey: "dashboard.hintUnrouted",
+    value: summary.unrouted,
+    to: "/tickets?view=all&status=UNROUTED",
+    icon: <TriangleAlert size={15} strokeWidth={1.8} />,
+    emphasis: summary.unrouted > 0,
   };
-  const metrics: readonly Metric[] = [
-    ...(inboxCount === null ? [] : [inboxMetric]),
+  return [
     {
       labelKey: "dashboard.metricOpen",
       hintKey: "dashboard.hintOpen",
       value: summary.open,
       to: "/tickets?view=all",
       icon: <TicketCheck size={15} strokeWidth={1.8} />,
+      delta: openedTodayDelta,
+      deltaTone: "info",
     },
+    {
+      labelKey: "dashboard.metricCritical",
+      hintKey: "dashboard.hintCritical",
+      value: summary.critical,
+      to: "/tickets?view=all&priority=CRITICAL",
+      icon: <Flame size={15} strokeWidth={1.8} />,
+      emphasis: summary.critical > 0,
+    },
+    {
+      labelKey: "dashboard.metricOverdue",
+      hintKey: "dashboard.hintOverdue",
+      value: summary.overdue,
+      to: "/tickets?view=all&overdue=true",
+      icon: <TriangleAlert size={15} strokeWidth={1.8} />,
+      emphasis: summary.overdue > 0,
+    },
+    inbox ?? unrouted,
     {
       labelKey: "dashboard.metricAssignedToMe",
       hintKey: "dashboard.hintAssigned",
@@ -87,24 +158,17 @@ export function DashboardMetricGrid({
       labelKey: "dashboard.metricWaitingForUser",
       hintKey: "dashboard.hintWaiting",
       value: summary.waitingForUser,
-      to: "/tickets?view=all",
+      to: "/tickets?view=all&status=WAITING_FOR_USER",
       icon: <AlarmClock size={15} strokeWidth={1.8} />,
     },
     {
       labelKey: "dashboard.metricPendingApproval",
       hintKey: "dashboard.hintApproval",
       value: summary.pendingApproval,
-      to: "/tickets?view=all",
+      to: "/tickets?view=all&status=PENDING_APPROVAL",
       icon: <ShieldAlert size={15} strokeWidth={1.8} />,
     },
-    {
-      labelKey: "dashboard.metricUnrouted",
-      hintKey: "dashboard.hintUnrouted",
-      value: summary.unrouted,
-      to: "/tickets?view=all",
-      icon: <TriangleAlert size={15} strokeWidth={1.8} />,
-      emphasis: summary.unrouted > 0,
-    },
+    ...(inbox ? [unrouted] : []),
     {
       labelKey: "dashboard.metricRequestedByMe",
       hintKey: "dashboard.hintRequested",
@@ -113,24 +177,4 @@ export function DashboardMetricGrid({
       icon: <Ticket size={15} strokeWidth={1.8} />,
     },
   ];
-
-  return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      {metrics.map((metric) => (
-        <Link
-          key={metric.labelKey}
-          to={metric.to}
-          className="rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <StatCard
-            label={t(metric.labelKey)}
-            value={metric.value}
-            hint={t(metric.hintKey)}
-            icon={metric.icon}
-            emphasis={metric.emphasis}
-          />
-        </Link>
-      ))}
-    </div>
-  );
 }
