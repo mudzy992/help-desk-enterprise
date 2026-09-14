@@ -1,1 +1,1 @@
-ACL SETUSER ephelpdesk on >Mojalozinka!1 ~bull:ephelpdesk:* ~ephelpdesk:* +ping +hello +info +select +eval +evalsha +script|exists +script|load +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection -@dangerous
+ACL SETUSER ephelpdesk on >change-me ~bull:ephelpdesk:* ~ephelpdesk:* &bull:ephelpdesk:* &ephelpdesk:* +ping +hello +info +select +eval +evalsha +script|exists +script|load +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection -@dangerous
