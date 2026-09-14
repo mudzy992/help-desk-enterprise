@@ -1,7 +1,8 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import { errorTextClassName } from "@/components/ui/control";
+import { Field, Input } from "@/components/ui/field";
 import { createRoutingRule } from "@/services/routing-api";
 import { ApiError } from "@/services/api";
 
@@ -44,33 +45,27 @@ export function CreateRoutingRuleForm({
 
   return (
     <form className="grid max-w-xl gap-3" onSubmit={onSubmit}>
-      <label className={labelClassName}>
-        {t("routing.originUnitId")}
-        <input
-          className={controlClassName}
+      <Field label={t("routing.originUnitId")} required>
+        <Input
           value={originUnitId}
           onChange={(event) => setOriginUnitId(event.target.value)}
           required
         />
-      </label>
-      <label className={labelClassName}>
-        {t("routing.serviceId")}
-        <input
-          className={controlClassName}
+      </Field>
+      <Field label={t("routing.serviceId")} required>
+        <Input
           value={serviceId}
           onChange={(event) => setServiceId(event.target.value)}
           required
         />
-      </label>
-      <label className={labelClassName}>
-        {t("routing.groupId")}
-        <input
-          className={controlClassName}
+      </Field>
+      <Field label={t("routing.groupId")} required>
+        <Input
           value={groupId}
           onChange={(event) => setGroupId(event.target.value)}
           required
         />
-      </label>
+      </Field>
       {errorKey ? (
         <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { labelClassName, textareaClassName } from "@/components/ui/control";
+import { Field, Textarea } from "@/components/ui/field";
 
 interface CreateConfigVersionFormProperties {
   readonly isBusy: boolean;
@@ -27,16 +27,14 @@ export function CreateConfigVersionForm({
         });
       }}
     >
-      <label className={labelClassName}>
-        {t("configVersions.releaseNotes")}
-        <textarea
-          className={textareaClassName}
+      <Field label={t("configVersions.releaseNotes")}>
+        <Textarea
           value={releaseNotes}
           disabled={isBusy}
           maxLength={4000}
           onChange={(event) => setReleaseNotes(event.target.value)}
         />
-      </label>
+      </Field>
       <div>
         <Button type="submit" size="sm" disabled={isBusy}>
           {isBusy ? t("configVersions.creating") : t("configVersions.create")}

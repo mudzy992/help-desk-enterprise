@@ -126,6 +126,30 @@
   animation: dot-pulse 2.4s ease-in-out infinite;
 }
 
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 0.5s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
+@keyframes draw-ring {
+  from {
+    stroke-dashoffset: var(--ring-from, 100);
+  }
+}
+
+.draw-ring {
+  animation: draw-ring 0.7s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+}
+
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -139,7 +163,9 @@ select.appearance-none {
   .page-in,
   .fade-in,
   .pop-in,
-  .dot-pulse {
+  .dot-pulse,
+  .bar-grow,
+  .draw-ring {
     animation: none;
   }
 }
