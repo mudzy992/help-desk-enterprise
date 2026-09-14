@@ -18,7 +18,7 @@ type HandshakeMiddleware = (
 function createSocket(auth: unknown): Socket {
   return {
     id: 'connection-test-1',
-    handshake: { auth },
+    handshake: { auth, headers: {} },
     data: {},
     disconnect: jest.fn(),
     join: jest.fn(),
@@ -112,6 +112,7 @@ describe('WebsocketGateway', () => {
     expect(verify).toHaveBeenCalledWith({ token: SYNTHETIC_TOKEN });
     expect(socket.data.principal).toEqual({ subjectId: 'subject-user-1' });
     expect(socket.data.principal).not.toHaveProperty('token');
+    expect(typeof socket.data.requestId).toBe('string');
     expect(joinedLogOutput(logSpy, warnSpy)).not.toContain(SYNTHETIC_TOKEN);
   });
 

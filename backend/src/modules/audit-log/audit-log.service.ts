@@ -78,6 +78,11 @@ export class AuditLogService {
     return serializeExport(input.format, rows);
   }
 
+  async snapshotExportJson(): Promise<string> {
+    const records = await this.repository.listChain();
+    return serializeAuditLogJson(records.map(toAuditLogExportRow));
+  }
+
   async verify(): Promise<AuditLogVerifyResult> {
     const configuration = await this.configurationLoader.load();
     if (!configuration.tamperEvidentEnabled) {

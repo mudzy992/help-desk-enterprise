@@ -289,6 +289,20 @@ export const settingKeys = {
   privateAuditTamperEvidentEnabled: 'private.audit.tamperEvident.enabled',
   privateAuditTamperEvidentHashAlgorithm:
     'private.audit.tamperEvident.hashAlgorithm',
+  privateObservabilityAuditRetentionDays:
+    'private.observability.auditRetentionDays',
+  privateObservabilityRequestLogRetentionDays:
+    'private.observability.requestLogRetentionDays',
+  privateObservabilitySupportBundleEnabled:
+    'private.observability.supportBundle.enabled',
+  privateObservabilitySupportBundleIncludeConfigSnapshot:
+    'private.observability.supportBundle.includeConfigSnapshot',
+  privateObservabilitySupportBundleIncludeRecentLogs:
+    'private.observability.supportBundle.includeRecentLogs',
+  privateObservabilitySupportBundleIncludeAuditExport:
+    'private.observability.supportBundle.includeAuditExport',
+  privateObservabilitySupportBundleRecentLogsMinutes:
+    'private.observability.supportBundle.recentLogsMinutes',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

@@ -10,6 +10,10 @@ import {
   attachSocketPrincipal,
   getSocketPrincipal,
 } from './authenticated-socket';
+import {
+  attachSocketRequestId,
+  runWithSocketRequestId,
+} from './attach-socket-request-id';
 import { createSocketAuthenticationFailureError } from './create-socket-authentication-failure-error';
 import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
@@ -37,45 +41,54 @@ export class WebsocketGateway
   }
 
   handleConnection(client: Socket): void {
-    const principal = getSocketPrincipal(client);
-    if (!isSocketPrincipal(principal)) {
-      this.logger.warn(
-        `socket_connection_rejected connectionId=${client.id} reason=unauthenticated`,
-      );
-      client.disconnect(true);
-      return;
-    }
-    void client.join(userRoomName(principal.subjectId));
-    this.logger.log(`socket_connected connectionId=${client.id}`);
+    runWithSocketRequestId(client, () => {
+      const principal = getSocketPrincipal(client);
+      if (!isSocketPrincipal(principal)) {
+        this.logger.warn(
+          `socket_connection_rejected connectionId=${client.id} reason=unauthenticated`,
+        );
+        client.disconnect(true);
+        return;
+      }
+      void client.join(userRoomName(principal.subjectId));
+      this.logger.log(`socket_connected connectionId=${client.id}`);
+    });
   }
 
   handleDisconnect(client: Socket): void {
-    this.logger.log(`socket_disconnected connectionId=${client.id}`);
+    runWithSocketRequestId(client, () => {
+      this.logger.log(`socket_disconnected connectionId=${client.id}`);
+    });
   }
 
   private async authenticateHandshake(
     socket: Socket,
     next: (error?: Error) => void,
   ): Promise<void> {
-    try {
-      const outcome = await this.socketAuthenticationService.authenticate(
-        socket.handshake.auth,
-      );
-      if (outcome.status !== 'authenticated') {
+    const requestId = attachSocketRequestId(socket);
+    await runWithSocketRequestId(socket, async () => {
+      try {
+        const outcome = await this.socketAuthenticationService.authenticate(
+          socket.handshake.auth,
+        );
+        if (outcome.status !== 'authenticated') {
+          this.logger.warn(
+            `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
+          );
+          next(createSocketAuthenticationFailureError());
+          return;
+        }
+        attachSocketPrincipal(socket, outcome.principal);
+        this.logger.log(
+          `socket_authentication_accepted connectionId=${socket.id} requestId=${requestId}`,
+        );
+        next();
+      } catch {
         this.logger.warn(
-          `socket_authentication_rejected connectionId=${socket.id} reason=${outcome.reason}`,
+          `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
         );
         next(createSocketAuthenticationFailureError());
-        return;
       }
-      attachSocketPrincipal(socket, outcome.principal);
-      this.logger.log(`socket_authentication_accepted connectionId=${socket.id}`);
-      next();
-    } catch {
-      this.logger.warn(
-        `socket_authentication_rejected connectionId=${socket.id} reason=invalid_credentials`,
-      );
-      next(createSocketAuthenticationFailureError());
-    }
+    });
   }
 }
