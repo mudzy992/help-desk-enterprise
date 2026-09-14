@@ -43,21 +43,30 @@ describe('EnqueueIntegrationJobService', () => {
     );
   });
 
-  it('does not add TEAMS_STUB jobs to BullMQ', async () => {
+  it('adds TEAMS_STUB jobs to BullMQ', async () => {
     const teamsJob = { ...pending, type: IntegrationJobType.TEAMS_STUB };
     const repository = {
       createPending: jest.fn().mockResolvedValue(teamsJob),
       markFailed: jest.fn(),
     };
-    const queue = { add: jest.fn() };
+    const queue = { add: jest.fn().mockResolvedValue(undefined) };
     const service = new EnqueueIntegrationJobService(
       repository as never,
       queue as never,
     );
     await service.enqueue({
       type: IntegrationJobType.TEAMS_STUB,
-      payload: { event: 'stub' },
+      payload: {
+        eventType: 'ticket.created',
+        event: 'ticket_created',
+        ticketId: 'ticket-1',
+        messageId: 'msg-1',
+      },
     });
-    expect(queue.add).not.toHaveBeenCalled();
+    expect(queue.add).toHaveBeenCalledWith(
+      IntegrationJobType.TEAMS_STUB,
+      { integrationJobId: 'job-1' },
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
   });
 });

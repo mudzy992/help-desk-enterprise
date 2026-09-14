@@ -2,7 +2,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { Prisma } from '../../generated/prisma/client';
-import { IntegrationJobType } from '../../generated/prisma/enums';
 import { integrationQueueName } from './integration-queue.constants';
 import type { EnqueueIntegrationJobInput } from './integration-queue.types';
 import type { IntegrationQueueJobData } from './integration-queue.types';
@@ -23,12 +22,6 @@ export class EnqueueIntegrationJobService {
       type: input.type,
       payload: input.payload as Prisma.InputJsonValue,
     });
-    if (input.type === IntegrationJobType.TEAMS_STUB) {
-      this.logger.log(
-        `integration_job id=${job.id} type=${job.type} status=PENDING bullmq=skipped`,
-      );
-      return job;
-    }
     try {
       await this.integrationQueue.add(
         input.type,

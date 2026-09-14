@@ -101,8 +101,8 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] In-app notifications (list, unread, mark-as-read)
 - [x] Email kanal (O365, internal-only) kroz settings + templates
 - [x] Socket.IO: ticket/chat, notifications, settings
-- [~] IN PROGRESS Durable integration queue (BullMQ + Redis worker; Postgres job red + DLQ + admin retry)
-- [ ] Teams stub (feature flag, bez delivery-a)
+- [x] Durable integration queue (BullMQ + Redis worker; Postgres job red + DLQ + admin retry)
+- [x] Teams stub (feature flag, bez delivery-a)
 
 
 

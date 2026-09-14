@@ -269,6 +269,10 @@ export const settingKeys = {
     'private.integrations.queue.workerPollSeconds',
   privateIntegrationsQueueAdminUiEnabled:
     'private.integrations.queue.adminUiEnabled',
+  privateIntegrationsTeamsStubEnabled: 'private.integrations.teams.stubEnabled',
+  privateIntegrationsTeamsWebhookUrl: 'private.integrations.teams.webhookUrl',
+  privateIntegrationsTeamsEventTypesCsv:
+    'private.integrations.teams.eventTypesCsv',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

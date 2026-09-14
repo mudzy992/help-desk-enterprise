@@ -9,6 +9,7 @@ import { SmtpMailTransport } from './email/smtp-mail-transport';
 import { NotificationsFanOutService } from './fan-out/notifications-fan-out.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
+import { TeamsIntegrationService } from './teams/teams-integration.service';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationsService } from './notifications.service';
   providers: [
     NotificationsService,
     NotificationsFanOutService,
+    TeamsIntegrationService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
   ],

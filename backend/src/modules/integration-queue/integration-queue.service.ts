@@ -1,10 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import {
-  IntegrationJobStatus,
-  IntegrationJobType,
-} from '../../generated/prisma/enums';
+import { IntegrationJobStatus } from '../../generated/prisma/enums';
 import { integrationQueueName } from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 import { IntegrationQueueError } from './integration-queue.error';
@@ -44,17 +41,15 @@ export class IntegrationQueueService {
       throw new IntegrationQueueError('INVALID_STATUS');
     }
     const pending = await this.integrationJobRepository.resetForAdminRetry(jobId);
-    if (pending.type !== IntegrationJobType.TEAMS_STUB) {
-      await this.integrationQueue.add(
-        pending.type,
-        { integrationJobId: pending.id },
-        {
-          jobId: `${pending.id}:admin:${Date.now()}`,
-          removeOnComplete: true,
-          removeOnFail: true,
-        },
-      );
-    }
+    await this.integrationQueue.add(
+      pending.type,
+      { integrationJobId: pending.id },
+      {
+        jobId: `${pending.id}:admin:${Date.now()}`,
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
     return toIntegrationJobResponse(pending);
   }
 

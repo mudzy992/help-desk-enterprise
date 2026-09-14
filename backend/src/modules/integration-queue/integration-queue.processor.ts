@@ -12,6 +12,7 @@ import type { IntegrationQueueJobData } from './integration-queue.types';
 import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
 import { ProcessEdgeEventIntegrationJobService } from './process-edge-event-integration-job.service';
 import { ProcessEmailIntegrationJobService } from './process-email-integration-job.service';
+import { ProcessTeamsStubIntegrationJobService } from './process-teams-stub-integration-job.service';
 import { SettingsService } from '../settings/settings.service';
 
 @Processor(integrationQueueName)
@@ -23,6 +24,7 @@ export class IntegrationQueueProcessor extends WorkerHost {
     private readonly settingsService: SettingsService,
     private readonly processEmailIntegrationJobService: ProcessEmailIntegrationJobService,
     private readonly processEdgeEventIntegrationJobService: ProcessEdgeEventIntegrationJobService,
+    private readonly processTeamsStubIntegrationJobService: ProcessTeamsStubIntegrationJobService,
     @InjectQueue(integrationQueueName)
     private readonly integrationQueue: Queue<IntegrationQueueJobData>,
   ) {
@@ -74,6 +76,10 @@ export class IntegrationQueueProcessor extends WorkerHost {
     }
     if (type === IntegrationJobType.EDGE_EVENT) {
       await this.processEdgeEventIntegrationJobService.process(payload);
+      return;
+    }
+    if (type === IntegrationJobType.TEAMS_STUB) {
+      await this.processTeamsStubIntegrationJobService.process(payload);
       return;
     }
     throw new Error(`Unsupported integration job type: ${type}`);
