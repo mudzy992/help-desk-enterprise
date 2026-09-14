@@ -1,8 +1,9 @@
 {
   "navigation": {
     "dashboard": "Dashboard",
-    "tickets": "Tickets",
-    "services": "Services",
+    "tickets": "All tickets",
+    "inbox": "Group inbox",
+    "services": "Service catalog",
     "knowledgeBase": "Knowledge Base",
     "users": "Users",
     "organizationalUnits": "Organizational Units",

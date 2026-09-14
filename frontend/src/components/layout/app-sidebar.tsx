@@ -3,6 +3,7 @@ import {
   Database,
   GitBranch,
   History,
+  Inbox,
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
@@ -15,10 +16,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { SidebarUserCard } from "@/components/layout/sidebar-user-card";
 import { Kbd } from "@/components/ui/kbd";
 import {
+  isNavigationItemActive,
   navigationSections,
   type NavigationItem,
 } from "@/lib/navigation";
@@ -26,7 +28,8 @@ import { cn } from "@/lib/utils";
 
 const navigationIcons: Record<string, LucideIcon> = {
   "/": LayoutDashboard,
-  "/tickets": Ticket,
+  "/tickets?view=all": Ticket,
+  "/tickets?view=inbox": Inbox,
   "/services": LayoutGrid,
   "/knowledge-base": BookOpen,
   "/users": Users,
@@ -91,7 +94,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
             </p>
             <ul className="space-y-0.5">
               {section.items.map((item) => (
-                <li key={item.path}>
+                <li key={item.labelKey}>
                   <SidebarLink item={item} onNavigate={onNavigate} />
                 </li>
               ))}
@@ -111,40 +114,40 @@ interface SidebarLinkProperties {
 
 function SidebarLink({ item, onNavigate }: SidebarLinkProperties) {
   const { t } = useTranslation();
+  const location = useLocation();
   const Icon = navigationIcons[item.path] ?? LayoutDashboard;
+  const isActive = isNavigationItemActive(
+    item,
+    location.pathname,
+    location.search,
+  );
 
   return (
-    <NavLink
+    <Link
       to={item.path}
-      end={item.end}
       onClick={onNavigate}
-      className={({ isActive }) =>
-        cn(
-          "group relative flex h-[34px] w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
-          isActive
-            ? "bg-elevated font-medium text-foreground"
-            : "text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
-          {isActive ? (
-            <span className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-full bg-primary" />
-          ) : null}
-          <Icon
-            size={15.5}
-            strokeWidth={1.9}
-            className={
-              isActive
-                ? "text-[#7FA8F5]"
-                : "text-muted-foreground/80 group-hover:text-muted-foreground"
-            }
-            aria-hidden="true"
-          />
-          <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
-        </>
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "group relative flex h-[34px] w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
+        isActive
+          ? "bg-elevated font-medium text-foreground"
+          : "text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
       )}
-    </NavLink>
+    >
+      {isActive ? (
+        <span className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-full bg-primary" />
+      ) : null}
+      <Icon
+        size={15.5}
+        strokeWidth={1.9}
+        className={
+          isActive
+            ? "text-[#7FA8F5]"
+            : "text-muted-foreground/80 group-hover:text-muted-foreground"
+        }
+        aria-hidden="true"
+      />
+      <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
+    </Link>
   );
 }

@@ -1,15 +1,16 @@
 export const navigationLabelKeys = {
   dashboard: "navigation.dashboard",
   tickets: "navigation.tickets",
+  inbox: "navigation.inbox",
   services: "navigation.services",
   knowledgeBase: "navigation.knowledgeBase",
   users: "navigation.users",
   organizationalUnits: "navigation.organizationalUnits",
-    routing: "navigation.routing",
-    sla: "navigation.sla",
-    settings: "navigation.settings",
-    queue: "navigation.queue",
-    configVersions: "navigation.configVersions",
+  routing: "navigation.routing",
+  sla: "navigation.sla",
+  settings: "navigation.settings",
+  queue: "navigation.queue",
+  configVersions: "navigation.configVersions",
 } as const;
 
 export type NavigationLabelKey =
@@ -43,9 +44,15 @@ export const dashboardNavigationItem: NavigationItem = {
 };
 
 export const ticketsNavigationItem: NavigationItem = {
-  path: "/tickets",
+  path: "/tickets?view=all",
   labelKey: navigationLabelKeys.tickets,
   end: false,
+};
+
+export const inboxNavigationItem: NavigationItem = {
+  path: "/tickets?view=inbox",
+  labelKey: navigationLabelKeys.inbox,
+  end: true,
 };
 
 export const servicesNavigationItem: NavigationItem = {
@@ -109,7 +116,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem],
+    items: [ticketsNavigationItem, inboxNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.services,
@@ -134,12 +141,53 @@ export const primaryNavigationItems: readonly NavigationItem[] =
 
 export const allNavigationItems: readonly NavigationItem[] = primaryNavigationItems;
 
-export function getActiveNavigationItem(pathname: string): NavigationItem {
-  const matchedItem = allNavigationItems.find((item) => {
-    if (item.end) {
-      return pathname === item.path;
+function navigationItemPathname(path: string): string {
+  const queryIndex = path.indexOf("?");
+  return queryIndex === -1 ? path : path.slice(0, queryIndex);
+}
+
+function ticketListView(search: string): string | null {
+  const query = search.startsWith("?") ? search.slice(1) : search;
+  return new URLSearchParams(query).get("view");
+}
+
+export function isNavigationItemActive(
+  item: NavigationItem,
+  pathname: string,
+  search = "",
+): boolean {
+  if (item.labelKey === navigationLabelKeys.inbox) {
+    if (pathname !== "/tickets") {
+      return false;
     }
-    return pathname === item.path || pathname.startsWith(`${item.path}/`);
-  });
+    const view = ticketListView(search);
+    return view === "inbox" || view === null;
+  }
+
+  if (item.labelKey === navigationLabelKeys.tickets) {
+    if (pathname === "/tickets/new") {
+      return false;
+    }
+    if (pathname === "/tickets") {
+      const view = ticketListView(search);
+      return view !== null && view !== "inbox";
+    }
+    return pathname.startsWith("/tickets/");
+  }
+
+  const itemPathname = navigationItemPathname(item.path);
+  if (item.end) {
+    return pathname === itemPathname;
+  }
+  return pathname === itemPathname || pathname.startsWith(`${itemPathname}/`);
+}
+
+export function getActiveNavigationItem(
+  pathname: string,
+  search = "",
+): NavigationItem {
+  const matchedItem = allNavigationItems.find((item) =>
+    isNavigationItemActive(item, pathname, search),
+  );
   return matchedItem ?? dashboardNavigationItem;
 }

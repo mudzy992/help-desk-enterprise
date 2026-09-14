@@ -1,8 +1,9 @@
 {
   "navigation": {
     "dashboard": "Nadzorna ploča",
-    "tickets": "Tiketi",
-    "services": "Usluge",
+    "tickets": "Svi tiketi",
+    "inbox": "Grupni inbox",
+    "services": "Katalog usluga",
     "knowledgeBase": "Baza znanja",
     "users": "Korisnici",
     "organizationalUnits": "Organizacijske jedinice",
