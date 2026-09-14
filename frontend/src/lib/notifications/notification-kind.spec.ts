@@ -9,6 +9,9 @@ describe("notification helpers", () => {
     expect(notificationTitleKey("ticket.created")).toBe(
       "notifications.items.ticketCreated",
     );
+    expect(notificationTitleKey("remote.requested")).toBe(
+      "notifications.items.remoteRequested",
+    );
     expect(notificationTicketPath("ticket-1")).toBe("/tickets/ticket-1");
     expect(notificationTicketPath(null)).toBeNull();
   });

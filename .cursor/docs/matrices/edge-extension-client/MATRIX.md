@@ -23,7 +23,7 @@ Sluša `user:{userId}` event `notification.created` (isti payload kao web) plus 
 Outgoing `EDGE_EVENT` job (F7-A) enqueue-a se kad je addon+modul+edge kanal + queue `edge` token uključen. Payload je isti client envelope; web `applyNotificationCreated` već dedup-uje po `notification.id`.
 
 ## Polling
-Ako WS padne (ili `ws.enabled` false): `GET /notifications?unreadOnly=true` na `pollingFallback.intervalSeconds` (clamp 60–120, default 90). Samo unread notifikacije.
+Ako WS padne, `connect_error`, ili `ws.enabled` false: `GET /notifications?unreadOnly=true` na `pollingFallback.intervalSeconds` (clamp 60–120, default 90). Samo unread notifikacije. MV3 service worker koristi Socket.IO `transports: ['websocket']` (nema XHR polling).
 
 ## Toasts
 Ako `redactedPreviews` (default true): OS toast = tip + ticketId. Nikad title/body.
@@ -35,4 +35,4 @@ Ako `redactedPreviews` (default true): OS toast = tip + ticketId. Nikad title/bo
 `CORS_ORIGIN` CSV: desk origin + `chrome-extension://<id>`. Nikad `*`.
 
 ## Namjerno NIJE
-Quick reply, Request Remote, content scripts, MSAL, novi gateway, nova Prisma tabela.
+Content scripts, MSAL, novi gateway, nova Prisma tabela. Chat + Request Remote: `.cursor/docs/matrices/edge-extension-chat-remote-contract/`.

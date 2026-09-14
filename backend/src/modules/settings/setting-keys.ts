@@ -329,6 +329,18 @@ export const settingKeys = {
     'private.edgeExtension.pollingFallback.enabled',
   privateEdgeExtensionPollingFallbackIntervalSeconds:
     'private.edgeExtension.pollingFallback.intervalSeconds',
+  privateEdgeExtensionChatEnabled: 'private.edgeExtension.chat.enabled',
+  privateEdgeExtensionChatMaxMessagesPerTicket:
+    'private.edgeExtension.chat.maxMessagesPerTicket',
+  privateEdgeExtensionAttachmentsEnabled:
+    'private.edgeExtension.attachments.enabled',
+  privateEdgeExtensionRemoteEnabled: 'private.edgeExtension.remote.enabled',
+  privateEdgeExtensionRemoteRateLimitMinutesPerTicket:
+    'private.edgeExtension.remote.rateLimitMinutesPerTicket',
+  privateEdgeExtensionRemoteRequireUserClickToOpenQuickAssist:
+    'private.edgeExtension.remote.requireUserClickToOpenQuickAssist',
+  privateEdgeExtensionRemoteAuditAcknowledge:
+    'private.edgeExtension.remote.auditAcknowledge',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

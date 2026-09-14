@@ -36,3 +36,24 @@ button {
   color: #8b1e1e;
   margin: 0;
 }
+
+#inbox,
+#messages {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+#inbox button,
+#messages {
+  font: inherit;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+#workspace {
+  display: grid;
+  gap: 0.75rem;
+}

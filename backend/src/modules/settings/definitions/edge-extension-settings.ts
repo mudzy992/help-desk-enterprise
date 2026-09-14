@@ -8,6 +8,8 @@ export const edgeExtensionPollingIntervalMinimumSeconds = 60;
 export const edgeExtensionPollingIntervalMaximumSeconds = 120;
 export const defaultEdgeExtensionReconnectMaxBackoffSeconds = 60;
 export const defaultEdgeExtensionAllowedEmailDomain = 'epbih.ba';
+export const defaultEdgeExtensionChatMaxMessagesPerTicket = 50;
+export const defaultEdgeExtensionRemoteRateLimitMinutes = 10;
 
 export const edgeExtensionSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
@@ -91,6 +93,60 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: defaultEdgeExtensionPollingIntervalSeconds,
     assertValue: assertPollingInterval,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionChatEnabled,
+    valueType: 'boolean',
+    description: 'Enable quick reply chat in the Edge extension popup',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionChatMaxMessagesPerTicket,
+    valueType: 'number',
+    description: 'Maximum messages loaded per ticket in the extension popup',
+    isRequired: true,
+    defaultValue: defaultEdgeExtensionChatMaxMessagesPerTicket,
+    assertValue: assertPositiveInteger,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionAttachmentsEnabled,
+    valueType: 'boolean',
+    description:
+      'Allow attachment upload from the Edge extension chat; off in MVP',
+    isRequired: true,
+    defaultValue: false,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionRemoteEnabled,
+    valueType: 'boolean',
+    description: 'Enable Request Remote / Quick Assist through the extension',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionRemoteRateLimitMinutesPerTicket,
+    valueType: 'number',
+    description: 'Minimum minutes between remote requests on the same ticket',
+    isRequired: true,
+    defaultValue: defaultEdgeExtensionRemoteRateLimitMinutes,
+    assertValue: assertPositiveInteger,
+  }),
+  definePrivateSetting({
+    key:
+      settingKeys.privateEdgeExtensionRemoteRequireUserClickToOpenQuickAssist,
+    valueType: 'boolean',
+    description:
+      'Require an explicit user click before opening ms-quick-assist',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateEdgeExtensionRemoteAuditAcknowledge,
+    valueType: 'boolean',
+    description: 'Write an audit entry when the user opens Quick Assist',
+    isRequired: true,
+    defaultValue: true,
   }),
 ];
 

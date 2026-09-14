@@ -13,8 +13,8 @@ import {
 } from './edge-extension.constants';
 import { EdgeExtensionError } from './edge-extension.error';
 import { evaluateEdgeExtensionAccess } from './evaluate-edge-extension-access';
+import { executeEdgeExtensionOperation } from './execute-edge-extension-operation';
 import { loadEdgeExtensionConfiguration } from './load-edge-extension-configuration';
-import { mapEdgeExtensionError } from './map-edge-extension-error';
 import type {
   EdgeExtensionBootstrapResponse,
   EdgeExtensionReceiptResponse,
@@ -31,7 +31,9 @@ export class EdgeExtensionService {
     principal: AuthorizationPrincipal,
     extensionVersion: string,
   ): Promise<EdgeExtensionBootstrapResponse> {
-    return execute(() => this.buildBootstrap(principal, extensionVersion));
+    return executeEdgeExtensionOperation(() =>
+      this.buildBootstrap(principal, extensionVersion),
+    );
   }
 
   recordReceipt(
@@ -42,7 +44,9 @@ export class EdgeExtensionService {
       readonly eventId?: string;
     },
   ): Promise<EdgeExtensionReceiptResponse> {
-    return execute(() => this.writeReceipt(principal, input));
+    return executeEdgeExtensionOperation(() =>
+      this.writeReceipt(principal, input),
+    );
   }
 
   private async buildBootstrap(
@@ -70,6 +74,16 @@ export class EdgeExtensionService {
       dedupEnabled: configuration.dedupEnabled,
       minClientVersion: configuration.minClientVersion,
       allowedEmailDomain: configuration.allowedEmailDomain,
+      subjectId: principal.subjectId,
+      chatEnabled: configuration.chatEnabled,
+      chatMaxMessagesPerTicket: configuration.chatMaxMessagesPerTicket,
+      attachmentsEnabled: configuration.attachmentsEnabled,
+      remoteEnabled: configuration.remoteEnabled,
+      remoteRateLimitMinutesPerTicket:
+        configuration.remoteRateLimitMinutesPerTicket,
+      requireUserClickToOpenQuickAssist:
+        configuration.requireUserClickToOpenQuickAssist,
+      auditAcknowledge: configuration.auditAcknowledge,
     };
   }
 
@@ -128,14 +142,6 @@ export class EdgeExtensionService {
       notificationId: notification.id,
       eventId,
     };
-  }
-}
-
-async function execute<T>(operation: () => Promise<T>): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    throw mapEdgeExtensionError(error);
   }
 }
 

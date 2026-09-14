@@ -17,6 +17,13 @@ export type EdgeExtensionConfiguration = {
   readonly pollingFallbackEnabled: boolean;
   readonly pollingIntervalSeconds: number;
   readonly allowedEmailDomain: string;
+  readonly chatEnabled: boolean;
+  readonly chatMaxMessagesPerTicket: number;
+  readonly attachmentsEnabled: boolean;
+  readonly remoteEnabled: boolean;
+  readonly remoteRateLimitMinutesPerTicket: number;
+  readonly requireUserClickToOpenQuickAssist: boolean;
+  readonly auditAcknowledge: boolean;
 };
 
 export type EdgeExtensionBootstrapResponse = {
@@ -32,6 +39,14 @@ export type EdgeExtensionBootstrapResponse = {
   readonly dedupEnabled: boolean;
   readonly minClientVersion: string;
   readonly allowedEmailDomain: string;
+  readonly subjectId: string;
+  readonly chatEnabled: boolean;
+  readonly chatMaxMessagesPerTicket: number;
+  readonly attachmentsEnabled: boolean;
+  readonly remoteEnabled: boolean;
+  readonly remoteRateLimitMinutesPerTicket: number;
+  readonly requireUserClickToOpenQuickAssist: boolean;
+  readonly auditAcknowledge: boolean;
 };
 
 export type EdgeExtensionReceiptResponse = {

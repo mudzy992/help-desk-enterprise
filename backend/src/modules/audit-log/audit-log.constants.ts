@@ -22,6 +22,7 @@ export const auditLogActions = {
   reportsExport: 'reports.export',
   supportBundleExport: 'support_bundle.export',
   notificationReceipt: 'notification.receipt',
+  ticketRemoteAcknowledged: 'ticket.remote.acknowledged',
 } as const;
 
 export const auditLogEntityTypes = {

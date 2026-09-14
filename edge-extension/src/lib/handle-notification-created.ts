@@ -1,5 +1,6 @@
 import type { EdgeExtensionBootstrap } from './bootstrap-client';
 import { rememberEventId, rememberTicketForEvent } from './event-dedup';
+import { rememberPendingRemote } from './pending-remote';
 import { sendNotificationReceipt } from './receipts-client';
 import { showRedactedToast } from './redacted-toast';
 
@@ -31,6 +32,13 @@ export async function handleNotificationCreated(input: {
     return;
   }
   rememberTicketForEvent(eventId, notification.ticketId);
+  if (
+    notification.type === 'remote.requested' &&
+    typeof notification.ticketId === 'string' &&
+    notification.ticketId.length > 0
+  ) {
+    await rememberPendingRemote(notification.ticketId);
+  }
   await showRedactedToast({
     eventId,
     type: notification.type,

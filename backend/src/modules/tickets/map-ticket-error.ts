@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
+  HttpStatus,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -49,6 +50,7 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'BREAK_GLASS_DISABLED',
   'CSAT_DISABLED',
   'TICKET_ARCHIVED_READ_ONLY',
+  'REMOTE_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -90,6 +92,9 @@ export function mapTicketError(error: unknown): HttpException {
   }
   if (unavailableCodes.includes(error.code)) {
     return new ServiceUnavailableException(body);
+  }
+  if (error.code === 'REMOTE_RATE_LIMITED') {
+    return new HttpException(body, HttpStatus.TOO_MANY_REQUESTS);
   }
   if (
     error.code === 'OVERLAPPING_TIMER' ||

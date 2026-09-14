@@ -32,6 +32,8 @@ export const permissionKeys = {
   knowledgeArticlePublish: 'knowledge.article.publish',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
+  ticketMessageSend: 'ticket.message.send',
+  ticketRemoteOpenQuickAssist: 'ticket.remote.open_quick_assist',
 } as const;
 
 export const allPermissionKeys: readonly string[] = Object.values(permissionKeys);
@@ -39,6 +41,8 @@ export const allPermissionKeys: readonly string[] = Object.values(permissionKeys
 const edgeClientPermissionKeys = [
   permissionKeys.edgeConnect,
   permissionKeys.edgeNotifyReceive,
+  permissionKeys.ticketMessageSend,
+  permissionKeys.ticketRemoteOpenQuickAssist,
 ] as const;
 
 const agentPermissionKeys = [

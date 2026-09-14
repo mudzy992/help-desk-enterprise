@@ -1,69 +1,146 @@
-import { helpdeskRequest } from './lib/helpdesk-http';
 import {
   extensionMessageTypes,
+  type ExtensionInboxTicket,
   type ExtensionStatus,
+  type ExtensionThreadMessage,
 } from './lib/extension-messages';
 import { readApiBaseUrl } from './lib/memory-token';
 import { openDeskUrl } from './lib/open-in-desk';
+import { openQuickAssistFromUserClick } from './lib/open-quick-assist';
+import {
+  bindErrorElement,
+  describeConnectionStatus,
+  signInWithPassword,
+} from './popup-session';
+import { renderThreadMessages } from './popup-thread';
 
 const statusEl = document.querySelector('#status');
-const errorEl = document.querySelector('#error');
 const formEl = document.querySelector('#login-form');
+const workspaceEl = document.querySelector('#workspace');
+const inboxEl = document.querySelector('#inbox');
+const inboxEmptyEl = document.querySelector('#inbox-empty');
+const threadEl = document.querySelector('#thread');
+const threadTitleEl = document.querySelector('#thread-title');
+const messagesEl = document.querySelector('#messages');
+const replyFormEl = document.querySelector('#reply-form');
+const replyBodyEl = document.querySelector('#reply-body');
+const quickAssistButton = document.querySelector('#open-quick-assist');
 const apiInput = document.querySelector('#api-base-url');
 const emailInput = document.querySelector('#email');
 const passwordInput = document.querySelector('#password');
-const openDeskButton = document.querySelector('#open-desk');
-const signOutButton = document.querySelector('#sign-out');
+const errors = bindErrorElement(document.querySelector('#error'));
+
+let selectedTicketId: string | null = null;
+let latestStatus: ExtensionStatus | null = null;
 
 async function refreshView(): Promise<void> {
   const status = (await chrome.runtime.sendMessage({
     type: extensionMessageTypes.statusGet,
   })) as ExtensionStatus;
+  latestStatus = status;
   if (apiInput instanceof HTMLInputElement && apiInput.value.length === 0) {
     apiInput.value = (await readApiBaseUrl()) || 'http://localhost:10001';
   }
   if (statusEl instanceof HTMLElement) {
-    statusEl.textContent = describeStatus(status);
+    statusEl.textContent = describeConnectionStatus(status);
   }
   formEl?.toggleAttribute('hidden', status.signedIn);
-  openDeskButton?.toggleAttribute('hidden', !status.signedIn);
-  signOutButton?.toggleAttribute('hidden', !status.signedIn);
+  workspaceEl?.toggleAttribute('hidden', !status.signedIn);
+  if (status.signedIn) {
+    await renderInbox(status);
+  }
 }
 
-function describeStatus(status: ExtensionStatus): string {
-  if (!status.signedIn) {
-    return 'Nije prijavljen.';
+async function renderInbox(status: ExtensionStatus): Promise<void> {
+  const response = (await chrome.runtime.sendMessage({
+    type: extensionMessageTypes.inboxGet,
+  })) as { tickets?: readonly ExtensionInboxTicket[]; error?: string };
+  if (response.error !== undefined) {
+    errors.show(response.error);
+    return;
   }
-  if (!status.allowed) {
-    return `Sesija postoji, modul ugašen (${status.reason}).`;
+  const tickets = response.tickets ?? [];
+  inboxEmptyEl?.toggleAttribute('hidden', tickets.length > 0);
+  if (!(inboxEl instanceof HTMLElement)) {
+    return;
   }
-  if (status.connected) {
-    return 'Povezan (WebSocket).';
+  inboxEl.replaceChildren();
+  for (const ticket of tickets) {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = `${ticket.ticketNumber} · ${ticket.title}`;
+    button.addEventListener('click', () => {
+      void openThread(ticket, status);
+    });
+    item.append(button);
+    inboxEl.append(item);
   }
-  if (status.polling) {
-    return 'WebSocket pad; polling unread.';
+}
+
+async function openThread(
+  ticket: ExtensionInboxTicket,
+  status: ExtensionStatus,
+): Promise<void> {
+  selectedTicketId = ticket.id;
+  threadEl?.toggleAttribute('hidden', false);
+  if (threadTitleEl instanceof HTMLElement) {
+    threadTitleEl.textContent = ticket.ticketNumber;
   }
-  return 'Prijava uspjela; čeka konekciju.';
+  replyFormEl?.toggleAttribute('hidden', !status.chatEnabled);
+  const pending = status.pendingRemoteTicketIds.includes(ticket.id);
+  quickAssistButton?.toggleAttribute(
+    'hidden',
+    !status.remoteEnabled || !pending,
+  );
+  const response = (await chrome.runtime.sendMessage({
+    type: extensionMessageTypes.threadGet,
+    ticketId: ticket.id,
+  })) as { messages?: readonly ExtensionThreadMessage[]; error?: string };
+  if (response.error !== undefined) {
+    errors.show(response.error);
+    return;
+  }
+  renderThreadMessages(messagesEl, response.messages ?? []);
 }
 
 formEl?.addEventListener('submit', (event) => {
   event.preventDefault();
-  void signIn();
+  void submitLogin();
 });
 
-openDeskButton?.addEventListener('click', async () => {
-  const status = (await chrome.runtime.sendMessage({
-    type: extensionMessageTypes.statusGet,
-  })) as ExtensionStatus;
-  openDeskUrl(status.deskPublicUrl);
+replyFormEl?.addEventListener('submit', (event) => {
+  event.preventDefault();
+  void sendReply();
 });
 
-signOutButton?.addEventListener('click', async () => {
+document.querySelector('#open-desk')?.addEventListener('click', () => {
+  openDeskUrl(latestStatus?.deskPublicUrl ?? '');
+});
+
+document.querySelector('#open-desk-ticket')?.addEventListener('click', () => {
+  openDeskUrl(latestStatus?.deskPublicUrl ?? '', selectedTicketId);
+});
+
+quickAssistButton?.addEventListener('click', () => {
+  if (selectedTicketId === null) {
+    return;
+  }
+  openQuickAssistFromUserClick();
+  void chrome.runtime.sendMessage({
+    type: extensionMessageTypes.remoteAck,
+    ticketId: selectedTicketId,
+  });
+  quickAssistButton.setAttribute('hidden', '');
+});
+
+document.querySelector('#sign-out')?.addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ type: extensionMessageTypes.sessionClear });
+  selectedTicketId = null;
   await refreshView();
 });
 
-async function signIn(): Promise<void> {
+async function submitLogin(): Promise<void> {
   if (
     !(apiInput instanceof HTMLInputElement) ||
     !(emailInput instanceof HTMLInputElement) ||
@@ -71,39 +148,47 @@ async function signIn(): Promise<void> {
   ) {
     return;
   }
-  hideError();
-  const apiBaseUrl = apiInput.value.replace(/\/$/, '');
+  errors.hide();
   try {
-    const session = await helpdeskRequest<{ accessToken: string }>({
-      apiBaseUrl,
-      path: '/auth/login',
-      method: 'POST',
-      body: { email: emailInput.value, password: passwordInput.value },
-    });
-    await chrome.runtime.sendMessage({
-      type: extensionMessageTypes.sessionSet,
-      accessToken: session.accessToken,
-      apiBaseUrl,
+    await signInWithPassword({
+      apiBaseUrl: apiInput.value.replace(/\/$/, ''),
+      email: emailInput.value,
+      password: passwordInput.value,
     });
     passwordInput.value = '';
     await refreshView();
   } catch (error) {
-    showError(error instanceof Error ? error.message : 'Prijava nije uspjela');
+    errors.show(error instanceof Error ? error.message : 'Prijava nije uspjela');
   }
 }
 
-function showError(message: string): void {
-  if (errorEl instanceof HTMLElement) {
-    errorEl.hidden = false;
-    errorEl.textContent = message;
+async function sendReply(): Promise<void> {
+  if (
+    selectedTicketId === null ||
+    !(replyBodyEl instanceof HTMLTextAreaElement)
+  ) {
+    return;
   }
-}
-
-function hideError(): void {
-  if (errorEl instanceof HTMLElement) {
-    errorEl.hidden = true;
-    errorEl.textContent = '';
+  errors.hide();
+  const body = replyBodyEl.value.trim();
+  if (body.length === 0) {
+    return;
   }
+  const response = (await chrome.runtime.sendMessage({
+    type: extensionMessageTypes.replySend,
+    ticketId: selectedTicketId,
+    body,
+  })) as ExtensionThreadMessage & { error?: string };
+  if (response.error !== undefined) {
+    errors.show(response.error);
+    return;
+  }
+  replyBodyEl.value = '';
+  const thread = (await chrome.runtime.sendMessage({
+    type: extensionMessageTypes.threadGet,
+    ticketId: selectedTicketId,
+  })) as { messages?: readonly ExtensionThreadMessage[] };
+  renderThreadMessages(messagesEl, thread.messages ?? []);
 }
 
 void refreshView();

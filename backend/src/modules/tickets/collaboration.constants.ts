@@ -91,6 +91,8 @@ export const ticketSystemEventActions = {
   slaResolutionBreached: 'ticket_sla_resolution_breached',
   slaResponseEscalated: 'ticket_sla_response_escalated',
   slaResolutionEscalated: 'ticket_sla_resolution_escalated',
+  remoteRequested: 'ticket_remote_requested',
+  remoteAcknowledged: 'ticket_remote_acknowledged',
 } as const;
 
 export const ticketRealtimeEventNames = {

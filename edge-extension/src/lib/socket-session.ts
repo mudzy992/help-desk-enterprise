@@ -11,5 +11,7 @@ export function connectUserSocket(input: {
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: input.reconnectMaxBackoffSeconds * 1000,
+    transports: ['websocket'],
+    upgrade: false,
   });
 }

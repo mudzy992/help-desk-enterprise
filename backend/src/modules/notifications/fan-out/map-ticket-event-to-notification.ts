@@ -23,6 +23,7 @@ const systemEventTypes: Readonly<Record<string, NotificationType>> = {
   [ticketSystemEventActions.slaResolutionBreached]: notificationTypes.ticketSla,
   [ticketSystemEventActions.slaResponseEscalated]: notificationTypes.ticketSla,
   [ticketSystemEventActions.slaResolutionEscalated]: notificationTypes.ticketSla,
+  [ticketSystemEventActions.remoteRequested]: notificationTypes.remoteRequested,
 };
 
 export function mapTicketEventToNotification(

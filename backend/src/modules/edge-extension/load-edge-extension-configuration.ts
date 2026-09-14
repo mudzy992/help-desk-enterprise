@@ -1,7 +1,9 @@
 import {
   defaultEdgeExtensionAllowedEmailDomain,
+  defaultEdgeExtensionChatMaxMessagesPerTicket,
   defaultEdgeExtensionPollingIntervalSeconds,
   defaultEdgeExtensionReconnectMaxBackoffSeconds,
+  defaultEdgeExtensionRemoteRateLimitMinutes,
   edgeExtensionPollingIntervalMaximumSeconds,
   edgeExtensionPollingIntervalMinimumSeconds,
 } from '../settings/definitions/edge-extension-settings';
@@ -69,6 +71,38 @@ export async function loadEdgeExtensionConfiguration(
           settingKeys.privateEdgeExtensionAllowedEmailDomain,
         ),
       ) || defaultEdgeExtensionAllowedEmailDomain,
+    chatEnabled:
+      (await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionChatEnabled,
+      )) !== false,
+    chatMaxMessagesPerTicket: asPositiveNumber(
+      await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionChatMaxMessagesPerTicket,
+      ),
+      defaultEdgeExtensionChatMaxMessagesPerTicket,
+    ),
+    attachmentsEnabled:
+      (await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionAttachmentsEnabled,
+      )) === true,
+    remoteEnabled:
+      (await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionRemoteEnabled,
+      )) !== false,
+    remoteRateLimitMinutesPerTicket: asPositiveNumber(
+      await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionRemoteRateLimitMinutesPerTicket,
+      ),
+      defaultEdgeExtensionRemoteRateLimitMinutes,
+    ),
+    requireUserClickToOpenQuickAssist:
+      (await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionRemoteRequireUserClickToOpenQuickAssist,
+      )) !== false,
+    auditAcknowledge:
+      (await settingsService.getSetting(
+        settingKeys.privateEdgeExtensionRemoteAuditAcknowledge,
+      )) !== false,
   };
 }
 

@@ -28,6 +28,8 @@ export type TicketErrorKey =
   | "tickets.errorCsatNotEligible"
   | "tickets.errorCsatDuplicate"
   | "tickets.errorArchivedReadOnly"
+  | "tickets.errorRemoteDisabled"
+  | "tickets.errorRemoteRateLimited"
   | "tickets.errorFormVersionMissing"
   | "tickets.errorGeneric";
 
@@ -61,6 +63,8 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   CSAT_NOT_ELIGIBLE: "tickets.errorCsatNotEligible",
   CSAT_ALREADY_SUBMITTED: "tickets.errorCsatDuplicate",
   TICKET_ARCHIVED_READ_ONLY: "tickets.errorArchivedReadOnly",
+  REMOTE_DISABLED: "tickets.errorRemoteDisabled",
+  REMOTE_RATE_LIMITED: "tickets.errorRemoteRateLimited",
   NOT_FOUND: "tickets.errorNotFound",
   OVERLAPPING_TIMER: "tickets.errorConflict",
   INVALID_TITLE: "tickets.errorValidation",
@@ -97,6 +101,9 @@ export function mapTicketError(error: unknown): TicketErrorKey {
   }
   if (error.status === 404) {
     return "tickets.errorNotFound";
+  }
+  if (error.status === 429) {
+    return "tickets.errorRemoteRateLimited";
   }
   const mapped = codeKeys[error.code];
   if (mapped !== undefined) {

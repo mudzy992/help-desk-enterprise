@@ -49,6 +49,8 @@ async function collectRecipients(
           : [input.ticket.assignedUserId]),
         ...(await groupMemberUserIds(prisma, input.ticket.assignedGroupId)),
       ];
+    case notificationTypes.remoteRequested:
+      return [input.ticket.requesterId];
     case notificationTypes.ticketMessage:
       return [
         input.ticket.requesterId,

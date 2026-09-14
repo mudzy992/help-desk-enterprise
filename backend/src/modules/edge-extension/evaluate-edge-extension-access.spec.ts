@@ -20,6 +20,13 @@ const open: EdgeExtensionConfiguration = {
   pollingFallbackEnabled: true,
   pollingIntervalSeconds: 90,
   allowedEmailDomain: 'epbih.ba',
+  chatEnabled: true,
+  chatMaxMessagesPerTicket: 50,
+  attachmentsEnabled: false,
+  remoteEnabled: true,
+  remoteRateLimitMinutesPerTicket: 10,
+  requireUserClickToOpenQuickAssist: true,
+  auditAcknowledge: true,
 };
 
 describe('evaluateEdgeExtensionAccess', () => {

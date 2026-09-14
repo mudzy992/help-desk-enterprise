@@ -8,6 +8,7 @@ const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "ticket.closed": "ticket",
   "ticket.approval": "approval",
   "ticket.sla": "sla",
+  "remote.requested": "ticket",
 };
 
 export function notificationKind(type: string): NotificationKind {
@@ -33,6 +34,7 @@ export function notificationTitleKey(
   | "notifications.items.ticketClosed"
   | "notifications.items.ticketApproval"
   | "notifications.items.ticketSla"
+  | "notifications.items.remoteRequested"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -49,6 +51,8 @@ export function notificationTitleKey(
       return "notifications.items.ticketApproval";
     case "ticket.sla":
       return "notifications.items.ticketSla";
+    case "remote.requested":
+      return "notifications.items.remoteRequested";
     default:
       return "notifications.items.unknown";
   }

@@ -1,5 +1,8 @@
 # CHANGELOG — ticket-chat-audit
 
+## 2026-09-14
+- F9-2: `ticket_remote_requested` SYSTEM_EVENT (staff-only u threadu; requester dobija `remote.requested` notifikaciju).
+
 ## 2026-09-13
 - `ticket.updated` slim payload uz postojeći `ticket.message.created` (status/assignment/SLA/approval). Internal notes i confidential akcije ostaju staff-only.
 - `ticket_resolved` / `ticket_closed` SYSTEM_EVENT na status transition (inbox konzumer: `in-app-notifications`).

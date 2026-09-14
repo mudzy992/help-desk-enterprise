@@ -19,4 +19,6 @@ export type EdgeExtensionDenyReason =
 export type EdgeExtensionErrorCode =
   | 'NOT_FOUND'
   | 'FORBIDDEN'
-  | 'RECEIPTS_DISABLED';
+  | 'RECEIPTS_DISABLED'
+  | 'REMOTE_DISABLED'
+  | 'REMOTE_NOT_REQUESTED';

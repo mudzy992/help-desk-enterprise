@@ -15,6 +15,7 @@ Persistent per-user inbox (`Notification`): list, unread count, mark-as-read. Fa
 | `ticket_resolved` / `ticket_closed` | `ticket.resolved` / `ticket.closed` | requester |
 | approval SYSTEM_EVENT | `ticket.approval` | `APPROVER` participanti |
 | SLA SYSTEM_EVENT | `ticket.sla` | assignee + grupa |
+| `ticket_remote_requested` | `remote.requested` | requester |
 
 INTERNAL_NOTE, time-tracking, attachments, confidential view i ostali SYSTEM_EVENT-i se ne šalju u inbox.
 

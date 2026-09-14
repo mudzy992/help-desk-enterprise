@@ -14,6 +14,8 @@ import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-c
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { TicketsCollaborationController } from './tickets-collaboration.controller';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
+import { TicketsRemoteController } from './remote/tickets-remote.controller';
+import { TicketsRemoteService } from './remote/tickets-remote.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
@@ -71,6 +73,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsBulkController,
     TicketsController,
     TicketsCollaborationController,
+    TicketsRemoteController,
     TicketsAttachmentsController,
     TicketsApprovalsController,
     TicketsReopenController,
@@ -105,6 +108,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     WaitingForUserAutomationService,
     TicketArchiveAutomationService,
     TicketsCollaborationService,
+    TicketsRemoteService,
     TicketsTimeTrackingService,
     TicketsAttachmentsService,
     TicketAssignmentService,

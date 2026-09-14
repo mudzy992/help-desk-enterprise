@@ -104,7 +104,9 @@ export type TicketsErrorCode =
   | 'INVALID_CSAT_RATING'
   | 'INVALID_CSAT_COMMENT'
   | 'ARCHIVE_UNAVAILABLE'
-  | 'TICKET_ARCHIVED_READ_ONLY';
+  | 'TICKET_ARCHIVED_READ_ONLY'
+  | 'REMOTE_DISABLED'
+  | 'REMOTE_RATE_LIMITED';
 
 export class TicketsError extends Error {
   constructor(

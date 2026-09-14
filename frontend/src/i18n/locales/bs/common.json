@@ -56,6 +56,7 @@
       "ticketClosed": "Tiket {{ticketNumber}} je zatvoren",
       "ticketApproval": "Čeka odobrenje: {{ticketNumber}}",
       "ticketSla": "SLA događaj: {{ticketNumber}}",
+      "remoteRequested": "Zahtjev za udaljenu podršku: {{ticketNumber}}",
       "unknown": "Obavještenje"
     }
   },
@@ -774,6 +775,9 @@
       "pendingDecision": "čeka odluku",
       "approvalStep": "Korak {{step}}",
       "changeStatus": "Status",
+      "requestRemote": "Request Remote",
+      "requestingRemote": "Slanje zahtjeva…",
+      "remoteRequested": "Zahtjev za udaljenu podršku je poslan.",
       "saving": "Spremanje…",
       "reopen": "Ponovo otvori",
       "reopenAsNew": "Otvori novi tiket",
@@ -913,6 +917,8 @@
     "errorCsatNotEligible": "CSAT ocjena nije dostupna za ovaj tiket.",
     "errorCsatDuplicate": "CSAT ocjena je već poslana za ovaj tiket.",
     "errorArchivedReadOnly": "Arhivirani tiket je samo za čitanje.",
+    "errorRemoteDisabled": "Udaljena podrška je isključena.",
+    "errorRemoteRateLimited": "Udaljena podrška je već zatražena za ovaj tiket. Sačekajte rate-limit prozor.",
     "errorFormVersionMissing": "Odabrana usluga nema aktivnu verziju forme, pa tiket ne može biti kreiran. Aktivirajte formu na ekranu Usluge.",
     "overdue": {
       "badge": "Prekoračen"

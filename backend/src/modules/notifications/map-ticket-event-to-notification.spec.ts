@@ -18,6 +18,11 @@ describe('mapTicketEventToNotification', () => {
         payload('SYSTEM_EVENT', ticketSystemEventActions.slaResponseBreached),
       )?.type,
     ).toBe(notificationTypes.ticketSla);
+    expect(
+      mapTicketEventToNotification(
+        payload('SYSTEM_EVENT', ticketSystemEventActions.remoteRequested),
+      )?.type,
+    ).toBe(notificationTypes.remoteRequested);
     expect(mapTicketEventToNotification(payload('INTERNAL_NOTE', 'secret'))).toBeNull();
     expect(
       mapTicketEventToNotification(

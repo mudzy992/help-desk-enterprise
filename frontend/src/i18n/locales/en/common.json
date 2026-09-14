@@ -56,6 +56,7 @@
       "ticketClosed": "Ticket {{ticketNumber}} is closed",
       "ticketApproval": "Approval needed: {{ticketNumber}}",
       "ticketSla": "SLA event: {{ticketNumber}}",
+      "remoteRequested": "Remote assistance requested: {{ticketNumber}}",
       "unknown": "Notification"
     }
   },
@@ -774,6 +775,9 @@
       "pendingDecision": "awaiting decision",
       "approvalStep": "Step {{step}}",
       "changeStatus": "Status",
+      "requestRemote": "Request Remote",
+      "requestingRemote": "Sending request…",
+      "remoteRequested": "Remote assistance was requested.",
       "saving": "Saving…",
       "reopen": "Reopen",
       "reopenAsNew": "Open a new ticket",
@@ -913,6 +917,8 @@
     "errorCsatNotEligible": "CSAT feedback is not available for this ticket.",
     "errorCsatDuplicate": "CSAT feedback was already submitted for this ticket.",
     "errorArchivedReadOnly": "Archived tickets are read-only.",
+    "errorRemoteDisabled": "Remote assistance is disabled.",
+    "errorRemoteRateLimited": "Remote assistance was already requested for this ticket. Wait for the rate-limit window.",
     "errorFormVersionMissing": "The selected service has no active form version, so the ticket cannot be created. Activate a form on the Services screen.",
     "overdue": {
       "badge": "Overdue"

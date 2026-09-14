@@ -6,6 +6,7 @@ export const notificationTypes = {
   ticketClosed: 'ticket.closed',
   ticketApproval: 'ticket.approval',
   ticketSla: 'ticket.sla',
+  remoteRequested: 'remote.requested',
 } as const;
 
 export type NotificationType =
@@ -20,6 +21,7 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.ticketClosed]: 'notifications.items.ticketClosed',
     [notificationTypes.ticketApproval]: 'notifications.items.ticketApproval',
     [notificationTypes.ticketSla]: 'notifications.items.ticketSla',
+    [notificationTypes.remoteRequested]: 'notifications.items.remoteRequested',
   };
 
 export const notificationListLimits = {

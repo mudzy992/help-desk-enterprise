@@ -10,6 +10,8 @@ describe('default role permission mapping', () => {
     expect(defaultRolePermissionKeys[authorizationRoleKeys.user]).toEqual([
       permissionKeys.edgeConnect,
       permissionKeys.edgeNotifyReceive,
+      permissionKeys.ticketMessageSend,
+      permissionKeys.ticketRemoteOpenQuickAssist,
     ]);
     expect(defaultRolePermissionKeys[authorizationRoleKeys.user]).not.toContain(
       permissionKeys.settingsWrite,

@@ -114,4 +114,7 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   INVALID_CSAT_COMMENT: 'CSAT comment is invalid',
   ARCHIVE_UNAVAILABLE: 'Ticket archive policy is unavailable',
   TICKET_ARCHIVED_READ_ONLY: 'Archived tickets are read-only',
+  REMOTE_DISABLED: 'Edge remote assistance is disabled',
+  REMOTE_RATE_LIMITED:
+    'A remote request was already sent for this ticket within the rate-limit window',
 };

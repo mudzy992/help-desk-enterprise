@@ -25,8 +25,26 @@
         <button type="submit">Prijava</button>
       </form>
       <p id="error" hidden></p>
-      <button id="open-desk" type="button" hidden>Open in Desk</button>
-      <button id="sign-out" type="button" hidden>Odjava</button>
+      <section id="workspace" hidden>
+        <h2>Otvoreni tiketi</h2>
+        <ul id="inbox"></ul>
+        <p id="inbox-empty" hidden>Nema otvorenih tiketa.</p>
+        <div id="thread" hidden>
+          <h2 id="thread-title"></h2>
+          <ol id="messages"></ol>
+          <form id="reply-form">
+            <label>
+              Quick reply
+              <textarea id="reply-body" rows="3" required></textarea>
+            </label>
+            <button type="submit">Pošalji</button>
+          </form>
+          <button id="open-desk-ticket" type="button">Open in Desk</button>
+          <button id="open-quick-assist" type="button" hidden>Open Quick Assist</button>
+        </div>
+        <button id="open-desk" type="button">Open in Desk</button>
+        <button id="sign-out" type="button">Odjava</button>
+      </section>
     </main>
     <script type="module" src="/src/popup.ts"></script>
   </body>

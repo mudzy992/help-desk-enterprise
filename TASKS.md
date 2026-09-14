@@ -120,10 +120,10 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 ## Faza 9 — Edge + quality (i dalje prva isporuka)
 
 - [x] Edge Manifest V3: WS + throttled polling, redacted toasts, receipts/dedup
-- [ ] Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit
+- [x] Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit
 - [ ] E2E kritični tokovi (RAW acceptance: create, routing/fallback, approvals, confidential, SLA, config)
 - [ ] RBAC test suite u CI
 
 ---
 
-**Trenutni status:** Faza 8 — Frontend admin: routing, SLA, catalog, permissions, queue, config versions
+**Trenutni status:** Faza 9 — Quick reply chat (bez attachments) + Request Remote (Quick Assist) + audit

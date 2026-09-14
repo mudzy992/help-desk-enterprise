@@ -1,6 +1,7 @@
 import { Pencil, Split, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +65,7 @@ export function TicketDetailHeaderActions({
           <Split size={14} /> {t("tickets.split.action")}
         </Button>
       ) : null}
+      {canChangeStatus ? <TicketRequestRemoteButton ticket={ticket} /> : null}
       {canChangeStatus && nextStatuses.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger

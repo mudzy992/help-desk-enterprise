@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -21,6 +22,7 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { EdgeExtensionBootstrapQueryDto } from './dto/edge-extension-bootstrap-query.dto';
 import { RecordEdgeNotificationReceiptDto } from './dto/record-edge-notification-receipt.dto';
+import { EdgeExtensionRemoteService } from './edge-extension-remote.service';
 import { EdgeExtensionService } from './edge-extension.service';
 
 @Controller('edge-extension')
@@ -39,7 +41,10 @@ import { EdgeExtensionService } from './edge-extension.service';
   }),
 )
 export class EdgeExtensionController {
-  constructor(private readonly edgeExtensionService: EdgeExtensionService) {}
+  constructor(
+    private readonly edgeExtensionService: EdgeExtensionService,
+    private readonly edgeExtensionRemoteService: EdgeExtensionRemoteService,
+  ) {}
 
   @Get('bootstrap')
   bootstrap(
@@ -62,6 +67,24 @@ export class EdgeExtensionController {
       kind: body.kind,
       eventId: body.eventId,
     });
+  }
+
+  @Get('remote-requests/pending')
+  pendingRemoteRequests(@Req() request: AuthenticatedHttpRequest) {
+    return this.edgeExtensionRemoteService.pendingTicketIds(
+      requirePrincipal(request),
+    );
+  }
+
+  @Post('remote-requests/:ticketId/acknowledge')
+  acknowledgeRemote(
+    @Param('ticketId') ticketId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.edgeExtensionRemoteService.acknowledge(
+      requirePrincipal(request),
+      ticketId,
+    );
   }
 }
 

@@ -12,6 +12,14 @@ export type EdgeExtensionBootstrap = {
   readonly redactedPreviews: boolean;
   readonly receiptsEnabled: boolean;
   readonly dedupEnabled: boolean;
+  readonly subjectId: string;
+  readonly chatEnabled: boolean;
+  readonly chatMaxMessagesPerTicket: number;
+  readonly attachmentsEnabled: boolean;
+  readonly remoteEnabled: boolean;
+  readonly remoteRateLimitMinutesPerTicket: number;
+  readonly requireUserClickToOpenQuickAssist: boolean;
+  readonly auditAcknowledge: boolean;
 };
 
 export async function fetchEdgeBootstrap(input: {
