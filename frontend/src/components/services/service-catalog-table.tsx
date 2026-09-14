@@ -1,10 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
-import type { ServiceAvailability, ServiceLifecycle } from "@/services/service-catalog-api";
+import {
+  SERVICE_AVAILABILITY_META,
+  SERVICE_LIFECYCLE_META,
+} from "@/lib/theme/semantic-meta";
 
 interface ServiceCatalogTableProperties {
   readonly rows: readonly ServiceCatalogRow[];
@@ -12,18 +15,6 @@ interface ServiceCatalogTableProperties {
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
 }
-
-const lifecycleTones: Record<ServiceLifecycle, BadgeTone> = {
-  DRAFT: "neutral",
-  ACTIVE: "success",
-  DEPRECATED: "warning",
-};
-
-const availabilityTones: Record<ServiceAvailability, BadgeTone> = {
-  OPERATIONAL: "success",
-  DEGRADED: "warning",
-  MAINTENANCE: "info",
-};
 
 export function ServiceCatalogTable({
   rows,
@@ -68,7 +59,7 @@ export function ServiceCatalogTable({
                   </span>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge tone={lifecycleTones[service.lifecycle]}>
+                  <Badge tone={SERVICE_LIFECYCLE_META[service.lifecycle].tone}>
                     {t(`services.lifecycle.${service.lifecycle}`)}
                   </Badge>
                 </td>
@@ -87,7 +78,7 @@ export function ServiceCatalogTable({
                   </Badge>
                 </td>
                 <td className="px-3 py-2">
-                  <Badge tone={availabilityTones[service.availability]}>
+                  <Badge tone={SERVICE_AVAILABILITY_META[service.availability].tone}>
                     {t(`services.availability.${service.availability}`)}
                   </Badge>
                 </td>

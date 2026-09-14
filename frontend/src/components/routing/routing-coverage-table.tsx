@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { ROUTING_OUTCOME_META } from "@/lib/theme/semantic-meta";
 import type { RoutingCoverageItem } from "@/services/routing-api";
 
 interface RoutingCoverageTableProperties {
@@ -10,14 +11,14 @@ interface RoutingCoverageTableProperties {
 
 function outcomeMark(
   outcome: RoutingCoverageItem["resolution"]["outcome"],
-): { markKey: "routing.markExact" | "routing.markFallback" | "routing.markUnrouted"; tone: BadgeTone } {
+): { markKey: "routing.markExact" | "routing.markFallback" | "routing.markUnrouted" } {
   if (outcome === "EXACT") {
-    return { markKey: "routing.markExact", tone: "success" };
+    return { markKey: "routing.markExact" };
   }
   if (outcome === "PARENT_FALLBACK") {
-    return { markKey: "routing.markFallback", tone: "info" };
+    return { markKey: "routing.markFallback" };
   }
-  return { markKey: "routing.markUnrouted", tone: "danger" };
+  return { markKey: "routing.markUnrouted" };
 }
 
 function resolutionLabelKey(
@@ -78,7 +79,7 @@ export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) 
                 </td>
                 <td className="px-3 py-2">
                   <span title={t(resolutionLabelKey(item.resolution.outcome))}>
-                    <Badge tone={mark.tone}>
+                    <Badge tone={ROUTING_OUTCOME_META[item.resolution.outcome].tone}>
                       {t(mark.markKey)}
                       <span className="sr-only">
                         {t(resolutionLabelKey(item.resolution.outcome))}

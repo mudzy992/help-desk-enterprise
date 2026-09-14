@@ -2,27 +2,13 @@ import { Flame, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ticketPriorityLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
+import {
+  SLA_STATE_META,
+  TICKET_PRIORITY_META,
+  TICKET_STATUS_META,
+} from "@/lib/theme/semantic-meta";
 import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
-
-const statusTone: Record<TicketStatus, BadgeTone> = {
-  PENDING: "info",
-  UNROUTED: "danger",
-  PENDING_APPROVAL: "warning",
-  ASSIGNED: "primary",
-  IN_PROGRESS: "primary",
-  WAITING_FOR_USER: "warning",
-  RESOLVED: "success",
-  CLOSED: "neutral",
-  ARCHIVED: "neutral",
-};
-
-const priorityTone: Record<TicketPriority, BadgeTone> = {
-  LOW: "neutral",
-  MEDIUM: "info",
-  HIGH: "warning",
-  CRITICAL: "danger",
-};
 
 interface TicketStatusBadgeProperties {
   readonly status: TicketStatus;
@@ -31,7 +17,7 @@ interface TicketStatusBadgeProperties {
 export function TicketStatusBadge({ status }: TicketStatusBadgeProperties) {
   const { t } = useTranslation();
   return (
-    <Badge tone={statusTone[status]} dot>
+    <Badge tone={TICKET_STATUS_META[status].tone} dot>
       {ticketText(t, ticketStatusLabelKey[status])}
     </Badge>
   );
@@ -48,7 +34,7 @@ export function TicketPriorityBadge({
 }: TicketPriorityBadgeProperties) {
   const { t } = useTranslation();
   return (
-    <Badge tone={priorityTone[priority]} dot>
+    <Badge tone={TICKET_PRIORITY_META[priority].tone} dot>
       {showCriticalMark && priority === "CRITICAL" ? (
         <Flame size={11} strokeWidth={2} className="text-danger" aria-hidden="true" />
       ) : null}
@@ -70,7 +56,7 @@ export function TicketConfidentialBadge() {
 export function TicketOverdueBadge() {
   const { t } = useTranslation();
   return (
-    <Badge tone="danger" dot>
+    <Badge tone={SLA_STATE_META.BREACHED.tone} dot>
       {t("tickets.overdue.badge")}
     </Badge>
   );

@@ -164,7 +164,7 @@
       "DEPRECATED": "Deprecated"
     },
     "availability": {
-      "OPERATIONAL": "Operational",
+      "OPERATIONAL": "Available",
       "DEGRADED": "Degraded",
       "MAINTENANCE": "Maintenance"
     },
