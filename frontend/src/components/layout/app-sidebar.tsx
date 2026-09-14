@@ -1,6 +1,8 @@
 import {
   BookOpen,
+  Database,
   GitBranch,
+  History,
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
@@ -32,6 +34,8 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/routing": GitBranch,
   "/sla": Timer,
   "/settings": Settings,
+  "/admin/queue": Database,
+  "/admin/config-versions": History,
 };
 
 interface AppSidebarProperties {

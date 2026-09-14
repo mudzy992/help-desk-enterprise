@@ -8,6 +8,8 @@ export const navigationLabelKeys = {
     routing: "navigation.routing",
     sla: "navigation.sla",
     settings: "navigation.settings",
+    queue: "navigation.queue",
+    configVersions: "navigation.configVersions",
 } as const;
 
 export type NavigationLabelKey =
@@ -88,6 +90,18 @@ export const settingsNavigationItem: NavigationItem = {
   end: false,
 };
 
+export const queueNavigationItem: NavigationItem = {
+  path: "/admin/queue",
+  labelKey: navigationLabelKeys.queue,
+  end: false,
+};
+
+export const configVersionsNavigationItem: NavigationItem = {
+  path: "/admin/config-versions",
+  labelKey: navigationLabelKeys.configVersions,
+  end: false,
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -109,6 +123,8 @@ export const navigationSections: readonly NavigationSection[] = [
       routingNavigationItem,
       slaNavigationItem,
       settingsNavigationItem,
+      queueNavigationItem,
+      configVersionsNavigationItem,
     ],
   },
 ];

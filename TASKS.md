@@ -113,7 +113,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Support bundle + requestId logging
 - [x] Report packs + bottleneck dashboard + pretraga (KB + tickets)
 - [x] DR: backup/restore dokument + restore drill checklist
-- [ ] Frontend admin: routing, SLA, catalog, permissions, queue, config versions
+- [~] IN PROGRESS Frontend admin: routing, SLA, catalog, permissions, queue, config versions
 
 
 

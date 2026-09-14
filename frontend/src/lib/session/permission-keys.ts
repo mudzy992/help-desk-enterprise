@@ -6,6 +6,7 @@ export const permissionKeys = {
   routingWrite: "routing.write",
   slaWrite: "sla.write",
   settingsWrite: "settings.write",
+  integrationsQueueManage: "integrations.queue.manage",
   knowledgeArticleWrite: "knowledge.article.write",
   knowledgeArticleReview: "knowledge.article.review",
   knowledgeArticlePublish: "knowledge.article.publish",

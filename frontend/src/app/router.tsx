@@ -7,6 +7,8 @@ import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
+import { ConfigVersionsPage } from "@/pages/config-versions-page";
+import { IntegrationQueuePage } from "@/pages/integration-queue-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { SlaPage } from "@/pages/sla-page";
 import { TicketsPage } from "@/pages/tickets-page";
@@ -34,6 +36,8 @@ export function AppRouter() {
           <Route path="routing" element={<RoutingPage />} />
           <Route path="sla" element={<SlaPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="admin/queue" element={<IntegrationQueuePage />} />
+          <Route path="admin/config-versions" element={<ConfigVersionsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
