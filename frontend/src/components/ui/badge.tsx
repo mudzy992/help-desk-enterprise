@@ -46,3 +46,26 @@ export function Badge({
     </span>
   );
 }
+
+export type MetaBadgeMeta = {
+  readonly label: string;
+  readonly tone: BadgeTone;
+};
+
+interface MetaBadgeProperties {
+  readonly meta: MetaBadgeMeta;
+  readonly className?: string;
+  readonly dot?: boolean;
+}
+
+export function MetaBadge({
+  meta,
+  className,
+  dot = true,
+}: MetaBadgeProperties) {
+  return (
+    <Badge tone={meta.tone} className={className} dot={dot}>
+      {meta.label}
+    </Badge>
+  );
+}

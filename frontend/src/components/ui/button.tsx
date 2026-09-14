@@ -3,19 +3,26 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
+const PRIMARY_BUTTON_CLASSES =
+  "border border-primary bg-primary text-primary-foreground shadow-none hover:bg-[#1D4FD8] active:bg-[#1B44BE]";
+const DESTRUCTIVE_BUTTON_CLASSES =
+  "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25";
+const SECONDARY_BUTTON_CLASSES =
+  "border border-border/70 bg-elevated/60 text-foreground hover:border-border hover:bg-elevated";
+
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium select-none transition-all duration-150 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "border border-primary bg-primary text-primary-foreground shadow-none hover:bg-[#1D4FD8] active:bg-[#1B44BE]",
-        destructive:
-          "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25",
+        default: PRIMARY_BUTTON_CLASSES,
+        primary: PRIMARY_BUTTON_CLASSES,
+        destructive: DESTRUCTIVE_BUTTON_CLASSES,
+        danger: DESTRUCTIVE_BUTTON_CLASSES,
         outline:
           "border border-border bg-surface text-foreground hover:border-[#31405C] hover:bg-elevated active:bg-elevated",
-        secondary:
-          "border border-border/70 bg-elevated/60 text-foreground hover:border-border hover:bg-elevated",
+        secondary: SECONDARY_BUTTON_CLASSES,
+        subtle: SECONDARY_BUTTON_CLASSES,
         ghost:
           "border border-transparent text-muted-foreground hover:bg-elevated hover:text-foreground",
         link: "text-[#7FA8F5] underline-offset-4 hover:underline",
