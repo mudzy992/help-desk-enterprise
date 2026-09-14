@@ -153,7 +153,16 @@
     "hintWaiting": "pauza dok korisnik odgovori",
     "hintApproval": "lanac odobrenja u toku",
     "hintUnrouted": "rupa u pokriću — treba pravilo",
-    "hintRequested": "zahtjevi koje ste otvorili"
+    "hintRequested": "zahtjevi koje ste otvorili",
+    "statusChartTitle": "Tiketi po statusu",
+    "statusChartSubtitle": "Svi otvoreni i zatvoreni tiketi kojima imate pristup",
+    "statusChartCenter": "tiketa ukupno",
+    "volumeChartTitle": "Tok tiketa — zadnjih 14 dana",
+    "volumeChartSubtitle": "Kreirani naspram riješenih, iz istog niza tiketa",
+    "volumeCreated": "Kreirani",
+    "volumeResolved": "Riješeni",
+    "chartsEmptyTitle": "Nema podataka za grafikone",
+    "chartsEmptyBody": "Kad postoje tiketi, raspodjela statusa i tok zadnjih 14 dana pojavit će se ovdje."
   },
   "services": {
     "title": "Usluge",

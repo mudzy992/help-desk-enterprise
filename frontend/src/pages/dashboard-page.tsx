@@ -1,6 +1,7 @@
 import { LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { DashboardMetricGrid } from "@/components/dashboard/dashboard-metric-grid";
 import { DashboardRecentTickets } from "@/components/dashboard/dashboard-recent-tickets";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -47,6 +48,7 @@ export function DashboardPage() {
       ) : (
         <div className="grid gap-4">
           <DashboardMetricGrid summary={summary} inboxCount={inboxCount} />
+          <DashboardCharts summary={summary} />
           <Card>
             <CardHeader
               title={t("dashboard.recentHeading")}

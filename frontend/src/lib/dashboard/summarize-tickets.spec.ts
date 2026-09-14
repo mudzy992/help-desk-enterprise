@@ -107,4 +107,46 @@ describe("summarizeTickets", () => {
     expect(summary.recent.map((item) => item.id)).toEqual(["3", "2", "1"]);
     expect(summary.statusCounts).toEqual([{ status: "PENDING", count: 3 }]);
   });
+
+  it("buckets created and resolved tickets across the last 14 local days", () => {
+    const now = new Date(2026, 8, 14, 15, 0, 0);
+    const summary = summarizeTickets(
+      [
+        ticket("1", "PENDING", {
+          createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
+        }),
+        ticket("2", "RESOLVED", {
+          createdAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
+          resolvedAt: new Date(2026, 8, 13, 10, 0, 0).toISOString(),
+        }),
+        ticket("3", "CLOSED", {
+          createdAt: new Date(2026, 7, 20, 9, 0, 0).toISOString(),
+          closedAt: new Date(2026, 8, 14, 11, 0, 0).toISOString(),
+        }),
+        ticket("4", "RESOLVED", {
+          createdAt: new Date(2026, 8, 10, 9, 0, 0).toISOString(),
+        }),
+      ],
+      null,
+      now,
+    );
+    expect(summary.volume14d).toHaveLength(14);
+    expect(summary.volume14d[0]).toEqual({ d: "01. 09", created: 1, resolved: 0 });
+    expect(summary.volume14d[12]).toEqual({ d: "13. 09", created: 0, resolved: 1 });
+    expect(summary.volume14d[13]).toEqual({ d: "14. 09", created: 1, resolved: 1 });
+    expect(summary.volume14d[9]).toEqual({ d: "10. 09", created: 1, resolved: 0 });
+  });
+
+  it("returns fourteen zero days when the ticket list is empty", () => {
+    const now = new Date(2026, 8, 14, 15, 0, 0);
+    const summary = summarizeTickets([], null, now);
+    expect(summary.total).toBe(0);
+    expect(summary.statusCounts).toEqual([]);
+    expect(summary.volume14d).toHaveLength(14);
+    expect(summary.volume14d[0]?.d).toBe("01. 09");
+    expect(summary.volume14d[13]?.d).toBe("14. 09");
+    expect(
+      summary.volume14d.every((day) => day.created === 0 && day.resolved === 0),
+    ).toBe(true);
+  });
 });

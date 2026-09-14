@@ -1,3 +1,8 @@
+import {
+  buildVolume14d,
+  isSameLocalDay,
+  type TicketVolumeDay,
+} from "@/lib/dashboard/build-volume-14d";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { ticketStatusValues } from "@/lib/tickets/ticket-constants";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
@@ -22,6 +27,7 @@ export type DashboardSummary = {
   readonly assignedToMe: number;
   readonly requestedByMe: number;
   readonly statusCounts: readonly TicketStatusCount[];
+  readonly volume14d: readonly TicketVolumeDay[];
   readonly recent: readonly TicketResponse[];
 };
 
@@ -75,22 +81,11 @@ export function summarizeTickets(
     statusCounts: ticketStatusValues
       .map((status) => ({ status, count: countByStatus(status) }))
       .filter((entry) => entry.count > 0),
+    volume14d: buildVolume14d(tickets, now),
     recent: [...tickets]
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, dashboardRecentTicketLimit),
   };
-}
-
-function isSameLocalDay(isoTimestamp: string, now: Date): boolean {
-  const created = new Date(isoTimestamp);
-  if (Number.isNaN(created.getTime())) {
-    return false;
-  }
-  return (
-    created.getFullYear() === now.getFullYear() &&
-    created.getMonth() === now.getMonth() &&
-    created.getDate() === now.getDate()
-  );
 }
 
 function isTerminal(status: TicketStatus): boolean {

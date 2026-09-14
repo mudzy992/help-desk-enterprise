@@ -153,7 +153,16 @@
     "hintWaiting": "paused until the requester replies",
     "hintApproval": "approval chain in progress",
     "hintUnrouted": "coverage gap — a rule is needed",
-    "hintRequested": "requests you opened"
+    "hintRequested": "requests you opened",
+    "statusChartTitle": "Tickets by status",
+    "statusChartSubtitle": "All open and closed tickets you can access",
+    "statusChartCenter": "tickets total",
+    "volumeChartTitle": "Ticket flow — last 14 days",
+    "volumeChartSubtitle": "Created versus resolved, from the same ticket list",
+    "volumeCreated": "Created",
+    "volumeResolved": "Resolved",
+    "chartsEmptyTitle": "No chart data",
+    "chartsEmptyBody": "When tickets exist, the status split and last-14-day flow appear here."
   },
   "services": {
     "title": "Services",
