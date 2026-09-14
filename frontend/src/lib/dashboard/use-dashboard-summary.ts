@@ -5,11 +5,16 @@ import {
 } from "@/lib/dashboard/summarize-tickets";
 import { useSession } from "@/lib/session/use-session";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { listGroupInbox, listTickets } from "@/services/tickets-api";
+import {
+  listGroupInbox,
+  listTickets,
+  type TicketResponse,
+} from "@/services/tickets-api";
 
 export type DashboardSummaryState = {
   readonly summary: DashboardSummary | null;
   readonly inboxCount: number | null;
+  readonly inboxTickets: readonly TicketResponse[] | null;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
   readonly reload: () => Promise<void>;
@@ -18,7 +23,9 @@ export type DashboardSummaryState = {
 export function useDashboardSummary(): DashboardSummaryState {
   const { currentUserId } = useSession();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [inboxCount, setInboxCount] = useState<number | null>(null);
+  const [inboxTickets, setInboxTickets] = useState<
+    readonly TicketResponse[] | null
+  >(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
 
@@ -30,10 +37,10 @@ export function useDashboardSummary(): DashboardSummaryState {
       setSummary(summarizeTickets(tickets, currentUserId));
       // The group inbox is permission-scoped; absence of access is not an error.
       const inbox = await listGroupInbox().catch(() => null);
-      setInboxCount(inbox === null ? null : inbox.length);
+      setInboxTickets(inbox);
     } catch (error) {
       setSummary(null);
-      setInboxCount(null);
+      setInboxTickets(null);
       setErrorKey(mapTicketError(error));
     } finally {
       setIsLoading(false);
@@ -44,5 +51,12 @@ export function useDashboardSummary(): DashboardSummaryState {
     void reload();
   }, [reload]);
 
-  return { summary, inboxCount, isLoading, errorKey, reload };
+  return {
+    summary,
+    inboxCount: inboxTickets === null ? null : inboxTickets.length,
+    inboxTickets,
+    isLoading,
+    errorKey,
+    reload,
+  };
 }

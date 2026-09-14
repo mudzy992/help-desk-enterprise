@@ -87,6 +87,8 @@ describe("summarizeTickets", () => {
     expect(summary.critical).toBe(2);
     expect(summary.overdue).toBe(3);
     expect(summary.openedToday).toBe(3);
+    expect(summary.slaWatchlist.map((item) => item.id)).toEqual(["4", "3", "2"]);
+    expect(summary.attention.map((item) => item.id)).toEqual(["2", "3", "4", "1"]);
   });
 
   it("excludes terminal tickets from the unassigned count", () => {

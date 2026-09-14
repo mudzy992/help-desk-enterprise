@@ -3,6 +3,11 @@ import {
   isSameLocalDay,
   type TicketVolumeDay,
 } from "@/lib/dashboard/build-volume-14d";
+import {
+  isDashboardOpenTicket,
+  selectAttentionTickets,
+  selectSlaWatchlist,
+} from "@/lib/dashboard/dashboard-ticket-sets";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { ticketStatusValues } from "@/lib/tickets/ticket-constants";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
@@ -29,15 +34,9 @@ export type DashboardSummary = {
   readonly statusCounts: readonly TicketStatusCount[];
   readonly volume14d: readonly TicketVolumeDay[];
   readonly recent: readonly TicketResponse[];
+  readonly slaWatchlist: readonly TicketResponse[];
+  readonly attention: readonly TicketResponse[];
 };
-
-/// Statuses that still require handler attention.
-const openStatuses: readonly TicketStatus[] = [
-  "PENDING",
-  "UNROUTED",
-  "ASSIGNED",
-  "IN_PROGRESS",
-];
 
 export const dashboardRecentTicketLimit = 8;
 
@@ -48,13 +47,12 @@ export function summarizeTickets(
 ): DashboardSummary {
   const countByStatus = (status: TicketStatus): number =>
     tickets.filter((ticket) => ticket.status === status).length;
-  const isOpen = (ticket: TicketResponse): boolean =>
-    openStatuses.includes(ticket.status);
   return {
     total: tickets.length,
-    open: tickets.filter(isOpen).length,
+    open: tickets.filter(isDashboardOpenTicket).length,
     critical: tickets.filter(
-      (ticket) => isOpen(ticket) && ticket.priority === "CRITICAL",
+      (ticket) =>
+        isDashboardOpenTicket(ticket) && ticket.priority === "CRITICAL",
     ).length,
     overdue: tickets.filter(isTicketOverdue).length,
     openedToday: tickets.filter((ticket) =>
@@ -85,6 +83,8 @@ export function summarizeTickets(
     recent: [...tickets]
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, dashboardRecentTicketLimit),
+    slaWatchlist: selectSlaWatchlist(tickets),
+    attention: selectAttentionTickets(tickets),
   };
 }
 

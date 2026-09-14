@@ -1,20 +1,29 @@
 import { LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { DashboardAttentionTable } from "@/components/dashboard/dashboard-attention-table";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
+import { DashboardInboxSnapshot } from "@/components/dashboard/dashboard-inbox-snapshot";
 import { DashboardMetricGrid } from "@/components/dashboard/dashboard-metric-grid";
 import { DashboardRecentTickets } from "@/components/dashboard/dashboard-recent-tickets";
+import { DashboardSlaWatchlist } from "@/components/dashboard/dashboard-sla-watchlist";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { recentTicketsExcluding } from "@/lib/dashboard/dashboard-ticket-sets";
 import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const { summary, inboxCount, isLoading, errorKey } = useDashboardSummary();
+  const { summary, inboxCount, inboxTickets, isLoading, errorKey } =
+    useDashboardSummary();
+  const recentExclusive =
+    summary === null
+      ? []
+      : recentTicketsExcluding(summary.recent, summary.attention);
 
   return (
     <section>
@@ -49,20 +58,30 @@ export function DashboardPage() {
         <div className="grid gap-4">
           <DashboardMetricGrid summary={summary} inboxCount={inboxCount} />
           <DashboardCharts summary={summary} />
-          <Card>
-            <CardHeader
-              title={t("dashboard.recentHeading")}
-              subtitle={t("dashboard.recentHint")}
-              actions={
-                <Button asChild size="sm" variant="ghost">
-                  <Link to="/tickets?view=all">{t("dashboard.viewAll")}</Link>
-                </Button>
-              }
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <DashboardSlaWatchlist items={summary.slaWatchlist} />
+            <DashboardInboxSnapshot
+              unroutedCount={summary.unrouted}
+              inboxTickets={inboxTickets}
             />
-            <div className="px-1 py-1.5">
-              <DashboardRecentTickets items={summary.recent} />
-            </div>
-          </Card>
+          </div>
+          <DashboardAttentionTable items={summary.attention} />
+          {recentExclusive.length > 0 ? (
+            <Card>
+              <CardHeader
+                title={t("dashboard.recentHeading")}
+                subtitle={t("dashboard.recentHint")}
+                actions={
+                  <Button asChild size="sm" variant="ghost">
+                    <Link to="/tickets?view=all">{t("dashboard.viewAll")}</Link>
+                  </Button>
+                }
+              />
+              <div className="px-1 py-1.5">
+                <DashboardRecentTickets items={recentExclusive} />
+              </div>
+            </Card>
+          ) : null}
         </div>
       )}
     </section>

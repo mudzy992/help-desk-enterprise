@@ -61,3 +61,19 @@ export function TicketOverdueBadge() {
     </Badge>
   );
 }
+
+interface TicketPauseChipProperties {
+  readonly status: TicketStatus;
+}
+
+export function TicketPauseChip({ status }: TicketPauseChipProperties) {
+  const { t } = useTranslation();
+  if (status !== "WAITING_FOR_USER" && status !== "PENDING_APPROVAL") {
+    return null;
+  }
+  return (
+    <Badge tone="warning" className="px-1">
+      {t("tickets.detail.pauseBadge")}
+    </Badge>
+  );
+}
