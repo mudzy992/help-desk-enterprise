@@ -254,6 +254,21 @@ export const settingKeys = {
     'private.dataLifecycle.archive.archivedReadOnly',
   privateDataLifecycleArchiveSearchable:
     'private.dataLifecycle.archive.searchable',
+  privateIntegrationsQueueEnabled: 'private.integrations.queue.enabled',
+  privateIntegrationsQueueTypesCsv: 'private.integrations.queue.typesCsv',
+  privateIntegrationsQueueMaxAttempts: 'private.integrations.queue.maxAttempts',
+  privateIntegrationsQueueInitialBackoffSeconds:
+    'private.integrations.queue.initialBackoffSeconds',
+  privateIntegrationsQueueMaxBackoffSeconds:
+    'private.integrations.queue.maxBackoffSeconds',
+  privateIntegrationsQueueDeadLetterAfterAttempts:
+    'private.integrations.queue.deadLetterAfterAttempts',
+  privateIntegrationsQueueDeadLetterRetentionDays:
+    'private.integrations.queue.deadLetterRetentionDays',
+  privateIntegrationsQueueWorkerPollSeconds:
+    'private.integrations.queue.workerPollSeconds',
+  privateIntegrationsQueueAdminUiEnabled:
+    'private.integrations.queue.adminUiEnabled',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

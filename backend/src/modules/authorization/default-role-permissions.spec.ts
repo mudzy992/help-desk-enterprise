@@ -19,6 +19,7 @@ describe('default role permission mapping', () => {
         permissionKeys.routingWrite,
         permissionKeys.serviceCatalogWrite,
         permissionKeys.settingsWrite,
+        permissionKeys.integrationsQueueManage,
         permissionKeys.auditExport,
       ]),
     );

@@ -1,5 +1,6 @@
 import { fanOutEmailNotifications } from './fan-out-email-notifications';
 import { defaultEmailTemplates } from './default-email-templates';
+import type { PreparedOutboundEmail } from './deliver-notification-email';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import type { MailTransport, OutboundMailMessage } from './mail-transport';
 import {
@@ -74,6 +75,35 @@ describe('email notification fan-out', () => {
     const mail = createRecordingTransport();
     await ingestEmail(harness, mail, enabledConfiguration());
     expect(mail.messages).toHaveLength(1);
+  });
+
+  it('can enqueue outbound mail instead of sending SMTP immediately', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), {
+      actorUserId: ticketsTestIds.requester,
+    });
+    const mail = createRecordingTransport();
+    const enqueued: PreparedOutboundEmail[] = [];
+    for (const message of harness.memory.messages.values()) {
+      const ticket = harness.memory.tickets.get(message.ticketId);
+      if (ticket === undefined) {
+        continue;
+      }
+      await fanOutEmailNotifications(
+        harness.memory.prisma as never,
+        enabledConfiguration(),
+        mail,
+        toTicketRealtimePayload(message, ticket),
+        {
+          handle: async (work) => {
+            enqueued.push(work);
+          },
+        },
+      );
+    }
+    expect(mail.messages).toEqual([]);
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]?.toAddress).toBe('user-agent-it@epbih.ba');
   });
 
   it('uses the ticket number instead of the title for confidential tickets', async () => {

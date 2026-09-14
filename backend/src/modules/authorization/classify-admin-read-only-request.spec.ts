@@ -83,10 +83,13 @@ describe('classifyAdminReadOnlyRequest', () => {
     expect(
       classifyAdminReadOnlyRequest({
         method: 'POST',
-        path: '/directory-sync/sync',
+        path: '/integration-jobs/job-1/retry',
         isDecoratedReadOperation: false,
-      })?.isMutation,
-    ).toBe(true);
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.settings,
+      isMutation: true,
+    });
   });
 
   it('ignores non-admin routes', () => {

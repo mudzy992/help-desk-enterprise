@@ -1,5 +1,9 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { IntegrationJobType } from '../../../generated/prisma/enums';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { EnqueueIntegrationJobService } from '../../integration-queue/enqueue-integration-job.service';
+import { isQueuedIntegrationJobType } from '../../integration-queue/parse-integration-queue-types';
+import { loadIntegrationQueueSettings } from '../../integration-queue/load-integration-queue-settings';
 import { SettingsService } from '../../settings/settings.service';
 import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
 import { TicketRealtimeHub } from '../../tickets/ticket-realtime.hub';
@@ -20,6 +24,7 @@ export class NotificationsFanOutService
     private readonly prisma: PrismaService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
     private readonly settingsService: SettingsService,
+    private readonly enqueueIntegrationJobService: EnqueueIntegrationJobService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
   ) {}
 
@@ -63,11 +68,30 @@ export class NotificationsFanOutService
       const configuration = await loadEmailChannelConfiguration(
         this.settingsService,
       );
+      const queueSettings = await loadIntegrationQueueSettings(
+        this.settingsService,
+      );
+      const queueEmail =
+        queueSettings.enabled &&
+        isQueuedIntegrationJobType(
+          IntegrationJobType.EMAIL,
+          queueSettings.typeTokens,
+        );
       await fanOutEmailNotifications(
         this.prisma,
         configuration,
         this.mailTransport,
         payload,
+        queueEmail
+          ? {
+              handle: async (work) => {
+                await this.enqueueIntegrationJobService.enqueue({
+                  type: IntegrationJobType.EMAIL,
+                  payload: work,
+                });
+              },
+            }
+          : undefined,
       );
     } catch (error) {
       this.logger.error(

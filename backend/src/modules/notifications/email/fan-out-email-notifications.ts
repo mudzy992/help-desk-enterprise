@@ -7,19 +7,23 @@ import type { EmailChannelConfiguration } from './load-email-channel-configurati
 import { isAllowedNotificationEmailAddress } from './is-allowed-notification-email-address';
 import type { MailTransport } from './mail-transport';
 import {
-  claimNotificationEmailDelivery,
-  markNotificationEmailDeliverySent,
-  releaseNotificationEmailDeliveryClaim,
-} from './persist-notification-email-delivery';
+  deliverNotificationEmail,
+  type PreparedOutboundEmail,
+} from './deliver-notification-email';
 import { renderEmailTemplate } from './render-email-template';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
+
+export type OutboundEmailWorkHandler = {
+  handle(work: PreparedOutboundEmail): Promise<void>;
+};
 
 export async function fanOutEmailNotifications(
   prisma: PrismaService,
   configuration: EmailChannelConfiguration,
   mailTransport: MailTransport,
   payload: TicketRealtimeMessagePayload,
+  workHandler?: OutboundEmailWorkHandler,
 ): Promise<void> {
   if (!configuration.deliveryEnabled || configuration.smtp === null) {
     return;
@@ -52,77 +56,34 @@ export async function fanOutEmailNotifications(
     type: content.type,
     event: mapped.event,
   });
+  const handler = workHandler ?? {
+    handle: (work) =>
+      deliverNotificationEmail(prisma, mailTransport, configuration, work),
+  };
   const dedupeKey = `${mapped.type}:${payload.id}`;
   for (const userId of recipientIds) {
-    await deliverToRecipient(prisma, mailTransport, configuration, {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    const toAddress = user?.email ?? '';
+    if (
+      !isAllowedNotificationEmailAddress(toAddress, {
+        internalOnly: configuration.internalOnly,
+        allowedExternalDomains: configuration.allowedExternalDomains,
+        allowedExternalEmails: configuration.allowedExternalEmails,
+      })
+    ) {
+      continue;
+    }
+    await handler.handle({
       userId,
+      toAddress,
       dedupeKey,
       templateKey: mapped.type,
       subject: rendered.subject,
       text: rendered.text,
     });
-  }
-}
-
-async function deliverToRecipient(
-  prisma: PrismaService,
-  mailTransport: MailTransport,
-  configuration: EmailChannelConfiguration,
-  input: {
-    readonly userId: string;
-    readonly dedupeKey: string;
-    readonly templateKey: EmailTemplateKey;
-    readonly subject: string;
-    readonly text: string;
-  },
-): Promise<void> {
-  const smtp = configuration.smtp;
-  if (smtp === null) {
-    return;
-  }
-  const user = await prisma.user.findUnique({
-    where: { id: input.userId },
-    select: { email: true },
-  });
-  const toAddress = user?.email ?? '';
-  if (
-    !isAllowedNotificationEmailAddress(toAddress, {
-      internalOnly: configuration.internalOnly,
-      allowedExternalDomains: configuration.allowedExternalDomains,
-      allowedExternalEmails: configuration.allowedExternalEmails,
-    })
-  ) {
-    return;
-  }
-  const claimed = await claimNotificationEmailDelivery(prisma, {
-    userId: input.userId,
-    dedupeKey: input.dedupeKey,
-    toAddress,
-    templateKey: input.templateKey,
-  });
-  if (!claimed) {
-    return;
-  }
-  try {
-    await mailTransport.send(
-      {
-        from: smtp.fromAddress,
-        to: toAddress,
-        subject: input.subject,
-        text: input.text,
-      },
-      smtp,
-    );
-    await markNotificationEmailDeliverySent(prisma, {
-      userId: input.userId,
-      dedupeKey: input.dedupeKey,
-    });
-  } catch (error) {
-    await releaseNotificationEmailDeliveryClaim(prisma, {
-      userId: input.userId,
-      dedupeKey: input.dedupeKey,
-    });
-    throw error;
   }
 }
 

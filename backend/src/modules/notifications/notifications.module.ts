@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
+import { IntegrationQueueModule } from '../integration-queue/integration-queue.module';
 import { SettingsModule } from '../settings/settings.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { MAIL_TRANSPORT } from './email/mail-transport';
@@ -15,6 +16,7 @@ import { NotificationsService } from './notifications.service';
     AuthorizationModule,
     SettingsModule,
     TicketsModule,
+    IntegrationQueueModule,
   ],
   controllers: [NotificationsController],
   providers: [

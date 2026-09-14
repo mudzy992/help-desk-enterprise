@@ -1,5 +1,7 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
+import { integrationQueueName } from './modules/integration-queue/integration-queue.constants';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {
@@ -15,7 +17,20 @@ describe('AppModule', () => {
       'postgresql://user:pass@127.0.0.1:5432/ephelpdesk';
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(getQueueToken(integrationQueueName))
+      .useValue(createFakeIntegrationQueue())
+      .compile();
     await moduleRef.close();
   });
 });
+
+function createFakeIntegrationQueue() {
+  return {
+    add: jest.fn(),
+    close: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn(),
+    on: jest.fn(),
+    off: jest.fn(),
+  };
+}

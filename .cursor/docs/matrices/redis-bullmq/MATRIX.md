@@ -1,13 +1,13 @@
 # MATRIX — redis-bullmq
 
 ## Cilj
-Infrastrukturni Redis klijent i BullMQ connection bootstrap za API i zaseban worker proces. Domain queueovi, procesori i jobovi nisu dio ovog sloja.
+Infrastrukturni Redis klijent i BullMQ connection bootstrap za API i zaseban worker proces. Domain queueovi, procesori i jobovi nisu dio ovog sloja — vidi `integrations-durable-queue`.
 
 ## Procesi
-| Proces | Entry | HTTP | Redis/BullMQ |
-|---|---|---|---|
-| backend | `dist/src/main.js` | da (`PORT`) | `RedisModule` (klijent + BullMQ `forRoot`) |
-| worker | `dist/src/worker.js` | ne (`createApplicationContext`) | isti `RedisModule`, bez Prisma/Settings/Websocket |
+| Proces | Entry | HTTP | Redis/BullMQ | Prisma/Settings |
+|---|---|---|---|---|
+| backend | `dist/src/main.js` | da (`PORT`) | `RedisModule` (klijent + BullMQ `forRoot`) | da |
+| worker | `dist/src/worker.js` | ne (`createApplicationContext`) | isti `RedisModule` + domain `Processor` | da (job status + settings); bez Websocket |
 
 Worker command: `node dist/src/worker.js`. Compose servis `worker` dijeli backend image, `uploads` volume i `redis-net`. Worker ne radi migracije.
 
@@ -27,10 +27,10 @@ Nema `REDIS_URL` duplikata. Nema settings registry ključeva za Redis.
 
 ## Klijenti
 - Opšti ioredis klijent: `lazyConnect: true`, `keyPrefix` iz `REDIS_KEY_PREFIX`. Nije dijeljena instanca s BullMQ.
-- BullMQ: samo connection options (`maxRetriesPerRequest: null`, `lazyConnect: true`) + `prefix`. Nema `Queue` / `Worker` / job imena.
+- BullMQ: connection options (`maxRetriesPerRequest: null`, `lazyConnect: true`) + `prefix`. Domain `Queue` / `Worker` imena su u `integrations-durable-queue`.
 
 ## Shutdown
-Dok nema domain procesora, worker drži event loop keep-alive timerom (nije queue). `SIGINT` / `SIGTERM`: ugasi timer, `application.close()` (Redis `onModuleDestroy`), exit 0. API koristi `enableShutdownHooks()`. `quit()` ako je klijent aktivan, inače `disconnect()`.
+Keep-alive timer drži event loop pored BullMQ workera. `SIGINT` / `SIGTERM`: ugasi timer, `application.close()` (BullMQ processor `onModuleDestroy`, Redis `onModuleDestroy`, Prisma `$disconnect`), exit 0. API koristi `enableShutdownHooks()`. `quit()` ako je klijent aktivan, inače `disconnect()`.
 
 ## Namjerno NIJE implementirano
-Durable queue, DLQ, retry UI, notification/email/SLA/ticket procesori, Redis adapter za Socket.IO, lažni jobovi.
+Socket.IO Redis adapter, lažni jobovi, SLA/ticket procesori na ovom sloju. Durable queue je domain sloj `integrations-durable-queue`.

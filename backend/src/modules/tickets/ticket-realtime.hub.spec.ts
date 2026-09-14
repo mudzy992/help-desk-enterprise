@@ -46,6 +46,15 @@ describe('TicketRealtimeHub', () => {
     expect(messages).toEqual(['msg-1']);
     expect(updates).toEqual(['ticket-1']);
     expect(notifications).toEqual(['user-1']);
+    const edgeEvents: string[] = [];
+    hub.subscribeEdgeEvent((payload) => edgeEvents.push(payload.eventName));
+    hub.publishEdgeEvent({
+      userId: 'user-1',
+      ticketId: 'ticket-1',
+      eventName: 'notification.created',
+      data: { ok: true },
+    });
+    expect(edgeEvents).toEqual(['notification.created']);
     offMessage();
     hub.publish({
       id: 'msg-2',

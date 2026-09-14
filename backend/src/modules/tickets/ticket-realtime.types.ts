@@ -33,3 +33,10 @@ export type TicketUpdatedRealtimePayload = {
   readonly occurredAt: string;
   readonly visibility: TicketMessageVisibility;
 };
+
+export type EdgeEventRealtimePublish = {
+  readonly userId: string;
+  readonly ticketId?: string;
+  readonly eventName: string;
+  readonly data: unknown;
+};
