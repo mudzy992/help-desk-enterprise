@@ -112,7 +112,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 - [x] Audit export (CSV/JSON) + tamper-evident hash chain
 - [x] Support bundle + requestId logging
 - [x] Report packs + bottleneck dashboard + pretraga (KB + tickets)
-- [ ] DR: backup/restore dokument + restore drill checklist
+- [x] DR: backup/restore dokument + restore drill checklist
 - [ ] Frontend admin: routing, SLA, catalog, permissions, queue, config versions
 
 
@@ -126,4 +126,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 8 — Report packs + bottleneck dashboard + pretraga (KB + tickets)
+**Trenutni status:** Faza 8 — Frontend admin: routing, SLA, catalog, permissions, queue, config versions
