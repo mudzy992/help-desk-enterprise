@@ -9,6 +9,7 @@ import {
   ticketWorkspaceViews,
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
+import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
 import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
 import { claimTicket, listGroupInbox, listTickets, type TicketResponse } from "@/services/tickets-api";
 
@@ -37,6 +38,9 @@ export function useTicketList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const view = parseView(searchParams.get("view"));
   const [tickets, setTickets] = useState<readonly TicketResponse[]>([]);
+  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>(
+    [],
+  );
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [filters, setFilters] = useState<TicketListFilters>(emptyFilters(view, currentUserId));
@@ -51,15 +55,24 @@ export function useTicketList() {
     setIsLoading(true);
     setErrorKey(null);
     try {
-      const [catalog, rows] =
-        view === "inbox"
-          ? await Promise.all([listOfferedServices().catch(() => []), listGroupInbox()])
-          : await Promise.all([
-              listOfferedServices().catch(() => []),
-              listTickets(filters.status === "" ? {} : { status: filters.status }),
-            ]);
-      setServices(catalog);
-      setTickets(rows);
+      if (view === "inbox") {
+        const [catalog, inboxRows, unroutedRows] = await Promise.all([
+          listOfferedServices().catch(() => []),
+          listGroupInbox(),
+          listTickets({ status: "UNROUTED" }).catch(() => []),
+        ]);
+        setServices(catalog);
+        setTickets(inboxRows);
+        setUnroutedTickets(unroutedTicketsFromList(unroutedRows));
+      } else {
+        const [catalog, rows] = await Promise.all([
+          listOfferedServices().catch(() => []),
+          listTickets(filters.status === "" ? {} : { status: filters.status }),
+        ]);
+        setServices(catalog);
+        setTickets(rows);
+        setUnroutedTickets([]);
+      }
       setInboxHidden(false);
     } catch (error) {
       const mapped = mapTicketError(error);
@@ -69,6 +82,7 @@ export function useTicketList() {
         return;
       }
       setTickets([]);
+      setUnroutedTickets([]);
       setErrorKey(mapped);
     } finally {
       setIsLoading(false);
@@ -95,10 +109,7 @@ export function useTicketList() {
     [tickets, filters, view, currentUserId],
   );
   const paged = paginateItems(visible, page, ticketListPageSize);
-  const unroutedCount = useMemo(
-    () => tickets.filter((ticket) => ticket.status === "UNROUTED").length,
-    [tickets],
-  );
+  const unroutedCount = unroutedTickets.length;
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
@@ -142,6 +153,7 @@ export function useTicketList() {
     paged,
     visible,
     tickets,
+    unroutedTickets,
     unroutedCount,
     serviceNames,
     services,
