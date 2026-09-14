@@ -38,7 +38,7 @@ Tokeni u `typesCsv`: `email` → `EMAIL`, `edge` → `EDGE_EVENT`, `teams` → `
 Payload: `{ userId, toAddress, subject, text, templateKey, dedupeKey }` — bez SMTP secreta. Worker učitava transport iz Settings i koristi `deliver-notification-email` (claim / send / mark sent / release).
 
 ## EDGE_EVENT
-Payload: `{ userId, ticketId?, eventName, data }`. Worker `PUBLISH` na kanal `integration-queue:edge-event` (ioredis `keyPrefix` → `ephelpdesk:…`, ACL `~ephelpdesk:*`). API subscriber (postojeći Redis klijent `.duplicate()`) → `TicketRealtimeHub.publishEdgeEvent` → gateway emit na `user:{userId}` i opcionalno `ticket:{ticketId}`. Nije Socket.IO Redis adapter. Nema proizvođača u ovom sloju (Phase 9 Edge).
+Payload: `{ userId, ticketId?, eventName, data }`. Worker `PUBLISH` / API `SUBSCRIBE` na kanal `integration-queue:edge-event` (ioredis pub/sub **ne** dodaje `keyPrefix`; ACL `&integration-queue:*`). Ako klijent ipak prefiksira: `&ephelpdesk:*`. API subscriber (postojeći Redis klijent `.duplicate()`) → `TicketRealtimeHub.publishEdgeEvent` → gateway emit na `user:{userId}` i opcionalno `ticket:{ticketId}`. Nije Socket.IO Redis adapter. Nema proizvođača u ovom sloju (Phase 9 Edge).
 
 ## TEAMS_STUB
 Procesor postoji: log `would send to Teams` + payload metadata, zatim `COMPLETED`. Nema HTTP poziva ka webhook-u. Producent i settings su u `integrations-teams-stub`.

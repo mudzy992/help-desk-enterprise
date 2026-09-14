@@ -6,7 +6,7 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
 
 - **PostgreSQL**: Coolify Database. Connection string → `DATABASE_URL`. Backup/retention na DB resursu.
 - **Redis**: postojeći kontejner `redis-core` na external mreži `redis_net` (compose ime; RAW kaže `redis-net`).
-- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line` na Redis hostu. Lozinka iza `>` **mora biti ista** kao `REDIS_PASSWORD` u Coolify Environment za **backend i worker**. Placeholder u repou je `change-me` (ne `CHANGE_ME`).
+- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`. Kanali: `&integration-queue:*` `&ephelpdesk:*` `&bull:ephelpdesk:*` (nije Socket.IO adapter).
 - Ne koristiti lozinku Coolify Redis `default` usera osim ako je to i lozinka ACL usera `ephelpdesk`. `WRONGPASS` = username/password par nije taj ACL user.
 
 ## Coolify projekat
