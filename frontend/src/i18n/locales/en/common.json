@@ -851,6 +851,25 @@
       "reopening": "Reopening…",
       "waitingForUserHint": "This ticket is waiting for the requester. A public user reply returns it to in progress. An internal note does not reset waiting.",
       "pauseBadge": "SLA paused",
+      "sla": {
+        "title": "SLA timers",
+        "firstResponse": "First response",
+        "resolution": "Resolution",
+        "satisfied": "met",
+        "pause": "pause",
+        "usedFrame": "used {{percent}}% of the time window · escalation at {{risk}}%",
+        "due": "due:",
+        "remaining": "in {{time}}",
+        "overdue": "overdue {{time}}",
+        "minute": "{{count}} min",
+        "hour": "{{count}} h",
+        "day": "{{count}} d",
+        "state": {
+          "OK": "On track",
+          "RISK": "At risk",
+          "BREACHED": "Breached"
+        }
+      },
       "assign": "Assign…",
       "assigning": "Assigning…",
       "pendingApprovalHint": "Approval is in progress. The SLA timer is paused until the approval chain completes.",

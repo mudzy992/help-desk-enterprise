@@ -39,7 +39,24 @@ Napomena: FE-2.4 (link ka Izvještajima) ostaje sakriven/isključen dok FE-4.1 n
 
 Task **FE-3.3** zavisi o blockeru B1 (backend mora izložiti SLA snapshot polja na `TicketResponse`). Ako B1 nije riješen, task FE-3.3 se PRESKAČE (ostaje otvoren) i nastavlja se sa FE-4.1. Prompt za FE-3.3 sadrži eksplicitnu instrukciju agentu da provjeri ovo prvo i stane ako blocker nije riješen.
 
+## Ticket Detail — NIJE definisano (nema FE task ID)
+
+Izvor: QA nakon FE-3.4 (2026-09-14). **Nisu** novi promptovi i **nisu** u redoslijedu §15. FE-3.4 ostaje uski delta (pause chip, assign, Paperclip, activity ikone) — ovo **nije** bilo u tom scope-u.
+
+Referenca izgleda: `referenca-dizajn/src/pages/TicketDetail.tsx`. Plan: `.cursor/docs/frontend-reference-alignment-plan.md` §7.5, §9 FE-3.3/FE-3.4, §13.5 Ticket Detail, §14 B1/B4. Kad se budu pisali taskovi: jedan ID po redu ispod, dependency naveden, bez rewrite-a layouta, bez mock imena/tajmera.
+
+| ID (privremeni) | Šta fali na current `/tickets/:ticketId` | Zašto nije pokriveno | Šta treba kasniji task (skica) | Zavisnost / blocker |
+| --- | --- | --- | --- | --- |
+| **TD-U** | Korisnik (requester, assignee, učesnici, header “Prijavio”) često UUID umjesto imena i prezimena | Directory se sklapa hodanjem OU tree + `listOrganizationalUnitUsers` po jedinici (`use-directory.ts`); nema agregatnog users API-ja. Fallback: `authorNames.get(id) ?? id` (pun UUID) u `ticket-detail-page.tsx`; `directoryDisplayName` skraćuje UUID. Participants: `names.get(userId) ?? userId`. | Pouzdan lookup: ime na `TicketResponse`, ili agregatni users, ili proširiti directory. Ne izmišljati ime. | Nema FE task. Nije B1–B6. |
+| **TD-G** | Handler grupa = truncated `assignedGroupId` | `ticket-detail-sidebar.tsx` `truncateIdentifier`. Plan §7.5: ime grupe + routing outcome UNVERIFIED. | Groups list API **ili** `groupName` (i po želji outcome) na ticket DTO. Ne fake-ovati “Finansijski Servisi”. | **B4** — nema FE groups servisa; `Controller('groups')` nije nađen. |
+| **TD-F** | Verzija forme = UUID (`formVersionRef`) | To **jest** `FormVersion.id` (`to-ticket-response.ts` ← `formVersionId`). Katalog ima `version` (npr. 5); tiket DTO nema. Header još `truncateIdentifier`. Referenca: `forma v5`. | Backend-contract: broj verzije (ili label) na GET ticket. FE onda `v{{version}}`. | Nije na `TicketResponse`. Nije B1–B6. |
+| **TD-A** | Activity tab: `ticket_created`, `ticket_bulk_assign:<uuid>` | `SYSTEM_EVENT.body` = machine key (`insert-system-ticket-event.ts`, `ticketSystemEventActions`). Suffix poslije `:` je bulk `batchId`, ne ime korisnika. FE-3.4 mapira samo ikonu (`APPROVAL_DECISION` vs `SYSTEM_EVENT` → GitBranch). | i18n mapa akcija + (opciono) resolvanje UUID-a. Ne fake-ovati sla/routing/security kind ako `message.type` to ne nosi. | Nema FE task. Ključevi: `backend/.../collaboration.constants.ts`. |
+| **TD-S** | Nema kartice “SLA tajmeri” | Namjerno. FE vidi samo `isOverdue?: boolean`. | Izložiti snapshot (`responseDueAt` / `resolutionDueAt` / pause / breach), zatim **FE-3.3** (`ticket-sla-panel.tsx`). Ne procjenjivati tajmer na FE. | **B1** → postojeći prompt **FE-3.3**. Ne otvarati drugi SLA task dok B1 nije gotov. |
+
+Pravilo za agente: ove stavke **ne** “popravljati usput” u FE-3.5+ dok nemaju vlastiti prompt. Ako naiđeš na UUID/ime/SLA na Ticket Detailu — fallback iz tabele, javi, stani na tom dijelu.
+
 ---
+
 
 ## FE-0.1 — Semantic meta + token usage baseline
 
@@ -832,6 +849,8 @@ Na kraju:
 ---
 
 ## FE-3.4 — Ticket Detail delta polish (BEZ rewrite-a)
+
+Poslije FE-3.4 QA: imena korisnika, ime grupe, label verzije forme, human activity copy i SLA kartica **nisu** ovaj task — vidi gore **Ticket Detail — NIJE definisano**.
 
 Kopiraj sve ispod (unutar code bloka) kao prvu poruku u NOVOJ agent sesiji.
 

@@ -7,7 +7,8 @@ import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketCsatConfiguration } from './csat/csat.types';
 import { describeTicketCsat } from './csat/describe-ticket-csat';
 import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
-import { loadTicketOverdueFlags } from './load-ticket-overdue-flags';
+import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
+import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
 
@@ -29,7 +30,7 @@ export async function toTicketClientResponses(
     records.map((record) => record.closeCodeId ?? ''),
   );
   const ticketIds = records.map((record) => record.id);
-  const overdueByTicketId = await loadTicketOverdueFlags(prisma, ticketIds);
+  const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
   const submissions =
     input.csat === undefined
       ? new Map()
@@ -47,7 +48,8 @@ export async function toTicketClientResponses(
         duplicateWarnings: input.duplicateWarnings,
         now: input.now,
       }),
-      isOverdue: overdueByTicketId.get(record.id) === true,
+      isOverdue: isTicketSlaOverdue(slaByTicketId.get(record.id)),
+      sla: slaByTicketId.get(record.id) ?? null,
     };
     if (input.csat === undefined || input.actorUserId === undefined) {
       return response;

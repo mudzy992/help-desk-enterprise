@@ -1,3 +1,4 @@
+import { TicketSlaPanel } from "@/components/tickets/ticket-sla-panel";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
@@ -34,6 +35,7 @@ interface TicketDetailSideStackProperties {
 export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
   return (
     <div className="space-y-4">
+      <TicketSlaPanel ticket={props.ticket} />
       <TicketDetailSidebar
         ticket={props.ticket}
         originName={props.originName}

@@ -851,6 +851,25 @@
       "reopening": "Otvaranje…",
       "waitingForUserHint": "Tiket čeka odgovor korisnika. Javni odgovor korisnika vraća tiket u obradu. Interna napomena ne resetuje čekanje.",
       "pauseBadge": "SLA pauziran",
+      "sla": {
+        "title": "SLA tajmeri",
+        "firstResponse": "Prvi odgovor",
+        "resolution": "Rješenje",
+        "satisfied": "zadovoljen",
+        "pause": "pauza",
+        "usedFrame": "iskorišteno {{percent}}% vremenskog okvira · eskalacija na {{risk}}%",
+        "due": "rok:",
+        "remaining": "za {{time}}",
+        "overdue": "prekoračeno {{time}}",
+        "minute": "{{count}} min",
+        "hour": "{{count}} h",
+        "day": "{{count}} d",
+        "state": {
+          "OK": "U okviru",
+          "RISK": "Pod rizikom",
+          "BREACHED": "Prekoračen"
+        }
+      },
       "assign": "Dodijeli…",
       "assigning": "Dodjeljivanje…",
       "pendingApprovalHint": "Odobrenje je u toku. SLA tajmer je pauziran dok lanac odobrenja traje.",

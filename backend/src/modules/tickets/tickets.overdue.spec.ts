@@ -46,6 +46,36 @@ describe('ticket overdue flags on list responses', () => {
     expect(listed).toHaveLength(1);
     expect(listed[0]?.id).toBe(created.id);
     expect(listed[0]?.isOverdue).toBe(false);
+    expect(listed[0]?.sla).toBeNull();
+  });
+
+  it('exposes persisted SLA due, pause, and breach fields on ticket responses', async () => {
+    const harness = createTicketsServiceHarness();
+    await seedTicketsSlaTimers(harness);
+    const created = await harness.tickets.create(
+      vpnCreateInput({ title: 'VPN concentrator down' }),
+      requester,
+    );
+    const started = await harness.tickets.getById(created.id, requester);
+    expect(started.sla?.responseDueAt).toEqual(expect.any(String));
+    expect(started.sla?.resolutionDueAt).toEqual(expect.any(String));
+    expect(started.sla?.pausedAt).toBeNull();
+    expect(started.sla?.isResponseBreached).toBe(false);
+    expect(started.sla?.isResolutionBreached).toBe(false);
+    const agent = { actorUserId: ticketsTestIds.agentIt };
+    await harness.tickets.update(created.id, { status: 'IN_PROGRESS' }, agent);
+    await harness.tickets.update(
+      created.id,
+      { status: 'WAITING_FOR_USER' },
+      agent,
+    );
+    expect(
+      (await harness.tickets.getById(created.id, requester)).sla?.pausedAt,
+    ).toEqual(expect.any(String));
+    markSlaBreached(harness, created.id);
+    const breached = await harness.tickets.getById(created.id, requester);
+    expect(breached.sla?.isResolutionBreached).toBe(true);
+    expect(breached.isOverdue).toBe(true);
   });
 });
 

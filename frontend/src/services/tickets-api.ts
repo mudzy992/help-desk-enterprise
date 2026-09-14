@@ -1,5 +1,16 @@
 import { apiRequest } from "@/services/api";
 
+export type TicketSlaSnapshot = {
+  readonly startedAt: string;
+  readonly responseDueAt: string | null;
+  readonly resolutionDueAt: string | null;
+  readonly respondedAt: string | null;
+  readonly resolutionCompletedAt: string | null;
+  readonly pausedAt: string | null;
+  readonly isResponseBreached: boolean;
+  readonly isResolutionBreached: boolean;
+};
+
 export type TicketStatus =
   | "PENDING"
   | "UNROUTED"
@@ -41,6 +52,7 @@ export type TicketResponse = {
   readonly archivedAt?: string | null;
   readonly waitingForUserEnteredAt?: string | null;
   readonly isOverdue?: boolean;
+  readonly sla?: TicketSlaSnapshot | null;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
   readonly csat?: TicketCsatDescriptor;

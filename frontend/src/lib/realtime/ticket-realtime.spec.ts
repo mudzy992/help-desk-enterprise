@@ -105,6 +105,37 @@ describe("ticket realtime helpers", () => {
     ).toBe("RESOLVED");
   });
 
+  it("keeps the existing SLA snapshot when applying a ticket.updated payload", () => {
+    const current: TicketResponse = {
+      ...baseTicket,
+      sla: {
+        startedAt: "2026-09-13T06:00:00.000Z",
+        responseDueAt: "2026-09-13T08:00:00.000Z",
+        resolutionDueAt: "2026-09-13T16:00:00.000Z",
+        respondedAt: "2026-09-13T07:00:00.000Z",
+        resolutionCompletedAt: null,
+        pausedAt: null,
+        isResponseBreached: false,
+        isResolutionBreached: false,
+      },
+    };
+    expect(
+      applyTicketUpdatedPayload(current, {
+        ticketId: "ticket-a",
+        change: "status",
+        sourceAction: "ticket_resolved",
+        status: "RESOLVED",
+        priority: "HIGH",
+        assignedUserId: "agent-1",
+        assignedGroupId: "group-1",
+        archivedAt: null,
+        resolvedAt: "2026-09-13T08:00:00.000Z",
+        closedAt: null,
+        occurredAt: "2026-09-13T08:00:00.000Z",
+      })?.sla?.respondedAt,
+    ).toBe("2026-09-13T07:00:00.000Z");
+  });
+
   it("unsubscribes the same handler to prevent duplicate listeners", () => {
     const socket = { on: vi.fn(), off: vi.fn() };
     const handler = vi.fn();

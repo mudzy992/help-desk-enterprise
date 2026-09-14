@@ -74,6 +74,7 @@ export type TicketResponse = {
   readonly archivedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
   readonly isOverdue: boolean;
+  readonly sla?: TicketSlaClientSnapshot | null;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
   readonly csat?: TicketCsatDescriptor;
@@ -81,6 +82,17 @@ export type TicketResponse = {
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type TicketSlaClientSnapshot = {
+  readonly startedAt: string;
+  readonly responseDueAt: string | null;
+  readonly resolutionDueAt: string | null;
+  readonly respondedAt: string | null;
+  readonly resolutionCompletedAt: string | null;
+  readonly pausedAt: string | null;
+  readonly isResponseBreached: boolean;
+  readonly isResolutionBreached: boolean;
 };
 
 export type TicketReopenDescriptor = {
