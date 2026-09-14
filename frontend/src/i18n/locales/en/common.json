@@ -121,6 +121,8 @@
   },
   "dashboard": {
     "intro": "Operational overview of the tickets you can access.",
+    "reportsAction": "Reports",
+    "reportsActionDisabledHint": "Reports will be available once the route is added.",
     "emptyTitle": "No tickets yet",
     "emptyBody": "Once the first ticket is created, counters and recent activity appear here.",
     "recentHeading": "Recent tickets",

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Plus } from "lucide-react";
+import { ArrowUpRight, LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DashboardAttentionTable } from "@/components/dashboard/dashboard-attention-table";
@@ -32,11 +32,23 @@ export function DashboardPage() {
         title={t("navigation.dashboard")}
         subtitle={t("dashboard.intro")}
         actions={
-          <Button asChild size="sm">
-            <Link to="/tickets/new">
-              <Plus size={14} /> {t("tickets.createAction")}
-            </Link>
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled
+              aria-disabled
+              title={t("dashboard.reportsActionDisabledHint")}
+            >
+              <ArrowUpRight size={14} /> {t("dashboard.reportsAction")}
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/tickets/new">
+                <Plus size={14} /> {t("tickets.createAction")}
+              </Link>
+            </Button>
+          </>
         }
       />
       {isLoading ? (

@@ -121,6 +121,8 @@
   },
   "dashboard": {
     "intro": "Operativni pregled tiketa kojima imate pristup.",
+    "reportsAction": "Izvještaji",
+    "reportsActionDisabledHint": "Izvještaji će biti dostupni kad se doda ruta.",
     "emptyTitle": "Još nema tiketa",
     "emptyBody": "Kad se kreira prvi tiket, brojači i nedavna aktivnost pojavit će se ovdje.",
     "recentHeading": "Nedavni tiketi",
