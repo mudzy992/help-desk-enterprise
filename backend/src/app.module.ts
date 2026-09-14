@@ -20,6 +20,7 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { IntegrationQueueModule } from './modules/integration-queue/integration-queue.module';
 import { ConfigVersioningModule } from './modules/config-versioning/config-versioning.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
@@ -48,6 +49,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     NotificationsModule,
     IntegrationQueueModule,
     ConfigVersioningModule,
+    AuditLogModule,
     WebsocketModule,
   ],
 })

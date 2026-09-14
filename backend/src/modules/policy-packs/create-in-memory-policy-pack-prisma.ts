@@ -1,3 +1,4 @@
+import { createInMemoryAuditLogDelegate } from '../audit-log/create-in-memory-audit-log-delegate';
 import { createInMemoryPolicyPackDelegates } from './create-in-memory-policy-pack-delegates';
 import type {
   InMemoryPermissionRecord,
@@ -25,12 +26,20 @@ export function createInMemoryPolicyPackPrisma() {
   let nextIdentifier = 1;
   const nextId = (prefix: string) => `${prefix}-${nextIdentifier++}`;
   const delegates = createInMemoryPolicyPackDelegates(stores, nextId);
-  const prisma: ReturnType<typeof createInMemoryPolicyPackDelegates> & {
-    $transaction: (
-      callback: (client: unknown) => Promise<unknown>,
-    ) => Promise<unknown>;
-  } = {
+  const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
+  const audit = createInMemoryAuditLogDelegate(
+    auditLogs,
+    () => nextId('audit'),
+    () => new Date('2026-09-14T10:00:00.000Z'),
+  );
+  const prisma: ReturnType<typeof createInMemoryPolicyPackDelegates> &
+    typeof audit & {
+      $transaction: (
+        callback: (client: unknown) => Promise<unknown>,
+      ) => Promise<unknown>;
+    } = {
     ...delegates,
+    ...audit,
     $transaction: async (callback) => callback(prisma),
   };
 

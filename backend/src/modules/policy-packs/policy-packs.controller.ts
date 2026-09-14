@@ -3,11 +3,13 @@ import {
   Controller,
   Get,
   Post,
+  Req,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
 import {
   authorizationRoleKeys,
@@ -20,6 +22,8 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { ApplyPolicyPackDto } from './dto/apply-policy-pack.dto';
 import { PolicyPacksService } from './policy-packs.service';
+import { readSettingsActorUserId } from '../settings/read-settings-actor-user-id';
+import { readAuditRequestId } from '../audit-log/read-audit-request-id';
 
 @Controller('policy-packs')
 @UseGuards(SessionAuthenticationGuard)
@@ -56,7 +60,11 @@ export class PolicyPacksController {
   @RequireRoles(authorizationRoleKeys.admin)
   @RequirePermissions(permissionKeys.settingsWrite)
   @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
-  apply(@Body() body: ApplyPolicyPackDto) {
-    return this.policyPacksService.apply(body);
+  apply(@Body() body: ApplyPolicyPackDto, @Req() request: AuthenticatedHttpRequest) {
+    return this.policyPacksService.apply(
+      body,
+      readSettingsActorUserId(request),
+      readAuditRequestId(request.headers),
+    );
   }
 }

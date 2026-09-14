@@ -14,7 +14,7 @@ export const configVersioningScopeValues = Object.values(
 
 export const configVersioningShadowSampleSize = 200;
 
-export const auditLogGenesisHash = '0'.repeat(64);
+export { auditLogGenesisHash } from '../audit-log/audit-log.constants';
 
 export const configVersioningErrorCodes = {
   disabled: 'CONFIG_VERSIONING_DISABLED',

@@ -9,6 +9,7 @@ import { serviceLifecycleSettings } from './service-lifecycle-settings';
 import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { configVersioningSettings } from './config-versioning-settings';
+import { auditLogSettings } from './audit-log-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
 import { notificationEmailSettings } from './notification-email-settings';
@@ -61,6 +62,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...dataLifecycleSettings,
   ...changeLogSettings,
   ...configVersioningSettings,
+  ...auditLogSettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,
   ...notificationEmailSettings,

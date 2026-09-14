@@ -1,3 +1,4 @@
+import { createInMemoryAuditLogDelegate } from '../audit-log/create-in-memory-audit-log-delegate';
 import { createInMemoryFormVersionDelegate } from '../service-catalog/create-in-memory-form-version-delegate';
 import type { FormVersionRecord } from '../service-catalog/service-forms.types';
 import {
@@ -79,6 +80,7 @@ export function createInMemoryTicketsPrisma() {
   const notifications = new Map<string, NotificationRecord>();
   const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
+  const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
   const nextId = () => `ticket-record-${nextIdentifier++}`;
@@ -164,6 +166,11 @@ export function createInMemoryTicketsPrisma() {
         return data;
       },
     },
+    ...createInMemoryAuditLogDelegate(
+      auditLogs,
+      () => nextPrefixedId('audit'),
+      now,
+    ),
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
       callback(prisma),
   };

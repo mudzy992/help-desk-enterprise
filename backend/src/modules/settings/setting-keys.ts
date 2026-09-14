@@ -283,6 +283,12 @@ export const settingKeys = {
   privateConfigVersioningShadowModeEnabled:
     'private.configVersioning.shadowMode.enabled',
   privateConfigVersioningScopesCsv: 'private.configVersioning.scopesCsv',
+  privateAuditExportEnabled: 'private.audit.export.enabled',
+  privateAuditExportAllowedFormatsCsv:
+    'private.audit.export.allowedFormatsCsv',
+  privateAuditTamperEvidentEnabled: 'private.audit.tamperEvident.enabled',
+  privateAuditTamperEvidentHashAlgorithm:
+    'private.audit.tamperEvident.hashAlgorithm',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

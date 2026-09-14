@@ -61,6 +61,7 @@ export async function requestConfidentialBreakGlass(
   ) {
     await recordConfidentialAccessAudit(prisma, {
       ticketId: ticket.id,
+      organizationalUnitId: ticket.originUnitId,
       actorUserId: context.actorUserId,
       result: 'denied',
       configuration,
@@ -95,6 +96,7 @@ export async function requestConfidentialBreakGlass(
   })) as BreakGlassEventRecord;
   await recordConfidentialAccessAudit(prisma, {
     ticketId: ticket.id,
+    organizationalUnitId: ticket.originUnitId,
     actorUserId: context.actorUserId,
     result: 'break_glass',
     via: 'break_glass',

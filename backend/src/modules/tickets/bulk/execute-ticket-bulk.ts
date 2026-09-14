@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { TicketsError } from '../tickets.error';
@@ -39,12 +41,42 @@ export async function executeTicketBulk(input: {
   const batchId = input.configuration.auditBatchIdEnabled
     ? randomUUID()
     : null;
+  const tickets = await dispatchBulkAction({ ...input, batchId });
+  await recordAuditEntry(input.prisma, {
+    action: auditLogActions.ticketBulkExecute,
+    entityType: auditLogEntityTypes.ticketBulk,
+    entityId: batchId ?? tickets.tickets[0]?.id ?? 'ticket_bulk',
+    metadata: {
+      actionType: input.body.actionType,
+      ticketIds: input.body.ticketIds,
+      batchId,
+    },
+    actorUserId: input.actor.actorUserId,
+    organizationalUnitId: resolveBulkOrganizationalUnitId(input.tickets),
+  });
+  return tickets;
+}
+
+async function dispatchBulkAction(input: {
+  readonly prisma: PrismaService;
+  readonly context: AuthorizationContext;
+  readonly actor: TicketMutationContext;
+  readonly tickets: readonly TicketRecord[];
+  readonly body: ExecuteTicketBulkInput;
+  readonly configuration: TicketBulkConfiguration;
+  readonly messages: TicketPersistedMessageSink;
+  readonly batchId: string | null;
+}): Promise<{
+  readonly batchId: string | null;
+  readonly tickets: readonly TicketRecord[];
+  readonly recipientCount?: number;
+}> {
   const shared = {
     prisma: input.prisma,
     actor: input.actor,
     tickets: input.tickets,
     body: input.body,
-    batchId,
+    batchId: input.batchId,
     messages: input.messages,
   };
   if (
@@ -52,18 +84,18 @@ export async function executeTicketBulk(input: {
     input.body.actionType === 'assign_user'
   ) {
     return {
-      batchId,
+      batchId: input.batchId,
       tickets: await applyBulkAssign({ ...shared, context: input.context }),
     };
   }
   if (input.body.actionType === 'set_status') {
     return {
-      batchId,
+      batchId: input.batchId,
       tickets: await applyBulkStatus({ ...shared, context: input.context }),
     };
   }
   if (input.body.actionType === 'set_priority') {
-    return { batchId, tickets: await applyBulkPriority(shared) };
+    return { batchId: input.batchId, tickets: await applyBulkPriority(shared) };
   }
   if (input.body.actionType === 'broadcast_message') {
     const broadcast = await applyBulkBroadcast({
@@ -71,13 +103,20 @@ export async function executeTicketBulk(input: {
       configuration: input.configuration,
     });
     return {
-      batchId,
+      batchId: input.batchId,
       tickets: broadcast.tickets,
       recipientCount: broadcast.recipientCount,
     };
   }
   if (input.body.actionType === 'merge_into_parent') {
-    return { batchId, tickets: await applyBulkMerge(shared) };
+    return { batchId: input.batchId, tickets: await applyBulkMerge(shared) };
   }
   throw new TicketsError('BULK_ACTION_NOT_ALLOWED');
+}
+
+function resolveBulkOrganizationalUnitId(
+  tickets: readonly TicketRecord[],
+): string | null {
+  const identifiers = [...new Set(tickets.map((ticket) => ticket.originUnitId))];
+  return identifiers.length === 1 ? (identifiers[0] ?? null) : null;
 }

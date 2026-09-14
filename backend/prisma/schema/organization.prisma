@@ -18,6 +18,7 @@ model OrganizationalUnit {
   slaRules           SlaRule[]
   knowledgeArticles  KnowledgeArticle[]
   userRoles          UserRole[]
+  auditLogs          AuditLog[]
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
 

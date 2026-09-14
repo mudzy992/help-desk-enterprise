@@ -1,4 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
 import { buildChangeLogDiff } from '../../change-log/build-change-log-diff';
 import {
   changeLogActions,
@@ -18,6 +20,7 @@ export async function recordConfidentialAccessAudit(
   prisma: PrismaService,
   input: {
     readonly ticketId: string;
+    readonly organizationalUnitId: string;
     readonly actorUserId: string;
     readonly result: 'allowed' | 'denied' | 'break_glass';
     readonly via?: string;
@@ -51,6 +54,17 @@ export async function recordConfidentialAccessAudit(
           : { reason: input.reason }),
       },
     }),
+  });
+  await recordAuditEntry(prisma, {
+    action: systemAction(input.result),
+    entityType: auditLogEntityTypes.ticket,
+    entityId: input.ticketId,
+    metadata: {
+      result: input.result,
+      ...(input.via === undefined ? {} : { via: input.via }),
+    },
+    actorUserId: input.actorUserId,
+    organizationalUnitId: input.organizationalUnitId,
   });
   if (input.writeSystemEvent === false) {
     return;

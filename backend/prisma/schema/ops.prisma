@@ -34,20 +34,23 @@ model NotificationEmailDelivery {
 }
 
 model AuditLog {
-  id           String   @id @default(cuid())
-  action       String
-  entityType   String
-  entityId     String
-  metadata     Json?
-  requestId    String?
-  previousHash String?
-  hash         String
-  actorUserId  String?
-  actor        User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  id                     String              @id @default(cuid())
+  action                 String
+  entityType             String
+  entityId               String
+  metadata               Json?
+  requestId              String?
+  previousHash           String?
+  hash                   String
+  actorUserId            String?
+  organizationalUnitId   String?
+  actor                  User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  organizationalUnit     OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
+  createdAt              DateTime            @default(now())
 
   @@index([entityType, entityId])
   @@index([actorUserId])
+  @@index([organizationalUnitId])
   @@index([createdAt])
 }
 

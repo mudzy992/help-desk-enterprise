@@ -58,6 +58,7 @@ export async function getTicket(
     ) {
       await recordConfidentialAccessAudit(prisma, {
         ticketId: ticket.id,
+        organizationalUnitId: ticket.originUnitId,
         actorUserId: context.actorUserId,
         result: 'denied',
         configuration,
@@ -76,6 +77,7 @@ export async function getTicket(
     if (decision.allowed) {
       await recordConfidentialAccessAudit(prisma, {
         ticketId: ticket.id,
+        organizationalUnitId: ticket.originUnitId,
         actorUserId: context.actorUserId,
         result: 'allowed',
         via: decision.via,

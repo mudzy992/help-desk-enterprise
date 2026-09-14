@@ -24,8 +24,14 @@ export class PolicyPacksService {
     return this.execute(() => validatePolicyPackApply(this.prisma, input));
   }
 
-  async apply(input: PolicyPackApplyInput): Promise<PolicyPackApplyResult> {
-    return this.execute(() => applyPolicyPack(this.prisma, input));
+  async apply(
+    input: PolicyPackApplyInput,
+    actorUserId: string | null = null,
+    requestId: string | null = null,
+  ): Promise<PolicyPackApplyResult> {
+    return this.execute(() =>
+      applyPolicyPack(this.prisma, input, { actorUserId, requestId }),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {
