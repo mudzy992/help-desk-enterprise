@@ -1,47 +1,57 @@
+import { useMemo } from "react";
 import { Plus, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketErrorState, TicketEmptyState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
-import { TicketListFiltersBar } from "@/components/tickets/ticket-list-filters";
-import { TicketListTable } from "@/components/tickets/ticket-list-table";
+import {
+  TicketListFiltersBar,
+  applyTicketListTab,
+  ticketListTabKey,
+  ticketStatusTabItems,
+} from "@/components/tickets/ticket-list-filters";
+import { TicketListTable, directoryAssigneeNames } from "@/components/tickets/ticket-list-table";
 import { TicketWorkspaceNav } from "@/components/tickets/ticket-workspace-nav";
 import { TicketBulkBar } from "@/components/tickets/ticket-bulk-bar";
 import { TicketSavedViewsPanel } from "@/components/tickets/ticket-saved-views-panel";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
-import { ticketStatusValues, ticketViewLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
+import { useDirectory } from "@/lib/directory/use-directory";
+import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { clearedTicketListFilters } from "@/lib/tickets/filter-tickets";
+import { clearedTicketListFilters, isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
-import type { TicketStatus } from "@/services/tickets-api";
 
 export function TicketListPage() {
   const { t } = useTranslation();
   const list = useTicketList();
+  const directory = useDirectory();
   const isInbox = list.view === "inbox";
+  const assigneeNames = useMemo(
+    () => directoryAssigneeNames(directory.users),
+    [directory.users],
+  );
   const openCount = list.tickets.filter(
     (ticket) => ticket.status !== "CLOSED" && ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED",
   ).length;
+  const riskCount = list.tickets.filter(isTicketOverdue).length;
   const pageTitle = isInbox
     ? t("tickets.views.inbox")
     : ticketText(t, ticketViewLabelKey[list.view]);
   const pageSubtitle = isInbox
     ? t("tickets.inboxHint")
-    : ticketText(t, "tickets.listSubtitle", { open: openCount });
-  const createActionLabel = t("tickets.createAction");
-  const ticketsTitle = t("tickets.title");
+    : ticketText(t, "tickets.listSubtitle", { open: openCount, risk: riskCount });
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", ticketsTitle]}
+        crumbs={["EP-HelpDesk", t("tickets.title")]}
         title={pageTitle}
         subtitle={pageSubtitle}
         actions={
-          <Button asChild size="sm">
+          <Button asChild size="sm" variant="primary">
             <Link to="/tickets/new">
-              <Plus size={14} /> {createActionLabel}
+              <Plus size={14} /> {t("tickets.createAction")}
             </Link>
           </Button>
         }
@@ -65,21 +75,9 @@ export function TicketListPage() {
           {isInbox ? null : (
             <UnderlineTabs
               className="mb-3"
-              active={list.filters.status === "" ? "ALL" : list.filters.status}
-              onChange={(key) =>
-                list.setFilters({
-                  ...list.filters,
-                  status: key === "ALL" ? "" : (key as TicketStatus),
-                })
-              }
-              items={[
-                { key: "ALL", label: t("tickets.filters.all"), count: list.tickets.length },
-                ...ticketStatusValues.map((status) => ({
-                  key: status,
-                  label: ticketText(t, ticketStatusLabelKey[status]),
-                  count: list.tickets.filter((ticket) => ticket.status === status).length,
-                })),
-              ]}
+              active={ticketListTabKey(list.filters)}
+              onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
+              items={ticketStatusTabItems(t, list.tickets, riskCount)}
             />
           )}
           <TicketListFiltersBar filters={list.filters} services={list.services} onChange={list.setFilters} />
@@ -126,8 +124,14 @@ export function TicketListPage() {
             <TicketListTable
               tickets={list.paged.pageItems}
               serviceNames={list.serviceNames}
+              assigneeNames={assigneeNames}
               selectedIds={list.selectedIds}
               onToggleSelected={list.toggleSelected}
+              onTogglePage={(selected) =>
+                list.setSelectedIds(
+                  selected ? new Set(list.paged.pageItems.map((ticket) => ticket.id)) : new Set(),
+                )
+              }
             />
           )}
           {list.paged.totalPages > 1 ? (
