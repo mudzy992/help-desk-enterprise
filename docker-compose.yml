@@ -2,6 +2,16 @@
 # FQDN i TLS postavlja Coolify. Env dolazi iz Coolify UI (.env.example).
 # Postgres NIJE ovdje — Coolify Database → DATABASE_URL.
 # Redis: external mreža redis_net, host redis-core.
+# REDIS_USERNAME + REDIS_PASSWORD moraju biti isti na backend i worker,
+# i jednaki ACL useru ephelpdesk iz ops/redis-acl.line (placeholder change-me).
+
+x-redis-environment: &redis-environment
+  REDIS_HOST: ${REDIS_HOST}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_USERNAME: ${REDIS_USERNAME:-ephelpdesk}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ephelpdesk}
+  QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:ephelpdesk}
 
 services:
   frontend:
@@ -19,6 +29,8 @@ services:
     restart: unless-stopped
     expose:
       - "10001"
+    environment:
+      <<: *redis-environment
     volumes:
       - uploads:/usr/app/uploads
     networks:
@@ -30,6 +42,8 @@ services:
     build: ./backend
     command: node dist/src/worker.js
     restart: unless-stopped
+    environment:
+      <<: *redis-environment
     volumes:
       - uploads:/usr/app/uploads
     networks:

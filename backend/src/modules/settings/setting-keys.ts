@@ -273,6 +273,16 @@ export const settingKeys = {
   privateIntegrationsTeamsWebhookUrl: 'private.integrations.teams.webhookUrl',
   privateIntegrationsTeamsEventTypesCsv:
     'private.integrations.teams.eventTypesCsv',
+  privateConfigVersioningEnabled: 'private.configVersioning.enabled',
+  privateConfigVersioningAllowRollback:
+    'private.configVersioning.allowRollback',
+  privateConfigVersioningValidationEnabled:
+    'private.configVersioning.validation.enabled',
+  privateConfigVersioningValidationBlockActivationOnError:
+    'private.configVersioning.validation.blockActivationOnError',
+  privateConfigVersioningShadowModeEnabled:
+    'private.configVersioning.shadowMode.enabled',
+  privateConfigVersioningScopesCsv: 'private.configVersioning.scopesCsv',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

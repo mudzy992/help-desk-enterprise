@@ -35,6 +35,10 @@ export const adminReadOnlyRouteModules: readonly {
     moduleKey: adminReadOnlyModuleKeys.settings,
   },
   {
+    pathPrefix: '/config-versions',
+    moduleKey: adminReadOnlyModuleKeys.settings,
+  },
+  {
     pathPrefix: '/integration-jobs',
     moduleKey: adminReadOnlyModuleKeys.settings,
   },

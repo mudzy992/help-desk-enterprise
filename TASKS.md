@@ -108,7 +108,7 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ## Faza 8 — Admin ops i izvještaji
 
-- [ ] Config versioning + dry-run/validate + shadow mode + rollback
+- [x] Config versioning + dry-run/validate + shadow mode + rollback
 - [ ] Audit export (CSV/JSON) + tamper-evident hash chain
 - [ ] Support bundle + requestId logging
 - [ ] Report packs + bottleneck dashboard + pretraga (KB + tickets)
@@ -126,4 +126,4 @@ Spec: `.cursor/docs/04-install-wizard.md` + matrica `install-wizard`. Nije servi
 
 ---
 
-**Trenutni status:** Faza 7 — Notifikacije, realtime, queue
+**Trenutni status:** Faza 8 — Audit export (CSV/JSON) + tamper-evident hash chain

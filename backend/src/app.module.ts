@@ -19,6 +19,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { IntegrationQueueModule } from './modules/integration-queue/integration-queue.module';
+import { ConfigVersioningModule } from './modules/config-versioning/config-versioning.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     KnowledgeBaseModule,
     NotificationsModule,
     IntegrationQueueModule,
+    ConfigVersioningModule,
     WebsocketModule,
   ],
 })

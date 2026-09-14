@@ -9,7 +9,7 @@ Infrastrukturni Redis klijent i BullMQ connection bootstrap za API i zaseban wor
 | backend | `dist/src/main.js` | da (`PORT`) | `RedisModule` (klijent + BullMQ `forRoot`) | da |
 | worker | `dist/src/worker.js` | ne (`createApplicationContext`) | isti `RedisModule` + domain `Processor` | da (job status + settings); bez Websocket |
 
-Worker command: `node dist/src/worker.js`. Compose servis `worker` dijeli backend image, `uploads` volume i `redis-net`. Worker ne radi migracije.
+Worker command: `node dist/src/worker.js`. Compose servis `worker` dijeli backend image, `uploads` volume i `redis_net`. Isti Redis env (`x-redis-environment`) na backend i worker. Worker ne radi migracije.
 
 ## Konfiguracija (env, ne Settings registry)
 Isti Coolify ključevi iz `.env.example`:
@@ -18,8 +18,8 @@ Isti Coolify ključevi iz `.env.example`:
 |---|---|
 | `REDIS_HOST` | obavezan |
 | `REDIS_PORT` | default `6379` |
-| `REDIS_USERNAME` | opciono; prazno se ignorira |
-| `REDIS_PASSWORD` | opciono secret; prazno se ignorira; nikad se ne loguje |
+| `REDIS_USERNAME` | ACL user `ephelpdesk`; prazno se ignorira |
+| `REDIS_PASSWORD` | ista lozinka kao `ops/redis-acl.line` (`>change-me` placeholder); prazno se ignorira; nikad se ne loguje |
 | `REDIS_KEY_PREFIX` | default `ephelpdesk`; ioredis prefix dobija završni `:` zbog ACL `~ephelpdesk:*` |
 | `QUEUE_PREFIX` | default `bull:ephelpdesk`; BullMQ `prefix` (ACL `~bull:ephelpdesk:*`) |
 

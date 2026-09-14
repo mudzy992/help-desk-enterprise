@@ -227,4 +227,34 @@ describe('classifyAdminReadOnlyRequest', () => {
       isMutation: true,
     });
   });
+
+  it('classifies config-version writes as settings mutations and validate as a read', () => {
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/config-versions',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.settings,
+      isMutation: true,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/config-versions/version-1/validate',
+        isDecoratedReadOperation: true,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.settings,
+      isMutation: false,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/config-versions/version-1/shadow',
+        isDecoratedReadOperation: true,
+      })?.isMutation,
+    ).toBe(false);
+  });
 });

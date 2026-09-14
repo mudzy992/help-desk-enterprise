@@ -5,13 +5,14 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
 ## Resursi izvan ovog compose-a
 
 - **PostgreSQL**: Coolify Database. Connection string → `DATABASE_URL`. Backup/retention na DB resursu.
-- **Redis**: postojeći kontejner `redis-core` na external mreži `redis-net`.
-- ACL user: sadržaj `ops/redis-acl.line` ubaci u host `deploy.sh` (password iz secreta, zamijeni `CHANGE_ME`).
+- **Redis**: postojeći kontejner `redis-core` na external mreži `redis_net` (compose ime; RAW kaže `redis-net`).
+- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line` na Redis hostu. Lozinka iza `>` **mora biti ista** kao `REDIS_PASSWORD` u Coolify Environment za **backend i worker**. Placeholder u repou je `change-me` (ne `CHANGE_ME`).
+- Ne koristiti lozinku Coolify Redis `default` usera osim ako je to i lozinka ACL usera `ephelpdesk`. `WRONGPASS` = username/password par nije taj ACL user.
 
 ## Coolify projekat
 
 1. Compose: `docker-compose.yml` (bez Traefik labela).
-2. Poveži servise `backend` i `worker` na mrežu `redis-net`.
+2. Poveži servise `backend` i `worker` na mrežu `redis_net`. Isti `REDIS_HOST` / `REDIS_USERNAME` / `REDIS_PASSWORD` na oba (compose `x-redis-environment`).
 3. FQDN: frontend → `desk.ba101.top` (prod kasnije `desk.epbih.ba`); backend → `api.desk.ba101.top`. Worker **bez** FQDN.
 4. Socket.IO: na API FQDN uključi WebSocket upgrade.
 5. Persistent storage: mount na `/usr/app/uploads` za backend **i** worker (isti volume).
@@ -25,9 +26,9 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
 
 ## Redoslijed
 
-1. Redis ACL linija na hostu.  
+1. Redis ACL linija na hostu — `>` lozinka = Coolify `REDIS_PASSWORD`, user `ephelpdesk`.  
 2. Postgres baza + `DATABASE_URL`.  
-3. Env iz `.env.example`.  
+3. Env iz `.env.example` (`REDIS_USERNAME=ephelpdesk`, ista lozinka na backend i worker).  
 4. Deploy compose.  
 5. Otvori app → **install wizard** (nije Coolify korak).
 

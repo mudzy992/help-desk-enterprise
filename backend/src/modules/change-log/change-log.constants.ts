@@ -10,6 +10,7 @@ export const changeLogEntityTypes = {
   slaProfile: 'sla_profile',
   slaRule: 'sla_rule',
   ticketSlaState: 'ticket_sla_state',
+  configVersion: 'config_version',
 } as const;
 
 export const changeLogActions = {
