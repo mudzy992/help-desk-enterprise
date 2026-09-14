@@ -1,4 +1,4 @@
-import { AlertTriangle, Settings2, Ticket, UserCog } from "lucide-react";
+import { Settings2, Ticket, Timer, UserCog } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,7 @@ import type { InAppNotification } from "@/services/notifications-api";
 
 const KIND_ICON: Record<NotificationKind, typeof Ticket> = {
   ticket: Ticket,
-  sla: AlertTriangle,
+  sla: Timer,
   approval: UserCog,
   system: Settings2,
 };

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { NotificationsList } from "@/components/layout/notifications-list";
 import { useLocale } from "@/i18n/use-locale";
+import { cn } from "@/lib/utils";
 import type { InAppNotification } from "@/services/notifications-api";
 
 interface NotificationsPanelProperties {
@@ -43,7 +44,12 @@ export function NotificationsPanel({
           <button
             type="button"
             onClick={() => setFilter(filter === "all" ? "unread" : "all")}
-            className="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
+            className={cn(
+              "rounded-md px-2 py-1 transition-colors",
+              filter === "unread"
+                ? "bg-background text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
             {filter === "unread" ? t("notifications.filterUnread") : t("notifications.filterAll")}
           </button>
