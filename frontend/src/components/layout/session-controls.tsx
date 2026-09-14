@@ -86,9 +86,11 @@ export function SessionControls() {
   }
 
   const displayName = session.principal.displayName;
-  const roleKey = sessionRoleLabelKey(
-    capabilities.session?.roleKeys ?? [],
-    capabilities.session?.isSuperAdmin ?? false,
+  const subtitle = t(
+    sessionRoleLabelKey(
+      capabilities.session?.roleKeys ?? [],
+      capabilities.session?.isSuperAdmin ?? false,
+    ),
   );
 
   return (
@@ -101,7 +103,7 @@ export function SessionControls() {
           <Avatar name={displayName} size="sm" />
           <span className="hidden text-left leading-tight md:block">
             <span className="block text-[12px] font-medium text-foreground">{displayName}</span>
-            <span className="block text-[10px] text-muted-foreground">{t(roleKey)}</span>
+            <span className="block text-[10px] text-muted-foreground">{subtitle}</span>
           </span>
           <ChevronDown size={13} className="text-muted-foreground/70" aria-hidden="true" />
         </button>
