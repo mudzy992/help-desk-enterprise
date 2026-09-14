@@ -7,18 +7,48 @@ import {
   TicketPriorityBadge,
   TicketStatusBadge,
 } from "@/components/tickets/ticket-badges";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { tableHeadClassName, ticketIdClassName } from "@/components/ui/control";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
+import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface DashboardAttentionTableProperties {
   readonly items: readonly TicketResponse[];
+  readonly serviceNames: ReadonlyMap<string, string>;
+  readonly originNames: ReadonlyMap<string, string>;
+}
+
+function AttentionAssignmentCell({ ticket }: { readonly ticket: TicketResponse }) {
+  const { t } = useTranslation();
+  if (ticket.status === "UNROUTED" || ticket.assignedGroupId === null) {
+    return <Badge tone="danger">{t("tickets.assignment.unrouted")}</Badge>;
+  }
+  if (ticket.assignedUserId === null) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="tnum text-[12px] text-foreground/80">
+          {truncateIdentifier(ticket.assignedGroupId)}
+        </span>
+        <Badge tone="info" dot={false}>
+          {t("tickets.assignment.groupOnly")}
+        </Badge>
+      </div>
+    );
+  }
+  return (
+    <span className="text-[12px] text-foreground/80">
+      {t("tickets.assignment.assigned")}
+    </span>
+  );
 }
 
 export function DashboardAttentionTable({
   items,
+  serviceNames,
+  originNames,
 }: DashboardAttentionTableProperties) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -42,17 +72,26 @@ export function DashboardAttentionTable({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left">
+          <table className="w-full min-w-[760px] text-left">
             <thead>
               <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
                 <th className="px-4 py-2.5 font-medium">
                   {t("dashboard.columnTicket")}
                 </th>
                 <th className="px-4 py-2.5 font-medium">
+                  {t("dashboard.columnService")}
+                </th>
+                <th className="px-4 py-2.5 font-medium">
+                  {t("dashboard.columnOrigin")}
+                </th>
+                <th className="px-4 py-2.5 font-medium">
                   {t("dashboard.columnStatus")}
                 </th>
                 <th className="px-4 py-2.5 font-medium">
                   {t("dashboard.columnPriority")}
+                </th>
+                <th className="px-4 py-2.5 font-medium">
+                  {t("dashboard.columnAssignment")}
                 </th>
                 <th className="px-4 py-2.5 text-right font-medium">
                   {t("dashboard.columnOverdue")}
@@ -81,11 +120,17 @@ export function DashboardAttentionTable({
                       >
                         {ticket.ticketNumber}
                       </Link>
-                      <TicketPauseChip status={ticket.status} />
                     </div>
-                    <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-foreground/90">
+                    <p className="mt-0.5 max-w-[320px] truncate text-[12.5px] text-foreground/90">
                       {ticket.title}
                     </p>
+                  </td>
+                  <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
+                    {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
+                  </td>
+                  <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
+                    {originNames.get(ticket.originUnitId) ??
+                      truncateIdentifier(ticket.originUnitId)}
                   </td>
                   <td className="px-4 py-2.5">
                     <TicketStatusBadge status={ticket.status} />
@@ -96,8 +141,14 @@ export function DashboardAttentionTable({
                       showCriticalMark
                     />
                   </td>
+                  <td className="px-4 py-2.5">
+                    <AttentionAssignmentCell ticket={ticket} />
+                  </td>
                   <td className="px-4 py-2.5 text-right">
-                    {isTicketOverdue(ticket) ? <TicketOverdueBadge /> : null}
+                    <span className="inline-flex items-center justify-end gap-2">
+                      {isTicketOverdue(ticket) ? <TicketOverdueBadge /> : null}
+                      <TicketPauseChip status={ticket.status} />
+                    </span>
                   </td>
                 </tr>
               ))}

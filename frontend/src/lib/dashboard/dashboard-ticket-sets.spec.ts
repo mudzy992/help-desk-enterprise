@@ -59,18 +59,21 @@ describe("selectSlaWatchlist", () => {
 });
 
 describe("selectAttentionTickets", () => {
-  it("unions overdue, open critical, and unrouted without duplicate rows", () => {
+  it("unions assigned-to-you, unowned critical, and unrouted without duplicates", () => {
     const tickets = [
-      ticket("1", "PENDING", { priority: "CRITICAL" }),
-      ticket("2", "IN_PROGRESS", { isOverdue: true, priority: "CRITICAL" }),
+      ticket("1", "PENDING", { assignedUserId: "me" }),
+      ticket("2", "IN_PROGRESS", { priority: "CRITICAL", assignedUserId: null }),
       ticket("3", "UNROUTED"),
-      ticket("4", "CLOSED", { priority: "CRITICAL" }),
-      ticket("5", "UNROUTED", { isOverdue: true }),
+      ticket("4", "CLOSED", { assignedUserId: "me", priority: "CRITICAL" }),
+      ticket("5", "ASSIGNED", { priority: "CRITICAL", assignedUserId: "other" }),
+      ticket("6", "PENDING", { assignedUserId: "me", priority: "CRITICAL" }),
+      ticket("7", "UNROUTED", { assignedUserId: "me" }),
     ];
-    expect(selectAttentionTickets(tickets).map((item) => item.id)).toEqual([
-      "2",
-      "5",
+    expect(selectAttentionTickets(tickets, "me").map((item) => item.id)).toEqual([
       "1",
+      "6",
+      "7",
+      "2",
       "3",
     ]);
   });

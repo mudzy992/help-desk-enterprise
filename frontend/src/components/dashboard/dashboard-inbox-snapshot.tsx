@@ -1,9 +1,11 @@
 import { ArrowRight, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { HBars } from "@/components/charts/h-bars";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { groupInboxCounts } from "@/lib/dashboard/dashboard-ticket-sets";
+import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface DashboardInboxSnapshotProperties {
@@ -18,7 +20,18 @@ export function DashboardInboxSnapshot({
   const { t } = useTranslation();
   const groups =
     inboxTickets === null ? [] : groupInboxCounts(inboxTickets);
-  const hasGroups = groups.length > 0;
+  const bars = groups.map((group) => ({
+    label:
+      group.label.length > 0
+        ? group.label
+        : t("dashboard.inboxGroupFallback"),
+    value: group.count,
+    color:
+      group.groupId === null
+        ? SEMANTIC_DOT_HEX.danger
+        : SEMANTIC_DOT_HEX.primary,
+    suffix: t("dashboard.inboxGroupCountSuffix"),
+  }));
 
   return (
     <Card>
@@ -46,27 +59,8 @@ export function DashboardInboxSnapshot({
             </span>
           </Link>
         ) : null}
-        {hasGroups ? (
-          <ul className="divide-y divide-border/50 rounded-md border border-border/60">
-            {groups.map((group) => (
-              <li
-                key={group.groupId ?? "ungrouped"}
-                className="flex items-baseline justify-between gap-3 px-3 py-2 text-[12px]"
-              >
-                <span className="truncate text-muted-foreground">
-                  {group.label.length > 0
-                    ? group.label
-                    : t("dashboard.inboxGroupFallback")}
-                </span>
-                <span className="tnum shrink-0 font-medium text-foreground">
-                  {group.count}
-                  <span className="ml-0.5 text-[11px] font-normal text-muted-foreground/70">
-                    {t("dashboard.inboxGroupCountSuffix")}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
+        {bars.length > 0 ? (
+          <HBars items={bars} />
         ) : unroutedCount === 0 ? (
           <p className="text-center text-[12px] text-muted-foreground">
             {t("dashboard.inboxEmpty")}

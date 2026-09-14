@@ -4,7 +4,10 @@ import {
   type DashboardSummary,
 } from "@/lib/dashboard/summarize-tickets";
 import { useSession } from "@/lib/session/use-session";
+import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
+import { listServices } from "@/services/service-catalog-api";
 import {
   listGroupInbox,
   listTickets,
@@ -15,6 +18,8 @@ export type DashboardSummaryState = {
   readonly summary: DashboardSummary | null;
   readonly inboxCount: number | null;
   readonly inboxTickets: readonly TicketResponse[] | null;
+  readonly serviceNames: ReadonlyMap<string, string>;
+  readonly originNames: ReadonlyMap<string, string>;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
   readonly reload: () => Promise<void>;
@@ -26,6 +31,12 @@ export function useDashboardSummary(): DashboardSummaryState {
   const [inboxTickets, setInboxTickets] = useState<
     readonly TicketResponse[] | null
   >(null);
+  const [serviceNames, setServiceNames] = useState<
+    ReadonlyMap<string, string>
+  >(new Map());
+  const [originNames, setOriginNames] = useState<ReadonlyMap<string, string>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
 
@@ -35,12 +46,21 @@ export function useDashboardSummary(): DashboardSummaryState {
     try {
       const tickets = await listTickets();
       setSummary(summarizeTickets(tickets, currentUserId));
-      // The group inbox is permission-scoped; absence of access is not an error.
-      const inbox = await listGroupInbox().catch(() => null);
+      const [inbox, catalog, tree] = await Promise.all([
+        listGroupInbox().catch(() => null),
+        listServices().catch(() => []),
+        listOrganizationalUnitTree().catch(() => []),
+      ]);
       setInboxTickets(inbox);
+      setServiceNames(
+        new Map(catalog.map((service) => [service.id, service.name])),
+      );
+      setOriginNames(flattenOrganizationalUnitNames(tree));
     } catch (error) {
       setSummary(null);
       setInboxTickets(null);
+      setServiceNames(new Map());
+      setOriginNames(new Map());
       setErrorKey(mapTicketError(error));
     } finally {
       setIsLoading(false);
@@ -55,6 +75,8 @@ export function useDashboardSummary(): DashboardSummaryState {
     summary,
     inboxCount: inboxTickets === null ? null : inboxTickets.length,
     inboxTickets,
+    serviceNames,
+    originNames,
     isLoading,
     errorKey,
     reload,

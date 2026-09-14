@@ -34,8 +34,40 @@ export function selectSlaWatchlist(
     .slice(0, dashboardSlaWatchlistLimit);
 }
 
+function isTerminalTicket(ticket: Pick<TicketResponse, "status">): boolean {
+  return (
+    ticket.status === "CLOSED" ||
+    ticket.status === "ARCHIVED" ||
+    ticket.status === "RESOLVED"
+  );
+}
+
+function isUnroutedTicket(ticket: TicketResponse): boolean {
+  return ticket.status === "UNROUTED" || ticket.assignedGroupId === null;
+}
+
+function isAssignedToCurrentUser(
+  ticket: TicketResponse,
+  currentUserId: string | null,
+): boolean {
+  return (
+    currentUserId !== null &&
+    ticket.assignedUserId === currentUserId &&
+    !isTerminalTicket(ticket)
+  );
+}
+
+function isCriticalWithoutOwner(ticket: TicketResponse): boolean {
+  return (
+    ticket.priority === "CRITICAL" &&
+    ticket.assignedUserId === null &&
+    !isTerminalTicket(ticket)
+  );
+}
+
 export function selectAttentionTickets(
   tickets: readonly TicketResponse[],
+  currentUserId: string | null,
 ): readonly TicketResponse[] {
   const selected: TicketResponse[] = [];
   const seen = new Set<string>();
@@ -47,17 +79,17 @@ export function selectAttentionTickets(
     selected.push(ticket);
   };
   for (const ticket of tickets) {
-    if (isTicketOverdue(ticket)) {
+    if (isAssignedToCurrentUser(ticket, currentUserId)) {
       append(ticket);
     }
   }
   for (const ticket of tickets) {
-    if (isDashboardOpenTicket(ticket) && ticket.priority === "CRITICAL") {
+    if (isCriticalWithoutOwner(ticket)) {
       append(ticket);
     }
   }
   for (const ticket of tickets) {
-    if (ticket.status === "UNROUTED") {
+    if (isUnroutedTicket(ticket) && !isTerminalTicket(ticket)) {
       append(ticket);
     }
   }

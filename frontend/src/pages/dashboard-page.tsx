@@ -1,6 +1,7 @@
 import { ArrowUpRight, LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { DashboardActivityFeed } from "@/components/dashboard/dashboard-activity-feed";
 import { DashboardAttentionTable } from "@/components/dashboard/dashboard-attention-table";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { DashboardInboxSnapshot } from "@/components/dashboard/dashboard-inbox-snapshot";
@@ -18,8 +19,15 @@ import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const { summary, inboxCount, inboxTickets, isLoading, errorKey } =
-    useDashboardSummary();
+  const {
+    summary,
+    inboxCount,
+    inboxTickets,
+    serviceNames,
+    originNames,
+    isLoading,
+    errorKey,
+  } = useDashboardSummary();
   const recentExclusive =
     summary === null
       ? []
@@ -70,14 +78,19 @@ export function DashboardPage() {
         <div className="grid gap-4">
           <DashboardMetricGrid summary={summary} inboxCount={inboxCount} />
           <DashboardCharts summary={summary} />
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
             <DashboardSlaWatchlist items={summary.slaWatchlist} />
             <DashboardInboxSnapshot
               unroutedCount={summary.unrouted}
               inboxTickets={inboxTickets}
             />
+            <DashboardActivityFeed />
           </div>
-          <DashboardAttentionTable items={summary.attention} />
+          <DashboardAttentionTable
+            items={summary.attention}
+            serviceNames={serviceNames}
+            originNames={originNames}
+          />
           {recentExclusive.length > 0 ? (
             <Card>
               <CardHeader

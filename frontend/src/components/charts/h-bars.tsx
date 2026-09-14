@@ -26,7 +26,7 @@ export function HBars({ items, className }: HorizontalBarsProperties) {
             <span className="tnum shrink-0 font-medium text-text">
               {item.value}
               {item.suffix ? (
-                <span className="ml-0.5 text-[11px] font-normal text-muted/70">
+                <span className="ml-1 text-[11px] font-normal text-muted/70">
                   {item.suffix}
                 </span>
               ) : null}

@@ -84,7 +84,7 @@ export function summarizeTickets(
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .slice(0, dashboardRecentTicketLimit),
     slaWatchlist: selectSlaWatchlist(tickets),
-    attention: selectAttentionTickets(tickets),
+    attention: selectAttentionTickets(tickets, currentUserId),
   };
 }
 
