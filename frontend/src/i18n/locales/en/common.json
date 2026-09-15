@@ -11,6 +11,7 @@
     "routing": "Routing",
     "sla": "SLA",
     "settings": "Settings",
+    "admin": "Administration",
     "queue": "Integration queue",
     "configVersions": "Config versions",
     "sections": {
@@ -69,6 +70,16 @@
   "placeholders": {
     "settingsTitle": "No settings available yet",
     "settingsBody": "Application settings will appear here when the settings registry is available on this screen."
+  },
+  "admin": {
+    "title": "System administration",
+    "subtitle": "Identity, organizational structure, settings, and operations. Every change goes through a change log with a reason; read-only mode is available by role.",
+    "tabs": {
+      "org": "Organization (OU)",
+      "users": "Users and roles",
+      "settings": "Settings and add-ons",
+      "ops": "Job queue and audit"
+    }
   },
   "settings": {
     "intro": "Channel and template configuration. Every change requires a reason and is written to the change log.",

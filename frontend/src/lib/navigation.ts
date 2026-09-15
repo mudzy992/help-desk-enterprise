@@ -5,11 +5,9 @@ export const navigationLabelKeys = {
   inbox: "navigation.inbox",
   services: "navigation.services",
   knowledgeBase: "navigation.knowledgeBase",
-  users: "navigation.users",
-  organizationalUnits: "navigation.organizationalUnits",
   routing: "navigation.routing",
   sla: "navigation.sla",
-  settings: "navigation.settings",
+  admin: "navigation.admin",
   queue: "navigation.queue",
   configVersions: "navigation.configVersions",
 } as const;
@@ -74,16 +72,10 @@ export const knowledgeBaseNavigationItem: NavigationItem = {
   end: false,
 };
 
-export const usersNavigationItem: NavigationItem = {
-  path: "/users",
-  labelKey: navigationLabelKeys.users,
-  end: false,
-};
-
-export const organizationalUnitsNavigationItem: NavigationItem = {
-  path: "/organizational-units",
-  labelKey: navigationLabelKeys.organizationalUnits,
-  end: false,
+export const adminNavigationItem: NavigationItem = {
+  path: "/admin",
+  labelKey: navigationLabelKeys.admin,
+  end: true,
 };
 
 export const routingNavigationItem: NavigationItem = {
@@ -95,12 +87,6 @@ export const routingNavigationItem: NavigationItem = {
 export const slaNavigationItem: NavigationItem = {
   path: "/sla",
   labelKey: navigationLabelKeys.sla,
-  end: false,
-};
-
-export const settingsNavigationItem: NavigationItem = {
-  path: "/settings",
-  labelKey: navigationLabelKeys.settings,
   end: false,
 };
 
@@ -132,11 +118,9 @@ export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.administration,
     items: [
-      usersNavigationItem,
-      organizationalUnitsNavigationItem,
       routingNavigationItem,
       slaNavigationItem,
-      settingsNavigationItem,
+      adminNavigationItem,
       queueNavigationItem,
       configVersionsNavigationItem,
     ],

@@ -7,7 +7,11 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
-export function SettingsPage() {
+interface SettingsPageProperties {
+  readonly embedded?: boolean;
+}
+
+export function SettingsPage({ embedded = false }: SettingsPageProperties) {
   const { t } = useTranslation();
   const { session, isLoading, hasPermission, hasRole } = useSessionCapabilities();
   const canOpen =
@@ -19,11 +23,13 @@ export function SettingsPage() {
 
   return (
     <section>
-      <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.settings")]}
-        title={t("navigation.settings")}
-        subtitle={t("settings.intro")}
-      />
+      {embedded ? null : (
+        <PageHeader
+          crumbs={["EP-HelpDesk", t("navigation.settings")]}
+          title={t("navigation.settings")}
+          subtitle={t("settings.intro")}
+        />
+      )}
       {isLoading ? <PanelSkeleton label={t("settings.email.loading")} /> : null}
       {!isLoading && !canOpen ? (
         <EmptyState

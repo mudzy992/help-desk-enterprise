@@ -11,6 +11,7 @@
     "routing": "Usmjeravanje",
     "sla": "SLA",
     "settings": "Postavke",
+    "admin": "Administracija",
     "queue": "Red poslova",
     "configVersions": "Verzije konfiguracije",
     "sections": {
@@ -69,6 +70,16 @@
   "placeholders": {
     "settingsTitle": "Nema dostupnih postavki",
     "settingsBody": "Postavke aplikacije pojavit će se ovdje kad registar postavki bude dostupan na ovom ekranu."
+  },
+  "admin": {
+    "title": "Administracija sistema",
+    "subtitle": "Identitet, organizaciona struktura, postavke i operacije. Sve izmjene prolaze kroz change log s razlogom; read-only mod je dostupan po ulozi.",
+    "tabs": {
+      "org": "Organizacija (OU)",
+      "users": "Korisnici i uloge",
+      "settings": "Postavke i dodaci",
+      "ops": "Red poslova i audit"
+    }
   },
   "settings": {
     "intro": "Konfiguracija kanala i predložaka. Svaka izmjena zahtijeva razlog i ide u change log.",

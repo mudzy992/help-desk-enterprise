@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminNavigationItem,
   getActiveNavigationItem,
   inboxNavigationItem,
   isNavigationItemActive,
   navigationLabelKeys,
+  queueNavigationItem,
   reportsNavigationItem,
   ticketsNavigationItem,
 } from "@/lib/navigation";
@@ -50,5 +52,26 @@ describe("navigation IA matching", () => {
     expect(
       getActiveNavigationItem("/tickets/new").labelKey,
     ).not.toBe(navigationLabelKeys.tickets);
+  });
+
+  it("activates admin only on /admin, not /admin/queue", () => {
+    expect(isNavigationItemActive(adminNavigationItem, "/admin", "")).toBe(
+      true,
+    );
+    expect(
+      isNavigationItemActive(adminNavigationItem, "/admin", "?tab=users"),
+    ).toBe(true);
+    expect(
+      isNavigationItemActive(adminNavigationItem, "/admin/queue", ""),
+    ).toBe(false);
+    expect(isNavigationItemActive(queueNavigationItem, "/admin/queue", "")).toBe(
+      true,
+    );
+    expect(getActiveNavigationItem("/admin").labelKey).toBe(
+      navigationLabelKeys.admin,
+    );
+    expect(getActiveNavigationItem("/admin/queue").labelKey).toBe(
+      navigationLabelKeys.queue,
+    );
   });
 });

@@ -8,12 +8,10 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
-  Network,
   Plus,
-  Settings,
+  Settings2,
   Ticket,
   Timer,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -37,11 +35,9 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/tickets?view=inbox": Inbox,
   "/services": LayoutGrid,
   "/knowledge-base": BookOpen,
-  "/users": Users,
-  "/organizational-units": Network,
   "/routing": GitBranch,
   "/sla": Timer,
-  "/settings": Settings,
+  "/admin": Settings2,
   "/admin/queue": Database,
   "/admin/config-versions": History,
 };

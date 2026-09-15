@@ -15,7 +15,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 
-export function UsersPage() {
+interface UsersPageProperties {
+  readonly embedded?: boolean;
+}
+
+export function UsersPage({ embedded = false }: UsersPageProperties) {
   const { t } = useTranslation();
   const directory = useDirectory();
   const [search, setSearch] = useState("");
@@ -33,11 +37,13 @@ export function UsersPage() {
 
   return (
     <section>
-      <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.users")]}
-        title={t("navigation.users")}
-        subtitle={t("directory.usersIntro")}
-      />
+      {embedded ? null : (
+        <PageHeader
+          crumbs={["EP-HelpDesk", t("navigation.users")]}
+          title={t("navigation.users")}
+          subtitle={t("directory.usersIntro")}
+        />
+      )}
       <Card>
         <CardHeader
           title={t("directory.usersHeading")}

@@ -5,19 +5,18 @@ import { DashboardPage } from "@/pages/dashboard-page";
 import { InstallPage } from "@/pages/install-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
-import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
+import { AdminPage } from "@/pages/admin-page";
 import { ReportsPage } from "@/pages/reports-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
 import { ConfigVersionsPage } from "@/pages/config-versions-page";
 import { IntegrationQueuePage } from "@/pages/integration-queue-page";
-import { SettingsPage } from "@/pages/settings-page";
+import { LegacyAdminRedirect } from "@/pages/legacy-admin-redirect";
 import { SlaPage } from "@/pages/sla-page";
 import { TicketsPage } from "@/pages/tickets-page";
 import { TicketCreatePage } from "@/pages/ticket-create-page";
 import { TicketDetailPage } from "@/pages/ticket-detail-page";
 import { TicketListPage } from "@/pages/ticket-list-page";
-import { UsersPage } from "@/pages/users-page";
 import { VisualQaPrimitivesPage } from "@/pages/visual-qa-primitives-page";
 
 export function AppRouter() {
@@ -38,11 +37,15 @@ export function AppRouter() {
             <Route index element={<KnowledgeBasePage />} />
             <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
           </Route>
-          <Route path="users" element={<UsersPage />} />
-          <Route path="organizational-units" element={<OrganizationalUnitsPage />} />
+          <Route path="users" element={<LegacyAdminRedirect tab="users" />} />
+          <Route
+            path="organizational-units"
+            element={<LegacyAdminRedirect tab="org" />}
+          />
           <Route path="routing" element={<RoutingPage />} />
           <Route path="sla" element={<SlaPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<LegacyAdminRedirect tab="settings" />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route path="admin/queue" element={<IntegrationQueuePage />} />
           <Route path="admin/config-versions" element={<ConfigVersionsPage />} />
           <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />

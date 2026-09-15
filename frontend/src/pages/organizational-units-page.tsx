@@ -8,17 +8,25 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 
-export function OrganizationalUnitsPage() {
+interface OrganizationalUnitsPageProperties {
+  readonly embedded?: boolean;
+}
+
+export function OrganizationalUnitsPage({
+  embedded = false,
+}: OrganizationalUnitsPageProperties) {
   const { t } = useTranslation();
   const directory = useDirectory();
 
   return (
     <section>
-      <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.organizationalUnits")]}
-        title={t("navigation.organizationalUnits")}
-        subtitle={t("directory.unitsIntro")}
-      />
+      {embedded ? null : (
+        <PageHeader
+          crumbs={["EP-HelpDesk", t("navigation.organizationalUnits")]}
+          title={t("navigation.organizationalUnits")}
+          subtitle={t("directory.unitsIntro")}
+        />
+      )}
       <Card>
         <CardHeader
           title={t("directory.unitsHeading")}
