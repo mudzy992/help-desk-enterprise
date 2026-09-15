@@ -2,6 +2,7 @@ import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { Avatar } from "@/components/ui/avatar";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { MessageType, TicketMessageResponse } from "@/services/tickets-collaboration-api";
 import type { TicketResponse } from "@/services/tickets-api";
 import { useTranslation } from "react-i18next";
@@ -14,6 +15,7 @@ interface TicketDetailConversationProperties {
   readonly requesterName: string;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
+  readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
@@ -51,6 +53,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
         <TicketMessageComposer
           access={props.access}
           isSending={props.isSending}
+          sendErrorKey={props.sendErrorKey}
           canWaitForUser={props.canWaitForUser}
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}

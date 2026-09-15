@@ -125,6 +125,7 @@ export function TicketDetailPage() {
           requesterName={requesterName}
           access={access}
           isSending={isSending}
+          sendErrorKey={detail.actionError}
           canWaitForUser={canWaitForUser}
           onSend={async (type, body) => {
             setIsSending(true);

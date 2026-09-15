@@ -135,14 +135,15 @@ export function useTicketDetail(ticketId: string | undefined) {
         setTicket(await updateTicket(id, { status, ...extras }));
       })),
     sendMessage: (type: MessageType, body: string) =>
-      onTicket((id) => runAction(() => sendTicketMessageOptimistic({
+      onTicket((id) => sendTicketMessageOptimistic({
         ticketId: id,
         type,
         body,
         authorUserId: currentUserId,
         setMessages,
         setTicket,
-      }))),
+        setActionError,
+      })),
     reopen: async () => {
       if (ticketId === undefined) {
         return null;

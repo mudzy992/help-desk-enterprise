@@ -7,6 +7,7 @@ import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracki
 import { Card, CardHeader } from "@/components/ui/card";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type {
   MessageType,
   TicketMessageResponse,
@@ -25,6 +26,7 @@ interface TicketDetailWorkspaceProperties {
   readonly requesterName: string;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
+  readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
@@ -78,6 +80,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           requesterName={props.requesterName}
           access={props.access}
           isSending={props.isSending}
+          sendErrorKey={props.sendErrorKey}
           canWaitForUser={props.canWaitForUser}
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}

@@ -4,6 +4,7 @@ import {
   type TicketMessageResponse,
 } from "@/services/tickets-collaboration-api";
 import { getTicket, type TicketResponse } from "@/services/tickets-api";
+import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import {
   createPendingMessageId,
   reconcileOptimisticMessage,
@@ -17,6 +18,7 @@ export async function sendTicketMessageOptimistic(input: {
   readonly authorUserId: string | null;
   readonly setMessages: Dispatch<SetStateAction<readonly TicketMessageResponse[]>>;
   readonly setTicket: Dispatch<SetStateAction<TicketResponse | null>>;
+  readonly setActionError: Dispatch<SetStateAction<TicketErrorKey | null>>;
 }): Promise<void> {
   const pendingId = createPendingMessageId();
   const pending: TicketMessageResponse = {
@@ -27,6 +29,7 @@ export async function sendTicketMessageOptimistic(input: {
     authorUserId: input.authorUserId,
     createdAt: new Date().toISOString(),
   };
+  input.setActionError(null);
   input.setMessages((current) => [...current, pending]);
   try {
     const created = await createTicketMessage(input.ticketId, {
@@ -41,6 +44,7 @@ export async function sendTicketMessageOptimistic(input: {
     input.setMessages((current) =>
       current.filter((message) => message.id !== pendingId),
     );
+    input.setActionError(mapTicketError(error));
     throw error;
   }
 }

@@ -3,18 +3,21 @@ import { MessageSquareLock, Paperclip, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { textareaClassName } from "@/components/ui/control";
+import { errorTextClassName, textareaClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 import {
   defaultMessageType,
   messageTypesForAccess,
   type ComposerAccess,
 } from "@/lib/tickets/message-composer-access";
+import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import type { MessageType } from "@/services/tickets-collaboration-api";
 
 interface TicketMessageComposerProperties {
   readonly access: ComposerAccess;
   readonly isSending: boolean;
+  readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser?: boolean;
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
@@ -24,6 +27,7 @@ interface TicketMessageComposerProperties {
 export function TicketMessageComposer({
   access,
   isSending,
+  sendErrorKey = null,
   canWaitForUser = false,
   onSend,
   onWaitForUser,
@@ -49,7 +53,11 @@ export function TicketMessageComposer({
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await submit();
+    try {
+      await submit();
+    } catch {
+      return;
+    }
   };
 
   return (
@@ -93,7 +101,7 @@ export function TicketMessageComposer({
             onKeyDown={(event) => {
               if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
                 event.preventDefault();
-                void submit();
+                void submit().catch(() => undefined);
               }
             }}
             placeholder={
@@ -102,6 +110,11 @@ export function TicketMessageComposer({
             className={cn(textareaClassName, "min-h-20 resize-y")}
             disabled={isSending}
           />
+          {sendErrorKey ? (
+            <p className={`mt-2 ${errorTextClassName}`} role="alert">
+              {ticketText(t, sendErrorKey)}
+            </p>
+          ) : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {onUpload ? (
               <>
