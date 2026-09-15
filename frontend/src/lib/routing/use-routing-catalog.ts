@@ -5,6 +5,10 @@ import {
   type OriginUnitOption,
 } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
+import {
+  listRoutingHandlerGroups,
+  type RoutingHandlerGroup,
+} from "@/services/routing-api";
 import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
 
 export function useRoutingCatalog() {
@@ -12,6 +16,7 @@ export function useRoutingCatalog() {
     [],
   );
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
+  const [groups, setGroups] = useState<readonly RoutingHandlerGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);
 
@@ -21,21 +26,24 @@ export function useRoutingCatalog() {
       setIsLoading(true);
       setErrorKey(null);
       try {
-        const [tree, catalog] = await Promise.all([
+        const [tree, catalog, handlerGroups] = await Promise.all([
           listOrganizationalUnitTree(),
           listServices(),
+          listRoutingHandlerGroups(),
         ]);
         if (cancelled) {
           return;
         }
         setOriginUnits(flattenOriginUnitOptions(tree));
         setServices(catalog);
+        setGroups(handlerGroups);
       } catch (error) {
         if (cancelled) {
           return;
         }
         setOriginUnits([]);
         setServices([]);
+        setGroups([]);
         setErrorKey(mapRoutingError(error));
       } finally {
         if (!cancelled) {
@@ -49,5 +57,5 @@ export function useRoutingCatalog() {
     };
   }, []);
 
-  return { originUnits, services, isLoading, errorKey };
+  return { originUnits, services, groups, isLoading, errorKey };
 }

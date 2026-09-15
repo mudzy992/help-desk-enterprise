@@ -55,6 +55,11 @@ export type RoutingResolution = {
   readonly unroutedQueue: UnroutedQueueDescriptor | null;
 };
 
+export type RoutingHandlerGroupResponse = {
+  readonly id: string;
+  readonly name: string;
+};
+
 export type RoutingRuleResponse = {
   readonly id: string;
   readonly originUnitId: string;

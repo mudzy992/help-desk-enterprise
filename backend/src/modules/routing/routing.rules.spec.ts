@@ -6,6 +6,13 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 describe('RoutingService rules', () => {
+  it('lists handler groups for the create-rule select', async () => {
+    const { routing } = createRoutingServiceHarness();
+    await expect(routing.listHandlerGroups()).resolves.toEqual([
+      { id: 'group-it', name: 'IT Support' },
+    ]);
+  });
+
   it('creates a routing rule for origin unit + service → group', async () => {
     const { routing } = createRoutingServiceHarness();
     const created = await routing.createRule({

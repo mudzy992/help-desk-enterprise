@@ -30,6 +30,7 @@ import {
 import { RoutingService } from './routing.service';
 import type {
   RoutingCoverageItem,
+  RoutingHandlerGroupResponse,
   RoutingResolution,
   RoutingRuleResponse,
 } from './routing.types';
@@ -58,6 +59,11 @@ export class RoutingController {
     return this.routingService.createRule(body, {
       actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
     });
+  }
+
+  @Get('groups')
+  listGroups(): Promise<readonly RoutingHandlerGroupResponse[]> {
+    return this.routingService.listHandlerGroups();
   }
 
   @Get('rules')

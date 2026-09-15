@@ -2,11 +2,12 @@ import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Select, Textarea } from "@/components/ui/field";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
 import {
   createRoutingRule,
+  type RoutingHandlerGroup,
   type RoutingRuleResponse,
 } from "@/services/routing-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
@@ -14,6 +15,7 @@ import type { ServiceResponse } from "@/services/service-catalog-api";
 interface CreateRoutingRuleFormProperties {
   readonly originUnits: readonly OriginUnitOption[];
   readonly services: readonly ServiceResponse[];
+  readonly groups: readonly RoutingHandlerGroup[];
   readonly existingRules: readonly RoutingRuleResponse[];
   readonly onCreated: () => Promise<void>;
 }
@@ -23,6 +25,7 @@ const maximumChangeReasonLength = 512;
 export function CreateRoutingRuleForm({
   originUnits,
   services,
+  groups,
   existingRules,
   onCreated,
 }: CreateRoutingRuleFormProperties) {
@@ -91,11 +94,18 @@ export function CreateRoutingRuleForm({
         </Select>
       </Field>
       <Field label={t("routing.groupId")} required>
-        <Input
+        <Select
           value={groupId}
-          onChange={(event) => setGroupId(event.target.value)}
           required
-        />
+          onChange={(event) => setGroupId(event.target.value)}
+        >
+          <option value="">{t("routing.selectPlaceholder")}</option>
+          {groups.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </Select>
       </Field>
       {duplicateRule ? (
         <p className="rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">

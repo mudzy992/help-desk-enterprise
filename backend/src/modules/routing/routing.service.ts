@@ -5,6 +5,7 @@ import {
   isRoutingConfigurationReferenceForService,
 } from './build-routing-configuration-reference';
 import { computeRoutingCoverage } from './compute-routing-coverage';
+import { listRoutingHandlerGroups } from './list-routing-handler-groups';
 import { listRoutingRules } from './list-routing-rules';
 import { mapRoutingError } from './map-routing-error';
 import { persistRoutingRuleChange } from './persist-routing-rule-change';
@@ -17,6 +18,7 @@ import type {
   ResolveRoutingInput,
   RoutingCoverageItem,
   RoutingCoverageQuery,
+  RoutingHandlerGroupResponse,
   RoutingMutationContext,
   RoutingResolution,
   RoutingRuleResponse,
@@ -43,6 +45,10 @@ export class RoutingService {
       const [response] = await toRoutingRuleResponses(this.prisma, [created]);
       return response as RoutingRuleResponse;
     });
+  }
+
+  async listHandlerGroups(): Promise<readonly RoutingHandlerGroupResponse[]> {
+    return this.execute(() => listRoutingHandlerGroups(this.prisma));
   }
 
   async listRules(

@@ -67,6 +67,7 @@ export function RoutingRulesPanel() {
             <CreateRoutingRuleForm
               originUnits={catalog.originUnits}
               services={catalog.services}
+              groups={catalog.groups}
               existingRules={rules}
               onCreated={loadRules}
             />
