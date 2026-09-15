@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ServiceCatalogTable } from "@/components/services/service-catalog-table";
+import { ServiceCatalogGrid } from "@/components/services/service-catalog-grid";
 import { ApiErrorText } from "@/components/ui/api-error-text";
-import { Card, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
@@ -54,37 +53,29 @@ export function ServicesPage() {
         title={t("services.title")}
         subtitle={t("services.intro")}
       />
-      <Card>
-        <CardHeader
-          title={t("services.catalogHeading")}
-          subtitle={t("services.catalogHint")}
-        />
-        <div className="px-4 py-3.5">
-          {actionErrorKey ? (
-            <div className="mb-3">
-              <ApiErrorText
-                messageKey={actionErrorKey}
-                requestId={actionRequestId}
-              />
-            </div>
-          ) : null}
-          {catalog.isLoading ? (
-            <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
-          ) : catalog.errorKey ? (
-            <ApiErrorText
-              messageKey={catalog.errorKey}
-              requestId={catalog.requestId}
-            />
-          ) : (
-            <ServiceCatalogTable
-              rows={catalog.rows}
-              canManageForms={hasPermission(permissionKeys.serviceFormsWrite)}
-              pendingServiceId={pendingServiceId}
-              onPrepareForm={(serviceId) => void prepareForm(serviceId)}
-            />
-          )}
+      {actionErrorKey ? (
+        <div className="mb-3">
+          <ApiErrorText
+            messageKey={actionErrorKey}
+            requestId={actionRequestId}
+          />
         </div>
-      </Card>
+      ) : null}
+      {catalog.isLoading ? (
+        <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
+      ) : catalog.errorKey ? (
+        <ApiErrorText
+          messageKey={catalog.errorKey}
+          requestId={catalog.requestId}
+        />
+      ) : (
+        <ServiceCatalogGrid
+          rows={catalog.rows}
+          canManageForms={hasPermission(permissionKeys.serviceFormsWrite)}
+          pendingServiceId={pendingServiceId}
+          onPrepareForm={(serviceId) => void prepareForm(serviceId)}
+        />
+      )}
     </section>
   );
 }
