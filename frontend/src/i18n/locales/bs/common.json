@@ -79,7 +79,8 @@
       "users": "Korisnici i uloge",
       "settings": "Postavke i dodaci",
       "ops": "Red poslova i audit"
-    }
+    },
+    "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8"
   },
   "settings": {
     "intro": "Konfiguracija kanala i predložaka. Svaka izmjena zahtijeva razlog i ide u change log.",

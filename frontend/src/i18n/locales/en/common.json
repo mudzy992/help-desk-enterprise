@@ -79,7 +79,8 @@
       "users": "Users and roles",
       "settings": "Settings and add-ons",
       "ops": "Job queue and audit"
-    }
+    },
+    "opsEmptyTitle": "Job queue and audit export come with Phase 7/8"
   },
   "settings": {
     "intro": "Channel and template configuration. Every change requires a reason and is written to the change log.",

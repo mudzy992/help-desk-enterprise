@@ -7,6 +7,7 @@ import {
   isAdminTab,
   parseAdminTab,
 } from "@/lib/admin/parse-admin-tab";
+import { AdminOpsPlaceholder } from "@/components/admin/admin-ops-placeholder";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { UsersPage } from "@/pages/users-page";
@@ -86,6 +87,7 @@ export function AdminPage() {
       {tab === "org" ? <OrganizationalUnitsPage embedded /> : null}
       {tab === "users" ? <UsersPage embedded /> : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
+      {tab === "ops" ? <AdminOpsPlaceholder /> : null}
     </section>
   );
 }
