@@ -1,28 +1,41 @@
-import { ArrowDownUp, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CreateKnowledgeArticleForm } from "@/components/knowledge-base/create-knowledge-article-form";
 import { KnowledgeArticleList } from "@/components/knowledge-base/knowledge-article-list";
+import { KnowledgeArticleSearchCard } from "@/components/knowledge-base/knowledge-article-search-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { useDirectory } from "@/lib/directory/use-directory";
+import {
+  filterKnowledgeArticles,
+  knowledgeListFiltersAreActive,
+  type KnowledgeListFilters,
+} from "@/lib/knowledge-base/filter-knowledge-articles";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
   listKnowledgeArticles,
   type KnowledgeArticleResponse,
+  type KnowledgeArticleStatus,
 } from "@/services/knowledge-base-api";
+import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
 
 export function KnowledgeBasePage() {
   const { t } = useTranslation();
+  const directory = useDirectory();
   const { hasPermission } = useSessionCapabilities();
   const [searchParams] = useSearchParams();
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
+  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [status, setStatus] = useState<KnowledgeArticleStatus | "">("");
+  const [serviceId, setServiceId] = useState("");
+  const [staleOnly, setStaleOnly] = useState(false);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -35,7 +48,12 @@ export function KnowledgeBasePage() {
     setErrorKey(null);
     setRequestId(null);
     try {
-      setItems(await listKnowledgeArticles());
+      const [articles, catalog] = await Promise.all([
+        listKnowledgeArticles(),
+        listServices().catch(() => []),
+      ]);
+      setItems(articles);
+      setServices(catalog);
     } catch (error) {
       setItems([]);
       setErrorKey(mapApiError(error));
@@ -49,18 +67,22 @@ export function KnowledgeBasePage() {
     void loadArticles();
   }, [loadArticles]);
 
-  const visibleItems = useMemo(() => {
-    const needle = search.trim().toLowerCase();
-    if (needle.length === 0) {
-      return items;
-    }
-    return items.filter(
-      (item) =>
-        item.title.toLowerCase().includes(needle) ||
-        item.body.toLowerCase().includes(needle),
-    );
-  }, [items, search]);
-
+  const filters: KnowledgeListFilters = useMemo(
+    () => ({ search, status, serviceId, staleOnly }),
+    [search, serviceId, staleOnly, status],
+  );
+  const visibleItems = useMemo(
+    () => filterKnowledgeArticles(items, filters),
+    [filters, items],
+  );
+  const ownerNames = useMemo(
+    () => new Map(directory.users.map((user) => [user.id, user.displayName])),
+    [directory.users],
+  );
+  const serviceNames = useMemo(
+    () => new Map(services.map((service) => [service.id, service.name])),
+    [services],
+  );
   const canWrite = hasPermission(permissionKeys.knowledgeArticleWrite);
   const canManageLifecycle =
     hasPermission(permissionKeys.knowledgeArticleReview) ||
@@ -81,33 +103,35 @@ export function KnowledgeBasePage() {
           </div>
         </Card>
       ) : null}
-      <Card className="mb-4">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-          <input
-            className="h-8 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-            type="search"
-            value={search}
-            placeholder={t("knowledgeBase.searchWidePlaceholder")}
-            aria-label={t("knowledgeBase.searchPlaceholder")}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground/70 md:flex">
-            <ArrowDownUp size={12} aria-hidden="true" />
-            {t("knowledgeBase.rankedByHelpfulness")}
-          </span>
-        </div>
-      </Card>
+      <KnowledgeArticleSearchCard
+        search={search}
+        status={status}
+        serviceId={serviceId}
+        staleOnly={staleOnly}
+        services={services}
+        onSearchChange={setSearch}
+        onStatusChange={setStatus}
+        onServiceIdChange={setServiceId}
+        onStaleOnlyChange={setStaleOnly}
+      />
       {isLoading ? (
         <PanelSkeleton className="mt-0" label={t("knowledgeBase.listHeading")} />
       ) : errorKey ? (
         <ApiErrorText messageKey={errorKey} requestId={requestId} />
       ) : (
-        <KnowledgeArticleList
-          items={visibleItems}
-          canManageLifecycle={canManageLifecycle}
-          onFeedback={loadArticles}
-        />
+        <>
+          <KnowledgeArticleList
+            items={visibleItems}
+            canManageLifecycle={canManageLifecycle}
+            isFiltered={knowledgeListFiltersAreActive(filters)}
+            ownerNames={ownerNames}
+            serviceNames={serviceNames}
+            onFeedback={loadArticles}
+          />
+          <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground/70">
+            {t("knowledgeBase.interceptRankingHint")}
+          </p>
+        </>
       )}
     </section>
   );

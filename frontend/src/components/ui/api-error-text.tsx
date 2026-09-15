@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
+import type { KnowledgeArticleErrorKey } from "@/lib/knowledge-base/map-knowledge-article-error";
 import type { ApiErrorKey } from "@/lib/map-api-error";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 
 interface ApiErrorTextProperties {
-  readonly messageKey: ApiErrorKey | TicketErrorKey;
+  readonly messageKey: ApiErrorKey | TicketErrorKey | KnowledgeArticleErrorKey;
   readonly requestId?: string | null;
 }
 

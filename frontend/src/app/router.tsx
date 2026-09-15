@@ -3,6 +3,7 @@ import { InstallSetupLayout } from "@/app/install-setup-layout";
 import { ApplicationShell } from "@/layouts/application-shell";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { InstallPage } from "@/pages/install-page";
+import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { ReportsPage } from "@/pages/reports-page";
@@ -33,7 +34,10 @@ export function AppRouter() {
             <Route path=":ticketId" element={<TicketDetailPage />} />
           </Route>
           <Route path="services" element={<ServicesPage />} />
-          <Route path="knowledge-base" element={<KnowledgeBasePage />} />
+          <Route path="knowledge-base">
+            <Route index element={<KnowledgeBasePage />} />
+            <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
+          </Route>
           <Route path="users" element={<UsersPage />} />
           <Route path="organizational-units" element={<OrganizationalUnitsPage />} />
           <Route path="routing" element={<RoutingPage />} />

@@ -1,101 +1,171 @@
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Lightbulb, ShieldQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { KnowledgeLifecycleActions } from "@/components/knowledge-base/knowledge-lifecycle-actions";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { cn } from "@/lib/utils";
+import type {
+  KnowledgeArticleResponse,
+  KnowledgeArticleStatus,
+} from "@/services/knowledge-base-api";
 import { submitKnowledgeFeedback } from "@/services/knowledge-base-api";
 
 interface KnowledgeArticleListProperties {
   readonly items: readonly KnowledgeArticleResponse[];
   readonly canManageLifecycle: boolean;
+  readonly isFiltered: boolean;
+  readonly ownerNames: ReadonlyMap<string, string>;
+  readonly serviceNames: ReadonlyMap<string, string>;
   readonly onFeedback: () => Promise<void>;
 }
 
-function statusTone(status: string): "success" | "warning" | "neutral" {
+function statusTone(status: KnowledgeArticleStatus) {
   if (status === "PUBLISHED") {
-    return "success";
+    return "success" as const;
   }
-  if (status === "DEPRECATED" || status === "ARCHIVED") {
-    return "warning";
+  if (status === "IN_REVIEW" || status === "ARCHIVED") {
+    return "warning" as const;
   }
-  return "neutral";
+  return "neutral" as const;
+}
+
+function ownerLabel(
+  item: KnowledgeArticleResponse,
+  ownerNames: ReadonlyMap<string, string>,
+): string | null {
+  return (
+    directoryDisplayName(ownerNames, item.ownerUserId) ??
+    (item.ownerGroupId ? truncateIdentifier(item.ownerGroupId) : null)
+  );
 }
 
 export function KnowledgeArticleList({
   items,
   canManageLifecycle,
+  isFiltered,
+  ownerNames,
+  serviceNames,
   onFeedback,
 }: KnowledgeArticleListProperties) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (items.length === 0) {
     return (
       <Card>
         <EmptyState
-          title={t("knowledgeBase.emptyTitle")}
-          body={t("knowledgeBase.emptyHint")}
+          icon={isFiltered ? <ShieldQuestion size={18} /> : undefined}
+          title={t(isFiltered ? "knowledgeBase.emptyFilterTitle" : "knowledgeBase.emptyTitle")}
+          body={t(isFiltered ? "knowledgeBase.emptyFilterHint" : "knowledgeBase.emptyHint")}
         />
       </Card>
     );
   }
   return (
     <ul className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-      {items.map((item) => (
-        <li key={item.id}>
-          <Card className="h-full px-4 py-4 transition-colors duration-150 hover:border-[#31405C]">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h3 className="text-[14px] font-semibold leading-5 text-foreground">
-                {item.title}
-              </h3>
-              <span className="flex items-center gap-1.5">
-                <Badge tone={statusTone(item.status)}>{item.status}</Badge>
-                {item.isStale ? <Badge tone="warning">{t("knowledgeBase.stale")}</Badge> : null}
-              </span>
-            </div>
-            <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-5 text-muted-foreground">
-              {item.body.slice(0, 280)}
-            </p>
-            <p className="mt-2 text-[12px] text-muted-foreground">
-              {t("knowledgeBase.owner")}: {item.ownerUserId ?? item.ownerGroupId ?? "—"}
-              {item.reviewDueAt
-                ? ` · ${t("knowledgeBase.reviewDue")}: ${item.reviewDueAt}`
-                : ""}
-            </p>
-            {item.status === "PUBLISHED" ? (
-              <div className="mt-3 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    void submitKnowledgeFeedback(item.id, true).then(onFeedback);
-                  }}
-                >
-                  <ThumbsUp size={13} /> {t("knowledgeBase.helpful")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    void submitKnowledgeFeedback(item.id, false).then(onFeedback);
-                  }}
-                >
-                  <ThumbsDown size={13} /> {t("knowledgeBase.notHelpful")}
-                </Button>
+      {items.map((item) => {
+        const owner = ownerLabel(item, ownerNames);
+        const serviceName =
+          serviceNames.get(item.serviceId) ?? truncateIdentifier(item.serviceId);
+        return (
+          <li key={item.id}>
+            <Card className="group h-full transition-all hover:border-[#31405C]">
+              <div className="px-4 pt-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="tnum text-[10.5px] font-medium text-muted-foreground/60">
+                      {item.slug} · {serviceName}
+                    </p>
+                    <Link
+                      to={`/knowledge-base/${item.id}`}
+                      className="mt-0.5 block text-[14px] font-semibold leading-5 text-foreground transition-colors group-hover:text-[#7FA8F5]"
+                    >
+                      {item.title}
+                    </Link>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <MetaBadge
+                      meta={{
+                        label: t(`knowledgeBase.status.${item.status}`),
+                        tone: statusTone(item.status),
+                      }}
+                    />
+                    {item.isStale ? (
+                      <Badge tone="warning">{t("knowledgeBase.stale")}</Badge>
+                    ) : null}
+                  </span>
+                </div>
+                <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-5 text-muted-foreground">
+                  {item.body.slice(0, 280)}
+                </p>
               </div>
-            ) : null}
-            <KnowledgeLifecycleActions
-              articleId={item.id}
-              status={item.status}
-              canManage={canManageLifecycle}
-              onChanged={onFeedback}
-            />
-          </Card>
-        </li>
-      ))}
+              <div className="mt-3 flex items-center gap-3 border-t border-border/50 px-4 py-2.5 text-[11px] text-muted-foreground">
+                {owner ? (
+                  <span className="flex min-w-0 items-center gap-1">
+                    <Avatar name={owner} size="xs" />
+                    <span className="truncate">{owner}</span>
+                  </span>
+                ) : (
+                  <span>{t("knowledgeBase.owner")}: —</span>
+                )}
+                {item.status === "PUBLISHED" ? (
+                  <div className="ml-auto flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      aria-label={t("knowledgeBase.helpful")}
+                      className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+                      onClick={() => {
+                        void submitKnowledgeFeedback(item.id, true).then(onFeedback);
+                      }}
+                    >
+                      <ThumbsUp size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={t("knowledgeBase.notHelpful")}
+                      className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+                      onClick={() => {
+                        void submitKnowledgeFeedback(item.id, false).then(onFeedback);
+                      }}
+                    >
+                      <ThumbsDown size={12} />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground/60">
+                <span className="tnum">
+                  {t("knowledgeBase.updatedAt")}{" "}
+                  <RelativeTime value={item.updatedAt} locale={i18n.language} />
+                </span>
+                {item.reviewDueAt ? (
+                  <span
+                    className={cn(
+                      "tnum flex items-center gap-1",
+                      item.isStale && "text-warning",
+                    )}
+                  >
+                    {item.isStale ? <Lightbulb size={10.5} /> : null}
+                    {t("knowledgeBase.reviewDue")}:{" "}
+                    <RelativeTime value={item.reviewDueAt} locale={i18n.language} />
+                  </span>
+                ) : null}
+              </div>
+              <div className="px-4 pb-3">
+                <KnowledgeLifecycleActions
+                  articleId={item.id}
+                  status={item.status}
+                  canManage={canManageLifecycle}
+                  onChanged={onFeedback}
+                />
+              </div>
+            </Card>
+          </li>
+        );
+      })}
     </ul>
   );
 }
