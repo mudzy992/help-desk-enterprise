@@ -64,6 +64,7 @@ export default {
       },
       opacity: {
         6: "0.06",
+        8: "0.08",
       },
       transitionTimingFunction: {
         enterprise: "cubic-bezier(0.22, 0.68, 0.36, 1)",
