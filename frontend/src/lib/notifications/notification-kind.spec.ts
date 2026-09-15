@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { notificationKind, notificationTicketPath, notificationTitleKey } from "./notification-kind";
 
+const TICKET_ID = "ticket-1";
+const TICKET_PATH = `/tickets/${TICKET_ID}`;
+
 describe("notification helpers", () => {
   it("maps type to kind, title key, and ticket path", () => {
     expect(notificationKind("ticket.sla")).toBe("sla");
@@ -14,5 +17,29 @@ describe("notification helpers", () => {
     );
     expect(notificationTicketPath("ticket-1")).toBe("/tickets/ticket-1");
     expect(notificationTicketPath(null)).toBeNull();
+  });
+
+  it("opens the same ticket for every known kind, including sla and approval", () => {
+    const types = [
+      "ticket.created",
+      "ticket.assigned",
+      "ticket.message",
+      "ticket.resolved",
+      "ticket.closed",
+      "ticket.approval",
+      "ticket.sla",
+      "remote.requested",
+    ] as const;
+    for (const type of types) {
+      expect(notificationTicketPath(TICKET_ID, type)).toBe(TICKET_PATH);
+    }
+  });
+
+  it("does not throw on unknown kind and falls back without a crash", () => {
+    expect(() => notificationTicketPath(TICKET_ID, "not-a-real-kind")).not.toThrow();
+    expect(notificationTicketPath(TICKET_ID, "not-a-real-kind")).toBe(TICKET_PATH);
+    expect(notificationTicketPath(null, "not-a-real-kind")).toBeNull();
+    expect(notificationTicketPath(undefined, "unknown")).toBeNull();
+    expect(notificationTicketPath("", "ticket.sla")).toBeNull();
   });
 });

@@ -44,7 +44,7 @@ export function NotificationsBell() {
 
   const onSelect = (notification: InAppNotification) => {
     void inbox.markOneRead(notification.id);
-    const path = notificationTicketPath(notification.ticketId);
+    const path = notificationTicketPath(notification.ticketId, notification.type);
     if (path !== null) {
       navigate(path);
     }

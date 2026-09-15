@@ -17,11 +17,18 @@ export function notificationKind(type: string): NotificationKind {
 
 export function notificationTicketPath(
   ticketId: string | null | undefined,
+  type?: string,
 ): string | null {
   if (ticketId === undefined || ticketId === null || ticketId.length === 0) {
     return null;
   }
-  return `/tickets/${ticketId}`;
+  switch (notificationKind(type ?? "")) {
+    case "ticket":
+    case "sla":
+    case "approval":
+    case "system":
+      return `/tickets/${ticketId}`;
+  }
 }
 
 export function notificationTitleKey(

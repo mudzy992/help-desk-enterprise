@@ -42,7 +42,10 @@ export function DashboardActivityFeed() {
         <ul className="max-h-[300px] divide-y divide-border/50 overflow-y-auto">
           {items.map((notification) => {
             const kind = notificationKind(notification.type);
-            const path = notificationTicketPath(notification.ticketId);
+            const path = notificationTicketPath(
+              notification.ticketId,
+              notification.type,
+            );
             return (
               <li key={notification.id}>
                 <button
