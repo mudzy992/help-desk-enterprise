@@ -51,6 +51,11 @@ describe("filterServiceCatalogRows", () => {
   it("returns an empty list when nothing matches", () => {
     expect(filterServiceCatalogRows(rows, "payroll")).toEqual([]);
   });
+
+  it("filters by category without inventing rows", () => {
+    expect(filterServiceCatalogRows(rows, "", "other")).toEqual([]);
+    expect(filterServiceCatalogRows(rows, "", "cat-it")).toEqual(rows);
+  });
 });
 
 describe("shouldWarnServiceRuntimeAvailability", () => {

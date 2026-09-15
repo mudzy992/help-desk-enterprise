@@ -1,4 +1,12 @@
 import { apiRequest } from "@/services/api";
+import {
+  listServiceCategories as listServiceCategoriesFromApi,
+  type ServiceCategoryResponse as ServiceCategoryApiResponse,
+} from "@/services/service-categories-api";
+
+export type ServiceCategoryResponse = ServiceCategoryApiResponse;
+
+export const listServiceCategories = listServiceCategoriesFromApi;
 
 export type ServiceLifecycle = "DRAFT" | "ACTIVE" | "DEPRECATED";
 export type ServiceAvailability = "OPERATIONAL" | "DEGRADED" | "MAINTENANCE";
@@ -26,12 +34,6 @@ export type ServiceResponse = {
   readonly runtimeAvailability: ServiceRuntimeAvailability;
   readonly classification: string;
   readonly requiresApproval: boolean;
-};
-
-export type ServiceCategoryResponse = {
-  readonly id: string;
-  readonly name: string;
-  readonly slug: string;
 };
 
 export type CreateServiceInput = {
@@ -116,10 +118,6 @@ export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
 
 export function listServices(): Promise<readonly ServiceResponse[]> {
   return apiRequest("/services");
-}
-
-export function listServiceCategories(): Promise<readonly ServiceCategoryResponse[]> {
-  return apiRequest("/service-categories");
 }
 
 export function createService(input: CreateServiceInput): Promise<ServiceResponse> {

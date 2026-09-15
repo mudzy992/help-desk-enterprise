@@ -1,10 +1,12 @@
-import { CalendarClock, FileJson2, Layers, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarClock, FileJson2, Layers, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ServiceCatalogLifecycleActions } from "@/components/services/service-catalog-lifecycle-actions";
-import { Badge } from "@/components/ui/badge";
+import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
+import type { CatalogCoverageNote } from "@/lib/services/catalog-coverage-note";
 import { shouldWarnServiceRuntimeAvailability } from "@/lib/services/filter-service-catalog-rows";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
 import {
@@ -15,27 +17,34 @@ import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogCardProperties {
   readonly row: ServiceCatalogRow;
+  readonly categoryName: string;
+  readonly coverage: CatalogCoverageNote | null;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
   readonly onEdit: (service: ServiceResponse) => void;
+  readonly onStartOnboarding: (serviceId: string) => void;
   readonly onCatalogChanged: () => Promise<void>;
 }
 
 export function ServiceCatalogCard({
   row,
+  categoryName,
+  coverage,
   canManageForms,
   canWriteCatalog,
   pendingServiceId,
   onPrepareForm,
   onEdit,
+  onStartOnboarding,
   onCatalogChanged,
 }: ServiceCatalogCardProperties) {
   const { t, i18n } = useTranslation();
   const { service, form } = row;
-  const hasActiveForm = (form?.activeFormVersionRef ?? null) !== null;
-  const isTicketReady = hasActiveForm && service.offeredToRequesters;
+  const activeVersion = form?.versions.find(
+    (version) => version.formVersionRef === form.activeFormVersionRef,
+  );
   const downtime = service.runtimeAvailability.activeDowntimeWindow;
   const showRuntimeWarning = shouldWarnServiceRuntimeAvailability(
     service.runtimeAvailability.isCurrentlyUnavailable,
@@ -54,12 +63,15 @@ export function ServiceCatalogCard({
               <p className="text-[13.5px] font-semibold leading-[18px] text-foreground">
                 {service.name}
               </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{service.slug}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{categoryName}</p>
             </div>
           </div>
-          <Badge tone={SERVICE_LIFECYCLE_META[service.lifecycle].tone} dot>
-            {t(`services.lifecycle.${service.lifecycle}`)}
-          </Badge>
+          <MetaBadge
+            meta={{
+              label: t(`services.lifecycle.${service.lifecycle}`),
+              tone: SERVICE_LIFECYCLE_META[service.lifecycle].tone,
+            }}
+          />
         </div>
         {downtime ? (
           <div className="mt-2.5 flex items-start gap-2 rounded-md border border-info/25 bg-info/10 px-2.5 py-2">
@@ -76,21 +88,21 @@ export function ServiceCatalogCard({
         ) : null}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 px-4 py-3">
-        <Badge
-          tone={SERVICE_AVAILABILITY_META[service.availability].tone}
+        <MetaBadge
+          meta={{
+            label: t(`services.availability.${service.availability}`),
+            tone: SERVICE_AVAILABILITY_META[service.availability].tone,
+          }}
           className="text-[10px]"
-          dot
-        >
-          {t(`services.availability.${service.availability}`)}
-        </Badge>
+        />
         <Badge
-          tone={hasActiveForm ? "success" : "danger"}
-          className="text-[10px]"
+          tone={activeVersion ? "success" : "danger"}
+          className="text-[10px] tnum"
           dot={false}
         >
           <FileJson2 size={10} />
-          {hasActiveForm
-            ? t("services.formActive", { count: form?.versions.length ?? 0 })
+          {activeVersion
+            ? t("services.formVersionBadge", { version: activeVersion.version })
             : t("services.formMissing")}
         </Badge>
         {service.requiresApproval ? (
@@ -105,72 +117,54 @@ export function ServiceCatalogCard({
           </Badge>
         ) : null}
       </div>
-      <div className="flex flex-col gap-2 border-t border-border/50 px-4 py-2.5">
-        {canWriteCatalog ? (
+      <div className="flex items-center justify-between border-t border-border/50 px-4 py-2.5">
+        {coverage ? (
+          <Badge tone={coverage.tone} dot={false} className="text-[10px]">
+            {t(coverage.key)}
+          </Badge>
+        ) : (
+          <span />
+        )}
+        <Button variant="ghost" size="xs" asChild>
+          <Link to="/tickets/new">
+            {t("services.createTicket")} <ArrowRight size={11.5} />
+          </Link>
+        </Button>
+      </div>
+      {canWriteCatalog ? (
+        <div className="border-t border-border/50 px-4 py-2.5">
           <ServiceCatalogLifecycleActions
             service={service}
             onChanged={onCatalogChanged}
             onEdit={() => onEdit(service)}
           />
-        ) : null}
-        <div className="flex items-center justify-end">
-          <ServiceCatalogCardAction
-            serviceId={service.id}
-            isTicketReady={isTicketReady}
-            hasActiveForm={hasActiveForm}
-            canManageForms={canManageForms}
-            pendingServiceId={pendingServiceId}
-            onPrepareForm={onPrepareForm}
-          />
+          <div className="mt-2 flex justify-end gap-1.5">
+            {service.lifecycle === "DRAFT" ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => onStartOnboarding(service.id)}
+              >
+                {t("services.startOnboarding")}
+              </Button>
+            ) : null}
+            {canManageForms ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                disabled={pendingServiceId !== null}
+                onClick={() => onPrepareForm(service.id)}
+              >
+                {pendingServiceId === service.id
+                  ? t("services.preparingForm")
+                  : t("services.manageForm")}
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
     </Card>
-  );
-}
-
-interface ServiceCatalogCardActionProperties {
-  readonly serviceId: string;
-  readonly isTicketReady: boolean;
-  readonly hasActiveForm: boolean;
-  readonly canManageForms: boolean;
-  readonly pendingServiceId: string | null;
-  readonly onPrepareForm: (serviceId: string) => void;
-}
-
-function ServiceCatalogCardAction({
-  serviceId,
-  isTicketReady,
-  hasActiveForm,
-  canManageForms,
-  pendingServiceId,
-  onPrepareForm,
-}: ServiceCatalogCardActionProperties) {
-  const { t } = useTranslation();
-  if (isTicketReady) {
-    return (
-      <span className="text-[11.5px] text-muted-foreground">
-        {t("services.ticketReady")}
-      </span>
-    );
-  }
-  if (canManageForms && !hasActiveForm) {
-    return (
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        disabled={pendingServiceId !== null}
-        onClick={() => onPrepareForm(serviceId)}
-      >
-        {pendingServiceId === serviceId
-          ? t("services.preparingForm")
-          : t("services.prepareForm")}
-      </Button>
-    );
-  }
-  return (
-    <span className="text-[11.5px] text-muted-foreground">
-      {t("services.notOfferedHint")}
-    </span>
   );
 }
