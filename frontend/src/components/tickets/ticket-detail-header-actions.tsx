@@ -108,12 +108,11 @@ export function TicketDetailHeaderActions({
       {canChangeStatus ? <TicketRequestRemoteButton ticket={ticket} /> : null}
       {canChangeStatus && nextStatuses.length > 0 ? (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            disabled={savingStatus}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-[12.5px] font-medium text-foreground transition-all duration-150 hover:border-[#31405C] hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary/70 disabled:opacity-45"
-          >
-            <Pencil size={14} />
-            {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")} ▾
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="sm" disabled={savingStatus}>
+              <Pencil size={14} />
+              {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")} ▾
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {nextStatuses.map((status) => (

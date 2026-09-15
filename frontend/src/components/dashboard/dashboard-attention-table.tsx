@@ -10,7 +10,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { tableHeadClassName, ticketIdClassName } from "@/components/ui/control";
+import {
+  tableHeadClassName,
+  tableRowClassName,
+  ticketIdClassName,
+} from "@/components/ui/control";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -98,11 +102,11 @@ export function DashboardAttentionTable({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody>
               {items.map((ticket) => (
                 <tr
                   key={ticket.id}
-                  className="group min-h-9 cursor-pointer transition-colors duration-150 hover:bg-elevated/40"
+                  className={`${tableRowClassName} cursor-pointer`}
                   onClick={() => navigate(`/tickets/${ticket.id}`)}
                 >
                   <td className="px-4 py-2.5">

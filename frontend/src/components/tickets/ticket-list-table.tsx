@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   tableHeadClassName,
+  tableRowClassName,
   tableWrapClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
@@ -120,11 +121,11 @@ export function TicketListTable({
             <th className="px-4 py-2.5 text-right font-medium">{t("tickets.columns.updated")}</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/50">
+        <tbody>
           {tickets.map((ticket) => (
             <tr
               key={ticket.id}
-              className="group min-h-9 cursor-pointer transition-colors duration-150 hover:bg-elevated/40"
+              className={`${tableRowClassName} cursor-pointer`}
               onClick={() => navigate(`/tickets/${ticket.id}`)}
             >
               <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>

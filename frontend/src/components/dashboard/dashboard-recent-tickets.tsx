@@ -50,21 +50,21 @@ export function DashboardRecentTickets({
               className={`${tableRowClassName} cursor-pointer`}
               onClick={() => navigate(`/tickets/${ticket.id}`)}
             >
-              <td className="px-3 py-2">
+              <td className="px-3">
                 <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
                   {ticket.ticketNumber}
                 </Link>
               </td>
-              <td className="max-w-[26rem] truncate px-3 py-2 text-[13px] font-medium">
+              <td className="max-w-[26rem] truncate px-3 text-[13px] font-medium">
                 {ticket.title}
               </td>
-              <td className="px-3 py-2">
+              <td className="px-3">
                 <TicketStatusBadge status={ticket.status} />
               </td>
-              <td className="px-3 py-2">
+              <td className="px-3">
                 <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
               </td>
-              <td className="px-3 py-2 tnum text-[12px] text-muted-foreground">
+              <td className="px-3 tnum text-[12px] text-muted-foreground">
                 {new Date(ticket.createdAt).toLocaleString(i18n.language)}
               </td>
             </tr>
