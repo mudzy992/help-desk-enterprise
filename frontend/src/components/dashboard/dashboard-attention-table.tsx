@@ -15,6 +15,7 @@ import {
   tableRowClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
+import { EmptyState } from "@/components/ui/empty-state";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -71,9 +72,14 @@ export function DashboardAttentionTable({
         }
       />
       {items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-          {t("dashboard.attentionEmpty")}
-        </p>
+        <EmptyState
+          title={t("dashboard.attentionEmpty")}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link to="/tickets?view=all">{t("dashboard.attentionAll")}</Link>
+            </Button>
+          }
+        />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">

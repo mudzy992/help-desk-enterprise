@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RoutingResolutionResult } from "@/components/routing/routing-resolution-result";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
 import { Field, Select } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import { useRoutingCatalog } from "@/lib/routing/use-routing-catalog";
 import {
@@ -20,6 +21,7 @@ export function RoutingResolutionTester() {
   const [resolution, setResolution] = useState<RoutingResolution | null>(null);
   const [isResolving, setIsResolving] = useState(false);
   const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     if (originUnitId.length === 0 && catalog.originUnits[0]) {
@@ -39,6 +41,7 @@ export function RoutingResolutionTester() {
     const load = async () => {
       setIsResolving(true);
       setErrorKey(null);
+      setRequestId(null);
       try {
         const next = await resolveRouting(originUnitId, serviceId);
         if (!cancelled) {
@@ -48,6 +51,7 @@ export function RoutingResolutionTester() {
         if (!cancelled) {
           setResolution(null);
           setErrorKey(mapRoutingError(error));
+          setRequestId(readApiRequestId(error));
         }
       } finally {
         if (!cancelled) {
@@ -72,7 +76,12 @@ export function RoutingResolutionTester() {
     return <PanelSkeleton label={t("routing.tabTester")} />;
   }
   if (catalog.errorKey) {
-    return <p className={errorTextClassName}>{t(catalog.errorKey)}</p>;
+    return (
+      <ApiErrorText
+        messageKey={catalog.errorKey}
+        requestId={catalog.requestId}
+      />
+    );
   }
 
   return (
@@ -126,6 +135,7 @@ export function RoutingResolutionTester() {
         resolution={resolution}
         isLoading={isResolving}
         errorKey={errorKey}
+        requestId={requestId}
         originLabel={originLabel}
         serviceLabel={serviceLabel}
       />

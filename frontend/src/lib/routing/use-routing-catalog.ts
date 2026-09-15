@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
+import { readApiRequestId } from "@/lib/map-api-error";
 import {
   flattenOriginUnitOptions,
   type OriginUnitOption,
@@ -19,12 +20,14 @@ export function useRoutingCatalog() {
   const [groups, setGroups] = useState<readonly RoutingHandlerGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setIsLoading(true);
       setErrorKey(null);
+      setRequestId(null);
       try {
         const [tree, catalog, handlerGroups] = await Promise.all([
           listOrganizationalUnitTree(),
@@ -45,6 +48,7 @@ export function useRoutingCatalog() {
         setServices([]);
         setGroups([]);
         setErrorKey(mapRoutingError(error));
+        setRequestId(readApiRequestId(error));
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -57,5 +61,5 @@ export function useRoutingCatalog() {
     };
   }, []);
 
-  return { originUnits, services, groups, isLoading, errorKey };
+  return { originUnits, services, groups, isLoading, errorKey, requestId };
 }

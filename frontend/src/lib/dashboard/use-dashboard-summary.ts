@@ -6,6 +6,7 @@ import {
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { useSession } from "@/lib/session/use-session";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
+import { readApiRequestId } from "@/lib/map-api-error";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
@@ -25,6 +26,7 @@ export type DashboardSummaryState = {
   readonly groupNames: ReadonlyMap<string, string>;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
+  readonly requestId: string | null;
   readonly reload: () => Promise<void>;
 };
 
@@ -45,11 +47,13 @@ export function useDashboardSummary(): DashboardSummaryState {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const reload = useCallback(async (silent = false) => {
     if (!silent) {
       setIsLoading(true);
       setErrorKey(null);
+      setRequestId(null);
     }
     try {
       const tickets = await listTickets();
@@ -78,6 +82,7 @@ export function useDashboardSummary(): DashboardSummaryState {
       setOriginNames(new Map());
       setGroupNames(new Map());
       setErrorKey(mapTicketError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       if (!silent) {
         setIsLoading(false);
@@ -103,6 +108,7 @@ export function useDashboardSummary(): DashboardSummaryState {
     groupNames,
     isLoading,
     errorKey,
+    requestId,
     reload,
   };
 }

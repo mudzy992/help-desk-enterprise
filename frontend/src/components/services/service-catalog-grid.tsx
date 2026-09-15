@@ -90,7 +90,19 @@ export function ServiceCatalogGrid({
             isQueryActive ? t("services.searchEmptyBody") : t("services.emptyBody")
           }
           action={
-            !isQueryActive && canWriteCatalog ? (
+            isQueryActive ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setQuery("");
+                  setCategoryId(null);
+                }}
+              >
+                {t("services.clearSearch")}
+              </Button>
+            ) : canWriteCatalog ? (
               <Button type="button" size="sm" onClick={onCreate}>
                 {t("services.createService")}
               </Button>

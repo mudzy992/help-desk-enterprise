@@ -1,8 +1,11 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { GroupedBars } from "@/components/charts/grouped-bars";
 import { HBars } from "@/components/charts/h-bars";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { GroupedBarDatum } from "@/components/charts/grouped-bars";
 import type { HorizontalBarItem } from "@/components/charts/h-bars";
 import type { ReportPreset } from "@/lib/reports/report-window";
@@ -54,9 +57,14 @@ export function ReportsCharts({
         />
         <div className="px-4 py-4">
           {bottleneckItems.length === 0 ? (
-            <p className="text-center text-[12px] text-muted-foreground">
-              {t("reports.bottleneckEmpty")}
-            </p>
+            <EmptyState
+              title={t("reports.bottleneckEmpty")}
+              action={
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/tickets">{t("reports.openTickets")}</Link>
+                </Button>
+              }
+            />
           ) : (
             <HBars items={[...bottleneckItems]} />
           )}
@@ -69,9 +77,14 @@ export function ReportsCharts({
         />
         <div className="px-4 py-4">
           {serviceItems.length === 0 ? (
-            <p className="text-center text-[12px] text-muted-foreground">
-              {t("reports.volumeEmpty")}
-            </p>
+            <EmptyState
+              title={t("reports.volumeEmpty")}
+              action={
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/tickets">{t("reports.openTickets")}</Link>
+                </Button>
+              }
+            />
           ) : (
             <HBars items={[...serviceItems]} />
           )}

@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CreateRoutingRuleForm } from "@/components/routing/create-routing-rule-form";
 import { RoutingRulesTable } from "@/components/routing/routing-rules-table";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { readApiRequestId } from "@/lib/map-api-error";
 import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
 import { useRoutingCatalog } from "@/lib/routing/use-routing-catalog";
 import {
@@ -18,15 +19,18 @@ export function RoutingRulesPanel() {
   const [rules, setRules] = useState<readonly RoutingRuleResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const loadRules = useCallback(async () => {
     setIsLoading(true);
     setErrorKey(null);
+    setRequestId(null);
     try {
       setRules(await listRoutingRules());
     } catch (error) {
       setRules([]);
       setErrorKey(mapRoutingError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +52,9 @@ export function RoutingRulesPanel() {
             <PanelSkeleton className="mt-0" label={t("routing.rulesHeading")} />
           </div>
         ) : errorKey ? (
-          <p className={`px-4 py-3.5 ${errorTextClassName}`}>{t(errorKey)}</p>
+          <div className="px-4 py-3.5">
+            <ApiErrorText messageKey={errorKey} requestId={requestId} />
+          </div>
         ) : (
           <RoutingRulesTable rules={rules} />
         )}
@@ -62,7 +68,10 @@ export function RoutingRulesPanel() {
           {catalog.isLoading ? (
             <PanelSkeleton className="mt-0" label={t("routing.createHeading")} />
           ) : catalog.errorKey ? (
-            <p className={errorTextClassName}>{t(catalog.errorKey)}</p>
+            <ApiErrorText
+              messageKey={catalog.errorKey}
+              requestId={catalog.requestId}
+            />
           ) : (
             <CreateRoutingRuleForm
               originUnits={catalog.originUnits}

@@ -7,6 +7,7 @@ import {
 } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ticketIdClassName } from "@/components/ui/control";
 import { SLA_STATE_META } from "@/lib/theme/semantic-meta";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -34,9 +35,16 @@ export function DashboardSlaWatchlist({
         }
       />
       {items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-          {t("dashboard.slaEmpty")}
-        </p>
+        <EmptyState
+          title={t("dashboard.slaEmpty")}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link to="/tickets?view=all&overdue=true">
+                {t("dashboard.slaAll")}
+              </Link>
+            </Button>
+          }
+        />
       ) : (
         <ul className="divide-y divide-border/50">
           {items.map((ticket) => (

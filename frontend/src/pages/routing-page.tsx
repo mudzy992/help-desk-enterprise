@@ -60,7 +60,7 @@ export function RoutingPage() {
       ) : tab === "rules" ? (
         <RoutingRulesPanel />
       ) : (
-        <RoutingCoveragePanel />
+        <RoutingCoveragePanel onCreateRule={() => setTab("rules")} />
       )}
     </section>
   );

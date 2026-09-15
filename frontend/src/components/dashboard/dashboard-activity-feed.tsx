@@ -1,7 +1,9 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
 import {
   notificationKind,
@@ -35,9 +37,14 @@ export function DashboardActivityFeed() {
         subtitle={t("dashboard.activitySubtitle")}
       />
       {items.length === 0 ? (
-        <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-          {t("dashboard.activityEmpty")}
-        </p>
+        <EmptyState
+          title={t("dashboard.activityEmpty")}
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link to="/tickets">{t("dashboard.viewAll")}</Link>
+            </Button>
+          }
+        />
       ) : (
         <ul className="max-h-[300px] divide-y divide-border/50 overflow-y-auto">
           {items.map((notification) => {

@@ -3,8 +3,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
+import { readApiRequestId } from "@/lib/map-api-error";
 import {
   mapServiceCategoryError,
   type ServiceCategoryErrorKey,
@@ -33,16 +34,19 @@ export function ServiceCategoriesPanel({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [errorKey, setErrorKey] = useState<ServiceCategoryErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   const remove = async (categoryId: string) => {
     setPendingId(categoryId);
     setErrorKey(null);
+    setRequestId(null);
     try {
       await deleteServiceCategory(categoryId);
       setConfirmId(null);
       await onChanged();
     } catch (error) {
       setErrorKey(mapServiceCategoryError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       setPendingId(null);
     }
@@ -67,7 +71,9 @@ export function ServiceCategoriesPanel({
 
   return (
     <div className="grid gap-3">
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      {errorKey ? (
+        <ApiErrorText messageKey={errorKey} requestId={requestId} />
+      ) : null}
       {categories.map((category) => {
         const parent = categories.find((item) => item.id === category.parentId);
         return (

@@ -2,7 +2,8 @@ import { GitBranch, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName } from "@/components/ui/control";
+import { ApiErrorText } from "@/components/ui/api-error-text";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ROUTING_OUTCOME_META } from "@/lib/theme/semantic-meta";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ interface RoutingResolutionResultProperties {
   readonly resolution: RoutingResolution | null;
   readonly isLoading: boolean;
   readonly errorKey: RoutingErrorKey | null;
+  readonly requestId: string | null;
   readonly originLabel: string;
   readonly serviceLabel: string;
 }
@@ -21,6 +23,7 @@ export function RoutingResolutionResult({
   resolution,
   isLoading,
   errorKey,
+  requestId,
   originLabel,
   serviceLabel,
 }: RoutingResolutionResultProperties) {
@@ -35,7 +38,7 @@ export function RoutingResolutionResult({
         {isLoading ? (
           <PanelSkeleton className="mt-0" label={t("routing.resolutionTitle")} />
         ) : errorKey ? (
-          <p className={errorTextClassName}>{t(errorKey)}</p>
+          <ApiErrorText messageKey={errorKey} requestId={requestId} />
         ) : resolution ? (
           <ResolutionBody
             resolution={resolution}
@@ -43,7 +46,7 @@ export function RoutingResolutionResult({
             serviceLabel={serviceLabel}
           />
         ) : (
-          <p className="text-[12.5px] text-muted">{t("routing.testerEmpty")}</p>
+          <EmptyState title={t("routing.testerEmpty")} />
         )}
       </div>
     </Card>

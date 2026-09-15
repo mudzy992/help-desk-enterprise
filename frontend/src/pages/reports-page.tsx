@@ -24,6 +24,7 @@ import {
   type ReportPreset,
 } from "@/lib/reports/report-window";
 import { buildReportVolumeSeries } from "@/lib/reports/report-volume";
+import { readApiRequestId } from "@/lib/map-api-error";
 import {
   mapTicketError,
   type TicketErrorKey,
@@ -43,6 +44,7 @@ export function ReportsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [preset, setPreset] = useState<ReportPreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -50,6 +52,7 @@ export function ReportsPage() {
   const reload = useCallback(async () => {
     setIsLoading(true);
     setErrorKey(null);
+    setRequestId(null);
     try {
       const loaded = await listTickets();
       setTickets(loaded);
@@ -62,6 +65,7 @@ export function ReportsPage() {
     } catch (error) {
       setTickets(null);
       setErrorKey(mapTicketError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +146,7 @@ export function ReportsPage() {
       {isLoading ? (
         <PanelSkeleton className="mt-0" label={t("reports.title")} />
       ) : errorKey ? (
-        <ApiErrorText messageKey={errorKey} />
+        <ApiErrorText messageKey={errorKey} requestId={requestId} />
       ) : tickets === null || tickets.length === 0 ? (
         <EmptyState
           icon={<BarChart3 size={18} strokeWidth={1.8} />}

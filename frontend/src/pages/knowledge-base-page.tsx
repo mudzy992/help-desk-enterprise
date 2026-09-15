@@ -145,6 +145,14 @@ export function KnowledgeBasePage() {
             isFiltered={knowledgeListFiltersAreActive(filters)}
             ownerNames={ownerNames}
             serviceNames={serviceNames}
+            canWrite={canWrite}
+            onCreate={() => setIsCreateOpen(true)}
+            onClearFilters={() => {
+              setSearch("");
+              setStatus("");
+              setServiceId("");
+              setStaleOnly(false);
+            }}
             onFeedback={loadArticles}
           />
           <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground/70">

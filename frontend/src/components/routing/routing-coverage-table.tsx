@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { RoutingCoverageCell } from "./routing-coverage-cell";
 
 interface RoutingCoverageTableProperties {
   readonly items: readonly RoutingCoverageItem[];
+  readonly emptyAction?: ReactNode;
 }
 
 const LEGEND: readonly {
@@ -39,7 +40,10 @@ const LEGEND: readonly {
   },
 ];
 
-export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) {
+export function RoutingCoverageTable({
+  items,
+  emptyAction,
+}: RoutingCoverageTableProperties) {
   const { t } = useTranslation();
   const [hover, setHover] = useState<{
     originUnitId: string;
@@ -52,6 +56,7 @@ export function RoutingCoverageTable({ items }: RoutingCoverageTableProperties) 
       <EmptyState
         title={t("routing.coverageEmptyTitle")}
         body={t("routing.coverageEmptyHint")}
+        action={emptyAction}
       />
     );
   }

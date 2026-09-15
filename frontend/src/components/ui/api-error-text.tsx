@@ -2,10 +2,19 @@ import { useTranslation } from "react-i18next";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import type { KnowledgeArticleErrorKey } from "@/lib/knowledge-base/map-knowledge-article-error";
 import type { ApiErrorKey } from "@/lib/map-api-error";
+import type { RoutingErrorKey } from "@/lib/routing/map-routing-error";
+import type { ServiceCategoryErrorKey } from "@/lib/services/map-service-category-error";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 
+export type ApiErrorTextKey =
+  | ApiErrorKey
+  | TicketErrorKey
+  | KnowledgeArticleErrorKey
+  | RoutingErrorKey
+  | ServiceCategoryErrorKey;
+
 interface ApiErrorTextProperties {
-  readonly messageKey: ApiErrorKey | TicketErrorKey | KnowledgeArticleErrorKey;
+  readonly messageKey: ApiErrorTextKey;
   readonly requestId?: string | null;
 }
 

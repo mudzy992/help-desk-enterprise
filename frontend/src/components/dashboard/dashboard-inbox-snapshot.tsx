@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { HBars } from "@/components/charts/h-bars";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { groupInboxCounts } from "@/lib/dashboard/dashboard-ticket-sets";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -66,9 +67,14 @@ export function DashboardInboxSnapshot({
         {bars.length > 0 ? (
           <HBars items={bars} />
         ) : unroutedCount === 0 ? (
-          <p className="text-center text-[12px] text-muted-foreground">
-            {t("dashboard.inboxEmpty")}
-          </p>
+          <EmptyState
+            title={t("dashboard.inboxEmpty")}
+            action={
+              <Button asChild size="sm" variant="outline">
+                <Link to="/tickets?view=inbox">{t("dashboard.inboxOpen")}</Link>
+              </Button>
+            }
+          />
         ) : null}
       </div>
     </Card>

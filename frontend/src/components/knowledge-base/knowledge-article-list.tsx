@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { KnowledgeLifecycleActions } from "@/components/knowledge-base/knowledge-lifecycle-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, MetaBadge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -21,6 +22,9 @@ interface KnowledgeArticleListProperties {
   readonly isFiltered: boolean;
   readonly ownerNames: ReadonlyMap<string, string>;
   readonly serviceNames: ReadonlyMap<string, string>;
+  readonly canWrite: boolean;
+  readonly onCreate: () => void;
+  readonly onClearFilters: () => void;
   readonly onFeedback: () => Promise<void>;
 }
 
@@ -50,6 +54,9 @@ export function KnowledgeArticleList({
   isFiltered,
   ownerNames,
   serviceNames,
+  canWrite,
+  onCreate,
+  onClearFilters,
   onFeedback,
 }: KnowledgeArticleListProperties) {
   const { t, i18n } = useTranslation();
@@ -60,6 +67,17 @@ export function KnowledgeArticleList({
           icon={isFiltered ? <ShieldQuestion size={18} /> : undefined}
           title={t(isFiltered ? "knowledgeBase.emptyFilterTitle" : "knowledgeBase.emptyTitle")}
           body={t(isFiltered ? "knowledgeBase.emptyFilterHint" : "knowledgeBase.emptyHint")}
+          action={
+            isFiltered ? (
+              <Button type="button" size="sm" variant="outline" onClick={onClearFilters}>
+                {t("knowledgeBase.clearFilters")}
+              </Button>
+            ) : canWrite ? (
+              <Button type="button" size="sm" onClick={onCreate}>
+                {t("knowledgeBase.createAction")}
+              </Button>
+            ) : null
+          }
         />
       </Card>
     );

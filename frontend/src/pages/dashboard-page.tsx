@@ -28,6 +28,7 @@ export function DashboardPage() {
     groupNames,
     isLoading,
     errorKey,
+    requestId,
   } = useDashboardSummary();
   const recentExclusive =
     summary === null
@@ -63,7 +64,7 @@ export function DashboardPage() {
       {isLoading ? (
         <PanelSkeleton className="mt-0" label={t("navigation.dashboard")} />
       ) : errorKey ? (
-        <ApiErrorText messageKey={errorKey} />
+        <ApiErrorText messageKey={errorKey} requestId={requestId} />
       ) : summary === null || summary.total === 0 ? (
         <EmptyState
           icon={<LayoutDashboard size={18} strokeWidth={1.8} />}
