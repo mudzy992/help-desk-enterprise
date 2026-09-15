@@ -6,8 +6,10 @@ interface FormBuilderActionsProperties {
   readonly editable: boolean;
   readonly canWrite: boolean;
   readonly selected: FormVersionResponse | null;
+  readonly hasVersions: boolean;
   readonly hasFields: boolean;
   readonly pending: string | null;
+  readonly onCreateFirst: () => void;
   readonly onSave: () => void;
   readonly onActivate: () => void;
   readonly onCopy: () => void;
@@ -17,8 +19,10 @@ export function FormBuilderActions({
   editable,
   canWrite,
   selected,
+  hasVersions,
   hasFields,
   pending,
+  onCreateFirst,
   onSave,
   onActivate,
   onCopy,
@@ -26,6 +30,11 @@ export function FormBuilderActions({
   const { t } = useTranslation();
   return (
     <div className="flex flex-wrap gap-2">
+      {canWrite && !hasVersions ? (
+        <Button type="button" size="sm" disabled={pending !== null} onClick={onCreateFirst}>
+          {pending === "create" ? t("services.forms.creating") : t("services.forms.createFirst")}
+        </Button>
+      ) : null}
       {editable && selected ? (
         <Button type="button" size="sm" disabled={pending !== null || !hasFields} onClick={onSave}>
           {pending === "save" ? t("services.forms.saving") : t("services.forms.saveDraft")}

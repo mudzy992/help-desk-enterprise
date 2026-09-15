@@ -5,6 +5,7 @@ import { FormFieldList } from "@/components/services/form-builder/form-field-lis
 import { FormVersionHistory } from "@/components/services/form-builder/form-version-history";
 import { errorTextClassName } from "@/components/ui/control";
 import { defaultServiceFormSchema } from "@/lib/services/default-service-form-schema";
+import { ensureServiceForm } from "@/lib/services/ensure-service-form";
 import { orderedFormSchema } from "@/lib/services/form-field-draft";
 import {
   mapServiceFormsError,
@@ -65,26 +66,15 @@ export function ServiceFormBuilder({
 
   useEffect(() => {
     let cancelled = false;
-    void getServiceForm(serviceId)
+    void ensureServiceForm(serviceId, canWrite)
       .then((loaded) => {
         if (!cancelled) {
           applyForm(loaded);
         }
       })
-      .catch(async (error: unknown) => {
-        if (cancelled || !canWrite) {
+      .catch((error: unknown) => {
+        if (!cancelled) {
           setErrorKey(mapServiceFormsError(error));
-          return;
-        }
-        try {
-          await createServiceForm(serviceId, defaultServiceFormSchema);
-          if (!cancelled) {
-            applyForm(await getServiceForm(serviceId));
-          }
-        } catch (createError) {
-          if (!cancelled) {
-            setErrorKey(mapServiceFormsError(createError));
-          }
         }
       });
     return () => {
@@ -128,8 +118,14 @@ export function ServiceFormBuilder({
           editable={Boolean(editable)}
           canWrite={canWrite}
           selected={selected}
+          hasVersions={(form?.versions.length ?? 0) > 0}
           hasFields={fields.length > 0}
           pending={pending}
+          onCreateFirst={() => {
+            void run("create", () =>
+              createServiceForm(serviceId, defaultServiceFormSchema),
+            );
+          }}
           onSave={() => {
             if (selected) {
               void run("save", () =>

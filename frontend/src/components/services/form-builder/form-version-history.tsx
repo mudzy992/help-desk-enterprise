@@ -21,6 +21,9 @@ export function FormVersionHistory({
       <p className="mb-2 text-[12.5px] font-medium text-foreground">
         {t("services.forms.history")}
       </p>
+      {sorted.length === 0 ? (
+        <p className="text-[12px] text-muted-foreground">{t("services.forms.historyEmpty")}</p>
+      ) : null}
       <ul className="grid gap-1.5">
         {sorted.map((version) => {
           const selected = version.formVersionRef === selectedRef;

@@ -398,6 +398,8 @@
     },
     "forms": {
       "history": "Form versions",
+      "historyEmpty": "There are no form versions. Create the first one to edit and activate it.",
+      "createFirst": "Create form",
       "addField": "Add field",
       "removeField": "Remove",
       "moveUp": "Up",

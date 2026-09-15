@@ -398,6 +398,8 @@
     },
     "forms": {
       "history": "Verzije forme",
+      "historyEmpty": "Nema verzija forme. Kreirajte prvu da biste je uredili i aktivirali.",
+      "createFirst": "Kreiraj formu",
       "addField": "Dodaj polje",
       "removeField": "Ukloni",
       "moveUp": "Gore",
