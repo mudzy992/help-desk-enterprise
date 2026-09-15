@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ReportsCharts } from "@/components/reports/reports-charts";
 import { ReportsDateFilter } from "@/components/reports/reports-date-filter";
+import { ReportsExportButton } from "@/components/reports/reports-export-button";
 import { ReportsMetricGrid } from "@/components/reports/reports-metric-grid";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -125,14 +126,17 @@ export function ReportsPage() {
         title={t("reports.title")}
         subtitle={t("reports.intro")}
         actions={
-          <ReportsDateFilter
-            preset={preset}
-            customFrom={customFrom}
-            customTo={customTo}
-            onPresetChange={onPresetChange}
-            onCustomFromChange={setCustomFrom}
-            onCustomToChange={setCustomTo}
-          />
+          <>
+            <ReportsDateFilter
+              preset={preset}
+              customFrom={customFrom}
+              customTo={customTo}
+              onPresetChange={onPresetChange}
+              onCustomFromChange={setCustomFrom}
+              onCustomToChange={setCustomTo}
+            />
+            <ReportsExportButton />
+          </>
         }
       />
       {isLoading ? (

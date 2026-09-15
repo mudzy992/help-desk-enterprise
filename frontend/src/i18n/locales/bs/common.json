@@ -194,6 +194,8 @@
     "intro": "Report pack: tok tiketa, usklađenost SLA, opterećenje grupa i KB defleksija. Izvoz se evidentira u audit logu.",
     "emptyTitle": "Još nema tiketa",
     "emptyBody": "Kad se kreira prvi tiket, agregacije izvještaja pojavit će se ovdje.",
+    "exportAction": "Izvoz paketa",
+    "exportDisabledHint": "Izvoz paketa dolazi u Fazi 8.",
     "window15d": "Zadnjih 15 dana",
     "window30d": "Zadnjih 30 dana",
     "window6m": "Zadnjih 6 mjeseci",

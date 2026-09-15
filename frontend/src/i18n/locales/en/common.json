@@ -194,6 +194,8 @@
     "intro": "Report pack: ticket flow, SLA compliance, group load, and KB deflection. Exports are recorded in the audit log.",
     "emptyTitle": "No tickets yet",
     "emptyBody": "Once the first ticket is created, report aggregations appear here.",
+    "exportAction": "Export pack",
+    "exportDisabledHint": "Pack export comes in Phase 8.",
     "window15d": "Last 15 days",
     "window30d": "Last 30 days",
     "window6m": "Last 6 months",
