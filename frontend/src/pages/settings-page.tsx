@@ -1,5 +1,6 @@
 import { Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { AddonsSettingsPanel } from "@/components/settings/addons-settings-panel";
 import { EmailChannelPanel } from "@/components/settings/email-channel-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -38,7 +39,12 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
           body={t("settings.forbiddenBody")}
         />
       ) : null}
-      {!isLoading && canOpen ? <EmailChannelPanel canWrite={canWrite} /> : null}
+      {!isLoading && canOpen ? (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <EmailChannelPanel canWrite={canWrite} />
+          <AddonsSettingsPanel />
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -117,6 +117,13 @@
         "ticketSla": "SLA",
         "remoteRequested": "Udaljena podrška"
       }
+    },
+    "addons": {
+      "title": "Dodaci (addon katalog)",
+      "subtitle": "Switch katalog iz install wizarda — isključivanje je graceful, nema mrtvih linkova u UI",
+      "loading": "Učitavanje dodataka…",
+      "registryBadge": "registry",
+      "readOnlyHint": "Pregled zastavica iz settings registry-ja. Izmjene dodataka i rollback nisu dio ovog ekrana."
     }
   },
   "errors": {

@@ -117,6 +117,13 @@
         "ticketSla": "SLA",
         "remoteRequested": "Remote support"
       }
+    },
+    "addons": {
+      "title": "Add-ons (addon catalog)",
+      "subtitle": "Switch catalog from the install wizard — turning one off is graceful, with no dead links in the UI",
+      "loading": "Loading add-ons…",
+      "registryBadge": "registry",
+      "readOnlyHint": "Read-only flags from the settings registry. Changing add-ons or rolling back is not part of this screen."
     }
   },
   "errors": {
