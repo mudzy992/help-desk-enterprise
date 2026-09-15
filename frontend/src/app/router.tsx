@@ -5,6 +5,7 @@ import { DashboardPage } from "@/pages/dashboard-page";
 import { InstallPage } from "@/pages/install-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
+import { ReportsPage } from "@/pages/reports-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
 import { ConfigVersionsPage } from "@/pages/config-versions-page";
@@ -25,6 +26,7 @@ export function AppRouter() {
         <Route path="install" element={<InstallPage />} />
         <Route element={<ApplicationShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="tickets" element={<TicketsPage />}>
             <Route index element={<TicketListPage />} />
             <Route path="new" element={<TicketCreatePage />} />

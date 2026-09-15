@@ -1,5 +1,6 @@
 export const navigationLabelKeys = {
   dashboard: "navigation.dashboard",
+  reports: "navigation.reports",
   tickets: "navigation.tickets",
   inbox: "navigation.inbox",
   services: "navigation.services",
@@ -40,6 +41,12 @@ export interface NavigationSection {
 export const dashboardNavigationItem: NavigationItem = {
   path: "/",
   labelKey: navigationLabelKeys.dashboard,
+  end: true,
+};
+
+export const reportsNavigationItem: NavigationItem = {
+  path: "/reports",
+  labelKey: navigationLabelKeys.reports,
   end: true,
 };
 
@@ -112,7 +119,7 @@ export const configVersionsNavigationItem: NavigationItem = {
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
-    items: [dashboardNavigationItem],
+    items: [dashboardNavigationItem, reportsNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.tickets,

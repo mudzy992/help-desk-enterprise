@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BookOpen,
   Database,
   GitBranch,
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 
 const navigationIcons: Record<string, LucideIcon> = {
   "/": LayoutDashboard,
+  "/reports": BarChart3,
   "/tickets?view=all": Ticket,
   "/tickets?view=inbox": Inbox,
   "/services": LayoutGrid,

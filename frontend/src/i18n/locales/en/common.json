@@ -1,6 +1,7 @@
 {
   "navigation": {
     "dashboard": "Dashboard",
+    "reports": "Reports",
     "tickets": "All tickets",
     "inbox": "Group inbox",
     "services": "Service catalog",
@@ -187,6 +188,20 @@
     "activityTitle": "Activity",
     "activitySubtitle": "Latest events",
     "activityEmpty": "No recent events."
+  },
+  "reports": {
+    "title": "Reports and bottlenecks",
+    "intro": "Report pack: ticket flow, SLA compliance, group load, and KB deflection. Exports are recorded in the audit log.",
+    "emptyTitle": "No tickets yet",
+    "emptyBody": "Once the first ticket is created, report aggregations appear here.",
+    "metricTotal": "Total tickets",
+    "metricOpen": "Open tickets",
+    "metricOverdue": "SLA breaches",
+    "metricUnrouted": "Unrouted",
+    "hintTotal": "all tickets you can access",
+    "hintOpen": "all open tickets in scope",
+    "hintOverdue": "tickets past their SLA due time",
+    "hintUnrouted": "coverage gap — a rule is needed"
   },
   "services": {
     "title": "Services",

@@ -4,6 +4,7 @@ import {
   inboxNavigationItem,
   isNavigationItemActive,
   navigationLabelKeys,
+  reportsNavigationItem,
   ticketsNavigationItem,
 } from "@/lib/navigation";
 
@@ -30,6 +31,16 @@ describe("navigation IA matching", () => {
     expect(
       isNavigationItemActive(inboxNavigationItem, "/tickets/abc", ""),
     ).toBe(false);
+  });
+
+  it("activates reports only on /reports", () => {
+    expect(
+      isNavigationItemActive(reportsNavigationItem, "/reports", ""),
+    ).toBe(true);
+    expect(isNavigationItemActive(reportsNavigationItem, "/", "")).toBe(false);
+    expect(getActiveNavigationItem("/reports").labelKey).toBe(
+      navigationLabelKeys.reports,
+    );
   });
 
   it("does not activate tickets on /tickets/new", () => {

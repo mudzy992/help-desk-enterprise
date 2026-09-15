@@ -1,6 +1,7 @@
 {
   "navigation": {
     "dashboard": "Nadzorna ploča",
+    "reports": "Izvještaji",
     "tickets": "Svi tiketi",
     "inbox": "Grupni inbox",
     "services": "Katalog usluga",
@@ -187,6 +188,20 @@
     "activityTitle": "Aktivnost",
     "activitySubtitle": "Posljednji događaji",
     "activityEmpty": "Nema nedavnih događaja."
+  },
+  "reports": {
+    "title": "Izvještaji i uska grla",
+    "intro": "Report pack: tok tiketa, usklađenost SLA, opterećenje grupa i KB defleksija. Izvoz se evidentira u audit logu.",
+    "emptyTitle": "Još nema tiketa",
+    "emptyBody": "Kad se kreira prvi tiket, agregacije izvještaja pojavit će se ovdje.",
+    "metricTotal": "Ukupno tiketa",
+    "metricOpen": "Otvoreni tiketi",
+    "metricOverdue": "SLA prekoračenja",
+    "metricUnrouted": "Neusmjereni",
+    "hintTotal": "svi tiketi kojima imate pristup",
+    "hintOpen": "svi otvoreni tiketi u opsegu",
+    "hintOverdue": "tiketi s prekoračenim SLA rokom",
+    "hintUnrouted": "rupa u pokriću — treba pravilo"
   },
   "services": {
     "title": "Usluge",
