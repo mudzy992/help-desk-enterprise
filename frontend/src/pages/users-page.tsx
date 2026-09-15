@@ -5,10 +5,9 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
-  controlClassName,
+  controlCompactClassName,
   tableHeadClassName,
   tableRowClassName,
-  tableWrapClassName,
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -50,7 +49,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
           subtitle={t("directory.usersCount", { count: directory.users.length })}
           actions={
             <input
-              className={`${controlClassName} w-56`}
+              className={`${controlCompactClassName} w-48`}
               type="search"
               value={search}
               placeholder={t("directory.searchPlaceholder")}
@@ -59,52 +58,61 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
             />
           }
         />
-        <div className="px-4 py-3.5">
-          {directory.isLoading ? (
+        {directory.isLoading ? (
+          <div className="px-4 py-3.5">
             <PanelSkeleton className="mt-0" label={t("directory.usersHeading")} />
-          ) : directory.errorKey ? (
+          </div>
+        ) : directory.errorKey ? (
+          <div className="px-4 py-3.5">
             <ApiErrorText
               messageKey={directory.errorKey}
               requestId={directory.requestId}
             />
-          ) : visible.length === 0 ? (
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="px-4 py-3.5">
             <EmptyState
               icon={<Users size={18} strokeWidth={1.8} />}
               title={t("directory.usersEmptyTitle")}
               body={t("directory.usersEmptyBody")}
             />
-          ) : (
-            <div className={tableWrapClassName}>
-              <table className="w-full min-w-[640px] text-left text-[13px]">
-                <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
-                  <tr>
-                    <th className="px-3 py-2">{t("directory.columnName")}</th>
-                    <th className="px-3 py-2">{t("directory.columnEmail")}</th>
-                    <th className="px-3 py-2">{t("directory.columnUnit")}</th>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left">
+              <thead>
+                <tr
+                  className={`border-b border-border/70 text-left ${tableHeadClassName}`}
+                >
+                  <th className="px-4 py-2.5">{t("directory.columnUser")}</th>
+                  <th className="px-4 py-2.5">{t("directory.columnUnit")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {visible.map((user) => (
+                  <tr key={user.id} className={tableRowClassName}>
+                    <td className="px-4">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={user.displayName} size="sm" />
+                        <div>
+                          <p className="text-[12.5px] font-medium text-foreground">
+                            {user.displayName}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground/70">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 text-[12px] text-muted-foreground">
+                      {user.organizationalUnitPath}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {visible.map((user) => (
-                    <tr key={user.id} className={tableRowClassName}>
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-2 font-medium text-foreground">
-                          <Avatar name={user.displayName} size="sm" />
-                          {user.displayName}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-muted-foreground">
-                        {user.email}
-                      </td>
-                      <td className="px-3 py-2 text-[12px] text-muted-foreground">
-                        {user.organizationalUnitPath}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </section>
   );
