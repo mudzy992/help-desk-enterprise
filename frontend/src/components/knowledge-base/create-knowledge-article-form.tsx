@@ -1,135 +1,157 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import type { DirectoryUser } from "@/lib/directory/use-directory";
 import {
-  controlClassName,
-  errorTextClassName,
-  labelClassName,
-  textareaClassName,
-} from "@/components/ui/control";
-import { ApiError } from "@/services/api";
+  mapKnowledgeArticleError,
+  type KnowledgeArticleErrorKey,
+} from "@/lib/knowledge-base/map-knowledge-article-error";
+import { readApiRequestId } from "@/lib/map-api-error";
+import {
+  defaultOriginUnitId,
+  type OriginUnitOption,
+} from "@/lib/tickets/ticket-display";
 import { createKnowledgeArticle } from "@/services/knowledge-base-api";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface CreateKnowledgeArticleFormProperties {
+  readonly services: readonly ServiceResponse[];
+  readonly originUnits: readonly OriginUnitOption[];
+  readonly users: readonly DirectoryUser[];
   readonly onCreated: () => Promise<void>;
 }
 
 export function CreateKnowledgeArticleForm({
+  services,
+  originUnits,
+  users,
   onCreated,
 }: CreateKnowledgeArticleFormProperties) {
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [serviceId, setServiceId] = useState("");
-  const [organizationalUnitId, setOrganizationalUnitId] = useState("");
+  const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
+  const [organizationalUnitId, setOrganizationalUnitId] = useState(
+    defaultOriginUnitId(originUnits),
+  );
   const [ownerUserId, setOwnerUserId] = useState("");
   const [reason, setReason] = useState("");
-  const [errorKey, setErrorKey] = useState<
-    "knowledgeBase.errorUnauthorized" | "knowledgeBase.errorForbidden" | "knowledgeBase.errorGeneric" | null
-  >(null);
+  const [errorKey, setErrorKey] = useState<KnowledgeArticleErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const canSubmit =
+    title.trim().length > 0 &&
+    body.trim().length > 0 &&
+    serviceId.length > 0 &&
+    organizationalUnitId.length > 0 &&
+    ownerUserId.length > 0 &&
+    reason.trim().length > 0;
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canSubmit) {
+      return;
+    }
     setIsSubmitting(true);
     setErrorKey(null);
+    setRequestId(null);
     try {
       await createKnowledgeArticle({
-        title,
-        body,
+        title: title.trim(),
+        body: body.trim(),
         serviceId,
         organizationalUnitId,
-        ownerUserId: ownerUserId.length > 0 ? ownerUserId : undefined,
-        reason,
+        ownerUserId,
+        reason: reason.trim(),
       });
-      setTitle("");
-      setBody("");
-      setReason("");
       await onCreated();
     } catch (error) {
-      setErrorKey(mapCreateError(error));
+      setErrorKey(mapKnowledgeArticleError(error));
+      setRequestId(readApiRequestId(error));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <form className="grid max-w-xl gap-3" onSubmit={onSubmit}>
-      <label className={labelClassName}>
-        {t("knowledgeBase.titleField")}
-        <input
-          className={controlClassName}
+    <form className="mt-4 grid gap-3" onSubmit={onSubmit}>
+      <Field label={t("knowledgeBase.titleField")} required>
+        <Input
           value={title}
+          required
+          maxLength={200}
           onChange={(event) => setTitle(event.target.value)}
-          required
         />
-      </label>
-      <label className={labelClassName}>
-        {t("knowledgeBase.bodyField")}
-        <textarea
-          className={textareaClassName}
+      </Field>
+      <Field label={t("knowledgeBase.bodyField")} required>
+        <Textarea
           value={body}
+          required
+          maxLength={20000}
+          className="min-h-32"
           onChange={(event) => setBody(event.target.value)}
-          required
         />
-      </label>
-      <label className={labelClassName}>
-        {t("knowledgeBase.serviceId")}
-        <input
-          className={controlClassName}
+      </Field>
+      <Field label={t("knowledgeBase.serviceId")} required>
+        <Select
           value={serviceId}
+          required
           onChange={(event) => setServiceId(event.target.value)}
-          required
-        />
-      </label>
-      <label className={labelClassName}>
-        {t("knowledgeBase.organizationalUnitId")}
-        <input
-          className={controlClassName}
+        >
+          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+          {services.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("knowledgeBase.organizationalUnitId")} required>
+        <Select
           value={organizationalUnitId}
+          required
           onChange={(event) => setOrganizationalUnitId(event.target.value)}
-          required
-        />
-      </label>
-      <label className={labelClassName}>
-        {t("knowledgeBase.ownerUserId")}
-        <input
-          className={controlClassName}
+        >
+          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+          {originUnits.map((unit) => (
+            <option key={unit.id} value={unit.id}>
+              {unit.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("knowledgeBase.ownerUserId")} required>
+        <Select
           value={ownerUserId}
+          required
           onChange={(event) => setOwnerUserId(event.target.value)}
-          required
-        />
-      </label>
-      <label className={labelClassName}>
-        {t("knowledgeBase.reason")}
-        <input
-          className={controlClassName}
+        >
+          <option value="">{t("knowledgeBase.selectPlaceholder")}</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.displayName}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("knowledgeBase.reason")} required>
+        <Input
           value={reason}
-          onChange={(event) => setReason(event.target.value)}
           required
+          maxLength={512}
+          onChange={(event) => setReason(event.target.value)}
         />
-      </label>
-      {errorKey ? <p className={errorTextClassName}>{t(errorKey)}</p> : null}
+      </Field>
+      {errorKey ? (
+        <ApiErrorText messageKey={errorKey} requestId={requestId} />
+      ) : null}
       <div>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={!canSubmit || isSubmitting}>
           {isSubmitting ? t("knowledgeBase.saving") : t("knowledgeBase.create")}
         </Button>
       </div>
     </form>
   );
-}
-
-function mapCreateError(
-  error: unknown,
-):
-  | "knowledgeBase.errorUnauthorized"
-  | "knowledgeBase.errorForbidden"
-  | "knowledgeBase.errorGeneric" {
-  if (error instanceof ApiError && error.status === 401) {
-    return "knowledgeBase.errorUnauthorized";
-  }
-  if (error instanceof ApiError && error.status === 403) {
-    return "knowledgeBase.errorForbidden";
-  }
-  return "knowledgeBase.errorGeneric";
 }

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { CreateKnowledgeArticleForm } from "@/components/knowledge-base/create-knowledge-article-form";
+import { CreateKnowledgeArticleSheet } from "@/components/knowledge-base/create-knowledge-article-sheet";
 import { KnowledgeArticleList } from "@/components/knowledge-base/knowledge-article-list";
 import { KnowledgeArticleSearchCard } from "@/components/knowledge-base/knowledge-article-search-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
@@ -17,6 +18,7 @@ import {
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import {
   listKnowledgeArticles,
   type KnowledgeArticleResponse,
@@ -36,6 +38,7 @@ export function KnowledgeBasePage() {
   const [status, setStatus] = useState<KnowledgeArticleStatus | "">("");
   const [serviceId, setServiceId] = useState("");
   const [staleOnly, setStaleOnly] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
 
@@ -79,6 +82,10 @@ export function KnowledgeBasePage() {
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
     [directory.users],
   );
+  const originUnits = useMemo(
+    () => flattenOriginUnitOptions(directory.tree),
+    [directory.tree],
+  );
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
@@ -94,15 +101,27 @@ export function KnowledgeBasePage() {
         crumbs={["EP-HelpDesk", t("navigation.sections.services"), t("knowledgeBase.title")]}
         title={t("knowledgeBase.title")}
         subtitle={t("knowledgeBase.intro")}
+        actions={
+          canWrite ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus size={14} /> {t("knowledgeBase.createAction")}
+            </Button>
+          ) : null
+        }
       />
-      {canWrite ? (
-        <Card className="mb-4">
-          <CardHeader title={t("knowledgeBase.createHeading")} />
-          <div className="px-4 py-3.5">
-            <CreateKnowledgeArticleForm onCreated={loadArticles} />
-          </div>
-        </Card>
-      ) : null}
+      <CreateKnowledgeArticleSheet
+        open={isCreateOpen}
+        services={services}
+        originUnits={originUnits}
+        users={directory.users}
+        onOpenChange={setIsCreateOpen}
+        onCreated={loadArticles}
+      />
       <KnowledgeArticleSearchCard
         search={search}
         status={status}
