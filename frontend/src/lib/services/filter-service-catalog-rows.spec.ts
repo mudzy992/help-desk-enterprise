@@ -11,6 +11,7 @@ function row(name: string, slug: string): ServiceCatalogRow {
     id: slug,
     name,
     slug,
+    categoryId: "cat-it",
     lifecycle: "ACTIVE",
     offeredToRequesters: true,
     availability: "OPERATIONAL",

@@ -19,12 +19,32 @@ export type ServiceResponse = {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  readonly categoryId: string;
   readonly lifecycle: ServiceLifecycle;
   readonly offeredToRequesters: boolean;
   readonly availability: ServiceAvailability;
   readonly runtimeAvailability: ServiceRuntimeAvailability;
   readonly classification: string;
   readonly requiresApproval: boolean;
+};
+
+export type ServiceCategoryResponse = {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+};
+
+export type CreateServiceInput = {
+  readonly name: string;
+  readonly slug: string;
+  readonly categoryId: string;
+  readonly requiresApproval?: boolean;
+};
+
+export type UpdateServiceInput = {
+  readonly name?: string;
+  readonly categoryId?: string;
+  readonly requiresApproval?: boolean;
 };
 
 export type ServiceFormFieldType =
@@ -96,6 +116,41 @@ export function listOfferedServices(): Promise<readonly ServiceResponse[]> {
 
 export function listServices(): Promise<readonly ServiceResponse[]> {
   return apiRequest("/services");
+}
+
+export function listServiceCategories(): Promise<readonly ServiceCategoryResponse[]> {
+  return apiRequest("/service-categories");
+}
+
+export function createService(input: CreateServiceInput): Promise<ServiceResponse> {
+  return apiRequest("/services", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateService(
+  serviceId: string,
+  input: UpdateServiceInput,
+): Promise<ServiceResponse> {
+  return apiRequest(`/services/${serviceId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function transitionServiceLifecycle(
+  serviceId: string,
+  lifecycle: ServiceLifecycle,
+): Promise<ServiceResponse> {
+  return apiRequest(`/services/${serviceId}/lifecycle`, {
+    method: "POST",
+    body: JSON.stringify({ lifecycle }),
+  });
+}
+
+export function deleteService(serviceId: string): Promise<void> {
+  return apiRequest(`/services/${serviceId}`, { method: "DELETE" });
 }
 
 export function createServiceForm(

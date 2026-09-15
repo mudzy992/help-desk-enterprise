@@ -2,23 +2,33 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ServiceCatalogCard } from "@/components/services/service-catalog-card";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { filterServiceCatalogRows } from "@/lib/services/filter-service-catalog-rows";
 import type { ServiceCatalogRow } from "@/lib/services/use-service-catalog";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogGridProperties {
   readonly rows: readonly ServiceCatalogRow[];
   readonly canManageForms: boolean;
+  readonly canWriteCatalog: boolean;
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
+  readonly onCreate: () => void;
+  readonly onEdit: (service: ServiceResponse) => void;
+  readonly onCatalogChanged: () => Promise<void>;
 }
 
 export function ServiceCatalogGrid({
   rows,
   canManageForms,
+  canWriteCatalog,
   pendingServiceId,
   onPrepareForm,
+  onCreate,
+  onEdit,
+  onCatalogChanged,
 }: ServiceCatalogGridProperties) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
@@ -62,6 +72,13 @@ export function ServiceCatalogGrid({
               ? t("services.searchEmptyBody")
               : t("services.emptyBody")
           }
+          action={
+            !isQueryActive && canWriteCatalog ? (
+              <Button type="button" size="sm" onClick={onCreate}>
+                {t("services.createService")}
+              </Button>
+            ) : null
+          }
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -70,8 +87,11 @@ export function ServiceCatalogGrid({
               key={row.service.id}
               row={row}
               canManageForms={canManageForms}
+              canWriteCatalog={canWriteCatalog}
               pendingServiceId={pendingServiceId}
               onPrepareForm={onPrepareForm}
+              onEdit={onEdit}
+              onCatalogChanged={onCatalogChanged}
             />
           ))}
         </div>

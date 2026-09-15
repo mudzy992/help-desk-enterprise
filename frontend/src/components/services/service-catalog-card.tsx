@@ -1,5 +1,6 @@
 import { CalendarClock, FileJson2, Layers, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ServiceCatalogLifecycleActions } from "@/components/services/service-catalog-lifecycle-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,19 +11,26 @@ import {
   SERVICE_AVAILABILITY_META,
   SERVICE_LIFECYCLE_META,
 } from "@/lib/theme/semantic-meta";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 
 interface ServiceCatalogCardProperties {
   readonly row: ServiceCatalogRow;
   readonly canManageForms: boolean;
+  readonly canWriteCatalog: boolean;
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
+  readonly onEdit: (service: ServiceResponse) => void;
+  readonly onCatalogChanged: () => Promise<void>;
 }
 
 export function ServiceCatalogCard({
   row,
   canManageForms,
+  canWriteCatalog,
   pendingServiceId,
   onPrepareForm,
+  onEdit,
+  onCatalogChanged,
 }: ServiceCatalogCardProperties) {
   const { t, i18n } = useTranslation();
   const { service, form } = row;
@@ -97,15 +105,24 @@ export function ServiceCatalogCard({
           </Badge>
         ) : null}
       </div>
-      <div className="flex items-center justify-end border-t border-border/50 px-4 py-2.5">
-        <ServiceCatalogCardAction
-          serviceId={service.id}
-          isTicketReady={isTicketReady}
-          hasActiveForm={hasActiveForm}
-          canManageForms={canManageForms}
-          pendingServiceId={pendingServiceId}
-          onPrepareForm={onPrepareForm}
-        />
+      <div className="flex flex-col gap-2 border-t border-border/50 px-4 py-2.5">
+        {canWriteCatalog ? (
+          <ServiceCatalogLifecycleActions
+            service={service}
+            onChanged={onCatalogChanged}
+            onEdit={() => onEdit(service)}
+          />
+        ) : null}
+        <div className="flex items-center justify-end">
+          <ServiceCatalogCardAction
+            serviceId={service.id}
+            isTicketReady={isTicketReady}
+            hasActiveForm={hasActiveForm}
+            canManageForms={canManageForms}
+            pendingServiceId={pendingServiceId}
+            onPrepareForm={onPrepareForm}
+          />
+        </div>
       </div>
     </Card>
   );
