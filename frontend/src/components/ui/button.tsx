@@ -4,7 +4,7 @@ import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 const PRIMARY_BUTTON_CLASSES =
-  "border border-primary bg-primary text-primary-foreground shadow-none hover:bg-[#1D4FD8] active:bg-[#1B44BE]";
+  "border border-primary bg-primary text-primary-foreground hover:bg-[#1D4FD8] active:bg-[#1B44BE]";
 const DESTRUCTIVE_BUTTON_CLASSES =
   "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25";
 const SECONDARY_BUTTON_CLASSES =

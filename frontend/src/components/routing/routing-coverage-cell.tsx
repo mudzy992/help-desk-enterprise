@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { MetaBadge } from "@/components/ui/badge";
+import { floatingPanelClassName } from "@/components/ui/control";
 import { ROUTING_OUTCOME_META } from "@/lib/theme/semantic-meta";
 import { cn } from "@/lib/utils";
 import type { RoutingCoverageItem } from "@/services/routing-api";
@@ -50,7 +51,8 @@ export function RoutingCoverageCell({
       {isActive ? (
         <div
           className={cn(
-            "pointer-events-none absolute left-1/2 z-30 w-56 -translate-x-1/2 rounded-md border border-border bg-elevated p-2.5 text-left shadow-xl shadow-black/40",
+            floatingPanelClassName,
+            "pointer-events-none absolute left-1/2 z-30 w-56 -translate-x-1/2 p-2.5 text-left",
             nearBottom ? "bottom-full mb-1.5" : "top-full mt-1.5",
           )}
         >

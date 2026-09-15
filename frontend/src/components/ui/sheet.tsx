@@ -3,6 +3,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
 import { useTranslation } from "react-i18next";
+import { floatingShadowClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 
 export const Sheet = SheetPrimitive.Root;
@@ -28,7 +29,7 @@ export const SheetOverlay = forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-surface shadow-xl shadow-black/40 transition ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out",
+  `fixed z-50 gap-4 bg-surface ${floatingShadowClassName} transition ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out`,
   {
     variants: {
       side: {

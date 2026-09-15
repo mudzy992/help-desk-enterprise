@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { floatingPanelClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 
 export interface GroupedBarDatum {
@@ -57,7 +58,12 @@ export function GroupedBars({
               }}
             />
             {hover === index ? (
-              <div className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border bg-elevated px-2 py-1 text-[11px] text-text shadow-xl shadow-black/40">
+              <div
+                className={cn(
+                  floatingPanelClassName,
+                  "pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap px-2 py-1 text-[11px] text-text",
+                )}
+              >
                 <span className="tnum font-medium">{item.d}</span>
                 <span className="text-muted"> · </span>
                 {aLabel} <span className="tnum">{item.created}</span>
