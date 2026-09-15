@@ -1,5 +1,8 @@
 # CHANGELOG — websocket-gateway
 
+## 2026-09-15
+- `ticket.updated` fan-out na `user:` / `group:` roomove (list/dashboard invalidation bez ticket join-a). Connect join-a handler `group:{groupId}` iz `GroupMember`. Staff-only i dalje ne ide requesteru ni public ticket roomu.
+
 ## 2026-09-14
 - `notification.*` payload: `eventId` + `createdAt` (created = `notification.id`). Handshake i kanali nepromijenjeni. Edge je još jedan klijent na `user:{userId}`.
 

@@ -124,6 +124,7 @@ describe('TicketChatGateway', () => {
       priority: 'HIGH',
       assignedUserId: null,
       assignedGroupId: 'group-it',
+      requesterId: 'user-requester',
       archivedAt: null,
       resolvedAt: '2026-09-13T08:00:00.000Z',
       closedAt: null,
@@ -134,6 +135,13 @@ describe('TicketChatGateway', () => {
     expect(
       emitted.some((item) => item.event === ticketRealtimeEventNames.ticketUpdated),
     ).toBe(true);
+    expect(emitted.map((item) => item.room).sort()).toEqual([
+      'group:group-it',
+      ticketPublicRoomName('ticket-1'),
+      ticketStaffRoomName('ticket-1'),
+      userRoomName('user-agent-it'),
+      userRoomName('user-requester'),
+    ]);
   });
 });
 

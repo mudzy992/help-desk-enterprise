@@ -30,6 +30,7 @@ describe('TicketRealtimeHub', () => {
       priority: 'LOW',
       assignedUserId: null,
       assignedGroupId: null,
+      requesterId: 'r',
       archivedAt: null,
       resolvedAt: null,
       closedAt: null,

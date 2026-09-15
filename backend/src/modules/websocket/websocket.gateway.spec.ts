@@ -6,7 +6,12 @@ import { SOCKET_AUTHENTICATION_FAILED_MESSAGE } from './socket-authentication-fa
 import { SocketAuthenticationService } from './socket-authentication.service';
 import type { SocketAuthenticationResult } from './socket-authentication.types';
 import { SOCKET_AUTHENTICATION_VERIFIER } from './socket-authentication.verifier-token';
+import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { WebsocketGateway } from './websocket.gateway';
+
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 
 const SYNTHETIC_TOKEN = 'synthetic-handshake-token-test-only';
 
@@ -68,6 +73,7 @@ describe('WebsocketGateway', () => {
       reason: 'invalid_credentials',
     }),
   );
+  const groupIdsForUser = jest.fn(async (): Promise<readonly string[]> => []);
   let moduleRef: TestingModule | undefined;
   let logSpy: jest.SpiedFunction<Logger['log']>;
   let warnSpy: jest.SpiedFunction<Logger['warn']>;
@@ -78,6 +84,10 @@ describe('WebsocketGateway', () => {
         WebsocketGateway,
         SocketAuthenticationService,
         { provide: SOCKET_AUTHENTICATION_VERIFIER, useValue: { verify } },
+        {
+          provide: SocketGroupMembershipService,
+          useValue: { groupIdsForUser },
+        },
       ],
     }).compile();
     return moduleRef.get(WebsocketGateway);
@@ -85,6 +95,8 @@ describe('WebsocketGateway', () => {
 
   beforeEach(() => {
     verify.mockReset();
+    groupIdsForUser.mockReset();
+    groupIdsForUser.mockResolvedValue([]);
     logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
     warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
   });
@@ -168,6 +180,18 @@ describe('WebsocketGateway', () => {
     gateway.handleConnection(socket);
     expect(socket.join).toHaveBeenCalledWith('user:subject-user-1');
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('joins handler group rooms for the connected user', async () => {
+    groupIdsForUser.mockResolvedValue(['group-it']);
+    const gateway = await createGateway();
+    const socket = createSocket({ token: SYNTHETIC_TOKEN });
+    socket.data.principal = { subjectId: 'subject-user-1' };
+    gateway.handleConnection(socket);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(groupIdsForUser).toHaveBeenCalledWith('subject-user-1');
+    expect(socket.join).toHaveBeenCalledWith('group:group-it');
   });
 
   it('disconnects unauthenticated sockets that reach the connection handler', async () => {

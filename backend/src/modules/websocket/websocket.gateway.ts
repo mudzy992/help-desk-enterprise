@@ -18,7 +18,8 @@ import { createSocketAuthenticationFailureError } from './create-socket-authenti
 import { isSocketPrincipal } from './is-socket-principal';
 import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
-import { userRoomName } from './ticket-socket-rooms';
+import { SocketGroupMembershipService } from './socket-group-membership.service';
+import { groupRoomName, userRoomName } from './ticket-socket-rooms';
 
 @WebSocketGateway({
   cors: {
@@ -32,6 +33,7 @@ export class WebsocketGateway
 
   constructor(
     private readonly socketAuthenticationService: SocketAuthenticationService,
+    private readonly socketGroupMembershipService: SocketGroupMembershipService,
   ) {}
 
   afterInit(server: Server): void {
@@ -51,6 +53,7 @@ export class WebsocketGateway
         return;
       }
       void client.join(userRoomName(principal.subjectId));
+      void this.joinHandlerGroupRooms(client, principal.subjectId);
       this.logger.log(`socket_connected connectionId=${client.id}`);
     });
   }
@@ -58,6 +61,25 @@ export class WebsocketGateway
   handleDisconnect(client: Socket): void {
     runWithSocketRequestId(client, () => {
       this.logger.log(`socket_disconnected connectionId=${client.id}`);
+    });
+  }
+
+  private async joinHandlerGroupRooms(
+    client: Socket,
+    userId: string,
+  ): Promise<void> {
+    await runWithSocketRequestId(client, async () => {
+      try {
+        const groupIds =
+          await this.socketGroupMembershipService.groupIdsForUser(userId);
+        await Promise.all(
+          groupIds.map((groupId) => client.join(groupRoomName(groupId))),
+        );
+      } catch {
+        this.logger.warn(
+          `socket_group_rooms_failed connectionId=${client.id}`,
+        );
+      }
     });
   }
 

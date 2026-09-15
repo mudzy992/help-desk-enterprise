@@ -2,6 +2,7 @@ import type { Server } from 'socket.io';
 import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
 import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.types';
+import { ticketUpdatedBroadcastRooms } from './ticket-updated-broadcast-rooms';
 import {
   groupRoomName,
   ticketPublicRoomName,
@@ -29,8 +30,7 @@ export function broadcastTicketUpdated(
   payload: TicketUpdatedRealtimePayload,
 ): void {
   const event = ticketRealtimeEventNames.ticketUpdated;
-  server.to(ticketStaffRoomName(payload.ticketId)).emit(event, payload);
-  if (payload.visibility === 'public') {
-    server.to(ticketPublicRoomName(payload.ticketId)).emit(event, payload);
+  for (const room of ticketUpdatedBroadcastRooms(payload)) {
+    server.to(room).emit(event, payload);
   }
 }

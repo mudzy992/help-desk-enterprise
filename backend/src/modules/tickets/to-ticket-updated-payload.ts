@@ -28,6 +28,7 @@ export function toTicketUpdatedPayload(
     priority: ticket.priority,
     assignedUserId: ticket.assignedUserId,
     assignedGroupId: ticket.assignedGroupId,
+    requesterId: ticket.requesterId,
     archivedAt: ticket.archivedAt?.toISOString() ?? null,
     resolvedAt: ticket.resolvedAt?.toISOString() ?? null,
     closedAt: ticket.closedAt?.toISOString() ?? null,

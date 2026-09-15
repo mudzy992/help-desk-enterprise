@@ -30,10 +30,10 @@ SocketAuthenticationVerifier
 `JwtSocketAuthenticationVerifier` (authentication modul) verifikuje session JWT iz `handshake.auth.token`. Nevažeći/istekli token ili nedostajući signing secret → unauthenticated. Nema fake usera, hardcoded tokena, niti `NODE_ENV` bypass-a.
 
 ## Lifecycle
-`afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala i join-a `user:{subjectId}`. `handleDisconnect` samo loguje.
+`afterInit` registruje handshake middleware. `handleConnection` odbija socket bez principala i join-a `user:{subjectId}` plus `group:{groupId}` za `GroupMember` zapise korisnika. `handleDisconnect` samo loguje.
 
 ## Domain eventi
-Gateway sluša `TicketRealtimeHub` / `SettingsRealtimeHub` (servisi ne emituju na socket). Eventi: `ticket.message.created`, `ticket.updated`, `notification.*`, `settings.updated`, `session.invalidated`. `notification.*` client payload uključuje `eventId` + `createdAt`. Ticket join i dalje ide kroz `TicketsCollaborationService.authorizeSocketJoin`.
+Gateway sluša `TicketRealtimeHub` / `SettingsRealtimeHub` (servisi ne emituju na socket). Eventi: `ticket.message.created`, `ticket.updated`, `notification.*`, `settings.updated`, `session.invalidated`. `ticket.updated` ide u ticket staff/public roomove plus `user:{assignedUserId}`, `user:{actorUserId}`, `user:{requesterId}` (samo public visibility) i `group:{assignedGroupId}`. `notification.*` client payload uključuje `eventId` + `createdAt`. Ticket join i dalje ide kroz `TicketsCollaborationService.authorizeSocketJoin`.
 
 ## CORS
 `CORS_ORIGIN` iz env. Ako nije postavljen, origin je `false` (nije `*`). HTTP CORS koristi isti ključ (`.cursor/docs/matrices/http-cors/MATRIX.md`).

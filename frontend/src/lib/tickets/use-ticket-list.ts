@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { paginateItems } from "@/lib/tickets/paginate-items";
+import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { useSession } from "@/lib/session/use-session";
 import {
   ticketListPageSize,
@@ -51,9 +52,11 @@ export function useTicketList() {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const queryFromUrl = searchParams.get("q") ?? "";
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setErrorKey(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+      setErrorKey(null);
+    }
     try {
       if (view === "inbox") {
         const [catalog, inboxRows, unroutedRows] = await Promise.all([
@@ -81,11 +84,16 @@ export function useTicketList() {
         setSearchParams({ view: "all" });
         return;
       }
+      if (silent) {
+        return;
+      }
       setTickets([]);
       setUnroutedTickets([]);
       setErrorKey(mapped);
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, [view, filters.status, setSearchParams]);
 
@@ -103,6 +111,11 @@ export function useTicketList() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const reloadSilent = useCallback(async () => {
+    await load(true);
+  }, [load]);
+  useTicketCollectionRealtime(reloadSilent);
 
   const visible = useMemo(
     () => filterTickets(tickets, { ...filters, view, currentUserId }),

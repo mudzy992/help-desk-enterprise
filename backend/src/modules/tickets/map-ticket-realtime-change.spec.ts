@@ -34,6 +34,7 @@ describe('ticket realtime change mapping', () => {
         priority: 'HIGH',
         assignedUserId: 'user-agent-it',
         assignedGroupId: 'group-it',
+        requesterId: 'user-requester',
         archivedAt: null,
         resolvedAt: new Date('2026-09-13T07:00:00.000Z'),
         closedAt: new Date('2026-09-13T08:00:00.000Z'),
@@ -45,6 +46,7 @@ describe('ticket realtime change mapping', () => {
       ticketId: 'ticket-1',
       change: 'closed',
       sourceAction: 'ticket_closed',
+      requesterId: 'user-requester',
       visibility: 'public',
       occurredAt: '2026-09-13T08:00:00.000Z',
     });

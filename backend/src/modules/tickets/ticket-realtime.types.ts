@@ -26,6 +26,7 @@ export type TicketUpdatedRealtimePayload = {
   readonly priority: TicketPriority;
   readonly assignedUserId: string | null;
   readonly assignedGroupId: string | null;
+  readonly requesterId: string;
   readonly archivedAt: string | null;
   readonly resolvedAt: string | null;
   readonly closedAt: string | null;

@@ -3,6 +3,7 @@ import {
   summarizeTickets,
   type DashboardSummary,
 } from "@/lib/dashboard/summarize-tickets";
+import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { useSession } from "@/lib/session/use-session";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -45,9 +46,11 @@ export function useDashboardSummary(): DashboardSummaryState {
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    setErrorKey(null);
+  const reload = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+      setErrorKey(null);
+    }
     try {
       const tickets = await listTickets();
       setSummary(summarizeTickets(tickets, currentUserId));
@@ -66,6 +69,9 @@ export function useDashboardSummary(): DashboardSummaryState {
         new Map(rules.map((rule) => [rule.groupId, rule.groupName])),
       );
     } catch (error) {
+      if (silent) {
+        return;
+      }
       setSummary(null);
       setInboxTickets(null);
       setServiceNames(new Map());
@@ -73,13 +79,20 @@ export function useDashboardSummary(): DashboardSummaryState {
       setGroupNames(new Map());
       setErrorKey(mapTicketError(error));
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, [currentUserId]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const reloadSilent = useCallback(async () => {
+    await reload(true);
+  }, [reload]);
+  useTicketCollectionRealtime(reloadSilent);
 
   return {
     summary,

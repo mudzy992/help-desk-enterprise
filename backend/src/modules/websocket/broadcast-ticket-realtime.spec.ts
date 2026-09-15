@@ -5,8 +5,10 @@ import {
   broadcastTicketUpdated,
 } from './broadcast-ticket-realtime';
 import {
+  groupRoomName,
   ticketPublicRoomName,
   ticketStaffRoomName,
+  userRoomName,
 } from './ticket-socket-rooms';
 
 function createServer() {
@@ -22,7 +24,7 @@ function createServer() {
 }
 
 describe('broadcastTicketRealtime', () => {
-  it('sends public ticket updates to staff and public rooms', () => {
+  it('sends public ticket updates to ticket, user, and group rooms', () => {
     const { server, emitted } = createServer();
     broadcastTicketUpdated(server, {
       ticketId: 'ticket-1',
@@ -33,6 +35,7 @@ describe('broadcastTicketRealtime', () => {
       priority: 'HIGH',
       assignedUserId: 'user-agent-it',
       assignedGroupId: 'group-it',
+      requesterId: 'user-requester',
       archivedAt: null,
       resolvedAt: '2026-09-13T08:00:00.000Z',
       closedAt: null,
@@ -40,17 +43,19 @@ describe('broadcastTicketRealtime', () => {
       occurredAt: '2026-09-13T08:00:00.000Z',
       visibility: 'public',
     });
-    expect(emitted.map((item) => item.event)).toEqual([
-      ticketRealtimeEventNames.ticketUpdated,
-      ticketRealtimeEventNames.ticketUpdated,
-    ]);
+    expect(
+      emitted.every((item) => item.event === ticketRealtimeEventNames.ticketUpdated),
+    ).toBe(true);
     expect(emitted.map((item) => item.room).sort()).toEqual([
+      groupRoomName('group-it'),
       ticketPublicRoomName('ticket-1'),
       ticketStaffRoomName('ticket-1'),
+      userRoomName('user-agent-it'),
+      userRoomName('user-requester'),
     ]);
   });
 
-  it('keeps staff-only ticket updates off the public room', () => {
+  it('keeps staff-only ticket updates off the public and requester rooms', () => {
     const { server, emitted } = createServer();
     broadcastTicketUpdated(server, {
       ticketId: 'ticket-1',
@@ -61,6 +66,7 @@ describe('broadcastTicketRealtime', () => {
       priority: 'HIGH',
       assignedUserId: 'user-agent-it',
       assignedGroupId: 'group-it',
+      requesterId: 'user-requester',
       archivedAt: null,
       resolvedAt: null,
       closedAt: null,
@@ -68,8 +74,10 @@ describe('broadcastTicketRealtime', () => {
       occurredAt: '2026-09-13T08:00:00.000Z',
       visibility: 'staff',
     });
-    expect(emitted.map((item) => item.room)).toEqual([
+    expect(emitted.map((item) => item.room).sort()).toEqual([
+      groupRoomName('group-it'),
       ticketStaffRoomName('ticket-1'),
+      userRoomName('user-agent-it'),
     ]);
   });
 

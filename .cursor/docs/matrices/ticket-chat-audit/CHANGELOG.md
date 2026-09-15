@@ -1,5 +1,8 @@
 # CHANGELOG — ticket-chat-audit
 
+## 2026-09-15
+- `ticket.updated` fan-out na `user:` / `group:` roomove (isti slim payload). Ticket room join na detailu ostaje.
+
 ## 2026-09-14
 - F9-2: `ticket_remote_requested` SYSTEM_EVENT (staff-only u threadu; requester dobija `remote.requested` notifikaciju).
 
