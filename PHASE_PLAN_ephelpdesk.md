@@ -119,7 +119,8 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 
 - [x] R9a — **KRITIČNO**: Add user password / init-password tok (nalaz #4)
 - [x] R9b — Ops: worker tabela + integracioni red u istom tabu + backend worker-health signal (nalaz #1)
-- [ ] R9c — Settings: i18n registry.keys/categories popuniti (BS+EN) + odluka o per-kategoriji dizajnu (nalaz #2)
+- [x] R9c-1 — Settings: i18n `registry.keys` / `registry.categories` popuniti (BS+EN) — 231 ključeva, 24 kategorije (nalaz #2a)
+- [ ] R9c-2 — Settings: odluka + per-kategorija vizuelni dizajn (nalaz #2b) — čeka potvrdu pristupa
 - [ ] R9d — Permisije: backend opis po permission key-u + i18n + frontend prikaz (nalaz #3)
 - [ ] R9e — Grupe: namjenski dizajn taba (nalaz #5)
 - [ ] R9f — OU: dokumentacija dvostepenog toka (manual katalog → sync) + provjera rename/move putanje (nalaz #6)
