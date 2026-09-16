@@ -1,11 +1,15 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { TemporaryPasswordReveal } from "@/components/users/temporary-password-reveal";
 import { Button } from "@/components/ui/button";
-import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
+import {
+  controlCompactClassName,
+  errorTextClassName,
+} from "@/components/ui/control";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { ApiError } from "@/services/api";
-import { createUser } from "@/services/users-api";
+import { createUser, type CreateUserResponse } from "@/services/users-api";
 
 interface AddUserFormProperties {
   readonly unitOptions: readonly { id: string; label: string }[];
@@ -25,17 +29,21 @@ export function AddUserForm({
   const [roleKey, setRoleKey] = useState<string>(roleKeys.user);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [createdResult, setCreatedResult] = useState<CreateUserResponse | null>(
+    null,
+  );
 
   const handleSubmit = async () => {
     setIsSaving(true);
     setErrorMessage(null);
     try {
-      await createUser({
+      const response = await createUser({
         displayName,
         email,
         organizationalUnitId: organizationalUnitId || null,
         roleKey,
       });
+      setCreatedResult(response);
       await onCreated();
     } catch (error) {
       setErrorMessage(
@@ -45,6 +53,12 @@ export function AddUserForm({
       setIsSaving(false);
     }
   };
+
+  if (createdResult !== null) {
+    return (
+      <TemporaryPasswordReveal result={createdResult} onClose={onCancel} />
+    );
+  }
 
   return (
     <div className="space-y-2 border-b border-border/60 px-4 py-3">
@@ -96,7 +110,11 @@ export function AddUserForm({
         <Button
           size="sm"
           variant="primary"
-          disabled={isSaving || displayName.trim().length === 0 || email.trim().length === 0}
+          disabled={
+            isSaving ||
+            displayName.trim().length === 0 ||
+            email.trim().length === 0
+          }
           onClick={() => void handleSubmit()}
         >
           <Plus size={14} /> {t("users.saveUser")}

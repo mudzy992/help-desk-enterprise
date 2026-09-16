@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
+import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { assignUserRole } from './assign-user-role';
 import { createUser } from './create-user';
 import { deleteUser } from './delete-user';
@@ -11,6 +13,7 @@ import { updateUser } from './update-user';
 import type {
   AssignUserRoleInput,
   CreateUserInput,
+  CreateUserResponse,
   RemoveUserRoleInput,
   UpdateUserInput,
   UserRoleResponse,
@@ -19,14 +22,23 @@ import type {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settingsService: SettingsService,
+    private readonly mailTransport: SmtpMailTransport,
+  ) {}
 
   listSummary(): Promise<readonly UserSummaryResponse[]> {
     return this.execute(() => listUsersSummary(this.prisma));
   }
 
-  create(input: CreateUserInput): Promise<UserSummaryResponse> {
-    return this.execute(() => createUser(this.prisma, input));
+  create(input: CreateUserInput): Promise<CreateUserResponse> {
+    return this.execute(() =>
+      createUser(this.prisma, input, {
+        settingsService: this.settingsService,
+        mailTransport: this.mailTransport,
+      }),
+    );
   }
 
   update(input: UpdateUserInput): Promise<UserSummaryResponse> {

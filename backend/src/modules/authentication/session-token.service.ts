@@ -7,9 +7,11 @@ import {
 } from './authentication.error';
 import type {
   AuthenticatedPrincipal,
+  PasswordChangeTokenClaims,
   SessionAccessTokenClaims,
 } from './authentication.types';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
+import { readPasswordChangeSubjectId } from './read-password-change-subject-id';
 import { readSessionSubjectId } from './read-session-subject-id';
 
 @Injectable()
@@ -30,6 +32,20 @@ export class SessionTokenService {
     );
   }
 
+  async issuePasswordChangeToken(subjectId: string): Promise<string> {
+    const secret = await this.jwtSigningSecretLoader.load();
+    return this.jwtService.signAsync(
+      {
+        sub: subjectId.trim(),
+        purpose: authenticationConstants.passwordChangePurpose,
+      },
+      {
+        secret,
+        expiresIn: `${authenticationConstants.passwordChangeTokenTtlSeconds}s`,
+      },
+    );
+  }
+
   async verify(accessToken: string): Promise<SessionAccessTokenClaims> {
     if (accessToken.trim().length === 0) {
       throw createInvalidCredentialsError();
@@ -40,6 +56,29 @@ export class SessionTokenService {
         secret,
       });
       return { subjectId: readSessionSubjectId(payload) };
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        throw error;
+      }
+      throw createInvalidCredentialsError();
+    }
+  }
+
+  async verifyPasswordChangeToken(
+    accessToken: string,
+  ): Promise<PasswordChangeTokenClaims> {
+    if (accessToken.trim().length === 0) {
+      throw createInvalidCredentialsError();
+    }
+    try {
+      const secret = await this.jwtSigningSecretLoader.load();
+      const payload: unknown = await this.jwtService.verifyAsync(accessToken, {
+        secret,
+      });
+      return {
+        subjectId: readPasswordChangeSubjectId(payload),
+        purpose: authenticationConstants.passwordChangePurpose,
+      };
     } catch (error) {
       if (error instanceof AuthenticationError) {
         throw error;

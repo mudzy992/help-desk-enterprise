@@ -32,6 +32,9 @@ function interpolate(
   });
 }
 
-function sanitizeTemplateValue(value: string): string {
+function sanitizeTemplateValue(value: string | undefined): string {
+  if (value === undefined) {
+    return '';
+  }
   return value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim();
 }

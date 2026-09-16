@@ -33,6 +33,10 @@ export const defaultEmailTemplates: EmailTemplateRegistry = {
     subject: 'Zahtjev za udaljenu podršku: {{ticketNumber}}',
     body: 'Zatražena je udaljena podrška za tiket {{ticketNumber}}.',
   },
+  'user.temporary_password': {
+    subject: 'Privremena lozinka za EP-HelpDesk',
+    body: 'Poštovani/a {{displayName}},\n\nKreiran vam je nalog ({{email}}).\nPrivremena lozinka: {{temporaryPassword}}\n\nPri prvoj prijavi morate promijeniti lozinku.',
+  },
 };
 
 export function serializeEmailTemplateRegistry(

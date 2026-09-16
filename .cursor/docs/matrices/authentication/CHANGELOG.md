@@ -1,5 +1,8 @@
 # CHANGELOG — authentication
 
+## 2026-09-16
+- R9a init-password: `User.mustChangePassword`; admin create-user postavlja lokalni hash + privremenu lozinku; login vraća `MUST_CHANGE_PASSWORD` + short-lived `passwordChangeToken` (`purpose: password_change`); `POST /auth/change-password` zatvara flag i izdaje sesiju. Session JWT i dalje samo `{ sub }`.
+
 ## 2026-09-11
 - Install complete (i boot nakon completed installa) provisionira `private.auth.jwtSigningSecret` kroz Settings Registry. Login i dalje fail-closed ako secret nije upotrebljiv.
 

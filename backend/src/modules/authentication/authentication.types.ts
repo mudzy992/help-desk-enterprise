@@ -35,6 +35,7 @@ export type AuthenticationUserRecord = {
   readonly displayName: string;
   readonly isActive: boolean;
   readonly isLocalOnly: boolean;
+  readonly mustChangePassword: boolean;
   readonly localPasswordHash: string | null;
   readonly entraObjectId: string | null;
   readonly roleKeys: readonly string[];
@@ -47,8 +48,23 @@ export type AuthenticationSessionResponse = {
   readonly principal: AuthorizationPrincipal;
 };
 
+export type MustChangePasswordLoginResponse = {
+  readonly status: 'MUST_CHANGE_PASSWORD';
+  readonly passwordChangeToken: string;
+  readonly expiresInSeconds: number;
+};
+
+export type AuthenticationLoginResponse =
+  | AuthenticationSessionResponse
+  | MustChangePasswordLoginResponse;
+
 export type SessionAccessTokenClaims = {
   readonly subjectId: string;
+};
+
+export type PasswordChangeTokenClaims = {
+  readonly subjectId: string;
+  readonly purpose: 'password_change';
 };
 
 export interface AuthenticationProvider {

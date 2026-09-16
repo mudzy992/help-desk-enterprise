@@ -27,9 +27,11 @@ Mutacije: postojeći `PUT /settings` (`ADMIN` + `settings.write`, `reason` + Cha
 Čitanje: `GET /settings/email-channel` (`ADMIN`). Vraća derived `deliveryEnabled` / `hasSmtpTransport`, nikad SMTP password.
 
 ## Templates
-Ugrađeni predlošci: `ticket.created`, `ticket.assigned`, `ticket.message`, `ticket.resolved`, `ticket.closed`, `ticket.approval`, `ticket.sla`, `remote.requested`.
+Ugrađeni predlošci: `ticket.created`, `ticket.assigned`, `ticket.message`, `ticket.resolved`, `ticket.closed`, `ticket.approval`, `ticket.sla`, `remote.requested`, `user.temporary_password`.
 
-Allow-list placeholderi: `{{ticketNumber}}`, `{{ticketTitle}}`, `{{ticketId}}`, `{{type}}`, `{{event}}`. Ostali se odbijaju na save (`INVALID_EMAIL_TEMPLATE`). Render je plain text. Confidential tiket: `ticketTitle` = `ticketNumber`.
+Allow-list placeholderi: `{{ticketNumber}}`, `{{ticketTitle}}`, `{{ticketId}}`, `{{type}}`, `{{event}}`, `{{displayName}}`, `{{email}}`, `{{temporaryPassword}}`. Ostali se odbijaju na save (`INVALID_EMAIL_TEMPLATE`). Render je plain text. Confidential tiket: `ticketTitle` = `ticketNumber`.
+
+`user.temporary_password` se šalje direktno iz create-user toka kad su SMTP + email addon aktivni (ne zahtijeva `private.notifications.email.enabled`). Ticket fan-out i dalje zahtijeva sva tri enablement flaga.
 
 `templates.enabled=false` → uvijek ugrađeni defaulti.
 

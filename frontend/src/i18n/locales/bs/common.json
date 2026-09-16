@@ -289,7 +289,13 @@
     "scopeSystem": "cijeli sistem",
     "scopeOu": "OU: {{name}} ↓",
     "scopeOwn": "svoji tiketi",
-    "openLoad": "{{count}} otv."
+    "openLoad": "{{count}} otv.",
+    "temporaryPasswordTitle": "Privremena lozinka (zapišite sada)",
+    "temporaryPasswordHint": "Ova lozinka se neće ponovo prikazati. Korisnik je mora promijeniti pri prvoj prijavi.",
+    "temporaryPasswordEmailed": "Privremena lozinka je poslana na e-mail korisnika (SMTP aktivan).",
+    "copyTemporaryPassword": "Kopiraj",
+    "copied": "Kopirano",
+    "closeTemporaryPassword": "Zatvori"
   },
   "settings": {
     "intro": "Konfiguracija kanala, dodataka i registry postavki. Svaka izmjena zahtijeva razlog i ide u change log.",
@@ -1305,6 +1311,19 @@
     "title": "Prijava",
     "subtitle": "Enterprise servisni centar",
     "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji."
+  },
+  "auth": {
+    "changePassword": {
+      "title": "Promijenite lozinku",
+      "intro": "Prije pristupa sistemu morate postaviti novu lozinku (najmanje 12 znakova).",
+      "newPassword": "Nova lozinka",
+      "confirmPassword": "Potvrda lozinke",
+      "submit": "Sačuvaj i nastavi",
+      "saving": "Čuvanje…",
+      "tooShort": "Lozinka mora imati najmanje 12 znakova.",
+      "mismatch": "Lozinke se ne podudaraju.",
+      "failed": "Promjena lozinke nije uspjela."
+    }
   },
   "tickets": {
     "title": "Tiketi",

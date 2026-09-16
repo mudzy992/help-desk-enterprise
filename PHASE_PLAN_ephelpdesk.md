@@ -18,6 +18,8 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] `AdminPage` (i Users/Org tabovi koji je nemaju) — dodati `hasRole`/`hasPermission` guard po uzoru na `settings-page.tsx`
 - [x] Test: neprijavljen korisnik → prazan/login ekran, ne vidi sidebar stavke; agent korisnik → ne vidi Admin/Config Versions u sidebaru niti može otvoriti rutu direktnim URL-om
 
+
+
 ## Faza R2 — Grupe (Group/GroupMember) CRUD (P0) — ✅ ZAVRŠENO (E2E claim flow ostaje TODO — ručna provjera na dev instanci)
 
 **Cilj:** admin može kreirati grupu i dodati/ukloniti agenta iz nje kroz UI, bez direktnog upisa u bazu.
@@ -29,6 +31,8 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] Provjeriti/poravnati routing-rule formu da grupe učitava iz ovog novog API-ja
 - [x] Test: kreiraj grupu → dodaj agenta → kreiraj routing pravilo prema toj grupi → novi tiket se pojavi u grupnom inboxu agenta → agent klikne "Claim" → tiket dobije `assignedUserId`
 
+
+
 ## Faza R3 — Administrativna kontrola pristupa (P1) — ✅ ZAVRŠENO
 
 - [x] Backend: endpoint za CRUD `RolePermission` mapinga (role→permissions), sa shadow-preview pozivom prije potvrde (poveži postojeći `ShadowAuthorizationService` na novi controller)
@@ -37,12 +41,16 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] Frontend: `users-page.tsx` — dodati akciju "Dodijeli rolu" po korisniku (izbor role + opcioni OU/service scope)
 - [x] Test: superadmin promijeni permisiju role "agent" → shadow preview pokaže uticaj → potvrda → agent nalog odmah reflektuje novo stanje pri sljedećem loginu/refresh-u sesije
 
+
+
 ## Faza R4 — Generic Settings UI + backend registry (P1) — ✅ ZAVRŠENO (zadnja stavka zavisi od R6 — banner)
 
 - [x] Backend: `GET /settings` — vraća sve registrovane ključeve sa tipom, opisom, scope-om (public/private), trenutnom vrijednošću (sa maskiranjem za secret tipove)
 - [x] Frontend: generička forma po ključu — switch za boolean, number input za number, text input za string, opis ispod svakog polja, grupisano po kategoriji/prefiksu ključa
 - [x] Zadržati postojeće specijalizovane panele (Email, Addons) kao "featured" na vrhu, generic UI pokriva ostatak
 - [x] Test: promjena `public.maintenance.enabled` kroz novi generic UI odmah se reflektuje na Home banner (zavisi od Faze R6)
+
+
 
 ## Faza R5 — Shadow mode / permission preview dovršetak (P2) — ✅ ZAVRŠENO
 
@@ -51,12 +59,16 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] Frontend: prikaz rezultata (`sampleSize`, `routingGroupMismatches`, `slaRuleMismatches`) u `ConfigVersionDiffPanel` ili novoj sekciji
 - [x] Test: kreiraj draft config verziju sa izmijenjenim routing pravilom → pokreni shadow → vidiš broj tiketa koji bi promijenili grupu prije aktivacije
 
+
+
 ## Faza R6 — Preostali admin UI ekrani (P2/P3)
 
 - [x] Audit log — export (CSV/JSON) i hash-chain verify dugme na frontend admin ekranu
 - [x] Policy packs — admin UI za pregled/dodjelu paketa OU/servisu
 - [x] Support bundle — dugme za export na admin ekranu
 - [x] Maintenance banner — Home komponenta koja čita `public.maintenance.*` settings i prikazuje non-blocking banner (globalno i/ili per-service)
+
+
 
 ## Faza R8 — Admin: "Organizacija (OU)" i "Korisnici i uloge" po referentnom dizajnu (P1)
 
@@ -77,6 +89,8 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
   - [x] Mutacije/sync samo za `SUPER_ADMIN`
   - [x] BS + EN i18n
 
+
+
 ### R8b — Korisnici i uloge
 
 1. **Backend:**
@@ -96,8 +110,20 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] Delete blocked sa jasnom porukom
 - [x] Ručno očitavanje ažurira `lastSuccessfulReadAt`
 - [x] Create user + role → 7 kolona (MFA "—")
-- [ ] Vizuelno poređenje vs referenca (desktop 1440 + mobile 390) — ručni UI check
+- [x] Vizuelno poređenje vs referenca (desktop 1440 + mobile 390) — ručni UI check
 - [x] Frontend `npm run test` (191) + `npm run build`; backend directory-sync/users testovi (39 passed)
+
+## Faza R9 — Nalazi iz ADMIN_ANALYSIS.md (rješava se dio po dio)
+
+**Osnova:** `ADMIN_ANALYSIS.md` (root repoa). Svaki pod-dio (R9a–R9f) je nezavisna isporuka, radi se jedan po jedan, potvrđuje se prije prelaska na sljedeći.
+
+- [x] R9a — **KRITIČNO**: Add user password / init-password tok (nalaz #4)
+- [ ] R9b — Ops: worker tabela + integracioni red u istom tabu + backend worker-health signal (nalaz #1)
+- [ ] R9c — Settings: i18n registry.keys/categories popuniti (BS+EN) + odluka o per-kategoriji dizajnu (nalaz #2)
+- [ ] R9d — Permisije: backend opis po permission key-u + i18n + frontend prikaz (nalaz #3)
+- [ ] R9e — Grupe: namjenski dizajn taba (nalaz #5)
+- [ ] R9f — OU: dokumentacija dvostepenog toka (manual katalog → sync) + provjera rename/move putanje (nalaz #6)
+- [ ] R9g — AD linking tok za postojećeg lokalnog korisnika (nalaz #4b, niži prioritet, može čekati)
 
 ## Faza R7 — Tehnički dug i kvalitet (P4)
 

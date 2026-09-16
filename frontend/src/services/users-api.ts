@@ -68,12 +68,18 @@ export function createUser(input: {
   readonly email: string;
   readonly organizationalUnitId?: string | null;
   readonly roleKey: string;
-}): Promise<UserSummary> {
+}): Promise<CreateUserResponse> {
   return apiRequest("/users", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
+
+export type CreateUserResponse = {
+  readonly user: UserSummary;
+  readonly temporaryPassword: string | null;
+  readonly temporaryPasswordDelivery: "ui" | "email";
+};
 
 export function updateUser(
   userId: string,

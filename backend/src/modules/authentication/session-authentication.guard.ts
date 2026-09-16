@@ -35,6 +35,9 @@ export class SessionAuthenticationGuard implements CanActivate {
       if (user === null || !user.isActive) {
         throw createSessionUnauthorizedException();
       }
+      if (user.mustChangePassword) {
+        throw createSessionUnauthorizedException();
+      }
       assertSuperAdminIsLocalOnly({
         isLocalOnly: user.isLocalOnly,
         entraObjectId: user.entraObjectId,

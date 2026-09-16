@@ -16,6 +16,7 @@ const forbiddenSessionClaimKeys = [
   'isSuperAdmin',
   'scp',
   'scope',
+  'purpose',
 ] as const;
 
 export function readSessionSubjectId(payload: unknown): string {

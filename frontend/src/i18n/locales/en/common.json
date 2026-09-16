@@ -289,7 +289,13 @@
     "scopeSystem": "entire system",
     "scopeOu": "OU: {{name}} ↓",
     "scopeOwn": "own tickets",
-    "openLoad": "{{count}} open"
+    "openLoad": "{{count}} open",
+    "temporaryPasswordTitle": "Temporary password (write it down now)",
+    "temporaryPasswordHint": "This password will not be shown again. The user must change it on first sign-in.",
+    "temporaryPasswordEmailed": "The temporary password was sent to the user's email (SMTP active).",
+    "copyTemporaryPassword": "Copy",
+    "copied": "Copied",
+    "closeTemporaryPassword": "Close"
   },
   "settings": {
     "intro": "Channel, add-on, and registry configuration. Every change requires a reason and is written to the change log.",
@@ -1305,6 +1311,19 @@
     "title": "Sign in",
     "subtitle": "Enterprise service center",
     "intro": "Use your EP-HelpDesk account to access tickets, services, and administration."
+  },
+  "auth": {
+    "changePassword": {
+      "title": "Change password",
+      "intro": "Before accessing the system you must set a new password (at least 12 characters).",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Save and continue",
+      "saving": "Saving…",
+      "tooShort": "Password must be at least 12 characters.",
+      "mismatch": "Passwords do not match.",
+      "failed": "Could not change the password."
+    }
   },
   "tickets": {
     "title": "Tickets",

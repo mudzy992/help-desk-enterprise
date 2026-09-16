@@ -13,7 +13,7 @@ export type EmailTemplateRegistry = Readonly<
 >;
 
 export type EmailTemplateVariables = Readonly<
-  Record<EmailTemplatePlaceholder, string>
+  Partial<Record<EmailTemplatePlaceholder, string>>
 >;
 
 export type RenderedEmailTemplate = {

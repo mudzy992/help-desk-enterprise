@@ -7,6 +7,8 @@ model User {
   isActive             Boolean                    @default(true)
   /// bcrypt hash for local credentials. Never log or return this value.
   localPasswordHash    String?
+  /// When true, local login must complete password change before a session is issued.
+  mustChangePassword   Boolean                    @default(false)
   /// Directory object id for linked users. Must remain null for SuperAdmin.
   entraObjectId        String?                    @unique
   distinguishedName    String?

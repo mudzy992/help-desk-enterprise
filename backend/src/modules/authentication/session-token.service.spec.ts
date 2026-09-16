@@ -41,6 +41,18 @@ describe('SessionTokenService', () => {
     expect(JSON.stringify(payload)).not.toContain(SIGNING_SECRET);
   });
 
+  it('rejects password-change tokens as session tokens', async () => {
+    const passwordChangeToken = await service.issuePasswordChangeToken('user-1');
+    await expect(service.verify(passwordChangeToken)).rejects.toMatchObject({
+      code: 'INVALID_CREDENTIALS',
+    });
+    const claims = await service.verifyPasswordChangeToken(passwordChangeToken);
+    expect(claims).toEqual({
+      subjectId: 'user-1',
+      purpose: 'password_change',
+    });
+  });
+
   it('rejects a token signed with a different secret', async () => {
     const accessToken = await service.issue(principal);
     load.mockResolvedValue('different-jwt-signing-secret-value!!');

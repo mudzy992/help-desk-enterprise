@@ -21,6 +21,7 @@ type LoadedAuthenticationUser = {
   displayName: string;
   isActive: boolean;
   isLocalOnly: boolean;
+  mustChangePassword: boolean;
   localPasswordHash: string | null;
   entraObjectId: string | null;
   userRoles: readonly { role: { key: string } }[];
@@ -35,6 +36,7 @@ function mapAuthenticationUser(
     displayName: user.displayName,
     isActive: user.isActive,
     isLocalOnly: user.isLocalOnly,
+    mustChangePassword: user.mustChangePassword,
     localPasswordHash: user.localPasswordHash,
     entraObjectId: user.entraObjectId,
     roleKeys: user.userRoles.map((userRole) => userRole.role.key),

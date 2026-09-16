@@ -20,6 +20,7 @@ function createUser(
     displayName: 'Super Admin',
     isActive: true,
     isLocalOnly: true,
+    mustChangePassword: false,
     localPasswordHash: null,
     entraObjectId: null,
     roleKeys: [authenticationConstants.superAdminRoleKey],

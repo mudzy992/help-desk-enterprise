@@ -35,11 +35,16 @@ Oba providera vraćaju isti `AuthenticatedPrincipal`: `{ subjectId, email, displ
 - Hash: bcrypt, cost 12, polje `User.localPasswordHash`. Nema plaintext storage.
 - Verify: `bcrypt.compare` (constant-time). Dummy hash kad user ne postoji ili nije eligible, da se izbjegne enumeracija.
 - Lozinka/hash se ne loguju i ne vraćaju u API/JWT.
+- Admin `POST /users` (lokalni nalog): generiše privremenu lozinku, postavlja `localPasswordHash`, `isLocalOnly=true`, `mustChangePassword=true`. Plaintext se vraća **samo** u create odgovoru (`temporaryPassword`) kad SMTP addon nije aktivan; inače ide e-mail template `user.temporary_password` i API vraća `temporaryPassword: null`.
+- Login kad `mustChangePassword=true`: **ne** izdaje session JWT. Vraća `{ status: "MUST_CHANGE_PASSWORD", passwordChangeToken, expiresInSeconds }` (JWT claim `purpose: password_change`, TTL 15 min).
+- `POST /auth/change-password` (Bearer = passwordChangeToken): validira novu lozinku (min 12), postavlja hash, `mustChangePassword=false`, izdaje normalnu sesiju.
+- Session guard odbija token ako `mustChangePassword` još stoji ili ako JWT ima `purpose` claim.
 
 ## Session / JWT
 - Secret: `private.auth.jwtSigningSecret` (Settings secret). Install complete provisionira secret ako nedostaje ili je < 32 znaka. Login i dalje fail-closed ako secret nije upotrebljiv.
-- Claims: samo `{ sub }`. Expiry: 8h. Nema password/email/provider/secret u tokenu.
-- HTTP: `POST /auth/login` → `{ accessToken, tokenType, expiresInSeconds, principal }`.
+- Session claims: samo `{ sub }`. Expiry: 8h. Nema password/email/provider/secret u tokenu. Claim `purpose` je zabranjen na session tokenu.
+- Password-change claims: `{ sub, purpose: "password_change" }` — nije validan session token.
+- HTTP: `POST /auth/login` → session odgovor **ili** `MUST_CHANGE_PASSWORD`.
 - Socket.IO: postojeći `SocketAuthenticationVerifier` verifikuje isti JWT (`JwtSocketAuthenticationVerifier`). Handshake i dalje prima samo `handshake.auth.token`.
 
 ## Namjerno NIJE implementirano

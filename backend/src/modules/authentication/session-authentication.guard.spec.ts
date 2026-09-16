@@ -13,6 +13,7 @@ const user = {
   displayName: 'Agent',
   isActive: true,
   isLocalOnly: false,
+  mustChangePassword: false,
   localPasswordHash: null,
   entraObjectId: 'entra-object-1',
   roleKeys: ['AGENT'],

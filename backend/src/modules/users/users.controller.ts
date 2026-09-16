@@ -22,7 +22,7 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
-import type { UserRoleResponse, UserSummaryResponse } from './users.types';
+import type { CreateUserResponse, UserRoleResponse, UserSummaryResponse } from './users.types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -53,7 +53,7 @@ export class UsersController {
   async create(
     @Body() body: CreateUserDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<UserSummaryResponse> {
+  ): Promise<CreateUserResponse> {
     const principal = readAuthenticatedPrincipal(request);
     return this.usersService.create({
       displayName: body.displayName,

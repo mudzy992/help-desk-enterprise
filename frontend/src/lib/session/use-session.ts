@@ -1,5 +1,9 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { loginWithPassword } from "@/services/auth-api";
+import {
+  changePasswordOnFirstLogin,
+  isMustChangePasswordResponse,
+  loginWithPassword,
+} from "@/services/auth-api";
 import {
   clearStoredSession,
   readStoredSession,
@@ -30,6 +34,14 @@ function getServerSnapshot(): StoredSession | null {
   return null;
 }
 
+export type SignInOutcome =
+  | { readonly kind: "authenticated" }
+  | {
+      readonly kind: "must_change_password";
+      readonly passwordChangeToken: string;
+      readonly expiresInSeconds: number;
+    };
+
 export function useSession() {
   const session = useSyncExternalStore(
     subscribe,
@@ -37,14 +49,43 @@ export function useSession() {
     getServerSnapshot,
   );
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const response = await loginWithPassword({ email, password });
-    writeStoredSession({
-      accessToken: response.accessToken,
-      principal: response.principal,
-    });
-    emitSessionChange();
-  }, []);
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<SignInOutcome> => {
+      const response = await loginWithPassword({ email, password });
+      if (isMustChangePasswordResponse(response)) {
+        return {
+          kind: "must_change_password",
+          passwordChangeToken: response.passwordChangeToken,
+          expiresInSeconds: response.expiresInSeconds,
+        };
+      }
+      writeStoredSession({
+        accessToken: response.accessToken,
+        principal: response.principal,
+      });
+      emitSessionChange();
+      return { kind: "authenticated" };
+    },
+    [],
+  );
+
+  const completePasswordChange = useCallback(
+    async (
+      passwordChangeToken: string,
+      newPassword: string,
+    ): Promise<void> => {
+      const response = await changePasswordOnFirstLogin({
+        passwordChangeToken,
+        newPassword,
+      });
+      writeStoredSession({
+        accessToken: response.accessToken,
+        principal: response.principal,
+      });
+      emitSessionChange();
+    },
+    [],
+  );
 
   const signOut = useCallback(() => {
     clearStoredSession();
@@ -55,6 +96,7 @@ export function useSession() {
     session,
     currentUserId: session?.principal.subjectId ?? null,
     signIn,
+    completePasswordChange,
     signOut,
   };
 }

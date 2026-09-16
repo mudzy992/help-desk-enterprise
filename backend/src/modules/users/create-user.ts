@@ -1,15 +1,23 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { hashLocalPassword } from '../authentication/hash-local-password';
+import type { MailTransport } from '../notifications/email/mail-transport';
+import type { SettingsService } from '../settings/settings.service';
 import { assignUserRole } from './assign-user-role';
 import { ensureSystemRole } from './ensure-system-role';
+import { generateTemporaryPassword } from './generate-temporary-password';
 import { listUsersSummary } from './list-users-summary';
-import type { CreateUserInput, UserSummaryResponse } from './users.types';
+import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
+import type { CreateUserInput, CreateUserResponse } from './users.types';
 import { UsersError } from './users.error';
 
 export async function createUser(
   prisma: PrismaService,
   input: CreateUserInput,
-): Promise<UserSummaryResponse> {
+  dependencies: {
+    readonly settingsService: SettingsService;
+    readonly mailTransport: MailTransport;
+  },
+): Promise<CreateUserResponse> {
   const displayName = input.displayName.trim();
   const email = input.email.trim().toLowerCase();
   const organizationalUnitId = input.organizationalUnitId?.trim() || null;
@@ -34,14 +42,17 @@ export async function createUser(
     throw new UsersError('EMAIL_CONFLICT');
   }
   await ensureSystemRole(prisma, roleKey);
-  const isSuperAdminRole = roleKey === authorizationRoleKeys.superAdmin;
+  const temporaryPassword = generateTemporaryPassword();
+  const localPasswordHash = await hashLocalPassword(temporaryPassword);
   const created = await prisma.user.create({
     data: {
       displayName,
       email,
       organizationalUnitId,
-      isLocalOnly: isSuperAdminRole,
+      isLocalOnly: true,
       isActive: true,
+      localPasswordHash,
+      mustChangePassword: true,
     },
   });
   await assignUserRole(prisma, {
@@ -58,5 +69,30 @@ export async function createUser(
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');
   }
-  return summary;
+  const emailed = await trySendTemporaryPassword({
+    settingsService: dependencies.settingsService,
+    mailTransport: dependencies.mailTransport,
+    toAddress: email,
+    displayName,
+    temporaryPassword,
+  });
+  return {
+    user: summary,
+    temporaryPassword: emailed ? null : temporaryPassword,
+    temporaryPasswordDelivery: emailed ? 'email' : 'ui',
+  };
+}
+
+async function trySendTemporaryPassword(input: {
+  readonly settingsService: SettingsService;
+  readonly mailTransport: MailTransport;
+  readonly toAddress: string;
+  readonly displayName: string;
+  readonly temporaryPassword: string;
+}): Promise<boolean> {
+  try {
+    return await sendTemporaryPasswordEmail(input);
+  } catch {
+    return false;
+  }
 }

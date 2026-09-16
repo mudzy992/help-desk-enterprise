@@ -3,11 +3,17 @@ import type { AuthenticatedHttpRequest } from './authenticated-request';
 export function readBearerAccessToken(
   request: AuthenticatedHttpRequest,
 ): string | null {
-  const header = request.headers?.authorization;
-  if (typeof header !== 'string') {
+  return readBearerAccessTokenFromHeader(request.headers?.authorization);
+}
+
+export function readBearerAccessTokenFromHeader(
+  header: string | string[] | undefined,
+): string | null {
+  const value = Array.isArray(header) ? header[0] : header;
+  if (typeof value !== 'string') {
     return null;
   }
-  const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
+  const match = /^Bearer\s+(\S+)$/i.exec(value.trim());
   if (match === null) {
     return null;
   }

@@ -14,6 +14,7 @@ function createUser(
     displayName: 'Agent',
     isActive: true,
     isLocalOnly: false,
+    mustChangePassword: false,
     localPasswordHash: '$2b$04$local-password-hash',
     entraObjectId: null,
     roleKeys: [],

@@ -27,5 +27,6 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
   ],
+  exports: [SmtpMailTransport, MAIL_TRANSPORT],
 })
 export class NotificationsModule {}

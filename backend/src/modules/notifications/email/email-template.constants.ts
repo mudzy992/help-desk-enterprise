@@ -7,6 +7,7 @@ export const emailTemplateKeys = [
   'ticket.approval',
   'ticket.sla',
   'remote.requested',
+  'user.temporary_password',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -17,6 +18,9 @@ export const emailTemplatePlaceholders = [
   'ticketId',
   'type',
   'event',
+  'displayName',
+  'email',
+  'temporaryPassword',
 ] as const;
 
 export type EmailTemplatePlaceholder =

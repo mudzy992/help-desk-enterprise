@@ -54,6 +54,15 @@ export type CreateUserInput = {
   readonly requestId: string | null;
 };
 
+export type TemporaryPasswordDelivery = 'ui' | 'email';
+
+export type CreateUserResponse = {
+  readonly user: UserSummaryResponse;
+  /** Present only when delivery is `ui`. Never returned from GET endpoints. */
+  readonly temporaryPassword: string | null;
+  readonly temporaryPasswordDelivery: TemporaryPasswordDelivery;
+};
+
 export type UpdateUserInput = {
   readonly userId: string;
   readonly isActive?: boolean;
