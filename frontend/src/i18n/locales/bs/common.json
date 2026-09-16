@@ -180,6 +180,66 @@
     "intro": "Konfiguracija kanala, dodataka i registry postavki. Svaka izmjena zahtijeva razlog i ide u change log.",
     "forbiddenTitle": "Nema pristupa postavkama",
     "forbiddenBody": "Email kanal i ostale sistemske postavke dostupne su administratorima.",
+    "drawer": {
+      "edit": "Uredi detalje",
+      "cancel": "Odustani",
+      "empty": "Nema postavki u ovoj grupi.",
+      "defaultDescription": "Uredite registry ključeve. Svaka izmjena zahtijeva razlog.",
+      "categoryDescription": "Uredite ključeve u kategoriji {{category}}."
+    },
+    "auth": {
+      "title": "Prijava (auth provider)",
+      "subtitle": "Isti permission tok za sve providere — bez grana po tipu",
+      "local": "Lokalna prijava",
+      "localDesc": "hash u User tabeli, break-glass",
+      "entra": "Microsoft Entra AD",
+      "entraDesc": "MSAL · isti claims/permission tok",
+      "entraSummary": "Entra je odabran. Tenant, client i LDAPS detalje uredite u draweru.",
+      "breakGlass": "SuperAdmin ostaje lokalni nalog bez obzira na provider-a — break-glass prijava radi i kad je AD nedostupan.",
+      "drawerTitle": "Detalji auth providera",
+      "drawerDescription": "Azure i LDAPS ključevi kada je aktivan Entra AD režim."
+    },
+    "smtp": {
+      "title": "SMTP / Email kanal",
+      "subtitle": "Secret postavke se čuvaju šifrovane; isključivanje gasi odlazni mail",
+      "enabled": "SMTP uključen",
+      "host": "Host",
+      "username": "Korisnik",
+      "password": "Lozinka (secret)",
+      "scope": "Opseg",
+      "externalAllowed": "eksterni allow-list",
+      "editDetails": "Uredi SMTP / šablone",
+      "drawerTitle": "SMTP i email kanal",
+      "drawerDescription": "Transport kredencijali, notification kanal i predlošci."
+    },
+    "system": {
+      "title": "Sistem",
+      "subtitle": "Verzija konfiguracije i integritet",
+      "validation": "Validacija",
+      "validationReady": "spremno",
+      "installWizard": "Install wizard",
+      "installLocked": "zaključan {{date}}",
+      "installOpen": "nije zaključan",
+      "openConfigVersions": "Otvori config verzije",
+      "openValidation": "Otvori validaciju"
+    },
+    "unrouted": {
+      "title": "Neusmjereni red",
+      "subtitle": "Postavke opisuju red — nikad ne dodjeljuju grupu",
+      "enabled": "Neusmjereni red uključen",
+      "hint": "UNROUTED ishod ostaje first-class čak i kad je red isključen — routing ne “spašava” tiket proizvoljnom grupom.",
+      "drawerTitle": "Postavke neusmjerenog reda"
+    },
+    "security": {
+      "title": "Sigurnost i usklađenost",
+      "redaction": "PII/secret redakcija u logovima i toasts",
+      "confidential": "Povjerljivi tiketi — ACL + break-glass audit",
+      "audit": "Audit export s tamper-evident hash lancem",
+      "readOnly": "Read-only mod za admin module (po ulozi)",
+      "enabled": "uključeno",
+      "disabled": "isključeno",
+      "drawerDescription": "Uredite ključeve za ovu sigurnosnu sposobnost."
+    },
     "email": {
       "title": "Email kanal (Microsoft 365)",
       "subtitle": "Odlazne notifikacije preko postojećeg SMTP/O365 setupa, samo internim korisnicima.",
@@ -219,19 +279,17 @@
       "title": "Dodaci (addon katalog)",
       "subtitle": "Switch katalog iz install wizarda — isključivanje je graceful, nema mrtvih linkova u UI",
       "loading": "Učitavanje dodataka…",
-      "registryBadge": "registry",
-      "readOnlyHint": "Pregled zastavica iz settings registry-ja. Izmjene dodataka i rollback nisu dio ovog ekrana."
+      "registryBadge": "registry"
     },
     "registry": {
-      "title": "Sve registrovane postavke",
-      "subtitle": "Uredite preostale registry ključeve po kategoriji. Opisi dolaze s backenda; lokalizacija preko settings.registry.keys.<key> kad zatreba.",
+      "title": "Ostale registrovane postavke",
+      "subtitle": "Preostale kategorije otvaraju se u draweru. Opisi dolaze s backenda.",
       "loading": "Učitavanje settings registry-ja…",
       "readOnly": "Imate pregled, ali ne i dozvolu za izmjenu postavki.",
       "reason": "Razlog izmjene",
       "save": "Sačuvaj",
       "saving": "Spremanje…",
-      "expand": "Proširi",
-      "collapse": "Skupi",
+      "moreKeys": "+još {{count}}",
       "keyCount": "{{count}} ključeva",
       "visibility": {
         "public": "javno",

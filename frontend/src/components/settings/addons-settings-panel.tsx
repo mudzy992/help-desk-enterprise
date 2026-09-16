@@ -3,12 +3,22 @@ import { useTranslation } from "react-i18next";
 import { AddonCatalogRow } from "@/components/settings/addon-catalog-row";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
-import { hintClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useAddonCatalog } from "@/lib/settings/use-addon-catalog";
-import { cn } from "@/lib/utils";
+import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
+import { addonRegistryKey } from "@/lib/settings/is-featured-setting-key";
 
-export function AddonsSettingsPanel() {
+interface AddonsSettingsPanelProperties {
+  readonly canWrite: boolean;
+  readonly pendingKey: string | null;
+  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+}
+
+export function AddonsSettingsPanel({
+  canWrite,
+  pendingKey,
+  onSave,
+}: AddonsSettingsPanelProperties) {
   const { t } = useTranslation();
   const catalog = useAddonCatalog();
 
@@ -32,12 +42,15 @@ export function AddonsSettingsPanel() {
           </Badge>
         }
       />
-      <p className={cn(hintClassName, "px-4 pt-3")}>
-        {t("settings.addons.readOnlyHint")}
-      </p>
       <ul className="divide-y divide-border/50">
         {catalog.items.map((item) => (
-          <AddonCatalogRow key={item.key} item={item} />
+          <AddonCatalogRow
+            key={item.key}
+            item={item}
+            canWrite={canWrite}
+            pending={pendingKey === addonRegistryKey(item.key)}
+            onSave={onSave}
+          />
         ))}
       </ul>
     </Card>

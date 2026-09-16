@@ -180,6 +180,66 @@
     "intro": "Channel, add-on, and registry configuration. Every change requires a reason and is written to the change log.",
     "forbiddenTitle": "No access to settings",
     "forbiddenBody": "The email channel and other system settings are available to administrators.",
+    "drawer": {
+      "edit": "Edit details",
+      "cancel": "Cancel",
+      "empty": "No settings in this group.",
+      "defaultDescription": "Edit registry keys. Every change requires a reason.",
+      "categoryDescription": "Edit keys in {{category}}."
+    },
+    "auth": {
+      "title": "Sign-in (auth provider)",
+      "subtitle": "Same permission flow for every provider — no provider-specific branches",
+      "local": "Local sign-in",
+      "localDesc": "Password hash in the User table, break-glass",
+      "entra": "Microsoft Entra AD",
+      "entraDesc": "MSAL · same claims/permission flow",
+      "entraSummary": "Entra is selected. Edit tenant, client, and LDAPS bind details in the drawer.",
+      "breakGlass": "SuperAdmin stays a local account regardless of provider — break-glass sign-in works when AD is unavailable.",
+      "drawerTitle": "Auth provider details",
+      "drawerDescription": "Azure and LDAPS keys used when Entra AD mode is active."
+    },
+    "smtp": {
+      "title": "SMTP / Email channel",
+      "subtitle": "Secret settings stay encrypted; turning SMTP off stops outbound mail",
+      "enabled": "SMTP enabled",
+      "host": "Host",
+      "username": "Username",
+      "password": "Password (secret)",
+      "scope": "Scope",
+      "externalAllowed": "external allow-list",
+      "editDetails": "Edit SMTP / templates",
+      "drawerTitle": "SMTP and email channel",
+      "drawerDescription": "Transport credentials, notification channel, and templates."
+    },
+    "system": {
+      "title": "System",
+      "subtitle": "Configuration version and install integrity",
+      "validation": "Validation",
+      "validationReady": "ready",
+      "installWizard": "Install wizard",
+      "installLocked": "locked {{date}}",
+      "installOpen": "not locked",
+      "openConfigVersions": "Open config versions",
+      "openValidation": "Open validation"
+    },
+    "unrouted": {
+      "title": "Unrouted queue",
+      "subtitle": "Settings describe the queue — they never assign a handler group",
+      "enabled": "Unrouted queue enabled",
+      "hint": "UNROUTED stays first-class even when the queue is off — routing never “rescues” a ticket with an arbitrary group.",
+      "drawerTitle": "Unrouted queue settings"
+    },
+    "security": {
+      "title": "Security and compliance",
+      "redaction": "PII/secret redaction in logs and toasts",
+      "confidential": "Confidential tickets — ACL + break-glass audit",
+      "audit": "Audit export with tamper-evident hash chain",
+      "readOnly": "Read-only mode for admin modules (by role)",
+      "enabled": "on",
+      "disabled": "off",
+      "drawerDescription": "Edit the keys for this security capability."
+    },
     "email": {
       "title": "Email channel (Microsoft 365)",
       "subtitle": "Outbound notifications through the existing SMTP/O365 setup, internal users only.",
@@ -219,19 +279,17 @@
       "title": "Add-ons (addon catalog)",
       "subtitle": "Switch catalog from the install wizard — turning one off is graceful, with no dead links in the UI",
       "loading": "Loading add-ons…",
-      "registryBadge": "registry",
-      "readOnlyHint": "Read-only flags from the settings registry. Changing add-ons or rolling back is not part of this screen."
+      "registryBadge": "registry"
     },
     "registry": {
-      "title": "All registered settings",
-      "subtitle": "Edit remaining registry keys by category. Descriptions come from the backend registry; localize via settings.registry.keys.<key> when needed.",
+      "title": "Other registered settings",
+      "subtitle": "Remaining categories open in a drawer. Descriptions come from the backend registry.",
       "loading": "Loading settings registry…",
       "readOnly": "You can view these settings but cannot change them.",
       "reason": "Change reason",
       "save": "Save",
       "saving": "Saving…",
-      "expand": "Expand",
-      "collapse": "Collapse",
+      "moreKeys": "+{{count}} more",
       "keyCount": "{{count}} keys",
       "visibility": {
         "public": "public",

@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronRight, Lock } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SettingsRegistryField } from "@/components/settings/settings-registry-field";
+import { SettingsCategoryDrawer } from "@/components/settings/settings-category-drawer";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ui/card";
+import { hintClassName } from "@/components/ui/control";
 import type { SettingsCategoryGroup } from "@/lib/settings/group-settings-by-category";
 import { resolveRegistryCategoryTitle } from "@/lib/settings/resolve-registry-i18n";
 
@@ -25,60 +26,75 @@ export function SettingsRegistrySection({
   onSave,
 }: SettingsRegistrySectionProperties) {
   const { t } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const title = resolveRegistryCategoryTitle(t, group.categoryKey);
-  const secretCount = group.entries.filter(
-    (entry) => entry.visibility === "secret",
-  ).length;
+  const preview = group.entries.slice(0, 3);
 
   return (
-    <Card className="transition-colors hover:border-[#31405C]">
-      <button
-        type="button"
-        className="flex w-full items-start justify-between gap-3 px-4 pb-3 pt-3.5 text-left"
-        onClick={() => setIsOpen((current) => !current)}
-        aria-expanded={isOpen}
-      >
-        <div className="flex min-w-0 items-start gap-2">
-          {isOpen ? (
-            <ChevronDown size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight size={14} className="mt-0.5 shrink-0 text-muted-foreground" />
-          )}
-          <div className="min-w-0">
-            <h3 className="text-[13.5px] font-semibold leading-5 text-foreground">
-              {title}
-            </h3>
-            <p className="mt-0.5 font-mono text-[11px] text-muted-foreground/70 tnum">
-              {group.categoryKey}
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Badge tone="neutral" dot={false} className="tnum">
-            {t("settings.registry.keyCount", { count: group.entries.length })}
-          </Badge>
-          {secretCount > 0 ? (
-            <Badge tone="danger" dot={false}>
-              <Lock size={10} /> {secretCount}
+    <>
+      <Card className="transition-colors hover:border-[#31405C]">
+        <CardHeader
+          title={title}
+          subtitle={group.categoryKey}
+          actions={
+            <Badge tone="neutral" dot={false} className="tnum">
+              {t("settings.registry.keyCount", { count: group.entries.length })}
             </Badge>
-          ) : null}
-        </div>
-      </button>
-      {isOpen ? (
-        <ul className="divide-y divide-border/50 border-t border-border/70">
-          {group.entries.map((entry) => (
-            <li key={`${entry.key}:${String(entry.value)}:${entry.isSet}`}>
-              <SettingsRegistryField
-                entry={entry}
-                canWrite={canWrite}
-                pending={pendingKey === entry.key}
-                onSave={onSave}
-              />
-            </li>
+          }
+        />
+        <div className="space-y-2 px-4 pb-4 pt-1">
+          {preview.map((entry) => (
+            <p
+              key={entry.key}
+              className="flex items-center justify-between gap-2 text-[12px]"
+            >
+              <span className="truncate font-mono text-[11px] text-muted-foreground tnum">
+                {entry.key}
+              </span>
+              <span className="shrink-0 text-foreground/90">
+                {formatPreviewValue(entry.value ?? entry.defaultValue)}
+              </span>
+            </p>
           ))}
-        </ul>
-      ) : null}
-    </Card>
+          {group.entries.length > preview.length ? (
+            <p className={hintClassName}>
+              {t("settings.registry.moreKeys", {
+                count: group.entries.length - preview.length,
+              })}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            className="mt-1"
+            onClick={() => setDrawerOpen(true)}
+          >
+            {t("settings.drawer.edit")}
+          </Button>
+        </div>
+      </Card>
+      <SettingsCategoryDrawer
+        open={drawerOpen}
+        title={title}
+        description={t("settings.drawer.categoryDescription", { category: title })}
+        entries={group.entries}
+        canWrite={canWrite}
+        pendingKey={pendingKey}
+        onOpenChange={setDrawerOpen}
+        onSave={onSave}
+      />
+    </>
   );
+}
+
+function formatPreviewValue(value: string | number | boolean | null): string {
+  if (value === null) {
+    return "—";
+  }
+  if (typeof value === "boolean") {
+    return value ? "on" : "off";
+  }
+  const text = String(value);
+  return text.length > 24 ? `${text.slice(0, 21)}…` : text;
 }
