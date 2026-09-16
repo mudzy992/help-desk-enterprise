@@ -1,5 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { listSettingsRegistry } from './list-settings-registry';
 import { persistSettingValue } from './persist-setting-value';
 import { SettingsError } from './settings.error';
 import { SETTINGS_REGISTRY } from './settings.registry-token';
@@ -11,6 +12,7 @@ import {
 } from './settings-value';
 import type {
   SettingDefinition,
+  SettingRegistryEntry,
   SettingsMutationInput,
   SettingsRegistry,
   SettingValue,
@@ -23,6 +25,10 @@ export class SettingsService {
     private readonly prisma: PrismaService,
     @Optional() private readonly settingsRealtimeHub?: SettingsRealtimeHub,
   ) {}
+
+  async listRegistry(): Promise<readonly SettingRegistryEntry[]> {
+    return listSettingsRegistry(this.prisma, this.registry);
+  }
 
   async getPublicSettings(): Promise<
     Readonly<Record<string, SettingValue | undefined>>

@@ -42,6 +42,13 @@ describe('SettingsService', () => {
     const publicSettings = await service.getPublicSettings();
     expect(publicSettings).toEqual({
       [settingKeys.publicBrandingAppName]: 'EP-HelpDesk',
+      [settingKeys.publicMaintenanceEnabled]: false,
+      [settingKeys.publicMaintenanceMessage]: '',
+      [settingKeys.publicMaintenanceFromAt]: '',
+      [settingKeys.publicMaintenanceToAt]: '',
+      [settingKeys.publicMaintenanceScope]: 'both',
+      [settingKeys.publicMaintenanceAffectedServicesCsv]: '',
+      [settingKeys.publicMaintenanceIsBlocking]: false,
     });
   });
 

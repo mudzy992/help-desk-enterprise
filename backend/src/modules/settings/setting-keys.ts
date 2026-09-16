@@ -2,6 +2,14 @@ import { addonSettingKey } from './addon-catalog';
 
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
+  publicMaintenanceEnabled: 'public.maintenance.enabled',
+  publicMaintenanceMessage: 'public.maintenance.message',
+  publicMaintenanceFromAt: 'public.maintenance.fromAt',
+  publicMaintenanceToAt: 'public.maintenance.toAt',
+  publicMaintenanceScope: 'public.maintenance.scope',
+  publicMaintenanceAffectedServicesCsv:
+    'public.maintenance.affectedServicesCsv',
+  publicMaintenanceIsBlocking: 'public.maintenance.isBlocking',
   privateInstallCompletedAt: 'private.install.completedAt',
   privateInstallCompletedByUserId: 'private.install.completedByUserId',
   privateAuthMode: 'private.auth.mode',

@@ -2,6 +2,7 @@ import type { SettingDefinition } from '../settings.types';
 import { addonSettings } from './addon-settings';
 import { directorySyncSettings } from './directory-sync-settings';
 import { foundationalSettings } from './foundational-settings';
+import { maintenanceSettings } from './maintenance-settings';
 import { readOnlyModeSettings } from './read-only-mode-settings';
 import { serviceAvailabilitySettings } from './service-availability-settings';
 import { serviceFormsSettings } from './service-forms-settings';
@@ -39,6 +40,7 @@ import { dataLifecycleSettings } from './data-lifecycle-settings';
 
 export const applicationSettings: readonly SettingDefinition[] = [
   ...foundationalSettings,
+  ...maintenanceSettings,
   ...directorySyncSettings,
   ...readOnlyModeSettings,
   ...serviceLifecycleSettings,

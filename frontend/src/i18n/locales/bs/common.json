@@ -177,7 +177,7 @@
     "errorGeneric": "Operacija nad ulogom korisnika nije uspjela."
   },
   "settings": {
-    "intro": "Konfiguracija kanala i predložaka. Svaka izmjena zahtijeva razlog i ide u change log.",
+    "intro": "Konfiguracija kanala, dodataka i registry postavki. Svaka izmjena zahtijeva razlog i ide u change log.",
     "forbiddenTitle": "Nema pristupa postavkama",
     "forbiddenBody": "Email kanal i ostale sistemske postavke dostupne su administratorima.",
     "email": {
@@ -219,6 +219,20 @@
       "loading": "Učitavanje dodataka…",
       "registryBadge": "registry",
       "readOnlyHint": "Pregled zastavica iz settings registry-ja. Izmjene dodataka i rollback nisu dio ovog ekrana."
+    },
+    "registry": {
+      "title": "Sve registrovane postavke",
+      "subtitle": "Uredite preostale registry ključeve po kategoriji. Opisi dolaze s backenda; lokalizacija preko settings.registry.keys.<key> kad zatreba.",
+      "loading": "Učitavanje settings registry-ja…",
+      "readOnly": "Imate pregled, ali ne i dozvolu za izmjenu postavki.",
+      "reason": "Razlog izmjene",
+      "save": "Sačuvaj",
+      "saving": "Spremanje…",
+      "expand": "Proširi",
+      "collapse": "Skupi",
+      "keyCount": "{{count}} ključeva",
+      "categories": {},
+      "keys": {}
     }
   },
   "errors": {

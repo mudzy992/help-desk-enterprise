@@ -177,7 +177,7 @@
     "errorGeneric": "User role operation failed."
   },
   "settings": {
-    "intro": "Channel and template configuration. Every change requires a reason and is written to the change log.",
+    "intro": "Channel, add-on, and registry configuration. Every change requires a reason and is written to the change log.",
     "forbiddenTitle": "No access to settings",
     "forbiddenBody": "The email channel and other system settings are available to administrators.",
     "email": {
@@ -219,6 +219,20 @@
       "loading": "Loading add-ons…",
       "registryBadge": "registry",
       "readOnlyHint": "Read-only flags from the settings registry. Changing add-ons or rolling back is not part of this screen."
+    },
+    "registry": {
+      "title": "All registered settings",
+      "subtitle": "Edit remaining registry keys by category. Descriptions come from the backend registry; localize via settings.registry.keys.<key> when needed.",
+      "loading": "Loading settings registry…",
+      "readOnly": "You can view these settings but cannot change them.",
+      "reason": "Change reason",
+      "save": "Save",
+      "saving": "Saving…",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "keyCount": "{{count}} keys",
+      "categories": {},
+      "keys": {}
     }
   },
   "errors": {

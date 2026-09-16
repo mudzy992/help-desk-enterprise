@@ -41,9 +41,9 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 
 ## Faza R4 — Generic Settings UI + backend registry (P1)
 
-- [ ] Backend: `GET /settings` — vraća sve registrovane ključeve sa tipom, opisom, scope-om (public/private), trenutnom vrijednošću (sa maskiranjem za secret tipove)
-- [ ] Frontend: generička forma po ključu — switch za boolean, number input za number, text input za string, opis ispod svakog polja, grupisano po kategoriji/prefiksu ključa
-- [ ] Zadržati postojeće specijalizovane panele (Email, Addons) kao "featured" na vrhu, generic UI pokriva ostatak
+- [x] Backend: `GET /settings` — vraća sve registrovane ključeve sa tipom, opisom, scope-om (public/private), trenutnom vrijednošću (sa maskiranjem za secret tipove)
+- [x] Frontend: generička forma po ključu — switch za boolean, number input za number, text input za string, opis ispod svakog polja, grupisano po kategoriji/prefiksu ključa
+- [x] Zadržati postojeće specijalizovane panele (Email, Addons) kao "featured" na vrhu, generic UI pokriva ostatak
 - [ ] Test: promjena `public.maintenance.enabled` kroz novi generic UI odmah se reflektuje na Home banner (zavisi od Faze R6)
 
 ## Faza R5 — Shadow mode / permission preview dovršetak (P2)

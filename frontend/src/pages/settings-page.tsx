@@ -2,6 +2,7 @@ import { Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AddonsSettingsPanel } from "@/components/settings/addons-settings-panel";
 import { EmailChannelPanel } from "@/components/settings/email-channel-panel";
+import { SettingsRegistryPanel } from "@/components/settings/settings-registry-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -23,7 +24,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
     session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
 
   return (
-    <section>
+    <section className="space-y-4">
       {embedded ? null : (
         <PageHeader
           crumbs={["EP-HelpDesk", t("navigation.settings")]}
@@ -40,10 +41,13 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
         />
       ) : null}
       {!isLoading && canOpen ? (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <EmailChannelPanel canWrite={canWrite} />
-          <AddonsSettingsPanel />
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <EmailChannelPanel canWrite={canWrite} />
+            <AddonsSettingsPanel />
+          </div>
+          <SettingsRegistryPanel canWrite={canWrite} />
+        </>
       ) : null}
     </section>
   );

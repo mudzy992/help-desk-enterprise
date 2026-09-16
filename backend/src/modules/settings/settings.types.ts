@@ -43,3 +43,15 @@ export type SettingsMutationInput = {
   readonly reason: string;
   readonly actorUserId: string | null;
 };
+
+export type SettingRegistryEntry = {
+  readonly key: string;
+  readonly description: string;
+  readonly valueType: SettingValueTypeName;
+  readonly visibility: SettingVisibility;
+  readonly isRequired: boolean;
+  readonly defaultValue: SettingValue | null;
+  readonly value: SettingValue | null;
+  readonly isSet: boolean;
+  readonly allowedValues?: readonly string[];
+};

@@ -25,6 +25,7 @@ import {
 } from './read-email-channel-settings';
 import { readSettingsActorUserId } from './read-settings-actor-user-id';
 import { SettingsService } from './settings.service';
+import type { SettingRegistryEntry } from './settings.types';
 
 @Controller('settings')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -38,6 +39,15 @@ import { SettingsService } from './settings.service';
 )
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
+
+  @Get()
+  async listSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> {
+    try {
+      return await this.settingsService.listRegistry();
+    } catch (error) {
+      throw mapSettingsError(error);
+    }
+  }
 
   @Get('email-channel')
   async getEmailChannelSettings(): Promise<EmailChannelSettingsResponse> {

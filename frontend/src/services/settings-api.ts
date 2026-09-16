@@ -13,8 +13,27 @@ export type EmailChannelSettings = {
   readonly hasSmtpTransport: boolean;
 };
 
+export type SettingValueTypeName = "string" | "number" | "boolean";
+export type SettingVisibility = "public" | "private" | "secret";
+
+export type SettingRegistryEntry = {
+  readonly key: string;
+  readonly description: string;
+  readonly valueType: SettingValueTypeName;
+  readonly visibility: SettingVisibility;
+  readonly isRequired: boolean;
+  readonly defaultValue: string | number | boolean | null;
+  readonly value: string | number | boolean | null;
+  readonly isSet: boolean;
+  readonly allowedValues?: readonly string[];
+};
+
 export function getEmailChannelSettings(): Promise<EmailChannelSettings> {
   return apiRequest("/settings/email-channel");
+}
+
+export function getSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> {
+  return apiRequest("/settings");
 }
 
 export function updateSetting(input: {
