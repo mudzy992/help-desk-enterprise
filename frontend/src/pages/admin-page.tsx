@@ -7,7 +7,7 @@ import {
   isAdminTab,
   parseAdminTab,
 } from "@/lib/admin/parse-admin-tab";
-import { AdminOpsPlaceholder } from "@/components/admin/admin-ops-placeholder";
+import { AdminOpsPanel } from "@/components/admin/admin-ops-panel";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { GroupsPage } from "@/pages/groups-page";
@@ -134,7 +134,7 @@ export function AdminPage() {
       {tab === "users" ? renderRestrictedTab(<UsersPage embedded />) : null}
       {tab === "permissions" ? renderRestrictedTab(<PermissionsPage embedded />) : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
-      {tab === "ops" ? renderRestrictedTab(<AdminOpsPlaceholder />) : null}
+      {tab === "ops" ? renderRestrictedTab(<AdminOpsPanel />) : null}
     </section>
   );
 }

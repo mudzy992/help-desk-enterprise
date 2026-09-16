@@ -4,6 +4,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
+import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -15,6 +17,7 @@ export function ApplicationShell() {
   const navigate = useNavigate();
   const { session: storedSession } = useSession();
   const { session, isLoading } = useSessionCapabilities();
+  const { maintenance } = usePublicMaintenance();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
 
   useEffect(() => {
@@ -73,6 +76,7 @@ export function ApplicationShell() {
             key={location.pathname}
             className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8"
           >
+            <MaintenanceBanner maintenance={maintenance} />
             <Outlet />
           </div>
         </main>

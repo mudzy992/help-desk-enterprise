@@ -68,6 +68,19 @@ export async function apiBlobRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Blob> {
+  const downloaded = await apiDownloadRequest(path, init);
+  return downloaded.blob;
+}
+
+export type ApiDownloadResult = {
+  readonly blob: Blob;
+  readonly fileName: string | null;
+};
+
+export async function apiDownloadRequest(
+  path: string,
+  init: RequestInit = {},
+): Promise<ApiDownloadResult> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
@@ -79,5 +92,24 @@ export async function apiBlobRequest(
   if (!response.ok) {
     throw await readApiError(response);
   }
-  return response.blob();
+  return {
+    blob: await response.blob(),
+    fileName: readContentDispositionFileName(
+      response.headers.get("Content-Disposition"),
+    ),
+  };
+}
+
+function readContentDispositionFileName(
+  header: string | null,
+): string | null {
+  if (header === null || header.length === 0) {
+    return null;
+  }
+  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utfMatch?.[1] !== undefined) {
+    return decodeURIComponent(utfMatch[1].trim());
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(header);
+  return plainMatch?.[1]?.trim() ?? null;
 }

@@ -36,6 +36,12 @@ export function getSettingsRegistry(): Promise<readonly SettingRegistryEntry[]> 
   return apiRequest("/settings");
 }
 
+export function getPublicSettings(): Promise<
+  Readonly<Record<string, string | number | boolean | null | undefined>>
+> {
+  return apiRequest("/settings/public");
+}
+
 export function updateSetting(input: {
   readonly key: string;
   readonly value: string | number | boolean;

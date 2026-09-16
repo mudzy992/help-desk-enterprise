@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { UserRolesSection } from "@/components/users/user-roles-section";
+import { PolicyPacksPanel } from "@/components/policy-packs/policy-packs-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
           subtitle={t("directory.usersIntro")}
         />
       )}
+      <PolicyPacksPanel />
       <Card>
         <CardHeader
           title={t("directory.usersHeading")}
