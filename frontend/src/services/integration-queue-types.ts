@@ -31,3 +31,10 @@ export type IntegrationJob = {
   readonly createdAt: string;
   readonly updatedAt: string;
 };
+
+export type IntegrationWorkerStatus = "active" | "stale" | "unknown";
+
+export type IntegrationWorkerStatusResponse = {
+  readonly status: IntegrationWorkerStatus;
+  readonly lastHeartbeatAt: string | null;
+};

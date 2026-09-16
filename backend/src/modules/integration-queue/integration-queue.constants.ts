@@ -7,6 +7,12 @@ export const integrationQueueName = 'integration';
 
 export const edgeEventRedisChannel = 'integration-queue:edge-event';
 
+export const workerHeartbeatRedisKey = 'integration-queue:worker-heartbeat';
+export const workerHeartbeatIntervalMilliseconds = 10_000;
+export const workerHeartbeatStaleThresholdMilliseconds =
+  workerHeartbeatIntervalMilliseconds * 2;
+export const workerHeartbeatTimeToLiveSeconds = 30;
+
 export const integrationQueueTypeTokens = {
   email: 'email',
   edge: 'edge',

@@ -118,7 +118,7 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 **Osnova:** `ADMIN_ANALYSIS.md` (root repoa). Svaki pod-dio (R9a–R9f) je nezavisna isporuka, radi se jedan po jedan, potvrđuje se prije prelaska na sljedeći.
 
 - [x] R9a — **KRITIČNO**: Add user password / init-password tok (nalaz #4)
-- [ ] R9b — Ops: worker tabela + integracioni red u istom tabu + backend worker-health signal (nalaz #1)
+- [x] R9b — Ops: worker tabela + integracioni red u istom tabu + backend worker-health signal (nalaz #1)
 - [ ] R9c — Settings: i18n registry.keys/categories popuniti (BS+EN) + odluka o per-kategoriji dizajnu (nalaz #2)
 - [ ] R9d — Permisije: backend opis po permission key-u + i18n + frontend prikaz (nalaz #3)
 - [ ] R9e — Grupe: namjenski dizajn taba (nalaz #5)

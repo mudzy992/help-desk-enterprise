@@ -19,7 +19,10 @@ import { RoleGuard } from '../authorization/role.guard';
 import { ListIntegrationJobsQueryDto } from './dto/list-integration-jobs-query.dto';
 import { mapIntegrationQueueError } from './map-integration-queue-error';
 import { IntegrationQueueService } from './integration-queue.service';
-import type { IntegrationJobResponse } from './integration-queue.types';
+import type {
+  IntegrationJobResponse,
+  IntegrationWorkerStatusResponse,
+} from './integration-queue.types';
 
 @Controller('integration-jobs')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -43,6 +46,15 @@ export class IntegrationQueueController {
   ): Promise<readonly IntegrationJobResponse[]> {
     try {
       return await this.integrationQueueService.list(query.status);
+    } catch (error) {
+      throw mapIntegrationQueueError(error);
+    }
+  }
+
+  @Get('worker-status')
+  async workerStatus(): Promise<IntegrationWorkerStatusResponse> {
+    try {
+      return await this.integrationQueueService.getWorkerStatus();
     } catch (error) {
       throw mapIntegrationQueueError(error);
     }

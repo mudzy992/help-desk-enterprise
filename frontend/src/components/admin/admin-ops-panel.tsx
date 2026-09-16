@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdminAuditExportCard } from "@/components/admin/admin-audit-export-card";
 import { AdminSupportBundleCard } from "@/components/admin/admin-support-bundle-card";
+import { IntegrationQueueCard } from "@/components/queue/integration-queue-card";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
 import { mapAdminOpsError, type AdminOpsMessageKey } from "@/lib/admin/map-admin-ops-error";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
+import { canManageIntegrationQueue } from "@/lib/queue/can-manage-integration-queue";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
@@ -20,6 +22,12 @@ import { downloadSupportBundle } from "@/services/support-bundle-api";
 export function AdminOpsPanel() {
   const { t } = useTranslation();
   const { session, hasRole, hasPermission } = useSessionCapabilities();
+  const canManageQueue =
+    session !== null &&
+    canManageIntegrationQueue({
+      isSuperAdmin: session.isSuperAdmin,
+      permissionKeys: session.permissionKeys,
+    });
   const canExportAudit =
     session?.isSuperAdmin === true ||
     hasPermission(permissionKeys.auditExport);
@@ -93,6 +101,7 @@ export function AdminOpsPanel() {
 
   return (
     <div className="space-y-4">
+      {canManageQueue ? <IntegrationQueueCard enabled /> : null}
       <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">
         {t("admin.ops.organizationalUnit")}
         <select

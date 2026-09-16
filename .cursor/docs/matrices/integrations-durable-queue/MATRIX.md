@@ -47,11 +47,17 @@ Procesor postoji: log `would send to Teams` + payload metadata, zatim `COMPLETED
 - Permission: `integrations.queue.manage` (ADMIN katalog + SuperAdmin).
 - Guardovi: `SessionAuthenticationGuard` + `RoleGuard` + role ADMIN. Nema `OuAccessGuard` (`IntegrationJob` nema OU).
 - `GET /integration-jobs?status=PENDING|FAILED|DLQ`
+- `GET /integration-jobs/worker-status` → `{ status: active|stale|unknown, lastHeartbeatAt }`
 - `POST /integration-jobs/:jobId/retry`
 - `adminUiEnabled=false` → 403. Read-only mode: prefix `/integration-jobs` kao `settings`.
 
 ## Worker
 Prisma + Settings + processor. Bez HTTP i bez `WebsocketGateway`. Shutdown: keep-alive timer + `application.close()` (BullMQ Worker `onModuleDestroy`, Redis, Prisma). `workerPollSeconds` = refresh settings + DLQ retention sweep, ne Redis poll.
 
+### Worker heartbeat (health)
+- Worker proces (`IntegrationQueueWorkerHeartbeatService`) piše ISO timestamp u Redis key `integration-queue:worker-heartbeat` svakih **10s** (TTL 30s; ioredis `keyPrefix` se primjenjuje).
+- API čita isti key; **stale** ako je heartbeat stariji od **20s** (2× interval); **unknown** ako key nedostaje ili Redis read padne.
+- Frontend Ops tab i `/admin/queue` dijele `IntegrationQueueCard` s badge-om `worker: aktivan|neaktivan|nepoznato` (poll ~15s). `/admin/queue` ostaje prečica na istu komponentu.
+
 ## Namjerno NIJE
-Frontend queue UI, puni Teams konektor/HTTP delivery, Socket.IO Redis adapter, novi Redis klijent, Prisma šema izmjene.
+Puni Teams konektor/HTTP delivery, Socket.IO Redis adapter, novi Redis klijent, Prisma šema izmjene.

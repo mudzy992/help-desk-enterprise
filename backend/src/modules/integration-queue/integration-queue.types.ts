@@ -62,3 +62,10 @@ export type EnqueueIntegrationJobInput = {
     | TeamsStubIntegrationJobPayload
     | Record<string, unknown>;
 };
+
+export type IntegrationWorkerStatus = 'active' | 'stale' | 'unknown';
+
+export type IntegrationWorkerStatusResponse = {
+  readonly status: IntegrationWorkerStatus;
+  readonly lastHeartbeatAt: string | null;
+};

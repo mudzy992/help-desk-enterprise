@@ -2,14 +2,21 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { IntegrationJobStatus } from '../../generated/prisma/enums';
-import { integrationQueueName } from './integration-queue.constants';
+import { RedisService } from '../../common/redis/redis.service';
+import {
+  integrationQueueName,
+  workerHeartbeatRedisKey,
+  workerHeartbeatStaleThresholdMilliseconds,
+} from './integration-queue.constants';
 import { IntegrationJobRepository } from './integration-job.repository';
 import { IntegrationQueueError } from './integration-queue.error';
 import type {
   IntegrationJobResponse,
   IntegrationQueueJobData,
+  IntegrationWorkerStatusResponse,
 } from './integration-queue.types';
 import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
+import { resolveWorkerHeartbeatStatus } from './resolve-worker-heartbeat-status';
 import { SettingsService } from '../settings/settings.service';
 import { toIntegrationJobResponse } from './to-integration-job-response';
 
@@ -20,6 +27,7 @@ export class IntegrationQueueService {
     private readonly settingsService: SettingsService,
     @InjectQueue(integrationQueueName)
     private readonly integrationQueue: Queue<IntegrationQueueJobData>,
+    private readonly redisService: RedisService,
   ) {}
 
   async list(status: IntegrationJobStatus): Promise<readonly IntegrationJobResponse[]> {
@@ -51,6 +59,28 @@ export class IntegrationQueueService {
       },
     );
     return toIntegrationJobResponse(pending);
+  }
+
+  async getWorkerStatus(): Promise<IntegrationWorkerStatusResponse> {
+    await this.assertAdminUiEnabled();
+    let lastHeartbeatAt: string | null = null;
+    try {
+      const value = await this.redisService
+        .getClient()
+        .get(workerHeartbeatRedisKey);
+      lastHeartbeatAt =
+        typeof value === 'string' && value.length > 0 ? value : null;
+    } catch {
+      return { status: 'unknown', lastHeartbeatAt: null };
+    }
+    return {
+      status: resolveWorkerHeartbeatStatus({
+        lastHeartbeatAt,
+        nowMilliseconds: Date.now(),
+        staleThresholdMilliseconds: workerHeartbeatStaleThresholdMilliseconds,
+      }),
+      lastHeartbeatAt,
+    };
   }
 
   private async assertAdminUiEnabled(): Promise<void> {

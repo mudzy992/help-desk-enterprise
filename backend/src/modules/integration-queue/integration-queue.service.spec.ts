@@ -25,6 +25,7 @@ describe('IntegrationQueueService', () => {
   function createService(overrides?: {
     readonly adminUiEnabled?: boolean;
     readonly existing?: typeof dlqJob | null;
+    readonly redisGet?: jest.Mock;
   }) {
     const pending = {
       ...dlqJob,
@@ -55,14 +56,21 @@ describe('IntegrationQueueService', () => {
       }),
     };
     const queue = { add: jest.fn().mockResolvedValue(undefined) };
+    const redisGet =
+      overrides?.redisGet ?? jest.fn().mockResolvedValue(null);
+    const redisService = {
+      getClient: () => ({ get: redisGet }),
+    };
     return {
       service: new IntegrationQueueService(
         repository as never,
         settingsService as never,
         queue as never,
+        redisService as never,
       ),
       repository,
       queue,
+      redisGet,
     };
   }
 
@@ -104,6 +112,37 @@ describe('IntegrationQueueService', () => {
     const { service } = createService({ adminUiEnabled: false });
     await expect(service.list(IntegrationJobStatus.DLQ)).rejects.toMatchObject({
       code: 'ADMIN_UI_DISABLED',
+    });
+  });
+
+  it('reports active worker status from a fresh Redis heartbeat', async () => {
+    const { service } = createService({
+      redisGet: jest.fn().mockResolvedValue(new Date().toISOString()),
+    });
+    const status = await service.getWorkerStatus();
+    expect(status.status).toBe('active');
+    expect(status.lastHeartbeatAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('reports stale worker status from an old Redis heartbeat', async () => {
+    const { service } = createService({
+      redisGet: jest
+        .fn()
+        .mockResolvedValue(
+          new Date(Date.now() - 60_000).toISOString(),
+        ),
+    });
+    const status = await service.getWorkerStatus();
+    expect(status.status).toBe('stale');
+  });
+
+  it('reports unknown worker status when Redis has no heartbeat', async () => {
+    const { service } = createService({
+      redisGet: jest.fn().mockResolvedValue(null),
+    });
+    await expect(service.getWorkerStatus()).resolves.toEqual({
+      status: 'unknown',
+      lastHeartbeatAt: null,
     });
   });
 });

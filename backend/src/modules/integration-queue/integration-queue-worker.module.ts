@@ -5,6 +5,7 @@ import { SettingsModule } from '../settings/settings.module';
 import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retention.service';
 import { IntegrationQueueCoreModule } from './integration-queue-core.module';
 import { IntegrationQueueProcessor } from './integration-queue.processor';
+import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
 import { ProcessEdgeEventIntegrationJobService } from './process-edge-event-integration-job.service';
 import { ProcessEmailIntegrationJobService } from './process-email-integration-job.service';
 import { ProcessTeamsStubIntegrationJobService } from './process-teams-stub-integration-job.service';
@@ -21,6 +22,7 @@ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.se
     ProcessTeamsStubIntegrationJobService,
     IntegrationQueueProcessor,
     IntegrationJobDlqRetentionService,
+    IntegrationQueueWorkerHeartbeatService,
   ],
 })
 export class IntegrationQueueWorkerModule {}
