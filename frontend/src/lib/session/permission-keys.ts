@@ -13,6 +13,8 @@ export const permissionKeys = {
   confidentialBreakGlass: "confidential.break_glass",
   ticketBulkAssign: "ticket.bulk.assign",
   ticketAttachmentsUpload: "ticket.attachments.upload",
+  auditExport: "audit.export",
+  reportsExport: "reports.export",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

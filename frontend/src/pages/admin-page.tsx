@@ -1,5 +1,5 @@
-import { Database, FolderTree, Server, Users } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { Database, FolderTree, Server, Settings2, Users } from "lucide-react";
+import { type ReactNode, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -11,13 +11,22 @@ import { AdminOpsPlaceholder } from "@/components/admin/admin-ops-placeholder";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { UsersPage } from "@/pages/users-page";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
+import { roleKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function AdminPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { session, isLoading, hasRole } = useSessionCapabilities();
   const tab = parseAdminTab(searchParams.get("tab"));
+  const canOpenAdmin =
+    session?.isSuperAdmin === true ||
+    hasRole(roleKeys.admin) ||
+    hasRole(roleKeys.superAdmin);
 
   useEffect(() => {
     const raw = searchParams.get("tab");
@@ -37,6 +46,22 @@ export function AdminPage() {
     },
     [searchParams, setSearchParams],
   );
+
+  const renderRestrictedTab = (content: ReactNode) => {
+    if (isLoading) {
+      return <PanelSkeleton label={t("session.loading")} />;
+    }
+    if (!canOpenAdmin) {
+      return (
+        <EmptyState
+          icon={<Settings2 size={18} strokeWidth={1.8} />}
+          title={t("admin.forbiddenTitle")}
+          body={t("admin.forbiddenBody")}
+        />
+      );
+    }
+    return content;
+  };
 
   return (
     <section>
@@ -84,10 +109,12 @@ export function AdminPage() {
           },
         ]}
       />
-      {tab === "org" ? <OrganizationalUnitsPage embedded /> : null}
-      {tab === "users" ? <UsersPage embedded /> : null}
+      {tab === "org"
+        ? renderRestrictedTab(<OrganizationalUnitsPage embedded />)
+        : null}
+      {tab === "users" ? renderRestrictedTab(<UsersPage embedded />) : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
-      {tab === "ops" ? <AdminOpsPlaceholder /> : null}
+      {tab === "ops" ? renderRestrictedTab(<AdminOpsPlaceholder />) : null}
     </section>
   );
 }

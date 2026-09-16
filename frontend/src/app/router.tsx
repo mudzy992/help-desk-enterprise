@@ -1,11 +1,30 @@
+import {
+  BarChart3,
+  Database,
+  GitBranch,
+  History,
+  Settings2,
+  Timer,
+} from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
+import { RequireAccess } from "@/components/layout/require-access";
+import { RequireAuth } from "@/components/layout/require-auth";
 import { ApplicationShell } from "@/layouts/application-shell";
+import {
+  canOpenAdminArea,
+  canOpenConfigVersionsPage,
+  canOpenIntegrationQueue,
+  canOpenReports,
+  canOpenRouting,
+  canOpenSla,
+} from "@/lib/session/route-access";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { InstallPage } from "@/pages/install-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { AdminPage } from "@/pages/admin-page";
+import { LoginPage } from "@/pages/login-page";
 import { ReportsPage } from "@/pages/reports-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
@@ -24,31 +43,112 @@ export function AppRouter() {
     <Routes>
       <Route element={<InstallSetupLayout />}>
         <Route path="install" element={<InstallPage />} />
-        <Route element={<ApplicationShell />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="tickets" element={<TicketsPage />}>
-            <Route index element={<TicketListPage />} />
-            <Route path="new" element={<TicketCreatePage />} />
-            <Route path=":ticketId" element={<TicketDetailPage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route element={<RequireAuth />}>
+          <Route element={<ApplicationShell />}>
+            <Route index element={<DashboardPage />} />
+            <Route
+              path="reports"
+              element={
+                <RequireAccess
+                  check={canOpenReports}
+                  forbiddenTitleKey="reports.forbiddenTitle"
+                  forbiddenBodyKey="reports.forbiddenBody"
+                  icon={<BarChart3 size={18} strokeWidth={1.8} />}
+                >
+                  <ReportsPage />
+                </RequireAccess>
+              }
+            />
+            <Route path="tickets" element={<TicketsPage />}>
+              <Route index element={<TicketListPage />} />
+              <Route path="new" element={<TicketCreatePage />} />
+              <Route path=":ticketId" element={<TicketDetailPage />} />
+            </Route>
+            <Route path="services" element={<ServicesPage />} />
+            <Route path="knowledge-base">
+              <Route index element={<KnowledgeBasePage />} />
+              <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
+            </Route>
+            <Route
+              path="users"
+              element={<LegacyAdminRedirect tab="users" />}
+            />
+            <Route
+              path="organizational-units"
+              element={<LegacyAdminRedirect tab="org" />}
+            />
+            <Route
+              path="routing"
+              element={
+                <RequireAccess
+                  check={canOpenRouting}
+                  forbiddenTitleKey="routing.forbiddenTitle"
+                  forbiddenBodyKey="routing.forbiddenBody"
+                  icon={<GitBranch size={18} strokeWidth={1.8} />}
+                >
+                  <RoutingPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="sla"
+              element={
+                <RequireAccess
+                  check={canOpenSla}
+                  forbiddenTitleKey="sla.forbiddenTitle"
+                  forbiddenBodyKey="sla.forbiddenBody"
+                  icon={<Timer size={18} strokeWidth={1.8} />}
+                >
+                  <SlaPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="settings"
+              element={<LegacyAdminRedirect tab="settings" />}
+            />
+            <Route
+              path="admin"
+              element={
+                <RequireAccess
+                  check={canOpenAdminArea}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<Settings2 size={18} strokeWidth={1.8} />}
+                >
+                  <AdminPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/queue"
+              element={
+                <RequireAccess
+                  check={canOpenIntegrationQueue}
+                  forbiddenTitleKey="integrationQueue.forbiddenTitle"
+                  forbiddenBodyKey="integrationQueue.forbiddenBody"
+                  icon={<Database size={18} strokeWidth={1.8} />}
+                >
+                  <IntegrationQueuePage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/config-versions"
+              element={
+                <RequireAccess
+                  check={canOpenConfigVersionsPage}
+                  forbiddenTitleKey="configVersions.forbiddenTitle"
+                  forbiddenBodyKey="configVersions.forbiddenBody"
+                  icon={<History size={18} strokeWidth={1.8} />}
+                >
+                  <ConfigVersionsPage />
+                </RequireAccess>
+              }
+            />
+            <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
           </Route>
-          <Route path="services" element={<ServicesPage />} />
-          <Route path="knowledge-base">
-            <Route index element={<KnowledgeBasePage />} />
-            <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
-          </Route>
-          <Route path="users" element={<LegacyAdminRedirect tab="users" />} />
-          <Route
-            path="organizational-units"
-            element={<LegacyAdminRedirect tab="org" />}
-          />
-          <Route path="routing" element={<RoutingPage />} />
-          <Route path="sla" element={<SlaPage />} />
-          <Route path="settings" element={<LegacyAdminRedirect tab="settings" />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route path="admin/queue" element={<IntegrationQueuePage />} />
-          <Route path="admin/config-versions" element={<ConfigVersionsPage />} />
-          <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

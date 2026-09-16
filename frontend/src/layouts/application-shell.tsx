@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
+import { useSession } from "@/lib/session/use-session";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 export function ApplicationShell() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const { session: storedSession } = useSession();
+  const { session, isLoading } = useSessionCapabilities();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
 
   useEffect(() => {
@@ -41,6 +46,10 @@ export function ApplicationShell() {
   const closeMobileNavigation = () => {
     setIsMobileNavigationOpen(false);
   };
+
+  if (storedSession === null || isLoading || session === null) {
+    return <InstallGateSkeleton />;
+  }
 
   return (
     <div className="flex h-full min-h-0 overflow-x-hidden">

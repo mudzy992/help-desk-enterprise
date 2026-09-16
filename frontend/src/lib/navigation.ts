@@ -1,3 +1,8 @@
+import {
+  navigationAccessKinds,
+  type NavigationAccessRequirement,
+} from "@/lib/session/route-access";
+
 export const navigationLabelKeys = {
   dashboard: "navigation.dashboard",
   reports: "navigation.reports",
@@ -29,6 +34,7 @@ export interface NavigationItem {
   readonly path: string;
   readonly labelKey: NavigationLabelKey;
   readonly end: boolean;
+  readonly access: NavigationAccessRequirement;
 }
 
 export interface NavigationSection {
@@ -40,66 +46,77 @@ export const dashboardNavigationItem: NavigationItem = {
   path: "/",
   labelKey: navigationLabelKeys.dashboard,
   end: true,
+  access: { kind: navigationAccessKinds.authenticated },
 };
 
 export const reportsNavigationItem: NavigationItem = {
   path: "/reports",
   labelKey: navigationLabelKeys.reports,
   end: true,
+  access: { kind: navigationAccessKinds.reports },
 };
 
 export const ticketsNavigationItem: NavigationItem = {
   path: "/tickets?view=all",
   labelKey: navigationLabelKeys.tickets,
   end: false,
+  access: { kind: navigationAccessKinds.authenticated },
 };
 
 export const inboxNavigationItem: NavigationItem = {
   path: "/tickets?view=inbox",
   labelKey: navigationLabelKeys.inbox,
   end: true,
+  access: { kind: navigationAccessKinds.authenticated },
 };
 
 export const servicesNavigationItem: NavigationItem = {
   path: "/services",
   labelKey: navigationLabelKeys.services,
   end: false,
+  access: { kind: navigationAccessKinds.authenticated },
 };
 
 export const knowledgeBaseNavigationItem: NavigationItem = {
   path: "/knowledge-base",
   labelKey: navigationLabelKeys.knowledgeBase,
   end: false,
+  access: { kind: navigationAccessKinds.authenticated },
 };
 
 export const adminNavigationItem: NavigationItem = {
   path: "/admin",
   labelKey: navigationLabelKeys.admin,
   end: true,
+  access: { kind: navigationAccessKinds.admin },
 };
 
 export const routingNavigationItem: NavigationItem = {
   path: "/routing",
   labelKey: navigationLabelKeys.routing,
   end: false,
+  access: { kind: navigationAccessKinds.admin },
 };
 
 export const slaNavigationItem: NavigationItem = {
   path: "/sla",
   labelKey: navigationLabelKeys.sla,
   end: false,
+  access: { kind: navigationAccessKinds.admin },
 };
 
 export const queueNavigationItem: NavigationItem = {
   path: "/admin/queue",
   labelKey: navigationLabelKeys.queue,
   end: false,
+  access: { kind: navigationAccessKinds.integrationQueue },
 };
 
 export const configVersionsNavigationItem: NavigationItem = {
   path: "/admin/config-versions",
   labelKey: navigationLabelKeys.configVersions,
   end: false,
+  access: { kind: navigationAccessKinds.configVersions },
 };
 
 export const navigationSections: readonly NavigationSection[] = [

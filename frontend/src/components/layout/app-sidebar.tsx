@@ -24,6 +24,8 @@ import {
   navigationSections,
   type NavigationItem,
 } from "@/lib/navigation";
+import { filterNavigationSections } from "@/lib/session/route-access";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
 import { cn } from "@/lib/utils";
@@ -49,7 +51,9 @@ interface AppSidebarProperties {
 export function AppSidebar({ onNavigate }: AppSidebarProperties) {
   const { t } = useTranslation();
   const location = useLocation();
+  const capabilities = useSessionCapabilities();
   const ticketCounts = useSidebarTicketCounts();
+  const visibleSections = filterNavigationSections(navigationSections, capabilities);
   const isCreateActive = location.pathname === "/tickets/new";
 
   return (
@@ -89,7 +93,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
         className="flex-1 overflow-y-auto px-3 py-3"
         aria-label={t("shell.primaryNavigation")}
       >
-        {navigationSections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.labelKey} className="mb-4">
             <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
               {t(section.labelKey)}

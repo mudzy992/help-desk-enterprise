@@ -80,7 +80,9 @@
       "settings": "Settings and add-ons",
       "ops": "Job queue and audit"
     },
-    "opsEmptyTitle": "Job queue and audit export come with Phase 7/8"
+    "opsEmptyTitle": "Job queue and audit export come with Phase 7/8",
+    "forbiddenTitle": "No access to administration",
+    "forbiddenBody": "Organizational units, users, and system settings are available to administrators."
   },
   "settings": {
     "intro": "Channel and template configuration. Every change requires a reason and is written to the change log.",
@@ -211,6 +213,8 @@
   "reports": {
     "title": "Reports and bottlenecks",
     "intro": "Report pack: ticket flow, SLA compliance, group load, and KB deflection. Exports are recorded in the audit log.",
+    "forbiddenTitle": "No access to reports",
+    "forbiddenBody": "Reports and exports are available to administrators with reports.export or audit.export.",
     "emptyTitle": "No tickets yet",
     "emptyBody": "Once the first ticket is created, report aggregations appear here.",
     "exportAction": "Export pack",
@@ -666,6 +670,8 @@
   "routing": {
     "title": "Routing",
     "intro": "WHEN origin OU + service THEN group. If there is no exact rule, the parent OU is used. If no route exists, the request stays UNROUTED.",
+    "forbiddenTitle": "No access to routing",
+    "forbiddenBody": "Routing rules and coverage are available to administrators.",
     "tabCoverage": "Coverage matrix",
     "tabTester": "Resolution tester",
     "tabRules": "Rules",
@@ -735,6 +741,8 @@
   "sla": {
     "title": "SLA rules",
     "intro": "BH calendars, SLA profiles, and rules by priority, service, and OU. Every change goes through the change log with a reason.",
+    "forbiddenTitle": "No access to SLA",
+    "forbiddenBody": "SLA profiles, calendars, and rules are available to administrators.",
     "profilesTab": "Profiles",
     "calendarsTab": "Calendars",
     "calendarsHeading": "BH calendars",
@@ -971,7 +979,13 @@
     "signIn": "Sign in",
     "signingIn": "Signing in…",
     "signOut": "Sign out",
+    "loading": "Loading session…",
     "error": "Sign in failed. Check the email and password."
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Enterprise service center",
+    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration."
   },
   "tickets": {
     "title": "Tickets",

@@ -80,7 +80,9 @@
       "settings": "Postavke i dodaci",
       "ops": "Red poslova i audit"
     },
-    "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8"
+    "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8",
+    "forbiddenTitle": "Nema pristupa administraciji",
+    "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima."
   },
   "settings": {
     "intro": "Konfiguracija kanala i predložaka. Svaka izmjena zahtijeva razlog i ide u change log.",
@@ -211,6 +213,8 @@
   "reports": {
     "title": "Izvještaji i uska grla",
     "intro": "Report pack: tok tiketa, usklađenost SLA, opterećenje grupa i KB defleksija. Izvoz se evidentira u audit logu.",
+    "forbiddenTitle": "Nema pristupa izvještajima",
+    "forbiddenBody": "Izvještaji i izvoz dostupni su administratorima s reports.export ili audit.export.",
     "emptyTitle": "Još nema tiketa",
     "emptyBody": "Kad se kreira prvi tiket, agregacije izvještaja pojavit će se ovdje.",
     "exportAction": "Izvoz paketa",
@@ -666,6 +670,8 @@
   "routing": {
     "title": "Usmjeravanje",
     "intro": "WHEN origin OU + servis THEN grupa. Ako nema tačnog pravila, koristi se parent OU. Ako nema rute, zahtjev ostaje UNROUTED.",
+    "forbiddenTitle": "Nema pristupa usmjeravanju",
+    "forbiddenBody": "Pravila i matrica pokrivanja dostupni su administratorima.",
     "tabCoverage": "Matrica pokrivanja",
     "tabTester": "Test rezolucije",
     "tabRules": "Pravila",
@@ -735,6 +741,8 @@
   "sla": {
     "title": "SLA pravila",
     "intro": "BH kalendari, SLA profili i pravila po prioritetu, servisu i OU. Svaka izmjena ide kroz change log s razlogom.",
+    "forbiddenTitle": "Nema pristupa SLA",
+    "forbiddenBody": "SLA profili, kalendari i pravila dostupni su administratorima.",
     "profilesTab": "Profili",
     "calendarsTab": "Kalendari",
     "calendarsHeading": "BH kalendari",
@@ -971,7 +979,13 @@
     "signIn": "Prijava",
     "signingIn": "Prijava…",
     "signOut": "Odjava",
+    "loading": "Učitavanje sesije…",
     "error": "Prijava nije uspjela. Provjerite email i lozinku."
+  },
+  "login": {
+    "title": "Prijava",
+    "subtitle": "Enterprise servisni centar",
+    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji."
   },
   "tickets": {
     "title": "Tiketi",
