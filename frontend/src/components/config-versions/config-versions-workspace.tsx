@@ -12,6 +12,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { filterConfigVersions } from "@/lib/config-versions/config-version-display";
 import { mapConfigVersionError } from "@/lib/config-versions/map-config-version-error";
 import { useConfigVersionDiff } from "@/lib/config-versions/use-config-version-diff";
+import { useConfigVersionShadow } from "@/lib/config-versions/use-config-version-shadow";
 import { useConfigVersions } from "@/lib/config-versions/use-config-versions";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
@@ -30,6 +31,7 @@ interface ConfigVersionsWorkspaceProperties {
 export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspaceProperties) {
   const { t } = useTranslation();
   const admin = useConfigVersions(true);
+  const shadow = useConfigVersionShadow();
   const [statusFilter, setStatusFilter] = useState<ConfigVersionStatus | "ALL">("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [againstId, setAgainstId] = useState<string | null>(null);
@@ -45,7 +47,8 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
     }
     setSelectedId(visible[0]?.id ?? null);
     setValidation(null);
-  }, [selectedId, visible]);
+    shadow.clear();
+  }, [selectedId, shadow.clear, visible]);
 
   const runAction = async (operation: () => Promise<void>): Promise<boolean> => {
     setIsBusy(true);
@@ -79,6 +82,7 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
                 runAction(async () => {
                   setSelectedId((await createConfigVersion(releaseNotes)).id);
                   setValidation(null);
+                  shadow.clear();
                 })
               }
             />
@@ -112,6 +116,7 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
               onSelect={(versionId) => {
                 setSelectedId(versionId);
                 setValidation(null);
+                shadow.clear();
               }}
             />
           )}
@@ -120,9 +125,11 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
       {selected ? (
         <SelectedConfigVersionPanels
           canWrite={canWrite}
-          isBusy={isBusy}
+          isBusy={isBusy || shadow.isLoading}
+          isShadowLoading={shadow.isLoading}
           selected={selected}
           validation={validation}
+          shadowResult={shadow.result}
           versions={admin.versions}
           againstId={againstId}
           diffState={diffState}
@@ -132,16 +139,26 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
               setValidation(await validateConfigVersion(selected.id));
             })
           }
+          onShadow={() => {
+            admin.setErrorKey(null);
+            admin.setRequestId(null);
+            void shadow.run(selected.id, (errorKey, requestId) => {
+              admin.setErrorKey(errorKey);
+              admin.setRequestId(requestId);
+            });
+          }}
           onActivate={(reason) =>
             void runAction(async () => {
               await activateConfigVersion(selected.id, reason);
               setValidation(null);
+              shadow.clear();
             })
           }
           onRollback={(reason) =>
             void runAction(async () => {
               await rollbackConfigVersion(selected.id, reason);
               setValidation(null);
+              shadow.clear();
             })
           }
         />

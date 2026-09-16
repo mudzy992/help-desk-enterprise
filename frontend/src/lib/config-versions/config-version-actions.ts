@@ -11,6 +11,10 @@ export function canValidateConfigVersion(status: ConfigVersionStatus): boolean {
   );
 }
 
+export function canRunConfigVersionShadow(status: ConfigVersionStatus): boolean {
+  return canValidateConfigVersion(status);
+}
+
 export function canActivateConfigVersion(status: ConfigVersionStatus): boolean {
   return (
     status === configVersionStatuses.draft ||

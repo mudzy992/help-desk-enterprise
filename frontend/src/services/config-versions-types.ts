@@ -52,3 +52,9 @@ export type ConfigVersionDiff = {
   readonly resourceId: string;
   readonly changes: readonly ConfigVersionDiffChange[];
 };
+
+export type ConfigShadowDiff = {
+  readonly sampleSize: number;
+  readonly routingGroupMismatches: number;
+  readonly slaRuleMismatches: number;
+};

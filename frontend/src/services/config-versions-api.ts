@@ -1,11 +1,13 @@
 import { apiRequest } from "@/services/api";
 import type {
+  ConfigShadowDiff,
   ConfigValidationResult,
   ConfigVersion,
   ConfigVersionDiff,
 } from "@/services/config-versions-types";
 
 export type {
+  ConfigShadowDiff,
   ConfigValidationIssue,
   ConfigValidationResult,
   ConfigVersion,
@@ -58,4 +60,8 @@ export function rollbackConfigVersion(
     method: "POST",
     body: JSON.stringify({ reason }),
   });
+}
+
+export function shadowConfigVersion(versionId: string): Promise<ConfigShadowDiff> {
+  return apiRequest(`/config-versions/${versionId}/shadow`, { method: "POST" });
 }

@@ -6,6 +6,7 @@ import {
 import {
   canActivateConfigVersion,
   canRollbackConfigVersion,
+  canRunConfigVersionShadow,
   canValidateConfigVersion,
 } from "@/lib/config-versions/config-version-actions";
 import {
@@ -46,6 +47,11 @@ describe("config version helpers", () => {
 
   it("enables validate/activate/rollback by status", () => {
     expect(canValidateConfigVersion("DRAFT")).toBe(true);
+    expect(canRunConfigVersionShadow("DRAFT")).toBe(true);
+    expect(canRunConfigVersionShadow("VALIDATED")).toBe(true);
+    expect(canRunConfigVersionShadow("SHADOW")).toBe(true);
+    expect(canRunConfigVersionShadow("ACTIVE")).toBe(false);
+    expect(canRunConfigVersionShadow("ROLLED_BACK")).toBe(false);
     expect(canActivateConfigVersion("VALIDATED")).toBe(true);
     expect(canActivateConfigVersion("ACTIVE")).toBe(false);
     expect(canRollbackConfigVersion("ACTIVE")).toBe(true);
@@ -72,6 +78,9 @@ describe("config version helpers", () => {
   it("maps backend error codes", () => {
     expect(mapConfigVersionError(new ApiError(503, "CONFIG_VERSIONING_DISABLED", "x"))).toBe(
       "configVersions.errorDisabled",
+    );
+    expect(mapConfigVersionError(new ApiError(400, "SHADOW_MODE_DISABLED", "x"))).toBe(
+      "configVersions.errorShadowDisabled",
     );
     expect(mapConfigVersionError(new ApiError(400, "REASON_REQUIRED", "x"))).toBe(
       "configVersions.errorReason",

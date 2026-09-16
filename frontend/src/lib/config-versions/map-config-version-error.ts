@@ -4,6 +4,7 @@ export type ConfigVersionErrorKey =
   | "configVersions.errorUnauthorized"
   | "configVersions.errorForbidden"
   | "configVersions.errorDisabled"
+  | "configVersions.errorShadowDisabled"
   | "configVersions.errorReason"
   | "configVersions.errorNotFound"
   | "configVersions.errorAlreadyActive"
@@ -17,6 +18,9 @@ export function mapConfigVersionError(error: unknown): ConfigVersionErrorKey {
   }
   if (error.status === 401) {
     return "configVersions.errorUnauthorized";
+  }
+  if (error.code === "SHADOW_MODE_DISABLED") {
+    return "configVersions.errorShadowDisabled";
   }
   if (error.code === "ROLLBACK_DISABLED" || error.status === 403) {
     return "configVersions.errorForbidden";
