@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useTranslation } from "react-i18next";
 import { SettingsRegistrySection } from "@/components/settings/settings-registry-section";
 import { ApiErrorText } from "@/components/ui/api-error-text";
-import { hintClassName } from "@/components/ui/control";
+import { Badge } from "@/components/ui/badge";
+import { hintClassName, sectionTitleClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { mapApiError, type ApiErrorKey } from "@/lib/map-api-error";
 import { groupSettingsByCategory } from "@/lib/settings/group-settings-by-category";
@@ -49,12 +50,13 @@ export function SettingsRegistryPanel({ canWrite }: SettingsRegistryPanelPropert
     void reload();
   }, [reload, settingsGeneration]);
 
-  const groups = useMemo(
-    () =>
-      groupSettingsByCategory(
-        entries.filter((entry) => !isFeaturedSettingKey(entry.key)),
-      ),
+  const genericEntries = useMemo(
+    () => entries.filter((entry) => !isFeaturedSettingKey(entry.key)),
     [entries],
+  );
+  const groups = useMemo(
+    () => groupSettingsByCategory(genericEntries),
+    [genericEntries],
   );
 
   const handleSave = async (input: {
@@ -83,17 +85,20 @@ export function SettingsRegistryPanel({ canWrite }: SettingsRegistryPanelPropert
 
   return (
     <section className="space-y-3">
-      <div>
-        <h2 className="text-[15px] font-semibold tracking-tight">
-          {t("settings.registry.title")}
-        </h2>
-        <p className={hintClassName}>{t("settings.registry.subtitle")}</p>
-        {!canWrite ? (
-          <p className={hintClassName}>{t("settings.registry.readOnly")}</p>
-        ) : null}
-        {errorKey !== null ? <ApiErrorText messageKey={errorKey} /> : null}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className={sectionTitleClassName}>{t("settings.registry.title")}</h2>
+          <p className={hintClassName}>{t("settings.registry.subtitle")}</p>
+          {!canWrite ? (
+            <p className={hintClassName}>{t("settings.registry.readOnly")}</p>
+          ) : null}
+        </div>
+        <Badge tone="primary" dot={false} className="tnum">
+          {t("settings.registry.keyCount", { count: genericEntries.length })}
+        </Badge>
       </div>
-      <div className="grid grid-cols-1 gap-3">
+      {errorKey !== null ? <ApiErrorText messageKey={errorKey} /> : null}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {groups.map((group) => (
           <SettingsRegistrySection
             key={group.categoryKey}

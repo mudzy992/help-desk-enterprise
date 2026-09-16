@@ -24,7 +24,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
     session?.isSuperAdmin === true || hasPermission(permissionKeys.settingsWrite);
 
   return (
-    <section className="space-y-4">
+    <div className="space-y-4">
       {embedded ? null : (
         <PageHeader
           crumbs={["EP-HelpDesk", t("navigation.settings")]}
@@ -49,6 +49,6 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
           <SettingsRegistryPanel canWrite={canWrite} />
         </>
       ) : null}
-    </section>
+    </div>
   );
 }

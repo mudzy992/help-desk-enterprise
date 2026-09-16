@@ -192,6 +192,8 @@
       "templatesEnabledHint": "Use the edited subject/body templates. When off, built-in templates are used.",
       "internalOnly": "Internal addresses only",
       "internalOnlyHint": "Blocks delivery outside @epbih.ba. The allow-list is ignored while this is on.",
+      "internalOnlyBadge": "internal-only delivery",
+      "scopeLabel": "Scope",
       "allowedDomains": "Allowed external domains (CSV)",
       "allowedEmails": "Allowed external addresses (CSV)",
       "placeholdersHint": "Allowed placeholders: {{placeholders}}",
@@ -231,6 +233,11 @@
       "expand": "Expand",
       "collapse": "Collapse",
       "keyCount": "{{count}} keys",
+      "visibility": {
+        "public": "public",
+        "private": "private",
+        "secret": "secret"
+      },
       "categories": {},
       "keys": {}
     }

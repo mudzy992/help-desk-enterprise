@@ -192,6 +192,8 @@
       "templatesEnabledHint": "Koristi uređene subject/body predloške. Isključeno vraća ugrađene predloške.",
       "internalOnly": "Samo interne adrese",
       "internalOnlyHint": "Blokira slanje van @epbih.ba. Allow-list se ignorira dok je ovo uključeno.",
+      "internalOnlyBadge": "samo interna isporuka",
+      "scopeLabel": "Opseg",
       "allowedDomains": "Dozvoljene eksterne domene (CSV)",
       "allowedEmails": "Dozvoljene eksterne adrese (CSV)",
       "placeholdersHint": "Dozvoljeni placeholderi: {{placeholders}}",
@@ -231,6 +233,11 @@
       "expand": "Proširi",
       "collapse": "Skupi",
       "keyCount": "{{count}} ključeva",
+      "visibility": {
+        "public": "javno",
+        "private": "privatno",
+        "secret": "tajna"
+      },
       "categories": {},
       "keys": {}
     }

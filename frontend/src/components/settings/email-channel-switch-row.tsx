@@ -9,19 +9,18 @@ export function EmailChannelSwitchRow(properties: {
   readonly onCheckedChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-[12.5px] font-medium text-foreground">{properties.label}</p>
+        <p className={hintClassName}>{properties.description}</p>
+      </div>
       <Switch
         className="mt-0.5"
         checked={properties.checked}
         disabled={properties.disabled}
         onCheckedChange={properties.onCheckedChange}
+        aria-label={properties.label}
       />
-      <span className="grid gap-0.5">
-        <span className="text-[12.5px] font-medium text-foreground">
-          {properties.label}
-        </span>
-        <span className={hintClassName}>{properties.description}</span>
-      </span>
-    </label>
+    </div>
   );
 }

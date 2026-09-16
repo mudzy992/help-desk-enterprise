@@ -1,5 +1,6 @@
 import {
   controlCompactClassName,
+  selectCompactClassName,
 } from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
 import type { SettingRegistryEntry } from "@/services/settings-api";
@@ -35,7 +36,7 @@ export function SettingsRegistryControl({
   if (entry.allowedValues !== undefined && entry.allowedValues.length > 0) {
     return (
       <select
-        className={cn(controlCompactClassName, "max-w-[16rem]")}
+        className={cn(selectCompactClassName, "w-auto min-w-[8rem] max-w-[14rem]")}
         value={String(draft)}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -53,7 +54,7 @@ export function SettingsRegistryControl({
     return (
       <input
         type="number"
-        className={cn(controlCompactClassName, "max-w-[10rem]")}
+        className={cn(controlCompactClassName, "w-24 tnum")}
         value={typeof draft === "number" ? draft : ""}
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
@@ -64,7 +65,7 @@ export function SettingsRegistryControl({
   return (
     <input
       type={isSecret ? "password" : "text"}
-      className={cn(controlCompactClassName, "max-w-[18rem]")}
+      className={cn(controlCompactClassName, "w-[min(100%,14rem)]")}
       value={typeof draft === "string" ? draft : String(draft)}
       disabled={disabled}
       placeholder={isSecret && entry.isSet ? secretPlaceholder : undefined}
