@@ -35,9 +35,15 @@ describe('listSettingsRegistry', () => {
       valueType: 'boolean',
       value: true,
       isSet: true,
+      categoryId: 'public.maintenance',
+      categoryIcon: 'wrench',
+      categoryPriority: 20,
     });
     const privateKey = byKey.get(settingKeys.privateReadOnlyModeEnabled);
     expect(privateKey?.visibility).toBe('private');
     expect(privateKey?.description.length).toBeGreaterThan(0);
+    expect(privateKey?.categoryId).toBe('private.readOnlyMode');
+    expect(privateKey?.categoryIcon).toBe('lock');
+    expect(privateKey?.categoryPriority).toBe(240);
   });
 });

@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import { requireSettingCategory } from './setting-categories';
 import { redactedSecretPlaceholder } from './settings.redaction';
 import {
   getSettingDefaultValue,
@@ -30,11 +31,15 @@ function toRegistryEntry(
   definition: SettingDefinition,
   storedByKey: ReadonlyMap<string, unknown>,
 ): SettingRegistryEntry {
+  const category = requireSettingCategory(definition.categoryId);
   const hasStored = storedByKey.has(definition.key);
   if (definition.visibility === 'secret') {
     return {
       key: definition.key,
       description: definition.description,
+      categoryId: category.id,
+      categoryIcon: category.icon,
+      categoryPriority: category.priority,
       valueType: definition.valueType,
       visibility: definition.visibility,
       isRequired: definition.isRequired,
@@ -50,6 +55,9 @@ function toRegistryEntry(
   return {
     key: definition.key,
     description: definition.description,
+    categoryId: category.id,
+    categoryIcon: category.icon,
+    categoryPriority: category.priority,
     valueType: definition.valueType,
     visibility: definition.visibility,
     isRequired: definition.isRequired,

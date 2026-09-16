@@ -1,10 +1,12 @@
-import { definePublicSetting, defineSecretSetting } from './define-setting';
-import { createSettingsRegistry } from './create-settings-registry';
+import { settingCategoryIds } from '../setting-categories';
 import { SettingsError } from '../settings.error';
 import type { SettingDefinition } from '../settings.types';
+import { createSettingsRegistry } from './create-settings-registry';
+import { definePublicSetting, defineSecretSetting } from './define-setting';
 
 const publicAppName = definePublicSetting({
   key: 'public.branding.appName',
+  categoryId: settingCategoryIds.publicBranding,
   valueType: 'string',
   description: 'Application name',
   isRequired: true,
@@ -31,12 +33,21 @@ describe('createSettingsRegistry', () => {
   it('rejects a missing key', () => {
     const invalid = definePublicSetting({
       key: '   ',
+      categoryId: settingCategoryIds.publicBranding,
       valueType: 'string',
       description: 'Invalid',
       isRequired: false,
     });
+    expect(() => createSettingsRegistry([invalid])).toThrow(/missing a key/);
+  });
+
+  it('rejects an unknown category id', () => {
+    const invalid = {
+      ...publicAppName,
+      categoryId: 'private.unknown',
+    } as unknown as SettingDefinition;
     expect(() => createSettingsRegistry([invalid])).toThrow(
-      /missing a key/,
+      /Unknown setting category/,
     );
   });
 
@@ -54,6 +65,7 @@ describe('createSettingsRegistry', () => {
     const invalid = {
       ...defineSecretSetting({
         key: 'private.auth.jwtSigningSecret',
+        categoryId: settingCategoryIds.privateAuth,
         valueType: 'string',
         description: 'JWT signing secret',
         isRequired: false,

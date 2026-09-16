@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { hintClassName } from "@/components/ui/control";
 import type { SettingsCategoryGroup } from "@/lib/settings/group-settings-by-category";
+import { resolveCategoryIcon } from "@/lib/settings/resolve-category-icon";
 import { resolveRegistryCategoryTitle } from "@/lib/settings/resolve-registry-i18n";
 
 interface SettingsRegistrySectionProperties {
@@ -28,14 +29,22 @@ export function SettingsRegistrySection({
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const title = resolveRegistryCategoryTitle(t, group.categoryKey);
+  const CategoryIcon = resolveCategoryIcon(group.categoryIcon);
   const preview = group.entries.slice(0, 3);
 
   return (
     <>
       <Card className="transition-colors hover:border-[#31405C]">
         <CardHeader
-          title={title}
-          subtitle={group.categoryKey}
+          title={
+            <span className="flex items-center gap-2">
+              <CategoryIcon
+                aria-hidden
+                className="size-4 shrink-0 text-[#31405C]"
+              />
+              <span>{title}</span>
+            </span>
+          }
           actions={
             <Badge tone="neutral" dot={false} className="tnum">
               {t("settings.registry.keyCount", { count: group.entries.length })}
@@ -77,7 +86,9 @@ export function SettingsRegistrySection({
       <SettingsCategoryDrawer
         open={drawerOpen}
         title={title}
-        description={t("settings.drawer.categoryDescription", { category: title })}
+        description={t("settings.drawer.categoryDescription", {
+          category: title,
+        })}
         entries={group.entries}
         canWrite={canWrite}
         pendingKey={pendingKey}

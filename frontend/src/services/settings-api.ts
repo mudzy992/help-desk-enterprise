@@ -19,6 +19,9 @@ export type SettingVisibility = "public" | "private" | "secret";
 export type SettingRegistryEntry = {
   readonly key: string;
   readonly description: string;
+  readonly categoryId: string;
+  readonly categoryIcon: string;
+  readonly categoryPriority: number;
   readonly valueType: SettingValueTypeName;
   readonly visibility: SettingVisibility;
   readonly isRequired: boolean;

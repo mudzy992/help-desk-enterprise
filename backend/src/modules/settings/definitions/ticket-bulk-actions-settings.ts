@@ -1,10 +1,12 @@
 import { definePrivateSetting } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Enable scoped bulk ticket actions',
     isRequired: true,
@@ -12,6 +14,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsAllowCrossOuForSuperAdmin,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow SuperAdmin to run bulk actions across organizational units',
     isRequired: true,
@@ -19,6 +22,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsRequireSameOuAndGroup,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require the same origin OU and group for non-SuperAdmin bulk',
     isRequired: true,
@@ -26,6 +30,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsDisallowBulkClose,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Forbid bulk close; always enforced by the domain',
     isRequired: true,
@@ -33,6 +38,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsAllowedActionTypesCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Allow-list of bulk action types',
     isRequired: true,
@@ -41,6 +47,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastEnableInApp,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Send bulk broadcast as in-app ticket messages',
     isRequired: true,
@@ -48,6 +55,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastEnableEmail,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Request email for bulk broadcast when the email channel exists',
     isRequired: true,
@@ -55,6 +63,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastRequirePreview,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require a recipient preview before bulk broadcast',
     isRequired: true,
@@ -62,6 +71,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastRateLimitPerMinute,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
     description: 'Maximum bulk broadcasts per actor per minute',
     isRequired: true,
@@ -69,6 +79,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastStructuredEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require the structured incident broadcast form',
     isRequired: true,
@@ -76,6 +87,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastRequiredFieldsCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Required structured broadcast fields',
     isRequired: true,
@@ -83,6 +95,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastAllowWorkaround,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow an optional workaround field on bulk broadcast',
     isRequired: true,
@@ -90,6 +103,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsBroadcastAllowLinks,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow links inside bulk broadcast text',
     isRequired: true,
@@ -97,6 +111,7 @@ export const ticketBulkActionsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketBulkActionsAuditBatchIdEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Attach a batch identifier to bulk action audit events',
     isRequired: true,

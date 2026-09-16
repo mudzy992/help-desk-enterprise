@@ -1,3 +1,4 @@
+import { isSettingCategoryId } from '../setting-categories';
 import { SettingsError } from '../settings.error';
 import type {
   SettingDefinition,
@@ -37,6 +38,11 @@ function assertValidDefinition(
   }
   if (definition.key.trim() === '') {
     throw new SettingsError('Setting definition is missing a key');
+  }
+  if (!isSettingCategoryId(definition.categoryId)) {
+    throw new SettingsError(
+      `Unknown setting category for key ${definition.key}: ${String(definition.categoryId)}`,
+    );
   }
   if (seenKeys.has(definition.key)) {
     throw new SettingsError(`Duplicate setting key: ${definition.key}`);

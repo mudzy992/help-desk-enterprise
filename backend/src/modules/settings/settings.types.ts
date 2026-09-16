@@ -1,3 +1,5 @@
+import type { SettingCategoryId } from './setting-categories';
+
 export type SettingVisibility = 'public' | 'private' | 'secret';
 
 export type SettingValueTypeName = 'string' | 'number' | 'boolean';
@@ -7,6 +9,7 @@ export type SettingValue = string | number | boolean;
 interface SettingDefinitionCommon {
   readonly key: string;
   readonly description: string;
+  readonly categoryId: SettingCategoryId;
   readonly isRequired: boolean;
   readonly valueType: SettingValueTypeName;
   readonly allowedValues?: readonly string[];
@@ -47,6 +50,9 @@ export type SettingsMutationInput = {
 export type SettingRegistryEntry = {
   readonly key: string;
   readonly description: string;
+  readonly categoryId: SettingCategoryId;
+  readonly categoryIcon: string;
+  readonly categoryPriority: number;
   readonly valueType: SettingValueTypeName;
   readonly visibility: SettingVisibility;
   readonly isRequired: boolean;

@@ -1,10 +1,12 @@
 import { definePrivateSetting } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 export const serviceFormsSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateTicketFormsEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Master switch for schema-driven service forms',
     isRequired: true,
@@ -12,6 +14,7 @@ export const serviceFormsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketFormsRequireStructuredFields,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require at least one structured field in a form schema',
     isRequired: true,
@@ -19,6 +22,7 @@ export const serviceFormsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketFormsVersioningEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow creating additional immutable form versions',
     isRequired: true,
@@ -26,6 +30,7 @@ export const serviceFormsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketFormsVersioningAllowMultipleActiveVersions,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow more than one ACTIVE form version per service',
     isRequired: true,
@@ -33,6 +38,7 @@ export const serviceFormsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketFormsVersioningRequireVersionOnTicket,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require tickets to store an exact formVersionRef',
     isRequired: true,

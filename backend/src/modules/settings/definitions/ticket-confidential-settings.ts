@@ -2,10 +2,12 @@ import { definePrivateSetting } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
 import { defaultBreakGlassAllowedRolesCsv } from '../../tickets/confidential/confidential.constants';
+import { settingCategoryIds } from '../setting-categories';
 
 export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Enforce per-ticket confidential ACL for tickets, messages, and attachments',
     isRequired: true,
@@ -13,6 +15,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialDefaultForServicesCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Service ids that create confidential tickets by default',
     isRequired: true,
@@ -20,6 +23,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialAllowedViewerRolesCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Roles that may view confidential tickets without break-glass, still within OU/service scope',
     isRequired: true,
@@ -27,6 +31,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialAllowedViewerGroupIdsCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Group ids that may view confidential tickets without break-glass, still within OU/service scope',
     isRequired: true,
@@ -34,6 +39,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialBreakGlassEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Allow authorized break-glass access to confidential tickets',
     isRequired: true,
@@ -41,6 +47,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialBreakGlassAllowedRolesCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Roles allowed to request break-glass, in addition to confidential.break_glass permission',
     isRequired: true,
@@ -48,6 +55,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialBreakGlassRequiresReason,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Require a reason for every break-glass request',
     isRequired: true,
@@ -55,6 +63,7 @@ export const ticketConfidentialSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketConfidentialAuditViews,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Audit every confidential ticket view and denied access',
     isRequired: true,

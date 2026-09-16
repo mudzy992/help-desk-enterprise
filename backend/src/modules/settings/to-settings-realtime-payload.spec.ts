@@ -1,3 +1,4 @@
+import { settingCategoryIds } from './setting-categories';
 import { settingKeys } from './setting-keys';
 import {
   shouldBroadcastSetting,
@@ -18,6 +19,7 @@ describe('settings realtime broadcast filter', () => {
     expect(shouldBroadcastSetting(settingKeys.privateSmtpPassword)).toBe(false);
     const payload = toSettingsRealtimePayload({
       key: settingKeys.privateAuthJwtSigningSecret,
+      categoryId: settingCategoryIds.privateAuth,
       visibility: 'secret',
       description: 'JWT signing secret',
       isRequired: true,

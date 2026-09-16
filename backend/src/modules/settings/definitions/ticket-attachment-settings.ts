@@ -1,6 +1,7 @@
 import { definePrivateSetting } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 const defaultAllowedMimeTypes =
   'application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -8,6 +9,7 @@ const defaultAllowedMimeTypes =
 export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsEnabled,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',
     description: 'Enable ticket file attachments',
     isRequired: true,
@@ -15,6 +17,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsMaxFileSizeMb,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
     description: 'Maximum attachment size in megabytes',
     isRequired: true,
@@ -22,6 +25,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsAllowedMimeTypesCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Allow-list of attachment MIME types',
     isRequired: true,
@@ -29,6 +33,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsAllowedExtensionsCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Allow-list of attachment file extensions',
     isRequired: true,
@@ -36,6 +41,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsMaxFilesPerTicket,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
     description: 'Maximum attachments stored on one ticket',
     isRequired: true,
@@ -43,6 +49,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsMaxFilesPerMessage,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
     description: 'Maximum attachments stored on one ticket message',
     isRequired: true,
@@ -50,6 +57,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsDangerousExtensionsBlocklistCsv,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'string',
     description: 'Blocked attachment file extensions',
     isRequired: true,
@@ -57,6 +65,7 @@ export const ticketAttachmentSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateTicketAttachmentsRetentionDays,
+    categoryId: settingCategoryIds.privateTicket,
     valueType: 'number',
     description: 'Retention window for ticket attachments in days',
     isRequired: true,

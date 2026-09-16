@@ -5,6 +5,7 @@ import {
 import { SettingsError } from '../settings.error';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition, SettingValue } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 export const defaultReportPackKeys = [
   'monthly_kpi',
@@ -20,6 +21,7 @@ export const defaultBottleneckWindowDays = 30;
 export const reportsSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateReportsEnabled,
+    categoryId: settingCategoryIds.privateReports,
     valueType: 'boolean',
     description: 'Enable predefined report pack CSV/JSON exports',
     isRequired: true,
@@ -27,6 +29,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   }),
   defineSecretSetting({
     key: settingKeys.privateReportsPacksJson,
+    categoryId: settingCategoryIds.privateReports,
     valueType: 'string',
     description: 'JSON array of enabled report pack keys',
     isRequired: false,
@@ -34,6 +37,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateReportsExportFormatsCsv,
+    categoryId: settingCategoryIds.privateReports,
     valueType: 'string',
     description: 'Comma-separated report export formats: csv, json',
     isRequired: true,
@@ -41,6 +45,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksEnabled,
+    categoryId: settingCategoryIds.privateDashboard,
     valueType: 'boolean',
     description: 'Enable bottleneck dashboard aggregations',
     isRequired: true,
@@ -48,6 +53,7 @@ export const reportsSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksDefaultWindowDays,
+    categoryId: settingCategoryIds.privateDashboard,
     valueType: 'number',
     description: 'Default rolling window in days for bottleneck trends',
     isRequired: true,

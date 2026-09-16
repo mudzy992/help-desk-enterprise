@@ -4,10 +4,12 @@ import {
 } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 export const smtpSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateSmtpEnabled,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'boolean',
     description:
       'Enables SMTP delivery; when off, the email addon is forcibly disabled',
@@ -16,6 +18,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpHost,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'SMTP server hostname used when SMTP is enabled',
     isRequired: false,
@@ -23,6 +26,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpPort,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'number',
     description: 'SMTP server port used when SMTP is enabled',
     isRequired: true,
@@ -30,6 +34,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpTls,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'boolean',
     description: 'Whether SMTP uses TLS when SMTP is enabled',
     isRequired: true,
@@ -37,6 +42,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpUsername,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'SMTP authentication username used when SMTP is enabled',
     isRequired: false,
@@ -44,6 +50,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   defineSecretSetting({
     key: settingKeys.privateSmtpPassword,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description:
       'SMTP authentication password; never expose outside trusted backend use',
@@ -51,6 +58,7 @@ export const smtpSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateSmtpFromAddress,
+    categoryId: settingCategoryIds.privateSmtp,
     valueType: 'string',
     description: 'From address used for outbound SMTP mail when SMTP is enabled',
     isRequired: false,

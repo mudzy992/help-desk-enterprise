@@ -2,6 +2,7 @@ import { definePrivateSetting } from '../registry/define-setting';
 import { SettingsError } from '../settings.error';
 import { settingKeys } from '../setting-keys';
 import type { SettingDefinition, SettingValue } from '../settings.types';
+import { settingCategoryIds } from '../setting-categories';
 
 export const defaultEdgeExtensionPollingIntervalSeconds = 90;
 export const edgeExtensionPollingIntervalMinimumSeconds = 60;
@@ -14,6 +15,7 @@ export const defaultEdgeExtensionRemoteRateLimitMinutes = 10;
 export const edgeExtensionSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Enable the Edge extension companion client module',
     isRequired: true,
@@ -21,6 +23,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionAllowedEmailDomain,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'string',
     description: 'Email domain allowed to use the Edge extension',
     isRequired: true,
@@ -28,6 +31,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Allow the Edge extension to open a Socket.IO connection',
     isRequired: true,
@@ -35,6 +39,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsReconnectMaxBackoffSeconds,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Maximum Socket.IO reconnect backoff in seconds',
     isRequired: true,
@@ -43,6 +48,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionWsMinClientVersion,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'string',
     description:
       'Minimum extension version allowed to connect; empty means no floor',
@@ -51,6 +57,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionNotificationsRedactedPreviews,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
       'Show only event type and ticket id in OS toasts, never message content',
@@ -59,6 +66,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionReceiptsEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Accept delivered and opened receipts from the extension',
     isRequired: true,
@@ -66,6 +74,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionEventsDedupEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Tell the extension to deduplicate events by eventId',
     isRequired: true,
@@ -73,6 +82,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionKillSwitchEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
       'When true, the kill switch is engaged and the extension must not connect',
@@ -81,6 +91,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionPollingFallbackEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Poll unread notifications when the Socket.IO connection drops',
     isRequired: true,
@@ -88,6 +99,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionPollingFallbackIntervalSeconds,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Unread polling interval in seconds while WebSocket is down',
     isRequired: true,
@@ -96,6 +108,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionChatEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Enable quick reply chat in the Edge extension popup',
     isRequired: true,
@@ -103,6 +116,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionChatMaxMessagesPerTicket,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Maximum messages loaded per ticket in the extension popup',
     isRequired: true,
@@ -111,6 +125,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionAttachmentsEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
       'Allow attachment upload from the Edge extension chat; off in MVP',
@@ -119,6 +134,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteEnabled,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Enable Request Remote / Quick Assist through the extension',
     isRequired: true,
@@ -126,6 +142,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteRateLimitMinutesPerTicket,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'number',
     description: 'Minimum minutes between remote requests on the same ticket',
     isRequired: true,
@@ -135,6 +152,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key:
       settingKeys.privateEdgeExtensionRemoteRequireUserClickToOpenQuickAssist,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description:
       'Require an explicit user click before opening ms-quick-assist',
@@ -143,6 +161,7 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
   }),
   definePrivateSetting({
     key: settingKeys.privateEdgeExtensionRemoteAuditAcknowledge,
+    categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'boolean',
     description: 'Write an audit entry when the user opens Quick Assist',
     isRequired: true,
