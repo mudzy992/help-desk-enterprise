@@ -10,7 +10,9 @@ import {
 
 interface AddOrganizationalUnitFormProperties {
   readonly catalog: readonly ManualDirectoryOrganizationalUnit[];
-  readonly onCreated: () => Promise<void>;
+  readonly onCreated: (
+    created: ManualDirectoryOrganizationalUnit,
+  ) => Promise<void>;
   readonly onCancel: () => void;
 }
 
@@ -20,8 +22,11 @@ export function AddOrganizationalUnitForm({
   onCancel,
 }: AddOrganizationalUnitFormProperties) {
   const { t } = useTranslation();
+  const defaultParent =
+    catalog.find((unit) => unit.organizationalUnitPath === "/Users")
+      ?.externalId ?? "";
   const [displayName, setDisplayName] = useState("");
-  const [parentExternalId, setParentExternalId] = useState("");
+  const [parentExternalId, setParentExternalId] = useState(defaultParent);
   const [distinguishedName, setDistinguishedName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,12 +35,12 @@ export function AddOrganizationalUnitForm({
     setIsSaving(true);
     setErrorMessage(null);
     try {
-      await createManualDirectoryOrganizationalUnit({
+      const created = await createManualDirectoryOrganizationalUnit({
         displayName,
         parentExternalId: parentExternalId || null,
         distinguishedName: distinguishedName || null,
       });
-      await onCreated();
+      await onCreated(created);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError

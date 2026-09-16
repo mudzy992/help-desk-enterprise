@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
+import { syncManualDirectoryCatalog } from "@/lib/directory/sync-manual-directory-catalog";
 import { ApiError } from "@/services/api";
 import {
   getDirectorySyncStatus,
-  runDirectorySyncRead,
   type DirectorySyncStatus,
 } from "@/services/directory-sync-api";
 
@@ -47,38 +47,7 @@ export function DirectorySyncCard({
     setIsRunning(true);
     setErrorMessage(null);
     try {
-      const statusSnapshot = status ?? (await getDirectorySyncStatus());
-      const distinguishedName =
-        statusSnapshot.strategy === "manual_only"
-          ? "OU=Users,DC=example,DC=com"
-          : undefined;
-      await runDirectorySyncRead({
-        operation: "organizational_units",
-        scope: {
-          distinguishedName,
-          organizationalUnitPath: "/Users",
-          includeSubtree: true,
-        },
-        forceRefresh: true,
-      });
-      await runDirectorySyncRead({
-        operation: "users",
-        scope: {
-          distinguishedName,
-          organizationalUnitPath: "/Users",
-          includeSubtree: true,
-        },
-        forceRefresh: true,
-      });
-      await runDirectorySyncRead({
-        operation: "groups",
-        scope: {
-          distinguishedName: "OU=Groups,DC=example,DC=com",
-          organizationalUnitPath: "/Groups",
-          includeSubtree: true,
-        },
-        forceRefresh: true,
-      });
+      await syncManualDirectoryCatalog();
       await reloadStatus();
       await onSynced();
     } catch (error) {

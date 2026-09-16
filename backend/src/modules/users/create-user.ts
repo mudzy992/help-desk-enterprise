@@ -1,6 +1,7 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { assignUserRole } from './assign-user-role';
+import { ensureSystemRole } from './ensure-system-role';
 import { listUsersSummary } from './list-users-summary';
 import type { CreateUserInput, UserSummaryResponse } from './users.types';
 import { UsersError } from './users.error';
@@ -12,6 +13,7 @@ export async function createUser(
   const displayName = input.displayName.trim();
   const email = input.email.trim().toLowerCase();
   const organizationalUnitId = input.organizationalUnitId?.trim() || null;
+  const roleKey = input.roleKey.trim();
   if (displayName.length === 0 || email.length === 0) {
     throw new UsersError('INVALID_INPUT');
   }
@@ -31,8 +33,8 @@ export async function createUser(
   if (existing !== null) {
     throw new UsersError('EMAIL_CONFLICT');
   }
-  const isSuperAdminRole =
-    input.roleKey.trim() === authorizationRoleKeys.superAdmin;
+  await ensureSystemRole(prisma, roleKey);
+  const isSuperAdminRole = roleKey === authorizationRoleKeys.superAdmin;
   const created = await prisma.user.create({
     data: {
       displayName,
@@ -44,7 +46,7 @@ export async function createUser(
   });
   await assignUserRole(prisma, {
     userId: created.id,
-    roleKey: input.roleKey,
+    roleKey,
     organizationalUnitId,
     serviceId: null,
     actorUserId: input.actorUserId,

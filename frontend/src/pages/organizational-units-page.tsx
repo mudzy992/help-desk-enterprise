@@ -1,5 +1,5 @@
 import { Network, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AddOrganizationalUnitForm } from "@/components/organizational-units/add-organizational-unit-form";
 import { DirectorySyncCard } from "@/components/organizational-units/directory-sync-card";
@@ -15,16 +15,9 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { countOrganizationalUnitMembers } from "@/lib/directory/count-organizational-unit-members";
 import { findOrganizationalUnitNode } from "@/lib/directory/find-organizational-unit-node";
 import { useDirectory } from "@/lib/directory/use-directory";
+import { useManualDirectoryCatalogActions } from "@/lib/directory/use-manual-directory-catalog-actions";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import { ApiError } from "@/services/api";
-import {
-  deleteManualDirectoryOrganizationalUnit,
-  listManualDirectoryOrganizationalUnits,
-  updateManualDirectoryOrganizationalUnit,
-  type ManualDirectoryOrganizationalUnit,
-} from "@/services/directory-sync-api";
-import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 interface OrganizationalUnitsPageProperties {
   readonly embedded?: boolean;
@@ -40,82 +33,14 @@ export function OrganizationalUnitsPage({
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [catalog, setCatalog] = useState<readonly ManualDirectoryOrganizationalUnit[]>([]);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const catalogActions = useManualDirectoryCatalogActions({
+    canManage,
+    reloadDirectory: directory.reload,
+  });
   const selectedNode =
     findOrganizationalUnitNode(directory.tree, selectedId) ??
     directory.tree[0] ??
     null;
-
-  const reloadCatalog = useCallback(async () => {
-    if (!canManage) {
-      return;
-    }
-    try {
-      setCatalog(await listManualDirectoryOrganizationalUnits());
-    } catch {
-      setCatalog([]);
-    }
-  }, [canManage]);
-
-  useEffect(() => {
-    void reloadCatalog();
-  }, [reloadCatalog]);
-
-  const findCatalogEntry = (node: OrganizationalUnitTreeNode) =>
-    catalog.find(
-      (entry) =>
-        entry.organizationalUnitPath === node.ouPath ||
-        entry.distinguishedName === node.distinguishedName,
-    );
-
-  const handleEdit = async (node: OrganizationalUnitTreeNode) => {
-    const entry = findCatalogEntry(node);
-    if (entry === undefined) {
-      setActionError(t("directory.ouNotInCatalog"));
-      return;
-    }
-    const nextName = window.prompt(t("directory.ouNamePlaceholder"), entry.displayName);
-    if (nextName === null || nextName.trim().length === 0) {
-      return;
-    }
-    setActionError(null);
-    try {
-      await updateManualDirectoryOrganizationalUnit(entry.externalId, {
-        displayName: nextName.trim(),
-      });
-      await reloadCatalog();
-    } catch (error) {
-      setActionError(
-        error instanceof ApiError
-          ? error.code === "HAS_CHILDREN" || error.code === "HAS_MAPPED_USERS"
-            ? t("directory.ouDeleteBlocked")
-            : t("directory.catalogSaveFailed")
-          : t("directory.catalogSaveFailed"),
-      );
-    }
-  };
-
-  const handleDelete = async (node: OrganizationalUnitTreeNode) => {
-    const entry = findCatalogEntry(node);
-    if (entry === undefined) {
-      setActionError(t("directory.ouNotInCatalog"));
-      return;
-    }
-    setActionError(null);
-    try {
-      await deleteManualDirectoryOrganizationalUnit(entry.externalId);
-      await reloadCatalog();
-    } catch (error) {
-      setActionError(
-        error instanceof ApiError
-          ? error.code === "HAS_CHILDREN" || error.code === "HAS_MAPPED_USERS"
-            ? t("directory.ouDeleteBlocked")
-            : t("directory.catalogSaveFailed")
-          : t("directory.catalogSaveFailed"),
-      );
-    }
-  };
 
   return (
     <section>
@@ -166,23 +91,28 @@ export function OrganizationalUnitsPage({
                 selectedId={selectedNode.id}
                 onSelect={(node) => setSelectedId(node.id)}
                 canManage={canManage}
-                onEdit={(node) => void handleEdit(node)}
-                onDelete={(node) => void handleDelete(node)}
+                onEdit={(node) => void catalogActions.handleEdit(node)}
+                onDelete={(node) => void catalogActions.handleDelete(node)}
               />
             ) : null}
             {showAddForm && canManage ? (
               <AddOrganizationalUnitForm
-                catalog={catalog}
+                catalog={catalogActions.catalog}
                 onCancel={() => setShowAddForm(false)}
-                onCreated={async () => {
+                onCreated={async (created) => {
                   setShowAddForm(false);
-                  await reloadCatalog();
+                  await catalogActions.handleCreated(created);
                 }}
               />
             ) : null}
-            {actionError ? (
+            {catalogActions.catalogHint ? (
+              <p className="px-4 pb-2 text-[11.5px] text-muted-foreground">
+                {catalogActions.catalogHint}
+              </p>
+            ) : null}
+            {catalogActions.actionError ? (
               <p role="alert" className={`px-4 pb-3 ${errorTextClassName}`}>
-                {actionError}
+                {catalogActions.actionError}
               </p>
             ) : null}
           </Card>
@@ -200,7 +130,7 @@ export function OrganizationalUnitsPage({
               canManage={canManage}
               onSynced={async () => {
                 await directory.reload();
-                await reloadCatalog();
+                await catalogActions.reloadCatalog();
               }}
             />
           </div>

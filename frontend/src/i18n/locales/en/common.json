@@ -105,11 +105,13 @@
     "forbiddenBody": "Organizational units, users, and system settings are available to administrators."
   },
   "policyPacks": {
-    "cardTitle": "Policy pack · {{code}}",
+    "cardTitle": "{{name}}",
     "permissionCount": "{{count}} permissions",
     "assignmentUnknown": "— assignments",
-    "applyTitle": "Assign policy pack",
-    "applySubtitle": "Applying a pack to an organizational unit or service updates role→permission mappings.",
+    "grantRoleLine": "{{role}} → {{count}} permissions",
+    "applyTitle": "Apply pack to OU / service",
+    "applySubtitle": "Does not edit the pack definition — assigns an existing pack to an organizational unit (and optionally a service) and updates role→permission mappings.",
+    "applyDetailsSummary": "Apply pack to OU / service",
     "packLabel": "Policy pack",
     "unitLabel": "Organizational unit",
     "serviceLabel": "Service (optional)",
@@ -121,11 +123,60 @@
     "emptyTitle": "No policy packs",
     "emptyBody": "The policy pack registry is empty.",
     "forbiddenTitle": "SuperAdmin only",
-    "forbiddenBody": "Assigning policy packs is limited to SuperAdmin accounts.",
+    "forbiddenBody": "Applying policy packs is limited to SuperAdmin accounts.",
     "errorForbidden": "You do not have permission for policy pack operations.",
     "errorNotFound": "Pack, organizational unit, or service was not found.",
     "errorValidation": "Check the pack and target organizational unit.",
-    "errorGeneric": "Applying the policy pack failed."
+    "errorGeneric": "Applying the policy pack failed.",
+    "roles": {
+      "USER": "User",
+      "AGENT": "Agent",
+      "ADMIN": "Administrator",
+      "SUPER_ADMIN": "SuperAdmin"
+    },
+    "packs": {
+      "PACK_IT_STANDARD": {
+        "name": "IT Standard",
+        "description": "Standard IT operations pack: AGENT and ADMIN roles scoped to the target organizational unit."
+      },
+      "PACK_HR_RESTRICTED": {
+        "name": "HR Restricted",
+        "description": "Restricted HR pack: AGENT role scoped to the target organizational unit and service."
+      },
+      "PACK_FINANCE_RESTRICTED": {
+        "name": "Finance Restricted",
+        "description": "Restricted Finance pack: AGENT and ADMIN roles scoped to the target organizational unit and service."
+      }
+    },
+    "permissions": {
+      "ticket.forward.cross_ou": "Forward ticket across OU",
+      "ticket.merge": "Merge tickets",
+      "ticket.bulk.assign": "Bulk assign",
+      "ticket.bulk.status_update": "Bulk status update",
+      "ticket.bulk.priority_update": "Bulk priority update",
+      "ticket.bulk.broadcast": "Bulk broadcast",
+      "ticket.attachments.upload": "Upload attachments",
+      "ticket.attachments.download": "Download attachments",
+      "service.catalog.write": "Edit service catalog",
+      "service.forms.write": "Edit service forms",
+      "service.availability.write": "Service availability",
+      "sla.write": "Edit SLA",
+      "routing.write": "Edit routing",
+      "group.manage": "Manage groups",
+      "settings.write": "Edit settings",
+      "integrations.queue.manage": "Manage integrations queue",
+      "audit.export": "Export audit",
+      "reports.export": "Export reports",
+      "supportBundle.export": "Support bundle",
+      "confidential.break_glass": "Break-glass access",
+      "knowledge.article.write": "Write articles",
+      "knowledge.article.review": "Review articles",
+      "knowledge.article.publish": "Publish articles",
+      "edge.connect": "Edge connect",
+      "edge.notify.receive": "Edge notifications",
+      "ticket.message.send": "Send ticket messages",
+      "ticket.remote.open_quick_assist": "Quick Assist"
+    }
   },
   "maintenance": {
     "title": "Scheduled maintenance",
@@ -753,6 +804,8 @@
     "ouDeleteBlocked": "OU delete is rejected while children or mapped users exist",
     "ouNotInCatalog": "This OU is not in the manual-only catalog",
     "catalogSaveFailed": "Could not save the catalog change",
+    "catalogPendingSync": "Saved to catalog — running a read so it appears in the tree…",
+    "catalogSynced": "Catalog read complete — tree updated",
     "syncTitle": "AD synchronization",
     "syncSubtitle": "read mode: {{mode}}",
     "syncMode": "Read mode",

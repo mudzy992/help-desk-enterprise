@@ -73,7 +73,9 @@ export function UsersSummaryRow({
       <td className="px-4 py-2.5">
         {user.policyPackKey ? (
           <Badge tone="accent" dot={false}>
-            {user.policyPackKey}
+            {t(`policyPacks.packs.${user.policyPackKey}.name`, {
+              defaultValue: user.policyPackKey,
+            })}
           </Badge>
         ) : (
           <span className="text-muted-foreground/50">—</span>

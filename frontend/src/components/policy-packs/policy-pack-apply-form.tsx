@@ -57,78 +57,84 @@ export function PolicyPackApplyForm({
 
   return (
     <Card>
-      <CardHeader
-        title={t("policyPacks.applyTitle")}
-        subtitle={t("policyPacks.applySubtitle")}
-      />
-      <div className="grid gap-3 px-4 pb-4 md:grid-cols-3">
-        <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
-          {t("policyPacks.packLabel")}
-          <select
-            className={selectCompactClassName}
-            value={packKey}
-            onChange={(event) => setPackKey(event.target.value)}
+      <details>
+        <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <CardHeader
+            title={t("policyPacks.applyTitle")}
+            subtitle={t("policyPacks.applySubtitle")}
+          />
+        </summary>
+        <div className="grid gap-3 px-4 pb-4 md:grid-cols-3">
+          <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
+            {t("policyPacks.packLabel")}
+            <select
+              className={selectCompactClassName}
+              value={packKey}
+              onChange={(event) => setPackKey(event.target.value)}
+            >
+              {packs.map((pack) => (
+                <option key={pack.key} value={pack.key}>
+                  {t(`policyPacks.packs.${pack.key}.name`, {
+                    defaultValue: pack.name,
+                  })}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
+            {t("policyPacks.unitLabel")}
+            <select
+              className={selectCompactClassName}
+              value={unitId}
+              onChange={(event) => setUnitId(event.target.value)}
+            >
+              {unitOptions.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
+            {t("policyPacks.serviceLabel")}
+            <select
+              className={selectCompactClassName}
+              value={serviceId}
+              onChange={(event) => setServiceId(event.target.value)}
+            >
+              <option value="">{t("policyPacks.serviceOptional")}</option>
+              {serviceOptions.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={isSaving || packs.length === 0}
+            onClick={() => void handleApply()}
           >
-            {packs.map((pack) => (
-              <option key={pack.key} value={pack.key}>
-                {pack.name} ({pack.key})
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
-          {t("policyPacks.unitLabel")}
-          <select
-            className={selectCompactClassName}
-            value={unitId}
-            onChange={(event) => setUnitId(event.target.value)}
-          >
-            {unitOptions.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1.5 text-[12.5px] font-medium text-foreground">
-          {t("policyPacks.serviceLabel")}
-          <select
-            className={selectCompactClassName}
-            value={serviceId}
-            onChange={(event) => setServiceId(event.target.value)}
-          >
-            <option value="">{t("policyPacks.serviceOptional")}</option>
-            {serviceOptions.map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 px-4 pb-4">
-        <Button
-          variant="primary"
-          size="sm"
-          disabled={isSaving || packs.length === 0}
-          onClick={() => void handleApply()}
-        >
-          {isSaving ? t("policyPacks.applying") : t("policyPacks.apply")}
-        </Button>
-        {errorKey ? (
-          <p role="alert" className={errorTextClassName}>
-            {t(errorKey)}
-          </p>
-        ) : null}
-        {result ? (
-          <p className={hintClassName}>
-            {t("policyPacks.applyResult", {
-              roles: result.createdUserRoleCount,
-              permissions: result.createdRolePermissionCount,
-            })}
-          </p>
-        ) : null}
-      </div>
+            {isSaving ? t("policyPacks.applying") : t("policyPacks.apply")}
+          </Button>
+          {errorKey ? (
+            <p role="alert" className={errorTextClassName}>
+              {t(errorKey)}
+            </p>
+          ) : null}
+          {result ? (
+            <p className={hintClassName}>
+              {t("policyPacks.applyResult", {
+                roles: result.createdUserRoleCount,
+                permissions: result.createdRolePermissionCount,
+              })}
+            </p>
+          ) : null}
+        </div>
+      </details>
     </Card>
   );
 }
