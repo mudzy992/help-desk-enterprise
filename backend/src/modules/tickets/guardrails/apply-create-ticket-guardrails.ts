@@ -23,6 +23,7 @@ export async function applyCreateTicketGuardrails(input: {
   readonly description: string;
   readonly configuration?: TicketGuardrailsConfiguration;
   readonly sink: DuplicateTicketMatch[];
+  readonly now?: Date;
 }): Promise<void> {
   const configuration =
     input.configuration ?? disabledTicketGuardrailsConfiguration;
@@ -39,6 +40,7 @@ export async function applyCreateTicketGuardrails(input: {
     requesterId: input.requesterId,
     serviceId: input.serviceId,
     description: input.description,
+    now: input.now,
   });
   assertDuplicateTicketAllowed({
     configuration,

@@ -82,7 +82,7 @@ export function createInMemoryTicketsPrisma() {
   const changeLogs: InMemoryTicketChangeLog[] = [];
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let nextIdentifier = 1;
-  const now = () => new Date('2026-09-11T12:00:00.000Z');
+  const now = () => new Date();
   const nextId = () => `ticket-record-${nextIdentifier++}`;
   const nextPrefixedId = (prefix: string) => `${prefix}-${nextIdentifier++}`;
   const slaLayer = createInMemoryTicketSlaLayer(nextPrefixedId, now);

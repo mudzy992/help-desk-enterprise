@@ -1,24 +1,22 @@
 # HANDOFF — quality-e2e-critical-flows
 
-## Urađeno
+## Urađeno (R7d)
 
-- `TASKS.md` stavka E2E označena `[~] IN PROGRESS`
-- Plan folder `.cursor/plans/quality-e2e-critical-flows/`
-- Repo audit: nema E2E frameworka; F7-A i F8-1 postoje u kodu; F0–F8 i F9-1/F9-2 su `[x]`
+- Playwright suite u `e2e/` (9 speceva + helpers + global-setup)
+- Actors: **A** (Users API + Postgres `localPasswordHash`)
+- Matrica + checklist/changelog ažurirani
+- CI unit gate zasebno; E2E job na `workflow_dispatch` / `main` (bez podizanja DB u GHA)
 
-## Odluke (čeka potvrdu)
+## Lokalni run
 
-- Playwright, root `e2e/`, bez CI u ovom tasku
-- Aktor seeder: **A** predloženo, nije potvrđeno
-
-## Otvoreno
-
-- Potvrda frameworka + odluke A/B/C za drugog korisnika
-
-## Next steps
-
-Nakon “kreni”: faza 1 (scaffold), zatim specovi 1–9.
+Vidi `e2e/README.md`. Preduslov: Postgres + Redis + backend + worker + Vite + `DATABASE_URL` u `e2e/.env`.
 
 ## Test status
 
-E2E još nije implementiran. Jest/Vitest nisu dirani.
+Specevi su implementirani; **full green run** nije izvršen u ovom agent okruženju jer stack (DB/API/UI) nije garantovan. Pokreni lokalno prije merge-a E2E job-a kao blocking.
+
+## Van scope / tanji coverage
+
+- 07: pause/overdue wait ≤60s nije full assert (samo due field presence)
+- 08: CSAT submit/KPI assert dijelomičan (close-code required + resolve)
+- 05: rate-limit drugi broadcast nije forsiran (preview path pokriven)

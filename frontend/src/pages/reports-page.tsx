@@ -11,105 +11,89 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { buildReportKpis } from "@/lib/reports/report-aggregates";
 import {
-  buildAgingChart,
-  buildBottleneckChart,
-  buildServiceVolumeItems,
-} from "@/lib/reports/report-charts";
+  mapAgingBars,
+  mapBottleneckBars,
+  mapServiceVolumeBars,
+} from "@/lib/reports/map-report-dashboard-charts";
 import {
-  previousReportWindow,
   resolveReportWindow,
   toDateInputValue,
   type ReportPreset,
 } from "@/lib/reports/report-window";
-import { buildReportVolumeSeries } from "@/lib/reports/report-volume";
-import { readApiRequestId } from "@/lib/map-api-error";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
+import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import {
-  mapTicketError,
-  type TicketErrorKey,
-} from "@/lib/tickets/map-ticket-error";
-import { listRoutingRules } from "@/services/routing-api";
-import { listServices } from "@/services/service-catalog-api";
-import { listTickets, type TicketResponse } from "@/services/tickets-api";
+  fetchReportsDashboard,
+  type ReportsDashboardResponse,
+} from "@/services/reports-api";
 
 export function ReportsPage() {
   const { t } = useTranslation();
-  const [tickets, setTickets] = useState<readonly TicketResponse[] | null>(null);
-  const [serviceNames, setServiceNames] = useState<ReadonlyMap<string, string>>(
-    new Map(),
+  const [dashboard, setDashboard] = useState<ReportsDashboardResponse | null>(
+    null,
   );
-  const [groupNames, setGroupNames] = useState<ReadonlyMap<string, string>>(
-    new Map(),
+  const [organizationalUnitId, setOrganizationalUnitId] = useState<string | null>(
+    null,
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [preset, setPreset] = useState<ReportPreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
-    setErrorKey(null);
-    setRequestId(null);
-    try {
-      const loaded = await listTickets();
-      setTickets(loaded);
-      const [catalog, rules] = await Promise.all([
-        listServices().catch(() => []),
-        listRoutingRules().catch(() => []),
-      ]);
-      setServiceNames(new Map(catalog.map((service) => [service.id, service.name])));
-      setGroupNames(new Map(rules.map((rule) => [rule.groupId, rule.groupName])));
-    } catch (error) {
-      setTickets(null);
-      setErrorKey(mapTicketError(error));
-      setRequestId(readApiRequestId(error));
-    } finally {
-      setIsLoading(false);
-    }
+  useEffect(() => {
+    void listOrganizationalUnitTree()
+      .then((tree) => {
+        const first = flattenOriginUnitOptions(tree)[0]?.id ?? null;
+        setOrganizationalUnitId(first);
+      })
+      .catch(() => setOrganizationalUnitId(null));
   }, []);
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  const now = useMemo(() => new Date(), [tickets]);
+  const now = useMemo(
+    () => new Date(),
+    [preset, customFrom, customTo, organizationalUnitId],
+  );
   const window = resolveReportWindow({
     preset,
     customFrom,
     customTo,
     now,
   });
-  const kpis =
-    tickets === null
-      ? null
-      : buildReportKpis(tickets, window, previousReportWindow(window));
-  const bottleneck =
-    tickets === null
-      ? null
-      : buildBottleneckChart(
-          tickets,
-          window,
-          groupNames,
-          t("reports.unroutedGroup"),
-        );
-  const serviceItems =
-    tickets === null
-      ? null
-      : buildServiceVolumeItems(tickets, window, serviceNames);
-  const volume =
-    tickets === null ? null : buildReportVolumeSeries(tickets, window);
-  const aging =
-    tickets === null
-      ? null
-      : buildAgingChart(tickets, now, {
-          lessThanOneDay: t("reports.agingLt1"),
-          oneToThreeDays: t("reports.aging1to3"),
-          threeToSevenDays: t("reports.aging3to7"),
-          moreThanSevenDays: t("reports.agingGt7"),
-        });
+  const fromIso = window.from.toISOString();
+  const toIso = window.to.toISOString();
+
+  const reload = useCallback(async () => {
+    if (organizationalUnitId === null) {
+      setDashboard(null);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    setErrorKey(null);
+    setRequestId(null);
+    try {
+      const loaded = await fetchReportsDashboard({
+        organizationalUnitId,
+        from: fromIso,
+        to: toIso,
+      });
+      setDashboard(loaded);
+    } catch (error) {
+      setDashboard(null);
+      setErrorKey(mapApiError(error));
+      setRequestId(readApiRequestId(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [organizationalUnitId, fromIso, toIso]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const onPresetChange = (next: ReportPreset) => {
     if (next === "custom") {
@@ -118,6 +102,24 @@ export function ReportsPage() {
     }
     setPreset(next);
   };
+
+  const bottleneck =
+    dashboard === null
+      ? null
+      : mapBottleneckBars(dashboard.bottleneckByGroup);
+  const serviceItems =
+    dashboard === null
+      ? null
+      : mapServiceVolumeBars(dashboard.serviceVolume);
+  const agingItems =
+    dashboard === null
+      ? null
+      : mapAgingBars(dashboard.aging, {
+          lessThanOneDay: t("reports.agingLt1"),
+          oneToThreeDays: t("reports.aging1to3"),
+          threeToSevenDays: t("reports.aging3to7"),
+          moreThanSevenDays: t("reports.agingGt7"),
+        });
 
   return (
     <section>
@@ -147,7 +149,7 @@ export function ReportsPage() {
         <PanelSkeleton className="mt-0" label={t("reports.title")} />
       ) : errorKey ? (
         <ApiErrorText messageKey={errorKey} requestId={requestId} />
-      ) : tickets === null || tickets.length === 0 ? (
+      ) : dashboard === null || dashboard.ticketCount === 0 ? (
         <EmptyState
           icon={<BarChart3 size={18} strokeWidth={1.8} />}
           title={t("reports.emptyTitle")}
@@ -158,21 +160,19 @@ export function ReportsPage() {
             </Button>
           }
         />
-      ) : kpis === null ||
-        bottleneck === null ||
+      ) : bottleneck === null ||
         serviceItems === null ||
-        volume === null ||
-        aging === null ? null : (
+        agingItems === null ? null : (
         <>
-          <ReportsMetricGrid kpis={kpis} preset={preset} />
+          <ReportsMetricGrid kpis={dashboard.kpis} preset={preset} />
           <ReportsCharts
             preset={preset}
             bottleneckItems={bottleneck.items}
             bottleneckLabel={bottleneck.bottleneckLabel}
             serviceItems={serviceItems}
-            volume={volume}
-            agingItems={aging.items}
-            waitingOverSevenDays={aging.waitingOverSevenDays}
+            volume={dashboard.volumeSeries}
+            agingItems={agingItems}
+            waitingOverSevenDays={dashboard.aging.waitingOverSevenDays}
           />
         </>
       )}

@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { aggregateBottleneckDashboard } from './bottleneck/aggregate-bottleneck-dashboard';
 import { buildReportPackRows } from './build-report-pack-rows';
+import {
+  buildReportsDashboard,
+  type ReportsDashboard,
+} from './dashboard/build-reports-dashboard';
 import { loadReportPackBuildInput } from './load-report-pack-build-input';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { recordReportExportAudit } from './record-report-export-audit';
@@ -87,6 +91,22 @@ export class ReportsService {
     );
     const tickets = await loadScopedReportTickets(this.prisma, scopedIds, false);
     return aggregateBottleneckDashboard({ tickets, window });
+  }
+
+  async dashboard(
+    query: ReportScopeQuery,
+    now: Date = new Date(),
+    unroutedLabel = 'Unrouted',
+  ): Promise<ReportsDashboard> {
+    const configuration = await this.configurationLoader.load();
+    this.assertReportsEnabled(configuration);
+    return buildReportsDashboard({
+      prisma: this.prisma,
+      configuration,
+      query,
+      now,
+      unroutedLabel,
+    });
   }
 
   private async requireReports(

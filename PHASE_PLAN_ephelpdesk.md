@@ -101,10 +101,10 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 
 ## Faza R7 — Tehnički dug i kvalitet (P4)
 
-- [ ] `tickets.guardrails.spec.ts` — 3 pre-existing failing testa (warn/soft-block/concurrent scenariji), potvrđeno postojali prije R2, nisu regresija — treba zaseban ticket da se ispravi stvarna guardrails logika, ne samo test
-- [ ] Reports/Dashboard KPI — prebaciti client-side agregaciju na backend `/reports` endpoint (izbjeći dupliranje logike, riješiti skalabilnost)
-- [ ] CI pipeline (GitHub Actions) — pokreće postojeći test suite (uključujući RBAC testove) na svaki PR
-- [ ] E2E testovi — implementacija po već postojećem planu u `.cursor/plans/quality-e2e-critical-flows/`
+- [x] `tickets.guardrails.spec.ts` — 3 pre-existing failing testa (warn/soft-block/concurrent scenariji), potvrđeno postojali prije R2, nisu regresija — treba zaseban ticket da se ispravi stvarna guardrails logika, ne samo test
+- [x] Reports/Dashboard KPI — prebaciti client-side agregaciju na backend `/reports` endpoint (izbjeći dupliranje logike, riješiti skalabilnost)
+- [x] CI pipeline (GitHub Actions) — pokreće postojeći test suite (uključujući RBAC testove) na svaki PR
+- [x] E2E testovi — implementacija po već postojećem planu u `.cursor/plans/quality-e2e-critical-flows/`
 
 ---
 

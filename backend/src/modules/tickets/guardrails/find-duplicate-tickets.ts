@@ -6,6 +6,10 @@ import type {
   TicketGuardrailsConfiguration,
 } from './guardrails.types';
 
+function toDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
 export async function findDuplicateTickets(input: {
   readonly prisma: PrismaService;
   readonly configuration: TicketGuardrailsConfiguration;
@@ -28,12 +32,12 @@ export async function findDuplicateTickets(input: {
     },
   })) as TicketRecord[];
   return recent
-    .filter(
-      (ticket) =>
-        ticket.parentTicketId === null &&
-        ticket.reopenedFromTicketId === null &&
-        ticket.createdAt.getTime() >= windowStart.getTime(),
-    )
+    .filter((ticket) => {
+      if (ticket.parentTicketId !== null || ticket.reopenedFromTicketId !== null) {
+        return false;
+      }
+      return toDate(ticket.createdAt).getTime() >= windowStart.getTime();
+    })
     .map((ticket) => ({
       ticketId: ticket.id,
       ticketNumber: ticket.ticketNumber,

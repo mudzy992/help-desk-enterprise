@@ -85,4 +85,13 @@ export class ReportsController {
       throw mapReportsError(error);
     });
   }
+
+  @Get('dashboard')
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  dashboard(@Query() query: ReportScopeQueryDto) {
+    return this.reportsService.dashboard(query).catch((error) => {
+      throw mapReportsError(error);
+    });
+  }
 }

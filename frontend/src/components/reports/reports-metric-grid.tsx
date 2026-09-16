@@ -1,7 +1,7 @@
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { StatCard } from "@/components/ui/stat-card";
-import type { ReportKpis } from "@/lib/reports/report-aggregates";
+import type { ReportDashboardKpis } from "@/services/reports-api";
 import {
   deltaTone,
   formatCsat,
@@ -13,7 +13,7 @@ import {
 import type { ReportPreset } from "@/lib/reports/report-window";
 
 interface ReportsMetricGridProperties {
-  readonly kpis: ReportKpis;
+  readonly kpis: ReportDashboardKpis;
   readonly preset: ReportPreset;
 }
 

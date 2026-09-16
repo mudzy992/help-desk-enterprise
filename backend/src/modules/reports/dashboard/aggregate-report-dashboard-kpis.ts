@@ -1,17 +1,7 @@
-import {
-  isTimestampInWindow,
-  type ReportWindow,
-} from "@/lib/reports/report-window";
-import {
-  elapsedHours,
-  elapsedMinutes,
-  roundToOneDecimal,
-  ticketFirstRespondedAt,
-  ticketResolvedAt,
-} from "@/lib/reports/report-ticket-fields";
-import type { TicketResponse } from "@/services/tickets-api";
+import type { TicketCsatRecord } from '../../tickets/csat/csat.types';
+import type { ReportTicketSnapshot, ReportWindow } from '../reports.types';
 
-export type ReportKpis = {
+export type ReportDashboardKpis = {
   readonly createdCount: number;
   readonly createdDeltaPercent: number | null;
   readonly firstResponseMinutes: number | null;
@@ -25,21 +15,40 @@ export type ReportKpis = {
   readonly csatScaleMax: number;
 };
 
-export function buildReportKpis(
-  tickets: readonly TicketResponse[],
-  window: ReportWindow,
-  previousWindow: ReportWindow,
-): ReportKpis {
-  const createdCount = countCreated(tickets, window);
-  const previousCreated = countCreated(tickets, previousWindow);
-  const firstResponse = averageFirstResponseMinutes(tickets, window);
-  const previousFirstResponse = averageFirstResponseMinutes(
-    tickets,
-    previousWindow,
+export function previousReportWindow(window: ReportWindow): ReportWindow {
+  const durationMs = window.to.getTime() - window.from.getTime();
+  return {
+    from: new Date(window.from.getTime() - durationMs),
+    to: new Date(window.from.getTime() - 1),
+  };
+}
+
+export function aggregateReportDashboardKpis(input: {
+  readonly tickets: readonly ReportTicketSnapshot[];
+  readonly csatByTicketId: ReadonlyMap<string, TicketCsatRecord>;
+  readonly window: ReportWindow;
+  readonly previousWindow: ReportWindow;
+}): ReportDashboardKpis {
+  const createdCount = countCreated(input.tickets, input.window);
+  const previousCreated = countCreated(input.tickets, input.previousWindow);
+  const firstResponse = averageFirstResponseMinutes(
+    input.tickets,
+    input.window,
   );
-  const resolution = averageResolutionHours(tickets, window);
-  const previousResolution = averageResolutionHours(tickets, previousWindow);
-  const csat = averageCsat(tickets, window);
+  const previousFirstResponse = averageFirstResponseMinutes(
+    input.tickets,
+    input.previousWindow,
+  );
+  const resolution = averageResolutionHours(input.tickets, input.window);
+  const previousResolution = averageResolutionHours(
+    input.tickets,
+    input.previousWindow,
+  );
+  const csat = averageCsat(
+    input.tickets,
+    input.csatByTicketId,
+    input.window,
+  );
   return {
     createdCount,
     createdDeltaPercent: percentChange(createdCount, previousCreated),
@@ -62,28 +71,23 @@ export function buildReportKpis(
 }
 
 function countCreated(
-  tickets: readonly TicketResponse[],
+  tickets: readonly ReportTicketSnapshot[],
   window: ReportWindow,
 ): number {
-  return tickets.filter((ticket) =>
-    isTimestampInWindow(ticket.createdAt, window),
-  ).length;
+  return tickets.filter((ticket) => isInWindow(ticket.createdAt, window))
+    .length;
 }
 
 function averageFirstResponseMinutes(
-  tickets: readonly TicketResponse[],
+  tickets: readonly ReportTicketSnapshot[],
   window: ReportWindow,
 ): { average: number | null; count: number } {
   const samples: number[] = [];
   for (const ticket of tickets) {
-    if (!isTimestampInWindow(ticket.createdAt, window)) {
+    if (!isInWindow(ticket.createdAt, window) || ticket.firstResponseAt === null) {
       continue;
     }
-    const respondedAt = ticketFirstRespondedAt(ticket);
-    if (respondedAt === null) {
-      continue;
-    }
-    const minutes = elapsedMinutes(ticket.createdAt, respondedAt);
+    const minutes = elapsedMinutes(ticket.createdAt, ticket.firstResponseAt);
     if (minutes !== null) {
       samples.push(minutes);
     }
@@ -92,16 +96,15 @@ function averageFirstResponseMinutes(
 }
 
 function averageResolutionHours(
-  tickets: readonly TicketResponse[],
+  tickets: readonly ReportTicketSnapshot[],
   window: ReportWindow,
 ): { average: number | null; count: number } {
   const samples: number[] = [];
   for (const ticket of tickets) {
-    const resolvedAt = ticketResolvedAt(ticket);
-    if (resolvedAt === null || !isTimestampInWindow(resolvedAt, window)) {
+    if (ticket.resolvedAt === null || !isInWindow(ticket.resolvedAt, window)) {
       continue;
     }
-    const hours = elapsedHours(ticket.createdAt, resolvedAt);
+    const hours = elapsedHours(ticket.createdAt, ticket.resolvedAt);
     if (hours !== null) {
       samples.push(hours);
     }
@@ -115,29 +118,50 @@ function averageResolutionHours(
 }
 
 function averageCsat(
-  tickets: readonly TicketResponse[],
+  tickets: readonly ReportTicketSnapshot[],
+  csatByTicketId: ReadonlyMap<string, TicketCsatRecord>,
   window: ReportWindow,
 ): { average: number | null; count: number; scaleMax: number } {
   const ratings: number[] = [];
-  let scaleMax = 5;
   for (const ticket of tickets) {
-    if (!isTimestampInWindow(ticket.createdAt, window)) {
+    if (!isInWindow(ticket.createdAt, window)) {
       continue;
     }
-    const rating = ticket.csat?.rating;
-    if (rating === undefined || rating === null) {
+    const csat = csatByTicketId.get(ticket.id);
+    if (csat === undefined) {
       continue;
     }
-    ratings.push(rating);
-    scaleMax = ticket.csat?.scaleMax ?? scaleMax;
+    ratings.push(csat.rating);
   }
   const average = averageOf(ratings);
   return {
     average:
       average.average === null ? null : roundToOneDecimal(average.average),
     count: average.count,
-    scaleMax,
+    scaleMax: 5,
   };
+}
+
+function isInWindow(value: Date | null, window: ReportWindow): boolean {
+  if (value === null) {
+    return false;
+  }
+  const time = value.getTime();
+  return time >= window.from.getTime() && time <= window.to.getTime();
+}
+
+function elapsedHours(start: Date, end: Date): number | null {
+  const hours = (end.getTime() - start.getTime()) / 3_600_000;
+  return hours < 0 ? null : hours;
+}
+
+function elapsedMinutes(start: Date, end: Date): number | null {
+  const hours = elapsedHours(start, end);
+  return hours === null ? null : hours * 60;
+}
+
+function roundToOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function averageOf(

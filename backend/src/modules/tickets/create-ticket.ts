@@ -135,6 +135,7 @@ export async function createTicket(
     description,
   });
   assertRedactionAllowed(scan);
+  const guardrailNow = new Date();
   const created = await runExclusiveGuardrail(
     duplicateGuardrailSubjectKey(requester.id, serviceId),
     async () => {
@@ -146,6 +147,7 @@ export async function createTicket(
         description,
         configuration: guardrails,
         sink: duplicateWarnings,
+        now: guardrailNow,
       });
       return prisma.$transaction(async (transaction) => {
         const ticketNumber = await nextTicketNumber(() =>
