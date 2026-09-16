@@ -6,13 +6,11 @@ import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from '../authentication/authenticated-request';
 import {
-  AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
   AUTHORIZATION_REQUIRED_ROLES_KEY,
   authorizationRoleKeys,
-  permissionKeys,
 } from '../authorization/authorization.constants';
 import { RoleGuard } from '../authorization/role.guard';
-import { GroupsController } from './groups.controller';
+import { UsersController } from './users.controller';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -21,14 +19,14 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 function createContext(request: Record<string, unknown>): ExecutionContext {
   return {
     switchToHttp: () => ({ getRequest: () => request }),
-    getHandler: () => GroupsController.prototype.create,
-    getClass: () => GroupsController,
+    getHandler: () => UsersController.prototype.assignRole,
+    getClass: () => UsersController,
   } as unknown as ExecutionContext;
 }
 
-describe('GroupsController guards', () => {
-  it('requires session authentication, admin role, and group manage for mutations', () => {
-    const guards = Reflect.getMetadata(GUARDS_METADATA, GroupsController) as unknown[];
+describe('UsersController guards', () => {
+  it('requires session authentication and admin or super-admin role metadata', () => {
+    const guards = Reflect.getMetadata(GUARDS_METADATA, UsersController) as unknown[];
     expect(
       (guards as Array<{ name: string }>).map((guard) => guard.name),
     ).toEqual(
@@ -36,14 +34,12 @@ describe('GroupsController guards', () => {
     );
     const roles = Reflect.getMetadata(
       AUTHORIZATION_REQUIRED_ROLES_KEY,
-      GroupsController,
+      UsersController,
     ) as readonly string[];
-    expect(roles).toEqual([authorizationRoleKeys.admin]);
-    const permissions = Reflect.getMetadata(
-      AUTHORIZATION_REQUIRED_PERMISSIONS_KEY,
-      GroupsController.prototype.create,
-    ) as readonly string[];
-    expect(permissions).toEqual([permissionKeys.groupManage]);
+    expect(roles).toEqual([
+      authorizationRoleKeys.admin,
+      authorizationRoleKeys.superAdmin,
+    ]);
   });
 
   it('rejects requests without an authenticated principal', async () => {
@@ -55,24 +51,5 @@ describe('GroupsController guards', () => {
       UnauthorizedException,
     );
     expect(authorize).not.toHaveBeenCalled();
-  });
-
-  it('evaluates authorization when a principal is present', async () => {
-    const authorize = jest.fn().mockResolvedValue(false);
-    const guard = new RoleGuard(new Reflector(), {
-      authorize,
-    } as never);
-    const request = {
-      [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]: {
-        subjectId: 'admin-1',
-        email: 'admin@example.com',
-        displayName: 'Admin',
-        isLocalOnly: true,
-      },
-    };
-    await expect(
-      guard.canActivate(createContext(request)),
-    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
-    expect(authorize).toHaveBeenCalled();
   });
 });

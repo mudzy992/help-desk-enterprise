@@ -47,7 +47,7 @@ export class GroupsController {
   }
 
   @Post()
-  @RequirePermissions(permissionKeys.routingWrite)
+  @RequirePermissions(permissionKeys.groupManage)
   create(@Body() body: CreateGroupDto): Promise<GroupResponse> {
     return this.groupsService.create(body);
   }
@@ -58,7 +58,7 @@ export class GroupsController {
   }
 
   @Patch(':groupId')
-  @RequirePermissions(permissionKeys.routingWrite)
+  @RequirePermissions(permissionKeys.groupManage)
   update(
     @Param('groupId') groupId: string,
     @Body() body: UpdateGroupDto,
@@ -68,13 +68,13 @@ export class GroupsController {
 
   @Delete(':groupId')
   @HttpCode(204)
-  @RequirePermissions(permissionKeys.routingWrite)
+  @RequirePermissions(permissionKeys.groupManage)
   async delete(@Param('groupId') groupId: string): Promise<void> {
     await this.groupsService.delete(groupId);
   }
 
   @Post(':groupId/members/:userId')
-  @RequirePermissions(permissionKeys.routingWrite)
+  @RequirePermissions(permissionKeys.groupManage)
   addMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,
@@ -83,7 +83,7 @@ export class GroupsController {
   }
 
   @Delete(':groupId/members/:userId')
-  @RequirePermissions(permissionKeys.routingWrite)
+  @RequirePermissions(permissionKeys.groupManage)
   removeMember(
     @Param('groupId') groupId: string,
     @Param('userId') userId: string,

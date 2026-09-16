@@ -23,6 +23,9 @@ export const auditLogActions = {
   supportBundleExport: 'support_bundle.export',
   notificationReceipt: 'notification.receipt',
   ticketRemoteAcknowledged: 'ticket.remote.acknowledged',
+  rolePermissionReplace: 'role_permission.replace',
+  userRoleAssign: 'user_role.assign',
+  userRoleRemove: 'user_role.remove',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -34,6 +37,8 @@ export const auditLogEntityTypes = {
   supportBundle: 'support_bundle',
   reportPack: 'report_pack',
   notification: 'notification',
+  role: 'role',
+  userRole: 'user_role',
 } as const;
 
 export const auditLogErrorCodes = {

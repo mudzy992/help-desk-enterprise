@@ -19,10 +19,17 @@ export class ShadowAuthorizationService {
   async evaluate(
     input: AuthorizationRequestInput,
   ): Promise<ShadowAuthorizationReport> {
-    const evaluation = await evaluateAuthorizationRequest(
+    return this.evaluateWithLookups(
       input,
       createAuthorizationLookups(this.authorizationContextLoader, this.prisma),
     );
+  }
+
+  async evaluateWithLookups(
+    input: AuthorizationRequestInput,
+    lookups: ReturnType<typeof createAuthorizationLookups>,
+  ): Promise<ShadowAuthorizationReport> {
+    const evaluation = await evaluateAuthorizationRequest(input, lookups);
     return createShadowAuthorizationReport(evaluation);
   }
 }

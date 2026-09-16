@@ -4,6 +4,7 @@ export const permissionKeys = {
   serviceFormsWrite: "service.forms.write",
   serviceCatalogWrite: "service.catalog.write",
   routingWrite: "routing.write",
+  groupManage: "group.manage",
   slaWrite: "sla.write",
   settingsWrite: "settings.write",
   integrationsQueueManage: "integrations.queue.manage",

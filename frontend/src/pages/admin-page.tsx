@@ -1,4 +1,4 @@
-import { Database, FolderTree, Server, Settings2, Users, UsersRound } from "lucide-react";
+import { Database, FolderTree, Server, Settings2, ShieldCheck, Users, UsersRound } from "lucide-react";
 import { type ReactNode, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import { AdminOpsPlaceholder } from "@/components/admin/admin-ops-placeholder";
 import { OrganizationalUnitsPage } from "@/pages/organizational-units-page";
 import { SettingsPage } from "@/pages/settings-page";
 import { GroupsPage } from "@/pages/groups-page";
+import { PermissionsPage } from "@/pages/permissions-page";
 import { UsersPage } from "@/pages/users-page";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -101,6 +102,14 @@ export function AdminPage() {
             ),
           },
           {
+            key: "permissions",
+            label: (
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck size={13} /> {t("admin.tabs.permissions")}
+              </span>
+            ),
+          },
+          {
             key: "settings",
             label: (
               <span className="flex items-center gap-1.5">
@@ -123,6 +132,7 @@ export function AdminPage() {
         : null}
       {tab === "groups" ? renderRestrictedTab(<GroupsPage embedded />) : null}
       {tab === "users" ? renderRestrictedTab(<UsersPage embedded />) : null}
+      {tab === "permissions" ? renderRestrictedTab(<PermissionsPage embedded />) : null}
       {tab === "settings" ? <SettingsPage embedded /> : null}
       {tab === "ops" ? renderRestrictedTab(<AdminOpsPlaceholder />) : null}
     </section>

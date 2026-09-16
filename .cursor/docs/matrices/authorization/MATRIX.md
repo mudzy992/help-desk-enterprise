@@ -10,7 +10,25 @@ JWT payload sa authorization/provider claimovima (`roles`, `oid`, `tid`, `permis
 
 ## Permissions i role
 Kanonski role keyevi: `USER`, `AGENT`, `ADMIN`, `SUPER_ADMIN`.
-Kanonski permission keyevi: RAW enterprise set (`ticket.*`, `service.*`, `sla.write`, `routing.write`, `settings.write`, `audit.export`, `reports.export`, `supportBundle.export`, `confidential.break_glass`).
+Kanonski permission keyevi: RAW enterprise set (`ticket.*`, `service.*`, `sla.write`, `routing.write`, `group.manage`, `settings.write`, `audit.export`, `reports.export`, `supportBundle.export`, `confidential.break_glass`).
+
+Groups mutacije (`POST/PATCH/DELETE /groups`, member add/remove) zahtijevaju `group.manage` (ADMIN default set). Routing pravila i dalje koriste `routing.write`.
+
+## Runtime RBAC admin (SuperAdmin)
+| Method | Path | Guard |
+|---|---|---|
+| GET | `/roles` | `SUPER_ADMIN` |
+| GET | `/roles/permissions/catalog` | `SUPER_ADMIN` |
+| GET | `/roles/:roleKey/permissions` | `SUPER_ADMIN` |
+| POST | `/roles/:roleKey/permissions/preview` | `SUPER_ADMIN` — shadow impact via `ShadowAuthorizationService.evaluateWithLookups` |
+| PUT | `/roles/:roleKey/permissions` | `SUPER_ADMIN` — replace set + audit `role_permission.replace` |
+
+## User role assignment (Admin/SuperAdmin)
+| Method | Path | Guard / rule |
+|---|---|---|
+| GET | `/users/:userId/roles` | `ADMIN` \| `SUPER_ADMIN` |
+| POST | `/users/:userId/roles` | `ADMIN` \| `SUPER_ADMIN`; `SUPER_ADMIN` role samo ako actor ima `SUPER_ADMIN` |
+| DELETE | `/users/:userId/roles/:userRoleId` | `ADMIN` \| `SUPER_ADMIN` |
 
 Default role→permission mapa živi kao konstanta (nije runtime bypass). Evaluator čita samo assignment.permissionKeys iz baze. Prazan `RolePermission` ⇒ nema permissiona (osim SuperAdmin).
 

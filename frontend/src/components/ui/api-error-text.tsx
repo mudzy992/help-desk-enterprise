@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import type { GroupsErrorKey } from "@/lib/groups/map-groups-error";
+import type { RbacErrorKey } from "@/lib/rbac/map-rbac-error";
+import type { UsersErrorKey } from "@/lib/users/map-users-error";
 import type { KnowledgeArticleErrorKey } from "@/lib/knowledge-base/map-knowledge-article-error";
 import type { ApiErrorKey } from "@/lib/map-api-error";
 import type { RoutingErrorKey } from "@/lib/routing/map-routing-error";
@@ -13,7 +15,9 @@ export type ApiErrorTextKey =
   | KnowledgeArticleErrorKey
   | RoutingErrorKey
   | ServiceCategoryErrorKey
-  | GroupsErrorKey;
+  | GroupsErrorKey
+  | RbacErrorKey
+  | UsersErrorKey;
 
 interface ApiErrorTextProperties {
   readonly messageKey: ApiErrorTextKey;

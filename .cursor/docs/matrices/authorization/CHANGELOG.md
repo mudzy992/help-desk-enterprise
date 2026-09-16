@@ -1,5 +1,10 @@
 # CHANGELOG — authorization
 
+## 2026-09-16
+- R3: `group.manage` odvojen od `routing.write` za Groups mutacije; ADMIN default set proširen.
+- R3: SuperAdmin runtime RBAC editor (`/roles/*`) sa shadow preview preko `ShadowAuthorizationService.evaluateWithLookups`.
+- R3: User role assignment API (`/users/:userId/roles`); `SUPER_ADMIN` dodjela samo SuperAdmin actoru.
+
 ## 2026-09-14
 - Default ADMIN mapa + `reports.export`. Evaluator, OU i service scope nisu mijenjani. Export endpointi prihvataju `reports.export` ili `audit.export`.
 

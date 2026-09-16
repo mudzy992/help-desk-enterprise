@@ -25,6 +25,7 @@ describe('default role permission mapping', () => {
     expect(admin).toEqual(
       expect.arrayContaining([
         permissionKeys.routingWrite,
+        permissionKeys.groupManage,
         permissionKeys.serviceCatalogWrite,
         permissionKeys.settingsWrite,
         permissionKeys.integrationsQueueManage,

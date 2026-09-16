@@ -17,7 +17,9 @@ type ForbiddenMessageKey =
   | "routing.forbiddenTitle"
   | "routing.forbiddenBody"
   | "sla.forbiddenTitle"
-  | "sla.forbiddenBody";
+  | "sla.forbiddenBody"
+  | "permissions.forbiddenTitle"
+  | "permissions.forbiddenBody";
 
 interface RequireAccessProperties {
   readonly check: (capabilities: SessionCapabilities) => boolean;

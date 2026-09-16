@@ -1,4 +1,4 @@
-export const adminTabKeys = ["org", "groups", "users", "settings", "ops"] as const;
+export const adminTabKeys = ["org", "groups", "users", "permissions", "settings", "ops"] as const;
 
 export type AdminTabKey = (typeof adminTabKeys)[number];
 

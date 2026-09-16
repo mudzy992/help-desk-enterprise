@@ -6,6 +6,8 @@ import { AuthenticationModule } from './modules/authentication/authentication.mo
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
 import { GroupsModule } from './modules/groups/groups.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { UsersModule } from './modules/users/users.module';
 import { HealthModule } from './modules/health/health.module';
 import { InstallModule } from './modules/install/install.module';
 import { OrganizationalUnitsModule } from './modules/organizational-units/organizational-units.module';
@@ -44,6 +46,8 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     DirectorySyncModule,
     OrganizationalUnitsModule,
     GroupsModule,
+    RbacModule,
+    UsersModule,
     PolicyPacksModule,
     RoutingModule,
     ServiceCatalogModule,
