@@ -17,7 +17,11 @@ describe('directory sync provider independence', () => {
     },
   );
   const productionSources = sources.filter(
-    (fileName) => fileName.endsWith('.ts') && !fileName.endsWith('.spec.ts'),
+    (fileName) =>
+      fileName.endsWith('.ts') &&
+      !fileName.endsWith('.spec.ts') &&
+      !fileName.endsWith('.controller.ts') &&
+      !fileName.endsWith('.module.ts'),
   );
 
   it('does not import authentication providers, Graph, LDAP, or MSAL', () => {

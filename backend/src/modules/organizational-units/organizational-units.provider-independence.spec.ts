@@ -56,6 +56,8 @@ describe('organizational unit authentication independence', () => {
       (fileName) =>
         fileName.endsWith('.ts') &&
         !fileName.endsWith('.spec.ts') &&
+        !fileName.endsWith('.controller.ts') &&
+        !fileName.endsWith('.module.ts') &&
         fileName !== 'create-in-memory-organizational-unit-prisma.ts',
     );
     for (const fileName of sources) {

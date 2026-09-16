@@ -8,9 +8,14 @@ import {
   Patch,
   Post,
   Put,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+import { authorizationRoleKeys } from '../authorization/authorization.constants';
+import { RequireRoles } from '../authorization/require-roles.decorator';
+import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserOrganizationalUnitDto } from './dto/assign-user-organizational-unit.dto';
 import { CreateOrganizationalUnitDto } from './dto/create-organizational-unit.dto';
 import { UpdateOrganizationalUnitDto } from './dto/update-organizational-unit.dto';
@@ -22,6 +27,8 @@ import type {
 } from './organizational-unit.types';
 
 @Controller('organizational-units')
+@UseGuards(SessionAuthenticationGuard, RoleGuard)
+@RequireRoles(authorizationRoleKeys.admin)
 @UsePipes(
   new ValidationPipe({
     whitelist: true,

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AuthenticationModule } from '../authentication/authentication.module';
+import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { DirectoryReadCache } from './directory-read.cache';
 import { DirectoryReadThrottle } from './directory-read.throttle';
@@ -10,7 +12,7 @@ import { DirectorySyncProviderResolver } from './directory-sync-provider.resolve
 import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.provider';
 
 @Module({
-  imports: [SettingsModule],
+  imports: [SettingsModule, AuthenticationModule, AuthorizationModule],
   controllers: [DirectorySyncController],
   providers: [
     {
