@@ -1,4 +1,4 @@
-import { Building2, ChevronDown, ChevronRight } from "lucide-react";
+import { Building2, ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { countOrganizationalUnitMembers } from "@/lib/directory/count-organizational-unit-members";
@@ -12,6 +12,9 @@ export interface OrganizationalUnitTreeItemProperties {
   readonly depth: number;
   readonly selectedId: string | null;
   readonly onSelect: (node: OrganizationalUnitTreeNode) => void;
+  readonly canManage?: boolean;
+  readonly onEdit?: (node: OrganizationalUnitTreeNode) => void;
+  readonly onDelete?: (node: OrganizationalUnitTreeNode) => void;
 }
 
 export function OrganizationalUnitTreeItem({
@@ -20,9 +23,13 @@ export function OrganizationalUnitTreeItem({
   depth,
   selectedId,
   onSelect,
+  canManage = false,
+  onEdit,
+  onDelete,
 }: OrganizationalUnitTreeItemProperties) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const hasChildren = node.children.length > 0;
   const selected = selectedId === node.id;
   const memberCount = countOrganizationalUnitMembers(users, node.id);
@@ -93,6 +100,47 @@ export function OrganizationalUnitTreeItem({
         <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground/50 group-hover:text-muted-foreground/80 lg:block">
           {node.ouPath}
         </span>
+        {canManage ? (
+          <div className="relative">
+            <button
+              type="button"
+              className="rounded p-1 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-foreground"
+              aria-label={t("directory.ouActions")}
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuOpen((value) => !value);
+              }}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+            {menuOpen ? (
+              <div className="absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border border-border bg-surface py-1 shadow-md">
+                <button
+                  type="button"
+                  className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-elevated"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setMenuOpen(false);
+                    onEdit?.(node);
+                  }}
+                >
+                  {t("directory.ouEdit")}
+                </button>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-1.5 text-left text-[12px] text-danger hover:bg-elevated"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setMenuOpen(false);
+                    onDelete?.(node);
+                  }}
+                >
+                  {t("directory.ouDelete")}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {!collapsed && hasChildren ? (
         <ul role="group">
@@ -104,6 +152,9 @@ export function OrganizationalUnitTreeItem({
               depth={depth + 1}
               selectedId={selectedId}
               onSelect={onSelect}
+              canManage={canManage}
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
         </ul>

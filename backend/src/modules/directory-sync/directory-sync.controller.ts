@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Post,
   UseGuards,
   UsePipes,
@@ -12,6 +13,8 @@ import { authorizationRoleKeys } from '../authorization/authorization.constants'
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { DirectorySyncService } from './directory-sync.service';
+import { DirectorySyncStatusService } from './directory-sync-status.service';
+import type { DirectorySyncStatusResponse } from './directory-sync-status.types';
 import type { DirectoryReadResult } from './directory-sync.types';
 import { DirectoryReadDto } from './dto/directory-read.dto';
 
@@ -26,7 +29,16 @@ import { DirectoryReadDto } from './dto/directory-read.dto';
   }),
 )
 export class DirectorySyncController {
-  constructor(private readonly directorySyncService: DirectorySyncService) {}
+  constructor(
+    private readonly directorySyncService: DirectorySyncService,
+    private readonly directorySyncStatusService: DirectorySyncStatusService,
+  ) {}
+
+  @Get('status')
+  @AdminReadOperation()
+  getStatus(): Promise<DirectorySyncStatusResponse> {
+    return this.directorySyncStatusService.getStatus();
+  }
 
   @Post('read')
   @AdminReadOperation()
@@ -34,6 +46,7 @@ export class DirectorySyncController {
     return this.directorySyncService.read({
       operation: body.operation,
       scope: body.scope,
+      forceRefresh: body.forceRefresh === true,
     });
   }
 }

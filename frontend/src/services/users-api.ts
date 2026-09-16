@@ -16,7 +16,26 @@ export type AssignUserRoleInput = {
   readonly serviceId?: string;
 };
 
-export function listUserRoles(userId: string): Promise<readonly UserRoleResponse[]> {
+export type UserSummary = {
+  readonly id: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly isActive: boolean;
+  readonly isLocalOnly: boolean;
+  readonly roleKey: string | null;
+  readonly roleName: string | null;
+  readonly roleTone: "super" | "manager" | "agent" | "user";
+  readonly organizationalUnitId: string | null;
+  readonly organizationalUnitName: string | null;
+  readonly groupName: string | null;
+  readonly policyPackKey: string | null;
+  readonly openTicketCount: number;
+  readonly mfa: null;
+};
+
+export function listUserRoles(
+  userId: string,
+): Promise<readonly UserRoleResponse[]> {
   return apiRequest(`/users/${encodeURIComponent(userId)}/roles`);
 }
 
@@ -30,8 +49,42 @@ export function assignUserRole(
   });
 }
 
-export function removeUserRole(userId: string, userRoleId: string): Promise<void> {
-  return apiRequest(`/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(userRoleId)}`, {
-    method: "DELETE",
+export function removeUserRole(
+  userId: string,
+  userRoleId: string,
+): Promise<void> {
+  return apiRequest(
+    `/users/${encodeURIComponent(userId)}/roles/${encodeURIComponent(userRoleId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function listUsersSummary(): Promise<readonly UserSummary[]> {
+  return apiRequest("/users");
+}
+
+export function createUser(input: {
+  readonly displayName: string;
+  readonly email: string;
+  readonly organizationalUnitId?: string | null;
+  readonly roleKey: string;
+}): Promise<UserSummary> {
+  return apiRequest("/users", {
+    method: "POST",
+    body: JSON.stringify(input),
   });
+}
+
+export function updateUser(
+  userId: string,
+  input: { readonly isActive?: boolean },
+): Promise<UserSummary> {
+  return apiRequest(`/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteUser(userId: string): Promise<void> {
+  return apiRequest(`/users/${userId}`, { method: "DELETE" });
 }

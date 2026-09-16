@@ -1,4 +1,9 @@
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { Test } from '@nestjs/testing';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { DirectorySyncError } from './directory-sync.error';
 import { DirectorySyncProviderResolver } from './directory-sync-provider.resolver';
 import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.provider';
@@ -7,6 +12,7 @@ describe('DirectorySyncProviderResolver', () => {
   it('registers and returns the manual_only provider from the Nest module', async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
+        { provide: PrismaService, useValue: {} },
         ManualOnlyDirectorySyncProvider,
         DirectorySyncProviderResolver,
       ],
@@ -20,6 +26,7 @@ describe('DirectorySyncProviderResolver', () => {
   it('fails closed for scheduled until that provider exists', async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
+        { provide: PrismaService, useValue: {} },
         ManualOnlyDirectorySyncProvider,
         DirectorySyncProviderResolver,
       ],

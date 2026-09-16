@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client';
 import type { PrismaService } from './common/prisma/prisma.service';
+import { seedManualDirectoryCatalog } from './modules/directory-sync/seed-manual-directory-catalog';
 import { seedStartingSlaProfiles } from './modules/sla/seed-starting-sla-profiles';
 
 async function main(): Promise<void> {
@@ -13,7 +14,9 @@ async function main(): Promise<void> {
     adapter: new PrismaPg({ connectionString }),
   });
   try {
-    await seedStartingSlaProfiles(prisma as unknown as PrismaService);
+    const prismaService = prisma as unknown as PrismaService;
+    await seedStartingSlaProfiles(prismaService);
+    await seedManualDirectoryCatalog(prismaService);
   } finally {
     await prisma.$disconnect();
   }

@@ -28,6 +28,10 @@ export class DirectoryReadCache {
     return entry.value;
   }
 
+  clear(): void {
+    this.entries.clear();
+  }
+
   set(input: {
     readonly cacheKey: string;
     readonly value: DirectoryReadResult;

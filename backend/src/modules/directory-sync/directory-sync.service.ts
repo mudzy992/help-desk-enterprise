@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { createDirectoryReadCacheKey } from './create-directory-read-cache-key';
 import { DirectoryReadCache } from './directory-read.cache';
 import { DirectoryReadThrottle } from './directory-read.throttle';
@@ -13,7 +14,9 @@ import type {
   DirectorySyncClock,
   DirectorySyncConfiguration,
 } from './directory-sync.types';
+import { DirectorySyncStatusStore } from './directory-sync-status.store';
 import { mapDirectorySyncError } from './map-directory-sync-error';
+import { materializeDirectoryRead } from './materialize-directory-read';
 import { parseDirectoryReadOperation } from './parse-directory-read-operation';
 import { parseDirectoryReadScope } from './parse-directory-read-scope';
 
@@ -24,12 +27,15 @@ export class DirectorySyncService {
     private readonly providerResolver: DirectorySyncProviderResolver,
     private readonly directoryReadCache: DirectoryReadCache,
     private readonly directoryReadThrottle: DirectoryReadThrottle,
+    private readonly prisma: PrismaService,
+    private readonly statusStore: DirectorySyncStatusStore,
     @Inject(DIRECTORY_SYNC_CLOCK) private readonly clock: DirectorySyncClock,
   ) {}
 
   async read(input: {
     readonly operation: unknown;
     readonly scope: DirectoryReadScopeInput | undefined;
+    readonly forceRefresh?: boolean;
   }): Promise<DirectoryReadResult> {
     try {
       return await this.executeRead(input);
@@ -41,6 +47,7 @@ export class DirectorySyncService {
   private async executeRead(input: {
     readonly operation: unknown;
     readonly scope: DirectoryReadScopeInput | undefined;
+    readonly forceRefresh?: boolean;
   }): Promise<DirectoryReadResult> {
     const configuration = await this.configurationLoader.load();
     const operation = parseDirectoryReadOperation(input.operation);
@@ -60,15 +67,20 @@ export class DirectorySyncService {
       scope,
     });
     const nowMilliseconds = this.clock();
-    const cached = this.directoryReadCache.get(cacheKey, nowMilliseconds);
-    if (cached !== undefined) {
-      return cached;
+    const forceRefresh = input.forceRefresh === true;
+    if (!forceRefresh) {
+      const cached = this.directoryReadCache.get(cacheKey, nowMilliseconds);
+      if (cached !== undefined) {
+        return cached;
+      }
     }
     this.directoryReadThrottle.acquire({
       maxQueriesPerSecond: configuration.maxQueriesPerSecond,
       nowMilliseconds,
     });
     const result = await provider.read({ operation, scope });
+    await materializeDirectoryRead(this.prisma, result);
+    this.statusStore.markSuccessfulRead(nowMilliseconds);
     this.directoryReadCache.set({
       cacheKey,
       value: result,

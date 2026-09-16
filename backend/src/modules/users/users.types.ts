@@ -24,3 +24,37 @@ export type RemoveUserRoleInput = {
   readonly actorUserId: string | null;
   readonly requestId: string | null;
 };
+
+export type UserRoleTone = 'super' | 'manager' | 'agent' | 'user';
+
+export type UserSummaryResponse = {
+  readonly id: string;
+  readonly email: string;
+  readonly displayName: string;
+  readonly isActive: boolean;
+  readonly isLocalOnly: boolean;
+  readonly roleKey: string | null;
+  readonly roleName: string | null;
+  readonly roleTone: UserRoleTone;
+  readonly organizationalUnitId: string | null;
+  readonly organizationalUnitName: string | null;
+  readonly groupName: string | null;
+  readonly policyPackKey: string | null;
+  readonly openTicketCount: number;
+  readonly mfa: null;
+};
+
+export type CreateUserInput = {
+  readonly displayName: string;
+  readonly email: string;
+  readonly organizationalUnitId?: string | null;
+  readonly roleKey: string;
+  readonly actorUserId: string | null;
+  readonly actorIsSuperAdmin: boolean;
+  readonly requestId: string | null;
+};
+
+export type UpdateUserInput = {
+  readonly userId: string;
+  readonly isActive?: boolean;
+};

@@ -8,6 +8,9 @@ interface OrganizationalUnitTreeProperties {
   readonly depth?: number;
   readonly selectedId: string | null;
   readonly onSelect: (node: OrganizationalUnitTreeNode) => void;
+  readonly canManage?: boolean;
+  readonly onEdit?: (node: OrganizationalUnitTreeNode) => void;
+  readonly onDelete?: (node: OrganizationalUnitTreeNode) => void;
 }
 
 export function OrganizationalUnitTree({
@@ -16,6 +19,9 @@ export function OrganizationalUnitTree({
   depth = 0,
   selectedId,
   onSelect,
+  canManage = false,
+  onEdit,
+  onDelete,
 }: OrganizationalUnitTreeProperties) {
   return (
     <ul className="p-2" role={depth === 0 ? "tree" : "group"}>
@@ -27,6 +33,9 @@ export function OrganizationalUnitTree({
           depth={depth}
           selectedId={selectedId}
           onSelect={onSelect}
+          canManage={canManage}
+          onEdit={onEdit}
+          onDelete={onDelete}
         />
       ))}
     </ul>

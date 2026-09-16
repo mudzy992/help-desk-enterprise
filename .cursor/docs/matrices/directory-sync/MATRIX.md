@@ -1,61 +1,34 @@
 # MATRIX — directory-sync
 
 ## Cilj
-Provider-neutral granica za directory **read** operacije. Domen/application zavise od porta, ne od AD/LDAP/Graph/Entra SDK tipova. Autentikacija `local | entra_ad` ostaje zaseban provider; directory sync nije authorization source.
+Provider-neutral granica za directory **read** operacije plus **materializacija** u live `OrganizationalUnit` / `User` / `Group` nakon uspješnog read-a. Autentikacija `local | entra_ad` ostaje zaseban provider.
 
 ## Strategy
 Izvor: `private.auth.adRead.strategy` (`manual_only` | `scheduled`, default `manual_only`).
-Samo `manual_only` je implementiran. `scheduled` i nepoznate vrijednosti → fail closed (`DIRECTORY_SYNC_UNAVAILABLE`). Nema `if (authMode === ...)` grananja.
+Samo `manual_only` je implementiran. `scheduled` → fail closed (`DIRECTORY_SYNC_UNAVAILABLE`).
 
-## Enablement
-`private.auth.adRead.enabled` (default `false`). Isključeno → `DIRECTORY_READ_DISABLED`. Čitanje se nikad ne uključuje implicitno.
+## Manual-only katalog
+Izvor istine za `manual_only`: DB tabele `ManualDirectoryOrganizationalUnit` / `ManualDirectoryUser` / `ManualDirectoryGroup` (seed iz `defaultManualDirectoryCatalog`).
+Admin CRUD: `GET/POST/PATCH/DELETE /directory-sync/manual-catalog/organizational-units` — guard `SUPER_ADMIN`.
+CRUD **ne** mutira live `OrganizationalUnit`; samo katalog + invalidacija `DirectoryReadCache`.
+Brisanje odbijeno dok postoje djeca u katalogu, katalog useri na path-u, ili materijalizovani OU ima children/mapped users.
 
-## Provider granica
-| Strategy | Mreža | Persistencija | Semantika |
-|---|---|---|---|
-| `manual_only` | nema (in-memory katalog) | ne dira User/OU/Role | read-only, deterministički stub |
-| `scheduled` | nije implementirano | — | fail closed |
+## Materializacija
+`POST /directory-sync/read` (nakon throttle + provider read, cache miss ili `forceRefresh: true`):
+1. upsert OU po `distinguishedName`
+2. upsert User po `email` (preskače `isLocalOnly`)
+3. upsert Group po stabilnom `manual_*` key-u
+4. snima `lastSuccessfulReadAt` (in-memory `DirectorySyncStatusStore`)
 
-Port: `DirectorySyncProvider.read({ operation, scope }) → DirectoryReadResult`.
-Normalizirani tipovi: `DirectoryUser`, `DirectoryGroup`, `DirectoryOrganizationalUnit` (externalId, displayName, login/email gdje ima smisla, DN, ouPath). Nema raw SDK objekata van infrastructure.
+Cache hit **bez** `forceRefresh` ne re-materijalizuje. UI dugme šalje `forceRefresh: true`.
 
-## Scope
-Svaki read mora imati eksplicitan scope. Nije dozvoljen implicitni “cijeli directory”.
-
-Obavezno:
-- `operation`: `users` | `groups` | `organizational_units`
-- `scope.includeSubtree`: boolean (nema defaulta)
-- bar jedno od: `scope.distinguishedName`, `scope.organizationalUnitPath`
-
-Odbija se (`INVALID_SCOPE`):
-- nedostaje scope / operation / includeSubtree
-- prazan DN/path
-- forest-root DN (samo `DC=` komponente)
-- path `/` (cijelo stablo)
-- DN van konfiguriranog base DN-a za operaciju
-- prazan ili forest-root `usersBaseDn` / `groupsBaseDn`
-
-Base DN:
-- `users` → `private.auth.adRead.usersBaseDn`
-- `groups` → `private.auth.adRead.groupsBaseDn`
-- `organizational_units` → jedan od ta dva base DN-a
-
-## Throttle
-`private.auth.adRead.maxQueriesPerSecond` (default `0.5`). In-process, deterministički minimalni interval `1000 / qps`. Cache miss ide kroz throttle; cache hit ne. Prekoračenje → `DIRECTORY_READ_THROTTLED`. Nema `NODE_ENV` bypass-a. ≤0 ili ne-finite → `DIRECTORY_SYNC_UNAVAILABLE`.
-
-## Cache
-In-memory, bounded (max 64 unosa, LRU). Ne koristi Redis (Redis je queue, ne cache pattern).
-Ključ: `strategy + operation + normalized scope` (DN, path, includeSubtree). Rezultati se ne dijele između scope-ova.
-TTL:
-- users/groups → `private.auth.adRead.cacheTtlMinutes` (default 30)
-- organizational_units → `private.auth.adRead.ouTreeCacheTtlHours` (default 12)
-Expiry je eksplicitan (`expiresAtMs`). TTL 0 = bez cache-a.
+## Enablement / Scope / Throttle / Cache
+Isti kao prije: `private.auth.adRead.*`, eksplicitni scope, QPS throttle, TTL iz settings (default cache 30 min, OU tree 12 h).
 
 ## API
-`POST /directory-sync/read` — tanki controller → service → port. Validacija DTO + fail-closed parse scope. Označen kao admin read (`@AdminReadOperation`); ostaje dostupan u read-only mode-u. Nema admin UI, jobova, writova. Budući sync POST bi bio mutacija.
+- `POST /directory-sync/read` — read + materialize; `@AdminReadOperation`; body može `forceRefresh`
+- `GET /directory-sync/status` — `enabled`, `strategy`, `maxQueriesPerSecond`, `cacheTtlMinutes`, `ouTreeCacheTtlHours`, `lastSuccessfulReadAt`
+- Manual catalog CRUD (gore)
 
 ## Sigurnost
-Read-only. Nema auto User/OU/role sync. Nema Graph/MSAL/LDAP. Nema secreta u git. Ne loguju se credentials ni puni directory payloadi.
-
-## Namjerno NIJE implementirano
-Entra/MSAL, Microsoft Graph, LDAP/AD konekcija, scheduled/BullMQ sync, provisioning, RBAC/RoleGuard/OuAccessGuard, policy packs, install wizard, frontend directory UI.
+Nema Graph/MSAL/LDAP. Nema secreta u git. SUPER_ADMIN za sync/katalog.

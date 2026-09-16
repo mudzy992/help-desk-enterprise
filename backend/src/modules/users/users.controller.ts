@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -20,7 +21,8 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto';
-import type { UserRoleResponse } from './users.types';
+import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
+import type { UserRoleResponse, UserSummaryResponse } from './users.types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -41,6 +43,45 @@ export class UsersController {
     private readonly usersService: UsersService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
   ) {}
+
+  @Get()
+  listSummary(): Promise<readonly UserSummaryResponse[]> {
+    return this.usersService.listSummary();
+  }
+
+  @Post()
+  async create(
+    @Body() body: CreateUserDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<UserSummaryResponse> {
+    const principal = readAuthenticatedPrincipal(request);
+    return this.usersService.create({
+      displayName: body.displayName,
+      email: body.email,
+      organizationalUnitId: body.organizationalUnitId ?? null,
+      roleKey: body.roleKey,
+      actorUserId: principal?.subjectId ?? null,
+      actorIsSuperAdmin: await this.resolveActorIsSuperAdmin(request),
+      requestId: readRequestId(request),
+    });
+  }
+
+  @Patch(':userId')
+  update(
+    @Param('userId') userId: string,
+    @Body() body: UpdateUserDto,
+  ): Promise<UserSummaryResponse> {
+    return this.usersService.update({
+      userId,
+      isActive: body.isActive,
+    });
+  }
+
+  @Delete(':userId')
+  @HttpCode(204)
+  async delete(@Param('userId') userId: string): Promise<void> {
+    await this.usersService.delete(userId);
+  }
 
   @Get(':userId/roles')
   listRoles(@Param('userId') userId: string): Promise<readonly UserRoleResponse[]> {

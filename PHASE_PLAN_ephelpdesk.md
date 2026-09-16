@@ -60,76 +60,44 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 
 ## Faza R8 — Admin: "Organizacija (OU)" i "Korisnici i uloge" po referentnom dizajnu (P1)
 
-**Osnova:** `referenca-dizajn/src/pages/Admin.tsx` (funkcije `OuTree()` i `UsersRoles()`). Trenutno stanje (`organizational-units-page.tsx`, `users-page.tsx`) je čisto read-only prikaz — nema kreiranja/izmjene/brisanja OU, nema AD sync dugmeta, nema kreiranja/izmjene/brisanja korisnika, tabela korisnika ima samo 2 kolone (referenca ima 7). Ova faza dovodi oba taba na paritet sa referencom, punom funkcionalnošću, ne samo vizuelno.
-
-**Nezavisno od R5/R6/R7** — može ići paralelno, ali ako se AdminPage tabovi mijenjaju istovremeno u više faza, agent treba rebase prije merge-a da izbjegne konflikt (R3 je već dodao "Permissions" tab u isti `AdminPage`).
+**Osnova:** `referenca-dizajn/src/pages/Admin.tsx` (`OuTree`, `UsersRoles`).
 
 ### R8a — Organizacija (OU): stablo + AD sync
 
-**Referenca — struktura ekrana:**
+1. **Backend:**
+  - [x] DB-backed katalog: `ManualDirectoryOrganizationalUnit` / `ManualDirectoryUser` / `ManualDirectoryGroup` (+ seed iz starog fixturea)
+  - [x] CRUD `GET/POST/PATCH/DELETE /directory-sync/manual-catalog/organizational-units` — guard `SUPER_ADMIN`
+  - [x] Brisanje odbijeno dok postoje djeca ili mapirani korisnici (`HAS_CHILDREN` / `HAS_MAPPED_USERS`)
+  - [x] Materializacija **samo** preko eksplicitnog `POST /directory-sync/read` (`forceRefresh`); catalog CRUD ne dira live stablo; cache clear nakon CRUD
+  - [x] `GET /directory-sync/status` — stvarni strategy/QPS/TTL/`lastSuccessfulReadAt` (ne mock 15 min / 24 h)
+2. **Frontend:**
+  - [x] `services/directory-sync-api.ts` — read + status + catalog CRUD
+  - [x] `organizational-units-page.tsx` — Dodaj OU, hover "...", AD sync kartica
+  - [x] Jasne greške za brisanje sa djecom/korisnicima
+  - [x] Mutacije/sync samo za `SUPER_ADMIN`
+  - [x] BS + EN i18n
 
-- Lijevo: kartica "Stablo organizacionih jedinica" (`OuTree` u referenci) — collapsible stablo, `Building2` ikona, naziv OU, broj korisnika (badge), `ouPath` (mono, desno poravnato, sakriveno na manjim ekranima), hover "..." meni po redu, dugme **"Dodaj OU"** u header-u kartice.
-- Desno gore: kartica "Detalji" za selektovanu OU — naziv (segment putanje), `ouPath` (kanonski), Distinguished Name (LDAP, mono, prelomljen tekst), badge-ovi "mapirano: N korisnika" i "N routing pravilo".
-- Desno dolje: kartica **"AD sinhronizacija"** — badge režima čitanja (`manual_only` / `entra_ad`), throttle vrijednost, keš trajanje, "zadnje očitavanje" (timestamp), dugme **"Pokreni ručno očitavanje"**.
-
-**Ključni funkcionalni zahtjev (eksplicitno traženo):** "manuelno definisanje stabla treba biti tretirano kao sync sa AD" — to znači da se ručno kreiranje/izmjena/brisanje OU **ne smije** raditi kao direktna mutacija `OrganizationalUnit` tabele. Backend već ima `manual-only-directory-sync.provider.ts` i `manual-only-directory-catalog.ts` — trenutno je taj katalog **hardkodovan u kodu** (statični fixture sa 3 OU i 2 usera). Ovaj katalog treba postati admin-editabilan (DB-backed), a svaka izmjena OU stabla mora proći kroz **isti** `POST /directory-sync/read` **pipeline** koji bi AD sync koristio (throttle, keš invalidacija, `directory-sync` audit/log zapis) — ne pisati poseban, paralelan put za "manuelne" izmjene.
-
-**Zadaci:**
+### R8b — Korisnici i uloge
 
 1. **Backend:**
-  - Premjesti `manual-only-directory-catalog.ts` iz statičnog fixture-a u DB-backed izvor (novi Prisma model, npr. `ManualDirectoryOrganizationalUnit`/`ManualDirectoryUser`/`ManualDirectoryGroup`, ili prošireni postojeći model — provjeri da li `OrganizationalUnit` model već ima dovoljno polja pa je poseban model nepotreban dupliranje).
-  - Novi CRUD endpoint(i) za uređivanje manual-only kataloga: `POST/PATCH/DELETE` na OU stavke (naziv, parent, DN). Guard: `SUPER_ADMIN` (ovo mijenja izvor istine identiteta, isti nivo kao `DirectorySyncController` iz R1.5).
-  - Validacija: brisanje OU odbijeno dok postoje djeca ili mapirani korisnici (tačno po referenci: *"Brisanje OU se odbija dok postoje djeca ili mapirani korisnici"*).
-  - Nakon CRUD izmjene kataloga, ne materijalizuj promjenu direktno — izmjena mora čekati (ili automatski okinuti) `POST /directory-sync/read` da se promjena zvanično "sinhronizuje" u stvarno stablo, isto kao da je AD provider vratio nove podatke. Objasni u handoff-u kako si to riješio (auto-trigger nakon patch-a vs. ručno dugme).
-  - Provjeri postojeći throttle/keš mehanizam (`directory-read.throttle.ts`, `directory-read.cache.ts`) — UI treba čitati ta stvarna trenutna stanja (ne hardkodovane "15 min" / "24 h" iz reference dizajna, to su samo placeholder vrijednosti u mock-u).
+  - [x] `POST /users` — **direktan User CRUD** (ne directory-sync); inicijalna rola preko R3c
+  - [x] `PATCH /users/:id` (`isActive`), `DELETE /users/:id` (blokada ako open tickets)
+  - [x] Agregacioni `GET /users` za 7 kolona (`openTicketCount`, `policyPackKey`, `mfa: null`)
+  - [x] Guard `ADMIN`/`SUPER_ADMIN`; SUPER_ADMIN role samo od SUPER_ADMIN actora
 2. **Frontend:**
-  - `services/directory-sync-api.ts` (novi) — poziv na `POST /directory-sync/read` (ručno pokretanje), plus status/metadata read (režim, throttle, keš, zadnje očitavanje) — provjeri da li backend ima poseban `GET` status endpoint ili se to čita iz odgovora `read` poziva/postojeće `directory` state-a.
-  - Proširi `services/organizational-units-api.ts` (ili napravi novi) sa `POST/PATCH/DELETE` pozivima za manual-only katalog iz koraka 1.
-  - `organizational-units-page.tsx` — dodaj dugme "Dodaj OU" (forma: naziv, parent OU, opciono DN), edit/delete akciju na svaki node u `OrganizationalUnitTree`/`OrganizationalUnitTreeItem` (hover "..." meni po uzoru na referencu), i novu karticu "AD sinhronizacija" sa dugmetom "Pokreni ručno očitavanje" + prikazom režima/throttle/keš/zadnje-očitavanje.
-  - Prikaz greške backend validacije (djeca/mapirani korisnici) jasno u UI, ne generička greška.
-  - Zaštita: `RequireAccess` sa `SUPER_ADMIN` (isto obrazloženje kao za backend guard).
-  - BS + EN i18n ključevi.
+  - [x] 7 kolona + `ROLE_STYLE`; Dodaj korisnika
+  - [x] Policy-pack kartice — reuse R6 `PolicyPacksPanel`
+  - [x] MFA = "—" (nalaz: nema polja u šemi); workload iz API count
+  - [x] BS + EN i18n
 
-### R8b — Korisnici i uloge (paritet sa referencom)
+**Verifikacija:**
 
-**Referenca — struktura ekrana:**
-
-- Vrh: red od 3 kartice "Policy pack" (kod, opis, broj dozvola, broj dodjela) — koristi postojeći policy-packs modul iz backenda (R3b/policy-packs postojeći backend), ne izmišljaj novi izvor.
-- Glavna tabela "Korisnici" — search input + dugme **"Dodaj korisnika"** u header-u.
-- Kolone (tačno po referenci, trenutno postoje samo prve dvije): **Korisnik** (avatar, ime, email, badge "neaktivan" ako je disabled, shield ikona ako je SuperAdmin), **Uloga** (badge, boja po roli: super=danger, manager=primary, agent=info, user=neutral), **OU/Grupa** (naziv OU + ime grupe ispod ako postoji), **Policy pack** (badge ili "—"), **Opseg dozvola** (tekstualni opis izveden iz role — "cijeli sistem" za super, "OU: X ↓" za agenta, "svoji tiketi" za usera), **MFA** (ikona/status), **Opterećenje** (broj otvorenih tiketa dodijeljenih tom korisniku, ili "—").
-
-**Zadaci:**
-
-1. **Backend:**
-  - Endpoint za kreiranje korisnika (`POST /users` — provjeri da li ovo ide kroz `directory-sync`/manual-only katalog kao i OU, ili je `User` zaseban model koji se kreira direktno; ako je local-auth korisnik, ovo je direktan `User` CRUD, ne directory-sync tok — razjasni i objasni u handoff-u koji je tačan slučaj).
-  - Endpoint za izmjenu (aktivan/neaktivan status, MFA status ako je upravljivo iz app-a) i brisanje korisnika.
-  - Endpoint (ili prošireni postojeći iz R3c `GET/POST/DELETE /users/:userId/roles`) koji uz rolu vraća i dovoljno podataka da frontend popuni sve kolone iz reference (policy pack po korisniku, OU/grupa, workload/broj otvorenih tiketa) — provjeri da li je efikasnije agregirati ovo na backendu (jedan endpoint) nego da frontend pravi N poziva po korisniku.
-  - Guard: isti nivo kao R3c (`ADMIN`/`SUPER_ADMIN`, `SUPER_ADMIN` dodjela samo od `SUPER_ADMIN` actora).
-2. **Frontend:**
-  - Proširi `users-page.tsx` tabelu na svih 7 kolona iz reference.
-  - Dodaj dugme "Dodaj korisnika" (forma: ime, email, OU, inicijalna rola).
-  - Dodaj red od 3 policy-pack kartice na vrhu (reuse `service-catalog-table.tsx` stila kartica ili `settings/addon-catalog-row.tsx` kao referentni pattern za "kartica sa brojem/opisom").
-  - Poveži role badge boje tačno po mapiranju iz reference (`ROLE_STYLE`).
-  - MFA i workload kolone — ako backend trenutno ne vraća te podatke, prijavi kao poseban nalaz (ne izmišljaj vrijednosti/mock).
-  - Zaštita: isti guard kao R8a i R3c.
-  - BS + EN i18n ključevi.
-
-**Ograničenja (ista kao ranije faze):**
-
-- Fajlovi ≤150 linija gdje god je razumno.
-- Ne diraj Shadow mode config-version (R5), Audit/Policy-packs UI van onoga što je gore eksplicitno traženo (samo čitanje policy-pack kartica, ne CRUD), Reports refactor, CI, E2E.
-- Bez mock podataka — ako referenca prikazuje polje koje backend trenutno ne vraća (npr. MFA, workload po korisniku, throttle/keš stvarne vrijednosti), prijavi to kao nalaz prije nego što izmisliš vrijednost ili je hardkoduješ.
-
-**Verifikacija (obavezno prijavi rezultate):**
-
-- Superadmin kreira novu OU ručno → izmjena se ne vidi u stablu dok se ne "sinhronizuje" (auto ili ručno) → nakon sync-a, OU se pojavljuje u stablu identično kao da je došla iz AD.
-- Pokušaj brisanja OU sa djecom/mapiranim korisnicima → blokirano sa jasnom porukom.
-- Dugme "Pokreni ručno očitavanje" pokreće `POST /directory-sync/read` i ažurira "zadnje očitavanje" vrijeme u UI.
-- Superadmin kreira novog korisnika, dodijeli mu rolu (reuse R3c toka) → korisnik se odmah pojavljuje u tabeli sa svih 7 kolona tačno popunjenih (ili jasno "—" gdje podatak ne postoji).
-- Vizuelno poređenje `/admin?tab=org` i `/admin?tab=users` naspram `referenca-dizajn/src/pages/Admin.tsx` — desktop 1440 + mobile 390 (isti kriterijum kao raniji FE planovi).
-- `npm run test`, `npm run build` (frontend); odgovarajući backend testovi.
-
-**Obavezno:** čekiraj (`- [x]`) završene stavke direktno u `PHASE_PLAN_ephelpdesk.md` (sekcija "Faza R8") i pošalji mi ažuriranu verziju te sekcije nazad.
+- [x] Catalog OU → sync (`forceRefresh`) → live stablo
+- [x] Delete blocked sa jasnom porukom
+- [x] Ručno očitavanje ažurira `lastSuccessfulReadAt`
+- [x] Create user + role → 7 kolona (MFA "—")
+- [ ] Vizuelno poređenje vs referenca (desktop 1440 + mobile 390) — ručni UI check
+- [x] Frontend `npm run test` (191) + `npm run build`; backend directory-sync/users testovi (39 passed)
 
 ## Faza R7 — Tehnički dug i kvalitet (P4)
 

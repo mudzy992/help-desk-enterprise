@@ -1,23 +1,25 @@
-import { Fragment, useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { AddUserForm } from "@/components/users/add-user-form";
 import { UserRolesSection } from "@/components/users/user-roles-section";
+import { UsersSummaryRow } from "@/components/users/users-summary-row";
 import { PolicyPacksPanel } from "@/components/policy-packs/policy-packs-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import {
   controlCompactClassName,
   tableHeadClassName,
-  tableRowClassName,
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { useDirectory } from "@/lib/directory/use-directory";
+import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
+import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
+import { listUsersSummary, type UserSummary } from "@/services/users-api";
 
 interface UsersPageProperties {
   readonly embedded?: boolean;
@@ -25,27 +27,52 @@ interface UsersPageProperties {
 
 export function UsersPage({ embedded = false }: UsersPageProperties) {
   const { t } = useTranslation();
-  const directory = useDirectory();
+  const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
-  const originUnits = flattenOriginUnitOptions(directory.tree);
+  const [originUnits, setOriginUnits] = useState<
+    readonly { id: string; label: string }[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+  const [requestId, setRequestId] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    setErrorKey(null);
+    try {
+      const [loadedUsers, tree, loadedServices] = await Promise.all([
+        listUsersSummary(),
+        listOrganizationalUnitTree(),
+        listServices().catch(() => []),
+      ]);
+      setUsers(loadedUsers);
+      setOriginUnits(flattenOriginUnitOptions(tree));
+      setServices(loadedServices);
+    } catch (error) {
+      setUsers([]);
+      setErrorKey(mapApiError(error));
+      setRequestId(readApiRequestId(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    void listServices()
-      .then(setServices)
-      .catch(() => setServices([]));
-  }, []);
+    void reload();
+  }, [reload]);
 
   const term = search.trim().toLowerCase();
   const visible =
     term.length === 0
-      ? directory.users
-      : directory.users.filter(
+      ? users
+      : users.filter(
           (user) =>
             user.displayName.toLowerCase().includes(term) ||
             user.email.toLowerCase().includes(term) ||
-            user.organizationalUnitPath.toLowerCase().includes(term),
+            (user.roleName ?? "").toLowerCase().includes(term),
         );
 
   return (
@@ -61,28 +88,40 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
       <Card>
         <CardHeader
           title={t("directory.usersHeading")}
-          subtitle={t("directory.usersCount", { count: directory.users.length })}
+          subtitle={t("directory.usersCount", { count: users.length })}
           actions={
-            <input
-              className={`${controlCompactClassName} w-48`}
-              type="search"
-              value={search}
-              placeholder={t("directory.searchPlaceholder")}
-              aria-label={t("directory.searchPlaceholder")}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <div className="flex items-center gap-2">
+              <input
+                className={`${controlCompactClassName} w-48`}
+                type="search"
+                value={search}
+                placeholder={t("directory.searchPlaceholder")}
+                aria-label={t("directory.searchPlaceholder")}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)}>
+                <Plus size={14} /> {t("users.addUser")}
+              </Button>
+            </div>
           }
         />
-        {directory.isLoading ? (
+        {showAddForm ? (
+          <AddUserForm
+            unitOptions={originUnits}
+            onCancel={() => setShowAddForm(false)}
+            onCreated={async () => {
+              setShowAddForm(false);
+              await reload();
+            }}
+          />
+        ) : null}
+        {isLoading ? (
           <div className="px-4 py-3.5">
             <PanelSkeleton className="mt-0" label={t("directory.usersHeading")} />
           </div>
-        ) : directory.errorKey ? (
+        ) : errorKey ? (
           <div className="px-4 py-3.5">
-            <ApiErrorText
-              messageKey={directory.errorKey}
-              requestId={directory.requestId}
-            />
+            <ApiErrorText messageKey={errorKey} requestId={requestId} />
           </div>
         ) : visible.length === 0 ? (
           <div className="px-4 py-3.5">
@@ -94,14 +133,16 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left">
+            <table className="w-full min-w-[860px] text-left">
               <thead>
-                <tr
-                  className={`border-b border-border/70 text-left ${tableHeadClassName}`}
-                >
-                  <th className="px-4 py-2.5">{t("directory.columnUser")}</th>
-                  <th className="px-4 py-2.5">{t("directory.columnUnit")}</th>
-                  <th className="px-4 py-2.5">{t("users.actions")}</th>
+                <tr className={`border-b border-border/70 text-left ${tableHeadClassName}`}>
+                  <th className="px-4 py-2.5">{t("users.columnUser")}</th>
+                  <th className="px-4 py-2.5">{t("users.columnRole")}</th>
+                  <th className="px-4 py-2.5">{t("users.columnOuGroup")}</th>
+                  <th className="px-4 py-2.5">{t("users.columnPolicyPack")}</th>
+                  <th className="px-4 py-2.5">{t("users.columnScope")}</th>
+                  <th className="px-4 py-2.5 text-center">{t("users.columnMfa")}</th>
+                  <th className="px-4 py-2.5 text-right">{t("users.columnLoad")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -109,39 +150,16 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
                   const expanded = expandedUserId === user.id;
                   return (
                     <Fragment key={user.id}>
-                      <tr className={tableRowClassName}>
-                        <td className="px-4">
-                          <div className="flex items-center gap-2.5">
-                            <Avatar name={user.displayName} size="sm" />
-                            <div>
-                              <p className="text-[12.5px] font-medium text-foreground">
-                                {user.displayName}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground/70">
-                                {user.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 text-[12px] text-muted-foreground">
-                          {user.organizationalUnitPath}
-                        </td>
-                        <td className="px-4">
-                          <Button
-                            type="button"
-                            size="xs"
-                            variant="ghost"
-                            onClick={() =>
-                              setExpandedUserId(expanded ? null : user.id)
-                            }
-                          >
-                            {expanded ? t("users.hideRoles") : t("users.manageRoles")}
-                          </Button>
-                        </td>
-                      </tr>
+                      <UsersSummaryRow
+                        user={user}
+                        expanded={expanded}
+                        onToggleRoles={() =>
+                          setExpandedUserId(expanded ? null : user.id)
+                        }
+                      />
                       {expanded ? (
                         <tr>
-                          <td colSpan={3} className="p-0">
+                          <td colSpan={7} className="p-0">
                             <UserRolesSection
                               userId={user.id}
                               originUnits={originUnits}

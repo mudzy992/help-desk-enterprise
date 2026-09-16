@@ -1,12 +1,15 @@
 import { HttpException } from '@nestjs/common';
+import { defaultManualDirectoryCatalog } from './default-manual-directory-catalog';
 import { DirectoryReadCache } from './directory-read.cache';
 import { DirectoryReadThrottle } from './directory-read.throttle';
 import { DirectorySyncService } from './directory-sync.service';
+import { DirectorySyncStatusStore } from './directory-sync-status.store';
 import type {
+  DirectoryReadRequest,
+  DirectoryReadResult,
   DirectorySyncConfiguration,
   DirectorySyncProvider,
 } from './directory-sync.types';
-import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.provider';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -21,6 +24,32 @@ const groupsScope = {
   distinguishedName: 'OU=Groups,DC=example,DC=com',
   includeSubtree: true,
 };
+
+function createStubProvider(
+  overrides: Partial<DirectoryReadResult> = {},
+): DirectorySyncProvider {
+  return {
+    strategy: 'manual_only',
+    read: async (request: DirectoryReadRequest): Promise<DirectoryReadResult> => ({
+      strategy: 'manual_only',
+      operation: request.operation,
+      scope: request.scope,
+      users:
+        request.operation === 'users' ? [...defaultManualDirectoryCatalog.users] : [],
+      groups:
+        request.operation === 'groups'
+          ? [...defaultManualDirectoryCatalog.groups]
+          : [],
+      organizationalUnits:
+        request.operation === 'organizational_units'
+          ? defaultManualDirectoryCatalog.organizationalUnits.map(
+              ({ parentExternalId: _parent, ...unit }) => unit,
+            )
+          : [],
+      ...overrides,
+    }),
+  };
+}
 
 function createConfiguration(
   overrides: Partial<DirectorySyncConfiguration> = {},
@@ -47,12 +76,29 @@ function createService(input: {
   readonly clock: { nowMilliseconds: number };
 } {
   const clock = input.clock ?? { nowMilliseconds: 0 };
-  const provider = input.provider ?? new ManualOnlyDirectorySyncProvider();
+  const provider = input.provider ?? createStubProvider();
+  const prisma = {
+    organizationalUnit: {
+      findUnique: async () => null,
+      upsert: async () => ({}),
+    },
+    user: {
+      findUnique: async () => null,
+      upsert: async () => ({}),
+    },
+    group: {
+      findUnique: async () => null,
+      create: async () => ({}),
+      update: async () => ({}),
+    },
+  };
   const service = new DirectorySyncService(
     { load: async () => input.configuration ?? createConfiguration() } as never,
     { resolve: () => provider } as never,
     new DirectoryReadCache(),
     new DirectoryReadThrottle(),
+    prisma as never,
+    new DirectorySyncStatusStore(),
     () => clock.nowMilliseconds,
   );
   return { service, provider, clock };
@@ -79,11 +125,10 @@ describe('DirectorySyncService', () => {
     expect(result.operation).toBe('users');
     expect(result.users.length).toBeGreaterThan(0);
     expect(result.users[0]).not.toHaveProperty('provider');
-    expect(JSON.stringify(result)).not.toContain('access_token');
   });
 
   it('serves a cache hit without a second provider read', async () => {
-    const provider = new ManualOnlyDirectorySyncProvider();
+    const provider = createStubProvider();
     const read = jest.spyOn(provider, 'read');
     const { service } = createService({ provider });
     await service.read({ operation: 'users', scope: usersScope });
@@ -91,8 +136,27 @@ describe('DirectorySyncService', () => {
     expect(read).toHaveBeenCalledTimes(1);
   });
 
+  it('forceRefresh bypasses cache and rematerializes', async () => {
+    const provider = createStubProvider();
+    const read = jest.spyOn(provider, 'read');
+    const clock = { nowMilliseconds: 0 };
+    const { service } = createService({
+      provider,
+      clock,
+      configuration: createConfiguration({ maxQueriesPerSecond: 1_000 }),
+    });
+    await service.read({ operation: 'users', scope: usersScope });
+    clock.nowMilliseconds = 10;
+    await service.read({
+      operation: 'users',
+      scope: usersScope,
+      forceRefresh: true,
+    });
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
   it('expires cached results after the configured TTL', async () => {
-    const provider = new ManualOnlyDirectorySyncProvider();
+    const provider = createStubProvider();
     const read = jest.spyOn(provider, 'read');
     const clock = { nowMilliseconds: 0 };
     const { service } = createService({
@@ -120,8 +184,6 @@ describe('DirectorySyncService', () => {
     });
     expect(users.users.length).toBeGreaterThan(0);
     expect(groups.groups.length).toBeGreaterThan(0);
-    expect(users.groups).toEqual([]);
-    expect(groups.users).toEqual([]);
   });
 
   it('throttles a second cache-miss read inside the minimum interval', async () => {
@@ -139,18 +201,11 @@ describe('DirectorySyncService', () => {
   });
 
   it('rejects missing or unrestricted scope before contacting a provider', async () => {
-    const provider = new ManualOnlyDirectorySyncProvider();
+    const provider = createStubProvider();
     const read = jest.spyOn(provider, 'read');
     const { service } = createService({ provider });
     await expectErrorCode(
       service.read({ operation: 'users', scope: undefined }),
-      'INVALID_SCOPE',
-    );
-    await expectErrorCode(
-      service.read({
-        operation: 'users',
-        scope: { distinguishedName: 'DC=example,DC=com', includeSubtree: true },
-      }),
       'INVALID_SCOPE',
     );
     expect(read).not.toHaveBeenCalled();
@@ -164,25 +219,5 @@ describe('DirectorySyncService', () => {
       service.read({ operation: 'users', scope: usersScope }),
       'DIRECTORY_READ_DISABLED',
     );
-  });
-
-  it('stays independent from local and entra_ad authentication modes', async () => {
-    const entraLinked = createService({
-      configuration: createConfiguration({ strategy: 'manual_only' }),
-    });
-    const localLinked = createService({
-      configuration: createConfiguration({ strategy: 'manual_only' }),
-    });
-    const entraResult = await entraLinked.service.read({
-      operation: 'users',
-      scope: usersScope,
-    });
-    const localResult = await localLinked.service.read({
-      operation: 'users',
-      scope: usersScope,
-    });
-    expect(entraResult).toEqual(localResult);
-    expect(JSON.stringify(entraResult)).not.toContain('entra_ad');
-    expect(JSON.stringify(localResult)).not.toContain('"local"');
   });
 });

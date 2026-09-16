@@ -4,10 +4,12 @@ import type {
   DirectoryUser,
 } from './directory-sync.types';
 
-export const manualOnlyDirectoryCatalog: {
+export const defaultManualDirectoryCatalog: {
   readonly users: readonly DirectoryUser[];
   readonly groups: readonly DirectoryGroup[];
-  readonly organizationalUnits: readonly DirectoryOrganizationalUnit[];
+  readonly organizationalUnits: readonly (DirectoryOrganizationalUnit & {
+    readonly parentExternalId: string | null;
+  })[];
 } = {
   organizationalUnits: [
     {
@@ -15,18 +17,21 @@ export const manualOnlyDirectoryCatalog: {
       displayName: 'Users',
       distinguishedName: 'OU=Users,DC=example,DC=com',
       organizationalUnitPath: '/Users',
+      parentExternalId: null,
     },
     {
       externalId: 'manual_only:ou:users-it',
       displayName: 'IT',
       distinguishedName: 'OU=IT,OU=Users,DC=example,DC=com',
       organizationalUnitPath: '/Users/IT',
+      parentExternalId: 'manual_only:ou:users',
     },
     {
       externalId: 'manual_only:ou:groups',
       displayName: 'Groups',
       distinguishedName: 'OU=Groups,DC=example,DC=com',
       organizationalUnitPath: '/Groups',
+      parentExternalId: null,
     },
   ],
   users: [

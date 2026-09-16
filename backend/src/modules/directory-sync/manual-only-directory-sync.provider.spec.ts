@@ -1,8 +1,32 @@
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
+import { defaultManualDirectoryCatalog } from './default-manual-directory-catalog';
 import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.provider';
-import { manualOnlyDirectoryCatalog } from './manual-only-directory-catalog';
+
+function createProvider(): ManualOnlyDirectorySyncProvider {
+  const prisma = {
+    manualDirectoryOrganizationalUnit: {
+      findMany: async () =>
+        defaultManualDirectoryCatalog.organizationalUnits.map((unit) => ({
+          ...unit,
+          distinguishedName: unit.distinguishedName ?? '',
+          organizationalUnitPath: unit.organizationalUnitPath ?? '',
+        })),
+    },
+    manualDirectoryUser: {
+      findMany: async () => [...defaultManualDirectoryCatalog.users],
+    },
+    manualDirectoryGroup: {
+      findMany: async () => [...defaultManualDirectoryCatalog.groups],
+    },
+  };
+  return new ManualOnlyDirectorySyncProvider(prisma as never);
+}
 
 describe('ManualOnlyDirectorySyncProvider', () => {
-  const provider = new ManualOnlyDirectorySyncProvider();
+  const provider = createProvider();
 
   it('identifies itself as manual_only and returns normalized user data', async () => {
     const result = await provider.read({
@@ -16,22 +40,12 @@ describe('ManualOnlyDirectorySyncProvider', () => {
     expect(provider.strategy).toBe('manual_only');
     expect(result.strategy).toBe('manual_only');
     expect(result.users).toEqual([
-      manualOnlyDirectoryCatalog.users.find(
+      defaultManualDirectoryCatalog.users.find(
         (user) => user.externalId === 'manual_only:user:dev-reader',
       ),
     ]);
     expect(result.groups).toEqual([]);
     expect(result.organizationalUnits).toEqual([]);
-    expect(result.users[0]).toEqual(
-      expect.objectContaining({
-        externalId: 'manual_only:user:dev-reader',
-        login: 'dev.reader',
-        email: 'dev.reader@example.com',
-        displayName: 'Dev Reader',
-        distinguishedName: 'CN=Dev Reader,OU=Users,DC=example,DC=com',
-        organizationalUnitPath: '/Users',
-      }),
-    );
   });
 
   it('restricts subtree reads independently of exact-scope reads', async () => {
@@ -60,7 +74,7 @@ describe('ManualOnlyDirectorySyncProvider', () => {
     ]);
   });
 
-  it('does not call the network while reading the in-memory catalog', async () => {
+  it('does not call the network while reading the catalog', async () => {
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation(() => {

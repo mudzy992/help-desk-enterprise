@@ -1,0 +1,38 @@
+model ManualDirectoryOrganizationalUnit {
+  id                       String   @id @default(cuid())
+  externalId               String   @unique
+  displayName              String
+  distinguishedName        String   @unique
+  organizationalUnitPath   String   @unique
+  parentExternalId         String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([parentExternalId])
+}
+
+model ManualDirectoryUser {
+  id                       String   @id @default(cuid())
+  externalId               String   @unique
+  login                    String?
+  email                    String?
+  displayName              String
+  distinguishedName        String?
+  organizationalUnitPath   String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([organizationalUnitPath])
+}
+
+model ManualDirectoryGroup {
+  id                       String   @id @default(cuid())
+  externalId               String   @unique
+  displayName              String
+  distinguishedName        String?
+  organizationalUnitPath   String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([organizationalUnitPath])
+}

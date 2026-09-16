@@ -5,7 +5,11 @@ export type UsersErrorCode =
   | 'ORGANIZATIONAL_UNIT_NOT_FOUND'
   | 'SERVICE_NOT_FOUND'
   | 'SUPER_ADMIN_GRANT_FORBIDDEN'
-  | 'FORBIDDEN';
+  | 'FORBIDDEN'
+  | 'INVALID_INPUT'
+  | 'EMAIL_CONFLICT'
+  | 'HAS_OPEN_TICKETS'
+  | 'DELETE_RESTRICTED';
 
 export class UsersError extends Error {
   constructor(readonly code: UsersErrorCode) {
