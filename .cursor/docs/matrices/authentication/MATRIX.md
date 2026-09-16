@@ -36,6 +36,8 @@ Oba providera vraćaju isti `AuthenticatedPrincipal`: `{ subjectId, email, displ
 - Verify: `bcrypt.compare` (constant-time). Dummy hash kad user ne postoji ili nije eligible, da se izbjegne enumeracija.
 - Lozinka/hash se ne loguju i ne vraćaju u API/JWT.
 - Admin `POST /users` (lokalni nalog): generiše privremenu lozinku, postavlja `localPasswordHash`, `isLocalOnly=true`, `mustChangePassword=true`. Plaintext se vraća **samo** u create odgovoru (`temporaryPassword`) kad SMTP addon nije aktivan; inače ide e-mail template `user.temporary_password` i API vraća `temporaryPassword: null`.
+- Admin `POST /users/:userId/reset-password`: ista privremena lozinka + `mustChangePassword=true` (SMTP → email, inače UI one-time). Stara lozinka više ne radi.
+- Admin `DELETE /users/:userId`: briše korisnika (blokirano ako ima otvorene tikete; nije dozvoljeno brisanje vlastitog naloga).
 - Login kad `mustChangePassword=true`: **ne** izdaje session JWT. Vraća `{ status: "MUST_CHANGE_PASSWORD", passwordChangeToken, expiresInSeconds }` (JWT claim `purpose: password_change`, TTL 15 min).
 - `POST /auth/change-password` (Bearer = passwordChangeToken): validira novu lozinku (min 12), postavlja hash, `mustChangePassword=false`, izdaje normalnu sesiju.
 - Session guard odbija token ako `mustChangePassword` još stoji ili ako JWT ima `purpose` claim.

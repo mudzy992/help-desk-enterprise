@@ -1,25 +1,35 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AddUserForm } from "@/components/users/add-user-form";
-import { UserRolesSection } from "@/components/users/user-roles-section";
-import { UsersSummaryRow } from "@/components/users/users-summary-row";
+import { TemporaryPasswordReveal } from "@/components/users/temporary-password-reveal";
+import { UsersTable } from "@/components/users/users-table";
 import { PolicyPacksPanel } from "@/components/policy-packs/policy-packs-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import {
-  controlCompactClassName,
-  tableHeadClassName,
-} from "@/components/ui/control";
+import { controlCompactClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+import {
+  mapApiError,
+  readApiRequestId,
+  type ApiErrorKey,
+} from "@/lib/map-api-error";
+import { useSession } from "@/lib/session/use-session";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
-import { listUsersSummary, type UserSummary } from "@/services/users-api";
+import {
+  listServices,
+  type ServiceResponse,
+} from "@/services/service-catalog-api";
+import {
+  listUsersSummary,
+  type CreateUserResponse,
+  type UserSummary,
+} from "@/services/users-api";
 
 interface UsersPageProperties {
   readonly embedded?: boolean;
@@ -27,10 +37,19 @@ interface UsersPageProperties {
 
 export function UsersPage({ embedded = false }: UsersPageProperties) {
   const { t } = useTranslation();
+  const { currentUserId } = useSession();
+  const capabilities = useSessionCapabilities();
+  const roleKeys = capabilities.session?.roleKeys ?? [];
+  const canManageUsers =
+    capabilities.session?.isSuperAdmin === true ||
+    roleKeys.includes("ADMIN") ||
+    roleKeys.includes("SUPER_ADMIN");
   const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [passwordReveal, setPasswordReveal] =
+    useState<CreateUserResponse | null>(null);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [originUnits, setOriginUnits] = useState<
     readonly { id: string; label: string }[]
@@ -99,25 +118,37 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
                 aria-label={t("directory.searchPlaceholder")}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowAddForm(true)}
+              >
                 <Plus size={14} /> {t("users.addUser")}
               </Button>
             </div>
           }
         />
+        {passwordReveal !== null ? (
+          <TemporaryPasswordReveal
+            result={passwordReveal}
+            onClose={() => setPasswordReveal(null)}
+          />
+        ) : null}
         {showAddForm ? (
           <AddUserForm
             unitOptions={originUnits}
             onCancel={() => setShowAddForm(false)}
             onCreated={async () => {
-              setShowAddForm(false);
               await reload();
             }}
           />
         ) : null}
         {isLoading ? (
           <div className="px-4 py-3.5">
-            <PanelSkeleton className="mt-0" label={t("directory.usersHeading")} />
+            <PanelSkeleton
+              className="mt-0"
+              label={t("directory.usersHeading")}
+            />
           </div>
         ) : errorKey ? (
           <div className="px-4 py-3.5">
@@ -132,48 +163,17 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left">
-              <thead>
-                <tr className={`border-b border-border/70 text-left ${tableHeadClassName}`}>
-                  <th className="px-4 py-2.5">{t("users.columnUser")}</th>
-                  <th className="px-4 py-2.5">{t("users.columnRole")}</th>
-                  <th className="px-4 py-2.5">{t("users.columnOuGroup")}</th>
-                  <th className="px-4 py-2.5">{t("users.columnPolicyPack")}</th>
-                  <th className="px-4 py-2.5">{t("users.columnScope")}</th>
-                  <th className="px-4 py-2.5 text-center">{t("users.columnMfa")}</th>
-                  <th className="px-4 py-2.5 text-right">{t("users.columnLoad")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {visible.map((user) => {
-                  const expanded = expandedUserId === user.id;
-                  return (
-                    <Fragment key={user.id}>
-                      <UsersSummaryRow
-                        user={user}
-                        expanded={expanded}
-                        onToggleRoles={() =>
-                          setExpandedUserId(expanded ? null : user.id)
-                        }
-                      />
-                      {expanded ? (
-                        <tr>
-                          <td colSpan={7} className="p-0">
-                            <UserRolesSection
-                              userId={user.id}
-                              originUnits={originUnits}
-                              services={services}
-                            />
-                          </td>
-                        </tr>
-                      ) : null}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <UsersTable
+            visible={visible}
+            expandedUserId={expandedUserId}
+            setExpandedUserId={setExpandedUserId}
+            canManageUsers={canManageUsers}
+            currentUserId={currentUserId}
+            originUnits={originUnits}
+            services={services}
+            onReload={reload}
+            onPasswordIssued={setPasswordReveal}
+          />
         )}
       </Card>
     </section>

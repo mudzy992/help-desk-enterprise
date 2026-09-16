@@ -29,18 +29,16 @@ jest.mock('./list-users-summary', () => ({
   ]),
 }));
 
-jest.mock('../authentication/hash-local-password', () => ({
-  hashLocalPassword: jest.fn().mockResolvedValue('$2b$04$hashed-temporary'),
+jest.mock('./issue-temporary-password-for-user', () => ({
+  issueTemporaryPasswordForUser: jest.fn().mockResolvedValue({
+    temporaryPassword: 'TempPassword!23456',
+    temporaryPasswordDelivery: 'ui',
+  }),
 }));
 
-jest.mock('./send-temporary-password-email', () => ({
-  sendTemporaryPasswordEmail: jest.fn().mockResolvedValue(false),
-}));
-
-import { hashLocalPassword } from '../authentication/hash-local-password';
 import { ensureSystemRole } from './ensure-system-role';
 import { assignUserRole } from './assign-user-role';
-import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
+import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 
 const createDependencies = () => ({
   settingsService: {} as never,
@@ -48,7 +46,7 @@ const createDependencies = () => ({
 });
 
 describe('createUser', () => {
-  it('sets localPasswordHash, isLocalOnly, and mustChangePassword', async () => {
+  it('sets local credentials via temporary password issue and returns UI secret', async () => {
     const create = jest.fn().mockResolvedValue({
       id: 'user-1',
       displayName: 'Test User',
@@ -77,24 +75,28 @@ describe('createUser', () => {
       prisma,
       authorizationRoleKeys.user,
     );
-    expect(hashLocalPassword).toHaveBeenCalled();
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         isLocalOnly: true,
         mustChangePassword: true,
-        localPasswordHash: '$2b$04$hashed-temporary',
       }),
     });
-    expect(create.mock.calls[0][0].data.localPasswordHash).not.toBeNull();
+    expect(issueTemporaryPasswordForUser).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        email: 'user@example.com',
+      }),
+    );
     expect(assignUserRole).toHaveBeenCalled();
-    expect(response.user.id).toBe('user-1');
     expect(response.temporaryPasswordDelivery).toBe('ui');
-    expect(response.temporaryPassword).toEqual(expect.any(String));
-    expect(response.temporaryPassword!.length).toBeGreaterThanOrEqual(12);
+    expect(response.temporaryPassword).toBe('TempPassword!23456');
   });
 
   it('omits temporary password from response when emailed', async () => {
-    (sendTemporaryPasswordEmail as jest.Mock).mockResolvedValueOnce(true);
+    (issueTemporaryPasswordForUser as jest.Mock).mockResolvedValueOnce({
+      temporaryPassword: null,
+      temporaryPasswordDelivery: 'email',
+    });
     const prisma = {
       organizationalUnit: { findUnique: jest.fn() },
       user: {

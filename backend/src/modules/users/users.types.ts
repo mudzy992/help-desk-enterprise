@@ -63,6 +63,8 @@ export type CreateUserResponse = {
   readonly temporaryPasswordDelivery: TemporaryPasswordDelivery;
 };
 
+export type ResetUserPasswordResponse = CreateUserResponse;
+
 export type UpdateUserInput = {
   readonly userId: string;
   readonly isActive?: boolean;

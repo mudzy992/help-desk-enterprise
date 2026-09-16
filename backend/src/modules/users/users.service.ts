@@ -9,12 +9,14 @@ import { listUserRoles } from './list-user-roles';
 import { listUsersSummary } from './list-users-summary';
 import { mapUsersError } from './map-users-error';
 import { removeUserRole } from './remove-user-role';
+import { resetUserTemporaryPassword } from './reset-user-temporary-password';
 import { updateUser } from './update-user';
 import type {
   AssignUserRoleInput,
   CreateUserInput,
   CreateUserResponse,
   RemoveUserRoleInput,
+  ResetUserPasswordResponse,
   UpdateUserInput,
   UserRoleResponse,
   UserSummaryResponse,
@@ -35,6 +37,15 @@ export class UsersService {
   create(input: CreateUserInput): Promise<CreateUserResponse> {
     return this.execute(() =>
       createUser(this.prisma, input, {
+        settingsService: this.settingsService,
+        mailTransport: this.mailTransport,
+      }),
+    );
+  }
+
+  resetTemporaryPassword(userId: string): Promise<ResetUserPasswordResponse> {
+    return this.execute(() =>
+      resetUserTemporaryPassword(this.prisma, userId, {
         settingsService: this.settingsService,
         mailTransport: this.mailTransport,
       }),

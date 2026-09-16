@@ -56,7 +56,10 @@ export function AddUserForm({
 
   if (createdResult !== null) {
     return (
-      <TemporaryPasswordReveal result={createdResult} onClose={onCancel} />
+      <TemporaryPasswordReveal
+        result={createdResult}
+        onClose={onCancel}
+      />
     );
   }
 

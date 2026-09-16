@@ -295,7 +295,12 @@
     "temporaryPasswordEmailed": "Privremena lozinka je poslana na e-mail korisnika (SMTP aktivan).",
     "copyTemporaryPassword": "Kopiraj",
     "copied": "Kopirano",
-    "closeTemporaryPassword": "Zatvori"
+    "closeTemporaryPassword": "Zatvori",
+    "resetPassword": "Resetuj lozinku",
+    "resetPasswordFailed": "Reset lozinke nije uspio",
+    "deleteUser": "Obriši",
+    "deleteFailed": "Brisanje korisnika nije uspjelo",
+    "deleteConfirm": "Obrisati korisnika {{name}}? Ova radnja se ne može poništiti."
   },
   "settings": {
     "intro": "Konfiguracija kanala, dodataka i registry postavki. Svaka izmjena zahtijeva razlog i ide u change log.",

@@ -2,10 +2,14 @@ import { Copy } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import type { CreateUserResponse } from "@/services/users-api";
+
+export type TemporaryPasswordRevealPayload = {
+  readonly temporaryPassword: string | null;
+  readonly temporaryPasswordDelivery: "ui" | "email";
+};
 
 interface TemporaryPasswordRevealProperties {
-  readonly result: CreateUserResponse;
+  readonly result: TemporaryPasswordRevealPayload;
   readonly onClose: () => void;
 }
 

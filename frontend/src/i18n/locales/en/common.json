@@ -295,7 +295,12 @@
     "temporaryPasswordEmailed": "The temporary password was sent to the user's email (SMTP active).",
     "copyTemporaryPassword": "Copy",
     "copied": "Copied",
-    "closeTemporaryPassword": "Close"
+    "closeTemporaryPassword": "Close",
+    "resetPassword": "Reset password",
+    "resetPasswordFailed": "Could not reset the password",
+    "deleteUser": "Delete",
+    "deleteFailed": "Could not delete the user",
+    "deleteConfirm": "Delete user {{name}}? This cannot be undone."
   },
   "settings": {
     "intro": "Channel, add-on, and registry configuration. Every change requires a reason and is written to the change log.",

@@ -1,12 +1,10 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import { hashLocalPassword } from '../authentication/hash-local-password';
 import type { MailTransport } from '../notifications/email/mail-transport';
 import type { SettingsService } from '../settings/settings.service';
 import { assignUserRole } from './assign-user-role';
 import { ensureSystemRole } from './ensure-system-role';
-import { generateTemporaryPassword } from './generate-temporary-password';
+import { issueTemporaryPasswordForUser } from './issue-temporary-password-for-user';
 import { listUsersSummary } from './list-users-summary';
-import { sendTemporaryPasswordEmail } from './send-temporary-password-email';
 import type { CreateUserInput, CreateUserResponse } from './users.types';
 import { UsersError } from './users.error';
 
@@ -42,8 +40,6 @@ export async function createUser(
     throw new UsersError('EMAIL_CONFLICT');
   }
   await ensureSystemRole(prisma, roleKey);
-  const temporaryPassword = generateTemporaryPassword();
-  const localPasswordHash = await hashLocalPassword(temporaryPassword);
   const created = await prisma.user.create({
     data: {
       displayName,
@@ -51,9 +47,16 @@ export async function createUser(
       organizationalUnitId,
       isLocalOnly: true,
       isActive: true,
-      localPasswordHash,
       mustChangePassword: true,
     },
+  });
+  const issued = await issueTemporaryPasswordForUser({
+    prisma,
+    settingsService: dependencies.settingsService,
+    mailTransport: dependencies.mailTransport,
+    userId: created.id,
+    email,
+    displayName,
   });
   await assignUserRole(prisma, {
     userId: created.id,
@@ -69,30 +72,9 @@ export async function createUser(
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');
   }
-  const emailed = await trySendTemporaryPassword({
-    settingsService: dependencies.settingsService,
-    mailTransport: dependencies.mailTransport,
-    toAddress: email,
-    displayName,
-    temporaryPassword,
-  });
   return {
     user: summary,
-    temporaryPassword: emailed ? null : temporaryPassword,
-    temporaryPasswordDelivery: emailed ? 'email' : 'ui',
+    temporaryPassword: issued.temporaryPassword,
+    temporaryPasswordDelivery: issued.temporaryPasswordDelivery,
   };
-}
-
-async function trySendTemporaryPassword(input: {
-  readonly settingsService: SettingsService;
-  readonly mailTransport: MailTransport;
-  readonly toAddress: string;
-  readonly displayName: string;
-  readonly temporaryPassword: string;
-}): Promise<boolean> {
-  try {
-    return await sendTemporaryPasswordEmail(input);
-  } catch {
-    return false;
-  }
 }

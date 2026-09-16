@@ -81,6 +81,14 @@ export type CreateUserResponse = {
   readonly temporaryPasswordDelivery: "ui" | "email";
 };
 
+export function resetUserTemporaryPassword(
+  userId: string,
+): Promise<CreateUserResponse> {
+  return apiRequest(`/users/${encodeURIComponent(userId)}/reset-password`, {
+    method: "POST",
+  });
+}
+
 export function updateUser(
   userId: string,
   input: { readonly isActive?: boolean },

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -22,7 +23,7 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
-import type { CreateUserResponse, UserRoleResponse, UserSummaryResponse } from './users.types';
+import type { CreateUserResponse, ResetUserPasswordResponse, UserRoleResponse, UserSummaryResponse } from './users.types';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -66,6 +67,13 @@ export class UsersController {
     });
   }
 
+  @Post(':userId/reset-password')
+  resetTemporaryPassword(
+    @Param('userId') userId: string,
+  ): Promise<ResetUserPasswordResponse> {
+    return this.usersService.resetTemporaryPassword(userId);
+  }
+
   @Patch(':userId')
   update(
     @Param('userId') userId: string,
@@ -79,7 +87,17 @@ export class UsersController {
 
   @Delete(':userId')
   @HttpCode(204)
-  async delete(@Param('userId') userId: string): Promise<void> {
+  async delete(
+    @Param('userId') userId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<void> {
+    const principal = readAuthenticatedPrincipal(request);
+    if (principal?.subjectId === userId) {
+      throw new BadRequestException({
+        code: 'INVALID_INPUT',
+        message: 'Cannot delete your own account',
+      });
+    }
     await this.usersService.delete(userId);
   }
 

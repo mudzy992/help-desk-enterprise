@@ -1,9 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { UserAdminActions } from "@/components/users/user-admin-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { UserSummary } from "@/services/users-api";
+import type { CreateUserResponse, UserSummary } from "@/services/users-api";
 
 const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
   super: "border-danger/35 bg-danger/10 text-danger",
@@ -15,13 +16,21 @@ const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
 interface UsersSummaryRowProperties {
   readonly user: UserSummary;
   readonly expanded: boolean;
+  readonly canManageUsers: boolean;
+  readonly isSelf: boolean;
   readonly onToggleRoles: () => void;
+  readonly onChanged: () => Promise<void>;
+  readonly onPasswordIssued: (result: CreateUserResponse) => void;
 }
 
 export function UsersSummaryRow({
   user,
   expanded,
+  canManageUsers,
+  isSelf,
   onToggleRoles,
+  onChanged,
+  onPasswordIssued,
 }: UsersSummaryRowProperties) {
   const { t } = useTranslation();
   const permissionScope =
@@ -107,6 +116,16 @@ export function UsersSummaryRow({
         >
           {expanded ? t("users.hideRoles") : t("users.manageRoles")}
         </button>
+        <div className="mt-2">
+          <UserAdminActions
+            userId={user.id}
+            userDisplayName={user.displayName}
+            canManage={canManageUsers}
+            isSelf={isSelf}
+            onChanged={onChanged}
+            onPasswordIssued={onPasswordIssued}
+          />
+        </div>
       </td>
     </tr>
   );
