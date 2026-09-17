@@ -6,12 +6,18 @@ import type { SlaEscalationRuleRecord, TicketSlaStateRecord } from './ticket-sla
 
 type RuntimeMarks = Pick<
   TicketSlaStateRecord,
-  'isResponseBreached' | 'isResolutionBreached' | 'firedEscalationKeys'
+  | 'isResponseBreached'
+  | 'isResolutionBreached'
+  | 'isResponseAtRisk'
+  | 'isResolutionAtRisk'
+  | 'firedEscalationKeys'
 >;
 
 export const emptyTicketSlaRuntimeMarks: RuntimeMarks = {
   isResponseBreached: false,
   isResolutionBreached: false,
+  isResponseAtRisk: false,
+  isResolutionAtRisk: false,
   firedEscalationKeys: [],
 };
 
@@ -24,6 +30,7 @@ export async function emitTicketSlaRuntimeEvents(
     readonly rules: readonly SlaEscalationRuleRecord[];
   },
 ): Promise<void> {
+  await emitAtRiskTransitions(prisma, input);
   if (!input.previous.isResponseBreached && input.next.isResponseBreached) {
     await recordTicketSlaRuntimeEvent(prisma, {
       ticketId: input.ticketId,
@@ -73,6 +80,34 @@ export async function emitTicketSlaRuntimeEvents(
         targetUserId: rule.targetUserId,
         triggerOffsetMinutes: rule.triggerOffsetMinutes,
       },
+    });
+  }
+}
+
+async function emitAtRiskTransitions(
+  prisma: PrismaService,
+  input: {
+    readonly ticketId: string;
+    readonly previous: RuntimeMarks;
+    readonly next: TicketSlaStateRecord;
+  },
+): Promise<void> {
+  if (!input.previous.isResponseAtRisk && input.next.isResponseAtRisk) {
+    await recordTicketSlaRuntimeEvent(prisma, {
+      ticketId: input.ticketId,
+      reason: slaChangeLogReasons.responseAtRisk,
+      action: slaSystemEventActions.responseAtRisk,
+      before: { ...input.next, ...input.previous },
+      after: input.next,
+    });
+  }
+  if (!input.previous.isResolutionAtRisk && input.next.isResolutionAtRisk) {
+    await recordTicketSlaRuntimeEvent(prisma, {
+      ticketId: input.ticketId,
+      reason: slaChangeLogReasons.resolutionAtRisk,
+      action: slaSystemEventActions.resolutionAtRisk,
+      before: { ...input.next, ...input.previous },
+      after: input.next,
     });
   }
 }

@@ -31,6 +31,8 @@ export async function persistTicketSlaState(
     pausedBusinessMinutes: state.pausedBusinessMinutes,
     isResponseBreached: state.isResponseBreached,
     isResolutionBreached: state.isResolutionBreached,
+    isResponseAtRisk: state.isResponseAtRisk,
+    isResolutionAtRisk: state.isResolutionAtRisk,
     firedEscalationKeys: [...(state.firedEscalationKeys ?? [])],
   };
   if (state.id !== undefined && state.id.length > 0) {

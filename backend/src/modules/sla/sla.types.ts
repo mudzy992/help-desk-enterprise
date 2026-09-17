@@ -67,6 +67,7 @@ export type SlaConfiguration = {
   readonly allowOuOverrides: boolean;
   readonly pauseOnWaitingForUser: boolean;
   readonly pauseOnPendingApproval: boolean;
+  readonly notifyBeforeOverdueMinutes: number;
   readonly escalationsEnabled: boolean;
   readonly maxEscalationLevels: number;
 };

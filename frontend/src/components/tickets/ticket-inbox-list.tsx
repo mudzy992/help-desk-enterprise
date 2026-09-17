@@ -1,7 +1,7 @@
 import { Bell, Flame, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ticketIdClassName } from "@/components/ui/control";
@@ -132,6 +132,9 @@ function InboxTicketRow({
       </button>
       <div className="hidden items-center gap-1.5 md:flex">
         {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
+        {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
+          <TicketAtRiskBadge />
+        ) : null}
         <TicketStatusBadge status={ticket.status} />
         <TicketPriorityBadge priority={ticket.priority} />
       </div>

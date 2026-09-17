@@ -115,6 +115,27 @@ describe('ticket SLA breach and escalation', () => {
     });
     expect(reasons(disabledMemory)).toEqual([slaChangeLogReasons.responseBreached]);
   });
+
+  it('marks response at risk before breach and clears it after breach', async () => {
+    const { prisma, ticket, configuration, memory } = await createStartedTicket();
+    configuration.notifyBeforeOverdueMinutes = 30;
+    const atRiskAt = new Date(ticket.createdAt.getTime() + 35 * 60 * 1000);
+    const breachedAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
+    const atRiskScan = await scanDueTicketSlaStates(prisma, {
+      configuration,
+      now: atRiskAt,
+    });
+    expect(atRiskScan[0]?.isResponseAtRisk).toBe(true);
+    expect(atRiskScan[0]?.isResponseBreached).toBe(false);
+    expect(reasons(memory)).toEqual([slaChangeLogReasons.responseAtRisk]);
+    expect(systemBodies(memory)).toEqual([slaSystemEventActions.responseAtRisk]);
+    const breachedScan = await scanDueTicketSlaStates(prisma, {
+      configuration,
+      now: breachedAt,
+    });
+    expect(breachedScan[0]?.isResponseBreached).toBe(true);
+    expect(breachedScan[0]?.isResponseAtRisk).toBe(false);
+  });
 });
 async function createStartedTicket() {
   const harness = createTicketsServiceHarness();

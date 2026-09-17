@@ -46,6 +46,8 @@ export type TicketSlaStateRecord = {
   readonly pausedBusinessMinutes: number;
   readonly isResponseBreached: boolean;
   readonly isResolutionBreached: boolean;
+  readonly isResponseAtRisk: boolean;
+  readonly isResolutionAtRisk: boolean;
   readonly firedEscalationKeys: readonly string[];
   readonly updatedAt: Date;
 };

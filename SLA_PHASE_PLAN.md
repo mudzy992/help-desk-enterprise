@@ -12,7 +12,7 @@
 2. **KRITIČNO:** nema CRUD-a za `SlaEscalationRule` — jedini pisac je `apply-sla-snapshot.ts` (config-version apply). Nema admin forme, nema direktnog API-ja.
 3. Model eskalacije podržava samo `targetGroupId` — RAW traži role/group/user.
 4. ~~"Prvi odgovor" (response) se markira samo na `IN_PROGRESS` status — RAW definicija: "prva poruka **ili** prelazak u IN_PROGRESS". Prva poruka trenutno ne okida response completion.~~ **Riješeno u Fazi 2** (`AGENT_REPLY` → `agent_replied` + postojeći `IN_PROGRESS` put).
-5. `notifyBeforeOverdueMinutes` (T-minus pre-overdue upozorenje) — settings ključ postoji, nigdje se ne koristi u logici. Postoji samo breach detekcija (post-factum), ne i "uskoro će probiti SLA" upozorenje.
+5. ~~`notifyBeforeOverdueMinutes` (T-minus pre-overdue upozorenje) — settings ključ postoji, nigdje se ne koristi u logici. Postoji samo breach detekcija (post-factum), ne i "uskoro će probiti SLA" upozorenje.~~ **Riješeno u Fazi 3** (`isResponseAtRisk`/`isResolutionAtRisk` + runtime eventi + badge).
 6. SLA "usklađenost/compliance %" (referenca: kartica "Usklađenost (30 dana)") — ne postoji nigdje, ni backend agregacija ni frontend prikaz.
 7. `requireAdminReasonForRuleChanges` i `maxEscalationLevels` — settings ključevi definisani, nikad učitani u `SlaConfiguration` niti provjereni u logici (reason je trenutno *uvijek* obavezan, bez obzira na flag — mrtav ključ).
 8. Frontend (`sla-page.tsx`) je tab-switcher (Profili/Kalendari) — referenca je master-detail layout (profil lista lijevo, detalji profila desno: tabela prioriteta, kalendar kartica, "Pauze i eskalacije" kartica, "Usklađenost" kartica, sve vidljivo odjednom bez tab-prebacivanja). Nema "trenutno izloženih" real-time brojača po prioritetu.
@@ -81,16 +81,22 @@
 **Problem:** vidi nalaz #5. `notifyBeforeOverdueMinutes` postoji kao settings ključ, nigdje se ne koristi. Trenutno postoji samo breach (post-factum) detekcija.
 
 1. **Backend:**
-   - U `sla-configuration.loader.ts` učitaj `notifyBeforeOverdueMinutes` u `SlaConfiguration` (trenutno nije ni tu, provjeri).
-   - `evaluate-ticket-sla-breach.ts`/`ticket-sla-timers.service.ts` — dodaj novo stanje "uskoro overdue" (npr. `isResponseAtRisk`/`isResolutionAtRisk` na `TicketSlaStateRecord`) koje se postavlja kad preostalo vrijeme padne ispod `notifyBeforeOverdueMinutes`, prije stvarnog breach-a.
-   - `emitTicketSlaRuntimeEvents` — novi event tip za "at risk" prelaz (slično kao breach event), sa notifikacijom istim putem koji je popravljen u Fazi 1 (target grupa/rola/korisnik — vjerovatno isti target kao response/resolution eskalacija nivo 0, ili poseban "at risk" target — odluči i objasni).
-   - Test: tiket čije preostalo vrijeme padne ispod praga dobija "at risk" oznaku prije nego što probije SLA.
+   - [x] U `sla-configuration.loader.ts` učitaj `notifyBeforeOverdueMinutes` u `SlaConfiguration` (trenutno nije ni tu, provjeri).
+   - [x] `evaluate-ticket-sla-breach.ts`/`ticket-sla-timers.service.ts` — dodaj novo stanje "uskoro overdue" (npr. `isResponseAtRisk`/`isResolutionAtRisk` na `TicketSlaStateRecord`) koje se postavlja kad preostalo vrijeme padne ispod `notifyBeforeOverdueMinutes`, prije stvarnog breach-a.
+   - [x] `emitTicketSlaRuntimeEvents` — novi event tip za "at risk" prelaz (slično kao breach event), sa notifikacijom istim putem koji je popravljen u Fazi 1 (target grupa/rola/korisnik — vjerovatno isti target kao response/resolution eskalacija nivo 0, ili poseban "at risk" target — odluči i objasni).
+   - [x] Test: tiket čije preostalo vrijeme padne ispod praga dobija "at risk" oznaku prije nego što probije SLA.
 
 2. **Frontend:**
-   - Prikaz "at risk" stanja u ticket listi/detalju (badge, boja) pored postojećeg overdue badge-a — provjeri gdje se overdue trenutno prikazuje (`ticket-detail-page.tsx`/liste) i dodaj paralelno stanje, ne zamjenjuj overdue.
-   - BS + EN i18n.
+   - [x] Prikaz "at risk" stanja u ticket listi/detalju (badge, boja) pored postojećeg overdue badge-a — provjeri gdje se overdue trenutno prikazuje (`ticket-detail-page.tsx`/liste) i dodaj paralelno stanje, ne zamjenjuj overdue.
+   - [x] BS + EN i18n.
 
 **Verifikacija:** at-risk stanje se pojavljuje prije breach-a na tačnom pragu; notifikacija se šalje; `npm run test`/`build`.
+
+**Handoff / poznata ograničenja:**
+- Settings ključ `private.ticket.sla.notifyBeforeOverdueMinutes` (default 30) sada je u registryju + `SlaConfiguration`.
+- Persistirani flagovi `isResponseAtRisk` / `isResolutionAtRisk` na `TicketSlaState`; breach ima prioritet (at-risk se gasi kad je breached/completed).
+- At-risk notifikacija ide **handleru tiketa** (`assignedUserId` + članovi `assignedGroupId`) — isti non-escalation branch kao breach u `resolve-sla-notification-recipients.ts`. Eskalacioni targeti (Faza 1) ostaju za post-breach nivoe; nema posebnog "at risk target" koncepta.
+- API: `isAtRisk` na ticket response + at-risk flagovi u `sla` snapshotu. UI badge se ne prikazuje kad je već overdue.
 
 ---
 

@@ -53,6 +53,15 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
     defaultValue: true,
   }),
   definePrivateSetting({
+    key: settingKeys.privateTicketSlaNotifyBeforeOverdueMinutes,
+    categoryId: settingCategoryIds.privateTicket,
+    valueType: 'number',
+    description:
+      'Minutes before an SLA due time to mark the ticket at risk and notify handlers',
+    isRequired: true,
+    defaultValue: 30,
+  }),
+  definePrivateSetting({
     key: settingKeys.privateTicketSlaEscalationsEnabled,
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',

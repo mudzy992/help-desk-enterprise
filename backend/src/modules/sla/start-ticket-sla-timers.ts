@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { addBusinessMinutes } from './add-business-minutes';
+import { evaluateTicketSlaAtRisk } from './evaluate-ticket-sla-at-risk';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import { isSlaPauseStatus } from './is-sla-pause-status';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
@@ -46,29 +47,35 @@ export async function startTicketSlaTimers(
   const paused = isSlaPauseStatus(ticket.status, configuration);
   return persistTicketSlaState(
     prisma,
-    evaluateTicketSlaBreach(
-      {
-        ticketId: ticket.id,
-        slaProfileId: profile.id,
-        slaRuleId: rule.id,
-        responseMinutes: rule.responseMinutes,
-        resolutionMinutes: rule.resolutionMinutes,
-        startedAt,
-        responseDueAt: addBusinessMinutes(calendar, startedAt, rule.responseMinutes),
-        resolutionDueAt: addBusinessMinutes(
-          calendar,
+    evaluateTicketSlaAtRisk(
+      evaluateTicketSlaBreach(
+        {
+          ticketId: ticket.id,
+          slaProfileId: profile.id,
+          slaRuleId: rule.id,
+          responseMinutes: rule.responseMinutes,
+          resolutionMinutes: rule.resolutionMinutes,
           startedAt,
-          rule.resolutionMinutes,
-        ),
-        respondedAt: null,
-        resolutionCompletedAt: null,
-        pausedAt: paused ? startedAt : null,
-        pausedBusinessMinutes: 0,
-        isResponseBreached: false,
-        isResolutionBreached: false,
-        firedEscalationKeys: [],
-      },
+          responseDueAt: addBusinessMinutes(calendar, startedAt, rule.responseMinutes),
+          resolutionDueAt: addBusinessMinutes(
+            calendar,
+            startedAt,
+            rule.resolutionMinutes,
+          ),
+          respondedAt: null,
+          resolutionCompletedAt: null,
+          pausedAt: paused ? startedAt : null,
+          pausedBusinessMinutes: 0,
+          isResponseBreached: false,
+          isResolutionBreached: false,
+          isResponseAtRisk: false,
+          isResolutionAtRisk: false,
+          firedEscalationKeys: [],
+        },
+        now,
+      ),
       now,
+      configuration.notifyBeforeOverdueMinutes,
     ),
   );
 }

@@ -62,6 +62,15 @@ export function TicketOverdueBadge() {
   );
 }
 
+export function TicketAtRiskBadge() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone={SLA_STATE_META.RISK.tone} dot>
+      {t("tickets.atRisk.badge")}
+    </Badge>
+  );
+}
+
 interface TicketPauseChipProperties {
   readonly status: TicketStatus;
 }

@@ -9,6 +9,8 @@ export const slaChangeLogEntityTypes = {
 export const slaChangeLogReasons = {
   responseBreached: 'sla_response_breached',
   resolutionBreached: 'sla_resolution_breached',
+  responseAtRisk: 'sla_response_at_risk',
+  resolutionAtRisk: 'sla_resolution_at_risk',
   responseEscalated: 'sla_response_escalated',
   resolutionEscalated: 'sla_resolution_escalated',
 } as const;
@@ -16,6 +18,8 @@ export const slaChangeLogReasons = {
 export const slaSystemEventActions = {
   responseBreached: 'ticket_sla_response_breached',
   resolutionBreached: 'ticket_sla_resolution_breached',
+  responseAtRisk: 'ticket_sla_response_at_risk',
+  resolutionAtRisk: 'ticket_sla_resolution_at_risk',
   responseEscalated: 'ticket_sla_response_escalated',
   resolutionEscalated: 'ticket_sla_resolution_escalated',
 } as const;

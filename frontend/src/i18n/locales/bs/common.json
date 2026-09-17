@@ -738,6 +738,7 @@
         "private.ticket.sla.escalationsEnabled": "Emituj SLA eskalacije kad istekne tajmer odgovora ili rješavanja.",
         "private.ticket.sla.escalations.emailEnabled": "Šalji email kad SLA eskalacija okine (pored in-app).",
         "private.ticket.sla.maxEscalationLevels": "Maksimalan broj pravila eskalacije po SLA profilu.",
+        "private.ticket.sla.notifyBeforeOverdueMinutes": "Minute prije SLA roka za označavanje tiketa kao ugroženog i obavještavanje handlera.",
         "private.ticket.sla.pauseOnPendingApproval": "Pauziraj SLA tajmere dok tiket čeka odobrenje.",
         "private.ticket.sla.pauseOnWaitingForUser": "Pauziraj SLA tajmere dok tiket čeka korisnika.",
         "private.ticket.sla.requireAdminReasonForRuleChanges": "Zahtijevaj eksplicitan razlog za izmjene SLA kalendara, profila i pravila.",
@@ -2070,6 +2071,9 @@
     "errorFormVersionMissing": "Odabrana usluga nema aktivnu verziju forme, pa tiket ne može biti kreiran. Aktivirajte formu na ekranu Usluge.",
     "overdue": {
       "badge": "Prekoračen"
+    },
+    "atRisk": {
+      "badge": "Ugrožen"
     },
     "confidential": {
       "badge": "Povjerljiv",

@@ -5,6 +5,8 @@ export type TicketSlaStateSnapshot = {
   readonly ticketId: string;
   readonly isResponseBreached: boolean;
   readonly isResolutionBreached: boolean;
+  readonly isResponseAtRisk: boolean;
+  readonly isResolutionAtRisk: boolean;
   readonly responseDueAt: string | null;
   readonly resolutionDueAt: string | null;
   readonly pausedAt: string | null;
@@ -18,6 +20,8 @@ export function toTicketSlaStateSnapshot(
     | 'ticketId'
     | 'isResponseBreached'
     | 'isResolutionBreached'
+    | 'isResponseAtRisk'
+    | 'isResolutionAtRisk'
     | 'responseDueAt'
     | 'resolutionDueAt'
     | 'pausedAt'
@@ -29,6 +33,8 @@ export function toTicketSlaStateSnapshot(
     ticketId: state.ticketId,
     isResponseBreached: state.isResponseBreached,
     isResolutionBreached: state.isResolutionBreached,
+    isResponseAtRisk: state.isResponseAtRisk,
+    isResolutionAtRisk: state.isResolutionAtRisk,
     responseDueAt: state.responseDueAt?.toISOString() ?? null,
     resolutionDueAt: state.resolutionDueAt?.toISOString() ?? null,
     pausedAt: state.pausedAt?.toISOString() ?? null,

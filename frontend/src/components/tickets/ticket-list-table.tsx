@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ShieldAlert } from "lucide-react";
-import { TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -146,6 +146,9 @@ export function TicketListTable({
                     {ticket.ticketNumber}
                   </Link>
                   {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
+                  {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
+                    <TicketAtRiskBadge />
+                  ) : null}
                 </div>
                 <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-foreground/90">
                   {ticket.title}

@@ -89,6 +89,8 @@ export const ticketSystemEventActions = {
   ticketArchived: 'ticket_archived',
   slaResponseBreached: 'ticket_sla_response_breached',
   slaResolutionBreached: 'ticket_sla_resolution_breached',
+  slaResponseAtRisk: 'ticket_sla_response_at_risk',
+  slaResolutionAtRisk: 'ticket_sla_resolution_at_risk',
   slaResponseEscalated: 'ticket_sla_response_escalated',
   slaResolutionEscalated: 'ticket_sla_resolution_escalated',
   remoteRequested: 'ticket_remote_requested',

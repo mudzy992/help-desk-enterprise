@@ -4,6 +4,9 @@ import { settingKeys } from '../settings/setting-keys';
 import { SlaError } from './sla.error';
 import type { SlaConfiguration } from './sla.types';
 
+const defaultNotifyBeforeOverdueMinutes = 30;
+const defaultMaxEscalationLevels = 3;
+
 @Injectable()
 export class SlaConfigurationLoader {
   constructor(private readonly settingsService: SettingsService) {}
@@ -17,6 +20,7 @@ export class SlaConfigurationLoader {
         allowOuOverrides,
         pauseOnWaitingForUser,
         pauseOnPendingApproval,
+        notifyBeforeOverdueMinutes,
         escalationsEnabled,
         maxEscalationLevels,
       ] = await Promise.all([
@@ -37,6 +41,9 @@ export class SlaConfigurationLoader {
           settingKeys.privateTicketSlaPauseOnPendingApproval,
         ),
         this.settingsService.getSetting(
+          settingKeys.privateTicketSlaNotifyBeforeOverdueMinutes,
+        ),
+        this.settingsService.getSetting(
           settingKeys.privateTicketSlaEscalationsEnabled,
         ),
         this.settingsService.getSetting(
@@ -50,8 +57,15 @@ export class SlaConfigurationLoader {
         allowOuOverrides: allowOuOverrides === true,
         pauseOnWaitingForUser: pauseOnWaitingForUser === true,
         pauseOnPendingApproval: pauseOnPendingApproval === true,
+        notifyBeforeOverdueMinutes: normalizePositiveMinutes(
+          notifyBeforeOverdueMinutes,
+          defaultNotifyBeforeOverdueMinutes,
+        ),
         escalationsEnabled: escalationsEnabled === true,
-        maxEscalationLevels: normalizeMaxEscalationLevels(maxEscalationLevels),
+        maxEscalationLevels: normalizePositiveMinutes(
+          maxEscalationLevels,
+          defaultMaxEscalationLevels,
+        ),
       };
     } catch (error) {
       if (error instanceof SlaError) {
@@ -62,9 +76,9 @@ export class SlaConfigurationLoader {
   }
 }
 
-function normalizeMaxEscalationLevels(value: unknown): number {
+function normalizePositiveMinutes(value: unknown, fallback: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 1) {
-    return 3;
+    return fallback;
   }
   return Math.floor(value);
 }

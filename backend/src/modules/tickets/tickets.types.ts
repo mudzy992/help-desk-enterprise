@@ -74,6 +74,7 @@ export type TicketResponse = {
   readonly archivedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
   readonly isOverdue: boolean;
+  readonly isAtRisk: boolean;
   readonly sla?: TicketSlaClientSnapshot | null;
   readonly reopen?: TicketReopenDescriptor;
   readonly closePolicy?: TicketClosePolicy;
@@ -93,6 +94,8 @@ export type TicketSlaClientSnapshot = {
   readonly pausedAt: string | null;
   readonly isResponseBreached: boolean;
   readonly isResolutionBreached: boolean;
+  readonly isResponseAtRisk: boolean;
+  readonly isResolutionAtRisk: boolean;
 };
 
 export type TicketReopenDescriptor = {

@@ -34,6 +34,7 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     archivedAt: toIso(record.archivedAt),
     waitingForUserEnteredAt: toIso(record.waitingForUserEnteredAt),
     isOverdue: false,
+    isAtRisk: false,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

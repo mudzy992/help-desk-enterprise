@@ -117,6 +117,8 @@ describe("ticket realtime helpers", () => {
         pausedAt: null,
         isResponseBreached: false,
         isResolutionBreached: false,
+        isResponseAtRisk: false,
+        isResolutionAtRisk: false,
       },
     };
     expect(

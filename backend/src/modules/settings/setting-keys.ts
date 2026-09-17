@@ -161,6 +161,8 @@ export const settingKeys = {
     'private.ticket.sla.pauseOnWaitingForUser',
   privateTicketSlaPauseOnPendingApproval:
     'private.ticket.sla.pauseOnPendingApproval',
+  privateTicketSlaNotifyBeforeOverdueMinutes:
+    'private.ticket.sla.notifyBeforeOverdueMinutes',
   privateTicketSlaEscalationsEnabled: 'private.ticket.sla.escalationsEnabled',
   privateTicketSlaEscalationsEmailEnabled:
     'private.ticket.sla.escalations.emailEnabled',

@@ -13,6 +13,8 @@ type TicketSlaStateRow = Pick<
   | 'pausedAt'
   | 'isResponseBreached'
   | 'isResolutionBreached'
+  | 'isResponseAtRisk'
+  | 'isResolutionAtRisk'
 >;
 
 export function toTicketSlaClientSnapshot(
@@ -27,6 +29,8 @@ export function toTicketSlaClientSnapshot(
     pausedAt: toIso(state.pausedAt),
     isResponseBreached: state.isResponseBreached,
     isResolutionBreached: state.isResolutionBreached,
+    isResponseAtRisk: state.isResponseAtRisk,
+    isResolutionAtRisk: state.isResolutionAtRisk,
   };
 }
 

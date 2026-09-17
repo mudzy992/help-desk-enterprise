@@ -738,6 +738,7 @@
         "private.ticket.sla.escalationsEnabled": "Emit SLA escalation events when response or resolution timers expire.",
         "private.ticket.sla.escalations.emailEnabled": "Send email when an SLA escalation fires (in addition to in-app).",
         "private.ticket.sla.maxEscalationLevels": "Maximum number of escalation rules allowed per SLA profile.",
+        "private.ticket.sla.notifyBeforeOverdueMinutes": "Minutes before an SLA due time to mark the ticket at risk and notify handlers.",
         "private.ticket.sla.pauseOnPendingApproval": "Pause SLA timers while a ticket is pending approval.",
         "private.ticket.sla.pauseOnWaitingForUser": "Pause SLA timers while a ticket is waiting for the user.",
         "private.ticket.sla.requireAdminReasonForRuleChanges": "Require an explicit reason for SLA calendar, profile, and rule changes.",
@@ -2070,6 +2071,9 @@
     "errorFormVersionMissing": "The selected service has no active form version, so the ticket cannot be created. Activate a form on the Services screen.",
     "overdue": {
       "badge": "Overdue"
+    },
+    "atRisk": {
+      "badge": "At risk"
     },
     "confidential": {
       "badge": "Confidential",

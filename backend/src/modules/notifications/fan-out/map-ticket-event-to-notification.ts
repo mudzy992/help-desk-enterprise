@@ -21,6 +21,8 @@ const systemEventTypes: Readonly<Record<string, NotificationType>> = {
   [ticketSystemEventActions.closed]: notificationTypes.ticketClosed,
   [ticketSystemEventActions.slaResponseBreached]: notificationTypes.ticketSla,
   [ticketSystemEventActions.slaResolutionBreached]: notificationTypes.ticketSla,
+  [ticketSystemEventActions.slaResponseAtRisk]: notificationTypes.ticketSla,
+  [ticketSystemEventActions.slaResolutionAtRisk]: notificationTypes.ticketSla,
   [ticketSystemEventActions.slaResponseEscalated]: notificationTypes.ticketSla,
   [ticketSystemEventActions.slaResolutionEscalated]: notificationTypes.ticketSla,
   [ticketSystemEventActions.remoteRequested]: notificationTypes.remoteRequested,

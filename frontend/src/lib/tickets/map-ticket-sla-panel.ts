@@ -9,6 +9,7 @@ export type TicketSlaTimerView = {
   readonly satisfied: boolean;
   readonly paused: boolean;
   readonly overdue: boolean;
+  readonly atRisk: boolean;
   readonly remainingMs: number;
   readonly usedPercent: number;
   readonly tone: BadgeTone;
@@ -36,6 +37,7 @@ export function mapTicketSlaPanel(
     dueAt: sla.responseDueAt,
     completedAt: sla.respondedAt,
     breached: sla.isResponseBreached,
+    atRisk: sla.isResponseAtRisk,
     clock,
     paused,
   });
@@ -45,6 +47,7 @@ export function mapTicketSlaPanel(
     dueAt: sla.resolutionDueAt,
     completedAt: sla.resolutionCompletedAt,
     breached: sla.isResolutionBreached,
+    atRisk: sla.isResolutionAtRisk,
     clock,
     paused,
   });
@@ -62,6 +65,7 @@ function mapTimer(input: {
   readonly dueAt: string | null;
   readonly completedAt: string | null;
   readonly breached: boolean;
+  readonly atRisk: boolean;
   readonly clock: Date;
   readonly paused: boolean;
 }): TicketSlaTimerView {
@@ -69,6 +73,7 @@ function mapTimer(input: {
   const remainingSigned = signedRemainingMs(input.dueAt, input.clock);
   const clockOverdue = remainingSigned !== null && remainingSigned < 0;
   const overdue = !satisfied && (input.breached || clockOverdue);
+  const atRisk = !satisfied && !overdue && input.atRisk;
   const usedPercent = satisfied
     ? 100
     : usedWindowPercent(input.startedAt, input.dueAt, input.clock);
@@ -76,9 +81,10 @@ function mapTimer(input: {
     satisfied,
     paused: input.paused,
     overdue,
+    atRisk,
     remainingMs: remainingSigned === null ? 0 : Math.abs(remainingSigned),
     usedPercent,
-    tone: toneForTimer(input.kind, satisfied, overdue, usedPercent),
+    tone: toneForTimer(input.kind, satisfied, overdue, atRisk, usedPercent),
   };
 }
 
@@ -90,8 +96,12 @@ function mapState(
   if (sla.isResponseBreached || sla.isResolutionBreached) {
     return "BREACHED";
   }
-  const responseRisk = !response.satisfied && response.usedPercent > SLA_RISK_PERCENT;
-  if (responseRisk || resolution.usedPercent > SLA_RISK_PERCENT) {
+  if (
+    sla.isResponseAtRisk ||
+    sla.isResolutionAtRisk ||
+    (!response.satisfied && response.usedPercent > SLA_RISK_PERCENT) ||
+    resolution.usedPercent > SLA_RISK_PERCENT
+  ) {
     return "RISK";
   }
   return "OK";
@@ -101,6 +111,7 @@ function toneForTimer(
   kind: "response" | "resolution",
   satisfied: boolean,
   overdue: boolean,
+  atRisk: boolean,
   usedPercent: number,
 ): BadgeTone {
   if (satisfied) {
@@ -109,7 +120,7 @@ function toneForTimer(
   if (overdue) {
     return "danger";
   }
-  if (usedPercent > SLA_RISK_PERCENT) {
+  if (atRisk || usedPercent > SLA_RISK_PERCENT) {
     return "warning";
   }
   return kind === "response" ? "primary" : "success";

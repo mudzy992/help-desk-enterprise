@@ -8,6 +8,7 @@ export function createTicketsSlaHarness(prisma: unknown) {
     allowOuOverrides: true,
     pauseOnWaitingForUser: true,
     pauseOnPendingApproval: true,
+    notifyBeforeOverdueMinutes: 30,
     escalationsEnabled: true,
     maxEscalationLevels: 3,
   };

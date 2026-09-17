@@ -56,6 +56,8 @@ export function overdueSlaState(ticketId: string): TicketSlaStateRecord {
     pausedBusinessMinutes: 0,
     isResponseBreached: false,
     isResolutionBreached: true,
+    isResponseAtRisk: false,
+    isResolutionAtRisk: false,
     firedEscalationKeys: [],
     updatedAt: timestamp,
   };

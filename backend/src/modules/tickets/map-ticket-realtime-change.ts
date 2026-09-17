@@ -26,6 +26,8 @@ const publicChangeByAction: Readonly<Record<string, TicketRealtimeChange>> = {
   [ticketSystemEventActions.approvalRejected]: 'approval',
   [ticketSystemEventActions.slaResponseBreached]: 'sla',
   [ticketSystemEventActions.slaResolutionBreached]: 'sla',
+  [ticketSystemEventActions.slaResponseAtRisk]: 'sla',
+  [ticketSystemEventActions.slaResolutionAtRisk]: 'sla',
   [ticketSystemEventActions.slaResponseEscalated]: 'sla',
   [ticketSystemEventActions.slaResolutionEscalated]: 'sla',
 };

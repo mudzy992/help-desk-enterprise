@@ -77,6 +77,8 @@ model TicketSlaState {
   pausedBusinessMinutes   Int       @default(0)
   isResponseBreached      Boolean   @default(false)
   isResolutionBreached    Boolean   @default(false)
+  isResponseAtRisk        Boolean   @default(false)
+  isResolutionAtRisk      Boolean   @default(false)
   firedEscalationKeys     String[]  @default([])
   ticket                  Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   updatedAt               DateTime  @updatedAt

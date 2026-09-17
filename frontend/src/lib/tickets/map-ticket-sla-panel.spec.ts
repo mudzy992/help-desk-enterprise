@@ -14,6 +14,8 @@ function snapshot(overrides: Partial<TicketSlaSnapshot> = {}): TicketSlaSnapshot
     pausedAt: null,
     isResponseBreached: false,
     isResolutionBreached: false,
+    isResponseAtRisk: false,
+    isResolutionAtRisk: false,
     ...overrides,
   };
 }
@@ -69,5 +71,18 @@ describe("mapTicketSlaPanel", () => {
     expect(view?.response.overdue).toBe(true);
     expect(view?.response.tone).toBe("danger");
     expect(view?.state).toBe("BREACHED");
+  });
+
+  it("maps server at-risk flags to warning without overdue", () => {
+    const view = mapTicketSlaPanel(
+      snapshot({
+        isResponseAtRisk: true,
+      }),
+      now,
+    );
+    expect(view?.response.atRisk).toBe(true);
+    expect(view?.response.overdue).toBe(false);
+    expect(view?.response.tone).toBe("warning");
+    expect(view?.state).toBe("RISK");
   });
 });

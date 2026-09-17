@@ -7,6 +7,7 @@ import {
   emitTicketSlaRuntimeEvents,
   emptyTicketSlaRuntimeMarks,
 } from './emit-ticket-sla-runtime-events';
+import { evaluateTicketSlaAtRisk } from './evaluate-ticket-sla-at-risk';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import {
   isSlaFirstResponseStatus,
@@ -46,7 +47,11 @@ export async function syncTicketSlaTimers(
   const calendar = await loadCalendarForState(prisma, state);
   const rules = await loadSlaEscalationRules(prisma, state.slaProfileId);
   const next = applyDueSlaEscalations(
-    evaluateTicketSlaBreach(applyLifecycle(state, calendar, input, now), now),
+    evaluateTicketSlaAtRisk(
+      evaluateTicketSlaBreach(applyLifecycle(state, calendar, input, now), now),
+      now,
+      input.configuration.notifyBeforeOverdueMinutes,
+    ),
     rules,
     calendar,
     input.configuration,

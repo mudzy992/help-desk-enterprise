@@ -7,6 +7,7 @@ import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketCsatConfiguration } from './csat/csat.types';
 import { describeTicketCsat } from './csat/describe-ticket-csat';
 import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
+import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
 import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
 import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
 import { toTicketClientResponse } from './to-ticket-response';
@@ -49,6 +50,7 @@ export async function toTicketClientResponses(
         now: input.now,
       }),
       isOverdue: isTicketSlaOverdue(slaByTicketId.get(record.id)),
+      isAtRisk: isTicketSlaAtRisk(slaByTicketId.get(record.id)),
       sla: slaByTicketId.get(record.id) ?? null,
     };
     if (input.csat === undefined || input.actorUserId === undefined) {
