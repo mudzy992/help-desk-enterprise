@@ -23,7 +23,12 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
-import type { CreateUserResponse, ResetUserPasswordResponse, UserRoleResponse, UserSummaryResponse } from './users.types';
+import type {
+  CreateUserResponse,
+  ResetUserPasswordResponse,
+  UserRoleResponse,
+  UserSummaryResponse,
+} from './users.types';
 import { UsersService } from './users.service';
 
 @Controller('users')

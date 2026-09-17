@@ -42,5 +42,6 @@ import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.pr
     ManualDirectoryCatalogService,
     DirectorySyncService,
   ],
+  exports: [DirectorySyncService],
 })
 export class DirectorySyncModule {}

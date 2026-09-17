@@ -89,6 +89,28 @@ export function resetUserTemporaryPassword(
   });
 }
 
+export function linkUserDirectoryIdentity(
+  userId: string,
+  directoryExternalId: string,
+): Promise<UserSummary> {
+  return apiRequest(
+    `/users/${encodeURIComponent(userId)}/link-directory-identity`,
+    {
+      method: "POST",
+      body: JSON.stringify({ directoryExternalId }),
+    },
+  );
+}
+
+export function unlinkUserDirectoryIdentity(
+  userId: string,
+): Promise<CreateUserResponse> {
+  return apiRequest(
+    `/users/${encodeURIComponent(userId)}/link-directory-identity`,
+    { method: "DELETE" },
+  );
+}
+
 export function updateUser(
   userId: string,
   input: { readonly isActive?: boolean },

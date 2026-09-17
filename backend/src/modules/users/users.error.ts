@@ -9,7 +9,11 @@ export type UsersErrorCode =
   | 'INVALID_INPUT'
   | 'EMAIL_CONFLICT'
   | 'HAS_OPEN_TICKETS'
-  | 'DELETE_RESTRICTED';
+  | 'DELETE_RESTRICTED'
+  | 'DIRECTORY_IDENTITY_NOT_FOUND'
+  | 'DIRECTORY_IDENTITY_CONFLICT'
+  | 'USER_ALREADY_DIRECTORY_LINKED'
+  | 'SUPER_ADMIN_DIRECTORY_LINK_FORBIDDEN';
 
 export class UsersError extends Error {
   constructor(readonly code: UsersErrorCode) {

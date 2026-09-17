@@ -32,12 +32,12 @@ export class LocalAuthenticationProvider implements AuthenticationProvider {
     const user = await this.authenticationUserLoader.findByEmail(
       credentials.email,
     );
-    const passwordHash = selectLocalPasswordHashForVerification(user, false);
+    const passwordHash = selectLocalPasswordHashForVerification(user, true);
     const isPasswordMatch = await verifyLocalPassword(
       credentials.password,
       passwordHash,
     );
-    if (!isAcceptedLocalPasswordAuthentication(user, isPasswordMatch, false)) {
+    if (!isAcceptedLocalPasswordAuthentication(user, isPasswordMatch, true)) {
       throw createInvalidCredentialsError();
     }
     try {

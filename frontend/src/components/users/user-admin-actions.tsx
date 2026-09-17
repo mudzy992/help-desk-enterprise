@@ -1,28 +1,31 @@
-import { KeyRound, Trash2 } from "lucide-react";
+import { KeyRound, Link2, Link2Off, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { LinkDirectoryIdentityDialog } from "@/components/users/link-directory-identity-dialog";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
 import { ApiError } from "@/services/api";
 import {
   deleteUser,
   resetUserTemporaryPassword,
+  unlinkUserDirectoryIdentity,
   type CreateUserResponse,
+  type UserSummary,
 } from "@/services/users-api";
 
 interface UserAdminActionsProperties {
-  readonly userId: string;
-  readonly userDisplayName: string;
+  readonly user: UserSummary;
   readonly canManage: boolean;
+  readonly canLinkDirectory: boolean;
   readonly isSelf: boolean;
   readonly onChanged: () => Promise<void>;
   readonly onPasswordIssued: (result: CreateUserResponse) => void;
 }
 
 export function UserAdminActions({
-  userId,
-  userDisplayName,
+  user,
   canManage,
+  canLinkDirectory,
   isSelf,
   onChanged,
   onPasswordIssued,
@@ -30,6 +33,7 @@ export function UserAdminActions({
   const { t } = useTranslation();
   const [isBusy, setIsBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   if (!canManage) {
     return null;
@@ -39,7 +43,7 @@ export function UserAdminActions({
     setIsBusy(true);
     setErrorMessage(null);
     try {
-      const response = await resetUserTemporaryPassword(userId);
+      const response = await resetUserTemporaryPassword(user.id);
       onPasswordIssued(response);
       await onChanged();
     } catch (error) {
@@ -53,16 +57,35 @@ export function UserAdminActions({
     }
   };
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm(t("users.deleteConfirm", { name: userDisplayName }))
-    ) {
+  const handleUnlink = async () => {
+    if (!window.confirm(t("users.unlinkDirectoryConfirm", { name: user.displayName }))) {
       return;
     }
     setIsBusy(true);
     setErrorMessage(null);
     try {
-      await deleteUser(userId);
+      const response = await unlinkUserDirectoryIdentity(user.id);
+      onPasswordIssued(response);
+      await onChanged();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : t("users.unlinkDirectoryFailed"),
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(t("users.deleteConfirm", { name: user.displayName }))) {
+      return;
+    }
+    setIsBusy(true);
+    setErrorMessage(null);
+    try {
+      await deleteUser(user.id);
       await onChanged();
     } catch (error) {
       setErrorMessage(
@@ -76,15 +99,39 @@ export function UserAdminActions({
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap justify-end gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          type="button"
-          disabled={isBusy}
-          onClick={() => void handleResetPassword()}
-        >
-          <KeyRound size={13} /> {t("users.resetPassword")}
-        </Button>
+        {user.isLocalOnly ? (
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            disabled={isBusy}
+            onClick={() => void handleResetPassword()}
+          >
+            <KeyRound size={13} /> {t("users.resetPassword")}
+          </Button>
+        ) : null}
+        {canLinkDirectory && user.isLocalOnly && user.roleTone !== "super" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            disabled={isBusy}
+            onClick={() => setLinkOpen(true)}
+          >
+            <Link2 size={13} /> {t("users.linkDirectory")}
+          </Button>
+        ) : null}
+        {canLinkDirectory && !user.isLocalOnly ? (
+          <Button
+            size="sm"
+            variant="outline"
+            type="button"
+            disabled={isBusy}
+            onClick={() => void handleUnlink()}
+          >
+            <Link2Off size={13} /> {t("users.unlinkDirectory")}
+          </Button>
+        ) : null}
         <Button
           size="sm"
           variant="outline"
@@ -100,6 +147,12 @@ export function UserAdminActions({
           {errorMessage}
         </p>
       ) : null}
+      <LinkDirectoryIdentityDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        user={user}
+        onLinked={onChanged}
+      />
     </div>
   );
 }

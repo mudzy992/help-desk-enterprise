@@ -14,6 +14,7 @@ interface UsersTableProperties {
   readonly expandedUserId: string | null;
   readonly setExpandedUserId: (value: string | null) => void;
   readonly canManageUsers: boolean;
+  readonly canLinkDirectory: boolean;
   readonly currentUserId: string | null;
   readonly originUnits: readonly { id: string; label: string }[];
   readonly services: readonly ServiceResponse[];
@@ -26,6 +27,7 @@ export function UsersTable({
   expandedUserId,
   setExpandedUserId,
   canManageUsers,
+  canLinkDirectory,
   currentUserId,
   originUnits,
   services,
@@ -58,6 +60,7 @@ export function UsersTable({
                   user={user}
                   expanded={expanded}
                   canManageUsers={canManageUsers}
+                  canLinkDirectory={canLinkDirectory}
                   isSelf={currentUserId === user.id}
                   onToggleRoles={() =>
                     setExpandedUserId(expanded ? null : user.id)

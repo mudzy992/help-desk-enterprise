@@ -44,6 +44,9 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
     capabilities.session?.isSuperAdmin === true ||
     roleKeys.includes("ADMIN") ||
     roleKeys.includes("SUPER_ADMIN");
+  const canLinkDirectory =
+    capabilities.session?.isSuperAdmin === true ||
+    roleKeys.includes("SUPER_ADMIN");
   const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [search, setSearch] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -168,6 +171,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
             expandedUserId={expandedUserId}
             setExpandedUserId={setExpandedUserId}
             canManageUsers={canManageUsers}
+            canLinkDirectory={canLinkDirectory}
             currentUserId={currentUserId}
             originUnits={originUnits}
             services={services}

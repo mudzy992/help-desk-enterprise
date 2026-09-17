@@ -17,6 +17,7 @@ interface UsersSummaryRowProperties {
   readonly user: UserSummary;
   readonly expanded: boolean;
   readonly canManageUsers: boolean;
+  readonly canLinkDirectory: boolean;
   readonly isSelf: boolean;
   readonly onToggleRoles: () => void;
   readonly onChanged: () => Promise<void>;
@@ -27,6 +28,7 @@ export function UsersSummaryRow({
   user,
   expanded,
   canManageUsers,
+  canLinkDirectory,
   isSelf,
   onToggleRoles,
   onChanged,
@@ -46,13 +48,18 @@ export function UsersSummaryRow({
         <div className="flex items-center gap-2.5">
           <Avatar name={user.displayName} size="sm" />
           <div>
-            <p className="flex items-center gap-1.5 text-[12.5px] font-medium text-foreground">
+            <p className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-medium text-foreground">
               {user.displayName}
               {!user.isActive ? (
                 <Badge tone="neutral" dot={false}>
                   {t("users.inactive")}
                 </Badge>
               ) : null}
+              <Badge tone={user.isLocalOnly ? "neutral" : "accent"} dot={false}>
+                {user.isLocalOnly
+                  ? t("users.badgeLocal")
+                  : t("users.badgeDirectoryLinked")}
+              </Badge>
               {user.roleTone === "super" ? (
                 <ShieldCheck size={12} className="text-danger" />
               ) : null}
@@ -118,9 +125,9 @@ export function UsersSummaryRow({
         </button>
         <div className="mt-2">
           <UserAdminActions
-            userId={user.id}
-            userDisplayName={user.displayName}
+            user={user}
             canManage={canManageUsers}
+            canLinkDirectory={canLinkDirectory}
             isSelf={isSelf}
             onChanged={onChanged}
             onPasswordIssued={onPasswordIssued}

@@ -44,6 +44,35 @@ export class DirectorySyncService {
     }
   }
 
+  async listDirectoryUsersForLinking(): Promise<DirectoryReadResult['users']> {
+    try {
+      return await this.executeListDirectoryUsersForLinking();
+    } catch (error) {
+      throw mapDirectorySyncError(error);
+    }
+  }
+
+  private async executeListDirectoryUsersForLinking(): Promise<
+    DirectoryReadResult['users']
+  > {
+    const configuration = await this.configurationLoader.load();
+    if (!configuration.enabled) {
+      throw new DirectorySyncError('DIRECTORY_READ_DISABLED');
+    }
+    const provider = this.providerResolver.resolve(configuration.strategy);
+    const scope = parseDirectoryReadScope({
+      operation: 'users',
+      scope: {
+        distinguishedName: configuration.usersBaseDistinguishedName,
+        includeSubtree: true,
+      },
+      usersBaseDistinguishedName: configuration.usersBaseDistinguishedName,
+      groupsBaseDistinguishedName: configuration.groupsBaseDistinguishedName,
+    });
+    const result = await provider.read({ operation: 'users', scope });
+    return result.users;
+  }
+
   private async executeRead(input: {
     readonly operation: unknown;
     readonly scope: DirectoryReadScopeInput | undefined;

@@ -28,6 +28,21 @@ export function getDirectorySyncStatus(): Promise<DirectorySyncStatus> {
   return apiRequest("/directory-sync/status");
 }
 
+export type DirectoryUserForLinking = {
+  readonly externalId: string;
+  readonly login: string | null;
+  readonly email: string | null;
+  readonly displayName: string;
+  readonly distinguishedName: string | null;
+  readonly organizationalUnitPath: string | null;
+};
+
+export function listDirectoryUsersForLinking(): Promise<
+  readonly DirectoryUserForLinking[]
+> {
+  return apiRequest("/directory-sync/directory-users");
+}
+
 export function runDirectorySyncRead(input: {
   readonly operation: "users" | "groups" | "organizational_units";
   readonly scope: DirectoryReadScope;

@@ -220,4 +220,39 @@ describe('DirectorySyncService', () => {
       'DIRECTORY_READ_DISABLED',
     );
   });
+
+  it('lists directory users for linking without materializing', async () => {
+    const userUpsert = jest.fn();
+    const provider = createStubProvider();
+    const read = jest.spyOn(provider, 'read');
+    const clock = { nowMilliseconds: 0 };
+    const prisma = {
+      organizationalUnit: {
+        findUnique: async () => null,
+        upsert: async () => ({}),
+      },
+      user: {
+        findUnique: async () => null,
+        upsert: userUpsert,
+      },
+      group: {
+        findUnique: async () => null,
+        create: async () => ({}),
+        update: async () => ({}),
+      },
+    };
+    const service = new DirectorySyncService(
+      { load: async () => createConfiguration() } as never,
+      { resolve: () => provider } as never,
+      new DirectoryReadCache(),
+      new DirectoryReadThrottle(),
+      prisma as never,
+      new DirectorySyncStatusStore(),
+      () => clock.nowMilliseconds,
+    );
+    const users = await service.listDirectoryUsersForLinking();
+    expect(users.length).toBeGreaterThan(0);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(userUpsert).not.toHaveBeenCalled();
+  });
 });

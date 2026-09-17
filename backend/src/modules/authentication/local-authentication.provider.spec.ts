@@ -15,7 +15,7 @@ function createUser(
     email: 'agent@example.com',
     displayName: 'Agent',
     isActive: true,
-    isLocalOnly: false,
+    isLocalOnly: true,
     mustChangePassword: false,
     localPasswordHash: null,
     entraObjectId: null,
@@ -42,6 +42,7 @@ describe('LocalAuthenticationProvider', () => {
       createUser({
         localPasswordHash,
         email: 'agent@example.com',
+        isLocalOnly: true,
       }),
     );
     const principal = await provider.authenticate({
@@ -53,10 +54,29 @@ describe('LocalAuthenticationProvider', () => {
       subjectId: 'user-1',
       email: 'agent@example.com',
       displayName: 'Agent',
-      isLocalOnly: false,
+      isLocalOnly: true,
     });
     expect(JSON.stringify(principal)).not.toContain(password);
     expect(JSON.stringify(principal)).not.toContain(localPasswordHash);
+  });
+
+  it('rejects directory-linked accounts even when a password hash remains', async () => {
+    const password = 'correct-horse-battery';
+    const localPasswordHash = await hashLocalPassword(password, 4);
+    findByEmail.mockResolvedValue(
+      createUser({
+        localPasswordHash,
+        isLocalOnly: false,
+        entraObjectId: 'directory-external-1',
+      }),
+    );
+    await expect(
+      provider.authenticate({
+        kind: 'password',
+        email: 'agent@example.com',
+        password,
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
   it('rejects invalid local credentials with the same failure', async () => {

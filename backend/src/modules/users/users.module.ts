@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
+import { DirectorySyncModule } from '../directory-sync/directory-sync.module';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { SettingsModule } from '../settings/settings.module';
 import { UsersController } from './users.controller';
+import { UserDirectoryIdentityController } from './user-directory-identity.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
-  controllers: [UsersController],
+  imports: [
+    AuthenticationModule,
+    AuthorizationModule,
+    SettingsModule,
+    DirectorySyncModule,
+  ],
+  controllers: [UsersController, UserDirectoryIdentityController],
   providers: [UsersService, SmtpMailTransport],
   exports: [UsersService],
 })

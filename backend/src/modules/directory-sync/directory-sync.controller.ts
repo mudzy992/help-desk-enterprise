@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Post,
   UseGuards,
@@ -15,7 +16,10 @@ import { RoleGuard } from '../authorization/role.guard';
 import { DirectorySyncService } from './directory-sync.service';
 import { DirectorySyncStatusService } from './directory-sync-status.service';
 import type { DirectorySyncStatusResponse } from './directory-sync-status.types';
-import type { DirectoryReadResult } from './directory-sync.types';
+import type {
+  DirectoryReadResult,
+  DirectoryUser,
+} from './directory-sync.types';
 import { DirectoryReadDto } from './dto/directory-read.dto';
 
 @Controller('directory-sync')
@@ -38,6 +42,12 @@ export class DirectorySyncController {
   @AdminReadOperation()
   getStatus(): Promise<DirectorySyncStatusResponse> {
     return this.directorySyncStatusService.getStatus();
+  }
+
+  @Get('directory-users')
+  @AdminReadOperation()
+  listDirectoryUsers(): Promise<readonly DirectoryUser[]> {
+    return this.directorySyncService.listDirectoryUsersForLinking();
   }
 
   @Post('read')
