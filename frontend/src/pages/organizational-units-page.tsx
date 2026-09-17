@@ -1,9 +1,9 @@
 import { Network, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AddOrganizationalUnitForm } from "@/components/organizational-units/add-organizational-unit-form";
 import { DirectorySyncCard } from "@/components/organizational-units/directory-sync-card";
 import { OrganizationalUnitDetailsCard } from "@/components/organizational-units/organizational-unit-details-card";
+import { OrganizationalUnitFormDrawer } from "@/components/organizational-units/organizational-unit-form-drawer";
 import { OrganizationalUnitTree } from "@/components/organizational-units/organizational-unit-tree";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useDirectory } from "@/lib/directory/use-directory";
 import { useManualDirectoryCatalogActions } from "@/lib/directory/use-manual-directory-catalog-actions";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import type { ManualDirectoryOrganizationalUnit } from "@/services/directory-sync-api";
 
 interface OrganizationalUnitsPageProperties {
   readonly embedded?: boolean;
@@ -32,7 +33,10 @@ export function OrganizationalUnitsPage({
   const canManage =
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingUnit, setEditingUnit] =
+    useState<ManualDirectoryOrganizationalUnit | null>(null);
   const catalogActions = useManualDirectoryCatalogActions({
     canManage,
     reloadDirectory: directory.reload,
@@ -66,7 +70,15 @@ export function OrganizationalUnitsPage({
               subtitle={t("directory.unitsHint")}
               actions={
                 canManage ? (
-                  <Button variant="outline" size="xs" onClick={() => setShowAddForm(true)}>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => {
+                      setFormMode("create");
+                      setEditingUnit(null);
+                      setFormOpen(true);
+                    }}
+                  >
                     <Plus size={12} /> {t("directory.ouAdd")}
                   </Button>
                 ) : null
@@ -94,18 +106,16 @@ export function OrganizationalUnitsPage({
                 selectedId={selectedNode.id}
                 onSelect={(node) => setSelectedId(node.id)}
                 canManage={canManage}
-                onEdit={(node) => void catalogActions.handleEdit(node)}
-                onDelete={(node) => void catalogActions.handleDelete(node)}
-              />
-            ) : null}
-            {showAddForm && canManage ? (
-              <AddOrganizationalUnitForm
-                catalog={catalogActions.catalog}
-                onCancel={() => setShowAddForm(false)}
-                onCreated={async (created) => {
-                  setShowAddForm(false);
-                  await catalogActions.handleCreated(created);
+                onEdit={(node) => {
+                  const entry = catalogActions.resolveCatalogEntry(node);
+                  if (entry === null) {
+                    return;
+                  }
+                  setFormMode("edit");
+                  setEditingUnit(entry);
+                  setFormOpen(true);
                 }}
+                onDelete={(node) => void catalogActions.handleDelete(node)}
               />
             ) : null}
             {catalogActions.catalogHint ? (
@@ -139,6 +149,16 @@ export function OrganizationalUnitsPage({
           </div>
         </div>
       )}
+      {canManage ? (
+        <OrganizationalUnitFormDrawer
+          open={formOpen}
+          mode={formMode}
+          catalog={catalogActions.catalog}
+          editingUnit={editingUnit}
+          onOpenChange={setFormOpen}
+          onSaved={catalogActions.handleSaved}
+        />
+      ) : null}
     </section>
   );
 }

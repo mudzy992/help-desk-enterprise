@@ -5,7 +5,6 @@ import { ApiError } from "@/services/api";
 import {
   deleteManualDirectoryOrganizationalUnit,
   listManualDirectoryOrganizationalUnits,
-  updateManualDirectoryOrganizationalUnit,
   type ManualDirectoryOrganizationalUnit,
 } from "@/services/directory-sync-api";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
@@ -71,50 +70,40 @@ export function useManualDirectoryCatalogActions(input: {
     setCatalogHint(t("directory.catalogSynced"));
   };
 
-  const handleEdit = async (node: OrganizationalUnitTreeNode) => {
+  const resolveCatalogEntry = (node: OrganizationalUnitTreeNode) => {
     const entry = findCatalogEntry(node);
     if (entry === undefined) {
       setActionError(t("directory.ouNotInCatalog"));
-      return;
-    }
-    const nextName = window.prompt(t("directory.ouNamePlaceholder"), entry.displayName);
-    if (nextName === null || nextName.trim().length === 0) {
-      return;
+      return null;
     }
     setActionError(null);
-    try {
-      const updated = await updateManualDirectoryOrganizationalUnit(entry.externalId, {
-        displayName: nextName.trim(),
-      });
-      await materializeCatalogUnit(updated);
-    } catch (error) {
-      setActionError(
-        mapCatalogSaveError(error, t("directory.ouDeleteBlocked"), t("directory.catalogSaveFailed"), t("directory.ouCircularReference")),
-      );
-    }
+    return entry;
   };
 
   const handleDelete = async (node: OrganizationalUnitTreeNode) => {
-    const entry = findCatalogEntry(node);
-    if (entry === undefined) {
-      setActionError(t("directory.ouNotInCatalog"));
+    const entry = resolveCatalogEntry(node);
+    if (entry === null) {
       return;
     }
-    setActionError(null);
     try {
       await deleteManualDirectoryOrganizationalUnit(entry.externalId);
       await reloadCatalog();
     } catch (error) {
       setActionError(
-        mapCatalogSaveError(error, t("directory.ouDeleteBlocked"), t("directory.catalogSaveFailed"), t("directory.ouCircularReference")),
+        mapCatalogSaveError(
+          error,
+          t("directory.ouDeleteBlocked"),
+          t("directory.catalogSaveFailed"),
+          t("directory.ouCircularReference"),
+        ),
       );
     }
   };
 
-  const handleCreated = async (created: ManualDirectoryOrganizationalUnit) => {
+  const handleSaved = async (unit: ManualDirectoryOrganizationalUnit) => {
     setCatalogHint(t("directory.catalogPendingSync"));
     try {
-      await materializeCatalogUnit(created);
+      await materializeCatalogUnit(unit);
     } catch (error) {
       setActionError(
         error instanceof ApiError ? error.message : t("directory.syncFailed"),
@@ -128,8 +117,8 @@ export function useManualDirectoryCatalogActions(input: {
     actionError,
     catalogHint,
     reloadCatalog,
-    handleEdit,
+    resolveCatalogEntry,
     handleDelete,
-    handleCreated,
+    handleSaved,
   };
 }
