@@ -4,7 +4,8 @@ export type ManualDirectoryCatalogErrorCode =
   | 'HAS_MAPPED_USERS'
   | 'PARENT_NOT_FOUND'
   | 'IDENTITY_CONFLICT'
-  | 'INVALID_INPUT';
+  | 'INVALID_INPUT'
+  | 'CIRCULAR_REFERENCE';
 
 export class ManualDirectoryCatalogError extends Error {
   constructor(readonly code: ManualDirectoryCatalogErrorCode) {
@@ -12,3 +13,4 @@ export class ManualDirectoryCatalogError extends Error {
     this.name = 'ManualDirectoryCatalogError';
   }
 }
+

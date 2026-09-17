@@ -10,12 +10,20 @@ import {
 } from "@/services/directory-sync-api";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
-function mapCatalogSaveError(error: unknown, blocked: string, failed: string): string {
-  if (
-    error instanceof ApiError &&
-    (error.code === "HAS_CHILDREN" || error.code === "HAS_MAPPED_USERS")
-  ) {
+function mapCatalogSaveError(
+  error: unknown,
+  blocked: string,
+  failed: string,
+  circular: string,
+): string {
+  if (!(error instanceof ApiError)) {
+    return failed;
+  }
+  if (error.code === "HAS_CHILDREN" || error.code === "HAS_MAPPED_USERS") {
     return blocked;
+  }
+  if (error.code === "CIRCULAR_REFERENCE") {
+    return circular;
   }
   return failed;
 }
@@ -81,11 +89,7 @@ export function useManualDirectoryCatalogActions(input: {
       await materializeCatalogUnit(updated);
     } catch (error) {
       setActionError(
-        mapCatalogSaveError(
-          error,
-          t("directory.ouDeleteBlocked"),
-          t("directory.catalogSaveFailed"),
-        ),
+        mapCatalogSaveError(error, t("directory.ouDeleteBlocked"), t("directory.catalogSaveFailed"), t("directory.ouCircularReference")),
       );
     }
   };
@@ -102,11 +106,7 @@ export function useManualDirectoryCatalogActions(input: {
       await reloadCatalog();
     } catch (error) {
       setActionError(
-        mapCatalogSaveError(
-          error,
-          t("directory.ouDeleteBlocked"),
-          t("directory.catalogSaveFailed"),
-        ),
+        mapCatalogSaveError(error, t("directory.ouDeleteBlocked"), t("directory.catalogSaveFailed"), t("directory.ouCircularReference")),
       );
     }
   };

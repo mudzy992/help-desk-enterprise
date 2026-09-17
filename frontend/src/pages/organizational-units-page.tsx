@@ -72,6 +72,9 @@ export function OrganizationalUnitsPage({
                 ) : null
               }
             />
+            <p className="px-4 pb-2 text-[11.5px] text-muted-foreground">
+              {t("directory.catalogTwoStepHint")}
+            </p>
             {directory.errorKey ? (
               <div className="px-4 py-3.5">
                 <ApiErrorText messageKey={directory.errorKey} requestId={directory.requestId} />

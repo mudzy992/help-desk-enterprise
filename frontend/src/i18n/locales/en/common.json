@@ -1126,6 +1126,8 @@
     "catalogSaveFailed": "Could not save the catalog change",
     "catalogPendingSync": "Saved to catalog — running a read so it appears in the tree…",
     "catalogSynced": "Catalog read complete — tree updated",
+    "catalogTwoStepHint": "OU changes update the internal catalog first, then materialize into the live tree automatically.",
+    "ouCircularReference": "An OU cannot be moved under its own child or grandchild",
     "syncTitle": "AD synchronization",
     "syncSubtitle": "read mode: {{mode}}",
     "syncMode": "Read mode",

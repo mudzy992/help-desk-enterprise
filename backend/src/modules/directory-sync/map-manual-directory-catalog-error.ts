@@ -20,6 +20,8 @@ const messages: Record<string, string> = {
   PARENT_NOT_FOUND: 'Parent organizational unit was not found in the catalog',
   IDENTITY_CONFLICT: 'Distinguished name or path already exists in the catalog',
   INVALID_INPUT: 'Manual directory organizational unit input is invalid',
+  CIRCULAR_REFERENCE:
+    'Parent organizational unit cannot be a descendant of the unit being moved',
 };
 
 export function mapManualDirectoryCatalogError(error: unknown): never {

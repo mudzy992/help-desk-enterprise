@@ -1126,6 +1126,8 @@
     "catalogSaveFailed": "Izmjena kataloga nije uspjela",
     "catalogPendingSync": "Sačuvano u katalogu — pokreće se očitavanje da se pojavi u stablu…",
     "catalogSynced": "Očitavanje kataloga završeno — stablo je ažurirano",
+    "catalogTwoStepHint": "Izmjena OU prvo ide u interni katalog, zatim se automatski materijalizuje u stvarno stablo.",
+    "ouCircularReference": "OU se ne može pomjeriti pod vlastito dijete ili unuka",
     "syncTitle": "AD sinhronizacija",
     "syncSubtitle": "režim čitanja: {{mode}}",
     "syncMode": "Režim čitanja",

@@ -123,7 +123,7 @@ Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). 
 - [x] R9c-2 — Settings: backend category metadata (`categoryId`/`icon`/`priority`) + FE grupisanje/ikone (nalaz #2b)
 - [x] R9d — Permisije: backend opis po permission key-u + i18n + frontend prikaz (nalaz #3)
 - [x] R9e — Grupe: namjenski dizajn taba (nalaz #5)
-- [ ] R9f — OU: dokumentacija dvostepenog toka (manual katalog → sync) + provjera rename/move putanje (nalaz #6)
+- [x] R9f — OU: kaskadni rename/move putanja + CIRCULAR_REFERENCE + UI dvostepeni tok (nalaz #6)
 - [ ] R9g — AD linking tok za postojećeg lokalnog korisnika (nalaz #4b, niži prioritet, može čekati)
 
 ## Faza R7 — Tehnički dug i kvalitet (P4)

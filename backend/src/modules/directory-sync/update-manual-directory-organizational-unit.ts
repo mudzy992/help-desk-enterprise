@@ -4,6 +4,13 @@ import type {
   ManualDirectoryOrganizationalUnitResponse,
   UpdateManualDirectoryOrganizationalUnitInput,
 } from './manual-directory-catalog.types';
+import {
+  buildManualDirectoryOrganizationalUnitDistinguishedName,
+  buildManualDirectoryOrganizationalUnitPath,
+  isCircularManualDirectoryParent,
+  listManualDirectoryDescendantsTopDown,
+  type ManualDirectoryUnitLink,
+} from './manual-directory-organizational-unit-path';
 import { toManualDirectoryOrganizationalUnitResponse } from './to-manual-directory-organizational-unit-response';
 
 export async function updateManualDirectoryOrganizationalUnit(
@@ -25,38 +32,114 @@ export async function updateManualDirectoryOrganizationalUnit(
     input.parentExternalId === undefined
       ? existing.parentExternalId
       : input.parentExternalId?.trim() || null;
-  if (parentExternalId === externalId) {
-    throw new ManualDirectoryCatalogError('INVALID_INPUT');
+  const catalogUnits = await prisma.manualDirectoryOrganizationalUnit.findMany({
+    select: {
+      externalId: true,
+      displayName: true,
+      parentExternalId: true,
+      organizationalUnitPath: true,
+      distinguishedName: true,
+    },
+  });
+  const parentExternalIdByExternalId = new Map(
+    catalogUnits.map((unit) => [unit.externalId, unit.parentExternalId] as const),
+  );
+  if (
+    isCircularManualDirectoryParent({
+      externalId,
+      nextParentExternalId: parentExternalId,
+      parentExternalIdByExternalId,
+    })
+  ) {
+    throw new ManualDirectoryCatalogError('CIRCULAR_REFERENCE');
   }
   const parent =
     parentExternalId === null
       ? null
-      : await prisma.manualDirectoryOrganizationalUnit.findUnique({
-          where: { externalId: parentExternalId },
-        });
+      : catalogUnits.find((unit) => unit.externalId === parentExternalId) ?? null;
   if (parentExternalId !== null && parent === null) {
     throw new ManualDirectoryCatalogError('PARENT_NOT_FOUND');
   }
-  const organizationalUnitPath = parent
-    ? `${parent.organizationalUnitPath}/${displayName}`
-    : `/${displayName}`;
+  const organizationalUnitPath = buildManualDirectoryOrganizationalUnitPath(
+    parent?.organizationalUnitPath ?? null,
+    displayName,
+  );
   const distinguishedName =
     input.distinguishedName?.trim() ||
-    (parent
-      ? `OU=${displayName},${parent.distinguishedName}`
-      : existing.distinguishedName);
+    (parent === null && displayName === existing.displayName
+      ? existing.distinguishedName
+      : buildManualDirectoryOrganizationalUnitDistinguishedName(
+          parent?.distinguishedName ?? null,
+          displayName,
+          existing.distinguishedName,
+        ));
+  const shouldCascade =
+    displayName !== existing.displayName ||
+    parentExternalId !== existing.parentExternalId;
+  const identityByExternalId = new Map<string, ManualDirectoryUnitLink>(
+    catalogUnits.map((unit) => [unit.externalId, unit]),
+  );
+  identityByExternalId.set(externalId, {
+    externalId,
+    displayName,
+    parentExternalId,
+    organizationalUnitPath,
+    distinguishedName,
+  });
+  const descendantUpdates = shouldCascade
+    ? listManualDirectoryDescendantsTopDown(externalId, catalogUnits).map(
+        (descendant) => {
+          const parentIdentity = identityByExternalId.get(
+            descendant.parentExternalId ?? '',
+          );
+          if (parentIdentity === undefined) {
+            return descendant;
+          }
+          const nextIdentity: ManualDirectoryUnitLink = {
+            ...descendant,
+            organizationalUnitPath: buildManualDirectoryOrganizationalUnitPath(
+              parentIdentity.organizationalUnitPath,
+              descendant.displayName,
+            ),
+            distinguishedName:
+              buildManualDirectoryOrganizationalUnitDistinguishedName(
+                parentIdentity.distinguishedName,
+                descendant.displayName,
+                descendant.distinguishedName,
+              ),
+          };
+          identityByExternalId.set(descendant.externalId, nextIdentity);
+          return nextIdentity;
+        },
+      )
+    : [];
   try {
-    const updated = await prisma.manualDirectoryOrganizationalUnit.update({
-      where: { externalId },
-      data: {
-        displayName,
-        parentExternalId,
-        organizationalUnitPath,
-        distinguishedName,
-      },
+    const updated = await prisma.$transaction(async (transaction) => {
+      const root = await transaction.manualDirectoryOrganizationalUnit.update({
+        where: { externalId },
+        data: {
+          displayName,
+          parentExternalId,
+          organizationalUnitPath,
+          distinguishedName,
+        },
+      });
+      for (const descendant of descendantUpdates) {
+        await transaction.manualDirectoryOrganizationalUnit.update({
+          where: { externalId: descendant.externalId },
+          data: {
+            organizationalUnitPath: descendant.organizationalUnitPath,
+            distinguishedName: descendant.distinguishedName,
+          },
+        });
+      }
+      return root;
     });
     return toManualDirectoryOrganizationalUnitResponse(updated);
-  } catch {
+  } catch (error) {
+    if (error instanceof ManualDirectoryCatalogError) {
+      throw error;
+    }
     throw new ManualDirectoryCatalogError('IDENTITY_CONFLICT');
   }
 }
