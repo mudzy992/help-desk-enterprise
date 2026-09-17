@@ -83,6 +83,7 @@ interface SlaAdminListColumnProperties {
   readonly emptyBody: string;
   readonly newLabel: string;
   readonly onNew: () => void;
+  readonly showNew?: boolean;
   readonly children: ReactNode;
 }
 
@@ -94,6 +95,7 @@ export function SlaAdminListColumn({
   emptyBody,
   newLabel,
   onNew,
+  showNew = true,
   children,
 }: SlaAdminListColumnProperties) {
   return (
@@ -105,7 +107,7 @@ export function SlaAdminListColumn({
       ) : (
         children
       )}
-      <SlaAdminNewItemButton label={newLabel} onClick={onNew} />
+      {showNew ? <SlaAdminNewItemButton label={newLabel} onClick={onNew} /> : null}
     </div>
   );
 }

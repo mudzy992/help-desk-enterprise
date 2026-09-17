@@ -9,12 +9,14 @@ import type { SlaEscalationRule } from "@/services/sla-api";
 
 interface SlaEscalationRulesTableProperties {
   readonly rules: readonly SlaEscalationRule[];
+  readonly canWrite?: boolean;
   readonly onEdit: (rule: SlaEscalationRule) => void;
   readonly onDelete: (rule: SlaEscalationRule) => void;
 }
 
 export function SlaEscalationRulesTable({
   rules,
+  canWrite = true,
   onEdit,
   onDelete,
 }: SlaEscalationRulesTableProperties) {
@@ -33,7 +35,7 @@ export function SlaEscalationRulesTable({
             <th className={`${tableHeadClassName} px-4 py-2.5`}>
               {t("sla.escalationTarget")}
             </th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`} />
+            {canWrite ? <th className={`${tableHeadClassName} px-4 py-2.5`} /> : null}
           </tr>
         </thead>
         <tbody>
@@ -50,14 +52,16 @@ export function SlaEscalationRulesTable({
                       ? `group:${rule.targetGroupId}`
                       : "—"}
               </td>
-              <td className="px-4 text-right">
-                <Button variant="ghost" size="xs" onClick={() => onEdit(rule)}>
-                  {t("sla.edit")}
-                </Button>
-                <Button variant="ghost" size="xs" onClick={() => onDelete(rule)}>
-                  {t("sla.delete")}
-                </Button>
-              </td>
+              {canWrite ? (
+                <td className="px-4 text-right">
+                  <Button variant="ghost" size="xs" onClick={() => onEdit(rule)}>
+                    {t("sla.edit")}
+                  </Button>
+                  <Button variant="ghost" size="xs" onClick={() => onDelete(rule)}>
+                    {t("sla.delete")}
+                  </Button>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

@@ -6,6 +6,7 @@ const now = new Date("2026-09-14T12:00:00.000Z");
 
 function snapshot(overrides: Partial<TicketSlaSnapshot> = {}): TicketSlaSnapshot {
   return {
+    slaProfileId: "profile-1",
     startedAt: "2026-09-14T10:00:00.000Z",
     responseDueAt: "2026-09-14T14:00:00.000Z",
     resolutionDueAt: "2026-09-14T18:00:00.000Z",

@@ -109,6 +109,7 @@ describe("ticket realtime helpers", () => {
     const current: TicketResponse = {
       ...baseTicket,
       sla: {
+        slaProfileId: "profile-a",
         startedAt: "2026-09-13T06:00:00.000Z",
         responseDueAt: "2026-09-13T08:00:00.000Z",
         resolutionDueAt: "2026-09-13T16:00:00.000Z",

@@ -4,57 +4,60 @@ import { SlaEscalationRuleForm } from "@/components/sla/sla-escalation-rule-form
 import { SlaEscalationRulesTable } from "@/components/sla/sla-escalation-rules-table";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlClassName } from "@/components/ui/control";
+import { EmptyState } from "@/components/ui/empty-state";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
 import {
   createSlaEscalationRule,
   deleteSlaEscalationRule,
   listSlaEscalationRules,
-  listSlaProfiles,
   updateSlaEscalationRule,
   type EscalationRuleWriteInput,
   type SlaEscalationRule,
-  type SlaProfile,
 } from "@/services/sla-api";
 
-export function SlaEscalationRulesPanel() {
+interface SlaEscalationRulesPanelProperties {
+  readonly slaProfileId: string;
+  readonly canWrite?: boolean;
+  readonly embedded?: boolean;
+}
+
+export function SlaEscalationRulesPanel({
+  slaProfileId,
+  canWrite = true,
+  embedded = false,
+}: SlaEscalationRulesPanelProperties) {
   const { t } = useTranslation();
-  const [profiles, setProfiles] = useState<SlaProfile[]>([]);
-  const [profileId, setProfileId] = useState("");
   const [rules, setRules] = useState<SlaEscalationRule[]>([]);
   const [editing, setEditing] = useState<SlaEscalationRule | undefined>();
   const [deleteReason, setDeleteReason] = useState("");
   const [errorKey, setErrorKey] = useState<SlaErrorKey | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loadRules = async (nextProfileId: string) => {
-    if (nextProfileId.length === 0) {
+  useEffect(() => {
+    setEditing(undefined);
+    if (slaProfileId.length === 0) {
       setRules([]);
       return;
     }
-    setRules([...(await listSlaEscalationRules(nextProfileId))]);
+    void listSlaEscalationRules(slaProfileId).then((items) => setRules([...items]));
+  }, [slaProfileId]);
+
+  const reload = async () => {
+    setRules([...(await listSlaEscalationRules(slaProfileId))]);
   };
 
-  useEffect(() => {
-    void listSlaProfiles().then((items) => {
-      setProfiles([...items]);
-      const firstId = items[0]?.id ?? "";
-      setProfileId(firstId);
-      void loadRules(firstId);
-    });
-  }, []);
-
   const handleSave = async (input: EscalationRuleWriteInput) => {
-    if (profileId.length === 0) return;
+    if (!canWrite || slaProfileId.length === 0) return;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
       if (editing === undefined) {
-        await createSlaEscalationRule({ ...input, slaProfileId: profileId });
+        await createSlaEscalationRule({ ...input, slaProfileId });
       } else {
         await updateSlaEscalationRule(editing.id, input);
       }
       setEditing(undefined);
-      await loadRules(profileId);
+      await reload();
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
@@ -63,13 +66,13 @@ export function SlaEscalationRulesPanel() {
   };
 
   const handleDelete = async (rule: SlaEscalationRule) => {
-    if (deleteReason.trim().length === 0) return;
+    if (!canWrite || deleteReason.trim().length === 0) return;
     setIsSubmitting(true);
     setErrorKey(null);
     try {
       await deleteSlaEscalationRule(rule.id, deleteReason);
       setDeleteReason("");
-      await loadRules(profileId);
+      await reload();
     } catch (error) {
       setErrorKey(mapSlaError(error));
     } finally {
@@ -77,52 +80,61 @@ export function SlaEscalationRulesPanel() {
     }
   };
 
+  const table = rules.length === 0 ? (
+    <EmptyState title={t("sla.escalationsHeading")} body={t("sla.escalationsEmptyBody")} />
+  ) : (
+    <SlaEscalationRulesTable
+      rules={rules}
+      canWrite={canWrite}
+      onEdit={setEditing}
+      onDelete={(rule) => void handleDelete(rule)}
+    />
+  );
+
+  const form = canWrite ? (
+    <div className={embedded ? "mt-3 space-y-3" : "p-4"}>
+      <SlaEscalationRuleForm
+        rule={editing}
+        errorKey={errorKey}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSave}
+      />
+      <label className="grid max-w-md gap-1 text-sm">
+        {t("sla.reason")}
+        <input
+          className={controlClassName}
+          value={deleteReason}
+          onChange={(event) => setDeleteReason(event.target.value)}
+          placeholder={t("sla.deleteReasonPlaceholder")}
+        />
+      </label>
+    </div>
+  ) : null;
+
+  if (embedded) {
+    return (
+      <div className="space-y-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
+          {t("sla.escalationsHeading")}
+        </p>
+        {table}
+        {form}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4">
-      <label className="grid max-w-md gap-1 text-sm">
-        {t("sla.profilesHeading")}
-        <select
-          className={controlClassName}
-          value={profileId}
-          onChange={(event) => {
-            setProfileId(event.target.value);
-            setEditing(undefined);
-            void loadRules(event.target.value);
-          }}
-        >
-          {profiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>{profile.name}</option>
-          ))}
-        </select>
-      </label>
       <Card>
         <CardHeader title={t("sla.escalationsHeading")} subtitle={t("sla.escalationsHint")} />
-        <SlaEscalationRulesTable
-          rules={rules}
-          onEdit={setEditing}
-          onDelete={(rule) => void handleDelete(rule)}
-        />
+        {table}
       </Card>
-      <Card>
-        <CardHeader title={editing ? t("sla.editEscalation") : t("sla.newEscalation")} />
-        <div className="p-4">
-          <SlaEscalationRuleForm
-            rule={editing}
-            errorKey={errorKey}
-            isSubmitting={isSubmitting}
-            onSubmit={handleSave}
-          />
-          <label className="mt-3 grid max-w-md gap-1 text-sm">
-            {t("sla.reason")}
-            <input
-              className={controlClassName}
-              value={deleteReason}
-              onChange={(event) => setDeleteReason(event.target.value)}
-              placeholder={t("sla.deleteReasonPlaceholder")}
-            />
-          </label>
-        </div>
-      </Card>
+      {canWrite ? (
+        <Card>
+          <CardHeader title={editing ? t("sla.editEscalation") : t("sla.newEscalation")} />
+          {form}
+        </Card>
+      ) : null}
     </div>
   );
 }

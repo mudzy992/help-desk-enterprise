@@ -5,6 +5,7 @@ import type { TicketSlaClientSnapshot } from './tickets.types';
 type TicketSlaStateRow = Pick<
   TicketSlaStateRecord,
   | 'ticketId'
+  | 'slaProfileId'
   | 'startedAt'
   | 'responseDueAt'
   | 'resolutionDueAt'
@@ -21,6 +22,7 @@ export function toTicketSlaClientSnapshot(
   state: TicketSlaStateRow,
 ): TicketSlaClientSnapshot {
   return {
+    slaProfileId: state.slaProfileId,
     startedAt: state.startedAt.toISOString(),
     responseDueAt: toIso(state.responseDueAt),
     resolutionDueAt: toIso(state.resolutionDueAt),

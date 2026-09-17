@@ -86,6 +86,7 @@ export type TicketResponse = {
 };
 
 export type TicketSlaClientSnapshot = {
+  readonly slaProfileId: string | null;
   readonly startedAt: string;
   readonly responseDueAt: string | null;
   readonly resolutionDueAt: string | null;

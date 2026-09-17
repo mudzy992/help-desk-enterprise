@@ -150,14 +150,14 @@
 **Referenca:** `referenca-dizajn/src/pages/Sla.tsx` — otvori prvo, prije koda.
 
 1. **Layout:** master-detail — lijevo lista SLA profila (kod, naziv, opis, kalendar, broj aktivnih pravila/tiketa koji ga koriste — badge), desno detalji izabranog profila: sve odjednom, bez tab-prebacivanja:
-   - Kartica "Ciljevi po prioritetu" — tabela Prioritet/Prvi odgovor/Rješenje/Mjerenje/**Trenutno izloženih** (real-time broj otvorenih tiketa tog prioriteta koji koriste ovaj profil — novi mali backend upit ili reuse postojeće ticket liste sa filterom).
-   - **Dodatno u odnosu na referencu (zadrži, ne izbaci):** prikaz service+OU+priority `SlaRule` override-a koji se odnose na ovaj profil (referenca to nema jer je mock pojednostavljen — mi imamo stvaran model, mora biti vidljiv, npr. kao sekcija ispod glavne tabele "Override pravila" sa postojećom `SlaRulesTable` komponentom filtriranom po profilu).
-   - Kartica "Kalendar" — reuse postojeći `SlaCalendarWeekGrid` + holidays lista (već postoji, samo premjesti u novi layout).
-   - Kartica "Pauze i eskalacije" — pauze (waiting-for-user/pending-approval, statični opis iz settings vrijednosti) + lista eskalacija za ovaj profil (iz Faze 1 CRUD-a, sa target prikazom rola/grupa/korisnik).
-   - Kartica "Usklađenost (30 dana)" — bar chart iz Faze 4 agregacije.
-   - Dugme "Novi profil" u header-u (već postoji funkcionalnost, samo repozicioniraj u novi layout).
-2. Zadrži postojeće guard-ove/permission provjere (`slaWrite` za izmjene) — redizajn je prezentacioni, ne mijenja pristupna prava.
-3. BS + EN i18n za sve nove labele/raspored.
+   - [x] Kartica "Ciljevi po prioritetu" — tabela Prioritet/Prvi odgovor/Rješenje/Mjerenje/**Trenutno izloženih** (real-time broj otvorenih tiketa tog prioriteta koji koriste ovaj profil — novi mali backend upit ili reuse postojeće ticket liste sa filterom).
+   - [x] **Dodatno u odnosu na referencu (zadrži, ne izbaci):** prikaz service+OU+priority `SlaRule` override-a koji se odnose na ovaj profil (referenca to nema jer je mock pojednostavljen — mi imamo stvaran model, mora biti vidljiv, npr. kao sekcija ispod glavne tabele "Override pravila" sa postojećom `SlaRulesTable` komponentom filtriranom po profilu).
+   - [x] Kartica "Kalendar" — reuse postojeći `SlaCalendarWeekGrid` + holidays lista (već postoji, samo premjesti u novi layout).
+   - [x] Kartica "Pauze i eskalacije" — pauze (waiting-for-user/pending-approval, statični opis iz settings vrijednosti) + lista eskalacija za ovaj profil (iz Faze 1 CRUD-a, sa target prikazom rola/grupa/korisnik).
+   - [x] Kartica "Usklađenost (30 dana)" — bar chart iz Faze 4 agregacije.
+   - [x] Dugme "Novi profil" u header-u (već postoji funkcionalnost, samo repozicioniraj u novi layout).
+2. [x] Zadrži postojeće guard-ove/permission provjere (`slaWrite` za izmjene) — redizajn je prezentacioni, ne mijenja pristupna prava.
+3. [x] BS + EN i18n za sve nove labele/raspored.
 
 **Ograničenja (cijela Faza 6):**
 - Fajlovi ≤150 linija — razbij novi layout na više komponenti (profile-list, profile-detail-header, priority-table, calendar-card, pauses-escalations-card, compliance-card).
@@ -165,6 +165,19 @@
 - Desktop 1440 + mobile 390 provjera izgleda, opiši u handoff-u.
 
 **Verifikacija:** vizuelno poređenje sa `referenca-dizajn/src/pages/Sla.tsx` (uz napomenu gdje se svjesno odstupa zbog bogatijeg modela — service+OU+priority override sekcija); sve funkcionalnosti iz Faza 1-5 vidljive i upotrebljive u novom layoutu; `npm run test`/`build`.
+
+**Handoff / poznata ograničenja:**
+- Master-detail bez tabova; kalendar CRUD preko sekundarnog viewa „Upravljaj kalendarima“ (nije u referenci).
+- Svjesno odstupanje: sekcija **Override pravila** (service+OU) — RAW model; referenca to nema.
+- Minimalni backend dodir (dozvoljen SLA_PHASE_PLAN-om): `slaProfileId` na `TicketSlaClientSnapshot` da bi „Trenutno izloženih“ bilo tačno po profilu (`listTickets` + FE filter).
+- At-risk / breached badge-ovi u koloni izloženih; compliance HBars filtriran na izabrani profil (30 dana).
+- Desktop ~1440: `xl:grid-cols-[300px_1fr]`; ispod xl lista i detalj stackaju vertikalno (mobile ~390 OK, horizontalni scroll na tabelama).
+- **Cijeli SLA_PHASE_PLAN (Faze 1–6) zatvoren.**
+
+**Otvorena ograničenja iz ranijih faza (neriješena):**
+- Faza 1: direktni CRUD eskalacija vs `apply-sla-snapshot` (config-version activate) mogu se međusobno prepisati.
+- Faza 1: config snapshot collect/parse još uvijek nose samo `targetGroupId` (ne `targetRole`/`targetUserId`) osim što apply put ostaje.
+- Faza 5: orphan DB red za uklonjeni settings ključ `requireAdminReasonForRuleChanges` harmless ako postoji u runtime DB.
 
 ---
 
