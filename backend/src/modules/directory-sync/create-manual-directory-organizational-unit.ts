@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
+import { createManualDirectoryOrganizationalUnitExternalId } from './create-manual-directory-organizational-unit-external-id';
 import { ManualDirectoryCatalogError } from './manual-directory-catalog.error';
 import type {
   CreateManualDirectoryOrganizationalUnitInput,
@@ -43,9 +44,8 @@ export async function createManualDirectoryOrganizationalUnit(
       ? `OU=${displayName},${parent.distinguishedName}`
       : `OU=${displayName},DC=example,DC=com`);
   const resolvedParentExternalId = parent?.externalId ?? null;
-  const externalId = `manual_only:ou:${Buffer.from(organizationalUnitPath)
-    .toString('base64url')
-    .slice(0, 48)}`;
+  const externalId =
+    createManualDirectoryOrganizationalUnitExternalId(organizationalUnitPath);
   try {
     const created = await prisma.manualDirectoryOrganizationalUnit.create({
       data: {
