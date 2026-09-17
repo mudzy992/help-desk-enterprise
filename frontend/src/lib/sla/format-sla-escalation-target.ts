@@ -1,6 +1,7 @@
 import type { SlaEscalationRule } from "@/services/sla-api";
 
-type Translate = (key: string, options?: Record<string, unknown>) => string;
+/** Loose translate adapter — avoids i18next TFunction overload crashes. */
+type Translate = (key: string, options?: Record<string, string>) => string;
 
 export function formatSlaEscalationTarget(
   rule: Pick<

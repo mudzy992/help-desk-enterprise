@@ -45,7 +45,7 @@ export function SlaEscalationRulesTable({
               <td className="px-4 text-[12.5px]">{rule.level}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.triggerOffsetMinutes}</td>
               <td className="px-4 text-[12px] text-muted-foreground">
-                {formatSlaEscalationTarget(rule, t)}
+                {formatSlaEscalationTarget(rule, t as never)}
               </td>
               {canWrite ? (
                 <td className="px-4 text-right">

@@ -82,7 +82,7 @@ export function SlaEscalationsCard({
                   <p className="text-[11.5px] leading-[18px] text-muted">
                     {t("sla.escalationNotifyAction")} ·{" "}
                     <span className="text-text/70">
-                      {formatSlaEscalationTarget(rule, t)}
+                      {formatSlaEscalationTarget(rule, t as never)}
                     </span>
                   </p>
                 </div>

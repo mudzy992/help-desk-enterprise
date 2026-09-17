@@ -29,11 +29,18 @@ const priorityLabelKeys = {
   LOW: "sla.priorityLow",
 } as const;
 
-export function slaPriorityLabelKey(priority: string): string {
+export function slaPriorityLabelKey(
+  priority: string,
+):
+  | "sla.priorityCritical"
+  | "sla.priorityHigh"
+  | "sla.priorityMedium"
+  | "sla.priorityLow"
+  | "sla.priority" {
   if (priority in priorityLabelKeys) {
     return priorityLabelKeys[priority as SlaPriorityValue];
   }
-  return priority;
+  return "sla.priority";
 }
 
 export const slaTimezoneOptions = [
