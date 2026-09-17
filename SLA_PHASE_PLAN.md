@@ -14,7 +14,7 @@
 4. ~~"Prvi odgovor" (response) se markira samo na `IN_PROGRESS` status — RAW definicija: "prva poruka **ili** prelazak u IN_PROGRESS". Prva poruka trenutno ne okida response completion.~~ **Riješeno u Fazi 2** (`AGENT_REPLY` → `agent_replied` + postojeći `IN_PROGRESS` put).
 5. ~~`notifyBeforeOverdueMinutes` (T-minus pre-overdue upozorenje) — settings ključ postoji, nigdje se ne koristi u logici. Postoji samo breach detekcija (post-factum), ne i "uskoro će probiti SLA" upozorenje.~~ **Riješeno u Fazi 3** (`isResponseAtRisk`/`isResolutionAtRisk` + runtime eventi + badge).
 6. SLA "usklađenost/compliance %" (referenca: kartica "Usklađenost (30 dana)") — ne postoji nigdje, ni backend agregacija ni frontend prikaz.
-7. `requireAdminReasonForRuleChanges` i `maxEscalationLevels` — settings ključevi definisani, nikad učitani u `SlaConfiguration` niti provjereni u logici (reason je trenutno *uvijek* obavezan, bez obzira na flag — mrtav ključ).
+7. ~~`requireAdminReasonForRuleChanges`~~ **Riješeno u Fazi 5** (Opcija B: ključ uklonjen; reason uvijek obavezan). `maxEscalationLevels` je već u `SlaConfiguration` (Faza 1).
 8. Frontend (`sla-page.tsx`) je tab-switcher (Profili/Kalendari) — referenca je master-detail layout (profil lista lijevo, detalji profila desno: tabela prioriteta, kalendar kartica, "Pauze i eskalacije" kartica, "Usklađenost" kartica, sve vidljivo odjednom bez tab-prebacivanja). Nema "trenutno izloženih" real-time brojača po prioritetu.
 9. Postojeće `SlaRulesTable`/service+OU+priority pravila (stvarni RAW model) moraju ostati u novom dizajnu — referenca pojednostavljuje na samo profil×prioritet, mi imamo bogatiji, ispravniji model (service+OU+priority override + fallback profil) koji dizajn treba da prikaže jasno, ne da ga izbaci u korist referentnog pojednostavljenja.
 
@@ -129,10 +129,17 @@
 
 **Problem:** vidi nalaz #7 (dio o reason). Trenutno je `reason` uvijek obavezan na SLA mutacijama, bez obzira na settings flag — flag je mrtav.
 
-1. **Odluka (stani i pitaj prije koda ako nisi siguran):** ili (a) settings flag postaje stvarno funkcionalan (reason opcionalan kad je `false`), ili (b) flag se briše iz settings registry-ja kao nepotreban jer je "uvijek obavezno" ionako ispravno ponašanje po RAW-u (RAW ne kaže da je opciono, samo da postoji flag — provjeri RAW tekst ponovo prije odluke). Preporuka: (b) je vjerovatno ispravnije (manje rizika, reason treba uvijek postojati za audit kvalitet) — ali eksplicitno potvrdi prije brisanja settings ključa da ništa drugo na njega ne referencira.
-2. Implementiraj odabranu opciju, test, i18n ako treba tekstualna promjena.
+1. **Odluka:** ~~(a) settings flag postaje funkcionalan~~ / **(b) flag se briše** — reason ostaje uvijek obavezan (RAW L942 change log reason+diff; L517 flag samo dokumentuje default `true`, ne zahtijeva toggle).
+2. **Implementacija:**
+   - [x] Uklonjen `private.ticket.sla.requireAdminReasonForRuleChanges` iz `setting-keys.ts` + `ticket-sla-settings.ts`.
+   - [x] Uklonjen mrtvi `SlaConfiguration.requireReason` (loader + harnessi).
+   - [x] Uklonjeni BS/EN i18n opisi za taj ključ.
+   - [x] Test: registry nema ključ; blank reason i dalje odbijen na calendar/profile/rule.
+3. Reference prije brisanja: samo registry/loader/i18n — nijedan FE form/modul nije čitao flag (forme već `required` na reason).
 
-**Verifikacija:** ponašanje konzistentno sa odlukom; `npm run test`.
+**Verifikacija:** ponašanje konzistentno sa odlukom (b); `npm run test`.
+
+**Handoff:** Orphan DB red za stari ključ (ako postoji u runtime DB) ostaje harmless — registry ga više ne izlaže. Ne dirati Fazu 6.
 
 ---
 

@@ -15,7 +15,6 @@ export class SlaConfigurationLoader {
     try {
       const [
         enabled,
-        requireReason,
         allowServiceOverrides,
         allowOuOverrides,
         pauseOnWaitingForUser,
@@ -25,9 +24,6 @@ export class SlaConfigurationLoader {
         maxEscalationLevels,
       ] = await Promise.all([
         this.settingsService.getSetting(settingKeys.privateTicketSlaEnabled),
-        this.settingsService.getSetting(
-          settingKeys.privateTicketSlaRequireAdminReasonForRuleChanges,
-        ),
         this.settingsService.getSetting(
           settingKeys.privateTicketSlaAllowServiceOverrides,
         ),
@@ -52,7 +48,6 @@ export class SlaConfigurationLoader {
       ]);
       return {
         enabled: enabled === true,
-        requireReason: requireReason === true,
         allowServiceOverrides: allowServiceOverrides === true,
         allowOuOverrides: allowOuOverrides === true,
         pauseOnWaitingForUser: pauseOnWaitingForUser === true,

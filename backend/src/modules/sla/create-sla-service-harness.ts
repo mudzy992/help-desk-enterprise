@@ -10,7 +10,6 @@ export const slaChangeReason = 'Align BH calendar and SLA targets with operation
 
 export const defaultSlaConfiguration: SlaConfiguration = {
   enabled: true,
-  requireReason: true,
   allowServiceOverrides: true,
   allowOuOverrides: true,
   pauseOnWaitingForUser: true,

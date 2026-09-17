@@ -741,7 +741,6 @@
         "private.ticket.sla.notifyBeforeOverdueMinutes": "Minutes before an SLA due time to mark the ticket at risk and notify handlers.",
         "private.ticket.sla.pauseOnPendingApproval": "Pause SLA timers while a ticket is pending approval.",
         "private.ticket.sla.pauseOnWaitingForUser": "Pause SLA timers while a ticket is waiting for the user.",
-        "private.ticket.sla.requireAdminReasonForRuleChanges": "Require an explicit reason for SLA calendar, profile, and rule changes.",
         "private.ticket.split.allowAttachmentMove": "Allow moving attachments into split child tickets (prefer copy/link).",
         "private.ticket.split.allowMessageCopy": "Allow copying selected messages into split child tickets.",
         "private.ticket.split.enabled": "Allow agents to split a ticket into parent/child tickets.",

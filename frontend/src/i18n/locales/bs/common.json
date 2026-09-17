@@ -741,7 +741,6 @@
         "private.ticket.sla.notifyBeforeOverdueMinutes": "Minute prije SLA roka za označavanje tiketa kao ugroženog i obavještavanje handlera.",
         "private.ticket.sla.pauseOnPendingApproval": "Pauziraj SLA tajmere dok tiket čeka odobrenje.",
         "private.ticket.sla.pauseOnWaitingForUser": "Pauziraj SLA tajmere dok tiket čeka korisnika.",
-        "private.ticket.sla.requireAdminReasonForRuleChanges": "Zahtijevaj eksplicitan razlog za izmjene SLA kalendara, profila i pravila.",
         "private.ticket.split.allowAttachmentMove": "Dozvoli premještanje privitaka u child tikete pri split-u (preferiraj copy/link).",
         "private.ticket.split.allowMessageCopy": "Dozvoli kopiranje odabranih poruka u child tikete pri split-u.",
         "private.ticket.split.enabled": "Dozvoli agentima da podele tiket na parent/child tikete.",

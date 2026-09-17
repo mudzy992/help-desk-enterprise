@@ -23,9 +23,9 @@ Match key: `priority` + opcionalni `serviceId` + opcionalni `organizationalUnitI
 ## API
 | Method | Path | Permission |
 |---|---|---|
-| CRUD | `/sla/calendars` | `ADMIN`; write: `sla.write` + `reason` |
-| CRUD | `/sla/profiles` | `ADMIN`; write: `sla.write` + `reason` |
-| CRUD | `/sla/rules` | `ADMIN`; write: `sla.write` + `reason` |
+| CRUD | `/sla/calendars` | `ADMIN`; write: `sla.write` + `reason` (uvijek obavezno) |
+| CRUD | `/sla/profiles` | `ADMIN`; write: `sla.write` + `reason` (uvijek obavezno) |
+| CRUD | `/sla/rules` | `ADMIN`; write: `sla.write` + `reason` (uvijek obavezno) |
 | GET | `/sla/rules/resolve` | `ADMIN` |
 | GET | `.../:id/changes` | `ADMIN` |
 

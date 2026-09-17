@@ -13,14 +13,6 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
     defaultValue: true,
   }),
   definePrivateSetting({
-    key: settingKeys.privateTicketSlaRequireAdminReasonForRuleChanges,
-    categoryId: settingCategoryIds.privateTicket,
-    valueType: 'boolean',
-    description: 'Require an explicit reason for SLA calendar, profile and rule mutations',
-    isRequired: true,
-    defaultValue: true,
-  }),
-  definePrivateSetting({
     key: settingKeys.privateTicketSlaAllowServiceOverrides,
     categoryId: settingCategoryIds.privateTicket,
     valueType: 'boolean',

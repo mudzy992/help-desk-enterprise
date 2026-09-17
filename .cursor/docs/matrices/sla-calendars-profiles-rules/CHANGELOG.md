@@ -1,5 +1,8 @@
 # CHANGELOG — sla-calendars-profiles-rules
 
+## 2026-09-17
+- Uklonjen mrtvi settings ključ `requireAdminReasonForRuleChanges`; reason ostaje uvijek obavezan na CRUD mutacijama (Opcija B / Faza 5).
+
 ## 2026-09-12
 - Seed startnih profila (`INCIDENT` / `ACCESS` / `STANDARD_REQUEST` / `FINANCE` / `HR`) izdvojen u `sla-starting-profiles`.
 

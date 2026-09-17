@@ -3,7 +3,6 @@ import { TicketSlaTimersService } from '../sla/ticket-sla-timers.service';
 export function createTicketsSlaHarness(prisma: unknown) {
   const slaConfig = {
     enabled: false,
-    requireReason: true,
     allowServiceOverrides: true,
     allowOuOverrides: true,
     pauseOnWaitingForUser: true,

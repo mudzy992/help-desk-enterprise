@@ -152,8 +152,6 @@ export const settingKeys = {
   privateChangeLogIncludeDiff: 'private.changeLog.includeDiff',
   privateChangeLogRequireReason: 'private.changeLog.requireReason',
   privateTicketSlaEnabled: 'private.ticket.sla.enabled',
-  privateTicketSlaRequireAdminReasonForRuleChanges:
-    'private.ticket.sla.requireAdminReasonForRuleChanges',
   privateTicketSlaAllowServiceOverrides:
     'private.ticket.sla.allowServiceOverrides',
   privateTicketSlaAllowOuOverrides: 'private.ticket.sla.allowOuOverrides',
