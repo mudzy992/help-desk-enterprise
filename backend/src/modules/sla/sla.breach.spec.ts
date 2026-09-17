@@ -14,13 +14,14 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-const pauseAt = new Date('2026-09-11T12:20:00.000Z');
-const responseBreachAt = new Date('2026-09-11T13:30:00.000Z');
-const resolutionBreachAt = new Date('2026-09-16T12:00:00.000Z');
+const pauseOffsetMs = 20 * 60 * 1000;
+const responseBreachOffsetMs = 3 * 60 * 60 * 1000;
+const resolutionBreachOffsetMs = 10 * 24 * 60 * 60 * 1000;
 
 describe('ticket SLA breach and escalation', () => {
   it('detects a response SLA breach on scan and keeps the flag sticky', async () => {
     const { prisma, ticket, configuration, memory } = await createStartedTicket();
+    const responseBreachAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
     const scanned = await scanDueTicketSlaStates(prisma, {
       configuration,
       now: responseBreachAt,
@@ -31,13 +32,17 @@ describe('ticket SLA breach and escalation', () => {
     expect(reasons(memory)).toEqual([slaChangeLogReasons.responseBreached, slaChangeLogReasons.responseEscalated]);
     expect(systemBodies(memory)).toEqual([
       slaSystemEventActions.responseBreached,
-      slaSystemEventActions.responseEscalated,
+      `${slaSystemEventActions.responseEscalated}:default`,
     ]);
     expect((await loadTicketSlaState(prisma, ticket.id))?.isResponseBreached).toBe(true);
   });
 
   it('detects a resolution SLA breach after first response', async () => {
     const { prisma, ticket, configuration } = await createStartedTicket();
+    const pauseAt = new Date(ticket.createdAt.getTime() + pauseOffsetMs);
+    const resolutionBreachAt = new Date(
+      ticket.createdAt.getTime() + resolutionBreachOffsetMs,
+    );
     await syncTicketSlaTimers(prisma, {
       ticket: withStatus(ticket, 'IN_PROGRESS'),
       previousStatus: ticket.status,
@@ -56,6 +61,8 @@ describe('ticket SLA breach and escalation', () => {
 
   it('does not breach or escalate while the timer is paused through the original due time', async () => {
     const { prisma, ticket, configuration, memory } = await createStartedTicket();
+    const pauseAt = new Date(ticket.createdAt.getTime() + pauseOffsetMs);
+    const responseBreachAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
     await syncTicketSlaTimers(prisma, {
       ticket: withStatus(ticket, 'WAITING_FOR_USER'),
       previousStatus: ticket.status,
@@ -76,6 +83,7 @@ describe('ticket SLA breach and escalation', () => {
 
   it('emits an escalation event from the profile rule when the timer expires', async () => {
     const { prisma, ticket, configuration, memory } = await createStartedTicket();
+    const responseBreachAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
     const state = await loadTicketSlaState(prisma, ticket.id);
     await memory.prisma.slaEscalationRule.create({
       data: {
@@ -91,19 +99,23 @@ describe('ticket SLA breach and escalation', () => {
     );
     expect(escalation).toBeDefined();
     expect(JSON.stringify(escalation?.diff)).toContain(ticketsTestIds.groupIt);
-    expect(systemBodies(memory)).toContain(slaSystemEventActions.responseEscalated);
+    expect(
+      systemBodies(memory).some((body) =>
+        body.startsWith(`${slaSystemEventActions.responseEscalated}:`),
+      ),
+    ).toBe(true);
     configuration.escalationsEnabled = false;
-    const { prisma: otherPrisma, configuration: disabled, memory: disabledMemory } =
+    const { prisma: otherPrisma, configuration: disabled, memory: disabledMemory, ticket: otherTicket } =
       await createStartedTicket();
+    const otherBreachAt = new Date(otherTicket.createdAt.getTime() + responseBreachOffsetMs);
     disabled.escalationsEnabled = false;
     await scanDueTicketSlaStates(otherPrisma, {
       configuration: disabled,
-      now: responseBreachAt,
+      now: otherBreachAt,
     });
     expect(reasons(disabledMemory)).toEqual([slaChangeLogReasons.responseBreached]);
   });
 });
-
 async function createStartedTicket() {
   const harness = createTicketsServiceHarness();
   await seedTicketsSlaTimers(harness);

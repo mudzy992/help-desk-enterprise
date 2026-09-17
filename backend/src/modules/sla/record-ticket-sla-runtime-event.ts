@@ -1,6 +1,6 @@
 import type { JsonValue } from '../change-log/change-log.types';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { fanOutInAppNotifications } from '../notifications/fan-out/fan-out-in-app-notifications';
+import { dispatchSlaRuntimeNotification } from '../notifications/fan-out/dispatch-sla-runtime-notification';
 import { insertSystemTicketEvent } from '../tickets/insert-system-ticket-event';
 import { toTicketRealtimePayload } from '../tickets/to-collaboration-response';
 import { changeLogActions, recordSlaChange } from './record-sla-change';
@@ -17,6 +17,7 @@ export async function recordTicketSlaRuntimeEvent(
     readonly before: TicketSlaStateRecord;
     readonly after: TicketSlaStateRecord;
     readonly extraAfter?: { readonly [key: string]: JsonValue };
+    readonly escalationRuleId?: string | null;
   },
 ): Promise<void> {
   await recordSlaChange(prisma, {
@@ -35,12 +36,13 @@ export async function recordTicketSlaRuntimeEvent(
     ticketId: input.ticketId,
     action: input.action,
     actorUserId: null,
+    detail: input.escalationRuleId ?? null,
   });
   const ticket = await prisma.ticket.findUnique({
     where: { id: input.ticketId },
   });
   if (ticket !== null) {
-    await fanOutInAppNotifications(
+    await dispatchSlaRuntimeNotification(
       prisma,
       toTicketRealtimePayload(message, ticket),
     );

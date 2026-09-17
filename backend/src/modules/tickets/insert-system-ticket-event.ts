@@ -7,13 +7,20 @@ export async function insertSystemTicketEvent(
     readonly ticketId: string;
     readonly action: string;
     readonly actorUserId: string | null;
+    readonly detail?: string | null;
   },
 ): Promise<TicketMessageRecord> {
+  const body =
+    input.detail !== undefined &&
+    input.detail !== null &&
+    input.detail.length > 0
+      ? `${input.action}:${input.detail}`
+      : input.action;
   return prisma.ticketMessage.create({
     data: {
       ticketId: input.ticketId,
       type: 'SYSTEM_EVENT',
-      body: input.action,
+      body,
       authorUserId: input.actorUserId,
     },
   }) as Promise<TicketMessageRecord>;

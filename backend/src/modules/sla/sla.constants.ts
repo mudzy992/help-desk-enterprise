@@ -2,6 +2,7 @@ export const slaChangeLogEntityTypes = {
   calendar: 'business_hours_calendar',
   profile: 'sla_profile',
   rule: 'sla_rule',
+  escalationRule: 'sla_escalation_rule',
   ticketSlaState: 'ticket_sla_state',
 } as const;
 

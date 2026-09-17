@@ -13,6 +13,7 @@ const notFoundCodes: readonly SlaErrorCode[] = [
   'CALENDAR_NOT_FOUND',
   'PROFILE_NOT_FOUND',
   'RULE_NOT_FOUND',
+  'ESCALATION_RULE_NOT_FOUND',
   'SERVICE_NOT_FOUND',
   'ORGANIZATIONAL_UNIT_NOT_FOUND',
   'NO_MATCHING_RULE',
@@ -22,6 +23,8 @@ const conflictCodes: readonly SlaErrorCode[] = [
   'DUPLICATE_KEY',
   'DUPLICATE_RULE',
   'DUPLICATE_HOLIDAY',
+  'DUPLICATE_ESCALATION_OFFSET',
+  'MAX_ESCALATION_LEVELS_EXCEEDED',
   'CALENDAR_IN_USE',
   'PROFILE_IN_USE',
 ];
@@ -52,6 +55,15 @@ const messages: Record<SlaErrorCode, string> = {
   SERVICE_OVERRIDE_DISABLED: 'Service-specific SLA rules are disabled',
   OU_OVERRIDE_DISABLED: 'Organizational-unit SLA rules are disabled',
   NO_MATCHING_RULE: 'No SLA rule matches the given profile and conditions',
+  ESCALATION_RULE_NOT_FOUND: 'SLA escalation rule was not found',
+  MAX_ESCALATION_LEVELS_EXCEEDED:
+    'Maximum number of escalation levels for this profile is exceeded',
+  INVALID_ESCALATION_TARGET:
+    'Exactly one escalation target (group, role, or user) is required',
+  INVALID_ESCALATION_OFFSET:
+    'Escalation trigger offset must increase with each level',
+  DUPLICATE_ESCALATION_OFFSET:
+    'An escalation rule with this trigger offset already exists on the profile',
   UNAVAILABLE: 'SLA configuration is unavailable',
 };
 

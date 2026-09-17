@@ -20,6 +20,7 @@ export type EmailChannelConfiguration = {
   readonly smtpEnabled: boolean;
   readonly emailAddonEnabled: boolean;
   readonly notificationsEmailEnabled: boolean;
+  readonly slaEscalationEmailEnabled: boolean;
   readonly templatesEnabled: boolean;
   readonly internalOnly: boolean;
   readonly allowedExternalDomains: readonly string[];
@@ -39,6 +40,9 @@ export async function loadEmailChannelConfiguration(
   )) === true;
   const notificationsEmailEnabled = (await settingsService.getSetting(
     settingKeys.privateNotificationsEmailEnabled,
+  )) === true;
+  const slaEscalationEmailEnabled = (await settingsService.getSetting(
+    settingKeys.privateTicketSlaEscalationsEmailEnabled,
   )) === true;
   const templatesEnabled = (await settingsService.getSetting(
     settingKeys.privateNotificationsTemplatesEnabled,
@@ -62,6 +66,7 @@ export async function loadEmailChannelConfiguration(
     smtpEnabled,
     emailAddonEnabled,
     notificationsEmailEnabled,
+    slaEscalationEmailEnabled,
     templatesEnabled,
     internalOnly,
     allowedExternalDomains: parseSettingsCsv(

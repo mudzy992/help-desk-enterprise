@@ -91,11 +91,15 @@ model SlaEscalationRule {
   slaProfileId         String
   triggerOffsetMinutes Int
   targetGroupId        String?
+  targetRole           String?
+  targetUserId         String?
   slaProfile           SlaProfile @relation(fields: [slaProfileId], references: [id], onDelete: Cascade)
   targetGroup          Group?     @relation(fields: [targetGroupId], references: [id], onDelete: SetNull)
+  targetUser           User?      @relation(fields: [targetUserId], references: [id], onDelete: SetNull)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   @@index([slaProfileId])
   @@index([targetGroupId])
+  @@index([targetUserId])
 }

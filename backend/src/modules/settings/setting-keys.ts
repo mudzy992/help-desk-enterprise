@@ -162,6 +162,10 @@ export const settingKeys = {
   privateTicketSlaPauseOnPendingApproval:
     'private.ticket.sla.pauseOnPendingApproval',
   privateTicketSlaEscalationsEnabled: 'private.ticket.sla.escalationsEnabled',
+  privateTicketSlaEscalationsEmailEnabled:
+    'private.ticket.sla.escalations.emailEnabled',
+  privateTicketSlaMaxEscalationLevels:
+    'private.ticket.sla.maxEscalationLevels',
   privateSmtpEnabled: 'private.smtp.enabled',
   privateSmtpHost: 'private.smtp.host',
   privateSmtpPort: 'private.smtp.port',

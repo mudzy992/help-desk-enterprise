@@ -4,6 +4,7 @@ import {
   notificationTypes,
   type NotificationType,
 } from '../notifications.constants';
+import { resolveSlaNotificationRecipients } from './resolve-sla-notification-recipients';
 
 export async function resolveNotificationRecipients(
   prisma: PrismaService,
@@ -11,6 +12,8 @@ export async function resolveNotificationRecipients(
     readonly type: NotificationType;
     readonly ticket: TicketRecord;
     readonly actorUserId: string | null;
+    readonly event?: string;
+    readonly messageBody?: string;
   },
 ): Promise<readonly string[]> {
   const recipients = await collectRecipients(prisma, input);
@@ -26,6 +29,8 @@ async function collectRecipients(
   input: {
     readonly type: NotificationType;
     readonly ticket: TicketRecord;
+    readonly event?: string;
+    readonly messageBody?: string;
   },
 ): Promise<readonly string[]> {
   switch (input.type) {
@@ -41,14 +46,9 @@ async function collectRecipients(
     case notificationTypes.ticketClosed:
       return [input.ticket.requesterId];
     case notificationTypes.ticketApproval:
-      return approverUserIds(prisma, input.ticket.id);
+      return participantUserIds(prisma, input.ticket.id, 'APPROVER');
     case notificationTypes.ticketSla:
-      return [
-        ...(input.ticket.assignedUserId === null
-          ? []
-          : [input.ticket.assignedUserId]),
-        ...(await groupMemberUserIds(prisma, input.ticket.assignedGroupId)),
-      ];
+      return resolveSlaNotificationRecipients(prisma, input);
     case notificationTypes.remoteRequested:
       return [input.ticket.requesterId];
     case notificationTypes.ticketMessage:
@@ -58,7 +58,7 @@ async function collectRecipients(
           ? []
           : [input.ticket.assignedUserId]),
         ...(await groupMemberUserIds(prisma, input.ticket.assignedGroupId)),
-        ...(await watcherUserIds(prisma, input.ticket.id)),
+        ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
       ];
     default:
       return [];
@@ -83,29 +83,17 @@ async function groupMemberUserIds(
     .filter((userId) => !excluded.has(userId));
 }
 
-async function watcherUserIds(
+async function participantUserIds(
   prisma: PrismaService,
   ticketId: string,
+  role: 'WATCHER' | 'APPROVER',
 ): Promise<readonly string[]> {
-  const watchers = await prisma.ticketParticipant.findMany({
-    where: { ticketId, role: 'WATCHER' },
+  const rows = await prisma.ticketParticipant.findMany({
+    where: { ticketId, role },
     select: { userId: true },
   });
-  return watchers
-    .map((watcher) => watcher.userId)
-    .filter((userId): userId is string => userId !== null);
-}
-
-async function approverUserIds(
-  prisma: PrismaService,
-  ticketId: string,
-): Promise<readonly string[]> {
-  const approvers = await prisma.ticketParticipant.findMany({
-    where: { ticketId, role: 'APPROVER' },
-    select: { userId: true },
-  });
-  return approvers
-    .map((approver) => approver.userId)
+  return rows
+    .map((row) => row.userId)
     .filter((userId): userId is string => userId !== null);
 }
 

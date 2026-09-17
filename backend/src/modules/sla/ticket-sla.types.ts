@@ -15,6 +15,8 @@ export type SlaEscalationRuleRecord = {
   readonly slaProfileId: string;
   readonly triggerOffsetMinutes: number;
   readonly targetGroupId: string | null;
+  readonly targetRole: string | null;
+  readonly targetUserId: string | null;
 };
 
 export type TicketSlaTicketRef = {

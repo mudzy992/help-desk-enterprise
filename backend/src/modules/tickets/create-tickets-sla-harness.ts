@@ -9,6 +9,7 @@ export function createTicketsSlaHarness(prisma: unknown) {
     pauseOnWaitingForUser: true,
     pauseOnPendingApproval: true,
     escalationsEnabled: true,
+    maxEscalationLevels: 3,
   };
   const slaTimers = new TicketSlaTimersService(prisma as never, {
     load: async () => slaConfig,

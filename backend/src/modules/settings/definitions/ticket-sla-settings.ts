@@ -60,4 +60,20 @@ export const ticketSlaSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: true,
   }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketSlaEscalationsEmailEnabled,
+    categoryId: settingCategoryIds.privateTicket,
+    valueType: 'boolean',
+    description: 'Send email when an SLA escalation fires (in addition to in-app)',
+    isRequired: true,
+    defaultValue: false,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketSlaMaxEscalationLevels,
+    categoryId: settingCategoryIds.privateTicket,
+    valueType: 'number',
+    description: 'Maximum number of escalation rules allowed per SLA profile',
+    isRequired: true,
+    defaultValue: 3,
+  }),
 ];

@@ -62,6 +62,7 @@ describe('ticket SLA timer hooks', () => {
     const harness = createTicketsServiceHarness();
     await seedTicketsSlaTimers(harness);
     const live = await harness.tickets.create(vpnCreateInput(), requester);
+    expect(live.status).not.toBe('IN_PROGRESS');
     await harness.collaboration.createMessage(
       live.id,
       { type: 'AGENT_REPLY', body: 'Checking the concentrator' },
@@ -74,6 +75,36 @@ describe('ticket SLA timer hooks', () => {
       requester,
     );
     expect(slaState(harness, skipped.id)).toBeUndefined();
+  });
+
+  it('does not mark first response on requester USER_REPLY alone', async () => {
+    const harness = createTicketsServiceHarness();
+    await seedTicketsSlaTimers(harness);
+    const created = await harness.tickets.create(vpnCreateInput(), requester);
+    expect(slaState(harness, created.id)?.respondedAt).toBeNull();
+    await harness.collaboration.createMessage(
+      created.id,
+      { type: 'USER_REPLY', body: 'Additional details from requester' },
+      requester,
+    );
+    expect(slaState(harness, created.id)?.respondedAt).toBeNull();
+  });
+
+  it('marks first response only once when AGENT_REPLY then IN_PROGRESS', async () => {
+    const harness = createTicketsServiceHarness();
+    await seedTicketsSlaTimers(harness);
+    const created = await harness.tickets.create(vpnCreateInput(), requester);
+    await harness.collaboration.createMessage(
+      created.id,
+      { type: 'AGENT_REPLY', body: 'First agent reply' },
+      agent,
+    );
+    const afterReply = slaState(harness, created.id)?.respondedAt;
+    expect(afterReply).not.toBeNull();
+    await harness.tickets.update(created.id, { status: 'IN_PROGRESS' }, agent);
+    expect(slaState(harness, created.id)?.respondedAt?.toISOString()).toBe(
+      afterReply!.toISOString(),
+    );
   });
 });
 

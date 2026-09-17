@@ -18,6 +18,7 @@ export class SlaConfigurationLoader {
         pauseOnWaitingForUser,
         pauseOnPendingApproval,
         escalationsEnabled,
+        maxEscalationLevels,
       ] = await Promise.all([
         this.settingsService.getSetting(settingKeys.privateTicketSlaEnabled),
         this.settingsService.getSetting(
@@ -38,6 +39,9 @@ export class SlaConfigurationLoader {
         this.settingsService.getSetting(
           settingKeys.privateTicketSlaEscalationsEnabled,
         ),
+        this.settingsService.getSetting(
+          settingKeys.privateTicketSlaMaxEscalationLevels,
+        ),
       ]);
       return {
         enabled: enabled === true,
@@ -47,6 +51,7 @@ export class SlaConfigurationLoader {
         pauseOnWaitingForUser: pauseOnWaitingForUser === true,
         pauseOnPendingApproval: pauseOnPendingApproval === true,
         escalationsEnabled: escalationsEnabled === true,
+        maxEscalationLevels: normalizeMaxEscalationLevels(maxEscalationLevels),
       };
     } catch (error) {
       if (error instanceof SlaError) {
@@ -55,4 +60,11 @@ export class SlaConfigurationLoader {
       throw new SlaError('UNAVAILABLE');
     }
   }
+}
+
+function normalizeMaxEscalationLevels(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 1) {
+    return 3;
+  }
+  return Math.floor(value);
 }

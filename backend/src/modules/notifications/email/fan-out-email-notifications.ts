@@ -1,5 +1,7 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
 import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
+import { notificationTypes } from '../notifications.constants';
 import { buildNotificationContent } from '../fan-out/build-notification-content';
 import { mapTicketEventToNotification } from '../fan-out/map-ticket-event-to-notification';
 import { resolveNotificationRecipients } from '../fan-out/resolve-notification-recipients';
@@ -13,6 +15,11 @@ import {
 import { renderEmailTemplate } from './render-email-template';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
+
+const slaEscalationEvents = new Set<string>([
+  ticketSystemEventActions.slaResponseEscalated,
+  ticketSystemEventActions.slaResolutionEscalated,
+]);
 
 export type OutboundEmailWorkHandler = {
   handle(work: PreparedOutboundEmail): Promise<void>;
@@ -32,6 +39,9 @@ export async function fanOutEmailNotifications(
   if (mapped === null || !isEmailTemplateKey(mapped.type)) {
     return;
   }
+  if (!isSlaEmailAllowed(mapped.type, mapped.event, configuration)) {
+    return;
+  }
   const ticket = await prisma.ticket.findUnique({
     where: { id: payload.ticketId },
   });
@@ -42,6 +52,8 @@ export async function fanOutEmailNotifications(
     type: mapped.type,
     ticket,
     actorUserId: payload.authorUserId,
+    event: mapped.event,
+    messageBody: payload.body,
   });
   const content = buildNotificationContent(
     mapped,
@@ -85,6 +97,20 @@ export async function fanOutEmailNotifications(
       text: rendered.text,
     });
   }
+}
+
+function isSlaEmailAllowed(
+  type: string,
+  event: string,
+  configuration: EmailChannelConfiguration,
+): boolean {
+  if (type !== notificationTypes.ticketSla) {
+    return true;
+  }
+  if (!slaEscalationEvents.has(event)) {
+    return false;
+  }
+  return configuration.slaEscalationEmailEnabled;
 }
 
 function isEmailTemplateKey(value: string): value is EmailTemplateKey {

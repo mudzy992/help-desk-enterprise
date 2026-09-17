@@ -17,5 +17,7 @@ export async function loadSlaEscalationRules(
     slaProfileId: row.slaProfileId,
     triggerOffsetMinutes: row.triggerOffsetMinutes,
     targetGroupId: row.targetGroupId,
+    targetRole: row.targetRole,
+    targetUserId: row.targetUserId,
   }));
 }

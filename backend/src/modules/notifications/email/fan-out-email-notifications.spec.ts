@@ -127,6 +127,7 @@ function enabledConfiguration(
     smtpEnabled: true,
     emailAddonEnabled: true,
     notificationsEmailEnabled: true,
+    slaEscalationEmailEnabled: true,
     templatesEnabled: true,
     internalOnly: true,
     allowedExternalDomains: [],

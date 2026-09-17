@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SlaCalendarsPanel } from "@/components/sla/sla-calendars-panel";
+import { SlaEscalationRulesPanel } from "@/components/sla/sla-escalation-rules-panel";
 import { SlaProfilesPanel } from "@/components/sla/sla-profiles-panel";
 import { PageHeader } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
@@ -23,9 +24,16 @@ export function SlaPage() {
         items={[
           { key: "profiles", label: t("sla.profilesTab") },
           { key: "calendars", label: t("sla.calendarsTab") },
+          { key: "escalations", label: t("sla.escalationsTab") },
         ]}
       />
-      {tab === "calendars" ? <SlaCalendarsPanel /> : <SlaProfilesPanel />}
+      {tab === "calendars" ? (
+        <SlaCalendarsPanel />
+      ) : tab === "escalations" ? (
+        <SlaEscalationRulesPanel />
+      ) : (
+        <SlaProfilesPanel />
+      )}
     </section>
   );
 }

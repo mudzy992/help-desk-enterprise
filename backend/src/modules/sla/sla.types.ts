@@ -68,6 +68,7 @@ export type SlaConfiguration = {
   readonly pauseOnWaitingForUser: boolean;
   readonly pauseOnPendingApproval: boolean;
   readonly escalationsEnabled: boolean;
+  readonly maxEscalationLevels: number;
 };
 
 export type CalendarWriteInput = {
@@ -125,6 +126,35 @@ export type UpdateRuleInput = {
   readonly organizationalUnitId?: string | null;
   readonly serviceId?: string | null;
   readonly reason: string;
+};
+
+export type EscalationRuleWriteInput = {
+  readonly slaProfileId: string;
+  readonly triggerOffsetMinutes: number;
+  readonly targetGroupId?: string | null;
+  readonly targetRole?: string | null;
+  readonly targetUserId?: string | null;
+  readonly reason: string;
+};
+
+export type UpdateEscalationRuleInput = {
+  readonly triggerOffsetMinutes?: number;
+  readonly targetGroupId?: string | null;
+  readonly targetRole?: string | null;
+  readonly targetUserId?: string | null;
+  readonly reason: string;
+};
+
+export type SlaEscalationRuleResponse = {
+  readonly id: string;
+  readonly slaProfileId: string;
+  readonly triggerOffsetMinutes: number;
+  readonly level: number;
+  readonly targetGroupId: string | null;
+  readonly targetRole: string | null;
+  readonly targetUserId: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
 };
 
 export type ResolveSlaTargetsInput = {

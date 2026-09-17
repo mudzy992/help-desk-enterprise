@@ -43,6 +43,7 @@ model User {
   auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
   configVersions       ConfigVersion[]
+  slaEscalationTargets SlaEscalationRule[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
 

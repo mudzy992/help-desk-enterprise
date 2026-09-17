@@ -2,9 +2,11 @@ import { apiRequest } from "@/services/api";
 import type {
   BusinessHoursCalendar,
   CalendarWriteInput,
+  EscalationRuleWriteInput,
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
+  SlaEscalationRule,
   SlaProfile,
   SlaRule,
 } from "@/services/sla-types";
@@ -12,9 +14,11 @@ import type {
 export type {
   BusinessHoursCalendar,
   CalendarWriteInput,
+  EscalationRuleWriteInput,
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
+  SlaEscalationRule,
   SlaHoliday,
   SlaProfile,
   SlaRule,
@@ -130,6 +134,40 @@ export function listSlaRuleChanges(ruleId: string): Promise<readonly SlaChangeLo
   return apiRequest(`/sla/rules/${ruleId}/changes`);
 }
 
+export function listSlaEscalationRules(
+  slaProfileId: string,
+): Promise<readonly SlaEscalationRule[]> {
+  return apiRequest(
+    `/sla/escalation-rules?slaProfileId=${encodeURIComponent(slaProfileId)}`,
+  );
+}
+
+export function createSlaEscalationRule(
+  input: EscalationRuleWriteInput & { readonly slaProfileId: string },
+): Promise<SlaEscalationRule> {
+  return apiRequest("/sla/escalation-rules", {
+    method: "POST",
+    body: JSON.stringify(toEscalationPayload(input)),
+  });
+}
+
+export function updateSlaEscalationRule(
+  ruleId: string,
+  input: EscalationRuleWriteInput,
+): Promise<SlaEscalationRule> {
+  return apiRequest(`/sla/escalation-rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(toEscalationPayload(input)),
+  });
+}
+
+export function deleteSlaEscalationRule(ruleId: string, reason: string): Promise<void> {
+  return apiRequest(`/sla/escalation-rules/${ruleId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ reason }),
+  });
+}
+
 function toRulePayload(input: RuleWriteInput) {
   return {
     slaProfileId: input.slaProfileId,
@@ -145,3 +183,18 @@ function toRulePayload(input: RuleWriteInput) {
     reason: input.reason,
   };
 }
+
+function toEscalationPayload(input: EscalationRuleWriteInput) {
+  const targetGroupId = input.targetGroupId.trim();
+  const targetRole = input.targetRole.trim();
+  const targetUserId = input.targetUserId.trim();
+  return {
+    slaProfileId: input.slaProfileId,
+    triggerOffsetMinutes: input.triggerOffsetMinutes,
+    targetGroupId: targetGroupId.length === 0 ? null : targetGroupId,
+    targetRole: targetRole.length === 0 ? null : targetRole,
+    targetUserId: targetUserId.length === 0 ? null : targetUserId,
+    reason: input.reason,
+  };
+}
+

@@ -88,6 +88,8 @@ function defaultEscalationRule(
     slaProfileId: state.slaProfileId ?? '',
     triggerOffsetMinutes: 0,
     targetGroupId: null,
+    targetRole: null,
+    targetUserId: null,
   };
 }
 

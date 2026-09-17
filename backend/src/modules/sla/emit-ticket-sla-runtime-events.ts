@@ -64,10 +64,13 @@ export async function emitTicketSlaRuntimeEvents(
           : slaSystemEventActions.resolutionEscalated,
       before: { ...input.next, firedEscalationKeys: [...previousKeys] },
       after: input.next,
+      escalationRuleId: rule.id,
       extraAfter: {
         kind: parsed.kind,
         slaEscalationRuleId: rule.id,
         targetGroupId: rule.targetGroupId,
+        targetRole: rule.targetRole,
+        targetUserId: rule.targetUserId,
         triggerOffsetMinutes: rule.triggerOffsetMinutes,
       },
     });
@@ -88,5 +91,7 @@ function findRule(
     slaProfileId: state.slaProfileId ?? '',
     triggerOffsetMinutes: 0,
     targetGroupId: null,
+    targetRole: null,
+    targetUserId: null,
   };
 }

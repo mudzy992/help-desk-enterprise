@@ -93,3 +93,24 @@ export type RuleWriteInput = {
   readonly serviceId: string;
   readonly reason: string;
 };
+
+export type SlaEscalationRule = {
+  readonly id: string;
+  readonly slaProfileId: string;
+  readonly triggerOffsetMinutes: number;
+  readonly level: number;
+  readonly targetGroupId: string | null;
+  readonly targetRole: string | null;
+  readonly targetUserId: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};
+
+export type EscalationRuleWriteInput = {
+  readonly slaProfileId?: string;
+  readonly triggerOffsetMinutes: number;
+  readonly targetGroupId: string;
+  readonly targetRole: string;
+  readonly targetUserId: string;
+  readonly reason: string;
+};

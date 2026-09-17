@@ -24,6 +24,8 @@ export async function fanOutInAppNotifications(
     type: mapped.type,
     ticket,
     actorUserId: payload.authorUserId,
+    event: mapped.event,
+    messageBody: payload.body,
   });
   const content = buildNotificationContent(
     mapped,

@@ -10,6 +10,10 @@ import { TicketRealtimeHub } from '../../tickets/ticket-realtime.hub';
 import { fanOutEmailNotifications } from '../email/fan-out-email-notifications';
 import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
 import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
+import {
+  clearSlaRuntimeNotificationChannels,
+  registerSlaRuntimeNotificationChannels,
+} from './dispatch-sla-runtime-notification';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
@@ -33,10 +37,16 @@ export class NotificationsFanOutService
     this.unsubscribe = this.ticketRealtimeHub.subscribe((payload) => {
       void this.ingest(payload);
     });
+    registerSlaRuntimeNotificationChannels({
+      publish: (payload) => {
+        void this.ingest(payload);
+      },
+    });
   }
 
   onModuleDestroy(): void {
     this.unsubscribe?.();
+    clearSlaRuntimeNotificationChannels();
   }
 
   private async ingest(payload: TicketRealtimeMessagePayload): Promise<void> {

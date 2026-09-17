@@ -6,6 +6,8 @@ import { SettingsModule } from '../settings/settings.module';
 import { SlaCalendarsController } from './sla-calendars.controller';
 import { SlaCalendarsService } from './sla-calendars.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
+import { SlaEscalationRulesController } from './sla-escalation-rules.controller';
+import { SlaEscalationRulesService } from './sla-escalation-rules.service';
 import { SlaProfilesController } from './sla-profiles.controller';
 import { SlaProfilesService } from './sla-profiles.service';
 import { SlaRulesController } from './sla-rules.controller';
@@ -25,12 +27,14 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaCalendarsController,
     SlaProfilesController,
     SlaRulesController,
+    SlaEscalationRulesController,
   ],
   providers: [
     SlaConfigurationLoader,
     SlaCalendarsService,
     SlaProfilesService,
     SlaRulesService,
+    SlaEscalationRulesService,
     TicketSlaTimersService,
     TicketSlaBreachScannerService,
     StartingSlaSeedService,
@@ -39,6 +43,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaCalendarsService,
     SlaProfilesService,
     SlaRulesService,
+    SlaEscalationRulesService,
     TicketSlaTimersService,
   ],
 })
