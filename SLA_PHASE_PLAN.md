@@ -105,16 +105,23 @@
 **Problem:** vidi nalaz #6. Referenca prikazuje "Usklađenost (30 dana)" — % tiketa unutar SLA cilja, po profilu, response i resolution odvojeno. Ne postoji nigdje u kodu.
 
 1. **Backend:**
-   - Nova agregacija (u `sla` ili `reports` modulu — odluči gdje logički pripada, vjerovatno `reports` jer je to već agregacioni sloj iz ranijih faza; ako ide u `sla`, objasni zašto odstupaš) — za dati period (default 30 dana), po profilu: % tiketa gdje `isResponseBreached=false` na trenutku RESOLVED/CLOSED (response compliance), isto za resolution.
-   - Endpoint (novi ili prošireni postojeći `reports`/`sla` GET) koji vraća ovu metriku.
-   - Test: agregacija tačno računa % na poznatom test datasetu.
+   - [x] Nova agregacija (u `sla` ili `reports` modulu — odluči gdje logički pripada, vjerovatno `reports` jer je to već agregacioni sloj iz ranijih faza; ako ide u `sla`, objasni zašto odstupaš) — za dati period (default 30 dana), po profilu: % tiketa gdje `isResponseBreached=false` na trenutku RESOLVED/CLOSED (response compliance), isto za resolution.
+   - [x] Endpoint (novi ili prošireni postojeći `reports`/`sla` GET) koji vraća ovu metriku.
+   - [x] Test: agregacija tačno računa % na poznatom test datasetu.
 
 2. **Frontend:**
-   - Prikaz ide u **Fazu 6** (redizajn) kao "Usklađenost" kartica — u ovoj fazi samo backend + API klijent poziv spreman za ugradnju.
+   - [x] Prikaz ide u **Fazu 6** (redizajn) kao "Usklađenost" kartica — u ovoj fazi samo backend + API klijent poziv spreman za ugradnju.
 
 **Ograničenje:** ne pravi punu vizuelnu karticu ovdje ako Faza 6 još nije urađena — samo osiguraj da je podatak dostupan i tipiziran na frontendu (`services/sla-api.ts` ili `services/reports-api.ts`).
 
 **Verifikacija:** endpoint vraća tačne brojeve na test podacima; `npm run test`/`build`.
+
+**Handoff / poznata ograničenja:**
+- Modul: `sla` (ne `reports`) — metrika je po profilu, globalno; `reports` forsira OU scope + `reports.export`, a SLA admin stranica (Faza 6) koristi `/sla/*`.
+- Endpoint: `GET /sla/compliance?days=30` (admin read, bez `slaWrite`).
+- Dataset: terminal statusi `RESOLVED`/`CLOSED`/`ARCHIVED` sa `TicketSlaState.slaProfileId != null`; `completionAt = closedAt ?? resolvedAt` mora pasti u rolling window; bez state/profila se isključuju.
+- Response/resolution %: udio gdje breach flag === false; `sampleCount === 0` ⇒ percenti `null`.
+- Frontend: `fetchSlaCompliance` u `sla-api.ts` — bez UI kartice (Faza 6).
 
 ---
 

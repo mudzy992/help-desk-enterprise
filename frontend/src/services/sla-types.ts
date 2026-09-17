@@ -114,3 +114,21 @@ export type EscalationRuleWriteInput = {
   readonly targetUserId: string;
   readonly reason: string;
 };
+
+export type SlaComplianceProfileRow = {
+  readonly slaProfileId: string;
+  readonly profileKey: string;
+  readonly profileName: string;
+  readonly sampleCount: number;
+  readonly responseCompliancePercent: number | null;
+  readonly resolutionCompliancePercent: number | null;
+};
+
+export type SlaComplianceResponse = {
+  readonly window: { readonly from: string; readonly to: string };
+  readonly profiles: readonly SlaComplianceProfileRow[];
+};
+
+export type SlaComplianceQuery = {
+  readonly days?: number;
+};

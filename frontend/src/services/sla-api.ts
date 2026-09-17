@@ -6,6 +6,8 @@ import type {
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
+  SlaComplianceQuery,
+  SlaComplianceResponse,
   SlaEscalationRule,
   SlaProfile,
   SlaRule,
@@ -18,6 +20,9 @@ export type {
   ProfileWriteInput,
   RuleWriteInput,
   SlaChangeLogEntry,
+  SlaComplianceProfileRow,
+  SlaComplianceQuery,
+  SlaComplianceResponse,
   SlaEscalationRule,
   SlaHoliday,
   SlaProfile,
@@ -166,6 +171,15 @@ export function deleteSlaEscalationRule(ruleId: string, reason: string): Promise
     method: "DELETE",
     body: JSON.stringify({ reason }),
   });
+}
+
+export function fetchSlaCompliance(
+  query: SlaComplianceQuery = {},
+): Promise<SlaComplianceResponse> {
+  if (query.days === undefined) {
+    return apiRequest("/sla/compliance");
+  }
+  return apiRequest(`/sla/compliance?days=${query.days}`);
 }
 
 function toRulePayload(input: RuleWriteInput) {
