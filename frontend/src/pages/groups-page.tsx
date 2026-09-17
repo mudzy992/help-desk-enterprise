@@ -9,6 +9,7 @@ import { controlCompactClassName } from "@/components/ui/control";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
+import { countRoutingRulesByGroup } from "@/lib/groups/count-routing-rules-by-group";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -19,6 +20,7 @@ import {
   listGroups,
   type GroupListItemResponse,
 } from "@/services/groups-api";
+import { listRoutingRules } from "@/services/routing-api";
 
 interface GroupsPageProperties {
   readonly embedded?: boolean;
@@ -30,6 +32,9 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   const { hasPermission } = useSessionCapabilities();
   const canWrite = hasPermission(permissionKeys.groupManage);
   const [groups, setGroups] = useState<readonly GroupListItemResponse[]>([]);
+  const [routingRuleCounts, setRoutingRuleCounts] = useState<ReadonlyMap<string, number>>(
+    () => new Map(),
+  );
   const [filterUnitId, setFilterUnitId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<GroupsErrorKey | null>(null);
@@ -43,10 +48,15 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
     setErrorKey(null);
     setRequestId(null);
     try {
-      const loaded = await listGroups(filterUnitId.length > 0 ? filterUnitId : undefined);
+      const [loaded, rules] = await Promise.all([
+        listGroups(filterUnitId.length > 0 ? filterUnitId : undefined),
+        listRoutingRules().catch(() => []),
+      ]);
       setGroups(loaded);
+      setRoutingRuleCounts(countRoutingRulesByGroup(rules));
     } catch (error) {
       setGroups([]);
+      setRoutingRuleCounts(new Map());
       setErrorKey(mapGroupsError(error));
       setRequestId(readApiRequestId(error));
     } finally {
@@ -123,6 +133,7 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
           ) : (
             <GroupsPanel
               groups={groups}
+              routingRuleCounts={routingRuleCounts}
               originUnits={originUnits}
               users={directory.users}
               canWrite={canWrite}

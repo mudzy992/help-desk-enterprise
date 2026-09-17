@@ -1,26 +1,21 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { GroupMembersSection } from "@/components/groups/group-members-section";
+import { GroupDetailSlot } from "@/components/groups/group-detail-slot";
 import { GroupMutationForm } from "@/components/groups/group-mutation-form";
+import { GroupUnitSection } from "@/components/groups/group-unit-section";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
-import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
-import { readApiRequestId } from "@/lib/map-api-error";
+import { groupGroupsByUnit } from "@/lib/groups/group-groups-by-unit";
+import { useGroupsPanelActions } from "@/lib/groups/use-groups-panel-actions";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
-import {
-  deleteGroup,
-  getGroup,
-  updateGroup,
-  type GroupListItemResponse,
-  type GroupResponse,
-} from "@/services/groups-api";
+import type { GroupListItemResponse } from "@/services/groups-api";
 
 interface GroupsPanelProperties {
   readonly groups: readonly GroupListItemResponse[];
+  readonly routingRuleCounts: ReadonlyMap<string, number>;
   readonly originUnits: readonly OriginUnitOption[];
   readonly users: readonly DirectoryUser[];
   readonly canWrite: boolean;
@@ -38,6 +33,7 @@ interface GroupsPanelProperties {
 
 export function GroupsPanel({
   groups,
+  routingRuleCounts,
   originUnits,
   users,
   canWrite,
@@ -49,47 +45,8 @@ export function GroupsPanel({
   createPending,
 }: GroupsPanelProperties) {
   const { t } = useTranslation();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandedGroup, setExpandedGroup] = useState<GroupResponse | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [errorKey, setErrorKey] = useState<GroupsErrorKey | null>(null);
-  const [requestId, setRequestId] = useState<string | null>(null);
-
-  const openGroup = async (groupId: string) => {
-    if (expandedId === groupId) {
-      setExpandedId(null);
-      setExpandedGroup(null);
-      return;
-    }
-    setExpandedId(groupId);
-    setExpandedGroup(null);
-    try {
-      setExpandedGroup(await getGroup(groupId));
-    } catch (error) {
-      setErrorKey(mapGroupsError(error));
-      setRequestId(readApiRequestId(error));
-    }
-  };
-
-  const remove = async (groupId: string) => {
-    setPendingId(groupId);
-    setErrorKey(null);
-    setRequestId(null);
-    try {
-      await deleteGroup(groupId);
-      setConfirmDeleteId(null);
-      setExpandedId(null);
-      setExpandedGroup(null);
-      await onChanged();
-    } catch (error) {
-      setErrorKey(mapGroupsError(error));
-      setRequestId(readApiRequestId(error));
-    } finally {
-      setPendingId(null);
-    }
-  };
+  const actions = useGroupsPanelActions(onChanged);
+  const sections = useMemo(() => groupGroupsByUnit(groups), [groups]);
 
   if (groups.length === 0 && !showCreateForm) {
     return (
@@ -109,8 +66,10 @@ export function GroupsPanel({
   }
 
   return (
-    <div className="grid gap-3">
-      {errorKey ? <ApiErrorText messageKey={errorKey} requestId={requestId} /> : null}
+    <div className="grid gap-4">
+      {actions.errorKey ? (
+        <ApiErrorText messageKey={actions.errorKey} requestId={actions.requestId} />
+      ) : null}
       {showCreateForm ? (
         <GroupMutationForm
           originUnits={originUnits}
@@ -119,89 +78,51 @@ export function GroupsPanel({
           onCancel={onCancelCreate}
         />
       ) : null}
-      {groups.map((group) => (
-        <Card key={group.id} className="px-4 py-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[13.5px] font-semibold text-foreground">{group.name}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                {group.organizationalUnitPath}
-                {group.isFallback ? ` · ${t("groups.fallbackBadge")}` : ""}
-                {` · ${t("groups.memberCount", { count: group.memberCount })}`}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Button type="button" size="xs" variant="outline" onClick={() => void openGroup(group.id)}>
-                {expandedId === group.id ? t("groups.hideMembers") : t("groups.manageMembers")}
-              </Button>
-              {canWrite ? (
-                <>
-                  <Button type="button" size="xs" variant="outline" onClick={() => setEditingId(group.id)}>
-                    {t("groups.edit")}
-                  </Button>
-                  {confirmDeleteId === group.id ? (
-                    <>
-                      <Button
-                        type="button"
-                        size="xs"
-                        variant="danger"
-                        disabled={pendingId !== null}
-                        onClick={() => void remove(group.id)}
-                      >
-                        {pendingId === group.id ? t("groups.deleting") : t("groups.confirmDelete")}
-                      </Button>
-                      <Button type="button" size="xs" variant="ghost" onClick={() => setConfirmDeleteId(null)}>
-                        {t("groups.cancel")}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button type="button" size="xs" variant="danger" onClick={() => setConfirmDeleteId(group.id)}>
-                      {t("groups.delete")}
-                    </Button>
-                  )}
-                </>
-              ) : null}
-            </div>
-          </div>
-          {editingId === group.id ? (
-            <div className="mt-3">
-              <GroupMutationForm
-                originUnits={originUnits}
-                initial={group}
-                pending={pendingId === group.id}
-                onSubmit={(input) => {
-                  setPendingId(group.id);
-                  void updateGroup(group.id, {
-                    name: input.name,
-                    isFallback: input.isFallback,
-                  })
-                    .then(async () => {
-                      setEditingId(null);
-                      await onChanged();
-                    })
-                    .catch((error) => {
-                      setErrorKey(mapGroupsError(error));
-                      setRequestId(readApiRequestId(error));
-                    })
-                    .finally(() => setPendingId(null));
-                }}
-                onCancel={() => setEditingId(null)}
-              />
-            </div>
-          ) : null}
-          {expandedId === group.id && expandedGroup !== null ? (
-            <GroupMembersSection
-              group={expandedGroup}
-              users={users}
-              canWrite={canWrite}
-              onChanged={(updated) => {
-                setExpandedGroup(updated);
-                void onChanged();
-              }}
-            />
-          ) : null}
-        </Card>
-      ))}
+      {sections.map((section) => {
+        const activeId = actions.editingId ?? actions.expandedId;
+        const showDetail =
+          activeId !== null && section.groups.some((group) => group.id === activeId);
+        return (
+          <GroupUnitSection
+            key={section.organizationalUnitId}
+            organizationalUnitPath={section.organizationalUnitPath}
+            groups={section.groups}
+            routingRuleCounts={routingRuleCounts}
+            expandedId={actions.expandedId}
+            canWrite={canWrite}
+            confirmDeleteId={actions.confirmDeleteId}
+            pendingId={actions.pendingId}
+            detail={
+              showDetail ? (
+                <GroupDetailSlot
+                  loadingLabel={t("groups.loadingDetail")}
+                  originUnits={originUnits}
+                  users={users}
+                  canWrite={canWrite}
+                  editingGroup={
+                    actions.editingId === null
+                      ? undefined
+                      : groups.find((group) => group.id === actions.editingId)
+                  }
+                  expandedGroup={actions.expandedGroup}
+                  isPending={actions.pendingId === actions.editingId}
+                  onSaveEdit={actions.saveEdit}
+                  onCancelEdit={() => actions.setEditingId(null)}
+                  onMembersChanged={(updated) => {
+                    actions.setExpandedGroup(updated);
+                    void onChanged();
+                  }}
+                />
+              ) : null
+            }
+            onOpen={(groupId) => void actions.openGroup(groupId)}
+            onEdit={actions.startEdit}
+            onRequestDelete={actions.setConfirmDeleteId}
+            onConfirmDelete={(groupId) => void actions.remove(groupId)}
+            onCancelDelete={() => actions.setConfirmDeleteId(null)}
+          />
+        );
+      })}
     </div>
   );
 }
