@@ -139,6 +139,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.knowledgeBase.reviewCycle.enabled` (private, boolean, default `true`)
 - `private.knowledgeBase.reviewCycle.defaultReviewDays` (private, number, default `180`)
 - `private.knowledgeBase.reviewCycle.staleAfterDays` (private, number, default `365`)
+- `private.knowledgeBase.reviewCycle.remindDaysBefore` (private, number, default `14`)
 - `private.knowledgeBase.feedback.enabled` (private, boolean, default `true`)
 - `private.knowledgeBase.feedback.oneVotePerUserPerArticle` (private, boolean, default `true`)
 - `private.knowledgeBase.ranking.useFeedbackWeight` (private, boolean, default `true`)

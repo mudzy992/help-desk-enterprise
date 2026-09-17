@@ -38,6 +38,7 @@ model User {
   ownedArticles        KnowledgeArticle[]         @relation("KnowledgeArticleOwner")
   reviewedArticles     KnowledgeArticle[]         @relation("KnowledgeArticleReviewer")
   knowledgeFeedbacks   KnowledgeFeedback[]
+  knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   notifications                   Notification[]
   notificationEmailDeliveries     NotificationEmailDelivery[]
   auditLogs                       AuditLog[]

@@ -18,7 +18,7 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import { activeFormVersion, getServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
-import { interceptKnowledgeArticles, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
+import { interceptKnowledgeArticles, resolveKnowledgeIntercept, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
 import { createTicket } from "@/services/tickets-api";
 
 const emptyDraft: CreateTicketDraft = {
@@ -134,7 +134,15 @@ export function CreateTicketForm() {
         isSubmitting={isSubmitting}
         items={suggestions}
         helped={helped}
-        onHelped={() => setHelped(true)}
+        onHelped={() => {
+          void resolveKnowledgeIntercept({
+            serviceId: draft.serviceId,
+            organizationalUnitId: draft.originUnitId,
+            articleId: suggestions[0]?.id,
+          }).finally(() => {
+            setHelped(true);
+          });
+        }}
         onContinue={() => setStep(3)}
         onBack={() => setStep(1)}
       />

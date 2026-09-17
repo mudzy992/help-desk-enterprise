@@ -24,6 +24,7 @@ export type KnowledgeArticleResponse = {
   readonly organizationalUnitId: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly viewerFeedback?: boolean | null;
 };
 
 export type KnowledgeInterceptSuggestion = {
@@ -51,6 +52,9 @@ export type CreateKnowledgeArticleInput = {
 export type UpdateKnowledgeArticleInput = {
   readonly title?: string;
   readonly body?: string;
+  readonly ownerUserId?: string | null;
+  readonly ownerGroupId?: string | null;
+  readonly reviewerUserId?: string | null;
   readonly classification?: string;
   readonly reason: string;
 };
@@ -62,13 +66,37 @@ export type KnowledgeLifecycleAction =
   | "publish"
   | "archive";
 
+export type ListKnowledgeArticlesParams = {
+  readonly q?: string;
+  readonly status?: KnowledgeArticleStatus;
+  readonly serviceId?: string;
+  readonly staleOnly?: boolean;
+};
+
 export function listKnowledgeArticles(
-  serviceId?: string,
+  params: ListKnowledgeArticlesParams | string = {},
 ): Promise<readonly KnowledgeArticleResponse[]> {
-  const suffix =
-    serviceId === undefined || serviceId.length === 0
-      ? ""
-      : `?serviceId=${encodeURIComponent(serviceId)}`;
+  const normalized =
+    typeof params === "string"
+      ? { serviceId: params.length > 0 ? params : undefined }
+      : params;
+  const search = new URLSearchParams();
+  if (normalized.q !== undefined && normalized.q.trim().length > 0) {
+    search.set("q", normalized.q.trim());
+  }
+  if (normalized.status !== undefined) {
+    search.set("status", normalized.status);
+  }
+  if (
+    normalized.serviceId !== undefined &&
+    normalized.serviceId.length > 0
+  ) {
+    search.set("serviceId", normalized.serviceId);
+  }
+  if (normalized.staleOnly === true) {
+    search.set("staleOnly", "true");
+  }
+  const suffix = search.size === 0 ? "" : `?${search.toString()}`;
   return apiRequest(`/knowledge-base/articles${suffix}`);
 }
 
@@ -97,6 +125,16 @@ export function updateKnowledgeArticle(
   });
 }
 
+export function deleteKnowledgeArticle(
+  articleId: string,
+  reason: string,
+): Promise<void> {
+  return apiRequest(`/knowledge-base/articles/${articleId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ reason }),
+  });
+}
+
 export function runKnowledgeLifecycleAction(
   articleId: string,
   action: KnowledgeLifecycleAction,
@@ -113,6 +151,17 @@ export function interceptKnowledgeArticles(input: {
   readonly query?: string;
 }): Promise<{ readonly articles: readonly KnowledgeInterceptSuggestion[] }> {
   return apiRequest("/knowledge-base/intercept", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function resolveKnowledgeIntercept(input: {
+  readonly serviceId: string;
+  readonly organizationalUnitId: string;
+  readonly articleId?: string;
+}): Promise<{ readonly id: string }> {
+  return apiRequest("/knowledge-base/intercept/resolve", {
     method: "POST",
     body: JSON.stringify(input),
   });

@@ -13,6 +13,8 @@ export type ReportDashboardKpis = {
   readonly csatAverage: number | null;
   readonly csatCount: number;
   readonly csatScaleMax: number;
+  readonly kbHelpedCount: number;
+  readonly kbResolutionRate: number | null;
 };
 
 export function previousReportWindow(window: ReportWindow): ReportWindow {
@@ -28,6 +30,7 @@ export function aggregateReportDashboardKpis(input: {
   readonly csatByTicketId: ReadonlyMap<string, TicketCsatRecord>;
   readonly window: ReportWindow;
   readonly previousWindow: ReportWindow;
+  readonly kbHelpedCount?: number;
 }): ReportDashboardKpis {
   const createdCount = countCreated(input.tickets, input.window);
   const previousCreated = countCreated(input.tickets, input.previousWindow);
@@ -49,6 +52,8 @@ export function aggregateReportDashboardKpis(input: {
     input.csatByTicketId,
     input.window,
   );
+  const kbHelpedCount = input.kbHelpedCount ?? 0;
+  const kbDenominator = kbHelpedCount + createdCount;
   return {
     createdCount,
     createdDeltaPercent: percentChange(createdCount, previousCreated),
@@ -67,6 +72,9 @@ export function aggregateReportDashboardKpis(input: {
     csatAverage: csat.average,
     csatCount: csat.count,
     csatScaleMax: csat.scaleMax,
+    kbHelpedCount,
+    kbResolutionRate:
+      kbDenominator === 0 ? null : kbHelpedCount / kbDenominator,
   };
 }
 

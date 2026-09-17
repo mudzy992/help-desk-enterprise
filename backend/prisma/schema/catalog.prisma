@@ -34,6 +34,7 @@ model Service {
   tickets              Ticket[]
   slaRules             SlaRule[]
   knowledgeArticles    KnowledgeArticle[]
+  knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   closeCodes           CloseCode[]
   userRoles            UserRole[]
   createdAt            DateTime                @default(now())

@@ -17,6 +17,7 @@ model OrganizationalUnit {
   routingRules       RoutingRule[]
   slaRules           SlaRule[]
   knowledgeArticles  KnowledgeArticle[]
+  knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   userRoles          UserRole[]
   auditLogs          AuditLog[]
   createdAt          DateTime                @default(now())

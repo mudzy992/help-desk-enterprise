@@ -72,7 +72,7 @@ export function KnowledgeArticleSearchCard({
         />
         <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground/70 md:flex">
           <ArrowDownUp size={12} aria-hidden="true" />
-          {t("knowledgeBase.rankedByHelpfulness")}
+          {t("knowledgeBase.rankedByFullText")}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 px-4 py-2.5">

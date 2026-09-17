@@ -7,6 +7,7 @@ export function parseKnowledgeBaseConfiguration(input: {
   readonly reviewCycleEnabled: unknown;
   readonly defaultReviewDays: unknown;
   readonly staleAfterDays: unknown;
+  readonly remindDaysBefore: unknown;
   readonly feedbackEnabled: unknown;
   readonly oneVotePerUserPerArticle: unknown;
   readonly useFeedbackWeight: unknown;
@@ -28,6 +29,10 @@ export function parseKnowledgeBaseConfiguration(input: {
       input.staleAfterDays,
       defaultKnowledgeBaseConfiguration.staleAfterDays,
     ),
+    remindDaysBefore: readPositiveNumber(
+      input.remindDaysBefore,
+      defaultKnowledgeBaseConfiguration.remindDaysBefore,
+    ),
     feedbackEnabled: readBoolean(
       input.feedbackEnabled,
       defaultKnowledgeBaseConfiguration.feedbackEnabled,
@@ -48,6 +53,7 @@ export const knowledgeBaseSettingKeyList = [
   settingKeys.privateKnowledgeBaseReviewCycleEnabled,
   settingKeys.privateKnowledgeBaseReviewCycleDefaultReviewDays,
   settingKeys.privateKnowledgeBaseReviewCycleStaleAfterDays,
+  settingKeys.privateKnowledgeBaseReviewCycleRemindDaysBefore,
   settingKeys.privateKnowledgeBaseFeedbackEnabled,
   settingKeys.privateKnowledgeBaseFeedbackOneVotePerUserPerArticle,
   settingKeys.privateKnowledgeBaseRankingUseFeedbackWeight,

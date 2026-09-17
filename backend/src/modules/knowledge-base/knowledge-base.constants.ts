@@ -25,6 +25,7 @@ export const defaultKnowledgeBaseConfiguration: KnowledgeBaseConfiguration = {
   reviewCycleEnabled: true,
   defaultReviewDays: 180,
   staleAfterDays: 365,
+  remindDaysBefore: 14,
   feedbackEnabled: true,
   oneVotePerUserPerArticle: true,
   useFeedbackWeight: true,
@@ -37,6 +38,8 @@ export const knowledgeBaseConstants = {
   maximumQueryLength: 500,
   interceptLimit: 8,
 } as const;
+
+export const knowledgeBaseReviewReminderIntervalMs = 15 * 60 * 1000;
 
 export const dataClassificationLevels = [
   'INTERNAL',

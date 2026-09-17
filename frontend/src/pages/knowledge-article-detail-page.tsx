@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useKnowledgeArticle } from "@/lib/knowledge-base/use-knowledge-article";
-import { permissionKeys } from "@/lib/session/permission-keys";
+import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import { listServices } from "@/services/service-catalog-api";
@@ -18,7 +18,9 @@ export function KnowledgeArticleDetailPage() {
   const { t } = useTranslation();
   const { articleId } = useParams<{ articleId: string }>();
   const directory = useDirectory();
-  const { hasPermission } = useSessionCapabilities();
+  const { hasPermission, hasRole, session } = useSessionCapabilities();
+  const isSuperAdmin =
+    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const detail = useKnowledgeArticle(articleId);
   const [serviceName, setServiceName] = useState<string | null>(null);
   const ownerNames = useMemo(
@@ -85,6 +87,8 @@ export function KnowledgeArticleDetailPage() {
           article={detail.article}
           canWrite={canWrite}
           canManageLifecycle={canManageLifecycle}
+          isSuperAdmin={isSuperAdmin}
+          users={directory.users}
           ownerNames={ownerNames}
           serviceName={
             serviceName ?? truncateIdentifier(detail.article.serviceId)

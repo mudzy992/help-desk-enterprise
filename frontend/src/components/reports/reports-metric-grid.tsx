@@ -42,7 +42,7 @@ export function ReportsMetricGrid({
       <TrendingUp size={15} />
     );
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
       <StatCard
         label={createdLabel}
         value={kpis.createdCount}
@@ -54,6 +54,27 @@ export function ReportsMetricGrid({
         deltaTone={deltaTone(kpis.createdDeltaPercent, true)}
         hint={t("reports.hintCreated", { count: kpis.createdCount })}
         icon={createdIcon}
+      />
+      <StatCard
+        label={t("reports.metricKbResolution")}
+        value={
+          kpis.kbResolutionRate === null
+            ? empty
+            : `${Math.round(kpis.kbResolutionRate * 100)}%`
+        }
+        delta={
+          kpis.kbHelpedCount === 0
+            ? undefined
+            : t("reports.deltaKbHelped", { count: kpis.kbHelpedCount })
+        }
+        deltaTone={
+          kpis.kbResolutionRate === null
+            ? "neutral"
+            : kpis.kbResolutionRate >= 0.3
+              ? "success"
+              : "warning"
+        }
+        hint={t("reports.hintKbResolution")}
       />
       <StatCard
         label={t("reports.metricFirstResponse")}

@@ -206,6 +206,8 @@ export const settingKeys = {
     'private.knowledgeBase.reviewCycle.defaultReviewDays',
   privateKnowledgeBaseReviewCycleStaleAfterDays:
     'private.knowledgeBase.reviewCycle.staleAfterDays',
+  privateKnowledgeBaseReviewCycleRemindDaysBefore:
+    'private.knowledgeBase.reviewCycle.remindDaysBefore',
   privateKnowledgeBaseFeedbackEnabled: 'private.knowledgeBase.feedback.enabled',
   privateKnowledgeBaseFeedbackOneVotePerUserPerArticle:
     'private.knowledgeBase.feedback.oneVotePerUserPerArticle',

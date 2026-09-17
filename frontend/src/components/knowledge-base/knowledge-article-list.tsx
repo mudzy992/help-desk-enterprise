@@ -20,10 +20,12 @@ interface KnowledgeArticleListProperties {
   readonly items: readonly KnowledgeArticleResponse[];
   readonly canManageLifecycle: boolean;
   readonly isFiltered: boolean;
+  readonly searchQuery: string;
   readonly ownerNames: ReadonlyMap<string, string>;
   readonly serviceNames: ReadonlyMap<string, string>;
   readonly canWrite: boolean;
   readonly onCreate: () => void;
+  readonly onCreateForQuery: () => void;
   readonly onClearFilters: () => void;
   readonly onFeedback: () => Promise<void>;
 }
@@ -52,23 +54,36 @@ export function KnowledgeArticleList({
   items,
   canManageLifecycle,
   isFiltered,
+  searchQuery,
   ownerNames,
   serviceNames,
   canWrite,
   onCreate,
+  onCreateForQuery,
   onClearFilters,
   onFeedback,
 }: KnowledgeArticleListProperties) {
   const { t, i18n } = useTranslation();
   if (items.length === 0) {
+    const hasQuery = searchQuery.trim().length > 0;
     return (
       <Card>
         <EmptyState
           icon={isFiltered ? <ShieldQuestion size={18} /> : undefined}
           title={t(isFiltered ? "knowledgeBase.emptyFilterTitle" : "knowledgeBase.emptyTitle")}
-          body={t(isFiltered ? "knowledgeBase.emptyFilterHint" : "knowledgeBase.emptyHint")}
+          body={t(
+            hasQuery
+              ? "knowledgeBase.emptyQueryHint"
+              : isFiltered
+                ? "knowledgeBase.emptyFilterHint"
+                : "knowledgeBase.emptyHint",
+          )}
           action={
-            isFiltered ? (
+            hasQuery && canWrite ? (
+              <Button type="button" size="sm" variant="primary" onClick={onCreateForQuery}>
+                {t("knowledgeBase.createForQuery", { query: searchQuery.trim() })}
+              </Button>
+            ) : isFiltered ? (
               <Button type="button" size="sm" variant="outline" onClick={onClearFilters}>
                 {t("knowledgeBase.clearFilters")}
               </Button>
@@ -134,7 +149,12 @@ export function KnowledgeArticleList({
                     <button
                       type="button"
                       aria-label={t("knowledgeBase.helpful")}
-                      className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+                      className={cn(
+                        "rounded-md border p-1.5 transition-colors",
+                        item.viewerFeedback === true
+                          ? "border-success/45 bg-success/12 text-[#4ADE80]"
+                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                      )}
                       onClick={() => {
                         void submitKnowledgeFeedback(item.id, true).then(onFeedback);
                       }}
@@ -144,7 +164,12 @@ export function KnowledgeArticleList({
                     <button
                       type="button"
                       aria-label={t("knowledgeBase.notHelpful")}
-                      className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+                      className={cn(
+                        "rounded-md border p-1.5 transition-colors",
+                        item.viewerFeedback === false
+                          ? "border-danger/45 bg-danger/12 text-danger"
+                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                      )}
                       onClick={() => {
                         void submitKnowledgeFeedback(item.id, false).then(onFeedback);
                       }}

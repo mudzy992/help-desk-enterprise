@@ -24,6 +24,9 @@ export class KnowledgeBaseConfigurationLoader {
         staleAfterDays: await this.settingsService.getSetting(
           settingKeys.privateKnowledgeBaseReviewCycleStaleAfterDays,
         ),
+        remindDaysBefore: await this.settingsService.getSetting(
+          settingKeys.privateKnowledgeBaseReviewCycleRemindDaysBefore,
+        ),
         feedbackEnabled: await this.settingsService.getSetting(
           settingKeys.privateKnowledgeBaseFeedbackEnabled,
         ),

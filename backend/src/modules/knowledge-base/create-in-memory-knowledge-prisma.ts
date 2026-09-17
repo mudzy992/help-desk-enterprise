@@ -18,6 +18,17 @@ export function createInMemoryKnowledgePrisma() {
   const members = new Map<string, InMemoryGroupMember>();
   const articles = new Map<string, KnowledgeArticleRecord>();
   const feedbacks = new Map();
+  const interceptResolutions = new Map<
+    string,
+    {
+      id: string;
+      userId: string;
+      serviceId: string;
+      organizationalUnitId: string;
+      primaryArticleId: string | null;
+      createdAt: Date;
+    }
+  >();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   let nextIdentifier = 1;
   const now = () => new Date('2026-09-11T12:00:00.000Z');
@@ -71,6 +82,58 @@ export function createInMemoryKnowledgePrisma() {
       nextId,
       now,
     ),
+    knowledgeInterceptResolution: {
+      create: async ({
+        data,
+        select,
+      }: {
+        data: {
+          userId: string;
+          serviceId: string;
+          organizationalUnitId: string;
+          primaryArticleId: string | null;
+        };
+        select?: { id?: boolean };
+      }) => {
+        const created = {
+          id: nextId(),
+          ...data,
+          createdAt: now(),
+        };
+        interceptResolutions.set(created.id, created);
+        return select?.id === true ? { id: created.id } : created;
+      },
+      count: async ({
+        where,
+      }: {
+        where?: {
+          createdAt?: { gte?: Date; lte?: Date };
+          organizationalUnitId?: { in: readonly string[] };
+        };
+      } = {}) => {
+        return [...interceptResolutions.values()].filter((row) => {
+          if (
+            where?.organizationalUnitId?.in !== undefined &&
+            !where.organizationalUnitId.in.includes(row.organizationalUnitId)
+          ) {
+            return false;
+          }
+          if (
+            where?.createdAt?.gte !== undefined &&
+            row.createdAt < where.createdAt.gte
+          ) {
+            return false;
+          }
+          if (
+            where?.createdAt?.lte !== undefined &&
+            row.createdAt > where.createdAt.lte
+          ) {
+            return false;
+          }
+          return true;
+        }).length;
+      },
+    },
     changeLog: {
       create: async ({ data }: { data: InMemoryTicketChangeLog }) => {
         changeLogs.push(data);

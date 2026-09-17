@@ -29,6 +29,14 @@ export const knowledgeBaseSettings: readonly SettingDefinition[] = [
     defaultValue: 365,
   }),
   definePrivateSetting({
+    key: settingKeys.privateKnowledgeBaseReviewCycleRemindDaysBefore,
+    categoryId: settingCategoryIds.privateKnowledgeBase,
+    valueType: 'number',
+    description: 'Days before reviewDueAt to send an in-app owner reminder',
+    isRequired: true,
+    defaultValue: 14,
+  }),
+  definePrivateSetting({
     key: settingKeys.privateKnowledgeBaseFeedbackEnabled,
     categoryId: settingCategoryIds.privateKnowledgeBase,
     valueType: 'boolean',

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { createKnowledgeArticle } from './create-knowledge-article';
+import { deleteKnowledgeArticle } from './delete-knowledge-article';
 import { executeKnowledgeBaseOperation } from './execute-knowledge-base-operation';
 import { getKnowledgeArticle } from './get-knowledge-article';
 import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
@@ -9,10 +10,12 @@ import type {
   CreateKnowledgeArticleInput,
   KnowledgeArticleMutationContext,
   KnowledgeArticleResponse,
+  KnowledgeLifecycleInput,
   ListKnowledgeArticlesQuery,
   UpdateKnowledgeArticleInput,
 } from './knowledge-base.types';
 import { listKnowledgeArticles } from './list-knowledge-articles';
+import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
 import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
 import { updateKnowledgeArticle } from './update-knowledge-article';
 import { withKnowledgeArticleFreshness } from './with-knowledge-article-freshness';
@@ -54,10 +57,20 @@ export class KnowledgeBaseService {
         query,
         context,
       );
-      return records.map((record) =>
-        toKnowledgeArticleResponse(
+      const fresh = records
+        .map((record) =>
           withKnowledgeArticleFreshness(record, configuration, now),
-        ),
+        )
+        .filter(
+          (record) => query.staleOnly !== true || record.isStale === true,
+        );
+      const votes = await loadViewerKnowledgeFeedbackVotes(
+        this.prisma,
+        context.actorUserId,
+        fresh.map((record) => record.id),
+      );
+      return fresh.map((record) =>
+        toKnowledgeArticleResponse(record, votes.get(record.id) ?? null),
       );
     });
   }
@@ -74,9 +87,17 @@ export class KnowledgeBaseService {
         articleId,
         context,
       );
-      return toKnowledgeArticleResponse(
-        withKnowledgeArticleFreshness(record, configuration, new Date()),
+      const fresh = withKnowledgeArticleFreshness(
+        record,
+        configuration,
+        new Date(),
       );
+      const votes = await loadViewerKnowledgeFeedbackVotes(
+        this.prisma,
+        context.actorUserId,
+        [fresh.id],
+      );
+      return toKnowledgeArticleResponse(fresh, votes.get(fresh.id) ?? null);
     });
   }
 
@@ -96,5 +117,15 @@ export class KnowledgeBaseService {
         ),
       ),
     );
+  }
+
+  remove(
+    articleId: string,
+    input: KnowledgeLifecycleInput,
+    context: KnowledgeArticleMutationContext,
+  ): Promise<void> {
+    return executeKnowledgeBaseOperation(async () => {
+      await deleteKnowledgeArticle(this.prisma, articleId, input, context);
+    });
   }
 }

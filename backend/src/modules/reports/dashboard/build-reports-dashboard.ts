@@ -55,14 +55,16 @@ export async function buildReportsDashboard(input: {
     input.query.organizationalUnitId,
   );
   const tickets = await loadScopedReportTickets(input.prisma, scopedIds, false);
-  const [csatByTicketId, groupNames, serviceNames] = await Promise.all([
-    loadTicketCsatSubmissions(
-      input.prisma,
-      tickets.map((ticket) => ticket.id),
-    ),
-    loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
-    loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
-  ]);
+  const [csatByTicketId, groupNames, serviceNames, kbHelpedCount] =
+    await Promise.all([
+      loadTicketCsatSubmissions(
+        input.prisma,
+        tickets.map((ticket) => ticket.id),
+      ),
+      loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
+      loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
+      countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
+    ]);
   return {
     window: {
       from: window.from.toISOString(),
@@ -78,6 +80,7 @@ export async function buildReportsDashboard(input: {
       csatByTicketId,
       window,
       previousWindow,
+      kbHelpedCount,
     }),
     bottleneckByGroup: aggregateBottleneckHoursByGroup({
       tickets,
@@ -93,6 +96,22 @@ export async function buildReportsDashboard(input: {
     volumeSeries: aggregateReportVolumeSeries({ tickets, window }),
     aging: aggregateAgingBuckets({ tickets, now }),
   };
+}
+
+async function countKnowledgeInterceptResolutions(
+  prisma: PrismaService,
+  scopedOrganizationalUnitIds: readonly string[],
+  window: { readonly from: Date; readonly to: Date },
+): Promise<number> {
+  if (typeof prisma.knowledgeInterceptResolution?.count !== 'function') {
+    return 0;
+  }
+  return prisma.knowledgeInterceptResolution.count({
+    where: {
+      createdAt: { gte: window.from, lte: window.to },
+      organizationalUnitId: { in: [...scopedOrganizationalUnitIds] },
+    },
+  });
 }
 
 async function loadGroupNames(

@@ -2,6 +2,7 @@ import type { KnowledgeArticleRecord, KnowledgeArticleResponse } from './knowled
 
 export function toKnowledgeArticleResponse(
   record: KnowledgeArticleRecord,
+  viewerFeedback: boolean | null = null,
 ): KnowledgeArticleResponse {
   return {
     id: record.id,
@@ -22,6 +23,7 @@ export function toKnowledgeArticleResponse(
     organizationalUnitId: record.organizationalUnitId,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
+    viewerFeedback,
   };
 }
 

@@ -8,6 +8,7 @@ export type KnowledgeBaseConfiguration = {
   readonly reviewCycleEnabled: boolean;
   readonly defaultReviewDays: number;
   readonly staleAfterDays: number;
+  readonly remindDaysBefore: number;
   readonly feedbackEnabled: boolean;
   readonly oneVotePerUserPerArticle: boolean;
   readonly useFeedbackWeight: boolean;
@@ -53,6 +54,7 @@ export type KnowledgeArticleResponse = {
   readonly organizationalUnitId: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly viewerFeedback: boolean | null;
 };
 
 export type KnowledgeArticleMutationContext = {
@@ -113,4 +115,5 @@ export type ListKnowledgeArticlesQuery = {
   readonly status?: KnowledgeArticleStatus;
   readonly organizationalUnitId?: string;
   readonly q?: string;
+  readonly staleOnly?: boolean;
 };

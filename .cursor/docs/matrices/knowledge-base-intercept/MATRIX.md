@@ -8,6 +8,14 @@ Prije kreiranja tiketa vratiti rangirane KB prijedloge za odabrani servis. Ticke
 
 Prazan rezultat: `articles: []` (nema greške). `private.addons.kbIntercept=false` → prazna lista.
 
+## Resolve (pomoglo bez create)
+`POST /knowledge-base/intercept/resolve` `{ serviceId, organizationalUnitId, articleId? }` → `{ id }`.
+
+Svaki uspješan resolve = jedan “helped without create” događaj (`KnowledgeInterceptResolution`). Thumbs feedback ostaje odvojen i **ne** broji se kao resolution.
+
+## KPI
+`kbResolutionRate = kbHelpedCount / (kbHelpedCount + ticketsCreated)` u istom report window + OU scope. `null` kad je denominator 0. Target RAW ≥ 30%.
+
 ## Kandidati
 Samo `status=PUBLISHED` i `serviceId` match. Draft/in-review/archived nisu u intercept-u.
 
@@ -18,7 +26,7 @@ Isti `canReadKnowledgeArticle` filter kao CRUD. INTERNAL published: authenticate
 Centralno `rankKnowledgeArticles` (jedan implementation). Detalji: `knowledge-base-feedback-ranking`.
 
 ## UX
-Frontend ticket create mora pozvati intercept prije submit-a. “Pomoglo” je feedback; korisnik može odustati od create-a. Backend `POST /tickets` se ne mijenja i ne zabranjuje create.
+Frontend ticket create mora pozvati intercept prije submit-a. “Pomoglo” (resolve) snima resolution pa korisnik odustaje od create-a. Backend `POST /tickets` se ne mijenja i ne zabranjuje create.
 
 ## Namjerno NIJE
-Blokiranje ticket create-a, semantic search, full ticket workspace.
+Blokiranje ticket create-a, semantic search, full ticket workspace, brojanje thumbs-up-a kao KB resolution.

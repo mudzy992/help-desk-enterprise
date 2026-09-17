@@ -11,6 +11,11 @@ import type {
   KnowledgeInterceptResponse,
 } from './knowledge-base.types';
 import {
+  resolveKnowledgeIntercept,
+  type KnowledgeInterceptResolveInput,
+  type KnowledgeInterceptResolveResponse,
+} from './resolve-knowledge-intercept';
+import {
   submitKnowledgeFeedback,
   type KnowledgeFeedbackResponse,
 } from './submit-knowledge-feedback';
@@ -38,6 +43,15 @@ export class KnowledgeBaseDiscoveryService {
         new Date(),
       );
     });
+  }
+
+  resolveIntercept(
+    input: KnowledgeInterceptResolveInput,
+    context: KnowledgeArticleMutationContext,
+  ): Promise<KnowledgeInterceptResolveResponse> {
+    return executeKnowledgeBaseOperation(async () =>
+      resolveKnowledgeIntercept(this.prisma, input, context),
+    );
   }
 
   submitFeedback(

@@ -1,11 +1,13 @@
 import { Lightbulb, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { KnowledgeArticleDeletePanel } from "@/components/knowledge-base/knowledge-article-delete-panel";
 import { KnowledgeArticleEditForm } from "@/components/knowledge-base/knowledge-article-edit-form";
 import { KnowledgeLifecycleActions } from "@/components/knowledge-base/knowledge-lifecycle-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
+import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
 import type {
@@ -18,6 +20,8 @@ interface KnowledgeArticleDetailPanelProperties {
   readonly article: KnowledgeArticleResponse;
   readonly canWrite: boolean;
   readonly canManageLifecycle: boolean;
+  readonly isSuperAdmin: boolean;
+  readonly users: readonly DirectoryUser[];
   readonly ownerNames: ReadonlyMap<string, string>;
   readonly serviceName: string;
   readonly onChanged: () => Promise<void>;
@@ -37,6 +41,8 @@ export function KnowledgeArticleDetailPanel({
   article,
   canWrite,
   canManageLifecycle,
+  isSuperAdmin,
+  users,
   ownerNames,
   serviceName,
   onChanged,
@@ -72,6 +78,8 @@ export function KnowledgeArticleDetailPanel({
           <KnowledgeArticleEditForm
             key={article.updatedAt}
             article={article}
+            users={users}
+            isSuperAdmin={isSuperAdmin}
             onSaved={onChanged}
           />
         ) : (
@@ -94,7 +102,12 @@ export function KnowledgeArticleDetailPanel({
             <button
               type="button"
               aria-label={t("knowledgeBase.helpful")}
-              className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+              className={cn(
+                "rounded-md border p-1.5 transition-colors",
+                article.viewerFeedback === true
+                  ? "border-success/45 bg-success/12 text-[#4ADE80]"
+                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
               onClick={() => {
                 void submitKnowledgeFeedback(article.id, true).then(onChanged);
               }}
@@ -104,7 +117,12 @@ export function KnowledgeArticleDetailPanel({
             <button
               type="button"
               aria-label={t("knowledgeBase.notHelpful")}
-              className="rounded-md border border-border p-1.5 text-muted-foreground transition-colors hover:bg-elevated hover:text-foreground"
+              className={cn(
+                "rounded-md border p-1.5 transition-colors",
+                article.viewerFeedback === false
+                  ? "border-danger/45 bg-danger/12 text-danger"
+                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+              )}
               onClick={() => {
                 void submitKnowledgeFeedback(article.id, false).then(onChanged);
               }}
@@ -140,6 +158,12 @@ export function KnowledgeArticleDetailPanel({
           onChanged={onChanged}
         />
       </div>
+      {isSuperAdmin ? (
+        <KnowledgeArticleDeletePanel
+          articleId={article.id}
+          articleTitle={article.title}
+        />
+      ) : null}
     </Card>
   );
 }

@@ -10,13 +10,9 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
-import {
-  filterKnowledgeArticles,
-  knowledgeListFiltersAreActive,
-  type KnowledgeListFilters,
-} from "@/lib/knowledge-base/filter-knowledge-articles";
+import { knowledgeListFiltersAreActive } from "@/lib/knowledge-base/filter-knowledge-articles";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import { permissionKeys } from "@/lib/session/permission-keys";
+import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import {
@@ -26,18 +22,24 @@ import {
 } from "@/services/knowledge-base-api";
 import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
 
+const searchDebounceMs = 300;
+
 export function KnowledgeBasePage() {
   const { t } = useTranslation();
   const directory = useDirectory();
-  const { hasPermission } = useSessionCapabilities();
+  const { hasPermission, hasRole, session } = useSessionCapabilities();
+  const isSuperAdmin =
+    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [searchParams] = useSearchParams();
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [status, setStatus] = useState<KnowledgeArticleStatus | "">("");
   const [serviceId, setServiceId] = useState("");
   const [staleOnly, setStaleOnly] = useState(false);
+  const [createPrefillTitle, setCreatePrefillTitle] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -46,13 +48,25 @@ export function KnowledgeBasePage() {
     setSearch(searchParams.get("q") ?? "");
   }, [searchParams]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, searchDebounceMs);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const loadArticles = useCallback(async () => {
     setIsLoading(true);
     setErrorKey(null);
     setRequestId(null);
     try {
       const [articles, catalog] = await Promise.all([
-        listKnowledgeArticles(),
+        listKnowledgeArticles({
+          q: debouncedSearch.trim() || undefined,
+          status: status === "" ? undefined : status,
+          serviceId: serviceId || undefined,
+          staleOnly: staleOnly || undefined,
+        }),
         listServices().catch(() => []),
       ]);
       setItems(articles);
@@ -64,20 +78,18 @@ export function KnowledgeBasePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [debouncedSearch, serviceId, staleOnly, status]);
 
   useEffect(() => {
     void loadArticles();
   }, [loadArticles]);
 
-  const filters: KnowledgeListFilters = useMemo(
-    () => ({ search, status, serviceId, staleOnly }),
-    [search, serviceId, staleOnly, status],
-  );
-  const visibleItems = useMemo(
-    () => filterKnowledgeArticles(items, filters),
-    [filters, items],
-  );
+  const filtersActive = knowledgeListFiltersAreActive({
+    search: debouncedSearch,
+    status,
+    serviceId,
+    staleOnly,
+  });
   const ownerNames = useMemo(
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
     [directory.users],
@@ -94,20 +106,32 @@ export function KnowledgeBasePage() {
   const canManageLifecycle =
     hasPermission(permissionKeys.knowledgeArticleReview) ||
     hasPermission(permissionKeys.knowledgeArticlePublish);
+  const reviewDueCount = items.filter((item) => item.status === "IN_REVIEW").length;
+  const staleCount = items.filter((item) => item.isStale).length;
+  const subtitle =
+    reviewDueCount > 0 || staleCount > 0
+      ? t("knowledgeBase.introWithCounts", {
+          reviewDue: reviewDueCount,
+          stale: staleCount,
+        })
+      : t("knowledgeBase.intro");
 
   return (
     <section>
       <PageHeader
         crumbs={["EP-HelpDesk", t("navigation.sections.services"), t("knowledgeBase.title")]}
         title={t("knowledgeBase.title")}
-        subtitle={t("knowledgeBase.intro")}
+        subtitle={subtitle}
         actions={
           canWrite ? (
             <Button
               type="button"
               size="sm"
               variant="primary"
-              onClick={() => setIsCreateOpen(true)}
+              onClick={() => {
+                setCreatePrefillTitle("");
+                setIsCreateOpen(true);
+              }}
             >
               <Plus size={14} /> {t("knowledgeBase.createAction")}
             </Button>
@@ -119,7 +143,14 @@ export function KnowledgeBasePage() {
         services={services}
         originUnits={originUnits}
         users={directory.users}
-        onOpenChange={setIsCreateOpen}
+        isSuperAdmin={isSuperAdmin}
+        initialTitle={createPrefillTitle}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) {
+            setCreatePrefillTitle("");
+          }
+        }}
         onCreated={loadArticles}
       />
       <KnowledgeArticleSearchCard
@@ -140,13 +171,21 @@ export function KnowledgeBasePage() {
       ) : (
         <>
           <KnowledgeArticleList
-            items={visibleItems}
+            items={items}
             canManageLifecycle={canManageLifecycle}
-            isFiltered={knowledgeListFiltersAreActive(filters)}
+            isFiltered={filtersActive}
+            searchQuery={debouncedSearch}
             ownerNames={ownerNames}
             serviceNames={serviceNames}
             canWrite={canWrite}
-            onCreate={() => setIsCreateOpen(true)}
+            onCreate={() => {
+              setCreatePrefillTitle("");
+              setIsCreateOpen(true);
+            }}
+            onCreateForQuery={() => {
+              setCreatePrefillTitle(debouncedSearch.trim());
+              setIsCreateOpen(true);
+            }}
             onClearFilters={() => {
               setSearch("");
               setStatus("");

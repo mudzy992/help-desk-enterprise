@@ -11,6 +11,7 @@ import type {
 import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { toArticleRecord } from './load-knowledge-article';
+import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
 import { normalizeKnowledgeInterceptQuery } from './normalize-knowledge-article-text';
 import {
   rankKnowledgeArticles,
@@ -55,7 +56,7 @@ export async function interceptKnowledgeArticles(
     prisma,
     visible.map((article) => article.id),
   );
-  const viewerVotes = await loadViewerVotes(
+  const viewerVotes = await loadViewerKnowledgeFeedbackVotes(
     prisma,
     context.actorUserId,
     visible.map((article) => article.id),
@@ -99,16 +100,4 @@ async function loadFeedbackTallies(
     });
   }
   return tallies;
-}
-
-async function loadViewerVotes(
-  prisma: PrismaService,
-  userId: string,
-  articleIds: readonly string[],
-): Promise<ReadonlyMap<string, boolean>> {
-  const votes = await prisma.knowledgeFeedback.findMany({
-    where: { userId, articleId: { in: [...articleIds] } },
-    select: { articleId: true, isHelpful: true },
-  });
-  return new Map(votes.map((vote) => [vote.articleId, vote.isHelpful]));
 }

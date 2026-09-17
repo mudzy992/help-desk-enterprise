@@ -62,6 +62,14 @@ export function createInMemoryKnowledgeArticleDelegate(
       articles.set(updated.id, updated);
       return updated;
     },
+    delete: async ({ where }: { where: { id: string } }) => {
+      const current = articles.get(where.id);
+      if (current === undefined) {
+        throw new Error('NOT_FOUND');
+      }
+      articles.delete(where.id);
+      return current;
+    },
   };
 }
 

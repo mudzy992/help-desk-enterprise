@@ -12,6 +12,8 @@ export type ReportDashboardKpis = {
   readonly csatAverage: number | null;
   readonly csatCount: number;
   readonly csatScaleMax: number;
+  readonly kbHelpedCount: number;
+  readonly kbResolutionRate: number | null;
 };
 
 export type ReportDashboardNamedBar = {

@@ -15,6 +15,8 @@ interface CreateKnowledgeArticleSheetProperties {
   readonly services: readonly ServiceResponse[];
   readonly originUnits: readonly OriginUnitOption[];
   readonly users: readonly DirectoryUser[];
+  readonly isSuperAdmin: boolean;
+  readonly initialTitle?: string;
   readonly onOpenChange: (open: boolean) => void;
   readonly onCreated: () => Promise<void>;
 }
@@ -24,6 +26,8 @@ export function CreateKnowledgeArticleSheet({
   services,
   originUnits,
   users,
+  isSuperAdmin,
+  initialTitle,
   onOpenChange,
   onCreated,
 }: CreateKnowledgeArticleSheetProperties) {
@@ -40,6 +44,8 @@ export function CreateKnowledgeArticleSheet({
             services={services}
             originUnits={originUnits}
             users={users}
+            isSuperAdmin={isSuperAdmin}
+            initialTitle={initialTitle}
             onCreated={async () => {
               await onCreated();
               onOpenChange(false);
