@@ -6,6 +6,12 @@ export type RoleSummaryResponse = {
   readonly permissionCount: number;
 };
 
+export type PermissionCatalogEntry = {
+  readonly key: string;
+  readonly description: string;
+  readonly categoryId: string;
+};
+
 export type ShadowAuthorizationReport = {
   readonly kind: "shadow";
   readonly isEnforcing: false;
@@ -36,7 +42,7 @@ export function listRoles(): Promise<readonly RoleSummaryResponse[]> {
   return apiRequest("/roles");
 }
 
-export function listPermissionCatalog(): Promise<readonly string[]> {
+export function listPermissionCatalog(): Promise<readonly PermissionCatalogEntry[]> {
   return apiRequest("/roles/permissions/catalog");
 }
 

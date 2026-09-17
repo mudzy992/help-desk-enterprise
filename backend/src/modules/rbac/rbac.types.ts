@@ -1,4 +1,7 @@
+import type { PermissionCatalogEntry } from '../authorization/permission-catalog';
 import type { ShadowAuthorizationReport } from '../authorization/shadow-authorization.types';
+
+export type { PermissionCatalogEntry };
 
 export type RoleSummaryResponse = {
   readonly key: string;

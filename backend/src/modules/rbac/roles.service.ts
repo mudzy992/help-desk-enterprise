@@ -8,6 +8,7 @@ import { listRoles } from './list-roles';
 import { mapRbacError } from './map-rbac-error';
 import { previewRolePermissionImpact } from './preview-role-permission-impact';
 import type {
+  PermissionCatalogEntry,
   ReplaceRolePermissionsInput,
   RolePermissionPreviewResponse,
   RoleSummaryResponse,
@@ -26,7 +27,7 @@ export class RolesService {
     return this.execute(() => listRoles(this.prisma));
   }
 
-  listPermissionCatalog(): Promise<readonly string[]> {
+  listPermissionCatalog(): Promise<readonly PermissionCatalogEntry[]> {
     return Promise.resolve(listPermissionCatalog());
   }
 

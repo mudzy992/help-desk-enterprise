@@ -22,6 +22,7 @@ import {
   ReplaceRolePermissionsDto,
 } from './dto/replace-role-permissions.dto';
 import type {
+  PermissionCatalogEntry,
   RolePermissionPreviewResponse,
   RoleSummaryResponse,
 } from './rbac.types';
@@ -46,7 +47,7 @@ export class RolesController {
   }
 
   @Get('permissions/catalog')
-  listPermissionCatalog(): Promise<readonly string[]> {
+  listPermissionCatalog(): Promise<readonly PermissionCatalogEntry[]> {
     return this.rolesService.listPermissionCatalog();
   }
 

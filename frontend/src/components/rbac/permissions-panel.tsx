@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { PermissionsCatalogList } from "@/components/rbac/permissions-catalog-list";
 import { PermissionsPreviewPanel } from "@/components/rbac/permissions-preview-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlCompactClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
+import { groupPermissionsByCategory } from "@/lib/rbac/group-permissions-by-category";
 import { mapRbacError, type RbacErrorKey } from "@/lib/rbac/map-rbac-error";
 import { readApiRequestId } from "@/lib/map-api-error";
 import {
@@ -15,6 +16,7 @@ import {
   listRoles,
   previewRolePermissions,
   replaceRolePermissions,
+  type PermissionCatalogEntry,
   type RolePermissionPreviewResponse,
   type RoleSummaryResponse,
 } from "@/services/rbac-api";
@@ -22,7 +24,7 @@ import {
 export function PermissionsPanel() {
   const { t } = useTranslation();
   const [roles, setRoles] = useState<readonly RoleSummaryResponse[]>([]);
-  const [catalog, setCatalog] = useState<readonly string[]>([]);
+  const [catalog, setCatalog] = useState<readonly PermissionCatalogEntry[]>([]);
   const [selectedRoleKey, setSelectedRoleKey] = useState("");
   const [enabledKeys, setEnabledKeys] = useState<readonly string[]>([]);
   const [preview, setPreview] = useState<RolePermissionPreviewResponse | null>(null);
@@ -30,10 +32,10 @@ export function PermissionsPanel() {
   const [pending, setPending] = useState(false);
   const [errorKey, setErrorKey] = useState<RbacErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
+  const groups = useMemo(() => groupPermissionsByCategory(catalog), [catalog]);
 
   const loadRolePermissions = useCallback(async (roleKey: string) => {
-    const permissions = await getRolePermissions(roleKey);
-    setEnabledKeys(permissions);
+    setEnabledKeys(await getRolePermissions(roleKey));
   }, []);
 
   const reload = useCallback(async (roleKey?: string) => {
@@ -150,24 +152,11 @@ export function PermissionsPanel() {
           <ApiErrorText messageKey={errorKey} requestId={requestId} />
         </div>
       ) : null}
-      <div className="divide-y divide-border/50 px-4 pb-4">
-        {catalog.map((permissionKey) => {
-          const checked = enabledKeys.includes(permissionKey);
-          return (
-            <label
-              key={permissionKey}
-              className="flex items-center justify-between gap-3 py-2.5 text-[12.5px]"
-            >
-              <span className="font-mono text-[12px] text-foreground">{permissionKey}</span>
-              <Switch
-                checked={checked}
-                aria-label={permissionKey}
-                onCheckedChange={(value) => handleToggle(permissionKey, value)}
-              />
-            </label>
-          );
-        })}
-      </div>
+      <PermissionsCatalogList
+        groups={groups}
+        enabledKeys={enabledKeys}
+        onToggle={handleToggle}
+      />
       <div className="border-t border-border/60 px-4 py-3">
         <Button type="button" size="sm" onClick={() => void handlePreview()} disabled={pending}>
           {t("permissions.previewAction")}

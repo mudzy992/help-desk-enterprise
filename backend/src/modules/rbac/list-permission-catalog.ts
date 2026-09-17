@@ -1,5 +1,8 @@
-import { allPermissionKeys } from '../authorization/authorization.constants';
+import {
+  permissionCatalogEntries,
+  type PermissionCatalogEntry,
+} from '../authorization/permission-catalog';
 
-export function listPermissionCatalog(): readonly string[] {
-  return allPermissionKeys;
+export function listPermissionCatalog(): readonly PermissionCatalogEntry[] {
+  return permissionCatalogEntries;
 }
