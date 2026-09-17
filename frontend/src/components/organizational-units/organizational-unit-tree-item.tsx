@@ -1,7 +1,8 @@
-import { Building2, ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { countOrganizationalUnitMembers } from "@/lib/directory/count-organizational-unit-members";
+import { resolveOrganizationalUnitTypeIcon } from "@/lib/directory/organizational-unit-types";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { cn } from "@/lib/utils";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
@@ -33,6 +34,7 @@ export function OrganizationalUnitTreeItem({
   const hasChildren = node.children.length > 0;
   const selected = selectedId === node.id;
   const memberCount = countOrganizationalUnitMembers(users, node.id);
+  const TypeIcon = resolveOrganizationalUnitTypeIcon(node.type);
 
   const selectNode = () => onSelect(node);
   const onRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -77,12 +79,17 @@ export function OrganizationalUnitTreeItem({
         ) : (
           <span className="w-[17px]" />
         )}
-        <Building2
+        <TypeIcon
           size={14}
           className={cn(
             "shrink-0",
             depth === 0 ? "text-[#7FA8F5]" : "text-muted-foreground/70",
           )}
+          aria-label={
+            node.type
+              ? t(`directory.ouType.${node.type}`, { defaultValue: node.type })
+              : t("directory.ouTypePlaceholder")
+          }
         />
         <span
           className={cn(
@@ -94,6 +101,11 @@ export function OrganizationalUnitTreeItem({
         >
           {node.name}
         </span>
+        {node.type ? (
+          <span className="rounded border border-border/70 bg-background/50 px-1.5 py-0 text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
+            {t(`directory.ouType.${node.type}`, { defaultValue: node.type })}
+          </span>
+        ) : null}
         <span className="tnum rounded border border-border bg-background/60 px-1.5 py-0 text-[10px] text-muted-foreground">
           {t("directory.memberCountShort", { count: memberCount })}
         </span>

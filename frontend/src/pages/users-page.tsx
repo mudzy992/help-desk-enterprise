@@ -3,6 +3,7 @@ import { Plus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AddUserForm } from "@/components/users/add-user-form";
 import { TemporaryPasswordReveal } from "@/components/users/temporary-password-reveal";
+import { UserDetailDrawer } from "@/components/users/user-detail-drawer";
 import { UsersTable } from "@/components/users/users-table";
 import { PolicyPacksPanel } from "@/components/policy-packs/policy-packs-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -49,7 +50,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
     roleKeys.includes("SUPER_ADMIN");
   const [users, setUsers] = useState<readonly UserSummary[]>([]);
   const [search, setSearch] = useState("");
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [passwordReveal, setPasswordReveal] =
     useState<CreateUserResponse | null>(null);
@@ -96,6 +97,8 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
             user.email.toLowerCase().includes(term) ||
             (user.roleName ?? "").toLowerCase().includes(term),
         );
+  const selectedUser =
+    users.find((user) => user.id === selectedUserId) ?? null;
 
   return (
     <section>
@@ -121,11 +124,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
                 aria-label={t("directory.searchPlaceholder")}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setShowAddForm(true)}
-              >
+              <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)}>
                 <Plus size={14} /> {t("users.addUser")}
               </Button>
             </div>
@@ -148,10 +147,7 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
         ) : null}
         {isLoading ? (
           <div className="px-4 py-3.5">
-            <PanelSkeleton
-              className="mt-0"
-              label={t("directory.usersHeading")}
-            />
+            <PanelSkeleton className="mt-0" label={t("directory.usersHeading")} />
           </div>
         ) : errorKey ? (
           <div className="px-4 py-3.5">
@@ -168,18 +164,26 @@ export function UsersPage({ embedded = false }: UsersPageProperties) {
         ) : (
           <UsersTable
             visible={visible}
-            expandedUserId={expandedUserId}
-            setExpandedUserId={setExpandedUserId}
             canManageUsers={canManageUsers}
-            canLinkDirectory={canLinkDirectory}
-            currentUserId={currentUserId}
-            originUnits={originUnits}
-            services={services}
-            onReload={reload}
-            onPasswordIssued={setPasswordReveal}
+            onEditUser={setSelectedUserId}
           />
         )}
       </Card>
+      <UserDetailDrawer
+        user={selectedUser}
+        open={selectedUser !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedUserId(null);
+        }}
+        canManage={canManageUsers}
+        canLinkDirectory={canLinkDirectory}
+        isSelf={selectedUser?.id === currentUserId}
+        originUnits={originUnits}
+        services={services}
+        onChanged={reload}
+        onPasswordIssued={setPasswordReveal}
+        onDeleted={() => setSelectedUserId(null)}
+      />
     </section>
   );
 }

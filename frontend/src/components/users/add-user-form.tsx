@@ -120,7 +120,7 @@ export function AddUserForm({
           }
           onClick={() => void handleSubmit()}
         >
-          <Plus size={14} /> {t("users.saveUser")}
+          <Plus size={14} /> {t("users.addUser")}
         </Button>
         <Button size="sm" variant="outline" onClick={onCancel}>
           {t("settings.drawer.cancel")}

@@ -1,4 +1,11 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import { OrganizationalUnitType } from '../../../generated/prisma/enums';
 import { directorySyncConstants } from '../directory-sync.constants';
 import type { UpdateManualDirectoryOrganizationalUnitInput } from '../manual-directory-catalog.types';
 
@@ -20,4 +27,8 @@ export class UpdateManualDirectoryOrganizationalUnitDto
   @IsString()
   @MaxLength(directorySyncConstants.maximumDistinguishedNameLength)
   distinguishedName?: string | null;
+
+  @IsOptional()
+  @IsEnum(OrganizationalUnitType)
+  type?: OrganizationalUnitType;
 }

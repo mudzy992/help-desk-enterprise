@@ -31,6 +31,7 @@ export async function loadManualDirectoryCatalog(
       displayName: unit.displayName,
       distinguishedName: unit.distinguishedName,
       organizationalUnitPath: unit.organizationalUnitPath,
+      type: unit.type,
     })),
     users: users.map((user) => ({
       externalId: user.externalId,

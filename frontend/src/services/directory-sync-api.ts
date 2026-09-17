@@ -16,6 +16,7 @@ export type ManualDirectoryOrganizationalUnit = {
   readonly distinguishedName: string;
   readonly organizationalUnitPath: string;
   readonly parentExternalId: string | null;
+  readonly type: string;
 };
 
 export type DirectoryReadScope = {
@@ -64,6 +65,7 @@ export function createManualDirectoryOrganizationalUnit(input: {
   readonly displayName: string;
   readonly parentExternalId?: string | null;
   readonly distinguishedName?: string | null;
+  readonly type?: string | null;
 }): Promise<ManualDirectoryOrganizationalUnit> {
   return apiRequest("/directory-sync/manual-catalog/organizational-units", {
     method: "POST",
@@ -77,6 +79,7 @@ export function updateManualDirectoryOrganizationalUnit(
     readonly displayName?: string;
     readonly parentExternalId?: string | null;
     readonly distinguishedName?: string | null;
+    readonly type?: string | null;
   },
 ): Promise<ManualDirectoryOrganizationalUnit> {
   return apiRequest(

@@ -39,17 +39,28 @@ async function materializeOrganizationalUnits(
             where: { ouPath: parentPath },
             select: { id: true },
           });
+    const type =
+      unit.type === 'DIRECTORATE' ||
+      unit.type === 'BRANCH' ||
+      unit.type === 'OFFICE' ||
+      unit.type === 'SECTOR' ||
+      unit.type === 'SERVICE'
+        ? unit.type
+        : parent === null
+          ? 'DIRECTORATE'
+          : 'BRANCH';
     await prisma.organizationalUnit.upsert({
       where: { distinguishedName: unit.distinguishedName },
       create: {
         name: unit.displayName,
-        type: parent === null ? 'DIRECTORATE' : 'BRANCH',
+        type,
         distinguishedName: unit.distinguishedName,
         ouPath: unit.organizationalUnitPath,
         parentId: parent?.id ?? null,
       },
       update: {
         name: unit.displayName,
+        type,
         ouPath: unit.organizationalUnitPath,
         parentId: parent?.id ?? null,
       },

@@ -23,6 +23,19 @@ export class CreateUserDto implements Omit<
 
 export class UpdateUserDto {
   @IsOptional()
+  @IsString()
+  @MinLength(1)
+  displayName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  organizationalUnitId?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }

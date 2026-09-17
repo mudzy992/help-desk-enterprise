@@ -67,5 +67,8 @@ export type ResetUserPasswordResponse = CreateUserResponse;
 
 export type UpdateUserInput = {
   readonly userId: string;
+  readonly displayName?: string;
+  readonly email?: string;
+  readonly organizationalUnitId?: string | null;
   readonly isActive?: boolean;
 };

@@ -18,8 +18,10 @@ interface UserAdminActionsProperties {
   readonly canManage: boolean;
   readonly canLinkDirectory: boolean;
   readonly isSelf: boolean;
+  readonly layout?: "end" | "stack";
   readonly onChanged: () => Promise<void>;
   readonly onPasswordIssued: (result: CreateUserResponse) => void;
+  readonly onDeleted?: () => void;
 }
 
 export function UserAdminActions({
@@ -27,8 +29,10 @@ export function UserAdminActions({
   canManage,
   canLinkDirectory,
   isSelf,
+  layout = "end",
   onChanged,
   onPasswordIssued,
+  onDeleted,
 }: UserAdminActionsProperties) {
   const { t } = useTranslation();
   const [isBusy, setIsBusy] = useState(false);
@@ -58,7 +62,11 @@ export function UserAdminActions({
   };
 
   const handleUnlink = async () => {
-    if (!window.confirm(t("users.unlinkDirectoryConfirm", { name: user.displayName }))) {
+    if (
+      !window.confirm(
+        t("users.unlinkDirectoryConfirm", { name: user.displayName }),
+      )
+    ) {
       return;
     }
     setIsBusy(true);
@@ -87,6 +95,7 @@ export function UserAdminActions({
     try {
       await deleteUser(user.id);
       await onChanged();
+      onDeleted?.();
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError ? error.message : t("users.deleteFailed"),
@@ -97,8 +106,12 @@ export function UserAdminActions({
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex flex-wrap justify-end gap-1">
+    <div
+      className={`flex flex-col gap-1 ${layout === "end" ? "items-end" : "items-stretch"}`}
+    >
+      <div
+        className={`flex flex-wrap gap-1 ${layout === "end" ? "justify-end" : ""}`}
+      >
         {user.isLocalOnly ? (
           <Button
             size="sm"

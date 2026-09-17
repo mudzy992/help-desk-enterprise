@@ -11,6 +11,7 @@ import {
   listManualDirectoryDescendantsTopDown,
   type ManualDirectoryUnitLink,
 } from './manual-directory-organizational-unit-path';
+import { parseManualDirectoryOrganizationalUnitType } from './parse-manual-directory-organizational-unit-type';
 import { toManualDirectoryOrganizationalUnitResponse } from './to-manual-directory-organizational-unit-response';
 
 export async function updateManualDirectoryOrganizationalUnit(
@@ -32,6 +33,13 @@ export async function updateManualDirectoryOrganizationalUnit(
     input.parentExternalId === undefined
       ? existing.parentExternalId
       : input.parentExternalId?.trim() || null;
+  const type =
+    input.type === undefined
+      ? existing.type
+      : parseManualDirectoryOrganizationalUnitType(
+          typeof input.type === 'string' ? input.type : input.type,
+          existing.type,
+        );
   const catalogUnits = await prisma.manualDirectoryOrganizationalUnit.findMany({
     select: {
       externalId: true,
@@ -122,6 +130,7 @@ export async function updateManualDirectoryOrganizationalUnit(
           parentExternalId,
           organizationalUnitPath,
           distinguishedName,
+          type,
         },
       });
       for (const descendant of descendantUpdates) {

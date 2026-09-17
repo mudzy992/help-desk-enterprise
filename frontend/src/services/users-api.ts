@@ -113,9 +113,14 @@ export function unlinkUserDirectoryIdentity(
 
 export function updateUser(
   userId: string,
-  input: { readonly isActive?: boolean },
+  input: {
+    readonly displayName?: string;
+    readonly email?: string;
+    readonly organizationalUnitId?: string | null;
+    readonly isActive?: boolean;
+  },
 ): Promise<UserSummary> {
-  return apiRequest(`/users/${userId}`, {
+  return apiRequest(`/users/${encodeURIComponent(userId)}`, {
     method: "PATCH",
     body: JSON.stringify(input),
   });

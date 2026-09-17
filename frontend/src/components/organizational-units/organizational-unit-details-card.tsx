@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
+import { resolveOrganizationalUnitTypeIcon } from "@/lib/directory/organizational-unit-types";
 import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
 interface OrganizationalUnitDetailsCardProperties {
@@ -15,6 +16,10 @@ export function OrganizationalUnitDetailsCard({
   const { t } = useTranslation();
   const distinguishedName =
     node.distinguishedName?.trim() || t("directory.detailsEmpty");
+  const TypeIcon = resolveOrganizationalUnitTypeIcon(node.type);
+  const typeLabel = node.type
+    ? t(`directory.ouType.${node.type}`, { defaultValue: node.type })
+    : t("directory.detailsEmpty");
 
   return (
     <Card>
@@ -28,6 +33,15 @@ export function OrganizationalUnitDetailsCard({
             {t("directory.detailsNameLabel")}
           </dt>
           <dd className="mt-0.5 text-foreground/90">{node.name}</dd>
+        </div>
+        <div>
+          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+            {t("directory.detailsTypeLabel")}
+          </dt>
+          <dd className="mt-0.5 flex items-center gap-1.5 text-foreground/90">
+            <TypeIcon size={14} className="text-muted-foreground" />
+            {typeLabel}
+          </dd>
         </div>
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">

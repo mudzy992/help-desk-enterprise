@@ -5,6 +5,10 @@ import type {
   CreateManualDirectoryOrganizationalUnitInput,
   ManualDirectoryOrganizationalUnitResponse,
 } from './manual-directory-catalog.types';
+import {
+  defaultManualDirectoryOrganizationalUnitType,
+  parseManualDirectoryOrganizationalUnitType,
+} from './parse-manual-directory-organizational-unit-type';
 import { toManualDirectoryOrganizationalUnitResponse } from './to-manual-directory-organizational-unit-response';
 
 export async function createManualDirectoryOrganizationalUnit(
@@ -16,7 +20,7 @@ export async function createManualDirectoryOrganizationalUnit(
     throw new ManualDirectoryCatalogError('INVALID_INPUT');
   }
   const parentExternalId = input.parentExternalId?.trim() || null;
-  let parent =
+  const parent =
     parentExternalId === null
       ? null
       : await prisma.manualDirectoryOrganizationalUnit.findUnique({
@@ -24,16 +28,6 @@ export async function createManualDirectoryOrganizationalUnit(
         });
   if (parentExternalId !== null && parent === null) {
     throw new ManualDirectoryCatalogError('PARENT_NOT_FOUND');
-  }
-  if (parent === null) {
-    parent = await prisma.manualDirectoryOrganizationalUnit.findFirst({
-      where: {
-        OR: [
-          { organizationalUnitPath: '/Users' },
-          { externalId: 'manual_only:ou:users' },
-        ],
-      },
-    });
   }
   const organizationalUnitPath = parent
     ? `${parent.organizationalUnitPath}/${displayName}`
@@ -43,7 +37,10 @@ export async function createManualDirectoryOrganizationalUnit(
     (parent
       ? `OU=${displayName},${parent.distinguishedName}`
       : `OU=${displayName},DC=example,DC=com`);
-  const resolvedParentExternalId = parent?.externalId ?? null;
+  const type = parseManualDirectoryOrganizationalUnitType(
+    typeof input.type === 'string' ? input.type : input.type ?? null,
+    defaultManualDirectoryOrganizationalUnitType(parentExternalId),
+  );
   const externalId =
     createManualDirectoryOrganizationalUnitExternalId(organizationalUnitPath);
   try {
@@ -53,7 +50,8 @@ export async function createManualDirectoryOrganizationalUnit(
         displayName,
         distinguishedName,
         organizationalUnitPath,
-        parentExternalId: resolvedParentExternalId,
+        parentExternalId,
+        type,
       },
     });
     return toManualDirectoryOrganizationalUnitResponse(created);

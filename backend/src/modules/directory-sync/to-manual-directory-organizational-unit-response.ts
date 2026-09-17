@@ -1,3 +1,4 @@
+import type { OrganizationalUnitType } from '../../generated/prisma/enums';
 import type { ManualDirectoryOrganizationalUnitResponse } from './manual-directory-catalog.types';
 
 export function toManualDirectoryOrganizationalUnitResponse(record: {
@@ -7,6 +8,7 @@ export function toManualDirectoryOrganizationalUnitResponse(record: {
   readonly distinguishedName: string;
   readonly organizationalUnitPath: string;
   readonly parentExternalId: string | null;
+  readonly type: OrganizationalUnitType;
 }): ManualDirectoryOrganizationalUnitResponse {
   return {
     id: record.id,
@@ -15,5 +17,6 @@ export function toManualDirectoryOrganizationalUnitResponse(record: {
     distinguishedName: record.distinguishedName,
     organizationalUnitPath: record.organizationalUnitPath,
     parentExternalId: record.parentExternalId,
+    type: record.type,
   };
 }

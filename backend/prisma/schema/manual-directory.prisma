@@ -1,12 +1,13 @@
 model ManualDirectoryOrganizationalUnit {
-  id                       String   @id @default(cuid())
-  externalId               String   @unique
+  id                       String                 @id @default(cuid())
+  externalId               String                 @unique
   displayName              String
-  distinguishedName        String   @unique
-  organizationalUnitPath   String   @unique
+  distinguishedName        String                 @unique
+  organizationalUnitPath   String                 @unique
   parentExternalId         String?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  type                     OrganizationalUnitType @default(BRANCH)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
 
   @@index([parentExternalId])
 }

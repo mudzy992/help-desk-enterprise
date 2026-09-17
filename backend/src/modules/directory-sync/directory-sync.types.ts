@@ -39,6 +39,7 @@ export type DirectoryOrganizationalUnit = {
   readonly displayName: string;
   readonly distinguishedName: string | null;
   readonly organizationalUnitPath: string | null;
+  readonly type?: string | null;
 };
 
 export type DirectoryReadResult = {

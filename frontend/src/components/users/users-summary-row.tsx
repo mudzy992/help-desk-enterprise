@@ -1,10 +1,10 @@
 import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { UserAdminActions } from "@/components/users/user-admin-actions";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { CreateUserResponse, UserSummary } from "@/services/users-api";
+import type { UserSummary } from "@/services/users-api";
 
 const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
   super: "border-danger/35 bg-danger/10 text-danger",
@@ -15,24 +15,14 @@ const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
 
 interface UsersSummaryRowProperties {
   readonly user: UserSummary;
-  readonly expanded: boolean;
   readonly canManageUsers: boolean;
-  readonly canLinkDirectory: boolean;
-  readonly isSelf: boolean;
-  readonly onToggleRoles: () => void;
-  readonly onChanged: () => Promise<void>;
-  readonly onPasswordIssued: (result: CreateUserResponse) => void;
+  readonly onEdit: () => void;
 }
 
 export function UsersSummaryRow({
   user,
-  expanded,
   canManageUsers,
-  canLinkDirectory,
-  isSelf,
-  onToggleRoles,
-  onChanged,
-  onPasswordIssued,
+  onEdit,
 }: UsersSummaryRowProperties) {
   const { t } = useTranslation();
   const permissionScope =
@@ -107,32 +97,26 @@ export function UsersSummaryRow({
         {user.openTicketCount > 0 ? (
           <span
             className={cn(
-              "tnum text-[12px] font-medium",
+              "tnum block text-[12px] font-medium",
               user.openTicketCount > 9 ? "text-warning" : "text-foreground/90",
             )}
           >
             {t("users.openLoad", { count: user.openTicketCount })}
           </span>
         ) : (
-          <span className="text-muted-foreground/50">—</span>
+          <span className="block text-muted-foreground/50">—</span>
         )}
-        <button
-          type="button"
-          className="mt-1 block w-full text-right text-[11px] text-[#7FA8F5]"
-          onClick={onToggleRoles}
-        >
-          {expanded ? t("users.hideRoles") : t("users.manageRoles")}
-        </button>
-        <div className="mt-2">
-          <UserAdminActions
-            user={user}
-            canManage={canManageUsers}
-            canLinkDirectory={canLinkDirectory}
-            isSelf={isSelf}
-            onChanged={onChanged}
-            onPasswordIssued={onPasswordIssued}
-          />
-        </div>
+        {canManageUsers ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="mt-1"
+            onClick={onEdit}
+          >
+            {t("users.editUser")}
+          </Button>
+        ) : null}
       </td>
     </tr>
   );

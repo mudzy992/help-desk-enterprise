@@ -86,6 +86,9 @@ export class UsersController {
   ): Promise<UserSummaryResponse> {
     return this.usersService.update({
       userId,
+      displayName: body.displayName,
+      email: body.email,
+      organizationalUnitId: body.organizationalUnitId,
       isActive: body.isActive,
     });
   }

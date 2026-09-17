@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName, errorTextClassName } from "@/components/ui/control";
+import {
+  defaultOrganizationalUnitTypeForParent,
+  organizationalUnitTypes,
+  type OrganizationalUnitType,
+} from "@/lib/directory/organizational-unit-types";
 import { ApiError } from "@/services/api";
 import {
   createManualDirectoryOrganizationalUnit,
@@ -23,13 +28,23 @@ export function AddOrganizationalUnitForm({
 }: AddOrganizationalUnitFormProperties) {
   const { t } = useTranslation();
   const defaultParent =
+    catalog.find((unit) => unit.organizationalUnitPath === "/Korisnici")
+      ?.externalId ??
     catalog.find((unit) => unit.organizationalUnitPath === "/Users")
-      ?.externalId ?? "";
+      ?.externalId ??
+    "";
   const [displayName, setDisplayName] = useState("");
   const [parentExternalId, setParentExternalId] = useState(defaultParent);
+  const [unitType, setUnitType] = useState<OrganizationalUnitType>(
+    defaultOrganizationalUnitTypeForParent(defaultParent),
+  );
   const [distinguishedName, setDistinguishedName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setUnitType(defaultOrganizationalUnitTypeForParent(parentExternalId));
+  }, [parentExternalId]);
 
   const handleSubmit = async () => {
     setIsSaving(true);
@@ -39,6 +54,7 @@ export function AddOrganizationalUnitForm({
         displayName,
         parentExternalId: parentExternalId || null,
         distinguishedName: distinguishedName || null,
+        type: unitType,
       });
       await onCreated(created);
     } catch (error) {
@@ -73,6 +89,20 @@ export function AddOrganizationalUnitForm({
         {catalog.map((unit) => (
           <option key={unit.externalId} value={unit.externalId}>
             {unit.organizationalUnitPath}
+          </option>
+        ))}
+      </select>
+      <select
+        className={`${controlCompactClassName} w-full`}
+        value={unitType}
+        aria-label={t("directory.ouTypePlaceholder")}
+        onChange={(event) =>
+          setUnitType(event.target.value as OrganizationalUnitType)
+        }
+      >
+        {organizationalUnitTypes.map((type) => (
+          <option key={type} value={type}>
+            {t(`directory.ouType.${type}`)}
           </option>
         ))}
       </select>

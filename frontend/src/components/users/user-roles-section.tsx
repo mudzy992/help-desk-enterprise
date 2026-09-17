@@ -93,7 +93,7 @@ export function UserRolesSection({
   }
 
   return (
-    <div className="border-t border-border/60 bg-elevated/20 px-4 py-3">
+    <div className="bg-elevated/20 px-4 py-3">
       {errorKey ? (
         <div className="mb-3">
           <ApiErrorText messageKey={errorKey} requestId={requestId} />

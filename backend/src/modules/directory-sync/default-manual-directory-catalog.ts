@@ -18,6 +18,7 @@ export const defaultManualDirectoryCatalog: {
       distinguishedName: 'OU=Users,DC=example,DC=com',
       organizationalUnitPath: '/Users',
       parentExternalId: null,
+      type: 'DIRECTORATE',
     },
     {
       externalId: 'manual_only:ou:users-it',
@@ -25,6 +26,7 @@ export const defaultManualDirectoryCatalog: {
       distinguishedName: 'OU=IT,OU=Users,DC=example,DC=com',
       organizationalUnitPath: '/Users/IT',
       parentExternalId: 'manual_only:ou:users',
+      type: 'BRANCH',
     },
     {
       externalId: 'manual_only:ou:groups',
@@ -32,6 +34,7 @@ export const defaultManualDirectoryCatalog: {
       distinguishedName: 'OU=Groups,DC=example,DC=com',
       organizationalUnitPath: '/Groups',
       parentExternalId: null,
+      type: 'DIRECTORATE',
     },
   ],
   users: [

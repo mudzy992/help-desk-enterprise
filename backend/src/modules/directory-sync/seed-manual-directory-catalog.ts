@@ -19,6 +19,16 @@ export async function seedManualDirectoryCatalog(
         distinguishedName: unit.distinguishedName ?? '',
         organizationalUnitPath: unit.organizationalUnitPath ?? '',
         parentExternalId: unit.parentExternalId,
+        type:
+          unit.type === 'DIRECTORATE' ||
+          unit.type === 'BRANCH' ||
+          unit.type === 'OFFICE' ||
+          unit.type === 'SECTOR' ||
+          unit.type === 'SERVICE'
+            ? unit.type
+            : unit.parentExternalId === null
+              ? 'DIRECTORATE'
+              : 'BRANCH',
         updatedAt: now,
       })),
     }),
