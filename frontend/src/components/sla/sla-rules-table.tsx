@@ -1,15 +1,26 @@
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import {
+  tableHeadClassName,
+  tableRowClassName,
+  tableWrapClassName,
+} from "@/components/ui/control";
+import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import type { SlaRule } from "@/services/sla-api";
 
 interface SlaRulesTableProperties {
   readonly rules: readonly SlaRule[];
-  readonly onEdit: (rule: SlaRule) => void;
-  readonly onDelete: (rule: SlaRule) => void;
+  readonly readOnly?: boolean;
+  readonly onEdit?: (rule: SlaRule) => void;
+  readonly onDelete?: (rule: SlaRule) => void;
 }
 
-export function SlaRulesTable({ rules, onEdit, onDelete }: SlaRulesTableProperties) {
+export function SlaRulesTable({
+  rules,
+  readOnly = false,
+  onEdit,
+  onDelete,
+}: SlaRulesTableProperties) {
   const { t } = useTranslation();
   return (
     <div className={tableWrapClassName}>
@@ -21,13 +32,15 @@ export function SlaRulesTable({ rules, onEdit, onDelete }: SlaRulesTableProperti
             <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.resolutionMinutes")}</th>
             <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.evaluationOrder")}</th>
             <th className={`${tableHeadClassName} px-4 py-2.5`}>{t("sla.match")}</th>
-            <th className={`${tableHeadClassName} px-4 py-2.5`} />
+            {!readOnly ? <th className={`${tableHeadClassName} px-4 py-2.5`} /> : null}
           </tr>
         </thead>
         <tbody>
           {rules.map((rule) => (
             <tr key={rule.id} className={tableRowClassName}>
-              <td className="px-4 text-[12.5px]">{rule.priority}</td>
+              <td className="px-4 text-[12.5px]">
+                {t(slaPriorityLabelKey(rule.priority))}
+              </td>
               <td className="px-4 tnum text-[12.5px]">{rule.responseMinutes}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.resolutionMinutes}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.evaluationOrder}</td>
@@ -35,14 +48,24 @@ export function SlaRulesTable({ rules, onEdit, onDelete }: SlaRulesTableProperti
                 {[rule.serviceName, rule.organizationalUnitPath].filter(Boolean).join(" · ") ||
                   t("sla.matchDefault")}
               </td>
-              <td className="px-4 text-right">
-                <Button variant="ghost" size="xs" onClick={() => onEdit(rule)}>
-                  {t("sla.edit")}
-                </Button>
-                <Button variant="ghost" size="xs" onClick={() => onDelete(rule)}>
-                  {t("sla.delete")}
-                </Button>
-              </td>
+              {!readOnly ? (
+                <td className="px-4 text-right">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => onEdit?.(rule)}
+                  >
+                    {t("sla.edit")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => onDelete?.(rule)}
+                  >
+                    {t("sla.delete")}
+                  </Button>
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>

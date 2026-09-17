@@ -7,7 +7,7 @@ import {
   labelClassName,
 } from "@/components/ui/control";
 import { Switch } from "@/components/ui/switch";
-import { defaultWeeklyHours, slaWeekdays } from "@/lib/sla/sla-form-defaults";
+import { defaultWeeklyHours, slaTimezoneOptions, slaWeekdays } from "@/lib/sla/sla-form-defaults";
 import type { BusinessHoursCalendar, CalendarWriteInput, WeeklyHours } from "@/services/sla-api";
 
 interface SlaCalendarFormProperties {
@@ -64,7 +64,22 @@ export function SlaCalendarForm({
       </label>
       <label className={labelClassName}>
         {t("sla.timezone")}
-        <input className={controlClassName} value={timezone} onChange={(event) => setTimezone(event.target.value)} required />
+        <select
+          className={controlClassName}
+          value={timezone}
+          onChange={(event) => setTimezone(event.target.value)}
+          required
+        >
+          {slaTimezoneOptions.map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+          {timezone.length > 0 &&
+          !(slaTimezoneOptions as readonly string[]).includes(timezone) ? (
+            <option value={timezone}>{timezone}</option>
+          ) : null}
+        </select>
       </label>
       <div className="grid gap-2">
         <p className={labelClassName}>{t("sla.weeklyHours")}</p>

@@ -5,6 +5,7 @@ import {
   tableRowClassName,
   tableWrapClassName,
 } from "@/components/ui/control";
+import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
 import type { SlaEscalationRule } from "@/services/sla-api";
 
 interface SlaEscalationRulesTableProperties {
@@ -44,13 +45,7 @@ export function SlaEscalationRulesTable({
               <td className="px-4 text-[12.5px]">{rule.level}</td>
               <td className="px-4 tnum text-[12.5px]">{rule.triggerOffsetMinutes}</td>
               <td className="px-4 text-[12px] text-muted-foreground">
-                {rule.targetRole
-                  ? `role:${rule.targetRole}`
-                  : rule.targetUserId
-                    ? `user:${rule.targetUserId}`
-                    : rule.targetGroupId
-                      ? `group:${rule.targetGroupId}`
-                      : "—"}
+                {formatSlaEscalationTarget(rule, t)}
               </td>
               {canWrite ? (
                 <td className="px-4 text-right">

@@ -8,20 +8,16 @@ import type { SlaProfile } from "@/services/sla-types";
 interface SlaProfileDetailHeaderProperties {
   readonly profile: SlaProfile | undefined;
   readonly canWrite: boolean;
-  readonly showHistory: boolean;
-  readonly showEdit: boolean;
-  readonly onToggleHistory: () => void;
-  readonly onToggleEdit: () => void;
+  readonly onOpenHistory: () => void;
+  readonly onOpenEdit: () => void;
   readonly children: ReactNode;
 }
 
 export function SlaProfileDetailHeader({
   profile,
   canWrite,
-  showHistory,
-  showEdit,
-  onToggleHistory,
-  onToggleEdit,
+  onOpenHistory,
+  onOpenEdit,
   children,
 }: SlaProfileDetailHeaderProperties) {
   const { t } = useTranslation();
@@ -48,19 +44,19 @@ export function SlaProfileDetailHeader({
                 type="button"
                 variant="outline"
                 size="xs"
-                onClick={onToggleHistory}
+                onClick={onOpenHistory}
               >
                 <History size={12} />
-                {showHistory ? t("sla.hideHistory") : t("sla.history")}
+                {t("sla.history")}
               </Button>
               {canWrite ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="xs"
-                  onClick={onToggleEdit}
+                  onClick={onOpenEdit}
                 >
-                  {showEdit ? t("sla.hideEdit") : t("sla.edit")}
+                  {t("sla.edit")}
                 </Button>
               ) : null}
             </div>

@@ -169,7 +169,6 @@ export function SlaPage() {
           changes={data.changes}
           tickets={data.tickets}
           compliance={data.compliance}
-          pauses={data.pauses}
           canWrite={canWrite}
           errorKey={data.errorKey}
           isSubmitting={isSubmitting}

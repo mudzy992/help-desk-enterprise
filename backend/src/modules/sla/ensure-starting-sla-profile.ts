@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { createSlaProfile } from './create-sla-profile';
+import { ensureStartingSlaEscalations } from './ensure-starting-sla-escalations';
 import { requireBusinessHoursCalendar } from './load-business-hours-calendar';
 import { matchesSlaRuleKey } from './normalize-sla-rule-values';
 import { changeLogActions, recordSlaChange } from './record-sla-change';
@@ -26,6 +27,7 @@ export type StartingSlaProfileEnsureResult = {
   readonly id: string;
   readonly created: boolean;
   readonly createdRuleCount: number;
+  readonly createdEscalationCount: number;
 };
 
 export async function ensureStartingSlaProfile(
@@ -48,11 +50,16 @@ export async function ensureStartingSlaProfile(
     definition,
     businessMinutesPerStandardDay(boundCalendar.weeklyHours),
   );
+  const createdEscalationCount = await ensureStartingSlaEscalations(
+    prisma,
+    profile.id,
+  );
   return {
     key: definition.key,
     id: profile.id,
     created: existing === null,
     createdRuleCount,
+    createdEscalationCount,
   };
 }
 

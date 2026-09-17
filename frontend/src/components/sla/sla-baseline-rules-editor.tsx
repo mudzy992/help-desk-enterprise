@@ -38,7 +38,7 @@ export function SlaBaselineRulesEditor({
     editingRule && isBaselineSlaRule(editingRule) ? editingRule : undefined;
 
   return (
-    <div className="space-y-3 border-t border-border/60 px-4 py-3.5">
+    <div className="space-y-3">
       {rules.length > 0 ? (
         <SlaRulesTable rules={rules} onEdit={onEdit} onDelete={onDeleteRule} />
       ) : null}
@@ -60,7 +60,7 @@ export function SlaBaselineRulesEditor({
           placeholder={t("sla.reason")}
         />
         <Button type="button" variant="destructive" size="xs" onClick={onDeleteProfile}>
-          {t("sla.delete")}
+          {t("sla.deleteProfile")}
         </Button>
       </div>
     </div>

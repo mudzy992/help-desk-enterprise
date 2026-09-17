@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { tableHeadClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { countSlaPriorityExposure } from "@/lib/sla/count-sla-profile-exposure";
+import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import { formatHours, formatMinutes } from "@/lib/reports/report-format";
 import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
 import type { SlaRule } from "@/services/sla-types";
@@ -62,7 +63,7 @@ export function SlaPriorityTargetsTable({
               <tr key={rule.id} className="transition-colors hover:bg-elevated/40">
                 <td className="px-4 py-3">
                   <Badge tone={TICKET_PRIORITY_META[priority].tone} dot>
-                    {priority}
+                    {t(slaPriorityLabelKey(priority))}
                   </Badge>
                 </td>
                 <td className="px-4 py-3">

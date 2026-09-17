@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { SlaBaselineRulesEditor } from "@/components/sla/sla-baseline-rules-editor";
 import { SlaCalendarDetailCard } from "@/components/sla/sla-calendar-detail-card";
-import { SlaChangeLogPanel } from "@/components/sla/sla-change-log-panel";
 import { SlaComplianceCard } from "@/components/sla/sla-compliance-card";
+import { SlaEscalationsCard } from "@/components/sla/sla-escalations-card";
 import { SlaOverrideRulesCard } from "@/components/sla/sla-override-rules-card";
-import { SlaPausesEscalationsCard } from "@/components/sla/sla-pauses-escalations-card";
 import { SlaPriorityTargetsTable } from "@/components/sla/sla-priority-targets-table";
+import {
+  SlaProfileDetailDrawers,
+  type SlaDrawerKind,
+} from "@/components/sla/sla-profile-detail-drawers";
 import { SlaProfileDetailHeader } from "@/components/sla/sla-profile-detail-header";
 import { SlaProfileForm } from "@/components/sla/sla-profile-form";
 import {
-  isBaselineSlaRule,
   selectBaselineSlaRules,
   selectOverrideSlaRules,
 } from "@/lib/sla/select-baseline-sla-rules";
-import type { SlaPauseSettings } from "@/lib/sla/use-sla-page-data";
 import type {
   BusinessHoursCalendar,
   ProfileWriteInput,
@@ -33,7 +33,6 @@ interface SlaProfileDetailProperties {
   readonly changes: readonly SlaChangeLogEntry[];
   readonly tickets: readonly TicketResponse[];
   readonly compliance: SlaComplianceResponse | null;
-  readonly pauses: SlaPauseSettings;
   readonly canWrite: boolean;
   readonly errorKey: string | null;
   readonly isSubmitting: boolean;
@@ -53,7 +52,6 @@ export function SlaProfileDetail({
   changes,
   tickets,
   compliance,
-  pauses,
   canWrite,
   errorKey,
   isSubmitting,
@@ -62,24 +60,26 @@ export function SlaProfileDetail({
   onDeleteRule,
   onDeleteProfile,
 }: SlaProfileDetailProperties) {
-  const [showHistory, setShowHistory] = useState(false);
-  const [showEdit, setShowEdit] = useState(profile === undefined);
+  const [drawer, setDrawer] = useState<SlaDrawerKind>(null);
   const [editingRule, setEditingRule] = useState<SlaRule | undefined>();
   const [deleteReason, setDeleteReason] = useState("");
+  const [escalationRefresh, setEscalationRefresh] = useState(0);
   const baseline = selectBaselineSlaRules(rules);
   const overrides = selectOverrideSlaRules(rules);
-  const overrideEdit =
-    editingRule && !isBaselineSlaRule(editingRule) ? editingRule : undefined;
+
+  const closeDrawer = () => {
+    setDrawer(null);
+    setEditingRule(undefined);
+    setEscalationRefresh((value) => value + 1);
+  };
 
   if (profile === undefined) {
     return (
       <SlaProfileDetailHeader
         profile={undefined}
         canWrite={canWrite}
-        showHistory={false}
-        showEdit
-        onToggleHistory={() => undefined}
-        onToggleEdit={() => undefined}
+        onOpenHistory={() => undefined}
+        onOpenEdit={() => undefined}
       >
         <div className="px-4 py-3.5">
           {canWrite ? (
@@ -100,10 +100,8 @@ export function SlaProfileDetail({
       <SlaProfileDetailHeader
         profile={profile}
         canWrite={canWrite}
-        showHistory={showHistory}
-        showEdit={showEdit}
-        onToggleHistory={() => setShowHistory((value) => !value)}
-        onToggleEdit={() => setShowEdit((value) => !value)}
+        onOpenHistory={() => setDrawer("history")}
+        onOpenEdit={() => setDrawer("profile")}
       >
         <SlaPriorityTargetsTable
           rules={baseline}
@@ -111,64 +109,46 @@ export function SlaProfileDetail({
           slaProfileId={profile.id}
           calendarLabel={calendar?.name ?? profile.calendarName}
         />
-        {canWrite ? (
-          <SlaBaselineRulesEditor
-            rules={baseline}
-            editingRule={editingRule}
-            errorKey={errorKey}
-            isSubmitting={isSubmitting}
-            deleteReason={deleteReason}
-            onDeleteReasonChange={setDeleteReason}
-            onEdit={setEditingRule}
-            onDeleteRule={(rule) => void onDeleteRule(rule, deleteReason)}
-            onSaveRule={onSaveRule}
-            onClearEditing={() => setEditingRule(undefined)}
-            onDeleteProfile={() => void onDeleteProfile(deleteReason)}
-          />
-        ) : null}
-        {showEdit && canWrite ? (
-          <div className="border-t border-border/60 px-4 py-3.5">
-            <SlaProfileForm
-              key={profile.id}
-              profile={profile}
-              calendars={calendars}
-              errorKey={errorKey}
-              isSubmitting={isSubmitting}
-              onSubmit={onSaveProfile}
-            />
-          </div>
-        ) : null}
-        {showHistory ? (
-          <div className="border-t border-border/60 px-4 py-3.5">
-            <SlaChangeLogPanel entries={changes} />
-          </div>
-        ) : null}
       </SlaProfileDetailHeader>
 
       <SlaOverrideRulesCard
         rules={overrides}
-        editingRule={overrideEdit}
         canWrite={canWrite}
-        errorKey={errorKey}
-        isSubmitting={isSubmitting}
-        onEdit={setEditingRule}
-        onDelete={(rule) => void onDeleteRule(rule, deleteReason)}
-        onSubmit={async (input) => {
-          await onSaveRule(input, overrideEdit);
-          setEditingRule(undefined);
-        }}
+        onEdit={() => setDrawer("overrides")}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SlaCalendarDetailCard calendar={calendar} />
-        <SlaPausesEscalationsCard
+        <SlaEscalationsCard
           slaProfileId={profile.id}
-          pauses={pauses}
           canWrite={canWrite}
+          onEdit={() => setDrawer("escalations")}
+          refreshKey={escalationRefresh}
         />
       </div>
 
       <SlaComplianceCard compliance={compliance} slaProfileId={profile.id} />
+
+      <SlaProfileDetailDrawers
+        drawer={drawer}
+        profile={profile}
+        calendars={calendars}
+        baseline={baseline}
+        overrides={overrides}
+        changes={changes}
+        canWrite={canWrite}
+        errorKey={errorKey}
+        isSubmitting={isSubmitting}
+        editingRule={editingRule}
+        deleteReason={deleteReason}
+        onClose={closeDrawer}
+        onEditingRuleChange={setEditingRule}
+        onDeleteReasonChange={setDeleteReason}
+        onSaveProfile={onSaveProfile}
+        onSaveRule={onSaveRule}
+        onDeleteRule={onDeleteRule}
+        onDeleteProfile={onDeleteProfile}
+      />
     </div>
   );
 }

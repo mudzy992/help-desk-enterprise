@@ -19,3 +19,29 @@ export const defaultWeeklyHours: WeeklyHours = {
 };
 
 export const slaPriorities = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
+
+export type SlaPriorityValue = (typeof slaPriorities)[number];
+
+const priorityLabelKeys = {
+  CRITICAL: "sla.priorityCritical",
+  HIGH: "sla.priorityHigh",
+  MEDIUM: "sla.priorityMedium",
+  LOW: "sla.priorityLow",
+} as const;
+
+export function slaPriorityLabelKey(priority: string): string {
+  if (priority in priorityLabelKeys) {
+    return priorityLabelKeys[priority as SlaPriorityValue];
+  }
+  return priority;
+}
+
+export const slaTimezoneOptions = [
+  "Europe/Sarajevo",
+  "Europe/Belgrade",
+  "Europe/Zagreb",
+  "Europe/Berlin",
+  "Europe/Vienna",
+  "UTC",
+] as const;
+

@@ -1,5 +1,6 @@
 import type { ChangeLogDiffPayload } from '../change-log/change-log.types';
 import { createInMemoryCalendarDelegate } from './in-memory-sla-calendar-delegate';
+import { createInMemorySlaEscalationRuleDelegate } from './in-memory-sla-escalation-rule-delegate';
 import { createInMemoryProfileDelegate } from './in-memory-sla-profile-delegate';
 import { createInMemoryRuleDelegate } from './in-memory-sla-rule-delegate';
 import type { InMemorySlaChangeLog } from './in-memory-sla-store';
@@ -8,6 +9,7 @@ import type {
   SlaProfileRecord,
   SlaRuleRecord,
 } from './sla.types';
+import type { SlaEscalationRuleRecord } from './ticket-sla.types';
 
 export type { InMemorySlaChangeLog } from './in-memory-sla-store';
 
@@ -15,6 +17,7 @@ export function createInMemorySlaPrisma() {
   const calendars = new Map<string, BusinessHoursCalendarRecord>();
   const profiles = new Map<string, SlaProfileRecord>();
   const rules = new Map<string, SlaRuleRecord>();
+  const escalations = new Map<string, SlaEscalationRuleRecord>();
   const units = new Map<string, { id: string; ouPath: string }>();
   const services = new Map<string, { id: string; name: string; slaProfileId: string | null }>();
   const policyPacks = new Map<string, { id: string; slaProfileId: string | null }>();
@@ -38,6 +41,10 @@ export function createInMemorySlaPrisma() {
     },
     slaProfile: createInMemoryProfileDelegate(profiles, rules, nextId, now),
     slaRule: createInMemoryRuleDelegate(rules, nextId, now),
+    slaEscalationRule: createInMemorySlaEscalationRuleDelegate(
+      escalations,
+      nextId,
+    ),
     organizationalUnit: {
       findUnique: async ({ where }: { where: { id: string } }) =>
         units.get(where.id) ?? null,

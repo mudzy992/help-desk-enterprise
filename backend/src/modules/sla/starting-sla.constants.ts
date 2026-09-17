@@ -35,6 +35,15 @@ export type StartingSlaProfileDefinition = {
 
 export const startingSlaSeedReason = 'sla_starting_profiles_seed';
 
+export const startingSlaEscalationTargetRole = 'ADMIN';
+
+/** Default post-breach escalation ladder (seeded per starting profile). */
+export const startingSlaEscalationDefinitions = [
+  { triggerOffsetMinutes: 0 },
+  { triggerOffsetMinutes: 30 },
+  { triggerOffsetMinutes: 120 },
+] as const;
+
 export const startingSlaSeedContext: SlaMutationContext = {
   actorUserId: null,
 };

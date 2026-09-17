@@ -95,6 +95,7 @@ describe('seedStartingSlaProfiles', () => {
         ...profile,
         created: false,
         createdRuleCount: 0,
+        createdEscalationCount: 0,
       })),
     );
     expect(await prisma.slaProfile.findMany()).toHaveLength(5);
@@ -102,6 +103,11 @@ describe('seedStartingSlaProfiles', () => {
       expect(
         await prisma.slaRule.findMany({ where: { slaProfileId: profile.id } }),
       ).toHaveLength(4);
+      expect(
+        await prisma.slaEscalationRule.findMany({
+          where: { slaProfileId: profile.id },
+        }),
+      ).toHaveLength(3);
     }
   });
 
@@ -196,4 +202,24 @@ async function expectProfileMatchesRaw(
       ]),
     );
   }
+  const escalations = await prisma.slaEscalationRule.findMany({
+    where: { slaProfileId: profile?.id },
+  });
+  expect(escalations).toHaveLength(3);
+  expect(escalations).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        triggerOffsetMinutes: 0,
+        targetRole: 'ADMIN',
+      }),
+      expect.objectContaining({
+        triggerOffsetMinutes: 30,
+        targetRole: 'ADMIN',
+      }),
+      expect.objectContaining({
+        triggerOffsetMinutes: 120,
+        targetRole: 'ADMIN',
+      }),
+    ]),
+  );
 }
