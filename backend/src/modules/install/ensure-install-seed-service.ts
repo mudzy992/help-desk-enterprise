@@ -20,13 +20,13 @@ export type EnsuredInstallSeedService = {
 export async function ensureInstallSeedService(
   prisma: PrismaService,
   originUnitId: string,
-  fallbackGroupId: string | null,
+  seedHandlerGroupId: string | null,
   context: InstallSeedContext,
 ): Promise<EnsuredInstallSeedService> {
   const existing = await findInstallSeedServiceCandidate(
     prisma,
     originUnitId,
-    fallbackGroupId,
+    seedHandlerGroupId,
   );
   if (existing !== null) {
     const service = isOfferedInstallSeedService(existing)

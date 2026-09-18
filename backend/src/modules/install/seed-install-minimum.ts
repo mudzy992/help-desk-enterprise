@@ -91,11 +91,11 @@ async function findInstallRoutingRuleHint(
 
 function assertSeedResolution(
   resolution: RoutingResolution,
-  fallbackGroupId: string,
+  seedHandlerGroupId: string,
 ): void {
   if (
     resolution.outcome !== routingOutcomes.exact ||
-    resolution.groupId !== fallbackGroupId
+    resolution.groupId !== seedHandlerGroupId
   ) {
     throw new InstallSeedError(installSeedErrorCodes.routingUnresolved);
   }

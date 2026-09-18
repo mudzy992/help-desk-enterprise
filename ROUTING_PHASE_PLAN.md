@@ -11,8 +11,8 @@
 1. **KRITIČNO:** `RoutingController`/`RoutingService` podržavaju **samo kreiranje** pravila (`POST /routing/rules`, `createRule()`). **Nema update, nema delete.** `RoutingRule` ima `@@unique([originUnitId, serviceId])` — jednom kreirano pravilo za par (OU, servis) se **ne može nikad izmijeniti niti ukloniti** kroz aplikaciju. Potvrđeno da hard delete reda ne bi ugrozio integritet (ništa drugo ne referencira `RoutingRule.id` kao FK).
 2. **KRITIČNO:** nema `GET` endpointa za routing change-log — `persist-routing-rule-change.ts` **već piše** change-log zapis pri kreiranju (elegantno: before/after je puna `RoutingResolution` prije/poslije, ne sirovi field diff), ali se ti zapisi nigdje ne mogu pročitati. Frontend nema "Change log" tab uopšte (referenca ima 4. tab, trenutna implementacija ima samo 3: Matrica/Tester/Pravila).
 3. `private.ticket.routing.requireCoverage` (blokiraj aktivaciju servisa/OU bez routing pokrivenosti) — settings ključ postoji, **nigdje se ne koristi**. RAW eksplicitno traži ovo ("routing coverage check + fallback pravila", "upozorava ako servis nema routing coverage ili fallback" u onboarding wizardu) — trenutno servis/OU može biti aktivan bez ijednog routing pravila, bez upozorenja.
-4. `private.ticket.routing.fallbackGroupId` — settings ključ postoji, ali se koristi **samo** u install-seed skripti (`ensure-install-seed-service.ts`), **nikad** u stvarnoj `resolve-ticket-routing.ts` logici. I referenca i trenutna implementacija namjerno tretiraju "bez pogotka" kao first-class `UNROUTED` (`groupId: null`), **nikad** proizvoljna fallback grupa — ovo je arhitektonski ispravnije i sigurnije. Settings ključ je u koliziji sa tim principom — odluka je potrebna (vjerovatno: deprecirati ključ), ne implementacija bez razmišljanja.
-5. `private.routing.strictOuIsolation` — settings ključ postoji, **nigdje se ne koristi**. `RequireOrganizationalUnitScope`/`RequireServiceScope` decoratori na `routing.controller.ts` su bezuslovni (izgleda da OU/service scope enforcement već uvijek radi) — treba potvrditi da li je to zaista uvijek-uključeno ponašanje namjerno, pa ključ ukloniti, ili treba stvarno uslovno.
+4. `private.ticket.routing.fallbackGroupId` — **riješeno (Faza 3):** nije u settings registry-ju. Runtime ostaje first-class `UNROUTED`. Install seed koristi lokalni `seedHandlerGroupId` (EXACT pravilo na seed handler grupu), ne settings ključ.
+5. `private.routing.strictOuIsolation` — **riješeno (Faza 3):** nije u settings registry-ju. OU/service scope enforcement je uvijek aktivan preko decoratora (SuperAdmin bypass).
 6. Frontend Matrica/Tester/Pravila tabovi su **strukturno vrlo blizu referenci** (coverage matrica sa E/N/× ćelijama, resolution tester sa fallback path prikazom i JSON blokom, create-rule forma sa Select poljima za sve, duplicate-rule upozorenje, obavezan reason) — glavni nedostatak nije dizajn nego funkcionalnost iz nalaza #1/#2.
 7. i18n za postojeća 3 taba je već kompletan (69/69 BS/EN ključeva poklopljeno) — novi rad (Faza 1/4) treba nove ključeve, ne popravku postojećih (za razliku od SLA/Settings gdje je i18n bio prazan).
 
@@ -22,7 +22,7 @@
 
 - [x] Faza 1 — Puni CRUD za routing pravila + Change log
 - [x] Faza 2 — `requireCoverage` enforcement
-- [ ] Faza 3 — Housekeeping: `fallbackGroupId` i `strictOuIsolation`
+- [x] Faza 3 — Housekeeping: `fallbackGroupId` i `strictOuIsolation`
 - [ ] Faza 4 — Finalno usklađivanje frontend UI-ja sa referencom
 
 ---
@@ -94,32 +94,17 @@
 
 ---
 
-## Faza 3 (P2) — Housekeeping: `fallbackGroupId` i `strictOuIsolation`
+## Faza 3 (P2) — Housekeeping: `fallbackGroupId` i `strictOuIsolation` ✅
 
-**Problem:** vidi nalaz #4, #5 — dva settings ključa koja se nigdje stvarno ne koriste u routing logici (isti tip nalaza kao SLA Faza 5).
+**Status:** završeno 2026-09-18. Problem: vidi nalaz #4, #5.
 
-1. **`fallbackGroupId` — odluka (obrazloži u handoff-u, ne pretpostavljaj):**
-   - Preporuka: **deprecirati** ovaj ključ iz `private.ticket.routing.*` registry-ja. Razlog: i referenca i stvarna `resolve-ticket-routing.ts` logika namjerno tretiraju "bez pogotka" kao first-class `UNROUTED`, nikad proizvoljnu grupu — to je arhitektonski ispravnije (rupe su vidljive, ne skrivene, tačno kako referenca eksplicitno kaže). Uvođenje "fallback grupe" bi sakrilo rupe u pokrivenosti umjesto da ih pokaže u Matrici pokrivanja/coverage provjeri iz Faze 2.
-   - Prije brisanja: potvrdi da ništa drugo (install-seed skripta) ne bi propalo — `ensure-install-seed-service.ts` ga koristi za nešto specifično install-time, provjeri da li se taj install-seed use-case može zadovoljiti drugačije (npr. direktno kreiranje prvog routing pravila u seed skripti umjesto settings-ključa) prije nego što ukloniš ključ.
-   - Ako se ipak odluči da ključ ostane (npr. ako install-seed zavisnost nije trivijalno uklonjiva), jasno dokumentuj u kodu/komentaru da je ovo **install-time-only** koncept, nikad korišten u runtime rezoluciji, da se izbjegne buduća zabuna.
+**Odluke:**
+- `fallbackGroupId` — van registry-ja; runtime = UNROUTED; install = `seedHandlerGroupId` + EXACT pravilo (ne settings ključ).
+- `strictOuIsolation` — van registry-ja; OU/service scope uvijek aktivan (decoratori + SuperAdmin bypass).
 
-2. **`strictOuIsolation` — odluka:**
-   - Provjeri da li `RequireOrganizationalUnitScope`/`RequireServiceScope` decoratori (već primijenjeni bezuslovno na routing endpointima) zaista uvijek enforce-uju OU izolaciju za sve role osim super admina (pogledaj implementaciju decoratora, ne pretpostavljaj iz imena).
-   - Ako je enforcement već uvijek aktivan (najvjerovatnije) → ukloni settings ključ kao mrtav/redundantan, isti proces provjere reference kao za `fallbackGroupId` prije brisanja.
-   - Ako enforcement NIJE uvijek aktivan i ključ zaista treba da ga uslovljava → implementiraj uslovnu logiku u decorator/guard.
+**Deliverables:** `routing-dead-settings.spec.ts`, rename install parama, MATRIX/CHANGELOG update.
 
-3. Test za odabrano ponašanje u oba slučaja.
-
-**Ograničenja:**
-- Fajlovi ≤150 linija.
-- Ne diraj Faze 1/2/4.
-- Ne briši ključ ako bilo šta drugo (install seed, drugi modul) na njega i dalje oslanja bez zamjene — prijavi kao blokirajuće pitanje umjesto da tiho ostaviš slomljeno stanje.
-
-**Verifikacija:**
-- Odluke za oba ključa implementirane i testirane, obrazložene u handoff-u.
-- `npm run test`.
-
-**Obavezno:** čekiraj (`- [x]`) Faza 3 stavku i pošalji ažuriranu sekciju nazad. Ne prelazi na Fazu 4 dok se ne potvrdi.
+**Obavezno:** ne prelazi na Fazu 4 dok se ne potvrdi.
 
 ---
 

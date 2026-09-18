@@ -7,14 +7,19 @@ import type { InstallSeedService } from './install-seed.types';
 export async function findInstallSeedServiceCandidate(
   prisma: PrismaService,
   originUnitId: string,
-  fallbackGroupId: string | null,
+  seedHandlerGroupId: string | null,
 ): Promise<InstallSeedService | null> {
   const bySlug = await prisma.service.findUnique({
     where: { slug: installSeedConstants.serviceSlug },
   });
   if (
     bySlug !== null &&
-    (await canRouteToFallback(prisma, originUnitId, bySlug.id, fallbackGroupId))
+    (await canReuseSeedHandlerGroup(
+      prisma,
+      originUnitId,
+      bySlug.id,
+      seedHandlerGroupId,
+    ))
   ) {
     return toSeedService(bySlug);
   }
@@ -23,11 +28,11 @@ export async function findInstallSeedServiceCandidate(
   });
   for (const service of offered) {
     if (
-      await canRouteToFallback(
+      await canReuseSeedHandlerGroup(
         prisma,
         originUnitId,
         service.id,
-        fallbackGroupId,
+        seedHandlerGroupId,
       )
     ) {
       return toSeedService(service);
@@ -36,17 +41,17 @@ export async function findInstallSeedServiceCandidate(
   return null;
 }
 
-export async function canRouteToFallback(
+export async function canReuseSeedHandlerGroup(
   prisma: PrismaService,
   originUnitId: string,
   serviceId: string,
-  fallbackGroupId: string | null,
+  seedHandlerGroupId: string | null,
 ): Promise<boolean> {
   const rule = await findInstallRoutingRule(prisma, originUnitId, serviceId);
   if (rule === null) {
     return true;
   }
-  return fallbackGroupId !== null && rule.groupId === fallbackGroupId;
+  return seedHandlerGroupId !== null && rule.groupId === seedHandlerGroupId;
 }
 
 export function toSeedService(service: {

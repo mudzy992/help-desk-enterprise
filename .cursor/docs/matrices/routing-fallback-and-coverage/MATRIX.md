@@ -32,6 +32,9 @@ Jedna ćelija po `(service, origin OU)`:
 |---|---|
 | `private.ticket.unroutedQueue.enabled` | `true` |
 | `private.ticket.unroutedQueue.ownerRole` | `SUPER_ADMIN` |
+| `private.ticket.routing.requireCoverage` | `true` |
+
+Namjerno **nisu** u registry-ju: `private.ticket.routing.fallbackGroupId` (runtime = UNROUTED, ne silent grupa), `private.routing.strictOuIsolation` (OU/service scope je uvijek aktivan preko decoratora). Install seed koristi lokalni `seedHandlerGroupId` (prva handler grupa + EXACT pravilo), ne settings ključ.
 
 ## API / UI
 `GET /routing/coverage` (`ADMIN`). Frontend: coverage tabela + minimalni WHEN/THEN create. Nije puni routing admin suite.
