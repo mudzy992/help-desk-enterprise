@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import {
-  listOrganizationalUnitTree,
-  listOrganizationalUnitUsers,
-  type OrganizationalUnitTreeNode,
-  type OrganizationalUnitUser,
-} from "@/services/organizational-units-api";
+  loadDirectory,
+  type DirectoryUser,
+} from "@/lib/directory/load-directory";
+import type { OrganizationalUnitTreeNode } from "@/services/organizational-units-api";
 
-export type DirectoryUser = OrganizationalUnitUser & {
-  readonly organizationalUnitPath: string;
-};
+export type { DirectoryUser } from "@/lib/directory/load-directory";
 
 export type DirectoryState = {
   readonly tree: readonly OrganizationalUnitTreeNode[];
@@ -21,8 +17,6 @@ export type DirectoryState = {
   readonly reload: () => Promise<void>;
 };
 
-/// The backend exposes members per organizational unit, so the directory is
-/// assembled by walking the OU tree. No aggregate users endpoint exists yet.
 export function useDirectory(): DirectoryState {
   const [tree, setTree] = useState<readonly OrganizationalUnitTreeNode[]>([]);
   const [users, setUsers] = useState<readonly DirectoryUser[]>([]);
@@ -35,19 +29,11 @@ export function useDirectory(): DirectoryState {
     setErrorKey(null);
     setRequestId(null);
     try {
-      const loadedTree = await listOrganizationalUnitTree();
-      setTree(loadedTree);
-      const units = flattenOriginUnitOptions(loadedTree);
-      // Unit membership is scope-checked per unit, so a unit the caller cannot
-      // read contributes no members instead of failing the whole directory.
-      const collected = await Promise.all(
-        units.map(async (unit) =>
-          (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map(
-            (user) => ({ ...user, organizationalUnitPath: unit.label }),
-          ),
-        ),
-      );
-      setUsers(dedupeById(collected.flat()));
+      const loaded = await loadDirectory();
+      setTree(loaded.tree);
+      setUsers(loaded.users);
+      setErrorKey(loaded.errorKey);
+      setRequestId(loaded.requestId);
     } catch (error) {
       setTree([]);
       setUsers([]);
@@ -63,10 +49,4 @@ export function useDirectory(): DirectoryState {
   }, [reload]);
 
   return { tree, users, isLoading, errorKey, requestId, reload };
-}
-
-function dedupeById(users: readonly DirectoryUser[]): readonly DirectoryUser[] {
-  return [...new Map(users.map((user) => [user.id, user])).values()].sort(
-    (left, right) => left.displayName.localeCompare(right.displayName),
-  );
 }

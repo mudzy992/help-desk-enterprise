@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
-import {
-  flattenOriginUnitOptions,
-  type OriginUnitOption,
-} from "@/lib/tickets/ticket-display";
-import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
-import {
-  listOfferedServices,
-  type ServiceResponse,
-} from "@/services/service-catalog-api";
+import { loadCreateTicketCatalog } from "@/lib/tickets/load-create-ticket-catalog";
+import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
+import type { ServiceResponse } from "@/services/service-catalog-api";
 
 export function useCreateTicketCatalog(): {
   readonly services: readonly ServiceResponse[];
@@ -24,18 +18,14 @@ export function useCreateTicketCatalog(): {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([listOfferedServices(), listOrganizationalUnitTree()])
-      .then(([offered, tree]) => {
+    void loadCreateTicketCatalog()
+      .then((result) => {
         if (cancelled) {
           return;
         }
-        setServices(offered);
-        setOriginUnits(flattenOriginUnitOptions(tree));
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setErrorKey("tickets.errorCatalog");
-        }
+        setServices(result.services);
+        setOriginUnits(result.originUnits);
+        setErrorKey(result.errorKey);
       })
       .finally(() => {
         if (!cancelled) {
