@@ -184,7 +184,11 @@ export function CreateTicketForm() {
       suggestedPriority={suggestedPriority}
       displayedError={displayedError}
       canNextService={draft.serviceId.length > 0 && isServiceReady}
-      canSubmitDetails={isCreateTicketDraftReady(draft) && isServiceReady}
+      canSubmitDetails={
+        isCreateTicketDraftReady(draft, {
+          isOriginUnitLocked: !origin.canChooseOriginUnit,
+        }) && isServiceReady
+      }
       isSubmitting={isSubmitting}
       onDraftChange={setDraft}
       onOriginUnitChosen={() => setHasChosenOriginUnit(true)}

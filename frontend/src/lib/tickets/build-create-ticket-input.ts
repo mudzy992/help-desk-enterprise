@@ -22,12 +22,18 @@ export const emptyCreateTicketDraft: CreateTicketDraft = {
   formData: {},
 };
 
-export function isCreateTicketDraftReady(draft: CreateTicketDraft): boolean {
+export function isCreateTicketDraftReady(
+  draft: CreateTicketDraft,
+  options: { readonly isOriginUnitLocked?: boolean } = {},
+): boolean {
+  const hasOriginUnit =
+    draft.originUnitId.trim().length > 0 ||
+    options.isOriginUnitLocked === true;
   return (
     draft.title.trim().length > 0 &&
     draft.description.trim().length > 0 &&
     draft.serviceId.trim().length > 0 &&
-    draft.originUnitId.trim().length > 0
+    hasOriginUnit
   );
 }
 
@@ -45,13 +51,14 @@ export function buildCreateTicketInput(
   draft: CreateTicketDraft,
   options: { readonly acknowledgeDuplicate?: boolean } = {},
 ): CreateTicketInput {
+  const originUnitId = draft.originUnitId.trim();
   return {
     title: draft.title.trim(),
     description: draft.description.trim(),
     impact: draft.impact,
     urgency: draft.urgency,
     serviceId: draft.serviceId,
-    originUnitId: draft.originUnitId.trim(),
+    ...(originUnitId.length > 0 ? { originUnitId } : {}),
     ...(draft.formVersionRef === null
       ? {}
       : { formVersionRef: draft.formVersionRef }),

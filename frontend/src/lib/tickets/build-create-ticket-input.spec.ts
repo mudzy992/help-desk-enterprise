@@ -42,6 +42,30 @@ describe("buildCreateTicketInput", () => {
       originUnitId: "ou-it",
     });
   });
+
+  it("omits originUnitId when empty so the backend can resolve the user home unit", () => {
+    expect(
+      buildCreateTicketInput({
+        ...draft,
+        originUnitId: "  ",
+        formVersionRef: null,
+        formData: {},
+      }),
+    ).toEqual({
+      title: "VPN issue",
+      description: "Cannot connect",
+      impact: "HIGH",
+      urgency: "MEDIUM",
+      serviceId: "svc-1",
+    });
+    expect(
+      isCreateTicketDraftReady(
+        { ...draft, originUnitId: "" },
+        { isOriginUnitLocked: true },
+      ),
+    ).toBe(true);
+    expect(isCreateTicketDraftReady({ ...draft, originUnitId: "" })).toBe(false);
+  });
 });
 
 describe("isServiceReadyForTicketCreation", () => {
