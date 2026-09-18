@@ -115,7 +115,7 @@ export function RoutingCoverageTable({
             </tr>
           </thead>
           <tbody>
-            {matrix.services.map((service, rowIndex) => (
+            {matrix.services.map((service) => (
               <tr key={service.serviceId}>
                 <td className="sticky left-0 z-10 bg-surface py-1 pr-2">
                   <span
@@ -150,7 +150,6 @@ export function RoutingCoverageTable({
                         hover?.originUnitId === origin.originUnitId &&
                         hover?.serviceId === service.serviceId
                       }
-                      nearBottom={rowIndex >= matrix.services.length - 2}
                       onActivate={() =>
                         setHover({
                           originUnitId: origin.originUnitId,
