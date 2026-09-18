@@ -18,6 +18,9 @@ export class RoutingConfigurationLoader {
         ownerRole: await this.settingsService.getSetting(
           settingKeys.privateTicketUnroutedQueueOwnerRole,
         ),
+        requireCoverage: await this.settingsService.getSetting(
+          settingKeys.privateTicketRoutingRequireCoverage,
+        ),
       });
     } catch (error) {
       if (error instanceof RoutingError) {

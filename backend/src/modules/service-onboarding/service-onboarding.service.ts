@@ -67,18 +67,18 @@ export class ServiceOnboardingService {
     serviceId: string,
     context: OnboardingMutationContext = emptyOnboardingContext,
   ): Promise<ServiceOnboardingResponse> {
-    return this.executor.execute(async () =>
-      this.executor.respond(
-        await finalizeServiceOnboarding(
-          this.executor.prisma,
-          serviceId,
-          await this.executor.onboardingConfigurationLoader.load(),
-          await this.executor.lifecycleConfigurationLoader.load(),
-          this.executor.providers(),
-          context,
-        ),
-      ),
-    );
+    return this.executor.execute(async () => {
+      const finalized = await finalizeServiceOnboarding(
+        this.executor.prisma,
+        serviceId,
+        await this.executor.onboardingConfigurationLoader.load(),
+        await this.executor.lifecycleConfigurationLoader.load(),
+        this.executor.providers(),
+        context,
+      );
+      const response = await this.executor.respond(finalized.record);
+      return { ...response, warnings: finalized.warnings };
+    });
   }
 
   abandon(

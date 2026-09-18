@@ -49,6 +49,9 @@ export type ServiceOnboardingRoutingProvider = {
     readonly reference: string;
   }): Promise<ConfigurationReferenceValidation>;
   suggest(serviceId: string): Promise<string | null>;
+  evaluateActivationCoverage(
+    serviceId: string,
+  ): Promise<'ROUTING_COVERAGE_MISSING' | null>;
 };
 
 export type ServiceOnboardingSlaProvider = {
@@ -79,6 +82,7 @@ export type ServiceOnboardingResponse = {
   readonly routingSuggestion: string | null;
   readonly lastValidationErrors: readonly ServiceOnboardingValidationIssue[];
   readonly serviceLifecycle: ServiceLifecycle;
+  readonly warnings: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;
 };

@@ -21,4 +21,13 @@ export const ticketRoutingSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: 'SUPER_ADMIN',
   }),
+  definePrivateSetting({
+    key: settingKeys.privateTicketRoutingRequireCoverage,
+    categoryId: settingCategoryIds.privateTicket,
+    valueType: 'boolean',
+    description:
+      'Block service activation when the service has no routing rules (exact or inherited)',
+    isRequired: true,
+    defaultValue: true,
+  }),
 ];

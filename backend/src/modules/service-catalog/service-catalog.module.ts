@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
+import { RoutingModule } from '../routing/routing.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ServiceAvailabilityConfigurationLoader } from './service-availability-configuration.loader';
 import { ServiceAvailabilityController } from './service-availability.controller';
@@ -14,7 +15,12 @@ import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configu
 import { ServicesController } from './services.controller';
 
 @Module({
-  imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
+  imports: [
+    AuthenticationModule,
+    AuthorizationModule,
+    SettingsModule,
+    forwardRef(() => RoutingModule),
+  ],
   controllers: [
     ServiceCategoriesController,
     ServicesController,

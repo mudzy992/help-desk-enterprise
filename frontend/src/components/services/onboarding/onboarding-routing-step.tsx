@@ -20,19 +20,24 @@ export function OnboardingRoutingStep({
   const { t } = useTranslation();
   if (suggestion === null) {
     return (
-      <EmptyState
-        title={t("services.onboarding.routingMissing")}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="outline" asChild>
-              <Link to="/routing">{t("services.onboarding.routingOpen")}</Link>
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={onReload}>
-              {t("services.onboarding.next")}
-            </Button>
-          </div>
-        }
-      />
+      <div className="grid gap-3">
+        <p className="rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
+          {t("services.onboarding.routingCoverageWarning")}
+        </p>
+        <EmptyState
+          title={t("services.onboarding.routingMissing")}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" asChild>
+                <Link to="/routing">{t("services.onboarding.routingOpen")}</Link>
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onReload}>
+                {t("services.onboarding.next")}
+              </Button>
+            </div>
+          }
+        />
+      </div>
     );
   }
   return (

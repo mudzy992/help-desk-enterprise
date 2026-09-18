@@ -19,6 +19,7 @@ export async function transitionServiceLifecycle(
   input: TransitionServiceLifecycleInput,
   configuration: ServiceLifecycleConfiguration,
   context: CatalogMutationContext,
+  coverageWarning: string | null = null,
 ): Promise<ServiceResponse> {
   const current = await loadService(prisma, serviceId);
   assertServiceLifecycleTransition({
@@ -36,12 +37,24 @@ export async function transitionServiceLifecycle(
       entityId: service.id,
       reason: 'lifecycle_transition',
       diff: {
-        before: { lifecycle: current.lifecycle, id: current.id, slug: current.slug },
-        after: { lifecycle: service.lifecycle, id: service.id, slug: service.slug },
+        before: {
+          lifecycle: current.lifecycle,
+          id: current.id,
+          slug: current.slug,
+        },
+        after: {
+          lifecycle: service.lifecycle,
+          id: service.id,
+          slug: service.slug,
+        },
       },
       actorUserId: context.actorUserId,
     });
     return service;
   });
-  return buildServiceResponse(prisma, updated);
+  const response = await buildServiceResponse(prisma, updated);
+  if (coverageWarning === null) {
+    return response;
+  }
+  return { ...response, warnings: [coverageWarning] };
 }

@@ -29,6 +29,11 @@ import {
   type OnboardingDomainProviders,
 } from './validate-onboarding-steps';
 
+export type FinalizeServiceOnboardingResult = {
+  readonly record: ServiceOnboardingRecord;
+  readonly warnings: readonly string[];
+};
+
 export async function finalizeServiceOnboarding(
   prisma: PrismaService,
   serviceId: string,
@@ -36,7 +41,7 @@ export async function finalizeServiceOnboarding(
   lifecycleConfiguration: ServiceLifecycleConfiguration,
   providers: OnboardingDomainProviders,
   context: OnboardingMutationContext,
-): Promise<ServiceOnboardingRecord> {
+): Promise<FinalizeServiceOnboardingResult> {
   assertOnboardingEnabled(configuration.enabled);
   const record = await loadServiceOnboarding(prisma, serviceId);
   const service = await loadService(prisma, serviceId);
@@ -57,6 +62,8 @@ export async function finalizeServiceOnboarding(
     });
     throw new ServiceOnboardingError('FINAL_VALIDATION_FAILED');
   }
+  const coverageWarning =
+    await providers.routing.evaluateActivationCoverage(serviceId);
   const sla = await providers.sla.validate({
     serviceId,
     reference: record.slaConfigurationRef ?? '',
@@ -71,7 +78,7 @@ export async function finalizeServiceOnboarding(
     to: 'ACTIVE',
     configuration: lifecycleConfiguration,
   });
-  return prisma.$transaction(async (transaction) =>
+  const completed = await prisma.$transaction(async (transaction) =>
     applyFinalization(transaction as PrismaService, {
       record,
       serviceId,
@@ -80,6 +87,10 @@ export async function finalizeServiceOnboarding(
       actorUserId: context.actorUserId,
     }),
   );
+  return {
+    record: completed,
+    warnings: coverageWarning === null ? [] : [coverageWarning],
+  };
 }
 
 async function applyFinalization(

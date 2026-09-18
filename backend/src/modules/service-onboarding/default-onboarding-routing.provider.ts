@@ -25,4 +25,10 @@ export class DefaultOnboardingRoutingProvider
   async suggest(_serviceId: string): Promise<string | null> {
     return null;
   }
+
+  async evaluateActivationCoverage(
+    _serviceId: string,
+  ): Promise<'ROUTING_COVERAGE_MISSING' | null> {
+    return null;
+  }
 }

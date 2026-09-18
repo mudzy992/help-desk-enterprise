@@ -11,9 +11,14 @@ import {
 } from './delete-routing-rule';
 import { listRoutingHandlerGroups } from './list-routing-handler-groups';
 import { listRoutingRules } from './list-routing-rules';
+import {
+  assertOrWarnActivationRoutingCoverage,
+  evaluateServiceRoutingCoverage,
+} from './evaluate-service-routing-coverage';
 import { mapRoutingError } from './map-routing-error';
 import { persistRoutingRuleChange } from './persist-routing-rule-change';
 import { resolveTicketRouting } from './resolve-ticket-routing';
+import { routingCoverageMissingCode } from './routing.constants';
 import {
   acceptsRoutingOnboardingReference,
   hasRoutingRulesForService,
@@ -173,6 +178,19 @@ export class RoutingService {
 
   hasRulesForService(serviceId: string): Promise<boolean> {
     return hasRoutingRulesForService(this.prisma, serviceId);
+  }
+
+  /** Throws when requireCoverage and no rules; else soft warning code or null. */
+  async evaluateActivationCoverage(
+    serviceId: string,
+  ): Promise<typeof routingCoverageMissingCode | null> {
+    return assertOrWarnActivationRoutingCoverage(
+      await evaluateServiceRoutingCoverage(
+        this.prisma,
+        serviceId,
+        await this.configurationLoader.load(),
+      ),
+    );
   }
 
   suggestOnboardingReference(serviceId: string): Promise<string | null> {

@@ -5,11 +5,15 @@ import type { RoutingConfiguration } from './routing.types';
 export function parseRoutingConfiguration(input: {
   readonly enabled: unknown;
   readonly ownerRole: unknown;
+  readonly requireCoverage: unknown;
 }): RoutingConfiguration {
   if (typeof input.enabled !== 'boolean') {
     throw new RoutingError('UNAVAILABLE');
   }
   if (typeof input.ownerRole !== 'string') {
+    throw new RoutingError('UNAVAILABLE');
+  }
+  if (typeof input.requireCoverage !== 'boolean') {
     throw new RoutingError('UNAVAILABLE');
   }
   const ownerRole = input.ownerRole.trim();
@@ -19,5 +23,6 @@ export function parseRoutingConfiguration(input: {
       ownerRole.length > 0
         ? ownerRole
         : defaultRoutingConfiguration.unroutedQueueOwnerRole,
+    requireCoverage: input.requireCoverage,
   };
 }

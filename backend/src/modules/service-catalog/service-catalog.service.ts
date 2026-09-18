@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { mapRoutingError } from '../routing/map-routing-error';
+import { RoutingError } from '../routing/routing.error';
+import { RoutingService } from '../routing/routing.service';
 import { createService } from './create-service';
 import { createServiceCategory } from './create-service-category';
 import { deleteService } from './delete-service';
@@ -43,6 +46,7 @@ export class ServiceCatalogService {
     private readonly prisma: PrismaService,
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
     private readonly availabilityConfigurationLoader: ServiceAvailabilityConfigurationLoader = defaultAvailabilityConfigurationLoader,
+    @Optional() private readonly routingService: RoutingService | null = null,
   ) {}
 
   createCategory(
@@ -122,12 +126,17 @@ export class ServiceCatalogService {
   ): Promise<ServiceResponse> {
     return this.execute(async () => {
       const configuration = await this.lifecycleConfigurationLoader.load();
+      const coverageWarning =
+        input.lifecycle === 'ACTIVE' && this.routingService !== null
+          ? await this.routingService.evaluateActivationCoverage(serviceId)
+          : null;
       return transitionServiceLifecycle(
         this.prisma,
         serviceId,
         input,
         configuration,
         context,
+        coverageWarning,
       );
     });
   }
@@ -148,6 +157,9 @@ export class ServiceCatalogService {
     try {
       return await operation();
     } catch (error) {
+      if (error instanceof RoutingError) {
+        throw mapRoutingError(error);
+      }
       throw mapServiceCatalogError(error);
     }
   }

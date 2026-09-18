@@ -14,6 +14,7 @@ export type ServiceOnboardingErrorKey =
   | "services.onboarding.errorSlaRef"
   | "services.onboarding.errorApprovalsRef"
   | "services.onboarding.errorFinalize"
+  | "services.onboarding.errorRoutingCoverage"
   | "services.onboarding.errorNotDraft"
   | "services.onboarding.errorNotResumable"
   | "services.onboarding.errorUnavailable"
@@ -33,6 +34,7 @@ const codeKeys: Partial<Record<string, ServiceOnboardingErrorKey>> = {
   INVALID_SLA_CONFIGURATION_REF: "services.onboarding.errorSlaRef",
   INVALID_APPROVALS_CONFIGURATION_REF: "services.onboarding.errorApprovalsRef",
   FINAL_VALIDATION_FAILED: "services.onboarding.errorFinalize",
+  ROUTING_COVERAGE_MISSING: "services.onboarding.errorRoutingCoverage",
   INCONSISTENT_ONBOARDING_STATE: "services.onboarding.errorStatus",
   SERVICE_NOT_DRAFT: "services.onboarding.errorNotDraft",
   ONBOARDING_NOT_RESUMABLE: "services.onboarding.errorNotResumable",

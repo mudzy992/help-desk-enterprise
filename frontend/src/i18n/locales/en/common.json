@@ -749,6 +749,7 @@
         "private.ticket.split.requireReason": "Require a reason when splitting a ticket.",
         "private.ticket.unroutedQueue.enabled": "Keep unmatched origin-unit/service combinations in the explicit UNROUTED queue.",
         "private.ticket.unroutedQueue.ownerRole": "Role that owns the UNROUTED queue (never used as a fake handler group).",
+        "private.ticket.routing.requireCoverage": "Block service activation when the service has no routing rules.",
         "private.ticket.waitingForUser.autoCloseAfterDays": "Days without a user reply before a waiting ticket is auto-closed.",
         "private.ticket.waitingForUser.enabled": "Enable waiting-for-user reminders, auto-close, and reply resume.",
         "private.ticket.waitingForUser.reminderAfterDays": "Days without a user reply before a waiting reminder is recorded.",
@@ -1036,6 +1037,7 @@
         "APPROVALS": "Approvals and publish"
       },
       "routingMissing": "This service has no routing rule. Create a rule, then return and confirm the suggestion.",
+      "routingCoverageWarning": "This service has no routing coverage. Tickets may land in UNROUTED until rules are configured.",
       "routingOpen": "Open routing",
       "routingConfirm": "Confirm suggestion",
       "routingSuggestion": "Suggested ref",
@@ -1057,6 +1059,7 @@
       "errorSlaRef": "The SLA configuration is not valid.",
       "errorApprovalsRef": "The approvals configuration is not valid.",
       "errorFinalize": "Onboarding final validation failed. The service stays in Draft.",
+      "errorRoutingCoverage": "Activation is blocked: this service has no routing rules. Add a rule first.",
       "errorNotDraft": "Onboarding can only run on a Draft service.",
       "errorNotResumable": "Only abandoned onboarding can be resumed.",
       "errorUnavailable": "Onboarding configuration is currently unavailable.",

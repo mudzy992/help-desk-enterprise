@@ -22,6 +22,8 @@ const messages: Record<RoutingErrorCode, string> = {
   RULE_NOT_FOUND: 'Routing rule was not found',
   DUPLICATE_RULE: 'A routing rule already exists for this origin unit and service',
   REASON_REQUIRED: 'A reason is required for this routing change',
+  ROUTING_COVERAGE_MISSING:
+    'Service cannot be activated without at least one routing rule',
   UNAVAILABLE: 'Routing configuration is unavailable',
 };
 

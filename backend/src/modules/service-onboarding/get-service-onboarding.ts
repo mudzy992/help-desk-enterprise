@@ -35,6 +35,7 @@ export function toOnboardingResponse(
   record: ServiceOnboardingRecord,
   serviceLifecycle: ServiceOnboardingResponse['serviceLifecycle'],
   routingSuggestion: string | null,
+  warnings: readonly string[] = [],
 ): ServiceOnboardingResponse {
   return {
     id: record.id,
@@ -49,6 +50,7 @@ export function toOnboardingResponse(
     routingSuggestion,
     lastValidationErrors: record.lastValidationErrors,
     serviceLifecycle,
+    warnings,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

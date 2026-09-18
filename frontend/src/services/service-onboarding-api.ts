@@ -35,6 +35,7 @@ export type ServiceOnboardingResponse = {
   readonly routingSuggestion: string | null;
   readonly lastValidationErrors: readonly ServiceOnboardingValidationIssue[];
   readonly serviceLifecycle: ServiceLifecycle;
+  readonly warnings?: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;
 };

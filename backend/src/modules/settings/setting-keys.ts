@@ -70,6 +70,7 @@ export const settingKeys = {
     'private.services.onboardingWizard.autoFillRouting.requireConfirm',
   privateTicketUnroutedQueueEnabled: 'private.ticket.unroutedQueue.enabled',
   privateTicketUnroutedQueueOwnerRole: 'private.ticket.unroutedQueue.ownerRole',
+  privateTicketRoutingRequireCoverage: 'private.ticket.routing.requireCoverage',
   privateTicketAutoAssignEnabled: 'private.ticket.autoAssign.enabled',
   privateTicketAutoAssignStrategy: 'private.ticket.autoAssign.strategy',
   privateTicketGroupInboxEnabled: 'private.ticket.groupInbox.enabled',

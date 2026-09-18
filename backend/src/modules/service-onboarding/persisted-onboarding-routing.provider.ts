@@ -37,4 +37,10 @@ export class PersistedOnboardingRoutingProvider
   async suggest(serviceId: string): Promise<string | null> {
     return this.routingService.suggestOnboardingReference(serviceId);
   }
+
+  evaluateActivationCoverage(
+    serviceId: string,
+  ): Promise<'ROUTING_COVERAGE_MISSING' | null> {
+    return this.routingService.evaluateActivationCoverage(serviceId);
+  }
 }

@@ -8,10 +8,14 @@ import { defaultServiceOnboardingConfiguration } from './service-onboarding.cons
 import { ServiceOnboardingExecutor } from './service-onboarding.executor';
 import { ServiceOnboardingService } from './service-onboarding.service';
 import { ServiceOnboardingStepsService } from './service-onboarding-steps.service';
-import type { ServiceOnboardingConfiguration } from './service-onboarding.types';
+import type {
+  ServiceOnboardingConfiguration,
+  ServiceOnboardingRoutingProvider,
+} from './service-onboarding.types';
 
 export function createServiceOnboardingHarness(
   onboardingConfiguration: ServiceOnboardingConfiguration = defaultServiceOnboardingConfiguration,
+  routingProvider: ServiceOnboardingRoutingProvider = new DefaultOnboardingRoutingProvider(),
 ) {
   const memory = createInMemoryServiceOnboardingPrisma();
   const catalog = new ServiceCatalogService(memory.prisma as never, {
@@ -21,7 +25,7 @@ export function createServiceOnboardingHarness(
     memory.prisma as never,
     { load: async () => onboardingConfiguration } as never,
     { load: async () => defaultServiceLifecycleConfiguration } as never,
-    new DefaultOnboardingRoutingProvider(),
+    routingProvider,
     new DefaultOnboardingSlaProvider(memory.prisma as never),
     new DefaultOnboardingApprovalsProvider(),
   );

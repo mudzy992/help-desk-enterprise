@@ -749,6 +749,7 @@
         "private.ticket.split.requireReason": "Zahtijevaj razlog pri dijeljenju tiketa.",
         "private.ticket.unroutedQueue.enabled": "Drži neuparene kombinacije origin-unit/usluga u eksplicitnom UNROUTED redu.",
         "private.ticket.unroutedQueue.ownerRole": "Uloga koja posjeduje UNROUTED red (nikad kao lažna handler grupa).",
+        "private.ticket.routing.requireCoverage": "Blokiraj aktivaciju usluge ako nema routing pravila.",
         "private.ticket.waitingForUser.autoCloseAfterDays": "Dani bez odgovora korisnika prije auto-zatvaranja tiketa na čekanju.",
         "private.ticket.waitingForUser.enabled": "Uključi podsjetnike, auto-zatvaranje i nastavak nakon odgovora dok se čeka korisnik.",
         "private.ticket.waitingForUser.reminderAfterDays": "Dani bez odgovora korisnika prije upisa podsjetnika na čekanje.",
@@ -1036,6 +1037,7 @@
         "APPROVALS": "Odobrenja i objava"
       },
       "routingMissing": "Nema routing pravila za ovu uslugu. Kreirajte pravilo, zatim se vratite i potvrdite prijedlog.",
+      "routingCoverageWarning": "Ova usluga nema routing pokrivenost. Tiketi mogu završiti u UNROUTED dok se pravila ne podese.",
       "routingOpen": "Otvori usmjeravanje",
       "routingConfirm": "Potvrdi prijedlog",
       "routingSuggestion": "Prijedlog refa",
@@ -1057,6 +1059,7 @@
       "errorSlaRef": "SLA konfiguracija nije važeća.",
       "errorApprovalsRef": "Konfiguracija odobrenja nije važeća.",
       "errorFinalize": "Završna validacija onboardinga nije uspjela. Servis ostaje nacrt.",
+      "errorRoutingCoverage": "Aktivacija je blokirana: ova usluga nema routing pravila. Prvo dodajte pravilo.",
       "errorNotDraft": "Onboarding radi samo na usluzi u statusu Nacrt.",
       "errorNotResumable": "Nastaviti se može samo napušteni onboarding.",
       "errorUnavailable": "Onboarding konfiguracija trenutno nije dostupna.",

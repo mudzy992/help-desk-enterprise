@@ -5,6 +5,8 @@ import { mapServiceFormsError } from '../service-catalog/map-service-forms-error
 import { ServiceCatalogError } from '../service-catalog/service-catalog.error';
 import { ServiceFormsError } from '../service-catalog/service-forms.error';
 import { ServiceLifecycleConfigurationLoader } from '../service-catalog/service-lifecycle-configuration.loader';
+import { mapRoutingError } from '../routing/map-routing-error';
+import { RoutingError } from '../routing/routing.error';
 import { DefaultOnboardingApprovalsProvider } from './default-onboarding-approvals.provider';
 import { DefaultOnboardingSlaProvider } from './default-onboarding-sla.provider';
 import { getServiceOnboarding } from './get-service-onboarding';
@@ -63,6 +65,9 @@ export class ServiceOnboardingExecutor {
       }
       if (error instanceof ServiceFormsError) {
         throw mapServiceFormsError(error);
+      }
+      if (error instanceof RoutingError) {
+        throw mapRoutingError(error);
       }
       throw error;
     }

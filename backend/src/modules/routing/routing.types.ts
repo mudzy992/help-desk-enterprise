@@ -7,6 +7,7 @@ export type RoutingOutcome =
 export type RoutingConfiguration = {
   readonly unroutedQueueEnabled: boolean;
   readonly unroutedQueueOwnerRole: string;
+  readonly requireCoverage: boolean;
 };
 
 export type RoutingRuleRecord = {

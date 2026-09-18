@@ -47,6 +47,7 @@ export function ServiceOnboardingWizard({
   const [activeFormRef, setActiveFormRef] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<ServiceOnboardingErrorKey | null>(null);
+  const [coverageWarning, setCoverageWarning] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +67,7 @@ export function ServiceOnboardingWizard({
     if (serviceId === null) {
       setRecord(null);
       setService(null);
+      setCoverageWarning(false);
       return;
     }
     let cancelled = false;
@@ -92,9 +94,14 @@ export function ServiceOnboardingWizard({
       const next = await work();
       setRecord(next);
       setService(await getService(next.serviceId));
+      const hasCoverageWarning =
+        next.warnings?.includes("ROUTING_COVERAGE_MISSING") === true;
+      setCoverageWarning(hasCoverageWarning);
       if (next.status === "COMPLETED") {
         await onFinished();
-        onClose();
+        if (!hasCoverageWarning) {
+          onClose();
+        }
       }
     } catch (error) {
       setErrorKey(mapServiceOnboardingError(error));
@@ -132,6 +139,11 @@ export function ServiceOnboardingWizard({
       <div className="px-4 pb-4">
         <ServiceOnboardingStepper activeIndex={completed} />
         {errorKey ? <p className={`mb-3 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
+        {coverageWarning ? (
+          <p className="mb-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
+            {t("services.onboarding.routingCoverageWarning")}
+          </p>
+        ) : null}
         <OnboardingWizardSteps
           record={record}
           service={service}

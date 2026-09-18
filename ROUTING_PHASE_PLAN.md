@@ -21,7 +21,7 @@
 ## Progress
 
 - [x] Faza 1 — Puni CRUD za routing pravila + Change log
-- [ ] Faza 2 — `requireCoverage` enforcement
+- [x] Faza 2 — `requireCoverage` enforcement
 - [ ] Faza 3 — Housekeeping: `fallbackGroupId` i `strictOuIsolation`
 - [ ] Faza 4 — Finalno usklađivanje frontend UI-ja sa referencom
 

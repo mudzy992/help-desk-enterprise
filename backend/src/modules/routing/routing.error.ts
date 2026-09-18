@@ -5,6 +5,7 @@ export type RoutingErrorCode =
   | 'RULE_NOT_FOUND'
   | 'DUPLICATE_RULE'
   | 'REASON_REQUIRED'
+  | 'ROUTING_COVERAGE_MISSING'
   | 'UNAVAILABLE';
 
 export class RoutingError extends Error {
