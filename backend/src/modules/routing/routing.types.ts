@@ -1,4 +1,5 @@
 import type { routingOutcomes } from './routing.constants';
+import type { ChangeLogDiffPayload } from '../change-log/change-log.types';
 
 export type RoutingOutcome =
   (typeof routingOutcomes)[keyof typeof routingOutcomes];
@@ -24,8 +25,24 @@ export type CreateRoutingRuleInput = {
   readonly reason: string;
 };
 
+export type UpdateRoutingRuleInput = {
+  readonly groupId: string;
+  readonly reason: string;
+};
+
 export type RoutingMutationContext = {
   readonly actorUserId: string | null;
+};
+
+export type RoutingChangeLogResponse = {
+  readonly id: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly reason: string;
+  readonly actorUserId: string | null;
+  readonly actorDisplayName: string | null;
+  readonly createdAt: string;
+  readonly diff: ChangeLogDiffPayload;
 };
 
 export type ListRoutingRulesQuery = {

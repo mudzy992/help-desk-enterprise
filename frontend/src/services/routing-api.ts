@@ -74,6 +74,45 @@ export function resolveRouting(
   return apiRequest(`/routing/resolve?${search.toString()}`);
 }
 
+export type UpdateRoutingRuleInput = {
+  readonly originUnitId: string;
+  readonly serviceId: string;
+  readonly groupId: string;
+  readonly reason: string;
+};
+
+export type DeleteRoutingRuleInput = {
+  readonly originUnitId: string;
+  readonly serviceId: string;
+  readonly reason: string;
+};
+
+export type RoutingChangeLogEntry = {
+  readonly id: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly reason: string;
+  readonly actorUserId: string | null;
+  readonly actorDisplayName: string | null;
+  readonly createdAt: string;
+  readonly diff: {
+    readonly action: string;
+    readonly changes: readonly {
+      readonly path: string;
+      readonly before: unknown;
+      readonly after: unknown;
+    }[];
+  };
+};
+
+export type RoutingRuleDeleteImpact = {
+  readonly ruleId: string;
+  readonly originUnitId: string;
+  readonly serviceId: string;
+  readonly before: RoutingResolution;
+  readonly after: RoutingResolution;
+};
+
 export function createRoutingRule(
   input: CreateRoutingRuleInput,
 ): Promise<unknown> {
@@ -81,4 +120,34 @@ export function createRoutingRule(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export function updateRoutingRule(
+  ruleId: string,
+  input: UpdateRoutingRuleInput,
+): Promise<RoutingRuleResponse> {
+  return apiRequest(`/routing/rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteRoutingRule(
+  ruleId: string,
+  input: DeleteRoutingRuleInput,
+): Promise<RoutingRuleDeleteImpact> {
+  return apiRequest(`/routing/rules/${ruleId}`, {
+    method: "DELETE",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getRoutingRuleDeleteImpact(
+  ruleId: string,
+): Promise<RoutingRuleDeleteImpact> {
+  return apiRequest(`/routing/rules/${ruleId}/delete-impact`);
+}
+
+export function listRoutingChanges(): Promise<readonly RoutingChangeLogEntry[]> {
+  return apiRequest("/routing/changes");
 }

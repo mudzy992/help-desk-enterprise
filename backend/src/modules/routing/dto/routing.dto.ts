@@ -20,6 +20,40 @@ export class CreateRoutingRuleDto {
   reason!: string;
 }
 
+export class UpdateRoutingRuleDto {
+  @IsString()
+  @MinLength(1)
+  originUnitId!: string;
+
+  @IsString()
+  @MinLength(1)
+  serviceId!: string;
+
+  @IsString()
+  @MinLength(1)
+  groupId!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(maximumChangeReasonLength)
+  reason!: string;
+}
+
+export class DeleteRoutingRuleDto {
+  @IsString()
+  @MinLength(1)
+  originUnitId!: string;
+
+  @IsString()
+  @MinLength(1)
+  serviceId!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(maximumChangeReasonLength)
+  reason!: string;
+}
+
 export class ListRoutingRulesQueryDto {
   @IsOptional()
   @IsString()

@@ -29,5 +29,6 @@ export function createRoutingServiceHarness() {
     availability: 'OPERATIONAL',
   });
   memory.seedGroup({ id: 'group-it', name: 'IT Support' });
+  memory.seedGroup({ id: 'group-net', name: 'Network Ops' });
   return { memory, routing, now };
 }

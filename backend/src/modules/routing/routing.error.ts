@@ -2,6 +2,7 @@ export type RoutingErrorCode =
   | 'ORIGIN_UNIT_NOT_FOUND'
   | 'SERVICE_NOT_FOUND'
   | 'GROUP_NOT_FOUND'
+  | 'RULE_NOT_FOUND'
   | 'DUPLICATE_RULE'
   | 'REASON_REQUIRED'
   | 'UNAVAILABLE';

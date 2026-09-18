@@ -6,35 +6,55 @@ import {
 import type { ChangeLogPrismaClient } from '../change-log/change-log.types';
 import { recordChangeLog } from '../change-log/record-change-log';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { assertRoutingTargetsExist } from './assert-routing-targets-exist';
 import { buildRoutingChangeSnapshot } from './build-routing-change-snapshot';
-import { createRoutingRule } from './create-routing-rule';
 import { readRequiredRoutingReason } from './read-required-routing-reason';
 import { resolveTicketRouting } from './resolve-ticket-routing';
+import { RoutingError } from './routing.error';
 import type {
-  CreateRoutingRuleInput,
   RoutingConfiguration,
   RoutingMutationContext,
   RoutingRuleRecord,
+  UpdateRoutingRuleInput,
 } from './routing.types';
 
-export async function persistRoutingRuleChange(
+export async function updateRoutingRule(
   prisma: PrismaService,
-  input: CreateRoutingRuleInput,
+  ruleId: string,
+  input: UpdateRoutingRuleInput,
   context: RoutingMutationContext,
   configuration: RoutingConfiguration,
 ): Promise<RoutingRuleRecord> {
   const reason = readRequiredRoutingReason(input.reason);
   return prisma.$transaction(async (transaction) => {
     const client = transaction as PrismaService;
+    const existing = await client.routingRule.findUnique({
+      where: { id: ruleId },
+    });
+    if (existing === null) {
+      throw new RoutingError('RULE_NOT_FOUND');
+    }
+    await assertRoutingTargetsExist(client, {
+      originUnitId: existing.originUnitId,
+      serviceId: existing.serviceId,
+      groupId: input.groupId,
+    });
+    const resolveInput = {
+      originUnitId: existing.originUnitId,
+      serviceId: existing.serviceId,
+    };
     const beforeResolution = await resolveTicketRouting(
       client,
-      input,
+      resolveInput,
       configuration,
     );
-    const created = await createRoutingRule(client, input);
+    const updated = await client.routingRule.update({
+      where: { id: ruleId },
+      data: { groupId: input.groupId },
+    });
     const afterResolution = await resolveTicketRouting(
       client,
-      input,
+      resolveInput,
       configuration,
     );
     const [before, after] = await Promise.all([
@@ -43,17 +63,17 @@ export async function persistRoutingRuleChange(
     ]);
     await recordChangeLog(transaction as unknown as ChangeLogPrismaClient, {
       entityType: changeLogEntityTypes.routingRule,
-      entityId: created.id,
+      entityId: updated.id,
       reason,
       actorUserId: context.actorUserId,
       diff: buildChangeLogDiff({
-        action: changeLogActions.create,
+        action: changeLogActions.update,
         resourceType: changeLogEntityTypes.routingRule,
-        resourceId: created.id,
+        resourceId: updated.id,
         before,
         after,
       }),
     });
-    return created;
+    return updated;
   });
 }

@@ -1,20 +1,27 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
+import { RoutingRuleRow } from "@/components/routing/routing-rule-row";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  tableHeadClassName,
-  tableRowClassName,
-} from "@/components/ui/control";
-import { RelativeTime } from "@/components/ui/relative-time";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
-import type { RoutingRuleResponse } from "@/services/routing-api";
+import { tableHeadClassName } from "@/components/ui/control";
+import type {
+  RoutingHandlerGroup,
+  RoutingRuleResponse,
+} from "@/services/routing-api";
 
 interface RoutingRulesTableProperties {
   readonly rules: readonly RoutingRuleResponse[];
+  readonly groups: readonly RoutingHandlerGroup[];
+  readonly onChanged: () => Promise<void>;
 }
 
-export function RoutingRulesTable({ rules }: RoutingRulesTableProperties) {
+export function RoutingRulesTable({
+  rules,
+  groups,
+  onChanged,
+}: RoutingRulesTableProperties) {
   const { t, i18n } = useTranslation();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   if (rules.length === 0) {
     return (
       <EmptyState
@@ -43,34 +50,38 @@ export function RoutingRulesTable({ rules }: RoutingRulesTableProperties) {
             <th className={`${tableHeadClassName} px-4 py-2.5 text-right`}>
               {t("routing.columnUpdatedAt")}
             </th>
+            <th className={`${tableHeadClassName} px-4 py-2.5 text-right`}>
+              {t("routing.columnActions")}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/50">
           {rules.map((rule) => (
-            <tr key={rule.id} className={tableRowClassName}>
-              <td
-                className="px-4 py-2.5 tnum text-[12px] font-medium text-[#7FA8F5]"
-                title={rule.id}
-              >
-                {truncateIdentifier(rule.id).toUpperCase()}
-              </td>
-              <td className="px-4 py-2.5">
-                <span className="block text-[12px] text-text/90">
-                  {rule.originUnitPath}
-                </span>
-              </td>
-              <td className="px-4 py-2.5 text-[12px] text-text/85">
-                {rule.serviceName}
-              </td>
-              <td className="px-4 py-2.5">
-                <Badge tone="primary" dot={false}>
-                  {rule.groupName}
-                </Badge>
-              </td>
-              <td className="px-4 py-2.5 text-right text-[11px] text-muted">
-                <RelativeTime value={rule.updatedAt} locale={i18n.language} />
-              </td>
-            </tr>
+            <RoutingRuleRow
+              key={rule.id}
+              rule={rule}
+              groups={groups}
+              locale={i18n.language}
+              isEditing={editingId === rule.id}
+              isDeleting={deletingId === rule.id}
+              onEdit={() => {
+                setDeletingId(null);
+                setEditingId(rule.id);
+              }}
+              onDelete={() => {
+                setEditingId(null);
+                setDeletingId(rule.id);
+              }}
+              onCancel={() => {
+                setEditingId(null);
+                setDeletingId(null);
+              }}
+              onChanged={async () => {
+                setEditingId(null);
+                setDeletingId(null);
+                await onChanged();
+              }}
+            />
           ))}
         </tbody>
       </table>

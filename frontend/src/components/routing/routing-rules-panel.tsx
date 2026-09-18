@@ -56,7 +56,11 @@ export function RoutingRulesPanel() {
             <ApiErrorText messageKey={errorKey} requestId={requestId} />
           </div>
         ) : (
-          <RoutingRulesTable rules={rules} />
+          <RoutingRulesTable
+            rules={rules}
+            groups={catalog.groups}
+            onChanged={loadRules}
+          />
         )}
       </Card>
       <Card>

@@ -27,11 +27,14 @@ export type InMemoryRoutingGroup = {
 type RoutingRuleWhere = InMemoryRoutingRuleWhere;
 
 export type InMemoryRoutingChangeLog = {
+  id: string;
   entityType: string;
   entityId: string;
   reason: string;
   diff: ChangeLogDiffPayload;
   actorUserId: string | null;
+  createdAt: Date;
+  actor: { displayName: string } | null;
 };
 
 export function createInMemoryRoutingPrisma() {
@@ -41,7 +44,12 @@ export function createInMemoryRoutingPrisma() {
   const rules = new Map<string, RoutingRuleRecord>();
   const changeLogs: InMemoryRoutingChangeLog[] = [];
   let nextIdentifier = 1;
+  let nextChangeAt = new Date('2026-09-11T08:00:00.000Z').getTime();
   const now = () => new Date('2026-09-11T08:00:00.000Z');
+  const nextChangeTimestamp = () => {
+    nextChangeAt += 1000;
+    return new Date(nextChangeAt);
+  };
   const nextId = () => `routing-${nextIdentifier++}`;
 
   const prisma = {
@@ -114,9 +122,62 @@ export function createInMemoryRoutingPrisma() {
     },
     routingRule: createRoutingRuleDelegate(rules, nextId, now),
     changeLog: {
-      create: async ({ data }: { data: InMemoryRoutingChangeLog }) => {
-        changeLogs.push(data);
-        return data;
+      create: async ({
+        data,
+      }: {
+        data: {
+          entityType: string;
+          entityId: string;
+          reason: string;
+          diff: ChangeLogDiffPayload;
+          actorUserId: string | null;
+        };
+      }) => {
+        const entry: InMemoryRoutingChangeLog = {
+          id: `change-${changeLogs.length + 1}`,
+          entityType: data.entityType,
+          entityId: data.entityId,
+          reason: data.reason,
+          diff: data.diff,
+          actorUserId: data.actorUserId,
+          createdAt: nextChangeTimestamp(),
+          actor:
+            data.actorUserId === null
+              ? null
+              : { displayName: data.actorUserId },
+        };
+        changeLogs.push(entry);
+        return entry;
+      },
+      findMany: async ({
+        where,
+        orderBy,
+      }: {
+        where?: { entityType?: string; entityId?: string };
+        orderBy?: { createdAt: 'asc' | 'desc' };
+        include?: unknown;
+      }) => {
+        const filtered = changeLogs.filter((entry) => {
+          if (
+            where?.entityType !== undefined &&
+            entry.entityType !== where.entityType
+          ) {
+            return false;
+          }
+          if (
+            where?.entityId !== undefined &&
+            entry.entityId !== where.entityId
+          ) {
+            return false;
+          }
+          return true;
+        });
+        const sorted = [...filtered].sort((left, right) =>
+          orderBy?.createdAt === 'asc'
+            ? left.createdAt.getTime() - right.createdAt.getTime()
+            : right.createdAt.getTime() - left.createdAt.getTime(),
+        );
+        return sorted;
       },
     },
     $transaction: async (callback: (client: unknown) => Promise<unknown>) =>
@@ -141,6 +202,8 @@ function createRoutingRuleDelegate(
   now: () => Date,
 ) {
   return {
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      rules.get(where.id) ?? null,
     findMany: async ({
       where,
     }: {
@@ -182,6 +245,33 @@ function createRoutingRuleDelegate(
       };
       rules.set(created.id, created);
       return created;
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data: { groupId: string };
+    }) => {
+      const existing = rules.get(where.id);
+      if (existing === undefined) {
+        throw { code: 'P2025' };
+      }
+      const updated: RoutingRuleRecord = {
+        ...existing,
+        groupId: data.groupId,
+        updatedAt: now(),
+      };
+      rules.set(where.id, updated);
+      return updated;
+    },
+    delete: async ({ where }: { where: { id: string } }) => {
+      const existing = rules.get(where.id);
+      if (existing === undefined) {
+        throw { code: 'P2025' };
+      }
+      rules.delete(where.id);
+      return existing;
     },
   };
 }

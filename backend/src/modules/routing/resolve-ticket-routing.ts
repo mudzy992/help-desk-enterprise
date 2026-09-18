@@ -10,7 +10,11 @@ import type {
 
 export async function resolveTicketRouting(
   prisma: PrismaService,
-  input: { readonly originUnitId: string; readonly serviceId: string },
+  input: {
+    readonly originUnitId: string;
+    readonly serviceId: string;
+    readonly excludeRuleId?: string;
+  },
   configuration: RoutingConfiguration,
 ): Promise<RoutingResolution> {
   const service = await prisma.service.findUnique({
@@ -24,12 +28,14 @@ export async function resolveTicketRouting(
     prisma,
     input.originUnitId,
   );
-  const rules = await prisma.routingRule.findMany({
-    where: {
-      serviceId: input.serviceId,
-      originUnitId: { in: ancestors.map((unit) => unit.id) },
-    },
-  });
+  const rules = (
+    await prisma.routingRule.findMany({
+      where: {
+        serviceId: input.serviceId,
+        originUnitId: { in: ancestors.map((unit) => unit.id) },
+      },
+    })
+  ).filter((rule) => rule.id !== input.excludeRuleId);
   const ruleByOrigin = new Map(rules.map((rule) => [rule.originUnitId, rule]));
   return resolveFromAncestorChain({
     originUnitId: input.originUnitId,

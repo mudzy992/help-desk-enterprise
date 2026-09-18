@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -23,12 +26,16 @@ import { RequireServiceScope } from '../authorization/require-service-scope.deco
 import { RoleGuard } from '../authorization/role.guard';
 import {
   CreateRoutingRuleDto,
+  DeleteRoutingRuleDto,
   ListRoutingCoverageQueryDto,
   ListRoutingRulesQueryDto,
   ResolveRoutingQueryDto,
+  UpdateRoutingRuleDto,
 } from './dto/routing.dto';
+import type { RoutingRuleDeleteImpact } from './delete-routing-rule';
 import { RoutingService } from './routing.service';
 import type {
+  RoutingChangeLogResponse,
   RoutingCoverageItem,
   RoutingHandlerGroupResponse,
   RoutingResolution,
@@ -59,6 +66,53 @@ export class RoutingController {
     return this.routingService.createRule(body, {
       actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
     });
+  }
+
+  @Patch('rules/:ruleId')
+  @RequirePermissions(permissionKeys.routingWrite)
+  @RequireOrganizationalUnitScope({ field: 'originUnitId' })
+  @RequireServiceScope({ field: 'serviceId' })
+  updateRule(
+    @Param('ruleId') ruleId: string,
+    @Body() body: UpdateRoutingRuleDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<RoutingRuleResponse> {
+    return this.routingService.updateRule(ruleId, body, {
+      actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    });
+  }
+
+  @Delete('rules/:ruleId')
+  @RequirePermissions(permissionKeys.routingWrite)
+  @RequireOrganizationalUnitScope({ field: 'originUnitId' })
+  @RequireServiceScope({ field: 'serviceId' })
+  deleteRule(
+    @Param('ruleId') ruleId: string,
+    @Body() body: DeleteRoutingRuleDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<RoutingRuleDeleteImpact> {
+    return this.routingService.deleteRule(ruleId, body, {
+      actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    });
+  }
+
+  @Get('rules/:ruleId/delete-impact')
+  deleteImpact(
+    @Param('ruleId') ruleId: string,
+  ): Promise<RoutingRuleDeleteImpact> {
+    return this.routingService.deleteImpact(ruleId);
+  }
+
+  @Get('rules/:ruleId/changes')
+  listRuleChanges(
+    @Param('ruleId') ruleId: string,
+  ): Promise<readonly RoutingChangeLogResponse[]> {
+    return this.routingService.listRuleChanges(ruleId);
+  }
+
+  @Get('changes')
+  listChanges(): Promise<readonly RoutingChangeLogResponse[]> {
+    return this.routingService.listChanges();
   }
 
   @Get('groups')

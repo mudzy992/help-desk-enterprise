@@ -1,6 +1,7 @@
-import { Plus, Route as RouteIcon, Table2, Zap } from "lucide-react";
+import { History, Plus, Route as RouteIcon, Table2, Zap } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RoutingChangeLogTab } from "@/components/routing/routing-change-log-tab";
 import { RoutingCoveragePanel } from "@/components/routing/routing-coverage-panel";
 import { RoutingResolutionTester } from "@/components/routing/routing-resolution-tester";
 import { RoutingRulesPanel } from "@/components/routing/routing-rules-panel";
@@ -53,12 +54,22 @@ export function RoutingPage() {
               </span>
             ),
           },
+          {
+            key: "log",
+            label: (
+              <span className="flex items-center gap-1.5">
+                <History size={13} /> {t("routing.tabChangeLog")}
+              </span>
+            ),
+          },
         ]}
       />
       {tab === "tester" ? (
         <RoutingResolutionTester />
       ) : tab === "rules" ? (
         <RoutingRulesPanel />
+      ) : tab === "log" ? (
+        <RoutingChangeLogTab />
       ) : (
         <RoutingCoveragePanel onCreateRule={() => setTab("rules")} />
       )}

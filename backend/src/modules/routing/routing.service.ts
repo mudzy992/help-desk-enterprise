@@ -1,27 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  buildRoutingConfigurationReference,
-  isRoutingConfigurationReferenceForService,
-} from './build-routing-configuration-reference';
+import { changeLogEntityTypes } from '../change-log/change-log.constants';
+import { listChangeLogs } from '../change-log/list-change-logs';
+import { assertRoutingRuleScope } from './assert-routing-rule-scope';
 import { computeRoutingCoverage } from './compute-routing-coverage';
+import {
+  computeRoutingRuleDeleteImpact,
+  deleteRoutingRule,
+  type RoutingRuleDeleteImpact,
+} from './delete-routing-rule';
 import { listRoutingHandlerGroups } from './list-routing-handler-groups';
 import { listRoutingRules } from './list-routing-rules';
 import { mapRoutingError } from './map-routing-error';
 import { persistRoutingRuleChange } from './persist-routing-rule-change';
 import { resolveTicketRouting } from './resolve-ticket-routing';
+import {
+  acceptsRoutingOnboardingReference,
+  hasRoutingRulesForService,
+  suggestRoutingOnboardingReference,
+} from './routing-onboarding-support';
 import { RoutingConfigurationLoader } from './routing-configuration.loader';
 import { toRoutingRuleResponses } from './to-routing-rule-response';
+import { updateRoutingRule } from './update-routing-rule';
 import type {
   CreateRoutingRuleInput,
   ListRoutingRulesQuery,
   ResolveRoutingInput,
+  RoutingChangeLogResponse,
   RoutingCoverageItem,
   RoutingCoverageQuery,
   RoutingHandlerGroupResponse,
   RoutingMutationContext,
   RoutingResolution,
   RoutingRuleResponse,
+  UpdateRoutingRuleInput,
 } from './routing.types';
 
 @Injectable()
@@ -47,17 +59,94 @@ export class RoutingService {
     });
   }
 
+  async updateRule(
+    ruleId: string,
+    input: UpdateRoutingRuleInput & {
+      readonly originUnitId: string;
+      readonly serviceId: string;
+    },
+    context: RoutingMutationContext = { actorUserId: null },
+  ): Promise<RoutingRuleResponse> {
+    return this.execute(async () => {
+      await assertRoutingRuleScope(
+        this.prisma,
+        ruleId,
+        input.originUnitId,
+        input.serviceId,
+      );
+      const updated = await updateRoutingRule(
+        this.prisma,
+        ruleId,
+        { groupId: input.groupId, reason: input.reason },
+        context,
+        await this.configurationLoader.load(),
+      );
+      const [response] = await toRoutingRuleResponses(this.prisma, [updated]);
+      return response as RoutingRuleResponse;
+    });
+  }
+
+  async deleteRule(
+    ruleId: string,
+    input: {
+      readonly originUnitId: string;
+      readonly serviceId: string;
+      readonly reason: string;
+    },
+    context: RoutingMutationContext = { actorUserId: null },
+  ): Promise<RoutingRuleDeleteImpact> {
+    return this.execute(async () => {
+      await assertRoutingRuleScope(
+        this.prisma,
+        ruleId,
+        input.originUnitId,
+        input.serviceId,
+      );
+      return deleteRoutingRule(
+        this.prisma,
+        ruleId,
+        input.reason,
+        context,
+        await this.configurationLoader.load(),
+      );
+    });
+  }
+
+  async deleteImpact(ruleId: string): Promise<RoutingRuleDeleteImpact> {
+    return this.execute(async () =>
+      computeRoutingRuleDeleteImpact(
+        this.prisma,
+        ruleId,
+        await this.configurationLoader.load(),
+      ),
+    );
+  }
+
+  async listRuleChanges(ruleId: string): Promise<readonly RoutingChangeLogResponse[]> {
+    return this.execute(() =>
+      listChangeLogs(this.prisma, {
+        entityType: changeLogEntityTypes.routingRule,
+        entityId: ruleId,
+      }),
+    );
+  }
+
+  async listChanges(): Promise<readonly RoutingChangeLogResponse[]> {
+    return this.execute(() =>
+      listChangeLogs(this.prisma, {
+        entityType: changeLogEntityTypes.routingRule,
+      }),
+    );
+  }
+
   async listHandlerGroups(): Promise<readonly RoutingHandlerGroupResponse[]> {
     return this.execute(() => listRoutingHandlerGroups(this.prisma));
   }
 
-  async listRules(
-    query: ListRoutingRulesQuery,
-  ): Promise<readonly RoutingRuleResponse[]> {
-    return this.execute(async () => {
-      const rules = await listRoutingRules(this.prisma, query);
-      return toRoutingRuleResponses(this.prisma, rules);
-    });
+  async listRules(query: ListRoutingRulesQuery): Promise<readonly RoutingRuleResponse[]> {
+    return this.execute(async () =>
+      toRoutingRuleResponses(this.prisma, await listRoutingRules(this.prisma, query)),
+    );
   }
 
   async resolve(input: ResolveRoutingInput): Promise<RoutingResolution> {
@@ -82,32 +171,24 @@ export class RoutingService {
     );
   }
 
-  async hasRulesForService(serviceId: string): Promise<boolean> {
-    const count = await this.prisma.routingRule.count({ where: { serviceId } });
-    return count > 0;
+  hasRulesForService(serviceId: string): Promise<boolean> {
+    return hasRoutingRulesForService(this.prisma, serviceId);
   }
 
-  async suggestOnboardingReference(serviceId: string): Promise<string | null> {
-    return (await this.hasRulesForService(serviceId))
-      ? buildRoutingConfigurationReference(serviceId)
-      : null;
+  suggestOnboardingReference(serviceId: string): Promise<string | null> {
+    return suggestRoutingOnboardingReference(this.prisma, serviceId);
   }
 
-  async acceptsOnboardingReference(input: {
+  acceptsOnboardingReference(input: {
     readonly serviceId: string;
     readonly reference: string;
   }): Promise<boolean> {
-    return (
-      isRoutingConfigurationReferenceForService(
-        input.reference,
-        input.serviceId,
-      ) && (await this.hasRulesForService(input.serviceId))
-    );
+    return acceptsRoutingOnboardingReference(this.prisma, input);
   }
 
-  private async execute<T>(operation: () => Promise<T>): Promise<T> {
+  private async execute<T>(op: () => Promise<T>): Promise<T> {
     try {
-      return await operation();
+      return await op();
     } catch (error) {
       throw mapRoutingError(error);
     }
