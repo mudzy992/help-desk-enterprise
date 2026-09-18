@@ -93,4 +93,26 @@ export class AuthorizationContextLoader {
       assignments: mapAssignments(user),
     });
   }
+
+  async loadHomeOrganizationalUnit(
+    subjectId: string,
+  ): Promise<{ readonly id: string; readonly name: string } | null> {
+    const id = subjectId.trim();
+    if (id.length === 0) {
+      return null;
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        organizationalUnit: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+    const unit = user?.organizationalUnit;
+    if (unit === undefined || unit === null) {
+      return null;
+    }
+    return { id: unit.id, name: unit.name };
+  }
 }

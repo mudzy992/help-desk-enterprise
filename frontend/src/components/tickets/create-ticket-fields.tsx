@@ -16,21 +16,27 @@ import type { TicketImpact, TicketPriority } from "@/services/tickets-api";
 interface CreateTicketFieldsProperties {
   readonly draft: CreateTicketDraft;
   readonly originUnits: readonly OriginUnitOption[];
+  readonly canChooseOriginUnit: boolean;
+  readonly originUnitDisplayName: string;
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
   readonly suggestedPriority: TicketPriority;
   readonly onChange: (draft: CreateTicketDraft) => void;
+  readonly onOriginUnitChosen?: () => void;
 }
 
 export function CreateTicketFields({
   draft,
   originUnits,
+  canChooseOriginUnit,
+  originUnitDisplayName,
   selectedService,
   activeForm,
   fieldErrors,
   suggestedPriority,
   onChange,
+  onOriginUnitChosen,
 }: CreateTicketFieldsProperties) {
   const { t } = useTranslation();
   return (
@@ -39,7 +45,9 @@ export function CreateTicketFields({
         {t("tickets.createStepDetails")}
         {selectedService ? ` — ${selectedService.name}` : ""}
       </h2>
-      <p className="mt-0.5 text-[12px] text-muted-foreground">{t("tickets.originUnitHint")}</p>
+      {canChooseOriginUnit ? (
+        <p className="mt-0.5 text-[12px] text-muted-foreground">{t("tickets.originUnitHint")}</p>
+      ) : null}
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
@@ -54,25 +62,36 @@ export function CreateTicketFields({
             placeholder={t("tickets.titleField")}
           />
         </label>
-        <label className={labelClassName}>
-          <span>
-            {t("tickets.originUnit")}
-            <span className="text-danger"> *</span>
-          </span>
-          <select
-            className={selectClassName}
-            value={draft.originUnitId}
-            onChange={(event) => onChange({ ...draft, originUnitId: event.target.value })}
-            required
-          >
-            <option value="">{t("tickets.originUnitPlaceholder")}</option>
-            {originUnits.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {canChooseOriginUnit ? (
+          <label className={labelClassName}>
+            <span>
+              {t("tickets.originUnit")}
+              <span className="text-danger"> *</span>
+            </span>
+            <select
+              className={selectClassName}
+              value={draft.originUnitId}
+              onChange={(event) => {
+                onOriginUnitChosen?.();
+                onChange({ ...draft, originUnitId: event.target.value });
+              }}
+              required
+            >
+              <option value="">{t("tickets.originUnitPlaceholder")}</option>
+              {originUnits.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <p className={`${hintClassName} md:col-span-2`}>
+            {t("tickets.originUnitYours", {
+              name: originUnitDisplayName || t("tickets.originUnitMissing"),
+            })}
+          </p>
+        )}
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.descriptionField")}

@@ -25,6 +25,8 @@ function buildCapabilities(input: {
       isSuperAdmin: input.isSuperAdmin ?? false,
       roleKeys: input.roleKeys ?? [],
       permissionKeys: input.permissionKeys ?? [],
+      organizationalUnitId: null,
+      organizationalUnitName: null,
       principal: {
         subjectId: "user-1",
         displayName: "Test User",

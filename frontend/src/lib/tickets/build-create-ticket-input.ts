@@ -11,6 +11,17 @@ export type CreateTicketDraft = {
   readonly formData: Record<string, unknown>;
 };
 
+export const emptyCreateTicketDraft: CreateTicketDraft = {
+  title: "",
+  description: "",
+  impact: "MEDIUM",
+  urgency: "MEDIUM",
+  serviceId: "",
+  originUnitId: "",
+  formVersionRef: null,
+  formData: {},
+};
+
 export function isCreateTicketDraftReady(draft: CreateTicketDraft): boolean {
   return (
     draft.title.trim().length > 0 &&

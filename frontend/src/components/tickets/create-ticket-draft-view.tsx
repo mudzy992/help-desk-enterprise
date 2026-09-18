@@ -17,6 +17,8 @@ interface CreateTicketDraftViewProperties {
   readonly draft: CreateTicketDraft;
   readonly services: readonly ServiceResponse[];
   readonly originUnits: readonly OriginUnitOption[];
+  readonly canChooseOriginUnit: boolean;
+  readonly originUnitDisplayName: string;
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
@@ -26,6 +28,7 @@ interface CreateTicketDraftViewProperties {
   readonly canSubmitDetails: boolean;
   readonly isSubmitting: boolean;
   readonly onDraftChange: (draft: CreateTicketDraft) => void;
+  readonly onOriginUnitChosen: () => void;
   readonly onBack: () => void;
   readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
@@ -35,6 +38,8 @@ export function CreateTicketDraftView({
   draft,
   services,
   originUnits,
+  canChooseOriginUnit,
+  originUnitDisplayName,
   selectedService,
   activeForm,
   fieldErrors,
@@ -44,6 +49,7 @@ export function CreateTicketDraftView({
   canSubmitDetails,
   isSubmitting,
   onDraftChange,
+  onOriginUnitChosen,
   onBack,
   onSubmit,
 }: CreateTicketDraftViewProperties) {
@@ -69,11 +75,14 @@ export function CreateTicketDraftView({
             <CreateTicketFields
               draft={draft}
               originUnits={originUnits}
+              canChooseOriginUnit={canChooseOriginUnit}
+              originUnitDisplayName={originUnitDisplayName}
               selectedService={selectedService}
               activeForm={activeForm}
               fieldErrors={fieldErrors}
               suggestedPriority={suggestedPriority}
               onChange={onDraftChange}
+              onOriginUnitChosen={onOriginUnitChosen}
             />
           )}
           {displayedError ? (

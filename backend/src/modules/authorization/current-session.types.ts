@@ -8,4 +8,6 @@ export type CurrentSessionResponse = {
   readonly isSuperAdmin: boolean;
   readonly roleKeys: readonly string[];
   readonly permissionKeys: readonly string[];
+  readonly organizationalUnitId: string | null;
+  readonly organizationalUnitName: string | null;
 };

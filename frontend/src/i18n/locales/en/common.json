@@ -1925,6 +1925,8 @@
     "originUnit": "Origin organizational unit (OU)",
     "originUnitPlaceholder": "Select the origin unit",
     "originUnitHint": "OU of the ticket source — used for routing, never the agent's OU.",
+    "originUnitYours": "Your organizational unit: {{name}}",
+    "originUnitMissing": "not assigned",
     "impact": "Impact",
     "urgency": "Urgency",
     "priorityHint": "Priority is calculated from impact and urgency.",

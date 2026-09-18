@@ -26,11 +26,13 @@ export class CurrentSessionController {
         message: 'Authorization failed',
       });
     }
-    return toCurrentSessionResponse(
-      principal,
-      await this.authorizationContextLoader.loadBySubjectId(
-        principal.subjectId,
-      ),
+    const context = await this.authorizationContextLoader.loadBySubjectId(
+      principal.subjectId,
     );
+    const homeOrganizationalUnit =
+      await this.authorizationContextLoader.loadHomeOrganizationalUnit(
+        principal.subjectId,
+      );
+    return toCurrentSessionResponse(principal, context, homeOrganizationalUnit);
   }
 }

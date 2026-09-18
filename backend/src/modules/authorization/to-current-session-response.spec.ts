@@ -68,5 +68,16 @@ describe('toCurrentSessionResponse', () => {
     expect(response.roleKeys).toEqual([]);
     expect(response.permissionKeys).toEqual([]);
     expect(response.principal.subjectId).toBe('user-1');
+    expect(response.organizationalUnitId).toBeNull();
+    expect(response.organizationalUnitName).toBeNull();
+  });
+
+  it('exposes the user home organizational unit name for ticket create auto-fill', () => {
+    const response = toCurrentSessionResponse(principal, null, {
+      id: 'ou-it',
+      name: 'IT Breza',
+    });
+    expect(response.organizationalUnitId).toBe('ou-it');
+    expect(response.organizationalUnitName).toBe('IT Breza');
   });
 });

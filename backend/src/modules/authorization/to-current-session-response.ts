@@ -6,6 +6,10 @@ import { allPermissionKeys } from './authorization.constants';
 export function toCurrentSessionResponse(
   principal: AuthorizationPrincipal,
   context: AuthorizationContext | null,
+  homeOrganizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+  } | null = null,
 ): CurrentSessionResponse {
   const isSuperAdmin = context?.isSuperAdmin ?? false;
   return {
@@ -28,6 +32,8 @@ export function toCurrentSessionResponse(
             (assignment) => assignment.permissionKeys,
           ),
         ),
+    organizationalUnitId: homeOrganizationalUnit?.id ?? null,
+    organizationalUnitName: homeOrganizationalUnit?.name ?? null,
   };
 }
 

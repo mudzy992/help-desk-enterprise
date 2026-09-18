@@ -2,11 +2,11 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CreateTicketDraftView } from "@/components/tickets/create-ticket-draft-view";
-import { CreateTicketInterceptView } from "@/components/tickets/create-ticket-intercept-view";
-import { CreateTicketReviewView } from "@/components/tickets/create-ticket-review-view";
+import { CreateTicketFollowUpViews } from "@/components/tickets/create-ticket-follow-up-views";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   buildCreateTicketInput,
+  emptyCreateTicketDraft,
   isCreateTicketDraftReady,
   isServiceReadyForTicketCreation,
   knowledgeInterceptQuery,
@@ -14,32 +14,26 @@ import {
 } from "@/lib/tickets/build-create-ticket-input";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { lookupTicketPriority } from "@/lib/tickets/lookup-ticket-priority";
-import { defaultOriginUnitId } from "@/lib/tickets/ticket-display";
+import {
+  nextDraftOriginUnitId,
+  resolveCreateTicketOriginUnit,
+} from "@/lib/tickets/current-user-origin-unit";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
 import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import { activeFormVersion, getServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
 import { interceptKnowledgeArticles, resolveKnowledgeIntercept, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
 import { createTicket } from "@/services/tickets-api";
 
-const emptyDraft: CreateTicketDraft = {
-  title: "",
-  description: "",
-  impact: "MEDIUM",
-  urgency: "MEDIUM",
-  serviceId: "",
-  originUnitId: "",
-  formVersionRef: null,
-  formData: {},
-};
-
 export function CreateTicketForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const catalog = useCreateTicketCatalog();
+  const capabilities = useSessionCapabilities();
   const matrixCells = usePriorityMatrix();
-  const [draft, setDraft] = useState<CreateTicketDraft>(emptyDraft);
+  const [draft, setDraft] = useState<CreateTicketDraft>(emptyCreateTicketDraft);
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
   const [step, setStep] = useState(0);
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
@@ -47,16 +41,33 @@ export function CreateTicketForm() {
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
   const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasChosenOriginUnit, setHasChosenOriginUnit] = useState(false);
   const displayedError = errorKey ?? catalog.errorKey;
   const isServiceReady = isServiceReadyForTicketCreation(draft, activeForm !== null);
   const selectedService = catalog.services.find((service) => service.id === draft.serviceId) ?? null;
   const suggestedPriority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
+  const origin = resolveCreateTicketOriginUnit({
+    session: capabilities.session,
+    originUnits: catalog.originUnits,
+  });
 
   useEffect(() => {
-    const fallback = defaultOriginUnitId(catalog.originUnits);
-    if (fallback.length === 0) return;
-    setDraft((current) => (current.originUnitId.length > 0 ? current : { ...current, originUnitId: fallback }));
-  }, [catalog.originUnits]);
+    const nextOriginUnitId = nextDraftOriginUnitId({
+      currentOriginUnitId: draft.originUnitId,
+      preferredOriginUnitId: origin.preferredOriginUnitId,
+      isOriginUnitLocked: !origin.canChooseOriginUnit,
+      hasUserChosenOriginUnit: hasChosenOriginUnit,
+    });
+    if (nextOriginUnitId === draft.originUnitId) {
+      return;
+    }
+    setDraft((current) => ({ ...current, originUnitId: nextOriginUnitId }));
+  }, [
+    draft.originUnitId,
+    hasChosenOriginUnit,
+    origin.canChooseOriginUnit,
+    origin.preferredOriginUnitId,
+  ]);
 
   useEffect(() => {
     if (draft.serviceId.length === 0) {
@@ -128,40 +139,31 @@ export function CreateTicketForm() {
     }
   };
 
-  if (catalog.isLoading) {
+  if (catalog.isLoading || capabilities.isLoading) {
     return <PanelSkeleton label={t("tickets.loading")} />;
   }
-  if (step === 2) {
+  if (step === 2 || step === 3) {
     return (
-      <CreateTicketInterceptView
-        displayedError={displayedError}
-        isSubmitting={isSubmitting}
-        items={suggestions}
-        helped={helped}
-        onHelped={() => {
-          void resolveKnowledgeIntercept({
-            serviceId: draft.serviceId,
-            organizationalUnitId: draft.originUnitId,
-            articleId: suggestions[0]?.id,
-          }).finally(() => {
-            setHelped(true);
-          });
-        }}
-        onContinue={() => setStep(3)}
-        onBack={() => setStep(1)}
-      />
-    );
-  }
-  if (step === 3) {
-    return (
-      <CreateTicketReviewView
+      <CreateTicketFollowUpViews
+        step={step}
         draft={draft}
         selectedService={selectedService}
         activeForm={activeForm}
         matrixCells={matrixCells}
         displayedError={displayedError}
         isSubmitting={isSubmitting}
-        onBack={() => setStep(2)}
+        suggestions={suggestions}
+        helped={helped}
+        onHelped={() => {
+          void resolveKnowledgeIntercept({
+            serviceId: draft.serviceId,
+            organizationalUnitId: draft.originUnitId,
+            articleId: suggestions[0]?.id,
+          }).finally(() => setHelped(true));
+        }}
+        onContinue={() => setStep(3)}
+        onBackToDetails={() => setStep(1)}
+        onBackToIntercept={() => setStep(2)}
         onSubmit={() => void submitTicket()}
         onCreateAnyway={() => void submitTicket(true)}
       />
@@ -173,7 +175,9 @@ export function CreateTicketForm() {
       step={step}
       draft={draft}
       services={catalog.services}
-      originUnits={catalog.originUnits}
+      originUnits={origin.originUnits}
+      canChooseOriginUnit={origin.canChooseOriginUnit}
+      originUnitDisplayName={origin.originUnitDisplayName}
       selectedService={selectedService}
       activeForm={activeForm}
       fieldErrors={fieldErrors}
@@ -183,6 +187,7 @@ export function CreateTicketForm() {
       canSubmitDetails={isCreateTicketDraftReady(draft) && isServiceReady}
       isSubmitting={isSubmitting}
       onDraftChange={setDraft}
+      onOriginUnitChosen={() => setHasChosenOriginUnit(true)}
       onBack={() => setStep(0)}
       onSubmit={(event) => void onSubmit(event)}
     />
