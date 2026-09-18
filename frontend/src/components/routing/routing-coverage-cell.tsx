@@ -13,6 +13,7 @@ import {
 
 interface RoutingCoverageCellProperties {
   readonly item: RoutingCoverageItem;
+  readonly groupName: string | null;
   readonly isActive: boolean;
   readonly nearBottom: boolean;
   readonly onActivate: () => void;
@@ -21,6 +22,7 @@ interface RoutingCoverageCellProperties {
 
 export function RoutingCoverageCell({
   item,
+  groupName,
   isActive,
   nearBottom,
   onActivate,
@@ -65,9 +67,9 @@ export function RoutingCoverageCell({
                 tone: ROUTING_OUTCOME_META[item.resolution.outcome].tone,
               }}
             />
-            {item.resolution.groupId ? (
+            {groupName ? (
               <span className="tnum text-[10.5px] text-text/85">
-                → {item.resolution.groupId}
+                → {groupName}
               </span>
             ) : null}
           </div>

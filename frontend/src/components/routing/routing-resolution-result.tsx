@@ -17,6 +17,7 @@ interface RoutingResolutionResultProperties {
   readonly requestId: string | null;
   readonly originLabel: string;
   readonly serviceLabel: string;
+  readonly groupLabel: string | null;
 }
 
 export function RoutingResolutionResult({
@@ -26,6 +27,7 @@ export function RoutingResolutionResult({
   requestId,
   originLabel,
   serviceLabel,
+  groupLabel,
 }: RoutingResolutionResultProperties) {
   const { t } = useTranslation();
   return (
@@ -44,6 +46,7 @@ export function RoutingResolutionResult({
             resolution={resolution}
             originLabel={originLabel}
             serviceLabel={serviceLabel}
+            groupLabel={groupLabel}
           />
         ) : (
           <EmptyState title={t("routing.testerEmpty")} />
@@ -57,13 +60,17 @@ function ResolutionBody({
   resolution,
   originLabel,
   serviceLabel,
+  groupLabel,
 }: {
   readonly resolution: RoutingResolution;
   readonly originLabel: string;
   readonly serviceLabel: string;
+  readonly groupLabel: string | null;
 }) {
   const { t } = useTranslation();
   const queue = resolution.unroutedQueue ?? null;
+  const groupDisplay =
+    groupLabel ?? resolution.groupId ?? t("routing.noGroup");
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
@@ -75,7 +82,7 @@ function ResolutionBody({
           className="px-2 py-1 text-[12px]"
         />
         <span className="text-[15px] font-semibold text-text">
-          {resolution.groupId ?? t("routing.noGroup")}
+          {resolution.groupId ? groupDisplay : t("routing.noGroup")}
         </span>
         {resolution.fallbackDepth > 0 && resolution.groupId ? (
           <Badge tone="info" dot={false}>

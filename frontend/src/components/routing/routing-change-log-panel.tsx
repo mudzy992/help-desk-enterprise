@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  tableHeadClassName,
   tableRowClassName,
   tableWrapClassName,
 } from "@/components/ui/control";
@@ -50,14 +49,14 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
             <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-md border border-border`}>
               <table className="w-full">
                 <thead>
-                  <tr className="bg-background/60 text-left">
-                    <th className={`${tableHeadClassName} px-3 py-1.5`}>
+                  <tr className="bg-background/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted/70">
+                    <th className="px-3 py-1.5 font-medium">
                       {t("routing.changeField")}
                     </th>
-                    <th className={`${tableHeadClassName} px-3 py-1.5`}>
+                    <th className="px-3 py-1.5 font-medium">
                       {t("routing.changeBefore")}
                     </th>
-                    <th className={`${tableHeadClassName} px-3 py-1.5`}>
+                    <th className="px-3 py-1.5 font-medium">
                       {t("routing.changeAfter")}
                     </th>
                   </tr>

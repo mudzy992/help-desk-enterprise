@@ -23,7 +23,9 @@
 - [x] Faza 1 — Puni CRUD za routing pravila + Change log
 - [x] Faza 2 — `requireCoverage` enforcement
 - [x] Faza 3 — Housekeeping: `fallbackGroupId` i `strictOuIsolation`
-- [ ] Faza 4 — Finalno usklađivanje frontend UI-ja sa referencom
+- [x] Faza 4 — Finalno usklađivanje frontend UI-ja sa referencom
+
+**Plan zatvoren (Faze 1–4):** 2026-09-18. Otvorena tačka van ovog plana: `PriorityMatrixRule` (impact×urgency→priority) — orphan model; jedini pisac je config-versioning apply; nema admin CRUD/UI nigdje. Zahtijeva posebnu buduću odluku (nije dio Routing usmjeravanja na grupu).
 
 ---
 

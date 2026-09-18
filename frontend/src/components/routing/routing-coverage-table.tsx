@@ -13,6 +13,7 @@ import { RoutingCoverageCell } from "./routing-coverage-cell";
 
 interface RoutingCoverageTableProperties {
   readonly items: readonly RoutingCoverageItem[];
+  readonly groupNameById: ReadonlyMap<string, string>;
   readonly emptyAction?: ReactNode;
 }
 
@@ -42,6 +43,7 @@ const LEGEND: readonly {
 
 export function RoutingCoverageTable({
   items,
+  groupNameById,
   emptyAction,
 }: RoutingCoverageTableProperties) {
   const { t } = useTranslation();
@@ -138,6 +140,12 @@ export function RoutingCoverageTable({
                     <RoutingCoverageCell
                       key={origin.originUnitId}
                       item={item}
+                      groupName={
+                        item.resolution.groupId
+                          ? (groupNameById.get(item.resolution.groupId) ??
+                            item.resolution.groupId)
+                          : null
+                      }
                       isActive={
                         hover?.originUnitId === origin.originUnitId &&
                         hover?.serviceId === service.serviceId

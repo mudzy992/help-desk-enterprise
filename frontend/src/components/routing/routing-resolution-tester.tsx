@@ -71,6 +71,11 @@ export function RoutingResolutionTester() {
   const serviceLabel =
     catalog.services.find((service) => service.id === serviceId)?.name ??
     serviceId;
+  const groupLabel =
+    resolution?.groupId == null
+      ? null
+      : (catalog.groups.find((group) => group.id === resolution.groupId)?.name ??
+        null);
 
   if (catalog.isLoading) {
     return <PanelSkeleton label={t("routing.tabTester")} />;
@@ -138,6 +143,7 @@ export function RoutingResolutionTester() {
         requestId={requestId}
         originLabel={originLabel}
         serviceLabel={serviceLabel}
+        groupLabel={groupLabel}
       />
     </div>
   );
