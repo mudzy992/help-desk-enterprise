@@ -19,6 +19,7 @@ import { RoleGuard } from '../authorization/role.guard';
 import { AssignUserOrganizationalUnitDto } from './dto/assign-user-organizational-unit.dto';
 import { CreateOrganizationalUnitDto } from './dto/create-organizational-unit.dto';
 import { UpdateOrganizationalUnitDto } from './dto/update-organizational-unit.dto';
+import { organizationalUnitTreeReadRoles } from './organizational-unit-tree-read-roles';
 import { OrganizationalUnitsService } from './organizational-units.service';
 import type {
   OrganizationalUnitDetailResponse,
@@ -49,6 +50,7 @@ export class OrganizationalUnitsController {
   }
 
   @Get('tree')
+  @RequireRoles(...organizationalUnitTreeReadRoles)
   getTree(): Promise<readonly OrganizationalUnitTreeNodeResponse[]> {
     return this.organizationalUnitsService.getTree();
   }
