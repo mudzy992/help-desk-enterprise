@@ -11,16 +11,21 @@ export const listServiceCategories = listServiceCategoriesFromApi;
 export type ServiceLifecycle = "DRAFT" | "ACTIVE" | "DEPRECATED";
 export type ServiceAvailability = "OPERATIONAL" | "DEGRADED" | "MAINTENANCE";
 
+export type ServiceDowntimeWindowSummary = {
+  readonly message: string;
+  readonly startsAt: string;
+  readonly endsAt: string;
+};
+
 export type ServiceRuntimeAvailability = {
   readonly isCurrentlyAvailable: boolean;
   readonly isCurrentlyUnavailable: boolean;
   readonly hasActiveDowntime: boolean;
+  readonly hasUpcomingDowntime: boolean;
   readonly ticketCreationAllowed: true;
   readonly showStatusInTicketCreate: boolean;
-  readonly activeDowntimeWindow: {
-    readonly message: string;
-    readonly endsAt: string;
-  } | null;
+  readonly activeDowntimeWindow: ServiceDowntimeWindowSummary | null;
+  readonly upcomingDowntimeWindow: ServiceDowntimeWindowSummary | null;
 };
 
 export type ServiceResponse = {
@@ -34,6 +39,7 @@ export type ServiceResponse = {
   readonly runtimeAvailability: ServiceRuntimeAvailability;
   readonly classification: string;
   readonly requiresApproval: boolean;
+  readonly openTicketCount: number;
 };
 
 export type CreateServiceInput = {

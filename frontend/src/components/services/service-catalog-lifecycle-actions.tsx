@@ -23,12 +23,16 @@ interface ServiceCatalogLifecycleActionsProperties {
   readonly service: ServiceResponse;
   readonly onChanged: () => Promise<void>;
   readonly onEdit: () => void;
+  readonly canWriteAvailability?: boolean;
+  readonly onScheduleDowntime?: () => void;
 }
 
 export function ServiceCatalogLifecycleActions({
   service,
   onChanged,
   onEdit,
+  canWriteAvailability = false,
+  onScheduleDowntime,
 }: ServiceCatalogLifecycleActionsProperties) {
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
@@ -68,6 +72,11 @@ export function ServiceCatalogLifecycleActions({
         <Button type="button" size="xs" variant="outline" onClick={onEdit}>
           {t("services.editService")}
         </Button>
+        {canWriteAvailability && onScheduleDowntime ? (
+          <Button type="button" size="xs" variant="outline" onClick={onScheduleDowntime}>
+            {t("services.downtime.schedule")}
+          </Button>
+        ) : null}
         {targets.map((target) => (
           <Button
             key={target}

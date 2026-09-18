@@ -8,10 +8,17 @@ import { ServiceOnboardingWizard } from "@/components/services/onboarding/servic
 import { ServiceFormBuilderSheet } from "@/components/services/form-builder/service-form-builder-sheet";
 import { ServiceCatalogGrid } from "@/components/services/service-catalog-grid";
 import { ServiceCatalogMutationSheet } from "@/components/services/service-catalog-mutation-sheet";
+import { ServiceCatalogReadOnlyBanner } from "@/components/services/service-catalog-read-only-banner";
+import { ServiceDowntimeWindowsSheet } from "@/components/services/service-downtime-windows-sheet";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { resolveCatalogWriteFlags, canBypassAdminReadOnly } from "@/lib/services/resolve-catalog-write-flags";
+import {
+  adminReadOnlyModuleKeys,
+  useAdminModuleReadOnly,
+} from "@/lib/settings/use-admin-module-read-only";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useCatalogCoverageNotes } from "@/lib/services/use-catalog-coverage-notes";
@@ -27,14 +34,23 @@ export function ServicesPage() {
   const categoryState = useServiceCategories();
   const coverageByServiceId = useCatalogCoverageNotes();
   const onboardings = useVisibleOnboardings(catalog.rows);
-  const { hasPermission } = useSessionCapabilities();
-  const canWriteCatalog = hasPermission(permissionKeys.serviceCatalogWrite);
-  const canManageForms = hasPermission(permissionKeys.serviceFormsWrite);
+  const { session, hasPermission } = useSessionCapabilities();
+  const catalogReadOnly = useAdminModuleReadOnly(
+    adminReadOnlyModuleKeys.serviceCatalog,
+  );
+  const writeFlags = resolveCatalogWriteFlags({
+    hasCatalogWrite: hasPermission(permissionKeys.serviceCatalogWrite),
+    hasAvailabilityWrite: hasPermission(permissionKeys.serviceAvailabilityWrite),
+    hasFormsWrite: hasPermission(permissionKeys.serviceFormsWrite),
+    isModuleLocked: catalogReadOnly.isLocked,
+    canBypass: canBypassAdminReadOnly(session),
+  });
   const [wizardServiceId, setWizardServiceId] = useState<string | null | undefined>(
     undefined,
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceResponse | null>(null);
+  const [downtimeService, setDowntimeService] = useState<ServiceResponse | null>(null);
   const [formServiceId, setFormServiceId] = useState<string | null>(null);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isCategoryCreateOpen, setIsCategoryCreateOpen] = useState(false);
@@ -57,7 +73,7 @@ export function ServicesPage() {
         title={t("services.title")}
         subtitle={t("services.intro")}
         actions={
-          canWriteCatalog ? (
+          writeFlags.canWriteCatalog ? (
             <>
               <Button
                 type="button"
@@ -83,6 +99,7 @@ export function ServicesPage() {
           ) : null
         }
       />
+      <ServiceCatalogReadOnlyBanner visible={catalogReadOnly.isLocked} />
       {catalog.isLoading || categoryState.isLoading ? (
         <PanelSkeleton className="mt-0" label={t("services.catalogHeading")} />
       ) : catalog.errorKey ? (
@@ -93,8 +110,9 @@ export function ServicesPage() {
             rows={catalog.rows}
             categories={categoryState.categories}
             coverageByServiceId={coverageByServiceId}
-            canManageForms={canManageForms}
-            canWriteCatalog={canWriteCatalog}
+            canManageForms={writeFlags.canManageForms}
+            canWriteCatalog={writeFlags.canWriteCatalog}
+            canWriteAvailability={writeFlags.canWriteAvailability}
             pendingServiceId={null}
             onPrepareForm={setFormServiceId}
             onCreate={() => {
@@ -104,13 +122,14 @@ export function ServicesPage() {
             onEdit={setEditingService}
             onStartOnboarding={setWizardServiceId}
             onManageCategories={() => setIsCategoriesOpen(true)}
+            onManageDowntime={setDowntimeService}
             onCatalogChanged={catalog.reload}
           />
           {wizardServiceId !== undefined ? (
             <ServiceOnboardingWizard
               serviceId={wizardServiceId}
               categories={categoryState.categories}
-              canWriteForms={canManageForms}
+              canWriteForms={writeFlags.canManageForms}
               onClose={() => setWizardServiceId(undefined)}
               onFinished={catalog.reload}
             />
@@ -126,7 +145,7 @@ export function ServicesPage() {
       )}
       <ServiceFormBuilderSheet
         serviceId={formServiceId}
-        canWrite={canManageForms}
+        canWrite={writeFlags.canManageForms}
         onOpenChange={(open) => {
           if (!open) {
             setFormServiceId(null);
@@ -145,10 +164,20 @@ export function ServicesPage() {
         }}
         onSaved={catalog.reload}
       />
+      <ServiceDowntimeWindowsSheet
+        serviceId={downtimeService?.id ?? null}
+        serviceName={downtimeService?.name ?? ""}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDowntimeService(null);
+          }
+        }}
+        onChanged={catalog.reload}
+      />
       <ServiceCategoriesAdminSheet
         open={isCategoriesOpen}
         categories={categoryState.categories}
-        canWrite={canWriteCatalog}
+        canWrite={writeFlags.canWriteCatalog}
         onOpenChange={setIsCategoriesOpen}
         onCreate={() => setIsCategoryCreateOpen(true)}
         onEdit={setEditingCategory}

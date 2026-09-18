@@ -49,7 +49,13 @@ function isModuleLocked(
   if (active.includes(adminReadOnlyModuleKeys.admin)) {
     return true;
   }
-  return active.includes(moduleKey);
+  if (active.includes(moduleKey)) {
+    return true;
+  }
+  return (
+    moduleKey === adminReadOnlyModuleKeys.serviceForms &&
+    active.includes(adminReadOnlyModuleKeys.serviceCatalog)
+  );
 }
 
 function canBypassReadOnlyMode(

@@ -11,7 +11,7 @@ import {
   assertCanCreateTicket,
   resolveCreateOriginUnitId,
 } from './assert-can-create-ticket';
-import { calculateTicketPriority } from './calculate-ticket-priority';
+import { resolveTicketPriority } from './resolve-ticket-priority';
 import { nextTicketNumber } from './generate-ticket-number';
 import {
   loadOfferedService,
@@ -159,7 +159,11 @@ export async function createTicket(
             title,
             description,
             status,
-            priority: calculateTicketPriority(input.impact, input.urgency),
+            priority: await resolveTicketPriority(
+              transaction as PrismaService,
+              input.impact,
+              input.urgency,
+            ),
             impact: input.impact,
             urgency: input.urgency,
             classification: input.classification ?? service.classification,

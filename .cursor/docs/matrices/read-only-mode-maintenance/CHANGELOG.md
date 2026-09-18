@@ -1,5 +1,10 @@
 # CHANGELOG — read-only-mode-maintenance
 
+## 2026-09-18
+- `service_forms` mutacije nasljeđuju `service_catalog` lock u evaluatoru.
+- Downtime/availability putanje pod `/services` klasifikovane kao `service_catalog`.
+- Katalog usluga: frontend banner + lock-aware write CTA; Settings toggle nepromijenjen.
+
 ## 2026-09-11
 - `PUT /settings` mapiran na postojeći `settings` modul (mutacija). Evaluator/interceptor nepromijenjeni.
 

@@ -11,7 +11,7 @@ import {
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
 import type { FormVersionResponse, ServiceResponse } from "@/services/service-catalog-api";
-import type { TicketImpact } from "@/services/tickets-api";
+import type { TicketImpact, TicketPriority } from "@/services/tickets-api";
 
 interface CreateTicketFieldsProperties {
   readonly draft: CreateTicketDraft;
@@ -19,6 +19,7 @@ interface CreateTicketFieldsProperties {
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
+  readonly suggestedPriority: TicketPriority;
   readonly onChange: (draft: CreateTicketDraft) => void;
 }
 
@@ -28,6 +29,7 @@ export function CreateTicketFields({
   selectedService,
   activeForm,
   fieldErrors,
+  suggestedPriority,
   onChange,
 }: CreateTicketFieldsProperties) {
   const { t } = useTranslation();
@@ -105,6 +107,7 @@ export function CreateTicketFields({
       <CreateTicketSeverityFields
         impact={draft.impact}
         urgency={draft.urgency}
+        suggestedPriority={suggestedPriority}
         onImpactChange={(impact: TicketImpact) => onChange({ ...draft, impact })}
         onUrgencyChange={(urgency: TicketImpact) => onChange({ ...draft, urgency })}
       />

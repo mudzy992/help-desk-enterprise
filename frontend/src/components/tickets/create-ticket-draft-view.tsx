@@ -10,6 +10,7 @@ import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input"
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
 import type { FormVersionResponse, ServiceResponse } from "@/services/service-catalog-api";
+import type { TicketPriority } from "@/services/tickets-api";
 
 interface CreateTicketDraftViewProperties {
   readonly step: number;
@@ -19,6 +20,7 @@ interface CreateTicketDraftViewProperties {
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
+  readonly suggestedPriority: TicketPriority;
   readonly displayedError: TicketErrorKey | "tickets.errorCatalog" | null;
   readonly canNextService: boolean;
   readonly canSubmitDetails: boolean;
@@ -36,6 +38,7 @@ export function CreateTicketDraftView({
   selectedService,
   activeForm,
   fieldErrors,
+  suggestedPriority,
   displayedError,
   canNextService,
   canSubmitDetails,
@@ -69,6 +72,7 @@ export function CreateTicketDraftView({
               selectedService={selectedService}
               activeForm={activeForm}
               fieldErrors={fieldErrors}
+              suggestedPriority={suggestedPriority}
               onChange={onDraftChange}
             />
           )}

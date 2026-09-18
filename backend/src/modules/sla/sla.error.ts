@@ -29,6 +29,7 @@ export type SlaErrorCode =
   | 'INVALID_ESCALATION_TARGET'
   | 'INVALID_ESCALATION_OFFSET'
   | 'DUPLICATE_ESCALATION_OFFSET'
+  | 'DUPLICATE_PRIORITY_MATRIX_CELL'
   | 'UNAVAILABLE';
 
 export class SlaError extends Error {

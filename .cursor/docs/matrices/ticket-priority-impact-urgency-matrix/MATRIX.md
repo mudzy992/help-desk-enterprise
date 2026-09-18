@@ -1,15 +1,16 @@
 # MATRIX — ticket-priority-impact-urgency-matrix
 
 ## Cilj
-Jedno centralizirano, determinističko pravilo: korisnik bira `impact` i `urgency`; backend upisuje `priority`. Nema duplog računanja u kontroleru ili frontendu. Klijent **ne** šalje `priority`.
+Jedno centralizirano, determinističko pravilo: korisnik bira `impact` i `urgency`; backend upisuje `priority` iz `PriorityMatrixRule`. Klijent **ne** šalje `priority`.
 
 ## Enumi
-`TicketImpact`, `TicketUrgency`, `TicketPriority`: `LOW | MEDIUM | HIGH | CRITICAL`.
+`TicketImpact`, `TicketUrgency`, `TicketPriority`: `LOW | MEDIUM | HIGH | CRITICAL` (matrica **4×4**).
 
-## Pravilo
-`rank(LOW)=1`, `rank(MEDIUM)=2`, `rank(HIGH)=3`, `rank(CRITICAL)=4`.
+## Izvor istine
+`PriorityMatrixRule` (unique `impact`+`urgency`). Admin CRUD: `GET/PATCH /priority-matrix` (`sla.write`, Admin). Config-version apply ostaje alternativni write put.
 
-`score = rank(impact) + rank(urgency)`
+## Default (seed kad ćelija nedostaje)
+`rank(LOW)=1` … `rank(CRITICAL)=4`; `score = rank(impact) + rank(urgency)`:
 
 | score | priority |
 |---|---|
@@ -18,18 +19,7 @@ Jedno centralizirano, determinističko pravilo: korisnik bira `impact` i `urgenc
 | 5–6 | HIGH |
 | 7–8 | CRITICAL |
 
-Matrica:
-
-| Impact \ Urgency | LOW | MEDIUM | HIGH | CRITICAL |
-|---|---|---|---|---|
-| LOW | LOW | MEDIUM | MEDIUM | HIGH |
-| MEDIUM | MEDIUM | MEDIUM | HIGH | HIGH |
-| HIGH | MEDIUM | HIGH | HIGH | CRITICAL |
-| CRITICAL | HIGH | HIGH | CRITICAL | CRITICAL |
-
-Kod: samo `calculateTicketPriority`. Create i update (kad se impact ili urgency promijeni) zovu tu funkciju.
-
-`PriorityMatrixRule` tabela ostaje za kasniju admin konfiguraciju; ova faza je ne čita i ne piše (izbjegava drugi izvor istine).
+Kod: `resolveTicketPriority` (lookup + fallback `calculateTicketPriority`). Create/update/bulk zovu resolve.
 
 ## Namjerno NIJE
-Admin UI za matrix rules, settings `rulesJson` overlay, agent priority override.
+Settings `rulesJson` overlay; agent priority override van bulk set_priority.

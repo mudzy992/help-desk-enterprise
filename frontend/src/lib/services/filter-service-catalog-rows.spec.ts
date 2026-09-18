@@ -19,12 +19,15 @@ function row(name: string, slug: string): ServiceCatalogRow {
       isCurrentlyAvailable: true,
       isCurrentlyUnavailable: false,
       hasActiveDowntime: false,
+      hasUpcomingDowntime: false,
       ticketCreationAllowed: true,
       showStatusInTicketCreate: false,
       activeDowntimeWindow: null,
+      upcomingDowntimeWindow: null,
     },
     classification: "INTERNAL",
     requiresApproval: false,
+    openTicketCount: 0,
   };
   return { service, form: null };
 }

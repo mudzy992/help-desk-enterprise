@@ -58,6 +58,7 @@ export type ServiceResponse = {
   readonly autoAssignStrategy: AutoAssignStrategy;
   readonly slaProfileId: string | null;
   readonly policyPackId: string | null;
+  readonly openTicketCount: number;
   readonly warnings?: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;

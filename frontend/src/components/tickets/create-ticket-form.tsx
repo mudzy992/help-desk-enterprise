@@ -13,9 +13,11 @@ import {
   type CreateTicketDraft,
 } from "@/lib/tickets/build-create-ticket-input";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { lookupTicketPriority } from "@/lib/tickets/lookup-ticket-priority";
 import { defaultOriginUnitId } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { useCreateTicketCatalog } from "@/lib/tickets/use-create-ticket-catalog";
+import { usePriorityMatrix } from "@/lib/tickets/use-priority-matrix";
 import { validateServiceFormData } from "@/lib/tickets/validate-service-form";
 import { activeFormVersion, getServiceForm, type FormVersionResponse } from "@/services/service-catalog-api";
 import { interceptKnowledgeArticles, resolveKnowledgeIntercept, type KnowledgeInterceptSuggestion } from "@/services/knowledge-base-api";
@@ -36,6 +38,7 @@ export function CreateTicketForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const catalog = useCreateTicketCatalog();
+  const matrixCells = usePriorityMatrix();
   const [draft, setDraft] = useState<CreateTicketDraft>(emptyDraft);
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
   const [step, setStep] = useState(0);
@@ -47,6 +50,7 @@ export function CreateTicketForm() {
   const displayedError = errorKey ?? catalog.errorKey;
   const isServiceReady = isServiceReadyForTicketCreation(draft, activeForm !== null);
   const selectedService = catalog.services.find((service) => service.id === draft.serviceId) ?? null;
+  const suggestedPriority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
 
   useEffect(() => {
     const fallback = defaultOriginUnitId(catalog.originUnits);
@@ -154,6 +158,7 @@ export function CreateTicketForm() {
         draft={draft}
         selectedService={selectedService}
         activeForm={activeForm}
+        matrixCells={matrixCells}
         displayedError={displayedError}
         isSubmitting={isSubmitting}
         onBack={() => setStep(2)}
@@ -172,6 +177,7 @@ export function CreateTicketForm() {
       selectedService={selectedService}
       activeForm={activeForm}
       fieldErrors={fieldErrors}
+      suggestedPriority={suggestedPriority}
       displayedError={displayedError}
       canNextService={draft.serviceId.length > 0 && isServiceReady}
       canSubmitDetails={isCreateTicketDraftReady(draft) && isServiceReady}

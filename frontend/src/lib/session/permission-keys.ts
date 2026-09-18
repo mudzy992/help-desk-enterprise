@@ -3,6 +3,7 @@
 export const permissionKeys = {
   serviceFormsWrite: "service.forms.write",
   serviceCatalogWrite: "service.catalog.write",
+  serviceAvailabilityWrite: "service.availability.write",
   routingWrite: "routing.write",
   groupManage: "group.manage",
   slaWrite: "sla.write",

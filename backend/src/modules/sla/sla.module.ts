@@ -8,6 +8,8 @@ import { SlaCalendarsService } from './sla-calendars.service';
 import { SlaComplianceController } from './sla-compliance.controller';
 import { SlaComplianceService } from './sla-compliance.service';
 import { SlaConfigurationLoader } from './sla-configuration.loader';
+import { PriorityMatrixController } from './priority-matrix.controller';
+import { PriorityMatrixService } from './priority-matrix.service';
 import { SlaEscalationRulesController } from './sla-escalation-rules.controller';
 import { SlaEscalationRulesService } from './sla-escalation-rules.service';
 import { SlaProfilesController } from './sla-profiles.controller';
@@ -30,6 +32,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaProfilesController,
     SlaRulesController,
     SlaEscalationRulesController,
+    PriorityMatrixController,
     SlaComplianceController,
   ],
   providers: [
@@ -38,6 +41,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaProfilesService,
     SlaRulesService,
     SlaEscalationRulesService,
+    PriorityMatrixService,
     SlaComplianceService,
     TicketSlaTimersService,
     TicketSlaBreachScannerService,
@@ -48,6 +52,7 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     SlaProfilesService,
     SlaRulesService,
     SlaEscalationRulesService,
+    PriorityMatrixService,
     SlaComplianceService,
     TicketSlaTimersService,
   ],

@@ -80,7 +80,8 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
   {
     key: permissionKeys.slaWrite,
     categoryId: permissionCategoryIds.sla,
-    description: 'Manage SLA calendars, profiles, and rules.',
+    description:
+      'Manage SLA calendars, profiles, rules, escalations, and the priority matrix.',
   },
   {
     key: permissionKeys.routingWrite,

@@ -28,6 +28,12 @@ describe("mapServiceCatalogError", () => {
     expect(mapServiceCatalogError(new ApiError(400, "INVALID_SLUG", "x"))).toBe(
       "services.errorValidation",
     );
+    expect(
+      mapServiceCatalogError(new ApiError(409, "OVERLAPPING_DOWNTIME_WINDOW", "x")),
+    ).toBe("services.errorDowntimeOverlap");
+    expect(mapServiceCatalogError(new ApiError(400, "INVALID_DOWNTIME_RANGE", "x"))).toBe(
+      "services.errorDowntimeRange",
+    );
   });
 
   it("maps auth, read-only, and unavailable statuses", () => {

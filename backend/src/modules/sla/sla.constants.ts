@@ -3,6 +3,7 @@ export const slaChangeLogEntityTypes = {
   profile: 'sla_profile',
   rule: 'sla_rule',
   escalationRule: 'sla_escalation_rule',
+  priorityMatrix: 'priority_matrix',
   ticketSlaState: 'ticket_sla_state',
 } as const;
 

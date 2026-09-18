@@ -116,6 +116,9 @@ export function createInMemoryTicketsPrisma() {
       },
     },
     formVersion: createInMemoryFormVersionDelegate(formVersions, nextId, now),
+    priorityMatrixRule: {
+      findUnique: async () => null,
+    },
     groupMember: createInMemoryGroupMemberDelegate(members),
     ticket: createInMemoryTicketDelegate(tickets, nextId, now),
     closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),

@@ -4,7 +4,7 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { changeLogActions } from '../change-log/change-log.constants';
 import { assertPatchTicketStatus } from './assert-patch-ticket-status';
 import { assertTicketVisible } from './authorize-ticket-actor';
-import { calculateTicketPriority } from './calculate-ticket-priority';
+import { resolveTicketPriority } from './resolve-ticket-priority';
 import { applyTicketResolution } from './close-codes/apply-ticket-resolution';
 import type { TicketCloseCodesConfiguration } from './close-codes/close-codes.types';
 import { loadOrganizationalUnitPath } from '../authorization/load-authorization-scope';
@@ -131,7 +131,11 @@ export async function updateTicket(
         description,
         impact,
         urgency,
-        priority: calculateTicketPriority(impact, urgency),
+        priority: await resolveTicketPriority(
+          transaction as PrismaService,
+          impact,
+          urgency,
+        ),
         status: nextStatus,
         formData: toTicketFormDataInput(formData),
         closeCodeId: resolution.closeCodeId,

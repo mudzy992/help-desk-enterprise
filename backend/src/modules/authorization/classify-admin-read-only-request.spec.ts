@@ -130,6 +130,26 @@ describe('classifyAdminReadOnlyRequest', () => {
         isDecoratedReadOperation: false,
       })?.isMutation,
     ).toBe(true);
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'POST',
+        path: '/services/service-1/downtime-windows',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+      isMutation: true,
+    });
+    expect(
+      classifyAdminReadOnlyRequest({
+        method: 'PATCH',
+        path: '/services/service-1/availability',
+        isDecoratedReadOperation: false,
+      }),
+    ).toEqual({
+      moduleKey: adminReadOnlyModuleKeys.serviceCatalog,
+      isMutation: true,
+    });
   });
 
   it('classifies service form writes as service_forms mutations', () => {

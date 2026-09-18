@@ -11,6 +11,7 @@ export function toServiceResponse(
   record: ServiceRecord,
   downtimeWindows: readonly DowntimeWindowRecord[] = [],
   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
+  openTicketCount = 0,
 ): ServiceResponse {
   return {
     id: record.id,
@@ -31,6 +32,7 @@ export function toServiceResponse(
     autoAssignStrategy: record.autoAssignStrategy,
     slaProfileId: record.slaProfileId,
     policyPackId: record.policyPackId,
+    openTicketCount,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

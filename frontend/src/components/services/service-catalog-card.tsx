@@ -1,7 +1,7 @@
 import { ArrowRight, CalendarClock, FileJson2, Layers, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ServiceCatalogLifecycleActions } from "@/components/services/service-catalog-lifecycle-actions";
+import { ServiceCatalogCardAdminFooter } from "@/components/services/service-catalog-card-admin-footer";
 import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,10 +21,12 @@ interface ServiceCatalogCardProperties {
   readonly coverage: CatalogCoverageNote | null;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
+  readonly canWriteAvailability: boolean;
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
   readonly onEdit: (service: ServiceResponse) => void;
   readonly onStartOnboarding: (serviceId: string) => void;
+  readonly onManageDowntime: (service: ServiceResponse) => void;
   readonly onCatalogChanged: () => Promise<void>;
 }
 
@@ -34,10 +36,12 @@ export function ServiceCatalogCard({
   coverage,
   canManageForms,
   canWriteCatalog,
+  canWriteAvailability,
   pendingServiceId,
   onPrepareForm,
   onEdit,
   onStartOnboarding,
+  onManageDowntime,
   onCatalogChanged,
 }: ServiceCatalogCardProperties) {
   const { t, i18n } = useTranslation();
@@ -46,6 +50,7 @@ export function ServiceCatalogCard({
     (version) => version.formVersionRef === form.activeFormVersionRef,
   );
   const downtime = service.runtimeAvailability.activeDowntimeWindow;
+  const hasUpcoming = service.runtimeAvailability.hasUpcomingDowntime === true;
   const showRuntimeWarning = shouldWarnServiceRuntimeAvailability(
     service.runtimeAvailability.isCurrentlyUnavailable,
     service.runtimeAvailability.hasActiveDowntime,
@@ -116,6 +121,24 @@ export function ServiceCatalogCard({
             {t("services.runtimeUnavailableWarning")}
           </Badge>
         ) : null}
+        {hasUpcoming ? (
+          <button
+            type="button"
+            className="inline-flex"
+            onClick={() => {
+              if (canWriteAvailability) {
+                onManageDowntime(service);
+              }
+            }}
+          >
+            <Badge tone="info" className="text-[10px]" dot={false}>
+              {t("services.downtime.upcomingBadge", { count: 1 })}
+            </Badge>
+          </button>
+        ) : null}
+        <span className="ml-auto tnum text-[11px] text-muted-foreground">
+          {t("services.openTicketCountBadge", { count: service.openTicketCount })}
+        </span>
       </div>
       <div className="flex items-center justify-between border-t border-border/50 px-4 py-2.5">
         {coverage ? (
@@ -131,40 +154,18 @@ export function ServiceCatalogCard({
           </Link>
         </Button>
       </div>
-      {canWriteCatalog ? (
-        <div className="border-t border-border/50 px-4 py-2.5">
-          <ServiceCatalogLifecycleActions
-            service={service}
-            onChanged={onCatalogChanged}
-            onEdit={() => onEdit(service)}
-          />
-          <div className="mt-2 flex justify-end gap-1.5">
-            {service.lifecycle === "DRAFT" ? (
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                onClick={() => onStartOnboarding(service.id)}
-              >
-                {t("services.startOnboarding")}
-              </Button>
-            ) : null}
-            {canManageForms ? (
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                disabled={pendingServiceId !== null}
-                onClick={() => onPrepareForm(service.id)}
-              >
-                {pendingServiceId === service.id
-                  ? t("services.preparingForm")
-                  : t("services.manageForm")}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      <ServiceCatalogCardAdminFooter
+        service={service}
+        canManageForms={canManageForms}
+        canWriteCatalog={canWriteCatalog}
+        canWriteAvailability={canWriteAvailability}
+        pendingServiceId={pendingServiceId}
+        onPrepareForm={onPrepareForm}
+        onEdit={onEdit}
+        onStartOnboarding={onStartOnboarding}
+        onManageDowntime={onManageDowntime}
+        onCatalogChanged={onCatalogChanged}
+      />
     </Card>
   );
 }

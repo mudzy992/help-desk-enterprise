@@ -1,6 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketPriority } from '../../../generated/prisma/enums';
-import { calculateTicketPriority } from '../calculate-ticket-priority';
+import { resolveTicketPriority } from '../resolve-ticket-priority';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
@@ -29,9 +29,20 @@ export async function applyBulkPriority(input: {
   }
   const updated: TicketRecord[] = [];
   for (const ticket of input.tickets) {
+    const impactUrgency = {
+      impact: priority,
+      urgency: priority,
+    } as const;
     const next = (await input.prisma.ticket.update({
       where: { id: ticket.id },
-      data: impactUrgencyForPriority(priority),
+      data: {
+        ...impactUrgency,
+        priority: await resolveTicketPriority(
+          input.prisma,
+          impactUrgency.impact,
+          impactUrgency.urgency,
+        ),
+      },
     })) as TicketRecord;
     await auditBulkTicketChange({
       prisma: input.prisma,
@@ -46,16 +57,4 @@ export async function applyBulkPriority(input: {
     updated.push(next);
   }
   return updated;
-}
-
-function impactUrgencyForPriority(priority: TicketPriority): {
-  readonly impact: TicketPriority;
-  readonly urgency: TicketPriority;
-  readonly priority: TicketPriority;
-} {
-  return {
-    impact: priority,
-    urgency: priority,
-    priority: calculateTicketPriority(priority, priority),
-  };
 }

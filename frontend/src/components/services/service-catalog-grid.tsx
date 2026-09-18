@@ -18,12 +18,14 @@ interface ServiceCatalogGridProperties {
   readonly coverageByServiceId: ReadonlyMap<string, CatalogCoverageNote>;
   readonly canManageForms: boolean;
   readonly canWriteCatalog: boolean;
+  readonly canWriteAvailability: boolean;
   readonly pendingServiceId: string | null;
   readonly onPrepareForm: (serviceId: string) => void;
   readonly onCreate: () => void;
   readonly onEdit: (service: ServiceResponse) => void;
   readonly onStartOnboarding: (serviceId: string) => void;
   readonly onManageCategories: () => void;
+  readonly onManageDowntime: (service: ServiceResponse) => void;
   readonly onCatalogChanged: () => Promise<void>;
 }
 
@@ -33,12 +35,14 @@ export function ServiceCatalogGrid({
   coverageByServiceId,
   canManageForms,
   canWriteCatalog,
+  canWriteAvailability,
   pendingServiceId,
   onPrepareForm,
   onCreate,
   onEdit,
   onStartOnboarding,
   onManageCategories,
+  onManageDowntime,
   onCatalogChanged,
 }: ServiceCatalogGridProperties) {
   const { t } = useTranslation();
@@ -119,10 +123,12 @@ export function ServiceCatalogGrid({
               coverage={coverageByServiceId.get(row.service.id) ?? null}
               canManageForms={canManageForms}
               canWriteCatalog={canWriteCatalog}
+              canWriteAvailability={canWriteAvailability}
               pendingServiceId={pendingServiceId}
               onPrepareForm={onPrepareForm}
               onEdit={onEdit}
               onStartOnboarding={onStartOnboarding}
+              onManageDowntime={onManageDowntime}
               onCatalogChanged={onCatalogChanged}
             />
           ))}

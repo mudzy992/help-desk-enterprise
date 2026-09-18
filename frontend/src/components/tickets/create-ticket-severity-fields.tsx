@@ -1,14 +1,16 @@
 import { useTranslation } from "react-i18next";
+import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { cn } from "@/lib/utils";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import type { TicketImpact } from "@/services/tickets-api";
+import type { TicketImpact, TicketPriority } from "@/services/tickets-api";
 
 const levels: readonly TicketImpact[] = ["LOW", "MEDIUM", "HIGH"];
 
 interface CreateTicketSeverityFieldsProperties {
   readonly impact: TicketImpact;
   readonly urgency: TicketImpact;
+  readonly suggestedPriority: TicketPriority;
   readonly onImpactChange: (value: TicketImpact) => void;
   readonly onUrgencyChange: (value: TicketImpact) => void;
 }
@@ -16,6 +18,7 @@ interface CreateTicketSeverityFieldsProperties {
 export function CreateTicketSeverityFields({
   impact,
   urgency,
+  suggestedPriority,
   onImpactChange,
   onUrgencyChange,
 }: CreateTicketSeverityFieldsProperties) {
@@ -49,7 +52,10 @@ export function CreateTicketSeverityFields({
           </div>
         </div>
       ))}
-      <p className="text-[11.5px] text-muted-foreground md:col-span-2">{t("tickets.calculatedPriority")}</p>
+      <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-muted-foreground md:col-span-2">
+        <span>{t("tickets.calculatedPriority")}</span>
+        <TicketPriorityBadge priority={suggestedPriority} />
+      </div>
     </div>
   );
 }

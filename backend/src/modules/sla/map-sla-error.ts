@@ -24,6 +24,7 @@ const conflictCodes: readonly SlaErrorCode[] = [
   'DUPLICATE_RULE',
   'DUPLICATE_HOLIDAY',
   'DUPLICATE_ESCALATION_OFFSET',
+  'DUPLICATE_PRIORITY_MATRIX_CELL',
   'MAX_ESCALATION_LEVELS_EXCEEDED',
   'CALENDAR_IN_USE',
   'PROFILE_IN_USE',
@@ -64,6 +65,8 @@ const messages: Record<SlaErrorCode, string> = {
     'Escalation trigger offset must increase with each level',
   DUPLICATE_ESCALATION_OFFSET:
     'An escalation rule with this trigger offset already exists on the profile',
+  DUPLICATE_PRIORITY_MATRIX_CELL:
+    'Duplicate impact and urgency cells in the priority matrix patch',
   UNAVAILABLE: 'SLA configuration is unavailable',
 };
 

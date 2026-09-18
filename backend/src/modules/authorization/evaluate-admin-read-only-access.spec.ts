@@ -119,4 +119,53 @@ describe('evaluateAdminReadOnlyAccess', () => {
       reason: adminReadOnlyDecisionReasons.readOnlyMode,
     });
   });
+
+  it('blocks service_forms mutations when service_catalog is locked', () => {
+    const decision = evaluateAdminReadOnlyAccess({
+      configuration: createConfiguration({
+        activeModuleKeys: [adminReadOnlyModuleKeys.serviceCatalog],
+      }),
+      route: {
+        moduleKey: adminReadOnlyModuleKeys.serviceForms,
+        isMutation: true,
+      },
+      authorizationContext: createTestAuthorizationContext(),
+    });
+    expect(decision).toEqual({
+      allowed: false,
+      reason: adminReadOnlyDecisionReasons.readOnlyMode,
+    });
+  });
+
+  it('allows service_forms mutations when neither catalog nor forms are locked', () => {
+    const decision = evaluateAdminReadOnlyAccess({
+      configuration: createConfiguration({ activeModuleKeys: [] }),
+      route: {
+        moduleKey: adminReadOnlyModuleKeys.serviceForms,
+        isMutation: true,
+      },
+      authorizationContext: createTestAuthorizationContext(),
+    });
+    expect(decision).toEqual({
+      allowed: true,
+      reason: adminReadOnlyDecisionReasons.moduleNotActive,
+    });
+  });
+
+  it('blocks service_forms mutations when only service_forms is locked', () => {
+    const decision = evaluateAdminReadOnlyAccess({
+      configuration: createConfiguration({
+        activeModuleKeys: [adminReadOnlyModuleKeys.serviceForms],
+      }),
+      route: {
+        moduleKey: adminReadOnlyModuleKeys.serviceForms,
+        isMutation: true,
+      },
+      authorizationContext: createTestAuthorizationContext(),
+    });
+    expect(decision).toEqual({
+      allowed: false,
+      reason: adminReadOnlyDecisionReasons.readOnlyMode,
+    });
+  });
 });

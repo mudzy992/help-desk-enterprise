@@ -6,17 +6,19 @@ import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { TicketErrorState } from "@/components/tickets/ticket-feedback-states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { calculateTicketPriority } from "@/lib/tickets/calculate-ticket-priority";
 import type { CreateTicketDraft } from "@/lib/tickets/build-create-ticket-input";
+import { lookupTicketPriority } from "@/lib/tickets/lookup-ticket-priority";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
+import type { PriorityMatrixCell } from "@/services/priority-matrix-api";
 import type { FormVersionResponse, ServiceResponse } from "@/services/service-catalog-api";
 
 interface CreateTicketReviewViewProperties {
   readonly draft: CreateTicketDraft;
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
+  readonly matrixCells: readonly PriorityMatrixCell[] | null;
   readonly displayedError: TicketErrorKey | "tickets.errorCatalog" | null;
   readonly isSubmitting: boolean;
   readonly onBack: () => void;
@@ -28,6 +30,7 @@ export function CreateTicketReviewView({
   draft,
   selectedService,
   activeForm,
+  matrixCells,
   displayedError,
   isSubmitting,
   onBack,
@@ -35,7 +38,7 @@ export function CreateTicketReviewView({
   onCreateAnyway,
 }: CreateTicketReviewViewProperties) {
   const { t } = useTranslation();
-  const priority = calculateTicketPriority(draft.impact, draft.urgency);
+  const priority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
   const formVersionLabel = activeForm?.formVersionRef ?? draft.formVersionRef ?? "—";
   return (
     <div className="mt-1">

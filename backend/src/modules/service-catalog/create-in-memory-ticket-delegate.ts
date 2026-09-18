@@ -3,6 +3,13 @@ export type TicketFormVersionRecord = {
   readonly serviceId: string;
   readonly formVersionId: string;
   readonly ticketNumber: string;
+  readonly status: string;
+};
+
+type TicketWhere = {
+  readonly formVersionId?: string;
+  readonly serviceId?: string | { in: readonly string[] };
+  readonly status?: { notIn: readonly string[] };
 };
 
 export function createInMemoryTicketDelegate(
@@ -36,12 +43,31 @@ export function createInMemoryTicketDelegate(
           : {}),
       };
     },
-    count: async ({
-      where,
-    }: {
-      where?: { formVersionId?: string; serviceId?: string };
-    } = {}) =>
+    count: async ({ where }: { where?: TicketWhere } = {}) =>
       [...tickets.values()].filter((item) => matchesTicket(item, where)).length,
+    groupBy: async ({
+      by,
+      where,
+      _count,
+    }: {
+      by: readonly ['serviceId'];
+      where?: TicketWhere;
+      _count: { _all: true };
+    }) => {
+      void by;
+      void _count;
+      const totals = new Map<string, number>();
+      for (const item of tickets.values()) {
+        if (!matchesTicket(item, where)) {
+          continue;
+        }
+        totals.set(item.serviceId, (totals.get(item.serviceId) ?? 0) + 1);
+      }
+      return [...totals.entries()].map(([serviceId, total]) => ({
+        serviceId,
+        _count: { _all: total },
+      }));
+    },
     create: async ({
       data,
     }: {
@@ -50,6 +76,7 @@ export function createInMemoryTicketDelegate(
         ticketNumber: string;
         serviceId: string;
         formVersionId: string;
+        status?: string;
         title?: string;
         description?: string;
         priority?: string;
@@ -64,6 +91,7 @@ export function createInMemoryTicketDelegate(
         ticketNumber: data.ticketNumber,
         serviceId: data.serviceId,
         formVersionId: data.formVersionId,
+        status: data.status ?? 'PENDING',
       };
       tickets.set(created.id, created);
       return created;
@@ -73,12 +101,24 @@ export function createInMemoryTicketDelegate(
 
 function matchesTicket(
   item: TicketFormVersionRecord,
-  where?: { formVersionId?: string; serviceId?: string },
+  where?: TicketWhere,
 ): boolean {
   if (where?.formVersionId !== undefined && item.formVersionId !== where.formVersionId) {
     return false;
   }
-  if (where?.serviceId !== undefined && item.serviceId !== where.serviceId) {
+  if (where?.serviceId !== undefined) {
+    if (typeof where.serviceId === 'string') {
+      if (item.serviceId !== where.serviceId) {
+        return false;
+      }
+    } else if (!where.serviceId.in.includes(item.serviceId)) {
+      return false;
+    }
+  }
+  if (
+    where?.status?.notIn !== undefined &&
+    where.status.notIn.includes(item.status)
+  ) {
     return false;
   }
   return true;

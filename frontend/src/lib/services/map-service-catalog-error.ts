@@ -11,6 +11,10 @@ export type ServiceCatalogErrorKey =
   | "services.errorCategory"
   | "services.errorValidation"
   | "services.errorUnavailable"
+  | "services.errorDowntimeOverlap"
+  | "services.errorDowntimeRange"
+  | "services.errorDowntimeDisabled"
+  | "services.errorDowntimeNotFound"
   | "services.errorGeneric";
 
 const codeKeys: Partial<Record<string, ServiceCatalogErrorKey>> = {
@@ -28,6 +32,13 @@ const codeKeys: Partial<Record<string, ServiceCatalogErrorKey>> = {
   INVALID_NAME: "services.errorValidation",
   INVALID_SLUG: "services.errorValidation",
   SLUG_IMMUTABLE: "services.errorValidation",
+  OVERLAPPING_DOWNTIME_WINDOW: "services.errorDowntimeOverlap",
+  INVALID_DOWNTIME_RANGE: "services.errorDowntimeRange",
+  INVALID_DOWNTIME_MESSAGE: "services.errorValidation",
+  DOWNTIME_DISABLED: "services.errorDowntimeDisabled",
+  DOWNTIME_UNAVAILABLE: "services.errorUnavailable",
+  DOWNTIME_NOT_FOUND: "services.errorDowntimeNotFound",
+  REASON_REQUIRED: "services.errorValidation",
 };
 
 export function mapServiceCatalogError(error: unknown): ServiceCatalogErrorKey {
