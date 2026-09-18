@@ -6,9 +6,8 @@ import { isConfidentialTicketVisible } from '../confidential/assert-confidential
 import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { resolveInboxGroupWhere } from './resolve-inbox-group-where';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
-
-type InboxGroupWhere = { not: null } | { in: string[] };
 
 export async function listGroupInboxTickets(
   prisma: PrismaService,
@@ -49,24 +48,6 @@ export async function listGroupInboxTickets(
     }
   }
   return visible;
-}
-
-async function resolveInboxGroupWhere(
-  prisma: PrismaService,
-  context: AuthorizationContext,
-): Promise<InboxGroupWhere | null> {
-  if (context.isSuperAdmin) {
-    return { not: null };
-  }
-  const memberships = await prisma.groupMember.findMany({
-    where: { userId: context.subjectId },
-    select: { groupId: true },
-  });
-  const groupIds = memberships.map((membership) => membership.groupId);
-  if (groupIds.length === 0) {
-    return null;
-  }
-  return { in: groupIds };
 }
 
 async function isInboxTicketVisible(
