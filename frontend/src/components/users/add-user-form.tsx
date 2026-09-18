@@ -8,6 +8,11 @@ import {
   errorTextClassName,
 } from "@/components/ui/control";
 import { roleKeys } from "@/lib/session/permission-keys";
+import {
+  roleRequiresOrganizationalUnitForTicketScope,
+  shouldShowOrganizationalUnitWildcardInRoleAssignment,
+  shouldWarnOrganizationalUnitMissingForRoleAssignment,
+} from "@/lib/users/user-role-organizational-unit-scope";
 import { ApiError } from "@/services/api";
 import { createUser, type CreateUserResponse } from "@/services/users-api";
 
@@ -33,7 +38,21 @@ export function AddUserForm({
     null,
   );
 
+  const showOrganizationalUnitWildcard =
+    shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey);
+  const showOrganizationalUnitScopeWarning =
+    shouldWarnOrganizationalUnitMissingForRoleAssignment(
+      roleKey,
+      organizationalUnitId,
+    );
+  const hasRequiredOrganizationalUnit =
+    !roleRequiresOrganizationalUnitForTicketScope(roleKey) ||
+    organizationalUnitId.trim().length > 0;
+
   const handleSubmit = async () => {
+    if (!hasRequiredOrganizationalUnit) {
+      return;
+    }
     setIsSaving(true);
     setErrorMessage(null);
     try {
@@ -86,13 +105,29 @@ export function AddUserForm({
         aria-label={t("users.organizationalUnitSelect")}
         onChange={(event) => setOrganizationalUnitId(event.target.value)}
       >
-        <option value="">{t("users.scopeAnyOrganizationalUnit")}</option>
+        {showOrganizationalUnitWildcard ? (
+          <option value="">
+            {t("users.scopeNoTicketAccessByOrganizationalUnit")}
+          </option>
+        ) : (
+          <option value="" disabled>
+            {t("users.scopeSelectOrganizationalUnit")}
+          </option>
+        )}
         {unitOptions.map((unit) => (
           <option key={unit.id} value={unit.id}>
             {unit.label}
           </option>
         ))}
       </select>
+      {showOrganizationalUnitScopeWarning ? (
+        <p
+          role="status"
+          className="text-[12px] text-amber-700 dark:text-amber-400"
+        >
+          {t("users.scopeOrganizationalUnitRequiredWarning")}
+        </p>
+      ) : null}
       <select
         className={`${controlCompactClassName} w-full`}
         value={roleKey}
@@ -116,7 +151,8 @@ export function AddUserForm({
           disabled={
             isSaving ||
             displayName.trim().length === 0 ||
-            email.trim().length === 0
+            email.trim().length === 0 ||
+            !hasRequiredOrganizationalUnit
           }
           onClick={() => void handleSubmit()}
         >

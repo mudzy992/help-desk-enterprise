@@ -4,6 +4,10 @@ export function isNonEmptyScopeValue(
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/**
+ * OU scope has no wildcard: null/blank assignedPath never grants ticket access.
+ * This is intentional (unlike service scope where null means "any service").
+ */
 export function doesOrganizationalUnitScopeCover(input: {
   readonly assignedPath: string | null;
   readonly requestedPath: string | null;

@@ -37,13 +37,22 @@ describe('doesOrganizationalUnitScopeCover', () => {
     ).toBe(false);
   });
 
-  it('fails closed for missing or blank paths', () => {
+  it('intentionally denies access when assignedPath is null (no OU wildcard)', () => {
     expect(
       doesOrganizationalUnitScopeCover({
         assignedPath: null,
         requestedPath: '/Korisnici',
       }),
     ).toBe(false);
+    expect(
+      doesOrganizationalUnitScopeCover({
+        assignedPath: null,
+        requestedPath: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('fails closed for blank requested paths', () => {
     expect(
       doesOrganizationalUnitScopeCover({
         assignedPath: '/Korisnici',

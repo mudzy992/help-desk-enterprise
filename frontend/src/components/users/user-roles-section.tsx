@@ -13,6 +13,11 @@ import {
   type UserRoleResponse,
 } from "@/services/users-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
+import {
+  roleRequiresOrganizationalUnitForTicketScope,
+  shouldShowOrganizationalUnitWildcardInRoleAssignment,
+  shouldWarnOrganizationalUnitMissingForRoleAssignment,
+} from "@/lib/users/user-role-organizational-unit-scope";
 
 const assignableRoleKeys = ["USER", "AGENT", "ADMIN", "SUPER_ADMIN"] as const;
 
@@ -56,7 +61,21 @@ export function UserRolesSection({
     void reload();
   }, [reload]);
 
+  const showOrganizationalUnitWildcard =
+    shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey);
+  const showOrganizationalUnitScopeWarning =
+    shouldWarnOrganizationalUnitMissingForRoleAssignment(
+      roleKey,
+      organizationalUnitId,
+    );
+  const canAssignRole =
+    !roleRequiresOrganizationalUnitForTicketScope(roleKey) ||
+    organizationalUnitId.trim().length > 0;
+
   const handleAssign = async () => {
+    if (!canAssignRole) {
+      return;
+    }
     setPending(true);
     setErrorKey(null);
     try {
@@ -143,7 +162,15 @@ export function UserRolesSection({
           aria-label={t("users.organizationalUnitSelect")}
           onChange={(event) => setOrganizationalUnitId(event.target.value)}
         >
-          <option value="">{t("users.scopeAnyOrganizationalUnit")}</option>
+          {showOrganizationalUnitWildcard ? (
+            <option value="">
+              {t("users.scopeNoTicketAccessByOrganizationalUnit")}
+            </option>
+          ) : (
+            <option value="" disabled>
+              {t("users.scopeSelectOrganizationalUnit")}
+            </option>
+          )}
           {originUnits.map((unit) => (
             <option key={unit.id} value={unit.id}>
               {unit.label}
@@ -163,10 +190,23 @@ export function UserRolesSection({
             </option>
           ))}
         </select>
-        <Button type="button" size="sm" disabled={pending} onClick={() => void handleAssign()}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending || !canAssignRole}
+          onClick={() => void handleAssign()}
+        >
           {pending ? t("users.assigningRole") : t("users.assignRole")}
         </Button>
       </div>
+      {showOrganizationalUnitScopeWarning ? (
+        <p
+          role="status"
+          className="mt-2 text-[12px] text-amber-700 dark:text-amber-400"
+        >
+          {t("users.scopeOrganizationalUnitRequiredWarning")}
+        </p>
+      ) : null}
     </div>
   );
 }
