@@ -1,6 +1,8 @@
 import { UsersRound } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
+import { parseAdminGroupsOrganizationalUnitFilter } from "@/lib/admin/parse-admin-tab";
 import { GroupsPanel } from "@/components/groups/groups-panel";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ interface GroupsPageProperties {
 
 export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const directory = useDirectory();
   const { hasPermission } = useSessionCapabilities();
   const canWrite = hasPermission(permissionKeys.groupManage);
@@ -35,7 +38,9 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   const [routingRuleCounts, setRoutingRuleCounts] = useState<ReadonlyMap<string, number>>(
     () => new Map(),
   );
-  const [filterUnitId, setFilterUnitId] = useState("");
+  const [filterUnitId, setFilterUnitId] = useState(() =>
+    parseAdminGroupsOrganizationalUnitFilter(searchParams),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<GroupsErrorKey | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -67,6 +72,14 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    const organizationalUnitIdFromUrl =
+      parseAdminGroupsOrganizationalUnitFilter(searchParams);
+    if (organizationalUnitIdFromUrl.length > 0) {
+      setFilterUnitId(organizationalUnitIdFromUrl);
+    }
+  }, [searchParams]);
 
   const handleCreate = async (input: {
     readonly name: string;

@@ -323,6 +323,7 @@
     "scopeNoTicketAccessByOrganizationalUnit": "No ticket access by organizational unit (administrative permissions only)",
     "scopeSelectOrganizationalUnit": "Select organizational unit",
     "scopeOrganizationalUnitRequiredWarning": "This assignment will not grant access to any tickets by organizational unit. To cover multiple units, add a separate entry for each one.",
+    "roleGroupCoverageWarning": "This user is not a member of any group that covers {{unitName}}. Tickets from this unit are routed to groups — <groupsLink>add the user to an appropriate group on the Groups screen</groupsLink>.",
     "scopeAnyService": "Any service",
     "errorUnauthorized": "Sign in to manage user roles.",
     "errorForbidden": "You do not have permission to manage user roles.",

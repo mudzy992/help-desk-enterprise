@@ -323,6 +323,7 @@
     "scopeNoTicketAccessByOrganizationalUnit": "Bez pristupa tiketima po OJ (samo administrativne dozvole)",
     "scopeSelectOrganizationalUnit": "Odaberite organizacionu jedinicu",
     "scopeOrganizationalUnitRequiredWarning": "Ova dodjela neće dati pristup nijednom tiketu po organizacionoj jedinici. Ako želite pristup na više OJ, dodajte poseban zapis za svaku.",
+    "roleGroupCoverageWarning": "Ovaj korisnik još nije član nijedne grupe koja pokriva {{unitName}}. Tiketi iz ove OJ se dodjeljuju grupama — <groupsLink>dodajte korisnika u odgovarajuću grupu na ekranu Grupe</groupsLink>.",
     "scopeAnyService": "Bilo koji servis",
     "errorUnauthorized": "Prijavite se da biste upravljali ulogama korisnika.",
     "errorForbidden": "Nemate dozvolu za upravljanje ulogama korisnika.",

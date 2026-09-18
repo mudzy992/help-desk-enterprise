@@ -13,6 +13,8 @@ import {
   type UserRoleResponse,
 } from "@/services/users-api";
 import type { ServiceResponse } from "@/services/service-catalog-api";
+import { UserRoleGroupCoverageNotice } from "@/components/users/user-role-group-coverage-notice";
+import { useUserRoleGroupCoverageGaps } from "@/lib/users/use-user-role-group-coverage-gaps";
 import {
   roleRequiresOrganizationalUnitForTicketScope,
   shouldShowOrganizationalUnitWildcardInRoleAssignment,
@@ -60,6 +62,11 @@ export function UserRolesSection({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  const groupCoverageGaps = useUserRoleGroupCoverageGaps(userId, roles, isLoading);
+  const groupCoverageGapByRoleId = new Map(
+    groupCoverageGaps.map((gap) => [gap.userRoleId, gap]),
+  );
 
   const showOrganizationalUnitWildcard =
     shouldShowOrganizationalUnitWildcardInRoleAssignment(roleKey);
@@ -123,24 +130,32 @@ export function UserRolesSection({
         <p className="mt-1 text-[12px] text-muted-foreground">{t("users.rolesEmpty")}</p>
       ) : (
         <ul className="mt-2 space-y-1">
-          {roles.map((role) => (
-            <li key={role.id} className="flex items-center justify-between gap-2 text-[12px]">
-              <span>
-                {role.roleName}
-                {role.organizationalUnitPath ? ` · ${role.organizationalUnitPath}` : ""}
-                {role.serviceName ? ` · ${role.serviceName}` : ""}
-              </span>
-              <Button
-                type="button"
-                size="xs"
-                variant="ghost"
-                disabled={pending}
-                onClick={() => void handleRemove(role.id)}
-              >
-                {t("users.removeRole")}
-              </Button>
-            </li>
-          ))}
+          {roles.map((role) => {
+            const coverageGap = groupCoverageGapByRoleId.get(role.id);
+            return (
+              <li key={role.id} className="text-[12px]">
+                <div className="flex items-center justify-between gap-2">
+                  <span>
+                    {role.roleName}
+                    {role.organizationalUnitPath ? ` · ${role.organizationalUnitPath}` : ""}
+                    {role.serviceName ? ` · ${role.serviceName}` : ""}
+                  </span>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={() => void handleRemove(role.id)}
+                  >
+                    {t("users.removeRole")}
+                  </Button>
+                </div>
+                {coverageGap ? (
+                  <UserRoleGroupCoverageNotice gap={coverageGap} />
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
       <div className="mt-3 grid gap-2 md:grid-cols-4">

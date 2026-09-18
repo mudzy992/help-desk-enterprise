@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { controlCompactClassName } from "@/components/ui/control";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
 import { mapGroupsError, type GroupsErrorKey } from "@/lib/groups/map-groups-error";
 import { readApiRequestId } from "@/lib/map-api-error";
+import { useUserRoleScopeSummaries } from "@/lib/users/use-user-role-scope-summaries";
 import {
   addGroupMember,
   removeGroupMember,
@@ -33,6 +34,11 @@ export function GroupMembersSection({
   const availableUsers = users.filter(
     (user) => !group.members.some((member) => member.userId === user.id),
   );
+  const availableUserIds = useMemo(
+    () => availableUsers.map((user) => user.id),
+    [availableUsers],
+  );
+  const roleScopeSummaries = useUserRoleScopeSummaries(availableUserIds);
 
   const mutate = async (operation: () => Promise<GroupResponse>) => {
     setErrorKey(null);
@@ -96,11 +102,18 @@ export function GroupMembersSection({
             aria-label={t("groups.members.addSelect")}
           >
             <option value="">{t("groups.members.addSelect")}</option>
-            {availableUsers.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.displayName} · {user.organizationalUnitPath}
-              </option>
-            ))}
+            {availableUsers.map((user) => {
+              const roleScopeSummary = roleScopeSummaries.get(user.id);
+              const scopeLabel =
+                roleScopeSummary !== undefined && roleScopeSummary.length > 0
+                  ? roleScopeSummary
+                  : user.organizationalUnitPath;
+              return (
+                <option key={user.id} value={user.id}>
+                  {user.displayName} · {scopeLabel}
+                </option>
+              );
+            })}
           </select>
           <Button
             type="button"

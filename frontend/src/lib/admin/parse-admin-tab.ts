@@ -20,3 +20,17 @@ export function buildAdminPath(tab: AdminTabKey, currentSearch = ""): string {
   params.set("tab", tab);
   return `/admin?${params.toString()}`;
 }
+
+export function buildAdminGroupsPath(organizationalUnitId?: string): string {
+  const params = new URLSearchParams({ tab: "groups" });
+  if (organizationalUnitId !== undefined && organizationalUnitId.length > 0) {
+    params.set("ou", organizationalUnitId);
+  }
+  return `/admin?${params.toString()}`;
+}
+
+export function parseAdminGroupsOrganizationalUnitFilter(
+  searchParams: URLSearchParams,
+): string {
+  return searchParams.get("ou") ?? "";
+}
