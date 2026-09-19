@@ -18,6 +18,7 @@ import { readAuthenticatedPrincipal } from '../authentication/authenticated-requ
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
+import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -63,6 +64,15 @@ export class TicketsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<readonly TicketResponse[]> {
     return this.ticketsService.listInbox(readTicketMutationContext(request));
+  }
+
+  @Get('inbox/status')
+  getInboxStatus(
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<GroupInboxStatus> {
+    return this.ticketsService.getInboxStatus(
+      readTicketMutationContext(request),
+    );
   }
 
   @Get(':ticketId')

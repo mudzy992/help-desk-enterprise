@@ -4,6 +4,7 @@ import { AuthorizationContextLoader } from '../authorization/authorization-conte
 import { RoutingService } from '../routing/routing.service';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
 import { TicketSlaTimersService } from '../sla/ticket-sla-timers.service';
@@ -101,6 +102,13 @@ export class TicketsService {
         await this.ticketAssignmentService.listInbox(gated),
         this.clientLoaders(gated.actorUserId),
       );
+    });
+  }
+
+  getInboxStatus(context: TicketMutationContext): Promise<GroupInboxStatus> {
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      return this.ticketAssignmentService.readInboxStatus(gated);
     });
   }
 

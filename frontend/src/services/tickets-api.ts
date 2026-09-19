@@ -48,6 +48,8 @@ export type TicketResponse = {
   readonly assignedGroupId: string | null;
   readonly assignedUserId: string | null;
   readonly parentTicketId?: string | null;
+  readonly parentTicketNumber?: string | null;
+  readonly parentTicketTitle?: string | null;
   readonly mergedIntoTicketId?: string | null;
   readonly reopenedFromTicketId?: string | null;
   readonly resolvedAt?: string | null;
@@ -147,6 +149,14 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
 
 export function listGroupInbox(): Promise<readonly TicketResponse[]> {
   return apiRequest("/tickets/inbox");
+}
+
+export type GroupInboxStatus = {
+  readonly hasGroupMembership: boolean;
+};
+
+export function getGroupInboxStatus(): Promise<GroupInboxStatus> {
+  return apiRequest("/tickets/inbox/status");
 }
 
 export function claimTicket(ticketId: string): Promise<TicketResponse> {

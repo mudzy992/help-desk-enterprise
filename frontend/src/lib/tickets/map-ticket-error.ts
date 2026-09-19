@@ -31,6 +31,7 @@ export type TicketErrorKey =
   | "tickets.errorRemoteDisabled"
   | "tickets.errorRemoteRateLimited"
   | "tickets.errorFormVersionMissing"
+  | "tickets.errorExportTooLarge"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -90,6 +91,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   ATTACHMENT_TYPE_NOT_ALLOWED: "tickets.errorValidation",
   ATTACHMENT_LIMIT_REACHED: "tickets.errorValidation",
   ORIGIN_UNIT_REQUIRED: "tickets.errorValidation",
+  EXPORT_TOO_LARGE: "tickets.errorExportTooLarge",
 };
 
 export function mapTicketError(error: unknown): TicketErrorKey {

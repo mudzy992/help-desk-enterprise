@@ -4,6 +4,10 @@ import { AuthorizationContextLoader } from '../../authorization/authorization-co
 import { applyTicketAutoAssignment } from './apply-ticket-auto-assignment';
 import { claimTicket } from './claim-ticket';
 import { listGroupInboxTickets } from './list-group-inbox-tickets';
+import {
+  readGroupInboxStatus,
+  type GroupInboxStatus,
+} from './read-group-inbox-status';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
@@ -35,6 +39,15 @@ export class TicketAssignmentService {
     context: TicketMutationContext,
   ): Promise<readonly TicketRecord[]> {
     return listGroupInboxTickets(
+      this.prisma,
+      this.authorizationContextLoader,
+      this.configurationLoader,
+      context,
+    );
+  }
+
+  readInboxStatus(context: TicketMutationContext): Promise<GroupInboxStatus> {
+    return readGroupInboxStatus(
       this.prisma,
       this.authorizationContextLoader,
       this.configurationLoader,

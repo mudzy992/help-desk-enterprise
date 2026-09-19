@@ -1915,6 +1915,13 @@
     "inboxEmptyBody": "All tickets in this group have been claimed. New ones arrive without a manual refresh.",
     "inboxUnroutedEmptyTitle": "Unrouted queue is empty",
     "inboxUnroutedEmptyBody": "Every ticket has a handler group.",
+    "inboxNoGroupTitle": "You are not a member of any ticket handling group",
+    "inboxNoGroupBody": "Tickets are routed to groups, so your Inbox stays empty until an administrator adds you to one. Contact an administrator.",
+    "inboxNoGroupAdminBody": "Tickets are routed to groups and this account is not a member of any. Add yourself to the relevant group on the Groups screen.",
+    "inboxOpenGroups": "Open Groups",
+    "exportCsv": "CSV export",
+    "exportRunning": "Exporting…",
+    "exportAuditedHint": "CSV exports are recorded in the audit log.",
     "inboxClaimHint": "Claiming removes the ticket from the inbox.",
     "retry": "Try again",
     "page": "Page {{page}} / {{total}}",
@@ -2022,7 +2029,7 @@
       "pendingDecision": "awaiting decision",
       "approvalStep": "Step {{step}}",
       "changeStatus": "Status",
-      "requestRemote": "Request Remote",
+      "requestRemote": "Request remote assistance",
       "requestingRemote": "Sending request…",
       "remoteRequested": "Remote assistance was requested.",
       "saving": "Saving…",
@@ -2108,7 +2115,8 @@
       "childTwo": "Second child title",
       "action": "Split",
       "splitting": "Splitting…",
-      "parent": "Parent ticket"
+      "parent": "Parent ticket",
+      "parentFallback": "Open parent ticket"
     },
     "bulk": {
       "select": "Select",
@@ -2188,6 +2196,7 @@
     "errorRemoteDisabled": "Remote assistance is disabled.",
     "errorRemoteRateLimited": "Remote assistance was already requested for this ticket. Wait for the rate-limit window.",
     "errorFormVersionMissing": "The selected service has no active form version, so the ticket cannot be created. Activate a form on the Services screen.",
+    "errorExportTooLarge": "Too many tickets to export. Narrow the filters and try again.",
     "overdue": {
       "badge": "Overdue"
     },

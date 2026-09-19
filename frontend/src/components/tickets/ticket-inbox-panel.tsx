@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
+import { TicketInboxNoGroupNotice } from "@/components/tickets/ticket-inbox-no-group-notice";
 import { TicketInboxTabs } from "@/components/tickets/ticket-inbox-tabs";
 import { TicketInboxUnroutedBanner } from "@/components/tickets/ticket-inbox-unrouted-banner";
 import {
@@ -18,6 +19,8 @@ interface TicketInboxPanelProperties {
   readonly originNames: ReadonlyMap<string, string>;
   readonly requesterNames: ReadonlyMap<string, string>;
   readonly claimingId: string | null;
+  readonly hasGroupMembership: boolean | null;
+  readonly canManageGroups: boolean;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
   readonly onClaim: (ticketId: string) => void;
@@ -31,6 +34,8 @@ export function TicketInboxPanel({
   originNames,
   requesterNames,
   claimingId,
+  hasGroupMembership,
+  canManageGroups,
   isLoading,
   errorKey,
   onClaim,
@@ -58,6 +63,9 @@ export function TicketInboxPanel({
         groups={groups}
         onChange={setActiveTab}
       />
+      {hasGroupMembership === false && !isLoading && errorKey === null ? (
+        <TicketInboxNoGroupNotice canManageGroups={canManageGroups} />
+      ) : null}
       {activeTab === unroutedInboxTabKey ? <TicketInboxUnroutedBanner /> : null}
       {isLoading ? (
         <TicketLoadingState />

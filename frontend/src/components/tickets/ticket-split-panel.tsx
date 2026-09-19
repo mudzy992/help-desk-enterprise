@@ -13,6 +13,15 @@ import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-er
 import { splitTicket } from "@/services/tickets-split-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
+function formatParentTicketLabel(ticket: TicketResponse): string | null {
+  const number = ticket.parentTicketNumber?.trim() ?? "";
+  if (number.length === 0) {
+    return null;
+  }
+  const title = ticket.parentTicketTitle?.trim() ?? "";
+  return title.length > 0 ? `${number} — ${title}` : number;
+}
+
 interface TicketSplitPanelProperties {
   readonly ticket: TicketResponse;
   readonly open: boolean;
@@ -44,7 +53,7 @@ export function TicketSplitPanel({
           <p className="mt-3 text-[12px]">
             {t("tickets.split.parent")}:{" "}
             <Link className="tnum text-[#7FA8F5] hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
-              {ticket.parentTicketId}
+              {formatParentTicketLabel(ticket) ?? t("tickets.split.parentFallback")}
             </Link>
           </p>
         ) : null}

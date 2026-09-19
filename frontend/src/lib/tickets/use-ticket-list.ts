@@ -12,7 +12,13 @@ import {
 } from "@/lib/tickets/ticket-constants";
 import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
 import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
-import { claimTicket, listGroupInbox, listTickets, type TicketResponse } from "@/services/tickets-api";
+import {
+  claimTicket,
+  getGroupInboxStatus,
+  listGroupInbox,
+  listTickets,
+  type TicketResponse,
+} from "@/services/tickets-api";
 
 function parseView(value: string | null): TicketWorkspaceView {
   if (value !== null && ticketWorkspaceViews.includes(value as TicketWorkspaceView)) {
@@ -44,6 +50,7 @@ export function useTicketList() {
   );
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
+  const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<TicketListFilters>(emptyFilters(view, currentUserId));
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,9 +71,19 @@ export function useTicketList() {
           listGroupInbox(),
           listTickets({ status: "UNROUTED" }).catch(() => []),
         ]);
+        // An empty inbox is ambiguous: ask the server whether it is empty
+        // because the person is in no handler group or simply has no tickets.
+        const membership =
+          inboxRows.length > 0
+            ? true
+            : await getGroupInboxStatus().then(
+                (status) => status.hasGroupMembership,
+                () => null,
+              );
         setServices(catalog);
         setTickets(inboxRows);
         setUnroutedTickets(unroutedTicketsFromList(unroutedRows));
+        setHasGroupMembership(membership);
       } else {
         const [catalog, rows] = await Promise.all([
           listOfferedServices().catch(() => []),
@@ -75,6 +92,7 @@ export function useTicketList() {
         setServices(catalog);
         setTickets(rows);
         setUnroutedTickets([]);
+        setHasGroupMembership(null);
       }
       setInboxHidden(false);
     } catch (error) {
@@ -156,6 +174,7 @@ export function useTicketList() {
   return {
     view,
     inboxHidden,
+    hasGroupMembership,
     filters,
     setFilters: (next: TicketListFilters) => {
       setFilters(next);

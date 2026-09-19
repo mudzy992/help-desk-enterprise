@@ -117,4 +117,6 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   REMOTE_DISABLED: 'Edge remote assistance is disabled',
   REMOTE_RATE_LIMITED:
     'A remote request was already sent for this ticket within the rate-limit window',
+  EXPORT_TOO_LARGE:
+    'Too many tickets match this export; narrow the filters and try again',
 };

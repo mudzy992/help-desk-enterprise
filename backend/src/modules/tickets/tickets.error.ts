@@ -106,7 +106,8 @@ export type TicketsErrorCode =
   | 'ARCHIVE_UNAVAILABLE'
   | 'TICKET_ARCHIVED_READ_ONLY'
   | 'REMOTE_DISABLED'
-  | 'REMOTE_RATE_LIMITED';
+  | 'REMOTE_RATE_LIMITED'
+  | 'EXPORT_TOO_LARGE';
 
 export class TicketsError extends Error {
   constructor(

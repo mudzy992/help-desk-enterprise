@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Plus, RefreshCw } from "lucide-react";
+import { Download, Plus, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketErrorState, TicketEmptyState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
@@ -18,16 +18,23 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useDirectory } from "@/lib/directory/use-directory";
+import { permissionKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { clearedTicketListFilters, isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
+import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
 
 export function TicketListPage() {
   const { t } = useTranslation();
   const list = useTicketList();
   const directory = useDirectory();
+  const { hasPermission } = useSessionCapabilities();
+  const canExport = hasPermission(permissionKeys.auditExport);
+  const canManageGroups = hasPermission(permissionKeys.groupManage);
+  const csvExport = useTicketsCsvExport(list.filters, list.setErrorKey);
   const isInbox = list.view === "inbox";
   const assigneeNames = useMemo(
     () => directoryAssigneeNames(directory.users),
@@ -63,6 +70,18 @@ export function TicketListPage() {
                 <RefreshCw size={14} /> {t("tickets.inboxRefresh")}
               </Button>
             ) : null}
+            {!isInbox && canExport ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={csvExport.isExporting}
+                onClick={() => void csvExport.run()}
+              >
+                <Download size={14} />{" "}
+                {csvExport.isExporting ? t("tickets.exportRunning") : t("tickets.exportCsv")}
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="primary">
               <Link to="/tickets/new">
                 <Plus size={14} /> {t("tickets.createAction")}
@@ -79,6 +98,8 @@ export function TicketListPage() {
           originNames={originNames}
           requesterNames={assigneeNames}
           claimingId={list.claimingId}
+          hasGroupMembership={list.hasGroupMembership}
+          canManageGroups={canManageGroups}
           isLoading={list.isLoading}
           errorKey={list.errorKey}
           onClaim={(ticketId) => void list.onClaim(ticketId)}
@@ -160,6 +181,11 @@ export function TicketListPage() {
                   {ticketText(t, "tickets.listShown", { shown: list.visible.length, total: list.tickets.length })}
                 </p>
               )}
+              {canExport ? (
+                <p className="mt-1 text-[11.5px] text-muted-foreground/70">
+                  {t("tickets.exportAuditedHint")}
+                </p>
+              ) : null}
             </div>
           </div>
         </>

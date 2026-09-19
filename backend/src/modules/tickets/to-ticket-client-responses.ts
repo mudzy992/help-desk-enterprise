@@ -9,6 +9,7 @@ import { describeTicketCsat } from './csat/describe-ticket-csat';
 import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
 import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
 import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
+import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
 import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -32,11 +33,16 @@ export async function toTicketClientResponses(
   );
   const ticketIds = records.map((record) => record.id);
   const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
+  const parentsById = await loadParentTicketSummaries(prisma, records);
   const submissions =
     input.csat === undefined
       ? new Map()
       : await loadTicketCsatSubmissions(prisma, ticketIds);
   return records.map((record) => {
+    const parent =
+      record.parentTicketId === null
+        ? undefined
+        : parentsById.get(record.parentTicketId);
     const response: TicketResponse = {
       ...toTicketClientResponse(record, {
         reopen: input.reopen,
@@ -49,6 +55,8 @@ export async function toTicketClientResponses(
         duplicateWarnings: input.duplicateWarnings,
         now: input.now,
       }),
+      parentTicketNumber: parent?.ticketNumber ?? null,
+      parentTicketTitle: parent?.title ?? null,
       isOverdue: isTicketSlaOverdue(slaByTicketId.get(record.id)),
       isAtRisk: isTicketSlaAtRisk(slaByTicketId.get(record.id)),
       sla: slaByTicketId.get(record.id) ?? null,
