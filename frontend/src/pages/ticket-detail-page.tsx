@@ -14,7 +14,7 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
 import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
-import { permissionKeys } from "@/lib/session/permission-keys";
+import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
@@ -23,7 +23,7 @@ export function TicketDetailPage() {
   const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
   const { currentUserId } = useSession();
-  const { session, hasPermission } = useSessionCapabilities();
+  const { session, hasPermission, hasRole } = useSessionCapabilities();
   const detail = useTicketDetail(ticketId);
   const approvals = useTicketApprovals(ticketId);
   const directory = useDirectory();
@@ -52,10 +52,20 @@ export function TicketDetailPage() {
   }
 
   const ticket = detail.ticket;
+  // Staff is decided by the signed-in user's role, not by whether the group
+  // inbox endpoint answered. If the session is unavailable, fall back to the
+  // inbox signal instead of guessing.
+  const actorIsStaff =
+    session === null
+      ? undefined
+      : session.isSuperAdmin ||
+        hasRole(roleKeys.agent) ||
+        hasRole(roleKeys.admin);
   const access = resolveComposerAccess({
     ticket,
     currentUserId,
     inboxAccessible: detail.inboxAccessible,
+    actorIsStaff,
   });
   const canManage = access !== "requester" && ticket.status !== "ARCHIVED";
   const originName =
@@ -74,6 +84,7 @@ export function TicketDetailPage() {
         originName={originName}
         requesterName={requesterName}
         canChangeStatus={detail.canChangeStatus && canManage}
+        canClaim={canManage}
         claiming={isClaiming}
         savingStatus={isSavingStatus}
         reopening={isReopening}

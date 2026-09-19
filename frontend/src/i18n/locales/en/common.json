@@ -2173,6 +2173,7 @@
     "errorValidation": "Check the entered values.",
     "errorInboxDisabled": "Group inbox is disabled.",
     "errorNotClaimable": "This ticket cannot be claimed.",
+    "errorClaimForbidden": "You cannot claim this ticket. You must be a member of the group the ticket is assigned to and hold the AGENT or ADMIN role for this unit and service.",
     "errorStatusForbidden": "You cannot change ticket status.",
     "errorInvalidTransition": "This status change is not allowed.",
     "errorReopenDisabled": "Ticket reopen is disabled.",

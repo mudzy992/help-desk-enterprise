@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { loadTicketDetail } from "@/lib/tickets/load-ticket-detail";
 import { sendTicketMessageOptimistic } from "@/lib/tickets/send-ticket-message-optimistic";
 import { useTicketRealtime } from "@/lib/tickets/use-ticket-realtime";
@@ -84,12 +84,15 @@ export function useTicketDetail(ticketId: string | undefined) {
     reload: refresh,
   });
 
-  const runAction = async (operation: () => Promise<void>) => {
+  const runAction = async (
+    operation: () => Promise<void>,
+    mapError: (error: unknown) => TicketErrorKey = mapTicketError,
+  ) => {
     setActionError(null);
     try {
       await operation();
     } catch (error) {
-      const mapped = mapTicketError(error);
+      const mapped = mapError(error);
       if (error instanceof ApiError && error.code === "STATUS_CHANGE_FORBIDDEN") {
         setCanChangeStatus(false);
       }
@@ -122,7 +125,7 @@ export function useTicketDetail(ticketId: string | undefined) {
     reload: load,
     claim: () => onTicket((id) => runAction(async () => {
       setTicket(await claimTicket(id));
-    })),
+    }, mapClaimError)),
     assignUser: (userId: string) => onTicket((id) => runAction(async () => {
       const updated = await assignTicketUser(id, userId);
       if (updated !== undefined) {

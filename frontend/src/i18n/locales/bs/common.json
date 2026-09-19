@@ -2173,6 +2173,7 @@
     "errorValidation": "Provjerite unesene podatke.",
     "errorInboxDisabled": "Grupni inbox nije uključen.",
     "errorNotClaimable": "Tiket se ne može preuzeti.",
+    "errorClaimForbidden": "Preuzimanje nije dozvoljeno. Morate biti član grupe kojoj je tiket dodijeljen i imati ulogu AGENT ili ADMIN za ovu OJ i uslugu.",
     "errorStatusForbidden": "Nemate dozvolu za izmjenu statusa.",
     "errorInvalidTransition": "Ova izmjena statusa nije dozvoljena.",
     "errorReopenDisabled": "Ponovno otvaranje tiketa je isključeno.",

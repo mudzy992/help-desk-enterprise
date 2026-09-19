@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
-import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { paginateItems } from "@/lib/tickets/paginate-items";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { useSession } from "@/lib/session/use-session";
@@ -153,7 +153,7 @@ export function useTicketList() {
       await claimTicket(ticketId);
       await load();
     } catch (error) {
-      setErrorKey(mapTicketError(error));
+      setErrorKey(mapClaimError(error));
     } finally {
       setClaimingId(null);
     }

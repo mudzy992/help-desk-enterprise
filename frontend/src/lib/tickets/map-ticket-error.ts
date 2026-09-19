@@ -32,6 +32,7 @@ export type TicketErrorKey =
   | "tickets.errorRemoteRateLimited"
   | "tickets.errorFormVersionMissing"
   | "tickets.errorExportTooLarge"
+  | "tickets.errorClaimForbidden"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -118,4 +119,14 @@ export function mapTicketError(error: unknown): TicketErrorKey {
     return "tickets.errorValidation";
   }
   return "tickets.errorGeneric";
+}
+
+/**
+ * Claiming fails with the generic FORBIDDEN code for several reasons (role,
+ * OU/service scope, or not being a member of the ticket's handler group), so
+ * within a claim the generic message is replaced by one that names them.
+ */
+export function mapClaimError(error: unknown): TicketErrorKey {
+  const mapped = mapTicketError(error);
+  return mapped === "tickets.errorForbidden" ? "tickets.errorClaimForbidden" : mapped;
 }

@@ -23,6 +23,7 @@ interface TicketDetailHeaderProperties {
   readonly originName: string;
   readonly requesterName: string;
   readonly canChangeStatus: boolean;
+  readonly canClaim: boolean;
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
@@ -43,6 +44,7 @@ export function TicketDetailHeader({
   originName,
   requesterName,
   canChangeStatus,
+  canClaim,
   claiming,
   savingStatus,
   reopening,
@@ -109,6 +111,7 @@ export function TicketDetailHeader({
           <TicketDetailHeaderActions
             ticket={ticket}
             canChangeStatus={canChangeStatus}
+            canClaim={canClaim}
             claiming={claiming}
             savingStatus={savingStatus}
             reopening={reopening}

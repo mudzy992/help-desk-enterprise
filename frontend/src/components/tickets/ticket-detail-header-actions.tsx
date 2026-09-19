@@ -22,6 +22,7 @@ interface TicketDetailAssignableUser {
 interface TicketDetailHeaderActionsProperties {
   readonly ticket: TicketResponse;
   readonly canChangeStatus: boolean;
+  readonly canClaim: boolean;
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
@@ -40,6 +41,7 @@ interface TicketDetailHeaderActionsProperties {
 export function TicketDetailHeaderActions({
   ticket,
   canChangeStatus,
+  canClaim,
   claiming,
   savingStatus,
   reopening,
@@ -58,7 +60,7 @@ export function TicketDetailHeaderActions({
   const nextStatuses = nextTicketStatuses(ticket.status);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {canShowClaimAction(ticket) ? (
+      {canShowClaimAction(ticket, canClaim) ? (
         <Button type="button" size="sm" disabled={claiming} onClick={onClaim}>
           <UserCheck size={14} />
           {claiming ? t("tickets.claiming") : t("tickets.claim")}
