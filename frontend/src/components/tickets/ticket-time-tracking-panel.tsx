@@ -12,6 +12,7 @@ interface TicketTimeTrackingPanelProperties {
   readonly items: readonly TicketTimeLogResponse[];
   readonly visible: boolean;
   readonly currentUserId: string | null;
+  readonly userNames: ReadonlyMap<string, string>;
   readonly isSaving: boolean;
   readonly onStart: () => void;
   readonly onStop: (timeLogId: string) => void;
@@ -21,6 +22,7 @@ export function TicketTimeTrackingPanel({
   items,
   visible,
   currentUserId,
+  userNames,
   isSaving,
   onStart,
   onStop,
@@ -58,26 +60,23 @@ export function TicketTimeTrackingPanel({
         </p>
       ) : (
         <ul className="divide-y divide-border/50">
-          {items.map((item) => (
+          {items.map((item) => {
+            const name = userNames.get(item.userId) ?? t("tickets.detail.unknownUser");
+            return (
             <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-              <Avatar name={item.userId} size="sm" />
+              <Avatar name={name} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="text-[12.5px] text-foreground/90">
-                  <RelativeTime value={item.startedAt} locale={i18n.language} />
-                </p>
+                <p className="text-[12.5px] text-foreground/90">{name}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {item.endedAt === null
-                    ? t("tickets.detail.startTimer")
-                    : (
-                      <RelativeTime value={item.startedAt} locale={i18n.language} />
-                    )}
+                  <RelativeTime value={item.startedAt} locale={i18n.language} />
                 </p>
               </div>
               <Badge tone="neutral" className="tnum">
                 {formatDurationMinutes(item.durationSeconds)}
               </Badge>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </Card>

@@ -16,6 +16,8 @@ import { TicketsCollaborationController } from './tickets-collaboration.controll
 import { TicketsCollaborationService } from './tickets-collaboration.service';
 import { TicketsRemoteController } from './remote/tickets-remote.controller';
 import { TicketsRemoteService } from './remote/tickets-remote.service';
+import { TicketsContextController } from './context/tickets-context.controller';
+import { TicketsContextService } from './context/tickets-context.service';
 import { TicketsExportController } from './export/tickets-export.controller';
 import { TicketsExportService } from './export/tickets-export.service';
 import { TicketsController } from './tickets.controller';
@@ -75,6 +77,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsBulkController,
     TicketsExportController,
     TicketsController,
+    TicketsContextController,
     TicketsCollaborationController,
     TicketsRemoteController,
     TicketsAttachmentsController,
@@ -106,6 +109,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsBulkService,
     TicketBulkConfigurationLoader,
     TicketsExportService,
+    TicketsContextService,
     TicketsSavedViewsService,
     TicketSavedViewsConfigurationLoader,
     WaitingForUserConfigurationLoader,

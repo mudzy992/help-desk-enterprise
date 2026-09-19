@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { textareaClassName } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { directoryDisplayName } from "@/lib/tickets/ticket-display";
+import { pickName } from "@/lib/tickets/ticket-names";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketApprovalResponse } from "@/services/tickets-approvals-api";
@@ -52,7 +52,11 @@ export function TicketApprovalsPanel({
       />
       <ul className="space-y-0 px-4 py-3">
         {items.map((item, index) => {
-          const name = directoryDisplayName(authorNames, item.approverUserId);
+          const name =
+            item.approverUserId === null
+              ? null
+              : (pickName(authorNames.get(item.approverUserId)) ??
+                t("tickets.detail.unknownUser"));
           return (
             <li key={item.id} className="relative flex gap-3 pb-4 last:pb-1">
               {index < items.length - 1 ? (

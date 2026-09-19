@@ -3,7 +3,11 @@ import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
-import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import {
+  ticketAssigneeName,
+  ticketGroupName,
+  ticketRequesterName,
+} from "@/lib/tickets/ticket-names";
 import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -14,6 +18,7 @@ interface TicketDetailSidebarProperties {
   readonly originName: string;
   readonly serviceName: string;
   readonly authorNames: ReadonlyMap<string, string>;
+  readonly groupNames: ReadonlyMap<string, string>;
 }
 
 export function TicketDetailSidebar({
@@ -21,15 +26,28 @@ export function TicketDetailSidebar({
   originName,
   serviceName,
   authorNames,
+  groupNames,
 }: TicketDetailSidebarProperties) {
   const { t } = useTranslation();
-  const requester = directoryDisplayName(authorNames, ticket.requesterId) ?? ticket.requesterId;
-  const assignee = directoryDisplayName(authorNames, ticket.assignedUserId);
+  const requester =
+    ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
+  const assignee =
+    ticket.assignedUserId === null
+      ? null
+      : (ticketAssigneeName(ticket, authorNames) ?? t("tickets.detail.unknownUser"));
+  const group =
+    ticketGroupName(ticket, groupNames) ?? t("tickets.detail.unknownGroup");
   const rows: readonly { readonly label: string; readonly value: ReactNode; readonly hint?: string }[] = [
     { label: t("tickets.detail.service"), value: serviceName },
     {
       label: t("tickets.detail.formVersion"),
-      value: <span className="tnum text-muted-foreground">{ticket.formVersionRef}</span>,
+      value: (
+        <span className="tnum text-muted-foreground">
+          {ticket.formVersionNumber === null || ticket.formVersionNumber === undefined
+            ? "—"
+            : t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
+        </span>
+      ),
       hint: t("tickets.detail.formVersionFixed"),
     },
     { label: t("tickets.detail.origin"), value: originName },
@@ -39,7 +57,7 @@ export function TicketDetailSidebar({
         ticket.status === "UNROUTED" || ticket.assignedGroupId === null ? (
           <Badge tone="danger">{t("tickets.detail.unrouted")}</Badge>
         ) : (
-          truncateIdentifier(ticket.assignedGroupId)
+          group
         ),
     },
     {

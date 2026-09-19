@@ -5,16 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { hintClassName, selectClassName } from "@/components/ui/control";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type {
   ParticipantRole,
   TicketParticipantResponse,
 } from "@/services/tickets-collaboration-api";
 
+interface ParticipantCandidate {
+  readonly id: string;
+  readonly displayName: string;
+}
+
 interface TicketParticipantsPanelProperties {
   readonly items: readonly TicketParticipantResponse[];
   readonly canManage: boolean;
-  readonly directoryUsers: readonly DirectoryUser[];
+  readonly directoryUsers: readonly ParticipantCandidate[];
+  readonly userNames: ReadonlyMap<string, string>;
+  readonly groupNames: ReadonlyMap<string, string>;
   readonly onAdd: (role: ParticipantRole, userId: string) => Promise<void>;
   readonly onRemove: (participantId: string) => Promise<void>;
 }
@@ -23,6 +29,8 @@ export function TicketParticipantsPanel({
   items,
   canManage,
   directoryUsers,
+  userNames,
+  groupNames,
   onAdd,
   onRemove,
 }: TicketParticipantsPanelProperties) {
@@ -30,7 +38,6 @@ export function TicketParticipantsPanel({
   const [userId, setUserId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [adding, setAdding] = useState(false);
-  const names = new Map(directoryUsers.map((user) => [user.id, user.displayName]));
   const assignable = directoryUsers.filter(
     (user) => !items.some((item) => item.userId === user.id),
   );
@@ -67,10 +74,10 @@ export function TicketParticipantsPanel({
       <div className="flex flex-wrap gap-2 px-4 py-4">
         {items.map((item) => {
           const name =
-            (item.userId === null ? null : names.get(item.userId)) ??
-            item.userId ??
-            item.groupId ??
-            "?";
+            item.userId !== null
+              ? (userNames.get(item.userId) ?? t("tickets.detail.unknownUser"))
+              : ((item.groupId === null ? null : groupNames.get(item.groupId)) ??
+                t("tickets.detail.unknownGroup"));
           return (
             <span
               key={item.id}

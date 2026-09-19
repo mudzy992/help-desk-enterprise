@@ -15,6 +15,7 @@ import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
+import type { TicketSlaContextResponse } from "@/services/tickets-context-api";
 
 const STATE_TONE: Record<TicketSlaStateKind, BadgeTone> = {
   OK: "success",
@@ -24,17 +25,60 @@ const STATE_TONE: Record<TicketSlaStateKind, BadgeTone> = {
 
 interface TicketSlaPanelProperties {
   readonly ticket: TicketResponse;
+  readonly context: TicketSlaContextResponse | null;
+  readonly canConfigure: boolean;
 }
 
-export function TicketSlaPanel({ ticket }: TicketSlaPanelProperties) {
+function slaSubtitle(
+  context: TicketSlaContextResponse | null,
+  translate: Parameters<typeof ticketText>[0],
+): string | undefined {
+  if (context === null || context.profileName === null) {
+    return undefined;
+  }
+  return context.calendarName === null
+    ? ticketText(translate, "tickets.detail.sla.profileOnly", {
+        profile: context.profileName,
+      })
+    : ticketText(translate, "tickets.detail.sla.profileAndCalendar", {
+        profile: context.profileName,
+        calendar: context.calendarName,
+      });
+}
+
+export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanelProperties) {
   const { t, i18n } = useTranslation();
   const view = mapTicketSlaPanel(ticket.sla, new Date());
   if (view === null) {
-    return null;
+    if (context === null || context.unavailableReason === null) {
+      return null;
+    }
+    return (
+      <Card>
+        <CardHeader title={ticketText(t, "tickets.detail.sla.title")} />
+        <div className="space-y-1.5 px-4 py-4 text-[12px] leading-5">
+          <p className="flex items-center gap-1.5 font-medium text-foreground/90">
+            <Hourglass size={12} aria-hidden="true" />{" "}
+            {ticketText(t, "tickets.detail.sla.unavailableTitle")}
+          </p>
+          <p className="text-muted-foreground">
+            {ticketText(t, `tickets.detail.sla.unavailable.${context.unavailableReason}`)}
+          </p>
+          {canConfigure ? (
+            <p className="text-[11px] text-muted-foreground/70">
+              {ticketText(t, "tickets.detail.sla.unavailableAdminHint")}
+            </p>
+          ) : null}
+        </div>
+      </Card>
+    );
   }
   return (
     <Card>
-      <CardHeader title={ticketText(t, "tickets.detail.sla.title")} />
+      <CardHeader
+        title={ticketText(t, "tickets.detail.sla.title")}
+        subtitle={slaSubtitle(context, t)}
+      />
       <div className="space-y-4 px-4 py-4">
         <SlaTimerBlock
           icon={<Hourglass size={12} />}

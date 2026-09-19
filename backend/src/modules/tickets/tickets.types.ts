@@ -63,9 +63,13 @@ export type TicketResponse = {
   readonly originUnitId: string;
   readonly serviceId: string;
   readonly formVersionRef: string;
+  readonly formVersionNumber?: number | null;
   readonly requesterId: string;
+  readonly requesterName?: string | null;
   readonly assignedGroupId: string | null;
+  readonly assignedGroupName?: string | null;
   readonly assignedUserId: string | null;
+  readonly assignedUserName?: string | null;
   readonly parentTicketId: string | null;
   readonly parentTicketNumber?: string | null;
   readonly parentTicketTitle?: string | null;

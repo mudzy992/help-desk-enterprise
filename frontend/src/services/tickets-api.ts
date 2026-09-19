@@ -50,6 +50,10 @@ export type TicketResponse = {
   readonly parentTicketId?: string | null;
   readonly parentTicketNumber?: string | null;
   readonly parentTicketTitle?: string | null;
+  readonly requesterName?: string | null;
+  readonly assignedUserName?: string | null;
+  readonly assignedGroupName?: string | null;
+  readonly formVersionNumber?: number | null;
   readonly mergedIntoTicketId?: string | null;
   readonly reopenedFromTicketId?: string | null;
   readonly resolvedAt?: string | null;

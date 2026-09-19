@@ -10,6 +10,7 @@ import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
 import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
 import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
 import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
+import { loadTicketDisplayLabels } from './load-ticket-display-labels';
 import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -34,6 +35,7 @@ export async function toTicketClientResponses(
   const ticketIds = records.map((record) => record.id);
   const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
   const parentsById = await loadParentTicketSummaries(prisma, records);
+  const labels = await loadTicketDisplayLabels(prisma, records);
   const submissions =
     input.csat === undefined
       ? new Map()
@@ -55,6 +57,16 @@ export async function toTicketClientResponses(
         duplicateWarnings: input.duplicateWarnings,
         now: input.now,
       }),
+      requesterName: labels.users.get(record.requesterId) ?? null,
+      assignedUserName:
+        record.assignedUserId === null
+          ? null
+          : (labels.users.get(record.assignedUserId) ?? null),
+      assignedGroupName:
+        record.assignedGroupId === null
+          ? null
+          : (labels.groups.get(record.assignedGroupId) ?? null),
+      formVersionNumber: labels.formVersions.get(record.formVersionId) ?? null,
       parentTicketNumber: parent?.ticketNumber ?? null,
       parentTicketTitle: parent?.title ?? null,
       isOverdue: isTicketSlaOverdue(slaByTicketId.get(record.id)),

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { pickName } from "@/lib/tickets/ticket-names";
 import type { TicketResponse } from "@/services/tickets-api";
 
 interface DashboardAttentionTableProperties {
@@ -32,11 +32,12 @@ function AttentionAssignmentCell({ ticket }: { readonly ticket: TicketResponse }
   if (ticket.status === "UNROUTED" || ticket.assignedGroupId === null) {
     return <Badge tone="danger">{t("tickets.assignment.unrouted")}</Badge>;
   }
+  const groupName = pickName(ticket.assignedGroupName) ?? t("tickets.detail.unknownGroup");
   if (ticket.assignedUserId === null) {
     return (
       <div className="flex items-center gap-1.5">
         <span className="tnum text-[12px] text-foreground/80">
-          {truncateIdentifier(ticket.assignedGroupId)}
+          {groupName}
         </span>
         <Badge tone="info" dot={false}>
           {t("tickets.assignment.groupOnly")}
@@ -137,11 +138,10 @@ export function DashboardAttentionTable({
                     </p>
                   </td>
                   <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
-                    {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
+                    {serviceNames.get(ticket.serviceId) ?? "—"}
                   </td>
                   <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
-                    {originNames.get(ticket.originUnitId) ??
-                      truncateIdentifier(ticket.originUnitId)}
+                    {originNames.get(ticket.originUnitId) ?? "—"}
                   </td>
                   <td className="px-4 py-2.5">
                     <TicketStatusBadge status={ticket.status} />

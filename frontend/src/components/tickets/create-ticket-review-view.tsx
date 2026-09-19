@@ -39,7 +39,8 @@ export function CreateTicketReviewView({
 }: CreateTicketReviewViewProperties) {
   const { t } = useTranslation();
   const priority = lookupTicketPriority(draft.impact, draft.urgency, matrixCells);
-  const formVersionLabel = activeForm?.formVersionRef ?? draft.formVersionRef ?? "—";
+  const formVersionLabel =
+    activeForm === null ? "—" : t("tickets.detail.formVersionValue", { version: activeForm.version });
   return (
     <div className="mt-1">
       <CreateTicketStepper activeIndex={3} />

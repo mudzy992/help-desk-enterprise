@@ -7,14 +7,16 @@ import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-bl
 import { TicketDetailWorkspace } from "@/components/tickets/ticket-detail-workspace";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
 import { useDirectory } from "@/lib/directory/use-directory";
-import { resolveComposerAccess } from "@/lib/tickets/message-composer-access";
+import { resolveTicketActionView } from "@/lib/tickets/ticket-action-matrix";
 import { nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
+import { ticketRequesterName } from "@/lib/tickets/ticket-names";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
+import { useTicketContext } from "@/lib/tickets/use-ticket-context";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
 import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
-import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
@@ -23,7 +25,7 @@ export function TicketDetailPage() {
   const navigate = useNavigate();
   const { ticketId } = useParams<{ ticketId: string }>();
   const { currentUserId } = useSession();
-  const { session, hasPermission, hasRole } = useSessionCapabilities();
+  const { session, hasPermission } = useSessionCapabilities();
   const detail = useTicketDetail(ticketId);
   const approvals = useTicketApprovals(ticketId);
   const directory = useDirectory();
@@ -35,10 +37,46 @@ export function TicketDetailPage() {
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
-  const authorNames = useMemo(
-    () => new Map(directory.users.map((user) => [user.id, user.displayName])),
-    [directory.users],
-  );
+  const versionKey = [
+    detail.ticket?.updatedAt ?? "",
+    detail.messages.length,
+    detail.participants.length,
+    detail.timeLogs.length,
+    detail.attachments.length,
+    approvals.items.length,
+  ].join("|");
+  const context = useTicketContext(ticketId, versionKey);
+  const authorNames = useMemo(() => {
+    const names = new Map(context.userNames);
+    const current = detail.ticket;
+    if (current !== null) {
+      if (current.requesterName) {
+        names.set(current.requesterId, current.requesterName);
+      }
+      if (current.assignedUserId !== null && current.assignedUserName) {
+        names.set(current.assignedUserId, current.assignedUserName);
+      }
+    }
+    return names;
+  }, [context.userNames, detail.ticket]);
+  const groupNames = useMemo(() => {
+    const names = new Map(context.groupNames);
+    const current = detail.ticket;
+    if (current !== null && current.assignedGroupId !== null && current.assignedGroupName) {
+      names.set(current.assignedGroupId, current.assignedGroupName);
+    }
+    return names;
+  }, [context.groupNames, detail.ticket]);
+  const candidates = context.candidates;
+  const participantCandidates = useMemo(() => {
+    const merged = new Map<string, { readonly id: string; readonly displayName: string }>();
+    for (const person of [...(candidates?.watchers ?? []), ...(candidates?.assignees ?? [])]) {
+      merged.set(person.id, person);
+    }
+    return [...merged.values()].sort((left, right) =>
+      left.displayName.localeCompare(right.displayName),
+    );
+  }, [candidates]);
 
   if (detail.isLoading || detail.ticket === null) {
     return (
@@ -52,29 +90,30 @@ export function TicketDetailPage() {
   }
 
   const ticket = detail.ticket;
-  // Staff is decided by the signed-in user's role, not by whether the group
-  // inbox endpoint answered. If the session is unavailable, fall back to the
-  // inbox signal instead of guessing.
-  const actorIsStaff =
-    session === null
-      ? undefined
-      : session.isSuperAdmin ||
-        hasRole(roleKeys.agent) ||
-        hasRole(roleKeys.admin);
-  const access = resolveComposerAccess({
+  // What the person may do comes from the server (scope, permission and group
+  // membership evaluated together); the role-based fallback only covers the
+  // moment before that answer arrives.
+  const actions = resolveTicketActionView({
+    allowed: context.actions,
     ticket,
-    currentUserId,
-    inboxAccessible: detail.inboxAccessible,
-    actorIsStaff,
+    session:
+      session === null
+        ? null
+        : {
+            currentUserId,
+            isSuperAdmin: session.isSuperAdmin,
+            roleKeys: session.roleKeys,
+            permissionKeys: session.permissionKeys,
+          },
   });
-  const canManage = access !== "requester" && ticket.status !== "ARCHIVED";
+  const access = actions.composerAccess;
   const originName =
     flattenOrganizationalUnitNames(directory.tree).get(ticket.originUnitId) ??
-    ticket.originUnitId;
-  const requesterName = authorNames.get(ticket.requesterId) ?? ticket.requesterId;
+    t("tickets.detail.unknownOrigin");
+  const requesterName =
+    ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
   const canWaitForUser =
-    canManage && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
-  const canAssign = canManage && (session?.isSuperAdmin === true || hasPermission(permissionKeys.ticketBulkAssign));
+    actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
 
   return (
     <section>
@@ -83,15 +122,16 @@ export function TicketDetailPage() {
         serviceName={serviceName}
         originName={originName}
         requesterName={requesterName}
-        canChangeStatus={detail.canChangeStatus && canManage}
-        canClaim={canManage}
+        canChangeStatus={detail.canChangeStatus && actions.changeStatus}
+        canClaim={actions.claim}
+        canRequestRemote={actions.requestRemote}
         claiming={isClaiming}
         savingStatus={isSavingStatus}
         reopening={isReopening}
         assigning={isAssigning}
-        canSplit={canManage}
-        canAssign={canAssign}
-        assignableUsers={directory.users}
+        canSplit={actions.split}
+        canAssign={actions.assign}
+        assignableUsers={candidates?.assignees ?? []}
         onClaim={() => {
           setIsClaiming(true);
           void detail.claim().finally(() => setIsClaiming(false));
@@ -134,6 +174,8 @@ export function TicketDetailPage() {
           currentUserId={currentUserId}
           authorNames={authorNames}
           requesterName={requesterName}
+          history={context.history}
+          canViewActivity={actions.viewActivity}
           access={access}
           isSending={isSending}
           sendErrorKey={detail.actionError}
@@ -151,7 +193,8 @@ export function TicketDetailPage() {
             void detail.changeStatus("WAITING_FOR_USER").finally(() => setIsSavingStatus(false));
           }}
           timeLogs={detail.timeLogs}
-          timeVisible={detail.timeVisible}
+          timeVisible={detail.timeVisible && actions.trackTime}
+          userNames={authorNames}
           isTimeSaving={isTimeSaving}
           onStartTimer={() => {
             setIsTimeSaving(true);
@@ -163,7 +206,7 @@ export function TicketDetailPage() {
           }}
           attachments={detail.attachments}
           attachmentsVisible={detail.attachmentsVisible}
-          canUpload={detail.attachmentsVisible && ticket.status !== "ARCHIVED"}
+          canUpload={detail.attachmentsVisible && actions.uploadAttachments}
           onUpload={detail.upload}
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
@@ -173,12 +216,15 @@ export function TicketDetailPage() {
           originName={originName}
           serviceName={serviceName}
           authorNames={authorNames}
+          groupNames={groupNames}
+          slaContext={context.slaContext}
+          canConfigureSla={hasPermission(permissionKeys.slaWrite)}
           approvals={approvals.items}
           approvalsVisible={approvals.visible}
           approvalsSaving={approvals.isSaving}
           participants={detail.participants}
-          directoryUsers={directory.users}
-          canManageParticipants={canManage}
+          participantCandidates={participantCandidates}
+          canManageParticipants={actions.manageParticipants}
           onError={detail.setActionError}
           onCsatComplete={detail.applyTicket}
           onApprove={async (approvalId, comment) => {

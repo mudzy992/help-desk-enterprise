@@ -9,7 +9,6 @@ import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields"
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
 interface TicketDetailAssignUser {
@@ -24,6 +23,7 @@ interface TicketDetailHeaderProperties {
   readonly requesterName: string;
   readonly canChangeStatus: boolean;
   readonly canClaim: boolean;
+  readonly canRequestRemote: boolean;
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
@@ -45,6 +45,7 @@ export function TicketDetailHeader({
   requesterName,
   canChangeStatus,
   canClaim,
+  canRequestRemote,
   claiming,
   savingStatus,
   reopening,
@@ -103,15 +104,23 @@ export function TicketDetailHeader({
               {originName}
               {" · "}
               <RelativeTime value={ticket.createdAt} locale={i18n.language} />
-              {" · "}
-              {formVersionLabel}{" "}
-              <span className="tnum">{truncateIdentifier(ticket.formVersionRef)}</span> ({serviceName})
+              {ticket.formVersionNumber === null || ticket.formVersionNumber === undefined ? null : (
+                <>
+                  {" · "}
+                  {formVersionLabel}{" "}
+                  <span className="tnum">
+                    {t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
+                  </span>{" "}
+                  ({serviceName})
+                </>
+              )}
             </p>
           </div>
           <TicketDetailHeaderActions
             ticket={ticket}
             canChangeStatus={canChangeStatus}
             canClaim={canClaim}
+            canRequestRemote={canRequestRemote}
             claiming={claiming}
             savingStatus={savingStatus}
             reopening={reopening}

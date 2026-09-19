@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { groupInboxCounts } from "@/lib/dashboard/dashboard-ticket-sets";
+import { groupNamesFromTickets } from "@/lib/tickets/ticket-names";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -24,7 +25,10 @@ export function DashboardInboxSnapshot({
   const groups =
     inboxTickets === null
       ? []
-      : groupInboxCounts(inboxTickets, groupNames);
+      : groupInboxCounts(
+          inboxTickets,
+          new Map([...groupNamesFromTickets(inboxTickets), ...groupNames]),
+        );
   const bars = groups.map((group) => ({
     label:
       group.label.length > 0

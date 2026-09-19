@@ -23,6 +23,7 @@ interface TicketDetailHeaderActionsProperties {
   readonly ticket: TicketResponse;
   readonly canChangeStatus: boolean;
   readonly canClaim: boolean;
+  readonly canRequestRemote: boolean;
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
@@ -42,6 +43,7 @@ export function TicketDetailHeaderActions({
   ticket,
   canChangeStatus,
   canClaim,
+  canRequestRemote,
   claiming,
   savingStatus,
   reopening,
@@ -107,7 +109,7 @@ export function TicketDetailHeaderActions({
           <Split size={14} /> {t("tickets.split.action")}
         </Button>
       ) : null}
-      {canChangeStatus ? <TicketRequestRemoteButton ticket={ticket} /> : null}
+      {canRequestRemote ? <TicketRequestRemoteButton ticket={ticket} /> : null}
       {canChangeStatus && nextStatuses.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -24,6 +24,18 @@ export function createInMemoryTicketsLookups(input: {
         where: { id: string };
         select?: Record<string, boolean>;
       }) => pickInMemoryFields(input.users.get(where.id), select),
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where?: { id?: { in: readonly string[] } };
+        select?: Record<string, boolean>;
+      } = {}) =>
+        [...input.users.values()]
+          .filter((user) =>
+            where?.id === undefined ? true : where.id.in.includes(user.id),
+          )
+          .map((user) => pickInMemoryFields(user, select)),
     },
   };
 }

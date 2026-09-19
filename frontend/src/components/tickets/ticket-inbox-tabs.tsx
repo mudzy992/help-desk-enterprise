@@ -3,12 +3,12 @@ import { ShieldAlert, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { unroutedInboxTabKey, type InboxGroupTab } from "@/lib/tickets/inbox-view-tabs";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 
 interface TicketInboxTabsProperties {
   readonly activeTab: string;
   readonly unroutedCount: number;
   readonly groups: readonly InboxGroupTab[];
+  readonly groupNames: ReadonlyMap<string, string>;
   readonly onChange: (tab: string) => void;
 }
 
@@ -16,6 +16,7 @@ export function TicketInboxTabs({
   activeTab,
   unroutedCount,
   groups,
+  groupNames,
   onChange,
 }: TicketInboxTabsProperties) {
   const { t } = useTranslation();
@@ -36,7 +37,7 @@ export function TicketInboxTabs({
           tone="neutral"
           count={group.count}
           icon={<Users size={13} aria-hidden="true" />}
-          label={truncateIdentifier(group.groupId)}
+          label={groupNames.get(group.groupId) ?? t("tickets.detail.unknownGroup")}
           onClick={() => onChange(group.groupId)}
         />
       ))}

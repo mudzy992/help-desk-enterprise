@@ -2055,6 +2055,17 @@
           "OK": "On track",
           "RISK": "At risk",
           "BREACHED": "Breached"
+        },
+        "profileOnly": "Profile: {{profile}}",
+        "profileAndCalendar": "Profile: {{profile}} · {{calendar}}",
+        "unavailableTitle": "SLA not applied",
+        "unavailableAdminHint": "An SLA profile is assigned to a service in the service onboarding wizard.",
+        "unavailable": {
+          "NO_PROFILE": "This ticket's service has no SLA profile assigned, so no timers were started.",
+          "PROFILE_INACTIVE": "The service's SLA profile is inactive or no longer exists.",
+          "NO_RULE": "The SLA profile has no rule matching this ticket's priority, service and organizational unit.",
+          "NO_CALENDAR": "The SLA profile's business calendar is inactive or missing.",
+          "NOT_APPLIED": "SLA timers were not started for this ticket (SLA is disabled or the ticket was created before the profile was assigned)."
         }
       },
       "assign": "Assign…",
@@ -2097,7 +2108,11 @@
       "noMessages": "No messages yet.",
       "noMessagesHint": "Send the first public reply or an internal note.",
       "systemEvent": "System event",
-      "archivedHint": "This ticket is archived and read-only. Data was not deleted."
+      "archivedHint": "This ticket is archived and read-only. Data was not deleted.",
+      "unknownUser": "Unknown user",
+      "unknownGroup": "Unknown group",
+      "unknownOrigin": "Unknown organizational unit",
+      "formVersionValue": "v{{version}}"
     },
     "csat": {
       "title": "CSAT rating",
@@ -2224,6 +2239,68 @@
       "other": "Other"
     },
     "errorGeneric": "Tickets are currently unavailable.",
-    "errorCatalog": "The service catalog is currently unavailable."
+    "errorCatalog": "The service catalog is currently unavailable.",
+    "activity": {
+      "title": "Audit trail",
+      "subtitle": "System events and changes recorded on this ticket",
+      "system": "System",
+      "emptyTitle": "No recorded activity",
+      "emptyBody": "System events and changes will appear here.",
+      "approvalDecision": "approval decision",
+      "unknownEvent": "action performed on the ticket",
+      "events": {
+        "ticket_created": "ticket created",
+        "ticket_claimed": "ticket claimed",
+        "ticket_assigned": "ticket assigned",
+        "ticket_participant_added": "participant added",
+        "ticket_participant_removed": "participant removed",
+        "ticket_time_started": "time tracking started",
+        "ticket_time_stopped": "time tracking stopped",
+        "ticket_attachment_uploaded": "attachment uploaded",
+        "ticket_attachment_deleted": "attachment deleted",
+        "ticket_approval_requested": "approval requested",
+        "ticket_approval_approved": "approval granted",
+        "ticket_approval_rejected": "approval rejected",
+        "ticket_resolved": "ticket resolved",
+        "ticket_closed": "ticket closed",
+        "ticket_waiting_for_user_entered": "ticket is waiting for the user",
+        "ticket_waiting_for_user_resumed": "the user replied, work resumed",
+        "ticket_waiting_for_user_reminder": "reminder sent to the user",
+        "ticket_waiting_for_user_auto_closed": "ticket auto-closed after no reply",
+        "ticket_reopened": "ticket reopened",
+        "ticket_reopened_new": "new ticket created on reopen",
+        "ticket_split": "ticket split into child tickets",
+        "ticket_split_child": "child ticket created by a split",
+        "ticket_bulk_assign": "assigned in a bulk action",
+        "ticket_bulk_status": "status changed in a bulk action",
+        "ticket_bulk_priority": "priority changed in a bulk action",
+        "ticket_bulk_broadcast": "bulk message sent",
+        "ticket_bulk_merge": "ticket merged into a parent ticket",
+        "ticket_redaction_warned": "warning: sensitive data in the content",
+        "ticket_confidential_viewed": "confidential ticket viewed",
+        "ticket_confidential_denied": "access to the confidential ticket denied",
+        "ticket_confidential_break_glass": "break-glass access to the confidential ticket",
+        "ticket_guardrail_duplicate_warned": "warning: possible duplicate ticket",
+        "ticket_guardrail_loop_suppressed": "repeated action suppressed (loop)",
+        "ticket_csat_submitted": "the user submitted a satisfaction rating (CSAT)",
+        "ticket_archived": "ticket archived",
+        "ticket_sla_response_breached": "first response SLA breached",
+        "ticket_sla_resolution_breached": "resolution SLA breached",
+        "ticket_sla_response_at_risk": "first response SLA at risk",
+        "ticket_sla_resolution_at_risk": "resolution SLA at risk",
+        "ticket_sla_response_escalated": "first response SLA escalated",
+        "ticket_sla_resolution_escalated": "resolution SLA escalated",
+        "ticket_remote_requested": "remote assistance requested",
+        "ticket_remote_acknowledged": "remote assistance acknowledged"
+      },
+      "history": {
+        "status": "status changed: {{from}} → {{to}}",
+        "priority": "priority changed: {{from}} → {{to}}",
+        "impact": "impact changed: {{from}} → {{to}}",
+        "urgency": "urgency changed: {{from}} → {{to}}",
+        "assignedUser": "assignee changed: {{from}} → {{to}}",
+        "assignedGroup": "group changed: {{from}} → {{to}}"
+      }
+    }
   }
 }

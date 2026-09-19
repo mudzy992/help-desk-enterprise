@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 // Guards the "never show raw ids" rule on ticket screens (see
-// 02-FAZNI-PLAN-IMPLEMENTACIJE-TIKETI.md, Faza 2.2). It flags an identifier
-// field rendered as visible JSX text, e.g. `{ticket.parentTicketId}`.
+// 02-FAZNI-PLAN-IMPLEMENTACIJE-TIKETI.md, Faza 2.2). It flags:
+//  - an identifier field rendered as visible JSX text, e.g.
+//    `{ticket.parentTicketId}`;
+//  - an identifier used as a display fallback, e.g. `name ?? ticket.requesterId`;
+//  - helpers that turn an identifier into display text
+//    (`truncateIdentifier(...)`, `directoryDisplayName(...)`).
 // Identifiers used as attribute values (`value={...}`, `to={...}`, `key={...}`)
 // or inside template literals (`${...}`) are legitimate and ignored.
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -11,6 +15,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const scanTargets = [
   { dir: "frontend/src/components/tickets", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/components/dashboard", filePattern: /\.tsx$/ },
   { dir: "frontend/src/pages", filePattern: /^ticket-.*\.tsx$/ },
 ];
 const identifierFields = [
@@ -21,10 +26,22 @@ const identifierFields = [
   "serviceId",
   "formVersionId",
   "parentTicketId",
+  "formVersionRef",
 ];
-const leakPattern = new RegExp(
-  `(?<![=$\\w])\\{[A-Za-z]+\\.(?:${identifierFields.join("|")})\\}`,
-);
+const fallbackFields = [
+  ...identifierFields,
+  "originUnitId",
+  "userId",
+  "groupId",
+  "approverUserId",
+  "uploadedByUserId",
+  "authorUserId",
+];
+const leakPatterns = [
+  new RegExp(`(?<![=$\\w])\\{[A-Za-z]+\\.(?:${identifierFields.join("|")})\\}`),
+  new RegExp(`\\?\\?\\s*[A-Za-z.]+\\.(?:${fallbackFields.join("|")})\\b`),
+  /\b(?:truncateIdentifier|directoryDisplayName)\(/,
+];
 
 function listFiles(directory) {
   return readdirSync(directory).flatMap((name) => {
@@ -44,7 +61,7 @@ for (const target of scanTargets) {
     readFileSync(file, "utf8")
       .split("\n")
       .forEach((line, index) => {
-        if (leakPattern.test(line)) {
+        if (leakPatterns.some((pattern) => pattern.test(line))) {
           findings.push(`${relative(root, file)}:${index + 1}: ${line.trim()}`);
         }
       });

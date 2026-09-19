@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
-import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketDetailConversation } from "@/components/tickets/ticket-detail-conversation";
 import { TicketTimeTrackingPanel } from "@/components/tickets/ticket-time-tracking-panel";
-import { Card, CardHeader } from "@/components/ui/card";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -15,6 +14,7 @@ import type {
 } from "@/services/tickets-collaboration-api";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 import type { TicketResponse } from "@/services/tickets-api";
+import type { TicketHistoryEntry } from "@/services/tickets-context-api";
 
 type DetailTab = "chat" | "activity" | "time" | "files";
 
@@ -24,6 +24,8 @@ interface TicketDetailWorkspaceProperties {
   readonly currentUserId: string | null;
   readonly authorNames: ReadonlyMap<string, string>;
   readonly requesterName: string;
+  readonly history: readonly TicketHistoryEntry[];
+  readonly canViewActivity: boolean;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
@@ -32,6 +34,7 @@ interface TicketDetailWorkspaceProperties {
   readonly onWaitForUser?: () => void;
   readonly timeLogs: readonly TicketTimeLogResponse[];
   readonly timeVisible: boolean;
+  readonly userNames: ReadonlyMap<string, string>;
   readonly isTimeSaving: boolean;
   readonly onStartTimer: () => void;
   readonly onStopTimer: (timeLogId: string) => void;
@@ -51,8 +54,14 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
   ).length;
   const tabItems = [
     { key: "chat", label: t("tickets.detail.conversation"), count: props.messages.length },
-    { key: "activity", label: t("tickets.detail.activity"), count: auditCount },
   ];
+  if (props.canViewActivity) {
+    tabItems.push({
+      key: "activity",
+      label: t("tickets.detail.activity"),
+      count: auditCount + props.history.length,
+    });
+  }
   if (props.timeVisible) {
     tabItems.push({ key: "time", label: t("tickets.detail.time"), count: props.timeLogs.length });
   }
@@ -87,24 +96,19 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onUpload={props.canUpload ? props.onUpload : undefined}
         />
       ) : null}
-      {tab === "activity" ? (
-        <Card>
-          <CardHeader title={t("tickets.detail.activity")} />
-          <div className="px-4 py-3">
-            <TicketConversation
-              messages={props.messages}
-              currentUserId={props.currentUserId}
-              authorNames={props.authorNames}
-              systemOnly
-            />
-          </div>
-        </Card>
+      {tab === "activity" && props.canViewActivity ? (
+        <TicketActivityList
+          messages={props.messages}
+          history={props.history}
+          authorNames={props.authorNames}
+        />
       ) : null}
       {tab === "time" ? (
         <TicketTimeTrackingPanel
           items={props.timeLogs}
           visible={props.timeVisible}
           currentUserId={props.currentUserId}
+          userNames={props.userNames}
           isSaving={props.isTimeSaving}
           onStart={props.onStartTimer}
           onStop={props.onStopTimer}

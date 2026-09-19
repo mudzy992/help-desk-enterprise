@@ -10,7 +10,7 @@ import {
   ticketIdClassName,
 } from "@/components/ui/control";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { pickName } from "@/lib/tickets/ticket-names";
 import { useTicketText } from "@/lib/tickets/use-ticket-text";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -44,8 +44,7 @@ function assigneeDirectoryName(
   if (ticket.assignedUserId === null) {
     return null;
   }
-  const name = assigneeNames.get(ticket.assignedUserId)?.trim();
-  return name !== undefined && name.length > 0 ? name : null;
+  return pickName(ticket.assignedUserName, assigneeNames.get(ticket.assignedUserId));
 }
 
 function assignmentCell(
@@ -57,11 +56,12 @@ function assignmentCell(
     return <Badge tone="danger">{t("tickets.assignment.unrouted")}</Badge>;
   }
   const assigneeName = assigneeDirectoryName(ticket, assigneeNames);
+  const groupName = pickName(ticket.assignedGroupName) ?? t("tickets.detail.unknownGroup");
   if (ticket.assignedUserId === null) {
     return (
       <div className="flex items-center gap-1.5">
         <span className="tnum text-[12px] text-foreground/80">
-          {truncateIdentifier(ticket.assignedGroupId)}
+          {groupName}
         </span>
         <Badge tone="info" dot={false}>
           {t("tickets.assignment.groupOnly")}
@@ -72,7 +72,7 @@ function assignmentCell(
   return (
     <div className="flex items-center gap-1.5">
       <span className="tnum text-[12px] text-foreground/80">
-        {truncateIdentifier(ticket.assignedGroupId)}
+        {groupName}
       </span>
       {assigneeName !== null ? (
         <>
@@ -156,12 +156,11 @@ export function TicketListTable({
               </td>
               <td className="px-4 py-2.5">
                 <span className="text-[12px] text-muted-foreground">
-                  {serviceNames.get(ticket.serviceId) ?? ticket.serviceId}
+                  {serviceNames.get(ticket.serviceId) ?? "—"}
                 </span>
               </td>
               <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
-                {originNames?.get(ticket.originUnitId) ??
-                  truncateIdentifier(ticket.originUnitId)}
+                {originNames?.get(ticket.originUnitId) ?? "—"}
               </td>
               <td className="px-4 py-2.5">
                 <TicketStatusBadge status={ticket.status} />

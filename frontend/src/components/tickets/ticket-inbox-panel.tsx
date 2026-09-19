@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
+import { groupNamesFromTickets } from "@/lib/tickets/ticket-names";
 import { TicketInboxNoGroupNotice } from "@/components/tickets/ticket-inbox-no-group-notice";
 import { TicketInboxTabs } from "@/components/tickets/ticket-inbox-tabs";
 import { TicketInboxUnroutedBanner } from "@/components/tickets/ticket-inbox-unrouted-banner";
@@ -54,6 +55,7 @@ export function TicketInboxPanel({
       setActiveTab(unroutedInboxTabKey);
     }
   }, [activeTab, groups]);
+  const groupNames = useMemo(() => groupNamesFromTickets(inboxTickets), [inboxTickets]);
   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
   return (
     <div className="mt-4">
@@ -61,6 +63,7 @@ export function TicketInboxPanel({
         activeTab={activeTab}
         unroutedCount={unroutedTickets.length}
         groups={groups}
+        groupNames={groupNames}
         onChange={setActiveTab}
       />
       {hasGroupMembership === false && !isLoading && errorKey === null ? (

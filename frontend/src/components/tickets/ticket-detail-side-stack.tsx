@@ -4,10 +4,10 @@ import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
-import type { DirectoryUser } from "@/lib/directory/use-directory";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { TicketApprovalResponse } from "@/services/tickets-approvals-api";
 import type { TicketResponse } from "@/services/tickets-api";
+import type { TicketSlaContextResponse } from "@/services/tickets-context-api";
 import type {
   ParticipantRole,
   TicketParticipantResponse,
@@ -18,11 +18,14 @@ interface TicketDetailSideStackProperties {
   readonly originName: string;
   readonly serviceName: string;
   readonly authorNames: ReadonlyMap<string, string>;
+  readonly groupNames: ReadonlyMap<string, string>;
+  readonly slaContext: TicketSlaContextResponse | null;
+  readonly canConfigureSla: boolean;
   readonly approvals: readonly TicketApprovalResponse[];
   readonly approvalsVisible: boolean;
   readonly approvalsSaving: boolean;
   readonly participants: readonly TicketParticipantResponse[];
-  readonly directoryUsers: readonly DirectoryUser[];
+  readonly participantCandidates: readonly { readonly id: string; readonly displayName: string }[];
   readonly canManageParticipants: boolean;
   readonly onError: (key: TicketErrorKey) => void;
   readonly onCsatComplete: (ticket: TicketResponse) => void;
@@ -35,12 +38,17 @@ interface TicketDetailSideStackProperties {
 export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
   return (
     <div className="space-y-4">
-      <TicketSlaPanel ticket={props.ticket} />
+      <TicketSlaPanel
+        ticket={props.ticket}
+        context={props.slaContext}
+        canConfigure={props.canConfigureSla}
+      />
       <TicketDetailSidebar
         ticket={props.ticket}
         originName={props.originName}
         serviceName={props.serviceName}
         authorNames={props.authorNames}
+        groupNames={props.groupNames}
       />
       <TicketFormDataView formData={props.ticket.formData} />
       <TicketApprovalsPanel
@@ -54,7 +62,9 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
       <TicketParticipantsPanel
         items={props.participants}
         canManage={props.canManageParticipants}
-        directoryUsers={props.directoryUsers}
+        directoryUsers={props.participantCandidates}
+        userNames={props.authorNames}
+        groupNames={props.groupNames}
         onAdd={props.onAddParticipant}
         onRemove={props.onRemoveParticipant}
       />

@@ -2055,6 +2055,17 @@
           "OK": "U okviru",
           "RISK": "Pod rizikom",
           "BREACHED": "Prekoračen"
+        },
+        "profileOnly": "Profil: {{profile}}",
+        "profileAndCalendar": "Profil: {{profile}} · {{calendar}}",
+        "unavailableTitle": "SLA nije primijenjen",
+        "unavailableAdminHint": "SLA profil se dodjeljuje servisu u čarobnjaku za uvođenje usluge.",
+        "unavailable": {
+          "NO_PROFILE": "Servis ovog tiketa nema dodijeljen SLA profil, pa tajmeri nisu pokrenuti.",
+          "PROFILE_INACTIVE": "SLA profil servisa je neaktivan ili više ne postoji.",
+          "NO_RULE": "SLA profil nema pravilo koje odgovara prioritetu, servisu i organizacionoj jedinici ovog tiketa.",
+          "NO_CALENDAR": "Poslovni kalendar SLA profila je neaktivan ili ne postoji.",
+          "NOT_APPLIED": "SLA tajmeri nisu pokrenuti za ovaj tiket (SLA je isključen ili je tiket kreiran prije dodjele profila)."
         }
       },
       "assign": "Dodijeli…",
@@ -2097,7 +2108,11 @@
       "noMessages": "Još nema poruka.",
       "noMessagesHint": "Pošaljite prvu javnu poruku ili internu napomenu.",
       "systemEvent": "Sistemski događaj",
-      "archivedHint": "Tiket je arhiviran i ostaje samo za čitanje. Podaci nisu obrisani."
+      "archivedHint": "Tiket je arhiviran i ostaje samo za čitanje. Podaci nisu obrisani.",
+      "unknownUser": "Nepoznat korisnik",
+      "unknownGroup": "Nepoznata grupa",
+      "unknownOrigin": "Nepoznata organizaciona jedinica",
+      "formVersionValue": "v{{version}}"
     },
     "csat": {
       "title": "CSAT ocjena",
@@ -2224,6 +2239,68 @@
       "other": "Ostalo"
     },
     "errorGeneric": "Tiketi trenutno nisu dostupni.",
-    "errorCatalog": "Katalog servisa trenutno nije dostupan."
+    "errorCatalog": "Katalog servisa trenutno nije dostupan.",
+    "activity": {
+      "title": "Audit trag",
+      "subtitle": "Sistemski događaji i izmjene zabilježene na ovom tiketu",
+      "system": "Sistem",
+      "emptyTitle": "Nema zabilježenih aktivnosti",
+      "emptyBody": "Sistemski događaji i izmjene pojavit će se ovdje.",
+      "approvalDecision": "odluka o odobrenju",
+      "unknownEvent": "izvršena radnja na tiketu",
+      "events": {
+        "ticket_created": "tiket kreiran",
+        "ticket_claimed": "tiket preuzet",
+        "ticket_assigned": "tiket dodijeljen",
+        "ticket_participant_added": "učesnik dodan",
+        "ticket_participant_removed": "učesnik uklonjen",
+        "ticket_time_started": "pokrenuta evidencija vremena",
+        "ticket_time_stopped": "zaustavljena evidencija vremena",
+        "ticket_attachment_uploaded": "prilog dodan",
+        "ticket_attachment_deleted": "prilog obrisan",
+        "ticket_approval_requested": "zatraženo odobrenje",
+        "ticket_approval_approved": "zahtjev za odobrenje odobren",
+        "ticket_approval_rejected": "zahtjev za odobrenje odbijen",
+        "ticket_resolved": "tiket riješen",
+        "ticket_closed": "tiket zatvoren",
+        "ticket_waiting_for_user_entered": "tiket čeka odgovor korisnika",
+        "ticket_waiting_for_user_resumed": "korisnik je odgovorio, obrada nastavljena",
+        "ticket_waiting_for_user_reminder": "korisniku poslan podsjetnik",
+        "ticket_waiting_for_user_auto_closed": "tiket automatski zatvoren zbog izostanka odgovora",
+        "ticket_reopened": "tiket ponovo otvoren",
+        "ticket_reopened_new": "kreiran novi tiket zbog ponovnog otvaranja",
+        "ticket_split": "tiket podijeljen na podtikete",
+        "ticket_split_child": "podtiket kreiran podjelom tiketa",
+        "ticket_bulk_assign": "dodjela u grupnoj akciji",
+        "ticket_bulk_status": "status promijenjen u grupnoj akciji",
+        "ticket_bulk_priority": "prioritet promijenjen u grupnoj akciji",
+        "ticket_bulk_broadcast": "poslana grupna poruka",
+        "ticket_bulk_merge": "tiket spojen u nadređeni tiket",
+        "ticket_redaction_warned": "upozorenje: osjetljivi podaci u sadržaju",
+        "ticket_confidential_viewed": "povjerljiv tiket pregledan",
+        "ticket_confidential_denied": "odbijen pristup povjerljivom tiketu",
+        "ticket_confidential_break_glass": "hitni (break-glass) pristup povjerljivom tiketu",
+        "ticket_guardrail_duplicate_warned": "upozorenje: mogući duplikat tiketa",
+        "ticket_guardrail_loop_suppressed": "spriječeno ponavljanje radnje (petlja)",
+        "ticket_csat_submitted": "korisnik ocijenio zadovoljstvo (CSAT)",
+        "ticket_archived": "tiket arhiviran",
+        "ticket_sla_response_breached": "probijen SLA za prvi odgovor",
+        "ticket_sla_resolution_breached": "probijen SLA za rješenje",
+        "ticket_sla_response_at_risk": "SLA za prvi odgovor u riziku",
+        "ticket_sla_resolution_at_risk": "SLA za rješenje u riziku",
+        "ticket_sla_response_escalated": "eskaliran SLA za prvi odgovor",
+        "ticket_sla_resolution_escalated": "eskaliran SLA za rješenje",
+        "ticket_remote_requested": "zatražena udaljena podrška",
+        "ticket_remote_acknowledged": "udaljena podrška potvrđena"
+      },
+      "history": {
+        "status": "status promijenjen: {{from}} → {{to}}",
+        "priority": "prioritet promijenjen: {{from}} → {{to}}",
+        "impact": "uticaj promijenjen: {{from}} → {{to}}",
+        "urgency": "hitnost promijenjena: {{from}} → {{to}}",
+        "assignedUser": "agent promijenjen: {{from}} → {{to}}",
+        "assignedGroup": "grupa promijenjena: {{from}} → {{to}}"
+      }
+    }
   }
 }

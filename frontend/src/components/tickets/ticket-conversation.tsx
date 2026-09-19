@@ -3,6 +3,10 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketMessageBubble } from "@/components/tickets/ticket-message-bubble";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  describeMessageActivity,
+  resolveActivityActor,
+} from "@/lib/tickets/describe-ticket-activity";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
@@ -49,6 +53,7 @@ export function TicketConversation({
           message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
         if (isSystem) {
           const isApproval = message.type === "APPROVAL_DECISION";
+          const activity = describeMessageActivity(message, authorNames, t);
           const SystemIcon = isApproval ? CheckCheck : GitBranch;
           return (
             <div key={message.id} className="flex items-start gap-2.5 px-1 py-0.5">
@@ -63,7 +68,8 @@ export function TicketConversation({
               />
               <div>
                 <p className="text-[12px] italic leading-5 text-muted-foreground">
-                  {message.body}
+                  {activity.actor} · {activity.text}
+                  {activity.note === null ? "" : ` — ${activity.note}`}
                 </p>
                 <p
                   className="text-[10.5px] text-muted-foreground/60 tnum"
@@ -78,11 +84,11 @@ export function TicketConversation({
         if (systemOnly) {
           return null;
         }
-        const authorName =
-          (message.authorUserId === null
-            ? null
-            : authorNames.get(message.authorUserId)) ??
-          t("tickets.detail.systemEvent");
+        const authorName = resolveActivityActor(
+          message.authorUserId,
+          authorNames,
+          t,
+        );
         const isOwn =
           currentUserId !== null && message.authorUserId === currentUserId;
         return (
