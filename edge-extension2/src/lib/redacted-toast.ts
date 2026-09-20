@@ -1,0 +1,4 @@
+import {notificationCopy} from './i18n';
+export type RedactedToastInput={eventId:string;type:string;ticketNumber?:string;ticketId:string|null;serviceName?:string;};
+export function buildRedactedToast(input:RedactedToastInput){const c=notificationCopy(input.type,input.ticketNumber);return {title:c.title,message:c.message,actionRequired:c.actionRequired};}
+export async function showRedactedToast(input:RedactedToastInput):Promise<void>{const t=buildRedactedToast(input);await chrome.notifications.create(input.eventId,{type:'basic',iconUrl:'icon.png',title:t.title,message:t.message,priority:t.actionRequired?2:1});}

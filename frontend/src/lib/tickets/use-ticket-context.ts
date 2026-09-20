@@ -4,10 +4,12 @@ import {
   getTicketCandidates,
   getTicketHistory,
   getTicketPeople,
+  getTicketPublicActivity,
   getTicketSlaContext,
   type TicketAllowedActions,
   type TicketCandidatesResponse,
   type TicketHistoryEntry,
+  type TicketPublicActivityEntry,
   type TicketSlaContextResponse,
 } from "@/services/tickets-context-api";
 
@@ -19,6 +21,7 @@ export type TicketContextState = {
   readonly actions: TicketAllowedActions | null;
   readonly candidates: TicketCandidatesResponse | null;
   readonly history: readonly TicketHistoryEntry[];
+  readonly publicActivity: readonly TicketPublicActivityEntry[];
   readonly slaContext: TicketSlaContextResponse | null;
 };
 
@@ -28,6 +31,7 @@ const initialState: TicketContextState = {
   actions: null,
   candidates: null,
   history: [],
+  publicActivity: [],
   slaContext: null,
 };
 
@@ -66,10 +70,13 @@ export function useTicketContext(
         orNull(getTicketAllowedActions(ticketId)),
         orNull(getTicketSlaContext(ticketId)),
       ]);
-      const history =
-        actions?.viewActivity === true
-          ? await orNull(getTicketHistory(ticketId))
-          : null;
+      const isStaff = actions?.viewActivity === true;
+      const [history, publicActivity] = await Promise.all([
+        isStaff ? orNull(getTicketHistory(ticketId)) : Promise.resolve(null),
+        actions !== null && !isStaff
+          ? orNull(getTicketPublicActivity(ticketId))
+          : Promise.resolve(null),
+      ]);
       if (cancelled) {
         return;
       }
@@ -85,6 +92,7 @@ export function useTicketContext(
         actions,
         candidates: current.candidates,
         history: history ?? [],
+        publicActivity: publicActivity ?? [],
         slaContext,
       }));
     })();

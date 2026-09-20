@@ -42,6 +42,14 @@ export type TicketHistoryEntry = {
   readonly changes: readonly TicketHistoryChange[];
 };
 
+export type TicketPublicActivityEntry = {
+  readonly id: string;
+  readonly createdAt: string;
+  readonly action: string;
+  readonly actorName: string | null;
+  readonly targetName: string | null;
+};
+
 export type TicketComposerAccess = "requester" | "staff" | "both";
 
 export type TicketAllowedActions = {
@@ -82,6 +90,12 @@ export function getTicketCandidates(ticketId: string): Promise<TicketCandidatesR
 
 export function getTicketHistory(ticketId: string): Promise<readonly TicketHistoryEntry[]> {
   return apiRequest(`/tickets/${ticketId}/history`);
+}
+
+export function getTicketPublicActivity(
+  ticketId: string,
+): Promise<readonly TicketPublicActivityEntry[]> {
+  return apiRequest(`/tickets/${ticketId}/activity`);
 }
 
 export function getTicketAllowedActions(ticketId: string): Promise<TicketAllowedActions> {

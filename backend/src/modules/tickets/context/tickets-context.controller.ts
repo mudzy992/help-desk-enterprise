@@ -53,6 +53,14 @@ export class TicketsContextController {
     return this.contextService.history(ticketId, readContext(request));
   }
 
+  @Get(':ticketId/activity')
+  activity(
+    @Param('ticketId') ticketId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.contextService.publicActivity(ticketId, readContext(request));
+  }
+
   @Get(':ticketId/actions')
   actions(
     @Param('ticketId') ticketId: string,

@@ -20,6 +20,7 @@ import { useDashboardSummary } from "@/lib/dashboard/use-dashboard-summary";
 export function DashboardPage() {
   const { t } = useTranslation();
   const {
+    isStaff,
     summary,
     inboxCount,
     inboxTickets,
@@ -78,15 +79,25 @@ export function DashboardPage() {
         />
       ) : (
         <div className="grid gap-4">
-          <DashboardMetricGrid summary={summary} inboxCount={inboxCount} />
+          <DashboardMetricGrid summary={summary} inboxCount={inboxCount} isStaff={isStaff} />
           <DashboardCharts summary={summary} />
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-            <DashboardSlaWatchlist items={summary.slaWatchlist} />
-            <DashboardInboxSnapshot
-              unroutedCount={summary.unrouted}
-              inboxTickets={inboxTickets}
-              groupNames={groupNames}
-            />
+          <div
+            className={
+              isStaff
+                ? "grid grid-cols-1 gap-3 xl:grid-cols-3"
+                : "grid grid-cols-1 gap-3"
+            }
+          >
+            {isStaff ? (
+              <>
+                <DashboardSlaWatchlist items={summary.slaWatchlist} />
+                <DashboardInboxSnapshot
+                  unroutedCount={summary.unrouted}
+                  inboxTickets={inboxTickets}
+                  groupNames={groupNames}
+                />
+              </>
+            ) : null}
             <DashboardActivityFeed />
           </div>
           <DashboardAttentionTable

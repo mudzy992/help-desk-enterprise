@@ -1,4 +1,6 @@
-import { formatRelativeTicketTime, formatTicketTimestamp } from "@/lib/tickets/ticket-display";
+import { useTranslation } from "react-i18next";
+import { formatRelativeTime } from "@/lib/format-relative-time";
+import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
 
 interface RelativeTimeProperties {
@@ -8,13 +10,14 @@ interface RelativeTimeProperties {
 }
 
 export function RelativeTime({ value, locale, className }: RelativeTimeProperties) {
+  const { t } = useTranslation();
   return (
     <time
       dateTime={value}
       title={formatTicketTimestamp(value, locale)}
       className={cn("tnum", className)}
     >
-      {formatRelativeTicketTime(value, locale)}
+      {formatRelativeTime(value, t, locale)}
     </time>
   );
 }

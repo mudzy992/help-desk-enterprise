@@ -1,4 +1,9 @@
-export const extensionVersion = '0.0.1';
+/**
+ * Ugovor između popupa i service workera.
+ * Svaka izmjena verzioniše se kroz `extensionVersion` (sinhronizovano sa
+ * package.json i public/manifest.json).
+ */
+export const extensionVersion = '1.0.0';
 
 export const extensionMessageTypes = {
   sessionSet: 'session.set',
@@ -6,9 +11,14 @@ export const extensionMessageTypes = {
   statusGet: 'status.get',
   inboxGet: 'inbox.get',
   threadGet: 'thread.get',
+  threadWatch: 'thread.watch',
   replySend: 'reply.send',
   remoteAck: 'remote.ack',
+  languageSet: 'language.set',
 } as const;
+
+/** Naziv dugoživog porta SW → popup (live push). */
+export const popupPortName = 'ep-helpdesk.popup.v1';
 
 export type SessionSetMessage = {
   readonly type: typeof extensionMessageTypes.sessionSet;
@@ -33,6 +43,12 @@ export type ThreadGetMessage = {
   readonly ticketId: string;
 };
 
+export type ThreadWatchMessage = {
+  readonly type: typeof extensionMessageTypes.threadWatch;
+  /** null = popup je zatvorio thread (izlazak iz sobe). */
+  readonly ticketId: string | null;
+};
+
 export type ReplySendMessage = {
   readonly type: typeof extensionMessageTypes.replySend;
   readonly ticketId: string;
@@ -44,14 +60,28 @@ export type RemoteAckMessage = {
   readonly ticketId: string;
 };
 
+export type LanguageSetMessage = {
+  readonly type: typeof extensionMessageTypes.languageSet;
+  readonly language: 'bs' | 'en';
+};
+
 export type ExtensionRuntimeMessage =
   | SessionSetMessage
   | SessionClearMessage
   | StatusGetMessage
   | InboxGetMessage
   | ThreadGetMessage
+  | ThreadWatchMessage
   | ReplySendMessage
-  | RemoteAckMessage;
+  | RemoteAckMessage
+  | LanguageSetMessage;
+
+/** Generični odgovor SW-a; `authExpired` signalizira popupu da pokaže login. */
+export type ExtensionErrorResponse = {
+  readonly error: string;
+  readonly code?: string;
+  readonly authExpired?: boolean;
+};
 
 export type ExtensionStatus = {
   readonly signedIn: boolean;
@@ -61,9 +91,12 @@ export type ExtensionStatus = {
   readonly polling: boolean;
   readonly deskPublicUrl: string;
   readonly subjectId: string;
+  /** Puno ime korisnika iz /auth/session; null dok se ne učita. */
+  readonly displayName: string | null;
   readonly chatEnabled: boolean;
   readonly remoteEnabled: boolean;
   readonly pendingRemoteTicketIds: readonly string[];
+  readonly unreadCount: number;
 };
 
 export type ExtensionInboxTicket = {
@@ -71,6 +104,8 @@ export type ExtensionInboxTicket = {
   readonly ticketNumber: string;
   readonly title: string;
   readonly status: string;
+  readonly priority: string;
+  readonly updatedAt: string;
 };
 
 export type ExtensionThreadMessage = {
@@ -78,4 +113,18 @@ export type ExtensionThreadMessage = {
   readonly type: string;
   readonly body: string;
   readonly createdAt: string;
+  /** null kad backend ne isporuči autora — UI tada ne poravnava "vlasništvo". */
+  readonly authorUserId: string | null;
+  readonly authorName: string | null;
 };
+
+/** Push eventi koje SW šalje popupu kroz {@link popupPortName} port. */
+export type PopupPortEvent =
+  | { readonly type: 'status.changed'; readonly status: ExtensionStatus }
+  | { readonly type: 'inbox.refresh' }
+  | {
+      readonly type: 'thread.message';
+      readonly ticketId: string;
+      readonly message: ExtensionThreadMessage;
+    }
+  | { readonly type: 'thread.refresh'; readonly ticketId: string };

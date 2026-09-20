@@ -11,7 +11,10 @@ import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import type { TicketActivityKind } from "@/lib/tickets/ticket-system-events";
 import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
-import type { TicketHistoryEntry } from "@/services/tickets-context-api";
+import type {
+  TicketHistoryEntry,
+  TicketPublicActivityEntry,
+} from "@/services/tickets-context-api";
 
 const kindChipClass: Readonly<Record<TicketActivityKind, string>> = {
   sla: "border-warning/30 bg-warning/10 text-warning",
@@ -42,24 +45,35 @@ function ActivityIcon({ kind }: { readonly kind: TicketActivityKind }) {
 interface TicketActivityListProperties {
   readonly messages: readonly TicketMessageResponse[];
   readonly history: readonly TicketHistoryEntry[];
+  readonly publicEntries: readonly TicketPublicActivityEntry[];
+  readonly isStaff: boolean;
   readonly authorNames: ReadonlyMap<string, string>;
 }
 
 export function TicketActivityList({
   messages,
   history,
+  publicEntries,
+  isStaff,
   authorNames,
 }: TicketActivityListProperties) {
   const { t, i18n } = useTranslation();
   const items = useMemo(
-    () => buildActivityTimeline({ messages, history, authorNames, t }),
-    [messages, history, authorNames, t],
+    () =>
+      buildActivityTimeline({
+        messages: isStaff ? messages : [],
+        history: isStaff ? history : [],
+        publicEntries: isStaff ? [] : publicEntries,
+        authorNames,
+        t,
+      }),
+    [messages, history, publicEntries, isStaff, authorNames, t],
   );
   return (
     <Card>
       <CardHeader
         title={t("tickets.activity.title")}
-        subtitle={t("tickets.activity.subtitle")}
+        subtitle={t(isStaff ? "tickets.activity.subtitle" : "tickets.activity.subtitlePublic")}
       />
       {items.length === 0 ? (
         <div className="px-4 py-3">

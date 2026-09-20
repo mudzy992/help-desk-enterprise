@@ -14,7 +14,10 @@ import type {
 } from "@/services/tickets-collaboration-api";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 import type { TicketResponse } from "@/services/tickets-api";
-import type { TicketHistoryEntry } from "@/services/tickets-context-api";
+import type {
+  TicketHistoryEntry,
+  TicketPublicActivityEntry,
+} from "@/services/tickets-context-api";
 
 type DetailTab = "chat" | "activity" | "time" | "files";
 
@@ -25,7 +28,8 @@ interface TicketDetailWorkspaceProperties {
   readonly authorNames: ReadonlyMap<string, string>;
   readonly requesterName: string;
   readonly history: readonly TicketHistoryEntry[];
-  readonly canViewActivity: boolean;
+  readonly publicActivity: readonly TicketPublicActivityEntry[];
+  readonly isStaff: boolean;
   readonly access: ComposerAccess;
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
@@ -55,13 +59,13 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
   const tabItems = [
     { key: "chat", label: t("tickets.detail.conversation"), count: props.messages.length },
   ];
-  if (props.canViewActivity) {
-    tabItems.push({
-      key: "activity",
-      label: t("tickets.detail.activity"),
-      count: auditCount + props.history.length,
-    });
-  }
+  tabItems.push({
+    key: "activity",
+    label: t("tickets.detail.activity"),
+    count: props.isStaff
+      ? auditCount + props.history.length
+      : props.publicActivity.length,
+  });
   if (props.timeVisible) {
     tabItems.push({ key: "time", label: t("tickets.detail.time"), count: props.timeLogs.length });
   }
@@ -96,10 +100,12 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onUpload={props.canUpload ? props.onUpload : undefined}
         />
       ) : null}
-      {tab === "activity" && props.canViewActivity ? (
+      {tab === "activity" ? (
         <TicketActivityList
           messages={props.messages}
           history={props.history}
+          publicEntries={props.publicActivity}
+          isStaff={props.isStaff}
           authorNames={props.authorNames}
         />
       ) : null}

@@ -73,3 +73,14 @@ export type TicketSlaContextResponse = {
   readonly calendarName: string | null;
   readonly unavailableReason: TicketSlaUnavailableReason | null;
 };
+
+export type TicketPublicActivityEntry = {
+  readonly id: string;
+  readonly createdAt: string;
+  /** System event action, e.g. `ticket_resolved`. */
+  readonly action: string;
+  /** Who did it; null when the system did. */
+  readonly actorName: string | null;
+  /** Who the action was directed at, e.g. the agent a ticket was assigned to. */
+  readonly targetName: string | null;
+};

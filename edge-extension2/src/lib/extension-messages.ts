@@ -1,0 +1,6 @@
+export const extensionVersion='0.1.0';
+export const extensionMessageTypes={sessionSet:'session.set',sessionClear:'session.clear',statusGet:'status.get',inboxGet:'inbox.get',threadGet:'thread.get',replySend:'reply.send',remoteAck:'remote.ack'} as const;
+export type ExtensionRuntimeMessage={type:typeof extensionMessageTypes.sessionSet;accessToken:string;apiBaseUrl:string}|{type:typeof extensionMessageTypes.sessionClear}|{type:typeof extensionMessageTypes.statusGet}|{type:typeof extensionMessageTypes.inboxGet}|{type:typeof extensionMessageTypes.threadGet;ticketId:string}|{type:typeof extensionMessageTypes.replySend;ticketId:string;body:string}|{type:typeof extensionMessageTypes.remoteAck;ticketId:string};
+export type ExtensionStatus={signedIn:boolean;allowed:boolean;reason:string;connected:boolean;polling:boolean;deskPublicUrl:string;subjectId:string;chatEnabled:boolean;remoteEnabled:boolean;pendingRemoteTicketIds:readonly string[];notificationUnread:number;actionRequired:number};
+export type ExtensionInboxTicket={id:string;ticketNumber:string;title:string;status:string;actionRequired?:boolean};
+export type ExtensionThreadMessage={id:string;type:string;body:string;createdAt:string};

@@ -1,0 +1,18 @@
+{
+  "extensionName": {
+    "message": "EP-HelpDesk",
+    "description": "Naziv ekstenzije vidljiv u Edge Add-ons katalogu."
+  },
+  "extensionDescription": {
+    "message": "EP-HelpDesk companion: diskretne (redacted) notifikacije, mini inbox tiketa, brzi odgovori i Quick Assist — direktno u Microsoft Edge.",
+    "description": "Opis ekstenzije u store listingu."
+  },
+  "actionTitle": {
+    "message": "EP-HelpDesk — tiketi i notifikacije",
+    "description": "Tooltip ikone u toolbaru."
+  },
+  "commandOpenPopup": {
+    "message": "Otvori EP-HelpDesk popup",
+    "description": "Opis prečice tastature."
+  }
+}

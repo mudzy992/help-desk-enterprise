@@ -36,7 +36,7 @@ export function SlaChangeLogPanel({ entries }: SlaChangeLogPanelProperties) {
                 <RelativeTime value={entry.createdAt} locale={i18n.language} />
               </td>
               <td className="px-4 text-[12.5px]">
-                {entry.actorDisplayName ?? entry.actorUserId ?? t("sla.changeUnknownActor")}
+                {entry.actorDisplayName ?? t("sla.changeUnknownActor")}
               </td>
               <td className="px-4 text-[12.5px]">{entry.reason}</td>
               <td className="px-4 text-[12px] text-muted-foreground">

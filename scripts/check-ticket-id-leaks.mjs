@@ -16,8 +16,16 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const scanTargets = [
   { dir: "frontend/src/components/tickets", filePattern: /\.tsx$/ },
   { dir: "frontend/src/components/dashboard", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/components/knowledge-base", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/components/routing", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/components/sla", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/components/services", filePattern: /\.tsx$/ },
+  { dir: "frontend/src/pages", filePattern: /^knowledge-.*\.tsx$/ },
   { dir: "frontend/src/pages", filePattern: /^ticket-.*\.tsx$/ },
 ];
+// The routing table's first column is the rule's own identifier, so showing a
+// shortened id there is the point of the column rather than a leaked reference.
+const allowedFiles = new Set(["frontend/src/components/routing/routing-rule-row.tsx"]);
 const identifierFields = [
   "originUnitId",
   "assignedGroupId",
@@ -58,6 +66,9 @@ for (const target of scanTargets) {
       !/\.spec\.tsx?$/.test(path),
   );
   for (const file of files) {
+    if (allowedFiles.has(relative(root, file).split("\\").join("/"))) {
+      continue;
+    }
     readFileSync(file, "utf8")
       .split("\n")
       .forEach((line, index) => {

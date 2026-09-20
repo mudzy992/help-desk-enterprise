@@ -4,10 +4,12 @@ import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tick
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { paginateItems } from "@/lib/tickets/paginate-items";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
+import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
   ticketListPageSize,
-  ticketWorkspaceViews,
+  workspaceViewsFor,
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
 import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
@@ -20,11 +22,12 @@ import {
   type TicketResponse,
 } from "@/services/tickets-api";
 
-function parseView(value: string | null): TicketWorkspaceView {
-  if (value !== null && ticketWorkspaceViews.includes(value as TicketWorkspaceView)) {
+function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView {
+  const allowed = workspaceViewsFor(isStaff);
+  if (value !== null && allowed.includes(value as TicketWorkspaceView)) {
     return value as TicketWorkspaceView;
   }
-  return "inbox";
+  return isStaff ? "inbox" : "all";
 }
 
 const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): TicketListFilters => ({
@@ -43,7 +46,9 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
 export function useTicketList() {
   const { currentUserId } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = parseView(searchParams.get("view"));
+  const capabilities = useSessionCapabilities();
+  const isStaff = isTicketStaff(capabilities);
+  const view = parseView(searchParams.get("view"), isStaff);
   const [tickets, setTickets] = useState<readonly TicketResponse[]>([]);
   const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>(
     [],
@@ -130,6 +135,19 @@ export function useTicketList() {
     void load();
   }, [load]);
 
+  // A requester who lands on the bare list or on a staff-only view is moved to
+  // an explicit allowed view, so the sidebar highlights the right entry.
+  useEffect(() => {
+    if (capabilities.session === null || isStaff) {
+      return;
+    }
+    if (searchParams.get("view") !== view) {
+      const next = new URLSearchParams(searchParams);
+      next.set("view", view);
+      setSearchParams(next, { replace: true });
+    }
+  }, [capabilities.session, isStaff, searchParams, setSearchParams, view]);
+
   const reloadSilent = useCallback(async () => {
     await load(true);
   }, [load]);
@@ -173,6 +191,7 @@ export function useTicketList() {
 
   return {
     view,
+    isStaff,
     inboxHidden,
     hasGroupMembership,
     filters,

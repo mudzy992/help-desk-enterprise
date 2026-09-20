@@ -10,11 +10,13 @@ import type {
   TicketCandidatesResponse,
   TicketHistoryEntry,
   TicketPeopleResponse,
+  TicketPublicActivityEntry,
   TicketSlaContextResponse,
 } from './context.types';
 import { loadTicketCandidates } from './load-ticket-candidates';
 import { loadTicketHistory } from './load-ticket-history';
 import { loadTicketPeople } from './load-ticket-people';
+import { loadTicketPublicActivity } from './load-ticket-public-activity';
 import { loadTicketSlaContext } from './load-ticket-sla-context';
 import { resolveTicketAllowedActions } from './resolve-ticket-allowed-actions';
 
@@ -61,6 +63,20 @@ export class TicketsContextService {
   ): Promise<readonly TicketHistoryEntry[]> {
     return this.run(context, (bound) =>
       loadTicketHistory(
+        this.prisma,
+        this.authorizationContextLoader,
+        ticketId,
+        bound,
+      ),
+    );
+  }
+
+  publicActivity(
+    ticketId: string,
+    context: TicketMutationContext,
+  ): Promise<readonly TicketPublicActivityEntry[]> {
+    return this.run(context, (bound) =>
+      loadTicketPublicActivity(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,

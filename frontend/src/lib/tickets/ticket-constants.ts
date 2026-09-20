@@ -12,6 +12,13 @@ export const ticketWorkspaceViews = [
 
 export type TicketWorkspaceView = (typeof ticketWorkspaceViews)[number];
 
+const requesterWorkspaceViews: readonly TicketWorkspaceView[] = ["requested", "all"];
+
+/** Requesters see only their own tickets; the queue views are for staff. */
+export function workspaceViewsFor(isStaff: boolean): readonly TicketWorkspaceView[] {
+  return isStaff ? ticketWorkspaceViews : requesterWorkspaceViews;
+}
+
 export const ticketStatusValues: readonly TicketStatus[] = [
   "PENDING",
   "UNROUTED",

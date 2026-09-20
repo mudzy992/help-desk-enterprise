@@ -1,11 +1,15 @@
 {
-  "name": "edge-extension",
-  "version": "0.0.1",
+  "name": "ep-helpdesk-edge-extension",
+  "version": "1.0.0",
   "private": true,
+  "description": "Manifest V3 companion klijent za EP-HelpDesk — redacted notifikacije, mini inbox, quick reply i Quick Assist za Microsoft Edge.",
   "type": "module",
+  "license": "UNLICENSED",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "build": "tsc --noEmit && vite build",
+    "build:fast": "vite build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "socket.io-client": "^4.8.3"

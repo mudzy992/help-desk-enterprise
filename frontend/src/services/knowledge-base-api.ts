@@ -19,6 +19,9 @@ export type KnowledgeArticleResponse = {
   readonly lastReviewedAt: string | null;
   readonly ownerUserId: string | null;
   readonly ownerGroupId: string | null;
+  readonly ownerName?: string | null;
+  readonly ownerGroupName?: string | null;
+  readonly serviceName?: string | null;
   readonly reviewerUserId: string | null;
   readonly serviceId: string;
   readonly organizationalUnitId: string;

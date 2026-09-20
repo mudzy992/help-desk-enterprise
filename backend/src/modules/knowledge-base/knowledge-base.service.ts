@@ -16,6 +16,7 @@ import type {
 } from './knowledge-base.types';
 import { listKnowledgeArticles } from './list-knowledge-articles';
 import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
+import { loadKnowledgeArticleLabels } from './load-knowledge-article-labels';
 import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
 import { updateKnowledgeArticle } from './update-knowledge-article';
 import { withKnowledgeArticleFreshness } from './with-knowledge-article-freshness';
@@ -69,9 +70,11 @@ export class KnowledgeBaseService {
         context.actorUserId,
         fresh.map((record) => record.id),
       );
-      return fresh.map((record) =>
-        toKnowledgeArticleResponse(record, votes.get(record.id) ?? null),
-      );
+      const labels = await loadKnowledgeArticleLabels(this.prisma, fresh);
+      return fresh.map((record) => ({
+        ...toKnowledgeArticleResponse(record, votes.get(record.id) ?? null),
+        ...labels.get(record.id),
+      }));
     });
   }
 
@@ -97,7 +100,11 @@ export class KnowledgeBaseService {
         context.actorUserId,
         [fresh.id],
       );
-      return toKnowledgeArticleResponse(fresh, votes.get(fresh.id) ?? null);
+      const labels = await loadKnowledgeArticleLabels(this.prisma, [fresh]);
+      return {
+        ...toKnowledgeArticleResponse(fresh, votes.get(fresh.id) ?? null),
+        ...labels.get(fresh.id),
+      };
     });
   }
 

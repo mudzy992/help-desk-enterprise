@@ -19,6 +19,7 @@ import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
 interface DashboardMetricGridProperties {
   readonly summary: DashboardSummary;
   readonly inboxCount: number | null;
+  readonly isStaff: boolean;
 }
 
 type MetricLabelKey =
@@ -56,16 +57,27 @@ type Metric = {
   readonly deltaTone?: BadgeTone;
 };
 
+// Queue-handling metrics (assigned, unassigned, unrouted, approvals, inbox) are
+// meaningless for a requester, who only tracks their own tickets.
+const requesterMetricLabelKeys: readonly MetricLabelKey[] = [
+  "dashboard.metricOpen",
+  "dashboard.metricWaitingForUser",
+  "dashboard.metricRequestedByMe",
+];
+
 export function DashboardMetricGrid({
   summary,
   inboxCount,
+  isStaff,
 }: DashboardMetricGridProperties) {
   const { t } = useTranslation();
   const openedTodayDelta =
     summary.openedToday > 0
       ? t("dashboard.deltaOpenedToday", { count: summary.openedToday })
       : undefined;
-  const metrics = buildDashboardMetrics(summary, inboxCount, openedTodayDelta);
+  const metrics = buildDashboardMetrics(summary, inboxCount, openedTodayDelta).filter(
+    (metric) => isStaff || requesterMetricLabelKeys.includes(metric.labelKey),
+  );
 
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">

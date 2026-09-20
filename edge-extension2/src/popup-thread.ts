@@ -1,0 +1,2 @@
+import type {ExtensionThreadMessage} from './lib/extension-messages';import {t} from './lib/i18n';
+export function renderThreadMessages(el:Element|null,m:readonly ExtensionThreadMessage[]){if(!(el instanceof HTMLOListElement))return;el.replaceChildren();if(!m.length){const e=document.createElement('li');e.className='message-empty';e.textContent=t('noMessages');el.append(e);return;}for(const x of m){const li=document.createElement('li');li.className='message';li.textContent=x.body;el.append(li);}}

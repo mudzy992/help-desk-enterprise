@@ -70,7 +70,10 @@ function ResolutionBody({
   const { t } = useTranslation();
   const queue = resolution.unroutedQueue ?? null;
   const groupDisplay =
-    groupLabel ?? resolution.groupId ?? t("routing.noGroup");
+    groupLabel ??
+    (resolution.groupId === null || resolution.groupId === undefined
+      ? t("routing.noGroup")
+      : t("tickets.detail.unknownGroup"));
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">

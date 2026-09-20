@@ -64,29 +64,6 @@ export function truncateIdentifier(value: string | null): string {
   return `${value.slice(0, 8)}…`;
 }
 
-export function formatRelativeTicketTime(value: string, locale: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  const diffMs = date.getTime() - Date.now();
-  const absolute = Math.abs(diffMs);
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-  const minute = 60_000;
-  const hour = 3_600_000;
-  const day = 86_400_000;
-  if (absolute < minute) {
-    return formatter.format(0, "second");
-  }
-  if (absolute < hour) {
-    return formatter.format(Math.round(diffMs / minute), "minute");
-  }
-  if (absolute < day) {
-    return formatter.format(Math.round(diffMs / hour), "hour");
-  }
-  return formatter.format(Math.round(diffMs / day), "day");
-}
-
 export function formatByteSize(bytes: number): string {
   if (bytes < 1024) {
     return `${bytes} B`;

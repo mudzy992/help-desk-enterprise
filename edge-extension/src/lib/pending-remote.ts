@@ -1,3 +1,8 @@
+/**
+ * Pending `remote.requested` tiketi u `chrome.storage.session`.
+ * Izvor istine je backend (`GET /edge-extension/remote-requests/pending`);
+ * ovo je SW-lokalni keš kojem popup čita CTA stanje.
+ */
 const pendingRemoteSessionKey = 'pendingRemoteTicketIds';
 
 export async function rememberPendingRemote(ticketId: string): Promise<void> {

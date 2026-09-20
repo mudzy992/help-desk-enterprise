@@ -1,6 +1,11 @@
 import { extensionVersion } from './extension-messages';
 import { helpdeskRequest } from './helpdesk-http';
 
+/**
+ * Odgovor `GET /edge-extension/bootstrap` — server svaku "pustio/nije pustio"
+ * odluku spušta klijentu (kill switch, addon/modul flagovi, domen, verzija).
+ * Ugovor 1:1 sa backend `EdgeExtensionService.buildBootstrap`.
+ */
 export type EdgeExtensionBootstrap = {
   readonly allowed: boolean;
   readonly reason: string;
@@ -12,6 +17,8 @@ export type EdgeExtensionBootstrap = {
   readonly redactedPreviews: boolean;
   readonly receiptsEnabled: boolean;
   readonly dedupEnabled: boolean;
+  readonly minClientVersion: string | null;
+  readonly allowedEmailDomain: string | null;
   readonly subjectId: string;
   readonly chatEnabled: boolean;
   readonly chatMaxMessagesPerTicket: number;

@@ -4,13 +4,15 @@ import {
   type DashboardSummary,
 } from "@/lib/dashboard/summarize-tickets";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
+import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { readApiRequestId } from "@/lib/map-api-error";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
-import { listServices } from "@/services/service-catalog-api";
+import { listOfferedServices, listServices } from "@/services/service-catalog-api";
 import {
   listGroupInbox,
   listTickets,
@@ -18,6 +20,7 @@ import {
 } from "@/services/tickets-api";
 
 export type DashboardSummaryState = {
+  readonly isStaff: boolean;
   readonly summary: DashboardSummary | null;
   readonly inboxCount: number | null;
   readonly inboxTickets: readonly TicketResponse[] | null;
@@ -32,6 +35,7 @@ export type DashboardSummaryState = {
 
 export function useDashboardSummary(): DashboardSummaryState {
   const { currentUserId } = useSession();
+  const isStaff = isTicketStaff(useSessionCapabilities());
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [inboxTickets, setInboxTickets] = useState<
     readonly TicketResponse[] | null
@@ -59,10 +63,10 @@ export function useDashboardSummary(): DashboardSummaryState {
       const tickets = await listTickets();
       setSummary(summarizeTickets(tickets, currentUserId));
       const [inbox, catalog, tree, rules] = await Promise.all([
-        listGroupInbox().catch(() => null),
-        listServices().catch(() => []),
+        isStaff ? listGroupInbox().catch(() => null) : Promise.resolve(null),
+        listServices().catch(() => listOfferedServices().catch(() => [])),
         listOrganizationalUnitTree().catch(() => []),
-        listRoutingRules().catch(() => []),
+        isStaff ? listRoutingRules().catch(() => []) : Promise.resolve([]),
       ]);
       setInboxTickets(inbox);
       setServiceNames(
@@ -88,7 +92,7 @@ export function useDashboardSummary(): DashboardSummaryState {
         setIsLoading(false);
       }
     }
-  }, [currentUserId]);
+  }, [currentUserId, isStaff]);
 
   useEffect(() => {
     void reload();
@@ -100,6 +104,7 @@ export function useDashboardSummary(): DashboardSummaryState {
   useTicketCollectionRealtime(reloadSilent);
 
   return {
+    isStaff,
     summary,
     inboxCount: inboxTickets === null ? null : inboxTickets.length,
     inboxTickets,

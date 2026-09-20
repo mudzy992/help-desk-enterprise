@@ -107,7 +107,11 @@ export function TicketListPage() {
         />
       ) : (
         <>
-          <TicketWorkspaceNav view={list.view} inboxHidden={list.inboxHidden} />
+          <TicketWorkspaceNav
+            view={list.view}
+            inboxHidden={list.inboxHidden}
+            isStaff={list.isStaff}
+          />
           <div className="mt-4 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
             <TicketSavedViewsPanel
               filters={list.filters}

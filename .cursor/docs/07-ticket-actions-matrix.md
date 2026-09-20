@@ -35,7 +35,7 @@ prikazuju kao vlastite greške pri izvršavanju.
 | Odobrenja | odobravalac | odobravalac | odobravalac | odobravalac | samo određeni odobravalac |
 | CSAT | — | — | — | da | samo podnosilac nakon rješenja |
 | Break-glass | da | ne | ne | ne | permisija `confidential.break_glass` |
-| Tab Aktivnost (audit) | da | da | da | ne | staff (sistemski događaji su staff-only i na serveru) |
+| Tab Aktivnost | puni audit | puni audit | puni audit | tok tiketa | staff vidi sve sistemske događaje i izmjene polja; USER vidi kuriranu listu javnih događaja (`GET /tickets/:id/activity`) |
 
 "Staff" znači SuperAdmin ili AGENT/ADMIN dodjela koja pokriva OJ i servis tiketa. Arhivirani tiket
 nema nijednu mutirajuću akciju.
@@ -50,3 +50,29 @@ nema nijednu mutirajuću akciju.
 - `GET /tickets/:id/history` (staff) — izmjene statusa, prioriteta, uticaja, hitnosti, agenta i grupe iz
   change log-a (samo dozvoljena polja, nikad snapshot tiketa).
 - `GET /tickets/:id/sla-context` — profil i kalendar iza SLA tajmera, ili razlog zašto tajmeri ne postoje.
+
+## Šta USER vidi u aktivnosti
+
+Samo događaji iz `publicTicketSystemEventActions` (`backend/.../context/public-activity.constants.ts`):
+kreiran, dodijeljen, preuzet, riješen, zatvoren, čeka korisnika (ulazak, nastavak, podsjetnik,
+automatsko zatvaranje), ponovo otvoren (i novi tiket), podjela (i podtiket), CSAT, arhiviran, udaljena
+podrška (zahtjev, potvrda). SLA, učesnici, evidencija vremena, odobrenja, prilozi, bulk, sigurnosni i
+povjerljivi događaji ostaju interni. Automatska dodjela se bilježi kao radnja **Sistema** i imenuje
+dodijeljenog agenta (`ticket_assigned:<userId>`).
+
+## Realtime
+
+Poruke koje nisu javne (interne napomene, sistemski događaji, odluke o odobrenju) šalju se samo u
+staff sobu tiketa, nikad u sobu grupe: u sobu grupe se ulazi samo članstvom, pa član bez staff pristupa
+tom tiketu ne smije primiti njihov sadržaj. Frontend dodatno odbacuje takve poruke ako gledalac nije staff
+(`filterVisibleMessages`).
+
+## Navigacija i ekrani po ulozi
+
+| Element | SUPER_ADMIN / ADMIN / AGENT | USER |
+|---|---|---|
+| Sidebar: Inbox | da | ne |
+| Pogledi liste tiketa | Inbox, Dodijeljeno meni, Nedodijeljeno, Podnio sam, Svi | Podnio sam, Svi (zadani: Svi) |
+| Brojač Inboxa u sidebaru | da | ne (ne poziva se inbox endpoint) |
+| Dashboard: Inbox, Neusmjereni, Dodijeljeno, Nedodijeljeno, Odobrenja, SLA lista, Inbox snapshot | da | ne |
+| Baza znanja: uređivanje, review, objava, arhiva | uz permisiju | ne (ni uz permisiju; potrebna je i staff uloga) |

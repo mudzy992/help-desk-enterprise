@@ -2300,7 +2300,32 @@
         "urgency": "urgency changed: {{from}} → {{to}}",
         "assignedUser": "assignee changed: {{from}} → {{to}}",
         "assignedGroup": "group changed: {{from}} → {{to}}"
-      }
+      },
+      "assignedTo": "ticket automatically assigned to {{name}}",
+      "subtitlePublic": "Your ticket's progress: key changes and handling steps"
     }
+  },
+  "relativeTime": {
+    "justNow": "just now",
+    "yesterday": "yesterday",
+    "tomorrow": "tomorrow",
+    "agoMinutes_one": "{{count}} minute ago",
+    "agoMinutes_few": "{{count}} minutes ago",
+    "agoMinutes_other": "{{count}} minutes ago",
+    "inMinutes_one": "in {{count}} minute",
+    "inMinutes_few": "in {{count}} minutes",
+    "inMinutes_other": "in {{count}} minutes",
+    "agoHours_one": "{{count}} hour ago",
+    "agoHours_few": "{{count}} hours ago",
+    "agoHours_other": "{{count}} hours ago",
+    "inHours_one": "in {{count}} hour",
+    "inHours_few": "in {{count}} hours",
+    "inHours_other": "in {{count}} hours",
+    "agoDays_one": "{{count}} day ago",
+    "agoDays_few": "{{count}} days ago",
+    "agoDays_other": "{{count}} days ago",
+    "inDays_one": "in {{count}} day",
+    "inDays_few": "in {{count}} days",
+    "inDays_other": "in {{count}} days"
   }
 }

@@ -2300,7 +2300,32 @@
         "urgency": "hitnost promijenjena: {{from}} → {{to}}",
         "assignedUser": "agent promijenjen: {{from}} → {{to}}",
         "assignedGroup": "grupa promijenjena: {{from}} → {{to}}"
-      }
+      },
+      "assignedTo": "tiket automatski dodijeljen: {{name}}",
+      "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade"
     }
+  },
+  "relativeTime": {
+    "justNow": "upravo sada",
+    "yesterday": "jučer",
+    "tomorrow": "sutra",
+    "agoMinutes_one": "prije {{count}} minutu",
+    "agoMinutes_few": "prije {{count}} minute",
+    "agoMinutes_other": "prije {{count}} minuta",
+    "inMinutes_one": "za {{count}} minutu",
+    "inMinutes_few": "za {{count}} minute",
+    "inMinutes_other": "za {{count}} minuta",
+    "agoHours_one": "prije {{count}} sat",
+    "agoHours_few": "prije {{count}} sata",
+    "agoHours_other": "prije {{count}} sati",
+    "inHours_one": "za {{count}} sat",
+    "inHours_few": "za {{count}} sata",
+    "inHours_other": "za {{count}} sati",
+    "agoDays_one": "prije {{count}} dan",
+    "agoDays_few": "prije {{count}} dana",
+    "agoDays_other": "prije {{count}} dana",
+    "inDays_one": "za {{count}} dan",
+    "inDays_few": "za {{count}} dana",
+    "inDays_other": "za {{count}} dana"
   }
 }

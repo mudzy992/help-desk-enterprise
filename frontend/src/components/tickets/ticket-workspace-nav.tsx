@@ -1,20 +1,22 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ticketWorkspaceViews, ticketViewLabelKey, type TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
+import { ticketViewLabelKey, workspaceViewsFor, type TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { cn } from "@/lib/utils";
 
 interface TicketWorkspaceNavProperties {
   readonly view: TicketWorkspaceView;
   readonly inboxHidden: boolean;
+  readonly isStaff: boolean;
 }
 
 export function TicketWorkspaceNav({
   view,
   inboxHidden,
+  isStaff,
 }: TicketWorkspaceNavProperties) {
   const { t } = useTranslation();
-  const views = ticketWorkspaceViews.filter(
+  const views = workspaceViewsFor(isStaff).filter(
     (item) => !(inboxHidden && item === "inbox"),
   );
 

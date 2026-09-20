@@ -1,25 +1,47 @@
 {
   "manifest_version": 3,
-  "name": "EP-HelpDesk",
-  "version": "0.0.1",
-  "description": "Redacted HelpDesk notifications for Microsoft Edge.",
+  "name": "__MSG_extensionName__",
+  "short_name": "EP-HelpDesk",
+  "version": "1.0.0",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "bs",
+  "author": "EP-HelpDesk",
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "EP-HelpDesk",
-    "default_icon": "icon.png"
+    "default_title": "__MSG_actionTitle__",
+    "default_icon": {
+      "16": "icons/icon-128.png",
+      "32": "icons/icon-128.png",
+      "48": "icons/icon-128.png",
+      "128": "icons/icon-128.png"
+    }
   },
   "icons": {
-    "16": "icon.png"
+    "16": "icons/icon-128.png",
+    "32": "icons/icon-128.png",
+    "48": "icons/icon-128.png",
+    "128": "icons/icon-128.png"
   },
-  "permissions": ["notifications", "storage"],
+  "permissions": ["notifications", "storage", "alarms"],
   "host_permissions": [
     "http://localhost:10001/*",
     "http://127.0.0.1:10001/*",
     "https://*.ba101.top/*",
     "https://*.epbih.ba/*"
-  ]
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "__MSG_commandOpenPopup__"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'"
+  }
 }

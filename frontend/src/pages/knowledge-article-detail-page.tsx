@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { KnowledgeArticleDetailPanel } from "@/components/knowledge-base/knowledge-article-detail-panel";
@@ -9,54 +9,23 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useKnowledgeArticle } from "@/lib/knowledge-base/use-knowledge-article";
-import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { resolveKnowledgeCapabilities } from "@/lib/knowledge-base/knowledge-capabilities";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import { truncateIdentifier } from "@/lib/tickets/ticket-display";
-import { listServices } from "@/services/service-catalog-api";
+import { pickName } from "@/lib/tickets/ticket-names";
 
 export function KnowledgeArticleDetailPage() {
   const { t } = useTranslation();
   const { articleId } = useParams<{ articleId: string }>();
   const directory = useDirectory();
-  const { hasPermission, hasRole, session } = useSessionCapabilities();
-  const isSuperAdmin =
-    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
+  const { isSuperAdmin, canWrite, canManageLifecycle } = resolveKnowledgeCapabilities(
+    useSessionCapabilities(),
+  );
   const detail = useKnowledgeArticle(articleId);
-  const [serviceName, setServiceName] = useState<string | null>(null);
   const ownerNames = useMemo(
     () => new Map(directory.users.map((user) => [user.id, user.displayName])),
     [directory.users],
   );
-  const canWrite = hasPermission(permissionKeys.knowledgeArticleWrite);
-  const canManageLifecycle =
-    hasPermission(permissionKeys.knowledgeArticleReview) ||
-    hasPermission(permissionKeys.knowledgeArticlePublish);
   const articleTitle = detail.article?.title ?? t("knowledgeBase.title");
-
-  useEffect(() => {
-    const serviceId = detail.article?.serviceId;
-    if (serviceId === undefined) {
-      setServiceName(null);
-      return;
-    }
-    let cancelled = false;
-    void listServices()
-      .then((services) => {
-        if (!cancelled) {
-          setServiceName(
-            services.find((service) => service.id === serviceId)?.name ?? null,
-          );
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setServiceName(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [detail.article?.serviceId]);
 
   return (
     <section>
@@ -90,9 +59,7 @@ export function KnowledgeArticleDetailPage() {
           isSuperAdmin={isSuperAdmin}
           users={directory.users}
           ownerNames={ownerNames}
-          serviceName={
-            serviceName ?? truncateIdentifier(detail.article.serviceId)
-          }
+          serviceName={pickName(detail.article.serviceName) ?? "—"}
           onChanged={detail.reload}
         />
       )}

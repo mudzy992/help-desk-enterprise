@@ -106,7 +106,10 @@ export async function applyTicketAutoAssignment(
       await insertSystemTicketEvent(transaction as PrismaService, {
         ticketId: updated.id,
         action: ticketSystemEventActions.assigned,
-        actorUserId,
+        // Automatic routing is not an action of the person who opened the
+        // ticket, so the event has no author and names the chosen assignee.
+        actorUserId: null,
+        detail: assignedUserId,
       }),
     );
     return updated;

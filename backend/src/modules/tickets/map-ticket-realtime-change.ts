@@ -58,16 +58,19 @@ export function mapTicketRealtimeChange(
   if (messageType !== 'SYSTEM_EVENT' || sourceAction === null) {
     return null;
   }
-  const mapped = publicChangeByAction[sourceAction];
+  const mapped = publicChangeByAction[baseAction(sourceAction)];
   if (mapped !== undefined) {
     return mapped;
-  }
-  if (staffOnlyActions.has(sourceAction)) {
-    return 'updated';
   }
   return 'updated';
 }
 
+// System event bodies are `action` or `action:detail`.
+function baseAction(sourceAction: string): string {
+  const separator = sourceAction.indexOf(':');
+  return separator === -1 ? sourceAction : sourceAction.slice(0, separator);
+}
+
 export function isStaffOnlyTicketRealtimeAction(sourceAction: string | null): boolean {
-  return sourceAction !== null && staffOnlyActions.has(sourceAction);
+  return sourceAction !== null && staffOnlyActions.has(baseAction(sourceAction));
 }

@@ -1,0 +1,3 @@
+import {helpdeskRequest} from './helpdesk-http';import type {ExtensionInboxTicket} from './extension-messages';import {isOpenRequesterTicket} from './filter-extension-chat';
+type T={id:string;ticketNumber:string;title:string;status:string;requesterId:string};
+export async function fetchExtensionInbox(i:{apiBaseUrl:string;accessToken:string;subjectId:string}):Promise<ExtensionInboxTicket[]>{const t=await helpdeskRequest<T[]>({apiBaseUrl:i.apiBaseUrl,accessToken:i.accessToken,path:'/tickets'});return t.filter(x=>isOpenRequesterTicket({requesterId:x.requesterId,subjectId:i.subjectId,status:x.status})).map(x=>({id:x.id,ticketNumber:x.ticketNumber,title:x.title,status:x.status}));}

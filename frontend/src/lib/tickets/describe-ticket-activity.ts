@@ -8,6 +8,7 @@ import {
   isActivityMessage,
   messageActivityKind,
   parseSystemEventBody,
+  systemEventKind,
   systemEventTextKey,
   type TicketActivityKind,
 } from "@/lib/tickets/ticket-system-events";
@@ -16,6 +17,7 @@ import type { TicketMessageResponse } from "@/services/tickets-collaboration-api
 import type {
   TicketHistoryChange,
   TicketHistoryEntry,
+  TicketPublicActivityEntry,
 } from "@/services/tickets-context-api";
 
 export type TicketActivityItem = {
@@ -62,13 +64,46 @@ export function describeMessageActivity(
       note: message.body.trim().length > 0 ? message.body : null,
     };
   }
-  const { action } = parseSystemEventBody(message.body);
+  const { action, detail } = parseSystemEventBody(message.body);
   return {
     id: message.id,
     at: message.createdAt,
     kind: messageActivityKind(message),
     actor,
-    text: ticketText(t, systemEventTextKey(action)),
+    text: describeEventText(
+      action,
+      detail === null
+        ? null
+        : (authorNames.get(detail) ?? ticketText(t, "tickets.detail.unknownUser")),
+      t,
+    ),
+    note: null,
+  };
+}
+
+/** Event text; an assignment names who the ticket was assigned to. */
+function describeEventText(
+  action: string,
+  targetName: string | null,
+  t: TFunction,
+): string {
+  if (action === "ticket_assigned" && targetName !== null) {
+    return ticketText(t, "tickets.activity.assignedTo", { name: targetName });
+  }
+  return ticketText(t, systemEventTextKey(action));
+}
+
+/** An entry from the requester-safe activity endpoint. */
+export function describePublicActivity(
+  entry: TicketPublicActivityEntry,
+  t: TFunction,
+): TicketActivityItem {
+  return {
+    id: entry.id,
+    at: entry.createdAt,
+    kind: systemEventKind(entry.action),
+    actor: entry.actorName ?? ticketText(t, "tickets.activity.system"),
+    text: describeEventText(entry.action, entry.targetName, t),
     note: null,
   };
 }
@@ -114,10 +149,12 @@ export function describeHistoryActivity(
 export function buildActivityTimeline(input: {
   readonly messages: readonly TicketMessageResponse[];
   readonly history: readonly TicketHistoryEntry[];
+  readonly publicEntries?: readonly TicketPublicActivityEntry[];
   readonly authorNames: ReadonlyMap<string, string>;
   readonly t: TFunction;
 }): readonly TicketActivityItem[] {
   const items = [
+    ...(input.publicEntries ?? []).map((entry) => describePublicActivity(entry, input.t)),
     ...input.messages
       .filter(isActivityMessage)
       .map((message) => describeMessageActivity(message, input.authorNames, input.t)),

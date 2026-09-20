@@ -2,6 +2,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { canViewTicketMessage } from '../ticket-message-visibility';
+import { readSystemEventTargetUserId } from './public-activity.constants';
 import type { TicketMutationContext } from '../tickets.types';
 import type {
   TicketGroupRef,
@@ -52,7 +53,7 @@ export async function loadTicketPeople(
       }),
       prisma.ticketMessage.findMany({
         where: { ticketId },
-        select: { authorUserId: true, type: true },
+        select: { authorUserId: true, type: true, body: true },
       }),
       prisma.ticketAttachment.findMany({
         where: { ticketId },
@@ -78,6 +79,9 @@ export async function loadTicketPeople(
   for (const message of messages) {
     if (canViewTicketMessage(access.visibility, message.type)) {
       addUser(collector, message.authorUserId);
+      if (message.type === 'SYSTEM_EVENT') {
+        addUser(collector, readSystemEventTargetUserId(message.body));
+      }
     }
   }
   for (const attachment of attachments) {

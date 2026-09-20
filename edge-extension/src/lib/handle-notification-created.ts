@@ -1,52 +1,86 @@
 import type { EdgeExtensionBootstrap } from './bootstrap-client';
-import { rememberEventId, rememberTicketForEvent } from './event-dedup';
+import { rememberEventId, rememberEventMeta } from './event-dedup';
 import { rememberPendingRemote } from './pending-remote';
-import { sendNotificationReceipt } from './receipts-client';
+import { sendNotificationReceiptQuietly } from './receipts-client';
 import { showRedactedToast } from './redacted-toast';
 
-type NotificationCreatedPayload = {
+/**
+ * Obrada jednog `notification.created` eventa (WS ili polling).
+ * Isti `eventId` može stići iz oba kanala (EDGE_EVENT queue + WS) — dedup
+ * osigurava da korisnik vidi tačno jedan toast i da se receipt pošalje
+ * tačno jednom.
+ */
+export type NotificationRealtimePayload = {
   readonly eventId?: string;
-  readonly createdAt?: string;
   readonly notification?: {
     readonly id: string;
     readonly type: string;
     readonly title?: string | null;
     readonly body?: string | null;
+    readonly isRead?: boolean;
     readonly ticketId: string | null;
-    readonly payload?: { readonly serviceName?: string } | null;
+    readonly payload?: {
+      readonly ticketNumber?: string;
+      readonly serviceName?: string;
+    } | null;
   } | null;
+  readonly unreadCount?: number;
+};
+
+export type NotificationHandlingResult = {
+  /** true = novi, ne-duplikat event koji je stvarno obradio klijent. */
+  readonly accepted: boolean;
+  readonly unreadCount: number | null;
+  readonly isRemoteRequest: boolean;
 };
 
 export async function handleNotificationCreated(input: {
-  readonly payload: NotificationCreatedPayload;
+  readonly payload: NotificationRealtimePayload;
   readonly bootstrap: EdgeExtensionBootstrap;
   readonly apiBaseUrl: string;
   readonly accessToken: string;
-}): Promise<void> {
-  const notification = input.payload.notification;
-  if (notification === null || notification === undefined) {
-    return;
+}): Promise<NotificationHandlingResult> {
+  const unreadCount =
+    typeof input.payload.unreadCount === 'number'
+      ? input.payload.unreadCount
+      : null;
+
+  const notification = input.payload.notification ?? null;
+  if (notification === null || typeof notification.id !== 'string' || notification.id.length === 0) {
+    // readAll / count-only envelope — ništa za toast.
+    return { accepted: false, unreadCount, isRemoteRequest: false };
   }
-  const eventId = input.payload.eventId ?? notification.id;
+
+  const eventId =
+    typeof input.payload.eventId === 'string' && input.payload.eventId.length > 0
+      ? input.payload.eventId
+      : notification.id;
+
   if (!rememberEventId(eventId, input.bootstrap.dedupEnabled)) {
-    return;
+    return { accepted: false, unreadCount, isRemoteRequest: false };
   }
-  rememberTicketForEvent(eventId, notification.ticketId);
-  if (
-    notification.type === 'remote.requested' &&
-    typeof notification.ticketId === 'string' &&
-    notification.ticketId.length > 0
-  ) {
-    await rememberPendingRemote(notification.ticketId);
+
+  const ticketId =
+    typeof notification.ticketId === 'string' && notification.ticketId.length > 0
+      ? notification.ticketId
+      : null;
+  rememberEventMeta(eventId, ticketId, notification.id);
+
+  const isRemoteRequest = notification.type === 'remote.requested';
+  if (isRemoteRequest && ticketId !== null) {
+    await rememberPendingRemote(ticketId);
   }
+
   await showRedactedToast({
     eventId,
     type: notification.type,
-    ticketId: notification.ticketId,
+    ticketId,
+    ticketNumber: notification.payload?.ticketNumber ?? null,
     serviceName: notification.payload?.serviceName,
   });
+
   if (input.bootstrap.receiptsEnabled) {
-    await sendNotificationReceipt({
+    sendNotificationReceiptQuietly({
       apiBaseUrl: input.apiBaseUrl,
       accessToken: input.accessToken,
       notificationId: notification.id,
@@ -54,4 +88,6 @@ export async function handleNotificationCreated(input: {
       kind: 'delivered',
     });
   }
+
+  return { accepted: true, unreadCount, isRemoteRequest };
 }

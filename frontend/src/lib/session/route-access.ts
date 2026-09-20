@@ -7,6 +7,7 @@ import type { SessionCapabilities } from "@/lib/session/use-session-capabilities
 export const navigationAccessKinds = {
   authenticated: "authenticated",
   admin: "admin",
+  staff: "staff",
   reports: "reports",
   integrationQueue: "integrationQueue",
   configVersions: "configVersions",
@@ -26,6 +27,23 @@ export function canOpenAdminArea(capabilities: SessionCapabilities): boolean {
   }
   return (
     session.isSuperAdmin === true ||
+    capabilities.hasRole(roleKeys.admin) ||
+    capabilities.hasRole(roleKeys.superAdmin)
+  );
+}
+
+/**
+ * Ticket staff: SuperAdmin, AGENT or ADMIN. Requesters (USER) never work the
+ * group inbox, so screens built for handling tickets are hidden from them.
+ */
+export function isTicketStaff(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null) {
+    return false;
+  }
+  return (
+    session.isSuperAdmin === true ||
+    capabilities.hasRole(roleKeys.agent) ||
     capabilities.hasRole(roleKeys.admin) ||
     capabilities.hasRole(roleKeys.superAdmin)
   );
@@ -94,6 +112,8 @@ export function canAccessNavigationItem(
       return true;
     case navigationAccessKinds.admin:
       return canOpenAdminArea(capabilities);
+    case navigationAccessKinds.staff:
+      return isTicketStaff(capabilities);
     case navigationAccessKinds.reports:
       return canOpenReports(capabilities);
     case navigationAccessKinds.integrationQueue:

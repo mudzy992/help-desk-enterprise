@@ -67,7 +67,7 @@ export const inboxNavigationItem: NavigationItem = {
   path: "/tickets?view=inbox",
   labelKey: navigationLabelKeys.inbox,
   end: true,
-  access: { kind: navigationAccessKinds.authenticated },
+  access: { kind: navigationAccessKinds.staff },
 };
 
 export const servicesNavigationItem: NavigationItem = {

@@ -19,9 +19,12 @@ export function broadcastTicketMessage(
   if (payload.visibility === 'public') {
     server.to(ticketPublicRoomName(payload.ticketId)).emit(event, payload);
     server.to(userRoomName(payload.requesterId)).emit(event, payload);
-  }
-  if (payload.assignedGroupId !== null) {
-    server.to(groupRoomName(payload.assignedGroupId)).emit(event, payload);
+    // Group rooms are joined by membership alone, so a member without staff
+    // access to this ticket must never receive internal notes or system
+    // events; staff read those in the ticket's staff room after joining it.
+    if (payload.assignedGroupId !== null) {
+      server.to(groupRoomName(payload.assignedGroupId)).emit(event, payload);
+    }
   }
 }
 

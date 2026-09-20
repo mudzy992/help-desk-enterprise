@@ -37,9 +37,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
                 {entry.diff.action} · {entry.entityType}
               </Badge>
               <span className="text-[11.5px] text-muted">
-                {entry.actorDisplayName ??
-                  entry.actorUserId ??
-                  t("routing.changeUnknownActor")}{" "}
+                {entry.actorDisplayName ?? t("routing.changeUnknownActor")}{" "}
                 · <RelativeTime value={entry.createdAt} locale={i18n.language} />
               </span>
             </div>

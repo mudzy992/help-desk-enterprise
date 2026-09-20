@@ -1,0 +1,18 @@
+{
+  "extensionName": {
+    "message": "EP-HelpDesk",
+    "description": "Extension name shown in the Edge Add-ons catalogue."
+  },
+  "extensionDescription": {
+    "message": "EP-HelpDesk companion: redacted notifications, ticket mini-inbox, quick replies and Quick Assist — right inside Microsoft Edge.",
+    "description": "Store listing description."
+  },
+  "actionTitle": {
+    "message": "EP-HelpDesk — tickets & notifications",
+    "description": "Toolbar icon tooltip."
+  },
+  "commandOpenPopup": {
+    "message": "Open the EP-HelpDesk popup",
+    "description": "Keyboard shortcut description."
+  }
+}

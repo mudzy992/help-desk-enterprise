@@ -12,7 +12,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { knowledgeListFiltersAreActive } from "@/lib/knowledge-base/filter-knowledge-articles";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
-import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { resolveKnowledgeCapabilities } from "@/lib/knowledge-base/knowledge-capabilities";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import {
@@ -27,9 +27,9 @@ const searchDebounceMs = 300;
 export function KnowledgeBasePage() {
   const { t } = useTranslation();
   const directory = useDirectory();
-  const { hasPermission, hasRole, session } = useSessionCapabilities();
-  const isSuperAdmin =
-    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
+  const capabilities = useSessionCapabilities();
+  const { isSuperAdmin, canWrite, canManageLifecycle } =
+    resolveKnowledgeCapabilities(capabilities);
   const [searchParams] = useSearchParams();
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
@@ -102,10 +102,6 @@ export function KnowledgeBasePage() {
     () => new Map(services.map((service) => [service.id, service.name])),
     [services],
   );
-  const canWrite = hasPermission(permissionKeys.knowledgeArticleWrite);
-  const canManageLifecycle =
-    hasPermission(permissionKeys.knowledgeArticleReview) ||
-    hasPermission(permissionKeys.knowledgeArticlePublish);
   const reviewDueCount = items.filter((item) => item.status === "IN_REVIEW").length;
   const staleCount = items.filter((item) => item.isStale).length;
   const subtitle =

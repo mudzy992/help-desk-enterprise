@@ -2,50 +2,137 @@
 <html lang="bs">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>EP-HelpDesk</title>
     <link rel="stylesheet" href="/src/popup.css" />
   </head>
   <body>
-    <main>
-      <h1>EP-HelpDesk</h1>
-      <p id="status">Nije prijavljen.</p>
-      <form id="login-form">
-        <label>
-          API URL
-          <input id="api-base-url" type="url" required placeholder="http://localhost:10001" />
-        </label>
-        <label>
-          Email
-          <input id="email" type="email" required autocomplete="username" />
-        </label>
-        <label>
-          Lozinka
-          <input id="password" type="password" required autocomplete="current-password" />
-        </label>
-        <button type="submit">Prijava</button>
-      </form>
-      <p id="error" hidden></p>
-      <section id="workspace" hidden>
-        <h2>Otvoreni tiketi</h2>
-        <ul id="inbox"></ul>
-        <p id="inbox-empty" hidden>Nema otvorenih tiketa.</p>
-        <div id="thread" hidden>
-          <h2 id="thread-title"></h2>
-          <ol id="messages"></ol>
-          <form id="reply-form">
-            <label>
-              Quick reply
-              <textarea id="reply-body" rows="3" required></textarea>
-            </label>
-            <button type="submit">Pošalji</button>
-          </form>
-          <button id="open-desk-ticket" type="button">Open in Desk</button>
-          <button id="open-quick-assist" type="button" hidden>Open Quick Assist</button>
+    <div class="app">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand__mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
+              <path d="M3 14a2 2 0 0 1 2-2h1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a2 2 0 0 1-2-2v-2z" />
+              <path d="M21 14a2 2 0 0 0-2-2h-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1a2 2 0 0 0 2-2v-2z" />
+              <path d="M19 16v1.5a2.5 2.5 0 0 1-2.5 2.5H13" />
+            </svg>
+          </span>
+          <span class="brand__texts">
+            <span class="brand__name">EP-HelpDesk</span>
+            <span class="brand__tagline" id="brand-tagline"></span>
+          </span>
         </div>
-        <button id="open-desk" type="button">Open in Desk</button>
-        <button id="sign-out" type="button">Odjava</button>
-      </section>
-    </main>
-    <script type="module" src="/src/popup.ts"></script>
+        <div class="header-controls">
+          <span id="header-user-name" class="header-user-name" hidden></span>
+          <span id="unread-pill" class="unread-pill" hidden>0</span>
+          <button id="lang-toggle" class="lang-toggle" type="button" aria-label="Promijeni jezik / Change language">BS</button>
+          <span id="conn-pill" class="conn-pill conn-pill--muted">
+            <span id="conn-pill-icon" class="conn-pill__icon" aria-hidden="true"></span>
+            <span id="conn-pill-label"></span>
+          </span>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <section id="view-login" class="view" aria-label="Prijava">
+          <div class="login-hero">
+            <h1 id="login-welcome-title" class="login-hero__title"></h1>
+            <p id="login-welcome-subtitle" class="login-hero__subtitle"></p>
+          </div>
+
+          <div id="login-error" class="form-error" role="alert" hidden></div>
+
+          <form id="login-form" class="form" novalidate>
+            <label class="field">
+              <span class="field__label" id="login-email-label"></span>
+              <input id="login-email" type="email" required autocomplete="username" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span class="field__label" id="login-password-label"></span>
+              <input id="login-password" type="password" required autocomplete="current-password" />
+            </label>
+            <button id="login-submit" class="btn btn--primary" type="submit">
+              <span data-role="label"></span>
+            </button>
+          </form>
+
+          <button id="login-advanced-toggle" type="button" class="linklike" aria-expanded="false"></button>
+          <div id="login-advanced" hidden>
+            <label class="field">
+              <span class="field__label" id="login-api-url-label"></span>
+              <input id="login-api-url" type="url" inputmode="url" spellcheck="false" />
+            </label>
+          </div>
+        </section>
+
+        <section id="view-inbox" class="view" aria-label="Tiketi" hidden>
+          <div class="inbox-toolbar">
+            <h2 id="inbox-title" class="section-title"></h2>
+            <button id="inbox-refresh" class="icon-btn" type="button"></button>
+          </div>
+          <input id="inbox-search" class="search-box" type="search" autocomplete="off" />
+          <div id="remote-banner" class="remote-banner" hidden></div>
+          <ul id="ticket-list" class="ticket-list"></ul>
+          <div id="inbox-empty" class="empty-state" hidden></div>
+        </section>
+
+        <section id="view-thread" class="view view--thread" aria-label="Razgovor" hidden>
+          <div class="thread-topbar">
+            <button id="thread-back" class="icon-btn" type="button"></button>
+            <div class="thread-topbar__meta">
+              <div class="thread-topbar__row">
+                <span id="thread-number" class="thread-number"></span>
+                <span id="thread-chips" class="thread-chips"></span>
+              </div>
+              <span id="thread-title" class="thread-title"></span>
+            </div>
+            <button id="thread-open-desk" class="icon-btn" type="button"></button>
+          </div>
+
+          <div id="remote-card" class="remote-card" hidden>
+            <span class="remote-card__art" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2.5" y="4" width="19" height="12.5" rx="2" />
+                <path d="M8.5 20.5h7" />
+                <path d="M12 16.5v4" />
+                <circle cx="12" cy="10.2" r="2.2" />
+              </svg>
+            </span>
+            <h3 id="remote-card-title"></h3>
+            <p id="remote-card-body"></p>
+            <button id="remote-open" class="btn btn--light" type="button"></button>
+            <p id="remote-opened-note" class="remote-opened" hidden></p>
+          </div>
+
+          <ol id="message-list" class="message-list"></ol>
+          <p id="chat-disabled" class="chat-disabled" hidden></p>
+
+          <form id="composer" class="composer">
+            <textarea id="composer-input" rows="1" maxlength="4000"></textarea>
+            <div class="composer__row">
+              <span id="composer-counter" class="composer-counter"></span>
+              <button id="composer-send" class="btn btn--send" type="submit"></button>
+            </div>
+          </form>
+        </section>
+
+        <section id="view-blocked" class="view view--blocked" aria-label="Modul nedostupan" hidden>
+          <div id="blocked-art" class="blocked-art" aria-hidden="true"></div>
+          <h2 id="blocked-title" class="blocked-title"></h2>
+          <p id="blocked-reason" class="blocked-reason"></p>
+          <p id="blocked-hint" class="blocked-hint"></p>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <button id="footer-open-desk" class="footer-btn" type="button"></button>
+        <span id="footer-version" class="footer-version"></span>
+        <button id="footer-sign-out" class="footer-btn footer-btn--danger" type="button" hidden></button>
+      </footer>
+
+      <div id="popup-toasts" class="popup-toasts" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/src/popup/popup.ts"></script>
   </body>
 </html>

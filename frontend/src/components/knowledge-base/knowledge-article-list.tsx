@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { pickName } from "@/lib/tickets/ticket-names";
 import { cn } from "@/lib/utils";
 import type {
   KnowledgeArticleResponse,
@@ -43,11 +43,15 @@ function statusTone(status: KnowledgeArticleStatus) {
 function ownerLabel(
   item: KnowledgeArticleResponse,
   ownerNames: ReadonlyMap<string, string>,
+  unknown: string,
 ): string | null {
-  return (
-    directoryDisplayName(ownerNames, item.ownerUserId) ??
-    (item.ownerGroupId ? truncateIdentifier(item.ownerGroupId) : null)
-  );
+  if (item.ownerUserId !== null) {
+    return pickName(item.ownerName, ownerNames.get(item.ownerUserId)) ?? unknown;
+  }
+  if (item.ownerGroupId !== null) {
+    return pickName(item.ownerGroupName) ?? unknown;
+  }
+  return null;
 }
 
 export function KnowledgeArticleList({
@@ -100,9 +104,9 @@ export function KnowledgeArticleList({
   return (
     <ul className="grid grid-cols-1 gap-3 xl:grid-cols-2">
       {items.map((item) => {
-        const owner = ownerLabel(item, ownerNames);
+        const owner = ownerLabel(item, ownerNames, t("tickets.detail.unknownUser"));
         const serviceName =
-          serviceNames.get(item.serviceId) ?? truncateIdentifier(item.serviceId);
+          pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
         return (
           <li key={item.id}>
             <Card className="group h-full transition-all hover:border-[#31405C]">

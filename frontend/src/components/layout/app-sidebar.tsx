@@ -24,7 +24,7 @@ import {
   navigationSections,
   type NavigationItem,
 } from "@/lib/navigation";
-import { filterNavigationSections } from "@/lib/session/route-access";
+import { filterNavigationSections, isTicketStaff } from "@/lib/session/route-access";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts";
 import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
@@ -52,7 +52,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
   const { t } = useTranslation();
   const location = useLocation();
   const capabilities = useSessionCapabilities();
-  const ticketCounts = useSidebarTicketCounts();
+  const ticketCounts = useSidebarTicketCounts(isTicketStaff(capabilities));
   const visibleSections = filterNavigationSections(navigationSections, capabilities);
   const isCreateActive = location.pathname === "/tickets/new";
 

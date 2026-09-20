@@ -8,7 +8,7 @@ import { Badge, MetaBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { DirectoryUser } from "@/lib/directory/use-directory";
-import { directoryDisplayName, truncateIdentifier } from "@/lib/tickets/ticket-display";
+import { pickName } from "@/lib/tickets/ticket-names";
 import { cn } from "@/lib/utils";
 import type {
   KnowledgeArticleResponse,
@@ -48,9 +48,13 @@ export function KnowledgeArticleDetailPanel({
   onChanged,
 }: KnowledgeArticleDetailPanelProperties) {
   const { t, i18n } = useTranslation();
+  const unknownOwner = t("tickets.detail.unknownUser");
   const owner =
-    directoryDisplayName(ownerNames, article.ownerUserId) ??
-    (article.ownerGroupId ? truncateIdentifier(article.ownerGroupId) : null);
+    article.ownerUserId !== null
+      ? (pickName(article.ownerName, ownerNames.get(article.ownerUserId)) ?? unknownOwner)
+      : article.ownerGroupId !== null
+        ? (pickName(article.ownerGroupName) ?? unknownOwner)
+        : null;
   const canEdit = canWrite && article.status !== "ARCHIVED";
 
   return (

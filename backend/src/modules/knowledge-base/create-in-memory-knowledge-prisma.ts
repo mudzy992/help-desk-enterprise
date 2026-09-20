@@ -52,6 +52,15 @@ export function createInMemoryKnowledgePrisma() {
         where: { id: string };
         select?: Record<string, boolean>;
       }) => pickInMemoryFields(services.get(where.id), select),
+      findMany: async ({
+        where,
+      }: {
+        where?: { id?: { in: readonly string[] } };
+        select?: Record<string, boolean>;
+      } = {}) =>
+        [...services.values()].filter((item) =>
+          where?.id === undefined ? true : where.id.in.includes(item.id),
+        ),
     },
     user: {
       findUnique: async ({
@@ -61,6 +70,15 @@ export function createInMemoryKnowledgePrisma() {
         where: { id: string };
         select?: Record<string, boolean>;
       }) => pickInMemoryFields(users.get(where.id), select),
+      findMany: async ({
+        where,
+      }: {
+        where?: { id?: { in: readonly string[] } };
+        select?: Record<string, boolean>;
+      } = {}) =>
+        [...users.values()].filter((item) =>
+          where?.id === undefined ? true : where.id.in.includes(item.id),
+        ),
     },
     group: {
       findUnique: async ({
@@ -70,6 +88,15 @@ export function createInMemoryKnowledgePrisma() {
         where: { id: string };
         select?: Record<string, boolean>;
       }) => pickInMemoryFields(groups.get(where.id), select),
+      findMany: async ({
+        where,
+      }: {
+        where?: { id?: { in: readonly string[] } };
+        select?: Record<string, boolean>;
+      } = {}) =>
+        [...groups.values()].filter((item) =>
+          where?.id === undefined ? true : where.id.in.includes(item.id),
+        ),
     },
     groupMember: createInMemoryGroupMemberDelegate(members),
     knowledgeArticle: createInMemoryKnowledgeArticleDelegate(

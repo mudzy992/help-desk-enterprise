@@ -7,6 +7,7 @@ import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-bl
 import { TicketDetailWorkspace } from "@/components/tickets/ticket-detail-workspace";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
 import { useDirectory } from "@/lib/directory/use-directory";
+import { filterVisibleMessages } from "@/lib/tickets/filter-visible-messages";
 import { resolveTicketActionView } from "@/lib/tickets/ticket-action-matrix";
 import { nextTicketStatuses } from "@/lib/tickets/ticket-actions";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
@@ -107,6 +108,7 @@ export function TicketDetailPage() {
           },
   });
   const access = actions.composerAccess;
+  const visibleMessages = filterVisibleMessages(detail.messages, access !== "requester");
   const originName =
     flattenOrganizationalUnitNames(directory.tree).get(ticket.originUnitId) ??
     t("tickets.detail.unknownOrigin");
@@ -170,12 +172,13 @@ export function TicketDetailPage() {
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
         <TicketDetailWorkspace
           ticket={ticket}
-          messages={detail.messages}
+          messages={visibleMessages}
           currentUserId={currentUserId}
           authorNames={authorNames}
           requesterName={requesterName}
           history={context.history}
-          canViewActivity={actions.viewActivity}
+          publicActivity={context.publicActivity}
+          isStaff={actions.viewActivity}
           access={access}
           isSending={isSending}
           sendErrorKey={detail.actionError}

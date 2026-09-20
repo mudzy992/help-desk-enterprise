@@ -1,0 +1,2 @@
+import {io,type Socket} from 'socket.io-client';
+export function connectUserSocket(i:{apiBaseUrl:string;accessToken:string;reconnectMaxBackoffSeconds:number}):Socket{return io(i.apiBaseUrl,{auth:{token:i.accessToken},autoConnect:true,reconnection:true,reconnectionDelay:1000,reconnectionDelayMax:i.reconnectMaxBackoffSeconds*1000,transports:['websocket'],upgrade:false});}
