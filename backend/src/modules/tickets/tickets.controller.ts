@@ -23,7 +23,11 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketsService } from './tickets.service';
-import type { TicketMutationContext, TicketResponse } from './tickets.types';
+import type {
+  TicketListResponse,
+  TicketMutationContext,
+  TicketResponse,
+} from './tickets.types';
 
 @Controller('tickets')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -55,7 +59,7 @@ export class TicketsController {
   list(
     @Query() query: ListTicketsQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly TicketResponse[]> {
+  ): Promise<readonly TicketResponse[] | TicketListResponse> {
     return this.ticketsService.list(query, readTicketMutationContext(request));
   }
 

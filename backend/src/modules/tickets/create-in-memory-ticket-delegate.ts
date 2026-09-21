@@ -1,6 +1,7 @@
 import { pickInMemoryFields } from '../routing/in-memory-routing-store';
 import type {
   InMemoryTicketOrderBy,
+  InMemoryTicketRelations,
   InMemoryTicketWhere,
 } from './in-memory-ticket-where';
 import { matchesInMemoryTicket } from './matches-in-memory-ticket';
@@ -11,15 +12,22 @@ export function createInMemoryTicketDelegate(
   tickets: Map<string, TicketRecord>,
   nextId: () => string,
   now: () => Date,
+  relations: InMemoryTicketRelations = {},
 ) {
+  const matching = (where?: InMemoryTicketWhere) =>
+    [...tickets.values()].filter((ticket) =>
+      matchesInMemoryTicket(ticket, where, relations),
+    );
   const list = async (
     where?: InMemoryTicketWhere,
     orderBy?: InMemoryTicketOrderBy,
+    window: { skip?: number; take?: number } = {},
   ) => {
-    const matched = [...tickets.values()].filter((ticket) =>
-      matchesInMemoryTicket(ticket, where),
-    );
-    return sortInMemoryTickets(matched, orderBy);
+    const sorted = sortInMemoryTickets(matching(where), orderBy, relations);
+    const start = window.skip ?? 0;
+    return window.take === undefined
+      ? sorted.slice(start)
+      : sorted.slice(start, start + window.take);
   };
   return {
     findUnique: async ({ where }: { where: { id: string } }) =>
@@ -39,14 +47,16 @@ export function createInMemoryTicketDelegate(
     findMany: async ({
       where,
       orderBy,
+      skip,
+      take,
     }: {
       where?: InMemoryTicketWhere;
       orderBy?: InMemoryTicketOrderBy;
-    } = {}) => list(where, orderBy),
+      skip?: number;
+      take?: number;
+    } = {}) => list(where, orderBy, { skip, take }),
     count: async ({ where }: { where?: InMemoryTicketWhere } = {}) =>
-      [...tickets.values()].filter((ticket) =>
-        matchesInMemoryTicket(ticket, where),
-      ).length,
+      matching(where).length,
     create: async ({
       data,
     }: {
@@ -103,9 +113,7 @@ export function createInMemoryTicketDelegate(
       where?: InMemoryTicketWhere;
       data: Partial<TicketRecord>;
     }) => {
-      const matched = [...tickets.values()].filter((ticket) =>
-        matchesInMemoryTicket(ticket, where),
-      );
+      const matched = matching(where);
       for (const ticket of matched) {
         tickets.set(ticket.id, { ...ticket, ...data, updatedAt: now() });
       }

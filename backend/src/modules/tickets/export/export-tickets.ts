@@ -16,7 +16,6 @@ import {
 import { buildTicketExportRows } from './build-ticket-export-rows';
 import { ticketExportContentType, ticketExportMaxRows } from './export.constants';
 import type { ExportTicketsQuery, TicketsExportResult } from './export.types';
-import { filterExportTickets } from './filter-export-tickets';
 import { loadTicketExportLabels } from './load-ticket-export-labels';
 import { serializeTicketsCsv } from './serialize-tickets-csv';
 
@@ -36,18 +35,13 @@ export async function exportTicketsCsv(input: {
   }
   assertCanExportTickets(authContext);
 
-  // The same visibility rules as GET /tickets (OU/service scope, confidential
-  // visibility, archive policy) apply before any export-specific narrowing.
+  // The same visibility rules and filters as GET /tickets (OU/service scope,
+  // confidential visibility, archive policy, search, SLA, dates) are applied in
+  // the query itself; only the export-specific exclusions follow below.
   const visible = await listTickets(
     input.prisma,
     input.authorizationContextLoader,
-    {
-      originUnitId: input.query.originUnitId,
-      serviceId: input.query.serviceId,
-      status: input.query.status,
-      assignedUserId: input.query.assignedUserId,
-      priority: input.query.priority,
-    },
+    { ...input.query, searchDescription: true },
     input.context,
     input.context.archive,
   );
@@ -59,7 +53,7 @@ export async function exportTicketsCsv(input: {
     units.map((unit) => [unit.id, unit.ouPath.length > 0 ? unit.ouPath : unit.name]),
   );
   // Confidential tickets never leave the system through a bulk export.
-  const exportable = visible.filter((ticket) => {
+  const tickets = visible.filter((ticket) => {
     if (ticket.isConfidential) {
       return false;
     }
@@ -76,9 +70,8 @@ export async function exportTicketsCsv(input: {
   });
   const overdueByTicketId = await loadTicketOverdueFlags(
     input.prisma,
-    exportable.map((ticket) => ticket.id),
+    tickets.map((ticket) => ticket.id),
   );
-  const tickets = filterExportTickets(exportable, input.query, overdueByTicketId);
   if (tickets.length > ticketExportMaxRows) {
     throw new TicketsError(
       'EXPORT_TOO_LARGE',

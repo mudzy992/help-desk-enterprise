@@ -1,3 +1,4 @@
+import type { TicketListQuery } from './list/list-tickets.types';
 import type {
   DataClassification,
   TicketImpact,
@@ -144,14 +145,13 @@ export type UpdateTicketInput = {
   readonly resolutionNote?: string;
 };
 
-export type ListTicketsQuery = {
-  readonly originUnitId?: string;
-  readonly serviceId?: string;
-  readonly status?: TicketStatus;
-  readonly assignedUserId?: string;
-  readonly priority?: TicketPriority;
-  readonly q?: string;
-  readonly includeArchived?: boolean;
+export type ListTicketsQuery = TicketListQuery;
+
+export type TicketListResponse = {
+  readonly items: readonly TicketResponse[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
 };
 
 export type TicketMutationContext = {

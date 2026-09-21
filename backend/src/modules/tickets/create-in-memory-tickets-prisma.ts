@@ -120,7 +120,22 @@ export function createInMemoryTicketsPrisma() {
       findUnique: async () => null,
     },
     groupMember: createInMemoryGroupMemberDelegate(members),
-    ticket: createInMemoryTicketDelegate(tickets, nextId, now),
+    ticket: createInMemoryTicketDelegate(tickets, nextId, now, {
+      participants: (ticket) =>
+        [...participants.values()].filter((row) => row.ticketId === ticket.id),
+      confidentialGrants: (ticket) =>
+        [...confidentialGrants.values()].filter(
+          (row) => row.ticketId === ticket.id,
+        ),
+      breakGlassEvents: (ticket) =>
+        [...breakGlassEvents.values()].filter(
+          (row) => row.ticketId === ticket.id,
+        ),
+      slaState: (ticket) =>
+        [...slaLayer.slaStates.values()].filter(
+          (row) => row.ticketId === ticket.id,
+        ),
+    }),
     closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),
     ticketParticipant: createInMemoryTicketParticipantDelegate(
       participants,

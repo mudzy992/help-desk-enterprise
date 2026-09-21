@@ -1,10 +1,12 @@
 import type { TicketExportColumn } from './export.constants';
+import type { TicketStatus } from '../../../generated/prisma/enums';
 import type { ListTicketsQuery } from '../tickets.types';
 
 export type ExportTicketsQuery = Pick<
   ListTicketsQuery,
-  'originUnitId' | 'serviceId' | 'status' | 'assignedUserId' | 'priority' | 'q'
+  'originUnitId' | 'serviceId' | 'assignedUserId' | 'priority' | 'q'
 > & {
+  readonly status?: TicketStatus;
   readonly requesterId?: string;
   readonly unassigned?: boolean;
   readonly overdue?: boolean;

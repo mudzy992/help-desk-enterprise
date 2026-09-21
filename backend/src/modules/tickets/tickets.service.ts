@@ -13,7 +13,7 @@ import { TicketConfidentialConfigurationLoader } from './confidential/ticket-con
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import { executeTicketOperation } from './execute-ticket-operation';
 import { getTicket } from './get-ticket';
-import { listTickets } from './list-tickets';
+import { listTickets, listTicketsPage } from './list-tickets';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
 import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
 import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
@@ -32,6 +32,7 @@ import { withTicketAccessPolicies } from './with-ticket-access-policies';
 import type {
   CreateTicketInput,
   ListTicketsQuery,
+  TicketListResponse,
   TicketMutationContext,
   TicketResponse,
   UpdateTicketInput,
@@ -77,20 +78,43 @@ export class TicketsService {
     );
   }
 
-  list(query: ListTicketsQuery, context: TicketMutationContext) {
+  /**
+   * Without `page`/`pageSize` this returns the plain array older clients read;
+   * with either one it returns `{ items, total, page, pageSize }`.
+   */
+  list(
+    query: ListTicketsQuery,
+    context: TicketMutationContext,
+  ): Promise<readonly TicketResponse[] | TicketListResponse> {
     return executeTicketOperation(async () => {
       const gated = await this.gate(context);
-      return respondLoadedTickets(
-        this.prisma,
-        await listTickets(
+      const loaders = this.clientLoaders(gated.actorUserId);
+      if (query.page === undefined && query.pageSize === undefined) {
+        return respondLoadedTickets(
           this.prisma,
-          this.authorizationContextLoader,
-          query,
-          gated,
-          gated.archive,
-        ),
-        this.clientLoaders(gated.actorUserId),
+          await listTickets(
+            this.prisma,
+            this.authorizationContextLoader,
+            query,
+            gated,
+            gated.archive,
+          ),
+          loaders,
+        );
+      }
+      const result = await listTicketsPage(
+        this.prisma,
+        this.authorizationContextLoader,
+        query,
+        gated,
+        gated.archive,
       );
+      return {
+        items: await respondLoadedTickets(this.prisma, result.records, loaders),
+        total: result.total,
+        page: result.page,
+        pageSize: result.pageSize,
+      };
     });
   }
 

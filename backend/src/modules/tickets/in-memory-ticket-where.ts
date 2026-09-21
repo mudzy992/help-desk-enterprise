@@ -1,26 +1,16 @@
-export type InMemoryTicketWhere = {
-  id?: string | { in: readonly string[] };
-  originUnitId?: string | { in: readonly string[] };
-  serviceId?: string;
-  status?: string | { in: readonly string[] } | { not: string };
-  requesterId?: string;
-  assignedGroupId?: string | { in: readonly string[] } | { not: null };
-  assignedUserId?: string | null | { not: null };
-  parentTicketId?: string | null;
-  mergedIntoTicketId?: string | null;
-  closedAt?: { lte: Date };
-  priority?: string;
-  createdAt?: { gte?: Date; lte?: Date };
-};
+/**
+ * Test-support subset of Prisma's `where` / `orderBy` for the in-memory ticket
+ * delegate. Deliberately loose: the evaluator throws on operators it does not
+ * implement instead of silently matching, so a new query shape fails a test
+ * loudly.
+ */
+export type InMemoryTicketWhere = { readonly [field: string]: unknown };
 
 export type InMemoryTicketOrderBy =
-  | {
-      createdAt?: 'asc' | 'desc';
-      updatedAt?: 'asc' | 'desc';
-      id?: 'asc' | 'desc';
-    }
-  | ReadonlyArray<{
-      createdAt?: 'asc' | 'desc';
-      updatedAt?: 'asc' | 'desc';
-      id?: 'asc' | 'desc';
-    }>;
+  | { readonly [field: string]: unknown }
+  | ReadonlyArray<{ readonly [field: string]: unknown }>;
+
+/** Rows related to a ticket, by relation name (`participants`, `slaState`...). */
+export type InMemoryTicketRelations = Readonly<
+  Record<string, (ticket: { readonly id: string }) => readonly object[]>
+>;

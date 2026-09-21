@@ -1,0 +1,2643 @@
+diff -ruN a/.cursor/docs/matrices/ticket-confidential-visibility/CHANGELOG.md b/.cursor/docs/matrices/ticket-confidential-visibility/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticket-confidential-visibility/CHANGELOG.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/ticket-confidential-visibility/CHANGELOG.md	2026-09-21 10:41:17.442208438 +0000
+@@ -1,3 +1,6 @@
+ # CHANGELOG — ticket-confidential-visibility
+ 
+ - 2026-09-11: Per-ticket confidential ACL na postojećem RBAC/OU/service evaluatoru. SuperAdmin samo kroz break-glass (reason + `BreakGlassEvent` + ChangeLog). Liste ne curiju naslov/opis. Poruke i prilozi idu kroz isti `loadAccessibleTicket` gate.
++
++## 2026-09-21
++- Lista tiketa primjenjuje ACL kao `where` predikat (bez petlje po tiketu); pravila nepromijenjena, uključujući aktivan break-glass kao izvor vidljivosti. Paritet čuva `build-ticket-visibility-where.spec.ts`.
+diff -ruN a/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md b/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md
+--- a/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md	2026-09-21 10:41:35.456017778 +0000
+@@ -18,6 +18,9 @@
+ 
+ SuperAdmin **nema** implicitan pristup sadržaju. Liste i pretraga ne vraćaju tiket (ni naslov/opis) dok ACL ne dozvoli.
+ 
++### Lista kao `where` predikat
++`GET /tickets` primjenjuje isti ACL kao pojedinačni tiket, ali kao uslov u upitu (`buildTicketVisibilityWhere`): ako je funkcija isključena ili tiket nije confidential, vidljiv je; inače mora važiti bar jedno od: requester, assignee, član `assignedGroupId`, učesnik, grant korisniku, grant grupi, allowed viewer role/group **uz pokriven OU+servis scope**, aktivan break-glass (`expiresAt` null ili u budućnosti). Aktivan break-glass je izvor vidljivosti i u listi (paritet s pojedinačnim tiketom). Paritet sa per-ticket provjerom čuva `build-ticket-visibility-where.spec.ts` (22 aktera × 4 konfiguracije nad 120 tiketa).
++
+ ## Break-glass
+ `POST /tickets/:ticketId/break-glass` `{ reason }`. Permission `confidential.break_glass` kroz postojeći evaluator (OU+service). Role iz `breakGlassAllowedRolesCsv` (default `SUPER_ADMIN`). Razlog obavezan ako je setting uključen. Piše `BreakGlassEvent` (`expiresAt` +1h) + ChangeLog + `SYSTEM_EVENT` `ticket_confidential_break_glass` (action key, bez sadržaja).
+ 
+diff -ruN a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 10:43:53.519221225 +0000
++++ b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 10:41:17.442208438 +0000
+@@ -7,3 +7,5 @@
+ 
+ ## 2026-09-21
+ - `TicketResponse` dobija `originUnitName`, `originUnitPath` i `serviceName` (DAT-01); batch razrješenje u `loadTicketDisplayLabels`. Polja su opciona (`null` ako se id ne razriješi).
++- `GET /tickets`: novi filteri (`status[]`, `requesterId`, `groupId`, `unassigned`, `overdue`, `atRisk`, `createdFrom/To`, `includeArchived`), `sort`/`dir` i paginacija s odgovorom `{ items, total, page, pageSize }`; bez `page`/`pageSize` ostaje niz (LST-05/06, DAT-01).
++- Vidljivost liste je predikat u upitu umjesto petlje po tiketu (nema N+1 nad confidential činjenicama); export i CSAT sažetak koriste isti builder. Export više ne filtrira u memoriji.
+diff -ruN a/.cursor/docs/matrices/ticketing-core/MATRIX.md b/.cursor/docs/matrices/ticketing-core/MATRIX.md
+--- a/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-21 10:43:53.519364675 +0000
++++ b/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-21 10:41:17.442076273 +0000
+@@ -25,6 +25,16 @@
+ Update smije: title, description, impact, urgency, formData, status. Ne smije: service, origin, formVersionRef, requester, ticketNumber, priority, assignedGroup/User.
+ Impact/urgency change ⇒ ponovo `calculateTicketPriority`. Status change ide kroz state machine (workflow-state-machine-guards). Requester ne smije mijenjati status.
+ 
++## Lista (`GET /tickets`)
++Jedan upit-DTO (`ListTicketsQueryDto` → `TicketListQuery`) i jedna funkcija `buildTicketListFilters`, isti vokabular koriste lista, export i CSAT sažetak.
++
++- **Filteri:** `status` (jedan ili više: `status=A&status=B` ili `status=A,B`), `priority`, `serviceId`, `originUnitId`, `assignedUserId`, `requesterId`, `groupId` (= `assignedGroupId`), `unassigned`, `overdue`, `atRisk`, `createdFrom`/`createdTo` (ISO), `q` (broj i naslov, bez opisa; export dodatno traži po opisu), `includeArchived`.
++- **`overdue`** = `isResponseBreached` ili `isResolutionBreached` na `TicketSlaState`. **`atRisk`** = nije probijen i (`isResponseAtRisk` ili `isResolutionAtRisk`); probijen tiket je `overdue`, nikad `atRisk` (isto kao `isTicketSlaOverdue`/`isTicketSlaAtRisk`).
++- **Arhiva:** bez eksplicitnog statusa skrivena osim uz `includeArchived`. Status `ARCHIVED` vide samo SuperAdmin ili kad je arhiva pretraživa; bez prava se `ARCHIVED` izbacuje iz liste statusa (samo `ARCHIVED` ⇒ prazan rezultat).
++- **Sort:** `sort` = `updatedAt|createdAt|priority|status|slaDueAt`, `dir` = `asc|desc`; zadano `createdAt desc` (nepromijenjeno). `priority`/`status` idu po redoslijedu enuma u bazi. `slaDueAt` je `TicketSlaState.resolutionDueAt`; tiket bez roka je na kraju uz `asc`. Uvijek se dodaje `id` kao tie-break da paginacija bude stabilna.
++- **Odgovor:** bez `page`/`pageSize` običan niz (prelazni režim za starije klijente: edge ekstenzije, e2e). S `page` ili `pageSize`: `{ items, total, page, pageSize }`, `page` ≥ 1 (zadano 1), `pageSize` 1–100 (zadano 25). `total` broji samo ono što pozivalac smije vidjeti.
++- **Vidljivost** je predikat u `where`-u, ne petlja po tiketu (`list/build-ticket-visibility-where.ts`): osnovno pravilo (SuperAdmin / requester / AGENT-ADMIN čiji OU + servis scope pokriva tiket), pa confidential ACL (vidi `ticket-confidential-visibility`). OU scope se računa u aplikaciji istom funkcijom `doesOrganizationalUnitScopeCover` nad učitanim OJ i postaje `originUnitId IN (...)`; namjerno bez SQL `LIKE` nad `ouPath`, jer bi `_` i `%` u nazivu OJ djelovali kao wildcard i proširili scope.
++
+ ## Nazivi u odgovoru
+ `TicketResponse` uz id-jeve nosi nazive koje klijent prikazuje, pa UI ne gradi direktorij niti dohvaća katalog: `requesterName`, `assignedUserName`, `assignedGroupName`, `formVersionNumber`, `originUnitName`, `originUnitPath`, `serviceName`. Razrješava ih `loadTicketDisplayLabels` u jednom batch upitu po vrsti za cijeli rezultat (bez upita po tiketu). Nepoznat id daje `null`, nikad sam id.
+ 
+diff -ruN a/.cursor/plans/tickets-ui-alignment/00_overview.md b/.cursor/plans/tickets-ui-alignment/00_overview.md
+--- a/.cursor/plans/tickets-ui-alignment/00_overview.md	2026-09-21 10:43:53.519545732 +0000
++++ b/.cursor/plans/tickets-ui-alignment/00_overview.md	2026-09-21 10:41:17.457242745 +0000
+@@ -22,6 +22,10 @@
+ - Zadatak 8: guard claima nije samo `PENDING` nego `assignedUserId: null` + pročitani status (vidi matricu `ticket-group-inbox`).
+ - Zadatak 4: `sort=slaDueAt` znači `TicketSlaState.resolutionDueAt` (nema kolone `Ticket.slaDueAt`).
+ - Zadatak 10: `approvalSteps` prelazi u sloj 6 (traži `TicketApprovalsConfigurationLoader` u service-catalog modulu; isti izvor koristi routing preview).
++- Zadatak 5 (sloj 3): potrošači liste (`use-ticket-list`, `use-sidebar-ticket-counts`, `header-search-match`, `use-dashboard-summary`, `use-sla-page-data`) **nisu migrirani** na omotnicu. Zbog prelaznog režima (F1-4) rade nepromijenjeni, a svaki prelazi kad dobije pravi izvor: brojači (sidebar, dashboard) na `/tickets/counts` u sloju 4, tabela na server-side stranicu u F3, pretraga i SLA stranica u F3/F6. FE u sloju 3 dobija samo `listTicketsPage`. Ovo mijenja dogovor F1-4 („web FE migrira odmah“).
++- Saved views: server ih ne izvršava nad tiketima (čuva JSON filtera koji tumači FE), pa nema šta preseliti na builder. Proširenje ključeva filtera (`atRisk`, `unassigned`, `status[]`, sort `slaDueAt`) ide u F3.
++- Zadatak 4: DTO se zove `ListTicketsQueryDto` (postojeće ime, bez preimenovanja); `priority` je jedna vrijednost; export DTO ostaje svoj (jedan `status`, flagovi kao `'true'`), a koristi isti builder.
++- F1-6: `int.spec.ts` nad Postgresom **nije napisan** u sloju 3 (nema Postgresa u okruženju, pa ga ne mogu izvršiti). Zamjena: paritet vidljivosti i paginacija su testirani nad in-memory Prismom koji izvršava generisani `where` (vidi HANDOFF za ograničenje).
+ - NEW-04 (GAP): „1–3“ u matrici `ticket-approvals` znači 1–3 osjetljiva servisa, ne koraka.
+ 
+ ## TASKS.md (ručno)
+diff -ruN a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md
+--- a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 10:43:53.519576737 +0000
++++ b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 10:41:17.457126624 +0000
+@@ -5,7 +5,7 @@
+ | 0 | Plan folder, odluke | — | urađeno |
+ | 1 | Nazivi u odgovoru (`originUnitName/Path`, `serviceName`), FE tipovi, `DOWN` | DAT-01 | urađeno |
+ | 2 | Atomičan claim, 409, bez take-overa | INB-07 | urađeno |
+-| 3 | `TicketListQueryDto` + `buildTicketListWhere`, SQL predikat vidljivosti, `{items,total,page,pageSize}`, sort, export/saved views, potrošači | DAT-01, LST-05/06 | otvoreno |
++| 3 | `ListTicketsQueryDto` + `buildTicketListFilters`, predikat vidljivosti u `where`-u, `{items,total,page,pageSize}`, sort, export na isti builder, FE `listTicketsPage` | DAT-01, LST-05/06 | urađeno (potrošači: vidi odstupanja) |
+ | 4 | `GET /tickets/counts` | INB-09, LST-03 (izvor) | otvoreno |
+ | 5 | Inbox paginacija + sort po SLA, `GET /groups/mine` (zaseban kontroler prije `GroupsController`) | INB-08, DAT-02 | otvoreno |
+ | 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | otvoreno |
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md
+--- a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 10:43:53.519611494 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 10:41:17.457402357 +0000
+@@ -4,3 +4,9 @@
+ - Plan folder, odluke F1-1…F1-6.
+ - `TicketResponse`: `originUnitName`, `originUnitPath`, `serviceName` (batch, bez N+1). FE tip `ServiceAvailability` dobija `DOWN` (+ ton i BS/EN labela).
+ - Claim atomičan; take-over ukinut; `TICKET_NOT_CLAIMABLE` → 409 s `claimedByName`.
++
++## 2026-09-21 — F1 sloj 3 (lista)
++- `GET /tickets`: filteri `status[]`, `requesterId`, `groupId`, `unassigned`, `overdue`, `atRisk`, `createdFrom/To`, `includeArchived`; `sort`/`dir`; `page`/`pageSize` s odgovorom `{ items, total, page, pageSize }`. Bez paginacije ostaje niz.
++- Vidljivost je predikat u `where`-u (`list/`): scope kao `originUnitId IN (...)` bez `LIKE`, confidential ACL uključujući break-glass. Nema petlje po tiketu ni N+1 upita.
++- Export koristi isti builder (filtriranje više nije u memoriji); `filter-export-tickets.ts` i `matches-list-search-query.ts` uklonjeni.
++- In-memory Prisma izvršava generisani `where` (AND/OR/NOT, relacije, `skip/take`, sort po relaciji) i baca grešku za nepodržan operator.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md
+--- a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 10:43:53.519640863 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 10:41:17.457402357 +0000
+@@ -4,7 +4,9 @@
+ - [x] Sloj 0 plan folder
+ - [x] Sloj 1 nazivi u odgovoru (BE + FE tipovi, `DOWN` + i18n)
+ - [x] Sloj 2 atomičan claim (matrica + CHANGELOG)
+-- [ ] Sloj 3 lista (DTO, builder, predikat, envelope, potrošači)
++- [x] Sloj 3 lista (DTO, builder, predikat u `where`-u, envelope, sort, export na builder, FE `listTicketsPage`)
++- [ ] Sloj 3b `int.spec.ts` nad Postgresom (paritet vidljivosti, istovremeni claim, EXPLAIN + broj upita)
++- [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
+ - [ ] Sloj 4 counts
+ - [ ] Sloj 5 inbox + `/groups/mine`
+ - [ ] Sloj 5b `Group.autoAssignStrategy`
+diff -ruN a/.cursor/plans/tickets-ui-alignment/HANDOFF.md b/.cursor/plans/tickets-ui-alignment/HANDOFF.md
+--- a/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 10:43:53.519668367 +0000
++++ b/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 10:41:17.457482568 +0000
+@@ -1,14 +1,18 @@
+ # HANDOFF — tickets-ui-alignment
+ 
+ ## Urađeno
+-F1 slojevi 0–2 (vidi `CHANGELOG.md`).
++F1 slojevi 0–3 (vidi `CHANGELOG.md`).
+ 
+ ## Test status
+-Pisano bez `node_modules`/Prisma klijenta: `jest` i `tsc -b` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove (ticket specovi: isti 4 pada prije i poslije, novi prolaze). **Prije commita pokreni `npm run build` i `jest` u `backend/` i `npm run build` u `frontend/`.**
++Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove: ticket specovi prolaze uz iste 4 poznate pada shima kao prije izmjena. **Prije commita pokreni `npm run build` i `jest` u `backend/` te `npm run build` i `npm test` u `frontend/`.** Prisma tipovi (`Prisma.TicketWhereInput`, `TicketOrderByWithRelationInput`, `updateMany`, `orderBy` po relaciji `slaState`) nisu provjereni protiv pravog klijenta.
++
++## Ograničenje testova sloja 3
++Paritet vidljivosti i paginacija izvršavaju `where` kroz in-memory evaluator, ne kroz Postgres. Dokazuju logiku predikata (mutacijska provjera: 16/16 mutacija predikata i 6/6 mutacija paginacije obara spec), ali ne dokazuju SQL semantiku ni performanse. Za to služi sloj 3b.
+ 
+ ## Next
+-Sloj 3 (lista). Prije koda pročitati `tickets/export/*`, `saved-views/*`, `use-sla-page-data.ts`.
++Sloj 4 (`GET /tickets/counts`, isti builder). Zatim inbox + `/groups/mine` (5), `Group.autoAssignStrategy` (5b), routing preview + `approvalSteps` + realtime (6).
+ 
+ ## Otvoreno
+ - D1, D3–D10 nisu odlučeni (F0).
+-- `int.spec.ts` set nad Postgresom (F1-6) počinje u sloju 3.
++- Sloj 3b (`int.spec.ts`): pokrenuti lokalno uz Postgres; provjeriti (1) paritet vidljivosti na pravoj bazi, (2) `orderBy` po `slaState.resolutionDueAt` i redoslijed NULL-ova (Postgres: NULL zadnji za `asc`), (3) `contains`/`mode: 'insensitive'` s `%`/`_` u `q` (Prisma možda ne escapeuje wildcarde), (4) EXPLAIN: indeksi za sort/filter (Ticket ima samo jednokolonske; složeni tek ako plan pokaže potrebu), (5) 1000 tiketa < 300 ms i bez N+1.
++- Odgovor liste od 1000 tiketa < 300 ms (RAW NFR) nije izmjeren.
+diff -ruN a/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts b/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts
+--- a/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts	2026-09-21 10:43:53.519912974 +0000
++++ b/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts	2026-09-21 10:32:54.735977954 +0000
+@@ -1,6 +1,7 @@
+ import { pickInMemoryFields } from '../routing/in-memory-routing-store';
+ import type {
+   InMemoryTicketOrderBy,
++  InMemoryTicketRelations,
+   InMemoryTicketWhere,
+ } from './in-memory-ticket-where';
+ import { matchesInMemoryTicket } from './matches-in-memory-ticket';
+@@ -11,15 +12,22 @@
+   tickets: Map<string, TicketRecord>,
+   nextId: () => string,
+   now: () => Date,
++  relations: InMemoryTicketRelations = {},
+ ) {
++  const matching = (where?: InMemoryTicketWhere) =>
++    [...tickets.values()].filter((ticket) =>
++      matchesInMemoryTicket(ticket, where, relations),
++    );
+   const list = async (
+     where?: InMemoryTicketWhere,
+     orderBy?: InMemoryTicketOrderBy,
++    window: { skip?: number; take?: number } = {},
+   ) => {
+-    const matched = [...tickets.values()].filter((ticket) =>
+-      matchesInMemoryTicket(ticket, where),
+-    );
+-    return sortInMemoryTickets(matched, orderBy);
++    const sorted = sortInMemoryTickets(matching(where), orderBy, relations);
++    const start = window.skip ?? 0;
++    return window.take === undefined
++      ? sorted.slice(start)
++      : sorted.slice(start, start + window.take);
+   };
+   return {
+     findUnique: async ({ where }: { where: { id: string } }) =>
+@@ -39,14 +47,16 @@
+     findMany: async ({
+       where,
+       orderBy,
++      skip,
++      take,
+     }: {
+       where?: InMemoryTicketWhere;
+       orderBy?: InMemoryTicketOrderBy;
+-    } = {}) => list(where, orderBy),
++      skip?: number;
++      take?: number;
++    } = {}) => list(where, orderBy, { skip, take }),
+     count: async ({ where }: { where?: InMemoryTicketWhere } = {}) =>
+-      [...tickets.values()].filter((ticket) =>
+-        matchesInMemoryTicket(ticket, where),
+-      ).length,
++      matching(where).length,
+     create: async ({
+       data,
+     }: {
+@@ -103,9 +113,7 @@
+       where?: InMemoryTicketWhere;
+       data: Partial<TicketRecord>;
+     }) => {
+-      const matched = [...tickets.values()].filter((ticket) =>
+-        matchesInMemoryTicket(ticket, where),
+-      );
++      const matched = matching(where);
+       for (const ticket of matched) {
+         tickets.set(ticket.id, { ...ticket, ...data, updatedAt: now() });
+       }
+diff -ruN a/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts b/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts
+--- a/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts	2026-09-21 10:32:59.573988893 +0000
+@@ -120,7 +120,22 @@
+       findUnique: async () => null,
+     },
+     groupMember: createInMemoryGroupMemberDelegate(members),
+-    ticket: createInMemoryTicketDelegate(tickets, nextId, now),
++    ticket: createInMemoryTicketDelegate(tickets, nextId, now, {
++      participants: (ticket) =>
++        [...participants.values()].filter((row) => row.ticketId === ticket.id),
++      confidentialGrants: (ticket) =>
++        [...confidentialGrants.values()].filter(
++          (row) => row.ticketId === ticket.id,
++        ),
++      breakGlassEvents: (ticket) =>
++        [...breakGlassEvents.values()].filter(
++          (row) => row.ticketId === ticket.id,
++        ),
++      slaState: (ticket) =>
++        [...slaLayer.slaStates.values()].filter(
++          (row) => row.ticketId === ticket.id,
++        ),
++    }),
+     closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),
+     ticketParticipant: createInMemoryTicketParticipantDelegate(
+       participants,
+diff -ruN a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts
+--- a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts	2026-09-21 10:37:53.357551675 +0000
+@@ -1,5 +1,33 @@
+-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
++import { Transform, Type } from 'class-transformer';
++import {
++  ArrayMaxSize,
++  IsArray,
++  IsBoolean,
++  IsEnum,
++  IsIn,
++  IsInt,
++  IsISO8601,
++  IsOptional,
++  IsString,
++  Max,
++  MaxLength,
++  Min,
++  MinLength,
++} from 'class-validator';
+ import { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
++import {
++  ticketListPaging,
++  ticketListSortDirections,
++  ticketListSortFields,
++} from '../list/list-tickets.constants';
++import {
++  toQueryBoolean,
++  toQueryList,
++} from '../list/list-query-transforms';
++import type {
++  TicketListSortDirection,
++  TicketListSortField,
++} from '../list/list-tickets.types';
+ 
+ export class ListTicketsQueryDto {
+   @IsOptional()
+@@ -13,8 +41,11 @@
+   serviceId?: string;
+ 
+   @IsOptional()
+-  @IsEnum(TicketStatus)
+-  status?: TicketStatus;
++  @Transform(({ value }) => toQueryList(value))
++  @IsArray()
++  @ArrayMaxSize(12)
++  @IsEnum(TicketStatus, { each: true })
++  status?: TicketStatus[];
+ 
+   @IsOptional()
+   @IsString()
+@@ -28,6 +59,65 @@
+   @IsOptional()
+   @IsString()
+   @MinLength(1)
++  requesterId?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  groupId?: string;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  unassigned?: boolean;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  overdue?: boolean;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  atRisk?: boolean;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  includeArchived?: boolean;
++
++  @IsOptional()
++  @IsISO8601()
++  createdFrom?: string;
++
++  @IsOptional()
++  @IsISO8601()
++  createdTo?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
+   @MaxLength(200)
+   q?: string;
++
++  @IsOptional()
++  @IsIn(ticketListSortFields)
++  sort?: TicketListSortField;
++
++  @IsOptional()
++  @IsIn(ticketListSortDirections)
++  dir?: TicketListSortDirection;
++
++  @IsOptional()
++  @Type(() => Number)
++  @IsInt()
++  @Min(1)
++  page?: number;
++
++  @IsOptional()
++  @Type(() => Number)
++  @IsInt()
++  @Min(1)
++  @Max(ticketListPaging.maxPageSize)
++  pageSize?: number;
+ }
+diff -ruN a/backend/src/modules/tickets/export/export-tickets.ts b/backend/src/modules/tickets/export/export-tickets.ts
+--- a/backend/src/modules/tickets/export/export-tickets.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/export/export-tickets.ts	2026-09-21 10:32:15.357421456 +0000
+@@ -16,7 +16,6 @@
+ import { buildTicketExportRows } from './build-ticket-export-rows';
+ import { ticketExportContentType, ticketExportMaxRows } from './export.constants';
+ import type { ExportTicketsQuery, TicketsExportResult } from './export.types';
+-import { filterExportTickets } from './filter-export-tickets';
+ import { loadTicketExportLabels } from './load-ticket-export-labels';
+ import { serializeTicketsCsv } from './serialize-tickets-csv';
+ 
+@@ -36,18 +35,13 @@
+   }
+   assertCanExportTickets(authContext);
+ 
+-  // The same visibility rules as GET /tickets (OU/service scope, confidential
+-  // visibility, archive policy) apply before any export-specific narrowing.
++  // The same visibility rules and filters as GET /tickets (OU/service scope,
++  // confidential visibility, archive policy, search, SLA, dates) are applied in
++  // the query itself; only the export-specific exclusions follow below.
+   const visible = await listTickets(
+     input.prisma,
+     input.authorizationContextLoader,
+-    {
+-      originUnitId: input.query.originUnitId,
+-      serviceId: input.query.serviceId,
+-      status: input.query.status,
+-      assignedUserId: input.query.assignedUserId,
+-      priority: input.query.priority,
+-    },
++    { ...input.query, searchDescription: true },
+     input.context,
+     input.context.archive,
+   );
+@@ -59,7 +53,7 @@
+     units.map((unit) => [unit.id, unit.ouPath.length > 0 ? unit.ouPath : unit.name]),
+   );
+   // Confidential tickets never leave the system through a bulk export.
+-  const exportable = visible.filter((ticket) => {
++  const tickets = visible.filter((ticket) => {
+     if (ticket.isConfidential) {
+       return false;
+     }
+@@ -76,9 +70,8 @@
+   });
+   const overdueByTicketId = await loadTicketOverdueFlags(
+     input.prisma,
+-    exportable.map((ticket) => ticket.id),
++    tickets.map((ticket) => ticket.id),
+   );
+-  const tickets = filterExportTickets(exportable, input.query, overdueByTicketId);
+   if (tickets.length > ticketExportMaxRows) {
+     throw new TicketsError(
+       'EXPORT_TOO_LARGE',
+diff -ruN a/backend/src/modules/tickets/export/export.types.ts b/backend/src/modules/tickets/export/export.types.ts
+--- a/backend/src/modules/tickets/export/export.types.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/export/export.types.ts	2026-09-21 10:32:05.962367725 +0000
+@@ -1,10 +1,12 @@
+ import type { TicketExportColumn } from './export.constants';
++import type { TicketStatus } from '../../../generated/prisma/enums';
+ import type { ListTicketsQuery } from '../tickets.types';
+ 
+ export type ExportTicketsQuery = Pick<
+   ListTicketsQuery,
+-  'originUnitId' | 'serviceId' | 'status' | 'assignedUserId' | 'priority' | 'q'
++  'originUnitId' | 'serviceId' | 'assignedUserId' | 'priority' | 'q'
+ > & {
++  readonly status?: TicketStatus;
+   readonly requesterId?: string;
+   readonly unassigned?: boolean;
+   readonly overdue?: boolean;
+diff -ruN a/backend/src/modules/tickets/export/filter-export-tickets.ts b/backend/src/modules/tickets/export/filter-export-tickets.ts
+--- a/backend/src/modules/tickets/export/filter-export-tickets.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/export/filter-export-tickets.ts	1970-01-01 00:00:00.000000000 +0000
+@@ -1,47 +0,0 @@
+-import type { TicketRecord } from '../tickets.types';
+-import type { ExportTicketsQuery } from './export.types';
+-
+-function matchesSearch(ticket: TicketRecord, search: string | undefined): boolean {
+-  const needle = search?.trim().toLowerCase() ?? '';
+-  if (needle.length === 0) {
+-    return true;
+-  }
+-  return (
+-    ticket.ticketNumber.toLowerCase().includes(needle) ||
+-    ticket.title.toLowerCase().includes(needle) ||
+-    ticket.description.toLowerCase().includes(needle)
+-  );
+-}
+-
+-/**
+- * Applies the list filters that the ticket list evaluates on the client, so
+- * the exported file matches what the person sees on screen.
+- */
+-export function filterExportTickets(
+-  tickets: readonly TicketRecord[],
+-  query: ExportTicketsQuery,
+-  overdueByTicketId: ReadonlyMap<string, boolean>,
+-): readonly TicketRecord[] {
+-  return tickets.filter((ticket) => {
+-    if (!matchesSearch(ticket, query.q)) {
+-      return false;
+-    }
+-    if (query.requesterId !== undefined && ticket.requesterId !== query.requesterId) {
+-      return false;
+-    }
+-    if (query.unassigned === true && ticket.assignedUserId !== null) {
+-      return false;
+-    }
+-    if (query.overdue === true && overdueByTicketId.get(ticket.id) !== true) {
+-      return false;
+-    }
+-    const createdAt = ticket.createdAt.toISOString();
+-    if (query.createdFrom !== undefined && createdAt < query.createdFrom) {
+-      return false;
+-    }
+-    if (query.createdTo !== undefined && createdAt > query.createdTo) {
+-      return false;
+-    }
+-    return true;
+-  });
+-}
+diff -ruN a/backend/src/modules/tickets/in-memory-ticket-where.ts b/backend/src/modules/tickets/in-memory-ticket-where.ts
+--- a/backend/src/modules/tickets/in-memory-ticket-where.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/in-memory-ticket-where.ts	2026-09-21 10:32:54.716616576 +0000
+@@ -1,26 +1,16 @@
+-export type InMemoryTicketWhere = {
+-  id?: string | { in: readonly string[] };
+-  originUnitId?: string | { in: readonly string[] };
+-  serviceId?: string;
+-  status?: string | { in: readonly string[] } | { not: string };
+-  requesterId?: string;
+-  assignedGroupId?: string | { in: readonly string[] } | { not: null };
+-  assignedUserId?: string | null | { not: null };
+-  parentTicketId?: string | null;
+-  mergedIntoTicketId?: string | null;
+-  closedAt?: { lte: Date };
+-  priority?: string;
+-  createdAt?: { gte?: Date; lte?: Date };
+-};
++/**
++ * Test-support subset of Prisma's `where` / `orderBy` for the in-memory ticket
++ * delegate. Deliberately loose: the evaluator throws on operators it does not
++ * implement instead of silently matching, so a new query shape fails a test
++ * loudly.
++ */
++export type InMemoryTicketWhere = { readonly [field: string]: unknown };
+ 
+ export type InMemoryTicketOrderBy =
+-  | {
+-      createdAt?: 'asc' | 'desc';
+-      updatedAt?: 'asc' | 'desc';
+-      id?: 'asc' | 'desc';
+-    }
+-  | ReadonlyArray<{
+-      createdAt?: 'asc' | 'desc';
+-      updatedAt?: 'asc' | 'desc';
+-      id?: 'asc' | 'desc';
+-    }>;
++  | { readonly [field: string]: unknown }
++  | ReadonlyArray<{ readonly [field: string]: unknown }>;
++
++/** Rows related to a ticket, by relation name (`participants`, `slaState`...). */
++export type InMemoryTicketRelations = Readonly<
++  Record<string, (ticket: { readonly id: string }) => readonly object[]>
++>;
+diff -ruN a/backend/src/modules/tickets/in-memory-where-operators.ts b/backend/src/modules/tickets/in-memory-where-operators.ts
+--- a/backend/src/modules/tickets/in-memory-where-operators.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/in-memory-where-operators.ts	2026-09-21 10:43:27.595909606 +0000
+@@ -0,0 +1,125 @@
++type Row = Readonly<Record<string, unknown>>;
++
++const operatorNames = [
++  'equals',
++  'in',
++  'notIn',
++  'not',
++  'gt',
++  'gte',
++  'lt',
++  'lte',
++  'contains',
++  'startsWith',
++  'mode',
++] as const;
++
++function isPlainOperatorObject(value: unknown): value is Row {
++  return (
++    typeof value === 'object' && value !== null && !(value instanceof Date)
++  );
++}
++
++function isSame(actual: unknown, expected: unknown): boolean {
++  if (actual instanceof Date && expected instanceof Date) {
++    return actual.getTime() === expected.getTime();
++  }
++  return actual === expected;
++}
++
++function compare(actual: unknown, expected: unknown): number | null {
++  if (actual === null || actual === undefined) {
++    return null;
++  }
++  const left = actual instanceof Date ? actual.getTime() : actual;
++  const right = expected instanceof Date ? expected.getTime() : expected;
++  if (
++    (typeof left === 'number' || typeof left === 'string') &&
++    typeof left === typeof right
++  ) {
++    const other = right as typeof left;
++    return left < other ? -1 : left > other ? 1 : 0;
++  }
++  return null;
++}
++
++/** Matches one scalar field against a Prisma filter value or operator object. */
++export function matchesInMemoryField(
++  value: unknown,
++  condition: unknown,
++): boolean {
++  const actual = value === undefined ? null : value;
++  if (!isPlainOperatorObject(condition)) {
++    return isSame(actual, condition);
++  }
++  const unsupported = Object.keys(condition).filter(
++    (key) => !(operatorNames as readonly string[]).includes(key),
++  );
++  if (unsupported.length > 0) {
++    throw new Error(`Unsupported in-memory filter operator: ${unsupported[0]}`);
++  }
++  return Object.entries(condition).every(([operator, operand]) =>
++    matchesOperator(actual, operator, operand, condition),
++  );
++}
++
++function matchesOperator(
++  actual: unknown,
++  operator: string,
++  operand: unknown,
++  all: Row,
++): boolean {
++  switch (operator) {
++    case 'equals':
++      return isSame(actual, operand);
++    case 'in':
++      return (
++        actual !== null &&
++        (operand as readonly unknown[]).some((item) => isSame(actual, item))
++      );
++    case 'notIn':
++      return (
++        actual !== null &&
++        !(operand as readonly unknown[]).some((item) => isSame(actual, item))
++      );
++    case 'not':
++      // SQL semantics: `<> x` and `IS NOT NULL` both exclude NULL rows.
++      return operand === null
++        ? actual !== null
++        : actual !== null && !matchesInMemoryField(actual, operand);
++    case 'gt':
++      return (compare(actual, operand) ?? -1) > 0;
++    case 'gte':
++      return (compare(actual, operand) ?? -1) >= 0;
++    case 'lt':
++      return (compare(actual, operand) ?? 1) < 0;
++    case 'lte':
++      return (compare(actual, operand) ?? 1) <= 0;
++    case 'contains':
++    case 'startsWith':
++      return matchesText(
++        actual,
++        operator,
++        String(operand),
++        all.mode === 'insensitive',
++      );
++    default:
++      return true; // `mode` only modifies contains/startsWith
++  }
++}
++
++function matchesText(
++  actual: unknown,
++  operator: string,
++  needle: string,
++  insensitive: boolean,
++): boolean {
++  if (typeof actual !== 'string') {
++    return false;
++  }
++  const haystack = insensitive ? actual.toLowerCase() : actual;
++  const wanted = insensitive ? needle.toLowerCase() : needle;
++  return operator === 'contains'
++    ? haystack.includes(wanted)
++    : haystack.startsWith(wanted);
++}
+diff -ruN a/backend/src/modules/tickets/list/build-manage-scope-where.ts b/backend/src/modules/tickets/list/build-manage-scope-where.ts
+--- a/backend/src/modules/tickets/list/build-manage-scope-where.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-manage-scope-where.ts	2026-09-21 10:31:32.233617923 +0000
+@@ -0,0 +1,83 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import type { AuthorizationContext } from '../../authorization/authorization.types';
++import { authorizationRoleKeys } from '../../authorization/authorization.constants';
++import {
++  doesOrganizationalUnitScopeCover,
++  isNonEmptyScopeValue,
++} from '../../authorization/does-organizational-unit-scope-cover';
++
++export type OrganizationalUnitScopeRow = {
++  readonly id: string;
++  readonly ouPath: string;
++};
++
++/** Matches no ticket (`IN ()` is false in SQL). */
++export const matchesNoTicket: Prisma.TicketWhereInput = { id: { in: [] } };
++
++function isManagingRole(roleKey: string): boolean {
++  return (
++    roleKey === authorizationRoleKeys.agent ||
++    roleKey === authorizationRoleKeys.admin
++  );
++}
++
++/**
++ * `where` counterpart of `canManageTicketsInScope`. The OU part is resolved
++ * here with the same `doesOrganizationalUnitScopeCover` the per-ticket check
++ * uses, against the already loaded units, and becomes `originUnitId IN (...)`.
++ * It deliberately avoids SQL `LIKE` on `ouPath`, where `_` and `%` in a unit
++ * name would act as wildcards and widen the scope.
++ *
++ * A service-scoped assignment only covers its service; a null service scope
++ * covers every service; a blank one covers nothing.
++ */
++export function buildManageScopeWhere(
++  context: AuthorizationContext,
++  units: readonly OrganizationalUnitScopeRow[],
++): Prisma.TicketWhereInput {
++  if (context.isSuperAdmin) {
++    return context.isLocalOnly ? {} : matchesNoTicket;
++  }
++  const unitIdsByService = new Map<string | null, Set<string>>();
++  for (const assignment of context.assignments) {
++    if (!isManagingRole(assignment.roleKey)) {
++      continue;
++    }
++    const serviceKey = toServiceKey(assignment.serviceId);
++    if (serviceKey === undefined) {
++      continue;
++    }
++    const covered = units
++      .filter((unit) =>
++        doesOrganizationalUnitScopeCover({
++          assignedPath: assignment.organizationalUnitPath,
++          requestedPath: unit.ouPath,
++        }),
++      )
++      .map((unit) => unit.id);
++    if (covered.length === 0) {
++      continue;
++    }
++    const known = unitIdsByService.get(serviceKey) ?? new Set<string>();
++    covered.forEach((id) => known.add(id));
++    unitIdsByService.set(serviceKey, known);
++  }
++  const clauses: Prisma.TicketWhereInput[] = [...unitIdsByService].map(
++    ([serviceKey, ids]) =>
++      serviceKey === null
++        ? { originUnitId: { in: [...ids] } }
++        : { serviceId: serviceKey, originUnitId: { in: [...ids] } },
++  );
++  if (clauses.length === 0) {
++    return matchesNoTicket;
++  }
++  return clauses.length === 1 ? clauses[0] : { OR: clauses };
++}
++
++/** `null` = any service; `undefined` = this assignment can never match. */
++function toServiceKey(serviceId: string | null): string | null | undefined {
++  if (serviceId === null) {
++    return null;
++  }
++  return isNonEmptyScopeValue(serviceId) ? serviceId.trim() : undefined;
++}
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-list-filters.ts b/backend/src/modules/tickets/list/build-ticket-list-filters.ts
+--- a/backend/src/modules/tickets/list/build-ticket-list-filters.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-list-filters.ts	2026-09-21 08:01:43.281862757 +0000
+@@ -0,0 +1,116 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import type { TicketStatus } from '../../../generated/prisma/enums';
++import type { TicketListQuery } from './list-tickets.types';
++
++function toStatusArray(
++  status: TicketListQuery['status'],
++): readonly TicketStatus[] {
++  if (status === undefined) {
++    return [];
++  }
++  return typeof status === 'string' ? [status] : status;
++}
++
++/**
++ * Status narrowing. `null` means nothing can match (an archive-only request
++ * from someone who may not search the archive). Without an explicit status the
++ * archive stays hidden unless `includeArchived` is set.
++ */
++export function buildTicketStatusFilter(
++  query: TicketListQuery,
++  canSearchArchive: boolean,
++): Prisma.TicketWhereInput | null {
++  const requested = toStatusArray(query.status);
++  if (requested.length > 0) {
++    const allowed = canSearchArchive
++      ? requested
++      : requested.filter((status) => status !== 'ARCHIVED');
++    if (allowed.length === 0) {
++      return null;
++    }
++    return allowed.length === 1
++      ? { status: allowed[0] }
++      : { status: { in: [...allowed] } };
++  }
++  return query.includeArchived === true ? {} : { status: { not: 'ARCHIVED' } };
++}
++
++const overdueState: Prisma.TicketSlaStateWhereInput = {
++  OR: [{ isResponseBreached: true }, { isResolutionBreached: true }],
++};
++
++// Mirrors isTicketSlaAtRisk: a breached ticket is overdue, never "at risk".
++const atRiskState: Prisma.TicketSlaStateWhereInput = {
++  isResponseBreached: false,
++  isResolutionBreached: false,
++  OR: [{ isResponseAtRisk: true }, { isResolutionAtRisk: true }],
++};
++
++/** Narrowing filters, combined with AND. Excludes status and visibility. */
++export function buildTicketListFilters(
++  query: TicketListQuery,
++): Prisma.TicketWhereInput[] {
++  const clauses: Prisma.TicketWhereInput[] = [];
++  if (query.originUnitId !== undefined) {
++    clauses.push({ originUnitId: query.originUnitId });
++  }
++  if (query.serviceId !== undefined) {
++    clauses.push({ serviceId: query.serviceId });
++  }
++  if (query.assignedUserId !== undefined) {
++    clauses.push({ assignedUserId: query.assignedUserId });
++  }
++  if (query.priority !== undefined) {
++    clauses.push({ priority: query.priority });
++  }
++  if (query.requesterId !== undefined) {
++    clauses.push({ requesterId: query.requesterId });
++  }
++  if (query.groupId !== undefined) {
++    clauses.push({ assignedGroupId: query.groupId });
++  }
++  if (query.unassigned === true) {
++    clauses.push({ assignedUserId: null });
++  }
++  if (query.createdFrom !== undefined || query.createdTo !== undefined) {
++    clauses.push({
++      createdAt: {
++        ...(query.createdFrom === undefined
++          ? {}
++          : { gte: new Date(query.createdFrom) }),
++        ...(query.createdTo === undefined
++          ? {}
++          : { lte: new Date(query.createdTo) }),
++      },
++    });
++  }
++  if (query.overdue === true) {
++    clauses.push({ slaState: { is: overdueState } });
++  }
++  if (query.atRisk === true) {
++    clauses.push({ slaState: { is: atRiskState } });
++  }
++  const search = buildTicketSearchFilter(query);
++  if (search !== null) {
++    clauses.push(search);
++  }
++  return clauses;
++}
++
++function buildTicketSearchFilter(
++  query: TicketListQuery,
++): Prisma.TicketWhereInput | null {
++  const needle = query.q?.trim() ?? '';
++  if (needle.length === 0) {
++    return null;
++  }
++  const contains = { contains: needle, mode: 'insensitive' as const };
++  const alternatives: Prisma.TicketWhereInput[] = [
++    { ticketNumber: contains },
++    { title: contains },
++  ];
++  if (query.searchDescription === true) {
++    alternatives.push({ description: contains });
++  }
++  return { OR: alternatives };
++}
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-list-order-by.ts b/backend/src/modules/tickets/list/build-ticket-list-order-by.ts
+--- a/backend/src/modules/tickets/list/build-ticket-list-order-by.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-list-order-by.ts	2026-09-21 10:31:32.232613782 +0000
+@@ -0,0 +1,41 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import type {
++  TicketListSortDirection,
++  TicketListSortField,
++} from './list-tickets.types';
++
++function primaryOrder(
++  sort: TicketListSortField,
++  direction: TicketListSortDirection,
++): Prisma.TicketOrderByWithRelationInput {
++  switch (sort) {
++    case 'slaDueAt':
++      return { slaState: { resolutionDueAt: direction } };
++    case 'updatedAt':
++      return { updatedAt: direction };
++    case 'priority':
++      return { priority: direction };
++    case 'status':
++      return { status: direction };
++    case 'createdAt':
++      return { createdAt: direction };
++  }
++}
++
++/**
++ * `slaDueAt` orders by the resolution deadline of the SLA state. In Postgres a
++ * missing deadline sorts last ascending, so "closest deadline first" puts
++ * tickets without an SLA at the end. A trailing `id` keeps paging stable when
++ * the sort values tie.
++ */
++export function buildTicketListOrderBy(
++  sort: TicketListSortField = 'createdAt',
++  direction: TicketListSortDirection = 'desc',
++): Prisma.TicketOrderByWithRelationInput[] {
++  const order = [primaryOrder(sort, direction)];
++  if (sort !== 'updatedAt') {
++    order.push({ updatedAt: 'desc' });
++  }
++  order.push({ id: 'asc' });
++  return order;
++}
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-list-query.spec.ts b/backend/src/modules/tickets/list/build-ticket-list-query.spec.ts
+--- a/backend/src/modules/tickets/list/build-ticket-list-query.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-list-query.spec.ts	2026-09-21 10:37:53.363564610 +0000
+@@ -0,0 +1,128 @@
++import {
++  buildTicketListFilters,
++  buildTicketStatusFilter,
++} from './build-ticket-list-filters';
++import { buildTicketListOrderBy } from './build-ticket-list-order-by';
++
++describe('buildTicketStatusFilter', () => {
++  it('hides the archive unless asked for it', () => {
++    expect(buildTicketStatusFilter({}, false)).toEqual({ status: { not: 'ARCHIVED' } });
++    expect(buildTicketStatusFilter({ includeArchived: true }, false)).toEqual({});
++  });
++
++  it('accepts one status or several', () => {
++    expect(buildTicketStatusFilter({ status: 'PENDING' }, false)).toEqual({ status: 'PENDING' });
++    expect(buildTicketStatusFilter({ status: ['PENDING', 'ASSIGNED'] }, false)).toEqual({
++      status: { in: ['PENDING', 'ASSIGNED'] },
++    });
++  });
++
++  it('never lets someone without archive access see it, even among other statuses', () => {
++    expect(buildTicketStatusFilter({ status: 'ARCHIVED' }, false)).toBeNull();
++    expect(buildTicketStatusFilter({ status: ['ARCHIVED'] }, false)).toBeNull();
++    expect(buildTicketStatusFilter({ status: ['ARCHIVED', 'CLOSED'] }, false)).toEqual({
++      status: 'CLOSED',
++    });
++    expect(buildTicketStatusFilter({ status: 'ARCHIVED' }, true)).toEqual({ status: 'ARCHIVED' });
++  });
++});
++
++describe('buildTicketListFilters', () => {
++  it('adds no clause for an empty query', () => {
++    expect(buildTicketListFilters({})).toEqual([]);
++  });
++
++  it('maps every narrowing field to one AND clause', () => {
++    const clauses = buildTicketListFilters({
++      originUnitId: 'ou-it',
++      serviceId: 'service-vpn',
++      assignedUserId: 'u1',
++      priority: 'HIGH',
++      requesterId: 'u2',
++      groupId: 'g1',
++      unassigned: true,
++    });
++    expect(clauses).toEqual([
++      { originUnitId: 'ou-it' },
++      { serviceId: 'service-vpn' },
++      { assignedUserId: 'u1' },
++      { priority: 'HIGH' },
++      { requesterId: 'u2' },
++      { assignedGroupId: 'g1' },
++      { assignedUserId: null },
++    ]);
++  });
++
++  it('turns the date range into one createdAt clause with Date bounds', () => {
++    const [clause] = buildTicketListFilters({
++      createdFrom: '2026-01-01T00:00:00.000Z',
++      createdTo: '2026-02-01T00:00:00.000Z',
++    });
++    expect(clause).toEqual({
++      createdAt: {
++        gte: new Date('2026-01-01T00:00:00.000Z'),
++        lte: new Date('2026-02-01T00:00:00.000Z'),
++      },
++    });
++    expect(buildTicketListFilters({ createdFrom: '2026-01-01T00:00:00.000Z' })).toEqual([
++      { createdAt: { gte: new Date('2026-01-01T00:00:00.000Z') } },
++    ]);
++  });
++
++  it('defines overdue as a breach and at-risk as not yet breached', () => {
++    expect(buildTicketListFilters({ overdue: true })).toEqual([
++      { slaState: { is: { OR: [{ isResponseBreached: true }, { isResolutionBreached: true }] } } },
++    ]);
++    expect(buildTicketListFilters({ atRisk: true })).toEqual([
++      {
++        slaState: {
++          is: {
++            isResponseBreached: false,
++            isResolutionBreached: false,
++            OR: [{ isResponseAtRisk: true }, { isResolutionAtRisk: true }],
++          },
++        },
++      },
++    ]);
++    expect(buildTicketListFilters({ overdue: false, atRisk: false })).toEqual([]);
++  });
++
++  it('searches number and title, and the description only when asked', () => {
++    const contains = { contains: 'vpn', mode: 'insensitive' };
++    expect(buildTicketListFilters({ q: '  vpn ' })).toEqual([
++      { OR: [{ ticketNumber: contains }, { title: contains }] },
++    ]);
++    expect(buildTicketListFilters({ q: 'vpn', searchDescription: true })).toEqual([
++      { OR: [{ ticketNumber: contains }, { title: contains }, { description: contains }] },
++    ]);
++    expect(buildTicketListFilters({ q: '   ' })).toEqual([]);
++  });
++});
++
++describe('buildTicketListOrderBy', () => {
++  it('defaults to newest first with a stable tie-break', () => {
++    expect(buildTicketListOrderBy()).toEqual([
++      { createdAt: 'desc' },
++      { updatedAt: 'desc' },
++      { id: 'asc' },
++    ]);
++  });
++
++  it('sorts by the requested field and direction', () => {
++    expect(buildTicketListOrderBy('priority', 'asc')).toEqual([
++      { priority: 'asc' },
++      { updatedAt: 'desc' },
++      { id: 'asc' },
++    ]);
++    expect(buildTicketListOrderBy('updatedAt', 'asc')).toEqual([
++      { updatedAt: 'asc' },
++      { id: 'asc' },
++    ]);
++  });
++
++  it('orders by the SLA resolution deadline for slaDueAt', () => {
++    expect(buildTicketListOrderBy('slaDueAt', 'asc')[0]).toEqual({
++      slaState: { resolutionDueAt: 'asc' },
++    });
++  });
++});
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts b/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts
+--- a/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts	2026-09-21 10:36:19.921575408 +0000
+@@ -0,0 +1,272 @@
++import { authorizationRoleKeys } from '../../authorization/authorization.constants';
++import type { AuthorizationContext } from '../../authorization/authorization.types';
++import {
++  createTestAssignment,
++  createTestAuthorizationContext,
++} from '../../authorization/create-test-authorization-context';
++import { canManageTicketsInScope } from '../authorize-ticket-actor';
++import { isConfidentialTicketVisible } from '../confidential/assert-confidential-ticket-access';
++import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
++import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
++import { createInMemoryTicketsPrisma } from '../create-in-memory-tickets-prisma';
++import type { PrismaService } from '../../../common/prisma/prisma.service';
++import type { TicketRecord } from '../tickets.types';
++import { buildTicketVisibilityWhere } from './build-ticket-visibility-where';
++import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
++import { buildTicketRecord } from './ticket-record-fixture';
++
++jest.mock('../../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const now = new Date('2026-06-01T12:00:00.000Z');
++const past = new Date('2026-06-01T11:00:00.000Z');
++const future = new Date('2026-06-01T13:00:00.000Z');
++
++const units = [
++  ['ou-root', '/Korisnici'],
++  ['ou-it', '/Korisnici/IT'],
++  ['ou-it-hd', '/Korisnici/IT/Helpdesk'],
++  ['ou-hr', '/Korisnici/HR'],
++  // Names that look like the IT path but are different units: a prefix without
++  // the separator, and an underscore that would be a wildcard in SQL LIKE.
++  ['ou-itx', '/Korisnici/ITXSupport'],
++  ['ou-it-under', '/Korisnici/IT_Support'],
++] as const;
++const services = ['service-vpn', 'service-access'] as const;
++
++const configurations: Record<string, TicketConfidentialConfiguration> = {
++  default: defaultTicketConfidentialConfiguration,
++  viewers: {
++    ...defaultTicketConfidentialConfiguration,
++    allowedViewerRoles: [authorizationRoleKeys.agent],
++    allowedViewerGroupIds: ['g-viewers'],
++  },
++  viewerGroupOnly: {
++    ...defaultTicketConfidentialConfiguration,
++    allowedViewerGroupIds: ['g-viewers'],
++  },
++  disabled: { ...defaultTicketConfidentialConfiguration, enabled: false },
++};
++
++function agent(
++  subjectId: string,
++  path: string | null,
++  serviceId: string | null = null,
++  roleKey: string = authorizationRoleKeys.agent,
++): AuthorizationContext {
++  return createTestAuthorizationContext({
++    subjectId,
++    assignments: [
++      createTestAssignment({
++        roleKey,
++        permissionKeys: [],
++        organizationalUnitId: path === null ? null : 'unit',
++        organizationalUnitPath: path,
++        serviceId,
++      }),
++    ],
++  });
++}
++
++const actors: Record<string, AuthorizationContext> = {
++  requester: createTestAuthorizationContext({
++    subjectId: 'user-requester',
++    assignments: [],
++  }),
++  agentIt: agent('u-agent-it', '/Korisnici/IT'),
++  agentItVpn: agent('u-agent-it-vpn', '/Korisnici/IT', 'service-vpn'),
++  agentRoot: agent('u-agent-root', '/Korisnici'),
++  agentHelpdesk: agent('u-agent-hd', '/Korisnici/IT/Helpdesk'),
++  agentUnderscore: agent('u-agent-under', '/Korisnici/IT_Support'),
++  adminHr: agent('u-admin-hr', '/Korisnici/HR', null, authorizationRoleKeys.admin),
++  agentNoPath: agent('u-agent-nopath', null),
++  agentBlankService: agent('u-agent-blank', '/Korisnici/IT', '   '),
++  multi: createTestAuthorizationContext({
++    subjectId: 'u-multi',
++    assignments: [
++      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT', serviceId: 'service-vpn' }),
++      createTestAssignment({ roleKey: authorizationRoleKeys.admin, permissionKeys: [], organizationalUnitPath: '/Korisnici/HR', serviceId: 'service-access' }),
++    ],
++  }),
++  superLocal: createTestAuthorizationContext({
++    subjectId: 'u-super-local',
++    isSuperAdmin: true,
++    isLocalOnly: true,
++    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
++  }),
++  superRemote: createTestAuthorizationContext({
++    subjectId: 'u-super-remote',
++    isSuperAdmin: true,
++    isLocalOnly: false,
++    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
++  }),
++  // A relationship to a confidential ticket only matters to someone who may
++  // list the ticket at all, so these are IT agents (baseline passes) whose
++  // access to confidential tickets comes from the relationship alone.
++  assignee: agent('u-assignee', '/Korisnici/IT'),
++  groupMember: agent('u-group-member', '/Korisnici/IT'),
++  participant: agent('u-participant', '/Korisnici/IT'),
++  granted: agent('u-granted', '/Korisnici/IT'),
++  groupGranted: agent('u-group-granted', '/Korisnici/IT'),
++  glass: agent('u-glass', '/Korisnici/IT'),
++  glassExpired: agent('u-glass-expired', '/Korisnici/IT'),
++  viewerGroupAgent: agent('u-viewer-group-agent', '/Korisnici/IT', null, authorizationRoleKeys.admin),
++  // SuperAdmin passes the baseline everywhere but is "in scope" only when local.
++  superLocalAgent: superAdminWithAgentRole('u-super-local-agent', true),
++  superRemoteAgent: superAdminWithAgentRole('u-super-remote-agent', false),
++};
++
++function superAdminWithAgentRole(
++  subjectId: string,
++  isLocalOnly: boolean,
++): AuthorizationContext {
++  return createTestAuthorizationContext({
++    subjectId,
++    isSuperAdmin: true,
++    isLocalOnly,
++    assignments: [
++      createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] }),
++      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT' }),
++    ],
++  });
++}
++
++type World = ReturnType<typeof buildWorld>;
++
++function buildWorld() {
++  const memory = createInMemoryTicketsPrisma();
++  units.forEach(([id, ouPath]) => memory.seedUnit({ id, parentId: null, ouPath }));
++  memory.seedGroupMember({ groupId: 'g-it', userId: 'u-group-member' });
++  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-group-granted' });
++  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-viewer-group-agent' });
++
++  // Every unit x service, plain and confidential, each confidential ticket
++  // reachable through exactly one relationship to the people above.
++  const traits: ReadonlyArray<readonly [string, Partial<TicketRecord>]> = [
++    ['plain', {}],
++    ['conf', { isConfidential: true }],
++    ['conf-own', { isConfidential: true, requesterId: 'u-agent-it' }],
++    ['conf-assignee', { isConfidential: true, assignedUserId: 'u-assignee' }],
++    ['conf-group', { isConfidential: true, assignedGroupId: 'g-it' }],
++    ['conf-participant', { isConfidential: true }],
++    ['conf-grant', { isConfidential: true }],
++    ['conf-group-grant', { isConfidential: true }],
++    ['conf-glass', { isConfidential: true }],
++    ['conf-glass-expired', { isConfidential: true }],
++  ];
++  const tickets: TicketRecord[] = [];
++  for (const [unitId] of units) {
++    for (const serviceId of services) {
++      for (const [trait, overrides] of traits) {
++        const id = `${unitId}:${serviceId}:${trait}`;
++        const ticket = buildTicketRecord({ id, originUnitId: unitId, serviceId, ...overrides });
++        tickets.push(ticket);
++        memory.tickets.set(id, ticket);
++        link(memory, trait, id);
++      }
++    }
++  }
++  return { memory, prisma: memory.prisma as unknown as PrismaService, tickets };
++}
++
++function link(memory: ReturnType<typeof createInMemoryTicketsPrisma>, trait: string, ticketId: string): void {
++  const base = { ticketId, createdAt: now };
++  if (trait === 'conf-participant') {
++    memory.participants.set(`p-${ticketId}`, { id: `p-${ticketId}`, role: 'WATCHER', userId: 'u-participant', groupId: null, ...base });
++  }
++  if (trait === 'conf-grant') {
++    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: 'u-granted', groupId: null, grantedByUserId: 'u-admin', ...base });
++  }
++  if (trait === 'conf-group-grant') {
++    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: null, groupId: 'g-viewers', grantedByUserId: 'u-admin', ...base });
++  }
++  if (trait === 'conf-glass') {
++    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass', reason: 'incident', expiresAt: future, ...base });
++  }
++  if (trait === 'conf-glass-expired') {
++    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass-expired', reason: 'incident', expiresAt: past, ...base });
++  }
++}
++
++/** The previous list logic, one ticket at a time: the oracle. */
++async function visibleByPerTicketCheck(
++  world: World,
++  context: AuthorizationContext,
++  configuration: TicketConfidentialConfiguration,
++): Promise<string[]> {
++  const pathById = new Map<string, string>(units);
++  const visible: string[] = [];
++  for (const ticket of world.tickets) {
++    const originUnitPath = pathById.get(ticket.originUnitId);
++    if (originUnitPath === undefined) {
++      continue;
++    }
++    const baseline =
++      context.isSuperAdmin ||
++      context.subjectId === ticket.requesterId ||
++      canManageTicketsInScope({ context, originUnitId: ticket.originUnitId, originUnitPath, serviceId: ticket.serviceId });
++    if (baseline && (await isConfidentialTicketVisible(world.prisma, { context, ticket, originUnitPath, configuration, now }))) {
++      visible.push(ticket.id);
++    }
++  }
++  return visible.sort();
++}
++
++async function visibleByWhere(
++  world: World,
++  context: AuthorizationContext,
++  configuration: TicketConfidentialConfiguration,
++): Promise<string[]> {
++  const inputs = await loadTicketVisibilityInputs(world.prisma, context.subjectId);
++  const found = await world.memory.prisma.ticket.findMany({
++    where: { AND: buildTicketVisibilityWhere({ context, ...inputs, configuration, now }) },
++  });
++  return found.map((ticket: TicketRecord) => ticket.id).sort();
++}
++
++describe('buildTicketVisibilityWhere matches the per-ticket visibility check', () => {
++  const world = buildWorld();
++
++  for (const [configName, configuration] of Object.entries(configurations)) {
++    for (const [actorName, context] of Object.entries(actors)) {
++      it(`${actorName} under "${configName}" configuration`, async () => {
++        const expected = await visibleByPerTicketCheck(world, context, configuration);
++        const actual = await visibleByWhere(world, context, configuration);
++        expect(actual).toEqual(expected);
++      });
++    }
++  }
++
++  it('is not vacuous: scope and confidentiality both hide and reveal tickets', async () => {
++    const all = world.tickets.length;
++    const agentIt = await visibleByWhere(world, actors.agentIt, configurations.default);
++    const requester = await visibleByWhere(world, actors.requester, configurations.default);
++    const superLocal = await visibleByWhere(world, actors.superLocal, configurations.default);
++    expect(agentIt.length).toBeGreaterThan(0);
++    expect(agentIt.length).toBeLessThan(all);
++    expect(requester.length).toBeGreaterThan(0);
++    expect(superLocal.length).toBeLessThan(all);
++    // Sibling units whose names merely resemble the IT path stay out of scope.
++    const plain = agentIt.filter((id) => id.endsWith(':plain'));
++    expect(plain.some((id) => id.startsWith('ou-itx:'))).toBe(false);
++    expect(plain.some((id) => id.startsWith('ou-it-under:'))).toBe(false);
++    // Confidential tickets are hidden from a plain in-scope agent...
++    expect(agentIt.some((id) => id.endsWith(':conf'))).toBe(false);
++    // ...and each relationship reveals its own ticket and nothing else.
++    const via = async (actor: string, config = 'default') =>
++      (await visibleByWhere(world, actors[actor], configurations[config]))
++        .filter((id) => id.startsWith('ou-it:service-vpn:conf'));
++    expect(await via('assignee')).toEqual(['ou-it:service-vpn:conf-assignee']);
++    expect(await via('groupMember')).toEqual(['ou-it:service-vpn:conf-group']);
++    expect(await via('participant')).toEqual(['ou-it:service-vpn:conf-participant']);
++    expect(await via('granted')).toEqual(['ou-it:service-vpn:conf-grant']);
++    expect(await via('groupGranted')).toEqual(['ou-it:service-vpn:conf-group-grant']);
++    expect(await via('glass')).toEqual(['ou-it:service-vpn:conf-glass']);
++    expect(await via('glassExpired')).toEqual([]);
++    expect((await via('agentIt', 'viewers')).length).toBe(9);
++    expect(await via('superRemoteAgent', 'viewers')).toEqual([]);
++    // ...and the Helpdesk sub-unit is inside it.
++    expect(plain.some((id) => id.startsWith('ou-it-hd:'))).toBe(true);
++  });
++});
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-visibility-where.ts b/backend/src/modules/tickets/list/build-ticket-visibility-where.ts
+--- a/backend/src/modules/tickets/list/build-ticket-visibility-where.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-visibility-where.ts	2026-09-21 10:31:32.234527220 +0000
+@@ -0,0 +1,88 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import type { AuthorizationContext } from '../../authorization/authorization.types';
++import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
++import {
++  buildManageScopeWhere,
++  type OrganizationalUnitScopeRow,
++} from './build-manage-scope-where';
++
++export type TicketVisibilityInput = {
++  readonly context: AuthorizationContext;
++  readonly units: readonly OrganizationalUnitScopeRow[];
++  readonly actorGroupIds: readonly string[];
++  readonly configuration: TicketConfidentialConfiguration;
++  readonly now: Date;
++};
++
++/**
++ * Who may see a ticket in a list, as AND-ed `where` clauses instead of a
++ * per-ticket check. Same rules as the single-ticket path:
++ *
++ *  1. baseline: SuperAdmin, the requester, or an agent/admin whose OU and
++ *     service scope covers the ticket;
++ *  2. confidential tickets additionally need a confidential grant (requester,
++ *     assignee, handler group, participant, explicit grant, allowed viewer
++ *     role/group within scope, or an active break-glass). SuperAdmin has no
++ *     implicit access to confidential tickets.
++ *
++ * Break-glass is included on purpose: it is a visibility source in the
++ * confidential matrix, so a list must show what the ticket page allows.
++ */
++export function buildTicketVisibilityWhere(
++  input: TicketVisibilityInput,
++): Prisma.TicketWhereInput[] {
++  const manageScope = buildManageScopeWhere(input.context, input.units);
++  const clauses: Prisma.TicketWhereInput[] = [];
++  if (!input.context.isSuperAdmin) {
++    clauses.push({
++      OR: [{ requesterId: input.context.subjectId }, manageScope],
++    });
++  }
++  const confidential = buildConfidentialWhere(input, manageScope);
++  if (confidential !== null) {
++    clauses.push(confidential);
++  }
++  return clauses;
++}
++
++function buildConfidentialWhere(
++  input: TicketVisibilityInput,
++  manageScope: Prisma.TicketWhereInput,
++): Prisma.TicketWhereInput | null {
++  const { context, configuration, actorGroupIds } = input;
++  if (!configuration.enabled) {
++    return null;
++  }
++  const me = context.subjectId;
++  const alternatives: Prisma.TicketWhereInput[] = [
++    { isConfidential: false },
++    { requesterId: me },
++    { assignedUserId: me },
++    { participants: { some: { userId: me } } },
++    { confidentialGrants: { some: { userId: me } } },
++    {
++      breakGlassEvents: {
++        some: {
++          actorUserId: me,
++          OR: [{ expiresAt: null }, { expiresAt: { gt: input.now } }],
++        },
++      },
++    },
++  ];
++  if (actorGroupIds.length > 0) {
++    alternatives.push(
++      { assignedGroupId: { in: [...actorGroupIds] } },
++      { confidentialGrants: { some: { groupId: { in: [...actorGroupIds] } } } },
++    );
++  }
++  const viaViewerRole = context.assignments.some((assignment) =>
++    configuration.allowedViewerRoles.includes(assignment.roleKey),
++  );
++  const viaViewerGroup = actorGroupIds.some((groupId) =>
++    configuration.allowedViewerGroupIds.includes(groupId),
++  );
++  if (viaViewerRole || viaViewerGroup) {
++    alternatives.push(manageScope);
++  }
++  return { OR: alternatives };
++}
+diff -ruN a/backend/src/modules/tickets/list/list-query-transforms.spec.ts b/backend/src/modules/tickets/list/list-query-transforms.spec.ts
+--- a/backend/src/modules/tickets/list/list-query-transforms.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/list-query-transforms.spec.ts	2026-09-21 10:37:53.362654161 +0000
+@@ -0,0 +1,30 @@
++import { toQueryBoolean, toQueryList } from './list-query-transforms';
++
++describe('toQueryList', () => {
++  it('accepts a single value, repeated keys and comma separated values', () => {
++    expect(toQueryList('PENDING')).toEqual(['PENDING']);
++    expect(toQueryList(['PENDING', 'ASSIGNED'])).toEqual(['PENDING', 'ASSIGNED']);
++    expect(toQueryList('PENDING, ASSIGNED')).toEqual(['PENDING', 'ASSIGNED']);
++    expect(toQueryList(['PENDING,ASSIGNED', 'CLOSED'])).toEqual([
++      'PENDING',
++      'ASSIGNED',
++      'CLOSED',
++    ]);
++  });
++
++  it('leaves absence alone and drops empty entries', () => {
++    expect(toQueryList(undefined)).toBeUndefined();
++    expect(toQueryList('')).toEqual([]);
++    expect(toQueryList('A,,B,')).toEqual(['A', 'B']);
++  });
++});
++
++describe('toQueryBoolean', () => {
++  it('is true only for true / "true"', () => {
++    expect(toQueryBoolean('true')).toBe(true);
++    expect(toQueryBoolean(true)).toBe(true);
++    expect(toQueryBoolean('false')).toBe(false);
++    expect(toQueryBoolean('1')).toBe(false);
++    expect(toQueryBoolean(undefined)).toBe(false);
++  });
++});
+diff -ruN a/backend/src/modules/tickets/list/list-query-transforms.ts b/backend/src/modules/tickets/list/list-query-transforms.ts
+--- a/backend/src/modules/tickets/list/list-query-transforms.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/list-query-transforms.ts	2026-09-21 10:37:53.347592813 +0000
+@@ -0,0 +1,17 @@
++/** Query-string booleans: only `true` / `'true'` are true, anything else false. */
++export function toQueryBoolean(value: unknown): boolean {
++  return value === true || value === 'true';
++}
++
++/** `status=A&status=B` and `status=A,B` both become `['A', 'B']`. */
++export function toQueryList(value: unknown): unknown {
++  if (value === undefined) {
++    return undefined;
++  }
++  return (Array.isArray(value) ? value : [value])
++    .flatMap((item: unknown) =>
++      typeof item === 'string' ? item.split(',') : [item],
++    )
++    .map((item: unknown) => (typeof item === 'string' ? item.trim() : item))
++    .filter((item: unknown) => item !== '');
++}
+diff -ruN a/backend/src/modules/tickets/list/list-tickets.constants.ts b/backend/src/modules/tickets/list/list-tickets.constants.ts
+--- a/backend/src/modules/tickets/list/list-tickets.constants.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/list-tickets.constants.ts	2026-09-21 08:01:43.280069375 +0000
+@@ -0,0 +1,15 @@
++export const ticketListSortFields = [
++  'updatedAt',
++  'createdAt',
++  'priority',
++  'status',
++  'slaDueAt',
++] as const;
++
++export const ticketListSortDirections = ['asc', 'desc'] as const;
++
++export const ticketListPaging = {
++  defaultPage: 1,
++  defaultPageSize: 25,
++  maxPageSize: 100,
++} as const;
+diff -ruN a/backend/src/modules/tickets/list/list-tickets.types.ts b/backend/src/modules/tickets/list/list-tickets.types.ts
+--- a/backend/src/modules/tickets/list/list-tickets.types.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/list-tickets.types.ts	2026-09-21 08:01:43.281016394 +0000
+@@ -0,0 +1,39 @@
++import type {
++  TicketPriority,
++  TicketStatus,
++} from '../../../generated/prisma/enums';
++import type {
++  ticketListSortDirections,
++  ticketListSortFields,
++} from './list-tickets.constants';
++
++export type TicketListSortField = (typeof ticketListSortFields)[number];
++export type TicketListSortDirection = (typeof ticketListSortDirections)[number];
++
++/**
++ * One filter vocabulary for every reader of the ticket list (GET /tickets,
++ * export, CSAT summary), so they cannot drift apart. Visibility is not part of
++ * it: it is always derived from the caller, never from the query.
++ */
++export type TicketListQuery = {
++  readonly originUnitId?: string;
++  readonly serviceId?: string;
++  readonly status?: TicketStatus | readonly TicketStatus[];
++  readonly assignedUserId?: string;
++  readonly priority?: TicketPriority;
++  readonly requesterId?: string;
++  readonly groupId?: string;
++  readonly unassigned?: boolean;
++  readonly overdue?: boolean;
++  readonly atRisk?: boolean;
++  readonly createdFrom?: string;
++  readonly createdTo?: string;
++  readonly q?: string;
++  /** Internal: the export also searches the description, the list does not. */
++  readonly searchDescription?: boolean;
++  readonly includeArchived?: boolean;
++  readonly sort?: TicketListSortField;
++  readonly dir?: TicketListSortDirection;
++  readonly page?: number;
++  readonly pageSize?: number;
++};
+diff -ruN a/backend/src/modules/tickets/list/load-ticket-visibility-inputs.ts b/backend/src/modules/tickets/list/load-ticket-visibility-inputs.ts
+--- a/backend/src/modules/tickets/list/load-ticket-visibility-inputs.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/load-ticket-visibility-inputs.ts	2026-09-21 10:31:32.235305552 +0000
+@@ -0,0 +1,26 @@
++import { PrismaService } from '../../../common/prisma/prisma.service';
++import type { OrganizationalUnitScopeRow } from './build-manage-scope-where';
++
++/**
++ * Everything the visibility predicate needs, in two queries for the whole
++ * list (the per-ticket check used to look these up again for every ticket).
++ */
++export async function loadTicketVisibilityInputs(
++  prisma: PrismaService,
++  actorUserId: string,
++): Promise<{
++  readonly units: readonly OrganizationalUnitScopeRow[];
++  readonly actorGroupIds: readonly string[];
++}> {
++  const [units, memberships] = await Promise.all([
++    prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } }),
++    prisma.groupMember.findMany({
++      where: { userId: actorUserId },
++      select: { groupId: true },
++    }),
++  ]);
++  return {
++    units,
++    actorGroupIds: memberships.map((membership) => membership.groupId),
++  };
++}
+diff -ruN a/backend/src/modules/tickets/list/ticket-record-fixture.ts b/backend/src/modules/tickets/list/ticket-record-fixture.ts
+--- a/backend/src/modules/tickets/list/ticket-record-fixture.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/ticket-record-fixture.ts	2026-09-21 10:34:54.367317582 +0000
+@@ -0,0 +1,41 @@
++import type { TicketRecord } from '../tickets.types';
++
++const fixtureDate = new Date('2026-01-01T00:00:00.000Z');
++
++/** Test-support: a complete TicketRecord with only the interesting fields set. */
++export function buildTicketRecord(
++  overrides: Partial<TicketRecord> & { readonly id: string },
++): TicketRecord {
++  return {
++    ticketNumber: `T-${overrides.id}`,
++    title: `Ticket ${overrides.id}`,
++    description: '',
++    status: 'PENDING',
++    priority: 'MEDIUM',
++    impact: 'MEDIUM',
++    urgency: 'MEDIUM',
++    classification: 'INTERNAL',
++    isConfidential: false,
++    formData: null,
++    originUnitId: 'ou-it',
++    serviceId: 'service-vpn',
++    formVersionId: 'form-vpn-v1',
++    requesterId: 'user-requester',
++    assignedGroupId: null,
++    assignedUserId: null,
++    parentTicketId: null,
++    mergedIntoTicketId: null,
++    reopenedFromTicketId: null,
++    closeCodeId: null,
++    resolutionNote: null,
++    resolvedAt: null,
++    closedAt: null,
++    archivedAt: null,
++    waitingForUserEnteredAt: null,
++    waitingForUserReminderSentAt: null,
++    firstResponseAt: null,
++    createdAt: fixtureDate,
++    updatedAt: fixtureDate,
++    ...overrides,
++  };
++}
+diff -ruN a/backend/src/modules/tickets/list-tickets.ts b/backend/src/modules/tickets/list-tickets.ts
+--- a/backend/src/modules/tickets/list-tickets.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/list-tickets.ts	2026-09-21 10:31:32.236395381 +0000
+@@ -1,19 +1,34 @@
++import type { Prisma } from '../../generated/prisma/client';
+ import { PrismaService } from '../../common/prisma/prisma.service';
+ import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+-import type { AuthorizationContext } from '../authorization/authorization.types';
+-import { canManageTicketsInScope } from './authorize-ticket-actor';
+-import { isConfidentialTicketVisible } from './confidential/assert-confidential-ticket-access';
++import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
++import type { TicketArchiveConfiguration } from './archive/archive.types';
+ import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
++import {
++  buildTicketListFilters,
++  buildTicketStatusFilter,
++} from './list/build-ticket-list-filters';
++import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
++import { buildTicketVisibilityWhere } from './list/build-ticket-visibility-where';
++import { ticketListPaging } from './list/list-tickets.constants';
++import { loadTicketVisibilityInputs } from './list/load-ticket-visibility-inputs';
+ import { TicketsError } from './tickets.error';
+ import type {
+   ListTicketsQuery,
+   TicketMutationContext,
+   TicketRecord,
+ } from './tickets.types';
+-import type { TicketArchiveConfiguration } from './archive/archive.types';
+-import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
+-import { matchesTicketListSearchQuery } from './matches-list-search-query';
+ 
++export type TicketListPage = {
++  readonly records: readonly TicketRecord[];
++  readonly total: number;
++  readonly page: number;
++  readonly pageSize: number;
++};
++
++type Paging = { readonly skip: number; readonly take: number };
++
++/** Every visible ticket that matches, unpaged (export, CSAT summary, legacy). */
+ export async function listTickets(
+   prisma: PrismaService,
+   authorizationContextLoader: AuthorizationContextLoader,
+@@ -21,101 +36,92 @@
+   context: TicketMutationContext,
+   archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
+ ): Promise<readonly TicketRecord[]> {
+-  const authContext = await authorizationContextLoader.loadBySubjectId(
+-    context.actorUserId,
++  const result = await runTicketListQuery(
++    prisma,
++    authorizationContextLoader,
++    query,
++    context,
++    archive,
++    null,
+   );
+-  if (authContext === null) {
+-    throw new TicketsError('FORBIDDEN');
+-  }
+-  if (
+-    query.status === 'ARCHIVED' &&
+-    !archive.searchable &&
+-    !authContext.isSuperAdmin
+-  ) {
+-    return [];
+-  }
+-  const records = ((await prisma.ticket.findMany({
+-    where: {
+-      ...(query.originUnitId === undefined
+-        ? {}
+-        : { originUnitId: query.originUnitId }),
+-      ...(query.serviceId === undefined ? {} : { serviceId: query.serviceId }),
+-      ...(query.assignedUserId === undefined
+-        ? {}
+-        : { assignedUserId: query.assignedUserId }),
+-      ...(query.priority === undefined ? {} : { priority: query.priority }),
+-      ...ticketStatusWhere(query),
+-    },
+-    orderBy: { createdAt: 'desc' },
+-  })) as TicketRecord[]).filter((ticket) =>
+-    matchesTicketListSearchQuery(ticket, query.q),
+-  );
+-  const units = await prisma.organizationalUnit.findMany({
+-    select: { id: true, ouPath: true },
+-  });
+-  const pathById = new Map(units.map((unit) => [unit.id, unit.ouPath]));
+-  const visible: TicketRecord[] = [];
+-  for (const ticket of records) {
+-    if (
+-      await isListedTicketVisible(prisma, authContext, ticket, pathById, context)
+-    ) {
+-      visible.push(ticket);
+-    }
+-  }
+-  return visible;
++  return result.records;
+ }
+ 
+-async function isListedTicketVisible(
++/** One page of the visible, matching tickets plus the total across pages. */
++export async function listTicketsPage(
+   prisma: PrismaService,
+-  context: AuthorizationContext,
+-  ticket: TicketRecord,
+-  pathById: ReadonlyMap<string, string>,
+-  mutation: TicketMutationContext,
+-): Promise<boolean> {
+-  if (!passesBaselineListVisibility(context, ticket, pathById)) {
+-    return false;
+-  }
+-  const originUnitPath = pathById.get(ticket.originUnitId);
+-  if (originUnitPath === undefined) {
+-    return false;
+-  }
+-  return isConfidentialTicketVisible(prisma, {
+-    context,
+-    ticket,
+-    originUnitPath,
+-    configuration:
+-      mutation.confidential ?? defaultTicketConfidentialConfiguration,
+-  });
+-}
+-
+-function passesBaselineListVisibility(
+-  context: AuthorizationContext,
+-  ticket: TicketRecord,
+-  pathById: ReadonlyMap<string, string>,
+-): boolean {
+-  if (context.isSuperAdmin || context.subjectId === ticket.requesterId) {
+-    return true;
+-  }
+-  const originUnitPath = pathById.get(ticket.originUnitId);
+-  if (originUnitPath === undefined) {
+-    return false;
+-  }
+-  return canManageTicketsInScope({
++  authorizationContextLoader: AuthorizationContextLoader,
++  query: ListTicketsQuery,
++  context: TicketMutationContext,
++  archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
++): Promise<TicketListPage> {
++  const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
++  const pageSize = Math.min(
++    Math.max(query.pageSize ?? ticketListPaging.defaultPageSize, 1),
++    ticketListPaging.maxPageSize,
++  );
++  const result = await runTicketListQuery(
++    prisma,
++    authorizationContextLoader,
++    query,
+     context,
+-    originUnitId: ticket.originUnitId,
+-    originUnitPath,
+-    serviceId: ticket.serviceId,
+-  });
++    archive,
++    { skip: (page - 1) * pageSize, take: pageSize },
++  );
++  return { ...result, page, pageSize };
+ }
+ 
+-function ticketStatusWhere(query: ListTicketsQuery): {
+-  status?: ListTicketsQuery['status'] | { not: 'ARCHIVED' };
+-} {
+-  if (query.status !== undefined) {
+-    return { status: query.status };
++async function runTicketListQuery(
++  prisma: PrismaService,
++  authorizationContextLoader: AuthorizationContextLoader,
++  query: ListTicketsQuery,
++  context: TicketMutationContext,
++  archive: TicketArchiveConfiguration,
++  paging: Paging | null,
++): Promise<{ readonly records: readonly TicketRecord[]; readonly total: number }> {
++  const authContext = await authorizationContextLoader.loadBySubjectId(
++    context.actorUserId,
++  );
++  if (authContext === null) {
++    throw new TicketsError('FORBIDDEN');
+   }
+-  if (query.includeArchived === true) {
+-    return {};
++  const statusFilter = buildTicketStatusFilter(
++    query,
++    archive.searchable || authContext.isSuperAdmin,
++  );
++  if (statusFilter === null) {
++    return { records: [], total: 0 };
+   }
+-  return { status: { not: 'ARCHIVED' } };
++  const visibilityInputs = await loadTicketVisibilityInputs(
++    prisma,
++    authContext.subjectId,
++  );
++  const where: Prisma.TicketWhereInput = {
++    AND: [
++      statusFilter,
++      ...buildTicketListFilters(query),
++      ...buildTicketVisibilityWhere({
++        context: authContext,
++        ...visibilityInputs,
++        configuration:
++          context.confidential ?? defaultTicketConfidentialConfiguration,
++        now: new Date(),
++      }),
++    ],
++  };
++  const orderBy = buildTicketListOrderBy(query.sort, query.dir);
++  if (paging === null) {
++    const records = (await prisma.ticket.findMany({
++      where,
++      orderBy,
++    })) as TicketRecord[];
++    return { records, total: records.length };
++  }
++  const [records, total] = await Promise.all([
++    prisma.ticket.findMany({ where, orderBy, ...paging }) as Promise<
++      TicketRecord[]
++    >,
++    prisma.ticket.count({ where }),
++  ]);
++  return { records, total };
+ }
+diff -ruN a/backend/src/modules/tickets/matches-in-memory-ticket.ts b/backend/src/modules/tickets/matches-in-memory-ticket.ts
+--- a/backend/src/modules/tickets/matches-in-memory-ticket.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/matches-in-memory-ticket.ts	2026-09-21 10:32:54.719251515 +0000
+@@ -1,123 +1,74 @@
++import { matchesInMemoryField } from './in-memory-where-operators';
++import type {
++  InMemoryTicketRelations,
++  InMemoryTicketWhere,
++} from './in-memory-ticket-where';
+ import type { TicketRecord } from './tickets.types';
+-import type { InMemoryTicketWhere } from './in-memory-ticket-where';
+ 
++type Row = Readonly<Record<string, unknown>>;
++
++const noRelations: InMemoryTicketRelations = {};
++
++/** Evaluates a Prisma-style `where` (AND/OR/NOT, scalars, relation filters). */
+ export function matchesInMemoryTicket(
+   ticket: TicketRecord,
+   where?: InMemoryTicketWhere,
++  relations: InMemoryTicketRelations = noRelations,
+ ): boolean {
+-  if (where === undefined) {
+-    return true;
+-  }
+-  return (
+-    matchesScalarOrIn(ticket.id, where.id) &&
+-    matchesScalarOrIn(ticket.originUnitId, where.originUnitId) &&
+-    matchesScalar(ticket.serviceId, where.serviceId) &&
+-    matchesScalar(ticket.priority, where.priority) &&
+-    matchesCreatedAt(ticket.createdAt, where.createdAt) &&
+-    matchesScalar(ticket.requesterId, where.requesterId) &&
+-    matchesStatus(ticket.status, where.status) &&
+-    matchesAssignedGroupId(ticket.assignedGroupId, where.assignedGroupId) &&
+-    matchesAssignedUserId(ticket.assignedUserId, where.assignedUserId) &&
+-    matchesNullable(ticket.parentTicketId, where.parentTicketId) &&
+-    matchesNullable(ticket.mergedIntoTicketId, where.mergedIntoTicketId) &&
+-    matchesClosedAt(ticket.closedAt, where.closedAt)
+-  );
++  return where === undefined || matchesRow(ticket, where, relations);
+ }
+ 
+-function matchesScalar(value: string, expected?: string): boolean {
+-  return expected === undefined || value === expected;
++function asList(value: unknown): readonly Row[] {
++  return (Array.isArray(value) ? value : [value]) as readonly Row[];
+ }
+ 
+-function matchesScalarOrIn(
+-  value: string,
+-  expected?: string | { in: readonly string[] },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (typeof expected === 'string') {
+-    return value === expected;
+-  }
+-  return expected.in.includes(value);
+-}
+-
+-function matchesNullable(
+-  value: string | null,
+-  expected?: string | null,
+-): boolean {
+-  return expected === undefined || value === expected;
+-}
+-
+-function matchesStatus(
+-  status: string,
+-  expected?: string | { in: readonly string[] } | { not: string },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (typeof expected === 'string') {
+-    return status === expected;
+-  }
+-  if ('not' in expected) {
+-    return status !== expected.not;
+-  }
+-  return expected.in.includes(status);
+-}
+-
+-function matchesCreatedAt(
+-  actual: Date,
+-  expected?: { gte?: Date; lte?: Date },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (expected.gte !== undefined && actual.getTime() < expected.gte.getTime()) {
+-    return false;
+-  }
+-  if (expected.lte !== undefined && actual.getTime() > expected.lte.getTime()) {
+-    return false;
+-  }
+-  return true;
+-}
+-
+-function matchesClosedAt(
+-  actual: Date | null,
+-  expected?: { lte: Date },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (actual === null) {
+-    return false;
+-  }
+-  return actual.getTime() <= expected.lte.getTime();
+-}
+-
+-function matchesAssignedGroupId(
+-  assignedGroupId: string | null,
+-  expected?: string | { in: readonly string[] } | { not: null },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (typeof expected === 'string') {
+-    return assignedGroupId === expected;
+-  }
+-  if ('not' in expected) {
+-    return assignedGroupId !== null;
+-  }
+-  return assignedGroupId !== null && expected.in.includes(assignedGroupId);
+-}
+-
+-function matchesAssignedUserId(
+-  assignedUserId: string | null,
+-  expected?: string | null | { not: null },
+-): boolean {
+-  if (expected === undefined) {
+-    return true;
+-  }
+-  if (expected !== null && typeof expected === 'object' && 'not' in expected) {
+-    return assignedUserId !== null;
++function matchesRow(
++  row: Row,
++  where: Row,
++  relations: InMemoryTicketRelations,
++): boolean {
++  return Object.entries(where).every(([key, condition]) => {
++    if (condition === undefined) {
++      return true;
++    }
++    if (key === 'AND') {
++      return asList(condition).every((part) => matchesRow(row, part, relations));
++    }
++    if (key === 'OR') {
++      // Like Prisma: an empty OR list matches nothing.
++      return asList(condition).some((part) => matchesRow(row, part, relations));
++    }
++    if (key === 'NOT') {
++      return !asList(condition).some((part) => matchesRow(row, part, relations));
++    }
++    const resolveRelated = relations[key];
++    if (resolveRelated !== undefined) {
++      return matchesRelation(
++        resolveRelated(row as { readonly id: string }) as readonly Row[],
++        condition as Row,
++      );
++    }
++    return matchesInMemoryField(row[key], condition);
++  });
++}
++
++function matchesRelation(related: readonly Row[], filter: Row): boolean {
++  const unsupported = Object.keys(filter).filter(
++    (key) => !['some', 'none', 'every', 'is', 'isNot'].includes(key),
++  );
++  if (unsupported.length > 0) {
++    throw new Error(`Unsupported in-memory relation filter: ${unsupported[0]}`);
+   }
+-  return assignedUserId === expected;
++  const hit = (where: unknown) =>
++    related.some((item) => matchesRow(item, where as Row, noRelations));
++  return (
++    (filter.some === undefined || hit(filter.some)) &&
++    (filter.none === undefined || !hit(filter.none)) &&
++    (filter.every === undefined ||
++      related.every((item) => matchesRow(item, filter.every as Row, noRelations))) &&
++    (filter.is === undefined ||
++      (filter.is === null ? related.length === 0 : hit(filter.is))) &&
++    (filter.isNot === undefined ||
++      (filter.isNot === null ? related.length > 0 : !hit(filter.isNot)))
++  );
+ }
+diff -ruN a/backend/src/modules/tickets/matches-list-search-query.ts b/backend/src/modules/tickets/matches-list-search-query.ts
+--- a/backend/src/modules/tickets/matches-list-search-query.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/matches-list-search-query.ts	1970-01-01 00:00:00.000000000 +0000
+@@ -1,13 +0,0 @@
+-export function matchesTicketListSearchQuery(
+-  ticket: { readonly ticketNumber: string; readonly title: string },
+-  query: string | undefined,
+-): boolean {
+-  const needle = query?.trim().toLowerCase() ?? '';
+-  if (needle.length === 0) {
+-    return true;
+-  }
+-  return (
+-    ticket.ticketNumber.toLowerCase().includes(needle) ||
+-    ticket.title.toLowerCase().includes(needle)
+-  );
+-}
+diff -ruN a/backend/src/modules/tickets/sort-in-memory-tickets.ts b/backend/src/modules/tickets/sort-in-memory-tickets.ts
+--- a/backend/src/modules/tickets/sort-in-memory-tickets.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/sort-in-memory-tickets.ts	2026-09-21 10:32:54.720486185 +0000
+@@ -1,50 +1,103 @@
++import type {
++  InMemoryTicketOrderBy,
++  InMemoryTicketRelations,
++} from './in-memory-ticket-where';
+ import type { TicketRecord } from './tickets.types';
+-import type { InMemoryTicketOrderBy } from './in-memory-ticket-where';
++
++type Direction = 'asc' | 'desc';
++type Key = { readonly path: readonly string[]; readonly direction: Direction };
++
++// Postgres orders enum columns by declaration order (see enums.prisma).
++const enumOrder: Readonly<Record<string, readonly string[]>> = {
++  priority: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
++  status: [
++    'PENDING',
++    'UNROUTED',
++    'PENDING_APPROVAL',
++    'ASSIGNED',
++    'IN_PROGRESS',
++    'WAITING_FOR_USER',
++    'RESOLVED',
++    'CLOSED',
++    'ARCHIVED',
++  ],
++};
+ 
+ export function sortInMemoryTickets(
+   tickets: TicketRecord[],
+   orderBy?: InMemoryTicketOrderBy,
++  relations: InMemoryTicketRelations = {},
+ ): TicketRecord[] {
+-  const keys = Array.isArray(orderBy)
+-    ? orderBy
+-    : [orderBy ?? { createdAt: 'desc' as const }];
+-  return tickets.sort((left, right) => compareTickets(left, right, keys));
+-}
+-
+-function compareTickets(
+-  left: TicketRecord,
+-  right: TicketRecord,
+-  keys: ReadonlyArray<{
+-    createdAt?: 'asc' | 'desc';
+-    updatedAt?: 'asc' | 'desc';
+-    id?: 'asc' | 'desc';
+-  }>,
+-): number {
+-  for (const key of keys) {
+-    const created = compareDate(left.createdAt, right.createdAt, key.createdAt);
+-    if (created !== 0) {
+-      return created;
+-    }
+-    const updated = compareDate(left.updatedAt, right.updatedAt, key.updatedAt);
+-    if (updated !== 0) {
+-      return updated;
+-    }
+-    if (key.id !== undefined) {
+-      const ranked = left.id.localeCompare(right.id);
+-      return key.id === 'asc' ? ranked : -ranked;
++  const keys = toKeys(orderBy ?? { createdAt: 'desc' });
++  return tickets.sort((left, right) => {
++    for (const key of keys) {
++      const result = compareValues(
++        readValue(left, key.path, relations),
++        readValue(right, key.path, relations),
++        key,
++      );
++      if (result !== 0) {
++        return result;
++      }
+     }
++    return 0;
++  });
++}
++
++function toKeys(orderBy: InMemoryTicketOrderBy): Key[] {
++  const entries = Array.isArray(orderBy) ? orderBy : [orderBy];
++  return entries.flatMap((entry) =>
++    Object.entries(entry).flatMap(([field, value]) => flatten([field], value)),
++  );
++}
++
++function flatten(path: string[], value: unknown): Key[] {
++  if (value === 'asc' || value === 'desc') {
++    return [{ path, direction: value }];
+   }
+-  return 0;
++  if (typeof value === 'object' && value !== null) {
++    return Object.entries(value).flatMap(([field, inner]) =>
++      flatten([...path, field], inner),
++    );
++  }
++  throw new Error(`Unsupported in-memory orderBy at ${path.join('.')}`);
+ }
+ 
+-function compareDate(
+-  left: Date,
+-  right: Date,
+-  direction?: 'asc' | 'desc',
+-): number {
+-  if (direction === undefined) {
+-    return 0;
++function readValue(
++  ticket: TicketRecord,
++  path: readonly string[],
++  relations: InMemoryTicketRelations,
++): unknown {
++  const [head, ...rest] = path;
++  const related = relations[head];
++  if (related === undefined) {
++    return (ticket as unknown as Record<string, unknown>)[head] ?? null;
++  }
++  const [row] = related(ticket) as readonly Record<string, unknown>[];
++  return row === undefined ? null : (row[rest[0]] ?? null);
++}
++
++function rank(path: readonly string[], value: unknown): unknown {
++  const order = path.length === 1 ? enumOrder[path[0]] : undefined;
++  return order === undefined ? value : order.indexOf(value as string);
++}
++
++function compareValues(left: unknown, right: unknown, key: Key): number {
++  // Postgres default: NULLs sort last ascending and first descending.
++  if (left === null || right === null) {
++    if (left === right) {
++      return 0;
++    }
++    const nullFirst = key.direction === 'desc';
++    return (left === null) === nullFirst ? -1 : 1;
+   }
+-  const ranked = left.getTime() - right.getTime();
+-  return direction === 'asc' ? ranked : -ranked;
++  const a = rank(key.path, left);
++  const b = rank(key.path, right);
++  const ordered =
++    a instanceof Date && b instanceof Date
++      ? a.getTime() - b.getTime()
++      : typeof a === 'string' && typeof b === 'string'
++        ? a.localeCompare(b)
++        : Number(a) - Number(b);
++  return key.direction === 'asc' ? ordered : -ordered;
+ }
+diff -ruN a/backend/src/modules/tickets/tickets.controller.ts b/backend/src/modules/tickets/tickets.controller.ts
+--- a/backend/src/modules/tickets/tickets.controller.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/tickets.controller.ts	2026-09-21 10:32:05.949063974 +0000
+@@ -23,7 +23,11 @@
+ import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+ import { UpdateTicketDto } from './dto/update-ticket.dto';
+ import { TicketsService } from './tickets.service';
+-import type { TicketMutationContext, TicketResponse } from './tickets.types';
++import type {
++  TicketListResponse,
++  TicketMutationContext,
++  TicketResponse,
++} from './tickets.types';
+ 
+ @Controller('tickets')
+ @UseGuards(SessionAuthenticationGuard, RoleGuard)
+@@ -55,7 +59,7 @@
+   list(
+     @Query() query: ListTicketsQueryDto,
+     @Req() request: AuthenticatedHttpRequest,
+-  ): Promise<readonly TicketResponse[]> {
++  ): Promise<readonly TicketResponse[] | TicketListResponse> {
+     return this.ticketsService.list(query, readTicketMutationContext(request));
+   }
+ 
+diff -ruN a/backend/src/modules/tickets/tickets.list-paging.spec.ts b/backend/src/modules/tickets/tickets.list-paging.spec.ts
+--- a/backend/src/modules/tickets/tickets.list-paging.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/tickets.list-paging.spec.ts	2026-09-21 10:38:57.440716338 +0000
+@@ -0,0 +1,174 @@
++import {
++  createTicketsServiceHarness,
++  ticketsTestIds,
++} from './create-tickets-service-harness';
++import { buildTicketRecord } from './list/ticket-record-fixture';
++import type { TicketListResponse, TicketResponse } from './tickets.types';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const { agentIt, agentHr, requester, superAdmin } = ticketsTestIds;
++const day = (n: number) => new Date(`2026-01-0${n}T00:00:00.000Z`);
++
++function setup() {
++  const harness = createTicketsServiceHarness();
++  const { memory } = harness;
++  const seed = (
++    n: number,
++    overrides: Parameters<typeof buildTicketRecord>[0] extends infer T
++      ? Partial<T>
++      : never,
++  ) =>
++    memory.tickets.set(
++      `t${n}`,
++      buildTicketRecord({
++        id: `t${n}`,
++        ticketNumber: `T-${n}`,
++        createdAt: day(n),
++        updatedAt: day(n),
++        ...overrides,
++      }),
++    );
++  seed(1, { title: 'Printer jam', priority: 'LOW' });
++  seed(2, {
++    title: 'VPN down',
++    priority: 'MEDIUM',
++    status: 'ASSIGNED',
++    assignedUserId: ticketsTestIds.agentItPeer,
++    assignedGroupId: ticketsTestIds.groupIt,
++  });
++  seed(3, {
++    title: 'Laptop fan',
++    priority: 'HIGH',
++    status: 'IN_PROGRESS',
++    assignedUserId: agentIt,
++  });
++  seed(4, { title: 'Vpn slow', priority: 'CRITICAL' });
++  seed(5, { title: 'Old', status: 'ARCHIVED' });
++  seed(6, { title: 'Access', description: 'mentions vpn only here', priority: 'LOW' });
++  seed(7, {
++    title: 'HR onboarding',
++    originUnitId: ticketsTestIds.ouHr,
++    requesterId: ticketsTestIds.watcher,
++  });
++  const sla = (n: number, due: number, flags: object) =>
++    memory.slaStates.set(`s${n}`, {
++      id: `s${n}`,
++      ticketId: `t${n}`,
++      slaProfileId: null,
++      slaRuleId: null,
++      responseMinutes: 0,
++      resolutionMinutes: 0,
++      startedAt: day(1),
++      responseDueAt: null,
++      resolutionDueAt: day(due),
++      respondedAt: null,
++      resolutionCompletedAt: null,
++      pausedAt: null,
++      pausedBusinessMinutes: 0,
++      isResponseBreached: false,
++      isResolutionBreached: false,
++      isResponseAtRisk: false,
++      isResolutionAtRisk: false,
++      firedEscalationKeys: [],
++      updatedAt: day(1),
++      ...flags,
++    });
++  // Both flags set: a breached ticket is overdue, never "at risk".
++  sla(2, 9, { isResolutionBreached: true, isResolutionAtRisk: true });
++  sla(3, 7, { isResolutionAtRisk: true });
++  sla(4, 8, {});
++
++  const page = async (
++    query: Parameters<typeof harness.tickets.list>[0],
++    actor: string = agentIt,
++  ) =>
++    (await harness.tickets.list(query, {
++      actorUserId: actor,
++    })) as TicketListResponse;
++  const ids = (result: TicketListResponse) =>
++    result.items.map((item: TicketResponse) => item.id);
++  return { ...harness, page, ids };
++}
++
++describe('GET /tickets paging, sorting and filters', () => {
++  it('keeps returning a plain array when no paging is requested', async () => {
++    const { tickets } = setup();
++    const result = await tickets.list({}, { actorUserId: agentIt });
++    expect(Array.isArray(result)).toBe(true);
++    // t5 is archived and t7 belongs to HR: neither is listed.
++    expect((result as TicketResponse[]).map((item) => item.id).sort()).toEqual([
++      't1', 't2', 't3', 't4', 't6',
++    ]);
++  });
++
++  it('returns one page with the total across pages', async () => {
++    const { page, ids } = setup();
++    const first = await page({ page: 1, pageSize: 2, sort: 'createdAt', dir: 'asc' });
++    expect(ids(first)).toEqual(['t1', 't2']);
++    expect(first).toMatchObject({ total: 5, page: 1, pageSize: 2 });
++    const third = await page({ page: 3, pageSize: 2, sort: 'createdAt', dir: 'asc' });
++    expect(ids(third)).toEqual(['t6']);
++    const beyond = await page({ page: 4, pageSize: 2, sort: 'createdAt', dir: 'asc' });
++    expect(ids(beyond)).toEqual([]);
++    expect(beyond.total).toBe(5);
++  });
++
++  it('applies paging defaults and never returns more than the maximum page size', async () => {
++    const { page } = setup();
++    expect(await page({ page: 1 })).toMatchObject({ page: 1, pageSize: 25 });
++    expect(await page({ pageSize: 10 })).toMatchObject({ page: 1, pageSize: 10 });
++    expect((await page({ page: 1, pageSize: 500 })).pageSize).toBe(100);
++    expect((await page({ page: 0, pageSize: 0 }))).toMatchObject({ page: 1, pageSize: 1 });
++  });
++
++  it('sorts by priority and by the closest SLA deadline, tickets without an SLA last', async () => {
++    const { page, ids } = setup();
++    expect(ids(await page({ page: 1, sort: 'priority', dir: 'desc' })).slice(0, 3)).toEqual([
++      't4', 't3', 't2',
++    ]);
++    // due: t3 day 7, t4 day 8, t2 day 9; t1 and t6 have no SLA state.
++    expect(ids(await page({ page: 1, sort: 'slaDueAt', dir: 'asc' }))).toEqual([
++      't3', 't4', 't2', 't6', 't1',
++    ]);
++  });
++
++  it('narrows by status list, assignment, group, search and SLA state', async () => {
++    const { page, ids } = setup();
++    expect(ids(await page({ page: 1, status: ['PENDING', 'ASSIGNED'], sort: 'createdAt', dir: 'asc' }))).toEqual([
++      't1', 't2', 't4', 't6',
++    ]);
++    expect(ids(await page({ page: 1, unassigned: true, sort: 'createdAt', dir: 'asc' }))).toEqual([
++      't1', 't4', 't6',
++    ]);
++    expect(ids(await page({ page: 1, groupId: ticketsTestIds.groupIt }))).toEqual(['t2']);
++    // Search matches number and title, not the description.
++    expect(ids(await page({ page: 1, q: 'vpn', sort: 'createdAt', dir: 'asc' }))).toEqual(['t2', 't4']);
++    expect(ids(await page({ page: 1, q: 't-3' }))).toEqual(['t3']);
++    expect(ids(await page({ page: 1, overdue: true }))).toEqual(['t2']);
++    expect(ids(await page({ page: 1, atRisk: true }))).toEqual(['t3']);
++  });
++
++  it('reports a total that only counts what the caller may see', async () => {
++    const { page, ids } = setup();
++    const hr = await page({ page: 1 }, agentHr);
++    expect(ids(hr)).toEqual(['t7']);
++    expect(hr.total).toBe(1);
++    // The requester of t7 sees only their own ticket.
++    const watcher = await page({ page: 1 }, ticketsTestIds.watcher);
++    expect(ids(watcher)).toEqual(['t7']);
++    // Everyone else's tickets of the requester: t1-t4, t6 (t5 archived).
++    expect((await page({ page: 1 }, requester)).total).toBe(5);
++  });
++
++  it('shows the archive only where the archive policy and role allow it', async () => {
++    const { page, ids } = setup();
++    expect(ids(await page({ page: 1, status: 'ARCHIVED' }, superAdmin))).toEqual(['t5']);
++    const asAgent = await page({ page: 1, status: ['ARCHIVED', 'PENDING'], sort: 'createdAt', dir: 'asc' });
++    // Whether the agent may search the archive is a policy switch; either way
++    // the plain PENDING tickets are there.
++    expect(ids(asAgent)).toEqual(expect.arrayContaining(['t1', 't4', 't6']));
++  });
++});
+diff -ruN a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+--- a/backend/src/modules/tickets/tickets.service.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/tickets.service.ts	2026-09-21 10:32:05.948674245 +0000
+@@ -13,7 +13,7 @@
+ import type { TicketPersistedMessageSink } from './collaboration.types';
+ import { executeTicketOperation } from './execute-ticket-operation';
+ import { getTicket } from './get-ticket';
+-import { listTickets } from './list-tickets';
++import { listTickets, listTicketsPage } from './list-tickets';
+ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+ import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
+ import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
+@@ -32,6 +32,7 @@
+ import type {
+   CreateTicketInput,
+   ListTicketsQuery,
++  TicketListResponse,
+   TicketMutationContext,
+   TicketResponse,
+   UpdateTicketInput,
+@@ -77,20 +78,43 @@
+     );
+   }
+ 
+-  list(query: ListTicketsQuery, context: TicketMutationContext) {
++  /**
++   * Without `page`/`pageSize` this returns the plain array older clients read;
++   * with either one it returns `{ items, total, page, pageSize }`.
++   */
++  list(
++    query: ListTicketsQuery,
++    context: TicketMutationContext,
++  ): Promise<readonly TicketResponse[] | TicketListResponse> {
+     return executeTicketOperation(async () => {
+       const gated = await this.gate(context);
+-      return respondLoadedTickets(
+-        this.prisma,
+-        await listTickets(
++      const loaders = this.clientLoaders(gated.actorUserId);
++      if (query.page === undefined && query.pageSize === undefined) {
++        return respondLoadedTickets(
+           this.prisma,
+-          this.authorizationContextLoader,
+-          query,
+-          gated,
+-          gated.archive,
+-        ),
+-        this.clientLoaders(gated.actorUserId),
++          await listTickets(
++            this.prisma,
++            this.authorizationContextLoader,
++            query,
++            gated,
++            gated.archive,
++          ),
++          loaders,
++        );
++      }
++      const result = await listTicketsPage(
++        this.prisma,
++        this.authorizationContextLoader,
++        query,
++        gated,
++        gated.archive,
+       );
++      return {
++        items: await respondLoadedTickets(this.prisma, result.records, loaders),
++        total: result.total,
++        page: result.page,
++        pageSize: result.pageSize,
++      };
+     });
+   }
+ 
+diff -ruN a/backend/src/modules/tickets/tickets.types.ts b/backend/src/modules/tickets/tickets.types.ts
+--- a/backend/src/modules/tickets/tickets.types.ts	2026-09-21 10:43:53.520445153 +0000
++++ b/backend/src/modules/tickets/tickets.types.ts	2026-09-21 10:31:44.172644236 +0000
+@@ -1,3 +1,4 @@
++import type { TicketListQuery } from './list/list-tickets.types';
+ import type {
+   DataClassification,
+   TicketImpact,
+@@ -144,14 +145,13 @@
+   readonly resolutionNote?: string;
+ };
+ 
+-export type ListTicketsQuery = {
+-  readonly originUnitId?: string;
+-  readonly serviceId?: string;
+-  readonly status?: TicketStatus;
+-  readonly assignedUserId?: string;
+-  readonly priority?: TicketPriority;
+-  readonly q?: string;
+-  readonly includeArchived?: boolean;
++export type ListTicketsQuery = TicketListQuery;
++
++export type TicketListResponse = {
++  readonly items: readonly TicketResponse[];
++  readonly total: number;
++  readonly page: number;
++  readonly pageSize: number;
+ };
+ 
+ export type TicketMutationContext = {
+diff -ruN a/frontend/src/lib/tickets/ticket-list-search-params.spec.ts b/frontend/src/lib/tickets/ticket-list-search-params.spec.ts
+--- a/frontend/src/lib/tickets/ticket-list-search-params.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/frontend/src/lib/tickets/ticket-list-search-params.spec.ts	2026-09-21 10:40:08.385359445 +0000
+@@ -0,0 +1,50 @@
++import { describe, expect, it } from "vitest";
++import { toTicketListSearchParams } from "@/lib/tickets/ticket-list-search-params";
++
++describe("toTicketListSearchParams", () => {
++  it("always asks for a page so the API answers with the paged envelope", () => {
++    expect(toTicketListSearchParams({}).toString()).toBe("page=1");
++    expect(toTicketListSearchParams({ page: 3, pageSize: 25 }).toString()).toBe(
++      "page=3&pageSize=25",
++    );
++  });
++
++  it("sends several statuses as repeated keys", () => {
++    const search = toTicketListSearchParams({ status: ["PENDING", "ASSIGNED"] });
++    expect(search.getAll("status")).toEqual(["PENDING", "ASSIGNED"]);
++    expect(toTicketListSearchParams({ status: "CLOSED" }).getAll("status")).toEqual([
++      "CLOSED",
++    ]);
++  });
++
++  it("leaves out empty values and false flags", () => {
++    const search = toTicketListSearchParams({
++      serviceId: "",
++      priority: undefined,
++      unassigned: false,
++      overdue: true,
++      q: "   ",
++    });
++    expect(search.toString()).toBe("overdue=true&page=1");
++  });
++
++  it("carries filters, sorting and a trimmed search term", () => {
++    const search = toTicketListSearchParams({
++      groupId: "g-it",
++      atRisk: true,
++      q: " vpn ",
++      sort: "slaDueAt",
++      dir: "asc",
++      createdFrom: "2026-01-01T00:00:00.000Z",
++    });
++    expect(Object.fromEntries(search)).toEqual({
++      groupId: "g-it",
++      atRisk: "true",
++      q: "vpn",
++      sort: "slaDueAt",
++      dir: "asc",
++      createdFrom: "2026-01-01T00:00:00.000Z",
++      page: "1",
++    });
++  });
++});
+diff -ruN a/frontend/src/lib/tickets/ticket-list-search-params.ts b/frontend/src/lib/tickets/ticket-list-search-params.ts
+--- a/frontend/src/lib/tickets/ticket-list-search-params.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/frontend/src/lib/tickets/ticket-list-search-params.ts	2026-09-21 10:40:08.384476863 +0000
+@@ -0,0 +1,94 @@
++import type {
++  TicketPriority,
++  TicketStatus,
++} from "@/services/tickets-api";
++
++export type TicketSortField =
++  | "updatedAt"
++  | "createdAt"
++  | "priority"
++  | "status"
++  | "slaDueAt";
++
++/** Server-side list query: every filter is optional and applied by the API. */
++export type TicketPageQuery = {
++  readonly originUnitId?: string;
++  readonly serviceId?: string;
++  readonly status?: TicketStatus | readonly TicketStatus[];
++  readonly assignedUserId?: string;
++  readonly priority?: TicketPriority;
++  readonly requesterId?: string;
++  readonly groupId?: string;
++  readonly unassigned?: boolean;
++  readonly overdue?: boolean;
++  readonly atRisk?: boolean;
++  readonly createdFrom?: string;
++  readonly createdTo?: string;
++  readonly q?: string;
++  readonly includeArchived?: boolean;
++  readonly sort?: TicketSortField;
++  readonly dir?: "asc" | "desc";
++  readonly page?: number;
++  readonly pageSize?: number;
++};
++
++const textFilters = [
++  "originUnitId",
++  "serviceId",
++  "assignedUserId",
++  "priority",
++  "requesterId",
++  "groupId",
++  "createdFrom",
++  "createdTo",
++  "sort",
++  "dir",
++] as const;
++
++const flagFilters = [
++  "unassigned",
++  "overdue",
++  "atRisk",
++  "includeArchived",
++] as const;
++
++/**
++ * Builds the query string of GET /tickets. Empty values and `false` flags are
++ * left out (the API treats absence as "no filter"), and `page` is always sent:
++ * the API only answers with `{ items, total, page, pageSize }` when it is asked
++ * for a page, otherwise it returns the legacy plain array.
++ */
++export function toTicketListSearchParams(
++  query: TicketPageQuery,
++): URLSearchParams {
++  const search = new URLSearchParams();
++  for (const key of textFilters) {
++    const value = query[key];
++    if (value !== undefined && value !== "") {
++      search.set(key, value);
++    }
++  }
++  for (const key of flagFilters) {
++    if (query[key] === true) {
++      search.set(key, "true");
++    }
++  }
++  const statuses =
++    query.status === undefined
++      ? []
++      : typeof query.status === "string"
++        ? [query.status]
++        : query.status;
++  for (const status of statuses) {
++    search.append("status", status);
++  }
++  const term = query.q?.trim() ?? "";
++  if (term.length > 0) {
++    search.set("q", term);
++  }
++  search.set("page", String(query.page ?? 1));
++  if (query.pageSize !== undefined) {
++    search.set("pageSize", String(query.pageSize));
++  }
++  return search;
++}
+diff -ruN a/frontend/src/services/tickets-list-api.ts b/frontend/src/services/tickets-list-api.ts
+--- a/frontend/src/services/tickets-list-api.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/frontend/src/services/tickets-list-api.ts	2026-09-21 10:40:08.386161501 +0000
+@@ -0,0 +1,19 @@
++import { toTicketListSearchParams } from "@/lib/tickets/ticket-list-search-params";
++import type { TicketPageQuery } from "@/lib/tickets/ticket-list-search-params";
++import { apiRequest } from "@/services/api";
++import type { TicketResponse } from "@/services/tickets-api";
++
++export type TicketPage = {
++  readonly items: readonly TicketResponse[];
++  readonly total: number;
++  readonly page: number;
++  readonly pageSize: number;
++};
++
++/**
++ * One page of the tickets the caller may see, filtered, sorted and counted by
++ * the server. Prefer this over `listTickets`, which downloads every ticket.
++ */
++export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
++  return apiRequest(`/tickets?${toTicketListSearchParams(query).toString()}`);
++}
