@@ -25,6 +25,9 @@ List/get: requester vidi svoje tikete; AGENT/ADMIN vidi tikete čiji `originUnit
 Update smije: title, description, impact, urgency, formData, status. Ne smije: service, origin, formVersionRef, requester, ticketNumber, priority, assignedGroup/User.
 Impact/urgency change ⇒ ponovo `calculateTicketPriority`. Status change ide kroz state machine (workflow-state-machine-guards). Requester ne smije mijenjati status.
 
+## Nazivi u odgovoru
+`TicketResponse` uz id-jeve nosi nazive koje klijent prikazuje, pa UI ne gradi direktorij niti dohvaća katalog: `requesterName`, `assignedUserName`, `assignedGroupName`, `formVersionNumber`, `originUnitName`, `originUnitPath`, `serviceName`. Razrješava ih `loadTicketDisplayLabels` u jednom batch upitu po vrsti za cijeli rezultat (bez upita po tiketu). Nepoznat id daje `null`, nikad sam id.
+
 ## Authorization
 HTTP: `SessionAuthenticationGuard` + `RoleGuard` + role `USER|AGENT|ADMIN|SUPER_ADMIN`. Nema novih `ticket.create/read/update` permission keyeva. Resource scope se evaluira postojećim `decideAuthorizationAccess` (OU path nasljeđivanje + service scope). Read-only admin mode i dalje ne zaključava ticket create.
 

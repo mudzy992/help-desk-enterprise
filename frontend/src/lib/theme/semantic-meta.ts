@@ -51,6 +51,7 @@ export const SERVICE_LIFECYCLE_META: Record<ServiceLifecycle, SemanticMeta> = {
 export const SERVICE_AVAILABILITY_META: Record<ServiceAvailability, SemanticMeta> = {
   OPERATIONAL: meta("success", SEMANTIC_DOT_HEX.success),
   DEGRADED: meta("warning", SEMANTIC_DOT_HEX.warning),
+  DOWN: meta("danger", SEMANTIC_DOT_HEX.danger),
   MAINTENANCE: meta("info", SEMANTIC_DOT_HEX.info),
 };
 

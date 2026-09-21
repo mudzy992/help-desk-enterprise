@@ -9,7 +9,11 @@ export type ServiceCategoryResponse = ServiceCategoryApiResponse;
 export const listServiceCategories = listServiceCategoriesFromApi;
 
 export type ServiceLifecycle = "DRAFT" | "ACTIVE" | "DEPRECATED";
-export type ServiceAvailability = "OPERATIONAL" | "DEGRADED" | "MAINTENANCE";
+export type ServiceAvailability =
+  | "OPERATIONAL"
+  | "DEGRADED"
+  | "DOWN"
+  | "MAINTENANCE";
 
 export type ServiceDowntimeWindowSummary = {
   readonly message: string;

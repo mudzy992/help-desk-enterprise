@@ -12,6 +12,10 @@ import { assertTicketWritable } from '../archive/assert-ticket-writable';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { ticketAssignmentChangeLogReasons } from './assignment.constants';
 import { assertCanClaimTicket } from './assert-can-claim-ticket';
+import {
+  buildClaimConflictError,
+  resolveLostClaim,
+} from './resolve-claim-conflict';
 import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
 import { syncAssigneeParticipant } from '../sync-assignee-participant';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
@@ -58,16 +62,28 @@ export async function claimTicket(
   if (current.assignedUserId === context.actorUserId) {
     return current;
   }
+  if (current.assignedUserId !== null) {
+    throw await buildClaimConflictError(prisma, current.assignedUserId);
+  }
   const nextStatus = current.status === 'PENDING' ? 'ASSIGNED' : current.status;
   assertTicketStatusTransition(current.status, nextStatus);
-  return prisma.$transaction(async (transaction) => {
-    const updated = (await transaction.ticket.update({
+  const claimed = await prisma.$transaction(async (transaction) => {
+    // Single conditional write: it only matches while the ticket is still
+    // unassigned and in the status we read, so two concurrent claims cannot
+    // both win. The loser sees count 0 and nothing else is written.
+    const won = await transaction.ticket.updateMany({
+      where: { id: ticketId, assignedUserId: null, status: current.status },
+      data: { assignedUserId: context.actorUserId, status: nextStatus },
+    });
+    if (won.count === 0) {
+      return null;
+    }
+    const updated = (await transaction.ticket.findUnique({
       where: { id: ticketId },
-      data: {
-        assignedUserId: context.actorUserId,
-        status: nextStatus,
-      },
-    })) as TicketRecord;
+    })) as TicketRecord | null;
+    if (updated === null) {
+      throw new TicketsError('NOT_FOUND');
+    }
     await recordTicketChange(transaction as PrismaService, {
       action: changeLogActions.update,
       reason: ticketAssignmentChangeLogReasons.claim,
@@ -85,4 +101,5 @@ export async function claimTicket(
     );
     return updated;
   });
+  return claimed ?? resolveLostClaim(prisma, ticketId, context.actorUserId);
 }

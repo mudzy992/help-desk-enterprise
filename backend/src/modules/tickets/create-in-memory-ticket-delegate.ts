@@ -94,6 +94,23 @@ export function createInMemoryTicketDelegate(
       tickets.set(updated.id, updated);
       return updated;
     },
+    // Match and write in one synchronous step, like a single SQL UPDATE, so
+    // tests can exercise the "lost the race" path deterministically.
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where?: InMemoryTicketWhere;
+      data: Partial<TicketRecord>;
+    }) => {
+      const matched = [...tickets.values()].filter((ticket) =>
+        matchesInMemoryTicket(ticket, where),
+      );
+      for (const ticket of matched) {
+        tickets.set(ticket.id, { ...ticket, ...data, updatedAt: now() });
+      }
+      return { count: matched.length };
+    },
   };
 }
 

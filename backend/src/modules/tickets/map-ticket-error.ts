@@ -100,7 +100,8 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'OVERLAPPING_TIMER' ||
     error.code === 'SAVED_VIEW_NAME_TAKEN' ||
     error.code === 'DUPLICATE_TICKET_BLOCKED' ||
-    error.code === 'CSAT_ALREADY_SUBMITTED'
+    error.code === 'CSAT_ALREADY_SUBMITTED' ||
+    error.code === 'TICKET_NOT_CLAIMABLE'
   ) {
     return new ConflictException(body);
   }

@@ -9,10 +9,11 @@ import type { ServiceResponse } from "@/services/service-catalog-api";
 
 const availabilityTone: Record<
   ServiceResponse["availability"],
-  "success" | "warning" | "info"
+  "success" | "warning" | "danger" | "info"
 > = {
   OPERATIONAL: "success",
   DEGRADED: "warning",
+  DOWN: "danger",
   MAINTENANCE: "info",
 };
 

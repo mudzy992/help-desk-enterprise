@@ -960,6 +960,7 @@
     "availability": {
       "OPERATIONAL": "Available",
       "DEGRADED": "Degraded",
+      "DOWN": "Down",
       "MAINTENANCE": "Maintenance"
     },
     "offeredYes": "Yes",

@@ -19,12 +19,15 @@ Ako je `private.ticket.groupInbox.enabled=false` → `GROUP_INBOX_DISABLED`.
 
 - Actor mora biti AGENT/ADMIN u scope-u tiketa, ili SuperAdmin.
 - Non-SuperAdmin mora biti `GroupMember` handler grupe.
-- Dozvoljeni statusi: `PENDING`, `ASSIGNED`, `IN_PROGRESS`.
+- Dozvoljeni statusi: `PENDING`, `ASSIGNED`, `IN_PROGRESS`, i to samo dok je `assignedUserId` `null`. (`ASSIGNED`/`IN_PROGRESS` bez assignee-a nastaje kad bulk „Dodijeli grupi“ vrati tiket grupi; status se tada ne mijenja.)
 - `PENDING` + unassigned → `ASSIGNED` + `assignedUserId=actor`.
-- Već dodijeljen istom actoru → no-op.
-- Dodijeljen drugom agentu → take-over (isti status osim `PENDING` → `ASSIGNED`).
-- Unrouted / terminalni status → `TICKET_NOT_CLAIMABLE`.
-- Van grupe ili scope-a / USER → `FORBIDDEN`.
+- Već dodijeljen istom actoru → no-op (200), i pri istovremenim zahtjevima.
+- **Nema take-overa kroz claim.** Dodijeljen drugom agentu → `TICKET_NOT_CLAIMABLE` (HTTP 409) s `details.claimedByName`. Tuđi tiket se preuzima samo kroz „Dodijeli“ (bulk `assign_user`: permission + audit).
+- Unrouted / terminalni status / `PENDING_APPROVAL` → `TICKET_NOT_CLAIMABLE` (409, bez `details`).
+- Van grupe ili scope-a / USER → `FORBIDDEN`. `claimedByName` se otkriva tek nakon što actor prođe sve provjere prava (nikad agentu koji ne smije preuzimati).
+
+### Atomičnost
+Upis je jedan uslovni `updateMany` u transakciji: `where { id, assignedUserId: null, status: <pročitani status> }`. `count === 0` znači da je tiket u međuvremenu promijenjen: ponovo se čita, pa ishod je 200 (isti actor ga već drži), `TICKET_NOT_CLAIMABLE` s imenom (drži ga drugi) ili bez imena (više nije preuzimljiv). Gubitnik ne upisuje ništa (ni ChangeLog, ni participanta, ni system event).
 
 ## Auto-assign
 Radi samo poslije postojećeg routinga (`EXACT` / `PARENT_FALLBACK`). `UNROUTED` se ne dodjeljuje.
@@ -48,7 +51,7 @@ Uspješan assign/claim piše postojeći ChangeLog (`ticket_assign` / `ticket_cla
 | Method | Path |
 |---|---|
 | GET | `/tickets/inbox` |
-| POST | `/tickets/:ticketId/claim` |
+| POST | `/tickets/:ticketId/claim` (409 `TICKET_NOT_CLAIMABLE`) |
 
 ## Namjerno NIJE
 Participants, messages/chat, time tracking, attachments, KB, SLA, approvals, notifications, full ticket workspace UI, silent assign van scope-a, izmjena `RoutingService`.

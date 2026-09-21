@@ -54,6 +54,9 @@ export type TicketResponse = {
   readonly assignedUserName?: string | null;
   readonly assignedGroupName?: string | null;
   readonly formVersionNumber?: number | null;
+  readonly originUnitName?: string | null;
+  readonly originUnitPath?: string | null;
+  readonly serviceName?: string | null;
   readonly mergedIntoTicketId?: string | null;
   readonly reopenedFromTicketId?: string | null;
   readonly resolvedAt?: string | null;

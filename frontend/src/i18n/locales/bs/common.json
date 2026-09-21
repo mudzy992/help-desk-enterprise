@@ -960,6 +960,7 @@
     "availability": {
       "OPERATIONAL": "Dostupno",
       "DEGRADED": "Smanjena",
+      "DOWN": "Nedostupno",
       "MAINTENANCE": "Održavanje"
     },
     "offeredYes": "Da",
