@@ -1,0 +1,1765 @@
+diff -ruN a/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md b/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md
+--- a/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md	2026-09-21 11:08:40.451159219 +0000
++++ b/.cursor/docs/matrices/ticket-confidential-visibility/MATRIX.md	2026-09-21 11:07:59.271124955 +0000
+@@ -19,7 +19,7 @@
+ SuperAdmin **nema** implicitan pristup sadržaju. Liste i pretraga ne vraćaju tiket (ni naslov/opis) dok ACL ne dozvoli.
+ 
+ ### Lista kao `where` predikat
+-`GET /tickets` primjenjuje isti ACL kao pojedinačni tiket, ali kao uslov u upitu (`buildTicketVisibilityWhere`): ako je funkcija isključena ili tiket nije confidential, vidljiv je; inače mora važiti bar jedno od: requester, assignee, član `assignedGroupId`, učesnik, grant korisniku, grant grupi, allowed viewer role/group **uz pokriven OU+servis scope**, aktivan break-glass (`expiresAt` null ili u budućnosti). Aktivan break-glass je izvor vidljivosti i u listi (paritet s pojedinačnim tiketom). Paritet sa per-ticket provjerom čuva `build-ticket-visibility-where.spec.ts` (22 aktera × 4 konfiguracije nad 120 tiketa).
++`GET /tickets` primjenjuje isti ACL kao pojedinačni tiket, ali kao uslov u upitu (`buildTicketVisibilityWhere`): ako je funkcija isključena ili tiket nije confidential, vidljiv je; inače mora važiti bar jedno od: requester, assignee, član `assignedGroupId`, učesnik, grant korisniku, grant grupi, allowed viewer role/group **uz pokriven OU+servis scope**, aktivan break-glass (`expiresAt` null ili u budućnosti). Aktivan break-glass je izvor vidljivosti i u listi (paritet s pojedinačnim tiketom). Paritet sa per-ticket provjerom čuva `build-ticket-visibility-where.spec.ts` (22 aktera × 4 konfiguracije nad 204 tiketa), a za inbox `build-group-inbox-where.spec.ts` nad istim svijetom.
+ 
+ ## Break-glass
+ `POST /tickets/:ticketId/break-glass` `{ reason }`. Permission `confidential.break_glass` kroz postojeći evaluator (OU+service). Role iz `breakGlassAllowedRolesCsv` (default `SUPER_ADMIN`). Razlog obavezan ako je setting uključen. Piše `BreakGlassEvent` (`expiresAt` +1h) + ChangeLog + `SYSTEM_EVENT` `ticket_confidential_break_glass` (action key, bez sadržaja).
+diff -ruN a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-21 10:43:53.518775706 +0000
++++ b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-21 11:07:59.271241298 +0000
+@@ -6,3 +6,4 @@
+ ## 2026-09-21
+ - Claim je atomičan (uslovni `updateMany` na `assignedUserId: null` + pročitani status). Uklonjen take-over kroz claim (INB-07): tuđi tiket vraća `TICKET_NOT_CLAIMABLE` (HTTP 409, ranije 400) s `details.claimedByName`. Preuzimanje tuđeg tiketa ostaje samo kroz „Dodijeli“ (bulk `assign_user`).
+ - Odstupanje od `04-FAZNI-PLAN` (zadatak 8): guard nije samo `PENDING`. Zadržani su `ASSIGNED`/`IN_PROGRESS` uz `assignedUserId: null`, jer bulk „Dodijeli grupi“ ostavlja takav tiket i on mora ostati preuzimljiv.
++- Inbox predikat izdvojen u `buildGroupInboxWhere` (dijele ga `GET /tickets/counts` i, u sljedećem sloju, `GET /tickets/inbox`). Ponašanje nepromijenjeno; paritet čuva `build-group-inbox-where.spec.ts`.
+diff -ruN a/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md b/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md
+--- a/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md	2026-09-21 10:43:53.518979525 +0000
++++ b/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md	2026-09-21 11:07:59.271241298 +0000
+@@ -14,6 +14,9 @@
+ 
+ Ako je `private.ticket.groupInbox.enabled=false` → `GROUP_INBOX_DISABLED`.
+ 
++### Predikat inboxa
++Inbox je predikat u `where`-u (`assignment/build-group-inbox-where.ts`): `assignedUserId = null`, `status = PENDING`, `assignedGroupId` u grupama pozivaoca (SuperAdmin: bilo koja grupa) i vidljivost po scope-u i confidential ACL-u. Za razliku od liste, inbox je radni red: **requester ne vidi svoj tiket samo zato što ga je podnio**, potreban je OU + servis scope. Bez članstva ni u jednoj grupi inbox je prazan. Isti predikat daje `inbox` u `GET /tickets/counts` (nije isključen: kad je inbox isključen, brojač je 0, ne greška). Paritet sa prethodnom petljom čuva `build-group-inbox-where.spec.ts`.
++
+ ## Claim / take-over
+ `POST /tickets/:ticketId/claim`
+ 
+diff -ruN a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 11:08:40.451389485 +0000
++++ b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 11:07:59.271241298 +0000
+@@ -9,3 +9,4 @@
+ - `TicketResponse` dobija `originUnitName`, `originUnitPath` i `serviceName` (DAT-01); batch razrješenje u `loadTicketDisplayLabels`. Polja su opciona (`null` ako se id ne razriješi).
+ - `GET /tickets`: novi filteri (`status[]`, `requesterId`, `groupId`, `unassigned`, `overdue`, `atRisk`, `createdFrom/To`, `includeArchived`), `sort`/`dir` i paginacija s odgovorom `{ items, total, page, pageSize }`; bez `page`/`pageSize` ostaje niz (LST-05/06, DAT-01).
+ - Vidljivost liste je predikat u upitu umjesto petlje po tiketu (nema N+1 nad confidential činjenicama); export i CSAT sažetak koriste isti builder. Export više ne filtrira u memoriji.
++- `GET /tickets/counts` (INB-09, LST-03 izvor): `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; sidebar značke na njemu umjesto preuzimanja cijele liste.
+diff -ruN a/.cursor/docs/matrices/ticketing-core/MATRIX.md b/.cursor/docs/matrices/ticketing-core/MATRIX.md
+--- a/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-21 11:08:40.451943949 +0000
++++ b/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-21 11:08:07.756000461 +0000
+@@ -35,6 +35,15 @@
+ - **Odgovor:** bez `page`/`pageSize` običan niz (prelazni režim za starije klijente: edge ekstenzije, e2e). S `page` ili `pageSize`: `{ items, total, page, pageSize }`, `page` ≥ 1 (zadano 1), `pageSize` 1–100 (zadano 25). `total` broji samo ono što pozivalac smije vidjeti.
+ - **Vidljivost** je predikat u `where`-u, ne petlja po tiketu (`list/build-ticket-visibility-where.ts`): osnovno pravilo (SuperAdmin / requester / AGENT-ADMIN čiji OU + servis scope pokriva tiket), pa confidential ACL (vidi `ticket-confidential-visibility`). OU scope se računa u aplikaciji istom funkcijom `doesOrganizationalUnitScopeCover` nad učitanim OJ i postaje `originUnitId IN (...)`; namjerno bez SQL `LIKE` nad `ouPath`, jer bi `_` i `%` u nazivu OJ djelovali kao wildcard i proširili scope.
+ 
++## Brojači (`GET /tickets/counts`)
++`{ open, unrouted, inbox, overdue, atRisk, byStatus }`, izračunato na serveru nad **istim tiketima koje pozivalac smije listati** (isti predikat vidljivosti i isti filteri kao `GET /tickets`), pa se značka i lista koju otvara poklapaju. Bez učitavanja tiketa: `groupBy(status)` i tri `count` upita, paralelno.
++
++- `byStatus`: svi statusi uvijek prisutni (0 kad ih nema). `ARCHIVED` je 0 osim za SuperAdmina ili kad je arhiva pretraživa.
++- `open`: svi statusi osim `RESOLVED`, `CLOSED`, `ARCHIVED`. `unrouted` = `byStatus.UNROUTED`.
++- `overdue` / `atRisk`: isti tiketi kao `GET /tickets?overdue=true` / `?atRisk=true` (arhiva izuzeta). Isto kao i lista, uključuju i već zatvorene tikete kojima je SLA probijen (`isOverdue` ne ovisi o statusu, vidi `overdue-ui-badge-filter`). Probijen tiket je `overdue`, nikad `atRisk`, pa se ta dva broja ne preklapaju.
++- `inbox`: broj tiketa koje `GET /tickets/inbox` vraća pozivaocu (vidi `ticket-group-inbox`); 0 kad je group inbox isključen ili pozivalac nije ni u jednoj grupi. Ne poštuje suzavajuće filtere (to je red pozivaoca, ne pogled).
++- Neobavezni filteri: `originUnitId`, `serviceId`, `assignedUserId`, `priority`, `requesterId`, `groupId`, `unassigned`, `createdFrom/To`, `q`. Služe da brojači tabova prate trenutne filtere liste (LST-03); `status`, `overdue`, `atRisk`, sort i paginacija se ne primaju jer se po njima razlaže.
++
+ ## Nazivi u odgovoru
+ `TicketResponse` uz id-jeve nosi nazive koje klijent prikazuje, pa UI ne gradi direktorij niti dohvaća katalog: `requesterName`, `assignedUserName`, `assignedGroupName`, `formVersionNumber`, `originUnitName`, `originUnitPath`, `serviceName`. Razrješava ih `loadTicketDisplayLabels` u jednom batch upitu po vrsti za cijeli rezultat (bez upita po tiketu). Nepoznat id daje `null`, nikad sam id.
+ 
+@@ -49,6 +58,7 @@
+ |---|---|
+ | POST | `/tickets` |
+ | GET | `/tickets` |
++| GET | `/tickets/counts` |
+ | GET | `/tickets/:ticketId` |
+ | PATCH | `/tickets/:ticketId` |
+ 
+diff -ruN a/.cursor/plans/tickets-ui-alignment/00_overview.md b/.cursor/plans/tickets-ui-alignment/00_overview.md
+--- a/.cursor/plans/tickets-ui-alignment/00_overview.md	2026-09-21 11:08:40.452305477 +0000
++++ b/.cursor/plans/tickets-ui-alignment/00_overview.md	2026-09-21 11:07:59.271545956 +0000
+@@ -22,7 +22,7 @@
+ - Zadatak 8: guard claima nije samo `PENDING` nego `assignedUserId: null` + pročitani status (vidi matricu `ticket-group-inbox`).
+ - Zadatak 4: `sort=slaDueAt` znači `TicketSlaState.resolutionDueAt` (nema kolone `Ticket.slaDueAt`).
+ - Zadatak 10: `approvalSteps` prelazi u sloj 6 (traži `TicketApprovalsConfigurationLoader` u service-catalog modulu; isti izvor koristi routing preview).
+-- Zadatak 5 (sloj 3): potrošači liste (`use-ticket-list`, `use-sidebar-ticket-counts`, `header-search-match`, `use-dashboard-summary`, `use-sla-page-data`) **nisu migrirani** na omotnicu. Zbog prelaznog režima (F1-4) rade nepromijenjeni, a svaki prelazi kad dobije pravi izvor: brojači (sidebar, dashboard) na `/tickets/counts` u sloju 4, tabela na server-side stranicu u F3, pretraga i SLA stranica u F3/F6. FE u sloju 3 dobija samo `listTicketsPage`. Ovo mijenja dogovor F1-4 („web FE migrira odmah“).
++- Zadatak 5 (sloj 3): potrošači liste (`use-ticket-list`, `use-sidebar-ticket-counts`, `header-search-match`, `use-dashboard-summary`, `use-sla-page-data`) **nisu migrirani** na omotnicu. Zbog prelaznog režima (F1-4) rade nepromijenjeni, a svaki prelazi kad dobije pravi izvor: sidebar značke na `/tickets/counts` u sloju 4 (urađeno; dashboard koristi liste za više od brojeva pa ostaje), tabela na server-side stranicu u F3, pretraga i SLA stranica u F3/F6. FE u sloju 3 dobija samo `listTicketsPage`. Ovo mijenja dogovor F1-4 („web FE migrira odmah“).
+ - Saved views: server ih ne izvršava nad tiketima (čuva JSON filtera koji tumači FE), pa nema šta preseliti na builder. Proširenje ključeva filtera (`atRisk`, `unassigned`, `status[]`, sort `slaDueAt`) ide u F3.
+ - Zadatak 4: DTO se zove `ListTicketsQueryDto` (postojeće ime, bez preimenovanja); `priority` je jedna vrijednost; export DTO ostaje svoj (jedan `status`, flagovi kao `'true'`), a koristi isti builder.
+ - F1-6: `int.spec.ts` nad Postgresom **nije napisan** u sloju 3 (nema Postgresa u okruženju, pa ga ne mogu izvršiti). Zamjena: paritet vidljivosti i paginacija su testirani nad in-memory Prismom koji izvršava generisani `where` (vidi HANDOFF za ograničenje).
+diff -ruN a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md
+--- a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 11:08:40.452448788 +0000
++++ b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 11:07:59.271392952 +0000
+@@ -6,7 +6,7 @@
+ | 1 | Nazivi u odgovoru (`originUnitName/Path`, `serviceName`), FE tipovi, `DOWN` | DAT-01 | urađeno |
+ | 2 | Atomičan claim, 409, bez take-overa | INB-07 | urađeno |
+ | 3 | `ListTicketsQueryDto` + `buildTicketListFilters`, predikat vidljivosti u `where`-u, `{items,total,page,pageSize}`, sort, export na isti builder, FE `listTicketsPage` | DAT-01, LST-05/06 | urađeno (potrošači: vidi odstupanja) |
+-| 4 | `GET /tickets/counts` | INB-09, LST-03 (izvor) | otvoreno |
++| 4 | `GET /tickets/counts` + sidebar značke na njemu | INB-09, LST-03 (izvor) | urađeno |
+ | 5 | Inbox paginacija + sort po SLA, `GET /groups/mine` (zaseban kontroler prije `GroupsController`) | INB-08, DAT-02 | otvoreno |
+ | 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | otvoreno |
+ | 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload, zatvaranje matrica | NEW-04/05 | otvoreno |
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md
+--- a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 11:08:40.452560483 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 11:07:59.271545956 +0000
+@@ -10,3 +10,8 @@
+ - Vidljivost je predikat u `where`-u (`list/`): scope kao `originUnitId IN (...)` bez `LIKE`, confidential ACL uključujući break-glass. Nema petlje po tiketu ni N+1 upita.
+ - Export koristi isti builder (filtriranje više nije u memoriji); `filter-export-tickets.ts` i `matches-list-search-query.ts` uklonjeni.
+ - In-memory Prisma izvršava generisani `where` (AND/OR/NOT, relacije, `skip/take`, sort po relaciji) i baca grešku za nepodržan operator.
++
++## 2026-09-21 — F1 sloj 4 (counts)
++- `GET /tickets/counts`: `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; opcioni filteri za tab brojače (LST-03).
++- Inbox predikat izdvojen (`buildGroupInboxWhere`), paritet sa starom petljom u specu. `TicketFilterQueryDto` je zajednička baza za listu i counts.
++- FE: `getTicketCounts` + `toTicketCountsSearchParams`; sidebar značke (`use-sidebar-ticket-counts`) više ne preuzimaju cijelu listu i inbox.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md
+--- a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 11:08:40.452670807 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 11:07:59.271464966 +0000
+@@ -7,7 +7,7 @@
+ - [x] Sloj 3 lista (DTO, builder, predikat u `where`-u, envelope, sort, export na builder, FE `listTicketsPage`)
+ - [ ] Sloj 3b `int.spec.ts` nad Postgresom (paritet vidljivosti, istovremeni claim, EXPLAIN + broj upita)
+ - [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
+-- [ ] Sloj 4 counts
++- [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
+ - [ ] Sloj 5 inbox + `/groups/mine`
+ - [ ] Sloj 5b `Group.autoAssignStrategy`
+ - [ ] Sloj 6 routing preview, `approvalSteps`, realtime
+diff -ruN a/.cursor/plans/tickets-ui-alignment/HANDOFF.md b/.cursor/plans/tickets-ui-alignment/HANDOFF.md
+--- a/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 11:08:40.452781229 +0000
++++ b/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 11:07:59.271637530 +0000
+@@ -1,7 +1,7 @@
+ # HANDOFF — tickets-ui-alignment
+ 
+ ## Urađeno
+-F1 slojevi 0–3 (vidi `CHANGELOG.md`).
++F1 slojevi 0–4 (vidi `CHANGELOG.md`).
+ 
+ ## Test status
+ Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove: ticket specovi prolaze uz iste 4 poznate pada shima kao prije izmjena. **Prije commita pokreni `npm run build` i `jest` u `backend/` te `npm run build` i `npm test` u `frontend/`.** Prisma tipovi (`Prisma.TicketWhereInput`, `TicketOrderByWithRelationInput`, `updateMany`, `orderBy` po relaciji `slaState`) nisu provjereni protiv pravog klijenta.
+@@ -10,9 +10,12 @@
+ Paritet vidljivosti i paginacija izvršavaju `where` kroz in-memory evaluator, ne kroz Postgres. Dokazuju logiku predikata (mutacijska provjera: 16/16 mutacija predikata i 6/6 mutacija paginacije obara spec), ali ne dokazuju SQL semantiku ni performanse. Za to služi sloj 3b.
+ 
+ ## Next
+-Sloj 4 (`GET /tickets/counts`, isti builder). Zatim inbox + `/groups/mine` (5), `Group.autoAssignStrategy` (5b), routing preview + `approvalSteps` + realtime (6).
++Inbox (paginacija, `groupId`, sort po SLA na `buildGroupInboxWhere`) + `/groups/mine` (5), `Group.autoAssignStrategy` (5b), routing preview + `approvalSteps` + realtime (6).
+ 
+ ## Otvoreno
++- Odluka o `overdue`/`atRisk`: brojači i list-filteri broje i zatvorene tikete s probijenim SLA (matrica `overdue-ui-badge-filter` definiše `isOverdue` bez statusa). Ako proizvod želi samo otvorene, mijenja se u `buildTicketListFilters` i time oba mjesta odjednom.
++- F2 tabovi inboxa (INB-01) trebaju brojač po grupi; `counts.inbox` je jedan broj. Dodati `inboxByGroup` u sloju 5 ako se potvrdi.
++- Realtime invalidacija brojača (F1 zadatak 2/11) čeka payload događaja (sloj 6); do tada sidebar osvježava TTL cache od 30 s.
+ - D1, D3–D10 nisu odlučeni (F0).
+ - Sloj 3b (`int.spec.ts`): pokrenuti lokalno uz Postgres; provjeriti (1) paritet vidljivosti na pravoj bazi, (2) `orderBy` po `slaState.resolutionDueAt` i redoslijed NULL-ova (Postgres: NULL zadnji za `asc`), (3) `contains`/`mode: 'insensitive'` s `%`/`_` u `q` (Prisma možda ne escapeuje wildcarde), (4) EXPLAIN: indeksi za sort/filter (Ticket ima samo jednokolonske; složeni tek ako plan pokaže potrebu), (5) 1000 tiketa < 300 ms i bez N+1.
+ - Odgovor liste od 1000 tiketa < 300 ms (RAW NFR) nije izmjeren.
+diff -ruN a/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts b/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts
+--- a/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts	2026-09-21 11:03:55.071894746 +0000
+@@ -0,0 +1,115 @@
++import type { AuthorizationContext } from '../../authorization/authorization.types';
++import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
++import { buildTicketVisibilityWhere } from '../list/build-ticket-visibility-where';
++import { loadTicketVisibilityInputs } from '../list/load-ticket-visibility-inputs';
++import {
++  actors,
++  buildWorld,
++  configurations,
++  now,
++  type World,
++} from '../list/visibility-parity-world';
++import type { TicketRecord } from '../tickets.types';
++import { buildGroupInboxWhere } from './build-group-inbox-where';
++import { listGroupInboxTickets } from './list-group-inbox-tickets';
++
++jest.mock('../../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++/** The previous inbox logic (`listGroupInboxTickets`): the oracle. */
++async function inboxByPreviousLogic(
++  world: World,
++  context: AuthorizationContext,
++  configuration: TicketConfidentialConfiguration,
++): Promise<string[]> {
++  const records = await listGroupInboxTickets(
++    world.prisma,
++    { loadBySubjectId: async () => context } as never,
++    { load: async () => ({ groupInboxEnabled: true }) } as never,
++    { actorUserId: context.subjectId, confidential: configuration },
++  );
++  return records.map((ticket) => ticket.id).sort();
++}
++
++async function inboxByWhere(
++  world: World,
++  context: AuthorizationContext,
++  configuration: TicketConfidentialConfiguration,
++): Promise<string[]> {
++  const inputs = await loadTicketVisibilityInputs(
++    world.prisma,
++    context.subjectId,
++  );
++  const clauses = buildGroupInboxWhere({ context, ...inputs, configuration, now });
++  if (clauses === null) {
++    return [];
++  }
++  const found = await world.memory.prisma.ticket.findMany({
++    where: { AND: clauses },
++  });
++  return found.map((ticket: TicketRecord) => ticket.id).sort();
++}
++
++describe('buildGroupInboxWhere matches the previous group inbox logic', () => {
++  const world = buildWorld();
++
++  for (const [configName, configuration] of Object.entries(configurations)) {
++    for (const [actorName, context] of Object.entries(actors)) {
++      it(`${actorName} under "${configName}" configuration`, async () => {
++        const expected = await inboxByPreviousLogic(world, context, configuration);
++        const actual = await inboxByWhere(world, context, configuration);
++        expect(actual).toEqual(expected);
++      });
++    }
++  }
++
++  it('is not vacuous: only unassigned PENDING tickets of the caller\'s groups, by scope', async () => {
++    const inbox = (actor: string) =>
++      inboxByWhere(world, actors[actor], configurations.default);
++    const member = await inbox('groupMember');
++    expect(member.length).toBeGreaterThan(0);
++    // Only the group's unassigned PENDING work; never assigned or in-progress.
++    expect(member.every((id) => /:(grp|grp-conf|grp-own|conf-group)$/.test(id))).toBe(true);
++    expect(member.some((id) => id.endsWith(':grp-assigned') || id.endsWith(':grp-active'))).toBe(false);
++    // Scope still applies: the member is an IT agent, so no HR-unit tickets,
++    // even the one they requested themselves (the list shows those, the inbox
++    // is a work queue and does not).
++    expect(member.some((id) => id.startsWith('ou-hr:'))).toBe(false);
++    expect((await inbox('requester')).length).toBe(0);
++    // SuperAdmin sees every group's queue, not only their own.
++    const superLocal = await inbox('superLocal');
++    expect(superLocal.some((id) => id.endsWith(':grp-other'))).toBe(true);
++    expect(member.some((id) => id.endsWith(':grp-other'))).toBe(false);
++    // Service-scoped assignments only reach their own unit and service: IT/vpn
++    // (and its Helpdesk sub-unit) and HR/access, nothing else.
++    const multi = await inbox('multi');
++    expect(multi.length).toBeGreaterThan(0);
++    expect(
++      multi.every((id) =>
++        /^(ou-it|ou-it-hd):service-vpn:|^ou-hr:service-access:/.test(id),
++      ),
++    ).toBe(true);
++    expect(multi.some((id) => id.startsWith('ou-hr:service-access:'))).toBe(true);
++    expect(multi.some((id) => id.startsWith('ou-it:service-access:'))).toBe(false);
++  });
++
++  it('keeps the list and the inbox different for a requester outside their scope', async () => {
++    const context = actors.groupMember;
++    const inputs = await loadTicketVisibilityInputs(world.prisma, context.subjectId);
++    const list = await world.memory.prisma.ticket.findMany({
++      where: {
++        AND: buildTicketVisibilityWhere({
++          context,
++          ...inputs,
++          configuration: configurations.default,
++          now,
++        }),
++      },
++    });
++    expect(list.some((ticket: TicketRecord) => ticket.id === 'ou-hr:service-vpn:grp-own')).toBe(true);
++    expect(await inboxByWhere(world, context, configurations.default)).not.toContain(
++      'ou-hr:service-vpn:grp-own',
++    );
++  });
++});
+diff -ruN a/backend/src/modules/tickets/assignment/build-group-inbox-where.ts b/backend/src/modules/tickets/assignment/build-group-inbox-where.ts
+--- a/backend/src/modules/tickets/assignment/build-group-inbox-where.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/build-group-inbox-where.ts	2026-09-21 11:02:04.367150644 +0000
+@@ -0,0 +1,30 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import {
++  buildTicketVisibilityWhere,
++  type TicketVisibilityInput,
++} from '../list/build-ticket-visibility-where';
++
++/**
++ * `where` clauses for the group inbox: unassigned, still `PENDING`, handled by
++ * a group the caller belongs to (SuperAdmin: any group), and visible to the
++ * caller by scope and confidentiality. `null` means the inbox is empty because
++ * the caller is in no group.
++ */
++export function buildGroupInboxWhere(
++  input: TicketVisibilityInput,
++): Prisma.TicketWhereInput[] | null {
++  const { context, actorGroupIds } = input;
++  if (!context.isSuperAdmin && actorGroupIds.length === 0) {
++    return null;
++  }
++  return [
++    { assignedUserId: null },
++    { status: 'PENDING' },
++    {
++      assignedGroupId: context.isSuperAdmin
++        ? { not: null }
++        : { in: [...actorGroupIds] },
++    },
++    ...buildTicketVisibilityWhere({ ...input, requesterSeesOwn: false }),
++  ];
++}
+diff -ruN a/backend/src/modules/tickets/assignment/ticket-assignment.service.ts b/backend/src/modules/tickets/assignment/ticket-assignment.service.ts
+--- a/backend/src/modules/tickets/assignment/ticket-assignment.service.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/ticket-assignment.service.ts	2026-09-21 11:02:04.381783843 +0000
+@@ -46,6 +46,10 @@
+     );
+   }
+ 
++  async isGroupInboxEnabled(): Promise<boolean> {
++    return (await this.configurationLoader.load()).groupInboxEnabled;
++  }
++
+   readInboxStatus(context: TicketMutationContext): Promise<GroupInboxStatus> {
+     return readGroupInboxStatus(
+       this.prisma,
+diff -ruN a/backend/src/modules/tickets/counts/counts.types.ts b/backend/src/modules/tickets/counts/counts.types.ts
+--- a/backend/src/modules/tickets/counts/counts.types.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/counts/counts.types.ts	2026-09-21 11:02:04.371529814 +0000
+@@ -0,0 +1,30 @@
++import type { TicketStatus } from '../../../generated/prisma/enums';
++import type { TicketListQuery } from '../list/list-tickets.types';
++
++/** The list filters that narrow *what is counted*; the rest is broken down. */
++export type TicketCountsQuery = Pick<
++  TicketListQuery,
++  | 'originUnitId'
++  | 'serviceId'
++  | 'assignedUserId'
++  | 'priority'
++  | 'requesterId'
++  | 'groupId'
++  | 'unassigned'
++  | 'createdFrom'
++  | 'createdTo'
++  | 'q'
++>;
++
++export type TicketCounts = {
++  /** Visible tickets that are not RESOLVED, CLOSED or ARCHIVED. */
++  readonly open: number;
++  readonly unrouted: number;
++  /** Size of the caller's group inbox (unaffected by the narrowing filters). */
++  readonly inbox: number;
++  /** Same tickets as `GET /tickets?overdue=true`. */
++  readonly overdue: number;
++  /** Same tickets as `GET /tickets?atRisk=true`. */
++  readonly atRisk: number;
++  readonly byStatus: Readonly<Record<TicketStatus, number>>;
++};
+diff -ruN a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts
+--- a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts	2026-09-21 11:05:10.236334178 +0000
+@@ -0,0 +1,165 @@
++import { createTicketsServiceHarness, ticketsTestIds } from '../create-tickets-service-harness';
++import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
++import { buildTicketRecord } from '../list/ticket-record-fixture';
++import type { TicketListResponse } from '../tickets.types';
++import { getTicketCounts } from './get-ticket-counts';
++
++jest.mock('../../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const { agentIt, agentHr, requester, superAdmin, groupIt, ouHr } = ticketsTestIds;
++const day = (n: number) => new Date(`2026-01-0${n}T00:00:00.000Z`);
++
++function setup() {
++  const harness = createTicketsServiceHarness();
++  const { memory } = harness;
++  memory.seedGroupMember({ groupId: groupIt, userId: agentIt });
++  const seed = (n: number, overrides: Record<string, unknown>) =>
++    memory.tickets.set(
++      `t${n}`,
++      buildTicketRecord({
++        id: `t${n}`,
++        ticketNumber: `T-${n}`,
++        createdAt: day(n),
++        updatedAt: day(n),
++        ...overrides,
++      }),
++    );
++  seed(1, { title: 'Printer jam', priority: 'LOW' }); // PENDING
++  seed(2, { title: 'VPN down', status: 'ASSIGNED', assignedUserId: ticketsTestIds.agentItPeer, assignedGroupId: groupIt });
++  seed(3, { title: 'Laptop fan', status: 'IN_PROGRESS', assignedUserId: agentIt, priority: 'HIGH' });
++  seed(4, { title: 'Vpn slow', status: 'UNROUTED', priority: 'CRITICAL' });
++  seed(5, { title: 'Old', status: 'ARCHIVED' });
++  seed(6, { title: 'Done', status: 'RESOLVED', priority: 'LOW' });
++  seed(7, { title: 'HR onboarding', originUnitId: ouHr, requesterId: ticketsTestIds.watcher });
++  seed(8, { title: 'Queue A', assignedGroupId: groupIt }); // inbox
++  seed(9, { title: 'Queue B secret', assignedGroupId: groupIt, isConfidential: true }); // inbox, confidential
++  seed(10, { title: 'Confidential HR', originUnitId: ouHr, isConfidential: true, requesterId: ticketsTestIds.watcher });
++  const sla = (n: number, flags: object) =>
++    memory.slaStates.set(`s${n}`, {
++      id: `s${n}`, ticketId: `t${n}`, slaProfileId: null, slaRuleId: null,
++      responseMinutes: 0, resolutionMinutes: 0, startedAt: day(1),
++      responseDueAt: null, resolutionDueAt: day(9), respondedAt: null,
++      resolutionCompletedAt: null, pausedAt: null, pausedBusinessMinutes: 0,
++      isResponseBreached: false, isResolutionBreached: false,
++      isResponseAtRisk: false, isResolutionAtRisk: false,
++      firedEscalationKeys: [], updatedAt: day(1), ...flags,
++    });
++  sla(2, { isResolutionBreached: true, isResolutionAtRisk: true }); // overdue only
++  sla(3, { isResolutionAtRisk: true }); // at risk
++  sla(6, { isResponseBreached: true }); // closed but breached: still "overdue", like the list
++  sla(5, { isResolutionBreached: true }); // archived: excluded everywhere
++  const counts = (query: Parameters<typeof harness.tickets.getCounts>[0], actor: string) =>
++    harness.tickets.getCounts(query, { actorUserId: actor });
++  const listTotal = async (query: object, actor: string) =>
++    ((await harness.tickets.list({ page: 1, ...query }, { actorUserId: actor })) as TicketListResponse).total;
++  return { ...harness, counts, listTotal };
++}
++
++describe('GET /tickets/counts', () => {
++  it('breaks the visible tickets down by status, every status present', async () => {
++    const { counts } = setup();
++    const result = await counts({}, agentIt);
++    expect(result.byStatus).toEqual({
++      PENDING: 3, // t1, t8, t9 (t9 confidential but the caller is in its group)
++      UNROUTED: 1,
++      PENDING_APPROVAL: 0,
++      ASSIGNED: 1,
++      IN_PROGRESS: 1,
++      WAITING_FOR_USER: 0,
++      RESOLVED: 1,
++      CLOSED: 0,
++      ARCHIVED: 1,
++    });
++    expect(result.unrouted).toBe(1);
++    // open = everything but RESOLVED, CLOSED and ARCHIVED
++    expect(result.open).toBe(6);
++  });
++
++  it('agrees with the list: overdue, at risk and the per-status totals', async () => {
++    const { counts, listTotal } = setup();
++    const result = await counts({}, agentIt);
++    expect(result.overdue).toBe(2); // t2 and t6; archived t5 is excluded
++    expect(result.atRisk).toBe(1); // t3; breached t2 is overdue, never at risk
++    expect(result.overdue).toBe(await listTotal({ overdue: true }, agentIt));
++    expect(result.atRisk).toBe(await listTotal({ atRisk: true }, agentIt));
++    for (const [status, count] of Object.entries(result.byStatus)) {
++      if (status !== 'ARCHIVED') {
++        expect(count).toBe(await listTotal({ status: [status] }, agentIt));
++      }
++    }
++    // The default list hides the archive, so total = sum of all but ARCHIVED.
++    const { ARCHIVED, ...listed } = result.byStatus;
++    expect(ARCHIVED).toBe(1);
++    expect(Object.values(listed).reduce((a, b) => a + b, 0)).toBe(await listTotal({}, agentIt));
++  });
++
++  it('counts the group inbox the same as the inbox itself', async () => {
++    const { counts, tickets } = setup();
++    const inbox = await tickets.listInbox({ actorUserId: agentIt });
++    expect(inbox.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
++    expect((await counts({}, agentIt)).inbox).toBe(inbox.length);
++    // No group membership, no inbox.
++    expect((await counts({}, agentHr)).inbox).toBe(0);
++  });
++
++  it('only counts what the caller may see, confidential tickets included', async () => {
++    const { counts, listTotal } = setup();
++    const hr = await counts({}, agentHr);
++    // t7 is plain HR; t10 is confidential and agentHr has no confidential access.
++    expect(hr.byStatus.PENDING).toBe(1);
++    expect(hr.open).toBe(1);
++    expect(await listTotal({}, agentHr)).toBe(1);
++    // The requester of both HR tickets sees both.
++    expect((await counts({}, ticketsTestIds.watcher)).byStatus.PENDING).toBe(2);
++    // A requester sees only their own tickets.
++    expect((await counts({}, requester)).open).toBe(
++      (await listTotal({}, requester)) - 1, // minus RESOLVED t6
++    );
++  });
++
++  it('narrows by the list filters, so tab counters follow the current filters', async () => {
++    const { counts, listTotal } = setup();
++    const low = await counts({ priority: 'LOW' }, agentIt);
++    expect(low.byStatus.PENDING).toBe(1); // t1
++    expect(low.byStatus.RESOLVED).toBe(1); // t6
++    expect(low.open).toBe(1);
++    expect(low.overdue).toBe(await listTotal({ priority: 'LOW', overdue: true }, agentIt));
++    expect((await counts({ q: 'vpn' }, agentIt)).byStatus).toMatchObject({ ASSIGNED: 1, UNROUTED: 1, PENDING: 0 });
++    expect((await counts({ unassigned: true }, agentIt)).byStatus.ASSIGNED).toBe(0);
++    // The inbox is the caller's queue, not part of the filtered view.
++    expect((await counts({ priority: 'CRITICAL' }, agentIt)).inbox).toBe(2);
++  });
++});
++
++describe('getTicketCounts (direct)', () => {
++  const direct = (actor: string, archive?: typeof defaultTicketArchiveConfiguration, groupInboxEnabled = true) => {
++    const harness = setup();
++    return getTicketCounts({
++      prisma: harness.memory.prisma as never,
++      authorizationContextLoader: {
++        loadBySubjectId: async (id: string) => harness.contexts.get(id) ?? null,
++      } as never,
++      query: {},
++      context: { actorUserId: actor },
++      archive,
++      groupInboxEnabled,
++    });
++  };
++
++  it('hides the archive count unless the archive is searchable or the caller is SuperAdmin', async () => {
++    const closed = { ...defaultTicketArchiveConfiguration, searchable: false };
++    expect((await direct(agentIt, closed)).byStatus.ARCHIVED).toBe(0);
++    expect((await direct(agentIt)).byStatus.ARCHIVED).toBe(1);
++    expect((await direct(superAdmin, closed)).byStatus.ARCHIVED).toBe(1);
++  });
++
++  it('reports an empty inbox instead of failing when the group inbox is switched off', async () => {
++    expect((await direct(agentIt, undefined, false)).inbox).toBe(0);
++  });
++
++  it('refuses a caller without an authorization context', async () => {
++    await expect(direct('nobody')).rejects.toMatchObject({ code: 'FORBIDDEN' });
++  });
++});
+diff -ruN a/backend/src/modules/tickets/counts/get-ticket-counts.ts b/backend/src/modules/tickets/counts/get-ticket-counts.ts
+--- a/backend/src/modules/tickets/counts/get-ticket-counts.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/counts/get-ticket-counts.ts	2026-09-21 11:02:04.372219171 +0000
+@@ -0,0 +1,97 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import type { TicketStatus } from '../../../generated/prisma/enums';
++import { PrismaService } from '../../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
++import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
++import type { TicketArchiveConfiguration } from '../archive/archive.types';
++import { buildGroupInboxWhere } from '../assignment/build-group-inbox-where';
++import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
++import { buildTicketListFilters } from '../list/build-ticket-list-filters';
++import { buildTicketVisibilityWhere } from '../list/build-ticket-visibility-where';
++import { loadTicketVisibilityInputs } from '../list/load-ticket-visibility-inputs';
++import { ticketStatuses } from '../tickets.constants';
++import { TicketsError } from '../tickets.error';
++import type { TicketMutationContext } from '../tickets.types';
++import type { TicketCounts, TicketCountsQuery } from './counts.types';
++
++const closedStatuses: ReadonlySet<TicketStatus> = new Set([
++  'RESOLVED',
++  'CLOSED',
++  'ARCHIVED',
++]);
++
++/**
++ * Counts for the sidebar and the list tabs, over exactly the tickets the
++ * caller may list (same visibility predicate and filters as `GET /tickets`),
++ * so a badge and the list it opens agree. Four independent queries run in
++ * parallel; no ticket is loaded.
++ */
++export async function getTicketCounts(input: {
++  readonly prisma: PrismaService;
++  readonly authorizationContextLoader: AuthorizationContextLoader;
++  readonly query: TicketCountsQuery;
++  readonly context: TicketMutationContext;
++  readonly archive?: TicketArchiveConfiguration;
++  readonly groupInboxEnabled: boolean;
++}): Promise<TicketCounts> {
++  const authContext = await input.authorizationContextLoader.loadBySubjectId(
++    input.context.actorUserId,
++  );
++  if (authContext === null) {
++    throw new TicketsError('FORBIDDEN');
++  }
++  const archive = input.archive ?? defaultTicketArchiveConfiguration;
++  const visibility = {
++    context: authContext,
++    ...(await loadTicketVisibilityInputs(input.prisma, authContext.subjectId)),
++    configuration:
++      input.context.confidential ?? defaultTicketConfidentialConfiguration,
++    now: new Date(),
++  };
++  const scope: Prisma.TicketWhereInput[] = [
++    ...buildTicketListFilters(input.query),
++    ...buildTicketVisibilityWhere(visibility),
++  ];
++  // The default list hides the archive, and so do the SLA counts.
++  const listed = (state: Parameters<typeof buildTicketListFilters>[0]) => ({
++    AND: [
++      { status: { not: 'ARCHIVED' } } satisfies Prisma.TicketWhereInput,
++      ...buildTicketListFilters(state),
++      ...scope,
++    ],
++  });
++  const inboxClauses = input.groupInboxEnabled
++    ? buildGroupInboxWhere(visibility)
++    : null;
++  const [grouped, overdue, atRisk, inbox] = await Promise.all([
++    input.prisma.ticket.groupBy({
++      by: ['status'],
++      where: { AND: scope },
++      _count: { _all: true },
++    }),
++    input.prisma.ticket.count({ where: listed({ overdue: true }) }),
++    input.prisma.ticket.count({ where: listed({ atRisk: true }) }),
++    inboxClauses === null
++      ? Promise.resolve(0)
++      : input.prisma.ticket.count({ where: { AND: inboxClauses } }),
++  ]);
++  const byStatus = Object.fromEntries(
++    ticketStatuses.map((status) => [status, 0]),
++  ) as Record<TicketStatus, number>;
++  for (const row of grouped) {
++    byStatus[row.status as TicketStatus] = row._count._all;
++  }
++  if (!archive.searchable && !authContext.isSuperAdmin) {
++    byStatus.ARCHIVED = 0;
++  }
++  return {
++    open: ticketStatuses
++      .filter((status) => !closedStatuses.has(status))
++      .reduce((sum, status) => sum + byStatus[status], 0),
++    unrouted: byStatus.UNROUTED,
++    inbox,
++    overdue,
++    atRisk,
++    byStatus,
++  };
++}
+diff -ruN a/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts b/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts
+--- a/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts	2026-09-21 11:08:40.454261991 +0000
++++ b/backend/src/modules/tickets/create-in-memory-ticket-delegate.ts	2026-09-21 11:02:04.381697825 +0000
+@@ -104,6 +104,27 @@
+       tickets.set(updated.id, updated);
+       return updated;
+     },
++    groupBy: async ({
++      by,
++      where,
++    }: {
++      by: readonly string[];
++      where?: InMemoryTicketWhere;
++      _count?: unknown;
++    }) => {
++      const groups = new Map<string, Record<string, unknown>>();
++      for (const ticket of matching(where)) {
++        const row = ticket as unknown as Record<string, unknown>;
++        const key = by.map((field) => String(row[field])).join('\u0000');
++        const group = groups.get(key) ?? {
++          ...Object.fromEntries(by.map((field) => [field, row[field]])),
++          _count: { _all: 0 },
++        };
++        (group._count as { _all: number })._all += 1;
++        groups.set(key, group);
++      }
++      return [...groups.values()];
++    },
+     // Match and write in one synchronous step, like a single SQL UPDATE, so
+     // tests can exercise the "lost the race" path deterministically.
+     updateMany: async ({
+diff -ruN a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts
+--- a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts	2026-09-21 11:08:40.578266843 +0000
++++ b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts	2026-09-21 11:02:04.337065249 +0000
+@@ -6,40 +6,27 @@
+   IsEnum,
+   IsIn,
+   IsInt,
+-  IsISO8601,
+   IsOptional,
+-  IsString,
+   Max,
+-  MaxLength,
+   Min,
+-  MinLength,
+ } from 'class-validator';
+-import { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
++import { TicketStatus } from '../../../generated/prisma/enums';
++import {
++  toQueryBoolean,
++  toQueryList,
++} from '../list/list-query-transforms';
+ import {
+   ticketListPaging,
+   ticketListSortDirections,
+   ticketListSortFields,
+ } from '../list/list-tickets.constants';
+-import {
+-  toQueryBoolean,
+-  toQueryList,
+-} from '../list/list-query-transforms';
+ import type {
+   TicketListSortDirection,
+   TicketListSortField,
+ } from '../list/list-tickets.types';
++import { TicketFilterQueryDto } from './ticket-filter-query.dto';
+ 
+-export class ListTicketsQueryDto {
+-  @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  originUnitId?: string;
+-
+-  @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  serviceId?: string;
+-
++export class ListTicketsQueryDto extends TicketFilterQueryDto {
+   @IsOptional()
+   @Transform(({ value }) => toQueryList(value))
+   @IsArray()
+@@ -48,30 +35,6 @@
+   status?: TicketStatus[];
+ 
+   @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  assignedUserId?: string;
+-
+-  @IsOptional()
+-  @IsEnum(TicketPriority)
+-  priority?: TicketPriority;
+-
+-  @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  requesterId?: string;
+-
+-  @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  groupId?: string;
+-
+-  @IsOptional()
+-  @Transform(({ value }) => toQueryBoolean(value))
+-  @IsBoolean()
+-  unassigned?: boolean;
+-
+-  @IsOptional()
+   @Transform(({ value }) => toQueryBoolean(value))
+   @IsBoolean()
+   overdue?: boolean;
+@@ -87,20 +50,6 @@
+   includeArchived?: boolean;
+ 
+   @IsOptional()
+-  @IsISO8601()
+-  createdFrom?: string;
+-
+-  @IsOptional()
+-  @IsISO8601()
+-  createdTo?: string;
+-
+-  @IsOptional()
+-  @IsString()
+-  @MinLength(1)
+-  @MaxLength(200)
+-  q?: string;
+-
+-  @IsOptional()
+   @IsIn(ticketListSortFields)
+   sort?: TicketListSortField;
+ 
+diff -ruN a/backend/src/modules/tickets/dto/ticket-counts-query.dto.ts b/backend/src/modules/tickets/dto/ticket-counts-query.dto.ts
+--- a/backend/src/modules/tickets/dto/ticket-counts-query.dto.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/dto/ticket-counts-query.dto.ts	2026-09-21 11:02:04.336356070 +0000
+@@ -0,0 +1,8 @@
++import { TicketFilterQueryDto } from './ticket-filter-query.dto';
++
++/**
++ * Counts honour the same narrowing filters as the list, so the tab counters of
++ * a filtered list stay consistent with it. Status, SLA state, sort and paging
++ * are deliberately not accepted: the counts are broken down by them.
++ */
++export class TicketCountsQueryDto extends TicketFilterQueryDto {}
+diff -ruN a/backend/src/modules/tickets/dto/ticket-filter-query.dto.ts b/backend/src/modules/tickets/dto/ticket-filter-query.dto.ts
+--- a/backend/src/modules/tickets/dto/ticket-filter-query.dto.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/dto/ticket-filter-query.dto.ts	2026-09-21 11:02:04.335614442 +0000
+@@ -0,0 +1,67 @@
++import { Transform } from 'class-transformer';
++import {
++  IsBoolean,
++  IsEnum,
++  IsISO8601,
++  IsOptional,
++  IsString,
++  MaxLength,
++  MinLength,
++} from 'class-validator';
++import { TicketPriority } from '../../../generated/prisma/enums';
++import { toQueryBoolean } from '../list/list-query-transforms';
++
++/**
++ * The narrowing filters shared by every reader of the ticket list: the list
++ * itself and the counts that sit next to it. What only makes sense for a
++ * page of results (status, SLA state, sort, paging) lives on the subclasses.
++ */
++export class TicketFilterQueryDto {
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  originUnitId?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  serviceId?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  assignedUserId?: string;
++
++  @IsOptional()
++  @IsEnum(TicketPriority)
++  priority?: TicketPriority;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  requesterId?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  groupId?: string;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  unassigned?: boolean;
++
++  @IsOptional()
++  @IsISO8601()
++  createdFrom?: string;
++
++  @IsOptional()
++  @IsISO8601()
++  createdTo?: string;
++
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  @MaxLength(200)
++  q?: string;
++}
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts b/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts
+--- a/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts	2026-09-21 11:08:40.579230143 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-visibility-where.spec.ts	2026-09-21 11:03:19.943784577 +0000
+@@ -1,194 +1,23 @@
+-import { authorizationRoleKeys } from '../../authorization/authorization.constants';
+ import type { AuthorizationContext } from '../../authorization/authorization.types';
+-import {
+-  createTestAssignment,
+-  createTestAuthorizationContext,
+-} from '../../authorization/create-test-authorization-context';
+ import { canManageTicketsInScope } from '../authorize-ticket-actor';
+ import { isConfidentialTicketVisible } from '../confidential/assert-confidential-ticket-access';
+-import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
+ import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
+-import { createInMemoryTicketsPrisma } from '../create-in-memory-tickets-prisma';
+-import type { PrismaService } from '../../../common/prisma/prisma.service';
+ import type { TicketRecord } from '../tickets.types';
+ import { buildTicketVisibilityWhere } from './build-ticket-visibility-where';
+ import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
+-import { buildTicketRecord } from './ticket-record-fixture';
++import {
++  actors,
++  buildWorld,
++  configurations,
++  now,
++  units,
++  type World,
++} from './visibility-parity-world';
+ 
+ jest.mock('../../../common/prisma/prisma.service', () => ({
+   PrismaService: class PrismaService {},
+ }));
+ 
+-const now = new Date('2026-06-01T12:00:00.000Z');
+-const past = new Date('2026-06-01T11:00:00.000Z');
+-const future = new Date('2026-06-01T13:00:00.000Z');
+-
+-const units = [
+-  ['ou-root', '/Korisnici'],
+-  ['ou-it', '/Korisnici/IT'],
+-  ['ou-it-hd', '/Korisnici/IT/Helpdesk'],
+-  ['ou-hr', '/Korisnici/HR'],
+-  // Names that look like the IT path but are different units: a prefix without
+-  // the separator, and an underscore that would be a wildcard in SQL LIKE.
+-  ['ou-itx', '/Korisnici/ITXSupport'],
+-  ['ou-it-under', '/Korisnici/IT_Support'],
+-] as const;
+-const services = ['service-vpn', 'service-access'] as const;
+-
+-const configurations: Record<string, TicketConfidentialConfiguration> = {
+-  default: defaultTicketConfidentialConfiguration,
+-  viewers: {
+-    ...defaultTicketConfidentialConfiguration,
+-    allowedViewerRoles: [authorizationRoleKeys.agent],
+-    allowedViewerGroupIds: ['g-viewers'],
+-  },
+-  viewerGroupOnly: {
+-    ...defaultTicketConfidentialConfiguration,
+-    allowedViewerGroupIds: ['g-viewers'],
+-  },
+-  disabled: { ...defaultTicketConfidentialConfiguration, enabled: false },
+-};
+-
+-function agent(
+-  subjectId: string,
+-  path: string | null,
+-  serviceId: string | null = null,
+-  roleKey: string = authorizationRoleKeys.agent,
+-): AuthorizationContext {
+-  return createTestAuthorizationContext({
+-    subjectId,
+-    assignments: [
+-      createTestAssignment({
+-        roleKey,
+-        permissionKeys: [],
+-        organizationalUnitId: path === null ? null : 'unit',
+-        organizationalUnitPath: path,
+-        serviceId,
+-      }),
+-    ],
+-  });
+-}
+-
+-const actors: Record<string, AuthorizationContext> = {
+-  requester: createTestAuthorizationContext({
+-    subjectId: 'user-requester',
+-    assignments: [],
+-  }),
+-  agentIt: agent('u-agent-it', '/Korisnici/IT'),
+-  agentItVpn: agent('u-agent-it-vpn', '/Korisnici/IT', 'service-vpn'),
+-  agentRoot: agent('u-agent-root', '/Korisnici'),
+-  agentHelpdesk: agent('u-agent-hd', '/Korisnici/IT/Helpdesk'),
+-  agentUnderscore: agent('u-agent-under', '/Korisnici/IT_Support'),
+-  adminHr: agent('u-admin-hr', '/Korisnici/HR', null, authorizationRoleKeys.admin),
+-  agentNoPath: agent('u-agent-nopath', null),
+-  agentBlankService: agent('u-agent-blank', '/Korisnici/IT', '   '),
+-  multi: createTestAuthorizationContext({
+-    subjectId: 'u-multi',
+-    assignments: [
+-      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT', serviceId: 'service-vpn' }),
+-      createTestAssignment({ roleKey: authorizationRoleKeys.admin, permissionKeys: [], organizationalUnitPath: '/Korisnici/HR', serviceId: 'service-access' }),
+-    ],
+-  }),
+-  superLocal: createTestAuthorizationContext({
+-    subjectId: 'u-super-local',
+-    isSuperAdmin: true,
+-    isLocalOnly: true,
+-    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
+-  }),
+-  superRemote: createTestAuthorizationContext({
+-    subjectId: 'u-super-remote',
+-    isSuperAdmin: true,
+-    isLocalOnly: false,
+-    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
+-  }),
+-  // A relationship to a confidential ticket only matters to someone who may
+-  // list the ticket at all, so these are IT agents (baseline passes) whose
+-  // access to confidential tickets comes from the relationship alone.
+-  assignee: agent('u-assignee', '/Korisnici/IT'),
+-  groupMember: agent('u-group-member', '/Korisnici/IT'),
+-  participant: agent('u-participant', '/Korisnici/IT'),
+-  granted: agent('u-granted', '/Korisnici/IT'),
+-  groupGranted: agent('u-group-granted', '/Korisnici/IT'),
+-  glass: agent('u-glass', '/Korisnici/IT'),
+-  glassExpired: agent('u-glass-expired', '/Korisnici/IT'),
+-  viewerGroupAgent: agent('u-viewer-group-agent', '/Korisnici/IT', null, authorizationRoleKeys.admin),
+-  // SuperAdmin passes the baseline everywhere but is "in scope" only when local.
+-  superLocalAgent: superAdminWithAgentRole('u-super-local-agent', true),
+-  superRemoteAgent: superAdminWithAgentRole('u-super-remote-agent', false),
+-};
+-
+-function superAdminWithAgentRole(
+-  subjectId: string,
+-  isLocalOnly: boolean,
+-): AuthorizationContext {
+-  return createTestAuthorizationContext({
+-    subjectId,
+-    isSuperAdmin: true,
+-    isLocalOnly,
+-    assignments: [
+-      createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] }),
+-      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT' }),
+-    ],
+-  });
+-}
+-
+-type World = ReturnType<typeof buildWorld>;
+-
+-function buildWorld() {
+-  const memory = createInMemoryTicketsPrisma();
+-  units.forEach(([id, ouPath]) => memory.seedUnit({ id, parentId: null, ouPath }));
+-  memory.seedGroupMember({ groupId: 'g-it', userId: 'u-group-member' });
+-  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-group-granted' });
+-  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-viewer-group-agent' });
+-
+-  // Every unit x service, plain and confidential, each confidential ticket
+-  // reachable through exactly one relationship to the people above.
+-  const traits: ReadonlyArray<readonly [string, Partial<TicketRecord>]> = [
+-    ['plain', {}],
+-    ['conf', { isConfidential: true }],
+-    ['conf-own', { isConfidential: true, requesterId: 'u-agent-it' }],
+-    ['conf-assignee', { isConfidential: true, assignedUserId: 'u-assignee' }],
+-    ['conf-group', { isConfidential: true, assignedGroupId: 'g-it' }],
+-    ['conf-participant', { isConfidential: true }],
+-    ['conf-grant', { isConfidential: true }],
+-    ['conf-group-grant', { isConfidential: true }],
+-    ['conf-glass', { isConfidential: true }],
+-    ['conf-glass-expired', { isConfidential: true }],
+-  ];
+-  const tickets: TicketRecord[] = [];
+-  for (const [unitId] of units) {
+-    for (const serviceId of services) {
+-      for (const [trait, overrides] of traits) {
+-        const id = `${unitId}:${serviceId}:${trait}`;
+-        const ticket = buildTicketRecord({ id, originUnitId: unitId, serviceId, ...overrides });
+-        tickets.push(ticket);
+-        memory.tickets.set(id, ticket);
+-        link(memory, trait, id);
+-      }
+-    }
+-  }
+-  return { memory, prisma: memory.prisma as unknown as PrismaService, tickets };
+-}
+-
+-function link(memory: ReturnType<typeof createInMemoryTicketsPrisma>, trait: string, ticketId: string): void {
+-  const base = { ticketId, createdAt: now };
+-  if (trait === 'conf-participant') {
+-    memory.participants.set(`p-${ticketId}`, { id: `p-${ticketId}`, role: 'WATCHER', userId: 'u-participant', groupId: null, ...base });
+-  }
+-  if (trait === 'conf-grant') {
+-    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: 'u-granted', groupId: null, grantedByUserId: 'u-admin', ...base });
+-  }
+-  if (trait === 'conf-group-grant') {
+-    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: null, groupId: 'g-viewers', grantedByUserId: 'u-admin', ...base });
+-  }
+-  if (trait === 'conf-glass') {
+-    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass', reason: 'incident', expiresAt: future, ...base });
+-  }
+-  if (trait === 'conf-glass-expired') {
+-    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass-expired', reason: 'incident', expiresAt: past, ...base });
+-  }
+-}
+-
+ /** The previous list logic, one ticket at a time: the oracle. */
+ async function visibleByPerTicketCheck(
+   world: World,
+@@ -205,8 +34,22 @@
+     const baseline =
+       context.isSuperAdmin ||
+       context.subjectId === ticket.requesterId ||
+-      canManageTicketsInScope({ context, originUnitId: ticket.originUnitId, originUnitPath, serviceId: ticket.serviceId });
+-    if (baseline && (await isConfidentialTicketVisible(world.prisma, { context, ticket, originUnitPath, configuration, now }))) {
++      canManageTicketsInScope({
++        context,
++        originUnitId: ticket.originUnitId,
++        originUnitPath,
++        serviceId: ticket.serviceId,
++      });
++    if (
++      baseline &&
++      (await isConfidentialTicketVisible(world.prisma, {
++        context,
++        ticket,
++        originUnitPath,
++        configuration,
++        now,
++      }))
++    ) {
+       visible.push(ticket.id);
+     }
+   }
+@@ -218,9 +61,19 @@
+   context: AuthorizationContext,
+   configuration: TicketConfidentialConfiguration,
+ ): Promise<string[]> {
+-  const inputs = await loadTicketVisibilityInputs(world.prisma, context.subjectId);
++  const inputs = await loadTicketVisibilityInputs(
++    world.prisma,
++    context.subjectId,
++  );
+   const found = await world.memory.prisma.ticket.findMany({
+-    where: { AND: buildTicketVisibilityWhere({ context, ...inputs, configuration, now }) },
++    where: {
++      AND: buildTicketVisibilityWhere({
++        context,
++        ...inputs,
++        configuration,
++        now,
++      }),
++    },
+   });
+   return found.map((ticket: TicketRecord) => ticket.id).sort();
+ }
+diff -ruN a/backend/src/modules/tickets/list/build-ticket-visibility-where.ts b/backend/src/modules/tickets/list/build-ticket-visibility-where.ts
+--- a/backend/src/modules/tickets/list/build-ticket-visibility-where.ts	2026-09-21 11:08:40.579340801 +0000
++++ b/backend/src/modules/tickets/list/build-ticket-visibility-where.ts	2026-09-21 11:02:04.366877565 +0000
+@@ -12,6 +12,11 @@
+   readonly actorGroupIds: readonly string[];
+   readonly configuration: TicketConfidentialConfiguration;
+   readonly now: Date;
++  /**
++   * The list also shows a requester their own tickets. The group inbox is a
++   * work queue and does not: it needs the OU/service scope (default true).
++   */
++  readonly requesterSeesOwn?: boolean;
+ };
+ 
+ /**
+@@ -34,9 +39,11 @@
+   const manageScope = buildManageScopeWhere(input.context, input.units);
+   const clauses: Prisma.TicketWhereInput[] = [];
+   if (!input.context.isSuperAdmin) {
+-    clauses.push({
+-      OR: [{ requesterId: input.context.subjectId }, manageScope],
+-    });
++    clauses.push(
++      input.requesterSeesOwn === false
++        ? manageScope
++        : { OR: [{ requesterId: input.context.subjectId }, manageScope] },
++    );
+   }
+   const confidential = buildConfidentialWhere(input, manageScope);
+   if (confidential !== null) {
+diff -ruN a/backend/src/modules/tickets/list/visibility-parity-world.ts b/backend/src/modules/tickets/list/visibility-parity-world.ts
+--- a/backend/src/modules/tickets/list/visibility-parity-world.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/visibility-parity-world.ts	2026-09-21 11:02:57.106272817 +0000
+@@ -0,0 +1,201 @@
++import { authorizationRoleKeys } from '../../authorization/authorization.constants';
++import type { AuthorizationContext } from '../../authorization/authorization.types';
++import {
++  createTestAssignment,
++  createTestAuthorizationContext,
++} from '../../authorization/create-test-authorization-context';
++import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
++import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
++import { createInMemoryTicketsPrisma } from '../create-in-memory-tickets-prisma';
++import type { PrismaService } from '../../../common/prisma/prisma.service';
++import type { TicketRecord } from '../tickets.types';
++import { buildTicketRecord } from './ticket-record-fixture';
++
++/**
++ * Test-support: one shared world (units, services, groups, people, tickets in
++ * every relationship to them) that the visibility predicates are compared
++ * against the previous per-ticket checks in.
++ */
++
++// Relative to the real clock on purpose: the previous group-inbox check has no
++// injectable clock, and break-glass expiry is compared against "now".
++export const now = new Date();
++const past = new Date(now.getTime() - 60 * 60 * 1000);
++const future = new Date(now.getTime() + 60 * 60 * 1000);
++
++export const units = [
++  ['ou-root', '/Korisnici'],
++  ['ou-it', '/Korisnici/IT'],
++  ['ou-it-hd', '/Korisnici/IT/Helpdesk'],
++  ['ou-hr', '/Korisnici/HR'],
++  // Names that look like the IT path but are different units: a prefix without
++  // the separator, and an underscore that would be a wildcard in SQL LIKE.
++  ['ou-itx', '/Korisnici/ITXSupport'],
++  ['ou-it-under', '/Korisnici/IT_Support'],
++] as const;
++export const services = ['service-vpn', 'service-access'] as const;
++
++export const configurations: Record<string, TicketConfidentialConfiguration> = {
++  default: defaultTicketConfidentialConfiguration,
++  viewers: {
++    ...defaultTicketConfidentialConfiguration,
++    allowedViewerRoles: [authorizationRoleKeys.agent],
++    allowedViewerGroupIds: ['g-viewers'],
++  },
++  viewerGroupOnly: {
++    ...defaultTicketConfidentialConfiguration,
++    allowedViewerGroupIds: ['g-viewers'],
++  },
++  disabled: { ...defaultTicketConfidentialConfiguration, enabled: false },
++};
++
++function agent(
++  subjectId: string,
++  path: string | null,
++  serviceId: string | null = null,
++  roleKey: string = authorizationRoleKeys.agent,
++): AuthorizationContext {
++  return createTestAuthorizationContext({
++    subjectId,
++    assignments: [
++      createTestAssignment({
++        roleKey,
++        permissionKeys: [],
++        organizationalUnitId: path === null ? null : 'unit',
++        organizationalUnitPath: path,
++        serviceId,
++      }),
++    ],
++  });
++}
++
++export const actors: Record<string, AuthorizationContext> = {
++  requester: createTestAuthorizationContext({
++    subjectId: 'user-requester',
++    assignments: [],
++  }),
++  agentIt: agent('u-agent-it', '/Korisnici/IT'),
++  agentItVpn: agent('u-agent-it-vpn', '/Korisnici/IT', 'service-vpn'),
++  agentRoot: agent('u-agent-root', '/Korisnici'),
++  agentHelpdesk: agent('u-agent-hd', '/Korisnici/IT/Helpdesk'),
++  agentUnderscore: agent('u-agent-under', '/Korisnici/IT_Support'),
++  adminHr: agent('u-admin-hr', '/Korisnici/HR', null, authorizationRoleKeys.admin),
++  agentNoPath: agent('u-agent-nopath', null),
++  agentBlankService: agent('u-agent-blank', '/Korisnici/IT', '   '),
++  multi: createTestAuthorizationContext({
++    subjectId: 'u-multi',
++    assignments: [
++      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT', serviceId: 'service-vpn' }),
++      createTestAssignment({ roleKey: authorizationRoleKeys.admin, permissionKeys: [], organizationalUnitPath: '/Korisnici/HR', serviceId: 'service-access' }),
++    ],
++  }),
++  superLocal: createTestAuthorizationContext({
++    subjectId: 'u-super-local',
++    isSuperAdmin: true,
++    isLocalOnly: true,
++    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
++  }),
++  superRemote: createTestAuthorizationContext({
++    subjectId: 'u-super-remote',
++    isSuperAdmin: true,
++    isLocalOnly: false,
++    assignments: [createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] })],
++  }),
++  // A relationship to a confidential ticket only matters to someone who may
++  // list the ticket at all, so these are IT agents (baseline passes) whose
++  // access to confidential tickets comes from the relationship alone.
++  assignee: agent('u-assignee', '/Korisnici/IT'),
++  groupMember: agent('u-group-member', '/Korisnici/IT'),
++  participant: agent('u-participant', '/Korisnici/IT'),
++  granted: agent('u-granted', '/Korisnici/IT'),
++  groupGranted: agent('u-group-granted', '/Korisnici/IT'),
++  glass: agent('u-glass', '/Korisnici/IT'),
++  glassExpired: agent('u-glass-expired', '/Korisnici/IT'),
++  viewerGroupAgent: agent('u-viewer-group-agent', '/Korisnici/IT', null, authorizationRoleKeys.admin),
++  // SuperAdmin passes the baseline everywhere but is "in scope" only when local.
++  superLocalAgent: superAdminWithAgentRole('u-super-local-agent', true),
++  superRemoteAgent: superAdminWithAgentRole('u-super-remote-agent', false),
++};
++
++function superAdminWithAgentRole(
++  subjectId: string,
++  isLocalOnly: boolean,
++): AuthorizationContext {
++  return createTestAuthorizationContext({
++    subjectId,
++    isSuperAdmin: true,
++    isLocalOnly,
++    assignments: [
++      createTestAssignment({ roleKey: authorizationRoleKeys.superAdmin, permissionKeys: [] }),
++      createTestAssignment({ permissionKeys: [], organizationalUnitPath: '/Korisnici/IT' }),
++    ],
++  });
++}
++
++export type World = ReturnType<typeof buildWorld>;
++
++export function buildWorld() {
++  const memory = createInMemoryTicketsPrisma();
++  units.forEach(([id, ouPath]) => memory.seedUnit({ id, parentId: null, ouPath }));
++  memory.seedGroupMember({ groupId: 'g-it', userId: 'u-group-member' });
++  memory.seedGroupMember({ groupId: 'g-it', userId: 'u-multi' });
++  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-group-granted' });
++  memory.seedGroupMember({ groupId: 'g-viewers', userId: 'u-viewer-group-agent' });
++
++  // Every unit x service, plain and confidential, each confidential ticket
++  // reachable through exactly one relationship to the people above.
++  const traits: ReadonlyArray<readonly [string, Partial<TicketRecord>]> = [
++    ['plain', {}],
++    ['conf', { isConfidential: true }],
++    ['conf-own', { isConfidential: true, requesterId: 'u-agent-it' }],
++    ['conf-assignee', { isConfidential: true, assignedUserId: 'u-assignee' }],
++    ['conf-group', { isConfidential: true, assignedGroupId: 'g-it' }],
++    ['conf-participant', { isConfidential: true }],
++    ['conf-grant', { isConfidential: true }],
++    ['conf-group-grant', { isConfidential: true }],
++    ['conf-glass', { isConfidential: true }],
++    ['conf-glass-expired', { isConfidential: true }],
++    // Work-queue tickets for the group inbox parity: only `grp` and
++    // `grp-conf` and `grp-own` and `grp-viewers` qualify (unassigned, PENDING).
++    ['grp', { assignedGroupId: 'g-it' }],
++    ['grp-conf', { assignedGroupId: 'g-it', isConfidential: true }],
++    ['grp-own', { assignedGroupId: 'g-it', requesterId: 'u-group-member' }],
++    ['grp-viewers', { assignedGroupId: 'g-viewers' }],
++    ['grp-other', { assignedGroupId: 'g-other' }],
++    ['grp-assigned', { assignedGroupId: 'g-it', assignedUserId: 'u-assignee' }],
++    ['grp-active', { assignedGroupId: 'g-it', status: 'IN_PROGRESS' }],
++  ];
++  const tickets: TicketRecord[] = [];
++  for (const [unitId] of units) {
++    for (const serviceId of services) {
++      for (const [trait, overrides] of traits) {
++        const id = `${unitId}:${serviceId}:${trait}`;
++        const ticket = buildTicketRecord({ id, originUnitId: unitId, serviceId, ...overrides });
++        tickets.push(ticket);
++        memory.tickets.set(id, ticket);
++        link(memory, trait, id);
++      }
++    }
++  }
++  return { memory, prisma: memory.prisma as unknown as PrismaService, tickets };
++}
++
++function link(memory: ReturnType<typeof createInMemoryTicketsPrisma>, trait: string, ticketId: string): void {
++  const base = { ticketId, createdAt: now };
++  if (trait === 'conf-participant') {
++    memory.participants.set(`p-${ticketId}`, { id: `p-${ticketId}`, role: 'WATCHER', userId: 'u-participant', groupId: null, ...base });
++  }
++  if (trait === 'conf-grant') {
++    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: 'u-granted', groupId: null, grantedByUserId: 'u-admin', ...base });
++  }
++  if (trait === 'conf-group-grant') {
++    memory.confidentialGrants.set(`g-${ticketId}`, { id: `g-${ticketId}`, userId: null, groupId: 'g-viewers', grantedByUserId: 'u-admin', ...base });
++  }
++  if (trait === 'conf-glass') {
++    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass', reason: 'incident', expiresAt: future, ...base });
++  }
++  if (trait === 'conf-glass-expired') {
++    memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass-expired', reason: 'incident', expiresAt: past, ...base });
++  }
++}
++
+diff -ruN a/backend/src/modules/tickets/tickets.controller.ts b/backend/src/modules/tickets/tickets.controller.ts
+--- a/backend/src/modules/tickets/tickets.controller.ts	2026-09-21 11:08:40.580439368 +0000
++++ b/backend/src/modules/tickets/tickets.controller.ts	2026-09-21 11:02:04.382147904 +0000
+@@ -20,7 +20,9 @@
+ import { RoleGuard } from '../authorization/role.guard';
+ import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
+ import { CreateTicketDto } from './dto/create-ticket.dto';
++import type { TicketCounts } from './counts/counts.types';
+ import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
++import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
+ import { UpdateTicketDto } from './dto/update-ticket.dto';
+ import { TicketsService } from './tickets.service';
+ import type {
+@@ -63,6 +65,17 @@
+     return this.ticketsService.list(query, readTicketMutationContext(request));
+   }
+ 
++  @Get('counts')
++  getCounts(
++    @Query() query: TicketCountsQueryDto,
++    @Req() request: AuthenticatedHttpRequest,
++  ): Promise<TicketCounts> {
++    return this.ticketsService.getCounts(
++      query,
++      readTicketMutationContext(request),
++    );
++  }
++
+   @Get('inbox')
+   listInbox(
+     @Req() request: AuthenticatedHttpRequest,
+diff -ruN a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+--- a/backend/src/modules/tickets/tickets.service.ts	2026-09-21 11:08:40.580695979 +0000
++++ b/backend/src/modules/tickets/tickets.service.ts	2026-09-21 11:02:04.381994080 +0000
+@@ -13,6 +13,8 @@
+ import type { TicketPersistedMessageSink } from './collaboration.types';
+ import { executeTicketOperation } from './execute-ticket-operation';
+ import { getTicket } from './get-ticket';
++import { getTicketCounts } from './counts/get-ticket-counts';
++import type { TicketCounts, TicketCountsQuery } from './counts/counts.types';
+ import { listTickets, listTicketsPage } from './list-tickets';
+ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+ import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
+@@ -118,6 +120,23 @@
+     });
+   }
+ 
++  getCounts(
++    query: TicketCountsQuery,
++    context: TicketMutationContext,
++  ): Promise<TicketCounts> {
++    return executeTicketOperation(async () => {
++      const gated = await this.gate(context);
++      return getTicketCounts({
++        prisma: this.prisma,
++        authorizationContextLoader: this.authorizationContextLoader,
++        query,
++        context: gated,
++        archive: gated.archive,
++        groupInboxEnabled: await this.ticketAssignmentService.isGroupInboxEnabled(),
++      });
++    });
++  }
++
+   listInbox(context: TicketMutationContext): Promise<readonly TicketResponse[]> {
+     return executeTicketOperation(async () => {
+       const gated = await this.gate(context);
+diff -ruN a/frontend/src/lib/tickets/count-sidebar-ticket-badges.spec.ts b/frontend/src/lib/tickets/count-sidebar-ticket-badges.spec.ts
+--- a/frontend/src/lib/tickets/count-sidebar-ticket-badges.spec.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/frontend/src/lib/tickets/count-sidebar-ticket-badges.spec.ts	2026-09-21 11:07:10.631412778 +0000
+@@ -1,67 +1,22 @@
+ import { describe, expect, it } from "vitest";
+-import { countSidebarTicketBadges } from "@/lib/tickets/count-sidebar-ticket-badges";
+-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
++import { toSidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
+ 
+-function ticket(
+-  id: string,
+-  status: TicketStatus,
+-): TicketResponse {
+-  return {
+-    id,
+-    ticketNumber: `T-${id}`,
+-    title: `Ticket ${id}`,
+-    description: "",
+-    status,
+-    priority: "MEDIUM",
+-    impact: "MEDIUM",
+-    urgency: "MEDIUM",
+-    classification: "INTERNAL",
+-    isConfidential: false,
+-    formData: null,
+-    originUnitId: "ou-1",
+-    serviceId: "svc-1",
+-    formVersionRef: "form-1",
+-    requesterId: "user-1",
+-    assignedGroupId: status === "UNROUTED" ? null : "group-1",
+-    assignedUserId: null,
+-    createdAt: "2026-09-14T10:00:00.000Z",
+-    updatedAt: "2026-09-14T10:00:00.000Z",
+-  };
+-}
+-
+-describe("countSidebarTicketBadges", () => {
+-  it("counts open tickets and shows zero instead of hiding it", () => {
+-    expect(countSidebarTicketBadges([], [])).toEqual({
+-      openTicketCount: 0,
+-      inboxBadgeCount: 0,
+-      unroutedCount: 0,
+-    });
++describe("toSidebarTicketCounts", () => {
++  it("shows zero instead of hiding it", () => {
++    expect(
++      toSidebarTicketCounts({ open: 0, unrouted: 0, inbox: 0 }, true),
++    ).toEqual({ openTicketCount: 0, inboxBadgeCount: 0, unroutedCount: 0 });
+   });
+ 
+-  it("excludes closed, resolved, and archived tickets from the open count", () => {
+-    const counts = countSidebarTicketBadges(
+-      [
+-        ticket("1", "PENDING"),
+-        ticket("2", "WAITING_FOR_USER"),
+-        ticket("3", "PENDING_APPROVAL"),
+-        ticket("4", "UNROUTED"),
+-        ticket("5", "CLOSED"),
+-        ticket("6", "RESOLVED"),
+-        ticket("7", "ARCHIVED"),
+-      ],
+-      [ticket("8", "PENDING")],
+-    );
+-    expect(counts.openTicketCount).toBe(4);
+-    expect(counts.unroutedCount).toBe(1);
+-    expect(counts.inboxBadgeCount).toBe(2);
++  it("adds unrouted tickets onto the inbox size for staff", () => {
++    expect(
++      toSidebarTicketCounts({ open: 4, unrouted: 1, inbox: 2 }, true),
++    ).toEqual({ openTicketCount: 4, inboxBadgeCount: 3, unroutedCount: 1 });
+   });
+ 
+-  it("adds unrouted tickets from the list API onto the inbox length", () => {
+-    const counts = countSidebarTicketBadges(
+-      [ticket("1", "UNROUTED"), ticket("2", "ASSIGNED")],
+-      [ticket("3", "PENDING"), ticket("4", "PENDING")],
+-    );
+-    expect(counts.inboxBadgeCount).toBe(3);
+-    expect(counts.unroutedCount).toBe(1);
++  it("ignores the inbox size for people who have no group inbox", () => {
++    expect(
++      toSidebarTicketCounts({ open: 4, unrouted: 1, inbox: 2 }, false),
++    ).toEqual({ openTicketCount: 4, inboxBadgeCount: 1, unroutedCount: 1 });
+   });
+ });
+diff -ruN a/frontend/src/lib/tickets/count-sidebar-ticket-badges.ts b/frontend/src/lib/tickets/count-sidebar-ticket-badges.ts
+--- a/frontend/src/lib/tickets/count-sidebar-ticket-badges.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/frontend/src/lib/tickets/count-sidebar-ticket-badges.ts	2026-09-21 11:07:10.630590977 +0000
+@@ -1,4 +1,4 @@
+-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
++import type { TicketCounts } from "@/services/tickets-counts-api";
+ 
+ export type SidebarTicketCounts = {
+   readonly openTicketCount: number;
+@@ -6,25 +6,18 @@
+   readonly unroutedCount: number;
+ };
+ 
+-const closedSidebarTicketStatuses: ReadonlySet<TicketStatus> = new Set([
+-  "CLOSED",
+-  "RESOLVED",
+-  "ARCHIVED",
+-]);
+-
+-export function countSidebarTicketBadges(
+-  tickets: readonly TicketResponse[],
+-  inbox: readonly TicketResponse[],
++/**
++ * Maps the server-side ticket counts to the sidebar badges. Unrouted tickets
++ * need a person to route them, so they add to the inbox badge; only staff have
++ * a group inbox of their own.
++ */
++export function toSidebarTicketCounts(
++  counts: Pick<TicketCounts, "open" | "unrouted" | "inbox">,
++  includeInbox: boolean,
+ ): SidebarTicketCounts {
+-  const openTicketCount = tickets.filter(
+-    (ticket) => !closedSidebarTicketStatuses.has(ticket.status),
+-  ).length;
+-  const unroutedCount = tickets.filter(
+-    (ticket) => ticket.status === "UNROUTED",
+-  ).length;
+   return {
+-    openTicketCount,
+-    inboxBadgeCount: inbox.length + unroutedCount,
+-    unroutedCount,
++    openTicketCount: counts.open,
++    unroutedCount: counts.unrouted,
++    inboxBadgeCount: (includeInbox ? counts.inbox : 0) + counts.unrouted,
+   };
+ }
+diff -ruN a/frontend/src/lib/tickets/ticket-list-search-params.spec.ts b/frontend/src/lib/tickets/ticket-list-search-params.spec.ts
+--- a/frontend/src/lib/tickets/ticket-list-search-params.spec.ts	2026-09-21 11:08:40.581283553 +0000
++++ b/frontend/src/lib/tickets/ticket-list-search-params.spec.ts	2026-09-21 11:07:10.641948729 +0000
+@@ -1,5 +1,8 @@
+ import { describe, expect, it } from "vitest";
+-import { toTicketListSearchParams } from "@/lib/tickets/ticket-list-search-params";
++import {
++  toTicketCountsSearchParams,
++  toTicketListSearchParams,
++} from "@/lib/tickets/ticket-list-search-params";
+ 
+ describe("toTicketListSearchParams", () => {
+   it("always asks for a page so the API answers with the paged envelope", () => {
+@@ -48,3 +51,27 @@
+     });
+   });
+ });
++
++describe("toTicketCountsSearchParams", () => {
++  it("sends only the narrowing filters, never a page", () => {
++    expect(toTicketCountsSearchParams({}).toString()).toBe("");
++    const search = toTicketCountsSearchParams({
++      priority: "LOW",
++      groupId: "g-it",
++      unassigned: true,
++      q: " vpn ",
++    });
++    expect(Object.fromEntries(search)).toEqual({
++      priority: "LOW",
++      groupId: "g-it",
++      unassigned: "true",
++      q: "vpn",
++    });
++  });
++
++  it("leaves out empty values and false flags", () => {
++    expect(
++      toTicketCountsSearchParams({ serviceId: "", unassigned: false, q: "  " }).toString(),
++    ).toBe("");
++  });
++});
+diff -ruN a/frontend/src/lib/tickets/ticket-list-search-params.ts b/frontend/src/lib/tickets/ticket-list-search-params.ts
+--- a/frontend/src/lib/tickets/ticket-list-search-params.ts	2026-09-21 11:08:40.581337586 +0000
++++ b/frontend/src/lib/tickets/ticket-list-search-params.ts	2026-09-21 11:07:10.626898634 +0000
+@@ -92,3 +92,50 @@
+   }
+   return search;
+ }
++
++/** The narrowing filters `GET /tickets/counts` accepts (no status, sort, paging). */
++export type TicketCountsQuery = Pick<
++  TicketPageQuery,
++  | "originUnitId"
++  | "serviceId"
++  | "assignedUserId"
++  | "priority"
++  | "requesterId"
++  | "groupId"
++  | "unassigned"
++  | "createdFrom"
++  | "createdTo"
++  | "q"
++>;
++
++const countsTextFilters = [
++  "originUnitId",
++  "serviceId",
++  "assignedUserId",
++  "priority",
++  "requesterId",
++  "groupId",
++  "createdFrom",
++  "createdTo",
++] as const;
++
++/** Query string of GET /tickets/counts; empty values and `false` are omitted. */
++export function toTicketCountsSearchParams(
++  query: TicketCountsQuery,
++): URLSearchParams {
++  const search = new URLSearchParams();
++  for (const key of countsTextFilters) {
++    const value = query[key];
++    if (value !== undefined && value !== "") {
++      search.set(key, value);
++    }
++  }
++  if (query.unassigned === true) {
++    search.set("unassigned", "true");
++  }
++  const term = query.q?.trim() ?? "";
++  if (term.length > 0) {
++    search.set("q", term);
++  }
++  return search;
++}
+diff -ruN a/frontend/src/lib/tickets/use-sidebar-ticket-counts.ts b/frontend/src/lib/tickets/use-sidebar-ticket-counts.ts
+--- a/frontend/src/lib/tickets/use-sidebar-ticket-counts.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/frontend/src/lib/tickets/use-sidebar-ticket-counts.ts	2026-09-21 11:07:10.632221360 +0000
+@@ -1,78 +1,60 @@
+ import { useEffect, useState } from "react";
+ import {
+-  countSidebarTicketBadges,
++  toSidebarTicketCounts,
+   type SidebarTicketCounts,
+ } from "@/lib/tickets/count-sidebar-ticket-badges";
+ import {
+-  listGroupInbox,
+-  listTickets,
+-  type TicketResponse,
+-} from "@/services/tickets-api";
++  getTicketCounts,
++  type TicketCounts,
++} from "@/services/tickets-counts-api";
+ 
+ export type { SidebarTicketCounts };
+ 
+ const sidebarTicketCountsCacheTimeToLiveMilliseconds = 30_000;
+ 
+-type CachedSidebarTicketCounts = {
++type CachedTicketCounts = {
+   readonly cachedAtMilliseconds: number;
+-  readonly counts: SidebarTicketCounts;
+-  readonly includesInbox: boolean;
++  readonly counts: TicketCounts;
+ };
+ 
+-let cachedSidebarTicketCounts: CachedSidebarTicketCounts | null = null;
+-let inFlightSidebarTicketCounts: Promise<SidebarTicketCounts> | null = null;
+-let inFlightIncludesInbox = false;
++let cachedTicketCounts: CachedTicketCounts | null = null;
++let inFlightTicketCounts: Promise<TicketCounts> | null = null;
+ 
+-function isCacheFresh(entry: CachedSidebarTicketCounts): boolean {
++function isCacheFresh(entry: CachedTicketCounts): boolean {
+   return (
+     Date.now() - entry.cachedAtMilliseconds <
+     sidebarTicketCountsCacheTimeToLiveMilliseconds
+   );
+ }
+ 
+-async function loadSidebarTicketCounts(includeInbox: boolean): Promise<SidebarTicketCounts> {
+-  if (
+-    cachedSidebarTicketCounts !== null &&
+-    isCacheFresh(cachedSidebarTicketCounts) &&
+-    (cachedSidebarTicketCounts.includesInbox || !includeInbox)
+-  ) {
+-    return cachedSidebarTicketCounts.counts;
++async function loadTicketCounts(): Promise<TicketCounts> {
++  if (cachedTicketCounts !== null && isCacheFresh(cachedTicketCounts)) {
++    return cachedTicketCounts.counts;
+   }
+-  if (
+-    inFlightSidebarTicketCounts !== null &&
+-    (inFlightIncludesInbox || !includeInbox)
+-  ) {
+-    return inFlightSidebarTicketCounts;
++  if (inFlightTicketCounts !== null) {
++    return inFlightTicketCounts;
+   }
+-  inFlightIncludesInbox = includeInbox;
+-  inFlightSidebarTicketCounts = (async () => {
+-    const tickets = await listTickets();
+-    const inbox = includeInbox
+-      ? await listGroupInbox().catch((): readonly TicketResponse[] => [])
+-      : [];
+-    const counts = countSidebarTicketBadges(tickets, inbox);
+-    cachedSidebarTicketCounts = {
+-      cachedAtMilliseconds: Date.now(),
+-      counts,
+-      includesInbox: includeInbox,
+-    };
++  inFlightTicketCounts = getTicketCounts().then((counts) => {
++    cachedTicketCounts = { cachedAtMilliseconds: Date.now(), counts };
+     return counts;
+-  })();
++  });
+   try {
+-    return await inFlightSidebarTicketCounts;
++    return await inFlightTicketCounts;
+   } finally {
+-    inFlightSidebarTicketCounts = null;
++    inFlightTicketCounts = null;
+   }
+ }
+ 
+-export function useSidebarTicketCounts(includeInbox: boolean): SidebarTicketCounts | null {
+-  const [counts, setCounts] = useState<SidebarTicketCounts | null>(
+-    () => cachedSidebarTicketCounts?.counts ?? null,
++export function useSidebarTicketCounts(
++  includeInbox: boolean,
++): SidebarTicketCounts | null {
++  const [counts, setCounts] = useState<TicketCounts | null>(
++    () => cachedTicketCounts?.counts ?? null,
+   );
+ 
+   useEffect(() => {
+     let isCancelled = false;
+-    void loadSidebarTicketCounts(includeInbox)
++    void loadTicketCounts()
+       .then((nextCounts) => {
+         if (!isCancelled) {
+           setCounts(nextCounts);
+@@ -86,7 +68,7 @@
+     return () => {
+       isCancelled = true;
+     };
+-  }, [includeInbox]);
++  }, []);
+ 
+-  return counts;
++  return counts === null ? null : toSidebarTicketCounts(counts, includeInbox);
+ }
+diff -ruN a/frontend/src/services/tickets-counts-api.ts b/frontend/src/services/tickets-counts-api.ts
+--- a/frontend/src/services/tickets-counts-api.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/frontend/src/services/tickets-counts-api.ts	2026-09-21 11:07:10.627168849 +0000
+@@ -0,0 +1,33 @@
++import {
++  toTicketCountsSearchParams,
++  type TicketCountsQuery,
++} from "@/lib/tickets/ticket-list-search-params";
++import { apiRequest } from "@/services/api";
++import type { TicketStatus } from "@/services/tickets-api";
++
++export type { TicketCountsQuery };
++
++export type TicketCounts = {
++  /** Visible tickets that are not resolved, closed or archived. */
++  readonly open: number;
++  readonly unrouted: number;
++  /** Size of the caller's group inbox; not narrowed by the filters. */
++  readonly inbox: number;
++  /** The tickets `GET /tickets?overdue=true` lists. */
++  readonly overdue: number;
++  /** The tickets `GET /tickets?atRisk=true` lists. */
++  readonly atRisk: number;
++  readonly byStatus: Readonly<Record<TicketStatus, number>>;
++};
++
++/**
++ * Counts computed on the server over the tickets the caller may list, so the
++ * badge and the list it opens agree. Pass the list's narrowing filters to get
++ * tab counters that follow them.
++ */
++export function getTicketCounts(
++  query: TicketCountsQuery = {},
++): Promise<TicketCounts> {
++  const search = toTicketCountsSearchParams(query).toString();
++  return apiRequest(`/tickets/counts${search === "" ? "" : `?${search}`}`);
++}

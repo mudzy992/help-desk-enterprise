@@ -20,7 +20,9 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import type { TicketCounts } from './counts/counts.types';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketsService } from './tickets.service';
 import type {
@@ -61,6 +63,17 @@ export class TicketsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<readonly TicketResponse[] | TicketListResponse> {
     return this.ticketsService.list(query, readTicketMutationContext(request));
+  }
+
+  @Get('counts')
+  getCounts(
+    @Query() query: TicketCountsQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<TicketCounts> {
+    return this.ticketsService.getCounts(
+      query,
+      readTicketMutationContext(request),
+    );
   }
 
   @Get('inbox')

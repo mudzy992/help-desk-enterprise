@@ -104,6 +104,27 @@ export function createInMemoryTicketDelegate(
       tickets.set(updated.id, updated);
       return updated;
     },
+    groupBy: async ({
+      by,
+      where,
+    }: {
+      by: readonly string[];
+      where?: InMemoryTicketWhere;
+      _count?: unknown;
+    }) => {
+      const groups = new Map<string, Record<string, unknown>>();
+      for (const ticket of matching(where)) {
+        const row = ticket as unknown as Record<string, unknown>;
+        const key = by.map((field) => String(row[field])).join('\u0000');
+        const group = groups.get(key) ?? {
+          ...Object.fromEntries(by.map((field) => [field, row[field]])),
+          _count: { _all: 0 },
+        };
+        (group._count as { _all: number })._all += 1;
+        groups.set(key, group);
+      }
+      return [...groups.values()];
+    },
     // Match and write in one synchronous step, like a single SQL UPDATE, so
     // tests can exercise the "lost the race" path deterministically.
     updateMany: async ({

@@ -9,3 +9,4 @@
 - `TicketResponse` dobija `originUnitName`, `originUnitPath` i `serviceName` (DAT-01); batch razrješenje u `loadTicketDisplayLabels`. Polja su opciona (`null` ako se id ne razriješi).
 - `GET /tickets`: novi filteri (`status[]`, `requesterId`, `groupId`, `unassigned`, `overdue`, `atRisk`, `createdFrom/To`, `includeArchived`), `sort`/`dir` i paginacija s odgovorom `{ items, total, page, pageSize }`; bez `page`/`pageSize` ostaje niz (LST-05/06, DAT-01).
 - Vidljivost liste je predikat u upitu umjesto petlje po tiketu (nema N+1 nad confidential činjenicama); export i CSAT sažetak koriste isti builder. Export više ne filtrira u memoriji.
+- `GET /tickets/counts` (INB-09, LST-03 izvor): `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; sidebar značke na njemu umjesto preuzimanja cijele liste.

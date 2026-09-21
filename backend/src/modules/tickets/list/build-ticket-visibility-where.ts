@@ -12,6 +12,11 @@ export type TicketVisibilityInput = {
   readonly actorGroupIds: readonly string[];
   readonly configuration: TicketConfidentialConfiguration;
   readonly now: Date;
+  /**
+   * The list also shows a requester their own tickets. The group inbox is a
+   * work queue and does not: it needs the OU/service scope (default true).
+   */
+  readonly requesterSeesOwn?: boolean;
 };
 
 /**
@@ -34,9 +39,11 @@ export function buildTicketVisibilityWhere(
   const manageScope = buildManageScopeWhere(input.context, input.units);
   const clauses: Prisma.TicketWhereInput[] = [];
   if (!input.context.isSuperAdmin) {
-    clauses.push({
-      OR: [{ requesterId: input.context.subjectId }, manageScope],
-    });
+    clauses.push(
+      input.requesterSeesOwn === false
+        ? manageScope
+        : { OR: [{ requesterId: input.context.subjectId }, manageScope] },
+    );
   }
   const confidential = buildConfidentialWhere(input, manageScope);
   if (confidential !== null) {

@@ -13,6 +13,8 @@ import { TicketConfidentialConfigurationLoader } from './confidential/ticket-con
 import type { TicketPersistedMessageSink } from './collaboration.types';
 import { executeTicketOperation } from './execute-ticket-operation';
 import { getTicket } from './get-ticket';
+import { getTicketCounts } from './counts/get-ticket-counts';
+import type { TicketCounts, TicketCountsQuery } from './counts/counts.types';
 import { listTickets, listTicketsPage } from './list-tickets';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
 import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
@@ -115,6 +117,23 @@ export class TicketsService {
         page: result.page,
         pageSize: result.pageSize,
       };
+    });
+  }
+
+  getCounts(
+    query: TicketCountsQuery,
+    context: TicketMutationContext,
+  ): Promise<TicketCounts> {
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      return getTicketCounts({
+        prisma: this.prisma,
+        authorizationContextLoader: this.authorizationContextLoader,
+        query,
+        context: gated,
+        archive: gated.archive,
+        groupInboxEnabled: await this.ticketAssignmentService.isGroupInboxEnabled(),
+      });
     });
   }
 

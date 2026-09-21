@@ -46,6 +46,10 @@ export class TicketAssignmentService {
     );
   }
 
+  async isGroupInboxEnabled(): Promise<boolean> {
+    return (await this.configurationLoader.load()).groupInboxEnabled;
+  }
+
   readInboxStatus(context: TicketMutationContext): Promise<GroupInboxStatus> {
     return readGroupInboxStatus(
       this.prisma,

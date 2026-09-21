@@ -92,3 +92,50 @@ export function toTicketListSearchParams(
   }
   return search;
 }
+
+/** The narrowing filters `GET /tickets/counts` accepts (no status, sort, paging). */
+export type TicketCountsQuery = Pick<
+  TicketPageQuery,
+  | "originUnitId"
+  | "serviceId"
+  | "assignedUserId"
+  | "priority"
+  | "requesterId"
+  | "groupId"
+  | "unassigned"
+  | "createdFrom"
+  | "createdTo"
+  | "q"
+>;
+
+const countsTextFilters = [
+  "originUnitId",
+  "serviceId",
+  "assignedUserId",
+  "priority",
+  "requesterId",
+  "groupId",
+  "createdFrom",
+  "createdTo",
+] as const;
+
+/** Query string of GET /tickets/counts; empty values and `false` are omitted. */
+export function toTicketCountsSearchParams(
+  query: TicketCountsQuery,
+): URLSearchParams {
+  const search = new URLSearchParams();
+  for (const key of countsTextFilters) {
+    const value = query[key];
+    if (value !== undefined && value !== "") {
+      search.set(key, value);
+    }
+  }
+  if (query.unassigned === true) {
+    search.set("unassigned", "true");
+  }
+  const term = query.q?.trim() ?? "";
+  if (term.length > 0) {
+    search.set("q", term);
+  }
+  return search;
+}

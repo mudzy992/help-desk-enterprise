@@ -6,7 +6,7 @@
 | 1 | Nazivi u odgovoru (`originUnitName/Path`, `serviceName`), FE tipovi, `DOWN` | DAT-01 | urađeno |
 | 2 | Atomičan claim, 409, bez take-overa | INB-07 | urađeno |
 | 3 | `ListTicketsQueryDto` + `buildTicketListFilters`, predikat vidljivosti u `where`-u, `{items,total,page,pageSize}`, sort, export na isti builder, FE `listTicketsPage` | DAT-01, LST-05/06 | urađeno (potrošači: vidi odstupanja) |
-| 4 | `GET /tickets/counts` | INB-09, LST-03 (izvor) | otvoreno |
+| 4 | `GET /tickets/counts` + sidebar značke na njemu | INB-09, LST-03 (izvor) | urađeno |
 | 5 | Inbox paginacija + sort po SLA, `GET /groups/mine` (zaseban kontroler prije `GroupsController`) | INB-08, DAT-02 | otvoreno |
 | 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | otvoreno |
 | 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload, zatvaranje matrica | NEW-04/05 | otvoreno |

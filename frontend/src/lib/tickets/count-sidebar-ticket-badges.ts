@@ -1,4 +1,4 @@
-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
+import type { TicketCounts } from "@/services/tickets-counts-api";
 
 export type SidebarTicketCounts = {
   readonly openTicketCount: number;
@@ -6,25 +6,18 @@ export type SidebarTicketCounts = {
   readonly unroutedCount: number;
 };
 
-const closedSidebarTicketStatuses: ReadonlySet<TicketStatus> = new Set([
-  "CLOSED",
-  "RESOLVED",
-  "ARCHIVED",
-]);
-
-export function countSidebarTicketBadges(
-  tickets: readonly TicketResponse[],
-  inbox: readonly TicketResponse[],
+/**
+ * Maps the server-side ticket counts to the sidebar badges. Unrouted tickets
+ * need a person to route them, so they add to the inbox badge; only staff have
+ * a group inbox of their own.
+ */
+export function toSidebarTicketCounts(
+  counts: Pick<TicketCounts, "open" | "unrouted" | "inbox">,
+  includeInbox: boolean,
 ): SidebarTicketCounts {
-  const openTicketCount = tickets.filter(
-    (ticket) => !closedSidebarTicketStatuses.has(ticket.status),
-  ).length;
-  const unroutedCount = tickets.filter(
-    (ticket) => ticket.status === "UNROUTED",
-  ).length;
   return {
-    openTicketCount,
-    inboxBadgeCount: inbox.length + unroutedCount,
-    unroutedCount,
+    openTicketCount: counts.open,
+    unroutedCount: counts.unrouted,
+    inboxBadgeCount: (includeInbox ? counts.inbox : 0) + counts.unrouted,
   };
 }

@@ -14,6 +14,9 @@ Vidljivost:
 
 Ako je `private.ticket.groupInbox.enabled=false` → `GROUP_INBOX_DISABLED`.
 
+### Predikat inboxa
+Inbox je predikat u `where`-u (`assignment/build-group-inbox-where.ts`): `assignedUserId = null`, `status = PENDING`, `assignedGroupId` u grupama pozivaoca (SuperAdmin: bilo koja grupa) i vidljivost po scope-u i confidential ACL-u. Za razliku od liste, inbox je radni red: **requester ne vidi svoj tiket samo zato što ga je podnio**, potreban je OU + servis scope. Bez članstva ni u jednoj grupi inbox je prazan. Isti predikat daje `inbox` u `GET /tickets/counts` (nije isključen: kad je inbox isključen, brojač je 0, ne greška). Paritet sa prethodnom petljom čuva `build-group-inbox-where.spec.ts`.
+
 ## Claim / take-over
 `POST /tickets/:ticketId/claim`
 

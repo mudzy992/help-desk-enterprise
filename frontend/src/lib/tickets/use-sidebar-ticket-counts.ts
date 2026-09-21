@@ -1,78 +1,60 @@
 import { useEffect, useState } from "react";
 import {
-  countSidebarTicketBadges,
+  toSidebarTicketCounts,
   type SidebarTicketCounts,
 } from "@/lib/tickets/count-sidebar-ticket-badges";
 import {
-  listGroupInbox,
-  listTickets,
-  type TicketResponse,
-} from "@/services/tickets-api";
+  getTicketCounts,
+  type TicketCounts,
+} from "@/services/tickets-counts-api";
 
 export type { SidebarTicketCounts };
 
 const sidebarTicketCountsCacheTimeToLiveMilliseconds = 30_000;
 
-type CachedSidebarTicketCounts = {
+type CachedTicketCounts = {
   readonly cachedAtMilliseconds: number;
-  readonly counts: SidebarTicketCounts;
-  readonly includesInbox: boolean;
+  readonly counts: TicketCounts;
 };
 
-let cachedSidebarTicketCounts: CachedSidebarTicketCounts | null = null;
-let inFlightSidebarTicketCounts: Promise<SidebarTicketCounts> | null = null;
-let inFlightIncludesInbox = false;
+let cachedTicketCounts: CachedTicketCounts | null = null;
+let inFlightTicketCounts: Promise<TicketCounts> | null = null;
 
-function isCacheFresh(entry: CachedSidebarTicketCounts): boolean {
+function isCacheFresh(entry: CachedTicketCounts): boolean {
   return (
     Date.now() - entry.cachedAtMilliseconds <
     sidebarTicketCountsCacheTimeToLiveMilliseconds
   );
 }
 
-async function loadSidebarTicketCounts(includeInbox: boolean): Promise<SidebarTicketCounts> {
-  if (
-    cachedSidebarTicketCounts !== null &&
-    isCacheFresh(cachedSidebarTicketCounts) &&
-    (cachedSidebarTicketCounts.includesInbox || !includeInbox)
-  ) {
-    return cachedSidebarTicketCounts.counts;
+async function loadTicketCounts(): Promise<TicketCounts> {
+  if (cachedTicketCounts !== null && isCacheFresh(cachedTicketCounts)) {
+    return cachedTicketCounts.counts;
   }
-  if (
-    inFlightSidebarTicketCounts !== null &&
-    (inFlightIncludesInbox || !includeInbox)
-  ) {
-    return inFlightSidebarTicketCounts;
+  if (inFlightTicketCounts !== null) {
+    return inFlightTicketCounts;
   }
-  inFlightIncludesInbox = includeInbox;
-  inFlightSidebarTicketCounts = (async () => {
-    const tickets = await listTickets();
-    const inbox = includeInbox
-      ? await listGroupInbox().catch((): readonly TicketResponse[] => [])
-      : [];
-    const counts = countSidebarTicketBadges(tickets, inbox);
-    cachedSidebarTicketCounts = {
-      cachedAtMilliseconds: Date.now(),
-      counts,
-      includesInbox: includeInbox,
-    };
+  inFlightTicketCounts = getTicketCounts().then((counts) => {
+    cachedTicketCounts = { cachedAtMilliseconds: Date.now(), counts };
     return counts;
-  })();
+  });
   try {
-    return await inFlightSidebarTicketCounts;
+    return await inFlightTicketCounts;
   } finally {
-    inFlightSidebarTicketCounts = null;
+    inFlightTicketCounts = null;
   }
 }
 
-export function useSidebarTicketCounts(includeInbox: boolean): SidebarTicketCounts | null {
-  const [counts, setCounts] = useState<SidebarTicketCounts | null>(
-    () => cachedSidebarTicketCounts?.counts ?? null,
+export function useSidebarTicketCounts(
+  includeInbox: boolean,
+): SidebarTicketCounts | null {
+  const [counts, setCounts] = useState<TicketCounts | null>(
+    () => cachedTicketCounts?.counts ?? null,
   );
 
   useEffect(() => {
     let isCancelled = false;
-    void loadSidebarTicketCounts(includeInbox)
+    void loadTicketCounts()
       .then((nextCounts) => {
         if (!isCancelled) {
           setCounts(nextCounts);
@@ -86,7 +68,7 @@ export function useSidebarTicketCounts(includeInbox: boolean): SidebarTicketCoun
     return () => {
       isCancelled = true;
     };
-  }, [includeInbox]);
+  }, []);
 
-  return counts;
+  return counts === null ? null : toSidebarTicketCounts(counts, includeInbox);
 }

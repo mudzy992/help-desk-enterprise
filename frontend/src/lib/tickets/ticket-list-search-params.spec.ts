@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { toTicketListSearchParams } from "@/lib/tickets/ticket-list-search-params";
+import {
+  toTicketCountsSearchParams,
+  toTicketListSearchParams,
+} from "@/lib/tickets/ticket-list-search-params";
 
 describe("toTicketListSearchParams", () => {
   it("always asks for a page so the API answers with the paged envelope", () => {
@@ -46,5 +49,29 @@ describe("toTicketListSearchParams", () => {
       createdFrom: "2026-01-01T00:00:00.000Z",
       page: "1",
     });
+  });
+});
+
+describe("toTicketCountsSearchParams", () => {
+  it("sends only the narrowing filters, never a page", () => {
+    expect(toTicketCountsSearchParams({}).toString()).toBe("");
+    const search = toTicketCountsSearchParams({
+      priority: "LOW",
+      groupId: "g-it",
+      unassigned: true,
+      q: " vpn ",
+    });
+    expect(Object.fromEntries(search)).toEqual({
+      priority: "LOW",
+      groupId: "g-it",
+      unassigned: "true",
+      q: "vpn",
+    });
+  });
+
+  it("leaves out empty values and false flags", () => {
+    expect(
+      toTicketCountsSearchParams({ serviceId: "", unassigned: false, q: "  " }).toString(),
+    ).toBe("");
   });
 });

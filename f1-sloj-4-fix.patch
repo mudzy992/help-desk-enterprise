@@ -1,0 +1,8 @@
+diff -ruN a/backend/src/modules/tickets/list/visibility-parity-world.ts b/backend/src/modules/tickets/list/visibility-parity-world.ts
+--- a/backend/src/modules/tickets/list/visibility-parity-world.ts	2026-09-21 11:08:40.997948918 +0000
++++ b/backend/src/modules/tickets/list/visibility-parity-world.ts	2026-09-21 11:16:00.941531390 +0000
+@@ -198,4 +198,3 @@
+     memory.breakGlassEvents.set(`b-${ticketId}`, { id: `b-${ticketId}`, actorUserId: 'u-glass-expired', reason: 'incident', expiresAt: past, ...base });
+   }
+ }
+-

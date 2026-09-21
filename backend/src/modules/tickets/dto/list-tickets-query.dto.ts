@@ -6,70 +6,33 @@ import {
   IsEnum,
   IsIn,
   IsInt,
-  IsISO8601,
   IsOptional,
-  IsString,
   Max,
-  MaxLength,
   Min,
-  MinLength,
 } from 'class-validator';
-import { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
+import { TicketStatus } from '../../../generated/prisma/enums';
+import {
+  toQueryBoolean,
+  toQueryList,
+} from '../list/list-query-transforms';
 import {
   ticketListPaging,
   ticketListSortDirections,
   ticketListSortFields,
 } from '../list/list-tickets.constants';
-import {
-  toQueryBoolean,
-  toQueryList,
-} from '../list/list-query-transforms';
 import type {
   TicketListSortDirection,
   TicketListSortField,
 } from '../list/list-tickets.types';
+import { TicketFilterQueryDto } from './ticket-filter-query.dto';
 
-export class ListTicketsQueryDto {
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  originUnitId?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  serviceId?: string;
-
+export class ListTicketsQueryDto extends TicketFilterQueryDto {
   @IsOptional()
   @Transform(({ value }) => toQueryList(value))
   @IsArray()
   @ArrayMaxSize(12)
   @IsEnum(TicketStatus, { each: true })
   status?: TicketStatus[];
-
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  assignedUserId?: string;
-
-  @IsOptional()
-  @IsEnum(TicketPriority)
-  priority?: TicketPriority;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  requesterId?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  groupId?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => toQueryBoolean(value))
-  @IsBoolean()
-  unassigned?: boolean;
 
   @IsOptional()
   @Transform(({ value }) => toQueryBoolean(value))
@@ -85,20 +48,6 @@ export class ListTicketsQueryDto {
   @Transform(({ value }) => toQueryBoolean(value))
   @IsBoolean()
   includeArchived?: boolean;
-
-  @IsOptional()
-  @IsISO8601()
-  createdFrom?: string;
-
-  @IsOptional()
-  @IsISO8601()
-  createdTo?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  q?: string;
 
   @IsOptional()
   @IsIn(ticketListSortFields)
