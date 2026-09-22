@@ -15,3 +15,8 @@
 - `GET /tickets/counts`: `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; opcioni filteri za tab brojače (LST-03).
 - Inbox predikat izdvojen (`buildGroupInboxWhere`), paritet sa starom petljom u specu. `TicketFilterQueryDto` je zajednička baza za listu i counts.
 - FE: `getTicketCounts` + `toTicketCountsSearchParams`; sidebar značke (`use-sidebar-ticket-counts`) više ne preuzimaju cijelu listu i inbox.
+
+## 2026-09-21 — F1 sloj 5 (inbox + /groups/mine)
+- Inbox: `list/list-group-inbox-tickets.ts` zamjenjuje staru petlju; paginacija, `groupId`, sort po SLA roku, isti `buildGroupInboxWhere` kao counts. `TicketsService.listInbox` i kontroler sad vraćaju `{ items, total, page, pageSize }`.
+- `GET /groups/mine`: `GroupsMineController` (nova ruta `groups/mine`, dozvoljena USER/AGENT/ADMIN/SUPER_ADMIN), `listMyGroups`, `MyGroupResponse`.
+- `Group.autoAssignStrategy` dodano u schemu; `resolveEffectiveAutoAssignStrategy` prošireno na prioritet grupa > servis > globalno; `apply-ticket-auto-assignment.ts` čita i grupinu strategiju.

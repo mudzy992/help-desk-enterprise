@@ -50,13 +50,20 @@ export async function applyTicketAutoAssignment(
     }
     throw error;
   }
-  const service = await prisma.service.findUnique({
-    where: { id: ticket.serviceId },
-    select: { autoAssignStrategy: true },
-  });
+  const [service, group] = await Promise.all([
+    prisma.service.findUnique({
+      where: { id: ticket.serviceId },
+      select: { autoAssignStrategy: true },
+    }),
+    prisma.group.findUnique({
+      where: { id: ticket.assignedGroupId },
+      select: { autoAssignStrategy: true },
+    }),
+  ]);
   const strategy = resolveEffectiveAutoAssignStrategy({
     configuration,
     serviceStrategy: (service?.autoAssignStrategy ?? null) as AutoAssignStrategy | null,
+    groupStrategy: (group?.autoAssignStrategy ?? null) as AutoAssignStrategy | null,
   });
   if (strategy === 'NONE') {
     return ticket;

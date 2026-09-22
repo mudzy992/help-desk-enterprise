@@ -1,0 +1,1210 @@
+diff -ruN a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-21 22:59:04.546392674 +0000
++++ b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-21 22:58:47.130558909 +0000
+@@ -7,3 +7,9 @@
+ - Claim je atomičan (uslovni `updateMany` na `assignedUserId: null` + pročitani status). Uklonjen take-over kroz claim (INB-07): tuđi tiket vraća `TICKET_NOT_CLAIMABLE` (HTTP 409, ranije 400) s `details.claimedByName`. Preuzimanje tuđeg tiketa ostaje samo kroz „Dodijeli“ (bulk `assign_user`).
+ - Odstupanje od `04-FAZNI-PLAN` (zadatak 8): guard nije samo `PENDING`. Zadržani su `ASSIGNED`/`IN_PROGRESS` uz `assignedUserId: null`, jer bulk „Dodijeli grupi“ ostavlja takav tiket i on mora ostati preuzimljiv.
+ - Inbox predikat izdvojen u `buildGroupInboxWhere` (dijele ga `GET /tickets/counts` i, u sljedećem sloju, `GET /tickets/inbox`). Ponašanje nepromijenjeno; paritet čuva `build-group-inbox-where.spec.ts`.
++
++## 2026-09-21 (sloj 5)
++- Inbox dobija paginaciju, `groupId` i sort po najbližem SLA roku; stara petlja po tiketu (`isInboxTicketVisible`) zamijenjena `buildGroupInboxWhere` (nepromijenjena pravila, paritet u `build-group-inbox-where.spec.ts` sad provjerava i paginiranu funkciju stranicu po stranicu).
++- Novi `GET /groups/mine` (D2 = auto-assign po grupi): `{ id, name, organizationalUnit {id,name,path}, memberCount, effectiveAutoAssign, isFallback }`, role USER/AGENT/ADMIN/SUPER_ADMIN, samo grupe u kojima je pozivalac član (SuperAdmin: sve). Zaseban `GroupsMineController` na `groups/mine`, registrovan ispred `GroupsController` (isti razlog kao `TicketsSavedViewsController` ispred `TicketsController`).
++- `Group.autoAssignStrategy` (nova kolona, `AutoAssignStrategy @default(NONE)`); `resolveEffectiveAutoAssignStrategy` sad prima i `groupStrategy`, prioritet grupa > servis > globalno. `effectiveAutoAssign` u `/groups/mine` računa se bez `serviceStrategy` (grupa opslužuje više servisa preko routing pravila; servisni nivo se primjenjuje tek kad je tiket stvarno rutiran).
++- **Migracija nije generisana u ovom okruženju** (nema Postgres konekcije): pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` prije deploya.
+diff -ruN a/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md b/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md
+--- a/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md	2026-09-21 22:59:04.546754557 +0000
++++ b/.cursor/docs/matrices/ticket-group-inbox/MATRIX.md	2026-09-21 22:58:47.130558909 +0000
+@@ -4,7 +4,7 @@
+ Group inbox za nedoručene grupne tikete, ručno preuzimanje/take-over, i server-side auto-assign (`LEAST_BUSY` / `ROUND_ROBIN`). Koristi postojeći `Ticket.assignedGroupId` / `assignedUserId`, `GroupMember`, RoleGuard/OU/service scope i ChangeLog. Nije novi RBAC niti routing engine.
+ 
+ ## Group inbox
+-`GET /tickets/inbox` vraća tikete gdje je `assignedGroupId` postavljen, `assignedUserId` null i `status=PENDING`.
++`GET /tickets/inbox` vraća stranicu (`page`, `pageSize`, zadano 25, maks 100) tiketa gdje je `assignedGroupId` postavljen, `assignedUserId` null i `status=PENDING`, sortiranih po najbližem SLA roku (`slaState.resolutionDueAt asc`, tiket bez roka na kraju). Opcioni `groupId` suzi na jednu grupu unutar onih koje pozivalac vidi.
+ 
+ Vidljivost:
+ - član handler grupe + postojeći `canManageTicketsInScope` (OU path nasljeđivanje + service scope)
+@@ -53,7 +53,8 @@
+ ## API
+ | Method | Path |
+ |---|---|
+-| GET | `/tickets/inbox` |
++| GET | `/tickets/inbox` (`{ items, total, page, pageSize }`) |
++| GET | `/groups/mine` |
+ | POST | `/tickets/:ticketId/claim` (409 `TICKET_NOT_CLAIMABLE`) |
+ 
+ ## Namjerno NIJE
+diff -ruN a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 22:59:04.547013700 +0000
++++ b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-21 22:58:47.130558909 +0000
+@@ -10,3 +10,4 @@
+ - `GET /tickets`: novi filteri (`status[]`, `requesterId`, `groupId`, `unassigned`, `overdue`, `atRisk`, `createdFrom/To`, `includeArchived`), `sort`/`dir` i paginacija s odgovorom `{ items, total, page, pageSize }`; bez `page`/`pageSize` ostaje niz (LST-05/06, DAT-01).
+ - Vidljivost liste je predikat u upitu umjesto petlje po tiketu (nema N+1 nad confidential činjenicama); export i CSAT sažetak koriste isti builder. Export više ne filtrira u memoriji.
+ - `GET /tickets/counts` (INB-09, LST-03 izvor): `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; sidebar značke na njemu umjesto preuzimanja cijele liste.
++- `GET /tickets/inbox` i `GET /tickets/counts` (sloj 4) dijele isti `buildGroupInboxWhere`; inbox odgovor sada `{ items, total, page, pageSize }` (bilo golo niz).
+diff -ruN a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md
+--- a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 22:59:04.547571564 +0000
++++ b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-21 22:58:47.131258653 +0000
+@@ -7,8 +7,8 @@
+ | 2 | Atomičan claim, 409, bez take-overa | INB-07 | urađeno |
+ | 3 | `ListTicketsQueryDto` + `buildTicketListFilters`, predikat vidljivosti u `where`-u, `{items,total,page,pageSize}`, sort, export na isti builder, FE `listTicketsPage` | DAT-01, LST-05/06 | urađeno (potrošači: vidi odstupanja) |
+ | 4 | `GET /tickets/counts` + sidebar značke na njemu | INB-09, LST-03 (izvor) | urađeno |
+-| 5 | Inbox paginacija + sort po SLA, `GET /groups/mine` (zaseban kontroler prije `GroupsController`) | INB-08, DAT-02 | otvoreno |
+-| 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | otvoreno |
++| 5 | Inbox paginacija + sort po SLA + `groupId`, `GET /groups/mine` | INB-08, DAT-02 | urađeno |
++| 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | urađeno (spojeno u sloj 5: `/groups/mine` bez njega nema šta vratiti kao `effectiveAutoAssign`); **migracija nije generisana**, treba `prisma migrate dev` kod vas |
+ | 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload, zatvaranje matrica | NEW-04/05 | otvoreno |
+ 
+ Pravila: svaki sloj završava zelenim `tsc -b` i jestom + prijedlogom commit poruke; fajlovi ≤150 linija; matrice i CHANGELOG uz svaku promjenu logike.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md
+--- a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 22:59:04.547669944 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-21 22:58:47.131366967 +0000
+@@ -15,3 +15,8 @@
+ - `GET /tickets/counts`: `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; opcioni filteri za tab brojače (LST-03).
+ - Inbox predikat izdvojen (`buildGroupInboxWhere`), paritet sa starom petljom u specu. `TicketFilterQueryDto` je zajednička baza za listu i counts.
+ - FE: `getTicketCounts` + `toTicketCountsSearchParams`; sidebar značke (`use-sidebar-ticket-counts`) više ne preuzimaju cijelu listu i inbox.
++
++## 2026-09-21 — F1 sloj 5 (inbox + /groups/mine)
++- Inbox: `list/list-group-inbox-tickets.ts` zamjenjuje staru petlju; paginacija, `groupId`, sort po SLA roku, isti `buildGroupInboxWhere` kao counts. `TicketsService.listInbox` i kontroler sad vraćaju `{ items, total, page, pageSize }`.
++- `GET /groups/mine`: `GroupsMineController` (nova ruta `groups/mine`, dozvoljena USER/AGENT/ADMIN/SUPER_ADMIN), `listMyGroups`, `MyGroupResponse`.
++- `Group.autoAssignStrategy` dodano u schemu; `resolveEffectiveAutoAssignStrategy` prošireno na prioritet grupa > servis > globalno; `apply-ticket-auto-assignment.ts` čita i grupinu strategiju.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md
+--- a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 22:59:04.547761895 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-21 22:58:47.131366967 +0000
+@@ -8,6 +8,6 @@
+ - [ ] Sloj 3b `int.spec.ts` nad Postgresom (paritet vidljivosti, istovremeni claim, EXPLAIN + broj upita)
+ - [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
+ - [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
+-- [ ] Sloj 5 inbox + `/groups/mine`
+-- [ ] Sloj 5b `Group.autoAssignStrategy`
++- [x] Sloj 5 inbox (paginacija, sort SLA, `groupId`) + `/groups/mine`
++- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — **migracija nije generisana, pokrenuti `prisma migrate dev` prije deploya**
+ - [ ] Sloj 6 routing preview, `approvalSteps`, realtime
+diff -ruN a/.cursor/plans/tickets-ui-alignment/HANDOFF.md b/.cursor/plans/tickets-ui-alignment/HANDOFF.md
+--- a/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 22:59:04.557472608 +0000
++++ b/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-21 22:58:47.131571356 +0000
+@@ -1,7 +1,7 @@
+ # HANDOFF — tickets-ui-alignment
+ 
+ ## Urađeno
+-F1 slojevi 0–4 (vidi `CHANGELOG.md`).
++F1 slojevi 0–5 (vidi `CHANGELOG.md`).
+ 
+ ## Test status
+ Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove: ticket specovi prolaze uz iste 4 poznate pada shima kao prije izmjena. **Prije commita pokreni `npm run build` i `jest` u `backend/` te `npm run build` i `npm test` u `frontend/`.** Prisma tipovi (`Prisma.TicketWhereInput`, `TicketOrderByWithRelationInput`, `updateMany`, `orderBy` po relaciji `slaState`) nisu provjereni protiv pravog klijenta.
+@@ -10,9 +10,12 @@
+ Paritet vidljivosti i paginacija izvršavaju `where` kroz in-memory evaluator, ne kroz Postgres. Dokazuju logiku predikata (mutacijska provjera: 16/16 mutacija predikata i 6/6 mutacija paginacije obara spec), ali ne dokazuju SQL semantiku ni performanse. Za to služi sloj 3b.
+ 
+ ## Next
+-Inbox (paginacija, `groupId`, sort po SLA na `buildGroupInboxWhere`) + `/groups/mine` (5), `Group.autoAssignStrategy` (5b), routing preview + `approvalSteps` + realtime (6).
++Sloj 6: `POST /tickets/routing-preview`, `approvalSteps` u `ServiceResponse`, realtime payload (`groupId`, `priority` na `ticket.created`/`ticket.updated`). Zatim zatvaranje preostalih odstupanja iz sloja 3 (potrošači liste) i F2 (frontend inboxa).
+ 
+ ## Otvoreno
++- **KRITIČNO prije deploya**: `Group.autoAssignStrategy` je dodano u `prisma/schema/identity.prisma`, ali migracija nije generisana (nema Postgres konekcije u ovom okruženju). Pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` lokalno prije mergea, ili baza i schema neće biti usklađeni.
++- 3 nova testa (`groups-mine.controller.guard.spec.ts`, `groups-module-order.spec.ts` × 2) nisu izvršena mojim shimom (`Reflect.getMetadata` nije polyfillovan) — isto ograničenje kao postojeći `groups.controller.guard.spec.ts` drugi test. Logika je provjerena čitanjem, ne izvršavanjem; pokrenuti pravi `jest` da se potvrdi.
++- `effectiveAutoAssign` u `/groups/mine` ignoriše servisni nivo (grupa opslužuje više servisa). Ako se ispostavi da agenti očekuju da vide i servisni fallback po grupi, treba prošireno polje (npr. lista servisa sa strategijama) — nije u planu, dodatna odluka.
+ - Odluka o `overdue`/`atRisk`: brojači i list-filteri broje i zatvorene tikete s probijenim SLA (matrica `overdue-ui-badge-filter` definiše `isOverdue` bez statusa). Ako proizvod želi samo otvorene, mijenja se u `buildTicketListFilters` i time oba mjesta odjednom.
+ - F2 tabovi inboxa (INB-01) trebaju brojač po grupi; `counts.inbox` je jedan broj. Dodati `inboxByGroup` u sloju 5 ako se potvrdi.
+ - Realtime invalidacija brojača (F1 zadatak 2/11) čeka payload događaja (sloj 6); do tada sidebar osvježava TTL cache od 30 s.
+diff -ruN a/backend/prisma/schema/identity.prisma b/backend/prisma/schema/identity.prisma
+--- a/backend/prisma/schema/identity.prisma	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/prisma/schema/identity.prisma	2026-09-21 22:54:41.978391959 +0000
+@@ -103,6 +103,10 @@
+   key                  String                 @unique
+   organizationalUnitId String
+   isFallback           Boolean                @default(false)
++  /// Overrides the service's and the global auto-assign strategy for tickets
++  /// this group handles. NONE defers to the service, then the global setting
++  /// (see resolveEffectiveAutoAssignStrategy). Decision D2.
++  autoAssignStrategy   AutoAssignStrategy     @default(NONE)
+   organizationalUnit   OrganizationalUnit     @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+   members              GroupMember[]
+   assignedTickets      Ticket[]               @relation("TicketAssignedGroup")
+diff -ruN a/backend/src/modules/groups/groups-mine.controller.guard.spec.ts b/backend/src/modules/groups/groups-mine.controller.guard.spec.ts
+--- a/backend/src/modules/groups/groups-mine.controller.guard.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/groups/groups-mine.controller.guard.spec.ts	2026-09-21 22:56:30.794165935 +0000
+@@ -0,0 +1,29 @@
++import { GUARDS_METADATA } from '@nestjs/common/constants';
++import { AUTHORIZATION_REQUIRED_ROLES_KEY } from '../authorization/authorization.constants';
++import { authorizationRoleKeys } from '../authorization/authorization.constants';
++import { GroupsMineController } from './groups-mine.controller';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++describe('GroupsMineController guards', () => {
++  it('requires session authentication and any authenticated role, not admin-only', () => {
++    const guards = Reflect.getMetadata(GUARDS_METADATA, GroupsMineController) as unknown[];
++    expect((guards as Array<{ name: string }>).map((guard) => guard.name)).toEqual(
++      expect.arrayContaining(['SessionAuthenticationGuard', 'RoleGuard']),
++    );
++    const roles = Reflect.getMetadata(
++      AUTHORIZATION_REQUIRED_ROLES_KEY,
++      GroupsMineController,
++    ) as readonly string[];
++    expect(roles).toEqual(
++      expect.arrayContaining([
++        authorizationRoleKeys.user,
++        authorizationRoleKeys.agent,
++        authorizationRoleKeys.admin,
++        authorizationRoleKeys.superAdmin,
++      ]),
++    );
++  });
++});
+diff -ruN a/backend/src/modules/groups/groups-mine.controller.ts b/backend/src/modules/groups/groups-mine.controller.ts
+--- a/backend/src/modules/groups/groups-mine.controller.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/groups/groups-mine.controller.ts	2026-09-21 22:55:34.622829120 +0000
+@@ -0,0 +1,40 @@
++import { Controller, Get, Req, UseGuards } from '@nestjs/common';
++import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
++import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
++import { authorizationRoleKeys } from '../authorization/authorization.constants';
++import { RequireRoles } from '../authorization/require-roles.decorator';
++import { RoleGuard } from '../authorization/role.guard';
++import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
++import { GroupsService } from './groups.service';
++import type { MyGroupResponse } from './groups.types';
++import { GroupsError } from './groups.error';
++import { mapGroupsError } from './map-groups-error';
++
++/**
++ * Registered ahead of `GroupsController` (see `groups.module.ts`): that
++ * controller's base path is `groups` with `@RequireRoles(admin)`, so without
++ * a fixed registration order `GET /groups/mine` would either 404 under
++ * `:groupId` or inherit the admin-only role.
++ */
++@Controller('groups/mine')
++@UseGuards(SessionAuthenticationGuard, RoleGuard)
++@RequireRoles(
++  authorizationRoleKeys.user,
++  authorizationRoleKeys.agent,
++  authorizationRoleKeys.admin,
++  authorizationRoleKeys.superAdmin,
++)
++export class GroupsMineController {
++  constructor(private readonly groupsService: GroupsService) {}
++
++  @Get()
++  list(
++    @Req() request: AuthenticatedHttpRequest,
++  ): Promise<readonly MyGroupResponse[]> {
++    const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
++    if (actorUserId.length === 0) {
++      throw mapGroupsError(new GroupsError('FORBIDDEN'));
++    }
++    return this.groupsService.listMine(actorUserId);
++  }
++}
+diff -ruN a/backend/src/modules/groups/groups-module-order.spec.ts b/backend/src/modules/groups/groups-module-order.spec.ts
+--- a/backend/src/modules/groups/groups-module-order.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/groups/groups-module-order.spec.ts	2026-09-21 22:56:30.796898122 +0000
+@@ -0,0 +1,24 @@
++import { PATH_METADATA } from '@nestjs/common/constants';
++import { GroupsController } from './groups.controller';
++import { GroupsMineController } from './groups-mine.controller';
++import { GroupsModule } from './groups.module';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++// GET /groups/:groupId matches any single segment, so the fixed-path
++// /groups/mine controller must be registered ahead of GroupsController.
++describe('GroupsModule controller order', () => {
++  it('registers GroupsMineController before GroupsController', () => {
++    const controllers = Reflect.getMetadata('controllers', GroupsModule) as unknown[];
++    expect(controllers.indexOf(GroupsMineController)).toBeGreaterThanOrEqual(0);
++    expect(controllers.indexOf(GroupsMineController)).toBeLessThan(
++      controllers.indexOf(GroupsController),
++    );
++  });
++
++  it('mounts at the literal path "mine" under the module prefix', () => {
++    expect(Reflect.getMetadata(PATH_METADATA, GroupsMineController)).toBe('groups/mine');
++  });
++});
+diff -ruN a/backend/src/modules/groups/groups.error.ts b/backend/src/modules/groups/groups.error.ts
+--- a/backend/src/modules/groups/groups.error.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/groups.error.ts	2026-09-21 22:55:14.742691005 +0000
+@@ -7,7 +7,8 @@
+   | 'MEMBER_ALREADY_EXISTS'
+   | 'MEMBER_NOT_FOUND'
+   | 'SOLE_FALLBACK_GROUP'
+-  | 'HAS_ACTIVE_TICKETS';
++  | 'HAS_ACTIVE_TICKETS'
++  | 'FORBIDDEN';
+ 
+ export class GroupsError extends Error {
+   constructor(
+diff -ruN a/backend/src/modules/groups/groups.module.ts b/backend/src/modules/groups/groups.module.ts
+--- a/backend/src/modules/groups/groups.module.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/groups.module.ts	2026-09-21 22:55:34.631755226 +0000
+@@ -1,13 +1,18 @@
+ import { Module } from '@nestjs/common';
+ import { AuthenticationModule } from '../authentication/authentication.module';
+ import { AuthorizationModule } from '../authorization/authorization.module';
++import { SettingsModule } from '../settings/settings.module';
++import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
+ import { GroupsController } from './groups.controller';
++import { GroupsMineController } from './groups-mine.controller';
+ import { GroupsService } from './groups.service';
+ 
+ @Module({
+-  imports: [AuthenticationModule, AuthorizationModule],
+-  controllers: [GroupsController],
+-  providers: [GroupsService],
++  imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
++  // GroupsMineController's fixed path `groups/mine` must be registered ahead
++  // of GroupsController, whose `GET :groupId` would otherwise shadow it.
++  controllers: [GroupsMineController, GroupsController],
++  providers: [GroupsService, TicketAssignmentConfigurationLoader],
+   exports: [GroupsService],
+ })
+ export class GroupsModule {}
+diff -ruN a/backend/src/modules/groups/groups.service.spec.ts b/backend/src/modules/groups/groups.service.spec.ts
+--- a/backend/src/modules/groups/groups.service.spec.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/groups.service.spec.ts	2026-09-21 22:55:53.495278899 +0000
+@@ -83,7 +83,14 @@
+       }
+       return null;
+     });
+-    return { service: new GroupsService(prisma as never), prisma };
++    return {
++      service: new GroupsService(
++        prisma as never,
++        { loadBySubjectId: async () => null } as never,
++        { load: async () => { throw new Error('not used'); } } as never,
++      ),
++      prisma,
++    };
+   };
+ 
+   it('creates a group in an existing organizational unit', async () => {
+diff -ruN a/backend/src/modules/groups/groups.service.ts b/backend/src/modules/groups/groups.service.ts
+--- a/backend/src/modules/groups/groups.service.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/groups.service.ts	2026-09-21 22:55:34.619924706 +0000
+@@ -1,5 +1,7 @@
+ import { Injectable } from '@nestjs/common';
+ import { PrismaService } from '../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
++import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
+ import { addGroupMember } from './add-group-member';
+ import { createGroup } from './create-group';
+ import { deleteGroup } from './delete-group';
+@@ -10,20 +12,37 @@
+   GroupListItemResponse,
+   GroupResponse,
+   ListGroupsQuery,
++  MyGroupResponse,
+   UpdateGroupInput,
+ } from './groups.types';
+ import { listGroups } from './list-groups';
++import { listMyGroups } from './list-my-groups';
+ import { removeGroupMember } from './remove-group-member';
+ import { updateGroup } from './update-group';
+ 
+ @Injectable()
+ export class GroupsService {
+-  constructor(private readonly prisma: PrismaService) {}
++  constructor(
++    private readonly prisma: PrismaService,
++    private readonly authorizationContextLoader: AuthorizationContextLoader,
++    private readonly configurationLoader: TicketAssignmentConfigurationLoader,
++  ) {}
+ 
+   list(query: ListGroupsQuery = {}): Promise<readonly GroupListItemResponse[]> {
+     return this.execute(() => listGroups(this.prisma, query));
+   }
+ 
++  listMine(actorUserId: string): Promise<readonly MyGroupResponse[]> {
++    return this.execute(() =>
++      listMyGroups(
++        this.prisma,
++        this.authorizationContextLoader,
++        this.configurationLoader,
++        actorUserId,
++      ),
++    );
++  }
++
+   getById(groupId: string): Promise<GroupResponse> {
+     return this.execute(() => getGroup(this.prisma, groupId));
+   }
+diff -ruN a/backend/src/modules/groups/groups.types.ts b/backend/src/modules/groups/groups.types.ts
+--- a/backend/src/modules/groups/groups.types.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/groups.types.ts	2026-09-21 22:55:02.690361528 +0000
+@@ -19,6 +19,20 @@
+   readonly updatedAt: string;
+ };
+ 
++export type MyGroupResponse = {
++  readonly id: string;
++  readonly name: string;
++  readonly organizationalUnit: {
++    readonly id: string;
++    readonly name: string;
++    readonly path: string;
++  };
++  readonly memberCount: number;
++  /** Priority group > service > global (decision D2); NONE if none applies. */
++  readonly effectiveAutoAssign: import('../../generated/prisma/enums').AutoAssignStrategy;
++  readonly isFallback: boolean;
++};
++
+ export type GroupListItemResponse = {
+   readonly id: string;
+   readonly name: string;
+diff -ruN a/backend/src/modules/groups/list-my-groups.spec.ts b/backend/src/modules/groups/list-my-groups.spec.ts
+--- a/backend/src/modules/groups/list-my-groups.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/groups/list-my-groups.spec.ts	2026-09-21 22:56:13.031071442 +0000
+@@ -0,0 +1,113 @@
++import { listMyGroups } from './list-my-groups';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const configuration = {
++  groupInboxEnabled: true,
++  autoAssignEnabled: true,
++  autoAssignStrategy: 'ROUND_ROBIN' as const,
++};
++
++function createPrismaStub(
++  groups: readonly Record<string, unknown>[],
++) {
++  return {
++    group: {
++      findMany: jest.fn(async ({ where }: { where?: unknown }) =>
++        where === undefined
++          ? groups
++          : groups.filter((group) => group.__member === true),
++      ),
++    },
++  };
++}
++
++const contexts: Record<string, unknown> = {
++  agent: { subjectId: 'u-agent', isSuperAdmin: false },
++  super: { subjectId: 'u-super', isSuperAdmin: true },
++};
++
++function createLoader(name: string) {
++  return { loadBySubjectId: async () => contexts[name] ?? null };
++}
++
++const configLoader = { load: async () => configuration };
++
++describe('listMyGroups', () => {
++  it('lists only groups the caller is a member of, ordered by unit path then name', async () => {
++    const prisma = createPrismaStub([
++      {
++        id: 'g-hr', name: 'HR', isFallback: false, autoAssignStrategy: 'NONE',
++        organizationalUnit: { id: 'ou-hr', name: 'HR', ouPath: '/HR' },
++        _count: { members: 3 }, __member: true,
++      },
++    ]);
++    const groups = await listMyGroups(
++      prisma as never,
++      createLoader('agent') as never,
++      configLoader as never,
++      'u-agent',
++    );
++    expect(groups).toEqual([
++      {
++        id: 'g-hr',
++        name: 'HR',
++        organizationalUnit: { id: 'ou-hr', name: 'HR', path: '/HR' },
++        memberCount: 3,
++        effectiveAutoAssign: 'ROUND_ROBIN',
++        isFallback: false,
++      },
++    ]);
++    expect(prisma.group.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({
++        where: { members: { some: { userId: 'u-agent' } } },
++      }),
++    );
++  });
++
++  it('gives SuperAdmin every group, with no membership filter', async () => {
++    const prisma = createPrismaStub([
++      { id: 'g-1', name: 'A', isFallback: false, autoAssignStrategy: 'NONE', organizationalUnit: { id: 'ou-1', name: 'A', ouPath: '/A' }, _count: { members: 1 } },
++    ]);
++    await listMyGroups(prisma as never, createLoader('super') as never, configLoader as never, 'u-super');
++    expect(prisma.group.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({ where: undefined }),
++    );
++  });
++
++  it("reports each group's effective strategy: its own overrides the global one", async () => {
++    const prisma = createPrismaStub([
++      { id: 'g-own', name: 'Own', isFallback: false, autoAssignStrategy: 'LEAST_BUSY', organizationalUnit: { id: 'ou-1', name: 'A', ouPath: '/A' }, _count: { members: 1 }, __member: true },
++      { id: 'g-global', name: 'Global', isFallback: false, autoAssignStrategy: 'NONE', organizationalUnit: { id: 'ou-1', name: 'A', ouPath: '/A' }, _count: { members: 1 }, __member: true },
++    ]);
++    const groups = await listMyGroups(prisma as never, createLoader('agent') as never, configLoader as never, 'u-agent');
++    expect(groups.map((g) => g.effectiveAutoAssign)).toEqual(['LEAST_BUSY', 'ROUND_ROBIN']);
++  });
++
++  it('turns off every group\'s effective strategy when auto-assign is disabled globally', async () => {
++    const prisma = createPrismaStub([
++      { id: 'g-own', name: 'Own', isFallback: false, autoAssignStrategy: 'LEAST_BUSY', organizationalUnit: { id: 'ou-1', name: 'A', ouPath: '/A' }, _count: { members: 1 }, __member: true },
++    ]);
++    const disabled = { ...configuration, autoAssignEnabled: false };
++    const groups = await listMyGroups(
++      prisma as never,
++      createLoader('agent') as never,
++      { load: async () => disabled } as never,
++      'u-agent',
++    );
++    expect(groups[0]?.effectiveAutoAssign).toBe('NONE');
++  });
++
++  it('refuses a caller without an authorization context', async () => {
++    await expect(
++      listMyGroups(
++        createPrismaStub([]) as never,
++        createLoader('nobody') as never,
++        configLoader as never,
++        'u-nobody',
++      ),
++    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
++  });
++});
+diff -ruN a/backend/src/modules/groups/list-my-groups.ts b/backend/src/modules/groups/list-my-groups.ts
+--- a/backend/src/modules/groups/list-my-groups.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/groups/list-my-groups.ts	2026-09-21 22:55:02.693094814 +0000
+@@ -0,0 +1,62 @@
++import { PrismaService } from '../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
++import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
++import { resolveEffectiveAutoAssignStrategy } from '../tickets/assignment/resolve-effective-auto-assign-strategy';
++import type { AutoAssignStrategy } from '../../generated/prisma/enums';
++import { GroupsError } from './groups.error';
++import type { MyGroupResponse } from './groups.types';
++
++const myGroupSelect = {
++  id: true,
++  name: true,
++  isFallback: true,
++  autoAssignStrategy: true,
++  organizationalUnit: { select: { id: true, name: true, ouPath: true } },
++  _count: { select: { members: true } },
++} as const;
++
++/**
++ * The groups a person belongs to (SuperAdmin: every group), each with the
++ * auto-assign strategy that actually applies to a ticket handed to it. Global
++ * auto-assign is loaded once; a disabled global setting makes every group's
++ * `effectiveAutoAssign` NONE, matching what ticket assignment does.
++ */
++export async function listMyGroups(
++  prisma: PrismaService,
++  authorizationContextLoader: AuthorizationContextLoader,
++  configurationLoader: TicketAssignmentConfigurationLoader,
++  actorUserId: string,
++): Promise<readonly MyGroupResponse[]> {
++  const authContext =
++    await authorizationContextLoader.loadBySubjectId(actorUserId);
++  if (authContext === null) {
++    throw new GroupsError('FORBIDDEN');
++  }
++  const configuration = await configurationLoader.load();
++  const groups = await prisma.group.findMany({
++    where: authContext.isSuperAdmin
++      ? undefined
++      : { members: { some: { userId: actorUserId } } },
++    select: myGroupSelect,
++    orderBy: [{ organizationalUnit: { ouPath: 'asc' } }, { name: 'asc' }],
++  });
++  return groups.map((group) => ({
++    id: group.id,
++    name: group.name,
++    organizationalUnit: {
++      id: group.organizationalUnit.id,
++      name: group.organizationalUnit.name,
++      path: group.organizationalUnit.ouPath,
++    },
++    memberCount: group._count.members,
++    effectiveAutoAssign: resolveEffectiveAutoAssignStrategy({
++      configuration,
++      // A group serves more than one service through routing rules, so its
++      // own strategy is what "effective" can mean without a specific ticket;
++      // the service level only applies once a ticket is actually routed.
++      serviceStrategy: null,
++      groupStrategy: group.autoAssignStrategy as AutoAssignStrategy,
++    }),
++    isFallback: group.isFallback,
++  }));
++}
+diff -ruN a/backend/src/modules/groups/map-groups-error.ts b/backend/src/modules/groups/map-groups-error.ts
+--- a/backend/src/modules/groups/map-groups-error.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/groups/map-groups-error.ts	2026-09-21 22:55:14.742995147 +0000
+@@ -1,6 +1,7 @@
+ import {
+   BadRequestException,
+   ConflictException,
++  ForbiddenException,
+   HttpException,
+   NotFoundException,
+ } from '@nestjs/common';
+@@ -33,6 +34,7 @@
+     'Cannot remove the only fallback group for this organizational unit',
+   HAS_ACTIVE_TICKETS:
+     'Cannot delete a group that has active tickets assigned to it',
++  FORBIDDEN: 'Authorization failed',
+ };
+ 
+ export function mapGroupsError(error: unknown): HttpException {
+@@ -46,5 +48,8 @@
+   if (conflictCodes.includes(error.code)) {
+     return new ConflictException(body);
+   }
++  if (error.code === 'FORBIDDEN') {
++    return new ForbiddenException(body);
++  }
+   return new BadRequestException(body);
+ }
+diff -ruN a/backend/src/modules/tickets/assignment/apply-ticket-auto-assignment.ts b/backend/src/modules/tickets/assignment/apply-ticket-auto-assignment.ts
+--- a/backend/src/modules/tickets/assignment/apply-ticket-auto-assignment.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/apply-ticket-auto-assignment.ts	2026-09-21 22:54:51.019456514 +0000
+@@ -50,13 +50,20 @@
+     }
+     throw error;
+   }
+-  const service = await prisma.service.findUnique({
+-    where: { id: ticket.serviceId },
+-    select: { autoAssignStrategy: true },
+-  });
++  const [service, group] = await Promise.all([
++    prisma.service.findUnique({
++      where: { id: ticket.serviceId },
++      select: { autoAssignStrategy: true },
++    }),
++    prisma.group.findUnique({
++      where: { id: ticket.assignedGroupId },
++      select: { autoAssignStrategy: true },
++    }),
++  ]);
+   const strategy = resolveEffectiveAutoAssignStrategy({
+     configuration,
+     serviceStrategy: (service?.autoAssignStrategy ?? null) as AutoAssignStrategy | null,
++    groupStrategy: (group?.autoAssignStrategy ?? null) as AutoAssignStrategy | null,
+   });
+   if (strategy === 'NONE') {
+     return ticket;
+diff -ruN a/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts b/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts
+--- a/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts	2026-09-21 22:59:04.562841804 +0000
++++ b/backend/src/modules/tickets/assignment/build-group-inbox-where.spec.ts	2026-09-21 22:53:53.338884011 +0000
+@@ -11,25 +11,39 @@
+ } from '../list/visibility-parity-world';
+ import type { TicketRecord } from '../tickets.types';
+ import { buildGroupInboxWhere } from './build-group-inbox-where';
+-import { listGroupInboxTickets } from './list-group-inbox-tickets';
++import { listGroupInboxTickets } from '../list/list-group-inbox-tickets';
+ 
+ jest.mock('../../../common/prisma/prisma.service', () => ({
+   PrismaService: class PrismaService {},
+ }));
+ 
+ /** The previous inbox logic (`listGroupInboxTickets`): the oracle. */
++// "Previous logic" now means the new paginated `listGroupInboxTickets`
++// (already covered by its own oracle when it replaced the old per-ticket
++// loop); this spec instead compares it against the `where` builder it is
++// built from, over every page.
+ async function inboxByPreviousLogic(
+   world: World,
+   context: AuthorizationContext,
+   configuration: TicketConfidentialConfiguration,
+ ): Promise<string[]> {
+-  const records = await listGroupInboxTickets(
+-    world.prisma,
+-    { loadBySubjectId: async () => context } as never,
+-    { load: async () => ({ groupInboxEnabled: true }) } as never,
+-    { actorUserId: context.subjectId, confidential: configuration },
+-  );
+-  return records.map((ticket) => ticket.id).sort();
++  const ids: string[] = [];
++  let pageNumber = 1;
++  for (;;) {
++    const page = await listGroupInboxTickets(
++      world.prisma,
++      { loadBySubjectId: async () => context } as never,
++      { load: async () => ({ groupInboxEnabled: true }) } as never,
++      { actorUserId: context.subjectId, confidential: configuration },
++      { page: pageNumber, pageSize: 25 },
++    );
++    ids.push(...page.records.map((ticket) => ticket.id));
++    if (ids.length >= page.total) {
++      break;
++    }
++    pageNumber += 1;
++  }
++  return ids.sort();
+ }
+ 
+ async function inboxByWhere(
+diff -ruN a/backend/src/modules/tickets/assignment/list-group-inbox-tickets.ts b/backend/src/modules/tickets/assignment/list-group-inbox-tickets.ts
+--- a/backend/src/modules/tickets/assignment/list-group-inbox-tickets.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/list-group-inbox-tickets.ts	1970-01-01 00:00:00.000000000 +0000
+@@ -1,90 +0,0 @@
+-import { PrismaService } from '../../../common/prisma/prisma.service';
+-import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
+-import type { AuthorizationContext } from '../../authorization/authorization.types';
+-import { canManageTicketsInScope } from '../authorize-ticket-actor';
+-import { isConfidentialTicketVisible } from '../confidential/assert-confidential-ticket-access';
+-import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
+-import { TicketsError } from '../tickets.error';
+-import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+-import { resolveInboxGroupWhere } from './resolve-inbox-group-where';
+-import { TicketAssignmentConfigurationLoader } from './ticket-assignment-configuration.loader';
+-
+-export async function listGroupInboxTickets(
+-  prisma: PrismaService,
+-  authorizationContextLoader: AuthorizationContextLoader,
+-  configurationLoader: TicketAssignmentConfigurationLoader,
+-  context: TicketMutationContext,
+-): Promise<readonly TicketRecord[]> {
+-  const authContext = await authorizationContextLoader.loadBySubjectId(
+-    context.actorUserId,
+-  );
+-  if (authContext === null) {
+-    throw new TicketsError('FORBIDDEN');
+-  }
+-  const configuration = await configurationLoader.load();
+-  if (!configuration.groupInboxEnabled) {
+-    throw new TicketsError('GROUP_INBOX_DISABLED');
+-  }
+-  const assignedGroupId = await resolveInboxGroupWhere(prisma, authContext);
+-  if (assignedGroupId === null) {
+-    return [];
+-  }
+-  const records = (await prisma.ticket.findMany({
+-    where: {
+-      assignedUserId: null,
+-      status: 'PENDING',
+-      assignedGroupId,
+-    },
+-    orderBy: { createdAt: 'desc' },
+-  })) as TicketRecord[];
+-  const units = await prisma.organizationalUnit.findMany({
+-    select: { id: true, ouPath: true },
+-  });
+-  const pathById = new Map(units.map((unit) => [unit.id, unit.ouPath]));
+-  const visible: TicketRecord[] = [];
+-  for (const ticket of records) {
+-    if (await isInboxTicketVisible(prisma, authContext, ticket, pathById, context)) {
+-      visible.push(ticket);
+-    }
+-  }
+-  return visible;
+-}
+-
+-async function isInboxTicketVisible(
+-  prisma: PrismaService,
+-  context: AuthorizationContext,
+-  ticket: TicketRecord,
+-  pathById: ReadonlyMap<string, string>,
+-  mutation: TicketMutationContext,
+-): Promise<boolean> {
+-  if (ticket.assignedGroupId === null || ticket.assignedUserId !== null) {
+-    return false;
+-  }
+-  if (!context.isSuperAdmin) {
+-    const originUnitPath = pathById.get(ticket.originUnitId);
+-    if (originUnitPath === undefined) {
+-      return false;
+-    }
+-    if (
+-      !canManageTicketsInScope({
+-        context,
+-        originUnitId: ticket.originUnitId,
+-        originUnitPath,
+-        serviceId: ticket.serviceId,
+-      })
+-    ) {
+-      return false;
+-    }
+-  }
+-  const originUnitPath = pathById.get(ticket.originUnitId);
+-  if (originUnitPath === undefined) {
+-    return false;
+-  }
+-  return isConfidentialTicketVisible(prisma, {
+-    context,
+-    ticket,
+-    originUnitPath,
+-    configuration:
+-      mutation.confidential ?? defaultTicketConfidentialConfiguration,
+-  });
+-}
+diff -ruN a/backend/src/modules/tickets/assignment/resolve-effective-auto-assign-strategy.ts b/backend/src/modules/tickets/assignment/resolve-effective-auto-assign-strategy.ts
+--- a/backend/src/modules/tickets/assignment/resolve-effective-auto-assign-strategy.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/assignment/resolve-effective-auto-assign-strategy.ts	2026-09-21 22:54:51.010195345 +0000
+@@ -1,18 +1,29 @@
+ import type { AutoAssignStrategy } from '../../../generated/prisma/enums';
+ import type { TicketAssignmentConfiguration } from './assignment.types';
+ 
++/**
++ * Priority group > service > global (decision D2): a group's own strategy, if
++ * set, overrides its service's, which overrides the global setting.
++ */
+ export function resolveEffectiveAutoAssignStrategy(input: {
+   readonly configuration: TicketAssignmentConfiguration;
+   readonly serviceStrategy: AutoAssignStrategy | null;
++  readonly groupStrategy?: AutoAssignStrategy | null;
+ }): AutoAssignStrategy {
+   if (!input.configuration.autoAssignEnabled) {
+     return 'NONE';
+   }
+-  if (
+-    input.serviceStrategy === 'LEAST_BUSY' ||
+-    input.serviceStrategy === 'ROUND_ROBIN'
+-  ) {
++  if (isSpecificStrategy(input.groupStrategy)) {
++    return input.groupStrategy;
++  }
++  if (isSpecificStrategy(input.serviceStrategy)) {
+     return input.serviceStrategy;
+   }
+   return input.configuration.autoAssignStrategy;
+ }
++
++function isSpecificStrategy(
++  strategy: AutoAssignStrategy | null | undefined,
++): strategy is 'LEAST_BUSY' | 'ROUND_ROBIN' {
++  return strategy === 'LEAST_BUSY' || strategy === 'ROUND_ROBIN';
++}
+diff -ruN a/backend/src/modules/tickets/assignment/ticket-assignment.service.ts b/backend/src/modules/tickets/assignment/ticket-assignment.service.ts
+--- a/backend/src/modules/tickets/assignment/ticket-assignment.service.ts	2026-09-21 22:59:04.629472612 +0000
++++ b/backend/src/modules/tickets/assignment/ticket-assignment.service.ts	2026-09-21 22:54:01.758654218 +0000
+@@ -3,7 +3,8 @@
+ import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
+ import { applyTicketAutoAssignment } from './apply-ticket-auto-assignment';
+ import { claimTicket } from './claim-ticket';
+-import { listGroupInboxTickets } from './list-group-inbox-tickets';
++import { listGroupInboxTickets } from '../list/list-group-inbox-tickets';
++import type { GroupInboxPage } from '../list/list-group-inbox-tickets';
+ import {
+   readGroupInboxStatus,
+   type GroupInboxStatus,
+@@ -37,12 +38,14 @@
+ 
+   listInbox(
+     context: TicketMutationContext,
+-  ): Promise<readonly TicketRecord[]> {
++    options: { readonly groupId?: string; readonly page?: number; readonly pageSize?: number } = {},
++  ): Promise<GroupInboxPage> {
+     return listGroupInboxTickets(
+       this.prisma,
+       this.authorizationContextLoader,
+       this.configurationLoader,
+       context,
++      options,
+     );
+   }
+ 
+diff -ruN a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts
+--- a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts	2026-09-21 22:59:04.630734611 +0000
++++ b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts	2026-09-21 22:57:16.622477758 +0000
+@@ -1,7 +1,6 @@
+ import { createTicketsServiceHarness, ticketsTestIds } from '../create-tickets-service-harness';
+ import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
+ import { buildTicketRecord } from '../list/ticket-record-fixture';
+-import type { TicketListResponse } from '../tickets.types';
+ import { getTicketCounts } from './get-ticket-counts';
+ 
+ jest.mock('../../../common/prisma/prisma.service', () => ({
+@@ -53,7 +52,7 @@
+   const counts = (query: Parameters<typeof harness.tickets.getCounts>[0], actor: string) =>
+     harness.tickets.getCounts(query, { actorUserId: actor });
+   const listTotal = async (query: object, actor: string) =>
+-    ((await harness.tickets.list({ page: 1, ...query }, { actorUserId: actor })) as TicketListResponse).total;
++    (await harness.tickets.listPage({ page: 1, ...query }, { actorUserId: actor })).total;
+   return { ...harness, counts, listTotal };
+ }
+ 
+@@ -97,9 +96,9 @@
+ 
+   it('counts the group inbox the same as the inbox itself', async () => {
+     const { counts, tickets } = setup();
+-    const inbox = await tickets.listInbox({ actorUserId: agentIt });
+-    expect(inbox.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
+-    expect((await counts({}, agentIt)).inbox).toBe(inbox.length);
++    const inbox = await tickets.listInbox({}, { actorUserId: agentIt });
++    expect(inbox.items.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
++    expect((await counts({}, agentIt)).inbox).toBe(inbox.total);
+     // No group membership, no inbox.
+     expect((await counts({}, agentHr)).inbox).toBe(0);
+   });
+diff -ruN a/backend/src/modules/tickets/dto/list-inbox-query.dto.ts b/backend/src/modules/tickets/dto/list-inbox-query.dto.ts
+--- a/backend/src/modules/tickets/dto/list-inbox-query.dto.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/dto/list-inbox-query.dto.ts	2026-09-21 22:54:10.562611474 +0000
+@@ -0,0 +1,23 @@
++import { Type } from 'class-transformer';
++import { IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
++import { ticketListPaging } from '../list/list-tickets.constants';
++
++export class ListInboxQueryDto {
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  groupId?: string;
++
++  @IsOptional()
++  @Type(() => Number)
++  @IsInt()
++  @Min(1)
++  page?: number;
++
++  @IsOptional()
++  @Type(() => Number)
++  @IsInt()
++  @Min(1)
++  @Max(ticketListPaging.maxPageSize)
++  pageSize?: number;
++}
+diff -ruN a/backend/src/modules/tickets/list/list-group-inbox-tickets.ts b/backend/src/modules/tickets/list/list-group-inbox-tickets.ts
+--- a/backend/src/modules/tickets/list/list-group-inbox-tickets.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/list-group-inbox-tickets.ts	2026-09-21 22:53:37.730601166 +0000
+@@ -0,0 +1,81 @@
++import type { Prisma } from '../../../generated/prisma/client';
++import { PrismaService } from '../../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
++import { buildGroupInboxWhere } from '../assignment/build-group-inbox-where';
++import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assignment-configuration.loader';
++import { defaultTicketConfidentialConfiguration } from '../confidential/confidential.constants';
++import { TicketsError } from '../tickets.error';
++import type { TicketMutationContext, TicketRecord } from '../tickets.types';
++import { buildTicketListOrderBy } from './build-ticket-list-order-by';
++import { ticketListPaging } from './list-tickets.constants';
++import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
++
++export type GroupInboxPage = {
++  readonly records: readonly TicketRecord[];
++  readonly total: number;
++  readonly page: number;
++  readonly pageSize: number;
++};
++
++/**
++ * The group inbox as one page: unassigned `PENDING` tickets handed to a
++ * group the caller belongs to (SuperAdmin: any group), visible by scope and
++ * confidentiality. Same `where` builder as `GET /tickets/counts`, so the
++ * inbox and its badge always agree. Default sort is the closest SLA deadline,
++ * because that is the order a queue should be worked in.
++ */
++export async function listGroupInboxTickets(
++  prisma: PrismaService,
++  authorizationContextLoader: AuthorizationContextLoader,
++  configurationLoader: TicketAssignmentConfigurationLoader,
++  context: TicketMutationContext,
++  options: {
++    readonly groupId?: string;
++    readonly page?: number;
++    readonly pageSize?: number;
++  } = {},
++): Promise<GroupInboxPage> {
++  const authContext = await authorizationContextLoader.loadBySubjectId(
++    context.actorUserId,
++  );
++  if (authContext === null) {
++    throw new TicketsError('FORBIDDEN');
++  }
++  const configuration = await configurationLoader.load();
++  if (!configuration.groupInboxEnabled) {
++    throw new TicketsError('GROUP_INBOX_DISABLED');
++  }
++  const visibility = {
++    context: authContext,
++    ...(await loadTicketVisibilityInputs(prisma, authContext.subjectId)),
++    configuration:
++      context.confidential ?? defaultTicketConfidentialConfiguration,
++    now: new Date(),
++  };
++  const page = Math.max(options.page ?? ticketListPaging.defaultPage, 1);
++  const pageSize = Math.min(
++    Math.max(options.pageSize ?? ticketListPaging.defaultPageSize, 1),
++    ticketListPaging.maxPageSize,
++  );
++  const inboxClauses = buildGroupInboxWhere(visibility);
++  if (inboxClauses === null) {
++    return { records: [], total: 0, page, pageSize };
++  }
++  const where: Prisma.TicketWhereInput = {
++    AND:
++      options.groupId === undefined
++        ? inboxClauses
++        : [...inboxClauses, { assignedGroupId: options.groupId }],
++  };
++  const orderBy = buildTicketListOrderBy('slaDueAt', 'asc');
++  const [records, total] = await Promise.all([
++    prisma.ticket.findMany({
++      where,
++      orderBy,
++      skip: (page - 1) * pageSize,
++      take: pageSize,
++    }) as Promise<TicketRecord[]>,
++    prisma.ticket.count({ where }),
++  ]);
++  return { records, total, page, pageSize };
++}
+diff -ruN a/backend/src/modules/tickets/list/respond-ticket-list-page.ts b/backend/src/modules/tickets/list/respond-ticket-list-page.ts
+--- a/backend/src/modules/tickets/list/respond-ticket-list-page.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/list/respond-ticket-list-page.ts	2026-09-21 22:51:22.069731454 +0000
+@@ -0,0 +1,20 @@
++import { PrismaService } from '../../../common/prisma/prisma.service';
++import type { TicketListPage } from '../list-tickets';
++import { respondLoadedTickets } from '../to-ticket-client-responses';
++import type { TicketListResponse } from '../tickets.types';
++
++type TicketClientLoaders = Parameters<typeof respondLoadedTickets>[2];
++
++/** Wraps one page of records in the `{ items, total, page, pageSize }` body. */
++export async function respondTicketListPage(
++  prisma: PrismaService,
++  page: TicketListPage,
++  loaders: TicketClientLoaders,
++): Promise<TicketListResponse> {
++  return {
++    items: await respondLoadedTickets(prisma, page.records, loaders),
++    total: page.total,
++    page: page.page,
++    pageSize: page.pageSize,
++  };
++}
+diff -ruN a/backend/src/modules/tickets/tickets.controller.ts b/backend/src/modules/tickets/tickets.controller.ts
+--- a/backend/src/modules/tickets/tickets.controller.ts	2026-09-21 22:59:04.685815718 +0000
++++ b/backend/src/modules/tickets/tickets.controller.ts	2026-09-21 22:54:15.034717585 +0000
+@@ -19,6 +19,7 @@
+ import { RequireRoles } from '../authorization/require-roles.decorator';
+ import { RoleGuard } from '../authorization/role.guard';
+ import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
++import { ListInboxQueryDto } from './dto/list-inbox-query.dto';
+ import { CreateTicketDto } from './dto/create-ticket.dto';
+ import type { TicketCounts } from './counts/counts.types';
+ import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+@@ -57,12 +58,19 @@
+     return this.ticketsService.create(body, readTicketMutationContext(request));
+   }
+ 
++  /**
++   * Without `page`/`pageSize` this returns the plain array older clients read;
++   * with either one it returns `{ items, total, page, pageSize }`.
++   */
+   @Get()
+   list(
+     @Query() query: ListTicketsQueryDto,
+     @Req() request: AuthenticatedHttpRequest,
+   ): Promise<readonly TicketResponse[] | TicketListResponse> {
+-    return this.ticketsService.list(query, readTicketMutationContext(request));
++    const context = readTicketMutationContext(request);
++    return query.page === undefined && query.pageSize === undefined
++      ? this.ticketsService.list(query, context)
++      : this.ticketsService.listPage(query, context);
+   }
+ 
+   @Get('counts')
+@@ -78,9 +86,13 @@
+ 
+   @Get('inbox')
+   listInbox(
++    @Query() query: ListInboxQueryDto,
+     @Req() request: AuthenticatedHttpRequest,
+-  ): Promise<readonly TicketResponse[]> {
+-    return this.ticketsService.listInbox(readTicketMutationContext(request));
++  ): Promise<TicketListResponse> {
++    return this.ticketsService.listInbox(
++      query,
++      readTicketMutationContext(request),
++    );
+   }
+ 
+   @Get('inbox/status')
+diff -ruN a/backend/src/modules/tickets/tickets.group-inbox.spec.ts b/backend/src/modules/tickets/tickets.group-inbox.spec.ts
+--- a/backend/src/modules/tickets/tickets.group-inbox.spec.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/tickets.group-inbox.spec.ts	2026-09-21 22:57:13.122642190 +0000
+@@ -19,18 +19,20 @@
+     const created = await tickets.create(vpnCreateInput(), {
+       actorUserId: ticketsTestIds.requester,
+     });
+-    const inbox = await tickets.listInbox({
+-      actorUserId: ticketsTestIds.agentIt,
+-    });
+-    expect(inbox.map((item) => item.id)).toEqual([created.id]);
+-    expect(inbox[0]?.assignedGroupId).toBe(ticketsTestIds.groupIt);
+-    expect(inbox[0]?.assignedUserId).toBeNull();
+-    await expect(
+-      tickets.listInbox({ actorUserId: ticketsTestIds.agentHr }),
+-    ).resolves.toEqual([]);
+-    await expect(
+-      tickets.listInbox({ actorUserId: ticketsTestIds.requester }),
+-    ).resolves.toEqual([]);
++    const inbox = await tickets.listInbox(
++      {},
++      { actorUserId: ticketsTestIds.agentIt },
++    );
++    expect(inbox.items.map((item) => item.id)).toEqual([created.id]);
++    expect(inbox.total).toBe(1);
++    expect(inbox.items[0]?.assignedGroupId).toBe(ticketsTestIds.groupIt);
++    expect(inbox.items[0]?.assignedUserId).toBeNull();
++    expect(
++      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentHr })).items,
++    ).toEqual([]);
++    expect(
++      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.requester })).items,
++    ).toEqual([]);
+   });
+ 
+   it('hides inbox tickets that are outside the agent OU/service scope', async () => {
+@@ -46,9 +48,9 @@
+     expect(contexts.get(ticketsTestIds.agentHr)?.assignments[0]?.organizationalUnitId).toBe(
+       ticketsTestIds.ouHr,
+     );
+-    await expect(
+-      tickets.listInbox({ actorUserId: ticketsTestIds.agentHr }),
+-    ).resolves.toEqual([]);
++    expect(
++      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentHr })).items,
++    ).toEqual([]);
+   });
+ 
+   it('lets an authorized group member claim a pending inbox ticket', async () => {
+@@ -66,9 +68,9 @@
+     });
+     expect(claimed.assignedUserId).toBe(ticketsTestIds.agentIt);
+     expect(claimed.status).toBe('ASSIGNED');
+-    await expect(
+-      tickets.listInbox({ actorUserId: ticketsTestIds.agentIt }),
+-    ).resolves.toEqual([]);
++    expect(
++      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentIt })).items,
++    ).toEqual([]);
+   });
+ 
+   it('rejects invalid claims outside group, scope, or claimable state', async () => {
+diff -ruN a/backend/src/modules/tickets/tickets.list-paging.spec.ts b/backend/src/modules/tickets/tickets.list-paging.spec.ts
+--- a/backend/src/modules/tickets/tickets.list-paging.spec.ts	2026-09-21 11:08:40.580499730 +0000
++++ b/backend/src/modules/tickets/tickets.list-paging.spec.ts	2026-09-21 22:51:56.779386537 +0000
+@@ -82,12 +82,9 @@
+   sla(4, 8, {});
+ 
+   const page = async (
+-    query: Parameters<typeof harness.tickets.list>[0],
++    query: Parameters<typeof harness.tickets.listPage>[0],
+     actor: string = agentIt,
+-  ) =>
+-    (await harness.tickets.list(query, {
+-      actorUserId: actor,
+-    })) as TicketListResponse;
++  ) => harness.tickets.listPage(query, { actorUserId: actor });
+   const ids = (result: TicketListResponse) =>
+     result.items.map((item: TicketResponse) => item.id);
+   return { ...harness, page, ids };
+diff -ruN a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+--- a/backend/src/modules/tickets/tickets.service.ts	2026-09-21 22:59:04.685935948 +0000
++++ b/backend/src/modules/tickets/tickets.service.ts	2026-09-21 22:54:10.573335450 +0000
+@@ -16,6 +16,7 @@
+ import { getTicketCounts } from './counts/get-ticket-counts';
+ import type { TicketCounts, TicketCountsQuery } from './counts/counts.types';
+ import { listTickets, listTicketsPage } from './list-tickets';
++import { respondTicketListPage } from './list/respond-ticket-list-page';
+ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+ import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
+ import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
+@@ -80,43 +81,46 @@
+     );
+   }
+ 
+-  /**
+-   * Without `page`/`pageSize` this returns the plain array older clients read;
+-   * with either one it returns `{ items, total, page, pageSize }`.
+-   */
++  /** Plain array, unpaged: used where a caller consumes every ticket at once. */
+   list(
+     query: ListTicketsQuery,
+     context: TicketMutationContext,
+-  ): Promise<readonly TicketResponse[] | TicketListResponse> {
++  ): Promise<readonly TicketResponse[]> {
+     return executeTicketOperation(async () => {
+       const gated = await this.gate(context);
+-      const loaders = this.clientLoaders(gated.actorUserId);
+-      if (query.page === undefined && query.pageSize === undefined) {
+-        return respondLoadedTickets(
++      return respondLoadedTickets(
++        this.prisma,
++        await listTickets(
+           this.prisma,
+-          await listTickets(
+-            this.prisma,
+-            this.authorizationContextLoader,
+-            query,
+-            gated,
+-            gated.archive,
+-          ),
+-          loaders,
+-        );
+-      }
+-      const result = await listTicketsPage(
++          this.authorizationContextLoader,
++          query,
++          gated,
++          gated.archive,
++        ),
++        this.clientLoaders(gated.actorUserId),
++      );
++    });
++  }
++
++  /** One page of `GET /tickets`: `{ items, total, page, pageSize }`. */
++  listPage(
++    query: ListTicketsQuery,
++    context: TicketMutationContext,
++  ): Promise<TicketListResponse> {
++    return executeTicketOperation(async () => {
++      const gated = await this.gate(context);
++      const page = await listTicketsPage(
+         this.prisma,
+         this.authorizationContextLoader,
+         query,
+         gated,
+         gated.archive,
+       );
+-      return {
+-        items: await respondLoadedTickets(this.prisma, result.records, loaders),
+-        total: result.total,
+-        page: result.page,
+-        pageSize: result.pageSize,
+-      };
++      return respondTicketListPage(
++        this.prisma,
++        page,
++        this.clientLoaders(gated.actorUserId),
++      );
+     });
+   }
+ 
+@@ -137,12 +141,19 @@
+     });
+   }
+ 
+-  listInbox(context: TicketMutationContext): Promise<readonly TicketResponse[]> {
++  listInbox(
++    query: { readonly groupId?: string; readonly page?: number; readonly pageSize?: number },
++    context: TicketMutationContext,
++  ): Promise<TicketListResponse> {
+     return executeTicketOperation(async () => {
+       const gated = await this.gate(context);
+-      return respondLoadedTickets(
++      const inboxPage = await this.ticketAssignmentService.listInbox(
++        gated,
++        query,
++      );
++      return respondTicketListPage(
+         this.prisma,
+-        await this.ticketAssignmentService.listInbox(gated),
++        inboxPage,
+         this.clientLoaders(gated.actorUserId),
+       );
+     });

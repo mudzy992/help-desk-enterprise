@@ -83,7 +83,14 @@ describe('GroupsService', () => {
       }
       return null;
     });
-    return { service: new GroupsService(prisma as never), prisma };
+    return {
+      service: new GroupsService(
+        prisma as never,
+        { loadBySubjectId: async () => null } as never,
+        { load: async () => { throw new Error('not used'); } } as never,
+      ),
+      prisma,
+    };
   };
 
   it('creates a group in an existing organizational unit', async () => {

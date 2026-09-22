@@ -82,12 +82,9 @@ function setup() {
   sla(4, 8, {});
 
   const page = async (
-    query: Parameters<typeof harness.tickets.list>[0],
+    query: Parameters<typeof harness.tickets.listPage>[0],
     actor: string = agentIt,
-  ) =>
-    (await harness.tickets.list(query, {
-      actorUserId: actor,
-    })) as TicketListResponse;
+  ) => harness.tickets.listPage(query, { actorUserId: actor });
   const ids = (result: TicketListResponse) =>
     result.items.map((item: TicketResponse) => item.id);
   return { ...harness, page, ids };

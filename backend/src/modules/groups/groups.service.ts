@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
 import { addGroupMember } from './add-group-member';
 import { createGroup } from './create-group';
 import { deleteGroup } from './delete-group';
@@ -10,18 +12,35 @@ import type {
   GroupListItemResponse,
   GroupResponse,
   ListGroupsQuery,
+  MyGroupResponse,
   UpdateGroupInput,
 } from './groups.types';
 import { listGroups } from './list-groups';
+import { listMyGroups } from './list-my-groups';
 import { removeGroupMember } from './remove-group-member';
 import { updateGroup } from './update-group';
 
 @Injectable()
 export class GroupsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly configurationLoader: TicketAssignmentConfigurationLoader,
+  ) {}
 
   list(query: ListGroupsQuery = {}): Promise<readonly GroupListItemResponse[]> {
     return this.execute(() => listGroups(this.prisma, query));
+  }
+
+  listMine(actorUserId: string): Promise<readonly MyGroupResponse[]> {
+    return this.execute(() =>
+      listMyGroups(
+        this.prisma,
+        this.authorizationContextLoader,
+        this.configurationLoader,
+        actorUserId,
+      ),
+    );
   }
 
   getById(groupId: string): Promise<GroupResponse> {

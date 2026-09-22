@@ -4,7 +4,7 @@
 Group inbox za nedoručene grupne tikete, ručno preuzimanje/take-over, i server-side auto-assign (`LEAST_BUSY` / `ROUND_ROBIN`). Koristi postojeći `Ticket.assignedGroupId` / `assignedUserId`, `GroupMember`, RoleGuard/OU/service scope i ChangeLog. Nije novi RBAC niti routing engine.
 
 ## Group inbox
-`GET /tickets/inbox` vraća tikete gdje je `assignedGroupId` postavljen, `assignedUserId` null i `status=PENDING`.
+`GET /tickets/inbox` vraća stranicu (`page`, `pageSize`, zadano 25, maks 100) tiketa gdje je `assignedGroupId` postavljen, `assignedUserId` null i `status=PENDING`, sortiranih po najbližem SLA roku (`slaState.resolutionDueAt asc`, tiket bez roka na kraju). Opcioni `groupId` suzi na jednu grupu unutar onih koje pozivalac vidi.
 
 Vidljivost:
 - član handler grupe + postojeći `canManageTicketsInScope` (OU path nasljeđivanje + service scope)
@@ -53,7 +53,8 @@ Uspješan assign/claim piše postojeći ChangeLog (`ticket_assign` / `ticket_cla
 ## API
 | Method | Path |
 |---|---|
-| GET | `/tickets/inbox` |
+| GET | `/tickets/inbox` (`{ items, total, page, pageSize }`) |
+| GET | `/groups/mine` |
 | POST | `/tickets/:ticketId/claim` (409 `TICKET_NOT_CLAIMABLE`) |
 
 ## Namjerno NIJE

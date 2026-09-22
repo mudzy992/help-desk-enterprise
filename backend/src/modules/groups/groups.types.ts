@@ -19,6 +19,20 @@ export type GroupResponse = {
   readonly updatedAt: string;
 };
 
+export type MyGroupResponse = {
+  readonly id: string;
+  readonly name: string;
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+  };
+  readonly memberCount: number;
+  /** Priority group > service > global (decision D2); NONE if none applies. */
+  readonly effectiveAutoAssign: import('../../generated/prisma/enums').AutoAssignStrategy;
+  readonly isFallback: boolean;
+};
+
 export type GroupListItemResponse = {
   readonly id: string;
   readonly name: string;

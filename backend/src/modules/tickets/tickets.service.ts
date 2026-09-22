@@ -16,6 +16,7 @@ import { getTicket } from './get-ticket';
 import { getTicketCounts } from './counts/get-ticket-counts';
 import type { TicketCounts, TicketCountsQuery } from './counts/counts.types';
 import { listTickets, listTicketsPage } from './list-tickets';
+import { respondTicketListPage } from './list/respond-ticket-list-page';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
 import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
 import { TicketRedactionConfigurationLoader } from './redaction/ticket-redaction-configuration.loader';
@@ -80,43 +81,46 @@ export class TicketsService {
     );
   }
 
-  /**
-   * Without `page`/`pageSize` this returns the plain array older clients read;
-   * with either one it returns `{ items, total, page, pageSize }`.
-   */
+  /** Plain array, unpaged: used where a caller consumes every ticket at once. */
   list(
     query: ListTicketsQuery,
     context: TicketMutationContext,
-  ): Promise<readonly TicketResponse[] | TicketListResponse> {
+  ): Promise<readonly TicketResponse[]> {
     return executeTicketOperation(async () => {
       const gated = await this.gate(context);
-      const loaders = this.clientLoaders(gated.actorUserId);
-      if (query.page === undefined && query.pageSize === undefined) {
-        return respondLoadedTickets(
+      return respondLoadedTickets(
+        this.prisma,
+        await listTickets(
           this.prisma,
-          await listTickets(
-            this.prisma,
-            this.authorizationContextLoader,
-            query,
-            gated,
-            gated.archive,
-          ),
-          loaders,
-        );
-      }
-      const result = await listTicketsPage(
+          this.authorizationContextLoader,
+          query,
+          gated,
+          gated.archive,
+        ),
+        this.clientLoaders(gated.actorUserId),
+      );
+    });
+  }
+
+  /** One page of `GET /tickets`: `{ items, total, page, pageSize }`. */
+  listPage(
+    query: ListTicketsQuery,
+    context: TicketMutationContext,
+  ): Promise<TicketListResponse> {
+    return executeTicketOperation(async () => {
+      const gated = await this.gate(context);
+      const page = await listTicketsPage(
         this.prisma,
         this.authorizationContextLoader,
         query,
         gated,
         gated.archive,
       );
-      return {
-        items: await respondLoadedTickets(this.prisma, result.records, loaders),
-        total: result.total,
-        page: result.page,
-        pageSize: result.pageSize,
-      };
+      return respondTicketListPage(
+        this.prisma,
+        page,
+        this.clientLoaders(gated.actorUserId),
+      );
     });
   }
 
@@ -137,12 +141,19 @@ export class TicketsService {
     });
   }
 
-  listInbox(context: TicketMutationContext): Promise<readonly TicketResponse[]> {
+  listInbox(
+    query: { readonly groupId?: string; readonly page?: number; readonly pageSize?: number },
+    context: TicketMutationContext,
+  ): Promise<TicketListResponse> {
     return executeTicketOperation(async () => {
       const gated = await this.gate(context);
-      return respondLoadedTickets(
+      const inboxPage = await this.ticketAssignmentService.listInbox(
+        gated,
+        query,
+      );
+      return respondTicketListPage(
         this.prisma,
-        await this.ticketAssignmentService.listInbox(gated),
+        inboxPage,
         this.clientLoaders(gated.actorUserId),
       );
     });

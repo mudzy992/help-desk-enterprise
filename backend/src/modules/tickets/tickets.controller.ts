@@ -19,6 +19,7 @@ import { authorizationRoleKeys } from '../authorization/authorization.constants'
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
+import { ListInboxQueryDto } from './dto/list-inbox-query.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import type { TicketCounts } from './counts/counts.types';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
@@ -57,12 +58,19 @@ export class TicketsController {
     return this.ticketsService.create(body, readTicketMutationContext(request));
   }
 
+  /**
+   * Without `page`/`pageSize` this returns the plain array older clients read;
+   * with either one it returns `{ items, total, page, pageSize }`.
+   */
   @Get()
   list(
     @Query() query: ListTicketsQueryDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<readonly TicketResponse[] | TicketListResponse> {
-    return this.ticketsService.list(query, readTicketMutationContext(request));
+    const context = readTicketMutationContext(request);
+    return query.page === undefined && query.pageSize === undefined
+      ? this.ticketsService.list(query, context)
+      : this.ticketsService.listPage(query, context);
   }
 
   @Get('counts')
@@ -78,9 +86,13 @@ export class TicketsController {
 
   @Get('inbox')
   listInbox(
+    @Query() query: ListInboxQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly TicketResponse[]> {
-    return this.ticketsService.listInbox(readTicketMutationContext(request));
+  ): Promise<TicketListResponse> {
+    return this.ticketsService.listInbox(
+      query,
+      readTicketMutationContext(request),
+    );
   }
 
   @Get('inbox/status')

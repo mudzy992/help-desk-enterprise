@@ -7,7 +7,8 @@ export type GroupsErrorCode =
   | 'MEMBER_ALREADY_EXISTS'
   | 'MEMBER_NOT_FOUND'
   | 'SOLE_FALLBACK_GROUP'
-  | 'HAS_ACTIVE_TICKETS';
+  | 'HAS_ACTIVE_TICKETS'
+  | 'FORBIDDEN';
 
 export class GroupsError extends Error {
   constructor(

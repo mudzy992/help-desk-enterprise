@@ -3,7 +3,8 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { applyTicketAutoAssignment } from './apply-ticket-auto-assignment';
 import { claimTicket } from './claim-ticket';
-import { listGroupInboxTickets } from './list-group-inbox-tickets';
+import { listGroupInboxTickets } from '../list/list-group-inbox-tickets';
+import type { GroupInboxPage } from '../list/list-group-inbox-tickets';
 import {
   readGroupInboxStatus,
   type GroupInboxStatus,
@@ -37,12 +38,14 @@ export class TicketAssignmentService {
 
   listInbox(
     context: TicketMutationContext,
-  ): Promise<readonly TicketRecord[]> {
+    options: { readonly groupId?: string; readonly page?: number; readonly pageSize?: number } = {},
+  ): Promise<GroupInboxPage> {
     return listGroupInboxTickets(
       this.prisma,
       this.authorizationContextLoader,
       this.configurationLoader,
       context,
+      options,
     );
   }
 

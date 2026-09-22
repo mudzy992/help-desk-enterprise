@@ -8,6 +8,6 @@
 - [ ] Sloj 3b `int.spec.ts` nad Postgresom (paritet vidljivosti, istovremeni claim, EXPLAIN + broj upita)
 - [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
 - [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
-- [ ] Sloj 5 inbox + `/groups/mine`
-- [ ] Sloj 5b `Group.autoAssignStrategy`
+- [x] Sloj 5 inbox (paginacija, sort SLA, `groupId`) + `/groups/mine`
+- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — **migracija nije generisana, pokrenuti `prisma migrate dev` prije deploya**
 - [ ] Sloj 6 routing preview, `approvalSteps`, realtime

@@ -11,25 +11,39 @@ import {
 } from '../list/visibility-parity-world';
 import type { TicketRecord } from '../tickets.types';
 import { buildGroupInboxWhere } from './build-group-inbox-where';
-import { listGroupInboxTickets } from './list-group-inbox-tickets';
+import { listGroupInboxTickets } from '../list/list-group-inbox-tickets';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
 /** The previous inbox logic (`listGroupInboxTickets`): the oracle. */
+// "Previous logic" now means the new paginated `listGroupInboxTickets`
+// (already covered by its own oracle when it replaced the old per-ticket
+// loop); this spec instead compares it against the `where` builder it is
+// built from, over every page.
 async function inboxByPreviousLogic(
   world: World,
   context: AuthorizationContext,
   configuration: TicketConfidentialConfiguration,
 ): Promise<string[]> {
-  const records = await listGroupInboxTickets(
-    world.prisma,
-    { loadBySubjectId: async () => context } as never,
-    { load: async () => ({ groupInboxEnabled: true }) } as never,
-    { actorUserId: context.subjectId, confidential: configuration },
-  );
-  return records.map((ticket) => ticket.id).sort();
+  const ids: string[] = [];
+  let pageNumber = 1;
+  for (;;) {
+    const page = await listGroupInboxTickets(
+      world.prisma,
+      { loadBySubjectId: async () => context } as never,
+      { load: async () => ({ groupInboxEnabled: true }) } as never,
+      { actorUserId: context.subjectId, confidential: configuration },
+      { page: pageNumber, pageSize: 25 },
+    );
+    ids.push(...page.records.map((ticket) => ticket.id));
+    if (ids.length >= page.total) {
+      break;
+    }
+    pageNumber += 1;
+  }
+  return ids.sort();
 }
 
 async function inboxByWhere(

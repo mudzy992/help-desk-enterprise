@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
@@ -33,6 +34,7 @@ const messages: Record<GroupsErrorCode, string> = {
     'Cannot remove the only fallback group for this organizational unit',
   HAS_ACTIVE_TICKETS:
     'Cannot delete a group that has active tickets assigned to it',
+  FORBIDDEN: 'Authorization failed',
 };
 
 export function mapGroupsError(error: unknown): HttpException {
@@ -45,6 +47,9 @@ export function mapGroupsError(error: unknown): HttpException {
   }
   if (conflictCodes.includes(error.code)) {
     return new ConflictException(body);
+  }
+  if (error.code === 'FORBIDDEN') {
+    return new ForbiddenException(body);
   }
   return new BadRequestException(body);
 }

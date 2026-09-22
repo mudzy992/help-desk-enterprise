@@ -1,7 +1,6 @@
 import { createTicketsServiceHarness, ticketsTestIds } from '../create-tickets-service-harness';
 import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
 import { buildTicketRecord } from '../list/ticket-record-fixture';
-import type { TicketListResponse } from '../tickets.types';
 import { getTicketCounts } from './get-ticket-counts';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
@@ -53,7 +52,7 @@ function setup() {
   const counts = (query: Parameters<typeof harness.tickets.getCounts>[0], actor: string) =>
     harness.tickets.getCounts(query, { actorUserId: actor });
   const listTotal = async (query: object, actor: string) =>
-    ((await harness.tickets.list({ page: 1, ...query }, { actorUserId: actor })) as TicketListResponse).total;
+    (await harness.tickets.listPage({ page: 1, ...query }, { actorUserId: actor })).total;
   return { ...harness, counts, listTotal };
 }
 
@@ -97,9 +96,9 @@ describe('GET /tickets/counts', () => {
 
   it('counts the group inbox the same as the inbox itself', async () => {
     const { counts, tickets } = setup();
-    const inbox = await tickets.listInbox({ actorUserId: agentIt });
-    expect(inbox.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
-    expect((await counts({}, agentIt)).inbox).toBe(inbox.length);
+    const inbox = await tickets.listInbox({}, { actorUserId: agentIt });
+    expect(inbox.items.map((ticket) => ticket.id).sort()).toEqual(['t8', 't9']);
+    expect((await counts({}, agentIt)).inbox).toBe(inbox.total);
     // No group membership, no inbox.
     expect((await counts({}, agentHr)).inbox).toBe(0);
   });

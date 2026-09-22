@@ -19,18 +19,20 @@ describe('TicketsService group inbox and claim', () => {
     const created = await tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
     });
-    const inbox = await tickets.listInbox({
-      actorUserId: ticketsTestIds.agentIt,
-    });
-    expect(inbox.map((item) => item.id)).toEqual([created.id]);
-    expect(inbox[0]?.assignedGroupId).toBe(ticketsTestIds.groupIt);
-    expect(inbox[0]?.assignedUserId).toBeNull();
-    await expect(
-      tickets.listInbox({ actorUserId: ticketsTestIds.agentHr }),
-    ).resolves.toEqual([]);
-    await expect(
-      tickets.listInbox({ actorUserId: ticketsTestIds.requester }),
-    ).resolves.toEqual([]);
+    const inbox = await tickets.listInbox(
+      {},
+      { actorUserId: ticketsTestIds.agentIt },
+    );
+    expect(inbox.items.map((item) => item.id)).toEqual([created.id]);
+    expect(inbox.total).toBe(1);
+    expect(inbox.items[0]?.assignedGroupId).toBe(ticketsTestIds.groupIt);
+    expect(inbox.items[0]?.assignedUserId).toBeNull();
+    expect(
+      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentHr })).items,
+    ).toEqual([]);
+    expect(
+      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.requester })).items,
+    ).toEqual([]);
   });
 
   it('hides inbox tickets that are outside the agent OU/service scope', async () => {
@@ -46,9 +48,9 @@ describe('TicketsService group inbox and claim', () => {
     expect(contexts.get(ticketsTestIds.agentHr)?.assignments[0]?.organizationalUnitId).toBe(
       ticketsTestIds.ouHr,
     );
-    await expect(
-      tickets.listInbox({ actorUserId: ticketsTestIds.agentHr }),
-    ).resolves.toEqual([]);
+    expect(
+      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentHr })).items,
+    ).toEqual([]);
   });
 
   it('lets an authorized group member claim a pending inbox ticket', async () => {
@@ -66,9 +68,9 @@ describe('TicketsService group inbox and claim', () => {
     });
     expect(claimed.assignedUserId).toBe(ticketsTestIds.agentIt);
     expect(claimed.status).toBe('ASSIGNED');
-    await expect(
-      tickets.listInbox({ actorUserId: ticketsTestIds.agentIt }),
-    ).resolves.toEqual([]);
+    expect(
+      (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentIt })).items,
+    ).toEqual([]);
   });
 
   it('rejects invalid claims outside group, scope, or claimable state', async () => {

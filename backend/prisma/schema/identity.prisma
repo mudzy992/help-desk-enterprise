@@ -103,6 +103,10 @@ model Group {
   key                  String                 @unique
   organizationalUnitId String
   isFallback           Boolean                @default(false)
+  /// Overrides the service's and the global auto-assign strategy for tickets
+  /// this group handles. NONE defers to the service, then the global setting
+  /// (see resolveEffectiveAutoAssignStrategy). Decision D2.
+  autoAssignStrategy   AutoAssignStrategy     @default(NONE)
   organizationalUnit   OrganizationalUnit     @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
   members              GroupMember[]
   assignedTickets      Ticket[]               @relation("TicketAssignedGroup")
