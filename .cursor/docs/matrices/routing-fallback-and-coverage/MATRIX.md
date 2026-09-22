@@ -17,6 +17,15 @@ Audit polja: `matchedRuleId`, `matchedOriginUnitId`, `fallbackDepth`, `fallbackP
 ## UNROUTED
 Prvi ishod, nije fake grupa. Queue metadata (enabled, ownerRole) ne mijenja `groupId`. Kasniji Group Inbox čita ovaj ishod.
 
+## Requester-safe preview (`POST /tickets/routing-preview`)
+Isti resolver kao `GET /routing/resolve` (admin-only, `tickets/create-ticket.ts` ga ne poziva direktno nego preko `applyCreateTicketRouting`), izložen na zasebnoj ruti bez `RequireOrganizationalUnitScope`/`RequireServiceScope` dekoratora, jer requester ne konfiguriše routing nego samo šalje tiket. Umjesto toga: `assertCanCreateTicket` (isti gate kao `POST /tickets`) prije poziva resolvera — bez toga bi requester mogao „proviriti" naziv grupe za OU/servis kojem ne bi smio ni podnijeti tiket. `originUnitId` opcion, default je matična OJ pozivaoca (`resolveCreateOriginUnitId`, isto kao create).
+
+Odgovor `{ outcome, groupName, fallbackDepth, autoAssign, approvalSteps, slaProfileName }`, bez internih id-jeva pravila ili jedinica:
+- `groupName`: naziv grupe iz `resolution.groupId`, `null` kad `UNROUTED`.
+- `autoAssign`: `resolveEffectiveAutoAssignStrategy` (grupa > servis > globalno, isti resolver kao stvarna dodjela); uvijek `NONE` kad `UNROUTED` (nema grupe u koju bi se dodjeljivalo), čak i ako je globalna strategija aktivna.
+- `approvalSteps`: 0 ili 1, `resolveTicketApprovalRequirement` (isti izvor kao create), bez zavisnosti o prioritetu.
+- `slaProfileName`: `Service.slaProfileId → SlaProfile.name`, samo ako je profil `isActive`; **ne zavisi od prioriteta** — SLA profil je vezan direktno za servis, `SlaRule` (koji prioritet koristi) bira samo vremena unutar profila, ne sam profil.
+
 ## Coverage
 Jedna ćelija po `(service, origin OU)`:
 

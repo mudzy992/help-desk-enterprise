@@ -13,6 +13,7 @@ Admin service catalog (kategorija → servis) sa lifecycle statusom `DRAFT` | `A
 | `lifecycle` | Stanje kataloga. Default iz settings (`DRAFT`). |
 | `classification` | `INTERNAL` / `CONFIDENTIAL` / `RESTRICTED`. |
 | `requiresApproval` | Approval flag (metadata; approval tok je kasnija faza). |
+| `approvalSteps` (odgovor, ne polje na modelu) | 0 ili 1, izvedeno preko `resolveTicketApprovalRequirement` (isto što `POST /tickets` i routing preview koriste): `requiresApproval` uz eventualni overlay iz approvals konfiguracije (`requiredByService`, globalni `enabled`). `GET /services` i `GET /services/:id` koriste stvarnu konfiguraciju; create/update/transition/availability/downtime-window odgovori koriste konfiguraciju bez overlay-a (poznato ograničenje — vidi CHANGELOG). Zadatak 10. |
 | `isConfidentialDefault` | Default confidential za buduće tikete. |
 | `autoAssignStrategy` | `NONE` / `LEAST_BUSY` / `ROUND_ROBIN` (metadata; assignment engine nije ovaj task). |
 | `policyPackId` | Opciona veza na postojeći `PolicyPack` (bez apply-a). |

@@ -1,0 +1,969 @@
+diff -ruN a/.cursor/docs/matrices/routing-fallback-and-coverage/CHANGELOG.md b/.cursor/docs/matrices/routing-fallback-and-coverage/CHANGELOG.md
+--- a/.cursor/docs/matrices/routing-fallback-and-coverage/CHANGELOG.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/routing-fallback-and-coverage/CHANGELOG.md	2026-09-22 06:00:33.962386274 +0000
+@@ -5,3 +5,6 @@
+ 
+ ## 2026-09-11
+ - Inicijalna matrica: exact → parent `parentId` walk → UNROUTED, coverage signali (exact/inherited/missing/unrouted), unrouted queue settings bez dodjele grupe.
++
++## 2026-09-21 (F1 sloj 6)
++- `POST /tickets/routing-preview`: requester-safe preview, isti resolver kao create. Vidi sekciju iznad.
+diff -ruN a/.cursor/docs/matrices/routing-fallback-and-coverage/MATRIX.md b/.cursor/docs/matrices/routing-fallback-and-coverage/MATRIX.md
+--- a/.cursor/docs/matrices/routing-fallback-and-coverage/MATRIX.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/routing-fallback-and-coverage/MATRIX.md	2026-09-22 06:00:33.962386274 +0000
+@@ -17,6 +17,15 @@
+ ## UNROUTED
+ Prvi ishod, nije fake grupa. Queue metadata (enabled, ownerRole) ne mijenja `groupId`. Kasniji Group Inbox čita ovaj ishod.
+ 
++## Requester-safe preview (`POST /tickets/routing-preview`)
++Isti resolver kao `GET /routing/resolve` (admin-only, `tickets/create-ticket.ts` ga ne poziva direktno nego preko `applyCreateTicketRouting`), izložen na zasebnoj ruti bez `RequireOrganizationalUnitScope`/`RequireServiceScope` dekoratora, jer requester ne konfiguriše routing nego samo šalje tiket. Umjesto toga: `assertCanCreateTicket` (isti gate kao `POST /tickets`) prije poziva resolvera — bez toga bi requester mogao „proviriti" naziv grupe za OU/servis kojem ne bi smio ni podnijeti tiket. `originUnitId` opcion, default je matična OJ pozivaoca (`resolveCreateOriginUnitId`, isto kao create).
++
++Odgovor `{ outcome, groupName, fallbackDepth, autoAssign, approvalSteps, slaProfileName }`, bez internih id-jeva pravila ili jedinica:
++- `groupName`: naziv grupe iz `resolution.groupId`, `null` kad `UNROUTED`.
++- `autoAssign`: `resolveEffectiveAutoAssignStrategy` (grupa > servis > globalno, isti resolver kao stvarna dodjela); uvijek `NONE` kad `UNROUTED` (nema grupe u koju bi se dodjeljivalo), čak i ako je globalna strategija aktivna.
++- `approvalSteps`: 0 ili 1, `resolveTicketApprovalRequirement` (isti izvor kao create), bez zavisnosti o prioritetu.
++- `slaProfileName`: `Service.slaProfileId → SlaProfile.name`, samo ako je profil `isActive`; **ne zavisi od prioriteta** — SLA profil je vezan direktno za servis, `SlaRule` (koji prioritet koristi) bira samo vremena unutar profila, ne sam profil.
++
+ ## Coverage
+ Jedna ćelija po `(service, origin OU)`:
+ 
+diff -ruN a/.cursor/docs/matrices/service-catalog-lifecycle/CHANGELOG.md b/.cursor/docs/matrices/service-catalog-lifecycle/CHANGELOG.md
+--- a/.cursor/docs/matrices/service-catalog-lifecycle/CHANGELOG.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/service-catalog-lifecycle/CHANGELOG.md	2026-09-22 10:44:07.892733378 +0000
+@@ -2,3 +2,6 @@
+ 
+ ## 2026-09-10
+ - Inicijalna matrica: `Service` / `ServiceCategory` CRUD, stabilni `id`+`slug`, lifecycle `DRAFT`/`ACTIVE`/`DEPRECATED` sa dozvoljenim prijelazima, settings-driven allow-list, postojeći RBAC/service scope i `ChangeLog`.
++
++## 2026-09-21 (F1 sloj 6)
++- `ServiceResponse.approvalSteps` (0 | 1, zadatak 10): `GET /services` i `GET /services/:id` sada nose stvarnu approvals konfiguraciju (novi `TicketApprovalsConfigurationLoader` proviđen i u `ServiceCatalogModule`, bez kružne zavisnosti prema `TicketsModule`). Mutacije, kreiranje, prelazak lifecycle-a, availability i downtime-window odgovori i dalje računaju `approvalSteps` samo iz `requiresApproval` (bez trenutnog overlay-a) — namjerno ograničenje obima, dovoljno tačno jer je per-servis overlay rijetka admin postavka; proširiti ako se pokaže potreba.
+diff -ruN a/.cursor/docs/matrices/service-catalog-lifecycle/MATRIX.md b/.cursor/docs/matrices/service-catalog-lifecycle/MATRIX.md
+--- a/.cursor/docs/matrices/service-catalog-lifecycle/MATRIX.md	2026-09-20 19:49:03.000000000 +0000
++++ b/.cursor/docs/matrices/service-catalog-lifecycle/MATRIX.md	2026-09-22 10:44:07.892733378 +0000
+@@ -13,6 +13,7 @@
+ | `lifecycle` | Stanje kataloga. Default iz settings (`DRAFT`). |
+ | `classification` | `INTERNAL` / `CONFIDENTIAL` / `RESTRICTED`. |
+ | `requiresApproval` | Approval flag (metadata; approval tok je kasnija faza). |
++| `approvalSteps` (odgovor, ne polje na modelu) | 0 ili 1, izvedeno preko `resolveTicketApprovalRequirement` (isto što `POST /tickets` i routing preview koriste): `requiresApproval` uz eventualni overlay iz approvals konfiguracije (`requiredByService`, globalni `enabled`). `GET /services` i `GET /services/:id` koriste stvarnu konfiguraciju; create/update/transition/availability/downtime-window odgovori koriste konfiguraciju bez overlay-a (poznato ograničenje — vidi CHANGELOG). Zadatak 10. |
+ | `isConfidentialDefault` | Default confidential za buduće tikete. |
+ | `autoAssignStrategy` | `NONE` / `LEAST_BUSY` / `ROUND_ROBIN` (metadata; assignment engine nije ovaj task). |
+ | `policyPackId` | Opciona veza na postojeći `PolicyPack` (bez apply-a). |
+diff -ruN a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-22 10:44:29.212282809 +0000
++++ b/.cursor/docs/matrices/ticketing-core/CHANGELOG.md	2026-09-22 06:00:33.974210382 +0000
+@@ -11,3 +11,5 @@
+ - Vidljivost liste je predikat u upitu umjesto petlje po tiketu (nema N+1 nad confidential činjenicama); export i CSAT sažetak koriste isti builder. Export više ne filtrira u memoriji.
+ - `GET /tickets/counts` (INB-09, LST-03 izvor): `{ open, unrouted, inbox, overdue, atRisk, byStatus }` nad istom vidljivošću i filterima kao lista; sidebar značke na njemu umjesto preuzimanja cijele liste.
+ - `GET /tickets/inbox` i `GET /tickets/counts` (sloj 4) dijele isti `buildGroupInboxWhere`; inbox odgovor sada `{ items, total, page, pageSize }` (bilo golo niz).
++- `POST /tickets/routing-preview` (NEW-05, zadatak 9): vidi `routing-fallback-and-coverage`.
++- Realtime `ticket.updated` payload provjeren za zadatak 11: `priority` i `assignedGroupId` su već bili prisutni, uključujući događaj na kreiranje (isti kanal, `change` polje razlikuje uzrok) — nema izmjene koda.
+diff -ruN a/.cursor/docs/matrices/ticketing-core/MATRIX.md b/.cursor/docs/matrices/ticketing-core/MATRIX.md
+--- a/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-21 22:59:04.547149825 +0000
++++ b/.cursor/docs/matrices/ticketing-core/MATRIX.md	2026-09-22 06:00:33.974210382 +0000
+@@ -58,6 +58,7 @@
+ |---|---|
+ | POST | `/tickets` |
+ | GET | `/tickets` |
++| POST | `/tickets/routing-preview` |
+ | GET | `/tickets/counts` |
+ | GET | `/tickets/:ticketId` |
+ | PATCH | `/tickets/:ticketId` |
+diff -ruN a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md
+--- a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-22 10:44:29.375341092 +0000
++++ b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-22 10:44:23.086386026 +0000
+@@ -9,6 +9,6 @@
+ | 4 | `GET /tickets/counts` + sidebar značke na njemu | INB-09, LST-03 (izvor) | urađeno |
+ | 5 | Inbox paginacija + sort po SLA + `groupId`, `GET /groups/mine` | INB-08, DAT-02 | urađeno |
+ | 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | urađeno (spojeno u sloj 5: `/groups/mine` bez njega nema šta vratiti kao `effectiveAutoAssign`); **migracija nije generisana**, treba `prisma migrate dev` kod vas |
+-| 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload, zatvaranje matrica | NEW-04/05 | otvoreno |
++| 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload (provjereno, već ispravno) | NEW-04/05 | urađeno |
+ 
+ Pravila: svaki sloj završava zelenim `tsc -b` i jestom + prijedlogom commit poruke; fajlovi ≤150 linija; matrice i CHANGELOG uz svaku promjenu logike.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md
+--- a/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-22 10:44:29.375557755 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHANGELOG.md	2026-09-22 10:44:23.086839799 +0000
+@@ -20,3 +20,8 @@
+ - Inbox: `list/list-group-inbox-tickets.ts` zamjenjuje staru petlju; paginacija, `groupId`, sort po SLA roku, isti `buildGroupInboxWhere` kao counts. `TicketsService.listInbox` i kontroler sad vraćaju `{ items, total, page, pageSize }`.
+ - `GET /groups/mine`: `GroupsMineController` (nova ruta `groups/mine`, dozvoljena USER/AGENT/ADMIN/SUPER_ADMIN), `listMyGroups`, `MyGroupResponse`.
+ - `Group.autoAssignStrategy` dodano u schemu; `resolveEffectiveAutoAssignStrategy` prošireno na prioritet grupa > servis > globalno; `apply-ticket-auto-assignment.ts` čita i grupinu strategiju.
++
++## 2026-09-21 — F1 sloj 6 (routing preview, approvalSteps, realtime)
++- `POST /tickets/routing-preview`: `{ outcome, groupName, fallbackDepth, autoAssign, approvalSteps, slaProfileName }`, isti resolver kao create, gated istim `assertCanCreateTicket`. SLA profil se pokazao nezavisnim od prioriteta (vezan za servis), pa preview ne treba prioritet u zahtjevu.
++- `ServiceResponse.approvalSteps` (0|1): `GET /services`, `GET /services/:id` nose stvarnu approvals konfiguraciju; mutacioni pozivi koriste konfiguraciju bez overlay-a (dokumentovano ograničenje).
++- Realtime (zadatak 11): provjereno, `priority`/`assignedGroupId` već prisutni na `ticket.updated`, uključujući kreiranje. Nema izmjene koda.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md
+--- a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-22 10:44:29.375693459 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-22 10:44:23.086839799 +0000
+@@ -10,4 +10,4 @@
+ - [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
+ - [x] Sloj 5 inbox (paginacija, sort SLA, `groupId`) + `/groups/mine`
+ - [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — **migracija nije generisana, pokrenuti `prisma migrate dev` prije deploya**
+-- [ ] Sloj 6 routing preview, `approvalSteps`, realtime
++- [x] Sloj 6 routing preview, `approvalSteps`, realtime (payload provjeren, već ispravan)
+diff -ruN a/.cursor/plans/tickets-ui-alignment/HANDOFF.md b/.cursor/plans/tickets-ui-alignment/HANDOFF.md
+--- a/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-22 10:44:29.375807348 +0000
++++ b/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-22 10:44:23.087235474 +0000
+@@ -1,7 +1,7 @@
+ # HANDOFF — tickets-ui-alignment
+ 
+ ## Urađeno
+-F1 slojevi 0–5 (vidi `CHANGELOG.md`).
++**F1 kompletan (slojevi 0–6)**, vidi `CHANGELOG.md`.
+ 
+ ## Test status
+ Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove: ticket specovi prolaze uz iste 4 poznate pada shima kao prije izmjena. **Prije commita pokreni `npm run build` i `jest` u `backend/` te `npm run build` i `npm test` u `frontend/`.** Prisma tipovi (`Prisma.TicketWhereInput`, `TicketOrderByWithRelationInput`, `updateMany`, `orderBy` po relaciji `slaState`) nisu provjereni protiv pravog klijenta.
+@@ -10,9 +10,10 @@
+ Paritet vidljivosti i paginacija izvršavaju `where` kroz in-memory evaluator, ne kroz Postgres. Dokazuju logiku predikata (mutacijska provjera: 16/16 mutacija predikata i 6/6 mutacija paginacije obara spec), ali ne dokazuju SQL semantiku ni performanse. Za to služi sloj 3b.
+ 
+ ## Next
+-Sloj 6: `POST /tickets/routing-preview`, `approvalSteps` u `ServiceResponse`, realtime payload (`groupId`, `priority` na `ticket.created`/`ticket.updated`). Zatim zatvaranje preostalih odstupanja iz sloja 3 (potrošači liste) i F2 (frontend inboxa).
++F1 (backend ugovor) je gotov. Slijedi F2 (grupni inbox — frontend) prema `04-FAZNI-PLAN-TIKETI-UI.md`, uz migraciju preostalih FE potrošača liste (sidebar/dashboard/pretraga/SLA stranica) na `listTicketsPage`/`getTicketCounts` iz slojeva 3–4, koja je odgođena zbog prelaznog režima (F1-4).
+ 
+ ## Otvoreno
++- `ServiceResponse.approvalSteps` na mutacionim odgovorima (create/update/transition/availability/downtime-window) ne uzima u obzir per-servis approvals overlay, samo `requiresApproval`. Namjerno ograničenje obima (vidi `service-catalog-lifecycle` CHANGELOG); proširiti ako se pokaže da FE to očekuje odmah nakon mutacije, ne tek nakon sljedećeg GET-a.
+ - **KRITIČNO prije deploya**: `Group.autoAssignStrategy` je dodano u `prisma/schema/identity.prisma`, ali migracija nije generisana (nema Postgres konekcije u ovom okruženju). Pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` lokalno prije mergea, ili baza i schema neće biti usklađeni.
+ - 3 nova testa (`groups-mine.controller.guard.spec.ts`, `groups-module-order.spec.ts` × 2) nisu izvršena mojim shimom (`Reflect.getMetadata` nije polyfillovan) — isto ograničenje kao postojeći `groups.controller.guard.spec.ts` drugi test. Logika je provjerena čitanjem, ne izvršavanjem; pokrenuti pravi `jest` da se potvrdi.
+ - `effectiveAutoAssign` u `/groups/mine` ignoriše servisni nivo (grupa opslužuje više servisa). Ako se ispostavi da agenti očekuju da vide i servisni fallback po grupi, treba prošireno polje (npr. lista servisa sa strategijama) — nije u planu, dodatna odluka.
+diff -ruN a/backend/src/modules/service-catalog/get-service.ts b/backend/src/modules/service-catalog/get-service.ts
+--- a/backend/src/modules/service-catalog/get-service.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/get-service.ts	2026-09-22 05:46:20.221374393 +0000
+@@ -3,6 +3,8 @@
+ import { loadService } from './load-service';
+ import { loadServiceDowntimeWindows } from './load-service-downtime-windows';
+ import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
++import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
++import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+ import type { ServiceAvailabilityEvaluationContext } from './service-availability.types';
+ import type { ServiceResponse } from './service-catalog.types';
+ import { toServiceResponse } from './to-service-response';
+@@ -11,6 +13,7 @@
+   prisma: PrismaService,
+   serviceId: string,
+   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
++  approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
+ ): Promise<ServiceResponse> {
+   const record = await loadService(prisma, serviceId);
+   const [downtimeWindows, openTicketCounts] = await Promise.all([
+@@ -22,5 +25,6 @@
+     downtimeWindows,
+     evaluation,
+     openTicketCounts.get(record.id) ?? 0,
++    approvalsConfiguration,
+   );
+ }
+diff -ruN a/backend/src/modules/service-catalog/list-services.ts b/backend/src/modules/service-catalog/list-services.ts
+--- a/backend/src/modules/service-catalog/list-services.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/list-services.ts	2026-09-22 05:46:20.221254728 +0000
+@@ -3,6 +3,8 @@
+ import { countOpenTicketsByService } from './count-open-tickets-by-service';
+ import { loadServiceDowntimeWindowsForServices } from './load-service-downtime-windows';
+ import { defaultServiceAvailabilityEvaluationContext } from './parse-service-availability-configuration';
++import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
++import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+ import type { ServiceAvailabilityEvaluationContext } from './service-availability.types';
+ import type { ListServicesInput, ServiceResponse } from './service-catalog.types';
+ import { toServiceResponse } from './to-service-response';
+@@ -11,6 +13,7 @@
+   prisma: PrismaService,
+   input: ListServicesInput = {},
+   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
++  approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
+ ): Promise<readonly ServiceResponse[]> {
+   const records = await prisma.service.findMany({
+     where: {
+@@ -30,6 +33,7 @@
+       windowsByServiceId.get(record.id) ?? [],
+       evaluation,
+       openTicketCounts.get(record.id) ?? 0,
++      approvalsConfiguration,
+     ),
+   );
+   if (input.offeredOnly !== true) {
+diff -ruN a/backend/src/modules/service-catalog/service-catalog.module.ts b/backend/src/modules/service-catalog/service-catalog.module.ts
+--- a/backend/src/modules/service-catalog/service-catalog.module.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/service-catalog.module.ts	2026-09-22 05:46:42.445460071 +0000
+@@ -13,6 +13,7 @@
+ import { ServiceFormsService } from './service-forms.service';
+ import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
+ import { ServicesController } from './services.controller';
++import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-approvals-configuration.loader';
+ 
+ @Module({
+   imports: [
+@@ -31,6 +32,10 @@
+     ServiceLifecycleConfigurationLoader,
+     ServiceAvailabilityConfigurationLoader,
+     ServiceFormsConfigurationLoader,
++    // Provided here too (already provided in TicketsModule): approvalSteps on
++    // ServiceResponse needs it and there is no dependency from tickets to
++    // service-catalog, so each module gets its own stateless instance.
++    TicketApprovalsConfigurationLoader,
+     ServiceCatalogService,
+     ServiceAvailabilityService,
+     ServiceFormsService,
+diff -ruN a/backend/src/modules/service-catalog/service-catalog.service.approval-steps.spec.ts b/backend/src/modules/service-catalog/service-catalog.service.approval-steps.spec.ts
+--- a/backend/src/modules/service-catalog/service-catalog.service.approval-steps.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/service-catalog/service-catalog.service.approval-steps.spec.ts	2026-09-22 05:57:31.021347277 +0000
+@@ -0,0 +1,71 @@
++import { createInMemoryServiceCatalogPrisma } from './create-in-memory-service-catalog-prisma';
++import { ServiceCatalogService } from './service-catalog.service';
++import { defaultServiceLifecycleConfiguration } from './service-catalog.constants';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++function createHarness(approvalsConfigurationLoader?: { load: () => Promise<unknown> }) {
++  const memory = createInMemoryServiceCatalogPrisma();
++  const service = new ServiceCatalogService(
++    memory.prisma as never,
++    { load: async () => defaultServiceLifecycleConfiguration } as never,
++    undefined,
++    undefined,
++    approvalsConfigurationLoader as never,
++  );
++  return { memory, service };
++}
++
++describe('ServiceCatalogService approvalSteps (list/getById)', () => {
++  it('falls back to the plain requiresApproval flag without a loader', async () => {
++    const { service } = createHarness(undefined);
++    const category = await service.createCategory({ name: 'IT', slug: 'it' });
++    const created = await service.create({
++      name: 'Access request',
++      slug: 'access-request',
++      categoryId: category.id,
++      classification: 'INTERNAL',
++      requiresApproval: true,
++    });
++    expect(created.approvalSteps).toBe(1);
++    const listed = await service.list();
++    expect(listed.find((item) => item.id === created.id)?.approvalSteps).toBe(1);
++    const fetched = await service.getById(created.id);
++    expect(fetched.approvalSteps).toBe(1);
++  });
++
++  it('list() and getById() both use the live approvals configuration when a loader is wired', async () => {
++    const memory = createInMemoryServiceCatalogPrisma();
++    let overlayEnabled = false;
++    const service = new ServiceCatalogService(
++      memory.prisma as never,
++      { load: async () => defaultServiceLifecycleConfiguration } as never,
++      undefined,
++      undefined,
++      {
++        load: async () => ({
++          enabled: true,
++          requiredByService: overlayEnabled ? { [serviceId]: true } : {},
++          defaultApproverRole: 'ADMIN',
++          allowRequesterManager: false,
++        }),
++      } as never,
++    );
++    const category = await service.createCategory({ name: 'IT', slug: 'it' });
++    const created = await service.create({
++      name: 'Password reset',
++      slug: 'password-reset',
++      categoryId: category.id,
++      classification: 'INTERNAL',
++    });
++    const serviceId = created.id;
++    expect((await service.getById(serviceId)).approvalSteps).toBe(0);
++    overlayEnabled = true;
++    expect((await service.getById(serviceId)).approvalSteps).toBe(1);
++    expect(
++      (await service.list()).find((item) => item.id === serviceId)?.approvalSteps,
++    ).toBe(1);
++  });
++});
+diff -ruN a/backend/src/modules/service-catalog/service-catalog.service.ts b/backend/src/modules/service-catalog/service-catalog.service.ts
+--- a/backend/src/modules/service-catalog/service-catalog.service.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/service-catalog.service.ts	2026-09-22 05:46:33.857568695 +0000
+@@ -19,6 +19,9 @@
+   ServiceAvailabilityEvaluationContext,
+ } from './service-availability.types';
+ import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
++import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
++import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-approvals-configuration.loader';
++import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+ import type {
+   CatalogMutationContext,
+   CreateServiceCategoryInput,
+@@ -47,8 +50,19 @@
+     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
+     private readonly availabilityConfigurationLoader: ServiceAvailabilityConfigurationLoader = defaultAvailabilityConfigurationLoader,
+     @Optional() private readonly routingService: RoutingService | null = null,
++    // Optional so existing tests that construct this service directly keep
++    // working; without it, approvalSteps falls back to the service's own
++    // requiresApproval flag (no configured overlay).
++    @Optional()
++    private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader | null = null,
+   ) {}
+ 
++  private async approvalsConfiguration(): Promise<TicketApprovalsConfiguration> {
++    return this.approvalsConfigurationLoader === null
++      ? defaultTicketApprovalsConfiguration
++      : this.approvalsConfigurationLoader.load();
++  }
++
+   createCategory(
+     input: CreateServiceCategoryInput,
+     context: CatalogMutationContext = emptyContext,
+@@ -98,7 +112,12 @@
+     evaluatedAt: Date = new Date(),
+   ): Promise<readonly ServiceResponse[]> {
+     return this.execute(async () =>
+-      listServices(this.prisma, input, await this.evaluation(evaluatedAt)),
++      listServices(
++        this.prisma,
++        input,
++        await this.evaluation(evaluatedAt),
++        await this.approvalsConfiguration(),
++      ),
+     );
+   }
+ 
+@@ -107,7 +126,12 @@
+     evaluatedAt: Date = new Date(),
+   ): Promise<ServiceResponse> {
+     return this.execute(async () =>
+-      getService(this.prisma, serviceId, await this.evaluation(evaluatedAt)),
++      getService(
++        this.prisma,
++        serviceId,
++        await this.evaluation(evaluatedAt),
++        await this.approvalsConfiguration(),
++      ),
+     );
+   }
+ 
+diff -ruN a/backend/src/modules/service-catalog/service-catalog.types.ts b/backend/src/modules/service-catalog/service-catalog.types.ts
+--- a/backend/src/modules/service-catalog/service-catalog.types.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/service-catalog.types.ts	2026-09-22 05:46:09.828754624 +0000
+@@ -54,6 +54,8 @@
+   readonly runtimeAvailability: ServiceRuntimeAvailability;
+   readonly classification: DataClassification;
+   readonly requiresApproval: boolean;
++  /** 0 or 1 (decision F1-5): whether creating a ticket for this service needs approval right now. */
++  readonly approvalSteps: 0 | 1;
+   readonly isConfidentialDefault: boolean;
+   readonly autoAssignStrategy: AutoAssignStrategy;
+   readonly slaProfileId: string | null;
+diff -ruN a/backend/src/modules/service-catalog/to-service-response.spec.ts b/backend/src/modules/service-catalog/to-service-response.spec.ts
+--- a/backend/src/modules/service-catalog/to-service-response.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/service-catalog/to-service-response.spec.ts	2026-09-22 05:56:23.770668674 +0000
+@@ -0,0 +1,61 @@
++import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
++import type { ServiceRecord } from './service-catalog.types';
++import { toServiceResponse } from './to-service-response';
++
++const now = new Date('2026-01-01T00:00:00.000Z');
++
++function buildServiceRecord(overrides: Partial<ServiceRecord>): ServiceRecord {
++  return {
++    id: 'service-1',
++    name: 'VPN access',
++    slug: 'vpn-access',
++    categoryId: 'category-1',
++    lifecycle: 'ACTIVE',
++    availability: 'OPERATIONAL',
++    classification: 'INTERNAL',
++    requiresApproval: false,
++    isConfidentialDefault: false,
++    autoAssignStrategy: 'NONE',
++    slaProfileId: null,
++    policyPackId: null,
++    createdAt: now,
++    updatedAt: now,
++    ...overrides,
++  };
++}
++
++describe('toServiceResponse approvalSteps', () => {
++  it('is 0 for a service that does not require approval, by default configuration', () => {
++    const response = toServiceResponse(buildServiceRecord({ requiresApproval: false }));
++    expect(response.approvalSteps).toBe(0);
++  });
++
++  it('is 1 for a service that requires approval, by default configuration', () => {
++    const response = toServiceResponse(buildServiceRecord({ requiresApproval: true }));
++    expect(response.approvalSteps).toBe(1);
++  });
++
++  it('lets a per-service overlay override the service flag in either direction', () => {
++    const record = buildServiceRecord({ requiresApproval: true });
++    const overriddenOff = toServiceResponse(record, [], undefined, 0, {
++      ...defaultTicketApprovalsConfiguration,
++      requiredByService: { 'service-1': false },
++    });
++    expect(overriddenOff.approvalSteps).toBe(0);
++    const plain = buildServiceRecord({ requiresApproval: false });
++    const overriddenOn = toServiceResponse(plain, [], undefined, 0, {
++      ...defaultTicketApprovalsConfiguration,
++      requiredByService: { 'service-1': true },
++    });
++    expect(overriddenOn.approvalSteps).toBe(1);
++  });
++
++  it('is 0 for every service when the approvals addon is disabled globally', () => {
++    const record = buildServiceRecord({ requiresApproval: true });
++    const response = toServiceResponse(record, [], undefined, 0, {
++      ...defaultTicketApprovalsConfiguration,
++      enabled: false,
++    });
++    expect(response.approvalSteps).toBe(0);
++  });
++});
+diff -ruN a/backend/src/modules/service-catalog/to-service-response.ts b/backend/src/modules/service-catalog/to-service-response.ts
+--- a/backend/src/modules/service-catalog/to-service-response.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/service-catalog/to-service-response.ts	2026-09-22 05:56:53.886470097 +0000
+@@ -5,6 +5,9 @@
+   ServiceAvailabilityEvaluationContext,
+ } from './service-availability.types';
+ import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transition';
++import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
++import { resolveTicketApprovalRequirement } from '../tickets/approvals/resolve-ticket-approval-requirement';
++import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
+ import type { ServiceRecord, ServiceResponse } from './service-catalog.types';
+ 
+ export function toServiceResponse(
+@@ -12,6 +15,10 @@
+   downtimeWindows: readonly DowntimeWindowRecord[] = [],
+   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
+   openTicketCount = 0,
++  // Default matches "no overlay configured": approvalSteps then mirrors the
++  // service's own `requiresApproval`. Callers on the read path (list/get)
++  // pass the live configuration so an admin override is reflected too.
++  approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
+ ): ServiceResponse {
+   return {
+     id: record.id,
+@@ -28,6 +35,13 @@
+     }),
+     classification: record.classification,
+     requiresApproval: record.requiresApproval,
++    approvalSteps: resolveTicketApprovalRequirement({
++      configuration: approvalsConfiguration,
++      serviceId: record.id,
++      serviceRequiresApproval: record.requiresApproval,
++    })
++      ? 1
++      : 0,
+     isConfidentialDefault: record.isConfidentialDefault,
+     autoAssignStrategy: record.autoAssignStrategy,
+     slaProfileId: record.slaProfileId,
+diff -ruN a/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts b/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts
+--- a/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts	2026-09-22 10:44:34.397660909 +0000
+@@ -27,6 +27,7 @@
+   readonly archiveLoader: unknown;
+   readonly slaTimers: unknown;
+   readonly realtimeHub: TicketRealtimeHub;
++  readonly assignmentConfigurationLoader: unknown;
+ }) {
+   const csatConfig = {
+     enabled: defaultTicketCsatConfiguration.enabled as boolean,
+@@ -53,6 +54,7 @@
+     csatLoader as never,
+     input.slaTimers as never,
+     input.realtimeHub,
++    input.assignmentConfigurationLoader as never,
+   );
+   const csat = new TicketsCsatService(
+     input.prisma as never,
+@@ -73,4 +75,4 @@
+     input.realtimeHub,
+   );
+   return { tickets, csat, archiveAutomation, csatConfig };
+-}
+\ No newline at end of file
++}
+diff -ruN a/backend/src/modules/tickets/create-tickets-service-harness.ts b/backend/src/modules/tickets/create-tickets-service-harness.ts
+--- a/backend/src/modules/tickets/create-tickets-service-harness.ts	2026-09-20 19:49:03.000000000 +0000
++++ b/backend/src/modules/tickets/create-tickets-service-harness.ts	2026-09-22 05:55:22.096461755 +0000
+@@ -108,10 +108,13 @@
+   const routing = new RoutingService(memory.prisma as never, {
+     load: async () => defaultRoutingConfiguration,
+   } as never);
++  const assignmentConfigurationLoader = {
++    load: async () => ({ ...assignmentConfig }),
++  };
+   const assignment = new TicketAssignmentService(
+     memory.prisma as never,
+     authorizationContextLoader as never,
+-    { load: async () => ({ ...assignmentConfig }) } as never,
++    assignmentConfigurationLoader as never,
+   );
+   const approvalsLoader = { load: async () => ({ ...approvalsConfig }) };
+   const waitingLoader = { load: async () => ({ ...waitingForUserConfig }) };
+@@ -144,6 +147,7 @@
+     archiveLoader: policy.archiveLoader,
+     slaTimers: sla.slaTimers,
+     realtimeHub,
++    assignmentConfigurationLoader,
+   });
+   const tickets = lifecycle.tickets;
+   const approvals = new TicketsApprovalsService(
+diff -ruN a/backend/src/modules/tickets/dto/routing-preview.dto.ts b/backend/src/modules/tickets/dto/routing-preview.dto.ts
+--- a/backend/src/modules/tickets/dto/routing-preview.dto.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/dto/routing-preview.dto.ts	2026-09-22 05:44:40.972932103 +0000
+@@ -0,0 +1,13 @@
++import { IsOptional, IsString, MinLength } from 'class-validator';
++
++export class RoutingPreviewDto {
++  /** Optional: defaults to the requester's home unit, like ticket creation does. */
++  @IsOptional()
++  @IsString()
++  @MinLength(1)
++  originUnitId?: string;
++
++  @IsString()
++  @MinLength(1)
++  serviceId!: string;
++}
+diff -ruN a/backend/src/modules/tickets/routing-preview/preview-ticket-routing-sla.spec.ts b/backend/src/modules/tickets/routing-preview/preview-ticket-routing-sla.spec.ts
+--- a/backend/src/modules/tickets/routing-preview/preview-ticket-routing-sla.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/routing-preview/preview-ticket-routing-sla.spec.ts	2026-09-22 05:56:06.443794978 +0000
+@@ -0,0 +1,79 @@
++import { previewTicketRouting } from './preview-ticket-routing';
++import { routingOutcomes } from '../../routing/routing.constants';
++
++jest.mock('../../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const authContext = { subjectId: 'u1', isSuperAdmin: true, isLocalOnly: true, assignments: [] };
++
++function createPrismaStub(slaProfile: { name: string; isActive: boolean } | null) {
++  return {
++    user: { findUnique: async () => ({ organizationalUnitId: 'ou-1' }) },
++    service: {
++      findUnique: async () => ({
++        requiresApproval: false,
++        autoAssignStrategy: 'NONE',
++        slaProfileId: slaProfile === null ? null : 'profile-1',
++      }),
++    },
++    group: { findUnique: async () => ({ name: 'IT Support', autoAssignStrategy: 'NONE' }) },
++    slaProfile: { findUnique: async () => slaProfile },
++  };
++}
++
++const routingService = {
++  resolve: async () => ({
++    outcome: routingOutcomes.exact,
++    groupId: 'group-1',
++    fallbackDepth: 0,
++  }),
++};
++const authorizationContextLoader = { loadBySubjectId: async () => authContext };
++const approvalsConfigurationLoader = {
++  load: async () => ({ enabled: true, requiredByService: {}, defaultApproverRole: 'ADMIN', allowRequesterManager: false }),
++};
++const assignmentConfigurationLoader = {
++  load: async () => ({ groupInboxEnabled: true, autoAssignEnabled: true, autoAssignStrategy: 'NONE' }),
++};
++
++describe('previewTicketRouting SLA profile resolution', () => {
++  it('reports the profile name when the service has an active SLA profile', async () => {
++    const preview = await previewTicketRouting(
++      createPrismaStub({ name: 'Standard SLA', isActive: true }) as never,
++      routingService as never,
++      authorizationContextLoader as never,
++      approvalsConfigurationLoader as never,
++      assignmentConfigurationLoader as never,
++      { originUnitId: 'ou-1', serviceId: 'service-1' },
++      { actorUserId: 'u1' },
++    );
++    expect(preview.slaProfileName).toBe('Standard SLA');
++  });
++
++  it('hides an inactive SLA profile, same as SLA timers would', async () => {
++    const preview = await previewTicketRouting(
++      createPrismaStub({ name: 'Retired SLA', isActive: false }) as never,
++      routingService as never,
++      authorizationContextLoader as never,
++      approvalsConfigurationLoader as never,
++      assignmentConfigurationLoader as never,
++      { originUnitId: 'ou-1', serviceId: 'service-1' },
++      { actorUserId: 'u1' },
++    );
++    expect(preview.slaProfileName).toBeNull();
++  });
++
++  it('reports no profile when the service has none bound', async () => {
++    const preview = await previewTicketRouting(
++      createPrismaStub(null) as never,
++      routingService as never,
++      authorizationContextLoader as never,
++      approvalsConfigurationLoader as never,
++      assignmentConfigurationLoader as never,
++      { originUnitId: 'ou-1', serviceId: 'service-1' },
++      { actorUserId: 'u1' },
++    );
++    expect(preview.slaProfileName).toBeNull();
++  });
++});
+diff -ruN a/backend/src/modules/tickets/routing-preview/preview-ticket-routing.spec.ts b/backend/src/modules/tickets/routing-preview/preview-ticket-routing.spec.ts
+--- a/backend/src/modules/tickets/routing-preview/preview-ticket-routing.spec.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/routing-preview/preview-ticket-routing.spec.ts	2026-09-22 05:58:42.285135857 +0000
+@@ -0,0 +1,154 @@
++import {
++  createTicketsServiceHarness,
++  ticketsTestIds,
++} from '../create-tickets-service-harness';
++
++jest.mock('../../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const { ouIt, ouHr, ouRoot, serviceVpn, serviceAccess, groupIt, requester, agentHr } =
++  ticketsTestIds;
++
++describe('POST /tickets/routing-preview', () => {
++  it('previews an exact match: group name, no fallback, no approval, effective auto-assign', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouIt,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'IT VPN coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouIt, serviceId: serviceVpn },
++      { actorUserId: requester },
++    );
++    expect(preview).toEqual({
++      outcome: 'EXACT',
++      groupName: 'IT Support',
++      fallbackDepth: 0,
++      autoAssign: 'NONE',
++      approvalSteps: 0,
++      slaProfileName: null,
++    });
++  });
++
++  it('previews a parent-fallback match and reports the fallback depth', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouRoot,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'Root VPN coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouIt, serviceId: serviceVpn },
++      { actorUserId: requester },
++    );
++    expect(preview.outcome).toBe('PARENT_FALLBACK');
++    expect(preview.fallbackDepth).toBe(1);
++    expect(preview.groupName).toBe('IT Support');
++  });
++
++  it('previews an unrouted outcome with no group and no auto-assign, even with global auto-assign on', async () => {
++    const { tickets, assignmentConfig } = createTicketsServiceHarness();
++    assignmentConfig.autoAssignEnabled = true;
++    assignmentConfig.autoAssignStrategy = 'ROUND_ROBIN';
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouIt, serviceId: serviceVpn },
++      { actorUserId: requester },
++    );
++    expect(preview.outcome).toBe('UNROUTED');
++    expect(preview.groupName).toBeNull();
++    // There is no group to auto-assign into, so this never reports the
++    // otherwise-active global strategy for an unrouted ticket.
++    expect(preview.autoAssign).toBe('NONE');
++  });
++
++  it('reports the effective auto-assign strategy for a routed group', async () => {
++    const { tickets, routing, assignmentConfig } = createTicketsServiceHarness();
++    assignmentConfig.autoAssignEnabled = true;
++    assignmentConfig.autoAssignStrategy = 'ROUND_ROBIN';
++    await routing.createRule({
++      originUnitId: ouIt,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'IT VPN coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouIt, serviceId: serviceVpn },
++      { actorUserId: requester },
++    );
++    expect(preview.autoAssign).toBe('ROUND_ROBIN');
++  });
++
++  it('reports one approval step for a service that requires approval', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouIt,
++      serviceId: serviceAccess,
++      groupId: groupIt,
++      reason: 'IT access coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouIt, serviceId: serviceAccess },
++      { actorUserId: requester },
++    );
++    expect(preview.approvalSteps).toBe(1);
++  });
++
++  it('defaults originUnitId to the requester\'s home unit, like create does', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouIt,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'IT VPN coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { serviceId: serviceVpn },
++      { actorUserId: requester },
++    );
++    expect(preview.outcome).toBe('EXACT');
++  });
++
++  it('never reveals a group for an OU/service the caller could not submit a ticket to', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouHr,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'HR VPN coverage',
++    });
++    const rejection: unknown = await tickets
++      .previewRouting({ originUnitId: ouHr, serviceId: serviceVpn }, { actorUserId: requester })
++      .catch((error: unknown) => error);
++    expect(rejection).toMatchObject({ response: { code: 'FORBIDDEN' } });
++    expect(JSON.stringify(rejection)).not.toContain('IT Support');
++  });
++
++  it('lets an in-scope agent preview a service outside their own OU', async () => {
++    const { tickets, routing } = createTicketsServiceHarness();
++    await routing.createRule({
++      originUnitId: ouHr,
++      serviceId: serviceVpn,
++      groupId: groupIt,
++      reason: 'HR VPN coverage',
++    });
++    const preview = await tickets.previewRouting(
++      { originUnitId: ouHr, serviceId: serviceVpn },
++      { actorUserId: agentHr },
++    );
++    expect(preview.outcome).toBe('EXACT');
++  });
++
++  it('rejects an unknown service', async () => {
++    const { tickets } = createTicketsServiceHarness();
++    await expect(
++      tickets.previewRouting(
++        { originUnitId: ouIt, serviceId: 'service-does-not-exist' },
++        { actorUserId: requester },
++      ),
++    ).rejects.toMatchObject({ response: { code: 'SERVICE_NOT_FOUND' } });
++  });
++});
+diff -ruN a/backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts b/backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts
+--- a/backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts	2026-09-22 05:44:35.338990170 +0000
+@@ -0,0 +1,113 @@
++import type { AutoAssignStrategy } from '../../../generated/prisma/enums';
++import { PrismaService } from '../../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
++import { RoutingService } from '../../routing/routing.service';
++import { routingOutcomes } from '../../routing/routing.constants';
++import { resolveEffectiveAutoAssignStrategy } from '../assignment/resolve-effective-auto-assign-strategy';
++import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assignment-configuration.loader';
++import { resolveTicketApprovalRequirement } from '../approvals/resolve-ticket-approval-requirement';
++import type { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
++import { assertCanCreateTicket, resolveCreateOriginUnitId } from '../assert-can-create-ticket';
++import { TicketsError } from '../tickets.error';
++import type { TicketMutationContext } from '../tickets.types';
++import type { TicketRoutingPreview } from './routing-preview.types';
++
++/**
++ * The same routing decision `POST /tickets` would make, without creating
++ * anything and without leaking internal rule or unit ids: `outcome`,
++ * `groupName`, `fallbackDepth`, `autoAssign`, `approvalSteps`,
++ * `slaProfileName`. Uses `RoutingService.resolve`, the one place routing is
++ * decided, so preview and create can never disagree.
++ *
++ * Gated the same way ticket creation is (`assertCanCreateTicket`): a
++ * requester previewing an OU/service they could not actually submit to would
++ * otherwise learn which group handles it.
++ */
++export async function previewTicketRouting(
++  prisma: PrismaService,
++  routingService: RoutingService,
++  authorizationContextLoader: AuthorizationContextLoader,
++  approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
++  assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
++  input: { readonly originUnitId?: string; readonly serviceId: string },
++  context: TicketMutationContext,
++): Promise<TicketRoutingPreview> {
++  const authContext = await authorizationContextLoader.loadBySubjectId(
++    context.actorUserId,
++  );
++  if (authContext === null) {
++    throw new TicketsError('FORBIDDEN');
++  }
++  const actor = await prisma.user.findUnique({
++    where: { id: context.actorUserId },
++    select: { organizationalUnitId: true },
++  });
++  const originUnitId = await resolveCreateOriginUnitId(prisma, {
++    requestedOriginUnitId: input.originUnitId,
++    actorUserId: context.actorUserId,
++  });
++  const serviceId = input.serviceId.trim();
++  if (serviceId.length === 0) {
++    throw new TicketsError('SERVICE_REQUIRED');
++  }
++  await assertCanCreateTicket({
++    prisma,
++    context: authContext,
++    originUnitId,
++    serviceId,
++    actorHomeUnitId: actor?.organizationalUnitId ?? null,
++  });
++  const [resolution, service, assignmentConfiguration] = await Promise.all([
++    routingService.resolve({ originUnitId, serviceId }),
++    prisma.service.findUnique({
++      where: { id: serviceId },
++      select: {
++        requiresApproval: true,
++        autoAssignStrategy: true,
++        slaProfileId: true,
++      },
++    }),
++    assignmentConfigurationLoader.load(),
++  ]);
++  if (service === null) {
++    throw new TicketsError('SERVICE_NOT_FOUND');
++  }
++  const [group, slaProfile, approvalsConfiguration] = await Promise.all([
++    resolution.groupId === null
++      ? Promise.resolve(null)
++      : prisma.group.findUnique({
++          where: { id: resolution.groupId },
++          select: { name: true, autoAssignStrategy: true },
++        }),
++    service.slaProfileId === null
++      ? Promise.resolve(null)
++      : prisma.slaProfile.findUnique({
++          where: { id: service.slaProfileId },
++          select: { name: true, isActive: true },
++        }),
++    approvalsConfigurationLoader.load(),
++  ]);
++  const autoAssign: AutoAssignStrategy =
++    resolution.outcome === routingOutcomes.unrouted
++      ? 'NONE'
++      : resolveEffectiveAutoAssignStrategy({
++          configuration: assignmentConfiguration,
++          serviceStrategy: service.autoAssignStrategy as AutoAssignStrategy,
++          groupStrategy: group?.autoAssignStrategy as
++            | AutoAssignStrategy
++            | undefined,
++        });
++  const requiresApproval = resolveTicketApprovalRequirement({
++    configuration: approvalsConfiguration,
++    serviceId,
++    serviceRequiresApproval: service.requiresApproval,
++  });
++  return {
++    outcome: resolution.outcome,
++    groupName: group?.name ?? null,
++    fallbackDepth: resolution.fallbackDepth,
++    autoAssign,
++    approvalSteps: requiresApproval ? 1 : 0,
++    slaProfileName: slaProfile?.isActive === true ? slaProfile.name : null,
++  };
++}
+diff -ruN a/backend/src/modules/tickets/routing-preview/routing-preview.types.ts b/backend/src/modules/tickets/routing-preview/routing-preview.types.ts
+--- a/backend/src/modules/tickets/routing-preview/routing-preview.types.ts	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/src/modules/tickets/routing-preview/routing-preview.types.ts	2026-09-22 05:44:35.338098912 +0000
+@@ -0,0 +1,13 @@
++import type { AutoAssignStrategy } from '../../../generated/prisma/enums';
++import type { RoutingOutcome } from '../../routing/routing.types';
++
++/** Requester-safe: no internal rule or unit ids, only what a person deciding whether to submit needs. */
++export type TicketRoutingPreview = {
++  readonly outcome: RoutingOutcome;
++  readonly groupName: string | null;
++  readonly fallbackDepth: number;
++  readonly autoAssign: AutoAssignStrategy;
++  /** 0 or 1 (decision F1-5): whether the ticket would need approval before routing. */
++  readonly approvalSteps: 0 | 1;
++  readonly slaProfileName: string | null;
++};
+diff -ruN a/backend/src/modules/tickets/tickets.controller.ts b/backend/src/modules/tickets/tickets.controller.ts
+--- a/backend/src/modules/tickets/tickets.controller.ts	2026-09-22 10:44:29.637216010 +0000
++++ b/backend/src/modules/tickets/tickets.controller.ts	2026-09-22 05:45:00.716297203 +0000
+@@ -21,6 +21,8 @@
+ import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
+ import { ListInboxQueryDto } from './dto/list-inbox-query.dto';
+ import { CreateTicketDto } from './dto/create-ticket.dto';
++import { RoutingPreviewDto } from './dto/routing-preview.dto';
++import type { TicketRoutingPreview } from './routing-preview/routing-preview.types';
+ import type { TicketCounts } from './counts/counts.types';
+ import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+ import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
+@@ -58,6 +60,18 @@
+     return this.ticketsService.create(body, readTicketMutationContext(request));
+   }
+ 
++  /** Same routing decision `create` would make; nothing is created. */
++  @Post('routing-preview')
++  previewRouting(
++    @Body() body: RoutingPreviewDto,
++    @Req() request: AuthenticatedHttpRequest,
++  ): Promise<TicketRoutingPreview> {
++    return this.ticketsService.previewRouting(
++      body,
++      readTicketMutationContext(request),
++    );
++  }
++
+   /**
+    * Without `page`/`pageSize` this returns the plain array older clients read;
+    * with either one it returns `{ items, total, page, pageSize }`.
+diff -ruN a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+--- a/backend/src/modules/tickets/tickets.service.ts	2026-09-22 10:44:29.907427000 +0000
++++ b/backend/src/modules/tickets/tickets.service.ts	2026-09-22 05:44:45.461203433 +0000
+@@ -3,6 +3,9 @@
+ import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+ import { RoutingService } from '../routing/routing.service';
+ import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
++import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignment-configuration.loader';
++import { previewTicketRouting } from './routing-preview/preview-ticket-routing';
++import type { TicketRoutingPreview } from './routing-preview/routing-preview.types';
+ import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+ import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
+ import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+@@ -60,8 +63,26 @@
+     private readonly csatLoader: TicketCsatConfigurationLoader,
+     private readonly slaTimers: TicketSlaTimersService,
+     private readonly realtimeHub: TicketRealtimeHub,
++    private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
+   ) {}
+ 
++  previewRouting(
++    input: { readonly originUnitId?: string; readonly serviceId: string },
++    context: TicketMutationContext,
++  ): Promise<TicketRoutingPreview> {
++    return executeTicketOperation(() =>
++      previewTicketRouting(
++        this.prisma,
++        this.routingService,
++        this.authorizationContextLoader,
++        this.approvalsConfigurationLoader,
++        this.assignmentConfigurationLoader,
++        input,
++        context,
++      ),
++    );
++  }
++
+   create(input: CreateTicketInput, context: TicketMutationContext) {
+     return executeTicketOperation(async () =>
+       runTicketsServiceCreate({

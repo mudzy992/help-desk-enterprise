@@ -1,7 +1,7 @@
 # HANDOFF — tickets-ui-alignment
 
 ## Urađeno
-F1 slojevi 0–5 (vidi `CHANGELOG.md`).
+**F1 kompletan (slojevi 0–6)**, vidi `CHANGELOG.md`.
 
 ## Test status
 Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokrenuti u tom okruženju. Specovi su izvršeni kroz privremeni CommonJS runner uz stubove: ticket specovi prolaze uz iste 4 poznate pada shima kao prije izmjena. **Prije commita pokreni `npm run build` i `jest` u `backend/` te `npm run build` i `npm test` u `frontend/`.** Prisma tipovi (`Prisma.TicketWhereInput`, `TicketOrderByWithRelationInput`, `updateMany`, `orderBy` po relaciji `slaState`) nisu provjereni protiv pravog klijenta.
@@ -10,10 +10,11 @@ Pisano bez `node_modules`/Prisma klijenta: `jest`, `tsc -b` i `vitest` nisu pokr
 Paritet vidljivosti i paginacija izvršavaju `where` kroz in-memory evaluator, ne kroz Postgres. Dokazuju logiku predikata (mutacijska provjera: 16/16 mutacija predikata i 6/6 mutacija paginacije obara spec), ali ne dokazuju SQL semantiku ni performanse. Za to služi sloj 3b.
 
 ## Next
-Sloj 6: `POST /tickets/routing-preview`, `approvalSteps` u `ServiceResponse`, realtime payload (`groupId`, `priority` na `ticket.created`/`ticket.updated`). Zatim zatvaranje preostalih odstupanja iz sloja 3 (potrošači liste) i F2 (frontend inboxa).
+F1 (backend ugovor) je gotov. Slijedi F2 (grupni inbox — frontend) prema `04-FAZNI-PLAN-TIKETI-UI.md`, uz migraciju preostalih FE potrošača liste (sidebar/dashboard/pretraga/SLA stranica) na `listTicketsPage`/`getTicketCounts` iz slojeva 3–4, koja je odgođena zbog prelaznog režima (F1-4).
 
 ## Otvoreno
-- **KRITIČNO prije deploya**: `Group.autoAssignStrategy` je dodano u `prisma/schema/identity.prisma`, ali migracija nije generisana (nema Postgres konekcije u ovom okruženju). Pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` lokalno prije mergea, ili baza i schema neće biti usklađeni.
+- `ServiceResponse.approvalSteps` na mutacionim odgovorima (create/update/transition/availability/downtime-window) ne uzima u obzir per-servis approvals overlay, samo `requiresApproval`. Namjerno ograničenje obima (vidi `service-catalog-lifecycle` CHANGELOG); proširiti ako se pokaže da FE to očekuje odmah nakon mutacije, ne tek nakon sljedećeg GET-a.
+- `Group.autoAssignStrategy` u `prisma/schema/identity.prisma` + ručno napisana migracija `prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql` (`ALTER TABLE "Group" ADD COLUMN "autoAssignStrategy" "AutoAssignStrategy" NOT NULL DEFAULT 'NONE'`; enum već postoji od `Service.autoAssignStrategy`, nema novog tipa). Napisana ručno jer `prisma migrate dev` traži shadow bazu koju sam u ovom okruženju nemao. **Primijeniti s `npx prisma migrate deploy`** (ne `migrate dev` — deploy ne treba shadow bazu i to je i dosad radilo kod vas). Ako nakon primjene `prisma validate`/`prisma generate` prijavi razliku od stvarne baze, to znači da je neko ranije ručno mijenjao bazu mimo migracija; u tom slučaju provjeriti sa `prisma migrate diff --from-url <DB> --to-schema-datamodel prisma/schema`.
 - 3 nova testa (`groups-mine.controller.guard.spec.ts`, `groups-module-order.spec.ts` × 2) nisu izvršena mojim shimom (`Reflect.getMetadata` nije polyfillovan) — isto ograničenje kao postojeći `groups.controller.guard.spec.ts` drugi test. Logika je provjerena čitanjem, ne izvršavanjem; pokrenuti pravi `jest` da se potvrdi.
 - `effectiveAutoAssign` u `/groups/mine` ignoriše servisni nivo (grupa opslužuje više servisa). Ako se ispostavi da agenti očekuju da vide i servisni fallback po grupi, treba prošireno polje (npr. lista servisa sa strategijama) — nije u planu, dodatna odluka.
 - Odluka o `overdue`/`atRisk`: brojači i list-filteri broje i zatvorene tikete s probijenim SLA (matrica `overdue-ui-badge-filter` definiše `isOverdue` bez statusa). Ako proizvod želi samo otvorene, mijenja se u `buildTicketListFilters` i time oba mjesta odjednom.

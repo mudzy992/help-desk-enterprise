@@ -5,6 +5,9 @@ import type {
   ServiceAvailabilityEvaluationContext,
 } from './service-availability.types';
 import { isServiceOfferedToRequesters } from './assert-service-lifecycle-transition';
+import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
+import { resolveTicketApprovalRequirement } from '../tickets/approvals/resolve-ticket-approval-requirement';
+import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
 import type { ServiceRecord, ServiceResponse } from './service-catalog.types';
 
 export function toServiceResponse(
@@ -12,6 +15,10 @@ export function toServiceResponse(
   downtimeWindows: readonly DowntimeWindowRecord[] = [],
   evaluation: ServiceAvailabilityEvaluationContext = defaultServiceAvailabilityEvaluationContext(),
   openTicketCount = 0,
+  // Default matches "no overlay configured": approvalSteps then mirrors the
+  // service's own `requiresApproval`. Callers on the read path (list/get)
+  // pass the live configuration so an admin override is reflected too.
+  approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
 ): ServiceResponse {
   return {
     id: record.id,
@@ -28,6 +35,13 @@ export function toServiceResponse(
     }),
     classification: record.classification,
     requiresApproval: record.requiresApproval,
+    approvalSteps: resolveTicketApprovalRequirement({
+      configuration: approvalsConfiguration,
+      serviceId: record.id,
+      serviceRequiresApproval: record.requiresApproval,
+    })
+      ? 1
+      : 0,
     isConfidentialDefault: record.isConfidentialDefault,
     autoAssignStrategy: record.autoAssignStrategy,
     slaProfileId: record.slaProfileId,

@@ -5,3 +5,6 @@
 
 ## 2026-09-11
 - Inicijalna matrica: exact → parent `parentId` walk → UNROUTED, coverage signali (exact/inherited/missing/unrouted), unrouted queue settings bez dodjele grupe.
+
+## 2026-09-21 (F1 sloj 6)
+- `POST /tickets/routing-preview`: requester-safe preview, isti resolver kao create. Vidi sekciju iznad.

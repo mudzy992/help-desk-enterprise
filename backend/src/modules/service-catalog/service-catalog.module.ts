@@ -13,6 +13,7 @@ import { ServiceFormsController } from './service-forms.controller';
 import { ServiceFormsService } from './service-forms.service';
 import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
 import { ServicesController } from './services.controller';
+import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-approvals-configuration.loader';
 
 @Module({
   imports: [
@@ -31,6 +32,10 @@ import { ServicesController } from './services.controller';
     ServiceLifecycleConfigurationLoader,
     ServiceAvailabilityConfigurationLoader,
     ServiceFormsConfigurationLoader,
+    // Provided here too (already provided in TicketsModule): approvalSteps on
+    // ServiceResponse needs it and there is no dependency from tickets to
+    // service-catalog, so each module gets its own stateless instance.
+    TicketApprovalsConfigurationLoader,
     ServiceCatalogService,
     ServiceAvailabilityService,
     ServiceFormsService,

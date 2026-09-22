@@ -1,0 +1,49 @@
+diff -ruN a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md
+--- a/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-22 10:44:29.211748188 +0000
++++ b/.cursor/docs/matrices/ticket-group-inbox/CHANGELOG.md	2026-09-22 10:53:58.375764805 +0000
+@@ -12,4 +12,4 @@
+ - Inbox dobija paginaciju, `groupId` i sort po najbližem SLA roku; stara petlja po tiketu (`isInboxTicketVisible`) zamijenjena `buildGroupInboxWhere` (nepromijenjena pravila, paritet u `build-group-inbox-where.spec.ts` sad provjerava i paginiranu funkciju stranicu po stranicu).
+ - Novi `GET /groups/mine` (D2 = auto-assign po grupi): `{ id, name, organizationalUnit {id,name,path}, memberCount, effectiveAutoAssign, isFallback }`, role USER/AGENT/ADMIN/SUPER_ADMIN, samo grupe u kojima je pozivalac član (SuperAdmin: sve). Zaseban `GroupsMineController` na `groups/mine`, registrovan ispred `GroupsController` (isti razlog kao `TicketsSavedViewsController` ispred `TicketsController`).
+ - `Group.autoAssignStrategy` (nova kolona, `AutoAssignStrategy @default(NONE)`); `resolveEffectiveAutoAssignStrategy` sad prima i `groupStrategy`, prioritet grupa > servis > globalno. `effectiveAutoAssign` u `/groups/mine` računa se bez `serviceStrategy` (grupa opslužuje više servisa preko routing pravila; servisni nivo se primjenjuje tek kad je tiket stvarno rutiran).
+-- **Migracija nije generisana u ovom okruženju** (nema Postgres konekcije): pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` prije deploya.
++- Migracija `20260921120000_group_auto_assign_strategy` (ručno napisana, bez `migrate dev` — vidi HANDOFF): `ALTER TABLE "Group" ADD COLUMN "autoAssignStrategy" "AutoAssignStrategy" NOT NULL DEFAULT 'NONE'`. Primijeniti sa `prisma migrate deploy`.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md
+--- a/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-22 10:54:04.126198058 +0000
++++ b/.cursor/plans/tickets-ui-alignment/01_phase-f1.md	2026-09-22 10:53:58.375434969 +0000
+@@ -8,7 +8,7 @@
+ | 3 | `ListTicketsQueryDto` + `buildTicketListFilters`, predikat vidljivosti u `where`-u, `{items,total,page,pageSize}`, sort, export na isti builder, FE `listTicketsPage` | DAT-01, LST-05/06 | urađeno (potrošači: vidi odstupanja) |
+ | 4 | `GET /tickets/counts` + sidebar značke na njemu | INB-09, LST-03 (izvor) | urađeno |
+ | 5 | Inbox paginacija + sort po SLA + `groupId`, `GET /groups/mine` | INB-08, DAT-02 | urađeno |
+-| 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | urađeno (spojeno u sloj 5: `/groups/mine` bez njega nema šta vratiti kao `effectiveAutoAssign`); **migracija nije generisana**, treba `prisma migrate dev` kod vas |
++| 5b | `Group.autoAssignStrategy` (F1-2) | INB-02 | urađeno (spojeno u sloj 5: `/groups/mine` bez njega nema šta vratiti kao `effectiveAutoAssign`); migracija `20260921120000_group_auto_assign_strategy` ručno napisana (nisam mogao pokrenuti `prisma migrate dev` bez baze/shadow DB) — `prisma migrate deploy` je dovoljan, ne treba `migrate dev` |
+ | 6 | `POST /tickets/routing-preview`, `approvalSteps`, realtime payload (provjereno, već ispravno) | NEW-04/05 | urađeno |
+ 
+ Pravila: svaki sloj završava zelenim `tsc -b` i jestom + prijedlogom commit poruke; fajlovi ≤150 linija; matrice i CHANGELOG uz svaku promjenu logike.
+diff -ruN a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md
+--- a/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-22 10:54:04.126456189 +0000
++++ b/.cursor/plans/tickets-ui-alignment/CHECKLIST.md	2026-09-22 10:53:58.375574887 +0000
+@@ -9,5 +9,5 @@
+ - [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
+ - [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
+ - [x] Sloj 5 inbox (paginacija, sort SLA, `groupId`) + `/groups/mine`
+-- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — **migracija nije generisana, pokrenuti `prisma migrate dev` prije deploya**
++- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — migracija `20260921120000_group_auto_assign_strategy` uključena, primjenjuje se sa `prisma migrate deploy`
+ - [x] Sloj 6 routing preview, `approvalSteps`, realtime (payload provjeren, već ispravan)
+diff -ruN a/.cursor/plans/tickets-ui-alignment/HANDOFF.md b/.cursor/plans/tickets-ui-alignment/HANDOFF.md
+--- a/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-22 10:54:04.126576243 +0000
++++ b/.cursor/plans/tickets-ui-alignment/HANDOFF.md	2026-09-22 10:53:58.375682359 +0000
+@@ -14,7 +14,7 @@
+ 
+ ## Otvoreno
+ - `ServiceResponse.approvalSteps` na mutacionim odgovorima (create/update/transition/availability/downtime-window) ne uzima u obzir per-servis approvals overlay, samo `requiresApproval`. Namjerno ograničenje obima (vidi `service-catalog-lifecycle` CHANGELOG); proširiti ako se pokaže da FE to očekuje odmah nakon mutacije, ne tek nakon sljedećeg GET-a.
+-- **KRITIČNO prije deploya**: `Group.autoAssignStrategy` je dodano u `prisma/schema/identity.prisma`, ali migracija nije generisana (nema Postgres konekcije u ovom okruženju). Pokrenuti `npx prisma migrate dev --name group-auto-assign-strategy` lokalno prije mergea, ili baza i schema neće biti usklađeni.
++- `Group.autoAssignStrategy` u `prisma/schema/identity.prisma` + ručno napisana migracija `prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql` (`ALTER TABLE "Group" ADD COLUMN "autoAssignStrategy" "AutoAssignStrategy" NOT NULL DEFAULT 'NONE'`; enum već postoji od `Service.autoAssignStrategy`, nema novog tipa). Napisana ručno jer `prisma migrate dev` traži shadow bazu koju sam u ovom okruženju nemao. **Primijeniti s `npx prisma migrate deploy`** (ne `migrate dev` — deploy ne treba shadow bazu i to je i dosad radilo kod vas). Ako nakon primjene `prisma validate`/`prisma generate` prijavi razliku od stvarne baze, to znači da je neko ranije ručno mijenjao bazu mimo migracija; u tom slučaju provjeriti sa `prisma migrate diff --from-url <DB> --to-schema-datamodel prisma/schema`.
+ - 3 nova testa (`groups-mine.controller.guard.spec.ts`, `groups-module-order.spec.ts` × 2) nisu izvršena mojim shimom (`Reflect.getMetadata` nije polyfillovan) — isto ograničenje kao postojeći `groups.controller.guard.spec.ts` drugi test. Logika je provjerena čitanjem, ne izvršavanjem; pokrenuti pravi `jest` da se potvrdi.
+ - `effectiveAutoAssign` u `/groups/mine` ignoriše servisni nivo (grupa opslužuje više servisa). Ako se ispostavi da agenti očekuju da vide i servisni fallback po grupi, treba prošireno polje (npr. lista servisa sa strategijama) — nije u planu, dodatna odluka.
+ - Odluka o `overdue`/`atRisk`: brojači i list-filteri broje i zatvorene tikete s probijenim SLA (matrica `overdue-ui-badge-filter` definiše `isOverdue` bez statusa). Ako proizvod želi samo otvorene, mijenja se u `buildTicketListFilters` i time oba mjesta odjednom.
+diff -ruN a/backend/prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql b/backend/prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql
+--- a/backend/prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql	1970-01-01 00:00:00.000000000 +0000
++++ b/backend/prisma/migrations/20260921120000_group_auto_assign_strategy/migration.sql	2026-09-22 10:53:32.516527560 +0000
+@@ -0,0 +1,2 @@
++-- AlterTable
++ALTER TABLE "Group" ADD COLUMN "autoAssignStrategy" "AutoAssignStrategy" NOT NULL DEFAULT 'NONE';

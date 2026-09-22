@@ -27,6 +27,7 @@ export function createTicketsLifecycleHarness(input: {
   readonly archiveLoader: unknown;
   readonly slaTimers: unknown;
   readonly realtimeHub: TicketRealtimeHub;
+  readonly assignmentConfigurationLoader: unknown;
 }) {
   const csatConfig = {
     enabled: defaultTicketCsatConfiguration.enabled as boolean,
@@ -53,6 +54,7 @@ export function createTicketsLifecycleHarness(input: {
     csatLoader as never,
     input.slaTimers as never,
     input.realtimeHub,
+    input.assignmentConfigurationLoader as never,
   );
   const csat = new TicketsCsatService(
     input.prisma as never,

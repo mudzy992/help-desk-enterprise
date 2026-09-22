@@ -19,6 +19,9 @@ import type {
   ServiceAvailabilityEvaluationContext,
 } from './service-availability.types';
 import { ServiceLifecycleConfigurationLoader } from './service-lifecycle-configuration.loader';
+import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approvals.constants';
+import { TicketApprovalsConfigurationLoader } from '../tickets/approvals/ticket-approvals-configuration.loader';
+import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
 import type {
   CatalogMutationContext,
   CreateServiceCategoryInput,
@@ -47,7 +50,18 @@ export class ServiceCatalogService {
     private readonly lifecycleConfigurationLoader: ServiceLifecycleConfigurationLoader,
     private readonly availabilityConfigurationLoader: ServiceAvailabilityConfigurationLoader = defaultAvailabilityConfigurationLoader,
     @Optional() private readonly routingService: RoutingService | null = null,
+    // Optional so existing tests that construct this service directly keep
+    // working; without it, approvalSteps falls back to the service's own
+    // requiresApproval flag (no configured overlay).
+    @Optional()
+    private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader | null = null,
   ) {}
+
+  private async approvalsConfiguration(): Promise<TicketApprovalsConfiguration> {
+    return this.approvalsConfigurationLoader === null
+      ? defaultTicketApprovalsConfiguration
+      : this.approvalsConfigurationLoader.load();
+  }
 
   createCategory(
     input: CreateServiceCategoryInput,
@@ -98,7 +112,12 @@ export class ServiceCatalogService {
     evaluatedAt: Date = new Date(),
   ): Promise<readonly ServiceResponse[]> {
     return this.execute(async () =>
-      listServices(this.prisma, input, await this.evaluation(evaluatedAt)),
+      listServices(
+        this.prisma,
+        input,
+        await this.evaluation(evaluatedAt),
+        await this.approvalsConfiguration(),
+      ),
     );
   }
 
@@ -107,7 +126,12 @@ export class ServiceCatalogService {
     evaluatedAt: Date = new Date(),
   ): Promise<ServiceResponse> {
     return this.execute(async () =>
-      getService(this.prisma, serviceId, await this.evaluation(evaluatedAt)),
+      getService(
+        this.prisma,
+        serviceId,
+        await this.evaluation(evaluatedAt),
+        await this.approvalsConfiguration(),
+      ),
     );
   }
 

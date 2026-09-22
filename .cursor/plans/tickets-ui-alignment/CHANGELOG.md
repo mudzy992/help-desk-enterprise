@@ -20,3 +20,8 @@
 - Inbox: `list/list-group-inbox-tickets.ts` zamjenjuje staru petlju; paginacija, `groupId`, sort po SLA roku, isti `buildGroupInboxWhere` kao counts. `TicketsService.listInbox` i kontroler sad vraćaju `{ items, total, page, pageSize }`.
 - `GET /groups/mine`: `GroupsMineController` (nova ruta `groups/mine`, dozvoljena USER/AGENT/ADMIN/SUPER_ADMIN), `listMyGroups`, `MyGroupResponse`.
 - `Group.autoAssignStrategy` dodano u schemu; `resolveEffectiveAutoAssignStrategy` prošireno na prioritet grupa > servis > globalno; `apply-ticket-auto-assignment.ts` čita i grupinu strategiju.
+
+## 2026-09-21 — F1 sloj 6 (routing preview, approvalSteps, realtime)
+- `POST /tickets/routing-preview`: `{ outcome, groupName, fallbackDepth, autoAssign, approvalSteps, slaProfileName }`, isti resolver kao create, gated istim `assertCanCreateTicket`. SLA profil se pokazao nezavisnim od prioriteta (vezan za servis), pa preview ne treba prioritet u zahtjevu.
+- `ServiceResponse.approvalSteps` (0|1): `GET /services`, `GET /services/:id` nose stvarnu approvals konfiguraciju; mutacioni pozivi koriste konfiguraciju bez overlay-a (dokumentovano ograničenje).
+- Realtime (zadatak 11): provjereno, `priority`/`assignedGroupId` već prisutni na `ticket.updated`, uključujući kreiranje. Nema izmjene koda.

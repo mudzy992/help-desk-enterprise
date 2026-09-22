@@ -9,5 +9,5 @@
 - [ ] Migracija FE potrošača liste (po slojevima 4, F3, F6)
 - [x] Sloj 4 counts (BE endpoint, inbox predikat, FE klijent, sidebar značke)
 - [x] Sloj 5 inbox (paginacija, sort SLA, `groupId`) + `/groups/mine`
-- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — **migracija nije generisana, pokrenuti `prisma migrate dev` prije deploya**
-- [ ] Sloj 6 routing preview, `approvalSteps`, realtime
+- [x] Sloj 5b `Group.autoAssignStrategy` (spojeno u 5) — migracija `20260921120000_group_auto_assign_strategy` uključena, primjenjuje se sa `prisma migrate deploy`
+- [x] Sloj 6 routing preview, `approvalSteps`, realtime (payload provjeren, već ispravan)

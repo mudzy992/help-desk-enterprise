@@ -58,6 +58,7 @@ Uspješan create/update piše postojeći `ChangeLog` (`entityType=ticket`, reaso
 |---|---|
 | POST | `/tickets` |
 | GET | `/tickets` |
+| POST | `/tickets/routing-preview` |
 | GET | `/tickets/counts` |
 | GET | `/tickets/:ticketId` |
 | PATCH | `/tickets/:ticketId` |

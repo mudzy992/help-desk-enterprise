@@ -54,6 +54,8 @@ export type ServiceResponse = {
   readonly runtimeAvailability: ServiceRuntimeAvailability;
   readonly classification: DataClassification;
   readonly requiresApproval: boolean;
+  /** 0 or 1 (decision F1-5): whether creating a ticket for this service needs approval right now. */
+  readonly approvalSteps: 0 | 1;
   readonly isConfidentialDefault: boolean;
   readonly autoAssignStrategy: AutoAssignStrategy;
   readonly slaProfileId: string | null;

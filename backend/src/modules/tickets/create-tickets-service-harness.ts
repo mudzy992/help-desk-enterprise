@@ -108,10 +108,13 @@ export function createTicketsServiceHarness() {
   const routing = new RoutingService(memory.prisma as never, {
     load: async () => defaultRoutingConfiguration,
   } as never);
+  const assignmentConfigurationLoader = {
+    load: async () => ({ ...assignmentConfig }),
+  };
   const assignment = new TicketAssignmentService(
     memory.prisma as never,
     authorizationContextLoader as never,
-    { load: async () => ({ ...assignmentConfig }) } as never,
+    assignmentConfigurationLoader as never,
   );
   const approvalsLoader = { load: async () => ({ ...approvalsConfig }) };
   const waitingLoader = { load: async () => ({ ...waitingForUserConfig }) };
@@ -144,6 +147,7 @@ export function createTicketsServiceHarness() {
     archiveLoader: policy.archiveLoader,
     slaTimers: sla.slaTimers,
     realtimeHub,
+    assignmentConfigurationLoader,
   });
   const tickets = lifecycle.tickets;
   const approvals = new TicketsApprovalsService(

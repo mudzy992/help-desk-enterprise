@@ -21,6 +21,8 @@ import { RoleGuard } from '../authorization/role.guard';
 import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { ListInboxQueryDto } from './dto/list-inbox-query.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { RoutingPreviewDto } from './dto/routing-preview.dto';
+import type { TicketRoutingPreview } from './routing-preview/routing-preview.types';
 import type { TicketCounts } from './counts/counts.types';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
@@ -56,6 +58,18 @@ export class TicketsController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<TicketResponse> {
     return this.ticketsService.create(body, readTicketMutationContext(request));
+  }
+
+  /** Same routing decision `create` would make; nothing is created. */
+  @Post('routing-preview')
+  previewRouting(
+    @Body() body: RoutingPreviewDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<TicketRoutingPreview> {
+    return this.ticketsService.previewRouting(
+      body,
+      readTicketMutationContext(request),
+    );
   }
 
   /**

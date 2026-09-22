@@ -3,6 +3,9 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
+import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignment-configuration.loader';
+import { previewTicketRouting } from './routing-preview/preview-ticket-routing';
+import type { TicketRoutingPreview } from './routing-preview/routing-preview.types';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import type { GroupInboxStatus } from './assignment/read-group-inbox-status';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
@@ -60,7 +63,25 @@ export class TicketsService {
     private readonly csatLoader: TicketCsatConfigurationLoader,
     private readonly slaTimers: TicketSlaTimersService,
     private readonly realtimeHub: TicketRealtimeHub,
+    private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
   ) {}
+
+  previewRouting(
+    input: { readonly originUnitId?: string; readonly serviceId: string },
+    context: TicketMutationContext,
+  ): Promise<TicketRoutingPreview> {
+    return executeTicketOperation(() =>
+      previewTicketRouting(
+        this.prisma,
+        this.routingService,
+        this.authorizationContextLoader,
+        this.approvalsConfigurationLoader,
+        this.assignmentConfigurationLoader,
+        input,
+        context,
+      ),
+    );
+  }
 
   create(input: CreateTicketInput, context: TicketMutationContext) {
     return executeTicketOperation(async () =>
