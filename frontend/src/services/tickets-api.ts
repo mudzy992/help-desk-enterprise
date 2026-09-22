@@ -154,8 +154,15 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
   });
 }
 
-export function listGroupInbox(): Promise<readonly TicketResponse[]> {
-  return apiRequest("/tickets/inbox");
+export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
+  // The backend always answers this endpoint with the paginated
+  // { items, total, page, pageSize } shape (unlike GET /tickets, which only
+  // does that when page/pageSize are supplied), so the array has to be
+  // unwrapped here rather than treating the response itself as the array.
+  const response = await apiRequest<{ items: readonly TicketResponse[] }>(
+    "/tickets/inbox",
+  );
+  return response.items;
 }
 
 export type GroupInboxStatus = {
