@@ -1,1 +1,0 @@
-export function openDeskUrl(base:string,ticketId?:string|null):void{const b=base.replace(/\/$/,'');if(!b)return;void chrome.tabs.create({url:ticketId?`${b}/tickets/${ticketId}`:b});}

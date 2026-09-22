@@ -1,6 +1,0 @@
-import {sendNotificationReceipt,type NotificationReceipt} from './receipts-client';
-const queueKey='pendingNotificationReceipts';const maxQueue=100;
-async function readQueue():Promise<NotificationReceipt[]>{const stored=await chrome.storage.session.get(queueKey);const value=stored[queueKey];return Array.isArray(value)?value.filter((v):v is NotificationReceipt=>typeof v==='object'&&v!==null&&typeof v.notificationId==='string'&&typeof v.eventId==='string'&&(v.kind==='delivered'||v.kind==='opened')):[]}
-export async function queueNotificationReceipt(receipt:NotificationReceipt):Promise<void>{const queue=await readQueue();if(queue.some(r=>r.notificationId===receipt.notificationId&&r.kind===receipt.kind))return;queue.push(receipt);await chrome.storage.session.set({[queueKey]:queue.slice(-maxQueue)})}
-export async function flushPendingNotificationReceipts(access:{apiBaseUrl:string;accessToken:string}):Promise<void>{const queue=await readQueue();if(!queue.length)return;const remaining:NotificationReceipt[]=[];for(const receipt of queue){try{await sendNotificationReceipt({...access,...receipt})}catch{remaining.push(receipt)}}await chrome.storage.session.set({[queueKey]:remaining})}
-export async function clearReceiptQueue():Promise<void>{await chrome.storage.session.remove(queueKey)}
