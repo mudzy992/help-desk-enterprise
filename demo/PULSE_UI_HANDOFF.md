@@ -1,0 +1,254 @@
+# Pulse UI — Faza 0 + Faza 1 (isporuka)
+
+> Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
+> (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
+> `arena/01a0cefc-help-desk-enterprise` i ne mogu kreirati granu `pulse-ui`.
+>
+> Plan iz kojeg je ovo izvedeno: [`PRODUCTION_MIGRATION_PLAN.md`](./PRODUCTION_MIGRATION_PLAN.md).
+
+---
+
+## 1. Šta je isporučeno
+
+| Faza | Sadržaj | Status |
+|---|---|---|
+| **0 — Temelji** | Tokeni u 3 tematska bloka, `tailwind.config.ts` na CSS kanalima, ThemeProvider + kontrakt, no-FOUC skripta, birač teme u topbaru, migracija **svih 82 hardkodirane boje** na tokene | ✅ |
+| **1 — UI primitivi** | Svih 19 postojećih primitiva restilizovano + 5 novih (Modal, ConfirmDialog, Toast, Segmented, Chip) + Theme tab u Visual QA | ✅ |
+| 2–7 | Shell, komandna paleta, prijava, čarobnjak, grafikoni, 248 komponenti po modulima | ⏳ nije u ovom PR-u |
+
+**Ukupno: 79 fajlova** (69 izmijenjenih + 10 novih), 728 dodanih / 191 izbrisanih linija u praćenim fajlovima.
+
+---
+
+## 2. Patchevi i primjena
+
+```
+demo/patches/
+├── pulse-01-theme-tokens-and-infrastructure.patch   55 fajlova   85 KB
+└── pulse-02-ui-primitives.patch                     24 fajla     48 KB
+```
+
+Oba patcha su **sekvencijalna i svaki zasebno kompajlira** — možeš ih pregledati i primijeniti odvojeno.
+
+```bash
+git checkout -b pulse-ui              # ili kako ti već ide tok
+git apply demo/patches/pulse-01-theme-tokens-and-infrastructure.patch
+git apply demo/patches/pulse-02-ui-primitives.patch
+npm --prefix frontend ci              # ili npm install
+```
+
+Zatim, po tvom postojećem običaju (commitovi su ti imenovani po patch fajlovima, npr.
+`f2-01-action-feedback-seam-and-inbox-tabs.patch`), commit predlažem kao:
+
+```bash
+git commit -am "pulse-01-theme-tokens-and-infrastructure.patch"
+git commit -am "pulse-02-ui-primitives.patch"
+```
+
+Ako želiš jedan commit, `git apply` oba patcha pa jedan commit.
+
+---
+
+## 3. Verifikacija (egzaktni rezultati)
+
+Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primijenjenim patchevima**:
+
+| Provjera | Rezultat |
+|---|---|
+| `git apply --check` (oba patcha) | ✅ čisto, bez konflikata |
+| `npx tsc -b` (bez keša) | ✅ **0 grešaka** |
+| `npx vitest run` | ✅ **87 fajlova / 285 testova** (bilo 86/279; +1 fajl, +6 testova za kontrakt teme) |
+| `npx vite build` | ✅ uspješno |
+| Build artefakti u klonu vs. moje stablo | ✅ **identični hash-evi** (`index-Oca9du9p.css`, `index-BJQVQxc3.js`) |
+| `node scripts/check-ticket-id-leaks.mjs` (CI gate) | ✅ prolazi |
+| i18n parity `bs` vs `en` | ✅ 2113 / 2113 ključeva, nula razlike |
+| Hardkodirani `#RRGGBB` u `frontend/src` | ✅ **0** (bilo 82) |
+| Tematski blokovi u izlaznom CSS-u | ✅ `[data-theme=classic]`, `[data-theme=pulse]`, `[data-theme=pulse].dark` |
+| Alpha tokeni u izlaznom CSS-u | ✅ `rgb(var(--border) / .7)`, `rgb(var(--primary) / .15)` … |
+| `package-lock.json` | ✅ netaknut (npm u sandboxu ga je prepisao — vraćeno) |
+| Git | ✅ **ništa commitovano**, pravni index prazan (patchvi generisani preko privremenog indexa u `/tmp`) |
+
+**Nisam mogao provjeriti:** vizuelni izgled u pravom browseru (Chromium se ne može instalirati u ovom
+sandboxu). Zato je Theme tab u Visual QA napravljen da to bude prvo što pogledaš.
+
+---
+
+## 4. Odluke koje sam donio prema tvojim odgovorima
+
+| Tvoja odluka | Šta je urađeno |
+|---|---|
+| **Tailwind 3** (ostajemo) | Nema migracije na v4. Sve je izraženo kroz TW3 + CSS varijable. |
+| **Paralelno: stara + nova tema** | `data-theme="pulse"` / `data-theme="classic"`. Stara tema je **nedirnuta** i birate je u istom meniju. |
+| **Faza 0 + Faza 1** | Isporučeno u dva patcha. |
+| **`.patch` fajlovi** | Isporučeno (vidi §2). |
+| **KB intercept kao zaseban ekran** | Zadržano postojeće ponašanje — postojeći `knowledge-intercept-panel.tsx` je samo restilizovan, **tok nije mijenjan**. |
+
+### Dodatno, jer je bilo neophodno za ispravnost
+
+- **`.cursor/rules/frontend-ui-ux.mdc` je prepisan.** Stara pravila su eksplicitno zabranjivala
+  *„neon/purple gradijente, gradient buttons, giant radius"* — što je novi identitet. Bez ove izmjene
+  bi sljedeći rad (ljudski ili agentski) vratio stari stil.
+- **`.cursor/docs/theme.md` dobio sekciju „Pulse"** sa punim tabelama tokena po temi i checklistom za nove boje.
+  Stari katalog je zadržan i jasno označen kao „classic".
+- **`lib/theme/semantic-meta.ts`** — `SEMANTIC_DOT_HEX` više nisu hex nego CSS varijable, pa statusne
+  tačke na 12 ekrana automatski prate temu.
+
+---
+
+## 5. Kako tema radi (za tvoj tim)
+
+```
+html[data-theme="pulse"]           → novi identitet, svijetli (default)
+html[data-theme="pulse"].dark      → novi identitet, tamni
+html[data-theme="classic"]         → stara tema (uvijek tamna)
+```
+
+- Kontrakt: `frontend/src/lib/theme/theme-storage.ts`
+- Provider: `frontend/src/lib/theme/theme-provider.tsx`
+- Birač: `frontend/src/components/layout/theme-switcher.tsx` (topbar, ikona sunce/mjesec)
+- **Prebacivanje defaulta na staru temu tokom pilot sedmice = jedna konstanta:**
+  `DEFAULT_THEME_DESIGN: ThemeDesign = "classic"` u `theme-storage.ts`.
+
+### Tri trika koja su uštedjela dane rada
+
+1. **Tokeni su RGB kanali, ne gotove boje** — zato `bg-surface/60`, `border-border/70` i `text-muted-foreground/70`
+   rade isto u sve tri teme. Bez toga bi alpha nijanse (korištene stotine puta) pukle.
+2. **`control.ts` je najveća poluga** — uvozi ga 103 fajla, pa promjena tog jednog fajla restilizuje sve
+   forme, tabele, chipove i plutajuće panele u cijeloj aplikaciji.
+3. **Radius i sjena su tokeni po temi** — `rounded-lg` je 12px u Pulse, 8px u classic; `shadow-card` je
+   `none` u classic. Zato kartice izgledaju „Pulse" **bez ijedne izmjene u 248 komponenti**.
+
+---
+
+## 6. Šta ovaj PR NE dira (garancije)
+
+- **`services/**`** (API sloj): 0 izmjena.
+- **`lib/**`** poslovna logika: 0 izmjena osim `theme/` (novo) i `semantic-meta.ts` (boje tačaka).
+- **Rute i URL-ovi**, RBAC guardovi (`require-access`), WebSocket tok, realtime store: 0 izmjena.
+- **Postojećih 1357 `t()` poziva**: 0 izmjena. Novi UI koristi **nove** ključeve (`theme.*`, `ui.*`) u oba lokala.
+- **`package.json`**: 0 novih zavisnosti. Modal i Toast koriste već prisutni `@radix-ui/react-dialog`.
+- **Backend**: 0 izmjena.
+
+---
+
+## 7. Poznati rizici / šta pregledati
+
+| Rizik | Detalj |
+|---|---|
+| **Vizuelni QA** | Obavezno prođi ekrane očima — ja nisam mogao renderovati u browseru. Prvo Visual QA → Primitive-i → Theme. |
+| **Kontrast u light modu** | Semantički tekstualni tokeni su računati na ≥ 4.5:1, ali provjeri svoje ekrane sa puno tintova (npr. `routing` coverage matrica, SLA panel). |
+| **`classic` nije 100% piksel-identičan** | Boje su identične, ali nekoliko **zajedničkih** poboljšanja interakcije važi za obje teme: fokus ring (`ring-2 ring-primary/25`), hover ispune (`bg-surface-hover`), inputi na `surface` umjesto `background/60`. To je namjerno. |
+| **Nove komponente još nisu potrošene** | `Modal`, `ConfirmDialog`, `Toast`, `Segmented`, `Chip` postoje i dokumentovane su u Visual QA, ali ih Faza 2+ tek počinje koristiti. `ToastProvider` je montiran u `app.tsx`. |
+| **`prefers-color-scheme` u testovima** | Provider ima zaštitu za `window.matchMedia` (jsdom/node ga nema) — bitno ako kasnije dodaš jsdom testove. |
+| **`E2E` scenariji** | Nisu dirani i **trebali bi proći** (selektori su tekst/rola, a i18n je nepromijenjen). Nisam ih mogao pokrenuti — traže bazu i backend. |
+
+---
+
+## 8. Troubleshooting: `git apply` pada na Windowsu (CRLF) — RIJEŠENO
+
+### Simptom
+Na Windowsu (`Git Bash`, `core.autocrlf=true`):
+
+```
+demo/patches/pulse-01-...patch:516: trailing whitespace.
+import { Check, Moon, Palette, Sun, SunMoon } from "lucide-react";
+...
+error: patch failed: frontend/src/components/tickets/ticket-split-panel.tsx:52
+error: frontend/src/components/tickets/ticket-split-panel.tsx: patch does not apply
+```
+
+…a zatim `npm run dev` puca sa:
+
+```
+Failed to resolve import "@/components/ui/toast" from
+  "src/components/visual-qa/visual-qa-theme-board.tsx"
+```
+
+### Uzrok (dokazan mjerenjem)
+
+`git apply` zahtijeva da se linije u **patch fajlu** poklapaju sa linijama u radnom stablu.
+Na Windowsu `core.autocrlf=true` pretvara **i sam `.patch` fajl** u CRLF pri checkoutu —
+svaki `\r` na kraju linije Git tada prijavljuje kao *trailing whitespace*.
+
+Izmjerene kombinacije (`git apply`, patch 01, 50 hunkova):
+
+| Patch | Radno stablo | Rezultat |
+|---|---|---|
+| **CRLF** | LF | ✗ **50 hunkova pada** |
+| **CRLF** | CRLF | ⚠️ prolazi uz lažna „trailing whitespace" upozorenja |
+| **LF** | LF | ✅ prolazi |
+| **LF** | CRLF | ✅ prolazi |
+
+Zaključak: **patch fajl mora biti LF.** Kada je LF, radi bez obzira na line endings radnog stabla.
+
+`npm run dev` greška je samo **posljedica**: patch 02 se primijenio, patch 01 nije, pa
+`visual-qa-theme-board.tsx` (patch 02) uvozi `@/components/ui/toast` koji dolazi iz patcha 01.
+Nije greška u kodu — nestaje čim se oba patcha primijene.
+
+### Popravka A — trajna (`.gitattributes`)
+
+U repou je sada `.gitattributes` sa:
+
+```
+*.patch text eol=lf
+```
+
+Git od sada **nikada** ne pretvara `.patch` fajlove u CRLF, bez obzira na `core.autocrlf`.
+
+### Popravka B — odmah, bez čekanja (ako patcheve već imaš)
+
+```bash
+# 1. očisti neuspjeli pokušaj (ništa nije commitovano → sigurno)
+git reset --hard 5831dfd
+git status --porcelain            # mora biti prazno
+
+# 2. uzmi patcheve iz moje grane
+git fetch origin arena/01a0cefc-help-desk-enterprise
+git checkout origin/arena/01a0cefc-help-desk-enterprise -- demo/patches/
+
+# 3. KLJUČNI KORAK — vrati patcheve u LF
+sed -i 's/\r$//' demo/patches/*.patch
+grep -c $'\r' demo/patches/*.patch     # mora ispisati 0 i 0
+
+# 4. primijeni
+git apply demo/patches/pulse-01-theme-tokens-and-infrastructure.patch
+git apply demo/patches/pulse-02-ui-primitives.patch
+git status --porcelain | wc -l         # očekivano 81 (2 patcha + 79 promjena)
+
+# 5. pokreni
+cd frontend && npm install && npm run dev
+```
+
+Ako `sed -i` iz nekog razloga ne radi, ekvivalent je:
+
+```bash
+for f in demo/patches/*.patch; do tr -d '\r' < "$f" > "$f.tmp" && mv "$f.tmp" "$f"; done
+```
+
+Ili, bez mijenjanja fajlova — prisili checkout bez konverzije:
+
+```bash
+rm -f demo/patches/*.patch
+git -c core.autocrlf=false checkout origin/arena/01a0cefc-help-desk-enterprise -- demo/patches/
+```
+
+### Kako provjeriti da je sve u redu prije `npm run dev`
+
+```bash
+grep -c $'\r' demo/patches/*.patch          # 0 i 0
+ls frontend/src/components/ui/toast.tsx     # postoji (dolazi iz patcha 01)
+ls frontend/src/lib/theme/theme-provider.tsx
+```
+
+---
+
+## 9. Prijedlog sljedećeg koraka
+
+Ako Faza 0+1 prođe review i vizuelni QA:
+
+1. **Pilot sedmica** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
+2. **Faza 2** (2 dana): shell/layout komponente, **komandna paleta ⌘K**, prijava, čarobnjak instalacije.
+3. **Faza 3** (1 dan): novi SVG grafikoni.
+4. **Faza 4** (6–8 dana): 7 talasa po modulima — tek tu nestaju i posljednji legacy obrasci po ekranima.
+
+Reci samo „nastavi na Fazu 2" i krećem, istim tokom (patch po fazi).

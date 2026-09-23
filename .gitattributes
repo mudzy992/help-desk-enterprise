@@ -1,0 +1,13 @@
+# Pravila line-endings
+#
+# Patch fajlovi se primjenjuju sa `git apply`, koji zahtijeva da se linije u
+# patch fajlu poklapaju sa linijama u radnom stablu. Ako Git na Windowsu
+# (core.autocrlf=true) pretvori .patch u CRLF pri checkoutu, `git apply` pada
+# sa "patch does not apply" — patch fajl MORA ostati bajt-identičan (LF).
+#
+# `text eol=lf` znači: normalizuj na LF pri commit-u, isporuči LF pri checkoutu,
+# bez obzira na core.autocrlf. Diff ostaje čitljiv kao tekst.
+*.patch text eol=lf
+
+# Shell skripte se izvršavaju, pa im shebang ne smije dobiti CR.
+*.sh text eol=lf
