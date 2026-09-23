@@ -1,0 +1,1234 @@
+diff --git a/.cursor/docs/06-groups-design-rationale.md b/.cursor/docs/06-groups-design-rationale.md
+index f7cbefd..93fd80d 100644
+--- a/.cursor/docs/06-groups-design-rationale.md
++++ b/.cursor/docs/06-groups-design-rationale.md
+@@ -9,7 +9,7 @@ Ekran: `/admin?tab=groups` (`frontend/src/pages/groups-page.tsx`, `frontend/src/
+ - bedž grupe uz OU u tabeli korisnika (`referenca-dizajn/src/pages/Admin.tsx`, kolona „OU / Grupa"),
+ - odredište (target group) u routing pravilima (`referenca-dizajn/src/pages/Routing.tsx`, bedž `tone="primary"` s nazivom grupe).
+ 
+-Zato se ekran Grupe **ne nagađa kao 1:1 kopija** nepostojećeg mockupa, nego se namjerno izvodi iz tih srodnih obrazaca i iz `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`. Ovo pitanje se ne otvara ponovo pri budućim izmjenama, osim ako se u `referenca-dizajn` doda stvaran ekran Grupe.
++Zato se ekran Grupe **ne nagađa kao 1:1 kopija** nepostojećeg mockupa, nego se namjerno izvodi iz tih srodnih obrazaca i iz `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`. Ovo pitanje se ne otvara ponovo pri budućim izmjenama, osim ako se u `demo/` (aktivni prototip; `referenca-dizajn/` je arhiviran) doda stvaran ekran Grupe.
+ 
+ ## Šta se preuzima i odakle
+ 
+diff --git a/.cursor/docs/frontend-reference-alignment-plan.md b/.cursor/docs/frontend-reference-alignment-plan.md
+index 78b79d6..28417d8 100644
+--- a/.cursor/docs/frontend-reference-alignment-plan.md
++++ b/.cursor/docs/frontend-reference-alignment-plan.md
+@@ -1,8 +1,11 @@
+ # Frontend ↔ referenca-dizajn alignment plan
+ 
+-Status: **PLAN VALIDATED** (visual QA baseline korigovan 2026-09-13; nema implementacije).
++Status: **ISTORIJSKI — većinski izvršen.** Ovaj plan je uveden dok je `referenca-dizajn/` (stara tamna tema)
++bio kanonski; danas je kanonski **Pulse** dizajn-sistem, a `referenca-dizajn/` je arhiviran.
++Zadržan je kao zapis **funkcionalnog** obima (FE-0…FE-6 taskovi: IA, primitive-i, semantičke mape, layout po ekranu)
++— sve što je u njemu „vizuelni target" **ne važi**; za izgled važe `Master UI-UX Design Constitution.md` i `.cursor/docs/theme.md`.
+ Datum audita: 2026-09-13.
+-Scope audita: frontend do kraja Faze 7 (Socket.IO ticket/chat, notifications, settings) + kanonski `referenca-dizajn/`.
++Scope audita: frontend do kraja Faze 7 (Socket.IO ticket/chat, notifications, settings) + `referenca-dizajn/` (tada kanonski).
+ 
+ ---
+ 
+@@ -30,8 +33,9 @@ Pregledano (repo, nije nagađanje):
+ 
+ | Sloj | Šta |
+ | --- | --- |
+-| Referenca | `referenca-dizajn/src/{App,nav,index.css,lib/core}.ts(x)`, `components/{Shell,ui,charts}.tsx`, pages: Dashboard, Tickets, TicketDetail, NewTicket, Inbox, Catalog, Knowledge, Routing, Sla, Admin, Reports |
+-| Tokeni | `.cursor/docs/theme.md`, `.cursor/docs/theme-source.md` |
++| Referenca (arhivirana) | `referenca-dizajn/src/{App,nav,index.css,lib/core}.ts(x)`, `components/{Shell,ui,charts}.tsx`, pages: Dashboard, Tickets, TicketDetail, NewTicket, Inbox, Catalog, Knowledge, Routing, Sla, Admin, Reports |
++| Referenca (aktuelna) | `demo/` — prototip Pulse identiteta |
++| Tokeni | `.cursor/docs/theme.md` (izvor istine: `frontend/src/index.css` + `tailwind.config.ts`) |
+ | UX | `Master UI-UX Design Constitution.md` |
+ | Current FE | `frontend/src/{app,layouts,pages,components,lib,services,i18n}` |
+ | Domain | `.cursor/docs/00-mvp-scope.md`, `02-routing-logic.md`, matrice: catalog, onboarding, KB, routing, SLA, overdue, websocket, ticketing, bulk, participants |
+@@ -43,10 +47,10 @@ Nije rađeno u auditu: vizuelni screenshot/browser pass, runtime protiv live API
+ 
+ ## 3. Source hierarchy
+ 
+-1. **Tematika:** `.cursor/docs/theme-source.md` pobjeđuje.
++1. **Tematika:** `.cursor/docs/theme.md` (izvor istine je kod). `theme-source.md` je **arhiviran**.
+ 2. **UX / interakcija:** `Master UI-UX Design Constitution.md` pobjeđuje.
+-3. **Dokaz izgleda:** `referenca-dizajn/` je kanonski.
+-4. **Implementacijski katalog tokena:** `.cursor/docs/theme.md`.
++3. **Dokaz izgleda:** **Pulse** — `demo/` prototip + `/appearance` + Visual QA tabla. `referenca-dizajn/` je **arhiviran**.
++4. **Implementacijski katalog tokena:** `.cursor/docs/theme.md` (tri ose: `data-theme`, `.dark`, `data-accent`).
+ 5. **Funkcionalnosti:** domain/matrix + postojeći `frontend/src/services/*`. Nema izmišljenih CRUD-ova.
+ 
+ Terminologija (Constitution §11): tiket, usluga, katalog usluga, jedinica porijekla, handler grupa, neusmjereni red, baza znanja, usmjeravanje. Current nav label `Usluge` ostaje; vizuelni target je reference “Katalog usluga”.
+@@ -433,7 +437,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
+   - Viewports (DevTools): **desktop 1440×900**, **mobile 390×844**. Desktop je primarni workspace (Constitution §33); mobile mora ostati funkcionalan, ne “umanjeni desktop”.
+   - Screenshot side-by-side (OS/DevTools capture). U repo-u **nema** Playwright / Chromatic / Percy / Storybook — **ne uvoditi** novi visual-regression framework radi ovog plana. Radni snimci nisu git artefakt.
+   - Prvi pass: Button aliases, Badge/MetaBadge, Card, Field/Input/Select/Textarea, Progress, StatCard, Tabs, EmptyState, plus shell chrome (sidebar 248 / overlay 270, topbar h-14, search, bell). Charts rendered smoke **nije** ovdje — to je FE-2.2 gate.
+-**Reference:** live `referenca-dizajn` (`Shell.tsx`, `ui.tsx`); theme.md ekrani; theme-source §13.
++**Reference:** `theme.md` (shell mjere i tokeni) + `demo/` prototip. Arhivirani `referenca-dizajn` služio je kao istorijski izvor za ove mjere.
+ **Current:** live `frontend` (`application-shell`, `components/ui/*`).
+ **Dependencies:** FE-0.1–0.5.
+ **Preserve:** ne novi design system; fix samo ako FE-0.1–0.5 primitive padne vizuelno.
+@@ -967,7 +971,7 @@ Linear implementation prompt sequence je u §15.
+ 
+ ## 12. Definition of Done (global)
+ 
+-- [ ] kanonski theme tokens (hex iz theme-source; dual alias dozvoljen)
++- [ ] kanonski theme tokens (u Pulse-u: tokeni iz `index.css`; bez hardkodiranih hexova u komponentama)
+ - [ ] shared primitives (Badge, Button aliases, Card, PageHeader, Tabs, Progress, Field/Input, Charts, EmptyState)
+ - [ ] reference-equivalent layout (shell 248/h-14, content max-w 1400)
+ - [ ] reference-equivalent spacing (kartice gap-3, header mb-5)
+@@ -1037,7 +1041,7 @@ Task nije gotov dok rendered current ne zadovolji, u odnosu na referencu:
+ | Layout | shell 248 / overlay 270 / topbar h-14; content max-w 1400 (izuzeća: detail 1440, new ticket 1060); Ticket Detail `xl:grid-cols-[1fr_330px]` KEEP |
+ | Typography | Inter; PageHeader breadcrumb 11.5px, title 19px (Ticket Detail ID **16px** KEEP); jedan H1; `.tnum` na ID / brojačima / tajmerima |
+ | Spacing | page `px-4 py-6 lg:px-8`; kartice `gap-3`; header `mb-5` |
+-| Colors/tokens | hex samo iz theme-source / theme.md + dopušteni (`#7FA8F5`, `#1D4FD8`, `#31405C`, `#1B2436`, `#3B4A6B`, avatar hues) |
++| Colors/tokens | samo iz `theme.md` / `frontend/src/index.css` (bez hardkodiranih hexova u komponentama; stari „dopušteni hexovi" su važili za classic i više nisu pravilo) |
+ | Borders | `border-border`; card hover border `#31405C`, ne sjena |
+ | Radius | controls 6px, cards/panels 8px; nema pill CTA; nema kartica >8px |
+ | Shadows | samo floating (`shadow-xl shadow-black/40` + `pop-in`) |
+diff --git a/.cursor/docs/theme-source.md b/.cursor/docs/theme-source.md
+index b2e5f28..931e7a7 100644
+--- a/.cursor/docs/theme-source.md
++++ b/.cursor/docs/theme-source.md
+@@ -1,635 +1,22 @@
+-# Master UI-UX Design Constitution — EP-HelpDesk
+-
+-> Source of truth za vizuelni i interakcijski jezik EP-HelpDesk sistema.
+-
+-> Ako bilo koji globalni/template dizajn princip (Apple-linear, one-page, generički SaaS dashboard)
+-
+-> dođe u sukob s ovim dokumentom — **ovaj dokument pobjeđuje**.
+-
+-> Tokeni: `.cursor/docs/theme.md` · Stack: React (Vite) + Tailwind + shadcn/Radix
+-
+----
+-
+-## 1. Filozofija dizajna
+-
+-EP-HelpDesk je **enterprise radni alat**, ne marketing stranica. Dizajn služi ljudima koji u njemu
+-
+-žive 8 sati dnevno — agentima, vlasnicima grupa i administratorima.
+-
+-Pet neprokršivih principa:
+-
+-1. **Informacija ispred ukrasa.** Boja, sjena i pokret postoje samo da bi prenijeli značenje.
+-
+-2. **Dark-first.** Enterprise dark hijerarhija je default: `background → surface → elevated`.
+-
+-   Nikad ne invertovati light temu "u tamnu".
+-
+-3. **Gustoća s disanjem.** "Dense but breathable" — puno podataka po ekranu, ali sa sistemskim
+-
+-   whitespace-om, čitljivim redoslijedom i bez vizuelne panike.
+-
+-4. **Multipage app shell.** Traka za navigaciju lijevo, sadržaj desno, rute po modulima.
+-
+-   Nema one-page skrolanja, nema hero sekcija, nema "scroll storytellinga".
+-
+-5. **Svaka promjena ima trag.** Sve admin akcije traže razlog (change log), svi izvozi se
+-
+-   auditiraju, svi tajmeri i rokovi su vidljivi. Sistem nikad ne radi "tihu magiju".
+-
+----
+-
+-## 2. Paleta boja
+-
+-### 2.1 Neutralne površine (80–90% ekrana)
+-
+-| Token | Hex | Upotreba |
+-
+-|---|---|---|
+-
+-| `background` | `#0B1220` | Podloga aplikacije, unosi (input), pozadina koda |
+-
+-| `surface` | `#111827` | Kartice, sidebar, topbar, tabele |
+-
+-| `elevated` | `#1B2436` | Hover stanja, dropdowni, aktivni nav itemi, tooltipi |
+-
+-| `border` | `#243044` | Svi obrubi, razdjelnici, okviri tabela |
+-
+-| `text` | `#E5E7EB` | Primarni tekst |
+-
+-| `muted` | `#9CA3AF` | Sekundarni tekst, meta podaci, placeholderi |
+-
+-### 2.2 Brand + semantika (10–20% ekrana)
+-
+-| Token | Hex | Dozvoljena upotreba |
+-
+-|---|---|---|
+-
+-| `primary` | `#2563EB` | CTA, aktivna navigacija, fokus, selekcija, status "u radu" |
+-
+-| `accent` | `#22C55E` | **Rijedak** highlight (npr. policy pack oznaka). Nije success, nije status. |
+-
+-| `success` | `#16A34A` | Uspjeh, riješen, SLA u okviru, exact routing |
+-
+-| `warning` | `#F59E0B` | Upozorenje, čeka se nešto/koga, SLA pod rizikom, pauze, zastarjelo |
+-
+-| `danger` | `#EF4444` | Greške, destruktivno, **Kritičan prioritet**, SLA prekoračenje, UNROUTED |
+-
+-| `info` | `#38BDF8` | Informativno, "na čekanju", održavanje, naslijeđeni fallback |
+-
+-**Pravilo kontrasta na tamnoj pozadini:** semantičke boje se kao *tekst* nikad ne crtaju punom
+-
+-saturošću na tint pozadini — koriste se svjetlije varijante radi čitljivosti:
+-
+-| Namjena | Tekst boja na dark |
+-
+-|---|---|
+-
+-| primary tekst/link | `#7FA8F5` |
+-
+-| success tekst | `#4ADE80` |
+-
+-| warning / danger / info tekst | puni token (čitljivi su i puni) |
+-
+-### 2.3 Tint formule (badge/chip površine)
+-
+-Semantički badge = **boja/8–15% pozadina + boja/25–40% obrub + svijetli tekst**.
+-
+-Primjeri: `bg-primary/15 text-[#7FA8F5] border-primary/35` · `bg-danger/10 text-danger border-danger/35`.
+-
+-### 2.4 Željezna pravila o boji
+-
+-- **Boja nije dekoracija.** Svaka obojena površina mora odgovoriti na pitanje "šta ovo znači?".
+-
+-- **Crvena samo kad korisnik mora reagovati** — ili ako je "Kritičan" prioritet (domena).
+-
+-- Nema gradijenata, nema boja po kategorijama korisnika "da bude veselo". Avatari koriste
+-
+-  fiksnu paletu od 6 prigušenih, nezasićenih nijansi.
+-
+----
+-
+-## 3. Tipografija
+-
+-- **Porodica:** Inter (ui-sans-serif fallback). 450 težina dozvoljena za body.
+-
+-- **Skala (strogo):**
+-
+-| Sloj | Veličina | Težina | Primjer |
+-
+-|---|---|---|---|
+-
+-| Meta / label gore | 10–11.5px | 500–600, uppercase, tracking 0.07–0.12em | zaglavlja kolona, sekcijski naslovi |
+-
+-| Metadata | 11–12.5px | 400–500 | vrijeme, DN putanje, opisi badgeva |
+-
+-| Body | 12.5–14px | 400–450 | tekst tiketa, poruke, opisi |
+-
+-| Sekcijski naslov | 13.5–14px | 600 | naslov kartice |
+-
+-| Page title | 19–20px | 600, tracking -0.01em | samo po jedan po stranici |
+-
+-| Velike metrike | 24–26px | 600, tabular-nums | KPI brojke, centar donuta |
+-
+-- **Numerika:** ID-jevi `EP-1043`), tajmeri, procenati i iznosi uvijek s `tabular-nums`
+-
+-  `font-feature-settings: "tnum"`) — stabilne širine cifara, nema "poskakivanja" u tabelama.
+-
+-- Veće veličine od 26px — ne postoje u aplikaciji. Ovo nije landing page.
+-
+-- Line-height: tijesno za naslove (1.2–1.35), opušteno za čitanje (1.5–1.6 u porukama).
+-
+----
+-
+-## 4. Geometrija i dubina
+-
+-| Element | Radius |
+-
+-|---|---|
+-
+-| Badge, checkbox, mali chip | 5–6px |
+-
+-| Dugmad, inputi, select, tabovi | 6px |
+-
+-| Kartice, paneli, dropdowni, tooltipi | 8px |
+-
+-| Krugovi | samo avatar, status tačke, donut |
+-
+-- **Zabranjeno:** pill dugmad, kartice 20–30px radius, "bubble" chat oblici s ekstremnim radiusima.
+-
+-- **Elevacija kroz border, ne kroz sjenu.** Razina se izražava `border #243044` + kontrastom
+-
+-  površina `background → surface → elevated`). Prave sjene `shadow-xl black/40`) samo za
+-
+-  *plutajuće* slojeve: dropdown meni, tooltip, mobilni overlay.
+-
+-- Border-hijerarhija: puni `border` za strukturu, `border/70`, `border/50`, `border/40` za sve
+-
+-  dublje/unutrašnje razdjelnike.
+-
+----
+-
+-## 5. App shell (kostur aplikacije)
+-
+-```
+-
+-┌────────────┬─────────────────────────────────────────────┐
+-
+-│  SIDEBAR   │  TOPBAR: pretraga · status · zvonce · profil │
+-
+-│  248px     ├─────────────────────────────────────────────┤
+-
+-│  brand     │                                             │
+-
+-│  [+ Novi]  │   PAGE HEADER (breadcrumb, title, actions)  │
+-
+-│  sekcije   │                                             │
+-
+-│  nav items │   SADRŽAJ (max-w 1400px, px 4–8, py 6)      │
+-
+-│  bedževi   │                                             │
+-
+-│  —         │                                             │
+-
+-│  user card │                                             │
+-
+-└────────────┴─────────────────────────────────────────────┘
+-
+-```
+-
+-### 5.1 Sidebar — pravila
+-
+-- Širina 248px, `surface` + desni border. Vertikalno: brand (h-14) → primarni CTA → sekcije → user card.
+-
+-- **Primarni CTA ("Novi tiket")** je jedino puno `primary` dugme u chrome-u; prečica `N`.
+-
+-- Sekcije imaju uppercase naslove 10px / tracking 0.12em / muted 60%: *Pregled, Tiketi, Usluge i znanje, Administracija*.
+-
+-- Nav item: h-8.5, ikona 15.5px stroke 1.9, label 13px. Aktivan = `bg-elevated` + **lijeva
+-
+-  indikatorska crtica 2.5px primary** + ikona u `#7FA8F5`.
+-
+-- Količinski bedževi (broj tiketa u inboxu itd.) — neutralni; crveni samo za nešto čemu pristupaš *sada*.
+-
+-- Dno: user card s avatarom, imenom i rolom ("SuperAdmin · lokalni nalog").
+-
+-### 5.2 Topbar — pravila
+-
+-- Visina 56px (h-14), `surface`, donji border.
+-
+-- Pretraga: max-w-md, `background` input, ikona lijevo, **⌘K hint** desno; pokriva tikete + KB + korisnike.
+-
+-- Status sistema: čip s pulsirajućom success tačkom ("Svi sistemi operativni") — diskretan, desno.
+-
+-- Zvonce: nepročitane = crveni broj (reakcija potrebna — isplativo crveno). Panel 380px, `elevated` + sjena.
+-
+-- User meni: avatar + ime + OU/rola; sadržava "Moj profil", "Dodijeljeni tiketi", jezik (BS/EN), odjava.
+-
+-### 5.3 Page header (svaka stranica)
+-
+-- Breadcrumb 11.5px muted `Modul / Podmodul / Trenutna`).
+-
+-- Title 19px semibold; subtitle 12.5px muted (jedna rečenica konteksta — ko vidi, šta znači broj).
+-
+-- Akcije desno: sekundarne (outline) lijevo od primarne. Max 2–3 akcije; ostalo u meni.
+-
+-### 5.4 Sadržaj
+-
+-- Kontejner `max-w-[1400px]`, padding 16px (mobile) / 32px (desktop), vertikalno 24px.
+-
+-- Razmaci između kartica: 12–16px. Kartica = naslovna traka `CardHeader`) + tijelo.
+-
+-- Tabele koje prelaze širinu: horizontalni scroll unutar kartice, `min-w-*` po tabeli.
+-
+----
+-
+-## 6. Komponente
+-
+-### 6.1 Dugmad
+-
+-| Varijanta | Površina | Upotreba |
+-
+-|---|---|---|
+-
+-| `primary` | primary fill, hover `#1D4FD8`, active `#1B44BE` | jedna primarna akcija po kontekstu |
+-
+-| `outline` | surface + border, hover elevated + svjetliji border | sekundarne akcije |
+-
+-| `subtle` | elevated/60 + border/70 | tercijarne, unutar panela |
+-
+-| `ghost` | bez okvira, hover elevated | ikonske i tihe akcije |
+-
+-| `danger` | danger/10 + border danger/40 | destruktivno (uvijek s potvrdom) |
+-
+-Visine: `xs` h-6.5 · `sm` h-8 · `md` h-9. Radius 6px. Ikona 12–15px ispred labele,
+-
+-razmak 6px. Disabled = opacity 45% bez pointera. Fokus: `outline 2px primary/70`.
+-
+-### 6.2 Badge / čip
+-
+-- Oblik: rounded-md (6px), border, px-1.5, tekst 11px medium, **uvijek s tekstom** (boja sama nikad ne nosi značenje).
+-
+-- Opciona tačka `dot`) iste boje 6px ispred teksta.
+-
+-- Bedževi su informativni elementi, **nisu dugmad** — klikabilni bedž je smell; koristi dugme.
+-
+-### 6.3 Kartica
+-
+-- `rounded-lg border border-border bg-surface`. Bez sjene u mirovanju; hover na interaktivnim
+-
+-  karticama samo svjetliji border `#31405C`) + eventualno elevated/30 pozadina.
+-
+-- `CardHeader`: naslov 13.5px semibold + opcioni podnaslov 12px + akcije desno; donji border/70.
+-
+-### 6.4 Tabela
+-
+-- Zaglavlje: 10.5px uppercase, tracking 0.08em, muted/70, medium — nikad bold crno.
+-
+-- Redovi: `divide-y divide-border/50`, visina ~44px, hover `bg-elevated/40`.
+-
+-- Klikabilni red: cijeli red je klik (cursor-pointer); akcije unutar reda zaustavljaju propagaciju.
+-
+-- ID kolona: `#7FA8F5` + tabular-nums; hover underline.
+-
+-- Checkbox kolona širine 40px, lijevo.
+-
+-- Poravnanje: tekst lijevo, brojevi/rokovi desno.
+-
+-### 6.5 Tabovi
+-
+-- Podlanični stil: tekst 12.5px, aktivni = tekst puni + **donja crtica primary 2px**, neaktivni muted.
+-
+-- Count čip uz labelu kad god broj pomaže (npr. "Grupni inbox · 9").
+-
+-### 6.6 Forme
+-
+-- Input/select h-9, textarea min-h ~90px; pozadina `background/60`, border, hover `#31405C`, fokus `primary`.
+-
+-- Label 12.5px medium iznad; obavezna polja = crvena zvjezdica; hint 11.5px muted ispod.
+-
+-- Validacija prije submit-a; nema "tihih" grešaka — poruka blizu polja, u danger tonu.
+-
+-- Schema-driven forme (katalog): renderuju ista pravila, polja definisana verzijom forme
+-
+-  `formVersionRef` fiksiran na tiketu — prikazivati verziju).
+-
+-### 6.7 Toggle
+-
+-- h-5 w-9, krug 14px; uključeno = primary; isključeno = elevated/border. Za registry postavke
+-
+-  i addon katalog. Nema toggle-a bez labela i kratkog opisa posljedice.
+-
+-### 6.8 KPI / StatCard
+-
+-- Label 11.5px uppercase muted → vrijednost 24px semibold tabular-nums → delta (boja po značenju)
+-
+-  → hint 11.5px. Delta je bojana samo ako nosi odluku (+ rok/j cilj).
+-
+-### 6.9 Grafovi (ručni SVG, tema-first)
+-
+-- **Donut:** stroke tehnika, thickness ~15, hover deblja segment i dim ostale (opacity 25),
+-
+-  centar = ukupno ili hover vrijednost; legenda desno s brojem i % .
+-
+-- **Grupisani stubići:** dva serijska tona (primary + `#3B4A6B` neutralna druga serija),
+-
+-  radius vrha 3px, stagger animacija 28ms, hover tooltip s tačnim brojevima.
+-
+-- **Horizontalne trake:** track `border/50`, fill boja samo ako označava prag (grlo=warning,
+-
+-  prekoračeno=danger, cilj=primary/success).
+-
+-- Nema 3D, nema gridova u pozadini, osa okvira nema — samo baseline i inline labele.
+-
+-### 6.10 Empty state
+-
+-- Okvirna ikona (rounded-lg border elevated) + naslov 13px + objašnjenje 12px (max-w-sm) + akcija.
+-
+-- Nikad samo "Nema podataka". Uvijek: šta se desilo + šta korisnik može uraditi.
+-
+-### 6.11 Avatar
+-
+-- Inicijali (max 2 slova), krug, 6 fiksnih prigušenih nijansi (hash od imena — stabilno).
+-
+-- Veličine: xs 20px / sm 26px / md 32px. Uz avatarn u listama — ime 12px medium, uloga 10.5px muted.
+-
+----
+-
+-## 7. Semantička mapa domene (statusi → boje)
+-
+-Ovo je **ukrštanje domene i vizualnog jezika** — mijenja se samo uz izmjenu domene.
+-
+-### 7.1 Status tiketa
+-
+-| Status | Ton | Napomena |
+-
+-|---|---|---|
+-
+-| Na čekanju | info | ulazno stanje |
+-
+-| Dodijeljen | primary | ima vlasnika-proces |
+-
+-| U obradi | primary | aktivan rad |
+-
+-| Čeka korisnika | warning | pauza; SLA tajmer staje (vidi 7.3) |
+-
+-| Riješen | success | čeka potvrdu/auto-close |
+-
+-| Zatvoren | neutral | arhiva; bez boje |
+-
+-### 7.2 Prioritet (impact × urgency → matrica 3×3)
+-
+-| Prioritet | Ton | Pravilo |
+-
+-|---|---|---|
+-
+-| Nizak | neutral | |
+-
+-| Srednji | info | |
+-
+-| Visok | warning | |
+-
+-| **Kritičan** | **danger** | jedini prioritet koji smije crveniti; u inboxu dodatno Flame ikona |
+-
+-Matrica: HIGH×HIGH=Kritičan · (HIGH,MEDIUM)/(MEDIUM,HIGH)=Visok ·
+-
+-(HIGH,LOW)/(MEDIUM,MEDIUM)/(LOW,HIGH)=Srednji · ostalo=Nizak.
+-
+-Prioritet se **nikad ne bira ručno** — izračunava se; UI uvijek prikazuje "izračunato" porijeklo.
+-
+-### 7.3 SLA stanje
+-
+-| Stanje | Ton | UI manifestacija |
+-
+-|---|---|---|
+-
+-| U okviru | success | fino, bez panic-a |
+-
+-| Pod rizikom (75%) | warning | badge + filter "SLA rizik" |
+-
+-| **Prekoračen** | **danger** | badge, eskalacija, vrh inboxa — traži reakciju |
+-
+-| Pauziran | warning | chips "pauza" uz tajmer (waiting-for-user / pending-approval) |
+-
+-### 7.4 Routing ishodi
+-
+-| Ishod | Ton | Ćelija matrice |
+-
+-|---|---|---|
+-
+-| EXACT | success | "E" |
+-
+-| PARENT_FALLBACK | info | "N" (naslijeđeno) |
+-
+-| **UNROUTED** | **danger** | "×" — rupa je *vidljiva*, nikad skrivena |
+-
+-UNROUTED nije greška — ali je vlasnik reda (SUPER_ADMIN) i traži pravilo; zato danger ton.
+-
+-### 7.5 Katalog
+-
+-- Lifecycle: Nacrt neutral · Aktivan success · Zastarjelo warning.
+-
+-- Availability: Dostupno success · Otežan rad warning · Održavanje info.
+-
+-- Prekid rada se prikazuje kao **info traka** (CalendarClock) — nikad ne blokira create.
+-
+-### 7.6 Razgovor
+-
+-- Javni odgovor (svoj igrač): primary tint balon; tudji: surface.
+-
+-- Interna napomena: warning tint + zaključana ikona (vidljivo samo agentima).
+-
+-- Sistem: bez balona — italic muted tekst s GitBranch ikonom (routing/SLA događaji).
+-
+-### 7.7 Audit / aktivnost
+-
+-Ikonske pločice po tipu: status/assign primary · sla warning · routing info · approval success · security danger · edit neutral.
+-
+----
+-
+-## 8. UX obrasci (patterns)
+-
+-### 8.1 Novi tiket — vođeni tok (wizard)
+-
+-`Usluga → Detalji → Baza znanja (KB intercept) → Pregled` sa stepperom (brojčane pločice,
+-
+-završeno = success kvačica, aktivno = primary punjenje).
+-
+-- **KB intercept je obavezni korak** i ne smije se preskočiti ni u jednoj verziji forme.
+-
+-  Dvije karte ishoda: "Članak je riješio moj problem" (success) / "Nastavi sa slanjem" (primary).
+-
+-- Korak pregleda prikazuje: routing ishod, izračunati prioritet, SLA profil, potrebna odobrenja,
+-
+-  verziju forme. Success ekran nakon slanja ponavlja te činjenice (uklj. UNROUTED s vlasnikom).
+-
+-### 8.2 Grupni inbox — vlasništvo
+-
+-Grupa je vlasnik; agent preuzima ("Preuzmi") ili auto-assign (Least Busy / Round Robin — badge na
+-
+-grupi). Neusmjereni red ima zaseban info-banner (danger) koji objašnjava pravilo: *grupa se ne
+-
+-dodjeljuje proizvoljno; rješenje je routing pravilo ili ručna dodjela.*
+-
+-### 8.3 SLA panel (detalj tiketa)
+-
+-Dva tajmera (prvi odgovor / rješenje): progress traka h-1.5, preostalo vrijeme desno
+-
+-`za 2 sata` / `prekoračeno 40 minuta`), pauza = warning chip s Pause ikonom. Odgovor koji je
+-
+-zadovoljen prikazuje se kao "zadovoljen" (success), nikad retroaktivno crveno.
+-
+-### 8.4 Odobrenja
+-
+-Vertikalni timeline: pločica stanja + uloga odobritelja + osoba + razmak; pending korak dobija
+-
+-"Odobri / Odbij" akcije. Pauza SLA-a dok traje lanac je naglašena u SLA panelu.
+-
+-### 8.5 Bulk akcije
+-
+-Selekcija → plutajuća/vrapčeva traka (primary tint) s brojem: Dodijeli grupi, Dodijeli agentu,
+-
+-Prioritet, Tag. **Bulk close ne postoji** — uz objašnjenje na traci ("zaštita kvaliteta").
+-
+-### 8.6 Routing coverage matrica
+-
+-Usluge × OU; ćelije E/N/× po mapi iz 7.4; legenda uvijek vidljiva; tooltip ćelije = usluga, OU path,
+-
+-ishod, grupa, dubina fallback-a. Sticky prva kolona. Matrica je alat za pronalaženje rupa —
+-
+-cilj dizajna je da rupa bude primjetna u pola sekunde.
+-
+-### 8.7 Change log
+-
+-Svaki zapis: entitet + ko/kad + razlog (italic, u navodnicima) + diff tabela
+-
+-`polje | prije | poslije`) — "prije" je danger + line-through, "poslije" success.
+-
+-Tajne se nikad ne prikazuju (redacted).
+-
+-### 8.8 Obavještenja
+-
+-Panel 380px: filter Sve/Nepročitane, "Označi sve" (besplatna akcija — odmah), stavke s ikonom
+-
+-po tipu (ticket/sla/approval/system), nepročitano = primary tačka + deblji naslov; klik vodi na povezanu rutu.
+-
+-### 8.9 Pretraga
+-
+-Jedna globalna traka (tiketi + KB + korisnici), ⌘K. Empty state predlaže kreiranje KB članka
+-
+-za nepogodjeni upit (kesirani upiti → KB gap analiza).
+-
+----
+-
+-## 9. Interakcija i pokret
+-
+-- **Trajanja:** 150ms hover/focus boje · 160ms dropdowni `pop-in`) · 180ms fade · 240ms ulaz
+-
+-  stranice `page-in`: translateY 6px + opacity) · 500–700ms grafovi.
+-
+-- **Kriva:** `cubic-bezier(0.22, 0.68, 0.36, 1)` (brz ulaz, meko slijetanje).
+-
+-- **Pulsiranje samo za "sve je živo i zdravo"** (status tačka, sporo 2.4s). Upozorenja ne pulsiraju — crvena i statička je dovoljna.
+-
+-- Stagger 28ms samo na stubićima grafa i ničem drugom.
+-
+-- **Zabranjeno:** parallax, scroll-jack, auto-play video, skelet loaderi koji trepere cijeli ekran,
+-
+-  konfeti pri zatvaranju tiketa, "bouncy" easing.
+-
+-- Mikro-pohvale dozvoljene: hover podizanje bordera, underline na ID-ju, kartica koja "dahne" u elevated ton.
+-
+----
+-
+-## 10. Pristupačnost
+-
+-- `:focus-visible` = 2px primary/70 prsten, radius 4px — **svugdje**, uključujući custom dugmad.
+-
+-- Boja nikad nije jedini nosilac značenja (uvijek label/tekst uz ton).
+-
+-- Svjetlije varijante semantičkog teksta na tintovanim pozadinama (vidi 2.2).
+-
+-- Tastaturne prečice dokumentovane u samom UI-ju `N` novi tiket, `⌘K` pretraga).
+-
+-- Checkbox/radio = `accent-color: primary`. Tabela može biti gusta, ali red ne smije ispod 36px.
+-
+-- Datumsko-vremenski prikazi uvijek imaju i apsolutnu vrijednost (title/tooltip) pored relativne.
+-
+----
+-
+-## 11. Jezik i ton (i18n: BS default, EN fallback)
+-
+-- Glas: **stručan, kratak, bez marketinških pridjeva**. "Tiket je u neusmjerenom redu — dodajte
+-
+-  routing pravilo ili ručno dodijelite." umjesto "Ups! Nešto je pošlo po zlu!".
+-
+-- Terminologija (kanonska, ne mijenjati):
+-
+-  tiket, usluga, katalog usluga, jedinica porijekla (OU), handler grupa, dodijeliti, preuzeti,
+-
+-  neusmjeren(i red), odobrenje, prilog, interna napomena, baza znanja, usmjeravanje, eskalacija.
+-
+-- Datumi: `12. feb 2026.` + `14:30` (24h). Relativno: `prije 3 sata`, `za 45 minuta`,
+-
+-  `prekoračeno 2 sata`, `jučer`.
+-
+-- **Pluralizacija (pravilo):** n%10=1 i n%100≠11 → "1 sat"; n%10∈2..4 i n%100∉12..14 → "3 sata";
+-
+-  inače "5 sati". Isto za minute/dane.
+-
+-- Decimalni zarez: "6,4 h". Valuta: "1 240 KM" (razmak hiljade).
+-
+-- Kod/identifikatori ostaju latinični ASCII: `EP-1043`, `UNROUTED`, `DUPLICATE_RULE`,
+-
+-  `private.ticket.unroutedQueue.enabled`, `OU=Tuzla,DC=ep,DC=local`.
+-
+----
+-
+-## 12. Anti-obrasci — eksplicitno zabranjeno
+-
+-1. Boja radi ukrasa; crvena bez reakcije.
+-
+-2. Pill dugmad / radius > 10px / marketing hero unutar shella.
+-
+-3. Sjene za hijerarhiju umjesto border + surface kontrasta.
+-
+-4. One-page layout, "scrollirajci" dashboard, horizontalne kartice-mrtveubnice.
+-
+-5. Emoji i ilustracije-talasi umjesto Lucide ikona (stroke ~1.8–2).
+-
+-6. "Tiho" stanje: loader bez teksta, greška bez poruke, submit bez loading/error stanja.
+-
+-7. **Silent fallback grupe** — tiket mora biti vidljivo UNROUTED, nikad "default IT grupa".
+-
+-8. Ručni odabir prioriteta (zaobilazi matricu); ručni SLA override bez razloga.
+-
+-9. Admin akcije bez polja za razlog (change log) ili admin ekran bez read-only mogućnosti.
+-
+-10. Auto-magija bez predloga: auto-assign bez vidljivog moda, auto-close bez obavijesti i reopen politike.
+-
+-11. Kopiranje marketing SaaS obrazaca ("Get started free", tri cjenovna paketa) u helpdesk alat.
+-
+-12. Svijetla "dark mode" tema koja je samo invertovana light — hijerarhija se projektuje, ne invertuje.
+-
+----
+-
+-## 13. Test usklađenosti (checklist prije merge-a)
+-
+-- [ ] Sve neutralne površine su iz 2.1; semantika samo iz 2.2 i mape iz sekcije 7.
+-
+-- [ ] Radius ≤ 10px; sjene samo na plutajućim slojevima.
+-
+-- [ ] Page title jedan po stranici; tipografska skala iz sekcije 3.
+-
+-- [ ] Svaka crvena stvar ima akciju koju korisnik može preduzeti.
+-
+-- [ ] Svaka admin forma ima polje "Razlog izmjene".
+-
+-- [ ] Tabular-nums na svim ID-jevima, tajmerima i iznosima.
+-
+-- [ ] Fokus prsten vidljiv na svakoj interaktivnoj kontroli.
+-
+-- [ ] Relativno vrijeme ima apsolutni tooltip; pluralizacija pravilna.
+-
+-- [ ] Empty state: šta se desilo + sljedeći korak.
+-
+-- [ ] KB intercept prisutan u toku kreiranja tiketa.
++# [ARHIVIRANO] theme-source — stara dark-only paleta
++
++> **Ovaj dokument više nije izvor istine.** Zadržan je samo kao istorijski zapis originalne
++> dark-first palete; **ne koristi ga** za nove ekrane, tokene ni kontrastne odluke.
++>
++> Zamijenio ga je **[`.cursor/docs/theme.md`](theme.md)**, koji je implementacijski katalog aktivnog
++> dizajn-sistema **Pulse** (tokeni, geometrija, palete `data-accent`, kontrast) i koji se drži uz kod:
++> `frontend/src/index.css` + `frontend/tailwind.config.ts`.
++>
++> Hijerarhija izvora (važeća):
++>
++> 1. **Tematika:** `.cursor/docs/theme.md` (izvor istine je kod).
++> 2. **UX / interakcija:** `Master UI-UX Design Constitution.md`.
++> 3. **Živi dokaz:** `demo/` + Visual QA tabla u aplikaciji.
++>
++> Zašto je penzionisan: opisivao je isključivo tamnu temu i fiksne hex vrijednosti, pa je svaka
++> izmjena u Pulse-u (svijetli mod, `data-accent` palete, radius/sjena kao tokeni) bila u direktnom
++> sukobu s njim. Ostavljanje dva „mjerodavna" izvora je bilo gore od brisanja — zato je sadržaj
++> zamijenjen ovom oznakom, a original ostaje u git istoriji.
++
++**Originalni sadržaj (635 linija) je u git istoriji** na commitu prije `pulse-14` patcha:
++`git log --follow -- .cursor/docs/theme-source.md`.
+diff --git a/.cursor/docs/theme.md b/.cursor/docs/theme.md
+index 7300044..9d1f7cf 100644
+--- a/.cursor/docs/theme.md
++++ b/.cursor/docs/theme.md
+@@ -4,15 +4,20 @@ Ovaj fajl je **implementacijski katalog tokena** (hex, Tailwind `@theme`, geomet
+ 
+ ## Izvori (hijerarhija)
+ 
+-1. **Tematika (mjerodavno):** [`.cursor/docs/theme-source.md`](theme-source.md) — paleta, kontrast, tipografija, geometrija, semantička mapa, motion, anti-obrasci.
++1. **Tematika (mjerodavno):** ovaj fajl — implementacijski katalog tokena, paleta i kontrasta.
++   Izvor istine je kod: [`frontend/src/index.css`](../../frontend/src/index.css) + [`frontend/tailwind.config.ts`](../../frontend/tailwind.config.ts).
++   `.cursor/docs/theme-source.md` je **penzionisan** (stara dark-only paleta) — ne koristi ga kao izvor.
+ 2. **UX / interakcija:** [`Master UI-UX Design Constitution.md`](../../Master%20UI-UX%20Design%20Constitution.md) — north star, layout po ekranu, obrasci, a11y, jezik.
+-3. **Živa referenca:** [`referenca-dizajn/`](../../referenca-dizajn/) — kanonska vizuelna implementacija tokena.
++3. **Živi dokaz:** [`demo/`](../../demo/) — prototip novog identiteta; **Visual QA → Primitive-i → Theme** u aplikaciji.
++   `referenca-dizajn/` je **arhiviran** (vidi [`referenca-dizajn/README.md`](../../referenca-dizajn/README.md)).
+ 
+-Ako token ovdje i `theme-source.md` nisu usklađeni, **pobjeđuje `theme-source.md`**. Ako UX i Constitution nisu usklađeni, **pobjeđuje Constitution**. Referenca je dokaz kako tokeni izgledaju u UI-ju.
++Ako se ovaj fajl i kod ne slažu, **pobjeđuje kod**. Ako se UX i Constitution ne slažu, **pobjeđuje Constitution**.
+ 
+-App shape: **multipage application shell** (nije one-page). Dark-first: `background → surface → elevated`. Ne invertovati light temu.
++App shape: **multipage application shell** (nije one-page). Pulse je **light-first sa ravnopravnim tamnim modom**;
++`classic` je uvijek tamna (dark-only) i ostaje dostupna tokom tranzicije. Hijerarhija ploha je ista u obje svjetline:
++`background → surface → elevated`.
+ 
+-CSS varijable: [`referenca-dizajn/src/index.css`](../../referenca-dizajn/src/index.css) (`@theme`). Font load: [`referenca-dizajn/index.html`](../../referenca-dizajn/index.html).
++CSS varijable: [`frontend/src/index.css`](../../frontend/src/index.css). Font: Inter preko `index.html`/`index.css`.
+ 
+ ---
+ 
+@@ -29,13 +34,19 @@ Pulse je novi vizuelni identitet i **default tema** frontenda. Definisan je u
+ | `data-theme="pulse"` | novi identitet, svijetli po defaultu |
+ | `data-theme="classic"` | stara tamna tema, sačuvana tokom tranzicije |
+ | `.dark` | tamni mod aktivne teme (`classic` je uvijek tamna) |
++| `data-accent="indigo\|teal\|rose"` | **brend paleta** unutar Pulse-a (`indigo` je zadana) |
+ 
+-Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`).
++Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`) × jedna od tri palete
++(paleta se ignoriše u `classic` — tamo je brend uvijek njegova plava).
+ 
+ - Kontrakt je u [`frontend/src/lib/theme/theme-storage.ts`](../../frontend/src/lib/theme/theme-storage.ts),
+   provider u `theme-provider.tsx`, birač u `components/layout/theme-switcher.tsx`.
+-- `index.html` primjenjuje temu **prije prvog paint-a** (bez treperenja); ako skripta padne, ostaje `classic`.
+-- Default se mijenja jednom konstantom: `DEFAULT_THEME_DESIGN`.
++- `index.html` primjenjuje temu **prije prvog paint-a** (bez treperenja) i postavlja `data-theme`, `data-accent` i `.dark`;
++  neispravna vrijednost u `localStorage` se sanitizuje na default. Ako skripta padne, ostaje `classic`.
++- Defaulti se mijenjaju konstantama: `DEFAULT_THEME_DESIGN`, `DEFAULT_THEME_MODE`, `DEFAULT_THEME_ACCENT`.
++- Tri ulaza u izgled, jedan kontrakt (`useTheme()`): birač u topbaru · korisnički meni → **Izgled** · stranica
++  **`/appearance`** ([`frontend/src/pages/appearance-page.tsx`](../../frontend/src/pages/appearance-page.tsx)),
++  koja ima i **živi pregled** sastavljen od pravih primitiva (nema odvojene „preview" teme).
+ 
+ ## Kako su tokeni zapisani
+ 
+@@ -48,6 +59,56 @@ Token je **RGB kanal**, ne gotova boja. To je ono što drži `/alpha` modifikato
+ surface: "rgb(var(--surface) / <alpha-value>)"   // bg-surface, bg-surface/60
+ ```
+ 
++## Brend palete (`data-accent`)
++
++Treća osa rotira **samo brend boje**; površine, radijusi, sjene i semantički tonovi se ne mijenjaju —
++zato paleta radi u obje svjetline bez ijednog dodatnog bloka po modu. Paletni blok mijenja **8 varijabli + glow**:
++`--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`,
++`--selection-bg`, `--selection-fg`, `--shadow-glow`.
++
++| Paleta | `data-accent` | Svjetla `--primary` | Tamna `--primary` | Karakter |
++|---|---|---|---|---|
++| Indigo (**zadana**) | `indigo` | 91 91 214 | 111 102 223 | postojeći Pulse brend |
++| Teal | `teal` | 15 118 110 | 45 212 191 | hladna, smirena |
++| Rose | `rose` | 190 18 60 | 251 113 133 | topla, izražena |
++
++Selektori su oblikovani kao `:root[data-theme="pulse"][data-accent="teal"]` (specifičnost pobjeđuje bazni blok
++bez obzira na redoslijed) i **scoped su na `pulse`** — `classic` zadržava svoju plavu.
++
++**Kako dodati paletu (3 koraka):**
++
++1. Blok `:root[data-theme="pulse"][data-accent="<ime>"]` i njegov `.dark` par u `frontend/src/index.css`
++   (8 varijabli + `--shadow-glow`).
++2. Ime u `ThemeAccent` i `THEME_ACCENTS` (`frontend/src/lib/theme/theme-storage.ts`).
++3. Ključevi `theme.accent<Ime>` (+ `…Hint`) u `bs` **i** `en`.
++
++UI se prilagođava sam (birač, `/appearance`, `role="radiogroup"` iteriraju `THEME_ACCENTS`).
++`--primary-foreground` nije ukras: **svijetla primary boja traži taman tekst na sebi**.
++Preview uzorci (`.accent-swatch-*` u `index.css`) su jedina hardkodirana boja van tokena — moraju prikazati
++paletu koja **nije** aktivna, pa ne mogu čitati `--primary`.
++
++## Kontrast (izmjerene vrijednosti)
++
++Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (6 kombinacija × 4 mjerenja = 24/24 na novim paletama):
++
++| Paleta | Svjetlina | Tekst na primary | Primary kao tekst | Link | Selekcija |
++|---|---|---|---|---|---|
++| indigo | svjetla | 5.37:1 | 5.37:1 | 6.41:1 | 12.44:1 |
++| indigo | tamna | 4.52:1 | **4.00:1** ⚠ | 6.68:1 | 12.77:1 |
++| teal | svjetla | 5.47:1 | 5.47:1 | 7.58:1 | 9.88:1 |
++| teal | tamna | 7.77:1 | 9.71:1 | 12.22:1 | 8.79:1 |
++| rose | svjetla | 6.29:1 | 6.29:1 | 8.02:1 | 9.87:1 |
++| rose | tamna | 5.81:1 | 6.72:1 | 9.56:1 | 10.51:1 |
++
++⚠ jedina vrijednost ispod AA je **postojeća** indigo paleta u tamnom modu (`text-primary` = 4.00:1) — baseline iz Faze 0,
++ne regresija; nove palete su strože.
++
++**Dva pravila koja se lako pogrešno „poprave":**
++
++- `::selection` se crta kao alpha blend **preko podloge**, pa `--selection-fg` mora biti **taman u svijetlim paletama,
++  a svijetao u tamnim** — nikad ista vrijednost za obje (pogrešna prva verzija je dala 1.65:1).
++- `--primary-foreground` prati primarnu boju, ne svjetlinu teme (u tamnoj teal paleti je **tamno na svijetlom**).
++
+ ## Tokeni (RGB kanali)
+ 
+ | Token | classic | pulse (light) | pulse + `.dark` | Upotreba |
+@@ -100,10 +161,14 @@ Kod: `frontend/src/components/ui/avatar.tsx`.
+ 2. Dodaj mapiranje u `tailwind.config.ts` kao `rgb(var(--x) / <alpha-value>)`.
+ 3. Provjeri kontrast ≥ 4.5:1 kao tekst na `surface` u sva tri bloka.
+ 4. Ako je status: dodaj u `frontend/src/lib/theme/semantic-meta.ts`, ne u komponentu.
+-5. Nikad `#RRGGBB` u `.tsx`.
++5. Nikad `#RRGGBB` u `.tsx` (jedini izuzetak su `.accent-swatch-*` preview uzorci u `index.css`).
++6. **Ako je brend boja** (a ne neutralna/semantička): dodaj je u paletne blokove (§ Brend palete), ne u bazni blok.
+ 
+ Živa referenca: **Visual QA → Primitive-i → Theme** (`frontend/src/components/visual-qa/visual-qa-theme-board.tsx`)
+-prikazuje sve tokenе, tonove i nove primitive u aktivnoj temi.
++prikazuje sve tokene, tonove i nove primitive u aktivnoj temi. Za izbor izgleda i živi pregled: **`/appearance`**.
++
++Provjera prije commita: `npx tsc -b`, `npx vitest run`, `npx vite build`, te klasa-proba kroz generisani CSS
++(klasa koja ne postoji u CSS-u je mrtva klasa čak i kad izgleda ispravno u kodu).
+ 
+ ---
+ 
+@@ -125,7 +190,7 @@ prikazuje sve tokenе, tonove i nove primitive u aktivnoj temi.
+ | `text` | `#E5E7EB` | `--color-text` | primarni tekst |
+ | `muted` | `#9CA3AF` | `--color-muted` | sekundarni tekst, meta, placeholder |
+ 
+-Izvor: [theme-source §2.1](theme-source.md). Border-hijerarhija: puni `border` → `border/70` → `border/50` → `border/40`.
++Border-hijerarhija: puni `border` → `border/70` → `border/50` → `border/40`.
+ 
+ ## Brand + semantic (10–20%)
+ 
+@@ -139,7 +204,7 @@ Izvor: [theme-source §2.1](theme-source.md). Border-hijerarhija: puni `border`
+ | `danger` | `#EF4444` | `--color-danger` | greške, destructive, Kritičan, SLA breach, UNROUTED |
+ | `info` | `#38BDF8` | `--color-info` | na čekanju, održavanje, PARENT_FALLBACK |
+ 
+-Izvor: [theme-source §2.2](theme-source.md). Boja nije dekoracija. Crvena samo kad korisnik mora reagovati.
++Boja nije dekoracija. Crvena samo kad korisnik mora reagovati.
+ 
+ ## Kontrast na dark + interakcijski hex
+ 
+@@ -175,7 +240,7 @@ Semantički badge = **boja/8–15% bg + boja/25–40% border + svijetli tekst**.
+ 
+ ## Avatar paleta (6 fiksnih, hash od imena)
+ 
+-Krug, max 2 inicijala. xs 20px / sm 26px / md 32px. Izvor: [theme-source §6.11](theme-source.md) · kod: `AVATAR_HUES` u `ui.tsx`.
++Krug, max 2 inicijala. xs 20px / sm 26px / md 32px. Kod: `AVATAR_HUES` u `referenca-dizajn/src/components/ui.tsx` (arhivirano) i `frontend/src/components/ui/avatar.tsx`.
+ 
+ | Bg | Tekst |
+ |---|---|
+@@ -190,7 +255,7 @@ Krug, max 2 inicijala. xs 20px / sm 26px / md 32px. Izvor: [theme-source §6.11]
+ 
+ ## Typography
+ 
+-Porodica: **Inter** (`--font-sans: "Inter", ui-sans-serif, …`). Težine 400 / 450 / 500 / 600. Body default 14px u `index.css`; skala u UI-ju stroža (theme-source §3).
++Porodica: **Inter** (`--font-sans: "Inter", ui-sans-serif, …`). Težine 400 / 450 / 500 / 600. Body default 14px u `index.css`; skala u UI-ju stroža.
+ 
+ | Sloj | Veličina | Težina | Primjer |
+ |---|---|---|---|
+@@ -246,7 +311,7 @@ Stagger 28ms **samo** na graf stubićima. Zabranjeno: parallax, scroll-jack, tre
+ 
+ ## App shell (mjere)
+ 
+-Izvor: [theme-source §5](theme-source.md) · živo: [`referenca-dizajn/src/components/Shell.tsx`](../../referenca-dizajn/src/components/Shell.tsx).
++Živo: [`frontend/src/components/layout/application-shell.tsx`](../../frontend/src/layouts/application-shell.tsx) · prototip: [`demo/`](../../demo/).
+ 
+ | Dio | Mjera |
+ |---|---|
+@@ -265,7 +330,7 @@ Nav sekcije: Pregled · Tiketi · Usluge i znanje · Administracija. Rute: [`ref
+ 
+ ## Komponente (tokeni)
+ 
+-Pravila i anti-obrasci: [theme-source §6](theme-source.md), [Constitution](../../Master%20UI-UX%20Design%20Constitution.md). Implementacija: [`ui.tsx`](../../referenca-dizajn/src/components/ui.tsx).
++Pravila i anti-obrasci: [Constitution](../../Master%20UI-UX%20Design%20Constitution.md) §26. Implementacija: `frontend/src/components/ui/`.
+ 
+ **Dugmad** — radius 6px; `xs` h-6.5 · `sm` h-8 · `md` h-9; ikona 12–15px, gap 6px; disabled opacity 45%.
+ 
+@@ -295,7 +360,7 @@ Pravila i anti-obrasci: [theme-source §6](theme-source.md), [Constitution](../.
+ 
+ ## Semantička mapa (status → tone)
+ 
+-Izvor: [theme-source §7](theme-source.md) · kod: [`referenca-dizajn/src/lib/core.ts`](../../referenca-dizajn/src/lib/core.ts) (`STATUS_META`, `PRIORITY_META`, …). Labele iz RAW / domain modela — ovdje samo vizuelni ton.
++Kod: [`frontend/src/lib/theme/semantic-meta.ts`](../../frontend/src/lib/theme/semantic-meta.ts) (`STATUS_META`, `PRIORITY_META`, …). Labele iz RAW / domain modela — ovdje samo vizuelni ton.
+ 
+ | Domen | Mapiranje |
+ |---|---|
+@@ -335,7 +400,7 @@ Svaki ekran koristi `.page-in` + `max-w-[1400px] px-4 py-6 lg:px-8`.
+ | Domena/tone | [`src/lib/core.ts`](../../referenca-dizajn/src/lib/core.ts) | meta mape + priority matrica |
+ | Rute | [`src/nav.ts`](../../referenca-dizajn/src/nav.ts) | shell rute |
+ 
+-UX obrasci (wizard, inbox, SLA panel, bulk, matrica, change log, notif, pretraga): [theme-source §8](theme-source.md) + Constitution.
++UX obrasci (wizard, inbox, SLA panel, bulk, matrica, change log, notif, pretraga): [Constitution](../../Master%20UI-UX%20Design%20Constitution.md).
+ 
+ ---
+ 
+@@ -364,4 +429,4 @@ Implementiraj identično u `frontend` kao u referenci:
+ }
+ ```
+ 
+-Nema dodatnih brand boja. Nema gradijenata. Checklist prije merge-a: [theme-source §13](theme-source.md).
++Nema dodatnih brand boja. Gradijent je samo `.pulse-gradient` (brend pano prijave/instalacije). Checklist prije merge-a: § Checklist za novu boju (gore) + Constitution §40.
+diff --git a/.cursor/rules/00-core.mdc b/.cursor/rules/00-core.mdc
+index 36a9132..af809e1 100644
+--- a/.cursor/rules/00-core.mdc
++++ b/.cursor/rules/00-core.mdc
+@@ -13,6 +13,8 @@ Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/Po
+ 
+ ## UI / UX
+ - Source of truth: `Master UI-UX Design Constitution.md` (tokeni: `.cursor/docs/theme.md`).
++- Aktivan dizajn je **Pulse**; **classic** (stara tamna tema) ostaje dostupan preko `data-theme="classic"`.
++  Izgled ima tri ose: `data-theme` · `.dark` · `data-accent` (indigo/teal/rose). Detalji: `frontend-ui-ux.mdc`.
+ - Ignoriši sva globalna/template design pravila koja su u konfliktu (Apple-linear, one-page, generički SaaS dashboard).
+ - Ticket status i priority labele ostaju iz RAW / domain modela.
+ 
+diff --git a/.cursor/rules/frontend-ui-ux.mdc b/.cursor/rules/frontend-ui-ux.mdc
+index 49dbee1..0bce4f8 100644
+--- a/.cursor/rules/frontend-ui-ux.mdc
++++ b/.cursor/rules/frontend-ui-ux.mdc
+@@ -17,12 +17,21 @@ Identitet: **light-first, sa ravnopravnim tamnim modom.** Nije više dark-only.
+ 
+ - `data-theme` na `<html>`: `pulse` (default) ili `classic`. Biramo u topbaru (`ThemeSwitcher`).
+ - `.dark` klasa na `<html>`: tamni mod unutar Pulse-a (i obavezna za `classic`).
++- `data-accent` na `<html>`: **brend paleta** unutar Pulse-a — `indigo` (default) / `teal` / `rose`.
++  Paleta rotira **samo** brend boje (`--primary*`, `--ring`, `--link`, `--selection-*`, `--shadow-glow`); površine,
++  radius i semantički tonovi se ne mijenjaju. U `classic` se ignoriše (tamo je brend uvijek plava).
++- Nikad ne pretpostavljaj da je `--primary` tamna boja — u tamnom modu i u `teal`/`rose` paleti je svijetla.
+ - **Nikad ne piši hardkodiranu boju** (`#RRGGBB`, `rgb(...)`) u komponentu. Samo tokeni.
+ - Prozirnost ide kroz alpha modifier nad tokenom: `bg-surface/60`, `border-border/70`, `text-muted-foreground/70`.
+ - Tokeni su RGB kanali u `src/index.css` (`--surface: 255 255 255`) i mapiraju se u `tailwind.config.ts`
+   (`rgb(var(--surface) / <alpha-value>)`). Dodavanje nove boje znači dodavanje varijable u **sva tri** bloka.
+ - Tekst na primary tintu koristi `text-link`, nikad `text-primary` (`--link` je token za čitljiv brand-tekst).
+-- Radius i sjena su tokeni po temi: `rounded-lg` = 12px u Pulse, 8px u classic; `shadow-card` = `none` u classic.
++- Kontrast je mjerljiv zahtjev: tekst na `primary` **i** `primary` kao tekst na površini ≥ **4.5:1** u obje svjetline
++  i u svakoj paleti. `--selection-fg` mora biti taman u svijetlim paletama, a svijetao u tamnim (selekcija se crta
++  kao alpha blend preko podloge); `--primary-foreground` prati primarnu boju, ne svjetlinu teme.
++- Radius i sjena su tokeni po temi: `rounded-md` = 8px / `rounded-lg` = 12px u Pulse (6px/8px u classic);
++  `shadow-card` = `none` u classic. `rounded-xl` se **ne koristi** — nije vezan na token.
++- `--shadow-glow` je namjerni Pulse izuzetak (meki primary glow), u `classic` je `none`.
+ - Boje statusa dolaze iz `src/lib/theme/semantic-meta.ts` (`SEMANTIC_DOT_HEX`) — tamo su već CSS varijable.
+ 
+ ## Layout
+@@ -43,6 +52,8 @@ Identitet: **light-first, sa ravnopravnim tamnim modom.** Nije više dark-only.
+ - Fokus mora biti vidljiv: `focus-visible:outline-2 focus-visible:outline-primary/70` ili `focus:ring-2 focus:ring-primary/25`.
+ - Preferiraj postojeće primitive iz `components/ui` — Segmented, Chip, Modal, ConfirmDialog, Toast,
+   Sheet, Tabs, Table (klase u `control.ts`) prije nove komponente.
++- Ako dodaješ token (boju), dodaj ga u **sva tri** bloka u `src/index.css` — blok koji nedostaje znači da
++  vrijednost pada na tuđu (klasičnu) boju. Brend boje idu u paletne blokove, ne u bazni.
+ 
+ ## Zabranjeno
+ 
+@@ -50,5 +61,8 @@ Glassmorphism, glowing borders, neon, decorative charts, card-grid za sve, Linea
+ gradijenti u komponentama (jedini izuzetak je `.pulse-gradient` kao brend pano na prijavi/instalaciji),
+ proizvoljne boje van tokena, `!important`, i nova zavisnost bez potrebe.
+ 
++Provjera prije nego što tvrdiš da je UI gotov: `npx tsc -b`, `npx vitest run`, `npx vite build` (klase i
++`t()` ključevi se provjeravaju protiv generisanog CSS-a / oba lokala — „izgleda ispravno u kodu" nije dokaz).
++
+ Prije novog UI elementa: `components/ui` → shared → tokeni → tek onda nova komponenta.
+ Prije većeg ekrana: pročitaj odgovarajući paragraf u `.cursor/docs/theme.md` (ne nagađaj layout).
+diff --git a/Master UI-UX Design Constitution.md b/Master UI-UX Design Constitution.md
+index 0cf0719..e0fb7b8 100644
+--- a/Master UI-UX Design Constitution.md	
++++ b/Master UI-UX Design Constitution.md	
+@@ -2,6 +2,13 @@
+ 
+ > **Source of truth** za sav UI/UX ovog projekta. Globalna/template pravila (Apple-linear, one-page, generički SaaS dashboard) ne važe. Tokeni su u `.cursor/docs/theme.md`. Ticket status i priority labele dolaze iz `RAW_PROJECT_EPHELPDESK.md` / domain modela — ovaj dokument definiše vizuelni tretman, ne drugačiji vokabular.
+ 
++> **Dizajn-sistem: Pulse.** Aktivni identitet je **Pulse** (svijetli kao primarni, tamni mod ravnopravan).
++> **classic** je naslijeđena tamna tema koja ostaje dostupna preko `data-theme="classic"` tokom tranzicije.
++> Implementacijski katalog tokena, paleta i kontrastnih pravila: **`.cursor/docs/theme.md`**.
++> Prototip novog identiteta i vizuelni dokaz: **`demo/`**. Stara referenca (`referenca-dizajn/`) je arhivirana.
++>
++> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose`).
++
+ Ova pravila definišu vizuelni i UX smjer cijelog EP-HelpDesk frontenda.
+ 
+ Ovo NIJE generički SaaS dashboard i NIJE redesign u stilu jednog konkretnog proizvoda.
+@@ -601,6 +608,30 @@ Nikada ne koristiti boju samo radi estetike.
+ 
+ Ako je nešto crveno, korisnik mora imati razlog da ga primijeti.
+ 
++## 22.1 Kako se boja piše (Pulse)
++
++Boja se **nikad** ne piše u komponentu. Sve ide kroz CSS varijablu (RGB kanali) iz `frontend/src/index.css`, mapiranu u `frontend/tailwind.config.ts` kao `rgb(var(--token) / <alpha-value>)`:
++
++- površine: `bg-background` → `bg-surface` → `bg-elevated` (+ `bg-surface-hover` za hover)
++- tekst: `text-foreground` (primarni), `text-muted-foreground` (sekundarni), `text-link` (brend-tekst i linkovi)
++- granice: `border-border` → `border-line-strong`; prozirnost ide alpha modifierom (`bg-surface/60`, `border-border/70`)
++- boje statusa: `frontend/src/lib/theme/semantic-meta.ts` (već su tokeni)
++
++**`text-primary` nije za tekst na neutralnoj površini** — za to je `text-link` (garantovan kontrast). `text-primary` je za tint površine i ikone na primary ispuni.
++
++## 22.2 Boja brenda je izbor, ne konstanta
++
++Pulse ima **tri palete** (`data-accent`: `indigo` zadana, `teal`, `rose`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
++
++Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u `teal`/`rose` paleti.
++
++## 22.3 Kontrast (obavezno, mjerljivo)
++
++- Tekst na `primary` ispuni **i** `primary` kao tekst na površini: **≥ 4.5:1** u obje svjetline i u svakoj paleti.
++- `::selection` se crta kao alpha blend **preko podloge**, pa `--selection-fg` mora biti **taman u svijetlim paletama, a svijetao u tamnim** — nikad ista vrijednost za obje.
++- Isto pravilo važi za `--primary-foreground`: svijetla primary boja traži **taman** tekst na sebi.
++- Izmjerene vrijednosti po paleti: `.cursor/docs/theme.md` § Kontrast.
++
+ ---
+ 
+ # 23. TYPOGRAPHY
+@@ -690,28 +721,28 @@ Card koristiti kada postoji stvarna konceptualna granica između sadržaja.
+ 
+ # 26. BORDERS / RADIUS / SHADOWS
+ 
+-Border radius:
++Radius je **token po temi**, ne fiksni broj u komponenti (`frontend/src/index.css`):
+ 
+-- restrained
+-- konzistentan
+-- približno 6–10px za većinu UI elemenata
+-
+-Veći radius samo kada postoji jasna UX korist.
++- `rounded-md` — kontrole (input, button, segmented) · Pulse 8px, classic 6px
++- `rounded-lg` — kartice i paneli · Pulse 12px, classic 8px
++- `rounded` / `rounded-[Npx]` — mikro-elementi (badge, chip, avatar)
++- `rounded-xl` se **ne koristi** — nije vezan na token, pa ne prati temu
+ 
+ Izbjegavati:
+ 
+-- 20–30px radius svuda
+ - pill-shaped buttons
+ - giant rounded cards
++- radius izvan token skale
+ 
+-Shadows:
++Shadows su tokeni (`shadow-card`, `shadow-pop`), a u `classic` temi su `none`/minimalne:
+ 
+-- minimalne
+-- koriste se za elevation
+-- ne koriste se kao dekoracija
++- koriste se za elevation, ne kao dekoracija
++- `--shadow-glow` je **namjerni Pulse izuzetak** (meki primary glow na fokusiranim/popover površinama) — u `classic` je `none`
+ 
+ Preferirati border + surface contrast nad jakom sjenom.
+ 
++Vidljiv fokus je obavezan: `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70`.
++
+ ---
+ 
+ # 27. MOTION
+@@ -877,13 +908,9 @@ Accessibility nije dodatak nakon dizajna.
+ 
+ # 35. DARK MODE
+ 
+-Ako postoji dark mode, ne praviti jednostavan:
+-
+-white → black
++Pulse je **light-first, sa ravnopravnim tamnim modom** — nije invertovana svijetla tema i nije više dark-only.
+ 
+-invert.
+-
+-Dark mode mora imati vlastitu hijerarhiju:
++Dark mode ima vlastitu hijerarhiju, definisanu kao treći token blok (`:root[data-theme="pulse"].dark`):
+ 
+ - background
+ - surface
+@@ -893,8 +920,17 @@ Dark mode mora imati vlastitu hijerarhiju:
+ - secondary text
+ - semantic colors
+ 
++Pravila:
++
++- **Svaki novi token se dodaje u sva tri bloka**: `:root[data-theme="classic"]`, `:root[data-theme="pulse"]` i `:root[data-theme="pulse"].dark`. Blok koji nedostaje znači da vrijednost pada na tuđu (klasičnu) boju.
++- Svjetlina je izbor korisnika: `light` / `dark` / `system` (prati OS kroz `prefers-color-scheme`).
++- **`classic` je trajno tamna** — ne dobija svijetlu varijantu; tamo je izbor svjetline zaključan.
++- Kontrast se provjerava **u obje svjetline**, ne samo u tamnoj.
++
+ Dark mode treba biti enterprise-grade i dugoročno ugodan za rad.
+ 
++Ekrani za provjeru: **`/appearance`** (živi pregled iz pravih primitiva u aktivnoj kombinaciji) i Visual QA tabla (§ Primitive-i → Theme).
++
+ ---
+ 
+ # 36. ICONOGRAPHY
+@@ -962,6 +998,11 @@ Posebno:
+ 
+ NE pokušavati učiniti aplikaciju "modernom" dodavanjem gradijenata.
+ 
++**Dva dokumentovana Pulse izuzetka — sve ostalo iz liste ostaje zabranjeno:**
++
++1. `.pulse-gradient` — brend pano na prijavi i instalacionom čarobnjaku (bijeli tekst na gradijentu brenda je dio dizajna).
++2. `--shadow-glow` — meki primary glow kao token; u `classic` temi je `none`.
++
+ Modernost dolazi iz:
+ 
+ - typography
+@@ -971,6 +1012,16 @@ Modernost dolazi iz:
+ - consistency
+ - restraint
+ 
++### 38.1 Anti-obrasci specifični za Pulse
++
++- hardkodirana boja u komponenti (`#RRGGBB`, `rgb(...)`, Tailwind paleta tipa `bg-slate-100`)
++- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u `teal`/`rose` paleti)
++- `text-primary` za tekst na neutralnoj površini (koristi `text-link`)
++- `rounded-xl` i druge klase koje ne čitaju token
++- novi token koji postoji samo u dva od tri bloka
++- ista `--selection-fg` vrijednost za svijetlu i tamnu paletu
++- "popravka" boje mimo tokena (`!important`, inline `style={{ color }}`)
++
+ ---
+ 
+ # 39. COMPONENT REUSE
+@@ -1015,6 +1066,17 @@ Ne koristiti random magic numbers po komponentama.
+ 
+ ---
+ 
++## 40.1 Gdje tokeni žive (Pulse)
++
++- **Izvor:** `frontend/src/index.css` — tri bloka (`classic`, `pulse`, `pulse.dark`) + palete (`data-accent`).
++- **Mapiranje:** `frontend/tailwind.config.ts` — `rgb(var(--token) / <alpha-value>)`; radii `sm`/`md`/`lg` + aliasi `card`/`control`.
++- **Kontrakt u kodu:** `frontend/src/lib/theme/theme-storage.ts` (ključevi, validatori, defaulti) i `theme-provider.tsx` (stanje + `dataset.theme` / `dataset.accent` / `.dark`).
++- **Bez ponovnog izuma:** boje statusa i tonovi iz `frontend/src/lib/theme/semantic-meta.ts`.
++
++Nova brend paleta = **3 koraka** (blok u `index.css`, ime u `THEME_ACCENTS`, dva ključa u `bs`/`en`) — UI se prilagođava sam jer iterira listu. Checklista i formule: `.cursor/docs/theme.md`.
++
++---
++
+ # 41. DOMAIN LANGUAGE
+ 
+ Vizuelni jezik treba biti povezan sa HelpDesk domenom.
+diff --git a/fe-alignment-prompts.md b/fe-alignment-prompts.md
+index b10e949..f338e09 100644
+--- a/fe-alignment-prompts.md
++++ b/fe-alignment-prompts.md
+@@ -2,6 +2,11 @@
+ 
+ Generisano na osnovu `.cursor/docs/frontend-reference-alignment-plan.md` (status u planu: PLAN VALIDATED, implementacija još nije krenula).
+ 
++> **Istorijski dokument (prije Pulse-a).** Generisan je za staru tamnu temu i kanonski `referenca-dizajn/`.
++> Danas je kanonski **Pulse**: gdje god ovi promptovi kažu „mimo `theme.md` i `theme-source.md`", važi
++> **samo `.cursor/docs/theme.md`** — `theme-source.md` je arhiviran. Vizuelni targeti iz `referenca-dizajn/`
++> više ne važe; za izgled su mjerodavni `Master UI-UX Design Constitution.md` i `demo/`.
++
+ ## Kako koristiti ovaj dokument
+ 
+ 1. Za **svaki task otvori NOVU agent sesiju** (novi chat) — ne nastavljaj stari razgovor, jer stari kontekst poskupljuje svaki naredni zahtjev.
+diff --git a/referenca-dizajn/README.md b/referenca-dizajn/README.md
+new file mode 100644
+index 0000000..182063e
+--- /dev/null
++++ b/referenca-dizajn/README.md
+@@ -0,0 +1,33 @@
++# [ARHIVIRANO] referenca-dizajn — stara dark-first referenca
++
++> **Ovaj prototip više nije kanonski.** Služio je kao vizuelna referenca dok je EP-HelpDesk bio
++> dark-first aplikacija. Aktivni identitet je danas **Pulse** (svijetli kao primarni, tamni mod
++> ravnopravan, tri brend palete), a živi prototip je **[`demo/`](../demo/)**.
++
++## Šta važi danas
++
++| Sloj | Gdje je sada |
++|---|---|
++| Izgled (boje, radius, sjene, palete, kontrast) | [`demo/`](../demo/) + `.cursor/docs/theme.md` (izvor istine: `frontend/src/index.css`, `frontend/tailwind.config.ts`) |
++| UX / interakcija / layout po ekranu | [`Master UI-UX Design Constitution.md`](../Master%20UI-UX%20Design%20Constitution.md) |
++| Kod koji se ne dira | `frontend/` — jedini izvor istine za implementaciju |
++
++## Zašto je arhiviran
++
++- Opisivao je isključivo tamnu temu i fiksne hex vrijednosti — svaka izmjena u Pulse-u (svijetli mod,
++  `data-accent` palete, radius i sjena kao tokeni po temi) bila je u sukobu s njim.
++- Zadržavanje dva „kanonska" izvora izgleda je gore od jednog: `frontend-reference-alignment-plan.md`
++  je eksplicitno tvrdio da je ovaj folder dokaz izgleda, što više nije tačno (taj zapis je ažuriran).
++
++## Šta smiješ koristiti iz ovog foldera
++
++- **Istorijski kontekst** — kako su izgledali shell, gustoća i per-ekranski rasporedi prije migracije.
++- **Funkcionalne obrasce** koji su i danas validni (npr. mjere sidebara/topbara, grid detalja tiketa),
++  ali **samo preko** `theme.md` i ustava — ne kao izvor boje, radiusa ni sjene.
++
++Ne koristiti: hexove, radius skalu, sjene, gradijente ni paletu iz `referenca-dizajn/src/index.css`.
++
++## Tehnički status
++
++Folder je ostavljen **netaknut** (26 fajlova) i dalje se može pokrenuti lokalno (`npm install && npm run dev`),
++ali nije dio build-a, testova ni CI-ja. Originalni sadržaj je i u git istoriji.

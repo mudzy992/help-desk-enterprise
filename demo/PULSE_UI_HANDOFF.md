@@ -1,4 +1,4 @@
-# Pulse UI — Faze 0–5 isporučene, uključujući palete boja
+# Pulse UI — Faze 0–6 isporučene (ostaje Faza 7: verifikacija i release)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -25,7 +25,8 @@
 | **4.7 — Stranice i radius sistem** | `pages/*` (23 fajla provjerena, 3 dotjerana) + zatvaranje posljednjeg propusta u radius sistemu (`rounded-xl` nije bio vezan na token) kroz `layout/command-palette` i dva fajla razgovora tiketa | ✅ |
 | **5 — Izgled (dark mode + stranica podešavanja)** | Nova stranica **`/appearance`** (dizajn, svjetlina, živi pregled iz pravih primitiva, „vrati na zadano"), ulazi u korisničkom meniju i u biraču teme, 22 nova i18n ključa u oba lokala; **verifikovano da su sva tri tematska bloka potpuna** (48/48/48 tokena, bez razlika) | ✅ |
 | **5b — Palete boja** | Treća osa izgleda: **`data-accent` — indigo (zadana) / teal / rose**. Rotira samo brend boje (primary familija, fokus prsten, linkovi, selekcija, glow), pa radi u obje svjetline bez drugog bloka tokena po modu. Ulaz: korisnički meni („Izgled"), birač teme u topbaru (grupa „Boja") i kartica na `/appearance`. **Sva 24 mjerenja kontrasta ≥ 4.5:1** | ✅ |
-| 6–7 | Dokumentacija i pravila, završna verifikacija i release | ⏳ |
+| **6 — Dokumentacija i pravila** | Ustav prepisan na Pulse (boje, radius/sjena, dark mode, anti-obrasci, tokeni), `theme.md` dobio **palete i tabelu kontrasta**, **`theme-source.md` arhiviran** (stara dark-only paleta nije više „mjerodavna"), reference u alignment planu i promptovima ažurirane, **`referenca-dizajn/` arhiviran** README-om. **Nula linija koda** | ✅ |
+| 7 | Završna verifikacija i release | ⏳ |
 
 | Faza | Putanja | Diff |
 |---|---|---|
@@ -41,7 +42,8 @@
 | 4.7 | 6 (6 izmijenjenih; 5 fajlova je već bilo u Pulse jeziku) | 96 linija u 1 patchu |
 | 5 | 6 (1 nov fajl + 5 izmijenjenih) | 413 linija u 1 patchu |
 | 5b — palete | 9 (9 izmijenjenih, 0 novih) | 630 linija u 1 patchu |
-| **Ukupno (13 patcheva)** | **228 unikatnih putanja** (294 fajl-unosa; 66 se ponavlja jer su neki fajlovi dorađivani u više talasa) | **11 537 linija** |
+| 6 — dokumentacija | 9 (1 nov + 8 izmijenjenih) | 1 234 linije u 1 patchu |
+| **Ukupno (14 patcheva)** | **235 unikatnih putanja** (303 fajl-unosa; 68 se ponavlja jer su neki fajlovi dorađivani u više talasa) | **12 771 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -65,7 +67,8 @@ demo/patches/
 ├── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
 ├── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
 ├── pulse-12-appearance-page.patch                    6 fajlova    16 KB
-└── pulse-13-accent-palettes.patch                    9 fajlova    24 KB
+├── pulse-13-accent-palettes.patch                    9 fajlova    24 KB
+└── pulse-14-docs-and-rules.patch                     9 fajlova    57 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -86,6 +89,7 @@ git apply demo/patches/pulse-10-config-versions-queue-maintenance-feedback-auth-
 git apply demo/patches/pulse-11-pages-radius-system.patch
 git apply demo/patches/pulse-12-appearance-page.patch
 git apply demo/patches/pulse-13-accent-palettes.patch
+git apply demo/patches/pulse-14-docs-and-rules.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -141,7 +145,8 @@ grep -qF "fade-in grid gap-1.5 font-mono" frontend/src/components/config-version
 grep -qF "page-in grid min-h-screen" frontend/src/pages/login-page.tsx                  # → 11 je primijenjen
 ls frontend/src/pages/appearance-page.tsx                                               # postoji → 12 je primijenjen
 grep -qF 'data-accent=\"teal\"' frontend/src/index.css                                  # → 13 je primijenjen
-git status --porcelain | wc -l                          # ~236 putanja nakon 01–13
+grep -qF '## Brend palete' .cursor/docs/theme.md                                        # → 14 je primijenjen
+git status --porcelain | wc -l                          # ~236 putanja nakon 01–14
 ```
 
 ---
@@ -173,6 +178,12 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | **Palete — kontrast (WCAG 2.1, mjereno na generisanom CSS-u)** | ✅ 6 kombinacija × 4 mjerenja = **24/24 ≥ 4.5:1** na novim paletama; vidi tabelu u §4 |
 | **Palete — klasa-probe** | ✅ 54 utility klase u 2 fajla kroz pravi Tailwind build → **0 propusta**; `accent-swatch-*` generisane za obje svjetline |
 | **Palete — build** | ✅ `index-D0Oy3DVS.css` (64 745 B; +1,6 KB za palete i swatcheve) / `index-T4FnGr4D.js` (1 200 280 B) |
+| **F6 — patch dira samo dokumente** | ✅ 9 putanja, **0** putanja pod `frontend/`, `e2e/` ni `backend/` — nijedna linija koda |
+| **F6 — relativni linkovi u dokumentima** | ✅ provjereni svi `[text](path)` linkovi u 9 diranih dokumenata — **0 slomljenih** (jedan koji sam uveo je uhvaćen i ispravljen: `layouts/application-shell.tsx`) |
+| **F6 — tvrdnje dokumenata protiv koda** | ✅ provjereno mjerenjem: `.pulse-gradient` postoji (`index.css:479`), radijusi `6/8/12px` (Pulse) i `4/6/8px` (classic) tačno kako piše, `semantic-meta.ts` na navedenoj putanji |
+| **F6 — zaostale tvrdnje o staroj paleti** | ✅ `theme-source` se u dokumentima pominje **samo** kao arhiviran; `theme.md` linkovi preusmjereni na kod/`demo/` (18 → 1 pojava) |
+| Patch 14 primijenjen na F5b stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **Skripta na čistom `base` + svih 14 patcheva (`core.autocrlf=true`)** | ✅ **`primijenjeno: 14  preskočeno: 0  grešaka: 0`**; izvorne putanje **1:1** prema referentnom stablu |
 | **4.7 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.7 — `npx vite build`** | ✅ `index-8UzRBoY8.css` (63 014 B — **manji**, jer `rounded-xl` više ne postoji u kodu) / `index-DzHQdNCn.js` (1 189 796 B) |
 | **4.7 — sve Tailwind klase (`pages/*` + 3 fajla van njih)** | ✅ 101 klasa u `pages/` + 67 u tri fajla kroz pravi Tailwind build — **0 propusta** |
@@ -261,6 +272,33 @@ bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
 | **Faza 0 + Faza 1** | Isporučeno u dva patcha. |
 | **`.patch` fajlovi** | Isporučeno (vidi §2). |
 | **KB intercept kao zaseban ekran** | Zadržano postojeće ponašanje — postojeći `knowledge-intercept-panel.tsx` je samo restilizovan, **tok nije mijenjan**. |
+
+### Faza 6 — šta je konkretno urađeno (dokumentacija i pravila)
+
+Faza je **isključivo dokumentaciona** — nula linija koda. Cilj je bio da se ukloni situacija u kojoj
+dokumenti tvrde nešto suprotno od koda: do sada je `.cursor/docs/theme-source.md` bio proglašen
+„mjerodavnim" za tematiku, a opisivao je **samo staru tamnu paletu**.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **`Master UI-UX Design Constitution.md`** (ustav) | Zadržan kao UX izvor istine (per-ekranski raspored, obrasci, forme, tabele, a11y su i dalje validni), ali su **prepisane sekcije koje su govorile suprotno od Pulse-a**: §22 Color system (kako se boja piše, tri palete, kontrastna pravila), §26 Borders/radius/shadows (radius i sjena su tokeni, `rounded-xl` se ne koristi, `--shadow-glow` kao izuzetak), §35 Dark mode (**light-first sa ravnopravnim tamnim modom**, tri token bloka, `classic` trajno tamna), §38 anti-obrasci (dva dokumentovana izuzetka + Pulse-specifične zamke), §40.1 gdje tokeni žive. Zaglavlje sada jasno kaže šta je aktivno, a šta naslijeđe |
+| **`.cursor/docs/theme.md`** (katalog) | Dodate dvije nove sekcije: **Brend palete** (šta `data-accent` mijenja, tabela tri palete, **recept u 3 koraka** za novu paletu) i **Kontrast** (tabela svih 24 mjerenja + dva pravila koja se lako pogrešno „poprave": `--selection-fg` i `--primary-foreground`). Model tema dopunjen trećom osom, hijerarhija izvora prepisana (**izvor istine je kod**), checklista za novu boju proširena |
+| **`.cursor/docs/theme-source.md`** | **Arhiviran** — 635 linija stare dark-only palete zamijenjeno oznakom „ARHIVIRANO" koja upućuje na `theme.md` i objašnjava zašto (dva „mjerodavna" izvora su gora od jednog). Original ostaje u git istoriji |
+| **`.cursor/docs/frontend-reference-alignment-plan.md`** | Označen kao **istorijski** (bio je „PLAN VALIDATED" za staru referencu): zaglavlje, tabela izvora, hijerarhija i DoD stavka ažurirani. Funkcionalni obim (FE-* taskovi) ostaje kao zapis, vizuelni targeti više ne važe |
+| **`referenca-dizajn/`** | **Arhiviran README-om** (26 fajlova ostaje netaknuto): šta je zamijenilo ovaj prototip po sloju, šta se smije koristiti (istorijski kontekst i funkcionalni obrasci preko `theme.md`), šta ne (hexovi, radius, sjene, paleta) |
+| **`.cursor/rules/frontend-ui-ux.mdc`** | Treća osa (`data-accent`) u opis kako tema radi, kontrastna pravila, `rounded-md`/`rounded-lg` po temi, pravilo „token u sva tri bloka", i obavezna provjera prije nego se UI proglasi gotovim |
+| **`.cursor/rules/00-core.mdc`** | Jedna linija: aktivan je Pulse, `classic` dostupan, tri ose izgleda |
+| **`fe-alignment-prompts.md`** | Zaglavlje upozorava da je dokument istorijski (generisan za staru temu) i šta danas važi |
+
+| Provjera | Rezultat |
+|---|---|
+| Putanje u patchu | 9, **nijedna** pod `frontend/`, `e2e/` ni `backend/` |
+| Relativni linkovi u diranim dokumentima | **0 slomljenih** |
+| Zaostale tvrdnje o `theme-source` kao izvoru | **0** (preostala pojava je sama oznaka „arhivirano") |
+| Tvrdnje protiv koda (`.pulse-gradient`, radijusi, putanje) | ✅ provjereno mjerenjem |
+
+> **Faza 6 je završena.** Ostaje **Faza 7**: build + testovi + guard + E2E, vizuelni QA na 1440/1024/390
+> u obje teme i tri palete, a11y kontrast i UAT.
 
 ### Palete boja — šta je konkretno urađeno (dodatak Fazi 5)
 
@@ -548,6 +586,8 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Radius: ne koristi `rounded-xl`** | `rounded-xl` nije u `tailwind.config.ts` — Tailwind ga generiše iz defaulta (12px) i **ne mijenja se s temom**. Za kartice i veće blokove koristi `rounded-lg` (token `--radius-lg`: 12px Pulse / 8px classic), za kontrole `rounded-md` (token), za mikro-elemente `rounded` ili `rounded-[Npx]` |
 | **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
 | **Izgled se pamti lokalno, ne po korisniku** | Izbor dizajna i svjetline stoji u `localStorage` **tog pregledača**, ne na nalogu. Ako želiš da izgled prati korisnika na svakom uređaju, to je novi backend ključ kroz **settings registry** (`settings/definitions/` + `readStringSetting`) — infrastruktura već postoji i to je jedini otvoren zadatak iz plana za Fazu 5 |
+| **Dokumenti su sada „izvor istine", pa ih treba održavati** | `theme.md` tvrdi konkretne vrijednosti (npr. `--radius-md` 8px u Pulse). Ako mijenjaš token u `index.css`, promijeni i tabelu — inače dokument laže. Zato u `theme.md` stoji „ako se fajl i kod ne slažu, **pobjeđuje kod**" |
+| **`theme-source.md` i `referenca-dizajn/` nisu obrisani** | Namjerno: arhivirani su oznakom, pa istorija i dalje radi i ništa se ne lomi (patch je 57 KB umjesto 26 brisanja). Ako želiš čist folder, brisanje je jedna komanda — ali onda i `git log --follow` postaje jedini izvor tih vrijednosti |
 | **`appearance.*` i `theme.accent*` su novi blokovi u i18n** | 22 + 10 ključeva su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → **2174**) će ih prijaviti kao nedostajuće |
 | **Paleta je izbor, ne brend** | Kao i dizajn i svjetlina, paleta se pamti u `localStorage` **tog pregledača** — ne na nalogu. Ako želiš da svi korisnici na instalaciji imaju istu paletu, to je jedan ključ kroz settings registry (isti obrazac kao za default temu iz plana) |
 | **`text-primary` u tamnoj indigo paleti je 4.00:1** | To je **postojeće stanje** (Faza 0), ne regresija — nove palete su tu strože i drže 6.72–9.71:1. Popravka bi bila jedna linija (tamniji `--primary-foreground` + svjetlija `--primary`), ali mijenja kako izgledaju primarna dugmad u tamnom modu, pa čeka tvoju odluku |
@@ -677,10 +717,11 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)** + **Faz
 
 4. **Palete boja** (0,5 dana): `data-accent` — indigo / teal / rose (patch `pulse-13`) — ✅ **isporučeno**.
    Otvori `/appearance` (ili grupu „Boja" u topbaru) i prebaci kroz sve tri u obje svjetline.
-5. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
-   `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom, **uključujući treću osu
-   (`data-accent`) i formulu kontrasta za selekciju iz ovog talasa**.
-6. **Faza 7** (1 dan): završna verifikacija i release.
+5. **Faza 6** (1 dan): dokumentacija i pravila (patch `pulse-14`) — ✅ **isporučeno**.
+6. **Faza 7** (1–2 dana): završna verifikacija i release — **sljedeće**. Predlažem da uključi i jednu
+   novu automatizovanu provjeru: mali skript koji pada ako se u dokumente vrati tvrdnja da je
+   `theme-source.md` izvor, ako neki `.tsx` dobije hardkodiranu boju, ili ako token postoji u dva
+   od tri bloka — time se F6 odluke drže i bez ručnog čitanja.
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je

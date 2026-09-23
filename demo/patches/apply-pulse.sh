@@ -51,6 +51,7 @@ PATCHES=(
   "pulse-11-pages-radius-system.patch:frontend/src/pages/login-page.tsx:page-in grid min-h-screen"
   "pulse-12-appearance-page.patch:frontend/src/pages/appearance-page.tsx"
   "pulse-13-accent-palettes.patch:frontend/src/index.css:data-accent=\"teal\""
+  "pulse-14-docs-and-rules.patch:.cursor/docs/theme.md:## Brend palete"
 )
 
 applied=0
