@@ -1,0 +1,96 @@
+diff --git a/frontend/src/components/layout/command-palette.tsx b/frontend/src/components/layout/command-palette.tsx
+index 9f3a528..9661be8 100644
+--- a/frontend/src/components/layout/command-palette.tsx
++++ b/frontend/src/components/layout/command-palette.tsx
+@@ -230,7 +230,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
+             event.preventDefault();
+             inputReference.current?.focus();
+           }}
+-          className="fixed left-1/2 top-[12vh] z-[70] w-[calc(100vw-2rem)] max-w-[620px] -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover shadow-pop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
++          className="fixed left-1/2 top-[12vh] z-[70] w-[calc(100vw-2rem)] max-w-[620px] -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-popover shadow-pop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+         >
+           <DialogPrimitive.Title className="sr-only">{t("palette.title")}</DialogPrimitive.Title>
+           <DialogPrimitive.Description className="sr-only">
+diff --git a/frontend/src/components/tickets/ticket-detail-conversation.tsx b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+index 26037dc..2c8fb9f 100644
+--- a/frontend/src/components/tickets/ticket-detail-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+@@ -37,7 +37,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
+               {t("tickets.detail.description")}
+             </span>
+           </div>
+-          <div className="mt-1 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95 shadow-card">
++          <div className="mt-1 rounded-lg border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95 shadow-card">
+             <p className="whitespace-pre-wrap">{props.ticket.description}</p>
+           </div>
+         </div>
+diff --git a/frontend/src/components/tickets/ticket-message-bubble.tsx b/frontend/src/components/tickets/ticket-message-bubble.tsx
+index 7f2113c..1c6f015 100644
+--- a/frontend/src/components/tickets/ticket-message-bubble.tsx
++++ b/frontend/src/components/tickets/ticket-message-bubble.tsx
+@@ -39,7 +39,7 @@ export function TicketMessageBubble({
+         </div>
+         <div
+           className={cn(
+-            "mt-1 rounded-xl border px-3.5 py-2.5 text-[13px] leading-relaxed shadow-card",
++            "mt-1 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed shadow-card",
+             isInternal
+               ? "border-warning/25 bg-warning/6 text-foreground/90"
+               : isOwn
+diff --git a/frontend/src/pages/install-page.tsx b/frontend/src/pages/install-page.tsx
+index 4505133..9b6fe36 100644
+--- a/frontend/src/pages/install-page.tsx
++++ b/frontend/src/pages/install-page.tsx
+@@ -112,7 +112,7 @@ export function InstallPage() {
+             }))}
+           />
+ 
+-          <section className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
++          <section className="rounded-lg border border-border bg-surface p-6 shadow-card sm:p-7">
+             <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
+               {t(copy?.heading ?? "install.heading")}
+             </h1>
+diff --git a/frontend/src/pages/login-page.tsx b/frontend/src/pages/login-page.tsx
+index 854c632..cba9941 100644
+--- a/frontend/src/pages/login-page.tsx
++++ b/frontend/src/pages/login-page.tsx
+@@ -70,7 +70,7 @@ export function LoginPage() {
+   };
+ 
+   return (
+-    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
++    <div className="page-in grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
+       {/* ── Brand panel — hidden on small screens ─────────────────────── */}
+       <aside className="pulse-gradient relative hidden flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
+         <div
+@@ -98,7 +98,7 @@ export function LoginPage() {
+           <ul className="mt-7 space-y-3">
+             {POINTS.map((point) => (
+               <li key={point.key} className="flex items-start gap-3">
+-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-white/15 text-white">
++                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+                   <point.icon size={14} strokeWidth={2} aria-hidden="true" />
+                 </span>
+                 <span className="text-[12.5px] leading-5 text-white/90">
+@@ -130,7 +130,7 @@ export function LoginPage() {
+             </div>
+           </div>
+ 
+-          <div className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
++          <div className="rounded-lg border border-border bg-surface p-6 shadow-card sm:p-7">
+             {passwordChangeToken !== null ? (
+               <>
+                 <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
+diff --git a/frontend/src/pages/ticket-list-page.tsx b/frontend/src/pages/ticket-list-page.tsx
+index 408d3e1..82afb00 100644
+--- a/frontend/src/pages/ticket-list-page.tsx
++++ b/frontend/src/pages/ticket-list-page.tsx
+@@ -142,7 +142,7 @@ export function TicketListPage() {
+               ) : list.errorKey ? (
+                 <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
+               ) : list.visible.length === 0 ? (
+-                <div className="rounded-lg border border-border bg-surface">
++                <div className="rounded-lg border border-border bg-surface shadow-card">
+                   <TicketEmptyState
+                     title={t("tickets.emptyFilterTitle")}
+                     body={t("tickets.emptyFilterHint")}

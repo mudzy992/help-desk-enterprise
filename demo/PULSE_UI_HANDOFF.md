@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + 1 + 2 + 3 + talasi 4.1–4.6 (isporuka)
+# Pulse UI — Faza 0 + 1 + 2 + 3 + 4.1–4.7 (Faza 4 završena)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -22,7 +22,7 @@
 | **4.4 — SLA, routing i policy paketi** | Cijeli `components/sla/` (24 fajla: profili, pravila, eskalacije, kalendari radnog vremena, matrica prioriteta, compliance, izmjene), `components/routing/` (14 fajlova: pravila, matrica pokrivenosti, tester razrješavanja) i `components/policy-packs/` (3 fajla) | ✅ |
 | **4.5 — Administracija** | `components/admin/` (3), `users/` (10), `groups/` (6), `organizational-units/` (6), `rbac/` (3), `settings/` (13) — korisnici, grupe, organizacione jedinice, dozvole, sistemska podešavanja | ✅ |
 | **4.6 — Konfiguracije, red, održavanje, povratne informacije** | `components/config-versions/` (10), `queue/` (2), `maintenance/` (1), `feedback/` (1), `auth/` (1), `visual-qa/` (6) — verzije konfiguracije, integracioni red, traka održavanja, povratne informacije o akcijama, promjena lozinke, Visual QA tabla | ✅ |
-| 4.7 | Ostali moduli (1 talas) | ⏳ sljedeće |
+| **4.7 — Stranice i radius sistem** | `pages/*` (23 fajla provjerena, 3 dotjerana) + zatvaranje posljednjeg propusta u radius sistemu (`rounded-xl` nije bio vezan na token) kroz `layout/command-palette` i dva fajla razgovora tiketa | ✅ |
 | 5–7 | Dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ |
 
 | Faza | Putanja | Diff |
@@ -36,7 +36,8 @@
 | 4.4 | 24 (24 izmijenjenih; 17 fajlova je već bilo u Pulse jeziku) | 664 linije u 1 patchu |
 | 4.5 | 32 (32 izmijenjena; 9 fajlova je već bilo u Pulse jeziku) | 692 linije u 1 patchu |
 | 4.6 | 13 (13 izmijenjenih; 8 fajlova je već bilo u Pulse jeziku) | 214 linija u 1 patchu |
-| **Ukupno** | **256 unikatnih putanja** (17 se pojavljuje u više setova) | **10 398 linija** |
+| 4.7 | 6 (6 izmijenjenih; 5 fajlova je već bilo u Pulse jeziku) | 96 linija u 1 patchu |
+| **Ukupno** | **257 unikatnih putanja** (22 se pojavljuje u više setova) | **10 494 linije** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -57,7 +58,8 @@ demo/patches/
 ├── pulse-07-services-knowledge-base.patch           29 fajlova   32 KB
 ├── pulse-08-sla-routing-policy-packs.patch           24 fajla     36 KB
 ├── pulse-09-admin-users-groups-ou-rbac-settings.patch 32 fajla     35 KB
-└── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
+├── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
+└── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -75,6 +77,7 @@ git apply demo/patches/pulse-07-services-knowledge-base.patch
 git apply demo/patches/pulse-08-sla-routing-policy-packs.patch
 git apply demo/patches/pulse-09-admin-users-groups-ou-rbac-settings.patch
 git apply demo/patches/pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch
+git apply demo/patches/pulse-11-pages-radius-system.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -127,7 +130,8 @@ grep -qF "tnum text-[10px]" frontend/src/components/services/service-catalog-car
 grep -qF "fade-in space-y-4" frontend/src/components/sla/sla-profile-detail.tsx        # → 08 je primijenjen
 grep -qF "fade-in overflow-x-auto" frontend/src/components/users/users-table.tsx        # → 09 je primijenjen
 grep -qF "fade-in grid gap-1.5 font-mono" frontend/src/components/config-versions/config-version-diff-panel.tsx  # → 10 je primijenjen
-git status --porcelain | wc -l                          # ~225 putanja nakon 01–10
+grep -qF "page-in grid min-h-screen" frontend/src/pages/login-page.tsx                  # → 11 je primijenjen
+git status --porcelain | wc -l                          # ~226 putanja nakon 01–11
 ```
 
 ---
@@ -145,6 +149,15 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | Patch 08 primijenjen na F4.3 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 09 primijenjen na F4.4 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 10 primijenjen na F4.5 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| Patch 11 primijenjen na F4.6 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **4.7 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
+| **4.7 — `npx vite build`** | ✅ `index-8UzRBoY8.css` (63 014 B — **manji**, jer `rounded-xl` više ne postoji u kodu) / `index-DzHQdNCn.js` (1 189 796 B) |
+| **4.7 — sve Tailwind klase (`pages/*` + 3 fajla van njih)** | ✅ 101 klasa u `pages/` + 67 u tri fajla kroz pravi Tailwind build — **0 propusta** |
+| **4.7 — `t()` ključevi u `pages/`** | ✅ **139 statičkih ključeva, svi prisutni u `bs` i `en`**; 0 dinamičkih izraza |
+| **4.7 — `lib/`** | ✅ nema nijednu stilsku klasu (0 `className`) — `lib/theme/*` je pokriven još u Fazi 0, ostatak `lib/` je čista logika |
+| **4.7 — radius sistem** | ✅ `rounded-xl` (Tailwind default, **nije** bio vezan na `--radius-*`) uklonjen iz cijelog `src`: 5 pojava → `rounded-lg` (token) |
+| Skripta na „imam 01–10, dodajem 11" | ✅ `primijenjeno: 1  preskočeno: 10  grešaka: 0` |
+| **Skripta na čistom `base` + svih 11 patcheva (uz `core.autocrlf=true`)** | ✅ `primijenjeno: 11  preskočeno: 0  grešaka: 0`; rezultat **1:1** prema referentnom stablu |
 | **4.6 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.6 — `npx vite build`** | ✅ `index-Dd3fqRIo.css` (63 047 B — nepromijenjen) / `index-CRP_fJua.js` (1 189 780 B) |
 | **4.6 — sve Tailwind klase (`config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/`)** | ✅ 102 utility klase kroz pravi Tailwind build — **0 stvarnih propusta** (2 „nalaza" su artefakti: putanja importa `charts/h-bars` i opisni tekst u navodnicima) |
@@ -318,6 +331,27 @@ i18n ključa ostali su isti. Promijenjen je samo izgled i raspored.
 
 > Napomena: `controlClassName` u `control.ts` namjerno ostaje na `rounded-md` — kontrole (inputi, selekti) u Pulse jeziku imaju manji radius od kartica. Zato `rounded-md` u ovom modulu nije „mrtva klasa".
 
+### Talas 4.7 — šta je konkretno urađeno (stranice + radius sistem) — **kraj Faze 4**
+
+`pages/*` su ispali najzdraviji dio aplikacije: svih 23 fajla su tanki sastavljači
+(`PageHeader` + modulski paneli + `Card` / `EmptyState` / `PanelSkeleton`), bez ijednog ručnog
+`<button>`-a, bez hardkodirane boje i bez mrtve klase. Zato je ovaj talas više **verifikacija nego
+popravka** — a ono što je stvarno pronađeno je sistemske prirode.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Radius sistem (glavni nalaz)** | `rounded-xl` **nije postojao u `tailwind.config.ts`** — Tailwind ga je generisao iz svojih defaulta (0.75rem = 12px) i zato **nije pratio temu**: na `classic` temi ostajao je 12px dok je `--radius-lg` tamo 8px. Nađeno 5 pojava i sve prebačene na `rounded-lg` (token): komandna paleta, dva fajla razgovora tiketa (mjehurić poruke i optimistic bubble) i dvije kartice formi (prijava, instalacioni čarobnjak). Nakon toga u cijelom `src` **nema više nijednog `rounded-xl`** |
+| **Posljednji `rounded-md` van `control.ts`** | Ikonica u brend-panelu prijave (`size-7 … bg-white/15`) → `rounded-lg`. Ostali `rounded-md` u projektu su na primitivima (`Button`, `Segmented`, `Sheet.Close`, `Skeleton`) i mikro-kontrolama — što je i namjera |
+| **Ulaz prijave** | Stranica prijave je jedina stranica izvan shella **bez** ulazne animacije (`install-page` i shell je imaju) → dodan `page-in` na korijen |
+| **Ručna kartica** | Prazno stanje liste tiketa bilo je u ručnom omotaču `rounded-lg border bg-surface` **bez `shadow-card`** → sada identično `Card` primitivu |
+| **Verifikacija (dokazi, ne izmjene)** | 101 utility klasa u `pages/` — **0 propusta** protiv pravog Tailwind CSS-a; **139 `t()` ključeva** u `pages/`, svi prisutni u `bs` **i** `en`; `lib/` **nema nijednu stilsku klasu** (0 `className`) — `lib/theme/*` je pokriven u Fazi 0, ostatak `lib/` je čista logika |
+| **Odluka o animaciji stranica** | Stranice **ne** dobijaju `fade-in` pojedinačno: `application-shell` već montira `<div key={location.pathname} className="page-in …">`, pa svaka promjena rute pokreće ulaznu animaciju cijele stranice. Dvostruka animacija bila bi šum, ne poboljšanje |
+| **Svjesno nedirnuto** | `bg-white/15`, `text-white/85` i `radial-gradient(…, white …)` u brend-panelima prijave/instalacije — to je panel na gradijentu brenda, gdje bijeli tekst **jeste** dizajn (isto kao u `demo/` prototipu), a ne hardkodirana tema |
+
+> **Faza 4 je završena:** svih 7 talasa (4.1–4.7) je isporučeno, svaki kao zaseban patch.
+> Sljedeće su Faza 5 (dark mode + stranica podešavanja izgleda), Faza 6 (dokumentacija) i Faza 7
+> (završna verifikacija i release).
+
 ### Talas 4.6 — šta je konkretno urađeno (konfiguracije, red, održavanje, povratne informacije)
 
 Ovaj modul je posljedica ranih faza: `tableHeadClassName` / `tableWrapClassName` / `Field` / `Card`
@@ -438,6 +472,7 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **`prefers-color-scheme` u testovima** | Provider ima zaštitu za `window.matchMedia` (jsdom/node ga nema) — bitno ako kasnije dodaš jsdom testove. |
 | **`E2E` scenariji** | Nisu dirani i **trebali bi proći** (selektori su tekst/rola, a i18n je nepromijenjen). Nisam ih mogao pokrenuti — traže bazu i backend. |
 | **Mrtve Tailwind klase** | ✅ **Nema ih više nigdje u `src`** — posljednja mjesta očišćena su u talasu 4.5. Ako dodaješ nove klase, pazi na tri klase koje Tailwind 3 tiho ne generiše: `leading-4.5`, `ring-3` i alpha vrijednosti koje nisu višekratnik 5 (npr. `/12`). |
+| **Radius: ne koristi `rounded-xl`** | `rounded-xl` nije u `tailwind.config.ts` — Tailwind ga generiše iz defaulta (12px) i **ne mijenja se s temom**. Za kartice i veće blokove koristi `rounded-lg` (token `--radius-lg`: 12px Pulse / 8px classic), za kontrole `rounded-md` (token), za mikro-elemente `rounded` ili `rounded-[Npx]` |
 | **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
@@ -543,7 +578,7 @@ ls frontend/src/lib/theme/theme-provider.tsx
 
 ## 9. Prijedlog sljedećeg koraka
 
-Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.6. Ostaje:
+Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)**. Ostaje:
 
 1. **Pilot** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
    Tema se prebacuje iz topbara, bez rekompajliranja.
@@ -557,14 +592,14 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.6. Ostaje:
    | ~~4.4~~ | ~~`sla/`, `routing/`, `policy-packs/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-08` |
    | ~~4.5~~ | ~~`admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-09` |
    | ~~4.6~~ | ~~`config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/`~~ — **isporučeno** | ~~13~~ | ✅ `pulse-10` |
-   | 4.7 | `pages/*` + `lib/` pomoćne (gustina, tema) | 23 | `pulse-11` |
+   | ~~4.7~~ | ~~`pages/*` + `lib/` pomoćne~~ — **isporučeno** | ~~23~~ | ✅ `pulse-11` |
 
-3. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`).
+3. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`) — **sljedeće**.
 4. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
    `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
 5. **Faza 7** (1 dan): završna verifikacija i release.
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
-izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.7" i nastavljam
-istim tokom: jedan talas = jedan patch (`pulse-11`) + verifikacija + handoff.
+izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na Fazu 5" i nastavljam
+istim tokom: jedan korak = jedan patch (`pulse-12`) + verifikacija + handoff.
