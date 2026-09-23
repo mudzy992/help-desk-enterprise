@@ -1,4 +1,4 @@
-# Pulse UI — Faze 0–6 isporučene (ostaje Faza 7: verifikacija i release)
+# Pulse UI — Faze 0–7 isporučene (migracija kompletna; ostaje tvoj QA prolaz i UAT)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -26,7 +26,7 @@
 | **5 — Izgled (dark mode + stranica podešavanja)** | Nova stranica **`/appearance`** (dizajn, svjetlina, živi pregled iz pravih primitiva, „vrati na zadano"), ulazi u korisničkom meniju i u biraču teme, 22 nova i18n ključa u oba lokala; **verifikovano da su sva tri tematska bloka potpuna** (48/48/48 tokena, bez razlika) | ✅ |
 | **5b — Palete boja** | Treća osa izgleda: **`data-accent` — indigo (zadana) / teal / rose**. Rotira samo brend boje (primary familija, fokus prsten, linkovi, selekcija, glow), pa radi u obje svjetline bez drugog bloka tokena po modu. Ulaz: korisnički meni („Izgled"), birač teme u topbaru (grupa „Boja") i kartica na `/appearance`. **Sva 24 mjerenja kontrasta ≥ 4.5:1** | ✅ |
 | **6 — Dokumentacija i pravila** | Ustav prepisan na Pulse (boje, radius/sjena, dark mode, anti-obrasci, tokeni), `theme.md` dobio **palete i tabelu kontrasta**, **`theme-source.md` arhiviran** (stara dark-only paleta nije više „mjerodavna"), reference u alignment planu i promptovima ažurirane, **`referenca-dizajn/` arhiviran** README-om. **Nula linija koda** | ✅ |
-| 7 | Završna verifikacija i release | ⏳ |
+| **7 — Verifikacija, guard i a11y** | Pun verifikacioni niz (tsc, testovi, build, oba guard-a), **nova guard skripta** `scripts/check-pulse-design-system.mjs` (6 grupa pravila, u CI-ju), **a11y: 17 mjesta bez vidljivog fokusa popravljeno**, 43 zastarjele upute u promptovima očišćene | ✅ |
 
 | Faza | Putanja | Diff |
 |---|---|---|
@@ -43,7 +43,8 @@
 | 5 | 6 (1 nov fajl + 5 izmijenjenih) | 413 linija u 1 patchu |
 | 5b — palete | 9 (9 izmijenjenih, 0 novih) | 630 linija u 1 patchu |
 | 6 — dokumentacija | 9 (1 nov + 8 izmijenjenih) | 1 234 linije u 1 patchu |
-| **Ukupno (14 patcheva)** | **235 unikatnih putanja** (303 fajl-unosa; 68 se ponavlja jer su neki fajlovi dorađivani u više talasa) | **12 771 linija** |
+| 7 — verifikacija + guard + a11y | 19 (1 nov: guard skripta; 18 izmijenjenih) | 1 022 linije u 1 patchu |
+| **Ukupno (15 patcheva)** | **238 unikatnih putanja** (322 fajl-unosa; 84 se ponavlja jer su neki fajlovi dorađivani u više talasa) | **13 793 linije** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -68,7 +69,8 @@ demo/patches/
 ├── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
 ├── pulse-12-appearance-page.patch                    6 fajlova    16 KB
 ├── pulse-13-accent-palettes.patch                    9 fajlova    24 KB
-└── pulse-14-docs-and-rules.patch                     9 fajlova    57 KB
+├── pulse-14-docs-and-rules.patch                     9 fajlova    57 KB
+└── pulse-15-verification-a11y-and-guard.patch       19 fajlova    71 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -90,6 +92,7 @@ git apply demo/patches/pulse-11-pages-radius-system.patch
 git apply demo/patches/pulse-12-appearance-page.patch
 git apply demo/patches/pulse-13-accent-palettes.patch
 git apply demo/patches/pulse-14-docs-and-rules.patch
+git apply demo/patches/pulse-15-verification-a11y-and-guard.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -146,7 +149,8 @@ grep -qF "page-in grid min-h-screen" frontend/src/pages/login-page.tsx          
 ls frontend/src/pages/appearance-page.tsx                                               # postoji → 12 je primijenjen
 grep -qF 'data-accent=\"teal\"' frontend/src/index.css                                  # → 13 je primijenjen
 grep -qF '## Brend palete' .cursor/docs/theme.md                                        # → 14 je primijenjen
-git status --porcelain | wc -l                          # ~236 putanja nakon 01–14
+ls scripts/check-pulse-design-system.mjs                                                # postoji → 15 je primijenjen
+git status --porcelain | wc -l                          # ~237 putanja nakon 01–15
 ```
 
 ---
@@ -183,7 +187,12 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | **F6 — tvrdnje dokumenata protiv koda** | ✅ provjereno mjerenjem: `.pulse-gradient` postoji (`index.css:479`), radijusi `6/8/12px` (Pulse) i `4/6/8px` (classic) tačno kako piše, `semantic-meta.ts` na navedenoj putanji |
 | **F6 — zaostale tvrdnje o staroj paleti** | ✅ `theme-source` se u dokumentima pominje **samo** kao arhiviran; `theme.md` linkovi preusmjereni na kod/`demo/` (18 → 1 pojava) |
 | Patch 14 primijenjen na F5b stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
-| **Skripta na čistom `base` + svih 14 patcheva (`core.autocrlf=true`)** | ✅ **`primijenjeno: 14  preskočeno: 0  grešaka: 0`**; izvorne putanje **1:1** prema referentnom stablu |
+| **Skripta na čistom `base` + svih 15 patcheva (`core.autocrlf=true`)** | ✅ **`primijenjeno: 15  preskočeno: 0  grešaka: 0`**; izvorne putanje **1:1** prema referentnom stablu |
+| Patch 15 primijenjen na F6 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **F7 — oba guard-a na apliciranom stablu** | ✅ `check-pulse-design-system` i `check-ticket-id-leaks` prolaze na stablu sastavljenom samo iz patcheva |
+| **F7 — guard self-test (12 namjernih kvarova)** | ✅ svaki vraćen u **svoju** grupu pravila, stablo nakon vraćanja opet čisto — vidi §4 |
+| **F7 — pokrivenost fokusa** | ✅ **0** interaktivnih elemenata bez vidljivog fokusa (bilo je 17); 43 sirova `<button>` provjerena pojedinačno |
+| **F7 — E2E** | ⚠ **nije izvršeno ovdje** — sandbox ne može preuzeti Chromium (`playwright install` pada na downloadu) i nema live stacka; scenario je u CI-ju (`workflow_dispatch`, treba secrets) i u QA checklisti (§10) |
 | **4.7 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.7 — `npx vite build`** | ✅ `index-8UzRBoY8.css` (63 014 B — **manji**, jer `rounded-xl` više ne postoji u kodu) / `index-DzHQdNCn.js` (1 189 796 B) |
 | **4.7 — sve Tailwind klase (`pages/*` + 3 fajla van njih)** | ✅ 101 klasa u `pages/` + 67 u tri fajla kroz pravi Tailwind build — **0 propusta** |
@@ -272,6 +281,34 @@ bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
 | **Faza 0 + Faza 1** | Isporučeno u dva patcha. |
 | **`.patch` fajlovi** | Isporučeno (vidi §2). |
 | **KB intercept kao zaseban ekran** | Zadržano postojeće ponašanje — postojeći `knowledge-intercept-panel.tsx` je samo restilizovan, **tok nije mijenjan**. |
+
+### Faza 7 — šta je konkretno urađeno (verifikacija, guard i a11y)
+
+Faza je trebala biti „samo pokreni i potvrdi". Umjesto toga je dala **jedan sistemski alat** i **jedan stvarni a11y
+nalaz** — zato je patch veći od dokumentacionog.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Guard skripta (`scripts/check-pulse-design-system.mjs`, 366 linija)** | Pretvara odluke Faza 0–6 u provjeru koja se vrti bez instalacije i bez browsera. Šest grupa pravila: **docs** (stara paleta arhivirana i nigdje citirana kao izvor), **colors** (nema hex, nema Tailwind default palete, nema `rgb()` bez tokena), **tokens** (sva tri bloka i svi paletni blokovi imaju isti skup varijabli; svaka paleta iz koda ima CSS blok + i18n ključeve), **radius** (`rounded-xl` se ne koristi), **i18n** (parity + svi statički `t()` ključevi razrješavaju u oba lokala), **contract** (pre-paint skripta čita iste storage ključeve kao `theme-storage.ts`) |
+| **Pravila su mjerena, ne izmišljena** | Prije pisanja svakog pravila sam izmjerio stablo: npr. `rgb(var(--token))` je **dozvoljen** jer SVG `stroke`/gradient stop ne prima Tailwind klasu; `t()` regex traži `(?<![\w.])` da ne hvata `search.set("q")` i `createElement("a")` (20 lažnih nalaza); selektori token blokova se escapuju i **ne** uključuju vitičastu zagradu (dvostruka `\s*\{` je davala „blok nije nađen") |
+| **Self-test: 12 namjernih kvarova** | Svaki je vraćen u svoju grupu: `bg-slate-100`, hex `#FF0000`, sirovi `rgb(255,0,0)`, `rounded-xl`, nepostojeći `t()` ključ, token izbačen iz `pulse.dark`, paleta u `THEME_ACCENTS` bez CSS bloka, `theme.accent*` ključ izbačen iz `en`, blok samo u `en`, pre-paint bez `data-accent`, uklonjena arhivska oznaka, tvrdnja da je stara paleta mjerodavna. Nakon vraćanja stanja — guard opet čist |
+| **Nalaz #1: guard je našao 43 zastarjele upute** | `fe-alignment-prompts.md` je **41 put** ponavljao „nove boje/radijuse/sjene mimo `theme.md` **i `theme-source.md`**" — uputa koja šalje agenta na arhivirani dokument. Popravljeno u izvoru (ne allowlistom), plus dvije pojedinačne reference |
+| **Nalaz #2: 17 interaktivnih elemenata bez vidljivog fokusa** | Sirovi `<button>`-i (redovi u panelima, zatvaranje chipa/toasta, tabovi, „označi sve kao pročitano", OU meni, birač servisa, sačuvani pregledi…) nisu imali `focus-visible` stil. Dodan je repou standardan `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70` (22 postojeće upotrebe) |
+| **Combobox redovi — drugačije i namjerno** | Dvije liste opcija (komandna paleta, globalna pretraga) koriste `role="option"` + `aria-activedescendant`: fokus drži input, a aktivni red se pomjera strelicama. Umjesto stila dobili su **`tabIndex={-1}`** — time nestaje Tab-stop na kojem fokus nije vidljiv, a tastaturna navigacija ostaje netaknuta. Odluka i njeno obrazloženje su u kodu |
+| **CI** | Guard je dodat u `.github/workflows/ci.yml` (frontend job), pored postojećeg `check-ticket-id-leaks`. Radi bez `npm install` i bez browsera |
+| **Dokumentacija** | `theme.md` sada dokumentuje guard i njegov opseg u „Checklist prije merge-a" |
+| **E2E — pošteno stanje** | **Nisam ga mogao pokrenuti:** sandbox ne može preuzeti Chromium (download pada) i nema live stack. Zato je scenario opisan u QA checklisti (§10), a CI ga vrti preko `workflow_dispatch` uz secrets |
+
+| Provjera (F7) | Rezultat |
+|---|---|
+| `npx tsc -b` | ✅ 0 grešaka |
+| `npx vitest run` | ✅ 89 fajlova / **308** testova |
+| `npx vite build` | ✅ `index-D0Oy3DVS.css` (64 745 B) / `index-C5JeB3u-.js` (1 201 331 B) |
+| Guard (dizajn-sistem) | ✅ prolazi; 48 tokena × 3 bloka, 4 paletna bloka × 9 varijabli, 2 174 i18n ključa, 1 130 statičkih `t()` ključeva |
+| Guard (ID-jevi tiketa) | ✅ prolazi |
+| Klasa-proba kroz generisani CSS | ✅ 0 mrtvih klasa u izmijenjenim fajlovima |
+| Fokus | ✅ 43 sirova `<button>` → **0 bez vidljivog fokusa** |
+| E2E (Playwright) | ⚠ nije izvršeno u sandboxu — treba tvoj stack ili CI |
 
 ### Faza 6 — šta je konkretno urađeno (dokumentacija i pravila)
 
@@ -586,6 +623,8 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Radius: ne koristi `rounded-xl`** | `rounded-xl` nije u `tailwind.config.ts` — Tailwind ga generiše iz defaulta (12px) i **ne mijenja se s temom**. Za kartice i veće blokove koristi `rounded-lg` (token `--radius-lg`: 12px Pulse / 8px classic), za kontrole `rounded-md` (token), za mikro-elemente `rounded` ili `rounded-[Npx]` |
 | **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
 | **Izgled se pamti lokalno, ne po korisniku** | Izbor dizajna i svjetline stoji u `localStorage` **tog pregledača**, ne na nalogu. Ako želiš da izgled prati korisnika na svakom uređaju, to je novi backend ključ kroz **settings registry** (`settings/definitions/` + `readStringSetting`) — infrastruktura već postoji i to je jedini otvoren zadatak iz plana za Fazu 5 |
+| **Guard je sada dio ugovora** | Ako `check-pulse-design-system` padne, to nije „alat se pokvario" nego nalaz: ili je u kod ušla odluka koja nije dozvoljena, ili se pravilo namjerno mijenja (tada se mijenja i skripta, u istom commit-u). U CI-ju se vrti samo na `master`/`main`, pa se prvi put aktivira nakon merge-a |
+| **Vizuelni QA i UAT nisu obavljeni** | Ja ne mogu renderovati ekrane. Ono što je mjerljivo (kontrast, tokeni, fokus, mrtve klase, i18n) je izmjereno; ostalo je checklista u §10 — ona je jedini preostali korak do promjene defaulta |
 | **Dokumenti su sada „izvor istine", pa ih treba održavati** | `theme.md` tvrdi konkretne vrijednosti (npr. `--radius-md` 8px u Pulse). Ako mijenjaš token u `index.css`, promijeni i tabelu — inače dokument laže. Zato u `theme.md` stoji „ako se fajl i kod ne slažu, **pobjeđuje kod**" |
 | **`theme-source.md` i `referenca-dizajn/` nisu obrisani** | Namjerno: arhivirani su oznakom, pa istorija i dalje radi i ništa se ne lomi (patch je 57 KB umjesto 26 brisanja). Ako želiš čist folder, brisanje je jedna komanda — ali onda i `git log --follow` postaje jedini izvor tih vrijednosti |
 | **`appearance.*` i `theme.accent*` su novi blokovi u i18n** | 22 + 10 ključeva su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → **2174**) će ih prijaviti kao nedostajuće |
@@ -718,13 +757,86 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)** + **Faz
 4. **Palete boja** (0,5 dana): `data-accent` — indigo / teal / rose (patch `pulse-13`) — ✅ **isporučeno**.
    Otvori `/appearance` (ili grupu „Boja" u topbaru) i prebaci kroz sve tri u obje svjetline.
 5. **Faza 6** (1 dan): dokumentacija i pravila (patch `pulse-14`) — ✅ **isporučeno**.
-6. **Faza 7** (1–2 dana): završna verifikacija i release — **sljedeće**. Predlažem da uključi i jednu
-   novu automatizovanu provjeru: mali skript koji pada ako se u dokumente vrati tvrdnja da je
-   `theme-source.md` izvor, ako neki `.tsx` dobije hardkodiranu boju, ili ako token postoji u dva
-   od tri bloka — time se F6 odluke drže i bez ručnog čitanja.
+6. **Faza 7** (1–2 dana): završna verifikacija, guard i a11y (patch `pulse-15`) — ✅ **isporučeno**.
+   Guard skripta je upravo to što je predloženo u prethodnom koraku, plus je našla dva stvarna nalaza
+   (43 zastarjele upute i 17 elemenata bez vidljivog fokusa).
+
+**Šta je ostalo — i zašto je to tvoje, ne moje:** jedino što se ne može uraditi bez browsera i ljudi je
+**QA prolaz (§10)** i **UAT**. Kad to prođe, migracija je završena i preostaje odluka o defaultu:
+`DEFAULT_THEME_DESIGN` u `frontend/src/lib/theme/theme-storage.ts` je već `"pulse"` — ako želiš pilot,
+jedna linija ga vraća na `"classic"` bez redeploya logike.
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
 izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na Fazu 6"
 (dokumentacija i `.cursor` pravila) i nastavljam istim tokom: jedan korak = jedan patch
 (`pulse-13` u kojoj su **samo dokumenti i pravila** — bez ijedne linije koda) + verifikacija + handoff.
+## 10. QA checklista (zadnji korak — Faza 7 završava kad ovo prođe)
+
+Ovo je jedini dio verifikacije koji ne mogu ja: treba browser i ljude. Predlažem da se radi u tri prolaza,
+svaki 20–30 minuta. Ako nešto zapne, pošalji ekran + naziv ekrana i sredim bez ponovnog prolaska kroz faze.
+
+### 10.1 Vizuelni prolaz (matrica, ne „sve odjednom")
+
+| | **Pulse svijetla** | **Pulse tamna** | **classic** |
+|---|---|---|---|
+| **indigo (zadana)** | ✔ obavezan | ✔ obavezan | ✔ obavezan |
+| **teal** | ✔ | ✔ | — (nema efekta, očekivano) |
+| **rose** | ✔ | ✔ | — |
+
+Tri širine za svaki ekran: **1440** (desktop), **1024** (tablet), **390** (mobile).
+
+Ekrani po prioritetu (prvo ono gdje boja najviše „radi"):
+1. `/appearance` — dizajn, paleta, svjetlina, živi pregled, „vrati na zadano" (uključujući disabled stanje).
+2. Detalj tiketa — SLA panel, razgovor (fiksna visina), mjehurići, statusi, prioriteti, bulk traka.
+3. Lista tiketa + grupni inbox — tabela, filteri, sačuvani pregledi, paginacija.
+4. Nadzorna ploča + izvještaji — kartice, donut, dual-area, barovi, health trake.
+5. Prijava i instalacioni čarobnjak — brend pano (gradijent), koraci, validacije.
+6. Administracija — korisnici, grupe, OU drvo, dozvole, sistemska podešavanja, registar podešavanja.
+7. Servisi i baza znanja — katalog, kartice, forme, pretraga, članci.
+8. SLA / routing / policy paketi — kalendar, matrica prioriteta, coverage, tester razrješavanja.
+
+Šta gledati konkretno:
+- **Tint površine** (`bg-primary/8`, `bg-primary/10`) — da li se tekst u njima čita (badge, chip, aktivni red).
+- **Granice i sjene** — Pulse ima hairline sjenu na karticama, classic ne; da ništa nije „spljošteno".
+- **Grafikoni** — boje serija dolaze iz tokena, pa moraju pratiti paletu (teal/rose mijenja i njih).
+- **Fiksna visina razgovora** u detalju tiketa (320/420px) i **SLA panel** (ono što si prijavio u talasu 4.2).
+- Prekidač palete u topbaru: promjena mora biti **trenutna**, bez reload-a i bez treperenja.
+
+### 10.2 A11y provera (ono što se ne vidi na ekranu)
+
+- **Tastatura:** `Tab` kroz topbar → sidebar → sadržaj; `⌘K`/`Ctrl+K` paleta (strelice + Enter + Esc);
+  otvori modal i `Sheet` (fokus ostaje unutra, `Esc` zatvara, fokus se vraća na dugme koje ga je otvorilo).
+- **Fokus vidljiv:** svaki Tab-stop mora imati vidljiv prsten (`outline-primary/70`). U listama pretrage
+  i palete fokus je na inputu, a aktivni red je **highlightovan** — to je namjerno (combobox obrazac).
+- **Kontrast:** mjereno je 24/24 ≥ 4.5:1 za tekst; ako negdje vidiš „blijed" tekst, javi ekran — najvjerovatnije
+  je `text-muted-foreground` na tintu, što se popravlja jednim tokenom.
+- **Zoom 200%** i **`prefers-reduced-motion`** (animacije ulaza moraju stati).
+- **Statusi se ne prenose samo bojom** — badge ima tekst, ne samo tačku.
+
+### 10.3 UAT (5–8 ljudi iz Service Desk tima)
+
+Scenario koji pokriva sve kritične tokove (izvedi ga u **obje** teme; paletu po želji):
+
+1. Prijava → provjeri da je tema odmah ispravna (bez bljeska druge teme).
+2. Kreiraj tiket kroz čarobnjak → **KB intercept** korak radi, forma se validira, tiket se pojavi u listi.
+3. Nađi tiket preko `⌘K`, otvori detalj → SLA panel ima smisla, razgovor skroluje u fiksnoj visini.
+4. Dodijeli tiket grupi → provjeri realtime osvježavanje (druga sesija ili drugi tab).
+5. Zatvori tiket + CSAT → provjeri da se stanja i boje poklapaju s onim što piše.
+6. Administracija: promijeni sistemsko podešavanje (traži razlog) → audit trag postoji.
+7. Prebaci paletu i svjetlinu → **ništa se ne izgubi, ništa ne treba reload**.
+
+Pitanja za učesnike (kratko, 3 ocjene 1–5 + komentar):
+- Da li u svakom trenutku znaš **šta je tvoj sljedeći potez**?
+- Da li nešto „šušti" (previše boje, previše sjene) na ekranima gdje radiš cijeli dan?
+- Koja paleta ti je najudobnija za osmosatni rad?
+
+### 10.4 Kad prođe
+
+- Rezultat QA-a (ako traži izmjene) dolazi kao **novi patch**, istim tokom.
+- Promjena defaulta: `DEFAULT_THEME_DESIGN` u `frontend/src/lib/theme/theme-storage.ts`
+  (sada `"pulse"`; `"classic"` je jedna linija za pilot).
+- Guard skripta u CI-ju će od prvog merge-a na `master` čuvati sve F0–F6 odluke bez ručnog čitanja.
+
+---
+

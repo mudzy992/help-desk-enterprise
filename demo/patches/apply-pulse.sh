@@ -52,6 +52,7 @@ PATCHES=(
   "pulse-12-appearance-page.patch:frontend/src/pages/appearance-page.tsx"
   "pulse-13-accent-palettes.patch:frontend/src/index.css:data-accent=\"teal\""
   "pulse-14-docs-and-rules.patch:.cursor/docs/theme.md:## Brend palete"
+  "pulse-15-verification-a11y-and-guard.patch:scripts/check-pulse-design-system.mjs"
 )
 
 applied=0
@@ -158,4 +159,8 @@ if [ "$applied" -gt 0 ]; then
   echo "  npx tsc -b                 # očekivano: 0 grešaka"
   echo "  npx vitest run             # očekivano: 89 fajlova / 308 testova"
   echo "  npx vite build             # očekivano: uspješno"
+  echo
+  echo "Guard-ovi (iz korijena repoa, bez instalacije):"
+  echo "  node scripts/check-pulse-design-system.mjs   # očekivano: OK"
+  echo "  node scripts/check-ticket-id-leaks.mjs       # očekivano: OK"
 fi
