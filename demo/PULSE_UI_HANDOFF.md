@@ -49,6 +49,31 @@ git apply demo/patches/pulse-03-shell-palette-login-wizard.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
+### ⚠ Prvo o jednoj zamci: `git apply` je atomičan
+
+`git apply a.patch b.patch c.patch` — ako **jedan** patch ne prođe, **nijedan se ne primijeni**.
+Zato ako si 01 i 02 već primijenio (i možda commitovao), pa ponoviš cijelu listu, dobiješ ~90
+linija grešaka `patch does not apply`, a **patch 03 ostane neprimijenjen** iako je samo on trebao.
+
+Zato je uz patcheve tu i skripta koja to rješava:
+
+```bash
+bash demo/patches/apply-pulse.sh             # primijeni samo ono što fali
+bash demo/patches/apply-pulse.sh --dry-run   # prvo pogledaj šta bi se desilo
+```
+
+Skripta za svaki patch provjeri postoji li njegov „sentinel" fajl (npr. za 03:
+`frontend/src/components/layout/command-palette.tsx`), preskoči već primijenjene i primijeni
+samo ostatak — jedan po jedan patch, ne sve odjednom. Uz to sama rješava CRLF zamku iz §8:
+ako patch na disku ima CR (Git for Windows bez `.gitattributes`), napravi LF kopiju u tempu i
+primijeni nju, ne dirajući tvoj fajl.
+
+**Ako si već primijenio 01 i 02, radi samo ovo:**
+
+```bash
+git apply demo/patches/pulse-03-shell-palette-login-wizard.patch
+```
+
 Zatim, po tvom postojećem običaju (commitovi su ti imenovani po patch fajlovima, npr.
 `f2-01-action-feedback-seam-and-inbox-tabs.patch`), commit predlažem kao:
 
@@ -58,7 +83,15 @@ git commit -am "pulse-02-ui-primitives.patch"
 git commit -am "pulse-03-shell-palette-login-wizard.patch"
 ```
 
-Ako želiš jedan commit, `git apply` sva tri patcha pa jedan commit.
+Ako želiš jedan commit, primijeni sva tri patcha pa jedan commit.
+
+### Kako provjeriti da je sve primijenjeno
+
+```bash
+ls frontend/src/components/layout/command-palette.tsx   # postoji → 03 je primijenjen
+ls frontend/src/components/layout/header-search.tsx     # ne smije postojati → 03 briše ovaj fajl
+git status --porcelain | wc -l                          # ~26 putanja nakon 03 (na 01+02)
+```
 
 ---
 
