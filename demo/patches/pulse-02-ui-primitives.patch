@@ -1,0 +1,1109 @@
+diff --git a/frontend/src/components/ui/avatar.tsx b/frontend/src/components/ui/avatar.tsx
+index d9c8dd5..c720c5f 100644
+--- a/frontend/src/components/ui/avatar.tsx
++++ b/frontend/src/components/ui/avatar.tsx
+@@ -1,12 +1,17 @@
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Six deterministic identity hues. They are theme variables rather than fixed
++  hexes so an avatar keeps its contrast in every theme block — pastel tints on
++  the light canvas, deep tints on the classic and Pulse dark surfaces.
++*/
+ const AVATAR_HUES = [
+-  "bg-[#22355C] text-[#9DBCF5]",
+-  "bg-[#1D3A34] text-[#8AD8C2]",
+-  "bg-[#3A2D1D] text-[#E4BE8A]",
+-  "bg-[#2D2A4A] text-[#B6ADF0]",
+-  "bg-[#3A2430] text-[#E8A7BC]",
+-  "bg-[#26383E] text-[#93D3E4]",
++  "bg-[rgb(var(--avatar-1-bg))] text-[rgb(var(--avatar-1-fg))]",
++  "bg-[rgb(var(--avatar-2-bg))] text-[rgb(var(--avatar-2-fg))]",
++  "bg-[rgb(var(--avatar-3-bg))] text-[rgb(var(--avatar-3-fg))]",
++  "bg-[rgb(var(--avatar-4-bg))] text-[rgb(var(--avatar-4-fg))]",
++  "bg-[rgb(var(--avatar-5-bg))] text-[rgb(var(--avatar-5-fg))]",
++  "bg-[rgb(var(--avatar-6-bg))] text-[rgb(var(--avatar-6-fg))]",
+ ] as const;
+ 
+ function hashCode(value: string): number {
+@@ -35,7 +40,7 @@ export function Avatar({ name, size = "md", className }: AvatarProperties) {
+   return (
+     <span
+       className={cn(
+-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold",
++        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-black/5 dark:ring-white/5",
+         AVATAR_HUES[hashCode(name) % AVATAR_HUES.length],
+         size === "xs" && "size-5 text-[9px]",
+         size === "sm" && "size-[26px] text-[10.5px]",
+diff --git a/frontend/src/components/ui/badge.tsx b/frontend/src/components/ui/badge.tsx
+index fe5dfc2..348e42e 100644
+--- a/frontend/src/components/ui/badge.tsx
++++ b/frontend/src/components/ui/badge.tsx
+@@ -8,16 +8,24 @@ export type BadgeTone =
+   | "success"
+   | "warning"
+   | "danger"
+-  | "info";
++  | "info"
++  | "hold";
+ 
++/*
++  One badge shape for the whole application: a pill with a tinted background,
++  a hairline border and a text colour that is contrast-checked per theme.
++  `hold` is new — it carries approval / confidential semantics that previously
++  had no colour of its own.
++*/
+ const BADGE_TONES: Record<BadgeTone, string> = {
+-  neutral: "bg-elevated/70 text-muted border-border",
+-  primary: "bg-primary/15 text-[#7FA8F5] border-primary/35",
+-  accent: "bg-accent/10 text-accent border-accent/30",
+-  success: "bg-success/10 text-[#4ADE80] border-success/30",
+-  warning: "bg-warning/10 text-warning border-warning/30",
+-  danger: "bg-danger/10 text-danger border-danger/35",
+-  info: "bg-info/10 text-info border-info/30",
++  neutral: "border-border bg-elevated/70 text-muted-foreground",
++  primary: "border-primary/25 bg-primary/10 text-link",
++  accent: "border-accent/25 bg-accent/10 text-accent",
++  success: "border-success/30 bg-success/10 text-ok",
++  warning: "border-warning/30 bg-warning/10 text-warning",
++  danger: "border-danger/30 bg-danger/10 text-danger",
++  info: "border-info/30 bg-info/10 text-info",
++  hold: "border-hold/30 bg-hold/10 text-hold",
+ };
+ 
+ interface BadgeProperties {
+@@ -36,7 +44,7 @@ export function Badge({
+   return (
+     <span
+       className={cn(
+-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-4",
++        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4",
+         BADGE_TONES[tone],
+         className,
+       )}
+diff --git a/frontend/src/components/ui/button.tsx b/frontend/src/components/ui/button.tsx
+index e3788f2..fab0a8b 100644
+--- a/frontend/src/components/ui/button.tsx
++++ b/frontend/src/components/ui/button.tsx
+@@ -3,12 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority";
+ import { type ButtonHTMLAttributes, forwardRef } from "react";
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Pulse buttons. Every colour comes from a token, so the same markup renders
++  correctly on the light canvas, on Pulse dark and on the legacy dark theme.
++*/
++
+ const PRIMARY_BUTTON_CLASSES =
+-  "border border-primary bg-primary text-primary-foreground hover:bg-[#1D4FD8] active:bg-[#1B44BE]";
++  "border border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover active:bg-primary-active";
+ const DESTRUCTIVE_BUTTON_CLASSES =
+   "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20 active:bg-danger/25";
+ const SECONDARY_BUTTON_CLASSES =
+-  "border border-border/70 bg-elevated/60 text-foreground hover:border-border hover:bg-elevated";
++  "border border-border bg-surface text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover";
+ 
+ const buttonVariants = cva(
+   "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium select-none transition-all duration-150 focus-visible:outline-2 focus-visible:outline-primary/70 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-[15px] [&_svg]:shrink-0",
+@@ -20,12 +25,12 @@ const buttonVariants = cva(
+         destructive: DESTRUCTIVE_BUTTON_CLASSES,
+         danger: DESTRUCTIVE_BUTTON_CLASSES,
+         outline:
+-          "border border-border bg-surface text-foreground hover:border-[#31405C] hover:bg-elevated active:bg-elevated",
++          "border border-border bg-transparent text-foreground hover:border-line-strong hover:bg-surface-hover active:bg-surface-hover",
+         secondary: SECONDARY_BUTTON_CLASSES,
+         subtle: SECONDARY_BUTTON_CLASSES,
+         ghost:
+-          "border border-transparent text-muted-foreground hover:bg-elevated hover:text-foreground",
+-        link: "text-[#7FA8F5] underline-offset-4 hover:underline",
++          "border border-transparent text-muted-foreground hover:bg-surface-hover hover:text-foreground",
++        link: "text-link underline-offset-4 hover:underline",
+       },
+       size: {
+         default: "h-9 px-3.5 text-[13px]",
+diff --git a/frontend/src/components/ui/card.tsx b/frontend/src/components/ui/card.tsx
+index a97cecd..52849ef 100644
+--- a/frontend/src/components/ui/card.tsx
++++ b/frontend/src/components/ui/card.tsx
+@@ -1,11 +1,17 @@
+ import type { HTMLAttributes, ReactNode } from "react";
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Cards sit on the canvas, not on it: a hairline border plus the theme's
++  `shadow-card` (which is `none` on the legacy dark theme, and a whisper-soft
++  1px lift on the light canvas). Radius comes from `rounded-lg`, which resolves
++  to 12px in Pulse and 8px in classic.
++*/
+ export function Card({ className, ...properties }: HTMLAttributes<HTMLDivElement>) {
+   return (
+     <div
+       className={cn(
+-        "rounded-lg border border-border bg-surface",
++        "rounded-lg border border-border bg-surface shadow-card",
+         className,
+       )}
+       {...properties}
+diff --git a/frontend/src/components/ui/chip.tsx b/frontend/src/components/ui/chip.tsx
+new file mode 100644
+index 0000000..0b00ad9
+--- /dev/null
++++ b/frontend/src/components/ui/chip.tsx
+@@ -0,0 +1,88 @@
++import { X } from "lucide-react";
++import type { ReactNode } from "react";
++import {
++  filterChipActiveClassName,
++  filterChipClassName,
++  filterChipDangerActiveClassName,
++  filterChipIdleClassName,
++} from "@/components/ui/control";
++import { cn } from "@/lib/utils";
++
++export type ChipTone = "default" | "danger";
++
++interface ChipProperties {
++  readonly active?: boolean;
++  readonly tone?: ChipTone;
++  readonly onClick?: () => void;
++  readonly onRemove?: () => void;
++  readonly removeLabel?: string;
++  readonly icon?: ReactNode;
++  readonly children: ReactNode;
++  readonly className?: string;
++}
++
++/**
++ * Filter / token chip. Shares its classes with `filterChip*` in `control.ts`,
++ * so chips written by hand and chips written as components stay identical.
++ */
++export function Chip({
++  active = false,
++  tone = "default",
++  onClick,
++  onRemove,
++  removeLabel,
++  icon,
++  children,
++  className,
++}: ChipProperties) {
++  const isInteractive = onClick !== undefined;
++
++  const toneClassName = active
++    ? tone === "danger"
++      ? filterChipDangerActiveClassName
++      : filterChipActiveClassName
++    : filterChipIdleClassName;
++
++  if (!isInteractive) {
++    return (
++      <span className={cn(filterChipClassName, toneClassName, className)}>
++        {icon}
++        {children}
++        {onRemove ? (
++          <button
++            type="button"
++            aria-label={removeLabel}
++            onClick={onRemove}
++            className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10"
++          >
++            <X size={11} strokeWidth={2.4} />
++          </button>
++        ) : null}
++      </span>
++    );
++  }
++
++  return (
++    <span className={cn(filterChipClassName, toneClassName, className)}>
++      <button
++        type="button"
++        onClick={onClick}
++        aria-pressed={active}
++        className="inline-flex items-center gap-1.5"
++      >
++        {icon}
++        {children}
++      </button>
++      {onRemove ? (
++        <button
++          type="button"
++          aria-label={removeLabel}
++          onClick={onRemove}
++          className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10"
++        >
++          <X size={11} strokeWidth={2.4} />
++        </button>
++      ) : null}
++    </span>
++  );
++}
+diff --git a/frontend/src/components/ui/confirm-dialog.tsx b/frontend/src/components/ui/confirm-dialog.tsx
+new file mode 100644
+index 0000000..4dbe9d4
+--- /dev/null
++++ b/frontend/src/components/ui/confirm-dialog.tsx
+@@ -0,0 +1,63 @@
++import type { ReactNode } from "react";
++import { useTranslation } from "react-i18next";
++import { Button } from "@/components/ui/button";
++import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
++
++interface ConfirmDialogProperties {
++  readonly open: boolean;
++  readonly onOpenChange: (open: boolean) => void;
++  readonly title: ReactNode;
++  readonly description?: ReactNode;
++  readonly confirmLabel?: string;
++  readonly cancelLabel?: string;
++  readonly intent?: "default" | "danger";
++  readonly isPending?: boolean;
++  readonly onConfirm: () => void;
++  readonly children?: ReactNode;
++}
++
++/**
++ * The one confirmation surface for the application. Destructive intents are
++ * rendered as `danger` so the confirm button never looks like the safe choice.
++ */
++export function ConfirmDialog({
++  open,
++  onOpenChange,
++  title,
++  description,
++  confirmLabel,
++  cancelLabel,
++  intent = "default",
++  isPending = false,
++  onConfirm,
++  children,
++}: ConfirmDialogProperties) {
++  const { t } = useTranslation();
++
++  return (
++    <Modal open={open} onOpenChange={onOpenChange}>
++      <ModalContent role="alertdialog">
++        <ModalHeader title={title} description={description} />
++        {children}
++        <ModalFooter>
++          <Button
++            type="button"
++            variant="secondary"
++            onClick={() => onOpenChange(false)}
++            disabled={isPending}
++          >
++            {cancelLabel ?? t("ui.cancel")}
++          </Button>
++          <Button
++            type="button"
++            variant={intent === "danger" ? "danger" : "primary"}
++            onClick={onConfirm}
++            disabled={isPending}
++          >
++            {confirmLabel ?? t("ui.confirm")}
++          </Button>
++        </ModalFooter>
++      </ModalContent>
++    </Modal>
++  );
++}
+diff --git a/frontend/src/components/ui/control.ts b/frontend/src/components/ui/control.ts
+index 685a4ba..cb23dbb 100644
+--- a/frontend/src/components/ui/control.ts
++++ b/frontend/src/components/ui/control.ts
+@@ -1,20 +1,33 @@
++/*
++  Pulse — shared control styling.
++
++  This module is the single source of truth for ~100 components (imported by
++  103 files). Every class here resolves through the theme tokens declared in
++  `src/index.css`, which means restyling this one file restyles the entire
++  application — in all three theme blocks — without touching a call site.
++
++  Text that sits on a primary tint uses `text-link`, never `text-primary`:
++  `--link` is the "readable brand text" token and is tuned per theme for
++  contrast on tinted surfaces.
++*/
++
+ export const controlClassName =
+-  "h-9 w-full rounded-md border border-border bg-background/60 px-3 text-[13px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
++  "h-9 w-full rounded-md border border-border bg-surface px-3 text-[13px] text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+ 
+ export const controlCompactClassName =
+-  "h-8 w-full rounded-md border border-border bg-background/60 px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
++  "h-8 w-full rounded-md border border-border bg-surface px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+ 
+ export const selectClassName = `${controlClassName} cursor-pointer appearance-none pr-8`;
+ 
+ export const selectCompactClassName = `${controlCompactClassName} cursor-pointer appearance-none pr-7`;
+ 
+ export const textareaClassName =
+-  "min-h-24 w-full rounded-md border border-border bg-background/60 px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none disabled:opacity-45";
++  "min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+ 
+ export const labelClassName =
+   "grid gap-1.5 text-[12.5px] font-medium text-foreground";
+ 
+-export const hintClassName = "text-[11.5px] text-muted-foreground/80";
++export const hintClassName = "text-[11.5px] text-muted-foreground";
+ 
+ export const errorTextClassName = "text-[12.5px] text-danger";
+ 
+@@ -22,30 +35,30 @@ export const sectionTitleClassName =
+   "text-[13.5px] font-semibold leading-5 text-foreground";
+ 
+ export const tableWrapClassName =
+-  "overflow-x-auto rounded-lg border border-border bg-surface";
++  "overflow-x-auto rounded-lg border border-border bg-surface shadow-card";
+ 
+ export const tableHeadClassName =
+-  "text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70";
++  "text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground";
+ 
+ export const tableRowClassName =
+-  "group border-b border-border/50 last:border-0 transition-colors duration-150 hover:bg-elevated/40 [&>td]:min-h-9 [&>td]:py-2.5";
++  "group border-b border-border/60 last:border-0 transition-colors duration-150 hover:bg-surface-hover [&>td]:min-h-9 [&>td]:py-2.5";
+ 
+ export const ticketIdClassName =
+-  "tnum text-[12px] font-medium text-[#7FA8F5] underline-offset-2 hover:underline group-hover:underline";
++  "tnum text-[12px] font-medium text-link underline-offset-2 hover:underline group-hover:underline";
+ 
+ export const filterChipClassName =
+-  "rounded-md border px-2 py-1 text-[11.5px] font-medium transition-colors duration-150";
++  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-150";
+ 
+ export const filterChipActiveClassName =
+-  "border-primary/50 bg-primary/15 text-[#7FA8F5]";
++  "border-primary/45 bg-primary/15 text-link";
+ 
+ export const filterChipIdleClassName =
+-  "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground";
++  "border-border bg-surface text-muted-foreground hover:border-line-strong hover:bg-surface-hover hover:text-foreground";
+ 
+ export const filterChipDangerActiveClassName =
+-  "border-danger/50 bg-danger/10 text-danger";
++  "border-danger/45 bg-danger/10 text-danger";
+ 
+-export const floatingShadowClassName = "shadow-xl shadow-black/40";
++export const floatingShadowClassName = "shadow-pop";
+ 
+ export const floatingPanelClassName =
+-  `pop-in overflow-hidden rounded-lg border border-border bg-elevated ${floatingShadowClassName}`;
++  `pop-in overflow-hidden rounded-lg border border-border bg-popover ${floatingShadowClassName}`;
+diff --git a/frontend/src/components/ui/dropdown-menu.tsx b/frontend/src/components/ui/dropdown-menu.tsx
+index 8afe4cd..b93a2d4 100644
+--- a/frontend/src/components/ui/dropdown-menu.tsx
++++ b/frontend/src/components/ui/dropdown-menu.tsx
+@@ -26,6 +26,21 @@ export const DropdownMenuContent = forwardRef<
+ ));
+ DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
+ 
++export const DropdownMenuLabel = forwardRef<
++  ElementRef<typeof DropdownMenuPrimitive.Label>,
++  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
++>(({ className, ...properties }, reference) => (
++  <DropdownMenuPrimitive.Label
++    ref={reference}
++    className={cn(
++      "px-3.5 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
++      className,
++    )}
++    {...properties}
++  />
++));
++DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
++
+ export const DropdownMenuItem = forwardRef<
+   ElementRef<typeof DropdownMenuPrimitive.Item>,
+   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
+@@ -34,7 +49,7 @@ export const DropdownMenuItem = forwardRef<
+     ref={reference}
+     className={cn(
+       "flex cursor-pointer items-center gap-2 px-3.5 py-2 text-[12.5px] text-foreground/90 outline-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary/70",
+-      "focus:bg-background/60 data-[highlighted]:bg-background/60",
++      "focus:bg-surface-hover data-[highlighted]:bg-surface-hover",
+       "data-[disabled]:pointer-events-none data-[disabled]:opacity-45",
+       className,
+     )}
+diff --git a/frontend/src/components/ui/empty-state.tsx b/frontend/src/components/ui/empty-state.tsx
+index 3da442b..c52f4f4 100644
+--- a/frontend/src/components/ui/empty-state.tsx
++++ b/frontend/src/components/ui/empty-state.tsx
+@@ -11,7 +11,7 @@ interface EmptyStateProperties {
+ export function EmptyState({ icon, title, body, action }: EmptyStateProperties) {
+   return (
+     <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+-      <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-elevated/60 text-muted-foreground">
++      <div className="flex size-10 items-center justify-center rounded-lg border border-border bg-surface-hover text-muted-foreground shadow-card">
+         {icon ?? <Inbox size={18} strokeWidth={1.8} />}
+       </div>
+       <p className="text-[13px] font-medium text-foreground">{title}</p>
+diff --git a/frontend/src/components/ui/kbd.tsx b/frontend/src/components/ui/kbd.tsx
+index 398769f..e8b1bac 100644
+--- a/frontend/src/components/ui/kbd.tsx
++++ b/frontend/src/components/ui/kbd.tsx
+@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
+ 
+ export function Kbd({ children }: { readonly children: ReactNode }) {
+   return (
+-    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-elevated px-1 text-[10.5px] font-medium text-muted-foreground tnum">
++    <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-elevated px-1 text-[10.5px] font-medium text-muted-foreground tnum shadow-card">
+       {children}
+     </kbd>
+   );
+diff --git a/frontend/src/components/ui/modal.tsx b/frontend/src/components/ui/modal.tsx
+new file mode 100644
+index 0000000..8968b83
+--- /dev/null
++++ b/frontend/src/components/ui/modal.tsx
+@@ -0,0 +1,62 @@
++import * as DialogPrimitive from "@radix-ui/react-dialog";
++import { X } from "lucide-react";
++import type { ComponentPropsWithoutRef, ElementRef, ReactNode } from "react";
++import { forwardRef } from "react";
++import { useTranslation } from "react-i18next";
++import { cn } from "@/lib/utils";
++
++export const Modal = DialogPrimitive.Root;
++export const ModalTrigger = DialogPrimitive.Trigger;
++export const ModalClose = DialogPrimitive.Close;
++export const ModalTitle = DialogPrimitive.Title;
++export const ModalDescription = DialogPrimitive.Description;
++
++export const ModalContent = forwardRef<
++  ElementRef<typeof DialogPrimitive.Content>,
++  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
++>(({ className, children, ...properties }, reference) => {
++  const { t } = useTranslation();
++  return (
++    <DialogPrimitive.Portal>
++      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-scrim/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
++      <DialogPrimitive.Content
++        ref={reference}
++        className={cn(
++          "fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-surface p-5 shadow-pop",
++          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
++          className,
++        )}
++        {...properties}
++      >
++        {children}
++        <DialogPrimitive.Close className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
++          <X className="h-4 w-4" />
++          <span className="sr-only">{t("ui.close")}</span>
++        </DialogPrimitive.Close>
++      </DialogPrimitive.Content>
++    </DialogPrimitive.Portal>
++  );
++});
++ModalContent.displayName = DialogPrimitive.Content.displayName;
++
++interface ModalHeaderProperties {
++  readonly title: ReactNode;
++  readonly description?: ReactNode;
++}
++
++export function ModalHeader({ title, description }: ModalHeaderProperties) {
++  return (
++    <div className="mb-3 pr-6">
++      <h2 className="text-[14px] font-semibold leading-5 text-foreground">{title}</h2>
++      {description ? (
++        <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{description}</p>
++      ) : null}
++    </div>
++  );
++}
++
++export function ModalFooter({ children }: { readonly children: ReactNode }) {
++  return (
++    <div className="mt-5 flex flex-wrap items-center justify-end gap-2">{children}</div>
++  );
++}
+diff --git a/frontend/src/components/ui/page-header.tsx b/frontend/src/components/ui/page-header.tsx
+index dc9ddd5..18f7e19 100644
+--- a/frontend/src/components/ui/page-header.tsx
++++ b/frontend/src/components/ui/page-header.tsx
+@@ -16,10 +16,10 @@ export function PageHeader({
+   return (
+     <div className="mb-5">
+       {crumbs.length > 0 ? (
+-        <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground/80">
++        <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+           {crumbs.map((crumb, index) => (
+             <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
+-              {index > 0 ? <span className="text-border">/</span> : null}
++              {index > 0 ? <span className="text-muted-foreground/50">/</span> : null}
+               <span className={index === crumbs.length - 1 ? "text-muted-foreground" : ""}>
+                 {crumb}
+               </span>
+@@ -29,7 +29,7 @@ export function PageHeader({
+       ) : null}
+       <div className="flex flex-wrap items-end justify-between gap-3">
+         <div className="min-w-0">
+-          <h1 className="text-page font-semibold tracking-[-0.01em] text-foreground">
++          <h1 className="text-page font-semibold tracking-[-0.02em] text-foreground">
+             {title}
+           </h1>
+           {subtitle ? (
+diff --git a/frontend/src/components/ui/progress.tsx b/frontend/src/components/ui/progress.tsx
+index c5a2e54..3296786 100644
+--- a/frontend/src/components/ui/progress.tsx
++++ b/frontend/src/components/ui/progress.tsx
+@@ -9,6 +9,7 @@ const PROGRESS_TONES: Record<BadgeTone, string> = {
+   warning: "bg-warning",
+   danger: "bg-danger",
+   info: "bg-info",
++  hold: "bg-hold",
+ };
+ 
+ interface ProgressProperties {
+diff --git a/frontend/src/components/ui/segmented.tsx b/frontend/src/components/ui/segmented.tsx
+new file mode 100644
+index 0000000..c0df7fa
+--- /dev/null
++++ b/frontend/src/components/ui/segmented.tsx
+@@ -0,0 +1,65 @@
++import type { ReactNode } from "react";
++import { cn } from "@/lib/utils";
++
++export type SegmentedItem<T extends string> = {
++  readonly value: T;
++  readonly label: ReactNode;
++  readonly icon?: ReactNode;
++};
++
++interface SegmentedProperties<T extends string> {
++  readonly items: readonly SegmentedItem<T>[];
++  readonly value: T;
++  readonly onChange: (value: T) => void;
++  /** `sm` for toolbars, `md` for page-level switches. */
++  readonly size?: "sm" | "md";
++  readonly ariaLabel?: string;
++  readonly className?: string;
++}
++
++/**
++ * Two-to-four mutually exclusive options rendered as a single control —
++ * the Pulse replacement for a pair of toggle buttons or a cramped `<select>`.
++ */
++export function Segmented<T extends string>({
++  items,
++  value,
++  onChange,
++  size = "md",
++  ariaLabel,
++  className,
++}: SegmentedProperties<T>) {
++  return (
++    <div
++      role="radiogroup"
++      aria-label={ariaLabel}
++      className={cn(
++        "inline-flex items-center gap-0.5 rounded-md border border-border bg-surface-hover p-0.5",
++        className,
++      )}
++    >
++      {items.map((item) => {
++        const isActive = item.value === value;
++        return (
++          <button
++            key={item.value}
++            type="button"
++            role="radio"
++            aria-checked={isActive}
++            onClick={() => onChange(item.value)}
++            className={cn(
++              "inline-flex items-center gap-1.5 whitespace-nowrap rounded-[6px] font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-primary/70",
++              size === "sm" ? "h-6 px-2 text-[11.5px]" : "h-7 px-2.5 text-[12px]",
++              isActive
++                ? "bg-surface text-foreground shadow-card"
++                : "text-muted-foreground hover:text-foreground",
++            )}
++          >
++            {item.icon}
++            {item.label}
++          </button>
++        );
++      })}
++    </div>
++  );
++}
+diff --git a/frontend/src/components/ui/sheet.tsx b/frontend/src/components/ui/sheet.tsx
+index 68fc269..9528eb1 100644
+--- a/frontend/src/components/ui/sheet.tsx
++++ b/frontend/src/components/ui/sheet.tsx
+@@ -19,7 +19,7 @@ export const SheetOverlay = forwardRef<
+ >(({ className, ...properties }, reference) => (
+   <SheetPrimitive.Overlay
+     className={cn(
+-      "fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
++      "fixed inset-0 z-50 bg-scrim/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+       className,
+     )}
+     {...properties}
+@@ -65,7 +65,7 @@ export const SheetContent = forwardRef<
+         {...properties}
+       >
+         {children}
+-        <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
++        <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
+           <X className="h-4 w-4" />
+           <span className="sr-only">{t("shell.close")}</span>
+         </SheetPrimitive.Close>
+diff --git a/frontend/src/components/ui/skeleton.tsx b/frontend/src/components/ui/skeleton.tsx
+index b29fdb5..d46a5f8 100644
+--- a/frontend/src/components/ui/skeleton.tsx
++++ b/frontend/src/components/ui/skeleton.tsx
+@@ -1,5 +1,9 @@
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Loading is a skeleton of the layout, not a spinner. Bars use the `border`
++  token so they stay visible on the light canvas as well as dark surfaces.
++*/
+ interface PanelSkeletonProperties {
+   readonly label: string;
+   readonly className?: string;
+@@ -9,17 +13,17 @@ export function PanelSkeleton({ label, className }: PanelSkeletonProperties) {
+   return (
+     <div
+       className={cn(
+-        "mt-3 rounded-lg border border-border bg-surface p-4",
++        "mt-3 rounded-lg border border-border bg-surface p-4 shadow-card",
+         className,
+       )}
+       role="status"
+       aria-live="polite"
+       aria-label={label}
+     >
+-      <div className="h-3 w-32 rounded-md bg-elevated" />
+-      <div className="mt-3 h-10 rounded-md bg-elevated/80" />
+-      <div className="mt-2 h-10 rounded-md bg-elevated/60" />
+-      <div className="mt-2 h-10 rounded-md bg-elevated/40" />
++      <div className="h-3 w-32 rounded-md bg-border/70" />
++      <div className="mt-3 h-10 rounded-md bg-border/60" />
++      <div className="mt-2 h-10 rounded-md bg-border/50" />
++      <div className="mt-2 h-10 rounded-md bg-border/40" />
+       <span className="sr-only">{label}</span>
+     </div>
+   );
+diff --git a/frontend/src/components/ui/stat-card.tsx b/frontend/src/components/ui/stat-card.tsx
+index a0a422f..cf86b92 100644
+--- a/frontend/src/components/ui/stat-card.tsx
++++ b/frontend/src/components/ui/stat-card.tsx
+@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
+ 
+ const STAT_DELTA_TONES: Record<BadgeTone, string> = {
+   neutral: "text-muted-foreground",
+-  primary: "text-[#7FA8F5]",
++  primary: "text-link",
+   accent: "text-accent",
+-  success: "text-[#4ADE80]",
++  success: "text-ok",
+   warning: "text-warning",
+   danger: "text-danger",
+   info: "text-info",
++  hold: "text-hold",
+ };
+ 
+ interface StatCardProperties {
+@@ -33,7 +34,7 @@ export function StatCard({
+   deltaTone = "neutral",
+ }: StatCardProperties) {
+   return (
+-    <Card className="h-full px-4 py-3.5 transition-colors duration-150 hover:border-[#31405C]">
++    <Card className="h-full px-4 py-3.5 transition-colors duration-150 hover:border-line-strong">
+       <div className="flex items-center justify-between gap-2">
+         <span className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
+           {label}
+diff --git a/frontend/src/components/ui/switch.tsx b/frontend/src/components/ui/switch.tsx
+index b6520a3..e8ea3fe 100644
+--- a/frontend/src/components/ui/switch.tsx
++++ b/frontend/src/components/ui/switch.tsx
+@@ -2,6 +2,11 @@ import * as SwitchPrimitive from "@radix-ui/react-switch";
+ import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from "react";
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Track contrast is the thing that breaks in a light theme: an `elevated`
++  track is invisible on a white card. `border` reads as a real track in every
++  theme, and the thumb keeps a hairline shadow so it stays separable.
++*/
+ export const Switch = forwardRef<
+   ElementRef<typeof SwitchPrimitive.Root>,
+   ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>
+@@ -10,14 +15,14 @@ export const Switch = forwardRef<
+     className={cn(
+       "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors duration-150",
+       "data-[state=checked]:border-primary data-[state=checked]:bg-primary",
+-      "data-[state=unchecked]:border-border data-[state=unchecked]:bg-elevated",
++      "data-[state=unchecked]:border-border data-[state=unchecked]:bg-border",
+       "disabled:cursor-not-allowed disabled:opacity-45",
+       className,
+     )}
+     {...properties}
+     ref={reference}
+   >
+-    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-white transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
++    <SwitchPrimitive.Thumb className="pointer-events-none block size-3.5 rounded-full bg-white shadow-sm transition-transform duration-150 data-[state=checked]:translate-x-[18px] data-[state=unchecked]:translate-x-[3px]" />
+   </SwitchPrimitive.Root>
+ ));
+ 
+diff --git a/frontend/src/components/ui/tabs.tsx b/frontend/src/components/ui/tabs.tsx
+index f34c11f..fd46c04 100644
+--- a/frontend/src/components/ui/tabs.tsx
++++ b/frontend/src/components/ui/tabs.tsx
+@@ -22,6 +22,7 @@ export function UnderlineTabs({
+ }: UnderlineTabsProperties) {
+   return (
+     <div
++      role="tablist"
+       className={cn(
+         "flex items-center gap-1 overflow-x-auto border-b border-border/70",
+         className,
+@@ -33,6 +34,8 @@ export function UnderlineTabs({
+           <button
+             key={item.key}
+             type="button"
++            role="tab"
++            aria-selected={isActive}
+             onClick={() => onChange(item.key)}
+             className={cn(
+               "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150",
+@@ -45,9 +48,9 @@ export function UnderlineTabs({
+             {typeof item.count === "number" ? (
+               <span
+                 className={cn(
+-                  "rounded-md border px-1 py-0 text-[10.5px] leading-[14px] tnum",
++                  "tnum rounded-full border px-1.5 py-0 text-[10.5px] leading-[15px]",
+                   isActive
+-                    ? "border-primary/40 bg-primary/15 text-[#7FA8F5]"
++                    ? "border-primary/25 bg-primary/10 text-link"
+                     : "border-border bg-elevated/70 text-muted-foreground",
+                 )}
+               >
+diff --git a/frontend/src/components/ui/wizard-stepper.tsx b/frontend/src/components/ui/wizard-stepper.tsx
+index 7924495..523a3fc 100644
+--- a/frontend/src/components/ui/wizard-stepper.tsx
++++ b/frontend/src/components/ui/wizard-stepper.tsx
+@@ -30,12 +30,12 @@ export function WizardStepper({ steps, activeIndex }: WizardStepperProperties) {
+             <div className="flex items-center gap-2.5">
+               <span
+                 className={cn(
+-                  "flex size-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold transition-all duration-150",
+-                  isComplete && "border-success/40 bg-success/15 text-[#4ADE80]",
+-                  isActive && "border-primary bg-primary text-primary-foreground",
++                  "flex size-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-all duration-150",
++                  isComplete && "border-success/35 bg-success/10 text-ok",
++                  isActive && "border-primary bg-primary text-primary-foreground shadow-glow",
+                   !isComplete &&
+                     !isActive &&
+-                    "border-border bg-elevated text-muted-foreground",
++                    "border-border bg-surface-hover text-muted-foreground",
+                 )}
+               >
+                 {isComplete ? (
+diff --git a/frontend/src/components/visual-qa/visual-qa-actions-board.tsx b/frontend/src/components/visual-qa/visual-qa-actions-board.tsx
+index 4c3dd08..f8a51fe 100644
+--- a/frontend/src/components/visual-qa/visual-qa-actions-board.tsx
++++ b/frontend/src/components/visual-qa/visual-qa-actions-board.tsx
+@@ -10,6 +10,7 @@ const BADGE_TONES: readonly BadgeTone[] = [
+   "warning",
+   "danger",
+   "info",
++  "hold",
+ ];
+ 
+ export function VisualQaActionsBoard() {
+diff --git a/frontend/src/components/visual-qa/visual-qa-surfaces-board.tsx b/frontend/src/components/visual-qa/visual-qa-surfaces-board.tsx
+index 38ba707..5a5288f 100644
+--- a/frontend/src/components/visual-qa/visual-qa-surfaces-board.tsx
++++ b/frontend/src/components/visual-qa/visual-qa-surfaces-board.tsx
+@@ -24,7 +24,8 @@ export function VisualQaSurfacesBoard() {
+             }
+           />
+           <div className="px-4 py-3 text-[13px] text-muted-foreground">
+-            Tijelo kartice. Hover: border #31405C, bez sjene.
++            Tijelo kartice. Hover: <span className="text-foreground">border-line-strong</span>,
++            elevacija kroz <span className="text-foreground">shadow-card</span>.
+           </div>
+         </Card>
+       </VisualQaSection>
+diff --git a/frontend/src/components/visual-qa/visual-qa-theme-board.tsx b/frontend/src/components/visual-qa/visual-qa-theme-board.tsx
+new file mode 100644
+index 0000000..371a35b
+--- /dev/null
++++ b/frontend/src/components/visual-qa/visual-qa-theme-board.tsx
+@@ -0,0 +1,249 @@
++import { useState } from "react";
++import { useTranslation } from "react-i18next";
++import { Badge } from "@/components/ui/badge";
++import { Button } from "@/components/ui/button";
++import { Card, CardHeader } from "@/components/ui/card";
++import { Chip } from "@/components/ui/chip";
++import { ConfirmDialog } from "@/components/ui/confirm-dialog";
++import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/modal";
++import { Progress } from "@/components/ui/progress";
++import { Segmented } from "@/components/ui/segmented";
++import { Switch } from "@/components/ui/switch";
++import { useToast } from "@/components/ui/toast";
++import { VisualQaSection } from "@/components/visual-qa/visual-qa-section";
++import { useTheme } from "@/lib/theme/theme-provider";
++
++const SURFACES: readonly { readonly label: string; readonly className: string }[] = [
++  { label: "background (canvas)", className: "bg-background border border-border" },
++  { label: "surface (kartice)", className: "bg-surface border border-border" },
++  { label: "elevated", className: "bg-elevated border border-border" },
++  { label: "popover", className: "bg-popover border border-border" },
++  { label: "surface-hover", className: "bg-surface-hover border border-border" },
++];
++
++const LINES: readonly { readonly label: string; readonly className: string }[] = [
++  { label: "border", className: "bg-border" },
++  { label: "line-strong", className: "bg-line-strong" },
++  { label: "muted", className: "bg-muted-foreground" },
++  { label: "foreground", className: "bg-foreground" },
++];
++
++const BRAND: readonly { readonly label: string; readonly className: string }[] = [
++  { label: "primary", className: "bg-primary" },
++  { label: "primary-hover", className: "bg-primary-hover" },
++  { label: "primary-active", className: "bg-primary-active" },
++  { label: "link (tekst)", className: "bg-link" },
++];
++
++const SEMANTIC: readonly { readonly label: string; readonly className: string }[] = [
++  { label: "ok", className: "bg-ok" },
++  { label: "success", className: "bg-success" },
++  { label: "warning", className: "bg-warning" },
++  { label: "danger", className: "bg-danger" },
++  { label: "info", className: "bg-info" },
++  { label: "accent", className: "bg-accent" },
++  { label: "hold", className: "bg-hold" },
++];
++
++const TONES = ["neutral", "primary", "accent", "success", "warning", "danger", "info", "hold"] as const;
++
++const RADII: readonly { readonly label: string; readonly className: string }[] = [
++  { label: "rounded-md", className: "rounded-md" },
++  { label: "rounded-lg", className: "rounded-lg" },
++  { label: "rounded-full", className: "rounded-full" },
++];
++
++function Swatches({
++  items,
++}: {
++  readonly items: readonly { readonly label: string; readonly className: string }[];
++}) {
++  return (
++    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
++      {items.map((item) => (
++        <div key={item.label} className="flex items-center gap-2.5">
++          <span
++            className={`size-8 shrink-0 rounded-md border border-border ${item.className}`}
++            aria-hidden="true"
++          />
++          <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">
++            {item.label}
++          </span>
++        </div>
++      ))}
++    </div>
++  );
++}
++
++export function VisualQaThemeBoard() {
++  const { t } = useTranslation();
++  const { design, mode, resolvedMode } = useTheme();
++  const { toast } = useToast();
++  const [density, setDensity] = useState<"compact" | "comfortable">("comfortable");
++  const [dangerFilter, setDangerFilter] = useState(false);
++  const [modalOpen, setModalOpen] = useState(false);
++  const [confirmOpen, setConfirmOpen] = useState(false);
++  const [switchOn, setSwitchOn] = useState(true);
++
++  return (
++    <>
++      <VisualQaSection title="Aktivna tema">
++        <Card>
++          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 text-[12.5px]">
++            <span className="text-muted-foreground">
++              design: <span className="font-medium text-foreground">{design}</span>
++            </span>
++            <span className="text-muted-foreground">
++              mode: <span className="font-medium text-foreground">{mode}</span>
++            </span>
++            <span className="text-muted-foreground">
++              resolved: <span className="font-medium text-foreground">{resolvedMode}</span>
++            </span>
++            <span className="text-muted-foreground">
++              Dizajn i svjetlinu mijenjaš u topbaru (ikona sunce/mjesec).
++            </span>
++          </div>
++        </Card>
++      </VisualQaSection>
++
++      <VisualQaSection title="Površine">
++        <Swatches items={SURFACES} />
++      </VisualQaSection>
++
++      <VisualQaSection title="Obrubi i tekst">
++        <Swatches items={LINES} />
++      </VisualQaSection>
++
++      <VisualQaSection title="Brand">
++        <Swatches items={BRAND} />
++      </VisualQaSection>
++
++      <VisualQaSection title="Semantičke boje">
++        <Swatches items={SEMANTIC} />
++      </VisualQaSection>
++
++      <VisualQaSection title="Geometrija i elevacija">
++        <div className="grid gap-3 sm:grid-cols-3">
++          {RADII.map((item) => (
++            <div
++              key={item.label}
++              className={`flex h-20 items-end justify-start border border-border bg-surface p-3 text-[11.5px] text-muted-foreground shadow-card ${item.className}`}
++            >
++              {item.label}
++            </div>
++          ))}
++        </div>
++      </VisualQaSection>
++
++      <VisualQaSection title="Badge tonovi (uključujući novi `hold`)">
++        <div className="flex flex-wrap items-center gap-2">
++          {TONES.map((tone) => (
++            <Badge key={tone} tone={tone} dot>
++              {tone}
++            </Badge>
++          ))}
++        </div>
++        <div className="grid gap-3 sm:grid-cols-3">
++          <Progress value={72} />
++          <Progress value={40} tone="warning" />
++          <Progress value={18} tone="danger" />
++          <Progress value={60} tone="hold" />
++        </div>
++      </VisualQaSection>
++
++      <VisualQaSection title="Segmented / Chip / Switch">
++        <div className="flex flex-wrap items-center gap-3">
++          <Segmented
++            ariaLabel="Gustoća"
++            value={density}
++            onChange={setDensity}
++            items={[
++              { value: "compact", label: "Kompaktno" },
++              { value: "comfortable", label: "Udobno" },
++            ]}
++          />
++          <Chip active={dangerFilter} tone="danger" onClick={() => setDangerFilter(!dangerFilter)}>
++            Samo kritično
++          </Chip>
++          <Chip>SLA rizik</Chip>
++          <Chip onRemove={() => undefined} removeLabel={t("ui.clear")}>
++            Dodijeljeno meni
++          </Chip>
++          <span className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
++            <Switch checked={switchOn} onCheckedChange={setSwitchOn} /> Realtime
++          </span>
++        </div>
++      </VisualQaSection>
++
++      <VisualQaSection title="Modal / ConfirmDialog / Toast">
++        <div className="flex flex-wrap items-center gap-2">
++          <Button variant="outline" onClick={() => setModalOpen(true)}>
++            Otvori modal
++          </Button>
++          <Button variant="danger" onClick={() => setConfirmOpen(true)}>
++            Destruktivna potvrda
++          </Button>
++          <Button
++            variant="secondary"
++            onClick={() =>
++              toast({
++                tone: "success",
++                title: "Izmjene sačuvane",
++                description: "Promjena je zabilježena u change logu.",
++              })
++            }
++          >
++            Prikaži toast
++          </Button>
++        </div>
++        <Modal open={modalOpen} onOpenChange={setModalOpen}>
++          <ModalContent>
++            <ModalHeader
++              title="Naslov modala"
++              description="Modal koristi isti Radix Dialog kao Sheet, sa centriranim sadržajem."
++            />
++            <p className="text-[12.5px] text-muted-foreground">
++              Za obrasce i kratke sadržaje. Za duge forme koristi Sheet (drawer).
++            </p>
++            <ModalFooter>
++              <Button variant="secondary" onClick={() => setModalOpen(false)}>
++                {t("ui.cancel")}
++              </Button>
++              <Button onClick={() => setModalOpen(false)}>{t("ui.confirm")}</Button>
++            </ModalFooter>
++          </ModalContent>
++        </Modal>
++        <ConfirmDialog
++          open={confirmOpen}
++          onOpenChange={setConfirmOpen}
++          intent="danger"
++          title="Zatvoriti tiket bez rješenja?"
++          description="Radnja se bilježi u change log i zahtijeva razlog na ekranu tiketa."
++          confirmLabel="Zatvori tiket"
++          onConfirm={() => {
++            setConfirmOpen(false);
++            toast({ tone: "warning", title: "Tiket zatvoren", description: "Zabilježen razlog." });
++          }}
++        />
++      </VisualQaSection>
++
++      <VisualQaSection title="Kartica sa headerom">
++        <Card>
++          <CardHeader
++            title="Naslov kartice"
++            subtitle="Radius 12px (rounded-lg), hairline obrub, shadow-card"
++            actions={
++              <Button variant="outline" size="xs">
++                Akcija
++              </Button>
++            }
++          />
++          <div className="px-4 py-3 text-[13px] text-muted-foreground">
++            Kartice se razlikuju od podloge obrubom i jedva vidljivom sjenom. Hover
++            je <span className="text-foreground">border-line-strong</span>.
++          </div>
++        </Card>
++      </VisualQaSection>
++    </>
++  );
++}
+diff --git a/frontend/src/pages/visual-qa-primitives-page.tsx b/frontend/src/pages/visual-qa-primitives-page.tsx
+index dd23a1c..dea4e81 100644
+--- a/frontend/src/pages/visual-qa-primitives-page.tsx
++++ b/frontend/src/pages/visual-qa-primitives-page.tsx
+@@ -1,6 +1,7 @@
+ import { VisualQaActionsBoard } from "@/components/visual-qa/visual-qa-actions-board";
+ import { VisualQaFormsBoard } from "@/components/visual-qa/visual-qa-forms-board";
+ import { VisualQaSurfacesBoard } from "@/components/visual-qa/visual-qa-surfaces-board";
++import { VisualQaThemeBoard } from "@/components/visual-qa/visual-qa-theme-board";
+ import { PageHeader } from "@/components/ui/page-header";
+ 
+ export function VisualQaPrimitivesPage() {
+@@ -9,8 +10,9 @@ export function VisualQaPrimitivesPage() {
+       <PageHeader
+         crumbs={["EP-HelpDesk", "Visual QA"]}
+         title="Primitive-i"
+-        subtitle="FE-0.6 baseline: Button, Badge, Card, Field, Progress, StatCard, Tabs, EmptyState. Chartovi nisu ovdje."
++        subtitle="Pulse identitet: tokeni, Button, Badge, Card, Field, Progress, StatCard, Tabs, EmptyState, Segmented, Chip, Modal, ConfirmDialog, Toast. Chartovi nisu ovdje."
+       />
++      <VisualQaThemeBoard />
+       <VisualQaActionsBoard />
+       <VisualQaFormsBoard />
+       <VisualQaSurfacesBoard />

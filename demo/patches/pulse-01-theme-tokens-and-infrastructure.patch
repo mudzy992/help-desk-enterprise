@@ -1,0 +1,2026 @@
+diff --git a/.cursor/docs/theme.md b/.cursor/docs/theme.md
+index 6907e3c..7300044 100644
+--- a/.cursor/docs/theme.md
++++ b/.cursor/docs/theme.md
+@@ -16,6 +16,104 @@ CSS varijable: [`referenca-dizajn/src/index.css`](../../referenca-dizajn/src/ind
+ 
+ ---
+ 
++# Pulse (aktivni dizajn-sistem)
++
++Pulse je novi vizuelni identitet i **default tema** frontenda. Definisan je u
++[`frontend/src/index.css`](../../frontend/src/index.css) i mapiran u
++[`frontend/tailwind.config.ts`](../../frontend/tailwind.config.ts).
++
++## Model tema
++
++| Atribut na `<html>` | Značenje |
++|---|---|
++| `data-theme="pulse"` | novi identitet, svijetli po defaultu |
++| `data-theme="classic"` | stara tamna tema, sačuvana tokom tranzicije |
++| `.dark` | tamni mod aktivne teme (`classic` je uvijek tamna) |
++
++Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`).
++
++- Kontrakt je u [`frontend/src/lib/theme/theme-storage.ts`](../../frontend/src/lib/theme/theme-storage.ts),
++  provider u `theme-provider.tsx`, birač u `components/layout/theme-switcher.tsx`.
++- `index.html` primjenjuje temu **prije prvog paint-a** (bez treperenja); ako skripta padne, ostaje `classic`.
++- Default se mijenja jednom konstantom: `DEFAULT_THEME_DESIGN`.
++
++## Kako su tokeni zapisani
++
++Token je **RGB kanal**, ne gotova boja. To je ono što drži `/alpha` modifikatore ispravnim u svim temama:
++
++```css
++:root[data-theme="pulse"] { --surface: 255 255 255; }
++```
++```ts
++surface: "rgb(var(--surface) / <alpha-value>)"   // bg-surface, bg-surface/60
++```
++
++## Tokeni (RGB kanali)
++
++| Token | classic | pulse (light) | pulse + `.dark` | Upotreba |
++|---|---|---|---|---|
++| `--background` | 11 18 32 | 245 246 248 | 13 14 18 | canvas |
++| `--surface` | 17 24 39 | 255 255 255 | 20 22 28 | kartice, sidebar, topbar |
++| `--elevated` | 27 36 54 | 248 249 251 | 26 29 36 | sekundarne plohe, tintovi |
++| `--popover` | 27 36 54 | 255 255 255 | 30 33 41 | dropdown, tooltip, toast |
++| `--surface-hover` | 27 36 54 | 243 244 247 | 30 34 42 | hover redova, stavki menija |
++| `--border` | 36 48 68 | 228 230 235 | 38 42 52 | obrubi |
++| `--line-strong` | 49 64 92 | 209 213 221 | 58 63 76 | hover obrub |
++| `--foreground` | 229 231 235 | 20 22 29 | 233 235 241 | primarni tekst |
++| `--muted` | 156 163 175 | 106 113 128 | 127 135 152 | sekundarni tekst |
++| `--primary` | 37 99 235 | 91 91 214 | 111 102 223 | CTA, aktivna nav |
++| `--primary-hover` | 29 79 216 | 74 74 196 | 124 115 228 | hover CTA |
++| `--primary-active` | 27 68 190 | 63 63 176 | 138 129 233 | active CTA |
++| `--link` | 127 168 245 | 79 79 199 | 154 147 236 | **tekst na primary tintu**, linkovi, ID-evi |
++| `--accent` | 34 197 94 | 15 118 110 | 45 212 191 | rijedak highlight (nije success) |
++| `--ok` | 74 222 128 | 21 128 61 | 74 222 128 | tekst pozitivnog stanja |
++| `--success` | 22 163 74 | 21 128 61 | 34 197 94 | fill/tint pozitivnog stanja |
++| `--warning` | 245 158 11 | 180 83 9 | 251 191 36 | čeka se, SLA rizik |
++| `--danger` | 239 68 68 | 220 38 38 | 248 113 113 | greške, Kritičan, breach |
++| `--info` | 56 189 248 | 3 105 161 | 56 189 248 | na čekanju, održavanje |
++| `--hold` | 192 132 252 | 126 34 206 | 192 132 252 | odobrenja, povjerljivo |
++| `--scrim` | 0 0 0 | 15 18 25 | 0 0 0 | overlay iza modala/drawera |
++
++Svaki semantički token kao **tekst** je ≥ 4.5:1 na svojoj površini u sva tri bloka.
++
++## Geometrija i elevacija (tokeni po temi)
++
++| Token | classic | pulse | Napomena |
++|---|---|---|---|
++| `--radius-sm` | 4px | 6px | chip, kbd |
++| `--radius-md` | 6px | 8px | dugmad, inputi, tabovi |
++| `--radius-lg` | 8px | 12px | kartice, paneli, dropdowni |
++| `--shadow-card` | `none` | 1px hairline lift | kartice |
++| `--shadow-pop` | `0 20px 25px -5px` + `0 8px 10px -6px`, crna 40% | mekša, 18%/8% | plutajući slojevi |
++| `--shadow-glow` | `none` | primary halo | aktivni korak čarobnjaka, primarni CTA |
++
++Zato `rounded-lg` i `shadow-card` u komponentama **automatski** prate temu — nema grananja po ekranima.
++
++## Avatar paleta
++
++`--avatar-{1..6}-bg` / `--avatar-{1..6}-fg`, po temi. classic zadržava originalne hex vrijednosti.
++Kod: `frontend/src/components/ui/avatar.tsx`.
++
++## Checklist za novu boju
++
++1. Dodaj varijablu u **sva tri** bloka u `index.css` (inače je u jednoj temi nedefinisana).
++2. Dodaj mapiranje u `tailwind.config.ts` kao `rgb(var(--x) / <alpha-value>)`.
++3. Provjeri kontrast ≥ 4.5:1 kao tekst na `surface` u sva tri bloka.
++4. Ako je status: dodaj u `frontend/src/lib/theme/semantic-meta.ts`, ne u komponentu.
++5. Nikad `#RRGGBB` u `.tsx`.
++
++Živa referenca: **Visual QA → Primitive-i → Theme** (`frontend/src/components/visual-qa/visual-qa-theme-board.tsx`)
++prikazuje sve tokenе, tonove i nove primitive u aktivnoj temi.
++
++---
++
++# classic — naslijeđeni katalog
++
++> Sve tabele ispod opisuju **stari** sistem i vrijede za `data-theme="classic"`.
++> Vrijednosti su i dalje tačne (classic je zamrznut), ali se ne koriste za nove ekrane.
++
++---
++
+ ## Neutral surfaces (80–90% UI)
+ 
+ | Token | Hex | CSS var | Upotreba |
+diff --git a/.cursor/rules/frontend-ui-ux.mdc b/.cursor/rules/frontend-ui-ux.mdc
+index d34e1bd..49dbee1 100644
+--- a/.cursor/rules/frontend-ui-ux.mdc
++++ b/.cursor/rules/frontend-ui-ux.mdc
+@@ -1,35 +1,54 @@
+ ---
+-description: EP-HelpDesk UI/UX — Constitution is the design source of truth.
++description: EP-HelpDesk UI/UX — Pulse je aktivni dizajn-sistem, classic je naslijeđe.
+ globs: ["frontend/**/*.tsx", "frontend/**/*.ts", "frontend/**/*.css", ".cursor/docs/theme.md"]
+ alwaysApply: false
+ ---
+ 
+-# UI/UX (Constitution)
++# UI/UX (Pulse)
+ 
+-Source of truth: `Master UI-UX Design Constitution.md`.
+-Tokens: `.cursor/docs/theme.md`.
+-Ignoriši globalna “Apple-linear / one-page / marketing landing” pravila.
++Dizajn-sistem: **Pulse** — `.cursor/docs/theme.md` § Pulse.
++Naslijeđe: **classic** (stara tamna tema) — ostaje dostupno preko `data-theme="classic"`.
++Ignoriši globalna "Apple-linear / one-page / marketing landing" pravila.
+ 
+ North star: **maximum operational clarity with minimum visual noise.**
++Identitet: **light-first, sa ravnopravnim tamnim modom.** Nije više dark-only.
++
++## Kako tema radi
++
++- `data-theme` na `<html>`: `pulse` (default) ili `classic`. Biramo u topbaru (`ThemeSwitcher`).
++- `.dark` klasa na `<html>`: tamni mod unutar Pulse-a (i obavezna za `classic`).
++- **Nikad ne piši hardkodiranu boju** (`#RRGGBB`, `rgb(...)`) u komponentu. Samo tokeni.
++- Prozirnost ide kroz alpha modifier nad tokenom: `bg-surface/60`, `border-border/70`, `text-muted-foreground/70`.
++- Tokeni su RGB kanali u `src/index.css` (`--surface: 255 255 255`) i mapiraju se u `tailwind.config.ts`
++  (`rgb(var(--surface) / <alpha-value>)`). Dodavanje nove boje znači dodavanje varijable u **sva tri** bloka.
++- Tekst na primary tintu koristi `text-link`, nikad `text-primary` (`--link` je token za čitljiv brand-tekst).
++- Radius i sjena su tokeni po temi: `rounded-lg` = 12px u Pulse, 8px u classic; `shadow-card` = `none` u classic.
++- Boje statusa dolaze iz `src/lib/theme/semantic-meta.ts` (`SEMANTIC_DOT_HEX`) — tamo su već CSS varijable.
+ 
+ ## Layout
+ 
+ - Application shell: compact sidebar + content. Bez hero sekcija i ornamentalnih gridova.
+-- Svaki ekran po poslu: list = tabela; ticket details = workspace; OU = tree; routing = WHEN/THEN; dashboard = “šta da uradim”, ne BI.
+-- Dense but breathable. 80–90% neutrals. Primary samo CTA / active nav / focus.
++- Svaki ekran po poslu: list = tabela; ticket details = workspace; OU = tree; routing = WHEN/THEN; dashboard = "šta da uradim", ne BI.
++- Raspored i gustoća se **ne mijenjaju** sa promjenom teme — mijenja se samo vizuelni sloj.
+ 
+ ## Must
+ 
+ - Ticket create: KB intercept je obavezan UX korak.
+-- Status/priority labele: RAW (`Pending`…`Closed`, `Low`…`Critical`), vizuelni tretman iz Constitution.
++- Status/priority labele: RAW (`Pending`…`Closed`, `Low`…`Critical`), vizuelni tretman iz `semantic-meta.ts`.
+ - Forms: label (ne placeholder), loading/error/success/disabled. Nema sirovih backend poruka.
+ - Loading = skeleton layout-a. Empty state = šta / zašto / sljedeća akcija.
+-- Realtime = diskretan update, ne toast za svaku promjenu.
++- Realtime = diskretan update, ne toast za svaku promjenu. Toast je za ishod korisničke akcije.
++- Destruktivne radnje: `ConfirmDialog` sa `intent="danger"` + razlog gdje ga change log zahtijeva.
+ - Desktop primary; mobilni breakpoint: drawer/sheet umjesto dialoga.
++- Fokus mora biti vidljiv: `focus-visible:outline-2 focus-visible:outline-primary/70` ili `focus:ring-2 focus:ring-primary/25`.
++- Preferiraj postojeće primitive iz `components/ui` — Segmented, Chip, Modal, ConfirmDialog, Toast,
++  Sheet, Tabs, Table (klase u `control.ts`) prije nove komponente.
+ 
+ ## Zabranjeno
+ 
+-Glassmorphism, neon/purple/AI gradijenti, glowing borders, giant radius, card-grid za sve, decorative charts, gradient buttons, Linear clone.
++Glassmorphism, glowing borders, neon, decorative charts, card-grid za sve, Linear clone,
++gradijenti u komponentama (jedini izuzetak je `.pulse-gradient` kao brend pano na prijavi/instalaciji),
++proizvoljne boje van tokena, `!important`, i nova zavisnost bez potrebe.
+ 
+ Prije novog UI elementa: `components/ui` → shared → tokeni → tek onda nova komponenta.
+-Prije većeg ekrana: pročitaj odgovarajući paragraf Constitution (ne nagađaj layout).
++Prije većeg ekrana: pročitaj odgovarajući paragraf u `.cursor/docs/theme.md` (ne nagađaj layout).
+diff --git a/frontend/index.html b/frontend/index.html
+index 0040c2f..8f60539 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -1,10 +1,42 @@
+ <!doctype html>
+-<html lang="bs">
++<html lang="bs" data-theme="pulse">
+   <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <meta name="color-scheme" content="dark" />
++    <meta name="color-scheme" content="light dark" />
++    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5F6F8" />
++    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0E12" />
+     <title>EP-HelpDesk — Enterprise servisni centar</title>
++    <!--
++      Applies the stored appearance before the first paint. Keep the keys in
++      sync with `src/lib/theme/theme-storage.ts`; if this script fails the
++      application falls back to the legacy dark theme, which is what the CSS
++      `:root` defaults describe.
++    -->
++    <script>
++      (function () {
++        try {
++          var design = window.localStorage.getItem("ep-helpdesk.theme.design");
++          if (design !== "classic" && design !== "pulse") {
++            design = "pulse";
++          }
++          var mode = window.localStorage.getItem("ep-helpdesk.theme.mode");
++          if (mode !== "light" && mode !== "dark" && mode !== "system") {
++            mode = "system";
++          }
++          var prefersDark =
++            typeof window.matchMedia === "function" &&
++            window.matchMedia("(prefers-color-scheme: dark)").matches;
++          var isDark =
++            design === "classic" || mode === "dark" || (mode === "system" && prefersDark);
++          document.documentElement.setAttribute("data-theme", design);
++          document.documentElement.classList.toggle("dark", isDark);
++        } catch (error) {
++          document.documentElement.setAttribute("data-theme", "classic");
++          document.documentElement.classList.add("dark");
++        }
++      })();
++    </script>
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/frontend/src/app/app.tsx b/frontend/src/app/app.tsx
+index 6c3df78..eaa5929 100644
+--- a/frontend/src/app/app.tsx
++++ b/frontend/src/app/app.tsx
+@@ -1,13 +1,19 @@
+ import { BrowserRouter } from "react-router-dom";
+ import { AppRouter } from "@/app/router";
+ import { InstallSetupProvider } from "@/app/install-setup-provider";
++import { ToastProvider } from "@/components/ui/toast";
++import { ThemeProvider } from "@/lib/theme/theme-provider";
+ 
+ export function App() {
+   return (
+-    <BrowserRouter>
+-      <InstallSetupProvider>
+-        <AppRouter />
+-      </InstallSetupProvider>
+-    </BrowserRouter>
++    <ThemeProvider>
++      <ToastProvider>
++        <BrowserRouter>
++          <InstallSetupProvider>
++            <AppRouter />
++          </InstallSetupProvider>
++        </BrowserRouter>
++      </ToastProvider>
++    </ThemeProvider>
+   );
+ }
+diff --git a/frontend/src/components/admin/admin-audit-export-card.tsx b/frontend/src/components/admin/admin-audit-export-card.tsx
+index 0bdf67d..6058a81 100644
+--- a/frontend/src/components/admin/admin-audit-export-card.tsx
++++ b/frontend/src/components/admin/admin-audit-export-card.tsx
+@@ -30,7 +30,7 @@ export function AdminAuditExportCard({
+     <Card>
+       <div className="px-4 py-4">
+         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+-          <Download size={14} className="text-[#7FA8F5]" />
++          <Download size={14} className="text-link" />
+           {t("admin.ops.auditTitle")}
+         </p>
+         <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
+@@ -66,7 +66,7 @@ export function AdminAuditExportCard({
+           <p
+             className={
+               verify.tone === "success"
+-                ? "mt-2 text-[11.5px] text-[#4ADE80]"
++                ? "mt-2 text-[11.5px] text-ok"
+                 : verify.tone === "danger"
+                   ? `mt-2 ${errorTextClassName}`
+                   : "mt-2 text-[11.5px] text-muted-foreground"
+diff --git a/frontend/src/components/admin/admin-support-bundle-card.tsx b/frontend/src/components/admin/admin-support-bundle-card.tsx
+index 8cdd6a5..29c5529 100644
+--- a/frontend/src/components/admin/admin-support-bundle-card.tsx
++++ b/frontend/src/components/admin/admin-support-bundle-card.tsx
+@@ -20,7 +20,7 @@ export function AdminSupportBundleCard({
+     <Card>
+       <div className="px-4 py-4">
+         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+-          <FileCheck size={14} className="text-[#4ADE80]" />
++          <FileCheck size={14} className="text-ok" />
+           {t("admin.ops.supportTitle")}
+         </p>
+         <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
+diff --git a/frontend/src/components/charts/donut.tsx b/frontend/src/components/charts/donut.tsx
+index de58692..f7a8412 100644
+--- a/frontend/src/components/charts/donut.tsx
++++ b/frontend/src/components/charts/donut.tsx
+@@ -40,7 +40,7 @@ export function Donut({
+             cy={size / 2}
+             r={radius}
+             fill="none"
+-            stroke="#1B2436"
++            stroke="rgb(var(--elevated))"
+             strokeWidth={thickness}
+           />
+           {data.map((datum) => {
+diff --git a/frontend/src/components/charts/grouped-bars.tsx b/frontend/src/components/charts/grouped-bars.tsx
+index a7c341f..9d46678 100644
+--- a/frontend/src/components/charts/grouped-bars.tsx
++++ b/frontend/src/components/charts/grouped-bars.tsx
+@@ -49,7 +49,7 @@ export function GroupedBars({
+             />
+             <div
+               className={cn(
+-                "bar-grow w-full max-w-[11px] rounded-t-[3px] bg-[#3B4A6B] transition-all duration-150",
++                "bar-grow w-full max-w-[11px] rounded-t-[3px] bg-line-strong transition-all duration-150",
+                 hover !== null && hover !== index && "opacity-35",
+               )}
+               style={{
+@@ -81,7 +81,7 @@ export function GroupedBars({
+             <span className="size-2 rounded-[3px] bg-primary" /> {aLabel}
+           </span>
+           <span className="flex items-center gap-1.5">
+-            <span className="size-2 rounded-[3px] bg-[#3B4A6B]" /> {bLabel}
++            <span className="size-2 rounded-[3px] bg-line-strong" /> {bLabel}
+           </span>
+         </div>
+         <span>{data[data.length - 1]?.d}</span>
+diff --git a/frontend/src/components/charts/h-bars.tsx b/frontend/src/components/charts/h-bars.tsx
+index ec0d957..8ce4aed 100644
+--- a/frontend/src/components/charts/h-bars.tsx
++++ b/frontend/src/components/charts/h-bars.tsx
+@@ -37,7 +37,7 @@ export function HBars({ items, className }: HorizontalBarsProperties) {
+               className="h-full rounded-full transition-all duration-500"
+               style={{
+                 width: `${(item.value / max) * 100}%`,
+-                background: item.color ?? "#2563EB",
++                background: item.color ?? "rgb(var(--primary))",
+               }}
+             />
+           </div>
+diff --git a/frontend/src/components/feedback/action-feedback-banner.tsx b/frontend/src/components/feedback/action-feedback-banner.tsx
+index 542e32b..bd124da 100644
+--- a/frontend/src/components/feedback/action-feedback-banner.tsx
++++ b/frontend/src/components/feedback/action-feedback-banner.tsx
+@@ -10,7 +10,7 @@ interface ActionFeedbackBannerProperties {
+ 
+ const toneClassNames: Record<ActionFeedback["tone"], string> = {
+   success: "border-success/35 bg-success/10 text-success",
+-  info: "border-primary/35 bg-primary/10 text-[#7FA8F5]",
++  info: "border-primary/35 bg-primary/10 text-link",
+   warning: "border-warning/35 bg-warning/10 text-warning",
+   error: "border-danger/35 bg-danger/10 text-danger",
+ };
+diff --git a/frontend/src/components/groups/group-card.tsx b/frontend/src/components/groups/group-card.tsx
+index 0a63544..86cd11c 100644
+--- a/frontend/src/components/groups/group-card.tsx
++++ b/frontend/src/components/groups/group-card.tsx
+@@ -37,9 +37,9 @@ export function GroupCard({
+   return (
+     <Card
+       className={cn(
+-        "overflow-hidden transition-colors hover:border-[#31405C]",
++        "overflow-hidden transition-colors hover:border-line-strong",
+         group.isFallback && "border-l-[3px] border-l-warning",
+-        isExpanded && "border-[#31405C] bg-elevated/40",
++        isExpanded && "border-line-strong bg-elevated/40",
+       )}
+     >
+       <button
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx b/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
+index 0aba6cc..2616db2 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
+@@ -109,7 +109,7 @@ export function KnowledgeArticleDetailPanel({
+               className={cn(
+                 "rounded-md border p-1.5 transition-colors",
+                 article.viewerFeedback === true
+-                  ? "border-success/45 bg-success/12 text-[#4ADE80]"
++                  ? "border-success/45 bg-success/12 text-ok"
+                   : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+               )}
+               onClick={() => {
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-list.tsx b/frontend/src/components/knowledge-base/knowledge-article-list.tsx
+index a02ad59..5409a94 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-list.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-list.tsx
+@@ -109,7 +109,7 @@ export function KnowledgeArticleList({
+           pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
+         return (
+           <li key={item.id}>
+-            <Card className="group h-full transition-all hover:border-[#31405C]">
++            <Card className="group h-full transition-all hover:border-line-strong">
+               <div className="px-4 pt-4">
+                 <div className="flex items-start justify-between gap-3">
+                   <div className="min-w-0">
+@@ -118,7 +118,7 @@ export function KnowledgeArticleList({
+                     </p>
+                     <Link
+                       to={`/knowledge-base/${item.id}`}
+-                      className="mt-0.5 block text-[14px] font-semibold leading-5 text-foreground transition-colors group-hover:text-[#7FA8F5]"
++                      className="mt-0.5 block text-[14px] font-semibold leading-5 text-foreground transition-colors group-hover:text-link"
+                     >
+                       {item.title}
+                     </Link>
+@@ -156,7 +156,7 @@ export function KnowledgeArticleList({
+                       className={cn(
+                         "rounded-md border p-1.5 transition-colors",
+                         item.viewerFeedback === true
+-                          ? "border-success/45 bg-success/12 text-[#4ADE80]"
++                          ? "border-success/45 bg-success/12 text-ok"
+                           : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                       )}
+                       onClick={() => {
+diff --git a/frontend/src/components/layout/app-header.tsx b/frontend/src/components/layout/app-header.tsx
+index cf3e4b3..02ecd64 100644
+--- a/frontend/src/components/layout/app-header.tsx
++++ b/frontend/src/components/layout/app-header.tsx
+@@ -4,6 +4,7 @@ import { HeaderSearch } from "@/components/layout/header-search";
+ import { NotificationsBell } from "@/components/layout/notifications-bell";
+ import { SessionControls } from "@/components/layout/session-controls";
+ import { SystemStatusChip } from "@/components/layout/system-status-chip";
++import { ThemeSwitcher } from "@/components/layout/theme-switcher";
+ import { Button } from "@/components/ui/button";
+ 
+ interface AppHeaderProperties {
+@@ -28,6 +29,7 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
+       <HeaderSearch />
+       <div className="ml-auto flex min-w-0 items-center gap-1.5">
+         <SystemStatusChip />
++        <ThemeSwitcher />
+         <NotificationsBell />
+         <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
+         <SessionControls />
+diff --git a/frontend/src/components/layout/app-sidebar.tsx b/frontend/src/components/layout/app-sidebar.tsx
+index 3ae6047..84612a6 100644
+--- a/frontend/src/components/layout/app-sidebar.tsx
++++ b/frontend/src/components/layout/app-sidebar.tsx
+@@ -78,8 +78,8 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
+           className={cn(
+             "flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary text-[13px] font-medium text-primary-foreground transition-colors duration-150",
+             isCreateActive
+-              ? "bg-[#1D4FD8]"
+-              : "bg-primary hover:bg-[#1D4FD8] active:bg-[#1B44BE]",
++              ? "bg-primary-hover"
++              : "bg-primary hover:bg-primary-hover active:bg-primary-active",
+           )}
+         >
+           <Plus size={15} strokeWidth={2.2} />
+@@ -157,7 +157,7 @@ function SidebarLink({
+         strokeWidth={1.9}
+         className={
+           isActive
+-            ? "text-[#7FA8F5]"
++            ? "text-link"
+             : "text-muted-foreground/80 group-hover:text-muted-foreground"
+         }
+         aria-hidden="true"
+diff --git a/frontend/src/components/layout/header-search-match.tsx b/frontend/src/components/layout/header-search-match.tsx
+index aa42ec8..5ed19ab 100644
+--- a/frontend/src/components/layout/header-search-match.tsx
++++ b/frontend/src/components/layout/header-search-match.tsx
+@@ -139,7 +139,7 @@ function HitRow({
+       onClick={() => onSelect(hit)}
+     >
+       <span className={hit.kind === "ticket"
+-        ? "tnum text-[12px] font-medium text-[#7FA8F5]"
++        ? "tnum text-[12px] font-medium text-link"
+         : "text-[12.5px] text-foreground"}
+       >
+         {hit.title}
+diff --git a/frontend/src/components/layout/header-search.tsx b/frontend/src/components/layout/header-search.tsx
+index 8d16180..2c77a55 100644
+--- a/frontend/src/components/layout/header-search.tsx
++++ b/frontend/src/components/layout/header-search.tsx
+@@ -151,7 +151,7 @@ export function HeaderSearch() {
+         onChange={(event) => setQuery(event.target.value)}
+         onKeyDown={onInputKeyDown}
+         placeholder={t("shell.searchPlaceholder")}
+-        className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-4 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-[#31405C] focus:border-primary focus:outline-none sm:pr-16"
++        className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-4 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none sm:pr-16"
+       />
+       <span className="absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-1 sm:flex">
+         <Kbd>
+diff --git a/frontend/src/components/layout/notifications-list.tsx b/frontend/src/components/layout/notifications-list.tsx
+index c4eb7d6..e46f2b1 100644
+--- a/frontend/src/components/layout/notifications-list.tsx
++++ b/frontend/src/components/layout/notifications-list.tsx
+@@ -17,7 +17,7 @@ const KIND_ICON: Record<NotificationKind, typeof Ticket> = {
+ };
+ 
+ const KIND_TONE: Record<NotificationKind, string> = {
+-  ticket: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
++  ticket: "border-primary/30 bg-primary/10 text-link",
+   sla: "border-danger/30 bg-danger/10 text-danger",
+   approval: "border-warning/30 bg-warning/10 text-warning",
+   system: "border-border bg-background text-muted-foreground",
+diff --git a/frontend/src/components/layout/sidebar-user-card.tsx b/frontend/src/components/layout/sidebar-user-card.tsx
+index 50194f3..0603e51 100644
+--- a/frontend/src/components/layout/sidebar-user-card.tsx
++++ b/frontend/src/components/layout/sidebar-user-card.tsx
+@@ -25,7 +25,7 @@ export function SidebarUserCard() {
+             {session.principal.displayName}
+           </p>
+           <p className="flex items-center gap-1 text-[10.5px] text-muted-foreground">
+-            <ShieldCheck size={11} className="text-[#7FA8F5]" aria-hidden="true" />
++            <ShieldCheck size={11} className="text-link" aria-hidden="true" />
+             {t(roleKey)}
+             {session.principal.isLocalOnly ? ` · ${t("shell.localAccount")}` : ""}
+           </p>
+diff --git a/frontend/src/components/layout/theme-switcher.tsx b/frontend/src/components/layout/theme-switcher.tsx
+new file mode 100644
+index 0000000..fa80332
+--- /dev/null
++++ b/frontend/src/components/layout/theme-switcher.tsx
+@@ -0,0 +1,111 @@
++import { Check, Moon, Palette, Sun, SunMoon } from "lucide-react";
++import { useTranslation } from "react-i18next";
++import { Button } from "@/components/ui/button";
++import {
++  DropdownMenu,
++  DropdownMenuContent,
++  DropdownMenuItem,
++  DropdownMenuLabel,
++  DropdownMenuSeparator,
++  DropdownMenuTrigger,
++} from "@/components/ui/dropdown-menu";
++import { useTheme } from "@/lib/theme/theme-provider";
++import {
++  THEME_DESIGNS,
++  THEME_MODES,
++  type ThemeDesign,
++  type ThemeMode,
++} from "@/lib/theme/theme-storage";
++
++const MODE_ICON = {
++  light: Sun,
++  dark: Moon,
++  system: SunMoon,
++} as const;
++
++/*
++  Declared `as const satisfies` (not `Record<…, string>`) so the values stay
++  literal types — react-i18next types `t()` against the key union.
++*/
++const MODE_LABEL_KEY = {
++  light: "theme.light",
++  dark: "theme.dark",
++  system: "theme.system",
++} as const satisfies Record<ThemeMode, string>;
++
++const DESIGN_LABEL_KEY = {
++  pulse: "theme.designPulse",
++  classic: "theme.designClassic",
++} as const satisfies Record<ThemeDesign, string>;
++
++const DESIGN_HINT_KEY = {
++  pulse: "theme.designPulseHint",
++  classic: "theme.designClassicHint",
++} as const satisfies Record<ThemeDesign, string>;
++
++/**
++ * Appearance control. Design (Pulse / classic) and brightness (light / dark /
++ * system) are separate choices: the legacy design is dark-only, so the
++ * brightness group is hidden while it is selected.
++ */
++export function ThemeSwitcher() {
++  const { t } = useTranslation();
++  const { design, mode, setDesign, setMode } = useTheme();
++  const ModeIcon = MODE_ICON[mode];
++
++  return (
++    <DropdownMenu>
++      <DropdownMenuTrigger asChild>
++        <Button
++          type="button"
++          variant="ghost"
++          size="icon"
++          aria-label={t("theme.toggle")}
++          title={`${t("theme.toggle")} — ${t(MODE_LABEL_KEY[mode])}`}
++        >
++          <ModeIcon size={17} strokeWidth={1.9} />
++        </Button>
++      </DropdownMenuTrigger>
++      <DropdownMenuContent align="end" className="min-w-[15.5rem]">
++        <DropdownMenuLabel>{t("theme.designGroup")}</DropdownMenuLabel>
++        {THEME_DESIGNS.map((value) => (
++          <DropdownMenuItem
++            key={value}
++            className="items-start"
++            onSelect={() => setDesign(value)}
++          >
++            <Palette size={13} className="mt-0.5 text-muted-foreground" />
++            <span className="flex-1">
++              <span className="block text-foreground">
++                {t(DESIGN_LABEL_KEY[value])}
++              </span>
++              <span className="block text-[10.5px] text-muted-foreground">
++                {t(DESIGN_HINT_KEY[value])}
++              </span>
++            </span>
++            {design === value ? <Check size={13} className="mt-0.5 text-link" /> : null}
++          </DropdownMenuItem>
++        ))}
++        {design === "pulse" ? (
++          <>
++            <DropdownMenuSeparator />
++            <DropdownMenuLabel>{t("theme.modeGroup")}</DropdownMenuLabel>
++            {THEME_MODES.map((value) => {
++              const ItemIcon = MODE_ICON[value];
++              return (
++                <DropdownMenuItem key={value} onSelect={() => setMode(value)}>
++                  <ItemIcon size={13} className="text-muted-foreground" />
++                  <span className="flex-1">{t(MODE_LABEL_KEY[value])}</span>
++                  <span className="text-[10.5px] text-muted-foreground">
++                    {value === "system" ? t("theme.systemHint") : ""}
++                  </span>
++                  {mode === value ? <Check size={13} className="text-link" /> : null}
++                </DropdownMenuItem>
++              );
++            })}
++          </>
++        ) : null}
++      </DropdownMenuContent>
++    </DropdownMenu>
++  );
++}
+diff --git a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+index c47aa6b..1fefcdc 100644
+--- a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
++++ b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+@@ -83,7 +83,7 @@ export function OrganizationalUnitTreeItem({
+           size={14}
+           className={cn(
+             "shrink-0",
+-            depth === 0 ? "text-[#7FA8F5]" : "text-muted-foreground/70",
++            depth === 0 ? "text-link" : "text-muted-foreground/70",
+           )}
+           aria-label={
+             node.type
+diff --git a/frontend/src/components/policy-packs/policy-pack-cards.tsx b/frontend/src/components/policy-packs/policy-pack-cards.tsx
+index 14e5a16..a375fe4 100644
+--- a/frontend/src/components/policy-packs/policy-pack-cards.tsx
++++ b/frontend/src/components/policy-packs/policy-pack-cards.tsx
+@@ -22,7 +22,7 @@ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
+         return (
+           <Card
+             key={pack.key}
+-            className="transition-colors hover:border-[#31405C]"
++            className="transition-colors hover:border-line-strong"
+           >
+             <div className="flex items-start gap-3 px-4 py-3.5">
+               <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
+diff --git a/frontend/src/components/routing/build-routing-coverage-matrix.ts b/frontend/src/components/routing/build-routing-coverage-matrix.ts
+index 031cb9e..f6726cd 100644
+--- a/frontend/src/components/routing/build-routing-coverage-matrix.ts
++++ b/frontend/src/components/routing/build-routing-coverage-matrix.ts
+@@ -6,7 +6,7 @@ export const ROUTING_COVERAGE_CELL_STYLE: Record<
+   RoutingCoverageCellKind,
+   string
+ > = {
+-  exact: "border-success/35 bg-success/12 text-[#4ADE80]",
++  exact: "border-success/35 bg-success/12 text-ok",
+   inherited: "border-info/25 bg-info/10 text-info",
+   unrouted: "border-danger/30 bg-danger/8 text-danger/90",
+ };
+diff --git a/frontend/src/components/routing/routing-change-log-panel.tsx b/frontend/src/components/routing/routing-change-log-panel.tsx
+index 6637744..2fb0811 100644
+--- a/frontend/src/components/routing/routing-change-log-panel.tsx
++++ b/frontend/src/components/routing/routing-change-log-panel.tsx
+@@ -75,7 +75,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
+                         <td className="px-3 py-1.5 text-[11.5px] text-danger/85 line-through decoration-danger/40 tnum">
+                           {stringifyChange(change.before)}
+                         </td>
+-                        <td className="px-3 py-1.5 text-[11.5px] text-[#4ADE80] tnum">
++                        <td className="px-3 py-1.5 text-[11.5px] text-ok tnum">
+                           {stringifyChange(change.after)}
+                         </td>
+                       </tr>
+diff --git a/frontend/src/components/routing/routing-resolution-result.tsx b/frontend/src/components/routing/routing-resolution-result.tsx
+index 2d8f85b..5c5bc3a 100644
+--- a/frontend/src/components/routing/routing-resolution-result.tsx
++++ b/frontend/src/components/routing/routing-resolution-result.tsx
+@@ -142,7 +142,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
+                 className={cn(
+                   "rounded-md border px-2 py-1 text-[11px] tnum",
+                   isMatch
+-                    ? "border-success/45 bg-success/12 font-semibold text-[#4ADE80]"
++                    ? "border-success/45 bg-success/12 font-semibold text-ok"
+                     : "border-border bg-background/60 text-muted",
+                 )}
+               >
+diff --git a/frontend/src/components/routing/routing-rule-row.tsx b/frontend/src/components/routing/routing-rule-row.tsx
+index 3c62e9a..036b7f3 100644
+--- a/frontend/src/components/routing/routing-rule-row.tsx
++++ b/frontend/src/components/routing/routing-rule-row.tsx
+@@ -39,7 +39,7 @@ export function RoutingRuleRow({
+     <>
+       <tr className={tableRowClassName}>
+         <td
+-          className="px-4 py-2.5 tnum text-[12px] font-medium text-[#7FA8F5]"
++          className="px-4 py-2.5 tnum text-[12px] font-medium text-link"
+           title={rule.id}
+         >
+           {truncateIdentifier(rule.id).toUpperCase()}
+diff --git a/frontend/src/components/services/service-catalog-card.tsx b/frontend/src/components/services/service-catalog-card.tsx
+index 83e07c4..86f428a 100644
+--- a/frontend/src/components/services/service-catalog-card.tsx
++++ b/frontend/src/components/services/service-catalog-card.tsx
+@@ -57,11 +57,11 @@ export function ServiceCatalogCard({
+   );
+ 
+   return (
+-    <Card className="group flex flex-col transition-all hover:border-[#31405C] hover:bg-elevated/30">
++    <Card className="group flex flex-col transition-all hover:border-line-strong hover:bg-elevated/30">
+       <div className="flex-1 px-4 pt-4">
+         <div className="flex items-start justify-between gap-2">
+           <div className="flex items-center gap-2.5">
+-            <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground transition-colors group-hover:text-[#7FA8F5]">
++            <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground transition-colors group-hover:text-link">
+               <Layers size={16} strokeWidth={1.8} />
+             </span>
+             <div>
+diff --git a/frontend/src/components/services/service-category-chip.tsx b/frontend/src/components/services/service-category-chip.tsx
+index f99d016..a6d90ef 100644
+--- a/frontend/src/components/services/service-category-chip.tsx
++++ b/frontend/src/components/services/service-category-chip.tsx
+@@ -20,7 +20,7 @@ export function ServiceCategoryChip({
+       className={cn(
+         "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+         active
+-          ? "border-primary/50 bg-primary/15 text-[#7FA8F5]"
++          ? "border-primary/50 bg-primary/15 text-link"
+           : "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground",
+       )}
+     >
+diff --git a/frontend/src/components/settings/addon-catalog-row.tsx b/frontend/src/components/settings/addon-catalog-row.tsx
+index 3d864f6..d96ccac 100644
+--- a/frontend/src/components/settings/addon-catalog-row.tsx
++++ b/frontend/src/components/settings/addon-catalog-row.tsx
+@@ -37,7 +37,7 @@ export function AddonCatalogRow({
+           className={cn(
+             "flex size-8 shrink-0 items-center justify-center rounded-md border",
+             effectiveEnabled
+-              ? "border-primary/35 bg-primary/10 text-[#7FA8F5]"
++              ? "border-primary/35 bg-primary/10 text-link"
+               : "border-border bg-background/50 text-muted-foreground/60",
+           )}
+         >
+diff --git a/frontend/src/components/settings/auth-provider-settings-card.tsx b/frontend/src/components/settings/auth-provider-settings-card.tsx
+index 3ab395e..72cc371 100644
+--- a/frontend/src/components/settings/auth-provider-settings-card.tsx
++++ b/frontend/src/components/settings/auth-provider-settings-card.tsx
+@@ -66,12 +66,12 @@ export function AuthProviderSettingsCard({
+                   "rounded-lg border p-3 text-left transition-all",
+                   pendingMode === provider.id
+                     ? "border-primary/50 bg-primary/8"
+-                    : "border-border bg-background/40 hover:border-[#31405C]",
++                    : "border-border bg-background/40 hover:border-line-strong",
+                 )}
+                 onClick={() => setDraftMode(provider.id)}
+               >
+                 <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-foreground">
+-                  <KeyRound size={13} className="text-[#7FA8F5]" />
++                  <KeyRound size={13} className="text-link" />
+                   {t(provider.nameKey)}
+                 </p>
+                 <p className="mt-0.5 text-[11px] text-muted-foreground">
+diff --git a/frontend/src/components/settings/security-compliance-settings-card.tsx b/frontend/src/components/settings/security-compliance-settings-card.tsx
+index 41a1c5e..04e875f 100644
+--- a/frontend/src/components/settings/security-compliance-settings-card.tsx
++++ b/frontend/src/components/settings/security-compliance-settings-card.tsx
+@@ -91,12 +91,12 @@ export function SecurityComplianceSettingsCard({
+             <button
+               key={row.id}
+               type="button"
+-              className="flex w-full items-center gap-2.5 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-left transition-colors hover:border-[#31405C]"
++              className="flex w-full items-center gap-2.5 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-left transition-colors hover:border-line-strong"
+               onClick={() => setOpenRow(row.id)}
+             >
+               <row.icon
+                 size={14}
+-                className={row.enabled ? "text-[#4ADE80]" : "text-muted-foreground/60"}
++                className={row.enabled ? "text-ok" : "text-muted-foreground/60"}
+               />
+               <span className="flex-1 text-[12px] text-foreground/90">
+                 {t(row.labelKey)}
+diff --git a/frontend/src/components/settings/settings-registry-section.tsx b/frontend/src/components/settings/settings-registry-section.tsx
+index b6d94bd..2b0ed83 100644
+--- a/frontend/src/components/settings/settings-registry-section.tsx
++++ b/frontend/src/components/settings/settings-registry-section.tsx
+@@ -34,13 +34,13 @@ export function SettingsRegistrySection({
+ 
+   return (
+     <>
+-      <Card className="transition-colors hover:border-[#31405C]">
++      <Card className="transition-colors hover:border-line-strong">
+         <CardHeader
+           title={
+             <span className="flex items-center gap-2">
+               <CategoryIcon
+                 aria-hidden
+-                className="size-4 shrink-0 text-[#31405C]"
++                className="size-4 shrink-0 text-line-strong"
+               />
+               <span>{title}</span>
+             </span>
+diff --git a/frontend/src/components/sla/sla-admin-selector.tsx b/frontend/src/components/sla/sla-admin-selector.tsx
+index a8ab175..9e60f97 100644
+--- a/frontend/src/components/sla/sla-admin-selector.tsx
++++ b/frontend/src/components/sla/sla-admin-selector.tsx
+@@ -36,11 +36,11 @@ export function SlaAdminSelectorCard({
+         "w-full rounded-lg border p-3.5 text-left transition-all",
+         isSelected
+           ? "border-primary/50 bg-primary/8"
+-          : "border-border bg-surface hover:border-[#31405C] hover:bg-elevated/40",
++          : "border-border bg-surface hover:border-line-strong hover:bg-elevated/40",
+       )}
+     >
+       <div className="flex items-center justify-between gap-2">
+-        <span className="tnum text-[12.5px] font-bold tracking-wide text-[#7FA8F5]">{code}</span>
++        <span className="tnum text-[12.5px] font-bold tracking-wide text-link">{code}</span>
+         <Badge tone={badgeTone} dot={false}>
+           {badgeLabel}
+         </Badge>
+@@ -67,7 +67,7 @@ export function SlaAdminNewItemButton({ label, onClick }: SlaAdminNewItemButtonP
+     <button
+       type="button"
+       onClick={onClick}
+-      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#31405C] py-3 text-[12px] text-muted transition-colors hover:border-primary/50 hover:text-text"
++      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted transition-colors hover:border-primary/50 hover:text-text"
+     >
+       <Plus size={13} />
+       {label}
+diff --git a/frontend/src/components/sla/sla-calendar-week-grid.tsx b/frontend/src/components/sla/sla-calendar-week-grid.tsx
+index a534a97..8434836 100644
+--- a/frontend/src/components/sla/sla-calendar-week-grid.tsx
++++ b/frontend/src/components/sla/sla-calendar-week-grid.tsx
+@@ -33,7 +33,7 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
+                 className={cn(
+                   "mt-1 flex h-9 items-center justify-center rounded-md border text-[10.5px] tnum",
+                   hours
+-                    ? "border-success/30 bg-success/10 text-[#4ADE80]"
++                    ? "border-success/30 bg-success/10 text-ok"
+                     : "border-border/60 bg-background/40 text-muted/50",
+                 )}
+               >
+diff --git a/frontend/src/components/sla/sla-profile-detail-header.tsx b/frontend/src/components/sla/sla-profile-detail-header.tsx
+index d564bc2..a2e463e 100644
+--- a/frontend/src/components/sla/sla-profile-detail-header.tsx
++++ b/frontend/src/components/sla/sla-profile-detail-header.tsx
+@@ -28,7 +28,7 @@ export function SlaProfileDetailHeader({
+         title={
+           profile ? (
+             <span className="flex items-center gap-2">
+-              <TimerReset size={15} className="text-[#7FA8F5]" />
++              <TimerReset size={15} className="text-link" />
+               {profile.name}{" "}
+               <span className="tnum text-muted/70">({profile.key})</span>
+             </span>
+diff --git a/frontend/src/components/tickets/create-ticket-service-picker.tsx b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+index 7c11f09..172612a 100644
+--- a/frontend/src/components/tickets/create-ticket-service-picker.tsx
++++ b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+@@ -56,7 +56,7 @@ export function CreateTicketServicePicker({
+                 "rounded-lg border p-3.5 text-left transition-all duration-150",
+                 selected
+                   ? "border-primary/60 bg-primary/10"
+-                  : "border-border bg-background/40 hover:border-[#31405C] hover:bg-elevated/50",
++                  : "border-border bg-background/40 hover:border-line-strong hover:bg-elevated/50",
+               )}
+             >
+               <div className="flex items-center justify-between gap-2">
+diff --git a/frontend/src/components/tickets/knowledge-intercept-panel.tsx b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+index 082ba20..b966c98 100644
+--- a/frontend/src/components/tickets/knowledge-intercept-panel.tsx
++++ b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+@@ -84,11 +84,11 @@ export function KnowledgeInterceptPanel({
+               key={item.id}
+               className={cn(
+                 "grid gap-2 rounded-lg border border-border bg-background/40 px-4 py-4 transition-all duration-150",
+-                helped ? "opacity-40" : "hover:border-[#31405C]",
++                helped ? "opacity-40" : "hover:border-line-strong",
+               )}
+             >
+               <div className="flex flex-wrap items-baseline justify-between gap-2">
+-                <h3 className="text-[13px] font-medium text-[#7FA8F5]">{item.title}</h3>
++                <h3 className="text-[13px] font-medium text-link">{item.title}</h3>
+                 {item.isStale ? <Badge tone="warning">{t("knowledgeBase.stale")}</Badge> : null}
+               </div>
+               <p className="text-[12px] leading-5 text-muted-foreground">{item.bodyPreview}</p>
+@@ -138,7 +138,7 @@ export function KnowledgeInterceptPanel({
+           )}
+         >
+           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+-            <Check size={15} className="text-[#4ADE80]" /> {t("tickets.helpedResolved")}
++            <Check size={15} className="text-ok" /> {t("tickets.helpedResolved")}
+           </p>
+           <p className="mt-1 text-[11.5px] leading-[18px] text-muted-foreground">
+             {t("tickets.helpedResolvedHint")}
+@@ -151,7 +151,7 @@ export function KnowledgeInterceptPanel({
+           className="rounded-lg border border-border bg-background/40 p-4 text-left transition-all duration-150 hover:border-primary/40"
+         >
+           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+-            <ChevronRight size={15} className="text-[#7FA8F5]" />
++            <ChevronRight size={15} className="text-link" />
+             {t("tickets.continueSend")}
+           </p>
+           <p className="mt-1 text-[11.5px] leading-[18px] text-muted-foreground">
+diff --git a/frontend/src/components/tickets/ticket-activity-list.tsx b/frontend/src/components/tickets/ticket-activity-list.tsx
+index a0fe232..10e4bdb 100644
+--- a/frontend/src/components/tickets/ticket-activity-list.tsx
++++ b/frontend/src/components/tickets/ticket-activity-list.tsx
+@@ -19,9 +19,9 @@ import type {
+ const kindChipClass: Readonly<Record<TicketActivityKind, string>> = {
+   sla: "border-warning/30 bg-warning/10 text-warning",
+   routing: "border-info/30 bg-info/10 text-info",
+-  status: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
+-  assign: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
+-  approval: "border-success/30 bg-success/10 text-[#4ADE80]",
++  status: "border-primary/30 bg-primary/10 text-link",
++  assign: "border-primary/30 bg-primary/10 text-link",
++  approval: "border-success/30 bg-success/10 text-ok",
+   security: "border-danger/30 bg-danger/10 text-danger",
+   edit: "border-border bg-elevated text-muted-foreground",
+ };
+diff --git a/frontend/src/components/tickets/ticket-approvals-panel.tsx b/frontend/src/components/tickets/ticket-approvals-panel.tsx
+index 52f3009..b755160 100644
+--- a/frontend/src/components/tickets/ticket-approvals-panel.tsx
++++ b/frontend/src/components/tickets/ticket-approvals-panel.tsx
+@@ -65,7 +65,7 @@ export function TicketApprovalsPanel({
+               <span
+                 className={cn(
+                   "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border",
+-                  item.status === "APPROVED" && "border-success/40 bg-success/15 text-[#4ADE80]",
++                  item.status === "APPROVED" && "border-success/40 bg-success/15 text-ok",
+                   item.status === "PENDING" && "border-warning/40 bg-warning/10 text-warning",
+                   item.status === "REJECTED" && "border-danger/40 bg-danger/10 text-danger",
+                 )}
+diff --git a/frontend/src/components/tickets/ticket-bulk-bar.tsx b/frontend/src/components/tickets/ticket-bulk-bar.tsx
+index a210b3e..fc72eb3 100644
+--- a/frontend/src/components/tickets/ticket-bulk-bar.tsx
++++ b/frontend/src/components/tickets/ticket-bulk-bar.tsx
+@@ -43,7 +43,7 @@ export function TicketBulkBar({
+   const ticketIds = [...selectedIds];
+   return (
+     <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
+-      <CheckSquare size={14} className="text-[#7FA8F5]" />
++      <CheckSquare size={14} className="text-link" />
+       <span className="tnum text-[12.5px] font-medium text-foreground">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
+       <div className="mx-1 h-4 w-px bg-border" />
+       <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
+diff --git a/frontend/src/components/tickets/ticket-conversation.tsx b/frontend/src/components/tickets/ticket-conversation.tsx
+index 472b43a..f122438 100644
+--- a/frontend/src/components/tickets/ticket-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-conversation.tsx
+@@ -61,7 +61,7 @@ export function TicketConversation({
+                 size={13}
+                 className={
+                   isApproval
+-                    ? "mt-0.5 shrink-0 text-[#4ADE80]"
++                    ? "mt-0.5 shrink-0 text-ok"
+                     : "mt-0.5 shrink-0 text-muted-foreground/60"
+                 }
+                 aria-hidden="true"
+diff --git a/frontend/src/components/tickets/ticket-inbox-tabs.tsx b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+index 85a6697..1c62b11 100644
+--- a/frontend/src/components/tickets/ticket-inbox-tabs.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+@@ -67,7 +67,7 @@ function InboxTabButton({
+         active
+           ? tone === "danger"
+             ? "border-danger/50 bg-danger/12 text-danger"
+-            : "border-[#31405C] bg-elevated text-foreground"
++            : "border-line-strong bg-elevated text-foreground"
+           : "border-border bg-surface text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
+       )}
+     >
+diff --git a/frontend/src/components/tickets/ticket-message-composer.tsx b/frontend/src/components/tickets/ticket-message-composer.tsx
+index 3db0bbc..d8850b1 100644
+--- a/frontend/src/components/tickets/ticket-message-composer.tsx
++++ b/frontend/src/components/tickets/ticket-message-composer.tsx
+@@ -70,7 +70,7 @@ export function TicketMessageComposer({
+             className={cn(
+               "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
+               !internal
+-                ? "bg-primary/15 text-[#7FA8F5]"
++                ? "bg-primary/15 text-link"
+                 : "text-muted-foreground hover:text-foreground",
+             )}
+           >
+diff --git a/frontend/src/components/tickets/ticket-sla-panel.tsx b/frontend/src/components/tickets/ticket-sla-panel.tsx
+index c5f99ab..3550c22 100644
+--- a/frontend/src/components/tickets/ticket-sla-panel.tsx
++++ b/frontend/src/components/tickets/ticket-sla-panel.tsx
+@@ -182,7 +182,7 @@ function remainingText(
+ 
+ function remainingToneClass(timer: TicketSlaTimerView): string {
+   if (timer.satisfied) {
+-    return "text-[#4ADE80]";
++    return "text-ok";
+   }
+   if (timer.overdue) {
+     return "text-danger";
+diff --git a/frontend/src/components/tickets/ticket-split-panel.tsx b/frontend/src/components/tickets/ticket-split-panel.tsx
+index 2c1ceaf..014c5df 100644
+--- a/frontend/src/components/tickets/ticket-split-panel.tsx
++++ b/frontend/src/components/tickets/ticket-split-panel.tsx
+@@ -52,7 +52,7 @@ export function TicketSplitPanel({
+         {ticket.parentTicketId ? (
+           <p className="mt-3 text-[12px]">
+             {t("tickets.split.parent")}:{" "}
+-            <Link className="tnum text-[#7FA8F5] hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
++            <Link className="tnum text-link hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
+               {formatParentTicketLabel(ticket) ?? t("tickets.split.parentFallback")}
+             </Link>
+           </p>
+diff --git a/frontend/src/components/ui/toast.tsx b/frontend/src/components/ui/toast.tsx
+new file mode 100644
+index 0000000..eb789b9
+--- /dev/null
++++ b/frontend/src/components/ui/toast.tsx
+@@ -0,0 +1,173 @@
++import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
++import {
++  createContext,
++  useCallback,
++  useContext,
++  useEffect,
++  useMemo,
++  useRef,
++  useState,
++  type ReactNode,
++} from "react";
++import { useTranslation } from "react-i18next";
++import type { BadgeTone } from "@/components/ui/badge";
++import { cn } from "@/lib/utils";
++
++export type ToastTone = Extract<BadgeTone, "info" | "success" | "warning" | "danger">;
++
++export interface ToastInput {
++  readonly tone?: ToastTone;
++  readonly title: string;
++  readonly description?: string;
++  /** Milliseconds; `0` keeps the toast until it is dismissed. */
++  readonly duration?: number;
++}
++
++interface ToastRecord extends Required<Omit<ToastInput, "description">> {
++  readonly id: number;
++  readonly description?: string;
++}
++
++interface ToastContextValue {
++  readonly toast: (input: ToastInput) => void;
++  readonly dismiss: (id: number) => void;
++}
++
++const ToastContext = createContext<ToastContextValue | null>(null);
++
++const DEFAULT_DURATION = 5000;
++
++let toastSequence = 0;
++
++const TOAST_TONES: Record<ToastTone, { readonly icon: ReactNode; readonly className: string }> = {
++  info: { icon: <Info size={15} />, className: "text-info" },
++  success: { icon: <CheckCircle2 size={15} />, className: "text-ok" },
++  warning: { icon: <AlertTriangle size={15} />, className: "text-warning" },
++  danger: { icon: <XCircle size={15} />, className: "text-danger" },
++};
++
++/**
++ * Discrete, non-blocking confirmations. Realtime updates deliberately do NOT
++ * raise a toast (see `.cursor/rules/frontend-ui-ux.mdc`) — this surface is for
++ * the outcome of a user-initiated action.
++ */
++export function ToastProvider({ children }: { readonly children: ReactNode }) {
++  const [toasts, setToasts] = useState<readonly ToastRecord[]>([]);
++  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
++
++  const dismiss = useCallback((id: number) => {
++    const timer = timers.current.get(id);
++    if (timer !== undefined) {
++      clearTimeout(timer);
++      timers.current.delete(id);
++    }
++    setToasts((previous) => previous.filter((record) => record.id !== id));
++  }, []);
++
++  const toast = useCallback(
++    (input: ToastInput) => {
++      toastSequence += 1;
++      const record: ToastRecord = {
++        id: toastSequence,
++        tone: input.tone ?? "info",
++        title: input.title,
++        description: input.description,
++        duration: input.duration ?? DEFAULT_DURATION,
++      };
++      setToasts((previous) => [...previous, record]);
++    },
++    [],
++  );
++
++  useEffect(() => {
++    for (const record of toasts) {
++      if (record.duration <= 0 || timers.current.has(record.id)) {
++        continue;
++      }
++      timers.current.set(
++        record.id,
++        setTimeout(() => dismiss(record.id), record.duration),
++      );
++    }
++  }, [toasts, dismiss]);
++
++  useEffect(() => {
++    const scheduled = timers.current;
++    return () => {
++      for (const timer of scheduled.values()) {
++        clearTimeout(timer);
++      }
++      scheduled.clear();
++    };
++  }, []);
++
++  const value = useMemo<ToastContextValue>(() => ({ toast, dismiss }), [toast, dismiss]);
++
++  return (
++    <ToastContext.Provider value={value}>
++      {children}
++      <Toaster toasts={toasts} onDismiss={dismiss} />
++    </ToastContext.Provider>
++  );
++}
++
++function Toaster({
++  toasts,
++  onDismiss,
++}: {
++  readonly toasts: readonly ToastRecord[];
++  readonly onDismiss: (id: number) => void;
++}) {
++  const { t } = useTranslation();
++
++  if (toasts.length === 0) {
++    return null;
++  }
++
++  return (
++    <div
++      aria-live="polite"
++      aria-atomic="false"
++      className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2"
++    >
++      {toasts.map((record) => {
++        const meta = TOAST_TONES[record.tone];
++        return (
++          <div
++            key={record.id}
++            role="status"
++            className="pointer-events-auto pop-in flex items-start gap-2.5 rounded-lg border border-border bg-popover px-3.5 py-3 shadow-pop"
++          >
++            <span className={cn("mt-0.5 shrink-0", meta.className)}>{meta.icon}</span>
++            <div className="min-w-0 flex-1">
++              <p className="text-[12.5px] font-medium leading-4 text-foreground">
++                {record.title}
++              </p>
++              {record.description ? (
++                <p className="mt-0.5 text-[11.5px] leading-4 text-muted-foreground">
++                  {record.description}
++                </p>
++              ) : null}
++            </div>
++            <button
++              type="button"
++              aria-label={t("ui.dismiss")}
++              onClick={() => onDismiss(record.id)}
++              className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
++            >
++              <X size={13} />
++            </button>
++          </div>
++        );
++      })}
++    </div>
++  );
++}
++
++export function useToast(): ToastContextValue {
++  const context = useContext(ToastContext);
++  if (context === null) {
++    throw new Error("useToast must be used inside a ToastProvider");
++  }
++  return context;
++}
+diff --git a/frontend/src/components/users/users-summary-row.tsx b/frontend/src/components/users/users-summary-row.tsx
+index bb3ccef..7954e7d 100644
+--- a/frontend/src/components/users/users-summary-row.tsx
++++ b/frontend/src/components/users/users-summary-row.tsx
+@@ -8,7 +8,7 @@ import type { UserSummary } from "@/services/users-api";
+ 
+ const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
+   super: "border-danger/35 bg-danger/10 text-danger",
+-  manager: "border-primary/35 bg-primary/12 text-[#7FA8F5]",
++  manager: "border-primary/35 bg-primary/12 text-link",
+   agent: "border-info/30 bg-info/10 text-info",
+   user: "border-border bg-elevated text-muted-foreground",
+ };
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 8758075..83881a9 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -50,6 +50,30 @@
+       "user": "Korisnik"
+     }
+   },
++  "theme": {
++    "label": "Izgled",
++    "toggle": "Promijeni izgled",
++    "modeGroup": "Svjetlina",
++    "light": "Svijetla",
++    "dark": "Tamna",
++    "system": "Sistemska",
++    "systemHint": "prati operativni sistem",
++    "designGroup": "Dizajn",
++    "designPulse": "Pulse",
++    "designPulseHint": "novi identitet",
++    "designClassic": "Klasična",
++    "designClassicHint": "stara tamna tema",
++    "active": "Aktivno"
++  },
++  "ui": {
++    "close": "Zatvori",
++    "cancel": "Odustani",
++    "confirm": "Potvrdi",
++    "dismiss": "Zatvori obavještenje",
++    "clear": "Očisti",
++    "selectAll": "Odaberi sve",
++    "loading": "Učitavanje…"
++  },
+   "notifications": {
+     "title": "Obavještenja",
+     "open": "Obavještenja",
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index c217713..8bf73cc 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -50,6 +50,30 @@
+       "user": "User"
+     }
+   },
++  "theme": {
++    "label": "Appearance",
++    "toggle": "Change appearance",
++    "modeGroup": "Brightness",
++    "light": "Light",
++    "dark": "Dark",
++    "system": "System",
++    "systemHint": "follows the operating system",
++    "designGroup": "Design",
++    "designPulse": "Pulse",
++    "designPulseHint": "new identity",
++    "designClassic": "Classic",
++    "designClassicHint": "legacy dark theme",
++    "active": "Active"
++  },
++  "ui": {
++    "close": "Close",
++    "cancel": "Cancel",
++    "confirm": "Confirm",
++    "dismiss": "Dismiss notification",
++    "clear": "Clear",
++    "selectAll": "Select all",
++    "loading": "Loading…"
++  },
+   "notifications": {
+     "title": "Notifications",
+     "open": "Notifications",
+diff --git a/frontend/src/index.css b/frontend/src/index.css
+index fba113b..65b098b 100644
+--- a/frontend/src/index.css
++++ b/frontend/src/index.css
+@@ -3,11 +3,218 @@
+ @tailwind utilities;
+ 
+ /*
+-  EP-HelpDesk theme tokens — source: .cursor/docs/theme.md
+-  Dark hierarchy: background → surface → elevated.
++  EP-HelpDesk — Pulse Design System
++  ==================================
++
++  Tokens are split into TWO orthogonal axes:
++
++    data-theme="classic"  →  legacy dark theme (visually unchanged)
++    data-theme="pulse"    →  new identity, light by default
++    .dark                 →  dark mode for the active design system
++
++  `classic` is inherently dark, so the provider always pairs it with `.dark`.
++
++  Every color token is stored as **space separated RGB channels** (not a finished
++  colour). That is what keeps `/alpha` modifiers working, e.g. `bg-surface/60`,
++  `border-border/70`, in both design systems:
++
++      --surface: 255 255 255;                         — channels
++      surface: "rgb(var(--surface) / <alpha-value>)"  — tailwind.config.ts
++
++  Changing one attribute on <html> therefore restyles the entire application
++  without touching a single component.
+ */
+ 
+ @layer base {
++  /* ═══════════════════════════════════════════════════════════════════════
++     CLASSIC — legacy dark theme. Every colour is the exact value the theme
++     used before, so the fallback keeps its look. Shared interaction
++     refinements (focus ring, hover fills, surface-based inputs) apply here
++     too, on purpose: they are improvements, not theme differences.
++     ═══════════════════════════════════════════════════════════════════════ */
++  :root,
++  :root[data-theme="classic"] {
++    color-scheme: dark;
++
++    --background: 11 18 32;
++    --surface: 17 24 39;
++    --elevated: 27 36 54;
++    --border: 36 48 68;
++    --line-strong: 49 64 92;
++    --foreground: 229 231 235;
++    --muted: 156 163 175;
++
++    --primary: 37 99 235;
++    --primary-hover: 29 79 216;
++    --primary-active: 27 68 190;
++    --primary-foreground: 255 255 255;
++    --link: 127 168 245;
++
++    --accent: 34 197 94;
++    --danger: 239 68 68;
++    --ok: 74 222 128;
++    --success: 22 163 74;
++    --warning: 245 158 11;
++    --info: 56 189 248;
++    --hold: 192 132 252;
++
++    --ring: 37 99 235;
++    --scrim: 0 0 0;
++    --popover: 27 36 54;
++    --surface-hover: 27 36 54;
++
++    --avatar-1-bg: 34 53 92;
++    --avatar-1-fg: 157 188 245;
++    --avatar-2-bg: 29 58 52;
++    --avatar-2-fg: 138 216 194;
++    --avatar-3-bg: 58 45 29;
++    --avatar-3-fg: 228 190 138;
++    --avatar-4-bg: 45 42 74;
++    --avatar-4-fg: 182 173 240;
++    --avatar-5-bg: 58 36 48;
++    --avatar-5-fg: 232 167 188;
++    --avatar-6-bg: 38 56 62;
++    --avatar-6-fg: 147 211 228;
++
++    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
++    --calendar-icon-filter: invert(0.7);
++    --selection-bg: 37 99 235;
++    --selection-alpha: 0.35;
++    --selection-fg: 255 255 255;
++    --scrollbar-thumb: 36 48 68;
++    --scrollbar-thumb-hover: 49 64 92;
++    --radius-sm: 4px;
++    --radius-md: 6px;
++    --radius-lg: 8px;
++    --shadow-card: none;
++    --shadow-pop: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
++    --shadow-glow: none;
++  }
++
++  /* ═══════════════════════════════════════════════════════════════════════
++     PULSE · LIGHT
++     Contrast checked against surface #FFFFFF / canvas #F5F6F8 — every
++     semantic text token is ≥ 4.5:1.
++     ═══════════════════════════════════════════════════════════════════════ */
++  :root[data-theme="pulse"] {
++    color-scheme: light;
++
++    --background: 245 246 248;
++    --surface: 255 255 255;
++    --elevated: 248 249 251;
++    --border: 228 230 235;
++    --line-strong: 209 213 221;
++    --foreground: 20 22 29;
++    --muted: 106 113 128;
++
++    --primary: 91 91 214;
++    --primary-hover: 74 74 196;
++    --primary-active: 63 63 176;
++    --primary-foreground: 255 255 255;
++    --link: 79 79 199;
++
++    --accent: 15 118 110;
++    --danger: 220 38 38;
++    --ok: 21 128 61;
++    --success: 21 128 61;
++    --warning: 180 83 9;
++    --info: 3 105 161;
++    --hold: 126 34 206;
++
++    --ring: 91 91 214;
++    --scrim: 15 18 25;
++    --popover: 255 255 255;
++    --surface-hover: 243 244 247;
++
++    --avatar-1-bg: 224 226 251;
++    --avatar-1-fg: 59 59 168;
++    --avatar-2-bg: 220 242 234;
++    --avatar-2-fg: 16 97 79;
++    --avatar-3-bg: 245 232 212;
++    --avatar-3-fg: 138 90 18;
++    --avatar-4-bg: 231 227 250;
++    --avatar-4-fg: 74 63 158;
++    --avatar-5-bg: 248 223 231;
++    --avatar-5-fg: 155 44 83;
++    --avatar-6-bg: 218 238 243;
++    --avatar-6-fg: 18 98 111;
++
++    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a7180' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
++    --calendar-icon-filter: invert(0.35);
++    --selection-bg: 91 91 214;
++    --selection-alpha: 0.22;
++    --selection-fg: 20 22 29;
++    --scrollbar-thumb: 214 218 224;
++    --scrollbar-thumb-hover: 190 195 204;
++    --radius-sm: 6px;
++    --radius-md: 8px;
++    --radius-lg: 12px;
++    --shadow-card: 0 1px 2px rgb(15 18 25 / 0.04), 0 1px 3px rgb(15 18 25 / 0.03);
++    --shadow-pop: 0 12px 32px -10px rgb(15 18 25 / 0.18), 0 3px 8px -3px rgb(15 18 25 / 0.08);
++    --shadow-glow: 0 1px 2px rgb(91 91 214 / 0.28), 0 8px 20px -8px rgb(91 91 214 / 0.45);
++  }
++
++  /* ═══════════════════════════════════════════════════════════════════════
++     PULSE · DARK — same hues, translucent overlays instead of new colours.
++     ═══════════════════════════════════════════════════════════════════════ */
++  :root[data-theme="pulse"].dark {
++    color-scheme: dark;
++
++    --background: 13 14 18;
++    --surface: 20 22 28;
++    --elevated: 26 29 36;
++    --border: 38 42 52;
++    --line-strong: 58 63 76;
++    --foreground: 233 235 241;
++    --muted: 127 135 152;
++
++    --primary: 111 102 223;
++    --primary-hover: 124 115 228;
++    --primary-active: 138 129 233;
++    --primary-foreground: 255 255 255;
++    --link: 154 147 236;
++
++    --accent: 45 212 191;
++    --danger: 248 113 113;
++    --ok: 74 222 128;
++    --success: 34 197 94;
++    --warning: 251 191 36;
++    --info: 56 189 248;
++    --hold: 192 132 252;
++
++    --ring: 111 102 223;
++    --scrim: 0 0 0;
++    --popover: 30 33 41;
++    --surface-hover: 30 34 42;
++
++    --avatar-1-bg: 42 46 74;
++    --avatar-1-fg: 175 180 246;
++    --avatar-2-bg: 30 54 48;
++    --avatar-2-fg: 138 216 194;
++    --avatar-3-bg: 58 45 29;
++    --avatar-3-fg: 228 190 138;
++    --avatar-4-bg: 45 42 74;
++    --avatar-4-fg: 182 173 240;
++    --avatar-5-bg: 58 36 48;
++    --avatar-5-fg: 232 167 188;
++    --avatar-6-bg: 34 52 58;
++    --avatar-6-fg: 147 211 228;
++
++    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f8798' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
++    --calendar-icon-filter: invert(0.7);
++    --selection-bg: 111 102 223;
++    --selection-alpha: 0.35;
++    --selection-fg: 255 255 255;
++    --scrollbar-thumb: 38 42 52;
++    --scrollbar-thumb-hover: 58 63 76;
++    --radius-sm: 6px;
++    --radius-md: 8px;
++    --radius-lg: 12px;
++    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
++    --shadow-pop: 0 14px 36px -12px rgb(0 0 0 / 0.7), 0 3px 8px -3px rgb(0 0 0 / 0.45);
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(111 102 223 / 0.5);
++  }
++
+   html,
+   body,
+   #root {
+@@ -24,31 +231,31 @@
+   }
+ 
+   ::selection {
+-    background: rgba(37, 99, 235, 0.35);
+-    color: #fff;
++    background: rgb(var(--selection-bg) / var(--selection-alpha));
++    color: rgb(var(--selection-fg));
+   }
+ 
+   :focus-visible {
+-    outline: 2px solid rgba(37, 99, 235, 0.7);
++    outline: 2px solid rgb(var(--ring) / 0.7);
+     outline-offset: 1px;
+     border-radius: 4px;
+   }
+ 
+   input[type="checkbox"],
+   input[type="radio"] {
+-    accent-color: var(--tw-color-primary, #2563eb);
++    accent-color: rgb(var(--primary));
+   }
+ 
+   input[type="date"]::-webkit-calendar-picker-indicator,
+   input[type="time"]::-webkit-calendar-picker-indicator {
+-    filter: invert(0.7);
++    filter: var(--calendar-icon-filter);
+     cursor: pointer;
+   }
+ }
+ 
+ * {
+   scrollbar-width: thin;
+-  scrollbar-color: #243044 transparent;
++  scrollbar-color: rgb(var(--scrollbar-thumb)) transparent;
+ }
+ 
+ *::-webkit-scrollbar {
+@@ -57,12 +264,12 @@
+ }
+ 
+ *::-webkit-scrollbar-thumb {
+-  background: #243044;
++  background: rgb(var(--scrollbar-thumb));
+   border-radius: 8px;
+ }
+ 
+ *::-webkit-scrollbar-thumb:hover {
+-  background: #31405c;
++  background: rgb(var(--scrollbar-thumb-hover));
+ }
+ 
+ *::-webkit-scrollbar-corner {
+@@ -115,10 +322,10 @@
+ @keyframes dot-pulse {
+   0%,
+   100% {
+-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45);
++    box-shadow: 0 0 0 0 rgb(var(--ok) / 0.45);
+   }
+   50% {
+-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0);
++    box-shadow: 0 0 0 4px rgb(var(--ok) / 0);
+   }
+ }
+ 
+@@ -156,12 +363,26 @@
+ }
+ 
+ select.appearance-none {
+-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
++  background-image: var(--chevron-down);
+   background-repeat: no-repeat;
+   background-position: right 10px center;
+   background-size: 12px;
+ }
+ 
++/*
++  Pulse brand accent — used for the single "brand" moment per screen
++  (login panel, install wizard header). Kept out of the token layer
++  because it is a decorative gradient, never a semantic surface.
++*/
++.pulse-gradient {
++  background-image: linear-gradient(
++    118deg,
++    rgb(var(--primary)) 0%,
++    rgb(var(--info) / 0.92) 52%,
++    rgb(var(--accent) / 0.9) 100%
++  );
++}
++
+ @media (prefers-reduced-motion: reduce) {
+   .page-in,
+   .fade-in,
+diff --git a/frontend/src/lib/theme/semantic-meta.ts b/frontend/src/lib/theme/semantic-meta.ts
+index cd9a7d5..447e4cc 100644
+--- a/frontend/src/lib/theme/semantic-meta.ts
++++ b/frontend/src/lib/theme/semantic-meta.ts
+@@ -8,14 +8,18 @@ export type SemanticMeta = {
+   readonly dot: string;
+ };
+ 
+-/** Hex aliases from `.cursor/docs/theme.md` — no new colors. */
++/**
++ * Dot colours for status indicators. These are CSS variables rather than hex
++ * literals so a status dot stays legible in every theme block — no new colours
++ * are introduced, only the token that backs them.
++ */
+ export const SEMANTIC_DOT_HEX = {
+-  primary: "#2563EB",
+-  success: "#16A34A",
+-  warning: "#F59E0B",
+-  danger: "#EF4444",
+-  info: "#38BDF8",
+-  neutral: "#9CA3AF",
++  primary: "rgb(var(--primary))",
++  success: "rgb(var(--ok))",
++  warning: "rgb(var(--warning))",
++  danger: "rgb(var(--danger))",
++  info: "rgb(var(--info))",
++  neutral: "rgb(var(--muted))",
+ } as const;
+ 
+ function meta(tone: BadgeTone, dot: string): SemanticMeta {
+diff --git a/frontend/src/lib/theme/theme-provider.tsx b/frontend/src/lib/theme/theme-provider.tsx
+new file mode 100644
+index 0000000..ae88a3c
+--- /dev/null
++++ b/frontend/src/lib/theme/theme-provider.tsx
+@@ -0,0 +1,142 @@
++import {
++  createContext,
++  useCallback,
++  useContext,
++  useEffect,
++  useMemo,
++  useState,
++  type ReactNode,
++} from "react";
++import {
++  DEFAULT_THEME_DESIGN,
++  DEFAULT_THEME_MODE,
++  isDarkAppearance,
++  isThemeDesign,
++  isThemeMode,
++  resolveColorMode,
++  THEME_DESIGN_STORAGE_KEY,
++  THEME_MODE_STORAGE_KEY,
++  type ResolvedColorMode,
++  type ThemeDesign,
++  type ThemeMode,
++} from "@/lib/theme/theme-storage";
++
++interface ThemeContextValue {
++  readonly design: ThemeDesign;
++  readonly mode: ThemeMode;
++  readonly resolvedMode: ResolvedColorMode;
++  readonly isDark: boolean;
++  readonly setDesign: (design: ThemeDesign) => void;
++  readonly setMode: (mode: ThemeMode) => void;
++  readonly toggleMode: () => void;
++}
++
++const ThemeContext = createContext<ThemeContextValue | null>(null);
++
++const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
++
++function readStored(key: string): string | null {
++  try {
++    return window.localStorage.getItem(key);
++  } catch {
++    return null;
++  }
++}
++
++function writeStored(key: string, value: string): void {
++  try {
++    window.localStorage.setItem(key, value);
++  } catch {
++    /* private mode / storage disabled — the choice simply does not persist */
++  }
++}
++
++/** `window.matchMedia` is absent in SSR-less node test environments. */
++function readSystemPrefersDark(): boolean {
++  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
++    return false;
++  }
++  return window.matchMedia(SYSTEM_DARK_QUERY).matches;
++}
++
++export function ThemeProvider({ children }: { readonly children: ReactNode }) {
++  const [design, setDesignState] = useState<ThemeDesign>(() => {
++    const stored = readStored(THEME_DESIGN_STORAGE_KEY);
++    return isThemeDesign(stored) ? stored : DEFAULT_THEME_DESIGN;
++  });
++
++  const [mode, setModeState] = useState<ThemeMode>(() => {
++    const stored = readStored(THEME_MODE_STORAGE_KEY);
++    return isThemeMode(stored) ? stored : DEFAULT_THEME_MODE;
++  });
++
++  const [systemPrefersDark, setSystemPrefersDark] = useState(readSystemPrefersDark);
++
++  useEffect(() => {
++    if (typeof window.matchMedia !== "function") {
++      return;
++    }
++    const query = window.matchMedia(SYSTEM_DARK_QUERY);
++    const onChange = (event: MediaQueryListEvent) => {
++      setSystemPrefersDark(event.matches);
++    };
++    setSystemPrefersDark(query.matches);
++    query.addEventListener("change", onChange);
++    return () => query.removeEventListener("change", onChange);
++  }, []);
++
++  const resolvedMode = resolveColorMode(design, mode, systemPrefersDark);
++  const isDark = isDarkAppearance(design, resolvedMode);
++
++  useEffect(() => {
++    const root = document.documentElement;
++    root.dataset.theme = design;
++    root.classList.toggle("dark", isDark);
++  }, [design, isDark]);
++
++  const setDesign = useCallback((next: ThemeDesign) => {
++    setDesignState(next);
++    writeStored(THEME_DESIGN_STORAGE_KEY, next);
++  }, []);
++
++  const setMode = useCallback((next: ThemeMode) => {
++    setModeState(next);
++    writeStored(THEME_MODE_STORAGE_KEY, next);
++  }, []);
++
++  const toggleMode = useCallback(() => {
++    setModeState((previous) => {
++      const isCurrentlyDark = resolveColorMode(
++        design,
++        previous,
++        readSystemPrefersDark(),
++      ) === "dark";
++      const next: ThemeMode = isCurrentlyDark ? "light" : "dark";
++      writeStored(THEME_MODE_STORAGE_KEY, next);
++      return next;
++    });
++  }, [design]);
++
++  const value = useMemo<ThemeContextValue>(
++    () => ({
++      design,
++      mode,
++      resolvedMode,
++      isDark,
++      setDesign,
++      setMode,
++      toggleMode,
++    }),
++    [design, mode, resolvedMode, isDark, setDesign, setMode, toggleMode],
++  );
++
++  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
++}
++
++export function useTheme(): ThemeContextValue {
++  const context = useContext(ThemeContext);
++  if (context === null) {
++    throw new Error("useTheme must be used inside a ThemeProvider");
++  }
++  return context;
++}
+diff --git a/frontend/src/lib/theme/theme-storage.spec.ts b/frontend/src/lib/theme/theme-storage.spec.ts
+new file mode 100644
+index 0000000..f42b168
+--- /dev/null
++++ b/frontend/src/lib/theme/theme-storage.spec.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, it } from "vitest";
++import {
++  DEFAULT_THEME_DESIGN,
++  DEFAULT_THEME_MODE,
++  isDarkAppearance,
++  isThemeDesign,
++  isThemeMode,
++  resolveColorMode,
++} from "@/lib/theme/theme-storage";
++
++describe("theme-storage", () => {
++  it("defaults to the new identity in system mode", () => {
++    expect(DEFAULT_THEME_DESIGN).toBe("pulse");
++    expect(DEFAULT_THEME_MODE).toBe("system");
++  });
++
++  it("validates persisted values before trusting them", () => {
++    expect(isThemeDesign("pulse")).toBe(true);
++    expect(isThemeDesign("classic")).toBe(true);
++    expect(isThemeDesign("dark")).toBe(false);
++    expect(isThemeDesign(null)).toBe(false);
++    expect(isThemeMode("system")).toBe(true);
++    expect(isThemeMode("pulse")).toBe(false);
++  });
++
++  it("resolves the explicit modes for the new identity", () => {
++    expect(resolveColorMode("pulse", "light", true)).toBe("light");
++    expect(resolveColorMode("pulse", "dark", false)).toBe("dark");
++  });
++
++  it("follows the OS preference in system mode", () => {
++    expect(resolveColorMode("pulse", "system", true)).toBe("dark");
++    expect(resolveColorMode("pulse", "system", false)).toBe("light");
++  });
++
++  it("keeps the legacy design permanently dark", () => {
++    expect(resolveColorMode("classic", "light", false)).toBe("dark");
++    expect(isDarkAppearance("classic", "light")).toBe(true);
++  });
++
++  it("sets the dark class only for dark appearances", () => {
++    expect(isDarkAppearance("pulse", "dark")).toBe(true);
++    expect(isDarkAppearance("pulse", "light")).toBe(false);
++  });
++});
+diff --git a/frontend/src/lib/theme/theme-storage.ts b/frontend/src/lib/theme/theme-storage.ts
+new file mode 100644
+index 0000000..09cd57b
+--- /dev/null
++++ b/frontend/src/lib/theme/theme-storage.ts
+@@ -0,0 +1,61 @@
++/**
++ * Pulse Design System — theme contract.
++ *
++ * Two orthogonal axes decide what the application looks like:
++ *
++ *   design : "pulse"   → new identity (see `.cursor/docs/theme.md`)
++ *            "classic" → legacy dark theme, kept available during rollout
++ *   mode   : "light" | "dark" | "system"
++ *
++ * `classic` is inherently dark, so `isDarkAppearance()` forces dark for it
++ * regardless of `mode`. Everything UI-facing is derived from this file, which
++ * keeps the provider, the switcher and the pre-paint script in `index.html`
++ * from drifting apart.
++ */
++
++export type ThemeDesign = "pulse" | "classic";
++export type ThemeMode = "light" | "dark" | "system";
++export type ResolvedColorMode = "light" | "dark";
++
++export const THEME_DESIGN_STORAGE_KEY = "ep-helpdesk.theme.design";
++export const THEME_MODE_STORAGE_KEY = "ep-helpdesk.theme.mode";
++
++/**
++ * Rollout switch. The new identity ships as the default; flip this to
++ * `"classic"` for a pilot week, or read it from the settings registry later.
++ */
++export const DEFAULT_THEME_DESIGN: ThemeDesign = "pulse";
++export const DEFAULT_THEME_MODE: ThemeMode = "system";
++
++export const THEME_DESIGNS: readonly ThemeDesign[] = ["pulse", "classic"];
++export const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
++
++export function isThemeDesign(value: unknown): value is ThemeDesign {
++  return value === "pulse" || value === "classic";
++}
++
++export function isThemeMode(value: unknown): value is ThemeMode {
++  return value === "light" || value === "dark" || value === "system";
++}
++
++export function resolveColorMode(
++  design: ThemeDesign,
++  mode: ThemeMode,
++  systemPrefersDark: boolean,
++): ResolvedColorMode {
++  if (design === "classic") {
++    return "dark";
++  }
++  if (mode === "system") {
++    return systemPrefersDark ? "dark" : "light";
++  }
++  return mode;
++}
++
++/** `true` when the `.dark` class must sit on `<html>` (drives `dark:` variants). */
++export function isDarkAppearance(
++  design: ThemeDesign,
++  resolvedMode: ResolvedColorMode,
++): boolean {
++  return design === "classic" || resolvedMode === "dark";
++}
+diff --git a/frontend/tailwind.config.ts b/frontend/tailwind.config.ts
+index 503bb96..d785bb8 100644
+--- a/frontend/tailwind.config.ts
++++ b/frontend/tailwind.config.ts
+@@ -1,6 +1,21 @@
+ import type { Config } from "tailwindcss";
+ import tailwindcssAnimate from "tailwindcss-animate";
+ 
++/*
++  Every colour points at a CSS variable that holds *space separated RGB
++  channels*, so `/alpha` modifiers keep working in all three theme blocks
++  defined in `src/index.css`:
++
++      surface: "rgb(var(--surface) / <alpha-value>)"   → bg-surface/60 ✔
++
++  Radius and shadow are variables too, which means the new design system gets
++  larger cards (12px) and softer elevation *app-wide* without a single
++  component edit — `rounded-lg` and `shadow-pop` simply resolve differently
++  per theme. `classic` keeps the exact legacy values.
++*/
++
++const channel = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
++
+ export default {
+   darkMode: ["class"],
+   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+@@ -10,51 +25,73 @@ export default {
+         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+       },
+       colors: {
+-        background: "#0B1220",
+-        foreground: "#E5E7EB",
+-        text: "#E5E7EB",
+-        surface: "#111827",
+-        elevated: "#1B2436",
+-        border: "#243044",
+-        ring: "#2563EB",
+-        input: "#243044",
++        /* ── surfaces ───────────────────────────────────────────────── */
++        background: channel("--background"),
++        surface: channel("--surface"),
++        elevated: channel("--elevated"),
++        border: channel("--border"),
++        "line-strong": channel("--line-strong"),
++        foreground: channel("--foreground"),
++        text: channel("--foreground"),
++        ring: channel("--ring"),
++        input: channel("--border"),
++        scrim: channel("--scrim"),
++
++        /* ── brand ──────────────────────────────────────────────────── */
+         primary: {
+-          DEFAULT: "#2563EB",
+-          foreground: "#FFFFFF",
++          DEFAULT: channel("--primary"),
++          hover: channel("--primary-hover"),
++          active: channel("--primary-active"),
++          foreground: channel("--primary-foreground"),
+         },
++        link: channel("--link"),
++
++        /* ── neutral aliases kept from the legacy palette ───────────── */
+         secondary: {
+-          DEFAULT: "#1B2436",
+-          foreground: "#E5E7EB",
++          DEFAULT: channel("--elevated"),
++          foreground: channel("--foreground"),
+         },
+         muted: {
+-          DEFAULT: "#9CA3AF",
+-          foreground: "#9CA3AF",
+-        },
+-        accent: {
+-          DEFAULT: "#22C55E",
+-          foreground: "#FFFFFF",
++          DEFAULT: channel("--muted"),
++          foreground: channel("--muted"),
+         },
+-        destructive: {
+-          DEFAULT: "#EF4444",
+-          foreground: "#FFFFFF",
+-        },
+-        danger: "#EF4444",
+         card: {
+-          DEFAULT: "#111827",
+-          foreground: "#E5E7EB",
++          DEFAULT: channel("--surface"),
++          foreground: channel("--foreground"),
+         },
+         popover: {
+-          DEFAULT: "#1B2436",
+-          foreground: "#E5E7EB",
++          DEFAULT: channel("--popover"),
++          foreground: channel("--foreground"),
++        },
++        "surface-hover": channel("--surface-hover"),
++
++        /* ── semantic states ────────────────────────────────────────── */
++        accent: {
++          DEFAULT: channel("--accent"),
++          foreground: channel("--primary-foreground"),
++        },
++        destructive: {
++          DEFAULT: channel("--danger"),
++          foreground: channel("--primary-foreground"),
+         },
+-        success: "#16A34A",
+-        warning: "#F59E0B",
+-        info: "#38BDF8",
++        danger: channel("--danger"),
++        ok: channel("--ok"),
++        success: channel("--success"),
++        warning: channel("--warning"),
++        info: channel("--info"),
++        hold: channel("--hold"),
+       },
+       borderRadius: {
+-        lg: "8px",
+-        md: "6px",
+-        sm: "4px",
++        sm: "var(--radius-sm)",
++        md: "var(--radius-md)",
++        lg: "var(--radius-lg)",
++        card: "var(--radius-lg)",
++        control: "var(--radius-md)",
++      },
++      boxShadow: {
++        card: "var(--shadow-card)",
++        pop: "var(--shadow-pop)",
++        glow: "var(--shadow-glow)",
+       },
+       fontSize: {
+         metadata: ["12px", { lineHeight: "16px" }],
