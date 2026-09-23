@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0–5 isporučena (Faza 4 i Faza 5 završene)
+# Pulse UI — Faze 0–5 isporučene, uključujući palete boja
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -24,6 +24,7 @@
 | **4.6 — Konfiguracije, red, održavanje, povratne informacije** | `components/config-versions/` (10), `queue/` (2), `maintenance/` (1), `feedback/` (1), `auth/` (1), `visual-qa/` (6) — verzije konfiguracije, integracioni red, traka održavanja, povratne informacije o akcijama, promjena lozinke, Visual QA tabla | ✅ |
 | **4.7 — Stranice i radius sistem** | `pages/*` (23 fajla provjerena, 3 dotjerana) + zatvaranje posljednjeg propusta u radius sistemu (`rounded-xl` nije bio vezan na token) kroz `layout/command-palette` i dva fajla razgovora tiketa | ✅ |
 | **5 — Izgled (dark mode + stranica podešavanja)** | Nova stranica **`/appearance`** (dizajn, svjetlina, živi pregled iz pravih primitiva, „vrati na zadano"), ulazi u korisničkom meniju i u biraču teme, 22 nova i18n ključa u oba lokala; **verifikovano da su sva tri tematska bloka potpuna** (48/48/48 tokena, bez razlika) | ✅ |
+| **5b — Palete boja** | Treća osa izgleda: **`data-accent` — indigo (zadana) / teal / rose**. Rotira samo brend boje (primary familija, fokus prsten, linkovi, selekcija, glow), pa radi u obje svjetline bez drugog bloka tokena po modu. Ulaz: korisnički meni („Izgled"), birač teme u topbaru (grupa „Boja") i kartica na `/appearance`. **Sva 24 mjerenja kontrasta ≥ 4.5:1** | ✅ |
 | 6–7 | Dokumentacija i pravila, završna verifikacija i release | ⏳ |
 
 | Faza | Putanja | Diff |
@@ -39,7 +40,8 @@
 | 4.6 | 13 (13 izmijenjenih; 8 fajlova je već bilo u Pulse jeziku) | 214 linija u 1 patchu |
 | 4.7 | 6 (6 izmijenjenih; 5 fajlova je već bilo u Pulse jeziku) | 96 linija u 1 patchu |
 | 5 | 6 (1 nov fajl + 5 izmijenjenih) | 413 linija u 1 patchu |
-| **Ukupno** | **259 unikatnih putanja** (26 se pojavljuje u više setova) | **10 907 linija** |
+| 5b — palete | 9 (9 izmijenjenih, 0 novih) | 630 linija u 1 patchu |
+| **Ukupno (13 patcheva)** | **228 unikatnih putanja** (294 fajl-unosa; 66 se ponavlja jer su neki fajlovi dorađivani u više talasa) | **11 537 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -62,7 +64,8 @@ demo/patches/
 ├── pulse-09-admin-users-groups-ou-rbac-settings.patch 32 fajla     35 KB
 ├── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
 ├── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
-└── pulse-12-appearance-page.patch                    6 fajlova    16 KB
+├── pulse-12-appearance-page.patch                    6 fajlova    16 KB
+└── pulse-13-accent-palettes.patch                    9 fajlova    24 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -82,6 +85,7 @@ git apply demo/patches/pulse-09-admin-users-groups-ou-rbac-settings.patch
 git apply demo/patches/pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch
 git apply demo/patches/pulse-11-pages-radius-system.patch
 git apply demo/patches/pulse-12-appearance-page.patch
+git apply demo/patches/pulse-13-accent-palettes.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -136,7 +140,8 @@ grep -qF "fade-in overflow-x-auto" frontend/src/components/users/users-table.tsx
 grep -qF "fade-in grid gap-1.5 font-mono" frontend/src/components/config-versions/config-version-diff-panel.tsx  # → 10 je primijenjen
 grep -qF "page-in grid min-h-screen" frontend/src/pages/login-page.tsx                  # → 11 je primijenjen
 ls frontend/src/pages/appearance-page.tsx                                               # postoji → 12 je primijenjen
-git status --porcelain | wc -l                          # ~231 putanja nakon 01–12
+grep -qF 'data-accent=\"teal\"' frontend/src/index.css                                  # → 13 je primijenjen
+git status --porcelain | wc -l                          # ~236 putanja nakon 01–13
 ```
 
 ---
@@ -162,7 +167,12 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | **F5 — i18n** | ✅ `bs` **2164** = `en` **2164** ključa (2142 + 22 nova `appearance.*`), parity **0/0**; svih 24 statička ključa nove stranice postoje u oba lokala |
 | **F5 — tematski tokeni (dark mode)** | ✅ sva tri bloka (`:root[data-theme="classic"]`, `:root[data-theme="pulse"]`, `:root[data-theme="pulse"].dark`) imaju **identičan skup od 48 varijabli** — nema tokena koji bi u dark modu pao na fallback |
 | Skripta na „imam 01–11, dodajem 12" | ✅ `primijenjeno: 1  preskočeno: 11  grešaka: 0` |
-| **Skripta na čistom `base` + svih 12 patcheva (uz `core.autocrlf=true`)** | ✅ `primijenjeno: 12  preskočeno: 0  grešaka: 0`; rezultat **1:1** prema referentnom stablu |
+| **Skripta na čistom `base` + svih 13 patcheva (uz `core.autocrlf=true`)** | ✅ `primijenjeno: 13  preskočeno: 0  grešaka: 0`; rezultat **1:1** prema referentnom stablu |
+| Patch 13 primijenjen na F5 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **Palete — `npx vitest run`** | ✅ **89 fajlova / 308 testova** (dodata 2 testa za treću osu) |
+| **Palete — kontrast (WCAG 2.1, mjereno na generisanom CSS-u)** | ✅ 6 kombinacija × 4 mjerenja = **24/24 ≥ 4.5:1** na novim paletama; vidi tabelu u §4 |
+| **Palete — klasa-probe** | ✅ 54 utility klase u 2 fajla kroz pravi Tailwind build → **0 propusta**; `accent-swatch-*` generisane za obje svjetline |
+| **Palete — build** | ✅ `index-D0Oy3DVS.css` (64 745 B; +1,6 KB za palete i swatcheve) / `index-T4FnGr4D.js` (1 200 280 B) |
 | **4.7 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.7 — `npx vite build`** | ✅ `index-8UzRBoY8.css` (63 014 B — **manji**, jer `rounded-xl` više ne postoji u kodu) / `index-DzHQdNCn.js` (1 189 796 B) |
 | **4.7 — sve Tailwind klase (`pages/*` + 3 fajla van njih)** | ✅ 101 klasa u `pages/` + 67 u tri fajla kroz pravi Tailwind build — **0 propusta** |
@@ -251,6 +261,34 @@ bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
 | **Faza 0 + Faza 1** | Isporučeno u dva patcha. |
 | **`.patch` fajlovi** | Isporučeno (vidi §2). |
 | **KB intercept kao zaseban ekran** | Zadržano postojeće ponašanje — postojeći `knowledge-intercept-panel.tsx` je samo restilizovan, **tok nije mijenjan**. |
+
+### Palete boja — šta je konkretno urađeno (dodatak Fazi 5)
+
+Treća osa izgleda: **`data-accent`** sa tri vrijednosti — `indigo` (zadana, ono što je Pulse oduvijek bio), **`teal`** i **`rose`**.
+Nije novi dizajn: paleta rotira **samo brend boje**, a površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) ostaju netaknuti.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Zašto je ispalo jeftino** | Cijela aplikacija od Faze 0 boju čita iz CSS varijabli (**0 hardkodiranih boja u komponentama**), a „dizajn" su znala samo **5 fajlova**. Zato paleta = **8 varijabli** po bloku (`--primary`, `-hover`, `-active`, `-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg`) + `--shadow-glow`, i **nema drugog bloka tokena po svjetlini** — `.dark` varijanta mijenja samo te iste vrijednosti |
+| **Skaliranje u CSS-u** | Selektori su oblikovani kao `:root[data-theme="pulse"][data-accent="teal"]` — specifičnost (0,2,1) pobjeđuje bazni `:root[data-theme="pulse"]` bez obzira na redoslijed, a **`classic` je izuzet** jer selektor traži `pulse`. Klasična tema zadržava svoju plavu bez obzira koja je paleta izabrana |
+| **Kontrakt i perzistencija** | `ThemeAccent` + `THEME_ACCENTS` + `isThemeAccent` + `DEFAULT_THEME_ACCENT` u `lib/theme/theme-storage.ts`; `accent` / `setAccent` u `ThemeProvider`-u; ključ `ep-helpdesk.theme.accent`; **pre-paint skripta** u `index.html` sada postavlja i `data-accent` (i sanitizuje neispravnu vrijednost) |
+| **Tri ulaza, jedan kontrakt** | Grupa **„Boja"** u biraču teme (samo za Pulse, kao i svjetlina) · korisnički meni → „Izgled" → `/appearance` · kartica **„Paleta boja"** na `/appearance`. Svi pišu kroz isti `useTheme()`, pa se ne mogu razići. „Vrati na zadano" sada resetuje i paletu |
+| **Bug koji je uhvatilo mjerenje** | `::selection` boja **ne smije** biti ista u svijetloj i tamnoj paleti: browser je crta kao alpha blend **preko podloge**, pa je rezultat uvijek svijetao u svijetlim paletama i taman u tamnim. Prva verzija je u tamnim paletama dala **1.65:1** (tekst praktično nevidljiv pri selektovanju). Popravljeno i sada je 8.79–12.77:1. Isto pravilo važi za `--primary-foreground`: svijetla primarna boja traži **taman** tekst na sebi |
+| **Dokaz kontrasta (24 mjerenja)** | Vrijednosti pročitane iz **generisanog CSS-a**, ne iz izvora: |
+
+| Paleta | Svjetlina | Tekst na primary | Primary kao tekst | Link | Selekcija |
+|---|---|---|---|---|---|
+| indigo (zadana) | svjetla | 5.37:1 ✓ | 5.37:1 ✓ | 6.41:1 ✓ | 12.44:1 ✓ |
+| indigo (zadana) | tamna | 4.52:1 ✓ | **4.00:1** ⚠ | 6.68:1 ✓ | 12.77:1 ✓ |
+| **teal** | svjetla | 5.47:1 ✓ | 5.47:1 ✓ | 7.58:1 ✓ | 9.88:1 ✓ |
+| **teal** | tamna | 7.77:1 ✓ | 9.71:1 ✓ | 12.22:1 ✓ | 8.79:1 ✓ |
+| **rose** | svjetla | 6.29:1 ✓ | 6.29:1 ✓ | 8.02:1 ✓ | 9.87:1 ✓ |
+| **rose** | tamna | 5.81:1 ✓ | 6.72:1 ✓ | 9.56:1 ✓ | 10.51:1 ✓ |
+
+> ⚠ jedina vrijednost ispod AA je **postojeća** indigo paleta u tamnom modu (`text-primary` 4.00:1) — to je baseline iz Faze 0 koji nisam mijenjao jer popravka mijenja izgled primarnih dugmadi u tamnom modu (vidi §7).
+
+| Uputa za tim — još jedna paleta | 1) dodaj blok `:root[data-theme="pulse"][data-accent="<ime>"]` i njegov `.dark` par u `src/index.css` (8 varijabli + glow); 2) dodaj ime u `ThemeAccent` i `THEME_ACCENTS`; 3) dodaj `theme.accent<Ime>` ključ u `bs` i `en`. UI (birač teme, `/appearance`, `role="radiogroup"`) radi sam jer iterira `THEME_ACCENTS` |
+| **Svjesni izuzetak** | `.accent-swatch-*` klase u `index.css` su **jedine hardkodirane boje van tokena** — preview mora prikazati paletu koja **nije** aktivna, pa ne može čitati `--primary`. Imaju po jednu svjetlu i tamnu vrijednost i drže se uz paletne blokove |
 
 ### Faza 5 — šta je konkretno urađeno (izgled: dark mode + stranica podešavanja) — **kraj Faze 5**
 
@@ -510,7 +548,9 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Radius: ne koristi `rounded-xl`** | `rounded-xl` nije u `tailwind.config.ts` — Tailwind ga generiše iz defaulta (12px) i **ne mijenja se s temom**. Za kartice i veće blokove koristi `rounded-lg` (token `--radius-lg`: 12px Pulse / 8px classic), za kontrole `rounded-md` (token), za mikro-elemente `rounded` ili `rounded-[Npx]` |
 | **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
 | **Izgled se pamti lokalno, ne po korisniku** | Izbor dizajna i svjetline stoji u `localStorage` **tog pregledača**, ne na nalogu. Ako želiš da izgled prati korisnika na svakom uređaju, to je novi backend ključ kroz **settings registry** (`settings/definitions/` + `readStringSetting`) — infrastruktura već postoji i to je jedini otvoren zadatak iz plana za Fazu 5 |
-| **`appearance.*` je nov blok u i18n** | 22 ključa su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → 2164) će ih prijaviti kao nedostajuće |
+| **`appearance.*` i `theme.accent*` su novi blokovi u i18n** | 22 + 10 ključeva su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → **2174**) će ih prijaviti kao nedostajuće |
+| **Paleta je izbor, ne brend** | Kao i dizajn i svjetlina, paleta se pamti u `localStorage` **tog pregledača** — ne na nalogu. Ako želiš da svi korisnici na instalaciji imaju istu paletu, to je jedan ključ kroz settings registry (isti obrazac kao za default temu iz plana) |
+| **`text-primary` u tamnoj indigo paleti je 4.00:1** | To je **postojeće stanje** (Faza 0), ne regresija — nove palete su tu strože i drže 6.72–9.71:1. Popravka bi bila jedna linija (tamniji `--primary-foreground` + svjetlija `--primary`), ali mijenja kako izgledaju primarna dugmad u tamnom modu, pa čeka tvoju odluku |
 | **`/appearance` nije u `navigation.ts`** | Stranica je namjerno dostupna iz korisničkog menija i birača teme, **ne** iz sidebar navigacije — izgled nije modul aplikacije. Ako je želiš u sidebaru, dodaje se jedan red u `lib/navigation.ts` + ključ u oba lokala |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
@@ -635,9 +675,12 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)** + **Faz
    | ~~4.7~~ | ~~`pages/*` + `lib/` pomoćne~~ — **isporučeno** | ~~23~~ | ✅ `pulse-11` |
    | ~~5~~ | ~~dark mode + stranica izgleda~~ — **isporučeno** | ~~6~~ | ✅ `pulse-12` |
 
-4. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
-   `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
-5. **Faza 7** (1 dan): završna verifikacija i release.
+4. **Palete boja** (0,5 dana): `data-accent` — indigo / teal / rose (patch `pulse-13`) — ✅ **isporučeno**.
+   Otvori `/appearance` (ili grupu „Boja" u topbaru) i prebaci kroz sve tri u obje svjetline.
+5. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
+   `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom, **uključujući treću osu
+   (`data-accent`) i formulu kontrasta za selekciju iz ovog talasa**.
+6. **Faza 7** (1 dan): završna verifikacija i release.
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je

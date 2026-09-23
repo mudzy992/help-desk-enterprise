@@ -50,6 +50,7 @@ PATCHES=(
   "pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch:frontend/src/components/config-versions/config-version-diff-panel.tsx:fade-in grid gap-1.5 font-mono"
   "pulse-11-pages-radius-system.patch:frontend/src/pages/login-page.tsx:page-in grid min-h-screen"
   "pulse-12-appearance-page.patch:frontend/src/pages/appearance-page.tsx"
+  "pulse-13-accent-palettes.patch:frontend/src/index.css:data-accent=\"teal\""
 )
 
 applied=0
@@ -154,6 +155,6 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd frontend && npm install"
   echo "  npx tsc -b                 # očekivano: 0 grešaka"
-  echo "  npx vitest run             # očekivano: 89 fajlova / 306 testova"
+  echo "  npx vitest run             # očekivano: 89 fajlova / 308 testova"
   echo "  npx vite build             # očekivano: uspješno"
 fi
