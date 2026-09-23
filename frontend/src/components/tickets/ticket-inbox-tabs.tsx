@@ -8,7 +8,6 @@ interface TicketInboxTabsProperties {
   readonly activeTab: string;
   readonly unroutedCount: number;
   readonly groups: readonly InboxGroupTab[];
-  readonly groupNames: ReadonlyMap<string, string>;
   readonly onChange: (tab: string) => void;
 }
 
@@ -16,7 +15,6 @@ export function TicketInboxTabs({
   activeTab,
   unroutedCount,
   groups,
-  groupNames,
   onChange,
 }: TicketInboxTabsProperties) {
   const { t } = useTranslation();
@@ -37,7 +35,7 @@ export function TicketInboxTabs({
           tone="neutral"
           count={group.count}
           icon={<Users size={13} aria-hidden="true" />}
-          label={groupNames.get(group.groupId) ?? t("tickets.detail.unknownGroup")}
+          label={group.name}
           onClick={() => onChange(group.groupId)}
         />
       ))}

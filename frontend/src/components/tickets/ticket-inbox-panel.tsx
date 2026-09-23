@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import { ActionFeedbackBanner } from "@/components/feedback/action-feedback-banner";
 import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
 import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
-import { groupNamesFromTickets } from "@/lib/tickets/ticket-names";
 import { TicketInboxNoGroupNotice } from "@/components/tickets/ticket-inbox-no-group-notice";
 import { TicketInboxTabs } from "@/components/tickets/ticket-inbox-tabs";
 import { TicketInboxUnroutedBanner } from "@/components/tickets/ticket-inbox-unrouted-banner";
+import type { ActionFeedback } from "@/lib/feedback/use-action-feedback";
 import {
-  inboxGroupTabsFromInboxTickets,
+  inboxGroupTabsFromMembership,
   ticketsForInboxTab,
   unroutedInboxTabKey,
 } from "@/lib/tickets/inbox-view-tabs";
+import { useMyGroups } from "@/lib/tickets/use-my-groups";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { TicketResponse } from "@/services/tickets-api";
 
@@ -24,6 +26,8 @@ interface TicketInboxPanelProperties {
   readonly canManageGroups: boolean;
   readonly isLoading: boolean;
   readonly errorKey: TicketErrorKey | null;
+  readonly feedback: ActionFeedback | null;
+  readonly onDismissFeedback: () => void;
   readonly onClaim: (ticketId: string) => void;
   readonly onRetry: () => void;
 }
@@ -39,13 +43,16 @@ export function TicketInboxPanel({
   canManageGroups,
   isLoading,
   errorKey,
+  feedback,
+  onDismissFeedback,
   onClaim,
   onRetry,
 }: TicketInboxPanelProperties) {
   const [activeTab, setActiveTab] = useState(unroutedInboxTabKey);
+  const { groups: myGroups } = useMyGroups();
   const groups = useMemo(
-    () => inboxGroupTabsFromInboxTickets(inboxTickets),
-    [inboxTickets],
+    () => inboxGroupTabsFromMembership(myGroups, inboxTickets),
+    [myGroups, inboxTickets],
   );
   useEffect(() => {
     if (activeTab === unroutedInboxTabKey) {
@@ -55,15 +62,14 @@ export function TicketInboxPanel({
       setActiveTab(unroutedInboxTabKey);
     }
   }, [activeTab, groups]);
-  const groupNames = useMemo(() => groupNamesFromTickets(inboxTickets), [inboxTickets]);
   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
   return (
     <div className="mt-4">
+      <ActionFeedbackBanner feedback={feedback} onDismiss={onDismissFeedback} />
       <TicketInboxTabs
         activeTab={activeTab}
         unroutedCount={unroutedTickets.length}
         groups={groups}
-        groupNames={groupNames}
         onChange={setActiveTab}
       />
       {hasGroupMembership === false && !isLoading && errorKey === null ? (

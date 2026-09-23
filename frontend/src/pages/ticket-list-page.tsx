@@ -102,6 +102,8 @@ export function TicketListPage() {
           canManageGroups={canManageGroups}
           isLoading={list.isLoading}
           errorKey={list.errorKey}
+          feedback={list.feedback}
+          onDismissFeedback={list.dismissFeedback}
           onClaim={(ticketId) => void list.onClaim(ticketId)}
           onRetry={() => void list.load()}
         />

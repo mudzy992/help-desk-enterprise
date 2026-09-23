@@ -22,6 +22,9 @@
       "administration": "Administration"
     }
   },
+  "feedback": {
+    "dismiss": "Dismiss message"
+  },
   "shell": {
     "openNavigation": "Open navigation",
     "navigation": "Navigation",
@@ -1930,6 +1933,8 @@
     "next": "Next",
     "claim": "Claim",
     "claiming": "Claiming…",
+    "claimSuccess": "Ticket claimed.",
+    "claimSuccessOpen": "Open",
     "titleField": "Title",
     "descriptionField": "Description",
     "service": "Service",

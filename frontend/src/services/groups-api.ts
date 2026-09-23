@@ -24,6 +24,22 @@ export type GroupResponse = GroupListItemResponse & {
   readonly members: readonly GroupMemberResponse[];
 };
 
+export type AutoAssignStrategy = "NONE" | "LEAST_BUSY" | "ROUND_ROBIN";
+
+export type MyGroupResponse = {
+  readonly id: string;
+  readonly name: string;
+  readonly organizationalUnit: {
+    readonly id: string;
+    readonly name: string;
+    readonly path: string;
+  };
+  readonly memberCount: number;
+  /** Priority group > service > global (decision D2); NONE if none applies. */
+  readonly effectiveAutoAssign: AutoAssignStrategy;
+  readonly isFallback: boolean;
+};
+
 export type CreateGroupInput = {
   readonly name: string;
   readonly organizationalUnitId: string;
@@ -43,6 +59,16 @@ export function listGroups(
       ? ""
       : `?${new URLSearchParams({ organizationalUnitId }).toString()}`;
   return apiRequest(`/groups${search}`);
+}
+
+/**
+ * The groups the caller belongs to (SuperAdmin: every group), each with the
+ * auto-assign strategy that actually applies to it. Unlike `GET /groups`,
+ * this is not admin-only — it's how an agent reads their own memberships
+ * (INB-01/INB-02).
+ */
+export function listMyGroups(): Promise<readonly MyGroupResponse[]> {
+  return apiRequest("/groups/mine");
 }
 
 export function getGroup(groupId: string): Promise<GroupResponse> {

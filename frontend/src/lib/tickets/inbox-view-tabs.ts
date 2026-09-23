@@ -1,13 +1,23 @@
+import type { MyGroupResponse } from "@/services/groups-api";
 import type { TicketResponse } from "@/services/tickets-api";
 
 export const unroutedInboxTabKey = "unrouted";
 
 export type InboxGroupTab = {
   readonly groupId: string;
+  readonly name: string;
   readonly count: number;
 };
 
-export function inboxGroupTabsFromInboxTickets(
+/**
+ * Tabs come from group membership (`GET /groups/mine`), not from tickets
+ * currently sitting in the inbox — a group with zero open tickets still gets
+ * a tab, and the tab set no longer depends on what happens to be loaded
+ * (INB-01). Counts are layered on top from the loaded inbox rows; sorted by
+ * name per the F2 plan (item 2), not by the group's cuid.
+ */
+export function inboxGroupTabsFromMembership(
+  myGroups: readonly MyGroupResponse[],
   inboxTickets: readonly TicketResponse[],
 ): readonly InboxGroupTab[] {
   const counts = new Map<string, number>();
@@ -17,9 +27,13 @@ export function inboxGroupTabsFromInboxTickets(
     }
     counts.set(ticket.assignedGroupId, (counts.get(ticket.assignedGroupId) ?? 0) + 1);
   }
-  return [...counts.entries()]
-    .map(([groupId, count]) => ({ groupId, count }))
-    .sort((left, right) => left.groupId.localeCompare(right.groupId));
+  return [...myGroups]
+    .map((group) => ({
+      groupId: group.id,
+      name: group.name,
+      count: counts.get(group.id) ?? 0,
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function ticketsForInboxTab(

@@ -1,0 +1,592 @@
+diff --git a/frontend/src/components/feedback/action-feedback-banner.tsx b/frontend/src/components/feedback/action-feedback-banner.tsx
+new file mode 100644
+index 0000000..542e32b
+--- /dev/null
++++ b/frontend/src/components/feedback/action-feedback-banner.tsx
+@@ -0,0 +1,71 @@
++import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
++import { useTranslation } from "react-i18next";
++import { cn } from "@/lib/utils";
++import type { ActionFeedback } from "@/lib/feedback/use-action-feedback";
++
++interface ActionFeedbackBannerProperties {
++  readonly feedback: ActionFeedback | null;
++  readonly onDismiss: () => void;
++}
++
++const toneClassNames: Record<ActionFeedback["tone"], string> = {
++  success: "border-success/35 bg-success/10 text-success",
++  info: "border-primary/35 bg-primary/10 text-[#7FA8F5]",
++  warning: "border-warning/35 bg-warning/10 text-warning",
++  error: "border-danger/35 bg-danger/10 text-danger",
++};
++
++const toneIcons: Record<ActionFeedback["tone"], typeof CheckCircle2> = {
++  success: CheckCircle2,
++  info: Info,
++  warning: AlertTriangle,
++  error: XCircle,
++};
++
++/**
++ * Renders whatever `useActionFeedback` currently holds. Sits above the
++ * content it describes and never replaces it — an error here still leaves
++ * the list/panel intact (Constitution §30). Intentionally the only consumer
++ * of the seam's state; F7 swaps this component out for the toast stack
++ * without changing `notify()` call sites.
++ */
++export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBannerProperties) {
++  const { t } = useTranslation();
++  if (feedback === null) {
++    return null;
++  }
++  const Icon = toneIcons[feedback.tone];
++  const role = feedback.tone === "error" || feedback.tone === "warning" ? "alert" : "status";
++  return (
++    <div
++      role={role}
++      aria-live={role === "alert" ? "assertive" : "polite"}
++      className={cn(
++        "mb-3 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[12.5px] leading-5",
++        toneClassNames[feedback.tone],
++      )}
++    >
++      <Icon size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
++      <p className="min-w-0 flex-1">
++        {t(feedback.key as never, (feedback.params ?? {}) as never) as unknown as string}
++      </p>
++      {feedback.action ? (
++        <button
++          type="button"
++          onClick={feedback.action.onClick}
++          className="shrink-0 font-medium underline-offset-2 hover:underline"
++        >
++          {feedback.action.label}
++        </button>
++      ) : null}
++      <button
++        type="button"
++        onClick={onDismiss}
++        aria-label={t("feedback.dismiss")}
++        className="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100"
++      >
++        <X size={13} aria-hidden="true" />
++      </button>
++    </div>
++  );
++}
+diff --git a/frontend/src/components/tickets/ticket-inbox-panel.tsx b/frontend/src/components/tickets/ticket-inbox-panel.tsx
+index 15f1e8e..5b9082b 100644
+--- a/frontend/src/components/tickets/ticket-inbox-panel.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-panel.tsx
+@@ -1,15 +1,17 @@
+ import { useEffect, useMemo, useState } from "react";
++import { ActionFeedbackBanner } from "@/components/feedback/action-feedback-banner";
+ import { TicketErrorState, TicketLoadingState } from "@/components/tickets/ticket-feedback-states";
+ import { TicketInboxList } from "@/components/tickets/ticket-inbox-list";
+-import { groupNamesFromTickets } from "@/lib/tickets/ticket-names";
+ import { TicketInboxNoGroupNotice } from "@/components/tickets/ticket-inbox-no-group-notice";
+ import { TicketInboxTabs } from "@/components/tickets/ticket-inbox-tabs";
+ import { TicketInboxUnroutedBanner } from "@/components/tickets/ticket-inbox-unrouted-banner";
++import type { ActionFeedback } from "@/lib/feedback/use-action-feedback";
+ import {
+-  inboxGroupTabsFromInboxTickets,
++  inboxGroupTabsFromMembership,
+   ticketsForInboxTab,
+   unroutedInboxTabKey,
+ } from "@/lib/tickets/inbox-view-tabs";
++import { useMyGroups } from "@/lib/tickets/use-my-groups";
+ import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
+@@ -24,6 +26,8 @@ interface TicketInboxPanelProperties {
+   readonly canManageGroups: boolean;
+   readonly isLoading: boolean;
+   readonly errorKey: TicketErrorKey | null;
++  readonly feedback: ActionFeedback | null;
++  readonly onDismissFeedback: () => void;
+   readonly onClaim: (ticketId: string) => void;
+   readonly onRetry: () => void;
+ }
+@@ -39,13 +43,16 @@ export function TicketInboxPanel({
+   canManageGroups,
+   isLoading,
+   errorKey,
++  feedback,
++  onDismissFeedback,
+   onClaim,
+   onRetry,
+ }: TicketInboxPanelProperties) {
+   const [activeTab, setActiveTab] = useState(unroutedInboxTabKey);
++  const { groups: myGroups } = useMyGroups();
+   const groups = useMemo(
+-    () => inboxGroupTabsFromInboxTickets(inboxTickets),
+-    [inboxTickets],
++    () => inboxGroupTabsFromMembership(myGroups, inboxTickets),
++    [myGroups, inboxTickets],
+   );
+   useEffect(() => {
+     if (activeTab === unroutedInboxTabKey) {
+@@ -55,15 +62,14 @@ export function TicketInboxPanel({
+       setActiveTab(unroutedInboxTabKey);
+     }
+   }, [activeTab, groups]);
+-  const groupNames = useMemo(() => groupNamesFromTickets(inboxTickets), [inboxTickets]);
+   const tabTickets = ticketsForInboxTab(activeTab, inboxTickets, unroutedTickets);
+   return (
+     <div className="mt-4">
++      <ActionFeedbackBanner feedback={feedback} onDismiss={onDismissFeedback} />
+       <TicketInboxTabs
+         activeTab={activeTab}
+         unroutedCount={unroutedTickets.length}
+         groups={groups}
+-        groupNames={groupNames}
+         onChange={setActiveTab}
+       />
+       {hasGroupMembership === false && !isLoading && errorKey === null ? (
+diff --git a/frontend/src/components/tickets/ticket-inbox-tabs.tsx b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+index 41bdcca..85a6697 100644
+--- a/frontend/src/components/tickets/ticket-inbox-tabs.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+@@ -8,7 +8,6 @@ interface TicketInboxTabsProperties {
+   readonly activeTab: string;
+   readonly unroutedCount: number;
+   readonly groups: readonly InboxGroupTab[];
+-  readonly groupNames: ReadonlyMap<string, string>;
+   readonly onChange: (tab: string) => void;
+ }
+ 
+@@ -16,7 +15,6 @@ export function TicketInboxTabs({
+   activeTab,
+   unroutedCount,
+   groups,
+-  groupNames,
+   onChange,
+ }: TicketInboxTabsProperties) {
+   const { t } = useTranslation();
+@@ -37,7 +35,7 @@ export function TicketInboxTabs({
+           tone="neutral"
+           count={group.count}
+           icon={<Users size={13} aria-hidden="true" />}
+-          label={groupNames.get(group.groupId) ?? t("tickets.detail.unknownGroup")}
++          label={group.name}
+           onClick={() => onChange(group.groupId)}
+         />
+       ))}
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 16ebd95..8758075 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -22,6 +22,9 @@
+       "administration": "Administracija"
+     }
+   },
++  "feedback": {
++    "dismiss": "Zatvori poruku"
++  },
+   "shell": {
+     "openNavigation": "Otvori navigaciju",
+     "navigation": "Navigacija",
+@@ -1930,6 +1933,8 @@
+     "next": "Sljedeća",
+     "claim": "Preuzmi",
+     "claiming": "Preuzimanje…",
++    "claimSuccess": "Tiket je preuzet.",
++    "claimSuccessOpen": "Otvori",
+     "titleField": "Naslov",
+     "descriptionField": "Opis",
+     "service": "Servis",
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index 061998d..c217713 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -22,6 +22,9 @@
+       "administration": "Administration"
+     }
+   },
++  "feedback": {
++    "dismiss": "Dismiss message"
++  },
+   "shell": {
+     "openNavigation": "Open navigation",
+     "navigation": "Navigation",
+@@ -1930,6 +1933,8 @@
+     "next": "Next",
+     "claim": "Claim",
+     "claiming": "Claiming…",
++    "claimSuccess": "Ticket claimed.",
++    "claimSuccessOpen": "Open",
+     "titleField": "Title",
+     "descriptionField": "Description",
+     "service": "Service",
+diff --git a/frontend/src/lib/feedback/use-action-feedback.ts b/frontend/src/lib/feedback/use-action-feedback.ts
+new file mode 100644
+index 0000000..2829397
+--- /dev/null
++++ b/frontend/src/lib/feedback/use-action-feedback.ts
+@@ -0,0 +1,90 @@
++import { useCallback, useEffect, useRef, useState } from "react";
++
++/**
++ * Seam for action-level feedback (task 1 of F2, `04-FAZNI-PLAN` §F2).
++ *
++ * This is deliberately not a toast: F7 owns the real notification stack
++ * (`ToastProvider`, dedupe, `notification.created`). Until then, call sites
++ * use this hook and `<ActionFeedbackBanner>` so a claim/save/etc. always has
++ * a visible, contextual result (Constitution §30) without ever replacing the
++ * surrounding list or panel with an error screen. When F7 lands, `notify`
++ * keeps its signature and only the rendering swaps to `toast.*`.
++ */
++export type ActionFeedbackTone = "success" | "info" | "warning" | "error";
++
++export type ActionFeedbackAction = {
++  readonly label: string;
++  readonly onClick: () => void;
++};
++
++export type ActionFeedback = {
++  readonly id: number;
++  readonly tone: ActionFeedbackTone;
++  /** i18n key (e.g. an existing `TicketErrorKey` or a `tickets.*Success` key). */
++  readonly key: string;
++  readonly params?: Record<string, string | number>;
++  readonly action?: ActionFeedbackAction;
++};
++
++export type NotifyOptions = {
++  readonly params?: Record<string, string | number>;
++  readonly action?: ActionFeedbackAction;
++  /** Defaults to 4s for success/info/warning, 6s for error; 0 disables auto-dismiss. */
++  readonly durationMs?: number;
++};
++
++const defaultDurationMs: Record<ActionFeedbackTone, number> = {
++  success: 4000,
++  info: 4000,
++  warning: 5000,
++  error: 6000,
++};
++
++export interface ActionFeedbackController {
++  readonly feedback: ActionFeedback | null;
++  readonly notify: (
++    tone: ActionFeedbackTone,
++    key: string,
++    options?: NotifyOptions,
++  ) => void;
++  readonly dismiss: () => void;
++}
++
++export function useActionFeedback(): ActionFeedbackController {
++  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
++  const timeoutRef = useRef<number | null>(null);
++  const nextId = useRef(0);
++
++  const clearTimer = useCallback(() => {
++    if (timeoutRef.current !== null) {
++      window.clearTimeout(timeoutRef.current);
++      timeoutRef.current = null;
++    }
++  }, []);
++
++  const dismiss = useCallback(() => {
++    clearTimer();
++    setFeedback(null);
++  }, [clearTimer]);
++
++  const notify = useCallback(
++    (tone: ActionFeedbackTone, key: string, options?: NotifyOptions) => {
++      clearTimer();
++      nextId.current += 1;
++      const id = nextId.current;
++      setFeedback({ id, tone, key, params: options?.params, action: options?.action });
++      const duration = options?.durationMs ?? defaultDurationMs[tone];
++      if (duration > 0) {
++        timeoutRef.current = window.setTimeout(() => {
++          setFeedback((current) => (current?.id === id ? null : current));
++          timeoutRef.current = null;
++        }, duration);
++      }
++    },
++    [clearTimer],
++  );
++
++  useEffect(() => clearTimer, [clearTimer]);
++
++  return { feedback, notify, dismiss };
++}
+diff --git a/frontend/src/lib/tickets/inbox-view-tabs.spec.ts b/frontend/src/lib/tickets/inbox-view-tabs.spec.ts
+index 7e5e13a..1668943 100644
+--- a/frontend/src/lib/tickets/inbox-view-tabs.spec.ts
++++ b/frontend/src/lib/tickets/inbox-view-tabs.spec.ts
+@@ -1,12 +1,23 @@
+ import { describe, expect, it } from "vitest";
+ import {
+-  inboxGroupTabsFromInboxTickets,
++  inboxGroupTabsFromMembership,
+   ticketsForInboxTab,
+   unroutedInboxTabKey,
+   unroutedTicketsFromList,
+ } from "@/lib/tickets/inbox-view-tabs";
++import type { MyGroupResponse } from "@/services/groups-api";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
++function myGroup(overrides: Partial<MyGroupResponse> & Pick<MyGroupResponse, "id" | "name">): MyGroupResponse {
++  return {
++    organizationalUnit: { id: "ou-1", name: "OU", path: "/ou-1" },
++    memberCount: 1,
++    effectiveAutoAssign: "NONE",
++    isFallback: false,
++    ...overrides,
++  };
++}
++
+ function ticket(
+   overrides: Partial<TicketResponse> & Pick<TicketResponse, "id">,
+ ): TicketResponse {
+@@ -41,14 +52,32 @@ describe("inbox-view-tabs", () => {
+       assignedGroupId: null,
+     });
+     const pending = ticket({ id: "p1", assignedGroupId: "group-a" });
+-    expect(inboxGroupTabsFromInboxTickets([leaked, pending])).toEqual([
+-      { groupId: "group-a", count: 1 },
++    const groups = [myGroup({ id: "group-a", name: "Group A" })];
++    expect(inboxGroupTabsFromMembership(groups, [leaked, pending])).toEqual([
++      { groupId: "group-a", name: "Group A", count: 1 },
+     ]);
+     expect(ticketsForInboxTab("group-a", [leaked, pending], [leaked])).toEqual([
+       pending,
+     ]);
+   });
+ 
++  it("keeps a tab for a group with zero open tickets, sorted by name (INB-01)", () => {
++    const groups = [
++      myGroup({ id: "group-b", name: "Networking" }),
++      myGroup({ id: "group-a", name: "Access management" }),
++    ];
++    const onlyGroupATicket = ticket({ id: "p1", assignedGroupId: "group-a" });
++    expect(inboxGroupTabsFromMembership(groups, [onlyGroupATicket])).toEqual([
++      { groupId: "group-a", name: "Access management", count: 1 },
++      { groupId: "group-b", name: "Networking", count: 0 },
++    ]);
++  });
++
++  it("ignores inbox tickets for groups the caller isn't a member of", () => {
++    const foreignTicket = ticket({ id: "p1", assignedGroupId: "group-x" });
++    expect(inboxGroupTabsFromMembership([], [foreignTicket])).toEqual([]);
++  });
++
+   it("reads the unrouted tab only from listTickets status UNROUTED", () => {
+     const unrouted = ticket({
+       id: "u1",
+diff --git a/frontend/src/lib/tickets/inbox-view-tabs.ts b/frontend/src/lib/tickets/inbox-view-tabs.ts
+index a1a0241..d9add2d 100644
+--- a/frontend/src/lib/tickets/inbox-view-tabs.ts
++++ b/frontend/src/lib/tickets/inbox-view-tabs.ts
+@@ -1,13 +1,23 @@
++import type { MyGroupResponse } from "@/services/groups-api";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
+ export const unroutedInboxTabKey = "unrouted";
+ 
+ export type InboxGroupTab = {
+   readonly groupId: string;
++  readonly name: string;
+   readonly count: number;
+ };
+ 
+-export function inboxGroupTabsFromInboxTickets(
++/**
++ * Tabs come from group membership (`GET /groups/mine`), not from tickets
++ * currently sitting in the inbox — a group with zero open tickets still gets
++ * a tab, and the tab set no longer depends on what happens to be loaded
++ * (INB-01). Counts are layered on top from the loaded inbox rows; sorted by
++ * name per the F2 plan (item 2), not by the group's cuid.
++ */
++export function inboxGroupTabsFromMembership(
++  myGroups: readonly MyGroupResponse[],
+   inboxTickets: readonly TicketResponse[],
+ ): readonly InboxGroupTab[] {
+   const counts = new Map<string, number>();
+@@ -17,9 +27,13 @@ export function inboxGroupTabsFromInboxTickets(
+     }
+     counts.set(ticket.assignedGroupId, (counts.get(ticket.assignedGroupId) ?? 0) + 1);
+   }
+-  return [...counts.entries()]
+-    .map(([groupId, count]) => ({ groupId, count }))
+-    .sort((left, right) => left.groupId.localeCompare(right.groupId));
++  return [...myGroups]
++    .map((group) => ({
++      groupId: group.id,
++      name: group.name,
++      count: counts.get(group.id) ?? 0,
++    }))
++    .sort((left, right) => left.name.localeCompare(right.name));
+ }
+ 
+ export function ticketsForInboxTab(
+diff --git a/frontend/src/lib/tickets/use-my-groups.ts b/frontend/src/lib/tickets/use-my-groups.ts
+new file mode 100644
+index 0000000..bda1078
+--- /dev/null
++++ b/frontend/src/lib/tickets/use-my-groups.ts
+@@ -0,0 +1,44 @@
++import { useEffect, useState } from "react";
++import { listMyGroups, type MyGroupResponse } from "@/services/groups-api";
++
++export interface UseMyGroupsResult {
++  readonly groups: readonly MyGroupResponse[];
++  readonly isLoading: boolean;
++}
++
++/**
++ * The caller's group memberships (`GET /groups/mine`), used to build the
++ * inbox tabs from membership instead of from whatever tickets happen to be
++ * loaded (INB-01). Failing open to an empty list keeps the inbox usable —
++ * the unrouted tab and `hasGroupMembership` messaging still apply.
++ */
++export function useMyGroups(): UseMyGroupsResult {
++  const [groups, setGroups] = useState<readonly MyGroupResponse[]>([]);
++  const [isLoading, setIsLoading] = useState(true);
++
++  useEffect(() => {
++    let cancelled = false;
++    setIsLoading(true);
++    listMyGroups()
++      .then((rows) => {
++        if (!cancelled) {
++          setGroups(rows);
++        }
++      })
++      .catch(() => {
++        if (!cancelled) {
++          setGroups([]);
++        }
++      })
++      .finally(() => {
++        if (!cancelled) {
++          setIsLoading(false);
++        }
++      });
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++
++  return { groups, isLoading };
++}
+diff --git a/frontend/src/lib/tickets/use-ticket-list.ts b/frontend/src/lib/tickets/use-ticket-list.ts
+index d3f65a8..4c91994 100644
+--- a/frontend/src/lib/tickets/use-ticket-list.ts
++++ b/frontend/src/lib/tickets/use-ticket-list.ts
+@@ -1,6 +1,8 @@
+ import { useCallback, useEffect, useMemo, useState } from "react";
+-import { useSearchParams } from "react-router-dom";
++import { useNavigate, useSearchParams } from "react-router-dom";
++import { useTranslation } from "react-i18next";
+ import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
++import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
+ import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+ import { paginateItems } from "@/lib/tickets/paginate-items";
+ import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
+@@ -44,6 +46,9 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null):
+ });
+ 
+ export function useTicketList() {
++  const { t } = useTranslation();
++  const navigate = useNavigate();
++  const feedback = useActionFeedback();
+   const { currentUserId } = useSession();
+   const [searchParams, setSearchParams] = useSearchParams();
+   const capabilities = useSessionCapabilities();
+@@ -166,12 +171,21 @@ export function useTicketList() {
+ 
+   const onClaim = async (ticketId: string) => {
+     setClaimingId(ticketId);
+-    setErrorKey(null);
+     try {
+       await claimTicket(ticketId);
+-      await load();
++      // Claim errors/success now go through the feedback seam instead of
++      // `errorKey`, so a failed claim never blanks the inbox (Constitution
++      // §30) and a successful one no longer forces a skeleton flash — the
++      // banner already confirms it, so the revalidation can be silent.
++      feedback.notify("success", "tickets.claimSuccess", {
++        action: {
++          label: t("tickets.claimSuccessOpen"),
++          onClick: () => navigate(`/tickets/${ticketId}`),
++        },
++      });
++      await load(true);
+     } catch (error) {
+-      setErrorKey(mapClaimError(error));
++      feedback.notify("error", mapClaimError(error));
+     } finally {
+       setClaimingId(null);
+     }
+@@ -211,6 +225,8 @@ export function useTicketList() {
+     isLoading,
+     errorKey,
+     setErrorKey,
++    feedback: feedback.feedback,
++    dismissFeedback: feedback.dismiss,
+     claimingId,
+     selectedIds,
+     setSelectedIds,
+diff --git a/frontend/src/pages/ticket-list-page.tsx b/frontend/src/pages/ticket-list-page.tsx
+index e1c4184..408d3e1 100644
+--- a/frontend/src/pages/ticket-list-page.tsx
++++ b/frontend/src/pages/ticket-list-page.tsx
+@@ -102,6 +102,8 @@ export function TicketListPage() {
+           canManageGroups={canManageGroups}
+           isLoading={list.isLoading}
+           errorKey={list.errorKey}
++          feedback={list.feedback}
++          onDismissFeedback={list.dismissFeedback}
+           onClaim={(ticketId) => void list.onClaim(ticketId)}
+           onRetry={() => void list.load()}
+         />
+diff --git a/frontend/src/services/groups-api.ts b/frontend/src/services/groups-api.ts
+index 4c90fbe..c3126c4 100644
+--- a/frontend/src/services/groups-api.ts
++++ b/frontend/src/services/groups-api.ts
+@@ -24,6 +24,22 @@ export type GroupResponse = GroupListItemResponse & {
+   readonly members: readonly GroupMemberResponse[];
+ };
+ 
++export type AutoAssignStrategy = "NONE" | "LEAST_BUSY" | "ROUND_ROBIN";
++
++export type MyGroupResponse = {
++  readonly id: string;
++  readonly name: string;
++  readonly organizationalUnit: {
++    readonly id: string;
++    readonly name: string;
++    readonly path: string;
++  };
++  readonly memberCount: number;
++  /** Priority group > service > global (decision D2); NONE if none applies. */
++  readonly effectiveAutoAssign: AutoAssignStrategy;
++  readonly isFallback: boolean;
++};
++
+ export type CreateGroupInput = {
+   readonly name: string;
+   readonly organizationalUnitId: string;
+@@ -45,6 +61,16 @@ export function listGroups(
+   return apiRequest(`/groups${search}`);
+ }
+ 
++/**
++ * The groups the caller belongs to (SuperAdmin: every group), each with the
++ * auto-assign strategy that actually applies to it. Unlike `GET /groups`,
++ * this is not admin-only — it's how an agent reads their own memberships
++ * (INB-01/INB-02).
++ */
++export function listMyGroups(): Promise<readonly MyGroupResponse[]> {
++  return apiRequest("/groups/mine");
++}
++
+ export function getGroup(groupId: string): Promise<GroupResponse> {
+   return apiRequest(`/groups/${groupId}`);
+ }

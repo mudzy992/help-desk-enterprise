@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { paginateItems } from "@/lib/tickets/paginate-items";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
@@ -44,6 +46,9 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
 });
 
 export function useTicketList() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const feedback = useActionFeedback();
   const { currentUserId } = useSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const capabilities = useSessionCapabilities();
@@ -166,12 +171,21 @@ export function useTicketList() {
 
   const onClaim = async (ticketId: string) => {
     setClaimingId(ticketId);
-    setErrorKey(null);
     try {
       await claimTicket(ticketId);
-      await load();
+      // Claim errors/success now go through the feedback seam instead of
+      // `errorKey`, so a failed claim never blanks the inbox (Constitution
+      // §30) and a successful one no longer forces a skeleton flash — the
+      // banner already confirms it, so the revalidation can be silent.
+      feedback.notify("success", "tickets.claimSuccess", {
+        action: {
+          label: t("tickets.claimSuccessOpen"),
+          onClick: () => navigate(`/tickets/${ticketId}`),
+        },
+      });
+      await load(true);
     } catch (error) {
-      setErrorKey(mapClaimError(error));
+      feedback.notify("error", mapClaimError(error));
     } finally {
       setClaimingId(null);
     }
@@ -211,6 +225,8 @@ export function useTicketList() {
     isLoading,
     errorKey,
     setErrorKey,
+    feedback: feedback.feedback,
+    dismissFeedback: feedback.dismiss,
     claimingId,
     selectedIds,
     setSelectedIds,

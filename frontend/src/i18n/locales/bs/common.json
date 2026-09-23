@@ -22,6 +22,9 @@
       "administration": "Administracija"
     }
   },
+  "feedback": {
+    "dismiss": "Zatvori poruku"
+  },
   "shell": {
     "openNavigation": "Otvori navigaciju",
     "navigation": "Navigacija",
@@ -1930,6 +1933,8 @@
     "next": "Sljedeća",
     "claim": "Preuzmi",
     "claiming": "Preuzimanje…",
+    "claimSuccess": "Tiket je preuzet.",
+    "claimSuccessOpen": "Otvori",
     "titleField": "Naslov",
     "descriptionField": "Opis",
     "service": "Servis",
