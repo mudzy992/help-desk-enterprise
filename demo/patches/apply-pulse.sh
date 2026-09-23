@@ -39,6 +39,7 @@ PATCHES=(
   "pulse-01-theme-tokens-and-infrastructure.patch:frontend/src/lib/theme/theme-storage.ts"
   "pulse-02-ui-primitives.patch:frontend/src/components/ui/segmented.tsx"
   "pulse-03-shell-palette-login-wizard.patch:frontend/src/components/layout/command-palette.tsx"
+  "pulse-04-charts.patch:frontend/src/components/charts/dual-area-chart.tsx"
 )
 
 applied=0
@@ -126,6 +127,6 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd frontend && npm install"
   echo "  npx tsc -b                 # očekivano: 0 grešaka"
-  echo "  npx vitest run             # očekivano: 88 fajlova / 295 testova"
+  echo "  npx vitest run             # očekivano: 89 fajlova / 304 testa"
   echo "  npx vite build             # očekivano: uspješno"
 fi

@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + Faza 1 + Faza 2 (isporuka)
+# Pulse UI — Faza 0 + 1 + 2 + 3 (isporuka)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -15,13 +15,15 @@
 | **0 — Temelji** | Tokeni u 3 tematska bloka, `tailwind.config.ts` na CSS kanalima, ThemeProvider + kontrakt, no-FOUC skripta, birač teme u topbaru, migracija **svih 82 hardkodirane boje** na tokene | ✅ |
 | **1 — UI primitivi** | Svih 19 postojećih primitiva restilizovano + 5 novih (Modal, ConfirmDialog, Toast, Segmented, Chip) + Theme tab u Visual QA | ✅ |
 | **2 — Shell + ⌘K paleta + prijava + čarobnjak** | Topbar, sidebar, korisnički meni, komandna paleta sa pretragom, nova stranica prijave, čarobnjak za instalaciju sa stepperom | ✅ |
-| 3–7 | Grafikoni, 248 komponenti po modulima, dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ nije u ovom PR-u |
+| **3 — Grafikoni** | Donut, grupisan i horizontalni barovi prerađeni u Pulse jezik + novi **dual area** grafikon (sada na nadzornoj ploči) + svi grafikoni na Visual QA | ✅ |
+| 4–7 | 248 komponenti po modulima (7 talasa), dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ nije u ovom PR-u |
 
 | Faza | Putanja | Diff |
 |---|---|---|
 | 0+1 | 79 (69 izmijenjenih + 10 novih) | 3135 linija u 2 patcha |
 | 2 | 27 (20 izmijenjenih + 6 novih + 1 brisanje) | 2204 linije u 1 patchu |
-| **Ukupno** | **99 unikatnih putanja** (7 se pojavljuje u oba seta) | **5339 linija** |
+| 3 | 9 (5 izmijenjenih + 4 nova) | 856 linija u 1 patchu |
+| **Ukupno** | **104 unikatne putanje** (11 se pojavljuje u više setova) | **6195 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -35,17 +37,19 @@ paleta ga koristi.
 demo/patches/
 ├── pulse-01-theme-tokens-and-infrastructure.patch   55 fajlova   85 KB
 ├── pulse-02-ui-primitives.patch                     24 fajla    47 KB
-└── pulse-03-shell-palette-login-wizard.patch        27 fajlova   84 KB
+├── pulse-03-shell-palette-login-wizard.patch        27 fajlova   84 KB
+└── pulse-04-charts.patch                             9 fajlova   34 KB
 ```
 
-Patchvi su **sekvencijalni** (03 pretpostavlja 01+02) i svaki zasebno kompajlira — možeš ih
-pregledati i primijeniti odvojeno.
+Patchevi su **sekvencijalni** (03 pretpostavlja 01+02, 04 pretpostavlja 01–03), a svaki zasebno
+kompajlira — možeš ih pregledati i primijeniti odvojeno.
 
 ```bash
 git checkout -b pulse-ui              # ili kako ti već ide tok
 git apply demo/patches/pulse-01-theme-tokens-and-infrastructure.patch
 git apply demo/patches/pulse-02-ui-primitives.patch
 git apply demo/patches/pulse-03-shell-palette-login-wizard.patch
+git apply demo/patches/pulse-04-charts.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -81,6 +85,7 @@ Zatim, po tvom postojećem običaju (commitovi su ti imenovani po patch fajlovim
 git commit -am "pulse-01-theme-tokens-and-infrastructure.patch"
 git commit -am "pulse-02-ui-primitives.patch"
 git commit -am "pulse-03-shell-palette-login-wizard.patch"
+git commit -am "pulse-04-charts.patch"
 ```
 
 Ako želiš jedan commit, primijeni sva tri patcha pa jedan commit.
@@ -90,7 +95,8 @@ Ako želiš jedan commit, primijeni sva tri patcha pa jedan commit.
 ```bash
 ls frontend/src/components/layout/command-palette.tsx   # postoji → 03 je primijenjen
 ls frontend/src/components/layout/header-search.tsx     # ne smije postojati → 03 briše ovaj fajl
-git status --porcelain | wc -l                          # ~26 putanja nakon 03 (na 01+02)
+ls frontend/src/components/charts/dual-area-chart.tsx   # postoji → 04 je primijenjen
+git status --porcelain | wc -l                          # ~35 putanja nakon 03+04 (na 01+02)
 ```
 
 ---
@@ -101,25 +107,33 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 
 | Provjera | Rezultat |
 |---|---|
-| `git apply --check` (sva tri patcha) | ✅ čisto, bez konflikata |
+| `git apply --check` (sva četiri patcha) | ✅ čisto, bez konflikata |
 | `npx tsc -b` (bez keša) | ✅ **0 grešaka** |
-| `npx vitest run` | ✅ **88 fajlova / 295 testova** (bilo 86/279) |
+| `npx vitest run` | ✅ **89 fajlova / 304 testa** (bilo 86/279) |
 | `npx vite build` | ✅ uspješno |
-| Build artefakti u klonu vs. moje stablo | ✅ **identični hash-evi** (`index-CMu3V9fT.css`, `index-al3NDq3l.js`) |
+| Build artefakti u klonu vs. moje stablo | ✅ **identični hash-evi** (`index-J1vwzjP-.css`, `index-CRKPmKS3.js`) |
 | `node scripts/check-ticket-id-leaks.mjs` (CI gate) | ✅ prolazi |
 | i18n parity `bs` vs `en` | ✅ 2142 / 2142 ključeva, nula razlike |
 | Hardkodirani `#RRGGBB` u `frontend/src` | ✅ **0** (bilo 82) |
 | Tematski blokovi u izlaznom CSS-u | ✅ `[data-theme=classic]`, `[data-theme=pulse]`, `[data-theme=pulse].dark` |
 | Alpha tokeni u izlaznom CSS-u | ✅ `rgb(var(--border) / .7)`, `rgb(var(--primary) / .15)` … |
-| Sve Tailwind klase iz F2 fajlova | ✅ 373/373 se stvarno generiše (provjereno kroz pravi Tailwind build) |
+| Sve Tailwind klase iz F2 i F3 fajlova | ✅ nijedna ne izostaje — 328 klasa provjereno kroz pravi Tailwind build (0 propusta) |
 | Komandna paleta (jsdom) | ✅ 13/13 testova: filteri, ↑/↓/Enter, grupisanje, prazno stanje |
-| Windows simulacija (`core.autocrlf=true`, CRLF radno stablo) | ✅ sva tri patcha se primjenjuju, `tsc` 0, 295/295 testova, **isti build hash-evi** |
+| Grafikoni (jsdom, privremeni test) | ✅ 13/13: nula `NaN` u SVG izlazu na praznoj/zeronultoj seriji i jednoj tački, hover radi |
+| Geometrija grafikona (`plot-geometry.spec.ts`) | ✅ 9 testova — ostaje u repo-u i pokriva `NaN`/beskonačno/praznu seriju u CI-u |
+| Windows simulacija (`core.autocrlf=true`, CRLF radno stablo) | ✅ sva četiri patcha se primjenjuju, `tsc` 0, **isti build hash-evi**; nakon normalizacije CRLF-a **9/9 F3 fajlova bit-identično** mojem stablu |
 | `package-lock.json` (frontend i e2e) | ✅ netaknuti (npm u sandboxu ih prepiše — vraćeno) |
 | Git | ✅ od izvornih fajlova commitovani **samo** `demo/patches/*`, `.gitattributes` i ovaj dokument |
 
 **Nisam mogao provjeriti:** vizuelni izgled u pravom browseru (Chromium se ne može instalirati u ovom
 sandboxu) i 7 Playwright E2E (zahtijevaju živ stack). Zato je Theme tab u Visual QA napravljen da to
 bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
+
+> **Djelimična vizuelna provjera ipak postoji (F3):** SVG grafikoni su iz jsdom izlaza rasterizovani
+> van browsera (`resvg`) i pregledani — **donut** počinje u 12 sati i ide u smjeru kazaljke (numerički
+> provjereno: Novi 0°, U radu 93,9°, Na čekanju 164,3°, Riješeni 195,7°), a **dual area** crta oba
+> gradijenta, isprekidane linije mreže i tačke bez `NaN`. Dva grafikona koja su čisti CSS/div
+> (`grouped-bars`, `h-bars`) nisu se mogla rasterizovati bez browsera — njih vidiš na Visual QA.
 
 > **Napomena uz E2E (pronađeno tokom F2, nije uzrokovano ovim patchevima):** helper
 > `e2e/helpers/sign-in.ts` je tražio `#session-email` — ID koji postoji **samo** u kompaktnoj formi u
@@ -153,6 +167,30 @@ bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
 | **Prijava** | Split layout: brend panel lijevo (samo na `lg+`), forma desno. **ID-jevi `#login-email` / `#login-password` su sačuvani.** |
 | **Čarobnjak za instalaciju** | Horizontalni stepper sa 6 koraka i trakom napretka; svaki korak i dalje radi isto (isti `resolveInstallWizardStep`, isti servisi). |
 | **Obavještenja** | Panel dobio filter (Sve / Nepročitano) preko novog `Segmented` primitiva. |
+
+### Faza 3 — šta je konkretno urađeno
+
+| Grafikon | Šta je promijenjeno | API |
+|---|---|---|
+| **Donut** | Zaobljeni krajevi segmenata, pravi razmak između njih, segment se podiže na hover, centar preuzima vrijednost i naziv, legenda sinhronizovana sa prstenom | **nepromijenjen** |
+| **Grouped bars** | Zaobljeni vrhovi, mekan vertikalni gradijent po seriji, bazna linija, tooltip u `popover` tokenima | **nepromijenjen** |
+| **Horizontal bars** | Mirnija staza, gradijent iz `--primary` (ili eksplicitna boja stavke), broj prvi u tipografiji | **nepromijenjen** |
+| **Dual area** *(novo)* | Demo-ov potpisni grafikon: dvije serije kao mekani gradijenti, tanka istaknuta linija, isprekidane referentne linije, hover kolona sa ispisom | novi |
+
+**Gdje se vide odmah:** nadzorna ploča je dobila **dual area** grafikon umjesto grupisаних barova za
+„kreirano / riješeno (14 dana)” — to je jedina izmjena van `components/charts/` (jedan import i jedan
+element u `dashboard-charts.tsx`). Ako želiš da ostane na barovima, dovoljno je vratiti taj jedan element.
+
+**Svi grafikoni su sada i na Visual QA stranici** (`/_visual-qa`), na neutralnim karticama, da ih možeš
+uporediti u obje teme bez lovljenja po ekranima.
+
+**Šta je svjesno odgođeno:** `Gauge`, `Heatmap`, `StackedBars` i `Sparkline` iz demoa **nisu** portovani —
+za njih još nema mjesta u pravim ekranima, a dodavanje bi značilo mrtvi kod. Uradiću ih u talasu koji ih
+stvarno koristi (SLA mjerač → talas 4.4, heatmap kalendar → 4.4, stacked barovi → 4.2).
+
+**Geometrija je izvučena u `lib/charts/plot-geometry.ts`** sa 9 unit testova (prazna serija, nulta serija,
+jedna tačka, `NaN`, beskonačno). To je klasa grešaka koja se inače vidi tek na ekranu kao prazan grafikon,
+a sada pada u CI-u.
 
 ### Dodatno, jer je bilo neophodno za ispravnost
 
@@ -317,17 +355,25 @@ ls frontend/src/lib/theme/theme-provider.tsx
 
 ## 9. Prijedlog sljedećeg koraka
 
-Isporučeno je Faza 0 + 1 + 2. Ostaje:
+Isporučeno je Faza 0 + 1 + 2 + 3. Ostaje:
 
 1. **Pilot** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
    Tema se prebacuje iz topbara, bez rekompajliranja.
-2. **Faza 3** (1 dan): novi SVG grafikoni (`donut`, `grouped-bars`, `h-bars`) — Pulse ih crta bez
-   biblioteke, samo iz tokene.
-3. **Faza 4** (6–8 dana): 7 talasa po modulima (tiketi → nadzorna ploča → usluge/KB → SLA/usmjeravanje →
-   administracija → ostalo → preostale stranice). Tek tu nestaju i posljednji legacy obrasci po ekranima.
-4. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda.
-5. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
-   `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
-6. **Faza 7** (1 dan): završna verifikacija i release.
+2. **Faza 4** (6–8 dana): 248 komponenti u 7 talasa, svaki talas = zaseban patch i zaseban review:
 
-Reci „nastavi na Fazu 3" i krećem, istim tokom (patch po fazi).
+   | Talas | Moduli | Komponenti | Patch |
+   |---|---|---|---|
+   | 4.1 | `tickets/` (lista, detalj, composer, bulk, saved views) | 48 | `pulse-05` |
+   | 4.2 | `dashboard/`, `reports/` | 11 | `pulse-06` |
+   | 4.3 | `services/`, `knowledge-base/` | 41 | `pulse-07` |
+   | 4.4 | `sla/`, `routing/`, `policy-packs/` | 41 | `pulse-08` |
+   | 4.5 | `admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/` | 41 | `pulse-09` |
+   | 4.6 | `config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/` | 20 | `pulse-10` |
+   | 4.7 | `pages/*` + `lib/` pomoćne (gustina, tema) | 23 | `pulse-11` |
+
+3. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`).
+4. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
+   `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
+5. **Faza 7** (1 dan): završna verifikacija i release.
+
+Reci „nastavi na Fazu 4" (ili „kreni na talas 4.1") i krećem, istim tokom (patch po talasu).
