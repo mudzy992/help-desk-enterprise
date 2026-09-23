@@ -1,6 +1,21 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
+/*
+  Every colour points at a CSS variable that holds *space separated RGB
+  channels*, so `/alpha` modifiers keep working in all three theme blocks
+  defined in `src/index.css`:
+
+      surface: "rgb(var(--surface) / <alpha-value>)"   → bg-surface/60 ✔
+
+  Radius and shadow are variables too, which means the new design system gets
+  larger cards (12px) and softer elevation *app-wide* without a single
+  component edit — `rounded-lg` and `shadow-pop` simply resolve differently
+  per theme. `classic` keeps the exact legacy values.
+*/
+
+const channel = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
+
 export default {
   darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
@@ -10,51 +25,73 @@ export default {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
-        background: "#0B1220",
-        foreground: "#E5E7EB",
-        text: "#E5E7EB",
-        surface: "#111827",
-        elevated: "#1B2436",
-        border: "#243044",
-        ring: "#2563EB",
-        input: "#243044",
+        /* ── surfaces ───────────────────────────────────────────────── */
+        background: channel("--background"),
+        surface: channel("--surface"),
+        elevated: channel("--elevated"),
+        border: channel("--border"),
+        "line-strong": channel("--line-strong"),
+        foreground: channel("--foreground"),
+        text: channel("--foreground"),
+        ring: channel("--ring"),
+        input: channel("--border"),
+        scrim: channel("--scrim"),
+
+        /* ── brand ──────────────────────────────────────────────────── */
         primary: {
-          DEFAULT: "#2563EB",
-          foreground: "#FFFFFF",
+          DEFAULT: channel("--primary"),
+          hover: channel("--primary-hover"),
+          active: channel("--primary-active"),
+          foreground: channel("--primary-foreground"),
         },
+        link: channel("--link"),
+
+        /* ── neutral aliases kept from the legacy palette ───────────── */
         secondary: {
-          DEFAULT: "#1B2436",
-          foreground: "#E5E7EB",
+          DEFAULT: channel("--elevated"),
+          foreground: channel("--foreground"),
         },
         muted: {
-          DEFAULT: "#9CA3AF",
-          foreground: "#9CA3AF",
+          DEFAULT: channel("--muted"),
+          foreground: channel("--muted"),
         },
-        accent: {
-          DEFAULT: "#22C55E",
-          foreground: "#FFFFFF",
-        },
-        destructive: {
-          DEFAULT: "#EF4444",
-          foreground: "#FFFFFF",
-        },
-        danger: "#EF4444",
         card: {
-          DEFAULT: "#111827",
-          foreground: "#E5E7EB",
+          DEFAULT: channel("--surface"),
+          foreground: channel("--foreground"),
         },
         popover: {
-          DEFAULT: "#1B2436",
-          foreground: "#E5E7EB",
+          DEFAULT: channel("--popover"),
+          foreground: channel("--foreground"),
         },
-        success: "#16A34A",
-        warning: "#F59E0B",
-        info: "#38BDF8",
+        "surface-hover": channel("--surface-hover"),
+
+        /* ── semantic states ────────────────────────────────────────── */
+        accent: {
+          DEFAULT: channel("--accent"),
+          foreground: channel("--primary-foreground"),
+        },
+        destructive: {
+          DEFAULT: channel("--danger"),
+          foreground: channel("--primary-foreground"),
+        },
+        danger: channel("--danger"),
+        ok: channel("--ok"),
+        success: channel("--success"),
+        warning: channel("--warning"),
+        info: channel("--info"),
+        hold: channel("--hold"),
       },
       borderRadius: {
-        lg: "8px",
-        md: "6px",
-        sm: "4px",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        card: "var(--radius-lg)",
+        control: "var(--radius-md)",
+      },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        pop: "var(--shadow-pop)",
+        glow: "var(--shadow-glow)",
       },
       fontSize: {
         metadata: ["12px", { lineHeight: "16px" }],

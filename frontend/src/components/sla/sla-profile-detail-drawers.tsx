@@ -122,7 +122,7 @@ export function SlaProfileDetailDrawers({
           if (!open) onClose();
         }}
       >
-        <div className="space-y-4">
+        <div className="fade-in space-y-4">
           {overrides.length > 0 ? (
             <SlaRulesTable
               rules={overrides}

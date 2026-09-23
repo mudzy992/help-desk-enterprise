@@ -33,7 +33,7 @@ export function ServiceCatalogCardAdminFooter({
     return null;
   }
   return (
-    <div className="border-t border-border/50 px-4 py-2.5">
+    <div className="border-t border-border/70 px-4 py-2.5">
       {canWriteCatalog ? (
         <ServiceCatalogLifecycleActions
           service={service}

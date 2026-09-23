@@ -15,7 +15,7 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
     return null;
   }
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader title={t("tickets.detail.formData")} />
       <dl className="space-y-2.5 px-4 py-4 text-[12px]">
         {entries.map(([key, value]) => (

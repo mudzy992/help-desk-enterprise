@@ -1,12 +1,17 @@
 import { cn } from "@/lib/utils";
 
+/*
+  Six deterministic identity hues. They are theme variables rather than fixed
+  hexes so an avatar keeps its contrast in every theme block — pastel tints on
+  the light canvas, deep tints on the classic and Pulse dark surfaces.
+*/
 const AVATAR_HUES = [
-  "bg-[#22355C] text-[#9DBCF5]",
-  "bg-[#1D3A34] text-[#8AD8C2]",
-  "bg-[#3A2D1D] text-[#E4BE8A]",
-  "bg-[#2D2A4A] text-[#B6ADF0]",
-  "bg-[#3A2430] text-[#E8A7BC]",
-  "bg-[#26383E] text-[#93D3E4]",
+  "bg-[rgb(var(--avatar-1-bg))] text-[rgb(var(--avatar-1-fg))]",
+  "bg-[rgb(var(--avatar-2-bg))] text-[rgb(var(--avatar-2-fg))]",
+  "bg-[rgb(var(--avatar-3-bg))] text-[rgb(var(--avatar-3-fg))]",
+  "bg-[rgb(var(--avatar-4-bg))] text-[rgb(var(--avatar-4-fg))]",
+  "bg-[rgb(var(--avatar-5-bg))] text-[rgb(var(--avatar-5-fg))]",
+  "bg-[rgb(var(--avatar-6-bg))] text-[rgb(var(--avatar-6-fg))]",
 ] as const;
 
 function hashCode(value: string): number {
@@ -35,7 +40,7 @@ export function Avatar({ name, size = "md", className }: AvatarProperties) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold",
+        "inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold ring-1 ring-inset ring-black/5 dark:ring-white/5",
         AVATAR_HUES[hashCode(name) % AVATAR_HUES.length],
         size === "xs" && "size-5 text-[9px]",
         size === "sm" && "size-[26px] text-[10.5px]",

@@ -57,12 +57,12 @@ export function InstallSeedStep({
   };
 
   if (isLoading) {
-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
   if (record?.isSeeded === true) {
     return (
-      <div className="mt-6 grid max-w-xl gap-3">
+      <div className="grid gap-4">
         <p className="text-body leading-6 text-muted-foreground">
           {t("install.seed.createdBody")}
         </p>
@@ -72,7 +72,7 @@ export function InstallSeedStep({
   }
 
   return (
-    <div className="mt-6 grid max-w-xl gap-3">
+    <div className="grid gap-4">
       {errorKey ? (
         <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}

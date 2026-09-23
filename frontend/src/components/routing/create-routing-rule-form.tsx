@@ -108,7 +108,7 @@ export function CreateRoutingRuleForm({
         </Select>
       </Field>
       {duplicateRule ? (
-        <p className="rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
+        <p className="rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/85">
           {t("routing.duplicateWarning")}
         </p>
       ) : null}

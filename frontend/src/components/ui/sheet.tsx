@@ -19,7 +19,7 @@ export const SheetOverlay = forwardRef<
 >(({ className, ...properties }, reference) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-scrim/60 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...properties}
@@ -65,7 +65,7 @@ export const SheetContent = forwardRef<
         {...properties}
       >
         {children}
-        <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-elevated hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
+        <SheetPrimitive.Close className="absolute right-2 top-3.5 rounded-md p-1.5 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-primary/70">
           <X className="h-4 w-4" />
           <span className="sr-only">{t("shell.close")}</span>
         </SheetPrimitive.Close>

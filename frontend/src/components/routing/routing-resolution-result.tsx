@@ -36,7 +36,7 @@ export function RoutingResolutionResult({
         title={t("routing.resolutionTitle")}
         subtitle={t("routing.resolutionSubtitle")}
       />
-      <div className="px-4 py-4">
+      <div className="fade-in px-4 py-4">
         {isLoading ? (
           <PanelSkeleton className="mt-0" label={t("routing.resolutionTitle")} />
         ) : errorKey ? (
@@ -84,7 +84,7 @@ function ResolutionBody({
           }}
           className="px-2 py-1 text-[12px]"
         />
-        <span className="text-[15px] font-semibold text-text">
+        <span className="text-[15px] font-semibold text-foreground">
           {resolution.groupId ? groupDisplay : t("routing.noGroup")}
         </span>
         {resolution.fallbackDepth > 0 && resolution.groupId ? (
@@ -94,7 +94,7 @@ function ResolutionBody({
         ) : null}
       </div>
       {resolution.outcome === "UNROUTED" ? (
-        <div className="mt-3 rounded-md border border-danger/30 bg-danger/6 px-3.5 py-2.5 text-[12px] leading-5 text-text/85">
+        <div className="mt-3 rounded-lg border border-danger/30 bg-danger/6 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85">
           {t("routing.unroutedBanner")}
           {queue ? (
             <span className="tnum"> {queue.ownerRole}</span>
@@ -102,19 +102,19 @@ function ResolutionBody({
         </div>
       ) : null}
       <FallbackPath resolution={resolution} />
-      <div className="mt-4 rounded-md border border-border bg-background/70 p-3.5">
-        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted/60">
+      <div className="mt-4 rounded-lg border border-border bg-elevated/70 p-3.5">
+        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
           <GitBranch size={11} /> {t("routing.engineResponse")}
         </p>
-        <pre className="overflow-x-auto text-[11.5px] leading-5 text-text/85 tnum">
+        <pre className="overflow-x-auto text-[11.5px] leading-5 text-foreground/85 tnum">
           {JSON.stringify(resolution, null, 2)}
         </pre>
       </div>
-      <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-4.5 text-muted">
+      <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-[15px] text-muted-foreground">
         <Info size={12.5} className="mt-0.5 shrink-0" />
         {t("routing.testerNote")}
       </p>
-      <p className="mt-1 text-[11px] text-muted/60">
+      <p className="mt-1 text-[11px] text-muted-foreground/60">
         {t("routing.testerInputSummary", {
           origin: originLabel,
           service: serviceLabel,
@@ -128,7 +128,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
   const { t } = useTranslation();
   return (
     <div className="mt-4">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
         {t("routing.fallbackPathHeading")}
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -140,10 +140,10 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
             <span key={`${path}-${index}`} className="flex items-center gap-1.5">
               <span
                 className={cn(
-                  "rounded-md border px-2 py-1 text-[11px] tnum",
+                  "rounded-lg border px-2 py-1 text-[11px] tnum",
                   isMatch
-                    ? "border-success/45 bg-success/12 font-semibold text-[#4ADE80]"
-                    : "border-border bg-background/60 text-muted",
+                    ? "border-success/45 bg-success/15 font-semibold text-ok"
+                    : "border-border bg-elevated/60 text-muted-foreground",
                 )}
               >
                 {path}
@@ -155,7 +155,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
                 {isMatch ? <span className="ml-1">✓</span> : null}
               </span>
               {index < resolution.fallbackPath.length - 1 ? (
-                <span className="text-muted/50">→</span>
+                <span className="text-muted-foreground/50">→</span>
               ) : null}
             </span>
           );

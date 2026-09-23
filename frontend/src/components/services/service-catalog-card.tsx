@@ -57,11 +57,11 @@ export function ServiceCatalogCard({
   );
 
   return (
-    <Card className="group flex flex-col transition-all hover:border-[#31405C] hover:bg-elevated/30">
+    <Card className="group flex flex-col transition-colors hover:border-line-strong hover:bg-surface-hover">
       <div className="flex-1 px-4 pt-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground transition-colors group-hover:text-[#7FA8F5]">
+            <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground transition-colors group-hover:border-line-strong group-hover:text-link">
               <Layers size={16} strokeWidth={1.8} />
             </span>
             <div>
@@ -79,9 +79,9 @@ export function ServiceCatalogCard({
           />
         </div>
         {downtime ? (
-          <div className="mt-2.5 flex items-start gap-2 rounded-md border border-info/25 bg-info/10 px-2.5 py-2">
+          <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-info/25 bg-info/10 px-2.5 py-2">
             <CalendarClock size={13} className="mt-0.5 shrink-0 text-info" />
-            <p className="text-[11px] leading-4 text-foreground/85">
+            <p className="text-[11px] leading-[15px] text-foreground/85">
               <span className="font-medium">{t("services.plannedDowntime")}:</span>{" "}
               {downtime.message}{" "}
               <span className="text-muted-foreground">
@@ -92,7 +92,7 @@ export function ServiceCatalogCard({
           </div>
         ) : null}
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 px-4 py-3">
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/70 px-4 py-3">
         <MetaBadge
           meta={{
             label: t(`services.availability.${service.availability}`),
@@ -102,7 +102,7 @@ export function ServiceCatalogCard({
         />
         <Badge
           tone={activeVersion ? "success" : "danger"}
-          className="text-[10px] tnum"
+          className="tnum text-[10px]"
           dot={false}
         >
           <FileJson2 size={10} />
@@ -124,7 +124,7 @@ export function ServiceCatalogCard({
         {hasUpcoming ? (
           <button
             type="button"
-            className="inline-flex"
+            className="inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
             onClick={() => {
               if (canWriteAvailability) {
                 onManageDowntime(service);
@@ -140,7 +140,7 @@ export function ServiceCatalogCard({
           {t("services.openTicketCountBadge", { count: service.openTicketCount })}
         </span>
       </div>
-      <div className="flex items-center justify-between border-t border-border/50 px-4 py-2.5">
+      <div className="flex items-center justify-between border-t border-border/70 px-4 py-2.5">
         {coverage ? (
           <Badge tone={coverage.tone} dot={false} className="text-[10px]">
             {t(coverage.key)}

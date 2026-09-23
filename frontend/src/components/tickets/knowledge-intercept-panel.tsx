@@ -78,17 +78,17 @@ export function KnowledgeInterceptPanel({
           body={t("tickets.interceptEmpty")}
         />
       ) : (
-        <ul className="grid gap-3">
+        <ul className="fade-in grid gap-3">
           {items.map((item) => (
             <li
               key={item.id}
               className={cn(
-                "grid gap-2 rounded-lg border border-border bg-background/40 px-4 py-4 transition-all duration-150",
-                helped ? "opacity-40" : "hover:border-[#31405C]",
+                "grid gap-2 rounded-lg border border-border bg-surface px-4 py-4 shadow-card transition-all duration-150",
+                helped ? "opacity-40" : "hover:border-line-strong",
               )}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-[13px] font-medium text-[#7FA8F5]">{item.title}</h3>
+                <h3 className="text-[13px] font-medium text-link">{item.title}</h3>
                 {item.isStale ? <Badge tone="warning">{t("knowledgeBase.stale")}</Badge> : null}
               </div>
               <p className="text-[12px] leading-5 text-muted-foreground">{item.bodyPreview}</p>
@@ -133,12 +133,12 @@ export function KnowledgeInterceptPanel({
           type="button"
           onClick={onHelped}
           className={cn(
-            "rounded-lg border p-4 text-left transition-all duration-150",
-            helped ? "border-success/50 bg-success/10" : "border-border bg-background/40 hover:border-success/40",
+            "rounded-lg border p-4 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+            helped ? "border-success/50 bg-success/10" : "border-border bg-surface shadow-card hover:border-success/40",
           )}
         >
           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-            <Check size={15} className="text-[#4ADE80]" /> {t("tickets.helpedResolved")}
+            <Check size={15} className="text-ok" /> {t("tickets.helpedResolved")}
           </p>
           <p className="mt-1 text-[11.5px] leading-[18px] text-muted-foreground">
             {t("tickets.helpedResolvedHint")}
@@ -148,10 +148,10 @@ export function KnowledgeInterceptPanel({
           type="button"
           disabled={isSubmitting}
           onClick={onContinue}
-          className="rounded-lg border border-border bg-background/40 p-4 text-left transition-all duration-150 hover:border-primary/40"
+          className="rounded-lg border border-border bg-surface p-4 text-left shadow-card transition-all duration-150 hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
         >
           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-            <ChevronRight size={15} className="text-[#7FA8F5]" />
+            <ChevronRight size={15} className="text-link" />
             {t("tickets.continueSend")}
           </p>
           <p className="mt-1 text-[11.5px] leading-[18px] text-muted-foreground">

@@ -1,7 +1,7 @@
 import { PieChart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Donut } from "@/components/charts/donut";
-import { GroupedBars } from "@/components/charts/grouped-bars";
+import { DualAreaChart } from "@/components/charts/dual-area-chart";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
@@ -34,7 +34,7 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
 
   return (
     <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("dashboard.statusChartTitle")}
           subtitle={t("dashboard.statusChartSubtitle")}
@@ -43,14 +43,18 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
           <Donut data={donutData} centerLabel={t("dashboard.statusChartCenter")} />
         </div>
       </Card>
-      <Card className="xl:col-span-2">
+      <Card className="fade-in xl:col-span-2">
         <CardHeader
           title={t("dashboard.volumeChartTitle")}
           subtitle={t("dashboard.volumeChartSubtitle")}
         />
         <div className="px-4 py-4">
-          <GroupedBars
-            data={[...summary.volume14d]}
+          <DualAreaChart
+            data={summary.volume14d.map((day) => ({
+              label: day.d,
+              a: day.created,
+              b: day.resolved,
+            }))}
             aLabel={t("dashboard.volumeCreated")}
             bLabel={t("dashboard.volumeResolved")}
           />

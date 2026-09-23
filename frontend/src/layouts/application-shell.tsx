@@ -4,12 +4,21 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+
+/** True when the keystroke is typing, so shortcuts must stay out of the way. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return target.closest("input, textarea, select, [contenteditable='true']") !== null;
+}
 
 export function ApplicationShell() {
   const { t } = useTranslation();
@@ -19,6 +28,7 @@ export function ApplicationShell() {
   const { session, isLoading } = useSessionCapabilities();
   const { maintenance } = usePublicMaintenance();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
     setIsMobileNavigationOpen(false);
@@ -26,21 +36,26 @@ export function ApplicationShell() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "n" && event.key !== "N") {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setIsCommandPaletteOpen((current) => !current);
         return;
       }
-      if (event.metaKey || event.ctrlKey || event.altKey) {
+
+      if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) {
+
+      if (event.key === "/") {
+        event.preventDefault();
+        setIsCommandPaletteOpen(true);
         return;
       }
-      if (target.closest("input, textarea, select, [contenteditable='true']")) {
-        return;
+
+      if (event.key === "n" || event.key === "N") {
+        event.preventDefault();
+        navigate("/tickets/new");
       }
-      event.preventDefault();
-      navigate("/tickets/new");
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -55,13 +70,16 @@ export function ApplicationShell() {
   }
 
   return (
-    <div className="flex h-full min-h-0 overflow-x-hidden">
+    <div className="flex h-full min-h-0 bg-background">
       <HelpdeskSocketHost />
-      <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface lg:block">
+      <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block">
         <AppSidebar />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppHeader onOpenNavigation={() => setIsMobileNavigationOpen(true)} />
+        <AppHeader
+          onOpenNavigation={() => setIsMobileNavigationOpen(true)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        />
         <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
           <SheetContent side="left" className="flex w-[270px] flex-col p-0">
             <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
@@ -71,6 +89,10 @@ export function ApplicationShell() {
             <AppSidebar onNavigate={closeMobileNavigation} />
           </SheetContent>
         </Sheet>
+        <CommandPalette
+          open={isCommandPaletteOpen}
+          onOpenChange={setIsCommandPaletteOpen}
+        />
         <main className="min-h-0 flex-1 overflow-y-auto">
           <div
             key={location.pathname}

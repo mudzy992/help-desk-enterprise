@@ -28,9 +28,9 @@ export function SlaProfileDetailHeader({
         title={
           profile ? (
             <span className="flex items-center gap-2">
-              <TimerReset size={15} className="text-[#7FA8F5]" />
+              <TimerReset size={15} className="text-link" />
               {profile.name}{" "}
-              <span className="tnum text-muted/70">({profile.key})</span>
+              <span className="tnum text-muted-foreground/70">({profile.key})</span>
             </span>
           ) : (
             t("sla.newProfile")

@@ -114,7 +114,7 @@ export function ServiceCatalogGrid({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="fade-in grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visibleRows.map((row) => (
             <ServiceCatalogCard
               key={row.service.id}

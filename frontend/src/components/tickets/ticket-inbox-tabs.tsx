@@ -4,6 +4,13 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { unroutedInboxTabKey, type InboxGroupTab } from "@/lib/tickets/inbox-view-tabs";
 
+/*
+  Inbox tabs are pills, not tabs: each one is a scope with a live count, and the
+  count is the number the eye is looking for, so it gets its own tinted capsule
+  and tabular figures. Selection borrows the primary tint used by chips and
+  segmented controls elsewhere, with danger reserved for the unrouted queue.
+*/
+
 interface TicketInboxTabsProperties {
   readonly activeTab: string;
   readonly unroutedCount: number;
@@ -62,23 +69,26 @@ function InboxTabButton({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "flex items-center gap-2 rounded-md border px-3 py-2 text-[12.5px] font-medium transition-colors duration-150",
+        "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary/70",
         active
           ? tone === "danger"
-            ? "border-danger/50 bg-danger/12 text-danger"
-            : "border-[#31405C] bg-elevated text-foreground"
-          : "border-border bg-surface text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
+            ? "border-danger/45 bg-danger/10 text-danger"
+            : "border-primary/45 bg-primary/10 text-link"
+          : "border-border bg-surface text-muted-foreground hover:border-line-strong hover:bg-surface-hover hover:text-foreground",
       )}
     >
       {icon}
       {label}
       <span
         className={cn(
-          "rounded border px-1 text-[10px] leading-[14px] tnum",
+          "tnum rounded-full border px-1.5 text-[10.5px] leading-[15px]",
           active && tone === "danger"
             ? "border-danger/40 bg-danger/15"
-            : "border-border bg-background/50",
+            : active
+              ? "border-primary/35 bg-primary/15"
+              : "border-border bg-elevated/70",
         )}
       >
         {count}

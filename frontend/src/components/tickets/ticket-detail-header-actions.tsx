@@ -1,4 +1,4 @@
-import { Pencil, Split, UserCheck, UserPlus } from "lucide-react";
+import { ChevronDown, Pencil, Split, UserCheck, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
@@ -115,7 +115,8 @@ export function TicketDetailHeaderActions({
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="outline" size="sm" disabled={savingStatus}>
               <Pencil size={14} />
-              {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")} ▾
+              {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")}
+              <ChevronDown size={14} aria-hidden="true" className="opacity-70" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

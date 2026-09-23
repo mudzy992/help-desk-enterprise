@@ -17,7 +17,7 @@ export function SettingsReasonConfirm({
   const { t } = useTranslation();
   const [reason, setReason] = useState("");
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
+    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/70 pt-3">
       <input
         className={controlCompactClassName}
         value={reason}

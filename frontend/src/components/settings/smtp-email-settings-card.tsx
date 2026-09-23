@@ -58,7 +58,7 @@ export function SmtpEmailSettingsCard({
 
   return (
     <>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("settings.smtp.title")}
           subtitle={t("settings.smtp.subtitle")}

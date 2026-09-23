@@ -8,14 +8,18 @@ export type SemanticMeta = {
   readonly dot: string;
 };
 
-/** Hex aliases from `.cursor/docs/theme.md` — no new colors. */
+/**
+ * Dot colours for status indicators. These are CSS variables rather than hex
+ * literals so a status dot stays legible in every theme block — no new colours
+ * are introduced, only the token that backs them.
+ */
 export const SEMANTIC_DOT_HEX = {
-  primary: "#2563EB",
-  success: "#16A34A",
-  warning: "#F59E0B",
-  danger: "#EF4444",
-  info: "#38BDF8",
-  neutral: "#9CA3AF",
+  primary: "rgb(var(--primary))",
+  success: "rgb(var(--ok))",
+  warning: "rgb(var(--warning))",
+  danger: "rgb(var(--danger))",
+  info: "rgb(var(--info))",
+  neutral: "rgb(var(--muted))",
 } as const;
 
 function meta(tone: BadgeTone, dot: string): SemanticMeta {

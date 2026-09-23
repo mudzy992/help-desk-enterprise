@@ -113,7 +113,7 @@ export function ServiceOnboardingWizard({
   const completed = record ? completedOnboardingCount(record.completedSteps) : 0;
 
   return (
-    <Card className="mt-4">
+    <Card className="fade-in mt-4">
       <CardHeader
         title={t("services.onboarding.title")}
         subtitle={t("services.onboarding.subtitle")}
@@ -140,7 +140,7 @@ export function ServiceOnboardingWizard({
         <ServiceOnboardingStepper activeIndex={completed} />
         {errorKey ? <p className={`mb-3 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
         {coverageWarning ? (
-          <p className="mb-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
+          <p className="fade-in mb-3 rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/90">
             {t("services.onboarding.routingCoverageWarning")}
           </p>
         ) : null}

@@ -45,7 +45,7 @@ export function OnboardingSlaStep({
   };
 
   return (
-    <form className="grid max-w-xl gap-3" onSubmit={submit}>
+    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
       <Field label={t("services.onboarding.slaProfile")} required>
         <Select value={value} required onChange={(event) => setValue(event.target.value)}>
           {activeProfiles.map((profile) => (

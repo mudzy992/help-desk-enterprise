@@ -53,7 +53,7 @@ export function GroupMembersSection({
   };
 
   return (
-    <div className="grid gap-2 border-t border-border/60 pt-3">
+    <div className="grid gap-2 border-t border-border/70 pt-3">
       <p className="text-[12px] font-semibold text-foreground">
         {t("groups.members.heading")}
       </p>
@@ -65,7 +65,7 @@ export function GroupMembersSection({
           {group.members.map((member) => (
             <li
               key={member.id}
-              className="flex items-center justify-between gap-2 rounded-md bg-muted/30 px-2 py-1.5 text-[12px]"
+              className="flex items-center justify-between gap-2 rounded-lg bg-elevated/40 px-2 py-1.5 text-[12px]"
             >
               <span>
                 {member.displayName}

@@ -47,7 +47,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
   }, []);
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("settings.system.title")}
         subtitle={t("settings.system.subtitle")}
@@ -79,7 +79,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
               : t("settings.system.installOpen")}
           </span>
         </p>
-        <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
+        <div className="flex flex-wrap gap-2 border-t border-border/70 pt-3">
           <Button asChild variant="outline" size="xs">
             <Link to="/admin/config-versions">{t("settings.system.openConfigVersions")}</Link>
           </Button>

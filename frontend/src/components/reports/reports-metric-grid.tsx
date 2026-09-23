@@ -42,7 +42,7 @@ export function ReportsMetricGrid({
       <TrendingUp size={15} />
     );
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-5">
       <StatCard
         label={createdLabel}
         value={kpis.createdCount}

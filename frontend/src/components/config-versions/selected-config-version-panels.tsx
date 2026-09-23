@@ -48,7 +48,7 @@ export function SelectedConfigVersionPanels({
 
   return (
     <>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("configVersions.selectedHeading", { version: selected.version })}
           subtitle={t(`configVersions.statuses.${selected.status}`)}
@@ -65,7 +65,7 @@ export function SelectedConfigVersionPanels({
           {validation ? <ConfigValidationErrors issues={validation.errors} /> : null}
         </div>
       </Card>
-      <Card>
+      <Card className="fade-in">
         <CardHeader title={t("configVersions.diffHeading")} subtitle={t("configVersions.diffHint")} />
         <div className="px-4 py-3.5">
           <ConfigVersionDiffPanel
@@ -77,7 +77,7 @@ export function SelectedConfigVersionPanels({
           />
         </div>
       </Card>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("configVersions.shadowHeading")}
           subtitle={t("configVersions.shadowHint")}

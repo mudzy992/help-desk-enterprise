@@ -22,7 +22,7 @@ export function OrganizationalUnitDetailsCard({
     : t("directory.detailsEmpty");
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("directory.detailsTitle", { name: node.name })}
         subtitle={node.ouPath}
@@ -55,11 +55,11 @@ export function OrganizationalUnitDetailsCard({
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
             {t("directory.detailsDnLabel")}
           </dt>
-          <dd className="tnum mt-0.5 break-all font-mono text-[10.5px] leading-4.5 text-muted-foreground">
+          <dd className="tnum mt-0.5 break-all font-mono text-[10.5px] leading-[15px] text-muted-foreground">
             {distinguishedName}
           </dd>
         </div>
-        <div className="flex gap-1.5 border-t border-border/60 pt-3">
+        <div className="flex gap-1.5 border-t border-border/70 pt-3">
           <Badge tone="primary" dot={false}>
             {t("directory.detailsMapped", { count: memberCount })}
           </Badge>

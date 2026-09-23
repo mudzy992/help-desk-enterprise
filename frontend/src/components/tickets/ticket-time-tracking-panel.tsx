@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { cn } from "@/lib/utils";
 import { formatDurationMinutes } from "@/lib/tickets/ticket-display";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketTimeLogResponse } from "@/services/tickets-collaboration-api";
@@ -36,7 +37,7 @@ export function TicketTimeTrackingPanel({
     (item) => item.endedAt === null && item.userId === currentUserId,
   );
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("tickets.detail.timeLogged")}
         subtitle={ticketText(t, "tickets.detail.timeTotal", {
@@ -63,7 +64,13 @@ export function TicketTimeTrackingPanel({
           {items.map((item) => {
             const name = userNames.get(item.userId) ?? t("tickets.detail.unknownUser");
             return (
-            <li key={item.id} className="flex items-center gap-3 px-4 py-3">
+            <li
+                key={item.id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover",
+                  item.endedAt === null && "bg-primary/6",
+                )}
+              >
               <Avatar name={name} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-[12.5px] text-foreground/90">{name}</p>

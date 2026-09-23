@@ -21,7 +21,7 @@ export function OnboardingFormStep({
 }: OnboardingFormStepProperties) {
   const { t } = useTranslation();
   return (
-    <div className="grid gap-4">
+    <div className="fade-in grid gap-4">
       <ServiceFormBuilder
         serviceId={serviceId}
         canWrite={canWrite}

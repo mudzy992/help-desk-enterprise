@@ -42,10 +42,12 @@ export function TicketBulkBar({
   }
   const ticketIds = [...selectedIds];
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
-      <CheckSquare size={14} className="text-[#7FA8F5]" />
-      <span className="tnum text-[12.5px] font-medium text-foreground">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
-      <div className="mx-1 h-4 w-px bg-border" />
+    <div className="pop-in mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/6 px-3 py-2 shadow-card">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-surface px-2 py-0.5 text-[11.5px] font-medium text-link">
+        <CheckSquare size={12} aria-hidden="true" />
+        <span className="tnum">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
+      </span>
+      <div className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
       <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
         <option value="assign_group">{t("tickets.bulk.assignGroup")}</option>
         <option value="assign_user">{t("tickets.bulk.assignUser")}</option>
@@ -76,12 +78,18 @@ export function TicketBulkBar({
       {broadcastArmed ? (
         <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>
       ) : null}
-      <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()}>
+      <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()} className="ml-auto">
         {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
       </Button>
-      <button type="button" onClick={onClear} className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onClear}
+        aria-label={t("tickets.bulk.clear")}
+      >
         <X size={13} />
-      </button>
+      </Button>
     </div>
   );
 

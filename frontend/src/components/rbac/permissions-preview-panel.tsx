@@ -17,7 +17,7 @@ export function PermissionsPreviewPanel({
 }: PermissionsPreviewPanelProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mt-4 rounded-md border border-border/70 bg-elevated/40 p-4">
+    <div className="fade-in mt-4 rounded-lg border border-border/70 bg-elevated/40 p-4">
       <p className="text-[13px] font-medium text-foreground">
         {t("permissions.previewTitle")}
       </p>
@@ -33,7 +33,7 @@ export function PermissionsPreviewPanel({
           {preview.samples.map((sample) => (
             <li
               key={`${sample.userId}-${sample.permissionKey}`}
-              className="rounded border border-border/60 px-3 py-2 text-[12px]"
+              className="rounded border border-border/70 px-3 py-2 text-[12px]"
             >
               <p className="font-medium text-foreground">{sample.displayName}</p>
               <p className="text-muted-foreground">{sample.permissionKey}</p>

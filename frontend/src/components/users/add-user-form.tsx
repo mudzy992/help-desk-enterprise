@@ -83,7 +83,7 @@ export function AddUserForm({
   }
 
   return (
-    <div className="space-y-2 border-b border-border/60 px-4 py-3">
+    <div className="space-y-2 border-b border-border/70 px-4 py-3">
       <input
         className={`${controlCompactClassName} w-full`}
         value={displayName}
@@ -123,7 +123,7 @@ export function AddUserForm({
       {showOrganizationalUnitScopeWarning ? (
         <p
           role="status"
-          className="text-[12px] text-amber-700 dark:text-amber-400"
+          className="text-[12px] text-warning"
         >
           {t("users.scopeOrganizationalUnitRequiredWarning")}
         </p>

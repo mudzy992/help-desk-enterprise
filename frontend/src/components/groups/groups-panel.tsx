@@ -66,7 +66,7 @@ export function GroupsPanel({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="fade-in grid gap-4">
       {actions.errorKey ? (
         <ApiErrorText messageKey={actions.errorKey} requestId={actions.requestId} />
       ) : null}

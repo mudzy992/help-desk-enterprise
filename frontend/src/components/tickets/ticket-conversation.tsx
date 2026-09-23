@@ -8,13 +8,27 @@ import {
   resolveActivityActor,
 } from "@/lib/tickets/describe-ticket-activity";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
+import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
+
+type ConversationViewport = "flow" | "fixed";
+
+/*
+  `fixed` gives the thread its own scroll area with a stable height, so the
+  composer and the side panels never move when a long ticket gets another
+  reply — the page keeps its shape and only the thread scrolls.
+*/
+const VIEWPORT_CLASS: Record<ConversationViewport, string> = {
+  flow: "space-y-3",
+  fixed: "h-[320px] space-y-3 overflow-y-auto pr-1 sm:h-[420px]",
+};
 
 interface TicketConversationProperties {
   readonly messages: readonly TicketMessageResponse[];
   readonly currentUserId: string | null;
   readonly authorNames: ReadonlyMap<string, string>;
   readonly systemOnly?: boolean;
+  readonly viewport?: ConversationViewport;
 }
 
 export function TicketConversation({
@@ -22,6 +36,7 @@ export function TicketConversation({
   currentUserId,
   authorNames,
   systemOnly = false,
+  viewport = "flow",
 }: TicketConversationProperties) {
   const { t, i18n } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -36,18 +51,30 @@ export function TicketConversation({
       )
     : messages;
   if (visible.length === 0) {
-    if (!systemOnly) {
+    if (!systemOnly && viewport === "flow") {
       return null;
     }
     return (
-      <EmptyState
-        title={t("tickets.detail.noMessages")}
-        body={t("tickets.detail.noMessagesHint")}
-      />
+      <div
+        className={
+          viewport === "fixed"
+            ? "fade-in flex h-[320px] items-center justify-center sm:h-[420px]"
+            : undefined
+        }
+      >
+        <EmptyState
+          title={t("tickets.detail.noMessages")}
+          body={t("tickets.detail.noMessagesHint")}
+        />
+      </div>
     );
   }
   return (
-    <div className="space-y-3">
+    <div
+      className={cn("fade-in", VIEWPORT_CLASS[viewport])}
+      role="log"
+      aria-label={t("tickets.detail.conversation")}
+    >
       {visible.map((message) => {
         const isSystem =
           message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
@@ -56,12 +83,12 @@ export function TicketConversation({
           const activity = describeMessageActivity(message, authorNames, t);
           const SystemIcon = isApproval ? CheckCheck : GitBranch;
           return (
-            <div key={message.id} className="flex items-start gap-2.5 px-1 py-0.5">
+            <div key={message.id} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-surface-hover">
               <SystemIcon
                 size={13}
                 className={
                   isApproval
-                    ? "mt-0.5 shrink-0 text-[#4ADE80]"
+                    ? "mt-0.5 shrink-0 text-ok"
                     : "mt-0.5 shrink-0 text-muted-foreground/60"
                 }
                 aria-hidden="true"

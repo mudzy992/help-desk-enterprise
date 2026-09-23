@@ -27,7 +27,7 @@ export function OnboardingApprovalsStep({
     ? approvalsRequiredReference(serviceId)
     : APPROVALS_NOT_REQUIRED_REFERENCE;
   return (
-    <div className="grid max-w-xl gap-3">
+    <div className="fade-in grid max-w-xl gap-3">
       <p className="text-[12.5px] leading-5 text-muted-foreground">
         {t(
           requiresApproval

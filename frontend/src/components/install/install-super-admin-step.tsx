@@ -80,12 +80,12 @@ export function InstallSuperAdminStep({
   };
 
   if (isLoading) {
-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
   if (superAdmin !== null) {
     return (
-      <section className="mt-6 grid max-w-xl gap-3">
+      <section className="grid gap-4">
         <h3 className="text-body font-medium text-foreground">
           {t("install.createdHeading")}
         </h3>
@@ -112,7 +112,7 @@ export function InstallSuperAdminStep({
   }
 
   return (
-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
+    <form className="grid gap-4" onSubmit={onSubmit}>
       <label className={labelClassName}>
         {t("install.email")}
         <input

@@ -1,4 +1,4 @@
-import { Inbox } from "lucide-react";
+import { CircleAlert, Inbox } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -42,6 +42,7 @@ export function TicketErrorState({ errorKey, onRetry }: TicketErrorStateProperti
   const { t } = useTranslation();
   return (
     <EmptyState
+      icon={<CircleAlert size={18} strokeWidth={1.8} className="text-danger" />}
       title={ticketText(t, errorKey)}
       body={t("tickets.emptyHint")}
       action={

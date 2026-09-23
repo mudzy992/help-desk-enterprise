@@ -40,9 +40,9 @@ export function RoutingCoverageCell({
         onFocus={onActivate}
         onBlur={onDeactivate}
         className={cn(
-          "flex h-7 w-full items-center justify-center rounded-[5px] border text-[10.5px] font-bold transition-all",
+          "flex h-7 w-full items-center justify-center rounded-[5px] border text-[10.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
           ROUTING_COVERAGE_CELL_STYLE[kind],
-          isActive && "scale-105 ring-1 ring-white/30",
+          isActive && "scale-105 ring-2 ring-line-strong",
         )}
       >
         {t(markKeyForKind(kind))}

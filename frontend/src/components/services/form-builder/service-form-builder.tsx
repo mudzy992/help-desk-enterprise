@@ -96,7 +96,7 @@ export function ServiceFormBuilder({
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+    <div className="fade-in grid gap-4 lg:grid-cols-[200px_1fr]">
       <FormVersionHistory
         versions={form?.versions ?? []}
         selectedRef={selectedRef}

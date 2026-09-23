@@ -44,7 +44,7 @@ export function ConfigVersionShadowPanel({
         <PanelSkeleton className="mt-0" label={t("configVersions.shadowLoading")} />
       ) : null}
       {!isLoading && result !== null ? (
-        <ul className="grid gap-1.5 text-[12.5px] leading-5 text-muted-foreground">
+        <ul className="fade-in grid gap-1.5 text-[12.5px] leading-5 text-muted-foreground">
           <li>
             {t("configVersions.shadowRoutingResult", {
               count: result.routingGroupMismatches,

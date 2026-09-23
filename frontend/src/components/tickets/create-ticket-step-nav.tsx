@@ -26,7 +26,7 @@ export function CreateTicketStepNav({
         <ArrowLeft size={14} /> {t("tickets.stepBack")}
       </Button>
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-muted-foreground/70 tnum">
+        <span className="tnum text-[11px] text-muted-foreground/70">
           {ticketText(t, "tickets.stepCount", { current: step + 1, total: CREATE_TICKET_STEP_TOTAL })}
         </span>
         {step === 0 ? (

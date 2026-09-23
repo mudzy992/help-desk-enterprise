@@ -36,7 +36,7 @@ export function GroupMutationForm({
   };
 
   return (
-    <div className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+    <div className="grid gap-3 rounded-lg border border-border/70 bg-elevated/20 p-4">
       <label className="grid gap-1">
         <span className="text-[11px] font-medium text-muted-foreground">
           {t("groups.form.name")}

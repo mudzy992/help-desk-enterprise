@@ -89,11 +89,11 @@ export function TicketDetailSidebar({
     },
   ];
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader title={t("tickets.detail.properties")} />
-      <dl className="space-y-2.5 px-4 py-4 text-[12px]">
+      <dl className="divide-y divide-border/40 px-4 py-1.5 text-[12px]">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-start justify-between gap-3">
+          <div key={row.label} className="flex items-start justify-between gap-3 py-2.5">
             <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
             <dd className="text-right text-foreground/90">
               {row.value}

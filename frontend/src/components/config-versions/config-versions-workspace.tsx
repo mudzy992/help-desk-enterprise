@@ -68,7 +68,7 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
   };
 
   return (
-    <div className="grid gap-4">
+    <div className="fade-in grid gap-4">
       {canWrite ? (
         <Card>
           <CardHeader

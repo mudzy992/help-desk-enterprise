@@ -9,6 +9,7 @@ const PROGRESS_TONES: Record<BadgeTone, string> = {
   warning: "bg-warning",
   danger: "bg-danger",
   info: "bg-info",
+  hold: "bg-hold",
 };
 
 interface ProgressProperties {

@@ -79,14 +79,14 @@ export function TicketAttachmentsPanel({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40"
+              className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover"
             >
               <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
                 {isImage(item.mimeType) ? <ImageIcon size={15} /> : <FileText size={15} />}
               </span>
               <button
                 type="button"
-                className="min-w-0 flex-1 text-left"
+                className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
                 onClick={() => void onDownload(item)}
               >
                 <p className="truncate text-[12.5px] font-medium text-foreground/90">

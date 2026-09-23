@@ -30,7 +30,7 @@ export function MaintenanceBanner({
   return (
     <div
       role="status"
-      className="mb-4 flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-3 text-[12.5px] text-foreground"
+      className="fade-in mb-4 flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-3 text-[12.5px] text-foreground"
     >
       <AlertTriangle
         size={16}
@@ -41,7 +41,7 @@ export function MaintenanceBanner({
         <p className="font-medium">{t("maintenance.title")}</p>
         <p className="mt-0.5 text-muted-foreground">{message}</p>
         {period ? (
-          <p className="mt-1 tnum text-[11.5px] text-muted-foreground/90">
+          <p className="tnum mt-1 text-[11.5px] text-muted-foreground/90">
             {period}
           </p>
         ) : null}

@@ -58,7 +58,7 @@ export function KnowledgeArticleDetailPanel({
   const canEdit = canWrite && article.status !== "ARCHIVED";
 
   return (
-    <Card>
+    <Card className="fade-in">
       <div className="px-4 pt-4">
         <div className="flex items-start justify-between gap-3">
           <p className="tnum text-[10.5px] font-medium text-muted-foreground/60">
@@ -92,7 +92,7 @@ export function KnowledgeArticleDetailPanel({
           </p>
         )}
       </div>
-      <div className="flex items-center gap-3 border-t border-border/50 px-4 py-2.5 text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-3 border-t border-border/70 px-4 py-2.5 text-[11px] text-muted-foreground">
         {owner ? (
           <span className="flex min-w-0 items-center gap-1">
             <Avatar name={owner} size="xs" />
@@ -107,10 +107,10 @@ export function KnowledgeArticleDetailPanel({
               type="button"
               aria-label={t("knowledgeBase.helpful")}
               className={cn(
-                "rounded-md border p-1.5 transition-colors",
+                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                 article.viewerFeedback === true
-                  ? "border-success/45 bg-success/12 text-[#4ADE80]"
-                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                  ? "border-success/45 bg-success/15 text-ok"
+                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
               )}
               onClick={() => {
                 void submitKnowledgeFeedback(article.id, true).then(onChanged);
@@ -122,10 +122,10 @@ export function KnowledgeArticleDetailPanel({
               type="button"
               aria-label={t("knowledgeBase.notHelpful")}
               className={cn(
-                "rounded-md border p-1.5 transition-colors",
+                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                 article.viewerFeedback === false
-                  ? "border-danger/45 bg-danger/12 text-danger"
-                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                  ? "border-danger/45 bg-danger/15 text-danger"
+                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
               )}
               onClick={() => {
                 void submitKnowledgeFeedback(article.id, false).then(onChanged);

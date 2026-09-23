@@ -96,7 +96,7 @@ export function ServiceDowntimeWindowsPanel({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="fade-in grid gap-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[12px] text-muted-foreground">{t("services.downtime.listHint")}</p>
         <Button type="button" size="xs" onClick={() => setEditing(null)}>

@@ -1,10 +1,48 @@
 <!doctype html>
-<html lang="bs">
+<html lang="bs" data-theme="pulse" data-accent="indigo">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F5F6F8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0D0E12" />
     <title>EP-HelpDesk — Enterprise servisni centar</title>
+    <!--
+      Applies the stored appearance before the first paint. Keep the keys in
+      sync with `src/lib/theme/theme-storage.ts`; if this script fails the
+      application falls back to the legacy dark theme, which is what the CSS
+      `:root` defaults describe.
+    -->
+    <script>
+      (function () {
+        try {
+          var design = window.localStorage.getItem("ep-helpdesk.theme.design");
+          if (design !== "classic" && design !== "pulse") {
+            design = "pulse";
+          }
+          var mode = window.localStorage.getItem("ep-helpdesk.theme.mode");
+          if (mode !== "light" && mode !== "dark" && mode !== "system") {
+            mode = "system";
+          }
+          var accent = window.localStorage.getItem("ep-helpdesk.theme.accent");
+          if (accent !== "indigo" && accent !== "teal" && accent !== "rose") {
+            accent = "indigo";
+          }
+          var prefersDark =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var isDark =
+            design === "classic" || mode === "dark" || (mode === "system" && prefersDark);
+          document.documentElement.setAttribute("data-theme", design);
+          document.documentElement.setAttribute("data-accent", accent);
+          document.documentElement.classList.toggle("dark", isDark);
+        } catch (error) {
+          document.documentElement.setAttribute("data-theme", "classic");
+          document.documentElement.setAttribute("data-accent", "indigo");
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

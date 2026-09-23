@@ -22,7 +22,7 @@ export function TicketBreakGlassPanel({
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
 
   return (
-    <section className="max-w-xl rounded-lg border border-warning/35 bg-warning/10 px-5 py-4">
+    <section className="pop-in max-w-xl rounded-lg border border-warning/30 bg-warning/6 px-5 py-4 shadow-card">
       <div className="flex items-start gap-3">
         <ShieldAlert size={16} strokeWidth={1.9} className="mt-0.5 shrink-0 text-warning" />
         <div>

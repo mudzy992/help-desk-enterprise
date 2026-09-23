@@ -100,7 +100,7 @@ export function AdminOpsPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="fade-in space-y-4">
       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
       <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">
         {t("admin.ops.organizationalUnit")}

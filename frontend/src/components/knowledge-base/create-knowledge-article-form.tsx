@@ -140,7 +140,7 @@ export function CreateKnowledgeArticleForm({
   };
 
   return (
-    <form className="mt-4 grid gap-3" onSubmit={onSubmit}>
+    <form className="fade-in mt-4 grid gap-3" onSubmit={onSubmit}>
       <Field label={t("knowledgeBase.titleField")} required>
         <Input
           value={title}

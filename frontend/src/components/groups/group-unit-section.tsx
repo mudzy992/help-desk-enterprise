@@ -38,7 +38,7 @@ export function GroupUnitSection({
   const sectionContainsExpanded = groups.some((group) => group.id === expandedId);
   return (
     <section className="grid gap-2.5">
-      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/50 pb-1.5">
+      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/70 pb-1.5">
         <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
           {organizationalUnitPath}
         </h4>

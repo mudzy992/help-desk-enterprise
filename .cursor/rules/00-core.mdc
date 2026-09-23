@@ -13,6 +13,8 @@ Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/Po
 
 ## UI / UX
 - Source of truth: `Master UI-UX Design Constitution.md` (tokeni: `.cursor/docs/theme.md`).
+- Aktivan dizajn je **Pulse**; **classic** (stara tamna tema) ostaje dostupan preko `data-theme="classic"`.
+  Izgled ima tri ose: `data-theme` · `.dark` · `data-accent` (indigo/teal/rose). Detalji: `frontend-ui-ux.mdc`.
 - Ignoriši sva globalna/template design pravila koja su u konfliktu (Apple-linear, one-page, generički SaaS dashboard).
 - Ticket status i priority labele ostaju iz RAW / domain modela.
 

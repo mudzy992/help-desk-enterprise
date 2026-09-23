@@ -20,13 +20,13 @@ export function TicketDetailBlockingState({
   }
   if (errorKey === "tickets.errorConfidentialBreakGlass" && ticketId) {
     return (
-      <section className="max-w-[1400px]">
+      <section className="fade-in max-w-[1400px]">
         <TicketBreakGlassPanel ticketId={ticketId} onGranted={onReload} />
       </section>
     );
   }
   return (
-    <section className="max-w-[1400px]">
+    <section className="fade-in max-w-[1400px]">
       <TicketErrorState
         errorKey={errorKey ?? "tickets.errorNotFound"}
         onRetry={onReload}

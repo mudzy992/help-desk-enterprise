@@ -8,7 +8,7 @@ import type { UserSummary } from "@/services/users-api";
 
 const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
   super: "border-danger/35 bg-danger/10 text-danger",
-  manager: "border-primary/35 bg-primary/12 text-[#7FA8F5]",
+  manager: "border-primary/35 bg-primary/15 text-link",
   agent: "border-info/30 bg-info/10 text-info",
   user: "border-border bg-elevated text-muted-foreground",
 };
@@ -33,7 +33,7 @@ export function UsersSummaryRow({
         : t("users.scopeOwn");
 
   return (
-    <tr className="transition-colors hover:bg-elevated/40">
+    <tr className="transition-colors hover:bg-surface-hover">
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-2.5">
           <Avatar name={user.displayName} size="sm" />
@@ -61,7 +61,7 @@ export function UsersSummaryRow({
       <td className="px-4 py-2.5">
         <span
           className={cn(
-            "inline-flex rounded-md border px-1.5 py-0.5 text-[11px] font-medium",
+            "inline-flex rounded-lg border px-1.5 py-0.5 text-[11px] font-medium",
             ROLE_STYLE[user.roleTone],
           )}
         >

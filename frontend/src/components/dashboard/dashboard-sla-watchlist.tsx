@@ -22,7 +22,7 @@ export function DashboardSlaWatchlist({
   const { t } = useTranslation();
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("dashboard.slaTitle")}
         subtitle={t("dashboard.slaSubtitle")}
@@ -51,7 +51,7 @@ export function DashboardSlaWatchlist({
             <li key={ticket.id}>
               <Link
                 to={`/tickets/${ticket.id}`}
-                className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated/50"
+                className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover"
               >
                 <span
                   className="size-2 shrink-0 rounded-full"

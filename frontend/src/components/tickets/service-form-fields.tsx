@@ -1,4 +1,5 @@
 import type { ServiceFormField, ServiceFormSchema } from "@/services/service-catalog-api";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   controlClassName,
   errorTextClassName,
@@ -27,9 +28,7 @@ function FieldControl({
   const placeholder = field.config?.placeholder;
   if (field.type === "boolean") {
     return (
-      <input
-        type="checkbox"
-        className="h-4 w-4 rounded-md border-border accent-primary"
+      <Checkbox
         checked={value === true}
         onChange={(event) => onChange(event.target.checked)}
       />

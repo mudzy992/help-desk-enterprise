@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 
 const STAT_DELTA_TONES: Record<BadgeTone, string> = {
   neutral: "text-muted-foreground",
-  primary: "text-[#7FA8F5]",
+  primary: "text-link",
   accent: "text-accent",
-  success: "text-[#4ADE80]",
+  success: "text-ok",
   warning: "text-warning",
   danger: "text-danger",
   info: "text-info",
+  hold: "text-hold",
 };
 
 interface StatCardProperties {
@@ -33,7 +34,7 @@ export function StatCard({
   deltaTone = "neutral",
 }: StatCardProperties) {
   return (
-    <Card className="h-full px-4 py-3.5 transition-colors duration-150 hover:border-[#31405C]">
+    <Card className="h-full px-4 py-3.5 transition-colors duration-150 hover:border-line-strong">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
           {label}

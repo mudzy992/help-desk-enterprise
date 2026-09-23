@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { applyTicketUpdatedPayload } from "./apply-ticket-updated";
+import {
+  applyTicketUpdatedPayload,
+  shouldReloadTicketFromUpdated,
+} from "./apply-ticket-updated";
 import { nextJoinedTicketRoom } from "./next-joined-ticket-room";
 import { subscribeSocketEvent } from "./subscribe-socket-event";
 import {
@@ -137,6 +140,49 @@ describe("ticket realtime helpers", () => {
         occurredAt: "2026-09-13T08:00:00.000Z",
       })?.sla?.respondedAt,
     ).toBe("2026-09-13T07:00:00.000Z");
+  });
+
+  it("never invents SLA flags from a realtime payload", () => {
+    // A breach event says "something about SLA changed", not "this ticket is
+    // breached right now": only the server snapshot may raise the flag, and the
+    // client reloads it (see the reload test below). Previously a single breach
+    // event pinned `isOverdue` to true for the rest of the session, which is
+    // what made every later ticket look like it had breached its SLA.
+    const clean: TicketResponse = { ...baseTicket, isOverdue: false, isAtRisk: false };
+    const next = applyTicketUpdatedPayload(clean, {
+      ticketId: "ticket-a",
+      change: "sla",
+      sourceAction: "sla_response_breached",
+      status: "IN_PROGRESS",
+      priority: "HIGH",
+      assignedUserId: "agent-1",
+      assignedGroupId: "group-1",
+      archivedAt: null,
+      resolvedAt: null,
+      closedAt: null,
+      occurredAt: "2026-09-13T09:00:00.000Z",
+    });
+    expect(next?.isOverdue).toBe(false);
+    expect(next?.isAtRisk).toBe(false);
+    expect(next?.updatedAt).toBe("2026-09-13T09:00:00.000Z");
+  });
+
+  it("asks for a server reload on SLA events and nothing else", () => {
+    const base = {
+      ticketId: "ticket-a",
+      sourceAction: "sla_resolution_breached",
+      status: "IN_PROGRESS" as const,
+      priority: "HIGH" as const,
+      assignedUserId: "agent-1",
+      assignedGroupId: "group-1",
+      archivedAt: null,
+      resolvedAt: null,
+      closedAt: null,
+      occurredAt: "2026-09-13T09:00:00.000Z",
+    };
+    expect(shouldReloadTicketFromUpdated({ ...base, change: "sla" })).toBe(true);
+    expect(shouldReloadTicketFromUpdated({ ...base, change: "status" })).toBe(false);
+    expect(shouldReloadTicketFromUpdated({ ...base, change: "assignment" })).toBe(false);
   });
 
   it("unsubscribes the same handler to prevent duplicate listeners", () => {

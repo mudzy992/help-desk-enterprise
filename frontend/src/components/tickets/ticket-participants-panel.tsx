@@ -59,7 +59,7 @@ export function TicketParticipantsPanel({
   };
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("tickets.detail.participants")}
         subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
@@ -88,7 +88,7 @@ export function TicketParticipantsPanel({
               {canManage && item.role === "WATCHER" ? (
                 <button
                   type="button"
-                  className="text-[10px] text-muted-foreground hover:text-foreground"
+                  className="text-[10px] text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
                   onClick={() => {
                     if (window.confirm(t("tickets.detail.confirmRemove"))) {
                       void onRemove(item.id);

@@ -45,7 +45,7 @@ export function AuthProviderSettingsCard({
 
   return (
     <>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("settings.auth.title")}
           subtitle={t("settings.auth.subtitle")}
@@ -63,15 +63,15 @@ export function AuthProviderSettingsCard({
                 type="button"
                 disabled={!canWrite || pendingKey === authSettingKeys.mode}
                 className={cn(
-                  "rounded-lg border p-3 text-left transition-all",
+                  "rounded-lg border p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                   pendingMode === provider.id
                     ? "border-primary/50 bg-primary/8"
-                    : "border-border bg-background/40 hover:border-[#31405C]",
+                    : "border-border bg-elevated/40 hover:border-line-strong",
                 )}
                 onClick={() => setDraftMode(provider.id)}
               >
                 <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-foreground">
-                  <KeyRound size={13} className="text-[#7FA8F5]" />
+                  <KeyRound size={13} className="text-link" />
                   {t(provider.nameKey)}
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -93,7 +93,7 @@ export function AuthProviderSettingsCard({
               </Button>
             </div>
           ) : null}
-          <p className="text-[11px] leading-4 text-muted-foreground/70">
+          <p className="text-[11px] leading-[15px] text-muted-foreground/70">
             {t("settings.auth.breakGlass")}
           </p>
           {draftMode !== null && draftMode !== mode ? (

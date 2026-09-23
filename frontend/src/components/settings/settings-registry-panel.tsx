@@ -40,7 +40,7 @@ export function SettingsRegistryPanel({
   }
 
   return (
-    <section className="space-y-3">
+    <section className="fade-in space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className={sectionTitleClassName}>{t("settings.registry.title")}</h2>

@@ -30,12 +30,12 @@ export function WizardStepper({ steps, activeIndex }: WizardStepperProperties) {
             <div className="flex items-center gap-2.5">
               <span
                 className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold transition-all duration-150",
-                  isComplete && "border-success/40 bg-success/15 text-[#4ADE80]",
-                  isActive && "border-primary bg-primary text-primary-foreground",
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-all duration-150",
+                  isComplete && "border-success/35 bg-success/10 text-ok",
+                  isActive && "border-primary bg-primary text-primary-foreground shadow-glow",
                   !isComplete &&
                     !isActive &&
-                    "border-border bg-elevated text-muted-foreground",
+                    "border-border bg-surface-hover text-muted-foreground",
                 )}
               >
                 {isComplete ? (

@@ -60,28 +60,28 @@ export function SlaPriorityTargetsTable({
             const priority = rule.priority as TicketPriority;
             const exposure = countSlaPriorityExposure(tickets, slaProfileId, priority);
             return (
-              <tr key={rule.id} className="transition-colors hover:bg-elevated/40">
+              <tr key={rule.id} className="transition-colors hover:bg-surface-hover">
                 <td className="px-4 py-3">
                   <Badge tone={TICKET_PRIORITY_META[priority].tone} dot>
                     {t(slaPriorityLabelKey(priority))}
                   </Badge>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-[12.5px] text-text tnum">
-                    <Clock3 size={12.5} className="text-muted" />
+                  <span className="flex items-center gap-1.5 text-[12.5px] text-foreground tnum">
+                    <Clock3 size={12.5} className="text-muted-foreground" />
                     {formatTargetMinutes(rule.responseMinutes, i18n.language)}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-[12.5px] text-text tnum">
-                    <AlarmClock size={12.5} className="text-muted" />
+                  <span className="flex items-center gap-1.5 text-[12.5px] text-foreground tnum">
+                    <AlarmClock size={12.5} className="text-muted-foreground" />
                     {formatTargetMinutes(rule.resolutionMinutes, i18n.language)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[11.5px] text-muted">{calendarLabel}</td>
+                <td className="px-4 py-3 text-[11.5px] text-muted-foreground">{calendarLabel}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
-                    <span className="tnum text-[12.5px] font-medium text-text">
+                    <span className="tnum text-[12.5px] font-medium text-foreground">
                       {exposure.open}
                     </span>
                     {exposure.atRisk > 0 ? (

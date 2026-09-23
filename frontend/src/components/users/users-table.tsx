@@ -16,7 +16,7 @@ export function UsersTable({
 }: UsersTableProperties) {
   const { t } = useTranslation();
   return (
-    <div className="overflow-x-auto">
+    <div className="fade-in overflow-x-auto">
       <table className="w-full min-w-[860px] text-left">
         <thead>
           <tr

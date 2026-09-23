@@ -9,7 +9,7 @@ Ekran: `/admin?tab=groups` (`frontend/src/pages/groups-page.tsx`, `frontend/src/
 - bedž grupe uz OU u tabeli korisnika (`referenca-dizajn/src/pages/Admin.tsx`, kolona „OU / Grupa"),
 - odredište (target group) u routing pravilima (`referenca-dizajn/src/pages/Routing.tsx`, bedž `tone="primary"` s nazivom grupe).
 
-Zato se ekran Grupe **ne nagađa kao 1:1 kopija** nepostojećeg mockupa, nego se namjerno izvodi iz tih srodnih obrazaca i iz `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`. Ovo pitanje se ne otvara ponovo pri budućim izmjenama, osim ako se u `referenca-dizajn` doda stvaran ekran Grupe.
+Zato se ekran Grupe **ne nagađa kao 1:1 kopija** nepostojećeg mockupa, nego se namjerno izvodi iz tih srodnih obrazaca i iz `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`. Ovo pitanje se ne otvara ponovo pri budućim izmjenama, osim ako se u `demo/` (aktivni prototip; `referenca-dizajn/` je arhiviran) doda stvaran ekran Grupe.
 
 ## Šta se preuzima i odakle
 

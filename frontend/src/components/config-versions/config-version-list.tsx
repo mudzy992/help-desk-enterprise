@@ -46,7 +46,7 @@ export function ConfigVersionList({
               )}
               onClick={() => onSelect(version.id)}
             >
-              <td className="px-3 tnum">v{version.version}</td>
+              <td className="tnum px-3">v{version.version}</td>
               <td className="px-3">
                 <Badge tone={configVersionBadgeTone(version.status)}>
                   {t(`configVersions.statuses.${version.status}`)}

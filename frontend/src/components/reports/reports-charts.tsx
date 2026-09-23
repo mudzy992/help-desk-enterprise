@@ -43,7 +43,7 @@ export function ReportsCharts({
       : t("reports.volumeTitle", { window: t(windowShortKeys[preset]) });
   return (
     <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("reports.bottleneckTitle")}
           subtitle={t("reports.bottleneckSubtitle")}
@@ -70,7 +70,7 @@ export function ReportsCharts({
           )}
         </div>
       </Card>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={volumeTitle}
           subtitle={t("reports.volumeSubtitle")}
@@ -90,7 +90,7 @@ export function ReportsCharts({
           )}
         </div>
       </Card>
-      <Card className="xl:col-span-2">
+      <Card className="fade-in xl:col-span-2">
         <CardHeader
           title={t("reports.flowTitle")}
           subtitle={t("reports.flowSubtitle")}
@@ -102,12 +102,12 @@ export function ReportsCharts({
             bLabel={t("reports.flowResolved")}
           />
           <div>
-            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
               {t("reports.agingTitle")}
             </p>
             <HBars items={[...agingItems]} />
             {waitingOverSevenDays > 0 ? (
-              <p className="mt-3 border-t border-border/60 pt-3 text-[11px] leading-4.5 text-muted/70">
+              <p className="mt-3 border-t border-border/70 pt-3 text-[11px] leading-[18px] text-muted-foreground/70">
                 {t("reports.agingWaitingHint", {
                   count: waitingOverSevenDays,
                 })}

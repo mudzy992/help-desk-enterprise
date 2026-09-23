@@ -17,13 +17,13 @@ export function AdminSupportBundleCard({
 }: AdminSupportBundleCardProperties) {
   const { t } = useTranslation();
   return (
-    <Card>
+    <Card className="fade-in">
       <div className="px-4 py-4">
         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-          <FileCheck size={14} className="text-[#4ADE80]" />
+          <FileCheck size={14} className="text-ok" />
           {t("admin.ops.supportTitle")}
         </p>
-        <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
+        <p className="mt-1.5 text-[11.5px] leading-[15px] text-muted-foreground">
           {t("admin.ops.supportBody")}
         </p>
         <Button

@@ -2,6 +2,13 @@
 
 > **Source of truth** za sav UI/UX ovog projekta. Globalna/template pravila (Apple-linear, one-page, generički SaaS dashboard) ne važe. Tokeni su u `.cursor/docs/theme.md`. Ticket status i priority labele dolaze iz `RAW_PROJECT_EPHELPDESK.md` / domain modela — ovaj dokument definiše vizuelni tretman, ne drugačiji vokabular.
 
+> **Dizajn-sistem: Pulse.** Aktivni identitet je **Pulse** (svijetli kao primarni, tamni mod ravnopravan).
+> **classic** je naslijeđena tamna tema koja ostaje dostupna preko `data-theme="classic"` tokom tranzicije.
+> Implementacijski katalog tokena, paleta i kontrastnih pravila: **`.cursor/docs/theme.md`**.
+> Prototip novog identiteta i vizuelni dokaz: **`demo/`**. Stara referenca (`referenca-dizajn/`) je arhivirana.
+>
+> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose`).
+
 Ova pravila definišu vizuelni i UX smjer cijelog EP-HelpDesk frontenda.
 
 Ovo NIJE generički SaaS dashboard i NIJE redesign u stilu jednog konkretnog proizvoda.
@@ -601,6 +608,30 @@ Nikada ne koristiti boju samo radi estetike.
 
 Ako je nešto crveno, korisnik mora imati razlog da ga primijeti.
 
+## 22.1 Kako se boja piše (Pulse)
+
+Boja se **nikad** ne piše u komponentu. Sve ide kroz CSS varijablu (RGB kanali) iz `frontend/src/index.css`, mapiranu u `frontend/tailwind.config.ts` kao `rgb(var(--token) / <alpha-value>)`:
+
+- površine: `bg-background` → `bg-surface` → `bg-elevated` (+ `bg-surface-hover` za hover)
+- tekst: `text-foreground` (primarni), `text-muted-foreground` (sekundarni), `text-link` (brend-tekst i linkovi)
+- granice: `border-border` → `border-line-strong`; prozirnost ide alpha modifierom (`bg-surface/60`, `border-border/70`)
+- boje statusa: `frontend/src/lib/theme/semantic-meta.ts` (već su tokeni)
+
+**`text-primary` nije za tekst na neutralnoj površini** — za to je `text-link` (garantovan kontrast). `text-primary` je za tint površine i ikone na primary ispuni.
+
+## 22.2 Boja brenda je izbor, ne konstanta
+
+Pulse ima **tri palete** (`data-accent`: `indigo` zadana, `teal`, `rose`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
+
+Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u `teal`/`rose` paleti.
+
+## 22.3 Kontrast (obavezno, mjerljivo)
+
+- Tekst na `primary` ispuni **i** `primary` kao tekst na površini: **≥ 4.5:1** u obje svjetline i u svakoj paleti.
+- `::selection` se crta kao alpha blend **preko podloge**, pa `--selection-fg` mora biti **taman u svijetlim paletama, a svijetao u tamnim** — nikad ista vrijednost za obje.
+- Isto pravilo važi za `--primary-foreground`: svijetla primary boja traži **taman** tekst na sebi.
+- Izmjerene vrijednosti po paleti: `.cursor/docs/theme.md` § Kontrast.
+
 ---
 
 # 23. TYPOGRAPHY
@@ -690,27 +721,27 @@ Card koristiti kada postoji stvarna konceptualna granica između sadržaja.
 
 # 26. BORDERS / RADIUS / SHADOWS
 
-Border radius:
+Radius je **token po temi**, ne fiksni broj u komponenti (`frontend/src/index.css`):
 
-- restrained
-- konzistentan
-- približno 6–10px za većinu UI elemenata
-
-Veći radius samo kada postoji jasna UX korist.
+- `rounded-md` — kontrole (input, button, segmented) · Pulse 8px, classic 6px
+- `rounded-lg` — kartice i paneli · Pulse 12px, classic 8px
+- `rounded` / `rounded-[Npx]` — mikro-elementi (badge, chip, avatar)
+- `rounded-xl` se **ne koristi** — nije vezan na token, pa ne prati temu
 
 Izbjegavati:
 
-- 20–30px radius svuda
 - pill-shaped buttons
 - giant rounded cards
+- radius izvan token skale
 
-Shadows:
+Shadows su tokeni (`shadow-card`, `shadow-pop`), a u `classic` temi su `none`/minimalne:
 
-- minimalne
-- koriste se za elevation
-- ne koriste se kao dekoracija
+- koriste se za elevation, ne kao dekoracija
+- `--shadow-glow` je **namjerni Pulse izuzetak** (meki primary glow na fokusiranim/popover površinama) — u `classic` je `none`
 
 Preferirati border + surface contrast nad jakom sjenom.
+
+Vidljiv fokus je obavezan: `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70`.
 
 ---
 
@@ -877,13 +908,9 @@ Accessibility nije dodatak nakon dizajna.
 
 # 35. DARK MODE
 
-Ako postoji dark mode, ne praviti jednostavan:
+Pulse je **light-first, sa ravnopravnim tamnim modom** — nije invertovana svijetla tema i nije više dark-only.
 
-white → black
-
-invert.
-
-Dark mode mora imati vlastitu hijerarhiju:
+Dark mode ima vlastitu hijerarhiju, definisanu kao treći token blok (`:root[data-theme="pulse"].dark`):
 
 - background
 - surface
@@ -893,7 +920,16 @@ Dark mode mora imati vlastitu hijerarhiju:
 - secondary text
 - semantic colors
 
+Pravila:
+
+- **Svaki novi token se dodaje u sva tri bloka**: `:root[data-theme="classic"]`, `:root[data-theme="pulse"]` i `:root[data-theme="pulse"].dark`. Blok koji nedostaje znači da vrijednost pada na tuđu (klasičnu) boju.
+- Svjetlina je izbor korisnika: `light` / `dark` / `system` (prati OS kroz `prefers-color-scheme`).
+- **`classic` je trajno tamna** — ne dobija svijetlu varijantu; tamo je izbor svjetline zaključan.
+- Kontrast se provjerava **u obje svjetline**, ne samo u tamnoj.
+
 Dark mode treba biti enterprise-grade i dugoročno ugodan za rad.
+
+Ekrani za provjeru: **`/appearance`** (živi pregled iz pravih primitiva u aktivnoj kombinaciji) i Visual QA tabla (§ Primitive-i → Theme).
 
 ---
 
@@ -962,6 +998,11 @@ Posebno:
 
 NE pokušavati učiniti aplikaciju "modernom" dodavanjem gradijenata.
 
+**Dva dokumentovana Pulse izuzetka — sve ostalo iz liste ostaje zabranjeno:**
+
+1. `.pulse-gradient` — brend pano na prijavi i instalacionom čarobnjaku (bijeli tekst na gradijentu brenda je dio dizajna).
+2. `--shadow-glow` — meki primary glow kao token; u `classic` temi je `none`.
+
 Modernost dolazi iz:
 
 - typography
@@ -970,6 +1011,16 @@ Modernost dolazi iz:
 - interaction quality
 - consistency
 - restraint
+
+### 38.1 Anti-obrasci specifični za Pulse
+
+- hardkodirana boja u komponenti (`#RRGGBB`, `rgb(...)`, Tailwind paleta tipa `bg-slate-100`)
+- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u `teal`/`rose` paleti)
+- `text-primary` za tekst na neutralnoj površini (koristi `text-link`)
+- `rounded-xl` i druge klase koje ne čitaju token
+- novi token koji postoji samo u dva od tri bloka
+- ista `--selection-fg` vrijednost za svijetlu i tamnu paletu
+- "popravka" boje mimo tokena (`!important`, inline `style={{ color }}`)
 
 ---
 
@@ -1012,6 +1063,17 @@ Posebno:
 - component sizes
 
 Ne koristiti random magic numbers po komponentama.
+
+---
+
+## 40.1 Gdje tokeni žive (Pulse)
+
+- **Izvor:** `frontend/src/index.css` — tri bloka (`classic`, `pulse`, `pulse.dark`) + palete (`data-accent`).
+- **Mapiranje:** `frontend/tailwind.config.ts` — `rgb(var(--token) / <alpha-value>)`; radii `sm`/`md`/`lg` + aliasi `card`/`control`.
+- **Kontrakt u kodu:** `frontend/src/lib/theme/theme-storage.ts` (ključevi, validatori, defaulti) i `theme-provider.tsx` (stanje + `dataset.theme` / `dataset.accent` / `.dark`).
+- **Bez ponovnog izuma:** boje statusa i tonovi iz `frontend/src/lib/theme/semantic-meta.ts`.
+
+Nova brend paleta = **3 koraka** (blok u `index.css`, ime u `THEME_ACCENTS`, dva ključa u `bs`/`en`) — UI se prilagođava sam jer iterira listu. Checklista i formule: `.cursor/docs/theme.md`.
 
 ---
 

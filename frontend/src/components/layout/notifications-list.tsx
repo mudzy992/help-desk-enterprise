@@ -17,10 +17,10 @@ const KIND_ICON: Record<NotificationKind, typeof Ticket> = {
 };
 
 const KIND_TONE: Record<NotificationKind, string> = {
-  ticket: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
+  ticket: "border-primary/30 bg-primary/10 text-link",
   sla: "border-danger/30 bg-danger/10 text-danger",
   approval: "border-warning/30 bg-warning/10 text-warning",
-  system: "border-border bg-background text-muted-foreground",
+  system: "border-border bg-elevated text-muted-foreground",
 };
 
 interface NotificationsListProperties {
@@ -54,7 +54,10 @@ export function NotificationsList({
           <li key={notification.id}>
             <button
               type="button"
-              className="flex w-full items-start gap-3 border-b border-border/40 px-3.5 py-3 text-left transition-colors hover:bg-background/50"
+              className={cn(
+                "flex w-full items-start gap-3 border-b border-border/50 px-3.5 py-3 text-left transition-colors duration-150 last:border-0 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                notification.isRead ? "" : "bg-primary/[0.04]",
+              )}
               onClick={() => onSelect(notification)}
             >
               <span
@@ -86,7 +89,7 @@ export function NotificationsList({
                   />
                 </span>
                 {notification.body ? (
-                  <span className="mt-0.5 block text-[11.5px] leading-4.5 text-muted-foreground">
+                  <span className="mt-0.5 block text-[11.5px] leading-4 text-muted-foreground">
                     {notification.body}
                   </span>
                 ) : null}

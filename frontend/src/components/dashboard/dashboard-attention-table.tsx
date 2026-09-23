@@ -61,7 +61,7 @@ export function DashboardAttentionTable({
   const navigate = useNavigate();
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("dashboard.attentionHeading")}
         subtitle={t("dashboard.attentionHint")}

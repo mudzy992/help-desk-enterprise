@@ -1,11 +1,17 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+/*
+  Cards sit on the canvas, not on it: a hairline border plus the theme's
+  `shadow-card` (which is `none` on the legacy dark theme, and a whisper-soft
+  1px lift on the light canvas). Radius comes from `rounded-lg`, which resolves
+  to 12px in Pulse and 8px in classic.
+*/
 export function Card({ className, ...properties }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-surface",
+        "rounded-lg border border-border bg-surface shadow-card",
         className,
       )}
       {...properties}

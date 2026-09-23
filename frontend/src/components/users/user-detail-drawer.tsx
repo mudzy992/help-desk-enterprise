@@ -82,7 +82,7 @@ export function UserDetailDrawer({
             <h3 className="mb-2 text-[12px] font-medium text-foreground">
               {t("users.rolesHeading")}
             </h3>
-            <div className="rounded-md border border-border/60">
+            <div className="rounded-lg border border-border/70">
               <UserRolesSection
                 userId={user.id}
                 originUnits={originUnits}

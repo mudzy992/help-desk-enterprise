@@ -54,7 +54,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
       return null;
     }
     return (
-      <Card>
+      <Card className="fade-in">
         <CardHeader title={ticketText(t, "tickets.detail.sla.title")} />
         <div className="space-y-1.5 px-4 py-4 text-[12px] leading-5">
           <p className="flex items-center gap-1.5 font-medium text-foreground/90">
@@ -74,7 +74,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
     );
   }
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={ticketText(t, "tickets.detail.sla.title")}
         subtitle={slaSubtitle(context, t)}
@@ -101,7 +101,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
             risk: SLA_RISK_PERCENT,
           })}
         />
-        <div className="flex items-center justify-between border-t border-border/60 pt-3">
+        <div className="flex items-center justify-between border-t border-border/70 pt-3">
           <MetaBadge
             meta={{
               label: ticketText(t, `tickets.detail.sla.state.${view.state}`),
@@ -182,7 +182,7 @@ function remainingText(
 
 function remainingToneClass(timer: TicketSlaTimerView): string {
   if (timer.satisfied) {
-    return "text-[#4ADE80]";
+    return "text-ok";
   }
   if (timer.overdue) {
     return "text-danger";

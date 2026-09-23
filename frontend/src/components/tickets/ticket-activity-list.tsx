@@ -19,9 +19,9 @@ import type {
 const kindChipClass: Readonly<Record<TicketActivityKind, string>> = {
   sla: "border-warning/30 bg-warning/10 text-warning",
   routing: "border-info/30 bg-info/10 text-info",
-  status: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
-  assign: "border-primary/30 bg-primary/10 text-[#7FA8F5]",
-  approval: "border-success/30 bg-success/10 text-[#4ADE80]",
+  status: "border-primary/30 bg-primary/10 text-link",
+  assign: "border-primary/30 bg-primary/10 text-link",
+  approval: "border-success/30 bg-success/10 text-ok",
   security: "border-danger/30 bg-danger/10 text-danger",
   edit: "border-border bg-elevated text-muted-foreground",
 };
@@ -83,7 +83,7 @@ export function TicketActivityList({
           />
         </div>
       ) : (
-        <ul className="divide-y divide-border/50">
+        <ul className="fade-in divide-y divide-border/50">
           {items.map((item) => (
             <ActivityRow key={item.id} item={item} locale={i18n.language} />
           ))}
@@ -101,10 +101,10 @@ function ActivityRow({
   readonly locale: string;
 }) {
   return (
-    <li className="flex items-start gap-3 px-4 py-3">
+    <li className="flex items-start gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover">
       <span
         className={cn(
-          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border",
+          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border",
           kindChipClass[item.kind],
         )}
       >
@@ -120,7 +120,7 @@ function ActivityRow({
             {item.note}
           </p>
         ) : null}
-        <p className="text-[11px] text-muted-foreground/70 tnum">
+        <p className="tnum mt-1 text-[11px] text-muted-foreground/70">
           {formatTicketTimestamp(item.at, locale)}
         </p>
       </div>

@@ -80,7 +80,7 @@ export function DashboardMetricGrid({
   );
 
   return (
-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
       {metrics.map((metric) => (
         <Link
           key={metric.labelKey}

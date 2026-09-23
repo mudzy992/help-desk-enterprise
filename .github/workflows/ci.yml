@@ -46,6 +46,8 @@ jobs:
       - run: npm ci
       - name: Check ticket screens for raw identifiers
         run: node ../scripts/check-ticket-id-leaks.mjs
+      - name: Check the Pulse design system (tokens, colours, radius, i18n)
+        run: node ../scripts/check-pulse-design-system.mjs
       - run: npm test
       - run: npm run build
 

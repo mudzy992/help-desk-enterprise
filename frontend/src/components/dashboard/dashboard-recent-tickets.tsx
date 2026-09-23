@@ -32,7 +32,7 @@ export function DashboardRecentTickets({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="fade-in overflow-x-auto">
       <table className="w-full min-w-[720px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -64,7 +64,7 @@ export function DashboardRecentTickets({
               <td className="px-3">
                 <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
               </td>
-              <td className="px-3 tnum text-[12px] text-muted-foreground">
+              <td className="tnum px-3 text-[12px] text-muted-foreground">
                 {new Date(ticket.createdAt).toLocaleString(i18n.language)}
               </td>
             </tr>

@@ -30,7 +30,7 @@ export function InstallCompleteStep() {
   };
 
   return (
-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={(event) => void onSubmit(event)}>
+    <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
       {errorKey ? (
         <p className={errorTextClassName}>{t(errorKey)}</p>
       ) : null}

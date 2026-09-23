@@ -93,7 +93,7 @@ export function ServiceDowntimeWindowForm({
 
   return (
     <form
-      className="grid gap-3"
+      className="fade-in grid gap-3"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();

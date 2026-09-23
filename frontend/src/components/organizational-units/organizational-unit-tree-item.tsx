@@ -52,7 +52,7 @@ export function OrganizationalUnitTreeItem({
     >
       <div
         className={cn(
-          "group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-elevated/50",
+          "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 focus-visible:outline-offset-[-2px]",
           selected && "bg-elevated/50",
         )}
         style={{ paddingLeft: `${8 + depth * 22}px` }}
@@ -63,7 +63,7 @@ export function OrganizationalUnitTreeItem({
         {hasChildren ? (
           <button
             type="button"
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
             aria-label={
               collapsed
                 ? t("directory.expandUnit")
@@ -83,7 +83,7 @@ export function OrganizationalUnitTreeItem({
           size={14}
           className={cn(
             "shrink-0",
-            depth === 0 ? "text-[#7FA8F5]" : "text-muted-foreground/70",
+            depth === 0 ? "text-link" : "text-muted-foreground/70",
           )}
           aria-label={
             node.type
@@ -102,11 +102,11 @@ export function OrganizationalUnitTreeItem({
           {node.name}
         </span>
         {node.type ? (
-          <span className="rounded border border-border/70 bg-background/50 px-1.5 py-0 text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
+          <span className="rounded border border-border/70 bg-elevated/50 px-1.5 py-0 text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
             {t(`directory.ouType.${node.type}`, { defaultValue: node.type })}
           </span>
         ) : null}
-        <span className="tnum rounded border border-border bg-background/60 px-1.5 py-0 text-[10px] text-muted-foreground">
+        <span className="tnum rounded border border-border bg-elevated/60 px-1.5 py-0 text-[10px] text-muted-foreground">
           {t("directory.memberCountShort", { count: memberCount })}
         </span>
         <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground/50 group-hover:text-muted-foreground/80 lg:block">
@@ -116,7 +116,7 @@ export function OrganizationalUnitTreeItem({
           <div className="relative">
             <button
               type="button"
-              className="rounded p-1 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-foreground"
+              className="rounded p-1 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
               aria-label={t("directory.ouActions")}
               onClick={(event) => {
                 event.stopPropagation();
@@ -126,10 +126,10 @@ export function OrganizationalUnitTreeItem({
               <MoreHorizontal size={14} />
             </button>
             {menuOpen ? (
-              <div className="absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border border-border bg-surface py-1 shadow-md">
+              <div className="absolute right-0 z-10 mt-1 min-w-[120px] rounded-lg border border-border bg-surface py-1 shadow-pop">
                 <button
                   type="button"
-                  className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-elevated"
+                  className="block w-full px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
                   onClick={(event) => {
                     event.stopPropagation();
                     setMenuOpen(false);
@@ -140,7 +140,7 @@ export function OrganizationalUnitTreeItem({
                 </button>
                 <button
                   type="button"
-                  className="block w-full px-3 py-1.5 text-left text-[12px] text-danger hover:bg-elevated"
+                  className="block w-full px-3 py-1.5 text-left text-[12px] text-danger transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
                   onClick={(event) => {
                     event.stopPropagation();
                     setMenuOpen(false);

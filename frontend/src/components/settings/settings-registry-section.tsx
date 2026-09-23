@@ -34,13 +34,13 @@ export function SettingsRegistrySection({
 
   return (
     <>
-      <Card className="transition-colors hover:border-[#31405C]">
+      <Card className="transition-colors hover:border-line-strong">
         <CardHeader
           title={
             <span className="flex items-center gap-2">
               <CategoryIcon
                 aria-hidden
-                className="size-4 shrink-0 text-[#31405C]"
+                className="size-4 shrink-0 text-line-strong"
               />
               <span>{title}</span>
             </span>
@@ -57,7 +57,7 @@ export function SettingsRegistrySection({
               key={entry.key}
               className="flex items-center justify-between gap-2 text-[12px]"
             >
-              <span className="truncate font-mono text-[11px] text-muted-foreground tnum">
+              <span className="tnum truncate font-mono text-[11px] text-muted-foreground">
                 {entry.key}
               </span>
               <span className="shrink-0 text-foreground/90">

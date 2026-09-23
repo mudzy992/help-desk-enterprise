@@ -22,6 +22,7 @@ export function UnderlineTabs({
 }: UnderlineTabsProperties) {
   return (
     <div
+      role="tablist"
       className={cn(
         "flex items-center gap-1 overflow-x-auto border-b border-border/70",
         className,
@@ -33,9 +34,11 @@ export function UnderlineTabs({
           <button
             key={item.key}
             type="button"
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onChange(item.key)}
             className={cn(
-              "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150",
+              "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
               isActive
                 ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -45,9 +48,9 @@ export function UnderlineTabs({
             {typeof item.count === "number" ? (
               <span
                 className={cn(
-                  "rounded-md border px-1 py-0 text-[10.5px] leading-[14px] tnum",
+                  "tnum rounded-full border px-1.5 py-0 text-[10.5px] leading-[15px]",
                   isActive
-                    ? "border-primary/40 bg-primary/15 text-[#7FA8F5]"
+                    ? "border-primary/25 bg-primary/10 text-link"
                     : "border-border bg-elevated/70 text-muted-foreground",
                 )}
               >
