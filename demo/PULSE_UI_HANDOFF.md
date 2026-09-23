@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + 1 + 2 + 3 + talasi 4.1, 4.2 i 4.3 (isporuka)
+# Pulse UI — Faza 0 + 1 + 2 + 3 + talasi 4.1–4.4 (isporuka)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -19,7 +19,8 @@
 | **4.1 — Tiketi** | Cijeli `components/tickets/` (48 fajlova): lista, tabela, inbox, detalj tiketa, razgovor, CSAT, SLA panel, prilozi, odobrenja, bulk bar, saved views, obrasci za kreiranje, break-glass, time tracking, banneri | ✅ |
 | **4.2 — Nadzorna ploča i izvještaji** | Sve kartice nadzorne ploče (metrike, grafikoni, SLA nadzor, aktivnost, inbox, tabela pažnje) i stranica izvještaja; **+ popravke koje si prijavio: SLA prikaz i fiksna visina razgovora** | ✅ |
 | **4.3 — Servisi i baza znanja** | Cijeli `components/services/` (32 fajla: katalog, kategorije, graditelj formi, onboarding čarobnjak, periodi nedostupnosti) i `components/knowledge-base/` (9 fajlova: lista, pretraga, detalj, izmjena, lifecycle, brisanje) | ✅ |
-| 4.4–4.7 | Ostali moduli (4 talasa) | ⏳ sljedeće |
+| **4.4 — SLA, routing i policy paketi** | Cijeli `components/sla/` (24 fajla: profili, pravila, eskalacije, kalendari radnog vremena, matrica prioriteta, compliance, izmjene), `components/routing/` (14 fajlova: pravila, matrica pokrivenosti, tester razrješavanja) i `components/policy-packs/` (3 fajla) | ✅ |
+| 4.5–4.7 | Ostali moduli (3 talasa) | ⏳ sljedeće |
 | 5–7 | Dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ |
 
 | Faza | Putanja | Diff |
@@ -30,7 +31,8 @@
 | 4.1 | 44 (43 izmijenjena + 1 novi) | 1552 linije u 1 patchu |
 | 4.2 | 16 (10 UI + 6 popravki) | 452 linije u 1 patchu |
 | 4.3 | 29 (29 izmijenjenih; 12 fajlova je već bilo u Pulse jeziku) | 629 linija u 1 patchu |
-| **Ukupno** | **189 unikatnih putanja** (15 se pojavljuje u više setova) | **8828 linija** |
+| 4.4 | 24 (24 izmijenjenih; 17 fajlova je već bilo u Pulse jeziku) | 664 linije u 1 patchu |
+| **Ukupno** | **213 unikatnih putanja** (15 se pojavljuje u više setova) | **9492 linije** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -48,7 +50,8 @@ demo/patches/
 ├── pulse-04-charts.patch                             9 fajlova   34 KB
 ├── pulse-05-tickets.patch                           44 fajla     73 KB
 ├── pulse-06-dashboard-reports.patch                 16 fajlova   20 KB
-└── pulse-07-services-knowledge-base.patch           29 fajlova   32 KB
+├── pulse-07-services-knowledge-base.patch           29 fajlova   32 KB
+└── pulse-08-sla-routing-policy-packs.patch           24 fajla     36 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -63,6 +66,7 @@ git apply demo/patches/pulse-04-charts.patch
 git apply demo/patches/pulse-05-tickets.patch
 git apply demo/patches/pulse-06-dashboard-reports.patch
 git apply demo/patches/pulse-07-services-knowledge-base.patch
+git apply demo/patches/pulse-08-sla-routing-policy-packs.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -112,7 +116,8 @@ ls frontend/src/components/charts/dual-area-chart.tsx   # postoji → 04 je prim
 ls frontend/src/components/ui/checkbox.tsx              # postoji → 05 je primijenjen
 grep -q fade-in frontend/src/components/dashboard/dashboard-charts.tsx   # → 06 je primijenjen
 grep -qF "tnum text-[10px]" frontend/src/components/services/service-catalog-card.tsx  # → 07 je primijenjen
-git status --porcelain | wc -l                          # ~184 putanja nakon 01–07
+grep -qF "fade-in space-y-4" frontend/src/components/sla/sla-profile-detail.tsx        # → 08 je primijenjen
+git status --porcelain | wc -l                          # ~208 putanja nakon 01–08
 ```
 
 ---
@@ -127,6 +132,13 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | Patch 05 primijenjen na F3 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** (`git diff` prema referentnom stablu prazan) |
 | Patch 06 primijenjen na F4.1 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 07 primijenjen na F4.2 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| Patch 08 primijenjen na F4.3 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **4.4 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
+| **4.4 — `npx vite build`** | ✅ `index-CLqTvvfQ.css` (64 060 B) / `index--hYLmxoT.js` (1 188 500 B) |
+| **4.4 — sve Tailwind klase (`sla/`, `routing/`, `policy-packs/`)** | ✅ 184 utility klase kroz pravi Tailwind build — **0 stvarnih propusta** |
+| **4.4 — mrtve klase u modulu** | ✅ nula: `leading-4.5` (4×) → `leading-[15px]`, `bg-*/12` (2×) → `/15`, `bg-warning/8` → `/6`, `border-border/60` → `/70`, `text-text*` (23×) → `text-foreground*`, `text-muted*` (42×) → `text-muted-foreground*` |
+| Skripta na „imam 01–07, dodajem 08" | ✅ `primijenjeno: 1  preskočeno: 7  grešaka: 0` |
+| Skripta na „imam 01–06, dodajem 07+08" | ✅ `primijenjeno: 2  preskočeno: 6  grešaka: 0`; rezultat 1:1 prema referentnom stablu |
 | **4.3 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** (bez novih testova — 4.3 nije mijenjao logiku) |
 | **4.3 — `npx vite build`** | ✅ `index-B0hdC7bj.css` (64 679 B) / `index-sszgvFMG.js` (1 189 621 B) |
 | **4.3 — sve Tailwind klase (`services/` + `knowledge-base/`)** | ✅ 139 utility klasa kroz pravi Tailwind build — **0 stvarnih propusta** |
@@ -267,6 +279,20 @@ i18n ključa ostali su isti. Promijenjen je samo izgled i raspored.
 | **Baza znanja** | Lista članaka i detalj: `fade-in`, `bg-success/12`/`bg-danger/12` → `/15` (mrtve alpha vrijednosti!), `surface-hover`, `rounded-lg` na dugmićima za povratnu informaciju **sa fokus prstenom**; `border-border/50` → `/70` |
 | **Svjesno nedirnuto (12 fajlova)** | `create-knowledge-article-sheet`, `knowledge-article-admin-fields`, `service-categories-admin-sheet`, `service-category-mutation-sheet`, `form-builder-actions`, `form-version-history`, `service-form-builder-sheet`, `service-onboarding-stepper`, `onboarding-wizard-steps`, `service-catalog-mutation-sheet`, `service-catalog-read-only-banner`, `service-downtime-windows-sheet` — već su bili u Pulse jeziku (samo `Sheet`/`Field`/`Button` primitivi ili čista logika) |
 
+### Talas 4.4 — šta je konkretno urađeno (SLA, routing, policy paketi)
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Semantički tokeni (najveći dio)** | `text-text` → `text-foreground` (23 mjesta) i `text-muted` → `text-muted-foreground` (42 mjesta), uključujući nijanse (`text-text/85` → `text-foreground/85`, `text-muted/70` → `text-muted-foreground/70`). Isti token, ali ime koje čitač koda i sledeći agent mogu pratiti — u modulu je ostalo da se dvije takve konvencije miješaju |
+| **Mrtve klase** | `leading-4.5` (4×, Tailwind je tiho ne generiše) → `leading-[15px]`; `bg-success/12` / `bg-danger/12` (2×) → `/15`; `bg-warning/8` → `/6` (isti ton kao ostala upozorenja); `border-border/60` → `/70` |
+| **Površine** | `bg-background/40|50|60|70` → `bg-elevated/*` (isti kanal, ali kroz semantički token); `hover:bg-elevated/40` → `hover:bg-surface-hover`; `transition-all` → `transition-colors` (2×) |
+| **Pulse ulaz** | `fade-in` na 11 površina: detalj SLA profila, lista profila, kalendari, eskalacije, matrica prioriteta, drawer-i, pravila rutiranja, tester i rezultat razrješavanja, matrica pokrivenosti, policy paketi |
+| **Fokus prstenovi** | `SlaAdminSelectorCard` i „novi profil" dugme u SLA administraciji i ćelija matrice pokrivenosti rutiranja — svi su bili ručni `<button>` bez fokusa (sada `focus-visible:outline-2 outline-offset-2 outline-primary/70`) |
+| **Matrica pokrivenosti** | Oznaka aktivne ćelije bila je `ring-1 ring-white/30` — **na svijetloj temi nevidljiva**. Sada `ring-2 ring-line-strong` (tematski token) |
+| **Svjesno nedirnuto (17 fajlova)** | Tabele i paneli koji već koriste `tableWrapClassName` / `tableHeadClassName` / `tableRowClassName` iz `control.ts` (promjena tih klasa bi promijenila cijelu aplikaciju, ne samo ovaj modul), `sla-edit-drawer` (Sheet primitiv), `routing-change-log-tab`, `sla-escalation-target-fields`, `sla-escalation-rule-form`, `sla-rule-form` i ostale forme gradеne na `controlClassName` / `Field` primitivima |
+
+> Napomena: `controlClassName` u `control.ts` namjerno ostaje na `rounded-md` — kontrole (inputi, selekti) u Pulse jeziku imaju manji radius od kartica. Zato `rounded-md` u ovom modulu nije „mrtva klasa".
+
 ### Popravke koje si prijavio (SLA i razgovor)
 
 **1) SLA — „izgleda da se u svim tiketima prikazuje SLA za sve tikete".** Prošao sam cijeli lanac
@@ -352,7 +378,7 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Nove komponente još nisu potrošene** | `Modal`, `ConfirmDialog`, `Toast`, `Segmented`, `Chip` postoje i dokumentovane su u Visual QA, ali ih Faza 2+ tek počinje koristiti. `ToastProvider` je montiran u `app.tsx`. |
 | **`prefers-color-scheme` u testovima** | Provider ima zaštitu za `window.matchMedia` (jsdom/node ga nema) — bitno ako kasnije dodaš jsdom testove. |
 | **`E2E` scenariji** | Nisu dirani i **trebali bi proći** (selektori su tekst/rola, a i18n je nepromijenjen). Nisam ih mogao pokrenuti — traže bazu i backend. |
-| **Mrtve Tailwind klase (ostatak)** | Dvije klase koje Tailwind tiho ne generiše (`bg-*/12` i `leading-4.5`) očišćene su u `tickets/`, `dashboard/`, `reports/`, `services/` i `knowledge-base/`. Ostaje `leading-4.5` na **7 mjesta** izvan tih modula (`admin/admin-audit-export-card`, `admin/admin-support-bundle-card`, `organizational-units/organizational-unit-details-card`, `policy-packs/policy-pack-cards`, `routing/create-routing-rule-form`, `routing/routing-resolution-result`, `routing/routing-resolution-tester`) — pada u talasima 4.4–4.6. `bg-*/12` ostaje još na 3 mjesta (`routing/resolution-result`, `routing/build-routing-coverage-matrix`, `users/users-summary-row`). |
+| **Mrtve Tailwind klase (ostatak)** | `leading-4.5` ostaje na **3 fajla** — `admin/admin-audit-export-card`, `admin/admin-support-bundle-card`, `organizational-units/organizational-unit-details-card` — i `bg-*/12` na **1 fajlu** (`users/users-summary-row`). Oba ulaze u **talas 4.5** (`admin/`, `users/`, `organizational-units/`, `groups/`, `rbac/`, `settings/`). |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
 ---
@@ -457,7 +483,7 @@ ls frontend/src/lib/theme/theme-provider.tsx
 
 ## 9. Prijedlog sljedećeg koraka
 
-Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1, 4.2 i 4.3. Ostaje:
+Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.4. Ostaje:
 
 1. **Pilot** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
    Tema se prebacuje iz topbara, bez rekompajliranja.
@@ -468,7 +494,7 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1, 4.2 i 4.3. Ostaje:
    | ~~4.1~~ | ~~`tickets/`~~ — **isporučeno** | ~~48~~ | ✅ `pulse-05` |
    | ~~4.2~~ | ~~`dashboard/`, `reports/`~~ — **isporučeno** | ~~11~~ | ✅ `pulse-06` |
    | ~~4.3~~ | ~~`services/`, `knowledge-base/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-07` |
-   | 4.4 | `sla/`, `routing/`, `policy-packs/` | 41 | `pulse-08` |
+   | ~~4.4~~ | ~~`sla/`, `routing/`, `policy-packs/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-08` |
    | 4.5 | `admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/` | 41 | `pulse-09` |
    | 4.6 | `config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/` | 20 | `pulse-10` |
    | 4.7 | `pages/*` + `lib/` pomoćne (gustina, tema) | 23 | `pulse-11` |
@@ -480,5 +506,5 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1, 4.2 i 4.3. Ostaje:
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
-izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.4" i nastavljam
-istim tokom: jedan talas = jedan patch (`pulse-08`) + verifikacija + handoff.
+izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.5" i nastavljam
+istim tokom: jedan talas = jedan patch (`pulse-09`) + verifikacija + handoff.

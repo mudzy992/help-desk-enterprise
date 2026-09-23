@@ -1,0 +1,664 @@
+diff --git a/frontend/src/components/policy-packs/policy-pack-cards.tsx b/frontend/src/components/policy-packs/policy-pack-cards.tsx
+index a375fe4..25e53ce 100644
+--- a/frontend/src/components/policy-packs/policy-pack-cards.tsx
++++ b/frontend/src/components/policy-packs/policy-pack-cards.tsx
+@@ -11,7 +11,7 @@ interface PolicyPackCardsProperties {
+ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
++    <div className="fade-in grid grid-cols-1 gap-3 md:grid-cols-3">
+       {packs.map((pack) => {
+         const name = t(`policyPacks.packs.${pack.key}.name`, {
+           defaultValue: pack.name,
+@@ -25,14 +25,14 @@ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
+             className="transition-colors hover:border-line-strong"
+           >
+             <div className="flex items-start gap-3 px-4 py-3.5">
+-              <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
++              <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground">
+                 <Package size={16} />
+               </span>
+               <div className="min-w-0 flex-1">
+                 <p className="text-[13px] font-semibold text-foreground">
+                   {name}
+                 </p>
+-                <p className="mt-0.5 text-[11.5px] leading-4.5 text-muted-foreground">
++                <p className="mt-0.5 text-[11.5px] leading-[15px] text-muted-foreground">
+                   {description}
+                 </p>
+                 <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground/80">
+diff --git a/frontend/src/components/policy-packs/policy-packs-panel.tsx b/frontend/src/components/policy-packs/policy-packs-panel.tsx
+index e1220b8..6ab4bfb 100644
+--- a/frontend/src/components/policy-packs/policy-packs-panel.tsx
++++ b/frontend/src/components/policy-packs/policy-packs-panel.tsx
+@@ -94,7 +94,7 @@ function PolicyPacksWorkspace() {
+     );
+   }
+   return (
+-    <div className="mb-4 space-y-4">
++    <div className="fade-in mb-4 space-y-4">
+       <PolicyPackCards packs={packs} />
+       <PolicyPackApplyForm
+         packs={packs}
+diff --git a/frontend/src/components/routing/build-routing-coverage-matrix.ts b/frontend/src/components/routing/build-routing-coverage-matrix.ts
+index f6726cd..21062e6 100644
+--- a/frontend/src/components/routing/build-routing-coverage-matrix.ts
++++ b/frontend/src/components/routing/build-routing-coverage-matrix.ts
+@@ -6,7 +6,7 @@ export const ROUTING_COVERAGE_CELL_STYLE: Record<
+   RoutingCoverageCellKind,
+   string
+ > = {
+-  exact: "border-success/35 bg-success/12 text-ok",
++  exact: "border-success/35 bg-success/15 text-ok",
+   inherited: "border-info/25 bg-info/10 text-info",
+   unrouted: "border-danger/30 bg-danger/8 text-danger/90",
+ };
+diff --git a/frontend/src/components/routing/create-routing-rule-form.tsx b/frontend/src/components/routing/create-routing-rule-form.tsx
+index 96a3839..3df886e 100644
+--- a/frontend/src/components/routing/create-routing-rule-form.tsx
++++ b/frontend/src/components/routing/create-routing-rule-form.tsx
+@@ -108,7 +108,7 @@ export function CreateRoutingRuleForm({
+         </Select>
+       </Field>
+       {duplicateRule ? (
+-        <p className="rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
++        <p className="rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/85">
+           {t("routing.duplicateWarning")}
+         </p>
+       ) : null}
+diff --git a/frontend/src/components/routing/delete-routing-rule-dialog.tsx b/frontend/src/components/routing/delete-routing-rule-dialog.tsx
+index 62e7a81..9213a8b 100644
+--- a/frontend/src/components/routing/delete-routing-rule-dialog.tsx
++++ b/frontend/src/components/routing/delete-routing-rule-dialog.tsx
+@@ -54,10 +54,10 @@ export function DeleteRoutingRuleDialog({
+   };
+ 
+   return (
+-    <div className="grid gap-3 rounded-md border border-danger/25 bg-danger/5 px-3 py-3">
+-      <p className="text-[12.5px] text-text/90">{t("routing.deleteConfirmTitle")}</p>
++    <div className="grid gap-3 rounded-lg border border-danger/25 bg-danger/5 px-3 py-3">
++      <p className="text-[12.5px] text-foreground/90">{t("routing.deleteConfirmTitle")}</p>
+       {impact ? (
+-        <p className="text-[12px] leading-5 text-text/80">
++        <p className="text-[12px] leading-5 text-foreground/80">
+           {t("routing.deleteImpact", {
+             before: impact.before.outcome,
+             after: impact.after.outcome,
+diff --git a/frontend/src/components/routing/routing-change-log-panel.tsx b/frontend/src/components/routing/routing-change-log-panel.tsx
+index 2fb0811..4f9a50b 100644
+--- a/frontend/src/components/routing/routing-change-log-panel.tsx
++++ b/frontend/src/components/routing/routing-change-log-panel.tsx
+@@ -36,18 +36,18 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
+               <Badge tone="neutral" dot={false} className="tnum">
+                 {entry.diff.action} · {entry.entityType}
+               </Badge>
+-              <span className="text-[11.5px] text-muted">
++              <span className="text-[11.5px] text-muted-foreground">
+                 {entry.actorDisplayName ?? t("routing.changeUnknownActor")}{" "}
+                 · <RelativeTime value={entry.createdAt} locale={i18n.language} />
+               </span>
+             </div>
+-            <p className="mt-1.5 text-[12.5px] italic text-text/85">
++            <p className="mt-1.5 text-[12.5px] italic text-foreground/85">
+               “{entry.reason}”
+             </p>
+-            <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-md border border-border`}>
++            <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
+               <table className="w-full">
+                 <thead>
+-                  <tr className="bg-background/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted/70">
++                  <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                     <th className="px-3 py-1.5 font-medium">
+                       {t("routing.changeField")}
+                     </th>
+@@ -62,14 +62,14 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
+                 <tbody className="divide-y divide-border/40">
+                   {entry.diff.changes.length === 0 ? (
+                     <tr className={tableRowClassName}>
+-                      <td className="px-3 py-1.5 text-[11.5px] text-muted" colSpan={3}>
++                      <td className="px-3 py-1.5 text-[11.5px] text-muted-foreground" colSpan={3}>
+                         {entry.diff.action}
+                       </td>
+                     </tr>
+                   ) : (
+                     entry.diff.changes.map((change) => (
+                       <tr key={`${entry.id}-${change.path}`}>
+-                        <td className="px-3 py-1.5 text-[11.5px] text-muted">
++                        <td className="px-3 py-1.5 text-[11.5px] text-muted-foreground">
+                           {change.path}
+                         </td>
+                         <td className="px-3 py-1.5 text-[11.5px] text-danger/85 line-through decoration-danger/40 tnum">
+diff --git a/frontend/src/components/routing/routing-coverage-cell.tsx b/frontend/src/components/routing/routing-coverage-cell.tsx
+index 953a337..8c6230c 100644
+--- a/frontend/src/components/routing/routing-coverage-cell.tsx
++++ b/frontend/src/components/routing/routing-coverage-cell.tsx
+@@ -40,9 +40,9 @@ export function RoutingCoverageCell({
+         onFocus={onActivate}
+         onBlur={onDeactivate}
+         className={cn(
+-          "flex h-7 w-full items-center justify-center rounded-[5px] border text-[10.5px] font-bold transition-all",
++          "flex h-7 w-full items-center justify-center rounded-[5px] border text-[10.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+           ROUTING_COVERAGE_CELL_STYLE[kind],
+-          isActive && "scale-105 ring-1 ring-white/30",
++          isActive && "scale-105 ring-2 ring-line-strong",
+         )}
+       >
+         {t(markKeyForKind(kind))}
+diff --git a/frontend/src/components/routing/routing-coverage-panel.tsx b/frontend/src/components/routing/routing-coverage-panel.tsx
+index 337919b..6e4b335 100644
+--- a/frontend/src/components/routing/routing-coverage-panel.tsx
++++ b/frontend/src/components/routing/routing-coverage-panel.tsx
+@@ -61,7 +61,7 @@ export function RoutingCoveragePanel({ onCreateRule }: RoutingCoveragePanelPrope
+   return (
+     <Card>
+       <CardHeader title={t("routing.coverageHeading")} />
+-      <div className="px-4 py-3.5">
++      <div className="fade-in px-4 py-3.5">
+         {isLoading ? (
+           <PanelSkeleton className="mt-0" label={t("routing.coverageHeading")} />
+         ) : errorKey ? (
+diff --git a/frontend/src/components/routing/routing-coverage-table.tsx b/frontend/src/components/routing/routing-coverage-table.tsx
+index 80bdb73..58f02c9 100644
+--- a/frontend/src/components/routing/routing-coverage-table.tsx
++++ b/frontend/src/components/routing/routing-coverage-table.tsx
+@@ -66,10 +66,10 @@ export function RoutingCoverageTable({
+   return (
+     <div>
+       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+-        <p className="text-[12px] text-muted">
++        <p className="text-[12px] text-muted-foreground">
+           {t("routing.coverageStats", matrix.stats)}
+         </p>
+-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
++        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+           {LEGEND.map((entry) => (
+             <span key={entry.kind} className="flex items-center gap-1.5">
+               <span
+@@ -92,7 +92,7 @@ export function RoutingCoverageTable({
+         >
+           <thead>
+             <tr>
+-              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted/70">
++              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground/70">
+                 {t("routing.matrixAxis")}
+               </th>
+               {matrix.originUnits.map((origin) => (
+@@ -101,13 +101,13 @@ export function RoutingCoverageTable({
+                     className={cn(
+                       "block text-[10.5px] font-medium",
+                       hover?.originUnitId === origin.originUnitId
+-                        ? "text-text"
+-                        : "text-muted/80",
++                        ? "text-foreground"
++                        : "text-muted-foreground/80",
+                     )}
+                   >
+                     {origin.originUnitShortName}
+                   </span>
+-                  <span className="block truncate text-[8.5px] font-normal text-muted/40">
++                  <span className="block truncate text-[8.5px] font-normal text-muted-foreground/40">
+                     {origin.originUnitPath}
+                   </span>
+                 </th>
+@@ -122,8 +122,8 @@ export function RoutingCoverageTable({
+                     className={cn(
+                       "text-[11.5px]",
+                       hover?.serviceId === service.serviceId
+-                        ? "text-text"
+-                        : "text-text/80",
++                        ? "text-foreground"
++                        : "text-foreground/80",
+                     )}
+                   >
+                     {service.serviceName}
+diff --git a/frontend/src/components/routing/routing-coverage-tooltip.tsx b/frontend/src/components/routing/routing-coverage-tooltip.tsx
+index 9fcda0a..2c963bd 100644
+--- a/frontend/src/components/routing/routing-coverage-tooltip.tsx
++++ b/frontend/src/components/routing/routing-coverage-tooltip.tsx
+@@ -79,8 +79,8 @@ export function RoutingCoverageTooltip({
+       style={style}
+       role="tooltip"
+     >
+-      <p className="text-[11px] font-medium text-text">{item.serviceName}</p>
+-      <p className="text-[10.5px] text-muted">{item.originUnitPath}</p>
++      <p className="text-[11px] font-medium text-foreground">{item.serviceName}</p>
++      <p className="text-[10.5px] text-muted-foreground">{item.originUnitPath}</p>
+       <div className="mt-1.5 flex items-center gap-1.5">
+         <MetaBadge
+           meta={{
+@@ -89,13 +89,13 @@ export function RoutingCoverageTooltip({
+           }}
+         />
+         {groupName ? (
+-          <span className="tnum text-[10.5px] text-text/85">→ {groupName}</span>
++          <span className="tnum text-[10.5px] text-foreground/85">→ {groupName}</span>
+         ) : null}
+       </div>
+-      <p className="mt-1 tnum text-[10px] text-muted/70">
++      <p className="mt-1 tnum text-[10px] text-muted-foreground/70">
+         {fallbackPath || item.originUnitPath}
+       </p>
+-      <p className="mt-0.5 text-[10px] text-muted/70">
++      <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+         {t("routing.fallbackDepth", { depth: item.resolution.fallbackDepth })}
+       </p>
+       {kind === "unrouted" ? (
+diff --git a/frontend/src/components/routing/routing-resolution-result.tsx b/frontend/src/components/routing/routing-resolution-result.tsx
+index 5c5bc3a..e2efa3f 100644
+--- a/frontend/src/components/routing/routing-resolution-result.tsx
++++ b/frontend/src/components/routing/routing-resolution-result.tsx
+@@ -36,7 +36,7 @@ export function RoutingResolutionResult({
+         title={t("routing.resolutionTitle")}
+         subtitle={t("routing.resolutionSubtitle")}
+       />
+-      <div className="px-4 py-4">
++      <div className="fade-in px-4 py-4">
+         {isLoading ? (
+           <PanelSkeleton className="mt-0" label={t("routing.resolutionTitle")} />
+         ) : errorKey ? (
+@@ -84,7 +84,7 @@ function ResolutionBody({
+           }}
+           className="px-2 py-1 text-[12px]"
+         />
+-        <span className="text-[15px] font-semibold text-text">
++        <span className="text-[15px] font-semibold text-foreground">
+           {resolution.groupId ? groupDisplay : t("routing.noGroup")}
+         </span>
+         {resolution.fallbackDepth > 0 && resolution.groupId ? (
+@@ -94,7 +94,7 @@ function ResolutionBody({
+         ) : null}
+       </div>
+       {resolution.outcome === "UNROUTED" ? (
+-        <div className="mt-3 rounded-md border border-danger/30 bg-danger/6 px-3.5 py-2.5 text-[12px] leading-5 text-text/85">
++        <div className="mt-3 rounded-lg border border-danger/30 bg-danger/6 px-3.5 py-2.5 text-[12px] leading-5 text-foreground/85">
+           {t("routing.unroutedBanner")}
+           {queue ? (
+             <span className="tnum"> {queue.ownerRole}</span>
+@@ -102,19 +102,19 @@ function ResolutionBody({
+         </div>
+       ) : null}
+       <FallbackPath resolution={resolution} />
+-      <div className="mt-4 rounded-md border border-border bg-background/70 p-3.5">
+-        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted/60">
++      <div className="mt-4 rounded-lg border border-border bg-elevated/70 p-3.5">
++        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+           <GitBranch size={11} /> {t("routing.engineResponse")}
+         </p>
+-        <pre className="overflow-x-auto text-[11.5px] leading-5 text-text/85 tnum">
++        <pre className="overflow-x-auto text-[11.5px] leading-5 text-foreground/85 tnum">
+           {JSON.stringify(resolution, null, 2)}
+         </pre>
+       </div>
+-      <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-4.5 text-muted">
++      <p className="mt-3 flex items-start gap-2 text-[11.5px] leading-[15px] text-muted-foreground">
+         <Info size={12.5} className="mt-0.5 shrink-0" />
+         {t("routing.testerNote")}
+       </p>
+-      <p className="mt-1 text-[11px] text-muted/60">
++      <p className="mt-1 text-[11px] text-muted-foreground/60">
+         {t("routing.testerInputSummary", {
+           origin: originLabel,
+           service: serviceLabel,
+@@ -128,7 +128,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
+   const { t } = useTranslation();
+   return (
+     <div className="mt-4">
+-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
++      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+         {t("routing.fallbackPathHeading")}
+       </p>
+       <div className="flex flex-wrap items-center gap-1.5">
+@@ -140,10 +140,10 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
+             <span key={`${path}-${index}`} className="flex items-center gap-1.5">
+               <span
+                 className={cn(
+-                  "rounded-md border px-2 py-1 text-[11px] tnum",
++                  "rounded-lg border px-2 py-1 text-[11px] tnum",
+                   isMatch
+-                    ? "border-success/45 bg-success/12 font-semibold text-ok"
+-                    : "border-border bg-background/60 text-muted",
++                    ? "border-success/45 bg-success/15 font-semibold text-ok"
++                    : "border-border bg-elevated/60 text-muted-foreground",
+                 )}
+               >
+                 {path}
+@@ -155,7 +155,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
+                 {isMatch ? <span className="ml-1">✓</span> : null}
+               </span>
+               {index < resolution.fallbackPath.length - 1 ? (
+-                <span className="text-muted/50">→</span>
++                <span className="text-muted-foreground/50">→</span>
+               ) : null}
+             </span>
+           );
+diff --git a/frontend/src/components/routing/routing-resolution-tester.tsx b/frontend/src/components/routing/routing-resolution-tester.tsx
+index abf58e8..bee087d 100644
+--- a/frontend/src/components/routing/routing-resolution-tester.tsx
++++ b/frontend/src/components/routing/routing-resolution-tester.tsx
+@@ -96,7 +96,7 @@ export function RoutingResolutionTester() {
+           title={t("routing.testerInputTitle")}
+           subtitle={t("routing.testerInputSubtitle")}
+         />
+-        <div className="space-y-4 px-4 py-4">
++        <div className="fade-in space-y-4 px-4 py-4">
+           <Field
+             label={t("routing.originUnitId")}
+             hint={t("routing.testerOriginHint")}
+@@ -125,8 +125,8 @@ export function RoutingResolutionTester() {
+               ))}
+             </Select>
+           </Field>
+-          <div className="rounded-md border border-border bg-background/50 px-3 py-2.5 text-[11px] leading-4.5 text-muted">
+-            <code className="tnum text-text/80">
++          <div className="rounded-lg border border-border bg-elevated/50 px-3 py-2.5 text-[11px] leading-[15px] text-muted-foreground">
++            <code className="tnum text-foreground/80">
+               GET /routing/resolve
+               <br />
+               ?originUnitId={originUnitId}
+diff --git a/frontend/src/components/routing/routing-rule-row.tsx b/frontend/src/components/routing/routing-rule-row.tsx
+index 036b7f3..dda0097 100644
+--- a/frontend/src/components/routing/routing-rule-row.tsx
++++ b/frontend/src/components/routing/routing-rule-row.tsx
+@@ -45,15 +45,15 @@ export function RoutingRuleRow({
+           {truncateIdentifier(rule.id).toUpperCase()}
+         </td>
+         <td className="px-4 py-2.5">
+-          <span className="block text-[12px] text-text/90">{rule.originUnitPath}</span>
++          <span className="block text-[12px] text-foreground/90">{rule.originUnitPath}</span>
+         </td>
+-        <td className="px-4 py-2.5 text-[12px] text-text/85">{rule.serviceName}</td>
++        <td className="px-4 py-2.5 text-[12px] text-foreground/85">{rule.serviceName}</td>
+         <td className="px-4 py-2.5">
+           <Badge tone="primary" dot={false}>
+             {rule.groupName}
+           </Badge>
+         </td>
+-        <td className="px-4 py-2.5 text-right text-[11px] text-muted">
++        <td className="px-4 py-2.5 text-right text-[11px] text-muted-foreground">
+           <RelativeTime value={rule.updatedAt} locale={locale} />
+         </td>
+         <td className="px-4 py-2.5 text-right">
+diff --git a/frontend/src/components/routing/routing-rules-panel.tsx b/frontend/src/components/routing/routing-rules-panel.tsx
+index e4ce146..da4462e 100644
+--- a/frontend/src/components/routing/routing-rules-panel.tsx
++++ b/frontend/src/components/routing/routing-rules-panel.tsx
+@@ -41,7 +41,7 @@ export function RoutingRulesPanel() {
+   }, [loadRules]);
+ 
+   return (
+-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
++    <div className="fade-in grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
+       <Card>
+         <CardHeader
+           title={t("routing.rulesHeading")}
+diff --git a/frontend/src/components/sla/priority-matrix-panel.tsx b/frontend/src/components/sla/priority-matrix-panel.tsx
+index 3bbdfcc..2fb7282 100644
+--- a/frontend/src/components/sla/priority-matrix-panel.tsx
++++ b/frontend/src/components/sla/priority-matrix-panel.tsx
+@@ -70,7 +70,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
+   };
+ 
+   return (
+-    <div className="space-y-4">
++    <div className="fade-in space-y-4">
+       <p className="text-[13px] text-muted-foreground">{t("sla.priorityMatrixHint")}</p>
+       {errorKey ? (
+         <p role="alert" className={errorTextClassName}>
+@@ -103,7 +103,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
+                   return (
+                     <td key={key} className="border border-border px-1.5 py-1">
+                       <select
+-                        className="w-full rounded-md border border-border bg-background px-1.5 py-1"
++                        className="w-full rounded-lg border border-border bg-surface px-1.5 py-1"
+                         disabled={!canWrite || isSaving}
+                         value={value}
+                         aria-label={`${impact} × ${urgency}`}
+@@ -133,7 +133,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
+           <label className={`flex-1 space-y-1 ${labelClassName}`}>
+             <span>{t("sla.reason")}</span>
+             <input
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px]"
++              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px]"
+               value={reason}
+               onChange={(event) => setReason(event.target.value)}
+               placeholder={t("sla.priorityMatrixReasonPlaceholder")}
+diff --git a/frontend/src/components/sla/sla-admin-selector.tsx b/frontend/src/components/sla/sla-admin-selector.tsx
+index 9e60f97..ab04be3 100644
+--- a/frontend/src/components/sla/sla-admin-selector.tsx
++++ b/frontend/src/components/sla/sla-admin-selector.tsx
+@@ -33,10 +33,10 @@ export function SlaAdminSelectorCard({
+       type="button"
+       onClick={onSelect}
+       className={cn(
+-        "w-full rounded-lg border p-3.5 text-left transition-all",
++        "w-full rounded-lg border p-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+         isSelected
+           ? "border-primary/50 bg-primary/8"
+-          : "border-border bg-surface hover:border-line-strong hover:bg-elevated/40",
++          : "border-border bg-surface hover:border-line-strong hover:bg-surface-hover",
+       )}
+     >
+       <div className="flex items-center justify-between gap-2">
+@@ -45,11 +45,11 @@ export function SlaAdminSelectorCard({
+           {badgeLabel}
+         </Badge>
+       </div>
+-      <p className="mt-0.5 text-[13px] font-medium text-text">{title}</p>
++      <p className="mt-0.5 text-[13px] font-medium text-foreground">{title}</p>
+       {description ? (
+-        <p className="mt-1 line-clamp-2 text-[11.5px] leading-[18px] text-muted">{description}</p>
++        <p className="mt-1 line-clamp-2 text-[11.5px] leading-[18px] text-muted-foreground">{description}</p>
+       ) : null}
+-      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted/70">
++      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+         <MetaIcon size={11.5} />
+         {metaLabel}
+       </p>
+@@ -67,7 +67,7 @@ export function SlaAdminNewItemButton({ label, onClick }: SlaAdminNewItemButtonP
+     <button
+       type="button"
+       onClick={onClick}
+-      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted transition-colors hover:border-primary/50 hover:text-text"
++      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong py-3 text-[12px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+     >
+       <Plus size={13} />
+       {label}
+@@ -99,7 +99,7 @@ export function SlaAdminListColumn({
+   children,
+ }: SlaAdminListColumnProperties) {
+   return (
+-    <div className="space-y-2.5">
++    <div className="fade-in space-y-2.5">
+       {isLoading ? (
+         <PanelSkeleton className="mt-0" label={loadingLabel} />
+       ) : isEmpty ? (
+diff --git a/frontend/src/components/sla/sla-calendar-week-grid.tsx b/frontend/src/components/sla/sla-calendar-week-grid.tsx
+index 8434836..9424c67 100644
+--- a/frontend/src/components/sla/sla-calendar-week-grid.tsx
++++ b/frontend/src/components/sla/sla-calendar-week-grid.tsx
+@@ -28,13 +28,13 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
+           const hours = formatSlaDayHours(calendar.weeklyHours, weekday.key);
+           return (
+             <div key={weekday.key} className="text-center">
+-              <p className="text-[9.5px] text-muted/60">{t(WEEKDAY_SHORT_KEYS[weekday.key])}</p>
++              <p className="text-[9.5px] text-muted-foreground/60">{t(WEEKDAY_SHORT_KEYS[weekday.key])}</p>
+               <div
+                 className={cn(
+-                  "mt-1 flex h-9 items-center justify-center rounded-md border text-[10.5px] tnum",
++                  "mt-1 flex h-9 items-center justify-center rounded-lg border text-[10.5px] tnum",
+                   hours
+                     ? "border-success/30 bg-success/10 text-ok"
+-                    : "border-border/60 bg-background/40 text-muted/50",
++                    : "border-border/70 bg-elevated/40 text-muted-foreground/50",
+                 )}
+               >
+                 {hours ?? "—"}
+@@ -44,8 +44,8 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
+         })}
+       </div>
+       {calendar.holidays.length > 0 ? (
+-        <div className="mt-3.5 border-t border-border/60 pt-3">
+-          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
++        <div className="mt-3.5 border-t border-border/70 pt-3">
++          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+             {t("sla.holidaysPaused")}
+           </p>
+           <ul className="space-y-1">
+@@ -54,8 +54,8 @@ export function SlaCalendarWeekGrid({ calendar }: SlaCalendarWeekGridProperties)
+                 key={`${holiday.date}-${holiday.name}`}
+                 className="flex items-center justify-between gap-2 text-[11.5px]"
+               >
+-                <span className="text-text/85">{holiday.name}</span>
+-                <span className="tnum text-muted/70">
++                <span className="text-foreground/85">{holiday.name}</span>
++                <span className="tnum text-muted-foreground/70">
+                   {formatSlaHolidayDate(holiday.date, i18n.language)}
+                 </span>
+               </li>
+diff --git a/frontend/src/components/sla/sla-calendars-panel.tsx b/frontend/src/components/sla/sla-calendars-panel.tsx
+index ea2408e..3ee4982 100644
+--- a/frontend/src/components/sla/sla-calendars-panel.tsx
++++ b/frontend/src/components/sla/sla-calendars-panel.tsx
+@@ -90,7 +90,7 @@ export function SlaCalendarsPanel() {
+   };
+ 
+   return (
+-    <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
++    <div className="fade-in grid gap-4 xl:grid-cols-[300px_1fr]">
+       <SlaAdminListColumn
+         isLoading={isLoading}
+         isEmpty={calendars.length === 0}
+diff --git a/frontend/src/components/sla/sla-escalation-rules-panel.tsx b/frontend/src/components/sla/sla-escalation-rules-panel.tsx
+index 3fc64ce..329f9a5 100644
+--- a/frontend/src/components/sla/sla-escalation-rules-panel.tsx
++++ b/frontend/src/components/sla/sla-escalation-rules-panel.tsx
+@@ -114,7 +114,7 @@ export function SlaEscalationRulesPanel({
+   if (embedded) {
+     return (
+       <div className="space-y-3">
+-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
++        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+           {t("sla.escalationsHeading")}
+         </p>
+         {table}
+@@ -124,7 +124,7 @@ export function SlaEscalationRulesPanel({
+   }
+ 
+   return (
+-    <div className="grid gap-4">
++    <div className="fade-in grid gap-4">
+       <Card>
+         <CardHeader title={t("sla.escalationsHeading")} subtitle={t("sla.escalationsHint")} />
+         {table}
+diff --git a/frontend/src/components/sla/sla-escalations-card.tsx b/frontend/src/components/sla/sla-escalations-card.tsx
+index f8accf5..386038c 100644
+--- a/frontend/src/components/sla/sla-escalations-card.tsx
++++ b/frontend/src/components/sla/sla-escalations-card.tsx
+@@ -61,7 +61,7 @@ export function SlaEscalationsCard({
+               <div key={rule.id} className="flex items-start gap-2.5">
+                 <span
+                   className={cn(
+-                    "mt-0.5 flex size-6 items-center justify-center rounded-md border",
++                    "mt-0.5 flex size-6 items-center justify-center rounded-lg border",
+                     isImmediate
+                       ? "border-danger/30 bg-danger/10"
+                       : "border-warning/30 bg-warning/10",
+@@ -73,15 +73,15 @@ export function SlaEscalationsCard({
+                   />
+                 </span>
+                 <div className="flex-1">
+-                  <p className="tnum text-[12.5px] font-medium text-text">
++                  <p className="tnum text-[12.5px] font-medium text-foreground">
+                     {t("sla.escalationAtOffset", {
+                       minutes: rule.triggerOffsetMinutes,
+                       level: rule.level,
+                     })}
+                   </p>
+-                  <p className="text-[11.5px] leading-[18px] text-muted">
++                  <p className="text-[11.5px] leading-[18px] text-muted-foreground">
+                     {t("sla.escalationNotifyAction")} ·{" "}
+-                    <span className="text-text/70">
++                    <span className="text-foreground/70">
+                       {formatSlaEscalationTarget(rule, t as never)}
+                     </span>
+                   </p>
+diff --git a/frontend/src/components/sla/sla-priority-targets-table.tsx b/frontend/src/components/sla/sla-priority-targets-table.tsx
+index 40bd850..668c384 100644
+--- a/frontend/src/components/sla/sla-priority-targets-table.tsx
++++ b/frontend/src/components/sla/sla-priority-targets-table.tsx
+@@ -60,28 +60,28 @@ export function SlaPriorityTargetsTable({
+             const priority = rule.priority as TicketPriority;
+             const exposure = countSlaPriorityExposure(tickets, slaProfileId, priority);
+             return (
+-              <tr key={rule.id} className="transition-colors hover:bg-elevated/40">
++              <tr key={rule.id} className="transition-colors hover:bg-surface-hover">
+                 <td className="px-4 py-3">
+                   <Badge tone={TICKET_PRIORITY_META[priority].tone} dot>
+                     {t(slaPriorityLabelKey(priority))}
+                   </Badge>
+                 </td>
+                 <td className="px-4 py-3">
+-                  <span className="flex items-center gap-1.5 text-[12.5px] text-text tnum">
+-                    <Clock3 size={12.5} className="text-muted" />
++                  <span className="flex items-center gap-1.5 text-[12.5px] text-foreground tnum">
++                    <Clock3 size={12.5} className="text-muted-foreground" />
+                     {formatTargetMinutes(rule.responseMinutes, i18n.language)}
+                   </span>
+                 </td>
+                 <td className="px-4 py-3">
+-                  <span className="flex items-center gap-1.5 text-[12.5px] text-text tnum">
+-                    <AlarmClock size={12.5} className="text-muted" />
++                  <span className="flex items-center gap-1.5 text-[12.5px] text-foreground tnum">
++                    <AlarmClock size={12.5} className="text-muted-foreground" />
+                     {formatTargetMinutes(rule.resolutionMinutes, i18n.language)}
+                   </span>
+                 </td>
+-                <td className="px-4 py-3 text-[11.5px] text-muted">{calendarLabel}</td>
++                <td className="px-4 py-3 text-[11.5px] text-muted-foreground">{calendarLabel}</td>
+                 <td className="px-4 py-3 text-right">
+                   <div className="flex flex-wrap items-center justify-end gap-1.5">
+-                    <span className="tnum text-[12.5px] font-medium text-text">
++                    <span className="tnum text-[12.5px] font-medium text-foreground">
+                       {exposure.open}
+                     </span>
+                     {exposure.atRisk > 0 ? (
+diff --git a/frontend/src/components/sla/sla-profile-detail-drawers.tsx b/frontend/src/components/sla/sla-profile-detail-drawers.tsx
+index e024981..64818d5 100644
+--- a/frontend/src/components/sla/sla-profile-detail-drawers.tsx
++++ b/frontend/src/components/sla/sla-profile-detail-drawers.tsx
+@@ -122,7 +122,7 @@ export function SlaProfileDetailDrawers({
+           if (!open) onClose();
+         }}
+       >
+-        <div className="space-y-4">
++        <div className="fade-in space-y-4">
+           {overrides.length > 0 ? (
+             <SlaRulesTable
+               rules={overrides}
+diff --git a/frontend/src/components/sla/sla-profile-detail-header.tsx b/frontend/src/components/sla/sla-profile-detail-header.tsx
+index a2e463e..0adc527 100644
+--- a/frontend/src/components/sla/sla-profile-detail-header.tsx
++++ b/frontend/src/components/sla/sla-profile-detail-header.tsx
+@@ -30,7 +30,7 @@ export function SlaProfileDetailHeader({
+             <span className="flex items-center gap-2">
+               <TimerReset size={15} className="text-link" />
+               {profile.name}{" "}
+-              <span className="tnum text-muted/70">({profile.key})</span>
++              <span className="tnum text-muted-foreground/70">({profile.key})</span>
+             </span>
+           ) : (
+             t("sla.newProfile")
+diff --git a/frontend/src/components/sla/sla-profile-detail.tsx b/frontend/src/components/sla/sla-profile-detail.tsx
+index c28eb88..0370bf0 100644
+--- a/frontend/src/components/sla/sla-profile-detail.tsx
++++ b/frontend/src/components/sla/sla-profile-detail.tsx
+@@ -96,7 +96,7 @@ export function SlaProfileDetail({
+   }
+ 
+   return (
+-    <div className="space-y-4">
++    <div className="fade-in space-y-4">
+       <SlaProfileDetailHeader
+         profile={profile}
+         canWrite={canWrite}

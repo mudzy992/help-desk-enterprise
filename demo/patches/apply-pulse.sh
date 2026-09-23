@@ -45,6 +45,7 @@ PATCHES=(
   "pulse-05-tickets.patch:frontend/src/components/ui/checkbox.tsx"
   "pulse-06-dashboard-reports.patch:frontend/src/components/dashboard/dashboard-charts.tsx:fade-in"
   "pulse-07-services-knowledge-base.patch:frontend/src/components/services/service-catalog-card.tsx:tnum text-[10px]"
+  "pulse-08-sla-routing-policy-packs.patch:frontend/src/components/sla/sla-profile-detail.tsx:fade-in space-y-4"
 )
 
 applied=0
