@@ -328,6 +328,8 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Nove komponente još nisu potrošene** | `Modal`, `ConfirmDialog`, `Toast`, `Segmented`, `Chip` postoje i dokumentovane su u Visual QA, ali ih Faza 2+ tek počinje koristiti. `ToastProvider` je montiran u `app.tsx`. |
 | **`prefers-color-scheme` u testovima** | Provider ima zaštitu za `window.matchMedia` (jsdom/node ga nema) — bitno ako kasnije dodaš jsdom testove. |
 | **`E2E` scenariji** | Nisu dirani i **trebali bi proći** (selektori su tekst/rola, a i18n je nepromijenjen). Nisam ih mogao pokrenuti — traže bazu i backend. |
+| **Mrtve Tailwind klase (ostatak)** | Dvije klase koje Tailwind tiho ne generiše (`bg-*/12` i `leading-4.5`) očišćene su u `tickets/`, `dashboard/` i `reports/`. Ostaje `leading-4.5` na 9 mjesta izvan tih modula (`admin/`, `organizational-units/`, `policy-packs/`, `routing/`, `services/onboarding/`) — pada u talasima 4.3–4.5. |
+| **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
 ---
 
