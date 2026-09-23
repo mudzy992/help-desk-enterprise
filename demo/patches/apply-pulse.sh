@@ -40,6 +40,7 @@ PATCHES=(
   "pulse-02-ui-primitives.patch:frontend/src/components/ui/segmented.tsx"
   "pulse-03-shell-palette-login-wizard.patch:frontend/src/components/layout/command-palette.tsx"
   "pulse-04-charts.patch:frontend/src/components/charts/dual-area-chart.tsx"
+  "pulse-05-tickets.patch:frontend/src/components/ui/checkbox.tsx"
 )
 
 applied=0

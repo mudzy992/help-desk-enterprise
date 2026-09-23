@@ -1,0 +1,1552 @@
+diff --git a/frontend/src/components/tickets/create-ticket-draft-view.tsx b/frontend/src/components/tickets/create-ticket-draft-view.tsx
+index 1f3a077..5bd61ce 100644
+--- a/frontend/src/components/tickets/create-ticket-draft-view.tsx
++++ b/frontend/src/components/tickets/create-ticket-draft-view.tsx
+@@ -54,7 +54,7 @@ export function CreateTicketDraftView({
+   onSubmit,
+ }: CreateTicketDraftViewProperties) {
+   return (
+-    <form className="mt-1" onSubmit={onSubmit}>
++    <form className="fade-in mt-1" onSubmit={onSubmit}>
+       <CreateTicketStepper activeIndex={step} />
+       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
+         <Card>
+diff --git a/frontend/src/components/tickets/create-ticket-fields.tsx b/frontend/src/components/tickets/create-ticket-fields.tsx
+index 01b4f27..280df82 100644
+--- a/frontend/src/components/tickets/create-ticket-fields.tsx
++++ b/frontend/src/components/tickets/create-ticket-fields.tsx
+@@ -52,7 +52,7 @@ export function CreateTicketFields({
+         <label className={`${labelClassName} md:col-span-2`}>
+           <span>
+             {t("tickets.titleField")}
+-            <span className="text-danger"> *</span>
++            <span className="text-danger" aria-hidden="true"> *</span>
+           </span>
+           <input
+             className={controlClassName}
+@@ -66,7 +66,7 @@ export function CreateTicketFields({
+           <label className={labelClassName}>
+             <span>
+               {t("tickets.originUnit")}
+-              <span className="text-danger"> *</span>
++              <span className="text-danger" aria-hidden="true"> *</span>
+             </span>
+             <select
+               className={selectClassName}
+@@ -95,7 +95,7 @@ export function CreateTicketFields({
+         <label className={`${labelClassName} md:col-span-2`}>
+           <span>
+             {t("tickets.descriptionField")}
+-            <span className="text-danger"> *</span>
++            <span className="text-danger" aria-hidden="true"> *</span>
+           </span>
+           <textarea
+             className={textareaClassName}
+@@ -105,7 +105,7 @@ export function CreateTicketFields({
+           />
+         </label>
+         {activeForm ? (
+-          <div className="grid gap-2 md:col-span-2">
++          <div className="grid gap-2 border-t border-border/70 pt-4 md:col-span-2">
+             <p className="text-[13.5px] font-semibold text-foreground">{t("tickets.formFields")}</p>
+             <ServiceFormFields
+               schema={activeForm.schema}
+diff --git a/frontend/src/components/tickets/create-ticket-intercept-view.tsx b/frontend/src/components/tickets/create-ticket-intercept-view.tsx
+index 14cbd86..f35f342 100644
+--- a/frontend/src/components/tickets/create-ticket-intercept-view.tsx
++++ b/frontend/src/components/tickets/create-ticket-intercept-view.tsx
+@@ -31,7 +31,7 @@ export function CreateTicketInterceptView({
+ }: CreateTicketInterceptViewProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="mt-1">
++    <div className="fade-in mt-1">
+       <CreateTicketStepper activeIndex={2} />
+       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
+         <Card>
+diff --git a/frontend/src/components/tickets/create-ticket-review-view.tsx b/frontend/src/components/tickets/create-ticket-review-view.tsx
+index e74edd5..09096a2 100644
+--- a/frontend/src/components/tickets/create-ticket-review-view.tsx
++++ b/frontend/src/components/tickets/create-ticket-review-view.tsx
+@@ -42,7 +42,7 @@ export function CreateTicketReviewView({
+   const formVersionLabel =
+     activeForm === null ? "—" : t("tickets.detail.formVersionValue", { version: activeForm.version });
+   return (
+-    <div className="mt-1">
++    <div className="fade-in mt-1">
+       <CreateTicketStepper activeIndex={3} />
+       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
+         <Card>
+diff --git a/frontend/src/components/tickets/create-ticket-service-picker.tsx b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+index 172612a..b11ef9b 100644
+--- a/frontend/src/components/tickets/create-ticket-service-picker.tsx
++++ b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+@@ -56,7 +56,7 @@ export function CreateTicketServicePicker({
+                 "rounded-lg border p-3.5 text-left transition-all duration-150",
+                 selected
+                   ? "border-primary/60 bg-primary/10"
+-                  : "border-border bg-background/40 hover:border-line-strong hover:bg-elevated/50",
++                  : "border-border bg-background/40 hover:border-line-strong hover:bg-surface-hover",
+               )}
+             >
+               <div className="flex items-center justify-between gap-2">
+diff --git a/frontend/src/components/tickets/create-ticket-severity-fields.tsx b/frontend/src/components/tickets/create-ticket-severity-fields.tsx
+index 0b8f0d5..8d3d5fc 100644
+--- a/frontend/src/components/tickets/create-ticket-severity-fields.tsx
++++ b/frontend/src/components/tickets/create-ticket-severity-fields.tsx
+@@ -1,6 +1,6 @@
+ import { useTranslation } from "react-i18next";
+ import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
+-import { cn } from "@/lib/utils";
++import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
+ import { ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
+ import { ticketText } from "@/lib/tickets/ticket-text";
+ import type { TicketImpact, TicketPriority } from "@/services/tickets-api";
+@@ -24,7 +24,7 @@ export function CreateTicketSeverityFields({
+ }: CreateTicketSeverityFieldsProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="mt-5 grid grid-cols-1 gap-4 border-t border-border/60 pt-4 md:grid-cols-2">
++    <div className="mt-5 grid grid-cols-1 gap-4 border-t border-border/70 pt-4 md:grid-cols-2">
+       {(
+         [
+           [t("tickets.impactLabel"), impact, onImpactChange],
+@@ -33,23 +33,17 @@ export function CreateTicketSeverityFields({
+       ).map(([label, value, onChange]) => (
+         <div key={label}>
+           <p className="mb-1.5 text-[12.5px] font-medium text-foreground">{label}</p>
+-          <div className="flex rounded-md border border-border bg-background/50 p-0.5">
+-            {levels.map((level) => (
+-              <button
+-                key={level}
+-                type="button"
+-                onClick={() => onChange(level)}
+-                className={cn(
+-                  "flex-1 rounded-[5px] border py-1.5 text-[11.5px] font-medium transition-colors duration-150",
+-                  value === level
+-                    ? "border-border bg-elevated text-foreground"
+-                    : "border-transparent text-muted-foreground hover:text-foreground",
+-                )}
+-              >
+-                {ticketText(t, ticketSeverityLabelKey[level])}
+-              </button>
+-            ))}
+-          </div>
++          <Segmented<TicketImpact>
++            size="sm"
++            className="w-full [&>button]:flex-1"
++            ariaLabel={label}
++            value={value}
++            onChange={onChange}
++            items={levels.map<SegmentedItem<TicketImpact>>((level) => ({
++              value: level,
++              label: ticketText(t, ticketSeverityLabelKey[level]),
++            }))}
++          />
+         </div>
+       ))}
+       <div className="flex flex-wrap items-center gap-2 text-[11.5px] text-muted-foreground md:col-span-2">
+diff --git a/frontend/src/components/tickets/create-ticket-side-panel.tsx b/frontend/src/components/tickets/create-ticket-side-panel.tsx
+index 7ec7648..60cf048 100644
+--- a/frontend/src/components/tickets/create-ticket-side-panel.tsx
++++ b/frontend/src/components/tickets/create-ticket-side-panel.tsx
+@@ -17,7 +17,7 @@ export function CreateTicketSidePanel() {
+         <ol className="mt-2.5 space-y-2.5">
+           {items.map((item, index) => (
+             <li key={item} className="flex gap-2.5 text-[11.5px] leading-[18px] text-muted-foreground">
+-              <span className="tnum flex size-[18px] shrink-0 items-center justify-center rounded border border-border bg-elevated text-[10px] font-semibold text-foreground/80">
++              <span className="tnum flex size-[18px] shrink-0 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-[10px] font-semibold text-link">
+                 {index + 1}
+               </span>
+               {item}
+diff --git a/frontend/src/components/tickets/create-ticket-step-nav.tsx b/frontend/src/components/tickets/create-ticket-step-nav.tsx
+index 3dd8c11..9854109 100644
+--- a/frontend/src/components/tickets/create-ticket-step-nav.tsx
++++ b/frontend/src/components/tickets/create-ticket-step-nav.tsx
+@@ -26,7 +26,7 @@ export function CreateTicketStepNav({
+         <ArrowLeft size={14} /> {t("tickets.stepBack")}
+       </Button>
+       <div className="flex items-center gap-2">
+-        <span className="text-[11px] text-muted-foreground/70 tnum">
++        <span className="tnum text-[11px] text-muted-foreground/70">
+           {ticketText(t, "tickets.stepCount", { current: step + 1, total: CREATE_TICKET_STEP_TOTAL })}
+         </span>
+         {step === 0 ? (
+diff --git a/frontend/src/components/tickets/knowledge-intercept-panel.tsx b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+index b966c98..ba28b18 100644
+--- a/frontend/src/components/tickets/knowledge-intercept-panel.tsx
++++ b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+@@ -78,12 +78,12 @@ export function KnowledgeInterceptPanel({
+           body={t("tickets.interceptEmpty")}
+         />
+       ) : (
+-        <ul className="grid gap-3">
++        <ul className="fade-in grid gap-3">
+           {items.map((item) => (
+             <li
+               key={item.id}
+               className={cn(
+-                "grid gap-2 rounded-lg border border-border bg-background/40 px-4 py-4 transition-all duration-150",
++                "grid gap-2 rounded-lg border border-border bg-surface px-4 py-4 shadow-card transition-all duration-150",
+                 helped ? "opacity-40" : "hover:border-line-strong",
+               )}
+             >
+@@ -134,7 +134,7 @@ export function KnowledgeInterceptPanel({
+           onClick={onHelped}
+           className={cn(
+             "rounded-lg border p-4 text-left transition-all duration-150",
+-            helped ? "border-success/50 bg-success/10" : "border-border bg-background/40 hover:border-success/40",
++            helped ? "border-success/50 bg-success/10" : "border-border bg-surface shadow-card hover:border-success/40",
+           )}
+         >
+           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+@@ -148,7 +148,7 @@ export function KnowledgeInterceptPanel({
+           type="button"
+           disabled={isSubmitting}
+           onClick={onContinue}
+-          className="rounded-lg border border-border bg-background/40 p-4 text-left transition-all duration-150 hover:border-primary/40"
++          className="rounded-lg border border-border bg-surface p-4 text-left shadow-card transition-all duration-150 hover:border-primary/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+         >
+           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+             <ChevronRight size={15} className="text-link" />
+diff --git a/frontend/src/components/tickets/service-form-fields.tsx b/frontend/src/components/tickets/service-form-fields.tsx
+index d6e5727..506bac8 100644
+--- a/frontend/src/components/tickets/service-form-fields.tsx
++++ b/frontend/src/components/tickets/service-form-fields.tsx
+@@ -1,4 +1,5 @@
+ import type { ServiceFormField, ServiceFormSchema } from "@/services/service-catalog-api";
++import { Checkbox } from "@/components/ui/checkbox";
+ import {
+   controlClassName,
+   errorTextClassName,
+@@ -27,9 +28,7 @@ function FieldControl({
+   const placeholder = field.config?.placeholder;
+   if (field.type === "boolean") {
+     return (
+-      <input
+-        type="checkbox"
+-        className="h-4 w-4 rounded-md border-border accent-primary"
++      <Checkbox
+         checked={value === true}
+         onChange={(event) => onChange(event.target.checked)}
+       />
+diff --git a/frontend/src/components/tickets/ticket-activity-list.tsx b/frontend/src/components/tickets/ticket-activity-list.tsx
+index 10e4bdb..6d62ce4 100644
+--- a/frontend/src/components/tickets/ticket-activity-list.tsx
++++ b/frontend/src/components/tickets/ticket-activity-list.tsx
+@@ -83,7 +83,7 @@ export function TicketActivityList({
+           />
+         </div>
+       ) : (
+-        <ul className="divide-y divide-border/50">
++        <ul className="fade-in divide-y divide-border/50">
+           {items.map((item) => (
+             <ActivityRow key={item.id} item={item} locale={i18n.language} />
+           ))}
+@@ -101,10 +101,10 @@ function ActivityRow({
+   readonly locale: string;
+ }) {
+   return (
+-    <li className="flex items-start gap-3 px-4 py-3">
++    <li className="flex items-start gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover">
+       <span
+         className={cn(
+-          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border",
++          "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border",
+           kindChipClass[item.kind],
+         )}
+       >
+@@ -120,7 +120,7 @@ function ActivityRow({
+             {item.note}
+           </p>
+         ) : null}
+-        <p className="text-[11px] text-muted-foreground/70 tnum">
++        <p className="tnum mt-1 text-[11px] text-muted-foreground/70">
+           {formatTicketTimestamp(item.at, locale)}
+         </p>
+       </div>
+diff --git a/frontend/src/components/tickets/ticket-approvals-panel.tsx b/frontend/src/components/tickets/ticket-approvals-panel.tsx
+index b755160..81e4c5f 100644
+--- a/frontend/src/components/tickets/ticket-approvals-panel.tsx
++++ b/frontend/src/components/tickets/ticket-approvals-panel.tsx
+@@ -45,7 +45,7 @@ export function TicketApprovalsPanel({
+   };
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("tickets.detail.approvals")}
+         subtitle={`${done} / ${items.length}`}
+diff --git a/frontend/src/components/tickets/ticket-attachments-panel.tsx b/frontend/src/components/tickets/ticket-attachments-panel.tsx
+index 0aedbe1..7b5dc77 100644
+--- a/frontend/src/components/tickets/ticket-attachments-panel.tsx
++++ b/frontend/src/components/tickets/ticket-attachments-panel.tsx
+@@ -79,14 +79,14 @@ export function TicketAttachmentsPanel({
+           {items.map((item) => (
+             <li
+               key={item.id}
+-              className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40"
++              className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover"
+             >
+               <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
+                 {isImage(item.mimeType) ? <ImageIcon size={15} /> : <FileText size={15} />}
+               </span>
+               <button
+                 type="button"
+-                className="min-w-0 flex-1 text-left"
++                className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+                 onClick={() => void onDownload(item)}
+               >
+                 <p className="truncate text-[12.5px] font-medium text-foreground/90">
+diff --git a/frontend/src/components/tickets/ticket-badges.tsx b/frontend/src/components/tickets/ticket-badges.tsx
+index 1dcd645..8f7fa14 100644
+--- a/frontend/src/components/tickets/ticket-badges.tsx
++++ b/frontend/src/components/tickets/ticket-badges.tsx
+@@ -1,4 +1,4 @@
+-import { Flame, ShieldAlert } from "lucide-react";
++import { Flame, Pause, ShieldAlert } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { ticketPriorityLabelKey, ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
+ import { ticketText } from "@/lib/tickets/ticket-text";
+@@ -8,8 +8,42 @@ import {
+   TICKET_PRIORITY_META,
+   TICKET_STATUS_META,
+ } from "@/lib/theme/semantic-meta";
++import { cn } from "@/lib/utils";
+ import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
+ 
++/*
++  Ticket badges all funnel through one shell: a tone-tinted pill whose colour,
++  icon and (for priority) bar height carry the same meaning three times over,
++  so the signal survives both a quick scan and a colour-blind reader.
++*/
++
++const PRIORITY_LEVELS: Record<TicketPriority, number> = {
++  LOW: 1,
++  MEDIUM: 2,
++  HIGH: 3,
++  CRITICAL: 4,
++};
++
++const SIGNAL_BAR_HEIGHTS = ["h-1", "h-[5px]", "h-1.5", "h-2"] as const;
++
++function PrioritySignal({ priority }: { readonly priority: TicketPriority }) {
++  const filled = PRIORITY_LEVELS[priority];
++  return (
++    <span className="flex items-end gap-[2px]" aria-hidden="true">
++      {SIGNAL_BAR_HEIGHTS.map((height, index) => (
++        <span
++          key={height}
++          className={cn(
++            "w-[3px] rounded-full",
++            height,
++            index < filled ? "bg-current" : "bg-current opacity-30",
++          )}
++        />
++      ))}
++    </span>
++  );
++}
++
+ interface TicketStatusBadgeProperties {
+   readonly status: TicketStatus;
+ }
+@@ -34,9 +68,10 @@ export function TicketPriorityBadge({
+ }: TicketPriorityBadgeProperties) {
+   const { t } = useTranslation();
+   return (
+-    <Badge tone={TICKET_PRIORITY_META[priority].tone} dot>
++    <Badge tone={TICKET_PRIORITY_META[priority].tone}>
++      <PrioritySignal priority={priority} />
+       {showCriticalMark && priority === "CRITICAL" ? (
+-        <Flame size={11} strokeWidth={2} className="text-danger" aria-hidden="true" />
++        <Flame size={11} strokeWidth={2} aria-hidden="true" />
+       ) : null}
+       {ticketText(t, ticketPriorityLabelKey[priority])}
+     </Badge>
+@@ -46,7 +81,7 @@ export function TicketPriorityBadge({
+ export function TicketConfidentialBadge() {
+   const { t } = useTranslation();
+   return (
+-    <Badge tone="warning">
++    <Badge tone="hold">
+       <ShieldAlert size={11} strokeWidth={2} aria-hidden="true" />
+       {t("tickets.confidential.badge")}
+     </Badge>
+@@ -81,7 +116,8 @@ export function TicketPauseChip({ status }: TicketPauseChipProperties) {
+     return null;
+   }
+   return (
+-    <Badge tone="warning" className="px-1">
++    <Badge tone="warning" className="px-1.5">
++      <Pause size={9} aria-hidden="true" />
+       {t("tickets.detail.pauseBadge")}
+     </Badge>
+   );
+diff --git a/frontend/src/components/tickets/ticket-break-glass-panel.tsx b/frontend/src/components/tickets/ticket-break-glass-panel.tsx
+index 4a9aaa0..1b3f829 100644
+--- a/frontend/src/components/tickets/ticket-break-glass-panel.tsx
++++ b/frontend/src/components/tickets/ticket-break-glass-panel.tsx
+@@ -22,7 +22,7 @@ export function TicketBreakGlassPanel({
+   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
+ 
+   return (
+-    <section className="max-w-xl rounded-lg border border-warning/35 bg-warning/10 px-5 py-4">
++    <section className="pop-in max-w-xl rounded-lg border border-warning/30 bg-warning/6 px-5 py-4 shadow-card">
+       <div className="flex items-start gap-3">
+         <ShieldAlert size={16} strokeWidth={1.9} className="mt-0.5 shrink-0 text-warning" />
+         <div>
+diff --git a/frontend/src/components/tickets/ticket-bulk-bar.tsx b/frontend/src/components/tickets/ticket-bulk-bar.tsx
+index fc72eb3..cdfd22f 100644
+--- a/frontend/src/components/tickets/ticket-bulk-bar.tsx
++++ b/frontend/src/components/tickets/ticket-bulk-bar.tsx
+@@ -42,10 +42,12 @@ export function TicketBulkBar({
+   }
+   const ticketIds = [...selectedIds];
+   return (
+-    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 py-2">
+-      <CheckSquare size={14} className="text-link" />
+-      <span className="tnum text-[12.5px] font-medium text-foreground">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
+-      <div className="mx-1 h-4 w-px bg-border" />
++    <div className="pop-in mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/6 px-3 py-2 shadow-card">
++      <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-surface px-2 py-0.5 text-[11.5px] font-medium text-link">
++        <CheckSquare size={12} aria-hidden="true" />
++        <span className="tnum">{ticketText(t, "tickets.bulk.selected", { count: selectedIds.size })}</span>
++      </span>
++      <div className="mx-1 h-4 w-px bg-border" aria-hidden="true" />
+       <select className={`${selectCompactClassName} w-auto min-w-[10rem]`} value={actionType} onChange={(event) => setActionType(event.target.value as TicketBulkActionType)}>
+         <option value="assign_group">{t("tickets.bulk.assignGroup")}</option>
+         <option value="assign_user">{t("tickets.bulk.assignUser")}</option>
+@@ -76,12 +78,18 @@ export function TicketBulkBar({
+       {broadcastArmed ? (
+         <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>
+       ) : null}
+-      <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()}>
++      <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()} className="ml-auto">
+         {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
+       </Button>
+-      <button type="button" onClick={onClear} className="ml-auto rounded p-1 text-muted-foreground hover:text-foreground">
++      <Button
++        type="button"
++        variant="ghost"
++        size="icon"
++        onClick={onClear}
++        aria-label={t("tickets.bulk.clear")}
++      >
+         <X size={13} />
+-      </button>
++      </Button>
+     </div>
+   );
+ 
+diff --git a/frontend/src/components/tickets/ticket-confidential-banner.tsx b/frontend/src/components/tickets/ticket-confidential-banner.tsx
+index 31c656d..483b09c 100644
+--- a/frontend/src/components/tickets/ticket-confidential-banner.tsx
++++ b/frontend/src/components/tickets/ticket-confidential-banner.tsx
+@@ -11,7 +11,7 @@ export function TicketConfidentialBanner({
+ }: TicketConfidentialBannerProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="flex flex-wrap items-center gap-3 border-t border-warning/25 bg-warning/6 px-5 py-2.5">
++    <div className="fade-in flex flex-wrap items-center gap-3 border-t border-warning/25 bg-warning/6 px-5 py-2.5">
+       <ShieldAlert size={15} className="shrink-0 text-warning" aria-hidden="true" />
+       <p className="flex-1 text-[12px] leading-[18px] text-foreground/90">
+         {t("tickets.confidential.banner")}
+diff --git a/frontend/src/components/tickets/ticket-conversation.tsx b/frontend/src/components/tickets/ticket-conversation.tsx
+index f122438..e2c3129 100644
+--- a/frontend/src/components/tickets/ticket-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-conversation.tsx
+@@ -47,7 +47,7 @@ export function TicketConversation({
+     );
+   }
+   return (
+-    <div className="space-y-3">
++    <div className="fade-in space-y-3">
+       {visible.map((message) => {
+         const isSystem =
+           message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
+@@ -56,7 +56,7 @@ export function TicketConversation({
+           const activity = describeMessageActivity(message, authorNames, t);
+           const SystemIcon = isApproval ? CheckCheck : GitBranch;
+           return (
+-            <div key={message.id} className="flex items-start gap-2.5 px-1 py-0.5">
++            <div key={message.id} className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-surface-hover">
+               <SystemIcon
+                 size={13}
+                 className={
+diff --git a/frontend/src/components/tickets/ticket-csat-panel.tsx b/frontend/src/components/tickets/ticket-csat-panel.tsx
+index 18baf07..eb23550 100644
+--- a/frontend/src/components/tickets/ticket-csat-panel.tsx
++++ b/frontend/src/components/tickets/ticket-csat-panel.tsx
+@@ -60,11 +60,11 @@ export function TicketCsatPanel({ ticket, onComplete, onError }: TicketCsatPanel
+                 setRating(value);
+               }
+             }}
+-            className="rounded-md p-0.5 text-border transition-colors duration-150 hover:text-warning disabled:opacity-70"
++            className="rounded-full p-1 text-border transition-all duration-150 hover:scale-105 hover:text-warning focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:opacity-70 disabled:hover:scale-100"
+             aria-label={String(value)}
+           >
+             <Star
+-              size={17}
++              size={18}
+               className={cn(value <= rating ? "fill-warning text-warning" : "text-border")}
+             />
+           </button>
+diff --git a/frontend/src/components/tickets/ticket-detail-blocking-state.tsx b/frontend/src/components/tickets/ticket-detail-blocking-state.tsx
+index d85bb1c..9a7814d 100644
+--- a/frontend/src/components/tickets/ticket-detail-blocking-state.tsx
++++ b/frontend/src/components/tickets/ticket-detail-blocking-state.tsx
+@@ -20,13 +20,13 @@ export function TicketDetailBlockingState({
+   }
+   if (errorKey === "tickets.errorConfidentialBreakGlass" && ticketId) {
+     return (
+-      <section className="max-w-[1400px]">
++      <section className="fade-in max-w-[1400px]">
+         <TicketBreakGlassPanel ticketId={ticketId} onGranted={onReload} />
+       </section>
+     );
+   }
+   return (
+-    <section className="max-w-[1400px]">
++    <section className="fade-in max-w-[1400px]">
+       <TicketErrorState
+         errorKey={errorKey ?? "tickets.errorNotFound"}
+         onRetry={onReload}
+diff --git a/frontend/src/components/tickets/ticket-detail-conversation.tsx b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+index 498b460..c43eb86 100644
+--- a/frontend/src/components/tickets/ticket-detail-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+@@ -26,7 +26,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
+   const { t } = useTranslation();
+   return (
+     <>
+-      <div className="flex gap-3">
++      <div className="fade-in flex gap-3">
+         <Avatar name={props.requesterName} size="md" />
+         <div className="min-w-0 max-w-[78%]">
+           <div className="flex items-center gap-2">
+@@ -37,7 +37,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
+               {t("tickets.detail.description")}
+             </span>
+           </div>
+-          <div className="mt-1 rounded-lg border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95">
++          <div className="mt-1 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95 shadow-card">
+             <p className="whitespace-pre-wrap">{props.ticket.description}</p>
+           </div>
+         </div>
+diff --git a/frontend/src/components/tickets/ticket-detail-header-actions.tsx b/frontend/src/components/tickets/ticket-detail-header-actions.tsx
+index c174a81..547e93e 100644
+--- a/frontend/src/components/tickets/ticket-detail-header-actions.tsx
++++ b/frontend/src/components/tickets/ticket-detail-header-actions.tsx
+@@ -1,4 +1,4 @@
+-import { Pencil, Split, UserCheck, UserPlus } from "lucide-react";
++import { ChevronDown, Pencil, Split, UserCheck, UserPlus } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { Button } from "@/components/ui/button";
+ import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
+@@ -115,7 +115,8 @@ export function TicketDetailHeaderActions({
+           <DropdownMenuTrigger asChild>
+             <Button type="button" variant="outline" size="sm" disabled={savingStatus}>
+               <Pencil size={14} />
+-              {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")} ▾
++              {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")}
++              <ChevronDown size={14} aria-hidden="true" className="opacity-70" />
+             </Button>
+           </DropdownMenuTrigger>
+           <DropdownMenuContent align="end">
+diff --git a/frontend/src/components/tickets/ticket-detail-header.tsx b/frontend/src/components/tickets/ticket-detail-header.tsx
+index 26a99e5..43c5a2d 100644
+--- a/frontend/src/components/tickets/ticket-detail-header.tsx
++++ b/frontend/src/components/tickets/ticket-detail-header.tsx
+@@ -6,11 +6,21 @@ import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from
+ import { TicketConfidentialBanner } from "@/components/tickets/ticket-confidential-banner";
+ import { TicketDetailHeaderActions } from "@/components/tickets/ticket-detail-header-actions";
+ import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
++import { Avatar } from "@/components/ui/avatar";
+ import { Badge } from "@/components/ui/badge";
+ import { Card } from "@/components/ui/card";
+ import { RelativeTime } from "@/components/ui/relative-time";
+ import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
+ 
++/*
++  Pulse ticket header.
++
++  The old header put the ticket number, the badges and the title on one crowded
++  line. Here the number becomes a small identifier, the title is the only
++  large text on the page, and the requester / origin / time drop to a quiet
++  meta row — the shape people already read on the list screens.
++*/
++
+ interface TicketDetailAssignUser {
+   readonly id: string;
+   readonly displayName: string;
+@@ -38,6 +48,10 @@ interface TicketDetailHeaderProperties {
+   readonly onSplit: () => void;
+ }
+ 
++function metaSeparator() {
++  return <span className="text-border">·</span>;
++}
++
+ export function TicketDetailHeader({
+   ticket,
+   serviceName,
+@@ -64,12 +78,14 @@ export function TicketDetailHeader({
+   const [closeCode, setCloseCode] = useState(ticket.closePolicy?.closeCode?.key ?? "");
+   const [resolutionNote, setResolutionNote] = useState(ticket.closePolicy?.resolutionNote ?? "");
+   const formVersionLabel = t("tickets.detail.formVersion").toLowerCase();
++  const isPaused =
++    ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL";
+   return (
+-    <div>
++    <div className="page-in">
+       <div className="mb-4 flex items-center gap-2 text-[12px] text-muted-foreground">
+         <Link
+           to="/tickets"
+-          className="flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-elevated hover:text-foreground"
++          className="flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+         >
+           <ArrowLeft size={13} /> {t("tickets.title")}
+         </Link>
+@@ -78,43 +94,46 @@ export function TicketDetailHeader({
+         <span className="text-border">/</span>
+         <span className="tnum text-foreground/80">{ticket.ticketNumber}</span>
+       </div>
+-      <Card>
++      <Card className="overflow-hidden">
+         <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
+           <div className="min-w-0">
+             <div className="flex flex-wrap items-center gap-2">
+-              <h1 className="tnum text-[16px] font-semibold text-foreground">
++              <span className="tnum text-[11.5px] font-medium tracking-[0.02em] text-muted-foreground">
+                 {ticket.ticketNumber}
+-              </h1>
++              </span>
+               <TicketStatusBadge status={ticket.status} />
+               <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+-              {ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL" ? (
++              {isPaused ? (
+                 <Badge tone="warning" dot>
+                   {t("tickets.detail.pauseBadge")}
+                 </Badge>
+               ) : null}
+               {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
+             </div>
+-            <p className="mt-1.5 max-w-2xl text-[14.5px] leading-5 text-foreground/95">
++            <h1 className="mt-2 max-w-3xl text-[16px] font-semibold leading-6 text-foreground">
+               {ticket.title}
+-            </p>
+-            <p className="mt-1.5 text-[12px] text-muted-foreground">
+-              {t("tickets.detail.reportedBy")}{" "}
+-              <span className="text-foreground/80">{requesterName}</span>
+-              {" · "}
+-              {originName}
+-              {" · "}
++            </h1>
++            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
++              <span className="inline-flex items-center gap-1.5">
++                <Avatar name={requesterName} size="xs" />
++                <span className="text-foreground/80">{requesterName}</span>
++              </span>
++              {metaSeparator()}
++              <span>{originName}</span>
++              {metaSeparator()}
+               <RelativeTime value={ticket.createdAt} locale={i18n.language} />
+               {ticket.formVersionNumber === null || ticket.formVersionNumber === undefined ? null : (
+                 <>
+-                  {" · "}
+-                  {formVersionLabel}{" "}
+-                  <span className="tnum">
+-                    {t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
+-                  </span>{" "}
+-                  ({serviceName})
++                  {metaSeparator()}
++                  <span>
++                    {formVersionLabel}{" "}
++                    <span className="tnum">
++                      {t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
++                    </span>
++                  </span>
+                 </>
+               )}
+-            </p>
++            </div>
+           </div>
+           <TicketDetailHeaderActions
+             ticket={ticket}
+@@ -157,7 +176,7 @@ export function TicketDetailHeader({
+           </p>
+         ) : null}
+         {pendingStatus !== null ? (
+-          <div className="border-t border-border/70 px-5 py-3">
++          <div className="border-t border-border/70 bg-elevated/40 px-5 py-3">
+             <TicketResolveFields
+               pendingStatus={pendingStatus}
+               closePolicy={ticket.closePolicy}
+diff --git a/frontend/src/components/tickets/ticket-detail-side-stack.tsx b/frontend/src/components/tickets/ticket-detail-side-stack.tsx
+index cea741b..ca1955c 100644
+--- a/frontend/src/components/tickets/ticket-detail-side-stack.tsx
++++ b/frontend/src/components/tickets/ticket-detail-side-stack.tsx
+@@ -37,7 +37,7 @@ interface TicketDetailSideStackProperties {
+ 
+ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
+   return (
+-    <div className="space-y-4">
++    <div className="page-in space-y-4">
+       <TicketSlaPanel
+         ticket={props.ticket}
+         context={props.slaContext}
+diff --git a/frontend/src/components/tickets/ticket-detail-sidebar.tsx b/frontend/src/components/tickets/ticket-detail-sidebar.tsx
+index bda14c3..7a05e51 100644
+--- a/frontend/src/components/tickets/ticket-detail-sidebar.tsx
++++ b/frontend/src/components/tickets/ticket-detail-sidebar.tsx
+@@ -89,11 +89,11 @@ export function TicketDetailSidebar({
+     },
+   ];
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader title={t("tickets.detail.properties")} />
+-      <dl className="space-y-2.5 px-4 py-4 text-[12px]">
++      <dl className="divide-y divide-border/40 px-4 py-1.5 text-[12px]">
+         {rows.map((row) => (
+-          <div key={row.label} className="flex items-start justify-between gap-3">
++          <div key={row.label} className="flex items-start justify-between gap-3 py-2.5">
+             <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
+             <dd className="text-right text-foreground/90">
+               {row.value}
+diff --git a/frontend/src/components/tickets/ticket-detail-workspace.tsx b/frontend/src/components/tickets/ticket-detail-workspace.tsx
+index 3a555e8..48ed815 100644
+--- a/frontend/src/components/tickets/ticket-detail-workspace.tsx
++++ b/frontend/src/components/tickets/ticket-detail-workspace.tsx
+@@ -77,7 +77,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
+     });
+   }
+   return (
+-    <div className="min-w-0">
++    <div className="page-in min-w-0">
+       <UnderlineTabs
+         className="mb-3"
+         active={tab}
+diff --git a/frontend/src/components/tickets/ticket-feedback-states.tsx b/frontend/src/components/tickets/ticket-feedback-states.tsx
+index 87852dd..57bbb10 100644
+--- a/frontend/src/components/tickets/ticket-feedback-states.tsx
++++ b/frontend/src/components/tickets/ticket-feedback-states.tsx
+@@ -1,4 +1,4 @@
+-import { Inbox } from "lucide-react";
++import { CircleAlert, Inbox } from "lucide-react";
+ import type { ReactNode } from "react";
+ import { useTranslation } from "react-i18next";
+ import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+@@ -42,6 +42,7 @@ export function TicketErrorState({ errorKey, onRetry }: TicketErrorStateProperti
+   const { t } = useTranslation();
+   return (
+     <EmptyState
++      icon={<CircleAlert size={18} strokeWidth={1.8} className="text-danger" />}
+       title={ticketText(t, errorKey)}
+       body={t("tickets.emptyHint")}
+       action={
+diff --git a/frontend/src/components/tickets/ticket-form-data-view.tsx b/frontend/src/components/tickets/ticket-form-data-view.tsx
+index b7dd9c6..635f8c5 100644
+--- a/frontend/src/components/tickets/ticket-form-data-view.tsx
++++ b/frontend/src/components/tickets/ticket-form-data-view.tsx
+@@ -15,7 +15,7 @@ export function TicketFormDataView({ formData }: TicketFormDataViewProperties) {
+     return null;
+   }
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader title={t("tickets.detail.formData")} />
+       <dl className="space-y-2.5 px-4 py-4 text-[12px]">
+         {entries.map(([key, value]) => (
+diff --git a/frontend/src/components/tickets/ticket-inbox-list.tsx b/frontend/src/components/tickets/ticket-inbox-list.tsx
+index 16e0bd7..f0572ed 100644
+--- a/frontend/src/components/tickets/ticket-inbox-list.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-list.tsx
+@@ -2,6 +2,7 @@ import { Bell, Flame, UserCheck } from "lucide-react";
+ import { useNavigate } from "react-router-dom";
+ import { useTranslation } from "react-i18next";
+ import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
++import { Avatar } from "@/components/ui/avatar";
+ import { Button } from "@/components/ui/button";
+ import { Card } from "@/components/ui/card";
+ import { ticketIdClassName } from "@/components/ui/control";
+@@ -12,6 +13,13 @@ import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
+ import { unroutedInboxTabKey } from "@/lib/tickets/inbox-view-tabs";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
++/*
++  Pulse inbox: rows are list items, not table rows. The requester's avatar and
++  the priority pip carry the "who is waiting" signal, the badges stay on the
++  right edge where the eye scans for state, and the whole row is one big hit
++  target that brightens on hover (`group` also underlines the ticket number).
++*/
++
+ interface TicketInboxListProperties {
+   readonly activeTab: string;
+   readonly tickets: readonly TicketResponse[];
+@@ -50,7 +58,7 @@ export function TicketInboxList({
+             }
+           />
+         ) : (
+-          <ul className="divide-y divide-border/50">
++          <ul className="fade-in divide-y divide-border/50">
+             {tickets.map((ticket) => (
+               <InboxTicketRow
+                 key={ticket.id}
+@@ -77,6 +85,19 @@ export function TicketInboxList({
+   );
+ }
+ 
++function priorityMarker(ticket: TicketResponse) {
++  if (ticket.priority === "CRITICAL") {
++    return <Flame size={15} className="shrink-0 text-danger" aria-hidden="true" />;
++  }
++  return (
++    <span
++      className="size-[9px] shrink-0 rounded-full ring-2 ring-elevated"
++      style={{ backgroundColor: TICKET_PRIORITY_META[ticket.priority].dot }}
++      aria-hidden="true"
++    />
++  );
++}
++
+ function InboxTicketRow({
+   ticket,
+   serviceNames,
+@@ -98,16 +119,13 @@ function InboxTicketRow({
+ }) {
+   const navigate = useNavigate();
+   const meta = inboxRowMeta(ticket, serviceNames, originNames, requesterNames);
++  const requesterName = requesterNames.get(ticket.requesterId)?.trim();
+   return (
+-    <li className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40">
+-      {ticket.priority === "CRITICAL" ? (
+-        <Flame size={15} className="shrink-0 text-danger" aria-hidden="true" />
+-      ) : (
+-        <span
+-          className="size-[15px] shrink-0 rounded-full border-2"
+-          style={{ borderColor: TICKET_PRIORITY_META[ticket.priority].dot }}
+-        />
+-      )}
++    <li className="group flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover">
++      {requesterName !== undefined && requesterName.length > 0 ? (
++        <Avatar name={requesterName} size="sm" />
++      ) : null}
++      <span className="flex w-3 shrink-0 justify-center">{priorityMarker(ticket)}</span>
+       <button
+         type="button"
+         onClick={() => navigate(`/tickets/${ticket.id}`)}
+diff --git a/frontend/src/components/tickets/ticket-inbox-no-group-notice.tsx b/frontend/src/components/tickets/ticket-inbox-no-group-notice.tsx
+index 64a73f0..3910e50 100644
+--- a/frontend/src/components/tickets/ticket-inbox-no-group-notice.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-no-group-notice.tsx
+@@ -15,7 +15,7 @@ export function TicketInboxNoGroupNotice({
+   return (
+     <div
+       role="status"
+-      className="mb-3 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3"
++      className="fade-in mb-3 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/6 px-4 py-3"
+     >
+       <Users
+         size={16}
+diff --git a/frontend/src/components/tickets/ticket-inbox-tabs.tsx b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+index 1c62b11..4b495e2 100644
+--- a/frontend/src/components/tickets/ticket-inbox-tabs.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-tabs.tsx
+@@ -4,6 +4,13 @@ import { useTranslation } from "react-i18next";
+ import { cn } from "@/lib/utils";
+ import { unroutedInboxTabKey, type InboxGroupTab } from "@/lib/tickets/inbox-view-tabs";
+ 
++/*
++  Inbox tabs are pills, not tabs: each one is a scope with a live count, and the
++  count is the number the eye is looking for, so it gets its own tinted capsule
++  and tabular figures. Selection borrows the primary tint used by chips and
++  segmented controls elsewhere, with danger reserved for the unrouted queue.
++*/
++
+ interface TicketInboxTabsProperties {
+   readonly activeTab: string;
+   readonly unroutedCount: number;
+@@ -62,23 +69,26 @@ function InboxTabButton({
+     <button
+       type="button"
+       onClick={onClick}
++      aria-pressed={active}
+       className={cn(
+-        "flex items-center gap-2 rounded-md border px-3 py-2 text-[12.5px] font-medium transition-colors duration-150",
++        "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary/70",
+         active
+           ? tone === "danger"
+-            ? "border-danger/50 bg-danger/12 text-danger"
+-            : "border-line-strong bg-elevated text-foreground"
+-          : "border-border bg-surface text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
++            ? "border-danger/45 bg-danger/10 text-danger"
++            : "border-primary/45 bg-primary/10 text-link"
++          : "border-border bg-surface text-muted-foreground hover:border-line-strong hover:bg-surface-hover hover:text-foreground",
+       )}
+     >
+       {icon}
+       {label}
+       <span
+         className={cn(
+-          "rounded border px-1 text-[10px] leading-[14px] tnum",
++          "tnum rounded-full border px-1.5 text-[10.5px] leading-[15px]",
+           active && tone === "danger"
+             ? "border-danger/40 bg-danger/15"
+-            : "border-border bg-background/50",
++            : active
++              ? "border-primary/35 bg-primary/15"
++              : "border-border bg-elevated/70",
+         )}
+       >
+         {count}
+diff --git a/frontend/src/components/tickets/ticket-inbox-unrouted-banner.tsx b/frontend/src/components/tickets/ticket-inbox-unrouted-banner.tsx
+index 49948ea..b026782 100644
+--- a/frontend/src/components/tickets/ticket-inbox-unrouted-banner.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-unrouted-banner.tsx
+@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
+ export function TicketInboxUnroutedBanner() {
+   const { t } = useTranslation();
+   return (
+-    <div className="mb-3 flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/6 px-4 py-3">
++    <div className="fade-in mb-3 flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/6 px-4 py-3">
+       <ShieldAlert
+         size={16}
+         className="mt-0.5 shrink-0 text-danger"
+diff --git a/frontend/src/components/tickets/ticket-list-filters.tsx b/frontend/src/components/tickets/ticket-list-filters.tsx
+index 7f5e682..2153335 100644
+--- a/frontend/src/components/tickets/ticket-list-filters.tsx
++++ b/frontend/src/components/tickets/ticket-list-filters.tsx
+@@ -1,13 +1,8 @@
+ import type { TFunction } from "i18next";
+ import { Filter, Search } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+-import {
+-  controlCompactClassName,
+-  filterChipActiveClassName,
+-  filterChipClassName,
+-  filterChipIdleClassName,
+-  selectCompactClassName,
+-} from "@/components/ui/control";
++import { Chip } from "@/components/ui/chip";
++import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
+ import { cn } from "@/lib/utils";
+ import {
+   ticketPriorityValues,
+@@ -101,30 +96,20 @@ export function TicketListFiltersBar({
+       </div>
+       <div className="flex flex-wrap items-center gap-1.5">
+         <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
+-        <button
+-          type="button"
++        <Chip
++          active={filters.priority === ""}
+           onClick={() => onChange({ ...filters, priority: "" })}
+-          className={cn(
+-            filterChipClassName,
+-            filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
+-          )}
+         >
+           {t("tickets.filters.priorityAll")}
+-        </button>
++        </Chip>
+         {ticketPriorityValues.map((priority) => (
+-          <button
++          <Chip
+             key={priority}
+-            type="button"
++            active={filters.priority === priority}
+             onClick={() => onChange({ ...filters, priority })}
+-            className={cn(
+-              filterChipClassName,
+-              filters.priority === priority
+-                ? filterChipActiveClassName
+-                : filterChipIdleClassName,
+-            )}
+           >
+             {ticketText(t, ticketPriorityLabelKey[priority])}
+-          </button>
++          </Chip>
+         ))}
+       </div>
+       <label className="sr-only" htmlFor="ticket-list-service">
+diff --git a/frontend/src/components/tickets/ticket-list-table.tsx b/frontend/src/components/tickets/ticket-list-table.tsx
+index 12f0375..42b90bc 100644
+--- a/frontend/src/components/tickets/ticket-list-table.tsx
++++ b/frontend/src/components/tickets/ticket-list-table.tsx
+@@ -3,6 +3,7 @@ import { ShieldAlert } from "lucide-react";
+ import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+ import { Avatar } from "@/components/ui/avatar";
+ import { Badge } from "@/components/ui/badge";
++import { Checkbox } from "@/components/ui/checkbox";
+ import {
+   tableHeadClassName,
+   tableRowClassName,
+@@ -12,8 +13,16 @@ import {
+ import { RelativeTime } from "@/components/ui/relative-time";
+ import { pickName } from "@/lib/tickets/ticket-names";
+ import { useTicketText } from "@/lib/tickets/use-ticket-text";
++import { cn } from "@/lib/utils";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
++/*
++  Pulse list table: a calm surface with one loud element per row (the state
++  badges). The ticket cell carries two lines — number plus title — so the row
++  reads as a list item, not as eight unrelated columns; the title only brightens
++  on hover, which keeps a full table from looking busy.
++*/
++
+ interface TicketListTableProperties {
+   readonly tickets: readonly TicketResponse[];
+   readonly serviceNames: ReadonlyMap<string, string>;
+@@ -60,9 +69,7 @@ function assignmentCell(
+   if (ticket.assignedUserId === null) {
+     return (
+       <div className="flex items-center gap-1.5">
+-        <span className="tnum text-[12px] text-foreground/80">
+-          {groupName}
+-        </span>
++        <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
+         <Badge tone="info" dot={false}>
+           {t("tickets.assignment.groupOnly")}
+         </Badge>
+@@ -71,12 +78,10 @@ function assignmentCell(
+   }
+   return (
+     <div className="flex items-center gap-1.5">
+-      <span className="tnum text-[12px] text-foreground/80">
+-        {groupName}
+-      </span>
++      <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
+       {assigneeName !== null ? (
+         <>
+-          <span className="text-muted-foreground/50">·</span>
++          <span className="text-muted-foreground/40">·</span>
+           <Avatar name={assigneeName} size="xs" />
+         </>
+       ) : (
+@@ -98,16 +103,16 @@ export function TicketListTable({
+   const { t, i18n } = useTicketText();
+   const navigate = useNavigate();
+   const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id));
++  const someSelected = !allSelected && tickets.some((ticket) => selectedIds.has(ticket.id));
+   return (
+-    <div className={tableWrapClassName}>
++    <div className={cn(tableWrapClassName, "fade-in")}>
+       <table className="w-full min-w-[900px] text-left">
+         <thead>
+-          <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
++          <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}>
+             <th className="w-10 px-4 py-2.5">
+-              <input
+-                type="checkbox"
+-                className="size-3.5"
++              <Checkbox
+                 checked={allSelected}
++                indeterminate={someSelected}
+                 onChange={(event) => onTogglePage(event.target.checked)}
+                 aria-label={t("tickets.bulk.select")}
+               />
+@@ -122,60 +127,65 @@ export function TicketListTable({
+           </tr>
+         </thead>
+         <tbody>
+-          {tickets.map((ticket) => (
+-            <tr
+-              key={ticket.id}
+-              className={`${tableRowClassName} cursor-pointer`}
+-              onClick={() => navigate(`/tickets/${ticket.id}`)}
+-            >
+-              <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
+-                <input
+-                  type="checkbox"
+-                  className="size-3.5"
+-                  checked={selectedIds.has(ticket.id)}
+-                  onChange={() => onToggleSelected(ticket.id)}
+-                  aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
+-                />
+-              </td>
+-              <td className="px-2 py-2.5">
+-                <div className="flex items-center gap-2">
+-                  {ticket.isConfidential ? (
+-                    <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
+-                  ) : null}
+-                  <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+-                    {ticket.ticketNumber}
+-                  </Link>
+-                  {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
+-                  {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
+-                    <TicketAtRiskBadge />
+-                  ) : null}
+-                </div>
+-                <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-foreground/90">
+-                  {ticket.title}
+-                </p>
+-              </td>
+-              <td className="px-4 py-2.5">
+-                <span className="text-[12px] text-muted-foreground">
+-                  {serviceNames.get(ticket.serviceId) ?? "—"}
+-                </span>
+-              </td>
+-              <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
+-                {originNames?.get(ticket.originUnitId) ?? "—"}
+-              </td>
+-              <td className="px-4 py-2.5">
+-                <TicketStatusBadge status={ticket.status} />
+-              </td>
+-              <td className="px-4 py-2.5">
+-                <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+-              </td>
+-              <td className="px-4 py-2.5">
+-                {assignmentCell(ticket, t, assigneeNames)}
+-              </td>
+-              <td className="px-4 py-2.5 text-right text-[12px] text-muted-foreground">
+-                <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
+-              </td>
+-            </tr>
+-          ))}
++          {tickets.map((ticket) => {
++            const isSelected = selectedIds.has(ticket.id);
++            return (
++              <tr
++                key={ticket.id}
++                className={cn(
++                  tableRowClassName,
++                  "cursor-pointer",
++                  isSelected && "bg-primary/6 hover:bg-primary/8",
++                )}
++                onClick={() => navigate(`/tickets/${ticket.id}`)}
++              >
++                <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
++                  <Checkbox
++                    checked={isSelected}
++                    onChange={() => onToggleSelected(ticket.id)}
++                    aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
++                  />
++                </td>
++                <td className="px-2 py-2.5">
++                  <div className="flex items-center gap-2">
++                    {ticket.isConfidential ? (
++                      <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
++                    ) : null}
++                    <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
++                      {ticket.ticketNumber}
++                    </Link>
++                    {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
++                    {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
++                      <TicketAtRiskBadge />
++                    ) : null}
++                  </div>
++                  <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
++                    {ticket.title}
++                  </p>
++                </td>
++                <td className="px-4 py-2.5">
++                  <span className="text-[12px] text-muted-foreground">
++                    {serviceNames.get(ticket.serviceId) ?? "—"}
++                  </span>
++                </td>
++                <td className="px-4 py-2.5">
++                  <span className="text-[12px] text-muted-foreground">
++                    {originNames?.get(ticket.originUnitId) ?? "—"}
++                  </span>
++                </td>
++                <td className="px-4 py-2.5">
++                  <TicketStatusBadge status={ticket.status} />
++                </td>
++                <td className="px-4 py-2.5">
++                  <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
++                </td>
++                <td className="px-4 py-2.5">{assignmentCell(ticket, t, assigneeNames)}</td>
++                <td className="whitespace-nowrap px-4 py-2.5 text-right text-[11.5px] text-muted-foreground">
++                  <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
++                </td>
++              </tr>
++            );
++          })}
+         </tbody>
+       </table>
+     </div>
+diff --git a/frontend/src/components/tickets/ticket-message-bubble.tsx b/frontend/src/components/tickets/ticket-message-bubble.tsx
+index abf36c7..7f2113c 100644
+--- a/frontend/src/components/tickets/ticket-message-bubble.tsx
++++ b/frontend/src/components/tickets/ticket-message-bubble.tsx
+@@ -22,7 +22,7 @@ export function TicketMessageBubble({
+   const { t } = useTranslation();
+   const isInternal = message.type === "INTERNAL_NOTE";
+   return (
+-    <div className={cn("flex gap-3", isOwn && "flex-row-reverse")}>
++    <div className={cn("fade-in flex gap-3", isOwn && "flex-row-reverse")}>
+       <Avatar name={authorName} size="md" />
+       <div className={cn("min-w-0 max-w-[78%]", isOwn && "flex flex-col items-end")}>
+         <div className="flex items-center gap-2">
+@@ -39,7 +39,7 @@ export function TicketMessageBubble({
+         </div>
+         <div
+           className={cn(
+-            "mt-1 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed",
++            "mt-1 rounded-xl border px-3.5 py-2.5 text-[13px] leading-relaxed shadow-card",
+             isInternal
+               ? "border-warning/25 bg-warning/6 text-foreground/90"
+               : isOwn
+diff --git a/frontend/src/components/tickets/ticket-message-composer.tsx b/frontend/src/components/tickets/ticket-message-composer.tsx
+index d8850b1..228dfee 100644
+--- a/frontend/src/components/tickets/ticket-message-composer.tsx
++++ b/frontend/src/components/tickets/ticket-message-composer.tsx
+@@ -3,6 +3,7 @@ import { MessageSquareLock, Paperclip, Send } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { Button } from "@/components/ui/button";
+ import { Card } from "@/components/ui/card";
++import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
+ import { errorTextClassName, textareaClassName } from "@/components/ui/control";
+ import { cn } from "@/lib/utils";
+ import {
+@@ -14,6 +15,8 @@ import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+ import { ticketText } from "@/lib/tickets/ticket-text";
+ import type { MessageType } from "@/services/tickets-collaboration-api";
+ 
++type ComposerMode = "reply" | "internal";
++
+ interface TicketMessageComposerProperties {
+   readonly access: ComposerAccess;
+   readonly isSending: boolean;
+@@ -43,6 +46,17 @@ export function TicketMessageComposer({
+   const publicType = defaultMessageType(access);
+   const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
+ 
++  const composerModes: readonly SegmentedItem<ComposerMode>[] = canInternal
++    ? [
++        { value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> },
++        {
++          value: "internal",
++          label: t("tickets.detail.internalNote"),
++          icon: <MessageSquareLock size={12.5} />,
++        },
++      ]
++    : [{ value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> }];
++
+   const submit = async () => {
+     if (body.trim().length === 0) {
+       return;
+@@ -63,33 +77,14 @@ export function TicketMessageComposer({
+   return (
+     <Card className="mt-4">
+       <form onSubmit={(event) => void onSubmit(event)}>
+-        <div className="flex items-center gap-1 border-b border-border/70 px-3 py-2">
+-          <button
+-            type="button"
+-            onClick={() => setInternal(false)}
+-            className={cn(
+-              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
+-              !internal
+-                ? "bg-primary/15 text-link"
+-                : "text-muted-foreground hover:text-foreground",
+-            )}
+-          >
+-            <Send size={12.5} /> {t("tickets.detail.publicReply")}
+-          </button>
+-          {canInternal ? (
+-            <button
+-              type="button"
+-              onClick={() => setInternal(true)}
+-              className={cn(
+-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
+-                internal
+-                  ? "bg-warning/15 text-warning"
+-                  : "text-muted-foreground hover:text-foreground",
+-              )}
+-            >
+-              <MessageSquareLock size={12.5} /> {t("tickets.detail.internalNote")}
+-            </button>
+-          ) : null}
++        <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
++          <Segmented<ComposerMode>
++            size="sm"
++            ariaLabel={t("tickets.detail.publicReply")}
++            value={internal && canInternal ? "internal" : "reply"}
++            onChange={(next) => setInternal(next === "internal")}
++            items={composerModes}
++          />
+           <span className="ml-auto text-[11px] text-muted-foreground/70">
+             {internal ? t("tickets.detail.internalHint") : t("tickets.detail.publicHint")}
+           </span>
+diff --git a/frontend/src/components/tickets/ticket-participants-panel.tsx b/frontend/src/components/tickets/ticket-participants-panel.tsx
+index 651a437..cafa816 100644
+--- a/frontend/src/components/tickets/ticket-participants-panel.tsx
++++ b/frontend/src/components/tickets/ticket-participants-panel.tsx
+@@ -59,7 +59,7 @@ export function TicketParticipantsPanel({
+   };
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("tickets.detail.participants")}
+         subtitle={ticketText(t, "tickets.detail.watchers", { count: watchers.length })}
+@@ -88,7 +88,7 @@ export function TicketParticipantsPanel({
+               {canManage && item.role === "WATCHER" ? (
+                 <button
+                   type="button"
+-                  className="text-[10px] text-muted-foreground hover:text-foreground"
++                  className="text-[10px] text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+                   onClick={() => {
+                     if (window.confirm(t("tickets.detail.confirmRemove"))) {
+                       void onRemove(item.id);
+diff --git a/frontend/src/components/tickets/ticket-request-remote-button.tsx b/frontend/src/components/tickets/ticket-request-remote-button.tsx
+index 8abbdff..c9b9c37 100644
+--- a/frontend/src/components/tickets/ticket-request-remote-button.tsx
++++ b/frontend/src/components/tickets/ticket-request-remote-button.tsx
+@@ -22,7 +22,7 @@ export function TicketRequestRemoteButton({
+     return null;
+   }
+   return (
+-    <span className="inline-flex flex-col items-end gap-1">
++    <span className="inline-flex flex-col items-end gap-1" aria-live="polite">
+       <Button
+         type="button"
+         variant="outline"
+diff --git a/frontend/src/components/tickets/ticket-saved-views-panel.tsx b/frontend/src/components/tickets/ticket-saved-views-panel.tsx
+index b2bcd64..3a91f72 100644
+--- a/frontend/src/components/tickets/ticket-saved-views-panel.tsx
++++ b/frontend/src/components/tickets/ticket-saved-views-panel.tsx
+@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
+ import { useTranslation } from "react-i18next";
+ import { Button } from "@/components/ui/button";
+ import { controlCompactClassName } from "@/components/ui/control";
++import { Checkbox } from "@/components/ui/checkbox";
+ import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+ import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+ import { filtersFromSavedView, savedViewInputFromFilters } from "@/lib/tickets/saved-view-filters";
+@@ -69,8 +70,8 @@ export function TicketSavedViewsPanel({
+           }}
+           className={
+             activeId === view.id
+-              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left"
+-              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-elevated/60"
++              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left transition-colors duration-150"
++              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-surface-hover"
+           }
+         >
+           <span className="flex items-center justify-between gap-2">
+@@ -87,10 +88,12 @@ export function TicketSavedViewsPanel({
+         onChange={(event) => setName(event.target.value)}
+         placeholder={t("tickets.savedViews.namePlaceholder")}
+       />
+-      <label className="flex items-center gap-2 px-1 text-[12px] text-muted-foreground">
+-        <input type="checkbox" checked={asDefault} onChange={(event) => setAsDefault(event.target.checked)} />
+-        {t("tickets.savedViews.makeDefault")}
+-      </label>
++      <Checkbox
++        className="px-1"
++        checked={asDefault}
++        onChange={(event) => setAsDefault(event.target.checked)}
++        label={t("tickets.savedViews.makeDefault")}
++      />
+       <Button
+         type="button"
+         size="sm"
+diff --git a/frontend/src/components/tickets/ticket-sla-panel.tsx b/frontend/src/components/tickets/ticket-sla-panel.tsx
+index 3550c22..50115e9 100644
+--- a/frontend/src/components/tickets/ticket-sla-panel.tsx
++++ b/frontend/src/components/tickets/ticket-sla-panel.tsx
+@@ -54,7 +54,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
+       return null;
+     }
+     return (
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader title={ticketText(t, "tickets.detail.sla.title")} />
+         <div className="space-y-1.5 px-4 py-4 text-[12px] leading-5">
+           <p className="flex items-center gap-1.5 font-medium text-foreground/90">
+@@ -74,7 +74,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
+     );
+   }
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={ticketText(t, "tickets.detail.sla.title")}
+         subtitle={slaSubtitle(context, t)}
+@@ -101,7 +101,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
+             risk: SLA_RISK_PERCENT,
+           })}
+         />
+-        <div className="flex items-center justify-between border-t border-border/60 pt-3">
++        <div className="flex items-center justify-between border-t border-border/70 pt-3">
+           <MetaBadge
+             meta={{
+               label: ticketText(t, `tickets.detail.sla.state.${view.state}`),
+diff --git a/frontend/src/components/tickets/ticket-split-panel.tsx b/frontend/src/components/tickets/ticket-split-panel.tsx
+index 014c5df..33abeba 100644
+--- a/frontend/src/components/tickets/ticket-split-panel.tsx
++++ b/frontend/src/components/tickets/ticket-split-panel.tsx
+@@ -52,7 +52,7 @@ export function TicketSplitPanel({
+         {ticket.parentTicketId ? (
+           <p className="mt-3 text-[12px]">
+             {t("tickets.split.parent")}:{" "}
+-            <Link className="tnum text-link hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
++            <Link className="tnum text-link transition-colors duration-150 hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
+               {formatParentTicketLabel(ticket) ?? t("tickets.split.parentFallback")}
+             </Link>
+           </p>
+@@ -69,7 +69,7 @@ export function TicketSplitPanel({
+           {t("tickets.split.childTwo")}
+           <input className={controlClassName} value={secondTitle} onChange={(event) => setSecondTitle(event.target.value)} />
+         </label>
+-        <div className="mt-4 flex gap-2">
++        <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">
+           <Button
+             type="button"
+             size="sm"
+diff --git a/frontend/src/components/tickets/ticket-time-tracking-panel.tsx b/frontend/src/components/tickets/ticket-time-tracking-panel.tsx
+index 3a05139..ecfe4a4 100644
+--- a/frontend/src/components/tickets/ticket-time-tracking-panel.tsx
++++ b/frontend/src/components/tickets/ticket-time-tracking-panel.tsx
+@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
+ import { Button } from "@/components/ui/button";
+ import { Card, CardHeader } from "@/components/ui/card";
+ import { RelativeTime } from "@/components/ui/relative-time";
++import { cn } from "@/lib/utils";
+ import { formatDurationMinutes } from "@/lib/tickets/ticket-display";
+ import { ticketText } from "@/lib/tickets/ticket-text";
+ import type { TicketTimeLogResponse } from "@/services/tickets-collaboration-api";
+@@ -36,7 +37,7 @@ export function TicketTimeTrackingPanel({
+     (item) => item.endedAt === null && item.userId === currentUserId,
+   );
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("tickets.detail.timeLogged")}
+         subtitle={ticketText(t, "tickets.detail.timeTotal", {
+@@ -63,7 +64,13 @@ export function TicketTimeTrackingPanel({
+           {items.map((item) => {
+             const name = userNames.get(item.userId) ?? t("tickets.detail.unknownUser");
+             return (
+-            <li key={item.id} className="flex items-center gap-3 px-4 py-3">
++            <li
++                key={item.id}
++                className={cn(
++                  "flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover",
++                  item.endedAt === null && "bg-primary/6",
++                )}
++              >
+               <Avatar name={name} size="sm" />
+               <div className="min-w-0 flex-1">
+                 <p className="text-[12.5px] text-foreground/90">{name}</p>
+diff --git a/frontend/src/components/tickets/ticket-workspace-nav.tsx b/frontend/src/components/tickets/ticket-workspace-nav.tsx
+index 01aee4d..b5786b4 100644
+--- a/frontend/src/components/tickets/ticket-workspace-nav.tsx
++++ b/frontend/src/components/tickets/ticket-workspace-nav.tsx
+@@ -30,7 +30,7 @@ export function TicketWorkspaceNav({
+           key={item}
+           to={item === "inbox" ? "/tickets" : `/tickets?view=${item}`}
+           className={cn(
+-            "relative flex h-[38px] items-center whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150",
++            "relative flex h-[38px] items-center whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+             view === item
+               ? "text-foreground"
+               : "text-muted-foreground hover:text-foreground",
+diff --git a/frontend/src/components/ui/checkbox.tsx b/frontend/src/components/ui/checkbox.tsx
+new file mode 100644
+index 0000000..1f6a5d7
+--- /dev/null
++++ b/frontend/src/components/ui/checkbox.tsx
+@@ -0,0 +1,95 @@
++import { Check, Minus } from "lucide-react";
++import {
++  forwardRef,
++  useEffect,
++  useRef,
++  type ForwardedRef,
++  type InputHTMLAttributes,
++  type MutableRefObject,
++  type ReactNode,
++} from "react";
++import { cn } from "@/lib/utils";
++
++/*
++  Pulse checkbox.
++
++  A real `<input type="checkbox">` stays underneath for form semantics and
++  accessibility, but it is restyled with `appearance-none` — `accent-color`
++  cannot be tokenised and would be the only hard-coded colour in the module.
++  The tick is a sibling icon driven by `peer-checked`, so state changes animate
++  without JavaScript and keyboard focus keeps its own ring.
++*/
++
++function assignReference(
++  reference: ForwardedRef<HTMLInputElement>,
++  value: HTMLInputElement | null,
++) {
++  if (typeof reference === "function") {
++    reference(value);
++    return;
++  }
++  if (reference !== null) {
++    (reference as MutableRefObject<HTMLInputElement | null>).current = value;
++  }
++}
++
++export interface CheckboxProperties
++  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
++  readonly label?: ReactNode;
++  /** Mixed state — used by the "select all" control in list headers. */
++  readonly indeterminate?: boolean;
++}
++
++export const Checkbox = forwardRef<HTMLInputElement, CheckboxProperties>(
++  ({ className, label, indeterminate = false, ...properties }, reference) => {
++    const inputReference = useRef<HTMLInputElement | null>(null);
++
++    useEffect(() => {
++      if (inputReference.current !== null) {
++        inputReference.current.indeterminate = indeterminate;
++      }
++    }, [indeterminate]);
++
++    return (
++      <label
++        className={cn(
++          "inline-flex select-none items-center gap-2",
++          properties.disabled === true ? "cursor-not-allowed" : "cursor-pointer",
++          className,
++        )}
++      >
++        <span className="relative inline-flex size-4 shrink-0 items-center justify-center">
++          <input
++            ref={(node) => {
++              inputReference.current = node;
++              assignReference(reference, node);
++            }}
++            type="checkbox"
++            className="peer size-4 cursor-pointer appearance-none rounded-[5px] border border-line-strong bg-surface transition-colors duration-150 checked:border-primary checked:bg-primary hover:border-primary/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:cursor-not-allowed disabled:opacity-45"
++            {...properties}
++          />
++          {indeterminate ? (
++            <Minus
++              size={11}
++              strokeWidth={3}
++              className="pointer-events-none absolute text-primary-foreground"
++              aria-hidden="true"
++            />
++          ) : (
++            <Check
++              size={11}
++              strokeWidth={3}
++              className="pointer-events-none absolute scale-50 text-primary-foreground opacity-0 transition-all duration-150 peer-checked:scale-100 peer-checked:opacity-100"
++              aria-hidden="true"
++            />
++          )}
++        </span>
++        {label === undefined ? null : (
++          <span className="text-[12.5px] leading-4 text-foreground">{label}</span>
++        )}
++      </label>
++    );
++  },
++);
++
++Checkbox.displayName = "Checkbox";
