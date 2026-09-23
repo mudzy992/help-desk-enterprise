@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + 1 + 2 + 3 + talasi 4.1–4.5 (isporuka)
+# Pulse UI — Faza 0 + 1 + 2 + 3 + talasi 4.1–4.6 (isporuka)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -21,7 +21,8 @@
 | **4.3 — Servisi i baza znanja** | Cijeli `components/services/` (32 fajla: katalog, kategorije, graditelj formi, onboarding čarobnjak, periodi nedostupnosti) i `components/knowledge-base/` (9 fajlova: lista, pretraga, detalj, izmjena, lifecycle, brisanje) | ✅ |
 | **4.4 — SLA, routing i policy paketi** | Cijeli `components/sla/` (24 fajla: profili, pravila, eskalacije, kalendari radnog vremena, matrica prioriteta, compliance, izmjene), `components/routing/` (14 fajlova: pravila, matrica pokrivenosti, tester razrješavanja) i `components/policy-packs/` (3 fajla) | ✅ |
 | **4.5 — Administracija** | `components/admin/` (3), `users/` (10), `groups/` (6), `organizational-units/` (6), `rbac/` (3), `settings/` (13) — korisnici, grupe, organizacione jedinice, dozvole, sistemska podešavanja | ✅ |
-| 4.6–4.7 | Ostali moduli (2 talasa) | ⏳ sljedeće |
+| **4.6 — Konfiguracije, red, održavanje, povratne informacije** | `components/config-versions/` (10), `queue/` (2), `maintenance/` (1), `feedback/` (1), `auth/` (1), `visual-qa/` (6) — verzije konfiguracije, integracioni red, traka održavanja, povratne informacije o akcijama, promjena lozinke, Visual QA tabla | ✅ |
+| 4.7 | Ostali moduli (1 talas) | ⏳ sljedeće |
 | 5–7 | Dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ |
 
 | Faza | Putanja | Diff |
@@ -34,7 +35,8 @@
 | 4.3 | 29 (29 izmijenjenih; 12 fajlova je već bilo u Pulse jeziku) | 629 linija u 1 patchu |
 | 4.4 | 24 (24 izmijenjenih; 17 fajlova je već bilo u Pulse jeziku) | 664 linije u 1 patchu |
 | 4.5 | 32 (32 izmijenjena; 9 fajlova je već bilo u Pulse jeziku) | 692 linije u 1 patchu |
-| **Ukupno** | **245 unikatnih putanja** (15 se pojavljuje u više setova) | **10 184 linije** |
+| 4.6 | 13 (13 izmijenjenih; 8 fajlova je već bilo u Pulse jeziku) | 214 linija u 1 patchu |
+| **Ukupno** | **256 unikatnih putanja** (17 se pojavljuje u više setova) | **10 398 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -54,7 +56,8 @@ demo/patches/
 ├── pulse-06-dashboard-reports.patch                 16 fajlova   20 KB
 ├── pulse-07-services-knowledge-base.patch           29 fajlova   32 KB
 ├── pulse-08-sla-routing-policy-packs.patch           24 fajla     36 KB
-└── pulse-09-admin-users-groups-ou-rbac-settings.patch 32 fajla     35 KB
+├── pulse-09-admin-users-groups-ou-rbac-settings.patch 32 fajla     35 KB
+└── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -71,6 +74,7 @@ git apply demo/patches/pulse-06-dashboard-reports.patch
 git apply demo/patches/pulse-07-services-knowledge-base.patch
 git apply demo/patches/pulse-08-sla-routing-policy-packs.patch
 git apply demo/patches/pulse-09-admin-users-groups-ou-rbac-settings.patch
+git apply demo/patches/pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -122,7 +126,8 @@ grep -q fade-in frontend/src/components/dashboard/dashboard-charts.tsx   # → 0
 grep -qF "tnum text-[10px]" frontend/src/components/services/service-catalog-card.tsx  # → 07 je primijenjen
 grep -qF "fade-in space-y-4" frontend/src/components/sla/sla-profile-detail.tsx        # → 08 je primijenjen
 grep -qF "fade-in overflow-x-auto" frontend/src/components/users/users-table.tsx        # → 09 je primijenjen
-git status --porcelain | wc -l                          # ~240 putanja nakon 01–09
+grep -qF "fade-in grid gap-1.5 font-mono" frontend/src/components/config-versions/config-version-diff-panel.tsx  # → 10 je primijenjen
+git status --porcelain | wc -l                          # ~225 putanja nakon 01–10
 ```
 
 ---
@@ -139,6 +144,13 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | Patch 07 primijenjen na F4.2 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 08 primijenjen na F4.3 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 09 primijenjen na F4.4 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| Patch 10 primijenjen na F4.5 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **4.6 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
+| **4.6 — `npx vite build`** | ✅ `index-Dd3fqRIo.css` (63 047 B — nepromijenjen) / `index-CRP_fJua.js` (1 189 780 B) |
+| **4.6 — sve Tailwind klase (`config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/`)** | ✅ 102 utility klase kroz pravi Tailwind build — **0 stvarnih propusta** (2 „nalaza" su artefakti: putanja importa `charts/h-bars` i opisni tekst u navodnicima) |
+| **4.6 — mrtve klase** | ✅ nula (`rounded-md` → `rounded-lg` na jedinom mjestu gdje je bio okvir, a ne uzorak; `tnum` na prvo mjesto ×4) |
+| Skripta na „imam 01–09, dodajem 10" | ✅ `primijenjeno: 1  preskočeno: 9  grešaka: 0` |
+| **Skripta na čistom `base` + svih 10 patcheva (uz `core.autocrlf=true`)** | ✅ `primijenjeno: 10  preskočeno: 0  grešaka: 0`; rezultat **1:1** prema referentnom stablu |
 | **4.5 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.5 — `npx vite build`** | ✅ `index-Dd3fqRIo.css` (63 050 B) / `index-DbyVxeDU.js` (1 189 436 B) |
 | **4.5 — sve Tailwind klase (`admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/`)** | ✅ 181 utility klasa kroz pravi Tailwind build — **0 stvarnih propusta** |
@@ -306,6 +318,27 @@ i18n ključa ostali su isti. Promijenjen je samo izgled i raspored.
 
 > Napomena: `controlClassName` u `control.ts` namjerno ostaje na `rounded-md` — kontrole (inputi, selekti) u Pulse jeziku imaju manji radius od kartica. Zato `rounded-md` u ovom modulu nije „mrtva klasa".
 
+### Talas 4.6 — šta je konkretno urađeno (konfiguracije, red, održavanje, povratne informacije)
+
+Ovaj modul je posljedica ranih faza: `tableHeadClassName` / `tableWrapClassName` / `Field` / `Card`
+primitivi su već bili tu, pa je talas ispao najmanji do sada — **13 fajlova, 18 zamjena** — i sve
+preostalo je bilo na nivou detalja.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Pulse ulaz** | `fade-in` na 10 površina: workspace za verzije konfiguracije i sve tri kartice odabrane verzije, lista diff-a, lista rezultata „shadow" testa, kartica integracionog reda, traka održavanja, traka povratne informacije, forma za promjenu lozinke i svaka sekcija Visual QA table |
+| **Fokus prstenovi** | Dva ručna `<button>`-a u traci povratne informacije (akcija „Poništi" i zatvaranje) — bili su jedini interaktivni elementi u modulu bez `focus-visible` stila. Dodat je i `transition-opacity` na dugme za zatvaranje |
+| **Konzistentnost brojeva** | `tnum` prebačen na prvo mjesto u klasi (4 mjesta: dvije tabele i traka održavanja) |
+| **Posljednji `rounded-md` van `control.ts`** | Zamijenjen `rounded-lg` na okviru uzorka boje u Visual QA — **uzorci radijusa** (`rounded-md` / `rounded-lg` / `rounded-full` u tabeli „Geometrija i elevacija") **namjerno ostaju** netaknuti: oni nisu stil, oni su demonstracija vrijednosti |
+| **Mrtve klase** | ✅ **nula** — modul nije imao nijednu (`leading-4.5`, `/12`, `border-border/60|50`, `shadow-md`, `bg-muted/*` nisu se pojavljivali) |
+| **Hardkodirane boje** | ✅ **nula** — traka održavanja već je koristila `border-warning/40 bg-warning/10 text-warning`, traka povratne informacije `success` / `link` / `warning` / `danger` tokene |
+| **Svjesno nedirnuto (8 fajlova)** | `config-versions/{config-version-actions,config-version-admin-error,config-version-status-tabs,create-config-version-form}` (čisti primitivi: `Button`, `Field`, `UnderlineTabs`, `controlClassName`), `visual-qa/{actions,charts,forms,surfaces}-board` (sastavljeni isključivo od primitiva, a `VisualQaSection` sada nosi `fade-in` za sve njih) |
+
+> Napomena: dvije tabele u ovom modulu (`config-version-list`, `config-validation-errors`,
+> `integration-queue-table`) i dalje koriste `tableWrapClassName` / `tableHeadClassName` / `tableRowClassName`
+> iz `control.ts` — **ista odluka kao u 4.4 i 4.5**: mijenjanje tih dijeljenih klasa mijenja cijelu
+> aplikaciju, pa se one restaure kroz `control.ts`, ne po modulu.
+
 ### Talas 4.5 — šta je konkretno urađeno (administracija)
 
 | Dio | Šta je urađeno |
@@ -405,6 +438,7 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **`prefers-color-scheme` u testovima** | Provider ima zaštitu za `window.matchMedia` (jsdom/node ga nema) — bitno ako kasnije dodaš jsdom testove. |
 | **`E2E` scenariji** | Nisu dirani i **trebali bi proći** (selektori su tekst/rola, a i18n je nepromijenjen). Nisam ih mogao pokrenuti — traže bazu i backend. |
 | **Mrtve Tailwind klase** | ✅ **Nema ih više nigdje u `src`** — posljednja mjesta očišćena su u talasu 4.5. Ako dodaješ nove klase, pazi na tri klase koje Tailwind 3 tiho ne generiše: `leading-4.5`, `ring-3` i alpha vrijednosti koje nisu višekratnik 5 (npr. `/12`). |
+| **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
 ---
@@ -509,11 +543,11 @@ ls frontend/src/lib/theme/theme-provider.tsx
 
 ## 9. Prijedlog sljedećeg koraka
 
-Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.5. Ostaje:
+Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.6. Ostaje:
 
 1. **Pilot** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
    Tema se prebacuje iz topbara, bez rekompajliranja.
-2. **Faza 4** — 6 talasa (4.2–4.7), svaki talas = zaseban patch i zaseban review:
+2. **Faza 4** — jedan talas = jedan patch i jedan review; stanje do sada:
 
    | Talas | Moduli | Komponenti | Patch |
    |---|---|---|---|
@@ -522,7 +556,7 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.5. Ostaje:
    | ~~4.3~~ | ~~`services/`, `knowledge-base/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-07` |
    | ~~4.4~~ | ~~`sla/`, `routing/`, `policy-packs/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-08` |
    | ~~4.5~~ | ~~`admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-09` |
-   | 4.6 | `config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/` | 20 | `pulse-10` |
+   | ~~4.6~~ | ~~`config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/`~~ — **isporučeno** | ~~13~~ | ✅ `pulse-10` |
    | 4.7 | `pages/*` + `lib/` pomoćne (gustina, tema) | 23 | `pulse-11` |
 
 3. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`).
@@ -532,5 +566,5 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talasi 4.1–4.5. Ostaje:
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
-izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.6" i nastavljam
-istim tokom: jedan talas = jedan patch (`pulse-10`) + verifikacija + handoff.
+izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.7" i nastavljam
+istim tokom: jedan talas = jedan patch (`pulse-11`) + verifikacija + handoff.

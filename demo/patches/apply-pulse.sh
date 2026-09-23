@@ -47,6 +47,7 @@ PATCHES=(
   "pulse-07-services-knowledge-base.patch:frontend/src/components/services/service-catalog-card.tsx:tnum text-[10px]"
   "pulse-08-sla-routing-policy-packs.patch:frontend/src/components/sla/sla-profile-detail.tsx:fade-in space-y-4"
   "pulse-09-admin-users-groups-ou-rbac-settings.patch:frontend/src/components/users/users-table.tsx:fade-in overflow-x-auto"
+  "pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch:frontend/src/components/config-versions/config-version-diff-panel.tsx:fade-in grid gap-1.5 font-mono"
 )
 
 applied=0
