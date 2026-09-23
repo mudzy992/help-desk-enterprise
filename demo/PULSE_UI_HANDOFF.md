@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + 1 + 2 + 3 + 4.1–4.7 (Faza 4 završena)
+# Pulse UI — Faza 0–5 isporučena (Faza 4 i Faza 5 završene)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -23,7 +23,8 @@
 | **4.5 — Administracija** | `components/admin/` (3), `users/` (10), `groups/` (6), `organizational-units/` (6), `rbac/` (3), `settings/` (13) — korisnici, grupe, organizacione jedinice, dozvole, sistemska podešavanja | ✅ |
 | **4.6 — Konfiguracije, red, održavanje, povratne informacije** | `components/config-versions/` (10), `queue/` (2), `maintenance/` (1), `feedback/` (1), `auth/` (1), `visual-qa/` (6) — verzije konfiguracije, integracioni red, traka održavanja, povratne informacije o akcijama, promjena lozinke, Visual QA tabla | ✅ |
 | **4.7 — Stranice i radius sistem** | `pages/*` (23 fajla provjerena, 3 dotjerana) + zatvaranje posljednjeg propusta u radius sistemu (`rounded-xl` nije bio vezan na token) kroz `layout/command-palette` i dva fajla razgovora tiketa | ✅ |
-| 5–7 | Dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ |
+| **5 — Izgled (dark mode + stranica podešavanja)** | Nova stranica **`/appearance`** (dizajn, svjetlina, živi pregled iz pravih primitiva, „vrati na zadano"), ulazi u korisničkom meniju i u biraču teme, 22 nova i18n ključa u oba lokala; **verifikovano da su sva tri tematska bloka potpuna** (48/48/48 tokena, bez razlika) | ✅ |
+| 6–7 | Dokumentacija i pravila, završna verifikacija i release | ⏳ |
 
 | Faza | Putanja | Diff |
 |---|---|---|
@@ -37,7 +38,8 @@
 | 4.5 | 32 (32 izmijenjena; 9 fajlova je već bilo u Pulse jeziku) | 692 linije u 1 patchu |
 | 4.6 | 13 (13 izmijenjenih; 8 fajlova je već bilo u Pulse jeziku) | 214 linija u 1 patchu |
 | 4.7 | 6 (6 izmijenjenih; 5 fajlova je već bilo u Pulse jeziku) | 96 linija u 1 patchu |
-| **Ukupno** | **257 unikatnih putanja** (22 se pojavljuje u više setova) | **10 494 linije** |
+| 5 | 6 (1 nov fajl + 5 izmijenjenih) | 413 linija u 1 patchu |
+| **Ukupno** | **259 unikatnih putanja** (26 se pojavljuje u više setova) | **10 907 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -59,7 +61,8 @@ demo/patches/
 ├── pulse-08-sla-routing-policy-packs.patch           24 fajla     36 KB
 ├── pulse-09-admin-users-groups-ou-rbac-settings.patch 32 fajla     35 KB
 ├── pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch  13 fajlova  11 KB
-└── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
+├── pulse-11-pages-radius-system.patch                 6 fajlova     6 KB
+└── pulse-12-appearance-page.patch                    6 fajlova    16 KB
 ```
 
 Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
@@ -78,6 +81,7 @@ git apply demo/patches/pulse-08-sla-routing-policy-packs.patch
 git apply demo/patches/pulse-09-admin-users-groups-ou-rbac-settings.patch
 git apply demo/patches/pulse-10-config-versions-queue-maintenance-feedback-auth-visual-qa.patch
 git apply demo/patches/pulse-11-pages-radius-system.patch
+git apply demo/patches/pulse-12-appearance-page.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -131,7 +135,8 @@ grep -qF "fade-in space-y-4" frontend/src/components/sla/sla-profile-detail.tsx 
 grep -qF "fade-in overflow-x-auto" frontend/src/components/users/users-table.tsx        # → 09 je primijenjen
 grep -qF "fade-in grid gap-1.5 font-mono" frontend/src/components/config-versions/config-version-diff-panel.tsx  # → 10 je primijenjen
 grep -qF "page-in grid min-h-screen" frontend/src/pages/login-page.tsx                  # → 11 je primijenjen
-git status --porcelain | wc -l                          # ~226 putanja nakon 01–11
+ls frontend/src/pages/appearance-page.tsx                                               # postoji → 12 je primijenjen
+git status --porcelain | wc -l                          # ~231 putanja nakon 01–12
 ```
 
 ---
@@ -150,6 +155,14 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 | Patch 09 primijenjen na F4.4 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 10 primijenjen na F4.5 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
 | Patch 11 primijenjen na F4.6 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| Patch 12 primijenjen na F4.7 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **F5 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
+| **F5 — `npx vite build`** | ✅ `index-2BFNtEPu.css` (63 138 B) / `index-DnBvtteM.js` (1 196 850 B) |
+| **F5 — sve Tailwind klase (`pages/appearance-page.tsx`, `router.tsx`, `theme-switcher.tsx`, `session-controls.tsx`)** | ✅ 49 utility klasa kroz pravi Tailwind build — **0 propusta** |
+| **F5 — i18n** | ✅ `bs` **2164** = `en` **2164** ključa (2142 + 22 nova `appearance.*`), parity **0/0**; svih 24 statička ključa nove stranice postoje u oba lokala |
+| **F5 — tematski tokeni (dark mode)** | ✅ sva tri bloka (`:root[data-theme="classic"]`, `:root[data-theme="pulse"]`, `:root[data-theme="pulse"].dark`) imaju **identičan skup od 48 varijabli** — nema tokena koji bi u dark modu pao na fallback |
+| Skripta na „imam 01–11, dodajem 12" | ✅ `primijenjeno: 1  preskočeno: 11  grešaka: 0` |
+| **Skripta na čistom `base` + svih 12 patcheva (uz `core.autocrlf=true`)** | ✅ `primijenjeno: 12  preskočeno: 0  grešaka: 0`; rezultat **1:1** prema referentnom stablu |
 | **4.7 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** |
 | **4.7 — `npx vite build`** | ✅ `index-8UzRBoY8.css` (63 014 B — **manji**, jer `rounded-xl` više ne postoji u kodu) / `index-DzHQdNCn.js` (1 189 796 B) |
 | **4.7 — sve Tailwind klase (`pages/*` + 3 fajla van njih)** | ✅ 101 klasa u `pages/` + 67 u tri fajla kroz pravi Tailwind build — **0 propusta** |
@@ -238,6 +251,28 @@ bude prvo što pogledaš, a ponašanje palete je pokriveno jsdom testom (§3).
 | **Faza 0 + Faza 1** | Isporučeno u dva patcha. |
 | **`.patch` fajlovi** | Isporučeno (vidi §2). |
 | **KB intercept kao zaseban ekran** | Zadržano postojeće ponašanje — postojeći `knowledge-intercept-panel.tsx` je samo restilizovan, **tok nije mijenjan**. |
+
+### Faza 5 — šta je konkretno urađeno (izgled: dark mode + stranica podešavanja) — **kraj Faze 5**
+
+Ključni nalaz: **dark mode nije trebalo popravljati — trebalo ga je dokazati.** Theme sloj iz Faze 0 je
+bio potpun, pa je ovaj talas (a) mjerljivo pokazao da je pokrivenost tokena 100% i (b) dodao jedinu
+stvar koja je stvarno nedostajala: **stranicu na kojoj se izgled objašnjava i mijenja**.
+
+| Dio | Šta je urađeno |
+|---|---|
+| **Nova stranica `/appearance`** | `pages/appearance-page.tsx` (nov fajl, ~266 linija, `.cursor` stil: `type`-only importi, `interface …Properties` sa `readonly`, JSDoc na engleskom). Tri kartice: **Dizajn** (dvije velike radio-opcije sa swatchevima boja iz tokena), **Svjetlina** (`Segmented` svijetla/tamna/sistemska sa ikonama), **Pregled** — živi uzorak sastavljen od **pravih primitiva** (`Card`, `Field`, `Input`, `Button`, `Progress`, `Badge`, `StatCard`) na pravim tokenima, pa uvijek pokazuje tačno ono što i ostatak aplikacije |
+| **Bez odvojene „preview" teme** | Nema paralelnog sistema za pregled — uzorak koristi iste primitive i iste CSS varijable. To znači da ne postoji način da pregled i stvarni ekran „pobjegnu" jedno od drugog |
+| **Ulaz u korisničkom meniju** | `session-controls.tsx`: nova stavka **„Izgled"** (`Palette` ikona) iznad „Postavke naloga", vodi na `/appearance`. Postojeće ponašanje menija nije mijenjano |
+| **Prečica iz birača teme** | `theme-switcher.tsx` (dropdown u topbaru): na dnu dodat `DropdownMenuSeparator` + stavka **„Sva podešavanja izgleda"** → `/appearance`. Toggle u topbaru ostaje najbrži put, stranica je „puna slika" |
+| **Ruta** | `app/router.tsx`: `<Route path="appearance" element={<AppearancePage />} />` — **bez `RequireAccess`**, jer izgled ne smije zavisiti od dozvola. Ruta `settings` (`LegacyAdminRedirect`) **nije dirana** — i dalje radi kako je radila |
+| **i18n** | **22 nova ključa** u novom bloku `appearance.*` u **oba** lokala (`bs` i `en`); korišteni su i postojeći `theme.*` ključevi iz Faze 0. Ukupno `bs` **2164** = `en` **2164**, parity **0/0** |
+| **„Vrati na zadano"** | Dugme u zaglavlju stranice vraća i dizajn i svjetlinu na `DEFAULT_THEME_DESIGN` / `DEFAULT_THEME_MODE` (jedan izvor istine iz `theme-storage.ts`) i **disabled** je kad si već na zadanim vrijednostima |
+| **Perzistencija i sistemska preferencija** | Bez novog koda — postojeći `ThemeProvider` već piše u `localStorage` (`ep-helpdesk.theme.design|mode`) i sluša `prefers-color-scheme` preko `matchMedia`; stranica piše kroz isti `useTheme()` kontrakt, pa se toggle u topbaru, meni i stranica **ne mogu razići** |
+| **Dark mode — dokaz pokrivenosti** | Sva tri tematska bloka (`:root[data-theme="classic"]`, `:root[data-theme="pulse"]`, `:root[data-theme="pulse"].dark`) imaju **identičan skup od 48 varijabli — nula razlika**. Nijedan token ne pada na fallback u tamnom Pulse modu. `classic` je i dalje forsirano tamna (kako je i zamišljeno) |
+| **Dokazi (bez izmjena koda)** | `tsc` **0 grešaka**; `vitest` **89 fajlova / 306 testova**; `vite build` prolazi; guard za ID-jeve tiketa **0**; **49 utility klasa** u nova 4 fajla — **0 propusta** kroz pravi Tailwind build (CSS je ostao **isti**, 63 138 B: nijedna nova utility klasa nije uvedena) |
+
+> **Faza 5 je završena.** Sljedeće su Faza 6 (dokumentacija i `.cursor` pravila) i Faza 7
+> (završna verifikacija, vizuelni QA na 1440/1024/390 px, a11y kontrast, UAT).
 
 ### Faza 2 — šta je konkretno urađeno
 
@@ -474,6 +509,9 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **Mrtve Tailwind klase** | ✅ **Nema ih više nigdje u `src`** — posljednja mjesta očišćena su u talasu 4.5. Ako dodaješ nove klase, pazi na tri klase koje Tailwind 3 tiho ne generiše: `leading-4.5`, `ring-3` i alpha vrijednosti koje nisu višekratnik 5 (npr. `/12`). |
 | **Radius: ne koristi `rounded-xl`** | `rounded-xl` nije u `tailwind.config.ts` — Tailwind ga generiše iz defaulta (12px) i **ne mijenja se s temom**. Za kartice i veće blokove koristi `rounded-lg` (token `--radius-lg`: 12px Pulse / 8px classic), za kontrole `rounded-md` (token), za mikro-elemente `rounded` ili `rounded-[Npx]` |
 | **`rounded-md` u Visual QA** | U tabeli „Geometrija i elevacija" i u uzorcima boja **namjerno** stoji `rounded-md` — to su uzorci radijusa, ne stil. Jedini pravi `rounded-md` van `control.ts` zamijenjen je u 4.6 |
+| **Izgled se pamti lokalno, ne po korisniku** | Izbor dizajna i svjetline stoji u `localStorage` **tog pregledača**, ne na nalogu. Ako želiš da izgled prati korisnika na svakom uređaju, to je novi backend ključ kroz **settings registry** (`settings/definitions/` + `readStringSetting`) — infrastruktura već postoji i to je jedini otvoren zadatak iz plana za Fazu 5 |
+| **`appearance.*` je nov blok u i18n** | 22 ključa su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → 2164) će ih prijaviti kao nedostajuće |
+| **`/appearance` nije u `navigation.ts`** | Stranica je namjerno dostupna iz korisničkog menija i birača teme, **ne** iz sidebar navigacije — izgled nije modul aplikacije. Ako je želiš u sidebaru, dodaje se jedan red u `lib/navigation.ts` + ključ u oba lokala |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 
 ---
@@ -578,11 +616,13 @@ ls frontend/src/lib/theme/theme-provider.tsx
 
 ## 9. Prijedlog sljedećeg koraka
 
-Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)**. Ostaje:
+Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)** + **Faza 5 (izgled)**. Ostaje:
 
 1. **Pilot** sa `DEFAULT_THEME_DESIGN = "classic"` za interni tim, ili odmah `pulse` ako si zadovoljan.
    Tema se prebacuje iz topbara, bez rekompajliranja.
-2. **Faza 4** — jedan talas = jedan patch i jedan review; stanje do sada:
+2. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`) — ✅ **isporučeno**.
+   Ako želiš, prvo otvori `/appearance` u obje teme i klikni kroz sve tri opcije svjetline.
+3. **Faza 4** — jedan talas = jedan patch i jedan review; stanje do sada:
 
    | Talas | Moduli | Komponenti | Patch |
    |---|---|---|---|
@@ -593,13 +633,14 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + **cijela Faza 4 (talasi 4.1–4.7)**. Ostaje
    | ~~4.5~~ | ~~`admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/`~~ — **isporučeno** | ~~41~~ | ✅ `pulse-09` |
    | ~~4.6~~ | ~~`config-versions/`, `queue/`, `maintenance/`, `feedback/`, `auth/`, `visual-qa/`~~ — **isporučeno** | ~~13~~ | ✅ `pulse-10` |
    | ~~4.7~~ | ~~`pages/*` + `lib/` pomoćne~~ — **isporučeno** | ~~23~~ | ✅ `pulse-11` |
+   | ~~5~~ | ~~dark mode + stranica izgleda~~ — **isporučeno** | ~~6~~ | ✅ `pulse-12` |
 
-3. **Faza 5** (1 dan): dark mode + stranica podešavanja izgleda (patch `pulse-12`) — **sljedeće**.
 4. **Faza 6** (1 dan): `Master UI-UX Design Constitution.md`, `.cursor/docs/theme-source.md`,
    `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
 5. **Faza 7** (1 dan): završna verifikacija i release.
 
 Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
 „ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
-izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na Fazu 5" i nastavljam
-istim tokom: jedan korak = jedan patch (`pulse-12`) + verifikacija + handoff.
+izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na Fazu 6"
+(dokumentacija i `.cursor` pravila) i nastavljam istim tokom: jedan korak = jedan patch
+(`pulse-13` u kojoj su **samo dokumenti i pravila** — bez ijedne linije koda) + verifikacija + handoff.
