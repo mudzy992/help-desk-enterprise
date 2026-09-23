@@ -1,4 +1,4 @@
-# Pulse UI — Faza 0 + 1 + 2 + 3 + talas 4.1 (isporuka)
+# Pulse UI — Faza 0 + 1 + 2 + 3 + talas 4.1 i 4.2 (isporuka)
 
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
@@ -17,7 +17,8 @@
 | **2 — Shell + ⌘K paleta + prijava + čarobnjak** | Topbar, sidebar, korisnički meni, komandna paleta sa pretragom, nova stranica prijave, čarobnjak za instalaciju sa stepperom | ✅ |
 | **3 — Grafikoni** | Donut, grupisan i horizontalni barovi prerađeni u Pulse jezik + novi **dual area** grafikon (sada na nadzornoj ploči) + svi grafikoni na Visual QA | ✅ |
 | **4.1 — Tiketi** | Cijeli `components/tickets/` (48 fajlova): lista, tabela, inbox, detalj tiketa, razgovor, CSAT, SLA panel, prilozi, odobrenja, bulk bar, saved views, obrasci za kreiranje, break-glass, time tracking, banneri | ✅ |
-| 4.2–4.7 | Ostali moduli (6 talasa) | ⏳ sljedeće |
+| **4.2 — Nadzorna ploča i izvještaji** | Sve kartice nadzorne ploče (metrike, grafikoni, SLA nadzor, aktivnost, inbox, tabela pažnje) i stranica izvještaja; **+ popravke koje si prijavio: SLA prikaz i fiksna visina razgovora** | ✅ |
+| 4.3–4.7 | Ostali moduli (5 talasa) | ⏳ sljedeće |
 | 5–7 | Dark mode + podešavanja, dokumentacija, završna verifikacija | ⏳ |
 
 | Faza | Putanja | Diff |
@@ -26,7 +27,8 @@
 | 2 | 27 (20 izmijenjenih + 6 novih + 1 brisanje) | 2204 linije u 1 patchu |
 | 3 | 9 (5 izmijenjenih + 4 nova) | 856 linija u 1 patchu |
 | 4.1 | 44 (43 izmijenjena + 1 novi) | 1552 linije u 1 patchu |
-| **Ukupno** | **148 unikatnih putanja** (11 se pojavljuje u više setova) | **7747 linija** |
+| 4.2 | 16 (10 UI + 6 popravki) | 452 linije u 1 patchu |
+| **Ukupno** | **160 unikatnih putanja** (15 se pojavljuje u više setova) | **8199 linija** |
 
 `frontend/src/components/layout/header-search.tsx` je **obrisan** u Fazi 2 (inline pretraga u topbaru je
 zamijenjena komandnom paletom); njegov sadržaj za pretragu (`header-search-match.tsx`) je zadržan i
@@ -42,11 +44,12 @@ demo/patches/
 ├── pulse-02-ui-primitives.patch                     24 fajla    47 KB
 ├── pulse-03-shell-palette-login-wizard.patch        27 fajlova   84 KB
 ├── pulse-04-charts.patch                             9 fajlova   34 KB
-└── pulse-05-tickets.patch                           44 fajla     73 KB
+├── pulse-05-tickets.patch                           44 fajla     73 KB
+└── pulse-06-dashboard-reports.patch                 16 fajlova   20 KB
 ```
 
-Patchevi su **sekvencijalni** (03 pretpostavlja 01+02, 04 pretpostavlja 01–03, 05 pretpostavlja 01–04), a
-svaki zasebno kompajlira — možeš ih pregledati i primijeniti odvojeno.
+Patchevi su **sekvencijalni** (svaki pretpostavlja sve prethodne), a svaki zasebno kompajlira — možeš ih
+pregledati i primijeniti odvojeno.
 
 ```bash
 git checkout -b pulse-ui              # ili kako ti već ide tok
@@ -55,6 +58,7 @@ git apply demo/patches/pulse-02-ui-primitives.patch
 git apply demo/patches/pulse-03-shell-palette-login-wizard.patch
 git apply demo/patches/pulse-04-charts.patch
 git apply demo/patches/pulse-05-tickets.patch
+git apply demo/patches/pulse-06-dashboard-reports.patch
 npm --prefix frontend ci              # ili npm install
 ```
 
@@ -102,7 +106,8 @@ ls frontend/src/components/layout/command-palette.tsx   # postoji → 03 je prim
 ls frontend/src/components/layout/header-search.tsx     # ne smije postojati → 03 briše ovaj fajl
 ls frontend/src/components/charts/dual-area-chart.tsx   # postoji → 04 je primijenjen
 ls frontend/src/components/ui/checkbox.tsx              # postoji → 05 je primijenjen
-git status --porcelain | wc -l                          # ~140 putanja nakon 01–05
+grep -q fade-in frontend/src/components/dashboard/dashboard-charts.tsx   # → 06 je primijenjen
+git status --porcelain | wc -l                          # ~155 putanja nakon 01–06
 ```
 
 ---
@@ -113,8 +118,13 @@ Provjereno **i u mom radnom stablu i na svježem klonu baze `5831dfd` sa primije
 
 | Provjera | Rezultat |
 |---|---|
-| `git apply --check` (sva pet patcha) | ✅ čisto, bez konflikata |
+| `git apply --check` (svih šest patcheva) | ✅ čisto, bez konflikata |
 | Patch 05 primijenjen na F3 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** (`git diff` prema referentnom stablu prazan) |
+| Patch 06 primijenjen na F4.1 stablo (svjež worktree) | ✅ prolazi i **reprodukuje stanje 1:1** |
+| **4.2 — `npx tsc -b` / `npx vitest run`** | ✅ **0 grešaka** / **89 fajlova / 306 testa** (dva nova testa za SLA realtime) |
+| **4.2 — `npx vite build`** | ✅ `index-CzaKq5i_.css` (64 616 B) / `index-B8grFbV6.js` (1 189 005 B) |
+| **4.2 — sve Tailwind klase (dashboard, reports, razgovor)** | ✅ 110 utility klasa kroz pravi Tailwind build — **0 stvarnih propusta** |
+| Skripta na „imam 01–05, dodajem 06" | ✅ `primijenjeno: 1  preskočeno: 5  grešaka: 0` |
 | `bash -n demo/patches/apply-pulse.sh` | ✅ sintaksa ispravna; 0 CR linija u svim patchevima i skripti |
 | `npx tsc -b` (bez keša) | ✅ **0 grešaka** |
 | `npx vitest run` | ✅ **89 fajlova / 304 testa** (bilo 86/279) |
@@ -221,6 +231,42 @@ i18n ključa ostali su isti. Promijenjen je samo izgled i raspored.
 | **Paneli** | SLA panel (oba stanja), prilozi, odobrenja, praćenje vremena, break-glass (warning tint), CSAT (zvjezdice 18 px sa scale na hover), sigurnosni banneri |
 | **Bulk bar** | Postao lebdeća traka (`pop-in`, `shadow-card`, brojač u piluli) sa jasnim `aria-label` na dugmetu za odustajanje |
 | **Motion** | `fade-in` / `page-in` / `pop-in` na 24 fajla; sve animacije poštuju `prefers-reduced-motion` |
+
+### Talas 4.2 — šta je konkretno urađeno (nadzorna ploča + izvještaji)
+
+| Oblast | Šta je promijenjeno |
+|---|---|
+| **Metrike** | Sve kartice metrika (`StatCard`) sa `fade-in` ulazom i hover stanjem ruba |
+| **Grafikoni** | Kartice donuta i dual-area grafikona dobile `fade-in`; grupisani barovi na izvještajima ostaju u F3 jeziku |
+| **SLA nadzor / tabela pažnje / aktivnost** | Hover redova prebačen na `surface-hover` token, `fade-in` na karticama, prioritet kroz četvorostepeni signal iz 4.1 |
+| **Inbox snapshot** | Mrtva klasa `hover:bg-danger/12` (Tailwind je tiho ne generiše) → `hover:bg-danger/15`; baner dobio `rounded-lg` i fokus prsten |
+| **Inbox lista tiketa** | `fade-in` na tabeli, `tnum` na prvom mjestu u klasi (brojevi se poravnavaju u koloni) |
+| **Izvještaji** | `leading-4.5` (takođe mrtva klasa — Tailwind nema tu vrijednost) → `leading-[18px]`; `border-border/60` → `/70`; `text-muted` → `text-muted-foreground` |
+
+### Popravke koje si prijavio (SLA i razgovor)
+
+**1) SLA — „izgleda da se u svim tiketima prikazuje SLA za sve tikete".** Prošao sam cijeli lanac
+(frontend → API → Prisma → SLA servis) i **dijeljenja SLA između tiketa nema**: `TicketSlaState.ticketId`
+je `@unique`, snapshot se čita sa `where: { ticketId: { in: [...] } }` i mapira **po tiketu**, a breach
+scanner radi jedan-po-jednom stanju. Ali našao sam **dva stvarna buga koja daju tačno tvoj simptom**:
+
+- **Ljepljivi `isOverdue`.** Realtime događaj o SLA je na klijentu postavljao `isOverdue: true` čim ime
+  akcije sadrži „breached" — i **nikad ga nije vratio na `false`**. Jednom prekoračen tiket ostajao je
+  označen kao prekoračen do kraja sesije, u svakom sljedećem renderu, čak i kad je SLA zapravo bio u
+  redu (npr. nakon rješavanja ili ponovnog otvaranja). Zato je izgledalo kao da se isti SLA „vuče" kroz
+  tikete. Sada: SLA događaj **refetcha tiket sa servera** (`shouldReloadTicketFromUpdated`), pa panel i
+  oznaka uvijek prikazuju snapshot koji je server upravo izračunao za **taj** tiket.
+- **Nije bilo resetovanja stanja pri promjeni tiketa.** Detalj je zadržavao polja prethodnog tiketa dok
+  ne stignu nova (a pri grešci učitavanja i trajno). Sada se `ticket`, poruke, prilozi, vremena i SLA
+  čiste na svaku promjenu `ticketId`, a SLA panel se i remounta po tiketu (`key`) — dodatna brava.
+
+Pokriveno sa **dva nova testa** u `lib/realtime/ticket-realtime.spec.ts` (payload više ne izmišlja SLA
+flagove; SLA događaj traži reload, ostali ne).
+
+**2) Razgovor na fiksnoj visini.** `TicketConversation` sada ima `viewport="fixed"`: nit razgovora ima
+**vlastiti scroll** (`h-[320px]`, na `sm+` `h-[420px]`, `overflow-y-auto`, globalni „thin" scrollbar iz
+tematskih tokena). Time se kompozitor i desni panel više ne pomjeraju kad stigne duga poruka, a prazna
+nit prikazuje uredno prazno stanje unutar istog okvira. `role="log"` je dodat za čitače ekrana.
 
 ### Dodatno, jer je bilo neophodno za ispravnost
 
@@ -394,7 +440,7 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talas 4.1. Ostaje:
    | Talas | Moduli | Komponenti | Patch |
    |---|---|---|---|
    | ~~4.1~~ | ~~`tickets/`~~ — **isporučeno** | ~~48~~ | ✅ `pulse-05` |
-   | 4.2 | `dashboard/`, `reports/` | 11 | `pulse-06` |
+   | ~~4.2~~ | ~~`dashboard/`, `reports/`~~ — **isporučeno** | ~~11~~ | ✅ `pulse-06` |
    | 4.3 | `services/`, `knowledge-base/` | 41 | `pulse-07` |
    | 4.4 | `sla/`, `routing/`, `policy-packs/` | 41 | `pulse-08` |
    | 4.5 | `admin/`, `users/`, `groups/`, `organizational-units/`, `rbac/`, `settings/` | 41 | `pulse-09` |
@@ -406,6 +452,7 @@ Isporučeno je Faza 0 + 1 + 2 + 3 + talas 4.1. Ostaje:
    `referenca-dizajn/` — usklađivanje dokumentacije sa novim identitetom.
 5. **Faza 7** (1 dan): završna verifikacija i release.
 
-Prvo baci pogled na `/_visual-qa` i na listu/detalj tiketa u obje teme — to je jedina stvar koju ja
-nisam mogao vidjeti (u sandboxu nema browsera). Zatim reci „kreni na talas 4.2" i nastavljam istim
-tokom: jedan talas = jedan patch (`pulse-06`) + verifikacija + handoff.
+Prvo provjeri u obje teme: **razgovor na fiksnoj visini** u detalju tiketa i **SLA panel** — ako se
+„ljepljivo" prekoračenje ipak pojavi, pošalji mi ekran i broj tiketa, pa idem dublje (u tom slučaju je
+izvor u podacima, npr. breach flag u bazi, ne u prikazu). Zatim reci „kreni na talas 4.3" i nastavljam
+istim tokom: jedan talas = jedan patch (`pulse-07`) + verifikacija + handoff.

@@ -34,13 +34,16 @@ if [ "${1:-}" = "--dry-run" ] || [ "${1:-}" = "-n" ]; then
   DRY_RUN=1
 fi
 
-# patch → fajl koji postoji SAMO ako je taj patch primijenjen
+# patch → sentinel koji postoji SAMO ako je taj patch primijenjen
+#   "ime.patch:putanja"          → dovoljno je da fajl postoji
+#   "ime.patch:putanja:marker"   → fajl mora da sadrži marker (za patcheve bez novih fajlova)
 PATCHES=(
   "pulse-01-theme-tokens-and-infrastructure.patch:frontend/src/lib/theme/theme-storage.ts"
   "pulse-02-ui-primitives.patch:frontend/src/components/ui/segmented.tsx"
   "pulse-03-shell-palette-login-wizard.patch:frontend/src/components/layout/command-palette.tsx"
   "pulse-04-charts.patch:frontend/src/components/charts/dual-area-chart.tsx"
   "pulse-05-tickets.patch:frontend/src/components/ui/checkbox.tsx"
+  "pulse-06-dashboard-reports.patch:frontend/src/components/dashboard/dashboard-charts.tsx:fade-in"
 )
 
 applied=0
@@ -73,7 +76,24 @@ for entry in "${PATCHES[@]}"; do
   fi
 
   # ── 2. je li već primijenjen? ────────────────────────────────────────────
-  if [ -e "$sentinel" ]; then
+  case "$sentinel" in
+    *:*)
+      sentinel_file="${sentinel%%:*}"
+      sentinel_marker="${sentinel#*:}"
+      already=0
+      if [ -f "$sentinel_file" ] && grep -qF -- "$sentinel_marker" "$sentinel_file"; then
+        already=1
+      fi
+      ;;
+    *)
+      sentinel_file="$sentinel"
+      already=0
+      if [ -e "$sentinel_file" ]; then
+        already=1
+      fi
+      ;;
+  esac
+  if [ "$already" = "1" ]; then
     echo "→ već primijenjen, preskačem: $name"
     skipped=$((skipped + 1))
     [ "$work_patch" != "$patch" ] && rm -f "$work_patch"
@@ -87,7 +107,7 @@ for entry in "${PATCHES[@]}"; do
       applied=$((applied + 1))
     else
       echo "✗ NE MOŽE se primijeniti: $name"
-      echo "  Očekivano je stanje: '$(echo "$sentinel" | sed 's|.*/||')' ne postoji."
+      echo "  Očekivano je stanje: '$(echo "$sentinel_file" | sed 's|.*/||')' ne postoji."
       git apply --check "$work_patch" 2>&1 | head -5 | sed 's/^/  /'
       failed=$((failed + 1))
     fi
@@ -128,6 +148,6 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd frontend && npm install"
   echo "  npx tsc -b                 # očekivano: 0 grešaka"
-  echo "  npx vitest run             # očekivano: 89 fajlova / 304 testa"
+  echo "  npx vitest run             # očekivano: 89 fajlova / 306 testova"
   echo "  npx vite build             # očekivano: uspješno"
 fi
