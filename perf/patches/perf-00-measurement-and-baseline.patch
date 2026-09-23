@@ -1,0 +1,2497 @@
+diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
+index 0c8e4b0..dc6db29 100644
+--- a/PERFORMACE_PHASE_PLAN.md
++++ b/PERFORMACE_PHASE_PLAN.md
+@@ -497,12 +497,17 @@ Svaka stavka iza feature flaga ili iza deploy granice (osim indeksa i poola koji
+ 
+ | Kontrolna tačka | DB QPS | P95 read | SLA ciklus | Emit-ovi/s | Dashboard KB | Error rate (k6) |
+ |---|---|---|---|---|---|---|
+-| Baseline (prije F1) | ~5.500 | > 2 s | ~7 min | ~4.600 | ~240.000 | > 5% |
++| Baseline (prije F1) | ~5.500 * | > 2 s * | ~7 min * | ~4.600 * | ~240.000 * | > 5% * |
+ | Nakon F1 | | | | | | |
+ | Nakon F2 | | | | | | |
+ | Nakon F3 | | | | | | |
+ | Nakon F4 (cilj) | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+ 
++\* Red "Baseline" je **model iz statičke analize** (§0.3), ne mjerenje: Faza 0 je
++isporučila instrumentaciju i `perf/` paket, ali izvršno okruženje nije imalo k6,
++Postgres, Redis ni Docker. Prvi red se prepisuje stvarnim brojkama čim se pokrene
++`k6 run perf/full.js` (upute: `perf/results/baseline-2026-09-23.md` §4).
++
+ ---
+ 
+ ## 8. Šta NIJE predmet ovog plana
+diff --git a/backend/src/common/database/create-instrumented-pool.spec.ts b/backend/src/common/database/create-instrumented-pool.spec.ts
+new file mode 100644
+index 0000000..638ec0c
+--- /dev/null
++++ b/backend/src/common/database/create-instrumented-pool.spec.ts
+@@ -0,0 +1,56 @@
++import { Pool } from 'pg';
++import { runWithRequestId } from '../request-context/request-context.storage';
++import {
++  readTotalDbQueries,
++  resetDbQueryCounters,
++  takeDbQueryCount,
++} from './db-query-counter';
++import { createInstrumentedPool } from './create-instrumented-pool';
++
++describe('createInstrumentedPool', () => {
++  let runQuery: jest.SpyInstance;
++
++  beforeEach(() => {
++    resetDbQueryCounters();
++    runQuery = jest
++      .spyOn(Pool.prototype, 'query')
++      .mockImplementation(() => Promise.resolve({ rows: [], rowCount: 0 }) as never);
++  });
++
++  afterEach(() => {
++    runQuery.mockRestore();
++  });
++
++  it('counts statements against the active request id', async () => {
++    const pool = createInstrumentedPool({
++      connectionString: 'postgresql://localhost:5432/unused',
++      connectionTimeoutMillis: 1,
++    });
++
++    await runWithRequestId('request-1', async () => {
++      await pool.query('select 1');
++      await pool.query('select 2');
++    });
++    await pool.query('select 3');
++
++    expect(takeDbQueryCount('request-1')).toBe(2);
++    expect(readTotalDbQueries()).toBe(3);
++    expect(runQuery).toHaveBeenCalledTimes(3);
++  });
++
++  it('accepts a bare connection string like the previous adapter call', () => {
++    const pool = createInstrumentedPool('postgresql://localhost:5432/unused');
++
++    expect(pool).toBeInstanceOf(Pool);
++    expect(runQuery).not.toHaveBeenCalled();
++  });
++
++  it('still executes the statement when the counter runs', async () => {
++    const pool = createInstrumentedPool('postgresql://localhost:5432/unused');
++
++    await expect(pool.query('select 1')).resolves.toEqual({
++      rows: [],
++      rowCount: 0,
++    });
++  });
++});
+diff --git a/backend/src/common/database/create-instrumented-pool.ts b/backend/src/common/database/create-instrumented-pool.ts
+new file mode 100644
+index 0000000..9c17d91
+--- /dev/null
++++ b/backend/src/common/database/create-instrumented-pool.ts
+@@ -0,0 +1,28 @@
++import { Pool } from 'pg';
++import type { PoolConfig } from 'pg';
++import { getRequestId } from '../request-context/request-context.storage';
++import { recordDbQuery } from './db-query-counter';
++
++/**
++ * Builds the pg pool Prisma talks through and counts every statement it runs.
++ *
++ * `@prisma/adapter-pg` executes statements on the pool it is given, so wrapping
++ * `pool.query` measures the request path without touching Prisma internals or
++ * adding middleware to the query pipeline.
++ *
++ * Known limitation: statements inside an interactive transaction run on a
++ * dedicated client taken from the pool and are not counted here, so the value
++ * is a lower bound. Phase 0 needs a comparable number between phases, not an
++ * exact statement log.
++ */
++export function createInstrumentedPool(config: string | PoolConfig): Pool {
++  const pool = new Pool(
++    typeof config === 'string' ? { connectionString: config } : config,
++  );
++  const runQuery = pool.query.bind(pool);
++  pool.query = ((...args: Parameters<typeof runQuery>) => {
++    recordDbQuery(getRequestId());
++    return runQuery(...args);
++  }) as typeof pool.query;
++  return pool;
++}
+diff --git a/backend/src/common/database/db-query-counter.spec.ts b/backend/src/common/database/db-query-counter.spec.ts
+new file mode 100644
+index 0000000..2698526
+--- /dev/null
++++ b/backend/src/common/database/db-query-counter.spec.ts
+@@ -0,0 +1,50 @@
++import {
++  readTotalDbQueries,
++  readTrackedRequestCount,
++  recordDbQuery,
++  resetDbQueryCounters,
++  takeDbQueryCount,
++} from './db-query-counter';
++
++describe('db query counter', () => {
++  beforeEach(() => {
++    resetDbQueryCounters();
++  });
++
++  it('counts statements per request id and drains them once', () => {
++    recordDbQuery('request-1');
++    recordDbQuery('request-1');
++    recordDbQuery('request-2');
++
++    expect(takeDbQueryCount('request-1')).toBe(2);
++    expect(takeDbQueryCount('request-1')).toBe(0);
++    expect(takeDbQueryCount('request-2')).toBe(1);
++    expect(takeDbQueryCount('unknown-request')).toBe(0);
++  });
++
++  it('keeps counting statements that have no request id', () => {
++    recordDbQuery(undefined);
++    recordDbQuery(undefined);
++
++    expect(readTotalDbQueries()).toBe(2);
++    expect(readTrackedRequestCount()).toBe(0);
++  });
++
++  it('accumulates the process total across requests', () => {
++    recordDbQuery('request-1');
++    takeDbQueryCount('request-1');
++    recordDbQuery('request-2');
++
++    expect(readTotalDbQueries()).toBe(2);
++  });
++
++  it('drops the oldest entry instead of growing without bound', () => {
++    for (let index = 0; index <= 10_000; index += 1) {
++      recordDbQuery(`request-${index}`);
++    }
++
++    expect(readTrackedRequestCount()).toBe(10_000);
++    expect(takeDbQueryCount('request-0')).toBe(0);
++    expect(takeDbQueryCount('request-1')).toBe(1);
++  });
++});
+diff --git a/backend/src/common/database/db-query-counter.ts b/backend/src/common/database/db-query-counter.ts
+new file mode 100644
+index 0000000..a0a289f
+--- /dev/null
++++ b/backend/src/common/database/db-query-counter.ts
+@@ -0,0 +1,57 @@
++/**
++ * Counts database statements so a request can report how many queries it cost.
++ *
++ * The counter is intentionally dependency-free: the pg pool wrapper increments
++ * it, the request metrics middleware drains it once the response finished.
++ * Failures inside the counter must never break a query, so nothing here throws.
++ */
++
++/** Keeps the per-request map bounded when responses never arrive. */
++const maxTrackedRequests = 10_000;
++
++const queriesByRequestId = new Map<string, number>();
++let totalQueries = 0;
++
++/**
++ * Records one statement. `requestId` is absent for background work (worker
++ * jobs, startup checks) — those still count towards the process total.
++ */
++export function recordDbQuery(requestId: string | undefined): void {
++  totalQueries += 1;
++  if (requestId === undefined) {
++    return;
++  }
++  if (!queriesByRequestId.has(requestId) && queriesByRequestId.size >= maxTrackedRequests) {
++    const oldestRequestId = queriesByRequestId.keys().next().value;
++    if (oldestRequestId !== undefined) {
++      queriesByRequestId.delete(oldestRequestId);
++    }
++  }
++  queriesByRequestId.set(requestId, (queriesByRequestId.get(requestId) ?? 0) + 1);
++}
++
++/**
++ * Returns how many statements the request issued and forgets the entry, so a
++ * request id can never leak between responses.
++ */
++export function takeDbQueryCount(requestId: string): number {
++  const count = queriesByRequestId.get(requestId) ?? 0;
++  queriesByRequestId.delete(requestId);
++  return count;
++}
++
++/** Statements issued by the process since start, tracked and untracked. */
++export function readTotalDbQueries(): number {
++  return totalQueries;
++}
++
++/** Requests still waiting for their response to be counted. */
++export function readTrackedRequestCount(): number {
++  return queriesByRequestId.size;
++}
++
++/** Test helper — resets process-wide counters between cases. */
++export function resetDbQueryCounters(): void {
++  queriesByRequestId.clear();
++  totalQueries = 0;
++}
+diff --git a/backend/src/common/prisma/prisma.service.ts b/backend/src/common/prisma/prisma.service.ts
+index 20c7b71..2647ed3 100644
+--- a/backend/src/common/prisma/prisma.service.ts
++++ b/backend/src/common/prisma/prisma.service.ts
+@@ -1,6 +1,7 @@
+ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+ import { PrismaPg } from '@prisma/adapter-pg';
+ import { PrismaClient } from '../../generated/prisma/client';
++import { createInstrumentedPool } from '../database/create-instrumented-pool';
+ 
+ @Injectable()
+ export class PrismaService
+@@ -12,7 +13,9 @@ export class PrismaService
+     if (!connectionString) {
+       throw new Error('DATABASE_URL is required');
+     }
+-    super({ adapter: new PrismaPg({ connectionString }) });
++    // The pool is created here (instead of letting the adapter build one) so
++    // every statement can be counted for the `db_queries_per_request` metric.
++    super({ adapter: new PrismaPg(createInstrumentedPool(connectionString)) });
+   }
+ 
+   async onModuleInit(): Promise<void> {
+diff --git a/backend/src/common/request-context/request-metrics.middleware.spec.ts b/backend/src/common/request-context/request-metrics.middleware.spec.ts
+new file mode 100644
+index 0000000..5575015
+--- /dev/null
++++ b/backend/src/common/request-context/request-metrics.middleware.spec.ts
+@@ -0,0 +1,151 @@
++import { EventEmitter } from 'node:events';
++import {
++  readTotalDbQueries,
++  recordDbQuery,
++  resetDbQueryCounters,
++} from '../database/db-query-counter';
++import {
++  RequestMetricsMiddleware,
++  readRequestMetricsOptions,
++} from './request-metrics.middleware';
++
++type FakeResponse = EventEmitter & { statusCode: number };
++
++function createResponse(): FakeResponse {
++  const response = new EventEmitter() as FakeResponse;
++  response.statusCode = 200;
++  return response;
++}
++
++function createLogger(): {
++  readonly log: jest.Mock;
++  readonly warn: jest.Mock;
++} {
++  return { log: jest.fn(), warn: jest.fn() };
++}
++
++function lastLoggedMessage(logger: { readonly log: jest.Mock }): string {
++  const calls = logger.log.mock.calls;
++  const call = calls[calls.length - 1];
++  return String(call?.[0] ?? '');
++}
++
++describe('RequestMetricsMiddleware', () => {
++  beforeEach(() => {
++    resetDbQueryCounters();
++  });
++
++  it('logs query count, duration and route after the response finishes', () => {
++    const logger = createLogger();
++    const response = createResponse();
++    const middleware = new RequestMetricsMiddleware(logger, {
++      enabled: true,
++      warnAboveQueries: 3,
++      warnEnabled: false,
++    });
++
++    middleware.use(
++      {
++        headers: { 'x-request-id': 'request-1' },
++        method: 'GET',
++        originalUrl: '/tickets?page=2',
++      },
++      response,
++      () => undefined,
++    );
++    recordDbQuery('request-1');
++    recordDbQuery('request-1');
++    response.emit('finish');
++
++    expect(logger.log).toHaveBeenCalledTimes(1);
++    const message = lastLoggedMessage(logger);
++    expect(message).toContain('db_queries_per_request=2');
++    expect(message).toContain('status=200');
++    expect(message).toContain('method=GET');
++    expect(message).toContain('path=/tickets');
++    expect(message).not.toContain('page=2');
++    expect(logger.warn).not.toHaveBeenCalled();
++  });
++
++  it('drains the counter so a request id cannot be counted twice', () => {
++    const logger = createLogger();
++    const response = createResponse();
++    const middleware = new RequestMetricsMiddleware(logger, {
++      enabled: true,
++      warnAboveQueries: 3,
++      warnEnabled: false,
++    });
++
++    middleware.use({ headers: {}, method: 'GET', url: '/' }, response, () => undefined);
++    recordDbQuery(undefined);
++    response.emit('finish');
++
++    expect(lastLoggedMessage(logger)).toContain('db_queries_per_request=0');
++    expect(readTotalDbQueries()).toBe(1);
++  });
++
++  it('warns only when the query budget warning is enabled', () => {
++    const logger = createLogger();
++    const response = createResponse();
++    const middleware = new RequestMetricsMiddleware(logger, {
++      enabled: true,
++      warnAboveQueries: 1,
++      warnEnabled: true,
++    });
++
++    middleware.use(
++      { headers: { 'x-request-id': 'request-1' }, method: 'GET', url: '/tickets' },
++      response,
++      () => undefined,
++    );
++    recordDbQuery('request-1');
++    recordDbQuery('request-1');
++    response.emit('finish');
++
++    expect(logger.warn).toHaveBeenCalledTimes(1);
++    expect(String(logger.warn.mock.calls[0]?.[0])).toContain('query_budget_exceeded');
++  });
++
++  it('is a no-op passthrough when disabled', () => {
++    const logger = createLogger();
++    const response = createResponse();
++    const middleware = new RequestMetricsMiddleware(logger, {
++      enabled: false,
++      warnAboveQueries: 3,
++      warnEnabled: false,
++    });
++    const next = jest.fn();
++
++    middleware.use({ headers: {}, method: 'GET', url: '/' }, response, next);
++    response.emit('finish');
++
++    expect(next).toHaveBeenCalledTimes(1);
++    expect(logger.log).not.toHaveBeenCalled();
++  });
++});
++
++describe('readRequestMetricsOptions', () => {
++  it('keeps the defaults for an empty environment', () => {
++    expect(readRequestMetricsOptions({})).toEqual({
++      enabled: true,
++      warnAboveQueries: 3,
++      warnEnabled: false,
++    });
++  });
++
++  it('parses overrides and ignores unusable numbers', () => {
++    expect(
++      readRequestMetricsOptions({
++        DB_QUERY_METRICS: 'false',
++        DB_QUERY_BUDGET: '7',
++        DB_QUERY_BUDGET_WARN: 'true',
++      }),
++    ).toEqual({ enabled: false, warnAboveQueries: 7, warnEnabled: true });
++
++    expect(readRequestMetricsOptions({ DB_QUERY_BUDGET: 'not-a-number' })).toEqual({
++      enabled: true,
++      warnAboveQueries: 3,
++      warnEnabled: false,
++    });
++  });
++});
+diff --git a/backend/src/common/request-context/request-metrics.middleware.ts b/backend/src/common/request-context/request-metrics.middleware.ts
+new file mode 100644
+index 0000000..cc1a431
+--- /dev/null
++++ b/backend/src/common/request-context/request-metrics.middleware.ts
+@@ -0,0 +1,128 @@
++import { requestIdHeaderName } from './request-context.constants';
++import { takeDbQueryCount } from '../database/db-query-counter';
++
++/**
++ * Emits one post-response line per request so log aggregation can answer the
++ * Phase 0 questions: how many statements a request costs and how long it took.
++ *
++ * The middleware never awaits inside the request path — everything happens in
++ * the `finish` listener, after the response has been written.
++ */
++
++export type RequestMetricsLogger = {
++  log(message: string, context?: string): void;
++  warn(message: string, context?: string): void;
++};
++
++export type RequestMetricsOptions = {
++  readonly enabled: boolean;
++  readonly warnAboveQueries: number;
++  readonly warnEnabled: boolean;
++};
++
++export const defaultRequestMetricsOptions: RequestMetricsOptions = {
++  enabled: true,
++  warnAboveQueries: 3,
++  warnEnabled: false,
++};
++
++export const requestMetricsLogContext = 'RequestMetrics';
++
++type MetricsIncoming = {
++  readonly headers: Record<string, unknown>;
++  readonly method?: string;
++  readonly originalUrl?: string;
++  readonly url?: string;
++};
++
++type MetricsOutgoing = {
++  readonly statusCode?: number;
++  once(event: 'finish', listener: () => void): unknown;
++};
++
++/** Reads the knobs from the environment; unknown values keep the default. */
++export function readRequestMetricsOptions(
++  env: NodeJS.ProcessEnv = process.env,
++): RequestMetricsOptions {
++  return {
++    enabled: readBoolean(env.DB_QUERY_METRICS, defaultRequestMetricsOptions.enabled),
++    warnAboveQueries: readNumber(
++      env.DB_QUERY_BUDGET,
++      defaultRequestMetricsOptions.warnAboveQueries,
++    ),
++    warnEnabled: readBoolean(
++      env.DB_QUERY_BUDGET_WARN,
++      defaultRequestMetricsOptions.warnEnabled,
++    ),
++  };
++}
++
++export class RequestMetricsMiddleware {
++  constructor(
++    private readonly logger: RequestMetricsLogger,
++    private readonly options: RequestMetricsOptions = readRequestMetricsOptions(),
++  ) {}
++
++  use(
++    request: MetricsIncoming,
++    response: MetricsOutgoing,
++    next: () => void,
++  ): void {
++    if (!this.options.enabled) {
++      next();
++      return;
++    }
++    const startedAt = process.hrtime.bigint();
++    const requestId = readRequestId(request.headers);
++    response.once('finish', () => {
++      this.report(request, response, requestId, startedAt);
++    });
++    next();
++  }
++
++  private report(
++    request: MetricsIncoming,
++    response: MetricsOutgoing,
++    requestId: string | null,
++    startedAt: bigint,
++  ): void {
++    const queryCount = requestId === null ? 0 : takeDbQueryCount(requestId);
++    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
++    const message =
++      `db_queries_per_request=${queryCount}` +
++      ` duration_ms=${durationMs.toFixed(1)}` +
++      ` status=${response.statusCode ?? 0}` +
++      ` method=${request.method ?? 'UNKNOWN'}` +
++      ` path=${readPath(request)}`;
++    this.logger.log(message, requestMetricsLogContext);
++    if (this.options.warnEnabled && queryCount > this.options.warnAboveQueries) {
++      this.logger.warn(
++        `query_budget_exceeded ${message} budget=${this.options.warnAboveQueries}`,
++        requestMetricsLogContext,
++      );
++    }
++  }
++}
++
++function readRequestId(headers: Record<string, unknown>): string | null {
++  const value = headers[requestIdHeaderName];
++  return typeof value === 'string' && value.length > 0 ? value : null;
++}
++
++function readPath(request: MetricsIncoming): string {
++  const raw = request.originalUrl ?? request.url ?? '/';
++  const queryStart = raw.indexOf('?');
++  return queryStart === -1 ? raw : raw.slice(0, queryStart);
++}
++
++function readBoolean(value: string | undefined, fallback: boolean): boolean {
++  if (value === undefined || value.trim().length === 0) {
++    return fallback;
++  }
++  return value.trim().toLowerCase() !== 'false';
++}
++
++function readNumber(value: string | undefined, fallback: number): number {
++  const parsed = Number(value);
++  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
++}
+diff --git a/backend/src/main.ts b/backend/src/main.ts
+index 2ca7b94..105eb08 100644
+--- a/backend/src/main.ts
++++ b/backend/src/main.ts
+@@ -5,6 +5,8 @@ import { configureApplicationCors } from './common/cors/configure-application-co
+ import { RecentRequestLogBuffer } from './common/request-context/recent-request-log.buffer';
+ import { RequestContextLogger } from './common/request-context/request-context.logger';
+ import { RequestIdMiddleware } from './common/request-context/request-id.middleware';
++import { RequestMetricsMiddleware } from './common/request-context/request-metrics.middleware';
++import { startEventLoopLagMonitor } from './modules/observability/metrics/event-loop-lag.monitor';
+ 
+ async function bootstrap(): Promise<void> {
+   const application = await NestFactory.create(AppModule, { bufferLogs: true });
+@@ -20,9 +22,35 @@ async function bootstrap(): Promise<void> {
+     },
+   );
+   configureApplicationCors(application);
+-  application.useLogger(
+-    new RequestContextLogger(application.get(RecentRequestLogBuffer)),
++  const requestContextLogger = new RequestContextLogger(
++    application.get(RecentRequestLogBuffer),
+   );
++  application.useLogger(requestContextLogger);
++  const requestMetricsMiddleware = new RequestMetricsMiddleware(
++    requestContextLogger,
++  );
++  application.use(
++    (
++      request: {
++        headers: Record<string, unknown>;
++        method?: string;
++        originalUrl?: string;
++        url?: string;
++      },
++      response: {
++        statusCode?: number;
++        once(event: 'finish', listener: () => void): unknown;
++      },
++      next: () => void,
++    ) => {
++      requestMetricsMiddleware.use(request, response, next);
++    },
++  );
++  const stopEventLoopLagMonitor = startEventLoopLagMonitor(
++    requestContextLogger,
++  );
++  application.enableShutdownHooks();
++  process.once('beforeExit', stopEventLoopLagMonitor);
+   const port = Number(process.env.PORT ?? 10001);
+   await application.listen(port);
+ }
+diff --git a/backend/src/modules/config-versioning/config-versioning.types.ts b/backend/src/modules/config-versioning/config-versioning.types.ts
+index a270a41..8b51965 100644
+--- a/backend/src/modules/config-versioning/config-versioning.types.ts
++++ b/backend/src/modules/config-versioning/config-versioning.types.ts
+@@ -111,6 +111,11 @@ export type ConfigSnapshot = {
+     readonly configuration: {
+       readonly unroutedQueueEnabled: boolean;
+       readonly unroutedQueueOwnerRole: string;
++      /**
++       * Mirrors `RoutingConfiguration.requireCoverage` so a snapshot can be
++       * re-evaluated by the same coverage logic the runtime uses.
++       */
++      readonly requireCoverage: boolean;
+     };
+   };
+   readonly sla: {
+diff --git a/backend/src/modules/config-versioning/config-versioning.validate.spec.ts b/backend/src/modules/config-versioning/config-versioning.validate.spec.ts
+index 72972bb..53d342b 100644
+--- a/backend/src/modules/config-versioning/config-versioning.validate.spec.ts
++++ b/backend/src/modules/config-versioning/config-versioning.validate.spec.ts
+@@ -30,6 +30,7 @@ describe('validateConfigSnapshot', () => {
+         configuration: {
+           unroutedQueueEnabled: false,
+           unroutedQueueOwnerRole: 'SUPER_ADMIN',
++          requireCoverage: true,
+         },
+         rules: [],
+       },
+diff --git a/backend/src/modules/config-versioning/create-config-snapshot-fixture.ts b/backend/src/modules/config-versioning/create-config-snapshot-fixture.ts
+index 9322261..5a2096d 100644
+--- a/backend/src/modules/config-versioning/create-config-snapshot-fixture.ts
++++ b/backend/src/modules/config-versioning/create-config-snapshot-fixture.ts
+@@ -17,6 +17,7 @@ export function createConfigSnapshotFixture(
+       configuration: {
+         unroutedQueueEnabled: true,
+         unroutedQueueOwnerRole: 'SUPER_ADMIN',
++        requireCoverage: true,
+       },
+       rules: [
+         {
+diff --git a/backend/src/modules/config-versioning/parse-snapshot-routing.ts b/backend/src/modules/config-versioning/parse-snapshot-routing.ts
+index 9c4967d..96a6378 100644
+--- a/backend/src/modules/config-versioning/parse-snapshot-routing.ts
++++ b/backend/src/modules/config-versioning/parse-snapshot-routing.ts
+@@ -1,3 +1,4 @@
++import { defaultRoutingConfiguration } from '../routing/routing.constants';
+ import { configVersioningErrorCodes } from './config-versioning.constants';
+ import { ConfigVersioningError } from './config-versioning.error';
+ import type { ConfigSnapshot } from './config-versioning.types';
+@@ -23,12 +24,21 @@ export function parseRoutingAndReferences(
+   if (unroutedQueueEnabled === null || unroutedQueueOwnerRole === null) {
+     throw invalid();
+   }
++  // Snapshots written before `requireCoverage` existed carry no value; the
++  // runtime default keeps those readable instead of failing validation.
++  const requireCoverage =
++    readBoolean(configuration.requireCoverage) ??
++    defaultRoutingConfiguration.requireCoverage;
+   if (!Array.isArray(routingValue.rules)) {
+     throw invalid();
+   }
+   return {
+     routing: {
+-      configuration: { unroutedQueueEnabled, unroutedQueueOwnerRole },
++      configuration: {
++        unroutedQueueEnabled,
++        unroutedQueueOwnerRole,
++        requireCoverage,
++      },
+       rules: routingValue.rules.map(parseRoutingRule),
+     },
+     references: {
+diff --git a/backend/src/modules/config-versioning/serialize-config-snapshot.ts b/backend/src/modules/config-versioning/serialize-config-snapshot.ts
+index 1ea5e4a..ea204df 100644
+--- a/backend/src/modules/config-versioning/serialize-config-snapshot.ts
++++ b/backend/src/modules/config-versioning/serialize-config-snapshot.ts
+@@ -30,6 +30,7 @@ export function routingConfigurationFromSettings(
+ ): ConfigSnapshot['routing']['configuration'] {
+   const enabled = settings[settingKeys.privateTicketUnroutedQueueEnabled];
+   const ownerRole = settings[settingKeys.privateTicketUnroutedQueueOwnerRole];
++  const requireCoverage = settings[settingKeys.privateTicketRoutingRequireCoverage];
+   return {
+     unroutedQueueEnabled:
+       typeof enabled === 'boolean'
+@@ -39,6 +40,10 @@ export function routingConfigurationFromSettings(
+       typeof ownerRole === 'string' && ownerRole.trim().length > 0
+         ? ownerRole
+         : defaultRoutingConfiguration.unroutedQueueOwnerRole,
++    requireCoverage:
++      typeof requireCoverage === 'boolean'
++        ? requireCoverage
++        : defaultRoutingConfiguration.requireCoverage,
+   };
+ }
+ 
+diff --git a/backend/src/modules/observability/metrics/event-loop-lag.monitor.spec.ts b/backend/src/modules/observability/metrics/event-loop-lag.monitor.spec.ts
+new file mode 100644
+index 0000000..73efaef
+--- /dev/null
++++ b/backend/src/modules/observability/metrics/event-loop-lag.monitor.spec.ts
+@@ -0,0 +1,57 @@
++import { monitorEventLoopDelay } from 'node:perf_hooks';
++import {
++  formatEventLoopLagSample,
++  readEventLoopLagSample,
++  startEventLoopLagMonitor,
++  toMilliseconds,
++} from './event-loop-lag.monitor';
++
++describe('event loop lag monitor', () => {
++  it('converts nanoseconds to whole milliseconds and clamps junk', () => {
++    expect(toMilliseconds(1_500_000)).toBe(2);
++    expect(toMilliseconds(0)).toBe(0);
++    expect(toMilliseconds(-5)).toBe(0);
++    expect(toMilliseconds(Number.NaN)).toBe(0);
++  });
++
++  it('formats the sample as a single greppable line', () => {
++    expect(formatEventLoopLagSample({ p50Ms: 3, p95Ms: 12, maxMs: 40 })).toBe(
++      'event_loop_lag_p95_ms=12 event_loop_lag_p50_ms=3 event_loop_lag_max_ms=40',
++    );
++  });
++
++  it('reads percentiles from a histogram', () => {
++    const histogram = monitorEventLoopDelay({ resolution: 10 });
++    try {
++      histogram.enable();
++      const sample = readEventLoopLagSample(histogram);
++
++      expect(sample.p50Ms).toBeGreaterThanOrEqual(0);
++      expect(sample.p95Ms).toBeGreaterThanOrEqual(sample.p50Ms);
++      expect(sample.maxMs).toBeGreaterThanOrEqual(sample.p95Ms);
++    } finally {
++      histogram.disable();
++    }
++  });
++
++  it('logs on every interval and stops cleanly', () => {
++    jest.useFakeTimers();
++    const logger = { log: jest.fn() };
++    try {
++      const stop = startEventLoopLagMonitor(logger, {
++        intervalMs: 1000,
++        resolutionMs: 10,
++      });
++
++      jest.advanceTimersByTime(3000);
++      expect(logger.log).toHaveBeenCalledTimes(3);
++      expect(String(logger.log.mock.calls[0]?.[0])).toContain('event_loop_lag_p95_ms=');
++
++      stop();
++      jest.advanceTimersByTime(3000);
++      expect(logger.log).toHaveBeenCalledTimes(3);
++    } finally {
++      jest.useRealTimers();
++    }
++  });
++});
+diff --git a/backend/src/modules/observability/metrics/event-loop-lag.monitor.ts b/backend/src/modules/observability/metrics/event-loop-lag.monitor.ts
+new file mode 100644
+index 0000000..7acf2ef
+--- /dev/null
++++ b/backend/src/modules/observability/metrics/event-loop-lag.monitor.ts
+@@ -0,0 +1,80 @@
++import { monitorEventLoopDelay } from 'node:perf_hooks';
++import type { IntervalHistogram } from 'node:perf_hooks';
++
++/**
++ * Publishes event loop lag as a periodic log line.
++ *
++ * Lag is the earliest signal that a synchronous job (SLA scan, report export,
++ * JSON serialisation) is blocking the process; Phase 1–4 gates read it from the
++ * same log stream as `db_queries_per_request`.
++ */
++
++export type EventLoopLagSample = {
++  readonly p50Ms: number;
++  readonly p95Ms: number;
++  readonly maxMs: number;
++};
++
++export type EventLoopLagLogger = {
++  log(message: string, context?: string): void;
++};
++
++export type EventLoopLagMonitorOptions = {
++  readonly intervalMs: number;
++  readonly resolutionMs: number;
++};
++
++export const defaultEventLoopLagMonitorOptions: EventLoopLagMonitorOptions = {
++  intervalMs: 10_000,
++  resolutionMs: 20,
++};
++
++export const eventLoopLagLogContext = 'EventLoopLag';
++
++/** Nanoseconds (the histogram unit) to whole milliseconds. */
++export function toMilliseconds(nanoseconds: number): number {
++  if (!Number.isFinite(nanoseconds) || nanoseconds <= 0) {
++    return 0;
++  }
++  return Math.round(nanoseconds / 1_000_000);
++}
++
++export function formatEventLoopLagSample(sample: EventLoopLagSample): string {
++  return (
++    `event_loop_lag_p95_ms=${sample.p95Ms}` +
++    ` event_loop_lag_p50_ms=${sample.p50Ms}` +
++    ` event_loop_lag_max_ms=${sample.maxMs}`
++  );
++}
++
++export function readEventLoopLagSample(
++  histogram: Pick<IntervalHistogram, 'percentile' | 'max'>,
++): EventLoopLagSample {
++  return {
++    p50Ms: toMilliseconds(histogram.percentile(50)),
++    p95Ms: toMilliseconds(histogram.percentile(95)),
++    maxMs: toMilliseconds(histogram.max),
++  };
++}
++
++/**
++ * Starts the sampler and returns the stop function. The histogram is reset on
++ * every tick so each line describes its own window instead of the process
++ * lifetime.
++ */
++export function startEventLoopLagMonitor(
++  logger: EventLoopLagLogger,
++  options: EventLoopLagMonitorOptions = defaultEventLoopLagMonitorOptions,
++): () => void {
++  const histogram = monitorEventLoopDelay({ resolution: options.resolutionMs });
++  histogram.enable();
++  const timer = setInterval(() => {
++    logger.log(formatEventLoopLagSample(readEventLoopLagSample(histogram)), eventLoopLagLogContext);
++    histogram.reset();
++  }, options.intervalMs);
++  timer.unref();
++  return () => {
++    clearInterval(timer);
++    histogram.disable();
++  };
++}
+diff --git a/backend/src/modules/observability/metrics/websocket-client-count.reporter.spec.ts b/backend/src/modules/observability/metrics/websocket-client-count.reporter.spec.ts
+new file mode 100644
+index 0000000..057ea79
+--- /dev/null
++++ b/backend/src/modules/observability/metrics/websocket-client-count.reporter.spec.ts
+@@ -0,0 +1,75 @@
++import {
++  formatWebsocketClientCount,
++  readWebsocketClientCount,
++  startWebsocketClientCountReporter,
++} from './websocket-client-count.reporter';
++
++describe('websocket client count reporter', () => {
++  it('reads the count from the socket.io engine', () => {
++    expect(readWebsocketClientCount({ engine: { clientsCount: 42 } })).toBe(42);
++    expect(readWebsocketClientCount({ engine: {} })).toBeNull();
++    expect(readWebsocketClientCount({})).toBeNull();
++  });
++
++  it('formats the metric line', () => {
++    expect(formatWebsocketClientCount(7)).toBe('ws_clients_count=7');
++  });
++
++  it('logs the count every interval', () => {
++    jest.useFakeTimers();
++    const source = { engine: { clientsCount: 3 } };
++    const logger = { debug: jest.fn(), log: jest.fn() };
++    try {
++      const stop = startWebsocketClientCountReporter(source, logger, {
++        intervalMs: 1000,
++      });
++
++      jest.advanceTimersByTime(3000);
++      expect(logger.debug).toHaveBeenCalledTimes(3);
++      expect(logger.debug.mock.calls[0]?.[0]).toBe('ws_clients_count=3');
++      expect(logger.log).not.toHaveBeenCalled();
++
++      stop();
++      jest.advanceTimersByTime(3000);
++      expect(logger.debug).toHaveBeenCalledTimes(3);
++    } finally {
++      jest.useRealTimers();
++    }
++  });
++
++  it('follows the connection count while running', () => {
++    jest.useFakeTimers();
++    const source: { engine: { clientsCount: number } } = { engine: { clientsCount: 1 } };
++    const logger = { log: jest.fn() };
++    try {
++      const stop = startWebsocketClientCountReporter(source, logger, {
++        intervalMs: 1000,
++      });
++
++      source.engine.clientsCount = 9;
++      jest.advanceTimersByTime(1000);
++
++      expect(logger.log).toHaveBeenCalledTimes(1);
++      expect(logger.log.mock.calls[0]?.[0]).toBe('ws_clients_count=9');
++      stop();
++    } finally {
++      jest.useRealTimers();
++    }
++  });
++
++  it('starts no timer when the server exposes no engine', () => {
++    jest.useFakeTimers();
++    const logger = { log: jest.fn() };
++    try {
++      const stop = startWebsocketClientCountReporter({}, logger, { intervalMs: 1000 });
++
++      jest.advanceTimersByTime(5000);
++
++      expect(logger.log).not.toHaveBeenCalled();
++      expect(jest.getTimerCount()).toBe(0);
++      stop();
++    } finally {
++      jest.useRealTimers();
++    }
++  });
++});
+diff --git a/backend/src/modules/observability/metrics/websocket-client-count.reporter.ts b/backend/src/modules/observability/metrics/websocket-client-count.reporter.ts
+new file mode 100644
+index 0000000..ec0e1f3
+--- /dev/null
++++ b/backend/src/modules/observability/metrics/websocket-client-count.reporter.ts
+@@ -0,0 +1,63 @@
++export type WebsocketClientCountLogger = {
++  debug?(message: string, context?: string): void;
++  log(message: string, context?: string): void;
++};
++
++/** The only part of the Socket.IO server this reporter depends on. */
++export type WebsocketClientCountSource = {
++  readonly engine?: { readonly clientsCount?: number } | undefined;
++};
++
++export type WebsocketClientCountReporterOptions = {
++  readonly intervalMs: number;
++};
++
++export const defaultWebsocketClientCountReporterOptions: WebsocketClientCountReporterOptions =
++  { intervalMs: 30_000 };
++
++export const websocketClientCountLogContext = 'WebsocketMetrics';
++
++/**
++ * Reads the live connection count, or null when the transport is not ready.
++ */
++export function readWebsocketClientCount(
++  source: WebsocketClientCountSource,
++): number | null {
++  const count = source.engine?.clientsCount;
++  return typeof count === 'number' && Number.isFinite(count) ? count : null;
++}
++
++export function formatWebsocketClientCount(count: number): string {
++  return `ws_clients_count=${count}`;
++}
++
++/**
++ * Logs `ws_clients_count` every interval. Returns a stop function; when the
++ * server exposes no engine (tests, early boot) it returns a no-op and starts no
++ * timer at all.
++ */
++export function startWebsocketClientCountReporter(
++  source: WebsocketClientCountSource,
++  logger: WebsocketClientCountLogger,
++  options: WebsocketClientCountReporterOptions = defaultWebsocketClientCountReporterOptions,
++): () => void {
++  if (readWebsocketClientCount(source) === null) {
++    return () => undefined;
++  }
++  const timer = setInterval(() => {
++    const count = readWebsocketClientCount(source);
++    if (count === null) {
++      return;
++    }
++    const message = formatWebsocketClientCount(count);
++    if (logger.debug !== undefined) {
++      logger.debug(message, websocketClientCountLogContext);
++      return;
++    }
++    logger.log(message, websocketClientCountLogContext);
++  }, options.intervalMs);
++  timer.unref();
++  return () => {
++    clearInterval(timer);
++  };
++}
+diff --git a/backend/src/modules/sla/sla.breach.spec.ts b/backend/src/modules/sla/sla.breach.spec.ts
+index c26a131..0ee8847 100644
+--- a/backend/src/modules/sla/sla.breach.spec.ts
++++ b/backend/src/modules/sla/sla.breach.spec.ts
+@@ -18,7 +18,17 @@ const pauseOffsetMs = 20 * 60 * 1000;
+ const responseBreachOffsetMs = 3 * 60 * 60 * 1000;
+ const resolutionBreachOffsetMs = 10 * 24 * 60 * 60 * 1000;
+ 
++// Ticket creation stamps `createdAt` from the wall clock while the assertions
++// below use fixed business-hour dates, so "now" is frozen for determinism.
+ describe('ticket SLA breach and escalation', () => {
++  beforeEach(() => {
++    jest.useFakeTimers({ now: new Date('2026-09-11T12:00:00.000Z') });
++  });
++
++  afterEach(() => {
++    jest.useRealTimers();
++  });
++
+   it('detects a response SLA breach on scan and keeps the flag sticky', async () => {
+     const { prisma, ticket, configuration, memory } = await createStartedTicket();
+     const responseBreachAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
+diff --git a/backend/src/modules/sla/sla.timers.spec.ts b/backend/src/modules/sla/sla.timers.spec.ts
+index 7f0e262..4c1a953 100644
+--- a/backend/src/modules/sla/sla.timers.spec.ts
++++ b/backend/src/modules/sla/sla.timers.spec.ts
+@@ -25,7 +25,18 @@ const calendar = {
+   holidays: [] as const,
+ };
+ 
++// The SLA clocks start from the ticket's `createdAt`, which the harness takes
++// from the wall clock. Freezing "now" keeps these assertions on the fixed
++// 2026-09-11 business window instead of drifting with the real date.
+ describe('ticket SLA timers', () => {
++  beforeEach(() => {
++    jest.useFakeTimers({ now: new Date('2026-09-11T12:00:00.000Z') });
++  });
++
++  afterEach(() => {
++    jest.useRealTimers();
++  });
++
+   it('starts response and resolution clocks from the matching rule', async () => {
+     const { prisma, ticket } = await createStartedTicket();
+     const state = await loadTicketSlaState(prisma, ticket.id);
+diff --git a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts
+index 0ffd7f6..e71ee6a 100644
+--- a/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts
++++ b/backend/src/modules/tickets/counts/get-ticket-counts.spec.ts
+@@ -1,5 +1,6 @@
+ import { createTicketsServiceHarness, ticketsTestIds } from '../create-tickets-service-harness';
+ import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
++import type { TicketArchiveConfiguration } from '../archive/archive.types';
+ import { buildTicketRecord } from '../list/ticket-record-fixture';
+ import { getTicketCounts } from './get-ticket-counts';
+ 
+@@ -133,7 +134,11 @@ describe('GET /tickets/counts', () => {
+ });
+ 
+ describe('getTicketCounts (direct)', () => {
+-  const direct = (actor: string, archive?: typeof defaultTicketArchiveConfiguration, groupInboxEnabled = true) => {
++  const direct = (
++    actor: string,
++    archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
++    groupInboxEnabled = true,
++  ) => {
+     const harness = setup();
+     return getTicketCounts({
+       prisma: harness.memory.prisma as never,
+diff --git a/backend/src/modules/websocket/ticket-chat.gateway.spec.ts b/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
+index cc18abf..8e223fd 100644
+--- a/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
++++ b/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
+@@ -105,8 +105,9 @@ describe('TicketChatGateway', () => {
+       type: 'INTERNAL_NOTE',
+       visibility: 'staff',
+     });
++    // Internal notes stay in the ticket's staff room: membership of a group
++    // room alone does not prove staff access to this specific ticket.
+     expect(emitted.map((item) => item.room).sort()).toEqual([
+-      'group:group-it',
+       ticketStaffRoomName('ticket-1'),
+     ]);
+     expect(
+diff --git a/backend/src/modules/websocket/websocket.gateway.ts b/backend/src/modules/websocket/websocket.gateway.ts
+index 517d694..7b50bf3 100644
+--- a/backend/src/modules/websocket/websocket.gateway.ts
++++ b/backend/src/modules/websocket/websocket.gateway.ts
+@@ -1,4 +1,5 @@
+ import { Logger } from '@nestjs/common';
++import { OnModuleDestroy } from '@nestjs/common';
+ import {
+   OnGatewayConnection,
+   OnGatewayDisconnect,
+@@ -6,6 +7,7 @@ import {
+   WebSocketGateway,
+ } from '@nestjs/websockets';
+ import { Server, Socket } from 'socket.io';
++import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
+ import {
+   attachSocketPrincipal,
+   getSocketPrincipal,
+@@ -27,10 +29,12 @@ import { groupRoomName, userRoomName } from './ticket-socket-rooms';
+   },
+ })
+ export class WebsocketGateway
+-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
++  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
+ {
+   private readonly logger = new Logger(WebsocketGateway.name);
+ 
++  private stopClientCountReporter: (() => void) | null = null;
++
+   constructor(
+     private readonly socketAuthenticationService: SocketAuthenticationService,
+     private readonly socketGroupMembershipService: SocketGroupMembershipService,
+@@ -40,6 +44,17 @@ export class WebsocketGateway
+     server.use((socket: Socket, next: (error?: Error) => void) => {
+       void this.authenticateHandshake(socket, next);
+     });
++    // Phase 0 observability only: one debug line per interval, no room or auth
++    // behaviour is touched here.
++    this.stopClientCountReporter = startWebsocketClientCountReporter(
++      server,
++      this.logger,
++    );
++  }
++
++  onModuleDestroy(): void {
++    this.stopClientCountReporter?.();
++    this.stopClientCountReporter = null;
+   }
+ 
+   handleConnection(client: Socket): void {
+diff --git a/ops/sql/enable_pg_stat_statements.sql b/ops/sql/enable_pg_stat_statements.sql
+new file mode 100644
+index 0000000..6428eae
+--- /dev/null
++++ b/ops/sql/enable_pg_stat_statements.sql
+@@ -0,0 +1,31 @@
++-- Phase 0: make the database measurable.
++--
++-- Run once per database, as a superuser:
++--   psql "$DATABASE_URL" -f ops/sql/enable_pg_stat_statements.sql
++--
++-- pg_stat_statements must be preloaded, which needs a restart. If the extension
++-- cannot be created, set it in the server configuration first:
++--
++--   shared_preload_libraries = 'pg_stat_statements'
++--   pg_stat_statements.track = all
++--   pg_stat_statements.max = 5000
++--
++-- Coolify: Database → Advanced → Configuration, then restart the database
++-- container. Managed Postgres usually exposes the same setting in its UI.
++
++CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
++
++-- Resets counters so a baseline run starts from zero. Do this BEFORE the test,
++-- never during it.
++SELECT pg_stat_statements_reset();
++
++-- Confirmation: this must return a row with a non-null query.
++SELECT
++  calls,
++  total_exec_time,
++  mean_exec_time,
++  rows,
++  left(query, 60) AS query_prefix
++FROM pg_stat_statements
++ORDER BY calls DESC
++LIMIT 3;
+diff --git a/ops/sql/snapshot_db_stats.sql b/ops/sql/snapshot_db_stats.sql
+new file mode 100644
+index 0000000..904cee8
+--- /dev/null
++++ b/ops/sql/snapshot_db_stats.sql
+@@ -0,0 +1,89 @@
++-- Phase 0: database snapshot taken before and after every load test.
++--
++--   psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/<label>.db-before.txt
++--   k6 run perf/full.js
++--   psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/<label>.db-after.txt
++--
++-- The plan (§7) reads DB QPS, connection pressure and the slowest statements
++-- from here; k6 only sees latency.
++
++\pset pager off
++\echo '=== snapshot taken at ==='
++SELECT now() AS taken_at;
++
++\echo '=== connections ==='
++SELECT
++  count(*) AS connections,
++  count(*) FILTER (WHERE state = 'active') AS active,
++  count(*) FILTER (WHERE state = 'idle') AS idle,
++  count(*) FILTER (WHERE wait_event_type = 'Lock') AS waiting_on_lock,
++  count(*) FILTER (WHERE wait_event_type = 'Client') AS waiting_on_client
++FROM pg_stat_activity;
++
++\echo '=== connections by state and wait event ==='
++SELECT
++  state,
++  coalesce(wait_event_type, '-') AS wait_event_type,
++  coalesce(wait_event, '-') AS wait_event,
++  count(*) AS connections
++FROM pg_stat_activity
++GROUP BY 1, 2, 3
++ORDER BY connections DESC
++LIMIT 20;
++
++\echo '=== database throughput (xact/s, blks) ==='
++SELECT
++  datname,
++  xact_commit,
++  xact_rollback,
++  blks_read,
++  blks_hit,
++  round(100 * blks_hit::numeric / nullif(blks_hit + blks_read, 0), 2) AS cache_hit_pct,
++  tup_fetched,
++  tup_returned
++FROM pg_stat_database
++WHERE datname = current_database();
++
++\echo '=== top 20 by total execution time ==='
++SELECT
++  round(total_exec_time::numeric) AS total_ms,
++  calls,
++  round(mean_exec_time::numeric, 2) AS mean_ms,
++  rows,
++  left(regexp_replace(query, '\s+', ' ', 'g'), 110) AS query
++FROM pg_stat_statements
++ORDER BY total_exec_time DESC
++LIMIT 20;
++
++\echo '=== top 20 by call count ==='
++SELECT
++  calls,
++  round(total_exec_time::numeric) AS total_ms,
++  round(mean_exec_time::numeric, 2) AS mean_ms,
++  left(regexp_replace(query, '\s+', ' ', 'g'), 110) AS query
++FROM pg_stat_statements
++ORDER BY calls DESC
++LIMIT 20;
++
++\echo '=== top 20 by mean execution time (calls > 100) ==='
++SELECT
++  round(mean_exec_time::numeric, 2) AS mean_ms,
++  calls,
++  round(total_exec_time::numeric) AS total_ms,
++  left(regexp_replace(query, '\s+', ' ', 'g'), 110) AS query
++FROM pg_stat_statements
++WHERE calls > 100
++ORDER BY mean_exec_time DESC
++LIMIT 20;
++
++\echo '=== statements hitting the ticket tables without a limit ==='
++SELECT
++  calls,
++  round(mean_exec_time::numeric, 2) AS mean_ms,
++  left(regexp_replace(query, '\s+', ' ', 'g'), 110) AS query
++FROM pg_stat_statements
++WHERE query ILIKE '%from "tickets"%'
++  AND query NOT ILIKE '%limit%'
++  AND calls > 10
++ORDER BY total_exec_time DESC
++LIMIT 20;
+diff --git a/perf/README.md b/perf/README.md
+new file mode 100644
+index 0000000..d845c8d
+--- /dev/null
++++ b/perf/README.md
+@@ -0,0 +1,117 @@
++# perf/ — load test paket (Faza 0)
++
++Reproduktivan k6 scenario za ciljni profil opterećenja iz `PERFORMANCE_PHASE_PLAN.md`
++(2.800 istovremeno aktivnih korisnika, ~10 događaja/s na tiketima).
++
++## Instalacija k6
++
++k6 je samostalan CLI, **nije** npm paket — ne dodaje se u `package.json`.
++
++```bash
++# Debian/Ubuntu
++sudo gpg -k
++sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
++  --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
++echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
++  | sudo tee /etc/apt/sources.list.d/k6.list
++sudo apt-get update && sudo apt-get install k6
++
++# macOS
++brew install k6
++
++# Windows (Git Bash)
++winget install k6 --source winget
++```
++
++Skripte koriste `k6/experimental/websockets`, što zahtijeva **k6 ≥ 0.46**.
++Provjera: `k6 version`.
++
++Bez k6 se ipak može provjeriti da paket nije pokvaren:
++
++```bash
++node perf/validate.js     # 18 provjera: parametri, Socket.IO paketi, render izvještaja
++```
++
++## Pokretanje
++
++```bash
++# 5 minuta, 200 VU — provjera da sve radi (koristi se i u CI-ju)
++k6 run perf/smoke.js
++
++# puni baseline: 2.800 VU / 30 min
++k6 run perf/full.js
++
++# kraći lokalni baseline (npr. 800 VU / 10 min) — OBAVEZNO napomeni skaliranje
++k6 run -e VU=800 -e DURATION=10m -e REPORT_LABEL=baseline-800vu perf/full.js
++```
++
++Izlaz ide u `perf/results/`: `<REPORT_LABEL>.json` (sirovi k6 summary) i
++`<REPORT_LABEL>.md` (tabela spremna za `PERFORMANCE_PHASE_PLAN.md` §7).
++
++## Varijable okruženja
++
++| Varijabla | Default | Značenje |
++|---|---|---|
++| `BASE_URL` | `http://localhost:10001` | API; WebSocket URL se izvodi zamjenom `http` → `ws` |
++| `VU` | `2800` | broj registrovanih korisnika iz kojih se izvodi 70% aktivnih |
++| `DURATION` | `30m` | trajanje svakog scenarija |
++| `ACTIVE_RATIO` | `0.7` | udio istovremeno aktivnih |
++| `REPORT_LABEL` | `baseline` | ime izvještaja u `perf/results/` |
++| `AGENT_EMAIL` / `AGENT_PASSWORD` | `agent.it@example.test` / `change-me` | kredencijali za `setup()` |
++| `REQUESTER_EMAIL` / `REQUESTER_PASSWORD` | `requester@example.test` / `change-me` | drugi token u poolu |
++| `TICKET_IDS` | (prazno) | CSV id-eva koje WS scenario joinuje |
++| `SEARCH_TERM` | `vpn` | osnova za pretragu |
++
++Bez ispravnih kredencijala `setup()` pada s jasnom porukom — bolje nego da test
++mjeri 401 odgovore kao "saobraćaj".
++
++## Raspodjela ponašanja (plan §5.1)
++
++| Scenario | Udio | Šta radi |
++|---|---|---|
++| `browser_dashboard` | 40% | `GET /tickets` + `GET /notifications/unread-count` |
++| `agent_ticket_flow` | 35% | `GET /tickets/inbox` → `GET /tickets/:id` → `POST /tickets/:id/messages` (1/30 s po VU) |
++| `search_heavy` | 10% | pretraga onako kako je klijent radi **danas** (lista + novi `/search` kad postoji) |
++| `websocket_clients` | 15% | Socket.IO konekcija s tokenom, join tiket soba, brojanje eventova |
++
++Scenariji dijele isti kod u `lib/scenarios.js`, pa `smoke.js` i `full.js` mjere
++iste putanje.
++
++## Metrike
++
++Custom metrike (`lib/metrics.js`) prate kapije iz plana:
++
++- `tickets_list_duration`, `ticket_detail_duration`, `ticket_message_duration`,
++  `unread_count_duration`, `search_duration`, `dashboard_summary_duration` — P50/P95/P99 po endpointu
++- `ticket_list_payload_kb`, `dashboard_payload_kb` — veličina odgovora (kapija < 100 KB)
++- `unread_count_requests` — dokaz za Fazu 1.3 (≈ 0 uz zdrav WebSocket)
++- `ws_events_received`, `ws_connect_errors`, `ws_clients` — realtime sloj
++- `http_req_failed` — error rate (kapija < 0,5%)
++
++Aplikacijske metrike iz Faze 0 (`db_queries_per_request`, `event_loop_lag_p95_ms`,
++`ws_clients_count`) idu u **log**, ne u k6 — uz svaki test sačuvaj i log isječak:
++
++```bash
++docker compose logs backend  | grep -E "db_queries_per_request|event_loop_lag_p95_ms" > perf/results/<label>.app.log
++docker compose logs backend  | grep ws_clients_count >> perf/results/<label>.app.log
++```
++
++## Baza
++
++Prije testa (jednom, traži restart Postgresa):
++
++```bash
++psql "$DATABASE_URL" -f ops/sql/enable_pg_stat_statements.sql
++psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/<label>.db-before.txt
++```
++
++Poslije testa ponovi snapshot u `<label>.db-after.txt`. Bez snapshot-a izvještaj
++nije potpun — k6 vidi latenciju, ali ne vidi gdje baza provodi vrijeme.
++
++## Ograničenja
++
++- WS scenario govori Engine.IO/Socket.IO protokol direktno (detalji u `lib/ws-client.js`).
++  Ako server promijeni handshake, to se vidi kao `ws_connect_errors`, a ne kao pucanje testa.
++- `search_heavy` namjerno mjeri **trenutno** ponašanje klijenta; poslije Faze 1.2
++  isti scenario pokazuje pad broja zahtjeva.
++- k6 ne vidi bazu; DB QPS dolazi iz `pg_stat_statements` snapshot-a i aplikacijskog loga.
+diff --git a/perf/config.js b/perf/config.js
+new file mode 100644
+index 0000000..fe0b181
+--- /dev/null
++++ b/perf/config.js
+@@ -0,0 +1,103 @@
++/**
++ * Phase 0 load-test parameters. Every knob lives here (or comes from the
++ * environment) so no scenario hardcodes a URL, a rate or a budget.
++ *
++ * Environment overrides: BASE_URL, VU, DURATION, ACTIVE_RATIO, REPORT_LABEL,
++ * AGENT_EMAIL/AGENT_PASSWORD, REQUESTER_EMAIL/REQUESTER_PASSWORD,
++ * TICKET_IDS (comma separated), SEARCH_TERM.
++ *
++ * `__ENV` exists inside k6 only; the guard below lets plain Node import this
++ * file for the sanity check in `perf/validate.js`.
++ */
++
++const env = typeof __ENV === 'undefined' ? {} : __ENV;
++const baseUrl = env.BASE_URL || 'http://localhost:10001';
++
++export const perfConfig = {
++  baseUrl,
++  websocketUrl: baseUrl.replace(/^http/, 'ws'),
++  socketPath: '/socket.io/',
++  reportLabel: env.REPORT_LABEL || 'baseline',
++  resultsDir: 'perf/results',
++  load: {
++    // Registered users vs. concurrently active ones (plan §0.1).
++    virtualUsers: Number(env.VU || 2800),
++    activeRatio: Number(env.ACTIVE_RATIO || 0.7),
++    duration: env.DURATION || '30m',
++    thinkTimeSeconds: { min: 1, max: 4 },
++    smoke: { virtualUsers: 200, duration: '5m' },
++    // Share of the active pool per behaviour (plan §5.1).
++    behaviourMix: {
++      browserDashboard: 0.4,
++      agentTicketFlow: 0.35,
++      searchHeavy: 0.1,
++      websocketClients: 0.15,
++    },
++  },
++  credentials: {
++    agent: {
++      email: env.AGENT_EMAIL || 'agent.it@example.test',
++      password: env.AGENT_PASSWORD || 'change-me',
++    },
++    requester: {
++      email: env.REQUESTER_EMAIL || 'requester@example.test',
++      password: env.REQUESTER_PASSWORD || 'change-me',
++    },
++  },
++  paths: {
++    login: '/auth/login',
++    tickets: '/tickets',
++    ticketInbox: '/tickets/inbox',
++    ticketCounts: '/tickets/counts',
++    unreadCount: '/notifications/unread-count',
++    notifications: '/notifications',
++    search: '/search',
++  },
++  behaviour: {
++    // One message every 30 s per virtual agent (plan §5.1).
++    messageEverySeconds: 30,
++    // One search per minute per search-heavy user (plan §5.1).
++    searchEverySeconds: 60,
++    searchTerm: env.SEARCH_TERM || 'vpn',
++    // Ticket ids the WS scenario joins; empty = connect and listen only.
++    ticketIds: (env.TICKET_IDS || '')
++      .split(',')
++      .map((value) => value.trim())
++      .filter((value) => value.length > 0),
++  },
++  budgets: {
++    // Plan §4.2 SLO table. CI runs relax the read budget on shared runners.
++    readP95Ms: 200,
++    mutationP95Ms: 400,
++    errorRate: 0.005,
++    dashboardPayloadKb: 100,
++    searchRequestsPerInput: 1,
++    ticketListPayloadKb: 100,
++  },
++};
++
++/** Number of virtual users per scenario, derived from the mix above. */
++export function scenarioVus(config) {
++  const active = Math.round(config.load.virtualUsers * config.load.activeRatio);
++  const mix = config.load.behaviourMix;
++  return {
++    browserDashboard: Math.max(1, Math.round(active * mix.browserDashboard)),
++    agentTicketFlow: Math.max(1, Math.round(active * mix.agentTicketFlow)),
++    searchHeavy: Math.max(1, Math.round(active * mix.searchHeavy)),
++    websocketClients: Math.max(1, Math.round(active * mix.websocketClients)),
++    active,
++  };
++}
++
++/** Threshold block for the full run; smoke.js overrides the durations. */
++export function fullThresholds(config) {
++  return {
++    http_req_failed: [`rate<${config.budgets.errorRate}`],
++    tickets_list_duration: [`p(95)<${config.budgets.readP95Ms}`],
++    ticket_detail_duration: [`p(95)<${config.budgets.readP95Ms}`],
++    unread_count_duration: [`p(95)<${config.budgets.readP95Ms}`],
++    search_duration: [`p(95)<${config.budgets.readP95Ms}`],
++    ticket_message_duration: [`p(95)<${config.budgets.mutationP95Ms}`],
++    ticket_list_payload_kb: [`p(95)<${config.budgets.ticketListPayloadKb}`],
++  };
++}
+diff --git a/perf/full.js b/perf/full.js
+new file mode 100644
+index 0000000..9744677
+--- /dev/null
++++ b/perf/full.js
+@@ -0,0 +1,62 @@
++import { perfConfig, fullThresholds, scenarioVus } from './config.js';
++import { setup as setupSession } from './lib/scenarios.js';
++import { handleSummary } from './report.js';
++
++/**
++ * Full baseline run: 2.800 virtual users, 30 minutes, four behaviours
++ * (plan §5.1). One command produces the phase artefact:
++ *
++ *   k6 run perf/full.js
++ *
++ * Results land in perf/results/<REPORT_LABEL>.{json,md}.
++ */
++
++const vus = scenarioVus(perfConfig);
++
++export const options = {
++  discardResponseBodies: false,
++  scenarios: {
++    browser_dashboard: {
++      executor: 'constant-vus',
++      exec: 'browserDashboard',
++      vus: vus.browserDashboard,
++      duration: perfConfig.load.duration,
++      tags: { behaviour: 'browser_dashboard' },
++    },
++    agent_ticket_flow: {
++      executor: 'constant-vus',
++      exec: 'agentTicketFlow',
++      vus: vus.agentTicketFlow,
++      duration: perfConfig.load.duration,
++      tags: { behaviour: 'agent_ticket_flow' },
++    },
++    search_heavy: {
++      executor: 'constant-vus',
++      exec: 'searchHeavy',
++      vus: vus.searchHeavy,
++      duration: perfConfig.load.duration,
++      tags: { behaviour: 'search_heavy' },
++    },
++    websocket_clients: {
++      executor: 'constant-vus',
++      exec: 'websocketClients',
++      vus: vus.websocketClients,
++      duration: perfConfig.load.duration,
++      tags: { behaviour: 'ws_clients' },
++    },
++  },
++  thresholds: fullThresholds(perfConfig),
++};
++
++export function setup() {
++  return setupSession(perfConfig);
++}
++
++export {
++  browserDashboard,
++  agentTicketFlow,
++  searchHeavy,
++  websocketClients,
++} from './lib/scenarios.js';
++
++export { handleSummary };
+diff --git a/perf/lib/http-helpers.js b/perf/lib/http-helpers.js
+new file mode 100644
+index 0000000..435ca04
+--- /dev/null
++++ b/perf/lib/http-helpers.js
+@@ -0,0 +1,64 @@
++import http from 'k6/http';
++import { check } from 'k6';
++
++/** JSON headers plus a bearer token when one is available. */
++export function authorizedHeaders(token) {
++  return {
++    headers: {
++      'Content-Type': 'application/json',
++      ...(token ? { Authorization: `Bearer ${token}` } : {}),
++    },
++  };
++}
++
++/**
++ * Logs in once in `setup()` and returns the access token, or null when the
++ * credentials are not usable — a load test without tokens must fail loudly in
++ * the checks, not silently measure 401s as "traffic".
++ */
++export function login(config, credentials) {
++  const response = http.post(
++    `${config.baseUrl}${config.paths.login}`,
++    JSON.stringify({ email: credentials.email, password: credentials.password }),
++    { ...authorizedHeaders(null), tags: { endpoint: 'auth.login' } },
++  );
++  if (response.status !== 200 && response.status !== 201) {
++    return null;
++  }
++  return readAccessToken(response);
++}
++
++function readAccessToken(response) {
++  try {
++    const body = response.json();
++    if (body && typeof body.accessToken === 'string') {
++      return body.accessToken;
++    }
++    if (body && typeof body.token === 'string') {
++      return body.token;
++    }
++    return null;
++  } catch {
++    return null;
++  }
++}
++
++/** Response size in kilobytes, used for the payload budgets. */
++export function payloadKb(response) {
++  return Number((response.body ? response.body.length : 0) / 1024);
++}
++
++/** One token per virtual user, spread evenly across the pool. */
++export function pickToken(tokens, index) {
++  if (!Array.isArray(tokens) || tokens.length === 0) {
++    return null;
++  }
++  return tokens[index % tokens.length];
++}
++
++export function expectOk(response, endpoint) {
++  check(response, {
++    [`${endpoint} returns 2xx`]: (value) =>
++      value.status >= 200 && value.status < 300,
++  });
++}
+diff --git a/perf/lib/metrics.js b/perf/lib/metrics.js
+new file mode 100644
+index 0000000..2a757af
+--- /dev/null
++++ b/perf/lib/metrics.js
+@@ -0,0 +1,60 @@
++import { Counter, Gauge, Trend } from 'k6/metrics';
++
++/**
++ * Custom metrics that map one-to-one onto the phase gates in
++ * PERFORMANCE_PHASE_PLAN.md, so a load-test report can be read against the
++ * plan without post-processing.
++ */
++export const performanceMetrics = {
++  ticketsList: new Trend('tickets_list_duration', true),
++  ticketDetail: new Trend('ticket_detail_duration', true),
++  ticketMessage: new Trend('ticket_message_duration', true),
++  unreadCount: new Trend('unread_count_duration', true),
++  search: new Trend('search_duration', true),
++  dashboardSummary: new Trend('dashboard_summary_duration', true),
++
++  ticketListPayload: new Trend('ticket_list_payload_kb'),
++  dashboardPayload: new Trend('dashboard_payload_kb'),
++
++  unreadCountRequests: new Counter('unread_count_requests'),
++  searchRequests: new Counter('search_requests'),
++  wsEventsReceived: new Counter('ws_events_received'),
++  wsConnectErrors: new Counter('ws_connect_errors'),
++  wsClients: new Gauge('ws_clients'),
++};
++
++/** Registers a response under the trend that matches its endpoint. */
++export function recordResponse(endpoint, response, config) {
++  const duration = response.timings.duration;
++  switch (endpoint) {
++    case 'tickets.list':
++      performanceMetrics.ticketsList.add(duration);
++      performanceMetrics.ticketListPayload.add(
++        Number((response.body ? response.body.length : 0) / 1024),
++      );
++      break;
++    case 'tickets.detail':
++      performanceMetrics.ticketDetail.add(duration);
++      break;
++    case 'tickets.message':
++      performanceMetrics.ticketMessage.add(duration);
++      break;
++    case 'notifications.unreadCount':
++      performanceMetrics.unreadCount.add(duration);
++      performanceMetrics.unreadCountRequests.add(1);
++      break;
++    case 'search.query':
++      performanceMetrics.search.add(duration);
++      performanceMetrics.searchRequests.add(1);
++      break;
++    case 'reports.dashboardSummary':
++      performanceMetrics.dashboardSummary.add(duration);
++      performanceMetrics.dashboardPayload.add(
++        Number((response.body ? response.body.length : 0) / 1024),
++      );
++      break;
++    default:
++      break;
++  }
++  return config;
++}
+diff --git a/perf/lib/scenarios.js b/perf/lib/scenarios.js
+new file mode 100644
+index 0000000..7ea9d34
+--- /dev/null
++++ b/perf/lib/scenarios.js
+@@ -0,0 +1,166 @@
++import { sleep } from 'k6';
++import http from 'k6/http';
++import { authorizedHeaders, expectOk, login, pickToken } from './http-helpers.js';
++import { recordResponse } from './metrics.js';
++import { openSocketSession } from './ws-client.js';
++
++/**
++ * The four behaviours from the plan (§5.1), shared by `smoke.js` and `full.js`
++ * so a smoke run exercises exactly the same code paths as the full run.
++ */
++
++/** Last message timestamp per virtual user, to honour "1 message / 30 s". */
++const lastMessageAt = {};
++
++export function setup(config) {
++  const agentToken = login(config, config.credentials.agent);
++  const requesterToken = login(config, config.credentials.requester);
++  const tokens = [agentToken, requesterToken].filter((token) => token !== null);
++  if (tokens.length === 0) {
++    throw new Error(
++      'No access token: set AGENT_EMAIL/AGENT_PASSWORD (and optionally REQUESTER_*) for a seeded environment.',
++    );
++  }
++  return { tokens };
++}
++
++/** 40%: read the dashboard the way a requester does. */
++export function browserDashboard(config, data) {
++  const headers = authorizedHeaders(pickToken(data.tokens, __VU));
++
++  const tickets = http.get(`${config.baseUrl}${config.paths.tickets}`, {
++    ...headers,
++    tags: { endpoint: 'tickets.list' },
++  });
++  expectOk(tickets, 'tickets.list');
++  recordResponse('tickets.list', tickets, config);
++
++  const unread = http.get(`${config.baseUrl}${config.paths.unreadCount}`, {
++    ...headers,
++    tags: { endpoint: 'notifications.unreadCount' },
++  });
++  expectOk(unread, 'notifications.unreadCount');
++  recordResponse('notifications.unreadCount', unread, config);
++
++  sleep(thinkTime(config));
++}
++
++/** 35%: list -> detail -> reply every 30 s. */
++export function agentTicketFlow(config, data) {
++  const token = pickToken(data.tokens, __VU);
++  const headers = authorizedHeaders(token);
++
++  const inbox = http.get(`${config.baseUrl}${config.paths.ticketInbox}`, {
++    ...headers,
++    tags: { endpoint: 'tickets.inbox' },
++  });
++  expectOk(inbox, 'tickets.inbox');
++
++  const ticketId = readFirstTicketId(inbox);
++  if (ticketId === null) {
++    sleep(thinkTime(config));
++    return;
++  }
++
++  const detail = http.get(`${config.baseUrl}${config.paths.tickets}/${ticketId}`, {
++    ...headers,
++    tags: { endpoint: 'tickets.detail' },
++  });
++  expectOk(detail, 'tickets.detail');
++  recordResponse('tickets.detail', detail, config);
++
++  const now = Date.now();
++  const previous = lastMessageAt[__VU] || 0;
++  if (now - previous >= config.behaviour.messageEverySeconds * 1000) {
++    lastMessageAt[__VU] = now;
++    const message = http.post(
++      `${config.baseUrl}${config.paths.tickets}/${ticketId}/messages`,
++      JSON.stringify({
++        body: `load test probe ${now}`,
++        visibility: 'staff',
++      }),
++      { ...headers, tags: { endpoint: 'tickets.message' } },
++    );
++    expectOk(message, 'tickets.message');
++    recordResponse('tickets.message', message, config);
++  }
++
++  sleep(thinkTime(config));
++}
++
++/**
++ * 10%: the search a user actually triggers.
++ *
++ * Phase 0 measures the CURRENT client behaviour (list + articles + directory
++ * fan-out, see plan §1.2) so the after-Phase-1 run can prove the drop to one
++ * request per input.
++ */
++export function searchHeavy(config, data) {
++  const headers = authorizedHeaders(pickToken(data.tokens, __VU));
++  const probe = `${config.behaviour.searchTerm}-${__VU}`;
++
++  const tickets = http.get(
++    `${config.baseUrl}${config.paths.tickets}?search=${encodeURIComponent(probe)}`,
++    { ...headers, tags: { endpoint: 'search.legacyTickets' } },
++  );
++  expectOk(tickets, 'search.legacyTickets');
++
++  const search = http.get(
++    `${config.baseUrl}${config.paths.search}?q=${encodeURIComponent(probe)}&types=ticket,article,user`,
++    { ...headers, tags: { endpoint: 'search.query' } },
++  );
++  // Phase 1 adds /search; before that the endpoint legitimately 404s and must
++  // not fail the run — it is reported, not asserted.
++  if (search.status !== 404) {
++    recordResponse('search.query', search, config);
++  }
++
++  sleep(config.behaviour.searchEverySeconds);
++}
++
++/** 15%: hold a Socket.IO session and count inbound events. */
++export function websocketClients(config, data) {
++  const token = pickToken(data.tokens, __VU);
++  const session = openSocketSession({
++    config,
++    token,
++    ticketIds: config.behaviour.ticketIds,
++  });
++
++  sleep(holdSeconds(config));
++  session.close();
++}
++
++function holdSeconds(config) {
++  const [amount, unit] = parseDuration(config.load.duration);
++  const seconds = unit === 'm' ? amount * 60 : amount;
++  // Agents keep the socket open for most of the run instead of reconnecting.
++  return Math.max(10, Math.round(seconds * (0.5 + Math.random() * 0.5)));
++}
++
++export function parseDuration(value) {
++  const match = /^(\d+)([smh])$/.exec(String(value).trim());
++  if (match === null) {
++    return [30, 'm'];
++  }
++  return [Number(match[1]), match[2]];
++}
++
++export function thinkTime(config) {
++  const { min, max } = config.load.thinkTimeSeconds;
++  return min + Math.random() * (max - min);
++}
++
++function readFirstTicketId(response) {
++  try {
++    const body = response.json();
++    const items = Array.isArray(body) ? body : body?.items;
++    if (!Array.isArray(items) || items.length === 0) {
++      return null;
++    }
++    const first = items[0];
++    return typeof first?.id === 'string' ? first.id : null;
++  } catch {
++    return null;
++  }
++}
+diff --git a/perf/lib/socket-io-packets.js b/perf/lib/socket-io-packets.js
+new file mode 100644
+index 0000000..7e343ee
+--- /dev/null
++++ b/perf/lib/socket-io-packets.js
+@@ -0,0 +1,95 @@
++/**
++ * Pure Socket.IO/Engine.IO packet helpers.
++ *
++ * The load test talks the wire protocol directly because k6 has no Socket.IO
++ * client. Keeping the encoding here (no k6 imports) means the same functions
++ * can be unit checked with plain Node — see `perf/validate.js`.
++ */
++
++export const engineIoPacket = {
++  open: '0',
++  ping: '2',
++  pong: '3',
++  message: '4',
++  upgrade: '5',
++  noop: '6',
++};
++
++export const socketIoPacket = {
++  connect: '0',
++  disconnect: '1',
++  event: '2',
++  ack: '3',
++  error: '4',
++};
++
++/** Engine.IO handshake URL used for the WebSocket transport. */
++export function buildSocketUrl(baseUrl, socketPath = '/socket.io/') {
++  const separator = baseUrl.includes('?') ? '&' : '?';
++  return `${baseUrl}${socketPath}${separator}EIO=4&transport=websocket`;
++}
++
++/** Namespace connect packet; carries the JWT as Socket.IO `auth`. */
++export function encodeConnectPacket(namespace, auth) {
++  const payload = auth === undefined ? '' : JSON.stringify(auth);
++  return `${engineIoPacket.message}${socketIoPacket.connect}${namespace}${payload}`;
++}
++
++/** Client event packet, e.g. `42["ticket.join",{"ticketId":"t-1"}]`. */
++export function encodeEventPacket(eventName, payload) {
++  return `${engineIoPacket.message}${socketIoPacket.event}${JSON.stringify([
++    eventName,
++    payload === undefined ? {} : payload,
++  ])}`;
++}
++
++export function encodePongPacket() {
++  return engineIoPacket.pong;
++}
++
++export function isOpenPacket(packet) {
++  return typeof packet === 'string' && packet.startsWith(engineIoPacket.open);
++}
++
++export function isPingPacket(packet) {
++  return packet === engineIoPacket.ping;
++}
++
++export function isConnectAckPacket(packet) {
++  return (
++    typeof packet === 'string' &&
++    (packet.startsWith(`${engineIoPacket.message}${socketIoPacket.connect}`) ||
++      packet.startsWith('40')) &&
++    !packet.startsWith('44')
++  );
++}
++
++export function isConnectErrorPacket(packet) {
++  return (
++    typeof packet === 'string' && packet.startsWith('44')
++  );
++}
++
++/**
++ * Reads an incoming server event: returns `{ event, payload }` or null when the
++ * frame is not a Socket.IO event (heartbeats, acks, binary attachments).
++ */
++export function parseEventPacket(packet) {
++  if (
++    typeof packet !== 'string' ||
++    !packet.startsWith(`${engineIoPacket.message}${socketIoPacket.event}`)
++  ) {
++    return null;
++  }
++  const body = packet.slice(2);
++  const namespaced = body.startsWith('/') ? body.slice(body.indexOf('[')) : body;
++  try {
++    const parsed = JSON.parse(namespaced);
++    if (!Array.isArray(parsed) || parsed.length === 0) {
++      return null;
++    }
++    return { event: String(parsed[0]), payload: parsed[1] };
++  } catch {
++    return null;
++  }
++}
+diff --git a/perf/lib/ws-client.js b/perf/lib/ws-client.js
+new file mode 100644
+index 0000000..c68c442
+--- /dev/null
++++ b/perf/lib/ws-client.js
+@@ -0,0 +1,83 @@
++import { WebSocket } from 'k6/experimental/websockets';
++import { performanceMetrics } from './metrics.js';
++import {
++  buildSocketUrl,
++  encodeConnectPacket,
++  encodeEventPacket,
++  encodePongPacket,
++  isConnectErrorPacket,
++  isOpenPacket,
++  isPingPacket,
++  parseEventPacket,
++} from './socket-io-packets.js';
++
++/**
++ * Opens one Socket.IO session over the WebSocket transport.
++ *
++ * k6 has no Socket.IO client, so the handshake is spoken directly:
++ * Engine.IO open frame -> `40{"token":...}` -> join the configured ticket rooms
++ * -> count every event frame for the `ws_events_received` metric.
++ *
++ * The caller keeps the VU alive (`sleep`) and then calls `close()`. Any protocol
++ * surprise is counted in `ws_connect_errors` instead of throwing, so a load run
++ * never dies because the server changed a handshake detail.
++ */
++export function openSocketSession({ config, token, ticketIds, onEvent }) {
++  const url = buildSocketUrl(config.websocketUrl, config.socketPath);
++  let connected = false;
++  let closed = false;
++  const socket = new WebSocket(url);
++
++  socket.onopen = () => {
++    performanceMetrics.wsClients.add(1);
++  };
++
++  socket.onerror = () => {
++    performanceMetrics.wsConnectErrors.add(1);
++  };
++
++  socket.onmessage = (event) => {
++    const data = String(event.data);
++    if (isOpenPacket(data)) {
++      socket.send(encodeConnectPacket('/', { token }));
++      return;
++    }
++    if (isPingPacket(data)) {
++      socket.send(encodePongPacket());
++      return;
++    }
++    if (isConnectErrorPacket(data)) {
++      performanceMetrics.wsConnectErrors.add(1);
++      return;
++    }
++    const parsed = parseEventPacket(data);
++    if (parsed === null) {
++      if (data.startsWith('40')) {
++        connected = true;
++        for (const ticketId of ticketIds) {
++          socket.send(encodeEventPacket('ticket.join', { ticketId }));
++        }
++      }
++      return;
++    }
++    performanceMetrics.wsEventsReceived.add(1);
++    if (onEvent !== undefined) {
++      onEvent(parsed);
++    }
++  };
++
++  return {
++    isConnected: () => connected,
++    close: () => {
++      if (closed) {
++        return;
++      }
++      closed = true;
++      try {
++        socket.close();
++      } catch {
++        performanceMetrics.wsConnectErrors.add(1);
++      }
++    },
++  };
++}
+diff --git a/perf/package.json b/perf/package.json
+new file mode 100644
+index 0000000..41c5283
+--- /dev/null
++++ b/perf/package.json
+@@ -0,0 +1,6 @@
++{
++  "name": "help-desk-perf",
++  "private": true,
++  "type": "module",
++  "description": "Phase 0 load-test package (k6). No dependencies: k6 is a CLI, not an npm package."
++}
+diff --git a/perf/report.js b/perf/report.js
+new file mode 100644
+index 0000000..4e6797d
+--- /dev/null
++++ b/perf/report.js
+@@ -0,0 +1,139 @@
++import { perfConfig } from './config.js';
++
++/**
++ * Turns a k6 summary into the two artefacts every phase leaves behind:
++ * raw JSON (`perf/results/<label>.json`) and a markdown report
++ * (`perf/results/<label>.md`) that can be pasted into the plan §7 table.
++ *
++ * No remote imports (k6-summary) on purpose: the load-test package must work in
++ * an air-gapped CI runner as well.
++ */
++
++const endpointTrends = [
++  ['tickets_list_duration', 'GET /tickets'],
++  ['ticket_detail_duration', 'GET /tickets/:id'],
++  ['ticket_message_duration', 'POST /tickets/:id/messages'],
++  ['unread_count_duration', 'GET /notifications/unread-count'],
++  ['search_duration', 'GET /search'],
++  ['dashboard_summary_duration', 'GET /reports/*/summary'],
++  ['ticket_list_payload_kb', 'GET /tickets payload (KB)'],
++  ['dashboard_payload_kb', 'dashboard payload (KB)'],
++];
++
++const counters = [
++  ['unread_count_requests', 'unread-count requests'],
++  ['search_requests', 'search requests'],
++  ['ws_events_received', 'WS events received'],
++  ['ws_connect_errors', 'WS connect errors'],
++  ['http_reqs', 'HTTP requests'],
++];
++
++export function handleSummary(data) {
++  return buildSummaryOutputs(data, perfConfig);
++}
++
++export function buildSummaryOutputs(data, config) {
++  const label = config.reportLabel;
++  const directory = config.resultsDir;
++  return {
++    [`${directory}/${label}.json`]: JSON.stringify(data, null, 2),
++    [`${directory}/${label}.md`]: renderMarkdown(data, config),
++    stdout: renderConsole(data, config),
++  };
++}
++
++export function renderMarkdown(data, config) {
++  const lines = [];
++  const durationSeconds = Math.round(readNumber(data, 'state.testRunDurationMs') / 1000);
++  lines.push(`# Load test — ${config.reportLabel}`);
++  lines.push('');
++  lines.push(
++    `Run: ${config.load.virtualUsers} VU configured, ${durationSeconds}s wall clock, base URL \`${config.baseUrl}\`.`,
++  );
++  lines.push('');
++  lines.push('| Metric | p50 | p95 | p99 | max |');
++  lines.push('|---|---|---|---|---|');
++  for (const [name, description] of endpointTrends) {
++    const metric = data.metrics[name];
++    if (metric === undefined || metric.values === undefined) {
++      continue;
++    }
++    lines.push(
++      `| ${description} | ${format(metric.values['p(50)'])} | ${format(metric.values['p(95)'])} | ${format(metric.values['p(99)'])} | ${format(metric.values.max)} |`,
++    );
++  }
++  lines.push('');
++  lines.push('| Counter | Value |');
++  lines.push('|---|---|');
++  for (const [name, description] of counters) {
++    const metric = data.metrics[name];
++    if (metric === undefined || metric.values === undefined) {
++      continue;
++    }
++    lines.push(`| ${description} | ${format(metric.values.count ?? metric.values.rate)} |`);
++  }
++  const wsClients = data.metrics.ws_clients;
++  if (wsClients !== undefined && wsClients.values !== undefined) {
++    lines.push(`| WS clients (max) | ${format(wsClients.values.max)} |`);
++  }
++  lines.push('');
++  lines.push('| Threshold | Result |');
++  lines.push('|---|---|');
++  for (const [name, metric] of Object.entries(data.metrics)) {
++    if (metric.thresholds === undefined) {
++      continue;
++    }
++    for (const [expression, threshold] of Object.entries(metric.thresholds)) {
++      lines.push(`| ${name}: ${expression} | ${threshold.ok ? 'ok' : 'FAILED'} |`);
++    }
++  }
++  lines.push('');
++  lines.push('## Budgets from the plan (§4.2)');
++  lines.push('');
++  lines.push('| Budget | Value |');
++  lines.push('|---|---|');
++  lines.push(`| P95 read endpoint | < ${config.budgets.readP95Ms} ms |`);
++  lines.push(`| P95 mutation | < ${config.budgets.mutationP95Ms} ms |`);
++  lines.push(`| Error rate | < ${config.budgets.errorRate * 100}% |`);
++  lines.push(`| Ticket list payload | < ${config.budgets.ticketListPayloadKb} KB |`);
++  lines.push(`| Dashboard payload | < ${config.budgets.dashboardPayloadKb} KB |`);
++  lines.push('');
++  lines.push('Database side of the same run: attach `ops/sql/snapshot_db_stats.sql` output.');
++  lines.push('');
++  return lines.join('\n');
++}
++
++/** Short stdout block; k6 still prints its own summary afterwards. */
++export function renderConsole(data, config) {
++  const lines = [`perf: ${config.reportLabel}`];
++  for (const [name, description] of endpointTrends) {
++    const metric = data.metrics[name];
++    if (metric === undefined || metric.values === undefined) {
++      continue;
++    }
++    lines.push(
++      `  ${description}: p95=${format(metric.values['p(95)'])} p99=${format(metric.values['p(99)'])}`,
++    );
++  }
++  return `${lines.join('\n')}\n`;
++}
++
++function format(value) {
++  if (value === undefined || value === null) {
++    return '-';
++  }
++  if (typeof value !== 'number') {
++    return String(value);
++  }
++  return value.toFixed(2);
++}
++
++function readNumber(data, path) {
++  const value = path.split('.').reduce((current, key) => {
++    if (current === undefined || current === null) {
++      return undefined;
++    }
++    return current[key];
++  }, data);
++  return typeof value === 'number' ? value : 0;
++}
+diff --git a/perf/results/.gitkeep b/perf/results/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/perf/results/baseline-2026-09-23.md b/perf/results/baseline-2026-09-23.md
+new file mode 100644
+index 0000000..cf5e2d3
+--- /dev/null
++++ b/perf/results/baseline-2026-09-23.md
+@@ -0,0 +1,81 @@
++# Baseline — 2026-09-23 (model, nije mjerenje)
++
++> **Ovaj baseline NIJE izmjeren load testom.** Izvršno okruženje u kojem je Faza 0
++> implementirana nema k6, Postgres, Redis ni Docker, niti pokrenut API proces.
++> Umjesto lažnih brojki, ovdje su:
++> 1. **model** iz statičke analize (`PERFORMANCE_PHASE_PLAN.md` §0.3),
++> 2. **provjereni kod-nalazi** koje sam potvrdio čitanjem izvora,
++> 3. **tačne komande** koje daju pravi baseline u okruženju s k6 i bazom.
++>
++> Prvi red u tabeli napretka (`§7`) ostaje otvoren dok se ne pokrene
++> `k6 run perf/full.js` na okruženju s podacima.
++
++## 1. Model opterećenja (plan §0.1)
++
++| Parametar | Vrijednost |
++|---|---|
++| Registrovani korisnici | 3.500 |
++| Istovremeno aktivni (70%) | 2.450 |
++| HTTP zahtjeva / s | ~950 |
++| Događaji na tiketima | ~600 / min (10 / s) |
++| Otvoreni tiketi (SLA skener) | ~50.000 |
++| Prosječna grupa agenata | ~200 (fan-out množilac) |
++
++## 2. Model protoka (plan §0.3) — očekivani baseline
++
++| Metrika | Model | Kapacitet | Status |
++|---|---|---|---|
++| DB upita / s | **~5.500** | ~500 (pool 10 × 50 qps) | **11× preko** |
++| Socket emit-ova / s | **~4.600** | ~8.000 / proces | napeto |
++| Notification INSERT-a / s | **~2.000** | — | write amplification |
++| Trajanje SLA ciklusa | **~7 min** | < 60 s (interval) | ciklus > interval |
++| Punorama tiketa po dashboardu | **~240 MB** | < 100 KB | **2.400× preko** |
++
++## 3. Kod-nalazi (potvrđeno čitanjem izvora, ne model)
++
++| Nalaz | Dokaz |
++|---|---|
++| pg pool nije konfigurisan → node-postgres default `max = 10` | `backend/src/common/prisma/prisma.service.ts` — `new PrismaPg(connectionString)` (prije Faze 1.4) |
++| SLA skener je u API procesu, interval 60 s | `backend/src/modules/sla/sla.constants.ts`, `ticket-sla-breach-scanner.service.ts` |
++| SLA skenira sve otvorene zapise i radi N+1 po tiketu | `backend/src/modules/sla/scan-due-ticket-sla-states.ts` |
++| Inbox polla svakih 30 s iako isti podatak stiže socketom | `frontend/src/lib/notifications/use-inbox-notifications.ts` |
++| Lista tiketa bez paginacije šalje puni `findMany` | `backend/src/modules/tickets/list-tickets.ts` (grana `paging === null`) |
++| Socket.IO nema Redis adapter (in-memory sobe) | `backend/src/modules/websocket/websocket.gateway.ts` — `afterInit` bez `server.adapter(...)` |
++| Notifikacije: insert + emit po primatelju | `backend/src/modules/notifications/fan-out/fan-out-in-app-notifications.ts` |
++
++## 4. Kako se dobija pravi baseline
++
++```bash
++# 1. baza i aplikacija
++psql "$DATABASE_URL" -f ops/sql/enable_pg_stat_statements.sql
++psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/baseline.db-before.txt
++cd backend && npm run build && node dist/src/main.js &     # API
++node dist/src/worker.js &                                  # worker
++
++# 2. mjerenje (puni profil; ili -e VU=800 -e DURATION=10m za lokalno)
++k6 run -e BASE_URL=http://localhost:10001 perf/full.js
++
++# 3. baza + log poslije testa
++psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/baseline.db-after.txt
++grep -E "db_queries_per_request|event_loop_lag_p95_ms|ws_clients_count" app.log > perf/results/baseline.app.log
++```
++
++Rezultat zamjenjuje ovaj dokument (`perf/results/baseline.md`) i popunjava red
++"Baseline" u `PERFORMANCE_PHASE_PLAN.md` §7.
++
++## 5. Šta je Faza 0 ipak dokazala
++
++| Provjera | Rezultat |
++|---|---|
++| `node perf/validate.js` | ✅ 18/18 provjera (parametri, Socket.IO paketi, render izvještaja) |
++| Sintaksa svih k6 skripti | ✅ `node --check` na devet fajlova iz `perf/` |
++| Backend testovi | ✅ 325/325 suita, 1181/1181 testa (uključujući 5 novih specova za metrike) |
++| `npm run build` | ✅ čist (i dva pre-postojeća TS bloka popravljena) |
++| Nula promjena ponašanja | ✅ dodati su samo brojači i log linije; nijedan endpoint, servis ni shema nisu mijenjani |
++
++## 6. Rizik za Fazu 1
++
++Mjerenje nije obavljeno u izvršnom okruženju, pa **kapija Faze 1**
++(„DB QPS pada ≥ 5×, P95 < 250 ms, odgovor < 100 KB") ostaje nepotvrđena dok se
++`perf/full.js` ne pokrene na okruženju s bazom. Alat je spreman i samotestiran;
++ono što nedostaje je okruženje, ne instrumentacija.
+diff --git a/perf/smoke.js b/perf/smoke.js
+new file mode 100644
+index 0000000..6d0e50c
+--- /dev/null
++++ b/perf/smoke.js
+@@ -0,0 +1,67 @@
++import { perfConfig, fullThresholds } from './config.js';
++import { setup as setupSession } from './lib/scenarios.js';
++import { handleSummary } from './report.js';
++
++/**
++ * Smoke run: 200 virtual users, 5 minutes. Same behaviours as `full.js`, short
++ * enough for CI and for a laptop. Phase 0 uses it to prove the package works
++ * before the long baseline is started.
++ *
++ *   k6 run perf/smoke.js
++ */
++
++const smoke = perfConfig.load.smoke;
++const smokeVus = {
++  browserDashboard: Math.round(smoke.virtualUsers * 0.4),
++  agentTicketFlow: Math.round(smoke.virtualUsers * 0.35),
++  searchHeavy: Math.round(smoke.virtualUsers * 0.1),
++  websocketClients: Math.round(smoke.virtualUsers * 0.15),
++};
++
++export const options = {
++  discardResponseBodies: false,
++  scenarios: {
++    browser_dashboard: {
++      executor: 'constant-vus',
++      exec: 'browserDashboard',
++      vus: smokeVus.browserDashboard,
++      duration: smoke.duration,
++      tags: { behaviour: 'browser_dashboard' },
++    },
++    agent_ticket_flow: {
++      executor: 'constant-vus',
++      exec: 'agentTicketFlow',
++      vus: smokeVus.agentTicketFlow,
++      duration: smoke.duration,
++      tags: { behaviour: 'agent_ticket_flow' },
++    },
++    search_heavy: {
++      executor: 'constant-vus',
++      exec: 'searchHeavy',
++      vus: smokeVus.searchHeavy,
++      duration: smoke.duration,
++      tags: { behaviour: 'search_heavy' },
++    },
++    websocket_clients: {
++      executor: 'constant-vus',
++      exec: 'websocketClients',
++      vus: smokeVus.websocketClients,
++      duration: smoke.duration,
++      tags: { behaviour: 'ws_clients' },
++    },
++  },
++  thresholds: fullThresholds(perfConfig),
++};
++
++export function setup() {
++  return setupSession(perfConfig);
++}
++
++export {
++  browserDashboard,
++  agentTicketFlow,
++  searchHeavy,
++  websocketClients,
++} from './lib/scenarios.js';
++
++export { handleSummary };
+diff --git a/perf/validate.js b/perf/validate.js
+new file mode 100644
+index 0000000..69b8ecc
+--- /dev/null
++++ b/perf/validate.js
+@@ -0,0 +1,110 @@
++/**
++ * Sanity check for the load-test package without k6.
++ *
++ *   node perf/validate.js
++ *
++ * It validates the parts that can be checked offline: parameter derivation,
++ * Socket.IO packet encoding/decoding and the report renderer. Run it after any
++ * change to perf/ — a broken helper would otherwise only show up as a failed
++ * load run in the middle of a 30-minute window.
++ */
++
++import { perfConfig, fullThresholds, scenarioVus } from './config.js';
++import {
++  buildSocketUrl,
++  encodeConnectPacket,
++  encodeEventPacket,
++  encodePongPacket,
++  isConnectErrorPacket,
++  isOpenPacket,
++  isPingPacket,
++  parseEventPacket,
++} from './lib/socket-io-packets.js';
++import { renderMarkdown } from './report.js';
++
++let failures = 0;
++
++function check(description, condition, detail) {
++  if (condition) {
++    console.log(`  ok   ${description}`);
++    return;
++  }
++  failures += 1;
++  console.log(`  FAIL ${description}${detail === undefined ? '' : ` — ${detail}`}`);
++}
++
++function section(title) {
++  console.log(`\n${title}`);
++}
++
++section('config');
++const vus = scenarioVus(perfConfig);
++check(
++  'active pool matches virtualUsers * activeRatio',
++  vus.active === Math.round(2800 * 0.7),
++  `active=${vus.active}`,
++);
++check(
++  'behaviour mix covers the whole pool',
++  vus.browserDashboard + vus.agentTicketFlow + vus.searchHeavy + vus.websocketClients ===
++    vus.active,
++  `${vus.browserDashboard}+${vus.agentTicketFlow}+${vus.searchHeavy}+${vus.websocketClients} != ${vus.active}`,
++);
++check('budgets come from the plan (§4.2)', perfConfig.budgets.readP95Ms === 200);
++check(
++  'thresholds reference the custom trends',
++  Object.keys(fullThresholds(perfConfig)).includes('tickets_list_duration'),
++);
++
++section('socket.io packets');
++const connect = encodeConnectPacket('/', { token: 'jwt-token' });
++check('connect packet carries the token', connect === '40/{"token":"jwt-token"}', connect);
++check('open frame detected', isOpenPacket('0{"sid":"abc","upgrades":[]}'));
++check('ping frame detected', isPingPacket('2'));
++check('pong frame built', encodePongPacket() === '3');
++const join = encodeEventPacket('ticket.join', { ticketId: 'ticket-1' });
++check('event packet shape', join === '42["ticket.join",{"ticketId":"ticket-1"}]', join);
++check(
++  'event packet decoded',
++  JSON.stringify(parseEventPacket(join)) ===
++    JSON.stringify({ event: 'ticket.join', payload: { ticketId: 'ticket-1' } }),
++);
++check(
++  'namespaced event decoded',
++  parseEventPacket('42/admin,["notificationCreated",{"id":"n-1"}]')?.event ===
++    'notificationCreated',
++);
++check('heartbeat is not an event', parseEventPacket('2') === null);
++check('connect error frame detected', isConnectErrorPacket('44{"message":"Unauthorized"}'));
++check(
++  'socket url keeps the transport parameters',
++  buildSocketUrl('ws://localhost:10001', '/socket.io/') ===
++    'ws://localhost:10001/socket.io/?EIO=4&transport=websocket',
++);
++
++section('report renderer');
++const synthetic = {
++  state: { testRunDurationMs: 60_000 },
++  metrics: {
++    tickets_list_duration: {
++      values: { 'p(50)': 120, 'p(95)': 260, 'p(99)': 500, max: 900 },
++      thresholds: { 'p(95)<200': { ok: false } },
++    },
++    http_reqs: { values: { count: 1000 } },
++  },
++};
++const markdown = renderMarkdown(synthetic, {
++  ...perfConfig,
++  reportLabel: 'synthetic',
++});
++check('markdown has a title', markdown.startsWith('# Load test — synthetic'));
++check('markdown lists the endpoint table row', markdown.includes('GET /tickets'));
++check('markdown reports a failed threshold', markdown.includes('p(95)<200 | FAILED'));
++check('markdown lists the plan budgets', markdown.includes('P95 read endpoint'));
++
++console.log('');
++if (failures > 0) {
++  console.log(`perf/validate: ${failures} check(s) failed`);
++  process.exit(1);
++}
++console.log('perf/validate: all checks passed');
