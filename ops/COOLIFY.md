@@ -6,7 +6,20 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
 
 - **PostgreSQL**: Coolify Database. Connection string → `DATABASE_URL`. Backup/retention na DB resursu.
 - **Redis**: postojeći kontejner `redis-core` na external mreži `redis_net` (compose ime; RAW kaže `redis-net`).
-- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`. Kanali: keyspace `&ephelpdesk:*` i `&bull:ephelpdesk:*` (keševi i BullMQ), `&integration-queue:*` (edge realtime), `&tickets:realtime-bridge` (F4 worker→API most) i **`&socket.io#*` `&socket.io-request#*` `&socket.io-response#*`** (F3.1 Redis adapter; bez ovih API pada na bootu s `NOPERM No permissions to access a channel` na `psubscribe socket.io#/#*`). Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om — zato `socket.io…` stoji bez `ephelpdesk:`.
+- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`.
+- **Kanali (F3.1/F4)** — Redis razlikuje dva slučaja i to je jedina zamka ovdje:
+  - `PUBLISH` i `SUBSCRIBE` se poklapaju s dozvoljenim **globom** (`&socket.io#*` pokriva
+    `socket.io#/#room#` i `socket.io-request#/#`),
+  - `PSUBSCRIBE` zahtijeva **literalno poklapanje** patterna, pa `&socket.io#*` **ne**
+    pokriva `socket.io#/#*` — taj string mora stajati u ACL-u doslovno.
+  Zato linija sadrži i `&socket.io#/#*` (adapter), `&socket.io-request#*` /
+  `&socket.io-response#*` (zahtjev/odgovor kanali), `&tickets:realtime-bridge`
+  (F4 worker→API most) i `&integration-queue:*` (edge realtime). Bez njih API boota
+  degradirano (`ws_adapter_redis_acl_denied`, in-memory adapter) — a prije F4 dopune
+  je padao s `NOPERM No permissions to access a channel`.
+  Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om, zato `socket.io…` stoji bez
+  `ephelpdesk:`. Ako se doda Socket.IO namespace (npr. `/admin`), u ACL mora ući i
+  njegov literalni pattern (`&socket.io#/admin#*`).
 - Ne koristiti lozinku Coolify Redis `default` usera osim ako je to i lozinka ACL usera `ephelpdesk`. `WRONGPASS` = username/password par nije taj ACL user.
 
 ## Coolify projekat
