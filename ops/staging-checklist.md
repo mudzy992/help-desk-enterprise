@@ -21,6 +21,11 @@ drži u shell varijablama (`export REDIS_PASSWORD=…`) da ne završe u historij
 
 ## 1. Cross-instance emit + rolling deploy *(rizik 3, ~1 h)*
 
+> **Rezultat 2026-09-24 (server mudzy-server, `REDIS_URL=redis://ephelpdesk:***@127.0.0.1:6379`):**
+> preflight 6/6 ✔ (AUTH, PING, PUBLISH, PSUBSCRIBE `socket.io#/#*`, SUBSCRIBE request/response),
+> dokaz ✔ — klijent na instanci B primio `group.feed-changed` emit s instance A. **Cross-instance emit DOKAZAN.**
+> Rolling deploy (ispod) i dalje otvoren.
+
 **1a. Dokaz da dvije instance dijele sobe** (skripta diže dva Socket.IO servera s
 pravim Redis adapterom i pravim klijentom — ne treba aplikacija, samo Redis):
 

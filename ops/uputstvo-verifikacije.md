@@ -31,7 +31,16 @@ docker logs <api-kontejner> 2>&1 | grep -E 'ws_adapter_redis_(ok|acl_denied)'
 - `ws_adapter_redis_acl_denied channel=...` → ACL (vidi A4).
 
 ### A1. Varijanta 1 (preporuka) — pokreni na serveru, bez tunela
-Na serveru, iz checkouta repoa, uzmi IP Redis kontejnera:
+**Potvrđeno 2026-09-24:** Coolify dodaje sufiks imenu kontejnera
+(`redis-core-j4yv1noel7cxdmghjcwhfymh-090809466522`) i Redis je objavljen na hostu
+(`0.0.0.0:6379`). Zato je dovoljno:
+
+```bash
+REDIS_URL='redis://ephelpdesk:<lozinka>@127.0.0.1:6379' node ops/ws-cross-instance-check.mjs
+```
+
+Lozinku sa `!` drži u jednostrukim navodnicima (u dvostrukim bash radi history expansion).
+IP kontejnera (ispod) je samo fallback — mijenja se pri svakom redeployu.
 
 ```bash
 docker ps --format '{{.Names}} | {{.Ports}}' | grep -i redis
@@ -56,7 +65,9 @@ ssh -v -N -p 2222 -L 6380:redis-core:6379 administrator@sql.ba101.top
 Rješenje — cilj tunela mora biti nešto što **host** vidi:
 
 ```bash
-# a) IP kontejnera (iz A1, docker inspect):
+# a) objavljeni host port — POTVRĐENO RADI:
+ssh -N -p 2222 -L 6380:127.0.0.1:6379 administrator@sql.ba101.top
+# a2) IP kontejnera (iz A1, docker inspect; mijenja se pri redeployu):
 ssh -N -p 2222 -L 6380:<IP-kontejnera>:6379 administrator@sql.ba101.top
 # b) ili objavljeni host port (docker port redis-core → npr. 127.0.0.1:6379):
 ssh -N -p 2222 -L 6380:127.0.0.1:<host-port> administrator@sql.ba101.top
