@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import {
   createTicketViaApi,
-  firstServiceCategoryId,
+  createOfferedService,
   loadSeedCatalog,
 } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -25,14 +25,8 @@ test.describe('02 routing / fallback', () => {
     expect(routed.status === 'UNROUTED' || routed.assignedGroupId !== null).toBe(
       true,
     );
-    const service = await api.requestJson<{ id: string }>('/services', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: `E2E Unrouted ${Date.now()}`,
-        slug: `e2e-unrouted-${Date.now()}`,
-        classification: 'INTERNAL',
-        categoryId: await firstServiceCategoryId(api),
-      }),
+    const service = await createOfferedService(api, {
+      label: 'Unrouted',
     });
     const unrouted = await createTicketViaApi(api, {
       title: `E2E unrouted ${Date.now()}`,

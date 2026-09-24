@@ -24,7 +24,6 @@ test.describe('06 confidential', () => {
       title: `E2E confidential ${Date.now()}`,
       description: 'secret body',
       serviceId: catalog.serviceId,
-      originUnitId: catalog.originUnitId,
       formVersionRef: catalog.formVersionRef,
       isConfidential: true,
     });

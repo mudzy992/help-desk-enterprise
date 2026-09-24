@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
 import {
   createTicketViaApi,
-  firstServiceCategoryId,
+  createOfferedService,
   loadSeedCatalog,
 } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
@@ -14,15 +14,9 @@ test.describe('03 approvals', () => {
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
     const catalog = await loadSeedCatalog(api);
-    const service = await api.requestJson<{ id: string }>('/services', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: `E2E Approval ${Date.now()}`,
-        slug: `e2e-approval-${Date.now()}`,
-        classification: 'INTERNAL',
-        requiresApproval: true,
-        categoryId: await firstServiceCategoryId(api),
-      }),
+    const service = await createOfferedService(api, {
+      label: 'Approval',
+      requiresApproval: true,
     });
     const rules = await api.requestJson<
       Array<{ id: string; groupId: string; originUnitId: string; serviceId: string }>

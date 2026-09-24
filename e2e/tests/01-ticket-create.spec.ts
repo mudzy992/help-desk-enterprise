@@ -16,6 +16,10 @@ test.describe('01 ticket create', () => {
     const title = `E2E create ${Date.now()}`;
     await page.getByLabel(/naslov|title/i).fill(title);
     await page.getByLabel(/opis|description/i).fill('E2E ticket description body');
+    const originUnit = page.getByLabel(/jedinica porijekla|origin organizational unit/i);
+    if (await originUnit.isVisible().catch(() => false)) {
+      await originUnit.selectOption({ index: 1 });
+    }
     await page
       .getByRole('button', { name: /provjeri bazu znanja|check knowledge base/i })
       .click();
