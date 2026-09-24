@@ -54,6 +54,7 @@ import { TicketsConfidentialService } from './confidential/tickets-confidential.
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
+import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
 import { TicketsCsatController } from './csat/tickets-csat.controller';
 import { TicketsCsatSummaryController } from './csat/tickets-csat-summary.controller';
 import { TicketsCsatService } from './csat/tickets-csat.service';
@@ -98,6 +99,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketSafeLoggingConfigurationLoader,
     TicketArchiveConfigurationLoader,
     TicketCsatConfigurationLoader,
+    TicketLabelCacheService,
     TicketAccessPolicyBinder,
     TicketsConfidentialService,
     TicketsCsatService,

@@ -15,6 +15,11 @@ jobs:
   backend:
     name: Backend build + test
     runs-on: ubuntu-latest
+    env:
+      # Prisma 7 resolves `env("DATABASE_URL")` while loading its config, so
+      # `prisma generate` dies on a bare runner. Generation never connects, so a
+      # syntactically valid placeholder is enough — no live Postgres in this job.
+      DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
     defaults:
       run:
         working-directory: backend
