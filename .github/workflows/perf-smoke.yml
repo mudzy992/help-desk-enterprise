@@ -60,19 +60,18 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
       DB_QUERY_METRICS: "true"
-      # Measured on seeded data (120 tickets, CI smoke 2026-09-24): 5.0 queries per
-      # application request, down from 18.4 through three steps — the settings
-      # snapshot (18.4 -> 9.6), the gate being put on the real measurement, and the
-      # sixty-second cache of the five display-label catalogues (9.6 -> 5.0). The
-      # gate is the measurement × 1.5, so jitter does not fail the build while a
-      # regression of any of those three does. The target is the engineering goal
-      # tracked in PERF_BUDGETS.md.
+      # Measured 2026-09-24 (seeded data, load profile): 1.705 queries per
+      # application request, down from 18.4 -> 8.7 -> 5.0 -> 1.7 (settings snapshot,
+      # display-label cache, then: shared settings snapshot, scope-catalogue cache,
+      # confidential short-circuit, one raw query for SLA + CSAT, option A group
+      # notifications). Per endpoint: POST message 4, list/inbox/search 3, detail 2.
+      # Gate = best measurement x 1.2 (user decision), target = the measurement.
       #
-      # Note the 3.6 this gate briefly claimed: that was the same run on an EMPTY
-      # database. The batch loaders skip their round trips when there is nothing to
-      # resolve, so an empty app looks cheap. Only seeded data measures real queries.
-      DB_QUERY_BUDGET: "8"
-      DB_QUERY_TARGET: "5"
+      # Note the 3.6 this gate once claimed: that was an EMPTY database. The batch
+      # loaders skip their round trips when there is nothing to resolve, so an empty
+      # app looks cheap. Only seeded data measures real queries.
+      DB_QUERY_BUDGET: "2.1"
+      DB_QUERY_TARGET: "1.7"
       DB_QUERY_BUDGET_WARN: "true"
       # Smoke profile + relaxed, documented thresholds.
       PERF_PROFILE: ci
@@ -336,8 +335,8 @@ jobs:
           # Gate = the measured baseline plus headroom (the plan's iron rule: a threshold
           # comes from a measurement, not from an aspiration). TARGET is the engineering
           # goal tracked in PERF_BUDGETS.md; the gap is a work item, not a hidden failure.
-          BUDGET="${DB_QUERY_BUDGET:-8}"
-          TARGET="${DB_QUERY_TARGET:-5}"
+          BUDGET="${DB_QUERY_BUDGET:-2.1}"
+          TARGET="${DB_QUERY_TARGET:-1.7}"
           P95=0
           MAX=0
           if [ -s /tmp/app-queries.txt ]; then

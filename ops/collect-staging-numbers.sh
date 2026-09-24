@@ -12,13 +12,13 @@
 #
 # API log sa Coolify servera (Linux):  docker logs <api-kontejner> > api.log 2>&1
 #
-# Env: DB_QUERY_BUDGET (default 8 = CI kapija), DB_QUERY_TARGET (default 5 = cilj)
+# Env: DB_QUERY_BUDGET (default 2.1 = CI kapija), DB_QUERY_TARGET (default 1.7 = cilj)
 # Izlaz: 0 = sve u budžetu, 1 = SLO red ili kapija upita pada, 2 = ulaz ne valja.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUDGET="${DB_QUERY_BUDGET:-8}"
-TARGET="${DB_QUERY_TARGET:-5}"
+BUDGET="${DB_QUERY_BUDGET:-2.1}"
+TARGET="${DB_QUERY_TARGET:-1.7}"
 
 # Ispisuje KEY=VALUE linije; per-path prosjeke piše u $2 (ako je dat).
 query_stats() {
