@@ -29,6 +29,7 @@ import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configur
 import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
 import { runTicketsServiceCreate } from './run-tickets-service-create';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
+import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
 import { respondLoadedTicket } from './to-ticket-client-responses';
 import { updateTicket } from './update-ticket';
 import { withTicketAccessPolicies } from './with-ticket-access-policies';
@@ -62,6 +63,7 @@ export class TicketsService {
     private readonly slaTimers: TicketSlaTimersService,
     private readonly realtimeHub: TicketRealtimeHub,
     private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
+    private readonly ticketLabelCache: TicketLabelCacheService,
   ) {}
 
   previewRouting(
@@ -308,6 +310,10 @@ export class TicketsService {
       closeCodes: this.closeCodesConfigurationLoader,
       csat: this.csatLoader,
       actorUserId,
+      // Plan §4.2: the five catalogue reads behind the display labels are the
+      // largest block left in a list request; the cache answers for ids a
+      // previous request in the last minute already resolved.
+      labelCache: this.ticketLabelCache,
     };
   }
 }

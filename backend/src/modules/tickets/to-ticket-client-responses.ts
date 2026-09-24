@@ -11,6 +11,7 @@ import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
 import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
 import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
 import { loadTicketDisplayLabels } from './load-ticket-display-labels';
+import type { TicketLabelCache } from './labels/ticket-label-cache';
 import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
 import { toTicketLabelFields } from './ticket-label-fields';
 import { toTicketClientResponse } from './to-ticket-response';
@@ -26,6 +27,7 @@ export async function toTicketClientResponses(
     readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
     readonly csat?: TicketCsatConfiguration;
     readonly actorUserId?: string;
+    readonly labelCache?: TicketLabelCache;
     readonly now?: Date;
   },
 ): Promise<readonly TicketResponse[]> {
@@ -36,7 +38,7 @@ export async function toTicketClientResponses(
   const ticketIds = records.map((record) => record.id);
   const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
   const parentsById = await loadParentTicketSummaries(prisma, records);
-  const labels = await loadTicketDisplayLabels(prisma, records);
+  const labels = await loadTicketDisplayLabels(prisma, records, input.labelCache);
   const submissions =
     input.csat === undefined
       ? new Map()
@@ -90,6 +92,7 @@ export async function toSingleTicketClientResponse(
     readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
     readonly csat?: TicketCsatConfiguration;
     readonly actorUserId?: string;
+    readonly labelCache?: TicketLabelCache;
     readonly now?: Date;
   },
 ): Promise<TicketResponse> {
@@ -105,6 +108,7 @@ export async function respondLoadedTicket(
     readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
     readonly csat?: { load: () => Promise<TicketCsatConfiguration> };
     readonly actorUserId?: string;
+    readonly labelCache?: TicketLabelCache;
   },
   redactionWarnings?: readonly RedactionMatch[],
   duplicateWarnings?: readonly DuplicateTicketMatch[],
@@ -114,6 +118,7 @@ export async function respondLoadedTicket(
     closeCodes: await loaders.closeCodes.load(),
     csat: loaders.csat === undefined ? undefined : await loaders.csat.load(),
     actorUserId: loaders.actorUserId,
+    labelCache: loaders.labelCache,
     redactionWarnings,
     duplicateWarnings,
   });
@@ -127,6 +132,7 @@ export async function respondLoadedTickets(
     readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
     readonly csat?: { load: () => Promise<TicketCsatConfiguration> };
     readonly actorUserId?: string;
+    readonly labelCache?: TicketLabelCache;
   },
 ): Promise<readonly TicketResponse[]> {
   return toTicketClientResponses(prisma, records, {
@@ -134,5 +140,6 @@ export async function respondLoadedTickets(
     closeCodes: await loaders.closeCodes.load(),
     csat: loaders.csat === undefined ? undefined : await loaders.csat.load(),
     actorUserId: loaders.actorUserId,
+    labelCache: loaders.labelCache,
   });
 }

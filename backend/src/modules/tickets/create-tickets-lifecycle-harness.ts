@@ -53,9 +53,12 @@ export function createTicketsLifecycleHarness(input: {
     input.archiveLoader as never,
     csatLoader as never,
     input.slaTimers as never,
-    input.realtimeHub,
-    input.assignmentConfigurationLoader as never,
-  );
+      input.realtimeHub,
+      input.assignmentConfigurationLoader as never,
+      // No label cache here: the harness runs without Redis, which is exactly the
+      // "cache is down" path — the display labels are read from the database.
+      undefined as never,
+    );
   const csat = new TicketsCsatService(
     input.prisma as never,
     input.authorizationContextLoader as never,
