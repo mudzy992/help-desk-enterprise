@@ -99,11 +99,14 @@ export function searchHeavy(config, data) {
   const headers = authorizedHeaders(pickToken(data.tokens, __VU));
   const probe = `${config.behaviour.searchTerm}-${__VU}`;
 
-  const tickets = http.get(
-    `${config.baseUrl}${config.paths.tickets}?search=${encodeURIComponent(probe)}`,
-    { ...headers, tags: { endpoint: 'search.legacyTickets' } },
-  );
-  expectOk(tickets, 'search.legacyTickets');
+    // `q`, not `search`: Phase 1.1 renamed the list parameter, and the old name now gets
+    // a 400 from the validation pipe — which the smoke read as "the app is failing" while
+    // it was the harness using a stale contract (20 failed requests per run).
+    const tickets = http.get(
+      `${config.baseUrl}${config.paths.tickets}?q=${encodeURIComponent(probe)}`,
+      { ...headers, tags: { endpoint: 'search.listQuery' } },
+    );
+    expectOk(tickets, 'search.listQuery');
 
   const search = http.get(
     `${config.baseUrl}${config.paths.search}?q=${encodeURIComponent(probe)}&types=ticket,article,user`,
