@@ -1,0 +1,105 @@
+ops-02 — zeleni CI (dva nezavisna uzroka na masteru)
+
+Primjena: git apply (ili `bash perf/patches/apply-perf.sh`, unos 9).
+Nema izmjena aplikativnog koda — samo CI workflow i skripta provjere.
+
+Stanje: `CI` je padao na svakom pushu (runovi 35975341010, 35974056713,
+35971013187), u oba joba, zbog dvije nepovezane stvari:
+
+1. backend job — `npx prisma generate`:
+     Failed to load config file "…/backend" as a TypeScript/JavaScript module.
+     Error: PrismaConfigEnvError: Cannot resolve environment variable: DATABASE_URL.
+   Prisma 7 čita `env("DATABASE_URL")` dok učitava `prisma.config.ts`, a job nije
+   imao taj env. Generisanje se ne spaja na bazu, pa je dovoljan placeholder.
+   → dodan job-level `env: DATABASE_URL: postgresql://…@127.0.0.1:5432/ephelpdesk`.
+
+2. frontend job — `node ../scripts/check-pulse-design-system.mjs`:
+     Error: ENOENT: no such file or directory, open '…/fe-alignment-prompts.md'
+   Reorganizacija root .md fajlova (a4bcda3) premjestila je dokumente
+   (`docs/prompts/`, `docs/design/`), a skripta je i dalje čitala stare putanje —
+   i pucala cijelim stack trace-om umjesto da prijavi problem.
+   → skenira trenutne lokacije (`.cursor/docs`, `.cursor/rules`, `docs`,
+     `referenca-dizajn/README.md`); putanja koje nema = `·` nota u logu, a ne pad;
+     citiranje arhiviranog izvora bez markera i dalje je greška (`fail`).
+
+Uzrok 2 je bio i razlog zašto je `E2E critical flows` uvijek `skipped`.
+
+Verifikacija (lokalna emulacija oba joba):
+  backend : `npx prisma generate` bez env-a → PrismaConfigEnvError; s env-om → ✔
+            `npm run build` ✔ · `npx jest --ci --coverage=false` 365/1395 ✔
+  frontend: check-ticket-id-leaks ✔ · check-pulse-design-system ✔
+            `npm test` 95/334 ✔ · `npm run build` ✔
+
+---
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 072e0b4..04a3104 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -15,6 +15,11 @@ jobs:
+   backend:
+     name: Backend build + test
+     runs-on: ubuntu-latest
++    env:
++      # Prisma 7 resolves `env("DATABASE_URL")` while loading its config, so
++      # `prisma generate` dies on a bare runner. Generation never connects, so a
++      # syntactically valid placeholder is enough — no live Postgres in this job.
++      DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
+     defaults:
+       run:
+         working-directory: backend
+diff --git a/scripts/check-pulse-design-system.mjs b/scripts/check-pulse-design-system.mjs
+index afb624d..bc456de 100644
+--- a/scripts/check-pulse-design-system.mjs
++++ b/scripts/check-pulse-design-system.mjs
+@@ -46,6 +46,15 @@ function exists(path) {
+   }
+ }
+ 
++/** Files *and* directories — a scan target can be either. */
++function existsPath(path) {
++  try {
++    return Boolean(statSync(join(root, path)));
++  } catch {
++    return false;
++  }
++}
++
+ function walk(dir, pattern) {
+   const found = [];
+   for (const entry of readdirSync(join(root, dir))) {
+@@ -67,23 +76,29 @@ function checkDocs() {
+     fail(section, `${archived} must carry the "[ARHIVIRANO]" marker`);
+   }
+ 
++  // Documents move (root .md reorganisation): the check reads the current
++  // locations and treats a path that is no longer there as a note in the log,
++  // while a citation of an archived source without its marker stays a failure.
+   const scanned = [
+     ".cursor/docs",
+     ".cursor/rules",
++    "docs",
+     "referenca-dizajn/README.md",
+-    "fe-alignment-prompts.md",
+-    "Master UI-UX Design Constitution.md",
+   ];
+   // Any mention has to carry its own disqualifier on the same line: prose tends
+   // to cite a source with the verb *before* the name ("mjerodavan je
+   // theme-source.md"), so pattern-matching specific phrases is fragile.
+   const mentionsLegacy = /theme-source/i;
+   const saysArchived = /arhivir|penzionisan|više nije|nije više|legacy|histor/i;
+-  const files = scanned.flatMap((target) =>
+-    target.endsWith(".md") || target.endsWith(".mdc")
++  const files = scanned.flatMap((target) => {
++    if (!existsPath(target)) {
++      notes.push(`${section}: ${target} is not in the repo (skipped)`);
++      return [];
++    }
++    return target.endsWith(".md") || target.endsWith(".mdc")
+       ? [target]
+-      : walk(target, /\.(md|mdc)$/),
+-  );
++      : walk(target, /\.(md|mdc)$/);
++  });
+   for (const file of files) {
+     if (file === archived) continue;
+     const text = read(file);

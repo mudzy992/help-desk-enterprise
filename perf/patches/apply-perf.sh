@@ -25,6 +25,8 @@
 # `&socket.io#/#*` — `PSUBSCRIBE` se ne poklapa po globu, nego doslovno.
 # `perf-06` je kod: ACL odbijen kanal više ne obara API (unhandled rejection iz
 # adaptera), nego daje `fallback=in_memory reason=acl_denied`.
+# `ops-02` je CI: Prisma `DATABASE_URL` u backend jobu + design-check koji ne puca
+# na pomjerene dokumente (uzrok crvenog CI-ja na masteru).
 #   bash perf/patches/apply-perf.sh --dry-run    # samo reci šta bi se desilo
 #
 set -uo pipefail
@@ -56,6 +58,7 @@ PATCHES=(
   "perf-05-dnevna-granica-tz.patch:backend/src/modules/reports/summary/start-of-civil-day.ts"
   "ops-01-redis-acl-kanali.patch:ops/redis-acl.line:&socket.io#/#*"
   "perf-06-redis-acl-fail-graceful.patch:backend/src/modules/websocket/ws-redis-adapter.ts:realtimeAdapterChannelPattern"
+  "ops-02-zeleni-ci.patch:scripts/check-pulse-design-system.mjs:existsPath("
 )
 
 applied=0
