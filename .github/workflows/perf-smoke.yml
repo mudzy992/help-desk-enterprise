@@ -107,25 +107,52 @@ jobs:
           exit 1
 
       - name: Seed the minimal fixture (install wizard endpoints)
-        working-directory: backend
         env:
           PERF_ADMIN_EMAIL: perf-admin@example.test
           PERF_ADMIN_PASSWORD: Perf-Smoke-1!
         run: |
-          # The install wizard is the supported way to bootstrap the first admin and
-          # the starting catalogue; the second run in the same database is a no-op.
+          # The install wizard is the supported way to bootstrap the first admin and the
+          # starting catalogue; running it twice against the same database is a no-op.
+          #
+          # Every call is checked: a silent failure here reached k6 only as "2 requests,
+          # 0s wall clock" three steps later, and nobody saw it.
           status=$(curl -sS -o /tmp/super-admin.json -w '%{http_code}' \
             -X POST "$BASE_URL/install/super-admin" \
             -H 'content-type: application/json' \
             -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
           echo "super-admin: HTTP $status"
-          curl -sS -X POST "$BASE_URL/install/seed" > /tmp/seed.json
-          echo "seed: $(head -c 200 /tmp/seed.json)"
+          cat /tmp/super-admin.json
+          echo ""
+          case "$status" in
+            20*|409) ;;
+            *) echo "::error::/install/super-admin returned HTTP $status"; exit 1 ;;
+          esac
+
+          seed_status=$(curl -sS -o /tmp/seed.json -w '%{http_code}' -X POST "$BASE_URL/install/seed")
+          echo "seed: HTTP $seed_status"
+          head -c 400 /tmp/seed.json
+          echo ""
+          case "$seed_status" in
+            20*) ;;
+            *) echo "::error::/install/seed returned HTTP $seed_status"; exit 1 ;;
+          esac
+
+          # Prove that the account the k6 scenarios log in with actually works: a 401
+          # here is the difference between "no load at all" and a real smoke run.
+          login_status=$(curl -sS -o /tmp/login.json -w '%{http_code}' \
+            -X POST "$BASE_URL/auth/login" \
+            -H 'content-type: application/json' \
+            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
+          echo "login probe: HTTP $login_status"
+          if [ "$login_status" != "200" ] && [ "$login_status" != "201" ]; then
+            echo "::warning::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status — k6 setup will fail"
+            head -c 300 /tmp/login.json
+            echo ""
+          fi
 
       - uses: grafana/setup-k6-action@v1
 
       - name: Run the k6 smoke with CI thresholds
-        working-directory: .
         env:
           REPORT_LABEL: ci-smoke
           AGENT_EMAIL: perf-admin@example.test
@@ -133,12 +160,19 @@ jobs:
           REQUESTER_EMAIL: perf-admin@example.test
           REQUESTER_PASSWORD: Perf-Smoke-1!
         run: |
-          k6 run perf/smoke.js | tee perf-smoke.log
+          # `set -o pipefail` matters: otherwise the pipeline reports `tee`'s status (0),
+          # so a broken threshold or an aborted run left the job green — which is why the
+          # 200 VU "gate" could not block anything.
+          set -o pipefail
+          k6 run perf/smoke.js 2>&1 | tee perf-smoke.log
           echo "--- threshold verdict ---"
-          grep -E '^(✓|✗|•)' perf-smoke.log || true
+          grep -E '(✓|✗|•)' perf-smoke.log || true
 
       - name: Check the query budget from the API log
         id: query-budget
+        # Also runs when the k6 step failed: the log still carries the numbers, and those
+        # numbers are what explains the failure.
+        if: always()
         run: |
           # Custom threshold (plan §4.2): the average `db_queries_per_request` must stay at
           # or below the documented budget (DB_QUERY_BUDGET, default 3).
@@ -247,6 +281,13 @@ jobs:
               echo '```'
               echo "</details>"
             fi
+            echo ""
+            echo "<details><summary>API log — login / seed / greške (zadnjih 25 linija)</summary>"
+            echo ""
+            echo '```'
+            grep -iE 'auth/login|install/seed|install/super-admin|error| 401| 403| 500' api.log 2>/dev/null | tail -25 || echo "(nema pogodaka)"
+            echo '```'
+            echo "</details>"
             echo ""
             echo "_Puni profil (2.800 VU / 30 min) se mjeri na stagingu — vidi \`ops/staging-checklist.md\`._"
           } > /tmp/perf-comment.md
