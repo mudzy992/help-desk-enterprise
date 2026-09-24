@@ -1,6 +1,5 @@
 import { canOpenConfigVersions } from "@/lib/config-versions/can-access-config-versions";
 import type { NavigationItem, NavigationSection } from "@/lib/navigation";
-import { canManageIntegrationQueue } from "@/lib/queue/can-manage-integration-queue";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 
@@ -9,7 +8,6 @@ export const navigationAccessKinds = {
   admin: "admin",
   staff: "staff",
   reports: "reports",
-  integrationQueue: "integrationQueue",
   configVersions: "configVersions",
 } as const;
 
@@ -74,19 +72,6 @@ export function canOpenSla(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
 
-export function canOpenIntegrationQueue(
-  capabilities: SessionCapabilities,
-): boolean {
-  const session = capabilities.session;
-  if (session === null) {
-    return false;
-  }
-  return canManageIntegrationQueue({
-    isSuperAdmin: session.isSuperAdmin,
-    permissionKeys: session.permissionKeys,
-  });
-}
-
 export function canOpenConfigVersionsPage(
   capabilities: SessionCapabilities,
 ): boolean {
@@ -116,8 +101,6 @@ export function canAccessNavigationItem(
       return isTicketStaff(capabilities);
     case navigationAccessKinds.reports:
       return canOpenReports(capabilities);
-    case navigationAccessKinds.integrationQueue:
-      return canOpenIntegrationQueue(capabilities);
     case navigationAccessKinds.configVersions:
       return canOpenConfigVersionsPage(capabilities);
     default:

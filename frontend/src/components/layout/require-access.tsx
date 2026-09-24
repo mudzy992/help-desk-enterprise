@@ -10,8 +10,6 @@ type ForbiddenMessageKey =
   | "admin.forbiddenBody"
   | "configVersions.forbiddenTitle"
   | "configVersions.forbiddenBody"
-  | "integrationQueue.forbiddenTitle"
-  | "integrationQueue.forbiddenBody"
   | "reports.forbiddenTitle"
   | "reports.forbiddenBody"
   | "routing.forbiddenTitle"

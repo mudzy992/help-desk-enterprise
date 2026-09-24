@@ -21,6 +21,8 @@ export const integrationQueueTypeTokens = {
 
 export const integrationQueueAdminStatuses: readonly IntegrationJobStatus[] = [
   IntegrationJobStatus.PENDING,
+  IntegrationJobStatus.PROCESSING,
+  IntegrationJobStatus.COMPLETED,
   IntegrationJobStatus.FAILED,
   IntegrationJobStatus.DLQ,
 ];

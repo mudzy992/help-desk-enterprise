@@ -25,7 +25,9 @@ import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
 import { readSettingsActorUserId } from '../settings/read-settings-actor-user-id';
 import { AuditLogService } from './audit-log.service';
+import { auditLogListDefaultTake } from './audit-log.constants';
 import { ExportAuditLogQueryDto } from './dto/export-audit-log-query.dto';
+import { ListAuditLogsQueryDto } from './dto/list-audit-logs-query.dto';
 import { mapAuditLogError } from './map-audit-log-error';
 import { readAuditRequestId } from './read-audit-request-id';
 
@@ -42,6 +44,32 @@ import { readAuditRequestId } from './read-audit-request-id';
 )
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
+
+  @Get()
+  @UseGuards(OuAccessGuard)
+  @RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  async list(
+    @Query() query: ListAuditLogsQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    const actorUserId = readSettingsActorUserId(request);
+    if (actorUserId === null) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Authorization failed',
+      });
+    }
+    return this.execute(() =>
+      this.auditLogService.list({
+        actorUserId,
+        organizationalUnitId: query.organizationalUnitId,
+        take: query.take ?? auditLogListDefaultTake,
+        cursor: query.cursor ?? null,
+      }),
+    );
+  }
 
   @Get('export')
   @UseGuards(OuAccessGuard)

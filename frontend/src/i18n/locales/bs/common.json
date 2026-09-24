@@ -13,7 +13,6 @@
     "sla": "SLA",
     "settings": "Postavke",
     "admin": "Administracija",
-    "queue": "Red poslova",
     "configVersions": "Verzije konfiguracije",
     "sections": {
       "overview": "Pregled",
@@ -154,8 +153,21 @@
     },
     "opsEmptyTitle": "Red poslova i audit export dolaze s Fazom 7/8",
     "ops": {
-      "organizationalUnit": "Organizaciona jedinica za export",
+      "organizationalUnit": "Organizaciona jedinica (audit opseg)",
       "needOrganizationalUnit": "Odaberite organizacionu jedinicu prije exporta.",
+      "auditLogTitle": "Audit log",
+      "auditLogBody": "Revizijski dnevnik (noviji prvo) u opsegu odabrane organizacione jedinice.",
+      "auditLogLoading": "Učitavanje audit loga",
+      "auditLogEmptyTitle": "Nema audit zapisa",
+      "auditLogEmptyBody": "Zapisi će se pojaviti ovdje nakon auditable radnji (izvoz, izmjene rola, pristup povjerljivim tiketima, masovne radnje).",
+      "auditLogRefresh": "Osvježi audit log",
+      "auditLogLoadMore": "Učitaj još",
+      "auditLogColumnTime": "Vrijeme",
+      "auditLogColumnAction": "Radnja",
+      "auditLogColumnEntity": "Entitet",
+      "auditLogColumnActor": "Akter",
+      "auditLogColumnRequest": "Zahtjev",
+      "auditLogColumnDetails": "Detalji",
       "auditTitle": "Audit export",
       "auditBody": "CSV/JSON izvoz s tamper-evident hash lancem — svaki red vezuje hash prethodnog.",
       "verify": "Provjeri lanac",
@@ -1698,13 +1710,9 @@
     "errorGeneric": "SLA konfiguracija trenutno nije dostupna."
   },
   "integrationQueue": {
-    "title": "Red poslova",
-    "intro": "Durable integration queue. Pregled PENDING/FAILED/DLQ jobova i ručni retry na neuspjelih i DLQ redovima.",
     "heading": "Trajni integracioni red",
     "headingHint": "BullMQ + Redis worker; Postgres job red za admin pregled; neuspjeli nakon max pokušaja → DLQ s ručnim retry-jem.",
     "loading": "Učitavanje reda poslova",
-    "forbiddenTitle": "Nema pristupa redu poslova",
-    "forbiddenBody": "Pregled i retry dostupni su SuperAdmin nalogu i administratorima s dozvolom integrations.queue.manage.",
     "emptyTitle": "Nema jobova u ovom statusu",
     "emptyBody": "Promijenite filter statusa ili sačekajte da worker zabilježi nove pokušaje.",
     "workerActive": "worker: aktivan",
@@ -1722,6 +1730,8 @@
     "columnActions": "Radnje",
     "statuses": {
       "PENDING": "PENDING",
+      "PROCESSING": "PROCESSING",
+      "COMPLETED": "COMPLETED",
       "FAILED": "FAILED",
       "DLQ": "DLQ"
     },

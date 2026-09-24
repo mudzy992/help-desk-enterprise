@@ -36,6 +36,36 @@ export class AuditLogRepository {
     const records = await this.prisma.auditLog.findMany();
     return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);
   }
+
+  async listPage(input: {
+    readonly organizationalUnitIds: readonly string[];
+    readonly includeGlobalRecords: boolean;
+    readonly take: number;
+    readonly cursor: string | null;
+  }): Promise<{
+    readonly items: readonly AuditLogRecord[];
+    readonly nextCursor: string | null;
+  }> {
+    const records = await this.prisma.auditLog.findMany({
+      where: {
+        OR: [
+          { organizationalUnitId: { in: [...input.organizationalUnitIds] } },
+          ...(input.includeGlobalRecords ? [{ organizationalUnitId: null }] : []),
+        ],
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: input.take + 1,
+      ...(input.cursor === null
+        ? {}
+        : { cursor: { id: input.cursor }, skip: 1 }),
+    });
+    const hasMore = records.length > input.take;
+    const items = records.slice(0, input.take).map(toAuditLogRecord);
+    return {
+      items,
+      nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+    };
+  }
 }
 
 function toAuditLogRecord(record: {

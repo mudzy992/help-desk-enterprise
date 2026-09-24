@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   adminNavigationItem,
+  configVersionsNavigationItem,
   getActiveNavigationItem,
   inboxNavigationItem,
   isNavigationItemActive,
   navigationLabelKeys,
-  queueNavigationItem,
   reportsNavigationItem,
   ticketsNavigationItem,
 } from "@/lib/navigation";
@@ -54,7 +54,7 @@ describe("navigation IA matching", () => {
     ).not.toBe(navigationLabelKeys.tickets);
   });
 
-  it("activates admin only on /admin, not /admin/queue", () => {
+  it("activates admin only on /admin, not on admin subpages", () => {
     expect(isNavigationItemActive(adminNavigationItem, "/admin", "")).toBe(
       true,
     );
@@ -62,16 +62,20 @@ describe("navigation IA matching", () => {
       isNavigationItemActive(adminNavigationItem, "/admin", "?tab=users"),
     ).toBe(true);
     expect(
-      isNavigationItemActive(adminNavigationItem, "/admin/queue", ""),
+      isNavigationItemActive(adminNavigationItem, "/admin/config-versions", ""),
     ).toBe(false);
-    expect(isNavigationItemActive(queueNavigationItem, "/admin/queue", "")).toBe(
-      true,
-    );
+    expect(
+      isNavigationItemActive(
+        configVersionsNavigationItem,
+        "/admin/config-versions",
+        "",
+      ),
+    ).toBe(true);
     expect(getActiveNavigationItem("/admin").labelKey).toBe(
       navigationLabelKeys.admin,
     );
-    expect(getActiveNavigationItem("/admin/queue").labelKey).toBe(
-      navigationLabelKeys.queue,
+    expect(getActiveNavigationItem("/admin/config-versions").labelKey).toBe(
+      navigationLabelKeys.configVersions,
     );
   });
 });

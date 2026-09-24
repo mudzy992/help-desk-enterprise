@@ -13,7 +13,6 @@
     "sla": "SLA",
     "settings": "Settings",
     "admin": "Administration",
-    "queue": "Integration queue",
     "configVersions": "Config versions",
     "sections": {
       "overview": "Overview",
@@ -154,8 +153,21 @@
     },
     "opsEmptyTitle": "Job queue and audit export come with Phase 7/8",
     "ops": {
-      "organizationalUnit": "Organizational unit for export",
+      "organizationalUnit": "Organizational unit (audit scope)",
       "needOrganizationalUnit": "Select an organizational unit before exporting.",
+      "auditLogTitle": "Audit log",
+      "auditLogBody": "Audit records (newest first) within the selected organizational unit scope.",
+      "auditLogLoading": "Loading audit log",
+      "auditLogEmptyTitle": "No audit records",
+      "auditLogEmptyBody": "Records appear here after auditable actions (exports, role changes, confidential access, bulk actions).",
+      "auditLogRefresh": "Refresh audit log",
+      "auditLogLoadMore": "Load more",
+      "auditLogColumnTime": "Time",
+      "auditLogColumnAction": "Action",
+      "auditLogColumnEntity": "Entity",
+      "auditLogColumnActor": "Actor",
+      "auditLogColumnRequest": "Request",
+      "auditLogColumnDetails": "Details",
       "auditTitle": "Audit export",
       "auditBody": "CSV/JSON export with a tamper-evident hash chain — each row links the previous hash.",
       "verify": "Verify chain",
@@ -1698,13 +1710,9 @@
     "errorGeneric": "SLA configuration is currently unavailable."
   },
   "integrationQueue": {
-    "title": "Integration queue",
-    "intro": "Durable integration queue. Browse PENDING/FAILED/DLQ jobs and retry failed or dead-lettered rows.",
     "heading": "Durable integration queue",
     "headingHint": "BullMQ + Redis worker; Postgres job table for admin review; failures after max attempts → DLQ with manual retry.",
     "loading": "Loading integration queue",
-    "forbiddenTitle": "No access to the integration queue",
-    "forbiddenBody": "Queue inspection and retry are available to SuperAdmin and administrators with integrations.queue.manage.",
     "emptyTitle": "No jobs in this status",
     "emptyBody": "Switch the status filter or wait for the worker to record new attempts.",
     "workerActive": "worker: active",
@@ -1722,6 +1730,8 @@
     "columnActions": "Actions",
     "statuses": {
       "PENDING": "PENDING",
+      "PROCESSING": "PROCESSING",
+      "COMPLETED": "COMPLETED",
       "FAILED": "FAILED",
       "DLQ": "DLQ"
     },

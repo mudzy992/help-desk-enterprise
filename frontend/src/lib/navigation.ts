@@ -13,7 +13,6 @@ export const navigationLabelKeys = {
   routing: "navigation.routing",
   sla: "navigation.sla",
   admin: "navigation.admin",
-  queue: "navigation.queue",
   configVersions: "navigation.configVersions",
 } as const;
 
@@ -105,13 +104,6 @@ export const slaNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.admin },
 };
 
-export const queueNavigationItem: NavigationItem = {
-  path: "/admin/queue",
-  labelKey: navigationLabelKeys.queue,
-  end: false,
-  access: { kind: navigationAccessKinds.integrationQueue },
-};
-
 export const configVersionsNavigationItem: NavigationItem = {
   path: "/admin/config-versions",
   labelKey: navigationLabelKeys.configVersions,
@@ -138,7 +130,6 @@ export const navigationSections: readonly NavigationSection[] = [
       routingNavigationItem,
       slaNavigationItem,
       adminNavigationItem,
-      queueNavigationItem,
       configVersionsNavigationItem,
     ],
   },

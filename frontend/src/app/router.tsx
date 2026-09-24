@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  Database,
   GitBranch,
   History,
   Settings2,
@@ -14,7 +13,6 @@ import { ApplicationShell } from "@/layouts/application-shell";
 import {
   canOpenAdminArea,
   canOpenConfigVersionsPage,
-  canOpenIntegrationQueue,
   canOpenReports,
   canOpenRouting,
   canOpenSla,
@@ -30,7 +28,6 @@ import { ReportsPage } from "@/pages/reports-page";
 import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
 import { ConfigVersionsPage } from "@/pages/config-versions-page";
-import { IntegrationQueuePage } from "@/pages/integration-queue-page";
 import { LegacyAdminRedirect } from "@/pages/legacy-admin-redirect";
 import { SlaPage } from "@/pages/sla-page";
 import { TicketsPage } from "@/pages/tickets-page";
@@ -125,16 +122,7 @@ export function AppRouter() {
             />
             <Route
               path="admin/queue"
-              element={
-                <RequireAccess
-                  check={canOpenIntegrationQueue}
-                  forbiddenTitleKey="integrationQueue.forbiddenTitle"
-                  forbiddenBodyKey="integrationQueue.forbiddenBody"
-                  icon={<Database size={18} strokeWidth={1.8} />}
-                >
-                  <IntegrationQueuePage />
-                </RequireAccess>
-              }
+              element={<LegacyAdminRedirect tab="ops" />}
             />
             <Route
               path="admin/config-versions"

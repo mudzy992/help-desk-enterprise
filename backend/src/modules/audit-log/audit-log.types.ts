@@ -81,6 +81,11 @@ export type AuditLogExportResult = {
   readonly content: string;
 };
 
+export type AuditLogListResult = {
+  readonly items: readonly AuditLogExportRow[];
+  readonly nextCursor: string | null;
+};
+
 export type AuditLogWriteClient = {
   $executeRaw(
     query: TemplateStringsArray,

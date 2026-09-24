@@ -19,7 +19,6 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.routing": "Usmjeravanje",
   "navigation.sla": "SLA",
   "navigation.admin": "Administracija",
-  "navigation.queue": "Red poslova",
   "navigation.configVersions": "Verzije konfiguracije",
 };
 
@@ -96,7 +95,6 @@ describe("filterNavigationCommands", () => {
     expect(paths.slice(2)).toEqual([
       "/routing",
       "/sla",
-      "/admin/queue",
       "/admin/config-versions",
     ]);
   });

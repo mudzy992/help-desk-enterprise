@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdminAuditExportCard } from "@/components/admin/admin-audit-export-card";
+import { AdminAuditLogCard } from "@/components/admin/admin-audit-log-card";
 import { AdminSupportBundleCard } from "@/components/admin/admin-support-bundle-card";
 import { IntegrationQueueCard } from "@/components/queue/integration-queue-card";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
@@ -102,21 +103,26 @@ export function AdminOpsPanel() {
   return (
     <div className="fade-in space-y-4">
       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
-      <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">
-        {t("admin.ops.organizationalUnit")}
-        <select
-          className={selectCompactClassName}
-          value={unitId}
-          onChange={(event) => setUnitId(event.target.value)}
-          aria-label={t("admin.ops.organizationalUnit")}
-        >
-          {unitOptions.map((unit) => (
-            <option key={unit.id} value={unit.id}>
-              {unit.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {canExportAudit ? (
+        <>
+          <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">
+            {t("admin.ops.organizationalUnit")}
+            <select
+              className={selectCompactClassName}
+              value={unitId}
+              onChange={(event) => setUnitId(event.target.value)}
+              aria-label={t("admin.ops.organizationalUnit")}
+            >
+              {unitOptions.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <AdminAuditLogCard canView={canExportAudit} organizationalUnitId={unitId} />
+        </>
+      ) : null}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <AdminAuditExportCard
           canExport={canExportAudit}

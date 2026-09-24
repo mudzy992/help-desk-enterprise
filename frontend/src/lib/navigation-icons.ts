@@ -1,7 +1,6 @@
 import {
   BarChart3,
   BookOpen,
-  Database,
   GitBranch,
   History,
   Inbox,
@@ -27,7 +26,6 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/routing": GitBranch,
   "/sla": Timer,
   "/admin": Settings2,
-  "/admin/queue": Database,
   "/admin/config-versions": History,
 };
 

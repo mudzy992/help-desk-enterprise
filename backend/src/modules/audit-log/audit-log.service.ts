@@ -12,6 +12,7 @@ import { AuditLogRepository } from './audit-log.repository';
 import type {
   AuditExportFormat,
   AuditLogExportResult,
+  AuditLogListResult,
   AuditLogVerifyResult,
 } from './audit-log.types';
 import { recordAuditEntry } from './record-audit-entry';
@@ -31,6 +32,36 @@ export class AuditLogService {
     private readonly configurationLoader: AuditLogConfigurationLoader,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
   ) {}
+
+  async list(input: {
+    readonly actorUserId: string;
+    readonly organizationalUnitId: string;
+    readonly take: number;
+    readonly cursor: string | null;
+  }): Promise<AuditLogListResult> {
+    const authContext = await this.authorizationContextLoader.loadBySubjectId(
+      input.actorUserId,
+    );
+    if (authContext === null) {
+      throw new AuditLogError(auditLogErrorCodes.forbidden);
+    }
+    const units = await this.repository.listOrganizationalUnits();
+    const requested = units.find((unit) => unit.id === input.organizationalUnitId);
+    if (requested === undefined) {
+      throw new AuditLogError(auditLogErrorCodes.organizationalUnitNotFound);
+    }
+    const scopedIds = selectOrganizationalUnitIdsInScope(units, requested.ouPath);
+    const page = await this.repository.listPage({
+      organizationalUnitIds: scopedIds,
+      includeGlobalRecords: authContext.isSuperAdmin,
+      take: input.take,
+      cursor: input.cursor,
+    });
+    return {
+      items: page.items.map(toAuditLogExportRow),
+      nextCursor: page.nextCursor,
+    };
+  }
 
   async export(input: {
     readonly actorUserId: string;

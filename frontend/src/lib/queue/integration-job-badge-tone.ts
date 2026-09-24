@@ -6,6 +6,8 @@ import {
 
 const tones: Record<IntegrationJobAdminStatus, BadgeTone> = {
   [integrationJobStatuses.pending]: "warning",
+  [integrationJobStatuses.processing]: "primary",
+  [integrationJobStatuses.completed]: "success",
   [integrationJobStatuses.failed]: "danger",
   [integrationJobStatuses.dlq]: "danger",
 };

@@ -1,5 +1,7 @@
 export const integrationJobStatuses = {
   pending: "PENDING",
+  processing: "PROCESSING",
+  completed: "COMPLETED",
   failed: "FAILED",
   dlq: "DLQ",
 } as const;
@@ -9,6 +11,8 @@ export type IntegrationJobAdminStatus =
 
 export const integrationJobAdminStatuses: readonly IntegrationJobAdminStatus[] = [
   integrationJobStatuses.pending,
+  integrationJobStatuses.processing,
+  integrationJobStatuses.completed,
   integrationJobStatuses.failed,
   integrationJobStatuses.dlq,
 ];

@@ -12,6 +12,10 @@ export const allowedAuditHashAlgorithms = [
 
 export const allowedAuditExportFormats = ['csv', 'json'] as const;
 
+export const auditLogListDefaultTake = 50;
+
+export const auditLogListMaxTake = 200;
+
 export const auditLogActions = {
   policyPackApply: 'policy_pack.apply',
   ticketConfidentialViewed: 'ticket_confidential_viewed',
