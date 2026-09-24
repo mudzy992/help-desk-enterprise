@@ -9,6 +9,7 @@
  * load run in the middle of a 30-minute window.
  */
 
+import { readFileSync } from 'node:fs';
 import { perfConfig, fullThresholds, scenarioVus } from './config.js';
 import {
   buildSocketUrl,
@@ -55,6 +56,36 @@ check(
   'thresholds reference the custom trends',
   Object.keys(fullThresholds(perfConfig)).includes('tickets_list_duration'),
 );
+
+section('k6 scenario contract');
+
+/**
+ * k6 calls a scenario's `exec` function with the `setup()` return value as its only
+ * argument. Behaviours take `(config, data)` so they can be exercised outside k6, so the
+ * entry file must export a one-argument wrapper per scenario — passing the behaviour
+ * directly cost a 35-minute CI job that burned 10 million failed iterations
+ * (`TypeError: Cannot read property 'tokens' of undefined`). The check is static because
+ * `k6/*` is not importable from Node.
+ */
+for (const entry of ['perf/smoke.js', 'perf/full.js']) {
+  const source = readFileSync(entry, 'utf8');
+  const execNames = [...new Set([...source.matchAll(/exec: '([A-Za-z0-9_]+)'/g)].map((m) => m[1]))];
+  check(`${entry} declares scenarios`, execNames.length > 0, `names=${execNames.join(',')}`);
+  for (const name of execNames) {
+    const wrapper = new RegExp(`export function ${name}\\(([^)]*)\\)`);
+    const match = wrapper.exec(source);
+    const params = (match?.[1] ?? '').split(',').map((p) => p.trim()).filter(Boolean);
+    check(
+      `${entry}: ${name} is exported with exactly the setup data parameter`,
+      match !== null && params.length === 1,
+      match === null ? 'not exported' : `parameters=[${params.join(', ')}]`,
+    );
+  }
+  check(
+    `${entry} declares a setup()`,
+    /export function setup\(/.test(source),
+  );
+}
 
 section('socket.io packets');
 const connect = encodeConnectPacket('/', { token: 'jwt-token' });

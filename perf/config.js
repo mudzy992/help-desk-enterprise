@@ -52,6 +52,7 @@ export const perfConfig = {
     unreadCount: '/notifications/unread-count',
     notifications: '/notifications',
     search: '/search',
+    dashboardSummary: '/reports/dashboard/summary',
   },
   behaviour: {
     // One message every 30 s per virtual agent (plan §5.1).
@@ -114,7 +115,14 @@ export function ciThresholds(config) {
   const mutationP95Ms = config.budgets.mutationP95Ms * 2.5;
   const errorRate = config.budgets.errorRate * 2;
   return {
-    http_req_failed: [`rate<${errorRate}`],
+    // `abortOnFail`: once the error rate is past the gate there is nothing left to
+    // measure, so the run stops in seconds instead of spinning out its whole duration.
+    // Without it a broken `setup()` produced 10 million failed iterations in five
+    // minutes and a 35-minute CI job (the k6 call convention bug found on 2026-09-24;
+    // `perf/validate.js` now guards the arity statically).
+    http_req_failed: [
+      { threshold: `rate<${errorRate}`, abortOnFail: true, delayAbortEval: '10s' },
+    ],
     tickets_list_duration: [`p(95)<${readP95Ms}`],
     ticket_detail_duration: [`p(95)<${readP95Ms}`],
     unread_count_duration: [`p(95)<${readP95Ms}`],
@@ -129,7 +137,15 @@ export function ciThresholds(config) {
 /** Threshold block for the full run; smoke.js overrides the durations. */
 export function fullThresholds(config) {
   return {
-    http_req_failed: [`rate<${config.budgets.errorRate}`],
+    // Same reasoning as in `ciThresholds`, with a longer grace period: a 30-minute
+    // baseline that is 100% errors is not a baseline.
+    http_req_failed: [
+      {
+        threshold: `rate<${config.budgets.errorRate}`,
+        abortOnFail: true,
+        delayAbortEval: '30s',
+      },
+    ],
     tickets_list_duration: [`p(95)<${config.budgets.readP95Ms}`],
     ticket_detail_duration: [`p(95)<${config.budgets.readP95Ms}`],
     unread_count_duration: [`p(95)<${config.budgets.readP95Ms}`],
