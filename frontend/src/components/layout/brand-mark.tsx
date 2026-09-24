@@ -60,7 +60,7 @@ export function BrandLockup({
               titleClassName,
             )}
           >
-            EP<span className="text-primary">·</span>HelpDesk
+            EP<span className="text-link">·</span>HelpDesk
           </p>
           {subtitle ? (
             <p className="truncate text-[10.5px] text-muted-foreground">{subtitle}</p>

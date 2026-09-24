@@ -121,6 +121,15 @@ Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (12 kombinacija × 4 
 ne regresija; nove palete su strože. Najniža od novih je **amber u svijetlom modu (4.92:1)** — žuta rampa pada
 ispod 4.5:1 već od 600 stepena, zato je 700 najsvjetliji korak koji može biti svijetla `--primary`.
 
+**Zašto se 4.00:1 ne popravlja promjenom `--primary`:** u istom bloku je bijeli tekst na `--primary` 4.52:1.
+Da bi `primary` kao tekst držao 4.5:1 na `surface`, njegova luminancija mora biti ≥ 0.211; da bi bijeli tekst na
+njemu držao 4.5:1, mora biti ≤ 0.183. Taj interval je prazan — jedan token ne može zadovoljiti oba pravila.
+Zato se pravilo §22.3 sprovodi tamo gdje može: konstitucija §22.1 kaže da `text-primary` **nije** za tekst na
+neutralnoj površini (za to je `text-link`, ovdje 6.68:1). Preostale dvije upotrebe `text-primary` na neutralnoj
+površini (srednja tačka u wordmarku `EP·HelpDesk`, `brand-mark.tsx` i `login-page.tsx`) prebačene su na
+`text-link`. Provjeru sprovedi automatski: `node scripts/check-theme-contrast.mjs` (radi u CI-ju) mjeri sve
+parove u 12 kombinacija paleta i zabranjuje `text-primary` van primary ispune.
+
 **Dva pravila koja se lako pogrešno „poprave":**
 
 - `::selection` se crta kao alpha blend **preko podloge**, pa `--selection-fg` mora biti **taman u svijetlim paletama,

@@ -53,6 +53,8 @@ jobs:
         run: node ../scripts/check-ticket-id-leaks.mjs
       - name: Check the Pulse design system (tokens, colours, radius, i18n)
         run: node ../scripts/check-pulse-design-system.mjs
+      - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)
+        run: node ../scripts/check-theme-contrast.mjs
       - run: npm test
       - run: npm run build
 

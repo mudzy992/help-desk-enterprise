@@ -122,7 +122,7 @@ export function LoginPage() {
             <BrandMark />
             <div className="leading-tight">
               <p className="text-[14px] font-semibold tracking-[-0.02em] text-foreground">
-                EP<span className="text-primary">·</span>HelpDesk
+                EP<span className="text-link">·</span>HelpDesk
               </p>
               <p className="text-[10.5px] text-muted-foreground">
                 {t("login.subtitle")}
