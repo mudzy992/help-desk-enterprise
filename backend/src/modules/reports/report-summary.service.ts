@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
+import { createSingleFlightCache } from '../../common/cache/single-flight-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
@@ -33,6 +34,18 @@ import type {
  */
 @Injectable()
 export class ReportSummaryService {
+  /**
+   * Staging k6 (2026-09-24): on a cold Redis entry every concurrent request of
+   * the same user started its own aggregate scan. Misses are single-flighted
+   * per key inside the process; the TTL stays with Redis (ttl 0 here).
+   */
+  private readonly dashboardFlights = createSingleFlightCache<DashboardSummaryResponse>({
+    ttlMs: 0,
+  });
+  private readonly slaFlights = createSingleFlightCache<SlaSummaryResponse>({
+    ttlMs: 0,
+  });
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
@@ -61,6 +74,20 @@ export class ReportSummaryService {
     if (cached !== null) {
       return cached;
     }
+    return this.dashboardFlights.get(
+      `${input.actorUserId}:${input.scope}:${timeZone}`,
+      () => this.computeDashboardSummary(input, timeZone),
+    );
+  }
+
+  private async computeDashboardSummary(
+    input: {
+      readonly actorUserId: string;
+      readonly scope: DashboardSummaryScope;
+      readonly now?: Date;
+    },
+    timeZone: string,
+  ): Promise<DashboardSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
     const scopeClause = ticketSummaryScopeClause(input.scope, input.actorUserId);
@@ -93,6 +120,15 @@ export class ReportSummaryService {
     if (cached !== null) {
       return cached;
     }
+    return this.slaFlights.get(input.actorUserId, () =>
+      this.computeSlaSummary(input),
+    );
+  }
+
+  private async computeSlaSummary(input: {
+    readonly actorUserId: string;
+    readonly now?: Date;
+  }): Promise<SlaSummaryResponse> {
     const now = input.now ?? new Date();
     const where = await this.scopeWhere(input.actorUserId, now);
     const counts = await loadSlaSummaryCounts(this.prisma, {

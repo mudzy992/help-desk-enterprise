@@ -8,6 +8,7 @@ import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
 import { ticketListPaging } from './list/list-tickets.constants';
 import { clampTicketListPageSize } from './list/clamp-ticket-list-page-size';
 import { ticketListSelect } from './list/ticket-list-select';
+import { countTicketsCapped } from './list/count-tickets-capped';
 import type {
   ListTicketsQuery,
   TicketMutationContext,
@@ -17,6 +18,8 @@ import type {
 export type TicketListPage = {
   readonly records: readonly TicketRecord[];
   readonly total: number;
+  /** See `countTicketsCapped`: `total` stopped at the cap. */
+  readonly totalIsCapped?: boolean;
   readonly page: number;
   readonly pageSize: number;
 };
@@ -39,7 +42,7 @@ export async function listTicketsPage(
 ): Promise<TicketListPage> {
   const pageSize = clampTicketListPageSize(query.pageSize);
   const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
-  const { records, total } = await runTicketListQuery(
+  const { records, total, totalIsCapped } = await runTicketListQuery(
     prisma,
     authorizationContextLoader,
     query,
@@ -49,7 +52,7 @@ export async function listTicketsPage(
     true,
     ticketListSelect,
   );
-  return { records, total, page, pageSize };
+  return { records, total, totalIsCapped, page, pageSize };
 }
 
 /**
@@ -91,7 +94,11 @@ async function runTicketListQuery(
   paging: Paging,
   countTotal: boolean,
   select: Prisma.TicketSelect | null,
-): Promise<{ readonly records: readonly TicketRecord[]; readonly total: number }> {
+): Promise<{
+  readonly records: readonly TicketRecord[];
+  readonly total: number;
+  readonly totalIsCapped: boolean;
+}> {
   // Phase 2.4: the scope comes from the shared builder, which the dashboard and
   // SLA counters use as well.
   const where = await buildTicketListWhere(
@@ -102,7 +109,7 @@ async function runTicketListQuery(
     archive,
   );
   if (where === null) {
-    return { records: [], total: 0 };
+    return { records: [], total: 0, totalIsCapped: false };
   }
   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
   const findManyArguments: Prisma.TicketFindManyArgs = {
@@ -117,8 +124,8 @@ async function runTicketListQuery(
     findManyArguments,
   )) as unknown as TicketRecord[];
   if (!countTotal) {
-    return { records, total: records.length };
+    return { records, total: records.length, totalIsCapped: false };
   }
-  const total = await prisma.ticket.count({ where });
-  return { records, total };
+  const { total, totalIsCapped } = await countTicketsCapped(prisma, where);
+  return { records, total, totalIsCapped };
 }

@@ -177,14 +177,14 @@ export function TicketListPage() {
                   <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
                     {t("tickets.previous")}
                   </Button>
-                  <span className="tnum">{ticketText(t, "tickets.page", { page: list.page, total: list.totalPages })}</span>
+                  <span className="tnum">{ticketText(t, list.totalIsCapped ? "tickets.pageCapped" : "tickets.page", { page: list.page, total: list.totalPages })}</span>
                   <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
                     {t("tickets.next")}
                   </Button>
                 </div>
               ) : (
                 <p className="mt-3 text-[11.5px] text-muted-foreground/70">
-                  {ticketText(t, "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
+                  {ticketText(t, list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
                 </p>
               )}
               {canExport ? (

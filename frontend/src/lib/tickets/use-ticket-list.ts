@@ -78,6 +78,7 @@ export function useTicketList() {
     page: 1,
     pageSize: ticketListPageSize,
     total: 0,
+    totalIsCapped: false,
   });
   const [counts, setCounts] = useState<TicketCounts | null>(null);
   const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
@@ -136,6 +137,7 @@ export function useTicketList() {
           page: 1,
           pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
           total: inboxRows.length,
+          totalIsCapped: false,
         });
         setUnroutedTickets(unroutedTicketsFromList(unroutedPage?.items ?? []));
         setCounts(null);
@@ -165,6 +167,7 @@ export function useTicketList() {
           page: response.page,
           pageSize: response.pageSize,
           total: response.total,
+          totalIsCapped: response.totalIsCapped === true,
         });
         setUnroutedTickets([]);
         setHasGroupMembership(null);
@@ -306,6 +309,7 @@ export function useTicketList() {
     totalPages,
     pageItems,
     total: pageInfo.total,
+    totalIsCapped: pageInfo.totalIsCapped,
     counts,
     unroutedTickets,
     unroutedCount,

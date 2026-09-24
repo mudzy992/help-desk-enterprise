@@ -55,8 +55,13 @@ export function createInMemoryTicketDelegate(
       skip?: number;
       take?: number;
     } = {}) => list(where, orderBy, { skip, take }),
-    count: async ({ where }: { where?: InMemoryTicketWhere } = {}) =>
-      matching(where).length,
+    count: async ({
+      where,
+      take,
+    }: { where?: InMemoryTicketWhere; take?: number } = {}) => {
+      const matched = matching(where).length;
+      return take === undefined ? matched : Math.min(matched, take);
+    },
     create: async ({
       data,
     }: {

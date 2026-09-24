@@ -160,7 +160,10 @@ export type TicketSearchMatch = {
 
 export type TicketListResponse = {
   readonly items: readonly TicketResponse[];
+  /** Exact up to `ticketListTotalCap` (10 000); see `totalIsCapped`. */
   readonly total: number;
+  /** `true` when more tickets match than `total` reports (client: "10 000+"). */
+  readonly totalIsCapped?: boolean;
   readonly page: number;
   readonly pageSize: number;
 };

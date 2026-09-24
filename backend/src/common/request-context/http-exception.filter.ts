@@ -1,5 +1,6 @@
 import {
   Catch,
+  HttpException,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
@@ -35,8 +36,12 @@ export class HttpRequestExceptionFilter implements ExceptionFilter {
       readRequestIdHeader(request.headers) ??
       resolveRequestId(request.headers);
     response.setHeader(requestIdResponseHeaderName, requestId);
+    const status = resolveExceptionHttpStatus(exception);
+    if (status === 503 && !(exception instanceof HttpException)) {
+      response.setHeader('Retry-After', '2');
+    }
     response
-      .status(resolveExceptionHttpStatus(exception))
+      .status(status)
       .json(toStandardErrorResponse(exception, requestId));
   }
 }

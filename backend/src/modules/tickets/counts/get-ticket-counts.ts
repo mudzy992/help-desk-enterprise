@@ -1,5 +1,9 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import type { TicketStatus } from '../../../generated/prisma/enums';
+import {
+  createPerClientSingleFlightCache,
+  readTtlMsFromEnvironment,
+} from '../../../common/cache/single-flight-cache';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
@@ -21,19 +25,51 @@ const closedStatuses: ReadonlySet<TicketStatus> = new Set([
 ]);
 
 /**
- * Counts for the sidebar and the list tabs, over exactly the tickets the
- * caller may list (same visibility predicate and filters as `GET /tickets`),
- * so a badge and the list it opens agree. Four independent queries run in
- * parallel; no ticket is loaded.
+ * Staging k6 (2026-09-24): the sidebar asks for these on every navigation and
+ * every realtime nudge; over 100k visible tickets each call is a GROUP BY plus
+ * three COUNTs. Concurrent calls with the same inputs share one computation and
+ * the answer is reused for `TICKET_COUNTS_CACHE_TTL_MS` (default 5 s, 0 in
+ * tests so a write is visible to the next read). Badges may lag by that long;
+ * the list itself is never cached.
  */
-export async function getTicketCounts(input: {
+const ticketCountsFlights = createPerClientSingleFlightCache<TicketCounts>({
+  ttlMs: () =>
+    readTtlMsFromEnvironment(
+      'TICKET_COUNTS_CACHE_TTL_MS',
+      process.env.NODE_ENV === 'test' ? 0 : 5000,
+    ),
+  maxEntries: 5000,
+});
+
+type GetTicketCountsInput = {
   readonly prisma: PrismaService;
   readonly authorizationContextLoader: AuthorizationContextLoader;
   readonly query: TicketCountsQuery;
   readonly context: TicketMutationContext;
   readonly archive?: TicketArchiveConfiguration;
   readonly groupInboxEnabled: boolean;
-}): Promise<TicketCounts> {
+};
+
+export function getTicketCounts(input: GetTicketCountsInput): Promise<TicketCounts> {
+  const key = JSON.stringify([
+    input.context.actorUserId,
+    input.query,
+    input.archive ?? null,
+    input.context.confidential ?? null,
+    input.groupInboxEnabled,
+  ]);
+  return ticketCountsFlights(input.prisma).get(key, () =>
+    computeTicketCounts(input),
+  );
+}
+
+/**
+ * Counts for the sidebar and the list tabs, over exactly the tickets the
+ * caller may list (same visibility predicate and filters as `GET /tickets`),
+ * so a badge and the list it opens agree. Four independent queries run in
+ * parallel; no ticket is loaded.
+ */
+async function computeTicketCounts(input: GetTicketCountsInput): Promise<TicketCounts> {
   const authContext = await input.authorizationContextLoader.loadBySubjectId(
     input.context.actorUserId,
   );

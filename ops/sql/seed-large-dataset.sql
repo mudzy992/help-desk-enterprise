@@ -6,7 +6,14 @@
 --
 -- Pokretanje (staging; prvo pusti install seed da postoje korisnik/OU/servis/forma):
 --   psql "$DATABASE_URL" -v seed_count=100000 -f ops/sql/seed-large-dataset.sql
---   psql "$DATABASE_URL" -v seed_count=100000 -v open_ratio=0.9 -f ops/sql/seed-large-dataset.sql
+--
+-- Profili (k6 C, 2026-09-24):
+--   * GLAVNO mjerenje (default): open_ratio=0.1 — realan helpdesk, ~10 % otvorenih,
+--     tiketi razbacani po SVIM postojećim OU i grupama (round-robin).
+--   * Stres/izdržljivost (najgori slučaj, odvojeno se prijavljuje):
+--       psql … -v seed_count=100000 -v open_ratio=0.9 -v single_scope=1 -f …
+--     90 % otvorenih, sve u jednu OU i jednu (fallback) grupu — svaki agent
+--     "vidi" svih 100k. Ovo NIJE referentni broj za kapiju.
 --
 -- Sigurno za ponovno pokretanje: briše samo svoje redove (title prefiks
 -- `[staging-seed]`), ne dira postojeće tikete. Sve u jednoj transakciji.
@@ -23,7 +30,11 @@
 \endif
 \if :{?open_ratio}
 \else
-\set open_ratio 0.9
+\set open_ratio 0.1
+\endif
+\if :{?single_scope}
+\else
+\set single_scope 0
 \endif
 \set ON_ERROR_STOP on
 
@@ -60,10 +71,16 @@ WITH users AS (
   SELECT id, (row_number() OVER (ORDER BY id) - 1) AS rn, count(*) OVER () AS total
   FROM "User"
 ),
-fallback_group AS (
-  SELECT id FROM "Group" ORDER BY "isFallback" DESC, id LIMIT 1
+groups AS (
+  SELECT id, (row_number() OVER (ORDER BY "isFallback" DESC, id) - 1) AS rn,
+         CASE WHEN :single_scope = 1 THEN 1 ELSE count(*) OVER () END AS total
+  FROM "Group"
 ),
-unit AS (SELECT id FROM "OrganizationalUnit" ORDER BY id LIMIT 1),
+units AS (
+  SELECT id, (row_number() OVER (ORDER BY id) - 1) AS rn,
+         CASE WHEN :single_scope = 1 THEN 1 ELSE count(*) OVER () END AS total
+  FROM "OrganizationalUnit"
+),
 service AS (SELECT id FROM "Service" ORDER BY id LIMIT 1),
 form_version AS (SELECT id FROM "FormVersion" ORDER BY id LIMIT 1)
 INSERT INTO "Ticket" (
@@ -87,17 +104,17 @@ SELECT
   (ARRAY['LOW', 'MEDIUM', 'HIGH'])[1 + (i % 3)]::"TicketUrgency",
   'INTERNAL'::"DataClassification",
   (i % 25 = 0),
-  unit.id,
+  units.id,
   service.id,
   form_version.id,
   users.id,
-  fallback_group.id,
+  groups.id,
   now() - ((i % 90) || ' days')::interval - ((i % 1440) || ' minutes')::interval,
   now()
 FROM generate_series(1, :seed_count) AS i
 JOIN users ON users.rn = i % users.total
-CROSS JOIN fallback_group
-CROSS JOIN unit
+JOIN groups ON groups.rn = (i / 7) % groups.total
+JOIN units ON units.rn = (i / 3) % units.total
 CROSS JOIN service
 CROSS JOIN form_version;
 
@@ -147,6 +164,15 @@ SELECT count(*)                       AS seed_sla_rows,
 FROM "TicketSlaState" s
 JOIN "Ticket" t ON t.id = s."ticketId"
 WHERE t.title LIKE '[staging-seed]%';
+
+\echo '── raspodjela po OU / grupi (glavno mjerenje: više od 1 reda) ──'
+SELECT count(DISTINCT "originUnitId")    AS units_used,
+       count(DISTINCT "assignedGroupId") AS groups_used,
+       max(n)                            AS biggest_group_tickets
+FROM (
+  SELECT "originUnitId", "assignedGroupId", count(*) OVER (PARTITION BY "assignedGroupId") AS n
+  FROM "Ticket" WHERE title LIKE '[staging-seed]%'
+) d;
 
 \echo '── i plan-om traženi upit skenera (mora koristiti indeks, ne seq scan na 100k) ──'
 EXPLAIN (ANALYZE, BUFFERS)

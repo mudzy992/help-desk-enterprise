@@ -179,7 +179,9 @@ export function claimTicket(ticketId: string): Promise<TicketResponse> {
 
 export type TicketPage = {
   readonly items: readonly TicketResponse[];
+  /** Exact up to 10 000; above that the server stops counting (`totalIsCapped`). */
   readonly total: number;
+  readonly totalIsCapped?: boolean;
   readonly page: number;
   readonly pageSize: number;
 };

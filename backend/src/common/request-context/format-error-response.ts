@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { isDatabaseSaturationError } from './is-database-saturation-error';
 
 export type StandardErrorResponse = {
   readonly code: string;
@@ -21,6 +22,9 @@ export function resolveExceptionHttpStatus(exception: unknown): number {
   if (exception instanceof HttpException) {
     return exception.getStatus();
   }
+  if (isDatabaseSaturationError(exception)) {
+    return HttpStatus.SERVICE_UNAVAILABLE;
+  }
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
@@ -29,6 +33,14 @@ export function toStandardErrorResponse(
   requestId: string,
 ): StandardErrorResponse {
   if (!(exception instanceof HttpException)) {
+    if (isDatabaseSaturationError(exception)) {
+      return {
+        code: 'DATABASE_BUSY',
+        message: 'The service is temporarily overloaded, retry shortly',
+        details: {},
+        requestId,
+      };
+    }
     return {
       code: 'INTERNAL_ERROR',
       message: 'Internal server error',

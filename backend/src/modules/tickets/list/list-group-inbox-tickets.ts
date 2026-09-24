@@ -7,12 +7,15 @@ import { defaultTicketConfidentialConfiguration } from '../confidential/confiden
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { buildTicketListOrderBy } from './build-ticket-list-order-by';
+import { countTicketsCapped } from './count-tickets-capped';
 import { ticketListPaging } from './list-tickets.constants';
 import { loadTicketVisibilityInputs } from './load-ticket-visibility-inputs';
 
 export type GroupInboxPage = {
   readonly records: readonly TicketRecord[];
   readonly total: number;
+  /** See `countTicketsCapped`: `total` stopped at the cap. */
+  readonly totalIsCapped?: boolean;
   readonly page: number;
   readonly pageSize: number;
 };
@@ -59,7 +62,7 @@ export async function listGroupInboxTickets(
   );
   const inboxClauses = buildGroupInboxWhere(visibility);
   if (inboxClauses === null) {
-    return { records: [], total: 0, page, pageSize };
+    return { records: [], total: 0, totalIsCapped: false, page, pageSize };
   }
   const where: Prisma.TicketWhereInput = {
     AND:
@@ -68,14 +71,14 @@ export async function listGroupInboxTickets(
         : [...inboxClauses, { assignedGroupId: options.groupId }],
   };
   const orderBy = buildTicketListOrderBy('slaDueAt', 'asc');
-  const [records, total] = await Promise.all([
+  const [records, counted] = await Promise.all([
     prisma.ticket.findMany({
       where,
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }) as Promise<TicketRecord[]>,
-    prisma.ticket.count({ where }),
+    countTicketsCapped(prisma, where),
   ]);
-  return { records, total, page, pageSize };
+  return { records, ...counted, page, pageSize };
 }

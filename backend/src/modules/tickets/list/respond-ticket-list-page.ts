@@ -14,6 +14,7 @@ export async function respondTicketListPage(
   return {
     items: await respondLoadedTickets(prisma, page.records, loaders),
     total: page.total,
+    ...(page.totalIsCapped === true ? { totalIsCapped: true } : {}),
     page: page.page,
     pageSize: page.pageSize,
   };

@@ -117,6 +117,39 @@ tunel prema IP-u/portu Postgres kontejnera — ista zamka kao A2). Detalji u
 
 ## C — k6 staging run + brojke
 
+### C0. Nalaz prvog pokušaja i popravka (2026-09-24)
+
+Prvi run (100k, `open_ratio=0.9`, sve u 1 OU / 1 grupu) je pao već na 20 VU:
+pool (40) iscrpljen COUNT/groupBy upitima nad cijelim vidljivim skupom → 500.
+Popravka (ovaj commit):
+
+| Mjesto | Prije | Poslije |
+|---|---|---|
+| Dashboard summary | 8 paralelnih COUNT/groupBy | 1 `GROUP BY status,priority,assignedUserId` + 3 uska COUNT-a; single-flight po korisniku uz postojeći Redis keš 15 s |
+| SLA summary | bez single-flighta | single-flight po korisniku |
+| Sidebar `/tickets/counts` | svaki poziv 1 groupBy + 3 COUNT | single-flight + keš `TICKET_COUNTS_CACHE_TTL_MS` (default 5000; 0 = isključeno) |
+| Lista / inbox total | puni `COUNT(*)` | `COUNT` nad `LIMIT 10001`; iznad toga `totalIsCapped: true`, UI „10 000+" |
+| Iscrpljen pool / statement timeout | 500 `INTERNAL_ERROR` | 503 `DATABASE_BUSY` + `Retry-After: 2` |
+
+Namjerno nije urađeno: parcijalni indeks za SLA breach (Prisma ga ne izražava u
+šemi → drift u `migrate dev`); uz realan seed nije potreban.
+
+Redoslijed ponovnog mjerenja:
+
+```bash
+# 1) redeploy API-ja s ovim commitom (DB_QUERY_METRICS=true ostaje)
+# 2) ponovni seed — GLAVNI profil (10 % otvorenih, sve OU/grupe):
+psql "$DATABASE_URL" -v seed_count=100000 -f ops/sql/seed-large-dataset.sql
+#    kontrola na kraju: units_used / groups_used > 1 ako staging ima više OU/grupa
+# 3) k6 20 VU (dim test), pa 800 VU — kao u C ispod
+# 4) OPCIONO stres (najgori slučaj, odvojeno prijaviti, nije kapija):
+psql "$DATABASE_URL" -v seed_count=100000 -v open_ratio=0.9 -v single_scope=1 -f ops/sql/seed-large-dataset.sql
+```
+
+U stres profilu su 503 odgovori pod zasićenjem prihvatljivi (kontrolisano
+odbijanje); 500 nisu.
+
+
 1. Seed (jednom, na stagingu): `ops/sql/seed-large-dataset.sql` (vidi `ops/staging-checklist.md`).
 2. Run:
 

@@ -53,9 +53,13 @@ const overdueState: Prisma.TicketSlaStateWhereInput = {
  * Phase 2.4 (plan §2.4): the dashboard counters as SQL aggregates over the
  * visibility scope the lists use — no ticket rows ever leave the database.
  *
- * Eight bounded queries (two `GROUP BY`s plus six `count`s) instead of a page of
- * rows that was then counted in the browser; the caller caches the answer for
- * fifteen seconds, so this cost is paid at most once per window and per user.
+ * Staging k6 (2026-09-24, 100k tickets): the former eight parallel statements
+ * each scanned the whole visible set; at 20 VUs that exhausted the pool. Now ONE
+ * `GROUP BY status, priority, assignedUserId` scan yields the status and priority
+ * bars, "critical open", "unassigned" and "assigned to me" (the group count is
+ * bounded by statuses × priorities × agents). Only three narrow counts remain,
+ * each driven by its own index: requester, `createdAt` (today) and SLA breach.
+ * The caller caches the answer for fifteen seconds and single-flights misses.
  */
 export async function loadDashboardSummaryCounts(
   prisma: PrismaService,
@@ -72,45 +76,16 @@ export async function loadDashboardSummaryCounts(
   },
 ): Promise<DashboardSummaryCounts> {
   const { where, actorUserId, now, timeZone } = input;
-  const [
-    statusRows,
-    priorityRows,
-    critical,
-    openedToday,
-    unassigned,
-    assignedToMe,
-    requestedByMe,
-    overdue,
-  ] = await Promise.all([
+  const [groupRows, openedToday, requestedByMe, overdue] = await Promise.all([
     prisma.ticket.groupBy({
-      by: ['status'],
+      by: ['status', 'priority', 'assignedUserId'],
       where,
       _count: { _all: true },
-    }),
-    prisma.ticket.groupBy({
-      by: ['priority'],
-      where,
-      _count: { _all: true },
-    }),
-    prisma.ticket.count({
-      where: withTicketWhereClause(where, {
-        priority: 'CRITICAL',
-        status: { in: [...openStatuses] },
-      }),
     }),
     prisma.ticket.count({
       where: withTicketWhereClause(where, {
         createdAt: { gte: startOfCivilDay(now, timeZone) },
       }),
-    }),
-    prisma.ticket.count({
-      where: withTicketWhereClause(where, {
-        assignedUserId: null,
-        status: { notIn: [...terminalStatuses] },
-      }),
-    }),
-    prisma.ticket.count({
-      where: withTicketWhereClause(where, { assignedUserId: actorUserId }),
     }),
     prisma.ticket.count({
       where: withTicketWhereClause(where, { requesterId: actorUserId }),
@@ -119,6 +94,41 @@ export async function loadDashboardSummaryCounts(
       where: withTicketWhereClause(where, { slaState: { is: overdueState } }),
     }),
   ]);
+
+  const openSet = new Set<TicketStatus>(openStatuses);
+  const terminalSet = new Set<TicketStatus>(terminalStatuses);
+  const statusRows: { status: TicketStatus; _count: { _all: number } }[] = [];
+  const priorityRows: { priority: TicketPriority; _count: { _all: number } }[] = [];
+  let critical = 0;
+  let unassigned = 0;
+  let assignedToMe = 0;
+  const statusTotals = new Map<TicketStatus, number>();
+  const priorityTotals = new Map<TicketPriority, number>();
+  for (const row of groupRows as readonly {
+    readonly status: TicketStatus;
+    readonly priority: TicketPriority;
+    readonly assignedUserId: string | null;
+    readonly _count: { readonly _all: number };
+  }[]) {
+    const n = row._count._all;
+    statusTotals.set(row.status, (statusTotals.get(row.status) ?? 0) + n);
+    priorityTotals.set(row.priority, (priorityTotals.get(row.priority) ?? 0) + n);
+    if (row.priority === 'CRITICAL' && openSet.has(row.status)) {
+      critical += n;
+    }
+    if (row.assignedUserId === null && !terminalSet.has(row.status)) {
+      unassigned += n;
+    }
+    if (row.assignedUserId === actorUserId) {
+      assignedToMe += n;
+    }
+  }
+  for (const [status, n] of statusTotals) {
+    statusRows.push({ status, _count: { _all: n } });
+  }
+  for (const [priority, n] of priorityTotals) {
+    priorityRows.push({ priority, _count: { _all: n } });
+  }
 
   const countByStatus = new Map<TicketStatus, number>();
   for (const row of statusRows as readonly {

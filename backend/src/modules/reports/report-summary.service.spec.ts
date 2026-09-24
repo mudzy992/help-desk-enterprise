@@ -277,7 +277,7 @@ describe('ReportSummaryService', () => {
       now,
     });
 
-    expect(callsAfterFirst).toBe(2);
+    expect(callsAfterFirst).toBe(1);
     expect(groupBy.mock.calls.length).toBe(callsAfterFirst);
     expect(second).toEqual(first);
     // No settings service in this construction: the installation default zone.
@@ -300,9 +300,8 @@ describe('ReportSummaryService', () => {
         scope: 'all',
         now,
       });
-      // Calls in order: critical, openedToday, unassigned, assignedToMe,
-      // requestedByMe, overdue.
-      return (count.mock.calls[1]?.[0] as { where: { AND: readonly unknown[] } })
+      // Calls in order: openedToday, requestedByMe, overdue.
+      return (count.mock.calls[0]?.[0] as { where: { AND: readonly unknown[] } })
         .where.AND[1];
     };
 
@@ -377,5 +376,24 @@ describe('ReportSummaryService', () => {
     );
     const listWhere = (findMany.mock.calls[0]?.[0] as { where: unknown }).where;
     expect(normalize(openTicketWhere.AND[0])).toEqual(normalize(listWhere));
+  });
+});
+
+describe('ReportSummaryService single flight', () => {
+  it('shares one computation between concurrent cold requests', async () => {
+    const world = createTicketsServiceHarness();
+    const { service } = createService(world);
+    const groupBy = jest.spyOn(world.memory.prisma.ticket, 'groupBy');
+    const input = { actorUserId: ticketsTestIds.requester, scope: 'all' as const, now };
+
+    const [first, second, third] = await Promise.all([
+      service.loadDashboardSummary(input),
+      service.loadDashboardSummary(input),
+      service.loadDashboardSummary(input),
+    ]);
+
+    expect(groupBy).toHaveBeenCalledTimes(1);
+    expect(second).toEqual(first);
+    expect(third).toEqual(first);
   });
 });
