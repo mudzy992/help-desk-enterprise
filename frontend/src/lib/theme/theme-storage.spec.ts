@@ -41,8 +41,8 @@ describe("theme-storage", () => {
     expect(isDarkAppearance("classic", "light")).toBe(true);
   });
 
-  it("offers exactly three brand palettes", () => {
-    expect(THEME_ACCENTS).toEqual(["indigo", "teal", "rose"]);
+  it("offers six brand palettes", () => {
+    expect(THEME_ACCENTS).toEqual(["indigo", "teal", "rose", "cyan", "amber", "orange"]);
     expect(DEFAULT_THEME_ACCENT).toBe("indigo");
     expect(THEME_ACCENTS).toContain(DEFAULT_THEME_ACCENT);
   });
@@ -51,6 +51,9 @@ describe("theme-storage", () => {
     expect(isThemeAccent("indigo")).toBe(true);
     expect(isThemeAccent("teal")).toBe(true);
     expect(isThemeAccent("rose")).toBe(true);
+    expect(isThemeAccent("cyan")).toBe(true);
+    expect(isThemeAccent("amber")).toBe(true);
+    expect(isThemeAccent("orange")).toBe(true);
     expect(isThemeAccent("pulse")).toBe(false);
     expect(isThemeAccent("")).toBe(false);
     expect(isThemeAccent(null)).toBe(false);

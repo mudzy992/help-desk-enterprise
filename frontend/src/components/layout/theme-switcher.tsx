@@ -51,6 +51,9 @@ const ACCENT_LABEL_KEY = {
   indigo: "theme.accentIndigo",
   teal: "theme.accentTeal",
   rose: "theme.accentRose",
+  cyan: "theme.accentCyan",
+  amber: "theme.accentAmber",
+  orange: "theme.accentOrange",
 } as const satisfies Record<ThemeAccent, string>;
 
 /* `.accent-swatch-*` lives in `src/index.css` — a preview has to render a
@@ -59,13 +62,17 @@ const ACCENT_SWATCH_CLASS = {
   indigo: "accent-swatch-indigo",
   teal: "accent-swatch-teal",
   rose: "accent-swatch-rose",
+  cyan: "accent-swatch-cyan",
+  amber: "accent-swatch-amber",
+  orange: "accent-swatch-orange",
 } as const satisfies Record<ThemeAccent, string>;
 
 /**
  * Appearance control. Design (Pulse / classic), brightness (light / dark /
- * system) and the brand palette (indigo / teal / rose) are separate choices:
- * the legacy design is dark-only and has its own blue, so both the brightness
- * and the palette groups are hidden while it is selected.
+ * system) and the brand palette (indigo / teal / rose / cyan / amber /
+ * orange) are separate choices: the legacy design is dark-only and has its own
+ * blue, so both the brightness and the palette groups are hidden while it is
+ * selected.
  */
 export function ThemeSwitcher() {
   const { t } = useTranslation();

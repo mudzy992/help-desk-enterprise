@@ -239,6 +239,11 @@
                             blend OVER the page, so the result is always light
                             on light palettes and dark on dark ones — which is
                             why it stays white in every dark palette.
+
+    Ramp rule for the three palettes added later (cyan / amber / orange): the
+    brand hex is the DARK step, because a vivid brand colour cannot hold
+    white text at 4.5:1 in light mode — the light block therefore takes the
+    same hue one ramp down (700 step), exactly like teal and rose do.
   */
   :root[data-theme="pulse"][data-accent="teal"] {
     --primary: 15 118 110;
@@ -283,6 +288,72 @@
     --selection-bg: 251 113 133;
     --selection-fg: 255 255 255;
     --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(251 113 133 / 0.5);
+  }
+  :root[data-theme="pulse"][data-accent="cyan"] {
+    --primary: 14 116 144;
+    --primary-hover: 21 94 117;
+    --primary-active: 22 78 99;
+    --primary-foreground: 255 255 255;
+    --ring: 14 116 144;
+    --link: 21 94 117;
+    --selection-bg: 14 116 144;
+    --selection-fg: 8 51 68;
+    --shadow-glow: 0 1px 2px rgb(14 116 144 / 0.28), 0 8px 20px -8px rgb(14 116 144 / 0.45);
+  }
+  :root[data-theme="pulse"][data-accent="cyan"].dark {
+    --primary: 6 182 212;
+    --primary-hover: 103 232 249;
+    --primary-active: 165 243 252;
+    --primary-foreground: 8 51 68;
+    --ring: 6 182 212;
+    --link: 103 232 249;
+    --selection-bg: 6 182 212;
+    --selection-fg: 255 255 255;
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(6 182 212 / 0.5);
+  }
+  :root[data-theme="pulse"][data-accent="amber"] {
+    --primary: 161 98 7;
+    --primary-hover: 133 77 14;
+    --primary-active: 113 63 18;
+    --primary-foreground: 255 255 255;
+    --ring: 161 98 7;
+    --link: 133 77 14;
+    --selection-bg: 161 98 7;
+    --selection-fg: 66 32 6;
+    --shadow-glow: 0 1px 2px rgb(161 98 7 / 0.28), 0 8px 20px -8px rgb(161 98 7 / 0.45);
+  }
+  :root[data-theme="pulse"][data-accent="amber"].dark {
+    --primary: 231 183 2;
+    --primary-hover: 253 224 71;
+    --primary-active: 254 240 138;
+    --primary-foreground: 66 32 6;
+    --ring: 231 183 2;
+    --link: 253 224 71;
+    --selection-bg: 231 183 2;
+    --selection-fg: 255 255 255;
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(231 183 2 / 0.5);
+  }
+  :root[data-theme="pulse"][data-accent="orange"] {
+    --primary: 194 65 12;
+    --primary-hover: 154 52 18;
+    --primary-active: 124 45 18;
+    --primary-foreground: 255 255 255;
+    --ring: 194 65 12;
+    --link: 154 52 18;
+    --selection-bg: 194 65 12;
+    --selection-fg: 67 20 7;
+    --shadow-glow: 0 1px 2px rgb(194 65 12 / 0.28), 0 8px 20px -8px rgb(194 65 12 / 0.45);
+  }
+  :root[data-theme="pulse"][data-accent="orange"].dark {
+    --primary: 249 115 22;
+    --primary-hover: 253 186 116;
+    --primary-active: 254 215 170;
+    --primary-foreground: 67 20 7;
+    --ring: 249 115 22;
+    --link: 253 186 116;
+    --selection-bg: 249 115 22;
+    --selection-fg: 255 255 255;
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(249 115 22 / 0.5);
   }
 
   html,
@@ -442,6 +513,18 @@
     background-color: rgb(190 18 60);
   }
 
+  .accent-swatch-cyan {
+    background-color: rgb(14 116 144);
+  }
+
+  .accent-swatch-amber {
+    background-color: rgb(161 98 7);
+  }
+
+  .accent-swatch-orange {
+    background-color: rgb(194 65 12);
+  }
+
   .dark .accent-swatch-indigo {
     background-color: rgb(111 102 223);
   }
@@ -452,6 +535,18 @@
 
   .dark .accent-swatch-rose {
     background-color: rgb(251 113 133);
+  }
+
+  .dark .accent-swatch-cyan {
+    background-color: rgb(6 182 212);
+  }
+
+  .dark .accent-swatch-amber {
+    background-color: rgb(231 183 2);
+  }
+
+  .dark .accent-swatch-orange {
+    background-color: rgb(249 115 22);
   }
 }
 

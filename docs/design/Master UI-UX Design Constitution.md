@@ -7,7 +7,7 @@
 > Implementacijski katalog tokena, paleta i kontrastnih pravila: **`.cursor/docs/theme.md`**.
 > Prototip novog identiteta i vizuelni dokaz: **`demo/`**. Stara referenca (`referenca-dizajn/`) je arhivirana.
 >
-> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose`).
+> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose` | `cyan` | `amber` | `orange`).
 
 Ova pravila definišu vizuelni i UX smjer cijelog EP-HelpDesk frontenda.
 
@@ -621,9 +621,9 @@ Boja se **nikad** ne piše u komponentu. Sve ide kroz CSS varijablu (RGB kanali)
 
 ## 22.2 Boja brenda je izbor, ne konstanta
 
-Pulse ima **tri palete** (`data-accent`: `indigo` zadana, `teal`, `rose`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
+Pulse ima **šest paleta** (`data-accent`: `indigo` zadana, `teal`, `rose`, `cyan`, `amber`, `orange`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
 
-Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u `teal`/`rose` paleti.
+Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u svijetlim paletama (`teal`, `cyan`, `amber`, `orange`).
 
 ## 22.3 Kontrast (obavezno, mjerljivo)
 
@@ -1015,7 +1015,7 @@ Modernost dolazi iz:
 ### 38.1 Anti-obrasci specifični za Pulse
 
 - hardkodirana boja u komponenti (`#RRGGBB`, `rgb(...)`, Tailwind paleta tipa `bg-slate-100`)
-- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u `teal`/`rose` paleti)
+- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u svijetlim paletama: `teal`, `cyan`, `amber`, `orange`)
 - `text-primary` za tekst na neutralnoj površini (koristi `text-link`)
 - `rounded-xl` i druge klase koje ne čitaju token
 - novi token koji postoji samo u dva od tri bloka

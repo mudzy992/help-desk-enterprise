@@ -71,6 +71,12 @@
     "accentTealHint": "cool and calm",
     "accentRose": "Rose",
     "accentRoseHint": "warm and bold",
+    "accentCyan": "Cyan",
+    "accentCyanHint": "fresh and technical",
+    "accentAmber": "Amber",
+    "accentAmberHint": "warm gold",
+    "accentOrange": "Orange",
+    "accentOrangeHint": "bright and energetic",
     "active": "Active"
   },
   "appearance": {
