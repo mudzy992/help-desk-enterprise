@@ -17,6 +17,12 @@ concurrency:
   group: perf-smoke-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  # The run publishes its numbers as a PR comment: artefacts and logs are awkward to
+  # reach outside a browser session, while a comment is readable from the API/CLI.
+  pull-requests: write
+
 jobs:
   perf-smoke:
     name: k6 smoke (CI thresholds)
@@ -132,16 +138,74 @@ jobs:
           grep -E '^(✓|✗|•)' perf-smoke.log || true
 
       - name: Check the query budget from the API log
+        id: query-budget
         run: |
-          # Custom threshold (plan §4.2): average `db_queries_per_request` across all
-          # finished requests must stay at or below the documented budget of 3.
-          read -r average count <<<"$(awk -F'db_queries_per_request=' '
-            /db_queries_per_request=/ { split($2, parts, " "); sum += parts[1]; n += 1 }
-            END { if (n == 0) { print "0 0" } else { printf "%.3f %d", sum / n, n } }' api.log)"
-          echo "requests logged: $count"
-          echo "avg db_queries_per_request: $average"
-          if [ "$count" -gt 0 ] && awk -v avg="$average" 'BEGIN { exit !(avg > 3) }'; then
-            echo "::error::avg db_queries_per_request=${average} exceeds the budget of 3"
+          # Custom threshold (plan §4.2): the average `db_queries_per_request` must stay at
+          # or below the documented budget (DB_QUERY_BUDGET, default 3).
+          #
+          # Bootstrap traffic (`/install/*`, `/health`) is reported separately and NOT
+          # counted into the average: it runs once per stack (super-admin + seed) and is not
+          # part of the load profile the budget describes. Everything else counts.
+          rm -f /tmp/app-queries.txt /tmp/query-budget-paths.txt
+          awk '
+            /db_queries_per_request=/ {
+              query = ""; path = "";
+              for (i = 1; i <= NF; i++) {
+                if ($i ~ /^db_queries_per_request=/) { split($i, pair, "="); query = pair[2] + 0 }
+                if ($i ~ /^path=/) { split($i, pair, "="); path = pair[2] }
+              }
+              if (path == "") path = "?";
+              total_sum += query; total_n += 1;
+              if (path ~ /^\/install/ || path ~ /^\/health/) {
+                bootstrap_sum += query; bootstrap_n += 1;
+              } else {
+                app_sum += query; app_n += 1;
+                print query > "/tmp/app-queries.txt";
+                path_sum[path] += query; path_n[path] += 1;
+              }
+            }
+            END {
+              printf "TOTAL_N=%d\nTOTAL_AVG=%.3f\nAPP_N=%d\nAPP_AVG=%.3f\nBOOTSTRAP_N=%d\n",
+                total_n, (total_n ? total_sum / total_n : 0), app_n,
+                (app_n ? app_sum / app_n : 0), bootstrap_n;
+              for (p in path_sum)
+                printf "%.3f %d %s\n", path_sum[p] / path_n[p], path_n[p], p > "/tmp/query-budget-paths.txt";
+            }
+          ' api.log | tee /tmp/query-budget.env
+
+          . /tmp/query-budget.env
+          BUDGET="${DB_QUERY_BUDGET:-3}"
+          P95=0
+          MAX=0
+          if [ -s /tmp/app-queries.txt ]; then
+            P95=$(sort -n /tmp/app-queries.txt | awk '{ a[NR] = $1 } END { i = int(NR * 0.95); if (i < 1) i = 1; print a[i] }')
+            MAX=$(sort -n /tmp/app-queries.txt | tail -1)
+          fi
+          echo "avg (sve):              ${TOTAL_AVG} preko ${TOTAL_N} zahtjeva"
+          echo "avg (aplikacija):       ${APP_AVG} preko ${APP_N} zahtjeva   <- kapija, budžet ${BUDGET}"
+          echo "p95 / max (aplikacija): ${P95} / ${MAX}"
+          echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health)"
+          echo "najskuplje rute:"
+          sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -5 | sed 's/^/  /' || true
+
+          {
+            echo "| Metrika | Vrijednost |"
+            echo "|---|---|"
+            echo "| avg \`db_queries_per_request\` (aplikacija) | **${APP_AVG}** preko ${APP_N} zahtjeva (budžet ${BUDGET}) |"
+            echo "| p95 / max (aplikacija) | ${P95} / ${MAX} |"
+            echo "| avg (sve, s bootstrapom) | ${TOTAL_AVG} preko ${TOTAL_N} |"
+            echo "| bootstrap (\`/install/*\`, \`/health\`, izuzeto) | ${BOOTSTRAP_N} |"
+            echo ""
+            echo "<details><summary>najskuplje rute po prosjeku upita</summary>"
+            echo ""
+            echo '```'
+            sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -8 || true
+            echo '```'
+            echo "</details>"
+          } > /tmp/query-budget-report.md
+
+          if [ "$APP_N" -gt 0 ] && awk -v avg="$APP_AVG" -v budget="$BUDGET" 'BEGIN { exit !(avg > budget) }'; then
+            echo "::error::avg db_queries_per_request=${APP_AVG} (aplikacija) prelazi budžet od ${BUDGET}"
             exit 1
           fi
 
@@ -156,3 +220,34 @@ jobs:
             perf-smoke.log
             api.log
           retention-days: 30
+
+      - name: Publish the numbers on the pull request
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          thresholds_ok=$(grep -cE '^\s*✓' perf-smoke.log 2>/dev/null || echo 0)
+          thresholds_failed=$(grep -cE '^\s*✗' perf-smoke.log 2>/dev/null || echo 0)
+          {
+            echo "### Perf smoke — run [${{ github.run_id }}](${RUN_URL})"
+            echo ""
+            echo "**k6 pragovi:** ${thresholds_ok} prošlo, ${thresholds_failed} palo (CI pragovi = budžet × 2,5, \`perf/config.js\`)"
+            echo ""
+            echo "**Budžet upita**"
+            echo ""
+            cat /tmp/query-budget-report.md 2>/dev/null || echo "_korak budžeta nije stigao do izvještaja — vidi log runa_"
+            echo ""
+            if [ -f perf/results/ci-smoke.md ]; then
+              echo "<details><summary>k6 izvještaj (\`perf/results/ci-smoke.md\`)</summary>"
+              echo ""
+              echo '```'
+              head -40 perf/results/ci-smoke.md
+              echo '```'
+              echo "</details>"
+            fi
+            echo ""
+            echo "_Puni profil (2.800 VU / 30 min) se mjeri na stagingu — vidi \`ops/staging-checklist.md\`._"
+          } > /tmp/perf-comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/perf-comment.md
