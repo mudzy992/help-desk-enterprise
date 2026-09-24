@@ -294,8 +294,10 @@ jobs:
         run: |
           # The verdict is read from the rendered report rather than the k6 console block:
           # its layout varies between k6 versions and produced a constant "0 / 0".
-          thresholds_ok=$(grep -cE '\| ok \|' perf/results/ci-smoke.md 2>/dev/null || echo 0)
-          thresholds_failed=$(grep -cE 'FAILED' perf/results/ci-smoke.md 2>/dev/null || echo 0)
+          # `|| true`, not `|| echo 0`: `grep -c` already prints 0 and exits 1, so the
+          # fallback used to print a second line ("9 prošlo, 0\n0 palo").
+          thresholds_ok=$(grep -cE '\| ok \|' perf/results/ci-smoke.md 2>/dev/null || true)
+          thresholds_failed=$(grep -cE 'FAILED' perf/results/ci-smoke.md 2>/dev/null || true)
           {
             echo "### Perf smoke — run [${{ github.run_id }}](${RUN_URL})"
             echo ""
