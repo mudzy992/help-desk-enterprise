@@ -11,6 +11,12 @@ runbook služi da se to ne miješa s „aplikacija je pala".
   waiting-for-user, KB podsjetnici) se ne izvršavaju.
 - U logu: `ws adapter: fallback=in_memory`, `*_schedule_failed`, `authz_*_invalidation_skipped`,
   `Failed to write worker heartbeat`.
+- **ACL, ne pad Redisa** (drugačiji slučaj, isti korijen): API se uopšte ne digne, u
+  logu `ReplyError: NOPERM No permissions to access a channel` s
+  `command: { name: 'psubscribe', args: ['socket.io#/#*'] }`. ACL useru `ephelpdesk`
+  nedostaje kanal — vidi `ops/redis-acl.line` (Socket.IO traži `socket.io#*`,
+  `socket.io-request#*`, `socket.io-response#*`; F4 most `tickets:realtime-bridge`).
+  Kanal se **ne** prefiksira `REDIS_KEY_PREFIX`-om, pa `&ephelpdesk:*` ovdje ne pomaže.
 
 ## Šta se dešava po komponenti (fail-open grane)
 
@@ -34,6 +40,20 @@ redis-cli llen 'bull:ephelpdesk:integration-jobs:wait'    # da li red stoji
 ```
 Provjeri i ACL (`ops/redis-acl.line`), `REDIS_KEY_PREFIX`/`QUEUE_PREFIX` i da nije
 rijеč o mreži/LB-u između API-ja i Redisa.
+
+```bash
+redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
+#   očekivano: &ephelpdesk:* &bull:ephelpdesk:* &integration-queue:*
+#              &tickets:realtime-bridge &socket.io#* &socket.io-request#*
+#              &socket.io-response:*
+redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
+  psubscribe 'socket.io#/#*'          # NOPERM = ACL, ne mreža; odmah Ctrl-C
+```
+
+> **Napomena (dok se ne zatvori fail-open praznina):** odbijen `psubscribe` obara API
+> proces (unhandled rejection iz adaptera), a ne prelazi u `fallback=in_memory` kao
+> ostale Redis putanje. Zato je ACL greška **dostupnost**, ne degradacija: popravi ACL
+> i restartuj API.
 
 ## Ublažavanje
 
