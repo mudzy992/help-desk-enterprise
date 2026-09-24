@@ -140,7 +140,7 @@ ops/collect-staging-numbers.sh perf/results/staging-2026-09-30.json api.log
    Ispisuje SLO tabelu (`perf/import-results.mjs`) i `db_queries_per_request`
    (ista pravila kao CI kapija: ANSI strip, bootstrap `/install*`, `/health`,
    `/auth/{login,logout,refresh}` izuzet). Izlaz `0` = sve u budžetu, `1` = nešto
-   pada, `2` = ulaz ne valja. Kapija/cilj: `DB_QUERY_BUDGET` (8) / `DB_QUERY_TARGET` (5).
+   pada, `2` = ulaz ne valja. Kapija/cilj: `DB_QUERY_BUDGET` (2.5) / `DB_QUERY_TARGET` (2.0).
    Provjera same skripte: `ops/collect-staging-numbers.sh --self-test` → `7/7`.
 
 5. Pošalji cijeli ispis iz koraka 4 — ide u `PERF_BUDGETS.md` §1.
@@ -149,3 +149,20 @@ ops/collect-staging-numbers.sh perf/results/staging-2026-09-30.json api.log
 - Ako `bash` javi `$'\r': command not found`, fajl je dobio CRLF: `rm ops/collect-staging-numbers.sh && git checkout -- ops/collect-staging-numbers.sh`
   (`.gitattributes` forsira LF za `*.sh` i `*.patch`).
 - `api.log` preuzet s Windowsa je u redu — skripta čisti ANSI i `\r`.
+
+---
+
+## Čišćenje nakon B/C
+
+E2E paket ostavlja tikete (`E2E …`) i servise (`e2e-…`); C ostavlja `[staging-seed]` tikete.
+Na serveru, iz korijena repozitorija:
+
+```bash
+ops/cleanup-e2e-data.sh                 # proba: samo broji (ROLLBACK)
+ops/cleanup-e2e-data.sh --apply         # briše E2E tikete i servise
+ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
+```
+
+Korisnici, audit log, verzije konfiguracije i IntegrationJob se ne diraju (detalji u
+zaglavlju `ops/sql/cleanup-e2e-data.sql`). Kontejner se pronalazi automatski; inače
+`PG_CONTAINER=<ime> ops/cleanup-e2e-data.sh`.
