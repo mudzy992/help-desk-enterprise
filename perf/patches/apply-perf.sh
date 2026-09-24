@@ -2,6 +2,12 @@
 #
 # PERFORMANSE — primjena patch fajlova (idempotentno).
 #
+# BAZA (obavezno): `5831dfd` + Pulse UI patchevi (`demo/patches/pulse-01…15`).
+# Perf patchevi su pravljeni nad radnim stablom koje je već imalo Pulse
+# migraciju; na golom `5831dfd` prolazi samo perf-00 (dokazano pokretanjem
+# cijelog lanca). Ako Pulse nije primijenjen, prvo:
+#   bash demo/patches/apply-pulse.sh
+#
 # Zašto postoji: `git apply` je ATOMIČAN. Ako mu daš više patcheva odjednom
 # (`git apply a.patch b.patch c.patch`) i samo jedan ne prođe — ne primijeni se
 # NI JEDAN. Faze se primjenjuju redom 00 → 01 → 02 → 03 → 04 → 05.
@@ -133,6 +139,9 @@ if [ "$failed" -gt 0 ]; then
   echo "provjeri da si na bazi 5831dfd (+ Pulse patchevi ako ih koristiš) i da nemaš lokalnih izmjena:"
   echo "  git log --oneline -1        # očekivano: 5831dfd ili noviji (tvoja grana)"
   echo "  git status --porcelain      # očekivano: čisto osim tvojih izmjena"
+  echo "  ls frontend/src/components/layout/command-palette.tsx   # postoji = Pulse je primijenjen"
+  echo "  # Ako pada na 'No such file or directory' za pulse fajlove:"
+  echo "  bash demo/patches/apply-pulse.sh   # pa ponovi ovu skriptu"
   exit 1
 fi
 

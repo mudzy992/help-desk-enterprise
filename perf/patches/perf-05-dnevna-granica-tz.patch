@@ -1,9 +1,12 @@
-perf-05 — FAZA 4 dopuna: granica reporting dana u zoni instalacije (TZ bug)\n
-Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)\nBaza: perf-00 … perf-04 primijenjeni.\n
-Zašto: na mašini u zoni Europe/Sarajevo padao je jedan backend test —
-granica dashboarda „opened today" računala se iz zone PROCESA
-(`new Date(y, m, d)`), pa je u kontejneru (TZ=UTC) bila 00:00Z, a u Sarajevu
-22:00Z prethodnog dana. Isti kod, dva različita broja.
+perf-05 — FAZA 4 dopuna: granica reporting dana u zoni instalacije (TZ bug)
+
+Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)
+Baza: 5831dfd + Pulse patchevi (demo/patches/pulse-01…15) + perf-00 … perf-04.
+
+Zašto: na mašini u zoni Europe/Sarajevo padao je jedan backend test — granica
+dashboarda „opened today" računala se iz zone PROCESA (`new Date(y, m, d)`), pa je
+u kontejneru (TZ=UTC) bila 00:00Z, a u Sarajevu 22:00Z prethodnog dana. Isti kod,
+dva različita broja; zato je paket bio zelen na jednoj mašini, a crven na drugoj.
 
 Šta mijenja:
   BE  start-of-civil-day.ts (nov): startOfCivilDay/civilDayKey/offsetMillisecondsAt
@@ -17,10 +20,9 @@ granica dashboarda „opened today" računala se iz zone PROCESA
       invalidacija ide po prefiksu, tab preko ponoći pita za novi dan
   DOC .cursor/docs/matrices/settings-registry/{MATRIX,CHANGELOG}.md
 
-Verifikacija: backend `npx jest --silent` 365 suita / 1388 testova u
-TZ=Europe/Sarajevo, TZ=UTC i TZ=Pacific/Kiritimati; `npx tsc --noEmit` čist;
-frontend `npx vitest run` 95/334 + `npm run build` ✓. Detalji:
-perf/results/after-f4-2026-09-24.md §8.
+Verifikacija: backend `npx jest --silent` 365 suita / 1388 testova u TZ=Europe/Sarajevo,
+TZ=UTC i TZ=Pacific/Kiritimati; `npx tsc --noEmit` čist; frontend `npx vitest run`
+95/334 + `npm run build` ✓. Detalji: perf/results/after-f4-2026-09-24.md §8.
 
 ---
 diff --git a/.cursor/docs/matrices/settings-registry/CHANGELOG.md b/.cursor/docs/matrices/settings-registry/CHANGELOG.md
@@ -49,7 +51,7 @@ diff --git a/.cursor/docs/matrices/settings-registry/MATRIX.md b/.cursor/docs/ma
 diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
 --- a/PERFORMACE_PHASE_PLAN.md
 +++ b/PERFORMACE_PHASE_PLAN.md
-@@ -545,6 +545,16 @@
+@@ -545,6 +545,18 @@
  k6/Postgres/Redis/LB-a, isto ograničenje kao u F0–F3; job karta, CI pragovi i
  zaključni izvještaj: `perf/results/after-f4-2026-09-24.md`.
  
@@ -62,6 +64,8 @@ diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
 +dan dio query ključa. Backend je poslije toga zelen u **svakoj** zoni procesa
 +(365 suita / 1388 testova; prije: 1 pad u `TZ=Europe/Sarajevo`). Detalji:
 +`perf/results/after-f4-2026-09-24.md` §8.
++Baza za primjenu cijelog programa je `5831dfd` + Pulse patchevi
++(`demo/patches/apply-pulse.sh`) — na golom `5831dfd` prolazi samo `perf-00`.
 +
  ---
  
@@ -1134,7 +1138,7 @@ diff --git a/frontend/src/lib/realtime/invalidate-on-event.ts b/frontend/src/lib
 diff --git a/perf/results/after-f4-2026-09-24.md b/perf/results/after-f4-2026-09-24.md
 --- a/perf/results/after-f4-2026-09-24.md
 +++ b/perf/results/after-f4-2026-09-24.md
-@@ -251,3 +251,83 @@
+@@ -251,3 +251,98 @@
    - Particionisanje `tickets` i revizija indeksa po pragovima iz kvartalne procedure.
    - Horizontalno autoskaliranje/Kubernetes/CDN — van obima, kako prompt i traži.
  ```
@@ -1211,6 +1215,21 @@ diff --git a/perf/results/after-f4-2026-09-24.md b/perf/results/after-f4-2026-09
 +| `npx vitest run` (FE) | 95 / 333 ✓ | **95 / 334 ✓** |
 +| `npm run build` (FE) | ✓ | ✓ |
 +| `grep` za lokalnom civilnom matematikom u `backend/src` (bez specova) | 1 mjesto (`startOfDay`) | **0 mjesta** |
++
++**Provjera cijelog lanca (baza → patchevi).** Prije isporuke je cijeli program
++prošao kroz svjež klon, redom kako ga primjenjuje korisnik:
++
++| Korak | Rezultat |
++|---|---|
++| `git archive 5831dfd` + `demo/patches/pulse-01…15` | 15/15 ✓ |
++| `perf-00 … perf-05` na toj bazi | 6/6 ✓ |
++| `diff -rq` nad `backend/src`, `backend/prisma`, `frontend/src`, `perf/`, `ops/`, `.github/workflows`, plan i budžeti | **0 razlika** (osim `backend/src/generated`, koji je gitignored) |
++
++Nalaz iz iste provjere, sada zapisan i u zaglavlju `apply-perf.sh`: na **golom**
++`5831dfd` prolazi samo `perf-00` — perf-01 već traži `frontend/src/components/layout/
++command-palette.tsx`, koji postoji tek nakon Pulse patcheva. Baza je dakle
++`5831dfd + pulse-01…15` (`bash demo/patches/apply-pulse.sh`), a skripta sada to
++ispiše i predloži tačnu naredbu kad patch padne na `No such file or directory`.
 +
 +**Šta nije dirano (i zašto).** Izvozni izvještaji (`resolve-report-window`) i
 +14-dnevni graf na ekranu Izvještaja i dalje računaju u UTC-u odnosno lokalnoj zoni
