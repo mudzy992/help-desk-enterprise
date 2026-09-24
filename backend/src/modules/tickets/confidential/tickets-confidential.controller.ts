@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   Param,
   Post,
   Req,
@@ -11,12 +10,11 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
-import { readAuthenticatedPrincipal } from '../../authentication/authenticated-request';
 import { authorizationRoleKeys } from '../../authorization/authorization.constants';
 import { RequireRoles } from '../../authorization/require-roles.decorator';
 import { RoleGuard } from '../../authorization/role.guard';
-import type { TicketMutationContext } from '../tickets.types';
 import { RequestBreakGlassDto } from './dto/request-break-glass.dto';
+import { readTicketMutationContext } from '../read-ticket-mutation-context';
 import { TicketsConfidentialService } from './tickets-confidential.service';
 import type { BreakGlassResponse } from './confidential.types';
 
@@ -52,17 +50,4 @@ export class TicketsConfidentialController {
       readTicketMutationContext(request),
     );
   }
-}
-
-function readTicketMutationContext(
-  request: AuthenticatedHttpRequest,
-): TicketMutationContext {
-  const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
-  if (actorUserId.length === 0) {
-    throw new ForbiddenException({
-      code: 'FORBIDDEN',
-      message: 'Authorization failed',
-    });
-  }
-  return { actorUserId };
 }

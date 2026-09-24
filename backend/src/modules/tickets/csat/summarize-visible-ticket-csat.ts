@@ -1,6 +1,7 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { listTickets } from '../list-tickets';
+import { listTicketsWithin } from '../list-tickets';
+import { csatSummaryTicketLimit } from './csat.constants';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { aggregateTicketCsat } from './aggregate-ticket-csat';
 import type { TicketCsatRecord, TicketCsatSummary } from './csat.types';
@@ -13,12 +14,15 @@ export async function summarizeVisibleTicketCsat(input: {
   readonly context: TicketMutationContext;
   readonly archive: TicketArchiveConfiguration;
 }): Promise<TicketCsatSummary> {
-  const tickets = await listTickets(
+  // Phase 1.1: only tickets that actually have a submission can contribute a
+  // row, and the read is capped, so the summary no longer lists the table.
+  const tickets = await listTicketsWithin(
     input.prisma,
     input.authorizationContextLoader,
-    { includeArchived: true },
+    { includeArchived: true, hasCsatSubmission: true },
     input.context,
     input.archive,
+    csatSummaryTicketLimit,
   );
   const submissions = await loadTicketCsatSubmissions(
     input.prisma,

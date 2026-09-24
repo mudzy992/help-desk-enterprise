@@ -90,6 +90,9 @@ export function buildTicketListFilters(
   if (query.atRisk === true) {
     clauses.push({ slaState: { is: atRiskState } });
   }
+  if (query.hasCsatSubmission === true) {
+    clauses.push({ csat: { isNot: null } });
+  }
   const search = buildTicketSearchFilter(query);
   if (search !== null) {
     clauses.push(search);

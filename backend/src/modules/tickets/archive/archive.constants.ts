@@ -5,4 +5,3 @@ export const defaultTicketArchiveConfiguration = {
   searchable: true,
 } as const;
 
-export const ticketArchiveAutomationIntervalMs = 15 * 60 * 1000;

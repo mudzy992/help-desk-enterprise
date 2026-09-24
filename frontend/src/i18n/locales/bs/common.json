@@ -1704,6 +1704,7 @@
     "workerActive": "worker: aktivan",
     "workerStale": "worker: neaktivan",
     "workerUnknown": "worker: nepoznato",
+    "workerRefresh": "Osvježi status workera",
     "retryNow": "Retry now",
     "retrying": "Ponovno slanje…",
     "noError": "Nema greške",

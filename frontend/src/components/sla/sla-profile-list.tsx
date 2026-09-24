@@ -4,13 +4,12 @@ import {
   SlaAdminListColumn,
   SlaAdminSelectorCard,
 } from "@/components/sla/sla-admin-selector";
-import { countOpenTicketsForSlaProfile } from "@/lib/sla/count-sla-profile-exposure";
+import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
 import type { SlaProfile } from "@/services/sla-types";
-import type { TicketResponse } from "@/services/tickets-api";
 
 interface SlaProfileListProperties {
   readonly profiles: readonly SlaProfile[];
-  readonly tickets: readonly TicketResponse[];
+  readonly exposure: SlaExposureIndex;
   readonly selectedId: string | null;
   readonly isLoading: boolean;
   readonly canWrite: boolean;
@@ -20,7 +19,7 @@ interface SlaProfileListProperties {
 
 export function SlaProfileList({
   profiles,
-  tickets,
+  exposure,
   selectedId,
   isLoading,
   canWrite,
@@ -41,7 +40,7 @@ export function SlaProfileList({
       showNew={canWrite}
     >
       {profiles.map((profile) => {
-        const openCount = countOpenTicketsForSlaProfile(tickets, profile.id);
+        const openCount = exposure.openCount(profile.id);
         return (
           <SlaAdminSelectorCard
             key={profile.id}

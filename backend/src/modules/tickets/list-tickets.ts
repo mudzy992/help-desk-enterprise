@@ -3,16 +3,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { defaultTicketArchiveConfiguration } from './archive/archive.constants';
 import type { TicketArchiveConfiguration } from './archive/archive.types';
-import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
-import {
-  buildTicketListFilters,
-  buildTicketStatusFilter,
-} from './list/build-ticket-list-filters';
+import { buildTicketListWhere } from './list/build-ticket-list-where';
 import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
-import { buildTicketVisibilityWhere } from './list/build-ticket-visibility-where';
 import { ticketListPaging } from './list/list-tickets.constants';
-import { loadTicketVisibilityInputs } from './list/load-ticket-visibility-inputs';
-import { TicketsError } from './tickets.error';
+import { clampTicketListPageSize } from './list/clamp-ticket-list-page-size';
+import { ticketListSelect } from './list/ticket-list-select';
 import type {
   ListTicketsQuery,
   TicketMutationContext,
@@ -28,26 +23,13 @@ export type TicketListPage = {
 
 type Paging = { readonly skip: number; readonly take: number };
 
-/** Every visible ticket that matches, unpaged (export, CSAT summary, legacy). */
-export async function listTickets(
-  prisma: PrismaService,
-  authorizationContextLoader: AuthorizationContextLoader,
-  query: ListTicketsQuery,
-  context: TicketMutationContext,
-  archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
-): Promise<readonly TicketRecord[]> {
-  const result = await runTicketListQuery(
-    prisma,
-    authorizationContextLoader,
-    query,
-    context,
-    archive,
-    null,
-  );
-  return result.records;
-}
-
-/** One page of the visible, matching tickets plus the total across pages. */
+/**
+ * One page of the visible, matching tickets plus the total across pages.
+ *
+ * Phase 1.1 (plan §1.1): this is the only list read of the HTTP API. It used to
+ * have an unpaged sibling that ran `findMany` without `take` whenever the caller
+ * omitted `page`/`pageSize`, which sent the whole ticket table to the client.
+ */
 export async function listTicketsPage(
   prisma: PrismaService,
   authorizationContextLoader: AuthorizationContextLoader,
@@ -55,20 +37,49 @@ export async function listTicketsPage(
   context: TicketMutationContext,
   archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
 ): Promise<TicketListPage> {
+  const pageSize = clampTicketListPageSize(query.pageSize);
   const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
-  const pageSize = Math.min(
-    Math.max(query.pageSize ?? ticketListPaging.defaultPageSize, 1),
-    ticketListPaging.maxPageSize,
-  );
-  const result = await runTicketListQuery(
+  const { records, total } = await runTicketListQuery(
     prisma,
     authorizationContextLoader,
     query,
     context,
     archive,
     { skip: (page - 1) * pageSize, take: pageSize },
+    true,
+    ticketListSelect,
   );
-  return { ...result, page, pageSize };
+  return { records, total, page, pageSize };
+}
+
+/**
+ * Bounded read for the server-side readers that need whole rows rather than a
+ * page: the CSV export and the CSAT summary.
+ *
+ * Phase 1.1 removed the unbounded variant, so each caller states its own limit
+ * — that limit is what keeps the statement (`LIMIT n`) bounded in Postgres. The
+ * row shape stays complete here (export columns and CSAT grouping both read
+ * `formData`-adjacent fields), so no `select` projection is applied.
+ */
+export async function listTicketsWithin(
+  prisma: PrismaService,
+  authorizationContextLoader: AuthorizationContextLoader,
+  query: ListTicketsQuery,
+  context: TicketMutationContext,
+  archive: TicketArchiveConfiguration,
+  limit: number,
+): Promise<readonly TicketRecord[]> {
+  const { records } = await runTicketListQuery(
+    prisma,
+    authorizationContextLoader,
+    query,
+    context,
+    archive,
+    { skip: 0, take: Math.max(limit, 1) },
+    false,
+    null,
+  );
+  return records;
 }
 
 async function runTicketListQuery(
@@ -77,51 +88,37 @@ async function runTicketListQuery(
   query: ListTicketsQuery,
   context: TicketMutationContext,
   archive: TicketArchiveConfiguration,
-  paging: Paging | null,
+  paging: Paging,
+  countTotal: boolean,
+  select: Prisma.TicketSelect | null,
 ): Promise<{ readonly records: readonly TicketRecord[]; readonly total: number }> {
-  const authContext = await authorizationContextLoader.loadBySubjectId(
-    context.actorUserId,
-  );
-  if (authContext === null) {
-    throw new TicketsError('FORBIDDEN');
-  }
-  const statusFilter = buildTicketStatusFilter(
+  // Phase 2.4: the scope comes from the shared builder, which the dashboard and
+  // SLA counters use as well.
+  const where = await buildTicketListWhere(
+    prisma,
+    authorizationContextLoader,
     query,
-    archive.searchable || authContext.isSuperAdmin,
+    context,
+    archive,
   );
-  if (statusFilter === null) {
+  if (where === null) {
     return { records: [], total: 0 };
   }
-  const visibilityInputs = await loadTicketVisibilityInputs(
-    prisma,
-    authContext.subjectId,
-  );
-  const where: Prisma.TicketWhereInput = {
-    AND: [
-      statusFilter,
-      ...buildTicketListFilters(query),
-      ...buildTicketVisibilityWhere({
-        context: authContext,
-        ...visibilityInputs,
-        configuration:
-          context.confidential ?? defaultTicketConfidentialConfiguration,
-        now: new Date(),
-      }),
-    ],
-  };
   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
-  if (paging === null) {
-    const records = (await prisma.ticket.findMany({
-      where,
-      orderBy,
-    })) as TicketRecord[];
+  const findManyArguments: Prisma.TicketFindManyArgs = {
+    where,
+    orderBy,
+    ...paging,
+  };
+  if (select !== null) {
+    findManyArguments.select = select;
+  }
+  const records = (await prisma.ticket.findMany(
+    findManyArguments,
+  )) as unknown as TicketRecord[];
+  if (!countTotal) {
     return { records, total: records.length };
   }
-  const [records, total] = await Promise.all([
-    prisma.ticket.findMany({ where, orderBy, ...paging }) as Promise<
-      TicketRecord[]
-    >,
-    prisma.ticket.count({ where }),
-  ]);
+  const total = await prisma.ticket.count({ where });
   return { records, total };
 }

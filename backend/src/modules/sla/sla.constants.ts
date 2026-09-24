@@ -27,7 +27,13 @@ export const slaSystemEventActions = {
 
 export const defaultSlaEscalationRuleId = 'default';
 
-export const ticketSlaBreachScanIntervalMs = 60 * 1000;
+/**
+ * Phase 2.1 (plan §2.1): how many due states one scan cycle processes. The batch
+ * is deliberately bounded — a cycle then has a predictable cost, and whatever is
+ * left over is picked up by the next one (every state keeps its own
+ * `nextDueAt`, so nothing is lost).
+ */
+export const slaScanBatchSize = 2000;
 
 export const slaConstants = {
   maximumKeyLength: 64,

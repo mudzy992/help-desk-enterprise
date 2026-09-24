@@ -1,0 +1,692 @@
+diff --git a/frontend/src/components/admin/admin-audit-export-card.tsx b/frontend/src/components/admin/admin-audit-export-card.tsx
+index 6058a81..0b013b7 100644
+--- a/frontend/src/components/admin/admin-audit-export-card.tsx
++++ b/frontend/src/components/admin/admin-audit-export-card.tsx
+@@ -27,13 +27,13 @@ export function AdminAuditExportCard({
+   const verify =
+     verifyResult === null ? null : describeVerifyResult(verifyResult);
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <div className="px-4 py-4">
+         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+           <Download size={14} className="text-link" />
+           {t("admin.ops.auditTitle")}
+         </p>
+-        <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
++        <p className="mt-1.5 text-[11.5px] leading-[15px] text-muted-foreground">
+           {t("admin.ops.auditBody")}
+         </p>
+         <div className="mt-3 flex flex-wrap gap-1.5">
+diff --git a/frontend/src/components/admin/admin-ops-panel.tsx b/frontend/src/components/admin/admin-ops-panel.tsx
+index b4e5c5e..8b02323 100644
+--- a/frontend/src/components/admin/admin-ops-panel.tsx
++++ b/frontend/src/components/admin/admin-ops-panel.tsx
+@@ -100,7 +100,7 @@ export function AdminOpsPanel() {
+   };
+ 
+   return (
+-    <div className="space-y-4">
++    <div className="fade-in space-y-4">
+       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
+       <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">
+         {t("admin.ops.organizationalUnit")}
+diff --git a/frontend/src/components/admin/admin-support-bundle-card.tsx b/frontend/src/components/admin/admin-support-bundle-card.tsx
+index 29c5529..feba4fa 100644
+--- a/frontend/src/components/admin/admin-support-bundle-card.tsx
++++ b/frontend/src/components/admin/admin-support-bundle-card.tsx
+@@ -17,13 +17,13 @@ export function AdminSupportBundleCard({
+ }: AdminSupportBundleCardProperties) {
+   const { t } = useTranslation();
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <div className="px-4 py-4">
+         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+           <FileCheck size={14} className="text-ok" />
+           {t("admin.ops.supportTitle")}
+         </p>
+-        <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
++        <p className="mt-1.5 text-[11.5px] leading-[15px] text-muted-foreground">
+           {t("admin.ops.supportBody")}
+         </p>
+         <Button
+diff --git a/frontend/src/components/groups/group-card.tsx b/frontend/src/components/groups/group-card.tsx
+index 86cd11c..61aae84 100644
+--- a/frontend/src/components/groups/group-card.tsx
++++ b/frontend/src/components/groups/group-card.tsx
+@@ -37,19 +37,19 @@ export function GroupCard({
+   return (
+     <Card
+       className={cn(
+-        "overflow-hidden transition-colors hover:border-line-strong",
++        "fade-in overflow-hidden transition-colors hover:border-line-strong",
+         group.isFallback && "border-l-[3px] border-l-warning",
+         isExpanded && "border-line-strong bg-elevated/40",
+       )}
+     >
+       <button
+         type="button"
+-        className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
++        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+         onClick={onOpen}
+         aria-expanded={isExpanded}
+         aria-label={t("groups.openCard", { name: group.name })}
+       >
+-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
++        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground">
+           <UsersRound size={16} />
+         </span>
+         <div className="min-w-0 flex-1">
+@@ -80,7 +80,7 @@ export function GroupCard({
+           </p>
+         </div>
+       </button>
+-      <div className="flex flex-wrap gap-1.5 border-t border-border/60 px-4 py-2">
++      <div className="flex flex-wrap gap-1.5 border-t border-border/70 px-4 py-2">
+         <Button type="button" size="xs" variant="outline" onClick={onOpen}>
+           {isExpanded ? t("groups.hideMembers") : t("groups.manageMembers")}
+         </Button>
+diff --git a/frontend/src/components/groups/group-members-section.tsx b/frontend/src/components/groups/group-members-section.tsx
+index 21bf399..c34e3d2 100644
+--- a/frontend/src/components/groups/group-members-section.tsx
++++ b/frontend/src/components/groups/group-members-section.tsx
+@@ -53,7 +53,7 @@ export function GroupMembersSection({
+   };
+ 
+   return (
+-    <div className="grid gap-2 border-t border-border/60 pt-3">
++    <div className="grid gap-2 border-t border-border/70 pt-3">
+       <p className="text-[12px] font-semibold text-foreground">
+         {t("groups.members.heading")}
+       </p>
+@@ -65,7 +65,7 @@ export function GroupMembersSection({
+           {group.members.map((member) => (
+             <li
+               key={member.id}
+-              className="flex items-center justify-between gap-2 rounded-md bg-muted/30 px-2 py-1.5 text-[12px]"
++              className="flex items-center justify-between gap-2 rounded-lg bg-elevated/40 px-2 py-1.5 text-[12px]"
+             >
+               <span>
+                 {member.displayName}
+diff --git a/frontend/src/components/groups/group-mutation-form.tsx b/frontend/src/components/groups/group-mutation-form.tsx
+index 67c3d92..f842a6c 100644
+--- a/frontend/src/components/groups/group-mutation-form.tsx
++++ b/frontend/src/components/groups/group-mutation-form.tsx
+@@ -36,7 +36,7 @@ export function GroupMutationForm({
+   };
+ 
+   return (
+-    <div className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 p-4">
++    <div className="grid gap-3 rounded-lg border border-border/70 bg-elevated/20 p-4">
+       <label className="grid gap-1">
+         <span className="text-[11px] font-medium text-muted-foreground">
+           {t("groups.form.name")}
+diff --git a/frontend/src/components/groups/group-unit-section.tsx b/frontend/src/components/groups/group-unit-section.tsx
+index 2a1adc2..2a1ff19 100644
+--- a/frontend/src/components/groups/group-unit-section.tsx
++++ b/frontend/src/components/groups/group-unit-section.tsx
+@@ -38,7 +38,7 @@ export function GroupUnitSection({
+   const sectionContainsExpanded = groups.some((group) => group.id === expandedId);
+   return (
+     <section className="grid gap-2.5">
+-      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/50 pb-1.5">
++      <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/70 pb-1.5">
+         <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+           {organizationalUnitPath}
+         </h4>
+diff --git a/frontend/src/components/groups/groups-panel.tsx b/frontend/src/components/groups/groups-panel.tsx
+index 99d9f16..d819e6b 100644
+--- a/frontend/src/components/groups/groups-panel.tsx
++++ b/frontend/src/components/groups/groups-panel.tsx
+@@ -66,7 +66,7 @@ export function GroupsPanel({
+   }
+ 
+   return (
+-    <div className="grid gap-4">
++    <div className="fade-in grid gap-4">
+       {actions.errorKey ? (
+         <ApiErrorText messageKey={actions.errorKey} requestId={actions.requestId} />
+       ) : null}
+diff --git a/frontend/src/components/organizational-units/directory-sync-card.tsx b/frontend/src/components/organizational-units/directory-sync-card.tsx
+index 3f1d534..977a47d 100644
+--- a/frontend/src/components/organizational-units/directory-sync-card.tsx
++++ b/frontend/src/components/organizational-units/directory-sync-card.tsx
+@@ -64,7 +64,7 @@ export function DirectorySyncCard({
+   }
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("directory.syncTitle")}
+         subtitle={t("directory.syncSubtitle", {
+diff --git a/frontend/src/components/organizational-units/organizational-unit-details-card.tsx b/frontend/src/components/organizational-units/organizational-unit-details-card.tsx
+index e06f929..1624abf 100644
+--- a/frontend/src/components/organizational-units/organizational-unit-details-card.tsx
++++ b/frontend/src/components/organizational-units/organizational-unit-details-card.tsx
+@@ -22,7 +22,7 @@ export function OrganizationalUnitDetailsCard({
+     : t("directory.detailsEmpty");
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("directory.detailsTitle", { name: node.name })}
+         subtitle={node.ouPath}
+@@ -55,11 +55,11 @@ export function OrganizationalUnitDetailsCard({
+           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+             {t("directory.detailsDnLabel")}
+           </dt>
+-          <dd className="tnum mt-0.5 break-all font-mono text-[10.5px] leading-4.5 text-muted-foreground">
++          <dd className="tnum mt-0.5 break-all font-mono text-[10.5px] leading-[15px] text-muted-foreground">
+             {distinguishedName}
+           </dd>
+         </div>
+-        <div className="flex gap-1.5 border-t border-border/60 pt-3">
++        <div className="flex gap-1.5 border-t border-border/70 pt-3">
+           <Badge tone="primary" dot={false}>
+             {t("directory.detailsMapped", { count: memberCount })}
+           </Badge>
+diff --git a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+index 1fefcdc..cd7e42e 100644
+--- a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
++++ b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+@@ -52,7 +52,7 @@ export function OrganizationalUnitTreeItem({
+     >
+       <div
+         className={cn(
+-          "group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-elevated/50",
++          "group flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 focus-visible:outline-offset-[-2px]",
+           selected && "bg-elevated/50",
+         )}
+         style={{ paddingLeft: `${8 + depth * 22}px` }}
+@@ -63,7 +63,7 @@ export function OrganizationalUnitTreeItem({
+         {hasChildren ? (
+           <button
+             type="button"
+-            className="rounded p-0.5 text-muted-foreground hover:text-foreground"
++            className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+             aria-label={
+               collapsed
+                 ? t("directory.expandUnit")
+@@ -102,11 +102,11 @@ export function OrganizationalUnitTreeItem({
+           {node.name}
+         </span>
+         {node.type ? (
+-          <span className="rounded border border-border/70 bg-background/50 px-1.5 py-0 text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
++          <span className="rounded border border-border/70 bg-elevated/50 px-1.5 py-0 text-[9.5px] uppercase tracking-[0.04em] text-muted-foreground">
+             {t(`directory.ouType.${node.type}`, { defaultValue: node.type })}
+           </span>
+         ) : null}
+-        <span className="tnum rounded border border-border bg-background/60 px-1.5 py-0 text-[10px] text-muted-foreground">
++        <span className="tnum rounded border border-border bg-elevated/60 px-1.5 py-0 text-[10px] text-muted-foreground">
+           {t("directory.memberCountShort", { count: memberCount })}
+         </span>
+         <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground/50 group-hover:text-muted-foreground/80 lg:block">
+@@ -126,10 +126,10 @@ export function OrganizationalUnitTreeItem({
+               <MoreHorizontal size={14} />
+             </button>
+             {menuOpen ? (
+-              <div className="absolute right-0 z-10 mt-1 min-w-[120px] rounded-md border border-border bg-surface py-1 shadow-md">
++              <div className="absolute right-0 z-10 mt-1 min-w-[120px] rounded-lg border border-border bg-surface py-1 shadow-pop">
+                 <button
+                   type="button"
+-                  className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-elevated"
++                  className="block w-full px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+                   onClick={(event) => {
+                     event.stopPropagation();
+                     setMenuOpen(false);
+@@ -140,7 +140,7 @@ export function OrganizationalUnitTreeItem({
+                 </button>
+                 <button
+                   type="button"
+-                  className="block w-full px-3 py-1.5 text-left text-[12px] text-danger hover:bg-elevated"
++                  className="block w-full px-3 py-1.5 text-left text-[12px] text-danger transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+                   onClick={(event) => {
+                     event.stopPropagation();
+                     setMenuOpen(false);
+diff --git a/frontend/src/components/rbac/permissions-panel.tsx b/frontend/src/components/rbac/permissions-panel.tsx
+index b3a21ad..dd3a2a2 100644
+--- a/frontend/src/components/rbac/permissions-panel.tsx
++++ b/frontend/src/components/rbac/permissions-panel.tsx
+@@ -128,7 +128,7 @@ export function PermissionsPanel() {
+   }
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("permissions.heading")}
+         subtitle={t("permissions.intro")}
+@@ -157,7 +157,7 @@ export function PermissionsPanel() {
+         enabledKeys={enabledKeys}
+         onToggle={handleToggle}
+       />
+-      <div className="border-t border-border/60 px-4 py-3">
++      <div className="border-t border-border/70 px-4 py-3">
+         <Button type="button" size="sm" onClick={() => void handlePreview()} disabled={pending}>
+           {t("permissions.previewAction")}
+         </Button>
+diff --git a/frontend/src/components/rbac/permissions-preview-panel.tsx b/frontend/src/components/rbac/permissions-preview-panel.tsx
+index 0d0bbc0..bdc9fbe 100644
+--- a/frontend/src/components/rbac/permissions-preview-panel.tsx
++++ b/frontend/src/components/rbac/permissions-preview-panel.tsx
+@@ -17,7 +17,7 @@ export function PermissionsPreviewPanel({
+ }: PermissionsPreviewPanelProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="mt-4 rounded-md border border-border/70 bg-elevated/40 p-4">
++    <div className="fade-in mt-4 rounded-lg border border-border/70 bg-elevated/40 p-4">
+       <p className="text-[13px] font-medium text-foreground">
+         {t("permissions.previewTitle")}
+       </p>
+@@ -33,7 +33,7 @@ export function PermissionsPreviewPanel({
+           {preview.samples.map((sample) => (
+             <li
+               key={`${sample.userId}-${sample.permissionKey}`}
+-              className="rounded border border-border/60 px-3 py-2 text-[12px]"
++              className="rounded border border-border/70 px-3 py-2 text-[12px]"
+             >
+               <p className="font-medium text-foreground">{sample.displayName}</p>
+               <p className="text-muted-foreground">{sample.permissionKey}</p>
+diff --git a/frontend/src/components/settings/addon-catalog-row.tsx b/frontend/src/components/settings/addon-catalog-row.tsx
+index d96ccac..e2f0228 100644
+--- a/frontend/src/components/settings/addon-catalog-row.tsx
++++ b/frontend/src/components/settings/addon-catalog-row.tsx
+@@ -35,10 +35,10 @@ export function AddonCatalogRow({
+       <div className="flex items-center gap-3">
+         <span
+           className={cn(
+-            "flex size-8 shrink-0 items-center justify-center rounded-md border",
++            "flex size-8 shrink-0 items-center justify-center rounded-lg border",
+             effectiveEnabled
+               ? "border-primary/35 bg-primary/10 text-link"
+-              : "border-border bg-background/50 text-muted-foreground/60",
++              : "border-border bg-elevated/50 text-muted-foreground/60",
+           )}
+         >
+           <Boxes size={14} />
+@@ -49,7 +49,7 @@ export function AddonCatalogRow({
+             <p className="text-[11px] text-muted-foreground">{description}</p>
+           ) : null}
+         </div>
+-        <span className="hidden font-mono text-[10px] text-muted-foreground/50 md:block tnum">
++        <span className="tnum hidden font-mono text-[10px] text-muted-foreground/50 md:block">
+           {item.key}
+         </span>
+         <Switch
+diff --git a/frontend/src/components/settings/addons-settings-panel.tsx b/frontend/src/components/settings/addons-settings-panel.tsx
+index 3b4743a..77f536c 100644
+--- a/frontend/src/components/settings/addons-settings-panel.tsx
++++ b/frontend/src/components/settings/addons-settings-panel.tsx
+@@ -32,7 +32,7 @@ export function AddonsSettingsPanel({
+   }
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("settings.addons.title")}
+         subtitle={t("settings.addons.subtitle")}
+diff --git a/frontend/src/components/settings/auth-provider-settings-card.tsx b/frontend/src/components/settings/auth-provider-settings-card.tsx
+index 72cc371..4d03db9 100644
+--- a/frontend/src/components/settings/auth-provider-settings-card.tsx
++++ b/frontend/src/components/settings/auth-provider-settings-card.tsx
+@@ -45,7 +45,7 @@ export function AuthProviderSettingsCard({
+ 
+   return (
+     <>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("settings.auth.title")}
+           subtitle={t("settings.auth.subtitle")}
+@@ -63,10 +63,10 @@ export function AuthProviderSettingsCard({
+                 type="button"
+                 disabled={!canWrite || pendingKey === authSettingKeys.mode}
+                 className={cn(
+-                  "rounded-lg border p-3 text-left transition-all",
++                  "rounded-lg border p-3 text-left transition-colors",
+                   pendingMode === provider.id
+                     ? "border-primary/50 bg-primary/8"
+-                    : "border-border bg-background/40 hover:border-line-strong",
++                    : "border-border bg-elevated/40 hover:border-line-strong",
+                 )}
+                 onClick={() => setDraftMode(provider.id)}
+               >
+@@ -93,7 +93,7 @@ export function AuthProviderSettingsCard({
+               </Button>
+             </div>
+           ) : null}
+-          <p className="text-[11px] leading-4 text-muted-foreground/70">
++          <p className="text-[11px] leading-[15px] text-muted-foreground/70">
+             {t("settings.auth.breakGlass")}
+           </p>
+           {draftMode !== null && draftMode !== mode ? (
+diff --git a/frontend/src/components/settings/security-compliance-settings-card.tsx b/frontend/src/components/settings/security-compliance-settings-card.tsx
+index 04e875f..d2b6d30 100644
+--- a/frontend/src/components/settings/security-compliance-settings-card.tsx
++++ b/frontend/src/components/settings/security-compliance-settings-card.tsx
+@@ -84,14 +84,14 @@ export function SecurityComplianceSettingsCard({
+ 
+   return (
+     <>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader title={t("settings.security.title")} />
+         <div className="space-y-2 px-4 py-4">
+           {rows.map((row) => (
+             <button
+               key={row.id}
+               type="button"
+-              className="flex w-full items-center gap-2.5 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-left transition-colors hover:border-line-strong"
++              className="flex w-full items-center gap-2.5 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+               onClick={() => setOpenRow(row.id)}
+             >
+               <row.icon
+diff --git a/frontend/src/components/settings/settings-reason-confirm.tsx b/frontend/src/components/settings/settings-reason-confirm.tsx
+index 35aebe0..ffff68d 100644
+--- a/frontend/src/components/settings/settings-reason-confirm.tsx
++++ b/frontend/src/components/settings/settings-reason-confirm.tsx
+@@ -17,7 +17,7 @@ export function SettingsReasonConfirm({
+   const { t } = useTranslation();
+   const [reason, setReason] = useState("");
+   return (
+-    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/60 pt-3">
++    <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/70 pt-3">
+       <input
+         className={controlCompactClassName}
+         value={reason}
+diff --git a/frontend/src/components/settings/settings-registry-field.tsx b/frontend/src/components/settings/settings-registry-field.tsx
+index 83fc684..61eabde 100644
+--- a/frontend/src/components/settings/settings-registry-field.tsx
++++ b/frontend/src/components/settings/settings-registry-field.tsx
+@@ -62,7 +62,7 @@ export function SettingsRegistryField({
+       <div className="flex items-start justify-between gap-3">
+         <div className="min-w-0 flex-1">
+           <div className="flex flex-wrap items-center gap-1.5">
+-            <p className="font-mono text-[11.5px] text-muted-foreground tnum">
++            <p className="tnum font-mono text-[11.5px] text-muted-foreground">
+               {entry.key}
+             </p>
+             <Badge tone={visibilityTone[entry.visibility]} dot={false}>
+@@ -86,7 +86,7 @@ export function SettingsRegistryField({
+         />
+       </div>
+       {canWrite && isDirty ? (
+-        <div className="flex flex-wrap items-end gap-2 border-t border-border/50 pt-2">
++        <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-2">
+           <input
+             className={controlCompactClassName}
+             value={reason}
+diff --git a/frontend/src/components/settings/settings-registry-panel.tsx b/frontend/src/components/settings/settings-registry-panel.tsx
+index 245808a..4a4477a 100644
+--- a/frontend/src/components/settings/settings-registry-panel.tsx
++++ b/frontend/src/components/settings/settings-registry-panel.tsx
+@@ -40,7 +40,7 @@ export function SettingsRegistryPanel({
+   }
+ 
+   return (
+-    <section className="space-y-3">
++    <section className="fade-in space-y-3">
+       <div className="flex flex-wrap items-start justify-between gap-3">
+         <div className="min-w-0">
+           <h2 className={sectionTitleClassName}>{t("settings.registry.title")}</h2>
+diff --git a/frontend/src/components/settings/settings-registry-section.tsx b/frontend/src/components/settings/settings-registry-section.tsx
+index 2b0ed83..fe179b5 100644
+--- a/frontend/src/components/settings/settings-registry-section.tsx
++++ b/frontend/src/components/settings/settings-registry-section.tsx
+@@ -57,7 +57,7 @@ export function SettingsRegistrySection({
+               key={entry.key}
+               className="flex items-center justify-between gap-2 text-[12px]"
+             >
+-              <span className="truncate font-mono text-[11px] text-muted-foreground tnum">
++              <span className="tnum truncate font-mono text-[11px] text-muted-foreground">
+                 {entry.key}
+               </span>
+               <span className="shrink-0 text-foreground/90">
+diff --git a/frontend/src/components/settings/smtp-email-settings-card.tsx b/frontend/src/components/settings/smtp-email-settings-card.tsx
+index 7f78c63..0d770b1 100644
+--- a/frontend/src/components/settings/smtp-email-settings-card.tsx
++++ b/frontend/src/components/settings/smtp-email-settings-card.tsx
+@@ -58,7 +58,7 @@ export function SmtpEmailSettingsCard({
+ 
+   return (
+     <>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("settings.smtp.title")}
+           subtitle={t("settings.smtp.subtitle")}
+diff --git a/frontend/src/components/settings/system-settings-card.tsx b/frontend/src/components/settings/system-settings-card.tsx
+index 59661dc..a872946 100644
+--- a/frontend/src/components/settings/system-settings-card.tsx
++++ b/frontend/src/components/settings/system-settings-card.tsx
+@@ -47,7 +47,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
+   }, []);
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("settings.system.title")}
+         subtitle={t("settings.system.subtitle")}
+@@ -79,7 +79,7 @@ export function SystemSettingsCard({ entries }: SystemSettingsCardProperties) {
+               : t("settings.system.installOpen")}
+           </span>
+         </p>
+-        <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
++        <div className="flex flex-wrap gap-2 border-t border-border/70 pt-3">
+           <Button asChild variant="outline" size="xs">
+             <Link to="/admin/config-versions">{t("settings.system.openConfigVersions")}</Link>
+           </Button>
+diff --git a/frontend/src/components/settings/unrouted-queue-settings-card.tsx b/frontend/src/components/settings/unrouted-queue-settings-card.tsx
+index 8b59984..c7db336 100644
+--- a/frontend/src/components/settings/unrouted-queue-settings-card.tsx
++++ b/frontend/src/components/settings/unrouted-queue-settings-card.tsx
+@@ -50,14 +50,14 @@ export function UnroutedQueueSettingsCard({
+ 
+   return (
+     <>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("settings.unrouted.title")}
+           subtitle={t("settings.unrouted.subtitle")}
+         />
+         <div className="space-y-2.5 px-4 py-4 text-[12px]">
+           <p className="flex items-center justify-between gap-2">
+-            <span className="font-mono text-[11px] text-muted-foreground tnum">
++            <span className="tnum font-mono text-[11px] text-muted-foreground">
+               {unroutedSettingKeys.enabled}
+             </span>
+             <Switch
+@@ -68,14 +68,14 @@ export function UnroutedQueueSettingsCard({
+             />
+           </p>
+           <p className="flex items-center justify-between gap-2">
+-            <span className="font-mono text-[11px] text-muted-foreground tnum">
++            <span className="tnum font-mono text-[11px] text-muted-foreground">
+               {unroutedSettingKeys.ownerRole}
+             </span>
+             <Badge tone="danger" dot={false}>
+               {ownerRole || "—"}
+             </Badge>
+           </p>
+-          <p className="flex items-start gap-1.5 border-t border-border/60 pt-3 text-[11px] leading-4 text-muted-foreground/70">
++          <p className="flex items-start gap-1.5 border-t border-border/70 pt-3 text-[11px] leading-[15px] text-muted-foreground/70">
+             <Mail size={11.5} className="mt-0.5 shrink-0" />
+             {t("settings.unrouted.hint")}
+           </p>
+diff --git a/frontend/src/components/users/add-user-form.tsx b/frontend/src/components/users/add-user-form.tsx
+index 198ca4f..103e269 100644
+--- a/frontend/src/components/users/add-user-form.tsx
++++ b/frontend/src/components/users/add-user-form.tsx
+@@ -83,7 +83,7 @@ export function AddUserForm({
+   }
+ 
+   return (
+-    <div className="space-y-2 border-b border-border/60 px-4 py-3">
++    <div className="space-y-2 border-b border-border/70 px-4 py-3">
+       <input
+         className={`${controlCompactClassName} w-full`}
+         value={displayName}
+@@ -123,7 +123,7 @@ export function AddUserForm({
+       {showOrganizationalUnitScopeWarning ? (
+         <p
+           role="status"
+-          className="text-[12px] text-amber-700 dark:text-amber-400"
++          className="text-[12px] text-warning"
+         >
+           {t("users.scopeOrganizationalUnitRequiredWarning")}
+         </p>
+diff --git a/frontend/src/components/users/link-directory-identity-dialog.tsx b/frontend/src/components/users/link-directory-identity-dialog.tsx
+index 8f4192f..c3697b7 100644
+--- a/frontend/src/components/users/link-directory-identity-dialog.tsx
++++ b/frontend/src/components/users/link-directory-identity-dialog.tsx
+@@ -97,7 +97,7 @@ export function LinkDirectoryIdentityDialog({
+         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
+           {t("users.linkDirectoryHint")}
+         </SheetDescription>
+-        <div className="mt-4 grid gap-3 rounded-md border border-border/70 p-3 text-[12px]">
++        <div className="mt-4 grid gap-3 rounded-lg border border-border/70 p-3 text-[12px]">
+           <p className="font-medium text-foreground">
+             {t("users.linkDirectoryLocalLabel")}
+           </p>
+@@ -118,10 +118,10 @@ export function LinkDirectoryIdentityDialog({
+                 <li key={entry.externalId}>
+                   <button
+                     type="button"
+-                    className={`w-full rounded-md border px-2.5 py-2 text-left text-[12px] ${
++                    className={`w-full rounded-lg border px-2.5 py-2 text-left text-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 ${
+                       selectedExternalId === entry.externalId
+                         ? "border-primary bg-primary/10"
+-                        : "border-border/70 hover:bg-elevated/50"
++                        : "border-border/70 hover:bg-surface-hover"
+                     }`}
+                     onClick={() => setSelectedExternalId(entry.externalId)}
+                   >
+@@ -136,7 +136,7 @@ export function LinkDirectoryIdentityDialog({
+           )}
+         </div>
+         {selected ? (
+-          <div className="mt-4 grid gap-2 rounded-md border border-border/70 p-3 text-[12px]">
++          <div className="mt-4 grid gap-2 rounded-lg border border-border/70 p-3 text-[12px]">
+             <p className="font-medium">{t("users.linkDirectoryConfirmCompare")}</p>
+             <p>
+               {user.displayName} ({user.email}) → {selected.displayName} (
+diff --git a/frontend/src/components/users/temporary-password-reveal.tsx b/frontend/src/components/users/temporary-password-reveal.tsx
+index 37f616a..72257a7 100644
+--- a/frontend/src/components/users/temporary-password-reveal.tsx
++++ b/frontend/src/components/users/temporary-password-reveal.tsx
+@@ -22,7 +22,7 @@ export function TemporaryPasswordReveal({
+ 
+   if (result.temporaryPasswordDelivery === "email") {
+     return (
+-      <div className="space-y-2 border-b border-border/60 px-4 py-3">
++      <div className="space-y-2 border-b border-border/70 px-4 py-3">
+         <p className="text-[13px] text-foreground" role="status">
+           {t("users.temporaryPasswordEmailed")}
+         </p>
+@@ -34,7 +34,7 @@ export function TemporaryPasswordReveal({
+   }
+ 
+   return (
+-    <div className="space-y-2 border-b border-border/60 px-4 py-3">
++    <div className="space-y-2 border-b border-border/70 px-4 py-3">
+       <p className="text-[13px] font-medium text-foreground">
+         {t("users.temporaryPasswordTitle")}
+       </p>
+@@ -42,7 +42,7 @@ export function TemporaryPasswordReveal({
+         {t("users.temporaryPasswordHint")}
+       </p>
+       <div className="flex items-center gap-2">
+-        <code className="flex-1 break-all rounded-md border border-border bg-elevated px-2 py-1.5 text-[12px]">
++        <code className="flex-1 break-all rounded-lg border border-border bg-elevated px-2 py-1.5 text-[12px]">
+           {result.temporaryPassword}
+         </code>
+         <Button
+diff --git a/frontend/src/components/users/user-detail-drawer.tsx b/frontend/src/components/users/user-detail-drawer.tsx
+index ce9f929..7e1c403 100644
+--- a/frontend/src/components/users/user-detail-drawer.tsx
++++ b/frontend/src/components/users/user-detail-drawer.tsx
+@@ -82,7 +82,7 @@ export function UserDetailDrawer({
+             <h3 className="mb-2 text-[12px] font-medium text-foreground">
+               {t("users.rolesHeading")}
+             </h3>
+-            <div className="rounded-md border border-border/60">
++            <div className="rounded-lg border border-border/70">
+               <UserRolesSection
+                 userId={user.id}
+                 originUnits={originUnits}
+diff --git a/frontend/src/components/users/user-role-group-coverage-notice.tsx b/frontend/src/components/users/user-role-group-coverage-notice.tsx
+index 7516ac1..9faab7d 100644
+--- a/frontend/src/components/users/user-role-group-coverage-notice.tsx
++++ b/frontend/src/components/users/user-role-group-coverage-notice.tsx
+@@ -14,7 +14,7 @@ export function UserRoleGroupCoverageNotice({
+   return (
+     <p
+       role="status"
+-      className="mt-1 text-[11px] text-sky-800 dark:text-sky-300"
++      className="mt-1 text-[11px] text-info"
+     >
+       <Trans
+         i18nKey="users.roleGroupCoverageWarning"
+diff --git a/frontend/src/components/users/user-roles-section.tsx b/frontend/src/components/users/user-roles-section.tsx
+index 0e93826..df73654 100644
+--- a/frontend/src/components/users/user-roles-section.tsx
++++ b/frontend/src/components/users/user-roles-section.tsx
+@@ -217,7 +217,7 @@ export function UserRolesSection({
+       {showOrganizationalUnitScopeWarning ? (
+         <p
+           role="status"
+-          className="mt-2 text-[12px] text-amber-700 dark:text-amber-400"
++          className="mt-2 text-[12px] text-warning"
+         >
+           {t("users.scopeOrganizationalUnitRequiredWarning")}
+         </p>
+diff --git a/frontend/src/components/users/users-summary-row.tsx b/frontend/src/components/users/users-summary-row.tsx
+index 7954e7d..bde276a 100644
+--- a/frontend/src/components/users/users-summary-row.tsx
++++ b/frontend/src/components/users/users-summary-row.tsx
+@@ -8,7 +8,7 @@ import type { UserSummary } from "@/services/users-api";
+ 
+ const ROLE_STYLE: Record<UserSummary["roleTone"], string> = {
+   super: "border-danger/35 bg-danger/10 text-danger",
+-  manager: "border-primary/35 bg-primary/12 text-link",
++  manager: "border-primary/35 bg-primary/15 text-link",
+   agent: "border-info/30 bg-info/10 text-info",
+   user: "border-border bg-elevated text-muted-foreground",
+ };
+@@ -33,7 +33,7 @@ export function UsersSummaryRow({
+         : t("users.scopeOwn");
+ 
+   return (
+-    <tr className="transition-colors hover:bg-elevated/40">
++    <tr className="transition-colors hover:bg-surface-hover">
+       <td className="px-4 py-2.5">
+         <div className="flex items-center gap-2.5">
+           <Avatar name={user.displayName} size="sm" />
+@@ -61,7 +61,7 @@ export function UsersSummaryRow({
+       <td className="px-4 py-2.5">
+         <span
+           className={cn(
+-            "inline-flex rounded-md border px-1.5 py-0.5 text-[11px] font-medium",
++            "inline-flex rounded-lg border px-1.5 py-0.5 text-[11px] font-medium",
+             ROLE_STYLE[user.roleTone],
+           )}
+         >
+diff --git a/frontend/src/components/users/users-table.tsx b/frontend/src/components/users/users-table.tsx
+index 279a204..f4f5c63 100644
+--- a/frontend/src/components/users/users-table.tsx
++++ b/frontend/src/components/users/users-table.tsx
+@@ -16,7 +16,7 @@ export function UsersTable({
+ }: UsersTableProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="overflow-x-auto">
++    <div className="fade-in overflow-x-auto">
+       <table className="w-full min-w-[860px] text-left">
+         <thead>
+           <tr

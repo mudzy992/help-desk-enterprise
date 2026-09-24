@@ -18,6 +18,14 @@ export const defaultReportPacksJson = JSON.stringify([...defaultReportPackKeys])
 export const defaultReportExportFormatsCsv = 'csv,json';
 export const defaultBottleneckWindowDays = 30;
 
+/**
+ * The zone the reporting day starts in. One help desk serves one working day —
+ * the deployment this runs in is `Europe/Sarajevo` — and the value is a setting
+ * rather than a process constant so that the boundary never depends on the
+ * `TZ` of whichever machine happens to run the query.
+ */
+export const defaultReportsTimeZone = 'Europe/Sarajevo';
+
 export const reportsSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
     key: settingKeys.privateReportsEnabled,
@@ -44,6 +52,16 @@ export const reportsSettings: readonly SettingDefinition[] = [
     defaultValue: defaultReportExportFormatsCsv,
   }),
   definePrivateSetting({
+    key: settingKeys.privateReportsTimeZone,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'string',
+    description:
+      'IANA time zone of the reporting day boundary (dashboard "opened today")',
+    isRequired: true,
+    defaultValue: defaultReportsTimeZone,
+    assertValue: assertIanaTimeZone,
+  }),
+  definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksEnabled,
     categoryId: settingCategoryIds.privateDashboard,
     valueType: 'boolean',
@@ -61,6 +79,20 @@ export const reportsSettings: readonly SettingDefinition[] = [
     assertValue: assertPositiveInteger,
   }),
 ];
+
+/** Rejects anything `Intl` cannot resolve as a zone name, so a typo is a 400. */
+function assertIanaTimeZone(value: SettingValue): void {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new SettingsError('Reports time zone must be an IANA zone name');
+  }
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value.trim() }).format(new Date());
+  } catch {
+    throw new SettingsError(
+      `Reports time zone is not a known IANA zone: ${value}`,
+    );
+  }
+}
 
 function assertPositiveInteger(value: SettingValue): void {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {

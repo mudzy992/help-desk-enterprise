@@ -1,38 +1,26 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RedisService } from '../../common/redis/redis.service';
 import {
-  workerHeartbeatIntervalMilliseconds,
   workerHeartbeatRedisKey,
   workerHeartbeatTimeToLiveSeconds,
 } from './integration-queue.constants';
 
 @Injectable()
-export class IntegrationQueueWorkerHeartbeatService
-  implements OnModuleInit, OnModuleDestroy
-{
+export class IntegrationQueueWorkerHeartbeatService implements OnModuleInit {
   private readonly logger = new Logger(
     IntegrationQueueWorkerHeartbeatService.name,
   );
-  private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(private readonly redisService: RedisService) {}
 
+  /**
+   * Phase 4.1 (plan §4.1): the periodic part moved to a BullMQ schedule
+   * (`integration-worker-maintenance.scheduler.service.ts`) so two workers write
+   * one heartbeat instead of two. The immediate write stays: without it the health
+   * check would flap to "stale" for the first interval after every restart.
+   */
   async onModuleInit(): Promise<void> {
     await this.writeHeartbeat();
-    this.timer = setInterval(() => {
-      void this.writeHeartbeat();
-    }, workerHeartbeatIntervalMilliseconds);
-  }
-
-  onModuleDestroy(): void {
-    if (this.timer !== undefined) {
-      clearInterval(this.timer);
-    }
   }
 
   async writeHeartbeat(): Promise<void> {

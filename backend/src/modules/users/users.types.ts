@@ -8,6 +8,8 @@ export type UserRoleResponse = {
   readonly serviceName: string | null;
 };
 
+export type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
+
 export type AssignUserRoleInput = {
   readonly userId: string;
   readonly roleKey: string;

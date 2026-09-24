@@ -1,0 +1,629 @@
+diff --git a/frontend/src/components/knowledge-base/create-knowledge-article-form.tsx b/frontend/src/components/knowledge-base/create-knowledge-article-form.tsx
+index cff487b..139a52c 100644
+--- a/frontend/src/components/knowledge-base/create-knowledge-article-form.tsx
++++ b/frontend/src/components/knowledge-base/create-knowledge-article-form.tsx
+@@ -140,7 +140,7 @@ export function CreateKnowledgeArticleForm({
+   };
+ 
+   return (
+-    <form className="mt-4 grid gap-3" onSubmit={onSubmit}>
++    <form className="fade-in mt-4 grid gap-3" onSubmit={onSubmit}>
+       <Field label={t("knowledgeBase.titleField")} required>
+         <Input
+           value={title}
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-delete-panel.tsx b/frontend/src/components/knowledge-base/knowledge-article-delete-panel.tsx
+index fae14ef..ad68e40 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-delete-panel.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-delete-panel.tsx
+@@ -52,7 +52,7 @@ export function KnowledgeArticleDeletePanel({
+ 
+   if (!isConfirmOpen) {
+     return (
+-      <div className="border-t border-border/50 px-4 py-3">
++      <div className="border-t border-border/70 px-4 py-3">
+         <Button
+           type="button"
+           size="sm"
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx b/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
+index 2616db2..ac4d359 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-detail-panel.tsx
+@@ -58,7 +58,7 @@ export function KnowledgeArticleDetailPanel({
+   const canEdit = canWrite && article.status !== "ARCHIVED";
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <div className="px-4 pt-4">
+         <div className="flex items-start justify-between gap-3">
+           <p className="tnum text-[10.5px] font-medium text-muted-foreground/60">
+@@ -92,7 +92,7 @@ export function KnowledgeArticleDetailPanel({
+           </p>
+         )}
+       </div>
+-      <div className="flex items-center gap-3 border-t border-border/50 px-4 py-2.5 text-[11px] text-muted-foreground">
++      <div className="flex items-center gap-3 border-t border-border/70 px-4 py-2.5 text-[11px] text-muted-foreground">
+         {owner ? (
+           <span className="flex min-w-0 items-center gap-1">
+             <Avatar name={owner} size="xs" />
+@@ -107,10 +107,10 @@ export function KnowledgeArticleDetailPanel({
+               type="button"
+               aria-label={t("knowledgeBase.helpful")}
+               className={cn(
+-                "rounded-md border p-1.5 transition-colors",
++                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                 article.viewerFeedback === true
+-                  ? "border-success/45 bg-success/12 text-ok"
+-                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
++                  ? "border-success/45 bg-success/15 text-ok"
++                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+               )}
+               onClick={() => {
+                 void submitKnowledgeFeedback(article.id, true).then(onChanged);
+@@ -122,10 +122,10 @@ export function KnowledgeArticleDetailPanel({
+               type="button"
+               aria-label={t("knowledgeBase.notHelpful")}
+               className={cn(
+-                "rounded-md border p-1.5 transition-colors",
++                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                 article.viewerFeedback === false
+-                  ? "border-danger/45 bg-danger/12 text-danger"
+-                  : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
++                  ? "border-danger/45 bg-danger/15 text-danger"
++                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+               )}
+               onClick={() => {
+                 void submitKnowledgeFeedback(article.id, false).then(onChanged);
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-edit-form.tsx b/frontend/src/components/knowledge-base/knowledge-article-edit-form.tsx
+index 780c370..06198ac 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-edit-form.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-edit-form.tsx
+@@ -146,7 +146,7 @@ export function KnowledgeArticleEditForm({
+   };
+ 
+   return (
+-    <form className="grid gap-3" onSubmit={onSubmit}>
++    <form className="fade-in grid gap-3" onSubmit={onSubmit}>
+       <Field label={t("knowledgeBase.titleField")} required>
+         <Input
+           value={title}
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-list.tsx b/frontend/src/components/knowledge-base/knowledge-article-list.tsx
+index 5409a94..db62e83 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-list.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-list.tsx
+@@ -102,14 +102,14 @@ export function KnowledgeArticleList({
+     );
+   }
+   return (
+-    <ul className="grid grid-cols-1 gap-3 xl:grid-cols-2">
++    <ul className="fade-in grid grid-cols-1 gap-3 xl:grid-cols-2">
+       {items.map((item) => {
+         const owner = ownerLabel(item, ownerNames, t("tickets.detail.unknownUser"));
+         const serviceName =
+           pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
+         return (
+           <li key={item.id}>
+-            <Card className="group h-full transition-all hover:border-line-strong">
++            <Card className="group h-full transition-colors hover:border-line-strong">
+               <div className="px-4 pt-4">
+                 <div className="flex items-start justify-between gap-3">
+                   <div className="min-w-0">
+@@ -139,7 +139,7 @@ export function KnowledgeArticleList({
+                   {item.body.slice(0, 280)}
+                 </p>
+               </div>
+-              <div className="mt-3 flex items-center gap-3 border-t border-border/50 px-4 py-2.5 text-[11px] text-muted-foreground">
++              <div className="mt-3 flex items-center gap-3 border-t border-border/70 px-4 py-2.5 text-[11px] text-muted-foreground">
+                 {owner ? (
+                   <span className="flex min-w-0 items-center gap-1">
+                     <Avatar name={owner} size="xs" />
+@@ -154,10 +154,10 @@ export function KnowledgeArticleList({
+                       type="button"
+                       aria-label={t("knowledgeBase.helpful")}
+                       className={cn(
+-                        "rounded-md border p-1.5 transition-colors",
++                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                         item.viewerFeedback === true
+-                          ? "border-success/45 bg-success/12 text-ok"
+-                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
++                          ? "border-success/45 bg-success/15 text-ok"
++                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+                       )}
+                       onClick={() => {
+                         void submitKnowledgeFeedback(item.id, true).then(onFeedback);
+@@ -169,10 +169,10 @@ export function KnowledgeArticleList({
+                       type="button"
+                       aria-label={t("knowledgeBase.notHelpful")}
+                       className={cn(
+-                        "rounded-md border p-1.5 transition-colors",
++                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                         item.viewerFeedback === false
+-                          ? "border-danger/45 bg-danger/12 text-danger"
+-                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
++                          ? "border-danger/45 bg-danger/15 text-danger"
++                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+                       )}
+                       onClick={() => {
+                         void submitKnowledgeFeedback(item.id, false).then(onFeedback);
+diff --git a/frontend/src/components/knowledge-base/knowledge-article-search-card.tsx b/frontend/src/components/knowledge-base/knowledge-article-search-card.tsx
+index df24b33..af415e0 100644
+--- a/frontend/src/components/knowledge-base/knowledge-article-search-card.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-article-search-card.tsx
+@@ -1,13 +1,8 @@
+ import { ArrowDownUp, Filter, Search } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { Card } from "@/components/ui/card";
+-import {
+-  filterChipActiveClassName,
+-  filterChipClassName,
+-  filterChipIdleClassName,
+-} from "@/components/ui/control";
++import { Chip } from "@/components/ui/chip";
+ import { knowledgeArticleStatusValues } from "@/lib/knowledge-base/filter-knowledge-articles";
+-import { cn } from "@/lib/utils";
+ import type { KnowledgeArticleStatus } from "@/services/knowledge-base-api";
+ import type { ServiceResponse } from "@/services/service-catalog-api";
+ 
+@@ -23,29 +18,6 @@ interface KnowledgeArticleSearchCardProperties {
+   readonly onStaleOnlyChange: (value: boolean) => void;
+ }
+ 
+-function Chip({
+-  active,
+-  label,
+-  onClick,
+-}: {
+-  readonly active: boolean;
+-  readonly label: string;
+-  readonly onClick: () => void;
+-}) {
+-  return (
+-    <button
+-      type="button"
+-      onClick={onClick}
+-      className={cn(
+-        filterChipClassName,
+-        active ? filterChipActiveClassName : filterChipIdleClassName,
+-      )}
+-    >
+-      {label}
+-    </button>
+-  );
+-}
+-
+ export function KnowledgeArticleSearchCard({
+   search,
+   status,
+@@ -59,7 +31,7 @@ export function KnowledgeArticleSearchCard({
+ }: KnowledgeArticleSearchCardProperties) {
+   const { t } = useTranslation();
+   return (
+-    <Card className="mb-4">
++    <Card className="fade-in mb-4">
+       <div className="flex items-center gap-3 px-4 py-3">
+         <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+         <input
+@@ -75,34 +47,32 @@ export function KnowledgeArticleSearchCard({
+           {t("knowledgeBase.rankedByFullText")}
+         </span>
+       </div>
+-      <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 px-4 py-2.5">
++      <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 px-4 py-2.5">
+         <Filter size={12.5} className="text-muted-foreground/70" aria-hidden="true" />
+-        <Chip
+-          active={status === ""}
+-          label={t("knowledgeBase.filterAll")}
+-          onClick={() => onStatusChange("")}
+-        />
++        <Chip active={status === ""} onClick={() => onStatusChange("")}>
++          {t("knowledgeBase.filterAll")}
++        </Chip>
+         {knowledgeArticleStatusValues.map((value) => (
+           <Chip
+             key={value}
+             active={status === value}
+-            label={t(`knowledgeBase.status.${value}`)}
+             onClick={() => onStatusChange(value)}
+-          />
++          >
++            {t(`knowledgeBase.status.${value}`)}
++          </Chip>
+         ))}
+         {services.map((service) => (
+           <Chip
+             key={service.id}
+             active={serviceId === service.id}
+-            label={service.name}
+             onClick={() => onServiceIdChange(serviceId === service.id ? "" : service.id)}
+-          />
++          >
++            {service.name}
++          </Chip>
+         ))}
+-        <Chip
+-          active={staleOnly}
+-          label={t("knowledgeBase.stale")}
+-          onClick={() => onStaleOnlyChange(!staleOnly)}
+-        />
++        <Chip active={staleOnly} onClick={() => onStaleOnlyChange(!staleOnly)}>
++          {t("knowledgeBase.stale")}
++        </Chip>
+       </div>
+     </Card>
+   );
+diff --git a/frontend/src/components/knowledge-base/knowledge-lifecycle-actions.tsx b/frontend/src/components/knowledge-base/knowledge-lifecycle-actions.tsx
+index fe6d00b..5000eed 100644
+--- a/frontend/src/components/knowledge-base/knowledge-lifecycle-actions.tsx
++++ b/frontend/src/components/knowledge-base/knowledge-lifecycle-actions.tsx
+@@ -54,7 +54,7 @@ export function KnowledgeLifecycleActions({
+ 
+   const isReasonMissing = reason.trim().length === 0;
+   return (
+-    <div className="grid gap-2 border-t border-border pt-2">
++    <div className="grid gap-2 border-t border-border/70 pt-2">
+       <label className="grid gap-1">
+         <span className={hintClassName}>{t("knowledgeBase.reasonLabel")}</span>
+         <input
+diff --git a/frontend/src/components/services/categories/service-categories-panel.tsx b/frontend/src/components/services/categories/service-categories-panel.tsx
+index be243b1..7b0c515 100644
+--- a/frontend/src/components/services/categories/service-categories-panel.tsx
++++ b/frontend/src/components/services/categories/service-categories-panel.tsx
+@@ -70,7 +70,7 @@ export function ServiceCategoriesPanel({
+   }
+ 
+   return (
+-    <div className="grid gap-3">
++    <div className="fade-in grid gap-3">
+       {errorKey ? (
+         <ApiErrorText messageKey={errorKey} requestId={requestId} />
+       ) : null}
+diff --git a/frontend/src/components/services/categories/service-category-mutation-form.tsx b/frontend/src/components/services/categories/service-category-mutation-form.tsx
+index 36c277a..eac8ac8 100644
+--- a/frontend/src/components/services/categories/service-category-mutation-form.tsx
++++ b/frontend/src/components/services/categories/service-category-mutation-form.tsx
+@@ -53,7 +53,7 @@ export function ServiceCategoryMutationForm({
+   };
+ 
+   return (
+-    <form className="mt-4 grid gap-3" onSubmit={submit}>
++    <form className="fade-in mt-4 grid gap-3" onSubmit={submit}>
+       <Field label={t("services.name")} required>
+         <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
+       </Field>
+diff --git a/frontend/src/components/services/form-builder/form-field-editor.tsx b/frontend/src/components/services/form-builder/form-field-editor.tsx
+index 05370d6..9b13b9c 100644
+--- a/frontend/src/components/services/form-builder/form-field-editor.tsx
++++ b/frontend/src/components/services/form-builder/form-field-editor.tsx
+@@ -28,7 +28,7 @@ export function FormFieldEditor({
+ }: FormFieldEditorProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="grid gap-2 rounded-md border border-border bg-background/40 p-3">
++    <div className="grid gap-2 rounded-lg border border-border bg-elevated/40 p-3">
+       <div className="grid gap-2 md:grid-cols-2">
+         <Field label={t("services.forms.fieldId")} required>
+           <Input
+diff --git a/frontend/src/components/services/form-builder/form-field-list.tsx b/frontend/src/components/services/form-builder/form-field-list.tsx
+index ead49e3..0eadfad 100644
+--- a/frontend/src/components/services/form-builder/form-field-list.tsx
++++ b/frontend/src/components/services/form-builder/form-field-list.tsx
+@@ -20,7 +20,7 @@ export function FormFieldList({
+ }: FormFieldListProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="grid gap-3">
++    <div className="fade-in grid gap-3">
+       {fields.map((field, index) => (
+         <FormFieldEditor
+           key={`${field.id}-${index}`}
+diff --git a/frontend/src/components/services/form-builder/service-form-builder.tsx b/frontend/src/components/services/form-builder/service-form-builder.tsx
+index 931b438..90ae4df 100644
+--- a/frontend/src/components/services/form-builder/service-form-builder.tsx
++++ b/frontend/src/components/services/form-builder/service-form-builder.tsx
+@@ -96,7 +96,7 @@ export function ServiceFormBuilder({
+   };
+ 
+   return (
+-    <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
++    <div className="fade-in grid gap-4 lg:grid-cols-[200px_1fr]">
+       <FormVersionHistory
+         versions={form?.versions ?? []}
+         selectedRef={selectedRef}
+diff --git a/frontend/src/components/services/onboarding/onboarding-approvals-step.tsx b/frontend/src/components/services/onboarding/onboarding-approvals-step.tsx
+index f0b889d..3b7625c 100644
+--- a/frontend/src/components/services/onboarding/onboarding-approvals-step.tsx
++++ b/frontend/src/components/services/onboarding/onboarding-approvals-step.tsx
+@@ -27,7 +27,7 @@ export function OnboardingApprovalsStep({
+     ? approvalsRequiredReference(serviceId)
+     : APPROVALS_NOT_REQUIRED_REFERENCE;
+   return (
+-    <div className="grid max-w-xl gap-3">
++    <div className="fade-in grid max-w-xl gap-3">
+       <p className="text-[12.5px] leading-5 text-muted-foreground">
+         {t(
+           requiresApproval
+diff --git a/frontend/src/components/services/onboarding/onboarding-form-step.tsx b/frontend/src/components/services/onboarding/onboarding-form-step.tsx
+index ca7807f..a27a638 100644
+--- a/frontend/src/components/services/onboarding/onboarding-form-step.tsx
++++ b/frontend/src/components/services/onboarding/onboarding-form-step.tsx
+@@ -21,7 +21,7 @@ export function OnboardingFormStep({
+ }: OnboardingFormStepProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="grid gap-4">
++    <div className="fade-in grid gap-4">
+       <ServiceFormBuilder
+         serviceId={serviceId}
+         canWrite={canWrite}
+diff --git a/frontend/src/components/services/onboarding/onboarding-routing-step.tsx b/frontend/src/components/services/onboarding/onboarding-routing-step.tsx
+index 8d41991..b793e1f 100644
+--- a/frontend/src/components/services/onboarding/onboarding-routing-step.tsx
++++ b/frontend/src/components/services/onboarding/onboarding-routing-step.tsx
+@@ -20,8 +20,8 @@ export function OnboardingRoutingStep({
+   const { t } = useTranslation();
+   if (suggestion === null) {
+     return (
+-      <div className="grid gap-3">
+-        <p className="rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
++      <div className="fade-in grid gap-3">
++        <p className="rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/90">
+           {t("services.onboarding.routingCoverageWarning")}
+         </p>
+         <EmptyState
+@@ -41,7 +41,7 @@ export function OnboardingRoutingStep({
+     );
+   }
+   return (
+-    <div className="grid max-w-xl gap-3">
++    <div className="fade-in grid max-w-xl gap-3">
+       <Field label={t("services.onboarding.routingSuggestion")}>
+         <Input value={suggestion} readOnly />
+       </Field>
+diff --git a/frontend/src/components/services/onboarding/onboarding-service-step.tsx b/frontend/src/components/services/onboarding/onboarding-service-step.tsx
+index 276c168..c3244b6 100644
+--- a/frontend/src/components/services/onboarding/onboarding-service-step.tsx
++++ b/frontend/src/components/services/onboarding/onboarding-service-step.tsx
+@@ -53,7 +53,7 @@ export function OnboardingServiceStep({
+   };
+ 
+   return (
+-    <form className="grid max-w-xl gap-3" onSubmit={submit}>
++    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
+       <Field label={t("services.name")} required>
+         <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
+       </Field>
+diff --git a/frontend/src/components/services/onboarding/onboarding-sla-step.tsx b/frontend/src/components/services/onboarding/onboarding-sla-step.tsx
+index c8fce14..a623fd4 100644
+--- a/frontend/src/components/services/onboarding/onboarding-sla-step.tsx
++++ b/frontend/src/components/services/onboarding/onboarding-sla-step.tsx
+@@ -45,7 +45,7 @@ export function OnboardingSlaStep({
+   };
+ 
+   return (
+-    <form className="grid max-w-xl gap-3" onSubmit={submit}>
++    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
+       <Field label={t("services.onboarding.slaProfile")} required>
+         <Select value={value} required onChange={(event) => setValue(event.target.value)}>
+           {activeProfiles.map((profile) => (
+diff --git a/frontend/src/components/services/onboarding/service-onboarding-pipeline-card.tsx b/frontend/src/components/services/onboarding/service-onboarding-pipeline-card.tsx
+index e13f4fa..3974b06 100644
+--- a/frontend/src/components/services/onboarding/service-onboarding-pipeline-card.tsx
++++ b/frontend/src/components/services/onboarding/service-onboarding-pipeline-card.tsx
+@@ -33,7 +33,7 @@ export function ServiceOnboardingPipelineCard({
+   const activeIndex = completed;
+ 
+   return (
+-    <Card className="mt-4">
++    <Card className="fade-in mt-4">
+       <CardHeader
+         title={t("services.onboarding.title")}
+         subtitle={t("services.onboarding.subtitle")}
+@@ -44,7 +44,7 @@ export function ServiceOnboardingPipelineCard({
+         }
+       />
+       <div className="grid grid-cols-1 gap-3 px-4 pb-4 md:grid-cols-[220px_1fr]">
+-        <div className="rounded-md border border-border bg-background/40 p-3">
++        <div className="rounded-lg border border-border bg-elevated/40 p-3">
+           <p className="text-[12.5px] font-semibold text-foreground">
+             {service?.name ?? "—"}
+           </p>
+diff --git a/frontend/src/components/services/onboarding/service-onboarding-wizard.tsx b/frontend/src/components/services/onboarding/service-onboarding-wizard.tsx
+index 115f15d..a9fe298 100644
+--- a/frontend/src/components/services/onboarding/service-onboarding-wizard.tsx
++++ b/frontend/src/components/services/onboarding/service-onboarding-wizard.tsx
+@@ -113,7 +113,7 @@ export function ServiceOnboardingWizard({
+   const completed = record ? completedOnboardingCount(record.completedSteps) : 0;
+ 
+   return (
+-    <Card className="mt-4">
++    <Card className="fade-in mt-4">
+       <CardHeader
+         title={t("services.onboarding.title")}
+         subtitle={t("services.onboarding.subtitle")}
+@@ -140,7 +140,7 @@ export function ServiceOnboardingWizard({
+         <ServiceOnboardingStepper activeIndex={completed} />
+         {errorKey ? <p className={`mb-3 ${errorTextClassName}`}>{t(errorKey)}</p> : null}
+         {coverageWarning ? (
+-          <p className="mb-3 rounded-md border border-warning/30 bg-warning/8 px-3 py-2 text-[11.5px] leading-4.5 text-text/85">
++          <p className="fade-in mb-3 rounded-lg border border-warning/30 bg-warning/6 px-3 py-2 text-[11.5px] leading-[15px] text-foreground/90">
+             {t("services.onboarding.routingCoverageWarning")}
+           </p>
+         ) : null}
+diff --git a/frontend/src/components/services/service-catalog-card-admin-footer.tsx b/frontend/src/components/services/service-catalog-card-admin-footer.tsx
+index 205ec08..2d92858 100644
+--- a/frontend/src/components/services/service-catalog-card-admin-footer.tsx
++++ b/frontend/src/components/services/service-catalog-card-admin-footer.tsx
+@@ -33,7 +33,7 @@ export function ServiceCatalogCardAdminFooter({
+     return null;
+   }
+   return (
+-    <div className="border-t border-border/50 px-4 py-2.5">
++    <div className="border-t border-border/70 px-4 py-2.5">
+       {canWriteCatalog ? (
+         <ServiceCatalogLifecycleActions
+           service={service}
+diff --git a/frontend/src/components/services/service-catalog-card.tsx b/frontend/src/components/services/service-catalog-card.tsx
+index 86f428a..d721bea 100644
+--- a/frontend/src/components/services/service-catalog-card.tsx
++++ b/frontend/src/components/services/service-catalog-card.tsx
+@@ -57,11 +57,11 @@ export function ServiceCatalogCard({
+   );
+ 
+   return (
+-    <Card className="group flex flex-col transition-all hover:border-line-strong hover:bg-elevated/30">
++    <Card className="group flex flex-col transition-colors hover:border-line-strong hover:bg-surface-hover">
+       <div className="flex-1 px-4 pt-4">
+         <div className="flex items-start justify-between gap-2">
+           <div className="flex items-center gap-2.5">
+-            <span className="flex size-9 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground transition-colors group-hover:text-link">
++            <span className="flex size-9 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground transition-colors group-hover:border-line-strong group-hover:text-link">
+               <Layers size={16} strokeWidth={1.8} />
+             </span>
+             <div>
+@@ -79,9 +79,9 @@ export function ServiceCatalogCard({
+           />
+         </div>
+         {downtime ? (
+-          <div className="mt-2.5 flex items-start gap-2 rounded-md border border-info/25 bg-info/10 px-2.5 py-2">
++          <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-info/25 bg-info/10 px-2.5 py-2">
+             <CalendarClock size={13} className="mt-0.5 shrink-0 text-info" />
+-            <p className="text-[11px] leading-4 text-foreground/85">
++            <p className="text-[11px] leading-[15px] text-foreground/85">
+               <span className="font-medium">{t("services.plannedDowntime")}:</span>{" "}
+               {downtime.message}{" "}
+               <span className="text-muted-foreground">
+@@ -92,7 +92,7 @@ export function ServiceCatalogCard({
+           </div>
+         ) : null}
+       </div>
+-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 px-4 py-3">
++      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/70 px-4 py-3">
+         <MetaBadge
+           meta={{
+             label: t(`services.availability.${service.availability}`),
+@@ -102,7 +102,7 @@ export function ServiceCatalogCard({
+         />
+         <Badge
+           tone={activeVersion ? "success" : "danger"}
+-          className="text-[10px] tnum"
++          className="tnum text-[10px]"
+           dot={false}
+         >
+           <FileJson2 size={10} />
+@@ -140,7 +140,7 @@ export function ServiceCatalogCard({
+           {t("services.openTicketCountBadge", { count: service.openTicketCount })}
+         </span>
+       </div>
+-      <div className="flex items-center justify-between border-t border-border/50 px-4 py-2.5">
++      <div className="flex items-center justify-between border-t border-border/70 px-4 py-2.5">
+         {coverage ? (
+           <Badge tone={coverage.tone} dot={false} className="text-[10px]">
+             {t(coverage.key)}
+diff --git a/frontend/src/components/services/service-catalog-category-chips.tsx b/frontend/src/components/services/service-catalog-category-chips.tsx
+index 071062a..8e40222 100644
+--- a/frontend/src/components/services/service-catalog-category-chips.tsx
++++ b/frontend/src/components/services/service-catalog-category-chips.tsx
+@@ -24,7 +24,7 @@ export function ServiceCatalogCategoryChips({
+ }: ServiceCatalogCategoryChipsProperties) {
+   const { t } = useTranslation();
+   return (
+-    <div className="flex flex-wrap items-center gap-1.5">
++    <div className="fade-in flex flex-wrap items-center gap-1.5">
+       <ServiceCategoryChip
+         label={t("services.allCategories")}
+         count={rows.length}
+diff --git a/frontend/src/components/services/service-catalog-grid.tsx b/frontend/src/components/services/service-catalog-grid.tsx
+index 55bde65..096a46a 100644
+--- a/frontend/src/components/services/service-catalog-grid.tsx
++++ b/frontend/src/components/services/service-catalog-grid.tsx
+@@ -114,7 +114,7 @@ export function ServiceCatalogGrid({
+           }
+         />
+       ) : (
+-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
++        <div className="fade-in grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+           {visibleRows.map((row) => (
+             <ServiceCatalogCard
+               key={row.service.id}
+diff --git a/frontend/src/components/services/service-catalog-lifecycle-actions.tsx b/frontend/src/components/services/service-catalog-lifecycle-actions.tsx
+index cec7dc3..633aba4 100644
+--- a/frontend/src/components/services/service-catalog-lifecycle-actions.tsx
++++ b/frontend/src/components/services/service-catalog-lifecycle-actions.tsx
+@@ -60,7 +60,7 @@ export function ServiceCatalogLifecycleActions({
+   };
+ 
+   return (
+-    <div className="grid w-full gap-2">
++    <div className="fade-in grid w-full gap-2">
+       <Field label={t("services.changeReason")} required>
+         <Input
+           value={reason}
+diff --git a/frontend/src/components/services/service-catalog-mutation-form.tsx b/frontend/src/components/services/service-catalog-mutation-form.tsx
+index 545d615..6b2eddb 100644
+--- a/frontend/src/components/services/service-catalog-mutation-form.tsx
++++ b/frontend/src/components/services/service-catalog-mutation-form.tsx
+@@ -63,7 +63,7 @@ export function ServiceCatalogMutationForm({
+   };
+ 
+   return (
+-    <form className="mt-4 grid gap-3" onSubmit={submit}>
++    <form className="fade-in mt-4 grid gap-3" onSubmit={submit}>
+       <Field label={t("services.name")} required>
+         <Input
+           value={name}
+diff --git a/frontend/src/components/services/service-category-chip.tsx b/frontend/src/components/services/service-category-chip.tsx
+index a6d90ef..0281674 100644
+--- a/frontend/src/components/services/service-category-chip.tsx
++++ b/frontend/src/components/services/service-category-chip.tsx
+@@ -18,10 +18,10 @@ export function ServiceCategoryChip({
+       type="button"
+       onClick={onClick}
+       className={cn(
+-        "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
++        "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+         active
+           ? "border-primary/50 bg-primary/15 text-link"
+-          : "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground",
++          : "border-border bg-surface text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+       )}
+     >
+       {label}
+diff --git a/frontend/src/components/services/service-downtime-window-form.tsx b/frontend/src/components/services/service-downtime-window-form.tsx
+index d3f1912..1ccd548 100644
+--- a/frontend/src/components/services/service-downtime-window-form.tsx
++++ b/frontend/src/components/services/service-downtime-window-form.tsx
+@@ -93,7 +93,7 @@ export function ServiceDowntimeWindowForm({
+ 
+   return (
+     <form
+-      className="grid gap-3"
++      className="fade-in grid gap-3"
+       onSubmit={(event) => {
+         event.preventDefault();
+         void submit();
+diff --git a/frontend/src/components/services/service-downtime-window-row.tsx b/frontend/src/components/services/service-downtime-window-row.tsx
+index 76f1f9a..2a7d081 100644
+--- a/frontend/src/components/services/service-downtime-window-row.tsx
++++ b/frontend/src/components/services/service-downtime-window-row.tsx
+@@ -21,7 +21,7 @@ export function ServiceDowntimeWindowRow({
+ }: ServiceDowntimeWindowRowProperties) {
+   const { t, i18n } = useTranslation();
+   return (
+-    <li className="rounded-md border border-border/60 bg-elevated/20 px-3 py-2">
++    <li className="rounded-lg border border-border/70 bg-elevated/20 px-3 py-2">
+       <div className="flex flex-wrap items-center gap-1.5">
+         <Badge
+           tone={window.phase === "ACTIVE" ? "warning" : "info"}
+diff --git a/frontend/src/components/services/service-downtime-windows-panel.tsx b/frontend/src/components/services/service-downtime-windows-panel.tsx
+index de39821..a6682c0 100644
+--- a/frontend/src/components/services/service-downtime-windows-panel.tsx
++++ b/frontend/src/components/services/service-downtime-windows-panel.tsx
+@@ -96,7 +96,7 @@ export function ServiceDowntimeWindowsPanel({
+   }
+ 
+   return (
+-    <div className="grid gap-3">
++    <div className="fade-in grid gap-3">
+       <div className="flex items-center justify-between gap-2">
+         <p className="text-[12px] text-muted-foreground">{t("services.downtime.listHint")}</p>
+         <Button type="button" size="xs" onClick={() => setEditing(null)}>

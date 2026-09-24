@@ -1,5 +1,8 @@
 # CHANGELOG — settings-registry
 
+## 2026-09-24
+- Dodan `private.reports.timeZone` (private, IANA zona, default `Europe/Sarajevo`): granica reporting dana za dashboard `openedToday` (`loadDashboardSummaryCounts` → `startOfCivilDay`). Dosadašnja granica je dolazila iz zone procesa (`new Date(y, m, d)`), pa je isti upit davao različit broj na `TZ=UTC` i `TZ=Europe/Sarajevo`. Keš ključ dashboarda sada nosi zonu.
+
 ## 2026-09-14
 - Dodani `private.reports.*` i `private.dashboard.bottlenecks.*` za report packove i bottleneck window. Addon flag ostaje `private.addons.reports`. `packsJson` je secret.
 

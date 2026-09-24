@@ -30,6 +30,7 @@ export function routingConfigurationFromSettings(
 ): ConfigSnapshot['routing']['configuration'] {
   const enabled = settings[settingKeys.privateTicketUnroutedQueueEnabled];
   const ownerRole = settings[settingKeys.privateTicketUnroutedQueueOwnerRole];
+  const requireCoverage = settings[settingKeys.privateTicketRoutingRequireCoverage];
   return {
     unroutedQueueEnabled:
       typeof enabled === 'boolean'
@@ -39,6 +40,10 @@ export function routingConfigurationFromSettings(
       typeof ownerRole === 'string' && ownerRole.trim().length > 0
         ? ownerRole
         : defaultRoutingConfiguration.unroutedQueueOwnerRole,
+    requireCoverage:
+      typeof requireCoverage === 'boolean'
+        ? requireCoverage
+        : defaultRoutingConfiguration.requireCoverage,
   };
 }
 

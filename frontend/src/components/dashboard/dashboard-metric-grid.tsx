@@ -14,7 +14,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { BadgeTone } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
+import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 
 interface DashboardMetricGridProperties {
   readonly summary: DashboardSummary;

@@ -13,6 +13,7 @@ import { resolvePolicyPackApplyTarget } from './resolve-policy-pack-apply-target
 import type {
   PolicyPackApplyInput,
   PolicyPackApplyResult,
+  PrincipalInvalidationHook,
 } from './policy-pack.types';
 
 export async function applyPolicyPack(
@@ -22,10 +23,14 @@ export async function applyPolicyPack(
     readonly actorUserId: string | null;
     readonly requestId: string | null;
   } = { actorUserId: null, requestId: null },
+  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
 ): Promise<PolicyPackApplyResult> {
   const target = await resolvePolicyPackApplyTarget(prisma, input);
   const plannedAssignments = planPolicyPackAssignments(target);
-  return prisma.$transaction(async (transaction) => {
+  // Phase 2.2: collected inside the transaction, used after it commits. Kept out
+  // of the response: the client has no business with the invalidation bookkeeping.
+  let affectedUserIds: readonly string[] = [];
+  const result = await prisma.$transaction(async (transaction) => {
     const catalog = await ensurePolicyPackCatalog(transaction as PrismaService, target.pack);
     await bindPolicyPackTargets(
       transaction as PrismaService,
@@ -37,6 +42,7 @@ export async function applyPolicyPack(
       catalog,
       plannedAssignments,
     );
+    affectedUserIds = userGrants.affectedUserIds;
     await appendAuditLog(transaction as unknown as AuditLogWriteClient, {
       action: auditLogActions.policyPackApply,
       entityType: auditLogEntityTypes.policyPack,
@@ -64,4 +70,10 @@ export async function applyPolicyPack(
       plannedAssignments,
     };
   });
+  // Phase 2.2: only now that the grants are committed. Every user whose
+  // authorization data actually changed gets a fresh entry on the next request.
+  for (const userId of affectedUserIds) {
+    await invalidatePrincipal(userId);
+  }
+  return result;
 }

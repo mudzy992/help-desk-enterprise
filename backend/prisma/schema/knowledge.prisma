@@ -33,6 +33,9 @@ model KnowledgeArticle {
   @@index([status])
   @@index([classification])
   @@index([searchVector], type: Gin)
+  /// Phase 1.2 (plan §1.2): title search of `GET /search` is an ILIKE with a
+  /// leading wildcard, so it needs the trigram index (see the ticket model).
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeArticle_title_trgm_idx")
 }
 
 model KnowledgeFeedback {

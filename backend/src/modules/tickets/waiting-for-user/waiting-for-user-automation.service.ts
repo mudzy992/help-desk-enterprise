@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
@@ -7,7 +6,6 @@ import { TicketRealtimeHub } from '../ticket-realtime.hub';
 import type { TicketRecord } from '../tickets.types';
 import { processWaitingForUserTicket } from './process-waiting-for-user-ticket';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user-configuration.loader';
-import { waitingForUserAutomationIntervalMs } from './waiting-for-user.constants';
 import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
 import { TicketSlaTimersService } from '../../sla/ticket-sla-timers.service';
 
@@ -21,10 +19,6 @@ export class WaitingForUserAutomationService {
     private readonly realtimeHub: TicketRealtimeHub,
   ) {}
 
-  @Interval(waitingForUserAutomationIntervalMs)
-  async handleInterval(): Promise<void> {
-    await this.processDue();
-  }
 
   async processDue(now = new Date()): Promise<readonly TicketRecord[]> {
     const configuration = await this.configurationLoader.load();

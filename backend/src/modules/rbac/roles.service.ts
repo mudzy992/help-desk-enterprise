@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { ShadowAuthorizationService } from '../authorization/shadow-authorization.service';
 import { getRolePermissions } from './get-role-permissions';
@@ -21,6 +22,9 @@ export class RolesService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly shadowAuthorizationService: ShadowAuthorizationService,
+    // Phase 2.2: optional so the unit tests can build the service without Redis.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
   ) {}
 
   list(): Promise<readonly RoleSummaryResponse[]> {
@@ -51,7 +55,12 @@ export class RolesService {
   }
 
   replace(input: ReplaceRolePermissionsInput): Promise<readonly string[]> {
-    return this.execute(() => replaceRolePermissions(this.prisma, input));
+    return this.execute(() =>
+      replaceRolePermissions(this.prisma, input, (roleId) =>
+        this.principalContextInvalidator?.invalidateRoleHolders(roleId) ??
+        Promise.resolve(0),
+      ),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

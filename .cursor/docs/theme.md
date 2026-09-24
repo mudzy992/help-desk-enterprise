@@ -7,7 +7,7 @@ Ovaj fajl je **implementacijski katalog tokena** (hex, Tailwind `@theme`, geomet
 1. **Tematika (mjerodavno):** ovaj fajl — implementacijski katalog tokena, paleta i kontrasta.
    Izvor istine je kod: [`frontend/src/index.css`](../../frontend/src/index.css) + [`frontend/tailwind.config.ts`](../../frontend/tailwind.config.ts).
    `.cursor/docs/theme-source.md` je **penzionisan** (stara dark-only paleta) — ne koristi ga kao izvor.
-2. **UX / interakcija:** [`Master UI-UX Design Constitution.md`](../../Master%20UI-UX%20Design%20Constitution.md) — north star, layout po ekranu, obrasci, a11y, jezik.
+2. **UX / interakcija:** [`Master UI-UX Design Constitution.md`](../../docs/design/Master%20UI-UX%20Design%20Constitution.md) — north star, layout po ekranu, obrasci, a11y, jezik.
 3. **Živi dokaz:** [`demo/`](../../demo/) — prototip novog identiteta; **Visual QA → Primitive-i → Theme** u aplikaciji.
    `referenca-dizajn/` je **arhiviran** (vidi [`referenca-dizajn/README.md`](../../referenca-dizajn/README.md)).
 
@@ -342,7 +342,7 @@ Nav sekcije: Pregled · Tiketi · Usluge i znanje · Administracija. Rute: [`ref
 
 ## Komponente (tokeni)
 
-Pravila i anti-obrasci: [Constitution](../../Master%20UI-UX%20Design%20Constitution.md) §26. Implementacija: `frontend/src/components/ui/`.
+Pravila i anti-obrasci: [Constitution](../../docs/design/Master%20UI-UX%20Design%20Constitution.md) §26. Implementacija: `frontend/src/components/ui/`.
 
 **Dugmad** — radius 6px; `xs` h-6.5 · `sm` h-8 · `md` h-9; ikona 12–15px, gap 6px; disabled opacity 45%.
 
@@ -412,7 +412,7 @@ Svaki ekran koristi `.page-in` + `max-w-[1400px] px-4 py-6 lg:px-8`.
 | Domena/tone | [`src/lib/core.ts`](../../referenca-dizajn/src/lib/core.ts) | meta mape + priority matrica |
 | Rute | [`src/nav.ts`](../../referenca-dizajn/src/nav.ts) | shell rute |
 
-UX obrasci (wizard, inbox, SLA panel, bulk, matrica, change log, notif, pretraga): [Constitution](../../Master%20UI-UX%20Design%20Constitution.md).
+UX obrasci (wizard, inbox, SLA panel, bulk, matrica, change log, notif, pretraga): [Constitution](../../docs/design/Master%20UI-UX%20Design%20Constitution.md).
 
 ---
 

@@ -3,7 +3,7 @@ import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.t
 import type { NotificationRecord } from '../notifications.types';
 import { buildNotificationContent } from './build-notification-content';
 import { mapTicketEventToNotification } from './map-ticket-event-to-notification';
-import { persistInAppNotification } from './persist-in-app-notification';
+import { insertNotificationBatch } from './insert-notification-batch';
 import { resolveNotificationRecipients } from './resolve-notification-recipients';
 
 export async function fanOutInAppNotifications(
@@ -33,19 +33,15 @@ export async function fanOutInAppNotifications(
     payload.id,
     payload.authorUserId,
   );
-  const dedupeKey = `${mapped.type}:${payload.id}`;
-  const created = await Promise.all(
-    recipientIds.map((userId) =>
-      persistInAppNotification(prisma, {
-        userId,
-        type: content.type,
-        title: content.title,
-        body: content.body,
-        ticketId: ticket.id,
-        payload: content.payload,
-        dedupeKey,
-      }),
-    ),
-  );
-  return created.filter((record): record is NotificationRecord => record !== null);
+  // Phase 2.3 (plan §2.3): one batch write for the whole recipient list, not one
+  // insert per member.
+  return insertNotificationBatch(prisma, {
+    userIds: recipientIds,
+    type: content.type,
+    title: content.title,
+    body: content.body,
+    ticketId: ticket.id,
+    payload: content.payload,
+    dedupeKey: `${mapped.type}:${payload.id}`,
+  });
 }

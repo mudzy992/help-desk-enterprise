@@ -1,0 +1,452 @@
+diff --git a/frontend/src/components/dashboard/dashboard-activity-feed.tsx b/frontend/src/components/dashboard/dashboard-activity-feed.tsx
+index a350917..d9397ec 100644
+--- a/frontend/src/components/dashboard/dashboard-activity-feed.tsx
++++ b/frontend/src/components/dashboard/dashboard-activity-feed.tsx
+@@ -31,7 +31,7 @@ export function DashboardActivityFeed() {
+   }, [refreshList]);
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("dashboard.activityTitle")}
+         subtitle={t("dashboard.activitySubtitle")}
+@@ -63,7 +63,7 @@ export function DashboardActivityFeed() {
+                       navigate(path);
+                     }
+                   }}
+-                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated/50 disabled:cursor-default disabled:hover:bg-transparent"
++                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover disabled:cursor-default disabled:hover:bg-transparent"
+                 >
+                   <span
+                     className="mt-1.5 size-1.5 shrink-0 rounded-full"
+@@ -71,7 +71,7 @@ export function DashboardActivityFeed() {
+                     aria-hidden="true"
+                   />
+                   <span className="min-w-0 flex-1">
+-                    <span className="block text-[12px] leading-4.5 text-foreground/85">
++                    <span className="block text-[12px] leading-[18px] text-foreground/85">
+                       {t(notificationTitleKey(notification.type), {
+                         ticketNumber:
+                           notification.payload?.ticketNumber ?? "",
+diff --git a/frontend/src/components/dashboard/dashboard-attention-table.tsx b/frontend/src/components/dashboard/dashboard-attention-table.tsx
+index d962b79..71a56c3 100644
+--- a/frontend/src/components/dashboard/dashboard-attention-table.tsx
++++ b/frontend/src/components/dashboard/dashboard-attention-table.tsx
+@@ -61,7 +61,7 @@ export function DashboardAttentionTable({
+   const navigate = useNavigate();
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("dashboard.attentionHeading")}
+         subtitle={t("dashboard.attentionHint")}
+diff --git a/frontend/src/components/dashboard/dashboard-charts.tsx b/frontend/src/components/dashboard/dashboard-charts.tsx
+index 1493b69..d5966e8 100644
+--- a/frontend/src/components/dashboard/dashboard-charts.tsx
++++ b/frontend/src/components/dashboard/dashboard-charts.tsx
+@@ -34,7 +34,7 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
+ 
+   return (
+     <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("dashboard.statusChartTitle")}
+           subtitle={t("dashboard.statusChartSubtitle")}
+@@ -43,7 +43,7 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
+           <Donut data={donutData} centerLabel={t("dashboard.statusChartCenter")} />
+         </div>
+       </Card>
+-      <Card className="xl:col-span-2">
++      <Card className="fade-in xl:col-span-2">
+         <CardHeader
+           title={t("dashboard.volumeChartTitle")}
+           subtitle={t("dashboard.volumeChartSubtitle")}
+diff --git a/frontend/src/components/dashboard/dashboard-inbox-snapshot.tsx b/frontend/src/components/dashboard/dashboard-inbox-snapshot.tsx
+index 05fc782..7f3b90f 100644
+--- a/frontend/src/components/dashboard/dashboard-inbox-snapshot.tsx
++++ b/frontend/src/components/dashboard/dashboard-inbox-snapshot.tsx
+@@ -43,7 +43,7 @@ export function DashboardInboxSnapshot({
+   }));
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("dashboard.inboxSnapshotTitle")}
+         subtitle={t("dashboard.inboxSnapshotSubtitle")}
+@@ -59,7 +59,7 @@ export function DashboardInboxSnapshot({
+         {unroutedCount > 0 ? (
+           <Link
+             to="/tickets?view=all&status=UNROUTED"
+-            className="mb-3.5 flex w-full items-center gap-2.5 rounded-md border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/12"
++            className="mb-3.5 flex w-full items-center gap-2.5 rounded-lg border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+           >
+             <ShieldAlert size={15} className="shrink-0 text-danger" />
+             <span className="flex-1 text-[12.5px] text-foreground">
+diff --git a/frontend/src/components/dashboard/dashboard-metric-grid.tsx b/frontend/src/components/dashboard/dashboard-metric-grid.tsx
+index e71d5c2..4042e77 100644
+--- a/frontend/src/components/dashboard/dashboard-metric-grid.tsx
++++ b/frontend/src/components/dashboard/dashboard-metric-grid.tsx
+@@ -80,7 +80,7 @@ export function DashboardMetricGrid({
+   );
+ 
+   return (
+-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
++    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-4">
+       {metrics.map((metric) => (
+         <Link
+           key={metric.labelKey}
+diff --git a/frontend/src/components/dashboard/dashboard-recent-tickets.tsx b/frontend/src/components/dashboard/dashboard-recent-tickets.tsx
+index 5032134..6d77bb3 100644
+--- a/frontend/src/components/dashboard/dashboard-recent-tickets.tsx
++++ b/frontend/src/components/dashboard/dashboard-recent-tickets.tsx
+@@ -32,7 +32,7 @@ export function DashboardRecentTickets({
+   }
+ 
+   return (
+-    <div className="overflow-x-auto">
++    <div className="fade-in overflow-x-auto">
+       <table className="w-full min-w-[720px] text-left text-[13px]">
+         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
+           <tr>
+@@ -64,7 +64,7 @@ export function DashboardRecentTickets({
+               <td className="px-3">
+                 <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+               </td>
+-              <td className="px-3 tnum text-[12px] text-muted-foreground">
++              <td className="tnum px-3 text-[12px] text-muted-foreground">
+                 {new Date(ticket.createdAt).toLocaleString(i18n.language)}
+               </td>
+             </tr>
+diff --git a/frontend/src/components/dashboard/dashboard-sla-watchlist.tsx b/frontend/src/components/dashboard/dashboard-sla-watchlist.tsx
+index d34c940..c90eea5 100644
+--- a/frontend/src/components/dashboard/dashboard-sla-watchlist.tsx
++++ b/frontend/src/components/dashboard/dashboard-sla-watchlist.tsx
+@@ -22,7 +22,7 @@ export function DashboardSlaWatchlist({
+   const { t } = useTranslation();
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("dashboard.slaTitle")}
+         subtitle={t("dashboard.slaSubtitle")}
+@@ -51,7 +51,7 @@ export function DashboardSlaWatchlist({
+             <li key={ticket.id}>
+               <Link
+                 to={`/tickets/${ticket.id}`}
+-                className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated/50"
++                className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover"
+               >
+                 <span
+                   className="size-2 shrink-0 rounded-full"
+diff --git a/frontend/src/components/reports/reports-charts.tsx b/frontend/src/components/reports/reports-charts.tsx
+index dedc8b9..8b9de0d 100644
+--- a/frontend/src/components/reports/reports-charts.tsx
++++ b/frontend/src/components/reports/reports-charts.tsx
+@@ -43,7 +43,7 @@ export function ReportsCharts({
+       : t("reports.volumeTitle", { window: t(windowShortKeys[preset]) });
+   return (
+     <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("reports.bottleneckTitle")}
+           subtitle={t("reports.bottleneckSubtitle")}
+@@ -70,7 +70,7 @@ export function ReportsCharts({
+           )}
+         </div>
+       </Card>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={volumeTitle}
+           subtitle={t("reports.volumeSubtitle")}
+@@ -90,7 +90,7 @@ export function ReportsCharts({
+           )}
+         </div>
+       </Card>
+-      <Card className="xl:col-span-2">
++      <Card className="fade-in xl:col-span-2">
+         <CardHeader
+           title={t("reports.flowTitle")}
+           subtitle={t("reports.flowSubtitle")}
+@@ -102,12 +102,12 @@ export function ReportsCharts({
+             bLabel={t("reports.flowResolved")}
+           />
+           <div>
+-            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
++            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+               {t("reports.agingTitle")}
+             </p>
+             <HBars items={[...agingItems]} />
+             {waitingOverSevenDays > 0 ? (
+-              <p className="mt-3 border-t border-border/60 pt-3 text-[11px] leading-4.5 text-muted/70">
++              <p className="mt-3 border-t border-border/70 pt-3 text-[11px] leading-[18px] text-muted-foreground/70">
+                 {t("reports.agingWaitingHint", {
+                   count: waitingOverSevenDays,
+                 })}
+diff --git a/frontend/src/components/reports/reports-metric-grid.tsx b/frontend/src/components/reports/reports-metric-grid.tsx
+index 0c0cae5..c11f407 100644
+--- a/frontend/src/components/reports/reports-metric-grid.tsx
++++ b/frontend/src/components/reports/reports-metric-grid.tsx
+@@ -42,7 +42,7 @@ export function ReportsMetricGrid({
+       <TrendingUp size={15} />
+     );
+   return (
+-    <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
++    <div className="fade-in grid grid-cols-2 gap-3 xl:grid-cols-5">
+       <StatCard
+         label={createdLabel}
+         value={kpis.createdCount}
+diff --git a/frontend/src/components/tickets/ticket-conversation.tsx b/frontend/src/components/tickets/ticket-conversation.tsx
+index e2c3129..0e29728 100644
+--- a/frontend/src/components/tickets/ticket-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-conversation.tsx
+@@ -8,13 +8,27 @@ import {
+   resolveActivityActor,
+ } from "@/lib/tickets/describe-ticket-activity";
+ import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
++import { cn } from "@/lib/utils";
+ import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
+ 
++type ConversationViewport = "flow" | "fixed";
++
++/*
++  `fixed` gives the thread its own scroll area with a stable height, so the
++  composer and the side panels never move when a long ticket gets another
++  reply — the page keeps its shape and only the thread scrolls.
++*/
++const VIEWPORT_CLASS: Record<ConversationViewport, string> = {
++  flow: "space-y-3",
++  fixed: "h-[320px] space-y-3 overflow-y-auto pr-1 sm:h-[420px]",
++};
++
+ interface TicketConversationProperties {
+   readonly messages: readonly TicketMessageResponse[];
+   readonly currentUserId: string | null;
+   readonly authorNames: ReadonlyMap<string, string>;
+   readonly systemOnly?: boolean;
++  readonly viewport?: ConversationViewport;
+ }
+ 
+ export function TicketConversation({
+@@ -22,6 +36,7 @@ export function TicketConversation({
+   currentUserId,
+   authorNames,
+   systemOnly = false,
++  viewport = "flow",
+ }: TicketConversationProperties) {
+   const { t, i18n } = useTranslation();
+   const bottomRef = useRef<HTMLDivElement>(null);
+@@ -36,18 +51,30 @@ export function TicketConversation({
+       )
+     : messages;
+   if (visible.length === 0) {
+-    if (!systemOnly) {
++    if (!systemOnly && viewport === "flow") {
+       return null;
+     }
+     return (
+-      <EmptyState
+-        title={t("tickets.detail.noMessages")}
+-        body={t("tickets.detail.noMessagesHint")}
+-      />
++      <div
++        className={
++          viewport === "fixed"
++            ? "fade-in flex h-[320px] items-center justify-center sm:h-[420px]"
++            : undefined
++        }
++      >
++        <EmptyState
++          title={t("tickets.detail.noMessages")}
++          body={t("tickets.detail.noMessagesHint")}
++        />
++      </div>
+     );
+   }
+   return (
+-    <div className="fade-in space-y-3">
++    <div
++      className={cn("fade-in", VIEWPORT_CLASS[viewport])}
++      role="log"
++      aria-label={t("tickets.detail.conversation")}
++    >
+       {visible.map((message) => {
+         const isSystem =
+           message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
+diff --git a/frontend/src/components/tickets/ticket-detail-conversation.tsx b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+index c43eb86..26037dc 100644
+--- a/frontend/src/components/tickets/ticket-detail-conversation.tsx
++++ b/frontend/src/components/tickets/ticket-detail-conversation.tsx
+@@ -47,6 +47,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
+           messages={props.messages}
+           currentUserId={props.currentUserId}
+           authorNames={props.authorNames}
++          viewport="fixed"
+         />
+       </div>
+       {props.ticket.status === "ARCHIVED" ? null : (
+diff --git a/frontend/src/components/tickets/ticket-detail-side-stack.tsx b/frontend/src/components/tickets/ticket-detail-side-stack.tsx
+index ca1955c..18664a0 100644
+--- a/frontend/src/components/tickets/ticket-detail-side-stack.tsx
++++ b/frontend/src/components/tickets/ticket-detail-side-stack.tsx
+@@ -39,6 +39,7 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
+   return (
+     <div className="page-in space-y-4">
+       <TicketSlaPanel
++        key={props.ticket.id}
+         ticket={props.ticket}
+         context={props.slaContext}
+         canConfigure={props.canConfigureSla}
+diff --git a/frontend/src/lib/realtime/apply-ticket-updated.ts b/frontend/src/lib/realtime/apply-ticket-updated.ts
+index 6aaf15e..befeb97 100644
+--- a/frontend/src/lib/realtime/apply-ticket-updated.ts
++++ b/frontend/src/lib/realtime/apply-ticket-updated.ts
+@@ -14,6 +14,15 @@ export type TicketUpdatedRealtimePayload = {
+   readonly occurredAt: string;
+ };
+ 
++/*
++  The payload carries status/assignment fields only — it never carries the SLA
++  snapshot. Deriving `isOverdue` from the action name used to make the flag
++  sticky: once a breach event arrived, the ticket stayed marked as breached for
++  the rest of the session, in every later render, even after it was resolved or
++  reopened. SLA changes therefore reload the ticket instead (see
++  `shouldReloadTicketFromUpdated`), so the badge and the panel always render the
++  snapshot the server just computed for that one ticket.
++*/
+ export function applyTicketUpdatedPayload(
+   current: TicketResponse | null,
+   payload: TicketUpdatedRealtimePayload,
+@@ -31,10 +40,12 @@ export function applyTicketUpdatedPayload(
+     resolvedAt: payload.resolvedAt,
+     closedAt: payload.closedAt,
+     updatedAt: payload.occurredAt,
+-    isOverdue:
+-      payload.change === "sla" &&
+-      (payload.sourceAction?.includes("breached") ?? false)
+-        ? true
+-        : current.isOverdue,
+   };
+ }
++
++/** SLA events must be re-read from the server; the payload has no snapshot. */
++export function shouldReloadTicketFromUpdated(
++  payload: TicketUpdatedRealtimePayload,
++): boolean {
++  return payload.change === "sla";
++}
+diff --git a/frontend/src/lib/realtime/ticket-realtime.spec.ts b/frontend/src/lib/realtime/ticket-realtime.spec.ts
+index cbf552f..a017b2c 100644
+--- a/frontend/src/lib/realtime/ticket-realtime.spec.ts
++++ b/frontend/src/lib/realtime/ticket-realtime.spec.ts
+@@ -1,5 +1,8 @@
+ import { describe, expect, it, vi } from "vitest";
+-import { applyTicketUpdatedPayload } from "./apply-ticket-updated";
++import {
++  applyTicketUpdatedPayload,
++  shouldReloadTicketFromUpdated,
++} from "./apply-ticket-updated";
+ import { nextJoinedTicketRoom } from "./next-joined-ticket-room";
+ import { subscribeSocketEvent } from "./subscribe-socket-event";
+ import {
+@@ -139,6 +142,49 @@ describe("ticket realtime helpers", () => {
+     ).toBe("2026-09-13T07:00:00.000Z");
+   });
+ 
++  it("never invents SLA flags from a realtime payload", () => {
++    // A breach event says "something about SLA changed", not "this ticket is
++    // breached right now": only the server snapshot may raise the flag, and the
++    // client reloads it (see the reload test below). Previously a single breach
++    // event pinned `isOverdue` to true for the rest of the session, which is
++    // what made every later ticket look like it had breached its SLA.
++    const clean: TicketResponse = { ...baseTicket, isOverdue: false, isAtRisk: false };
++    const next = applyTicketUpdatedPayload(clean, {
++      ticketId: "ticket-a",
++      change: "sla",
++      sourceAction: "sla_response_breached",
++      status: "IN_PROGRESS",
++      priority: "HIGH",
++      assignedUserId: "agent-1",
++      assignedGroupId: "group-1",
++      archivedAt: null,
++      resolvedAt: null,
++      closedAt: null,
++      occurredAt: "2026-09-13T09:00:00.000Z",
++    });
++    expect(next?.isOverdue).toBe(false);
++    expect(next?.isAtRisk).toBe(false);
++    expect(next?.updatedAt).toBe("2026-09-13T09:00:00.000Z");
++  });
++
++  it("asks for a server reload on SLA events and nothing else", () => {
++    const base = {
++      ticketId: "ticket-a",
++      sourceAction: "sla_resolution_breached",
++      status: "IN_PROGRESS" as const,
++      priority: "HIGH" as const,
++      assignedUserId: "agent-1",
++      assignedGroupId: "group-1",
++      archivedAt: null,
++      resolvedAt: null,
++      closedAt: null,
++      occurredAt: "2026-09-13T09:00:00.000Z",
++    };
++    expect(shouldReloadTicketFromUpdated({ ...base, change: "sla" })).toBe(true);
++    expect(shouldReloadTicketFromUpdated({ ...base, change: "status" })).toBe(false);
++    expect(shouldReloadTicketFromUpdated({ ...base, change: "assignment" })).toBe(false);
++  });
++
+   it("unsubscribes the same handler to prevent duplicate listeners", () => {
+     const socket = { on: vi.fn(), off: vi.fn() };
+     const handler = vi.fn();
+diff --git a/frontend/src/lib/tickets/use-ticket-detail.ts b/frontend/src/lib/tickets/use-ticket-detail.ts
+index 20eb8d7..a075522 100644
+--- a/frontend/src/lib/tickets/use-ticket-detail.ts
++++ b/frontend/src/lib/tickets/use-ticket-detail.ts
+@@ -74,6 +74,16 @@ export function useTicketDetail(ticketId: string | undefined) {
+   }, [ticketId]);
+ 
+   useEffect(() => {
++    // Switching tickets must not leave a single field in place: the SLA panel,
++    // badges and message list all read from this state, so a stale row would
++    // show the previous ticket's data under the new ticket's number.
++    setTicket(null);
++    setMessages([]);
++    setParticipants([]);
++    setTimeLogs([]);
++    setAttachments([]);
++    setCanChangeStatus(true);
++    setActionError(null);
+     void load();
+   }, [load]);
+ 
+diff --git a/frontend/src/lib/tickets/use-ticket-realtime.ts b/frontend/src/lib/tickets/use-ticket-realtime.ts
+index 108c4b0..96f2f8b 100644
+--- a/frontend/src/lib/tickets/use-ticket-realtime.ts
++++ b/frontend/src/lib/tickets/use-ticket-realtime.ts
+@@ -7,6 +7,7 @@ import {
+ } from "@/services/ticket-socket";
+ import {
+   applyTicketUpdatedPayload,
++  shouldReloadTicketFromUpdated,
+   type TicketUpdatedRealtimePayload,
+ } from "@/lib/realtime/apply-ticket-updated";
+ import { nextJoinedTicketRoom } from "@/lib/realtime/next-joined-ticket-room";
+@@ -76,6 +77,11 @@ export function useTicketRealtime({
+           return;
+         }
+         applyTicket((current) => applyTicketUpdatedPayload(current, payload));
++        if (shouldReloadTicketFromUpdated(payload)) {
++          // SLA state lives only on the server snapshot; re-read it so the
++          // panel and the badge cannot drift from the stored timers.
++          void reload();
++        }
+       },
+     );
+     return () => {

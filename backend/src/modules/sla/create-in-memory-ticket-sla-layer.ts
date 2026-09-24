@@ -8,6 +8,8 @@ import type {
   SlaProfileRecord,
   SlaRuleRecord,
 } from './sla.types';
+import type { InMemoryTicketRelations } from '../tickets/in-memory-ticket-where';
+import type { TicketRecord } from '../tickets/tickets.types';
 import type {
   SlaEscalationRuleRecord,
   TicketSlaStateRecord,
@@ -16,6 +18,8 @@ import type {
 export function createInMemoryTicketSlaLayer(
   nextId: (prefix: string) => string,
   now: () => Date,
+  findTicket: (ticketId: string) => TicketRecord | null = () => null,
+  getTicketRelations: () => InMemoryTicketRelations = () => ({}),
 ) {
   const slaStates = new Map<string, TicketSlaStateRecord>();
   const calendars = new Map<string, BusinessHoursCalendarRecord>();
@@ -29,7 +33,13 @@ export function createInMemoryTicketSlaLayer(
     rules,
     escalations,
     delegates: {
-      ticketSlaState: createInMemoryTicketSlaStateDelegate(slaStates, nextId, now),
+      ticketSlaState: createInMemoryTicketSlaStateDelegate(
+        slaStates,
+        nextId,
+        now,
+        findTicket,
+        getTicketRelations,
+      ),
       businessHoursCalendar: createInMemoryCalendarDelegate(calendars, nextId, now),
       slaProfile: createInMemoryProfileDelegate(profiles, rules, nextId, now),
       slaRule: createInMemoryRuleDelegate(rules, nextId, now),

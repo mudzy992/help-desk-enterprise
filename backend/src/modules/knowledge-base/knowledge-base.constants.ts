@@ -39,7 +39,6 @@ export const knowledgeBaseConstants = {
   interceptLimit: 8,
 } as const;
 
-export const knowledgeBaseReviewReminderIntervalMs = 15 * 60 * 1000;
 
 export const dataClassificationLevels = [
   'INTERNAL',

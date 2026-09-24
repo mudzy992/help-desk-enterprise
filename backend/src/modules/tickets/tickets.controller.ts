@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -14,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
-import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { authorizationRoleKeys } from '../authorization/authorization.constants';
 import { RequireRoles } from '../authorization/require-roles.decorator';
 import { RoleGuard } from '../authorization/role.guard';
@@ -27,6 +25,7 @@ import type { TicketCounts } from './counts/counts.types';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { readTicketMutationContext } from './read-ticket-mutation-context';
 import { TicketsService } from './tickets.service';
 import type {
   TicketListResponse,
@@ -73,18 +72,16 @@ export class TicketsController {
   }
 
   /**
-   * Without `page`/`pageSize` this returns the plain array older clients read;
-   * with either one it returns `{ items, total, page, pageSize }`.
+   * Always `{ items, total, page, pageSize }` (plan §1.1, phase 1.1): the route
+   * no longer has a "return everything" branch when `page`/`pageSize` are
+   * omitted. Without them the first page of 25 rows is answered, at most 50.
    */
   @Get()
   list(
     @Query() query: ListTicketsQueryDto,
     @Req() request: AuthenticatedHttpRequest,
-  ): Promise<readonly TicketResponse[] | TicketListResponse> {
-    const context = readTicketMutationContext(request);
-    return query.page === undefined && query.pageSize === undefined
-      ? this.ticketsService.list(query, context)
-      : this.ticketsService.listPage(query, context);
+  ): Promise<TicketListResponse> {
+    return this.ticketsService.listPage(query, readTicketMutationContext(request));
   }
 
   @Get('counts')
@@ -152,17 +149,4 @@ export class TicketsController {
       readTicketMutationContext(request),
     );
   }
-}
-
-function readTicketMutationContext(
-  request: AuthenticatedHttpRequest,
-): TicketMutationContext {
-  const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
-  if (actorUserId.length === 0) {
-    throw new ForbiddenException({
-      code: 'FORBIDDEN',
-      message: 'Authorization failed',
-    });
-  }
-  return { actorUserId };
 }

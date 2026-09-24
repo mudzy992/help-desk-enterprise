@@ -4,6 +4,7 @@ import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 import { countUnreadNotifications } from './count-unread-notifications';
 import { executeNotificationOperation } from './execute-notification-operation';
+import { NotificationUnreadCountCache } from './notification-unread-count.cache';
 import { listNotifications } from './list-notifications';
 import { markAllNotificationsRead } from './mark-all-notifications-read';
 import { markNotificationRead } from './mark-notification-read';
@@ -19,6 +20,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
+    private readonly unreadCountCache: NotificationUnreadCountCache,
   ) {}
 
   list(
@@ -30,10 +32,22 @@ export class NotificationsService {
     );
   }
 
+  /**
+   * Phase 1.3 (plan §1.3): the badge is served from a 15-second Redis entry
+   * when there is one. The fan-out and the two read paths write or drop that
+   * entry, so the value only ever lags by a moment, and Redis being unavailable
+   * just means the count comes from the database (it is never an error).
+   */
   unreadCount(userId: string): Promise<NotificationUnreadCountResponse> {
-    return executeNotificationOperation(async () => ({
-      unreadCount: await countUnreadNotifications(this.prisma, userId),
-    }));
+    return executeNotificationOperation(async () => {
+      const cached = await this.unreadCountCache.read(userId);
+      if (cached !== null) {
+        return { unreadCount: cached };
+      }
+      const unreadCount = await countUnreadNotifications(this.prisma, userId);
+      await this.unreadCountCache.write(userId, unreadCount);
+      return { unreadCount };
+    });
   }
 
   markRead(
@@ -47,6 +61,10 @@ export class NotificationsService {
         notificationId,
       );
       const unreadCount = await countUnreadNotifications(this.prisma, userId);
+      // Marking read is one of the two ways the count can change; drop the
+      // cached value instead of writing this one (the next read is cheap and
+      // cannot disagree with the database).
+      await this.unreadCountCache.invalidate(userId);
       this.ticketRealtimeHub.publishNotification({
         userId,
         eventName: ticketRealtimeEventNames.notificationRead,
@@ -66,6 +84,7 @@ export class NotificationsService {
   markAllRead(userId: string): Promise<NotificationUnreadCountResponse> {
     return executeNotificationOperation(async () => {
       const result = await markAllNotificationsRead(this.prisma, userId);
+      await this.unreadCountCache.invalidate(userId);
       this.ticketRealtimeHub.publishNotification({
         userId,
         eventName: ticketRealtimeEventNames.notificationRead,

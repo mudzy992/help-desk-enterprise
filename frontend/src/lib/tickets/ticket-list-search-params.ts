@@ -25,6 +25,8 @@ export type TicketPageQuery = {
   readonly createdFrom?: string;
   readonly createdTo?: string;
   readonly q?: string;
+  /** Search the description as well (the ticket list search box does). */
+  readonly searchDescription?: boolean;
   readonly includeArchived?: boolean;
   readonly sort?: TicketSortField;
   readonly dir?: "asc" | "desc";
@@ -50,6 +52,7 @@ const flagFilters = [
   "overdue",
   "atRisk",
   "includeArchived",
+  "searchDescription",
 ] as const;
 
 /**

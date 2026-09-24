@@ -25,7 +25,7 @@ describe('RolesService preview and replace', () => {
     key: permissionKeys.settingsWrite,
   };
 
-  const createService = () => {
+  const createService = (invalidateRoleHolders = jest.fn().mockResolvedValue(1)) => {
     const prisma: Record<string, unknown> = {
       role: {
         findUnique: jest.fn().mockResolvedValue(role),
@@ -86,12 +86,18 @@ describe('RolesService preview and replace', () => {
       prisma as never,
       { loadBySubjectId: harness.loadBySubjectId } as never,
       harness.shadowAuthorizationService,
+      { invalidateRoleHolders } as never,
     );
     type PrismaMock = {
       rolePermission: { deleteMany: jest.Mock };
       auditLog: { create: jest.Mock };
     };
-    return { service, prisma: prisma as unknown as PrismaMock, harness };
+    return {
+      service,
+      prisma: prisma as unknown as PrismaMock,
+      harness,
+      invalidateRoleHolders,
+    };
   };
 
   it('preview reports lost access when ticket.merge is removed from agent', async () => {
@@ -120,5 +126,35 @@ describe('RolesService preview and replace', () => {
       where: { roleId: role.id },
     });
     expect(prisma.auditLog.create).toHaveBeenCalled();
+  });
+
+  it('invalidates every holder of the role whose permissions changed', async () => {
+    // Phase 2.2 (plan §2.2): a permission of a role is cached inside the
+    // principal context of each holder, so all of them are dropped.
+    const { service, invalidateRoleHolders } = createService();
+    await service.replace({
+      roleKey: authorizationRoleKeys.agent,
+      permissionKeys: [permissionKeys.settingsWrite],
+      actorUserId: 'super-1',
+      requestId: 'req-1',
+    });
+    expect(invalidateRoleHolders).toHaveBeenCalledTimes(1);
+    expect(invalidateRoleHolders).toHaveBeenCalledWith(role.id);
+  });
+
+  it('does not invalidate anyone when the write failed', async () => {
+    const { service, prisma, invalidateRoleHolders } = createService();
+    prisma.rolePermission.deleteMany.mockRejectedValue(new Error('database is down'));
+    await expect(
+      service.replace({
+        roleKey: authorizationRoleKeys.agent,
+        permissionKeys: [permissionKeys.settingsWrite],
+        actorUserId: 'super-1',
+        requestId: 'req-1',
+      }),
+    ).rejects.toBeDefined();
+    // Nothing changed, so nothing may be dropped: an unnecessary invalidation
+    // would only cost a reload.
+    expect(invalidateRoleHolders).not.toHaveBeenCalled();
   });
 });

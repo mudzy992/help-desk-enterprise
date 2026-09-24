@@ -4,7 +4,7 @@ import { Donut } from "@/components/charts/donut";
 import { DualAreaChart } from "@/components/charts/dual-area-chart";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
+import type { DashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
 import { TICKET_STATUS_META } from "@/lib/theme/semantic-meta";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";

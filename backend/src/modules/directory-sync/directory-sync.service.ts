@@ -1,5 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { createDirectoryReadCacheKey } from './create-directory-read-cache-key';
 import { DirectoryReadCache } from './directory-read.cache';
 import { DirectoryReadThrottle } from './directory-read.throttle';
@@ -30,6 +31,9 @@ export class DirectorySyncService {
     private readonly prisma: PrismaService,
     private readonly statusStore: DirectorySyncStatusStore,
     @Inject(DIRECTORY_SYNC_CLOCK) private readonly clock: DirectorySyncClock,
+    // Phase 2.2: optional so the tests can build the service without Redis.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
   ) {}
 
   async read(input: {
@@ -108,7 +112,10 @@ export class DirectorySyncService {
       nowMilliseconds,
     });
     const result = await provider.read({ operation, scope });
-    await materializeDirectoryRead(this.prisma, result);
+    await materializeDirectoryRead(this.prisma, result, (userIds) =>
+      this.principalContextInvalidator?.invalidateUsers(userIds) ??
+      Promise.resolve(null),
+    );
     this.statusStore.markSuccessfulRead(nowMilliseconds);
     this.directoryReadCache.set({
       cacheKey,

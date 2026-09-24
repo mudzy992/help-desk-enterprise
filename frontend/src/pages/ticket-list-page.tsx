@@ -23,7 +23,7 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
 import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { clearedTicketListFilters, isTicketOverdue } from "@/lib/tickets/filter-tickets";
+import { clearedTicketListFilters } from "@/lib/tickets/filter-tickets";
 import { useTicketList } from "@/lib/tickets/use-ticket-list";
 import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
 
@@ -44,10 +44,10 @@ export function TicketListPage() {
     () => flattenOrganizationalUnitNames(directory.tree),
     [directory.tree],
   );
-  const openCount = list.tickets.filter(
-    (ticket) => ticket.status !== "CLOSED" && ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED",
-  ).length;
-  const riskCount = list.tickets.filter(isTicketOverdue).length;
+  // Phase 1.1: the headline numbers come from the server counters (they cover
+  // every matching ticket), not from the rows of the current page.
+  const openCount = list.counts?.open ?? 0;
+  const riskCount = list.counts?.overdue ?? 0;
   const pageTitle = isInbox
     ? t("tickets.views.inbox")
     : ticketText(t, ticketViewLabelKey[list.view]);
@@ -92,7 +92,7 @@ export function TicketListPage() {
       />
       {isInbox ? (
         <TicketInboxPanel
-          inboxTickets={list.tickets}
+          inboxTickets={list.pageItems}
           unroutedTickets={list.unroutedTickets}
           serviceNames={list.serviceNames}
           originNames={originNames}
@@ -125,7 +125,7 @@ export function TicketListPage() {
                 className="mb-3"
                 active={ticketListTabKey(list.filters)}
                 onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
-                items={ticketStatusTabItems(t, list.tickets, riskCount)}
+                items={ticketStatusTabItems(t, list.counts, riskCount)}
               />
               <TicketListFiltersBar filters={list.filters} services={list.services} onChange={list.setFilters} />
               <TicketBulkBar
@@ -141,7 +141,7 @@ export function TicketListPage() {
                 <TicketLoadingState />
               ) : list.errorKey ? (
                 <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
-              ) : list.visible.length === 0 ? (
+              ) : list.total === 0 ? (
                 <div className="rounded-lg border border-border bg-surface shadow-card">
                   <TicketEmptyState
                     title={t("tickets.emptyFilterTitle")}
@@ -160,31 +160,31 @@ export function TicketListPage() {
                 </div>
               ) : (
                 <TicketListTable
-                  tickets={list.paged.pageItems}
+                  tickets={list.pageItems}
                   serviceNames={list.serviceNames}
                   assigneeNames={assigneeNames}
                   selectedIds={list.selectedIds}
                   onToggleSelected={list.toggleSelected}
                   onTogglePage={(selected) =>
                     list.setSelectedIds(
-                      selected ? new Set(list.paged.pageItems.map((ticket) => ticket.id)) : new Set(),
+                      selected ? new Set(list.pageItems.map((ticket) => ticket.id)) : new Set(),
                     )
                   }
                 />
               )}
-              {list.paged.totalPages > 1 ? (
+              {list.totalPages > 1 ? (
                 <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground/70">
-                  <Button type="button" variant="outline" size="sm" disabled={list.paged.page === 1} onClick={() => list.setPage(list.paged.page - 1)}>
+                  <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
                     {t("tickets.previous")}
                   </Button>
-                  <span className="tnum">{ticketText(t, "tickets.page", { page: list.paged.page, total: list.paged.totalPages })}</span>
-                  <Button type="button" variant="outline" size="sm" disabled={list.paged.page === list.paged.totalPages} onClick={() => list.setPage(list.paged.page + 1)}>
+                  <span className="tnum">{ticketText(t, "tickets.page", { page: list.page, total: list.totalPages })}</span>
+                  <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
                     {t("tickets.next")}
                   </Button>
                 </div>
               ) : (
                 <p className="mt-3 text-[11.5px] text-muted-foreground/70">
-                  {ticketText(t, "tickets.listShown", { shown: list.visible.length, total: list.tickets.length })}
+                  {ticketText(t, "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
                 </p>
               )}
               {canExport ? (

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { GroupFeedChangedPayload } from "@/lib/realtime/group-feed-changed";
 import type { TicketUpdatedRealtimePayload } from "@/lib/realtime/apply-ticket-updated";
 import type { NotificationRealtimePayload } from "@/lib/realtime/apply-notification-realtime";
 import { scheduleDebouncedCallback } from "@/lib/realtime/schedule-debounced-callback";
@@ -44,10 +45,23 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
         debounced.trigger();
       },
     );
+    // Faza 3.2: group rooms only carry the light event, and a screen that is not
+    // on screen pulls nothing at all (plan §3.2).
+    const stopGroupFeed = subscribeSocketEvent<GroupFeedChangedPayload>(
+      socket,
+      ticketSocketEvents.groupFeedChanged,
+      () => {
+        if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+          return;
+        }
+        debounced.trigger();
+      },
+    );
     return () => {
       debounced.cancel();
       stopUpdated();
       stopCreated();
+      stopGroupFeed();
       releaseHelpdeskSocket();
     };
   }, [reload, session]);

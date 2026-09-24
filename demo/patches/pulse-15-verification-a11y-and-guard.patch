@@ -1,0 +1,1022 @@
+diff --git a/.cursor/docs/theme.md b/.cursor/docs/theme.md
+index 9d1f7cf..0fe8c5d 100644
+--- a/.cursor/docs/theme.md
++++ b/.cursor/docs/theme.md
+@@ -170,6 +170,18 @@ prikazuje sve tokene, tonove i nove primitive u aktivnoj temi. Za izbor izgleda
+ Provjera prije commita: `npx tsc -b`, `npx vitest run`, `npx vite build`, te klasa-proba kroz generisani CSS
+ (klasa koja ne postoji u CSS-u je mrtva klasa čak i kad izgleda ispravno u kodu).
+ 
++Automatska provjera pravila iz ovog dokumenta (radi iz korijena repoa, bez instalacije):
++
++```bash
++node scripts/check-pulse-design-system.mjs
++```
++
++Provjerava: da je `theme-source.md` arhiviran i da se nigdje ne citira kao izvor; da nema hardkodiranih boja
++(hex, Tailwind default paleta, `rgb()` bez tokena); da sva tri token bloka i svi paletni blokovi imaju isti skup
++varijabli i da svaka paleta iz koda ima CSS blok + i18n ključeve; da nema `rounded-xl`; da `bs`/`en` parity i svi
++statički `t()` ključevi razrješavaju; da pre-paint skripta čita iste storage ključeve kao `theme-storage.ts`.
++Vrti se i u CI-ju (`.github/workflows/ci.yml`, frontend job).
++
+ ---
+ 
+ # classic — naslijeđeni katalog
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1191001..072e0b4 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -46,6 +46,8 @@ jobs:
+       - run: npm ci
+       - name: Check ticket screens for raw identifiers
+         run: node ../scripts/check-ticket-id-leaks.mjs
++      - name: Check the Pulse design system (tokens, colours, radius, i18n)
++        run: node ../scripts/check-pulse-design-system.mjs
+       - run: npm test
+       - run: npm run build
+ 
+diff --git a/fe-alignment-prompts.md b/fe-alignment-prompts.md
+index f338e09..57d9baf 100644
+--- a/fe-alignment-prompts.md
++++ b/fe-alignment-prompts.md
+@@ -3,9 +3,9 @@
+ Generisano na osnovu `.cursor/docs/frontend-reference-alignment-plan.md` (status u planu: PLAN VALIDATED, implementacija još nije krenula).
+ 
+ > **Istorijski dokument (prije Pulse-a).** Generisan je za staru tamnu temu i kanonski `referenca-dizajn/`.
+-> Danas je kanonski **Pulse**: gdje god ovi promptovi kažu „mimo `theme.md` i `theme-source.md`", važi
+-> **samo `.cursor/docs/theme.md`** — `theme-source.md` je arhiviran. Vizuelni targeti iz `referenca-dizajn/`
+-> više ne važe; za izgled su mjerodavni `Master UI-UX Design Constitution.md` i `demo/`.
++> Danas je kanonski **Pulse**: važi **samo `.cursor/docs/theme.md`** (a `theme-source.md` je arhiviran).
++> Vizuelni targeti iz arhiviranog `referenca-dizajn/` više ne važe; za izgled su mjerodavni
++> `Master UI-UX Design Constitution.md` i `demo/` prototip.
+ 
+ ## Kako koristiti ovaj dokument
+ 
+@@ -95,7 +95,7 @@ Identični BADGE_TONES kao `ui.tsx`.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -141,7 +141,7 @@ Krivulja `cubic-bezier(0.22, 0.68, 0.36, 1)`.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -187,7 +187,7 @@ Label 12.5px, hint 11.5px.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -233,7 +233,7 @@ StatCard 24px tabular-nums; delta boja samo kad nosi odluku (nije dekorativna).
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -279,7 +279,7 @@ Thickness ~15, bar top radius 3px, stagger 28ms animacija.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -303,7 +303,7 @@ NE diraj druge FE-* taskove, ne implementiraj druge module, ne radi refactor ili
+ 
+ Prije pisanja koda:
+ 1. Pročitaj sekciju FE-0.6 u `.cursor/docs/frontend-reference-alignment-plan.md`.
+-2. Pročitaj referentne fajlove: Live `referenca-dizajn` (`Shell.tsx`, `ui.tsx`); `.cursor/docs/theme.md`; `.cursor/docs/theme-source.md` §13.
++2. Pročitaj referentne fajlove: `.cursor/docs/theme.md` (tokeni, palete, kontrast) i `Master UI-UX Design Constitution.md` (layout po ekranu); prototip identiteta je u `demo/`.
+ 3. Pročitaj trenutne fajlove koje mijenjaš: Live `frontend` (`application-shell`, `components/ui/*`).
+ 4. Dependency (mora već biti gotovo prije ovog taska): FE-0.1, FE-0.2, FE-0.3, FE-0.4, FE-0.5. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
+ 5. Predloži kratak plan implementacije prije pisanja koda; sačekaj moju potvrdu.
+@@ -331,7 +331,7 @@ Vizuelni zahtjevi (Visual):
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -383,7 +383,7 @@ Sekcijski naslov 10px uppercase, letter-spacing 0.12em.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -426,7 +426,7 @@ Broj dolazi iz API-ja; 0 se prikazuje konzistentno s referencom (referenca prika
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -472,7 +472,7 @@ Isti input chrome kao referenca.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -515,7 +515,7 @@ Filter all/unread vizuelno kao referenca (`bg-background` kad je "unread" filter
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -558,7 +558,7 @@ Nema regresije autentikacije.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -606,7 +606,7 @@ StatCard hover border `#31405C`.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -652,7 +652,7 @@ Legenda desno, tabular-nums, `.bar-grow` animacija.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -698,7 +698,7 @@ ID boja `#7FA8F5`, pause chip za waiting/approval statuse.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -741,7 +741,7 @@ Loading skeleton ostaje netaknut.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -789,7 +789,7 @@ Table head 10.5px uppercase; row hover `elevated/40`.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -837,7 +837,7 @@ Danger banner, "Preuzmi" dugme kao primary.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -891,7 +891,7 @@ Header card `px-5 py-4`, sidebar 330px. Ovo je PRIORITY visual gate (§13.5) —
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -936,7 +936,7 @@ Completed step ima success kvačicu; active step ima primary fill.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -984,7 +984,7 @@ Progress h-1.5, tabular-nums remaining vrijeme.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1032,7 +1032,7 @@ max-w 1400 već dolazi iz shell-a.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1078,7 +1078,7 @@ Warning boja samo za max bar (usko grlo/bottleneck).
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1121,7 +1121,7 @@ Dugme je `disabled` + `aria-disabled`; date filter mijenja agregacije u prikazu.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1169,7 +1169,7 @@ Vizuelni zahtjevi (Visual):
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1217,7 +1217,7 @@ Outline/danger dugmad; change reason kao Field komponenta.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1263,7 +1263,7 @@ Vizuelni zahtjevi (Visual):
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1311,7 +1311,7 @@ Hover title boja `#7FA8F5`; search kartica bez loma border-input chrome-a.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1359,7 +1359,7 @@ PageHeader crumbs "Usluge i znanje / [naziv članka]".
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1405,7 +1405,7 @@ CELL_STYLE klase preuzete iz reference.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1451,7 +1451,7 @@ UnderlineTabs komponenta.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1499,7 +1499,7 @@ Selected profile: `border-primary/50 bg-primary/8`.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1547,7 +1547,7 @@ n/a
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1590,7 +1590,7 @@ SLA/approval notifikacije otvaraju ispravan tiket; nepoznat kind ne ruši aplika
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1633,7 +1633,7 @@ Neuspješno slanje ne gubi draft tekst poruke.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1676,7 +1676,7 @@ Grep je čist osim dopuštenih vrijednosti: `#7FA8F5`, `#1D4FD8`, `#31405C`, ava
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1719,7 +1719,7 @@ Tab navigacija kroz cijeli shell + ticket list checkbox radi; SVI §13.5 module
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1764,7 +1764,7 @@ Nijedna lista nije samo "Nema podataka" bez sljedećeg koraka za korisnika.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1810,7 +1810,7 @@ UnderlineTabs + PageHeader "Administracija sistema".
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1853,7 +1853,7 @@ Read-only mod AKO već postoji session read-only flag u FE (UNVERIFIED — provj
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1896,7 +1896,7 @@ NE implementirati config versioning/rollback.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+@@ -1939,7 +1939,7 @@ Nula mock jobova — EmptyState samo, ništa izmišljeno.
+ Opšta pravila iz plana (obavezno poštovati):
+ - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
+ - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
+-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
++- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
+ - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
+ - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
+ 
+diff --git a/frontend/src/components/dashboard/dashboard-activity-feed.tsx b/frontend/src/components/dashboard/dashboard-activity-feed.tsx
+index d9397ec..93c84f1 100644
+--- a/frontend/src/components/dashboard/dashboard-activity-feed.tsx
++++ b/frontend/src/components/dashboard/dashboard-activity-feed.tsx
+@@ -63,7 +63,7 @@ export function DashboardActivityFeed() {
+                       navigate(path);
+                     }
+                   }}
+-                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover disabled:cursor-default disabled:hover:bg-transparent"
++                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover disabled:cursor-default disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+                 >
+                   <span
+                     className="mt-1.5 size-1.5 shrink-0 rounded-full"
+diff --git a/frontend/src/components/layout/command-palette.tsx b/frontend/src/components/layout/command-palette.tsx
+index 9661be8..b099046 100644
+--- a/frontend/src/components/layout/command-palette.tsx
++++ b/frontend/src/components/layout/command-palette.tsx
+@@ -349,6 +349,10 @@ function PaletteRow({
+       type="button"
+       id={`palette-row-${index}`}
+       role="option"
++      /* Deliberately not a tab stop: the combobox owns focus and moves the
++         active option with ArrowUp/ArrowDown (`aria-activedescendant`); that
++         highlighted row is what makes keyboard focus visible here. */
++      tabIndex={-1}
+       aria-selected={isActive}
+       onMouseMove={() => onHover(index)}
+       onMouseDown={(event) => event.preventDefault()}
+diff --git a/frontend/src/components/layout/header-search-match.tsx b/frontend/src/components/layout/header-search-match.tsx
+index 5ed19ab..af63ece 100644
+--- a/frontend/src/components/layout/header-search-match.tsx
++++ b/frontend/src/components/layout/header-search-match.tsx
+@@ -130,6 +130,10 @@ function HitRow({
+       type="button"
+       id={`global-search-hit-${itemIndex}`}
+       role="option"
++      /* Deliberately not a tab stop: the combobox owns focus and moves the
++         active option with ArrowUp/ArrowDown (`aria-activedescendant`); that
++         highlighted row is what makes keyboard focus visible here. */
++      tabIndex={-1}
+       aria-selected={isActive}
+       className={cn(
+         "flex w-full flex-col items-start gap-0.5 px-3.5 py-2 text-left transition-colors duration-150",
+diff --git a/frontend/src/components/layout/notifications-list.tsx b/frontend/src/components/layout/notifications-list.tsx
+index 2f6216c..96c9d46 100644
+--- a/frontend/src/components/layout/notifications-list.tsx
++++ b/frontend/src/components/layout/notifications-list.tsx
+@@ -55,7 +55,7 @@ export function NotificationsList({
+             <button
+               type="button"
+               className={cn(
+-                "flex w-full items-start gap-3 border-b border-border/50 px-3.5 py-3 text-left transition-colors duration-150 last:border-0 hover:bg-surface-hover",
++                "flex w-full items-start gap-3 border-b border-border/50 px-3.5 py-3 text-left transition-colors duration-150 last:border-0 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                 notification.isRead ? "" : "bg-primary/[0.04]",
+               )}
+               onClick={() => onSelect(notification)}
+diff --git a/frontend/src/components/layout/notifications-panel.tsx b/frontend/src/components/layout/notifications-panel.tsx
+index 45ad143..26926e7 100644
+--- a/frontend/src/components/layout/notifications-panel.tsx
++++ b/frontend/src/components/layout/notifications-panel.tsx
+@@ -54,7 +54,7 @@ export function NotificationsPanel({
+           <button
+             type="button"
+             onClick={() => void onMarkAllRead()}
+-            className="rounded-md px-2 py-1 text-[11.5px] text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
++            className="rounded-md px-2 py-1 text-[11.5px] text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+           >
+             {t("notifications.markAllRead")}
+           </button>
+diff --git a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+index cd7e42e..3be755b 100644
+--- a/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
++++ b/frontend/src/components/organizational-units/organizational-unit-tree-item.tsx
+@@ -116,7 +116,7 @@ export function OrganizationalUnitTreeItem({
+           <div className="relative">
+             <button
+               type="button"
+-              className="rounded p-1 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-foreground"
++              className="rounded p-1 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+               aria-label={t("directory.ouActions")}
+               onClick={(event) => {
+                 event.stopPropagation();
+diff --git a/frontend/src/components/services/service-catalog-card.tsx b/frontend/src/components/services/service-catalog-card.tsx
+index d721bea..b15990d 100644
+--- a/frontend/src/components/services/service-catalog-card.tsx
++++ b/frontend/src/components/services/service-catalog-card.tsx
+@@ -124,7 +124,7 @@ export function ServiceCatalogCard({
+         {hasUpcoming ? (
+           <button
+             type="button"
+-            className="inline-flex"
++            className="inline-flex focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+             onClick={() => {
+               if (canWriteAvailability) {
+                 onManageDowntime(service);
+diff --git a/frontend/src/components/settings/auth-provider-settings-card.tsx b/frontend/src/components/settings/auth-provider-settings-card.tsx
+index 4d03db9..7b8a4e2 100644
+--- a/frontend/src/components/settings/auth-provider-settings-card.tsx
++++ b/frontend/src/components/settings/auth-provider-settings-card.tsx
+@@ -63,7 +63,7 @@ export function AuthProviderSettingsCard({
+                 type="button"
+                 disabled={!canWrite || pendingKey === authSettingKeys.mode}
+                 className={cn(
+-                  "rounded-lg border p-3 text-left transition-colors",
++                  "rounded-lg border p-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                   pendingMode === provider.id
+                     ? "border-primary/50 bg-primary/8"
+                     : "border-border bg-elevated/40 hover:border-line-strong",
+diff --git a/frontend/src/components/tickets/create-ticket-service-picker.tsx b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+index b11ef9b..71ff341 100644
+--- a/frontend/src/components/tickets/create-ticket-service-picker.tsx
++++ b/frontend/src/components/tickets/create-ticket-service-picker.tsx
+@@ -53,7 +53,7 @@ export function CreateTicketServicePicker({
+               type="button"
+               onClick={() => onSelect(service.id)}
+               className={cn(
+-                "rounded-lg border p-3.5 text-left transition-all duration-150",
++                "rounded-lg border p-3.5 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+                 selected
+                   ? "border-primary/60 bg-primary/10"
+                   : "border-border bg-background/40 hover:border-line-strong hover:bg-surface-hover",
+diff --git a/frontend/src/components/tickets/knowledge-intercept-panel.tsx b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+index ba28b18..364bac8 100644
+--- a/frontend/src/components/tickets/knowledge-intercept-panel.tsx
++++ b/frontend/src/components/tickets/knowledge-intercept-panel.tsx
+@@ -133,7 +133,7 @@ export function KnowledgeInterceptPanel({
+           type="button"
+           onClick={onHelped}
+           className={cn(
+-            "rounded-lg border p-4 text-left transition-all duration-150",
++            "rounded-lg border p-4 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+             helped ? "border-success/50 bg-success/10" : "border-border bg-surface shadow-card hover:border-success/40",
+           )}
+         >
+diff --git a/frontend/src/components/tickets/ticket-inbox-list.tsx b/frontend/src/components/tickets/ticket-inbox-list.tsx
+index f0572ed..4d1c824 100644
+--- a/frontend/src/components/tickets/ticket-inbox-list.tsx
++++ b/frontend/src/components/tickets/ticket-inbox-list.tsx
+@@ -129,7 +129,7 @@ function InboxTicketRow({
+       <button
+         type="button"
+         onClick={() => navigate(`/tickets/${ticket.id}`)}
+-        className="min-w-0 flex-1 text-left"
++        className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+       >
+         <p className="flex items-center gap-2">
+           <span className={ticketIdClassName}>{ticket.ticketNumber}</span>
+diff --git a/frontend/src/components/tickets/ticket-saved-views-panel.tsx b/frontend/src/components/tickets/ticket-saved-views-panel.tsx
+index 3a91f72..47b5bd9 100644
+--- a/frontend/src/components/tickets/ticket-saved-views-panel.tsx
++++ b/frontend/src/components/tickets/ticket-saved-views-panel.tsx
+@@ -70,8 +70,8 @@ export function TicketSavedViewsPanel({
+           }}
+           className={
+             activeId === view.id
+-              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left transition-colors duration-150"
+-              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-surface-hover"
++              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
++              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+           }
+         >
+           <span className="flex items-center justify-between gap-2">
+diff --git a/frontend/src/components/ui/chip.tsx b/frontend/src/components/ui/chip.tsx
+index 0b00ad9..5c3979c 100644
+--- a/frontend/src/components/ui/chip.tsx
++++ b/frontend/src/components/ui/chip.tsx
+@@ -53,7 +53,7 @@ export function Chip({
+             type="button"
+             aria-label={removeLabel}
+             onClick={onRemove}
+-            className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10"
++            className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+           >
+             <X size={11} strokeWidth={2.4} />
+           </button>
+@@ -68,7 +68,7 @@ export function Chip({
+         type="button"
+         onClick={onClick}
+         aria-pressed={active}
+-        className="inline-flex items-center gap-1.5"
++        className="inline-flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+       >
+         {icon}
+         {children}
+@@ -78,7 +78,7 @@ export function Chip({
+           type="button"
+           aria-label={removeLabel}
+           onClick={onRemove}
+-          className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10"
++          className="-mr-0.5 rounded-full p-0.5 transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+         >
+           <X size={11} strokeWidth={2.4} />
+         </button>
+diff --git a/frontend/src/components/ui/tabs.tsx b/frontend/src/components/ui/tabs.tsx
+index fd46c04..c85abae 100644
+--- a/frontend/src/components/ui/tabs.tsx
++++ b/frontend/src/components/ui/tabs.tsx
+@@ -38,7 +38,7 @@ export function UnderlineTabs({
+             aria-selected={isActive}
+             onClick={() => onChange(item.key)}
+             className={cn(
+-              "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150",
++              "relative flex h-[38px] items-center gap-1.5 whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
+               isActive
+                 ? "text-foreground"
+                 : "text-muted-foreground hover:text-foreground",
+diff --git a/frontend/src/components/ui/toast.tsx b/frontend/src/components/ui/toast.tsx
+index eb789b9..121fcfa 100644
+--- a/frontend/src/components/ui/toast.tsx
++++ b/frontend/src/components/ui/toast.tsx
+@@ -153,7 +153,7 @@ function Toaster({
+               type="button"
+               aria-label={t("ui.dismiss")}
+               onClick={() => onDismiss(record.id)}
+-              className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
++              className="-mr-0.5 shrink-0 rounded-md p-1 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+             >
+               <X size={13} />
+             </button>
+diff --git a/scripts/check-pulse-design-system.mjs b/scripts/check-pulse-design-system.mjs
+new file mode 100644
+index 0000000..afb624d
+--- /dev/null
++++ b/scripts/check-pulse-design-system.mjs
+@@ -0,0 +1,366 @@
++#!/usr/bin/env node
++// Guards the Pulse design-system decisions made in Phases 0–6, so they cannot
++// silently rot after the migration patches land:
++//
++//   1. docs      — `.cursor/docs/theme-source.md` (the legacy dark-only palette)
++//                  is archived and no longer cited as a source of truth;
++//   2. colors    — no hardcoded colours in `frontend/src` (hex, Tailwind default
++//                  palette classes, or `rgb()`/`hsl()` that do not read a token);
++//   3. tokens    — the three token blocks carry the *same* variable set (a token
++//                  present in two of three blocks silently falls back to classic)
++//                  and every brand palette in the code has a CSS block;
++//   4. radius    — `rounded-xl` is not used (it is not token-bound, so it does not
++//                  follow the theme);
++//   5. i18n      — `bs` and `en` have identical key sets and every statically
++//                  referenced `t()` key resolves in both;
++//   6. contract  — the storage keys in `theme-storage.ts` are mirrored by the
++//                  pre-paint script in `index.html` (otherwise the first paint
++//                  flashes the wrong theme).
++//
++// Everything here is deliberately conservative: a rule that produced a false
++// positive would get ignored, so each rule was measured against the migrated
++// tree first (see PULSE_UI_HANDOFF.md §3). Run from the repository root:
++//
++//   node scripts/check-pulse-design-system.mjs
++import { readdirSync, readFileSync, statSync } from "node:fs";
++import { dirname, join, relative, resolve } from "node:path";
++import { fileURLToPath } from "node:url";
++
++const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
++const failures = [];
++const notes = [];
++
++function fail(section, message) {
++  failures.push(`${section}: ${message}`);
++}
++
++function read(path) {
++  return readFileSync(join(root, path), "utf8");
++}
++
++function exists(path) {
++  try {
++    return statSync(join(root, path)).isFile();
++  } catch {
++    return false;
++  }
++}
++
++function walk(dir, pattern) {
++  const found = [];
++  for (const entry of readdirSync(join(root, dir))) {
++    const path = `${dir}/${entry}`;
++    const stats = statSync(join(root, path));
++    if (stats.isDirectory()) found.push(...walk(path, pattern));
++    else if (pattern.test(path)) found.push(path);
++  }
++  return found;
++}
++
++/* ── 1. documentation ─────────────────────────────────────────────────────── */
++function checkDocs() {
++  const section = "docs";
++  const archived = ".cursor/docs/theme-source.md";
++  if (!exists(archived)) {
++    fail(section, `${archived} is missing (it should exist as an archived stub)`);
++  } else if (!read(archived).includes("[ARHIVIRANO]")) {
++    fail(section, `${archived} must carry the "[ARHIVIRANO]" marker`);
++  }
++
++  const scanned = [
++    ".cursor/docs",
++    ".cursor/rules",
++    "referenca-dizajn/README.md",
++    "fe-alignment-prompts.md",
++    "Master UI-UX Design Constitution.md",
++  ];
++  // Any mention has to carry its own disqualifier on the same line: prose tends
++  // to cite a source with the verb *before* the name ("mjerodavan je
++  // theme-source.md"), so pattern-matching specific phrases is fragile.
++  const mentionsLegacy = /theme-source/i;
++  const saysArchived = /arhivir|penzionisan|više nije|nije više|legacy|histor/i;
++  const files = scanned.flatMap((target) =>
++    target.endsWith(".md") || target.endsWith(".mdc")
++      ? [target]
++      : walk(target, /\.(md|mdc)$/),
++  );
++  for (const file of files) {
++    if (file === archived) continue;
++    const text = read(file);
++    text.split("\n").forEach((line, index) => {
++      if (mentionsLegacy.test(line) && !saysArchived.test(line)) {
++        fail(
++          section,
++          `${file}:${index + 1} cites theme-source.md without marking it archived: ${line.trim()}`,
++        );
++      }
++    });
++  }
++}
++
++/* ── 2. colours ───────────────────────────────────────────────────────────── */
++function checkColors() {
++  const section = "colors";
++  const hex = /#[0-9a-fA-F]{3,8}\b/;
++  // `rgb()` / `hsl()` is legitimate for SVG attributes and gradient stops, which
++  // cannot take a utility class — but only when it reads a token.
++  const rawColorFunction = /\b(rgb|rgba|hsl|hsla)\(\s*(?!var\()/;
++  const namedPalette =
++    /\b(?:bg|text|border|ring|fill|stroke|from|to|via|divide|outline|decoration|placeholder|caret|accent|shadow)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/;
++
++  for (const file of walk("frontend/src", /\.(tsx|ts)$/)) {
++    if (/\.spec\.(tsx|ts)$/.test(file)) continue;
++    read(file)
++      .split("\n")
++      .forEach((line, index) => {
++        const where = `${file}:${index + 1}`;
++        if (hex.test(line)) fail(section, `${where} hardcoded hex colour: ${line.trim()}`);
++        if (rawColorFunction.test(line))
++          fail(section, `${where} raw colour function without a token: ${line.trim()}`);
++        if (namedPalette.test(line))
++          fail(section, `${where} Tailwind default palette colour: ${line.trim()}`);
++      });
++  }
++}
++
++/* ── 3. tokens ────────────────────────────────────────────────────────────── */
++/**
++ * Reads the token names of the first rule whose selector matches `selector`.
++ * The `:root` prefix must not be part of the pattern for the base blocks: a
++ * plain `:root[data-theme="pulse"]` pattern would also match the `.dark` block,
++ * because the block after it starts with the same text.
++ */
++function readBlock(css, selector) {
++  const pattern = new RegExp(`${selector}\\s*\\{([^}]*)\\}`, "s");
++  const match = pattern.exec(css);
++  if (match === null) return null;
++  return new Set(
++    [...match[1].matchAll(/--[a-z0-9-]+\s*:/g)].map((token) => token[0].replace(/\s*:$/, "")),
++  );
++}
++
++function difference(a, b) {
++  return [...a].filter((item) => !b.has(item)).sort();
++}
++
++function checkTokens() {
++  const section = "tokens";
++  const css = read("frontend/src/index.css");
++
++  // Selectors are used as regexes, so brackets must stay escaped.
++  const baseBlocks = {
++    classic: '\\[data-theme="classic"\\]',
++    "pulse light": ':root\\[data-theme="pulse"\\](?![\\w-])',
++    "pulse dark": ':root\\[data-theme="pulse"\\]\\.dark',
++  };
++  const sets = {};
++  for (const [label, selector] of Object.entries(baseBlocks)) {
++    const set = readBlock(css, selector);
++    if (set === null) fail(section, `token block not found: ${label}`);
++    else sets[label] = set;
++  }
++  const reference = sets.classic;
++  if (reference !== undefined) {
++    for (const [label, set] of Object.entries(sets)) {
++      const missingHere = difference(reference, set);
++      const missingThere = difference(set, reference);
++      if (missingHere.length > 0)
++        fail(section, `"${label}" is missing tokens defined in classic: ${missingHere.join(", ")}`);
++      if (missingThere.length > 0)
++        fail(
++          section,
++          `"${label}" defines tokens missing from classic: ${missingThere.join(", ")}`,
++        );
++    }
++    notes.push(`tokens: ${reference.size} tokens consistent across the three base blocks`);
++  }
++
++  // Brand palettes: every non-default value needs a light and a dark block. The
++  // default palette IS the base `:root[data-theme="pulse"]` block, so it has none.
++  const storage = read("frontend/src/lib/theme/theme-storage.ts");
++  const defaultAccent = /DEFAULT_THEME_ACCENT[^=]*=\s*"([a-z]+)"/.exec(storage);
++  if (defaultAccent === null) fail(section, "DEFAULT_THEME_ACCENT not found in theme-storage.ts");
++  const accents = /THEME_ACCENTS[^=]*=\s*\[([^\]]*)\]/.exec(storage);
++  if (accents === null) {
++    fail(section, "THEME_ACCENTS not found in theme-storage.ts");
++    return;
++  }
++  const values = [...accents[1].matchAll(/"([a-z]+)"/g)].map((match) => match[1]);
++  const paletteSets = [];
++  for (const value of values) {
++    const isDefault = defaultAccent !== null && value === defaultAccent[1];
++    if (!isDefault) {
++      for (const dark of [false, true]) {
++        // No trailing `{` here — `readBlock` appends the body pattern itself.
++        const selector = `\\[data-theme="pulse"\\]\\[data-accent="${value}"\\]${dark ? "\\.dark" : ""}`;
++        const set = readBlock(css, selector);
++        if (set === null) {
++          fail(section, `palette "${value}"${dark ? " (dark)" : ""} has no CSS block`);
++        } else {
++          paletteSets.push({ label: `${value}${dark ? ".dark" : ""}`, set });
++        }
++      }
++    }
++    // The palette needs a label in both locales, otherwise the UI shows the key.
++    for (const locale of ["bs", "en"]) {
++      const cap = value[0].toUpperCase() + value.slice(1);
++      if (!read(`frontend/src/i18n/locales/${locale}/common.json`).includes(`"accent${cap}"`)) {
++        fail(section, `palette "${value}" has no theme.accent${cap} key in ${locale}`);
++      }
++    }
++  }
++  if (paletteSets.length > 0) {
++    const first = paletteSets[0];
++    if (first.set.size === 0) fail(section, "palette blocks define no variables");
++
++    for (const { label, set } of paletteSets) {
++      if (difference(first.set, set).length > 0 || difference(set, first.set).length > 0) {
++        fail(section, `palette block "${label}" does not define the same variables as "${first.label}"`);
++      }
++    }
++    notes.push(`tokens: ${paletteSets.length} palette blocks, each with ${first.set.size} variables`);
++  }
++}
++
++/* ── 4. radius ────────────────────────────────────────────────────────────── */
++function checkRadius() {
++  const section = "radius";
++  for (const file of walk("frontend/src", /\.(tsx|ts)$/)) {
++    if (/\.spec\.(tsx|ts)$/.test(file)) continue;
++    read(file)
++      .split("\n")
++      .forEach((line, index) => {
++        if (/rounded-xl/.test(line)) {
++          fail(section, `${file}:${index + 1} uses rounded-xl (not token-bound): ${line.trim()}`);
++        }
++      });
++  }
++}
++
++/* ── 5. i18n ──────────────────────────────────────────────────────────────── */
++function leaves(value, prefix = "", into = new Set()) {
++  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
++    for (const [key, child] of Object.entries(value)) {
++      leaves(child, prefix === "" ? key : `${prefix}.${key}`, into);
++    }
++  } else {
++    into.add(prefix);
++  }
++  return into;
++}
++
++function hasKey(dictionary, key) {
++  let current = dictionary;
++  for (const part of key.split(".")) {
++    if (current === null || typeof current !== "object" || !(part in current)) return false;
++    current = current[part];
++  }
++  return true;
++}
++
++function hasPrefix(dictionary, prefix) {
++  let current = dictionary;
++  for (const part of prefix.split(".")) {
++    if (current === null || typeof current !== "object" || !(part in current)) return false;
++    current = current[part];
++  }
++  return current !== null && typeof current === "object";
++}
++
++function checkI18n() {
++  const section = "i18n";
++  const locales = {};
++  for (const locale of ["bs", "en"]) {
++    locales[locale] = JSON.parse(read(`frontend/src/i18n/locales/${locale}/common.json`));
++  }
++  const keys = { bs: leaves(locales.bs), en: leaves(locales.en) };
++  const onlyBs = difference(keys.bs, keys.en);
++  const onlyEn = difference(keys.en, keys.bs);
++  if (onlyBs.length > 0) fail(section, `keys only in bs: ${onlyBs.slice(0, 10).join(", ")}`);
++  if (onlyEn.length > 0) fail(section, `keys only in en: ${onlyEn.slice(0, 10).join(", ")}`);
++  notes.push(`i18n: ${keys.bs.size} keys, bs/en parity ok`);
++
++  // `(?<![\w.])` skips `search.set("q")` / `createElement("a")` and friends.
++  const staticKey = /(?<![\w.])t\(\s*"([A-Za-z][A-Za-z0-9]*\.[A-Za-z0-9.]+)"/g;
++  const dynamicPrefix = /(?<![\w.])t\(\s*`([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)*)\.\$\{/g;
++  const seenKeys = new Set();
++  const seenPrefixes = new Set();
++
++  for (const file of walk("frontend/src", /\.(tsx|ts)$/)) {
++    if (/\.spec\.(tsx|ts)$/.test(file)) continue;
++    const text = read(file);
++    for (const match of text.matchAll(staticKey)) seenKeys.add(match[1]);
++    for (const match of text.matchAll(dynamicPrefix)) seenPrefixes.add(match[1]);
++  }
++  for (const key of [...seenKeys].sort()) {
++    for (const locale of ["bs", "en"]) {
++      if (!hasKey(locales[locale], key)) fail(section, `t("${key}") has no ${locale} translation`);
++    }
++  }
++  for (const prefix of [...seenPrefixes].sort()) {
++    for (const locale of ["bs", "en"]) {
++      if (!hasPrefix(locales[locale], prefix)) {
++        fail(section, `dynamic t(\`${prefix}.…\`) matches nothing in ${locale}`);
++      }
++    }
++  }
++  notes.push(
++    `i18n: ${seenKeys.size} static t() keys resolved in both locales, ${seenPrefixes.size} dynamic prefixes resolved`,
++  );
++}
++
++/* ── 6. theme contract ────────────────────────────────────────────────────── */
++function checkContract() {
++  const section = "contract";
++  const storage = read("frontend/src/lib/theme/theme-storage.ts");
++  const prePaint = read("frontend/index.html");
++
++  const storageKeys = [...storage.matchAll(/THEME_[A-Z]+_STORAGE_KEY\s*=\s*"([^"]+)"/g)].map(
++    (match) => match[1],
++  );
++  if (storageKeys.length === 0) fail(section, "no THEME_*_STORAGE_KEY constants found");
++  for (const key of storageKeys) {
++    if (!prePaint.includes(key)) {
++      fail(section, `storage key "${key}" is not mirrored by the pre-paint script in index.html`);
++    }
++  }
++  notes.push(`contract: ${storageKeys.length} storage keys mirrored in the pre-paint script`);
++
++  const provider = read("frontend/src/lib/theme/theme-provider.tsx");
++  for (const attribute of ["root.dataset.theme", "root.dataset.accent"]) {
++    if (!provider.includes(attribute)) fail(section, `${attribute} is not set by ThemeProvider`);
++  }
++  if (!/classList\.toggle\("dark"/.test(provider)) {
++    fail(section, 'ThemeProvider does not toggle the "dark" class');
++  }
++  // Match the *value-driven* assignment: the `catch` fallback also writes these
++  // attributes with literals, so a substring test on the name alone would pass
++  // even with the real assignment removed.
++  for (const [attribute, value] of [
++    ["data-theme", "design"],
++    ["data-accent", "accent"],
++  ]) {
++    if (!prePaint.includes(`setAttribute("${attribute}", ${value})`)) {
++      fail(section, `pre-paint script does not apply the stored ${attribute} (${value})`);
++    }
++  }
++  if (!prePaint.includes('classList.toggle("dark", isDark)')) {
++    fail(section, "pre-paint script does not apply the resolved brightness");
++  }
++}
++
++checkDocs();
++checkColors();
++checkTokens();
++checkRadius();
++checkI18n();
++checkContract();
++
++for (const note of notes) console.log(`  · ${note}`);
++
++if (failures.length > 0) {
++  console.error(`\ncheck-pulse-design-system: ${failures.length} problem(s)\n`);
++  for (const failure of failures) console.error(`  ✗ ${failure}`);
++  process.exit(1);
++}
++console.log("check-pulse-design-system: docs, colours, tokens, radius, i18n and theme contract OK.");

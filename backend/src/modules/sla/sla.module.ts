@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
@@ -17,12 +16,10 @@ import { SlaProfilesService } from './sla-profiles.service';
 import { SlaRulesController } from './sla-rules.controller';
 import { SlaRulesService } from './sla-rules.service';
 import { StartingSlaSeedService } from './starting-sla-seed.service';
-import { TicketSlaBreachScannerService } from './ticket-sla-breach-scanner.service';
 import { TicketSlaTimersService } from './ticket-sla-timers.service';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     AuthenticationModule,
     AuthorizationModule,
     SettingsModule,
@@ -44,7 +41,6 @@ import { TicketSlaTimersService } from './ticket-sla-timers.service';
     PriorityMatrixService,
     SlaComplianceService,
     TicketSlaTimersService,
-    TicketSlaBreachScannerService,
     StartingSlaSeedService,
   ],
   exports: [

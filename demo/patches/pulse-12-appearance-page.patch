@@ -1,0 +1,413 @@
+diff --git a/frontend/src/app/router.tsx b/frontend/src/app/router.tsx
+index 8c187ae..2b4b0a9 100644
+--- a/frontend/src/app/router.tsx
++++ b/frontend/src/app/router.tsx
+@@ -24,6 +24,7 @@ import { InstallPage } from "@/pages/install-page";
+ import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
+ import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
+ import { AdminPage } from "@/pages/admin-page";
++import { AppearancePage } from "@/pages/appearance-page";
+ import { LoginPage } from "@/pages/login-page";
+ import { ReportsPage } from "@/pages/reports-page";
+ import { RoutingPage } from "@/pages/routing-page";
+@@ -70,6 +71,7 @@ export function AppRouter() {
+               <Route index element={<KnowledgeBasePage />} />
+               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
+             </Route>
++            <Route path="appearance" element={<AppearancePage />} />
+             <Route
+               path="users"
+               element={<LegacyAdminRedirect tab="users" />}
+diff --git a/frontend/src/components/layout/session-controls.tsx b/frontend/src/components/layout/session-controls.tsx
+index 093944a..b2bbfa5 100644
+--- a/frontend/src/components/layout/session-controls.tsx
++++ b/frontend/src/components/layout/session-controls.tsx
+@@ -1,4 +1,4 @@
+-import { ChevronDown, Languages, LogOut, Settings2, Ticket } from "lucide-react";
++import { ChevronDown, Languages, LogOut, Palette, Settings2, Ticket } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { useNavigate } from "react-router-dom";
+ import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
+@@ -63,6 +63,9 @@ export function SessionControls() {
+         <DropdownMenuItem onSelect={() => navigate("/tickets?view=assigned")}>
+           <Ticket size={13} /> {t("shell.assignedTickets")}
+         </DropdownMenuItem>
++        <DropdownMenuItem onSelect={() => navigate("/appearance")}>
++          <Palette size={13} /> {t("theme.label")}
++        </DropdownMenuItem>
+         <DropdownMenuItem onSelect={() => navigate("/settings")}>
+           <Settings2 size={13} /> {t("shell.accountSettings")}
+         </DropdownMenuItem>
+diff --git a/frontend/src/components/layout/theme-switcher.tsx b/frontend/src/components/layout/theme-switcher.tsx
+index fa80332..4599d88 100644
+--- a/frontend/src/components/layout/theme-switcher.tsx
++++ b/frontend/src/components/layout/theme-switcher.tsx
+@@ -1,5 +1,6 @@
+ import { Check, Moon, Palette, Sun, SunMoon } from "lucide-react";
+ import { useTranslation } from "react-i18next";
++import { useNavigate } from "react-router-dom";
+ import { Button } from "@/components/ui/button";
+ import {
+   DropdownMenu,
+@@ -50,6 +51,7 @@ const DESIGN_HINT_KEY = {
+  */
+ export function ThemeSwitcher() {
+   const { t } = useTranslation();
++  const navigate = useNavigate();
+   const { design, mode, setDesign, setMode } = useTheme();
+   const ModeIcon = MODE_ICON[mode];
+ 
+@@ -105,6 +107,11 @@ export function ThemeSwitcher() {
+             })}
+           </>
+         ) : null}
++        <DropdownMenuSeparator />
++        <DropdownMenuItem onSelect={() => navigate("/appearance")}>
++          <Palette size={13} className="text-muted-foreground" />
++          <span className="flex-1">{t("appearance.openSettings")}</span>
++        </DropdownMenuItem>
+       </DropdownMenuContent>
+     </DropdownMenu>
+   );
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 8e3c395..18910ff 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -66,6 +66,30 @@
+     "designClassicHint": "stara tamna tema",
+     "active": "Aktivno"
+   },
++  "appearance": {
++    "title": "Izgled",
++    "subtitle": "Izbor se pamti u ovom pregledaču i primjenjuje odmah — ne mijenja izgled kod drugih korisnika.",
++    "designHeading": "Dizajn",
++    "designHint": "Dizajn mijenja cijeli interfejs — boje, radijuse, sjene i gustinu — bez promjene funkcionalnosti.",
++    "modeHeading": "Svjetlina",
++    "modeHint": "Važi za Pulse dizajn; klasična tema je uvijek tamna.",
++    "classicForcesDark": "Klasična tema je tamna, pa je izbor svjetline zaključan dok je aktivna. Tvoj izbor se pamti i primjenjuje kad se vratiš na Pulse.",
++    "resolvedHint": "Trenutno se primjenjuje: {{mode}}.",
++    "previewHeading": "Pregled",
++    "previewHint": "Osnovni elementi u odabranoj kombinaciji dizajna i svjetline.",
++    "previewCardTitle": "Kartica tiketa",
++    "previewCardBody": "Kratak opis pokazuje tipografiju, obrub i sjenu na površini kartice.",
++    "previewPrimaryAction": "Sačuvaj",
++    "previewSecondaryAction": "Otkaži",
++    "previewFieldLabel": "Naslov",
++    "previewFieldValue": "Ne mogu se spojiti na VPN",
++    "previewProgress": "SLA iskorištenost",
++    "previewBadge": "U radu",
++    "previewStatLabel": "Otvoreni tiketi",
++    "storedNote": "Izbor se čuva lokalno u pregledaču (localStorage) i primjenjuje odmah; na druge korisnike ne utiče.",
++    "reset": "Vrati na zadano",
++    "openSettings": "Sva podešavanja izgleda"
++  },
+   "ui": {
+     "close": "Zatvori",
+     "cancel": "Odustani",
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index 14fc83f..a2308d5 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -66,6 +66,30 @@
+     "designClassicHint": "legacy dark theme",
+     "active": "Active"
+   },
++  "appearance": {
++    "title": "Appearance",
++    "subtitle": "Your choice is stored in this browser and applied instantly — it does not change how the application looks for anyone else.",
++    "designHeading": "Design",
++    "designHint": "The design drives the whole interface — colours, radii, shadows and density — without changing any behaviour.",
++    "modeHeading": "Brightness",
++    "modeHint": "Applies to the Pulse design; the classic theme is always dark.",
++    "classicForcesDark": "The classic theme is dark, so brightness is locked while it is active. Your choice is remembered and applied when you switch back to Pulse.",
++    "resolvedHint": "Currently applied: {{mode}}.",
++    "previewHeading": "Preview",
++    "previewHint": "The core elements in the selected combination of design and brightness.",
++    "previewCardTitle": "Ticket card",
++    "previewCardBody": "A short description showing the typography, border and shadow on a card surface.",
++    "previewPrimaryAction": "Save",
++    "previewSecondaryAction": "Cancel",
++    "previewFieldLabel": "Subject",
++    "previewFieldValue": "I cannot connect to the VPN",
++    "previewProgress": "SLA used",
++    "previewBadge": "In progress",
++    "previewStatLabel": "Open tickets",
++    "storedNote": "The choice is stored locally in the browser (localStorage) and applied instantly; it does not affect other users.",
++    "reset": "Reset to default",
++    "openSettings": "All appearance settings"
++  },
+   "ui": {
+     "close": "Close",
+     "cancel": "Cancel",
+diff --git a/frontend/src/pages/appearance-page.tsx b/frontend/src/pages/appearance-page.tsx
+new file mode 100644
+index 0000000..aaba8e7
+--- /dev/null
++++ b/frontend/src/pages/appearance-page.tsx
+@@ -0,0 +1,266 @@
++import { Check, Moon, RotateCcw, Sun, SunMoon } from "lucide-react";
++import { useTranslation } from "react-i18next";
++import { Badge } from "@/components/ui/badge";
++import { Button } from "@/components/ui/button";
++import { Card, CardHeader } from "@/components/ui/card";
++import { Field, Input } from "@/components/ui/field";
++import { PageHeader } from "@/components/ui/page-header";
++import { Progress } from "@/components/ui/progress";
++import { Segmented } from "@/components/ui/segmented";
++import { StatCard } from "@/components/ui/stat-card";
++import { useTheme } from "@/lib/theme/theme-provider";
++import {
++  DEFAULT_THEME_DESIGN,
++  DEFAULT_THEME_MODE,
++  THEME_DESIGNS,
++  THEME_MODES,
++  type ThemeDesign,
++  type ThemeMode,
++} from "@/lib/theme/theme-storage";
++import { cn } from "@/lib/utils";
++
++/*
++  Appearance page — the place where the two theme axes are explained and set.
++
++  It is deliberately a regular, always-available page (no permission gate): the
++  topbar switcher is the shortcut, this is the full picture, and both write to
++  the same `useTheme()` contract, so they can never disagree.
++
++  There is no separate "preview theme" mechanism: the preview below is built
++  from the real primitives on the real tokens, so it always shows exactly what
++  the rest of the application is showing right now.
++*/
++
++const MODE_ICONS = {
++  light: Sun,
++  dark: Moon,
++  system: SunMoon,
++} as const;
++
++/* Declared `as const satisfies` so the values keep literal types — react-i18next keys `t()` against the union. */
++const MODE_LABEL_KEYS = {
++  light: "theme.light",
++  dark: "theme.dark",
++  system: "theme.system",
++} as const satisfies Record<ThemeMode, string>;
++
++const DESIGN_LABEL_KEYS = {
++  pulse: "theme.designPulse",
++  classic: "theme.designClassic",
++} as const satisfies Record<ThemeDesign, string>;
++
++const DESIGN_HINT_KEYS = {
++  pulse: "theme.designPulseHint",
++  classic: "theme.designClassicHint",
++} as const satisfies Record<ThemeDesign, string>;
++
++/** Token chips that make the difference between the two designs visible at a glance. */
++const DESIGN_SWATCHES = [
++  "bg-primary",
++  "bg-accent",
++  "bg-ok",
++  "bg-elevated",
++  "bg-background",
++] as const;
++
++interface AppearanceDesignOptionProperties {
++  readonly design: ThemeDesign;
++  readonly isActive: boolean;
++  readonly onSelect: (design: ThemeDesign) => void;
++}
++
++function AppearanceDesignOption({
++  design,
++  isActive,
++  onSelect,
++}: AppearanceDesignOptionProperties) {
++  const { t } = useTranslation();
++  return (
++    <button
++      type="button"
++      role="radio"
++      aria-checked={isActive}
++      onClick={() => onSelect(design)}
++      className={cn(
++        "flex flex-col gap-3 rounded-lg border p-4 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
++        isActive
++          ? "border-primary/50 bg-primary/8"
++          : "border-border bg-surface hover:border-line-strong hover:bg-surface-hover",
++      )}
++    >
++      <span className="flex items-center justify-between gap-2">
++        <span className="text-[13px] font-semibold text-foreground">
++          {t(DESIGN_LABEL_KEYS[design])}
++        </span>
++        {isActive ? (
++          <Badge tone="primary">
++            <Check size={11} aria-hidden="true" /> {t("theme.active")}
++          </Badge>
++        ) : null}
++      </span>
++      <span className="text-[11.5px] leading-4 text-muted-foreground">
++        {t(DESIGN_HINT_KEYS[design])}
++      </span>
++      <span className="flex items-center gap-1.5" aria-hidden="true">
++        {DESIGN_SWATCHES.map((swatch) => (
++          <span
++            key={swatch}
++            className={cn("size-5 rounded-full border border-border", swatch)}
++          />
++        ))}
++      </span>
++    </button>
++  );
++}
++
++/** Live sample built from the real primitives — no parallel styles to keep in sync. */
++function AppearancePreview() {
++  const { t } = useTranslation();
++  const { design } = useTheme();
++  return (
++    <div className="grid gap-4 rounded-lg border border-border bg-background p-4 lg:grid-cols-[minmax(0,1fr)_250px]">
++      <Card>
++        <CardHeader
++          title={t("appearance.previewCardTitle")}
++          subtitle={t("appearance.previewHint")}
++          actions={
++            <Badge tone="primary" dot>
++              {t("appearance.previewBadge")}
++            </Badge>
++          }
++        />
++        <div className="grid gap-3 px-4 py-3.5">
++          <p className="text-[12.5px] leading-5 text-muted-foreground">
++            {t("appearance.previewCardBody")}
++          </p>
++          <div className="grid gap-2">
++            <span className="text-[11.5px] text-muted-foreground">
++              {t("appearance.previewProgress")}
++            </span>
++            <Progress value={62} />
++          </div>
++          <Field label={t("appearance.previewFieldLabel")}>
++            <Input defaultValue={t("appearance.previewFieldValue")} readOnly />
++          </Field>
++          <div className="flex flex-wrap items-center gap-2">
++            <Button type="button" size="sm">
++              {t("appearance.previewPrimaryAction")}
++            </Button>
++            <Button type="button" size="sm" variant="outline">
++              {t("appearance.previewSecondaryAction")}
++            </Button>
++          </div>
++        </div>
++      </Card>
++      <div className="grid content-start gap-3">
++        <StatCard
++          label={t("appearance.previewStatLabel")}
++          value="12"
++          delta="+2"
++          deltaTone="success"
++          emphasis
++        />
++        <StatCard
++          label={t("theme.designGroup")}
++          value={t(DESIGN_LABEL_KEYS[design])}
++          hint={t("theme.active")}
++        />
++      </div>
++    </div>
++  );
++}
++
++export function AppearancePage() {
++  const { t } = useTranslation();
++  const { design, mode, resolvedMode, setDesign, setMode } = useTheme();
++  const isDefault = design === DEFAULT_THEME_DESIGN && mode === DEFAULT_THEME_MODE;
++
++  return (
++    <section>
++      <PageHeader
++        crumbs={["EP-HelpDesk", t("theme.label")]}
++        title={t("appearance.title")}
++        subtitle={t("appearance.subtitle")}
++        actions={
++          <Button
++            type="button"
++            variant="outline"
++            size="sm"
++            disabled={isDefault}
++            onClick={() => {
++              setDesign(DEFAULT_THEME_DESIGN);
++              setMode(DEFAULT_THEME_MODE);
++            }}
++          >
++            <RotateCcw size={14} />
++            {t("appearance.reset")}
++          </Button>
++        }
++      />
++      <div className="grid gap-4">
++        <Card>
++          <CardHeader
++            title={t("appearance.designHeading")}
++            subtitle={t("appearance.designHint")}
++          />
++          <div className="px-4 py-3.5">
++            <div
++              role="radiogroup"
++              aria-label={t("appearance.designHeading")}
++              className="grid gap-3 md:grid-cols-2 xl:grid-cols-3"
++            >
++              {THEME_DESIGNS.map((value) => (
++                <AppearanceDesignOption
++                  key={value}
++                  design={value}
++                  isActive={design === value}
++                  onSelect={setDesign}
++                />
++              ))}
++            </div>
++          </div>
++        </Card>
++        <Card>
++          <CardHeader
++            title={t("appearance.modeHeading")}
++            subtitle={t("appearance.modeHint")}
++          />
++          <div className="grid gap-3 px-4 py-3.5">
++            <Segmented
++              ariaLabel={t("appearance.modeHeading")}
++              value={mode}
++              onChange={setMode}
++              items={THEME_MODES.map((value) => {
++                const ModeIcon = MODE_ICONS[value];
++                return {
++                  value,
++                  label: t(MODE_LABEL_KEYS[value]),
++                  icon: <ModeIcon size={14} />,
++                };
++              })}
++            />
++            <p className="text-[12px] leading-5 text-muted-foreground">
++              {design === "classic"
++                ? t("appearance.classicForcesDark")
++                : t("appearance.resolvedHint", {
++                    mode: t(MODE_LABEL_KEYS[resolvedMode]),
++                  })}
++            </p>
++          </div>
++        </Card>
++        <Card>
++          <CardHeader
++            title={t("appearance.previewHeading")}
++            subtitle={t("appearance.previewHint")}
++          />
++          <div className="px-4 py-3.5">
++            <AppearancePreview />
++          </div>
++        </Card>
++        <p className="text-[11.5px] leading-5 text-muted-foreground">
++          {t("appearance.storedNote")}
++        </p>
++      </div>
++    </section>
++  );
++}

@@ -92,7 +92,12 @@ describe('TicketChatGateway', () => {
       visibility: 'public',
     };
     hub.publish(publicPayload);
-    expect(emitted.map((item) => item.room).sort()).toEqual([
+    // Faza 3.2: group soba dobija laki `group.feed-changed`, a dok traje
+    // tranzicija i stari puni payload (vidi `isLegacyGroupFullEmitEnabled`).
+    expect(
+      emitted.filter((item) => item.room === 'group:group-it').map((item) => item.event).sort(),
+    ).toEqual(['group.feed-changed', ticketRealtimeEventNames.messageCreated]);
+    expect([...new Set(emitted.map((item) => item.room))].sort()).toEqual([
       'group:group-it',
       ticketPublicRoomName('ticket-1'),
       ticketStaffRoomName('ticket-1'),
@@ -105,8 +110,9 @@ describe('TicketChatGateway', () => {
       type: 'INTERNAL_NOTE',
       visibility: 'staff',
     });
+    // Internal notes stay in the ticket's staff room: membership of a group
+    // room alone does not prove staff access to this specific ticket.
     expect(emitted.map((item) => item.room).sort()).toEqual([
-      'group:group-it',
       ticketStaffRoomName('ticket-1'),
     ]);
     expect(
@@ -135,7 +141,7 @@ describe('TicketChatGateway', () => {
     expect(
       emitted.some((item) => item.event === ticketRealtimeEventNames.ticketUpdated),
     ).toBe(true);
-    expect(emitted.map((item) => item.room).sort()).toEqual([
+    expect([...new Set(emitted.map((item) => item.room))].sort()).toEqual([
       'group:group-it',
       ticketPublicRoomName('ticket-1'),
       ticketStaffRoomName('ticket-1'),

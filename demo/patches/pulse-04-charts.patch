@@ -1,0 +1,856 @@
+diff --git a/frontend/src/components/charts/donut.tsx b/frontend/src/components/charts/donut.tsx
+index f7a8412..b106987 100644
+--- a/frontend/src/components/charts/donut.tsx
++++ b/frontend/src/components/charts/donut.tsx
+@@ -1,6 +1,14 @@
+ import { useState } from "react";
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Pulse donut. The public API is unchanged (`DonutDatum[]`, `size`,
++  `thickness`, `centerLabel`, `centerValue`, `className`) so every existing
++  call site keeps working — only the visual language changed: rounded caps,
++  a real gap between segments, soft hover growth and a legend that stays in
++  sync with the ring.
++*/
++
+ export interface DonutDatum {
+   readonly label: string;
+   readonly value: number;
+@@ -19,7 +27,7 @@ interface DonutProperties {
+ export function Donut({
+   data,
+   size = 168,
+-  thickness = 15,
++  thickness = 16,
+   centerLabel,
+   centerValue,
+   className,
+@@ -28,8 +36,10 @@ export function Donut({
+   const [hover, setHover] = useState<string | null>(null);
+   const radius = (size - thickness) / 2;
+   const circumference = 2 * Math.PI * radius;
+-  let accumulated = 0;
+-  const active = hover ? data.find((datum) => datum.label === hover) : null;
++  // One gap per segment keeps neighbouring arcs visually separated.
++  const gap = data.length > 1 ? 3 : 0;
++  const active = hover === null ? null : data.find((datum) => datum.label === hover);
++  let offset = 0;
+ 
+   return (
+     <div className={cn("flex items-center gap-5", className)}>
+@@ -45,10 +55,12 @@ export function Donut({
+           />
+           {data.map((datum) => {
+             const fraction = total ? datum.value / total : 0;
+-            const dash = fraction * circumference;
+-            const offset = -accumulated * circumference;
+-            accumulated += fraction;
+-            const dimmed = hover && hover !== datum.label;
++            const length = fraction * circumference;
++            const dash = Math.max(length - gap, 0.01);
++            const dashOffset = -offset;
++            offset += length;
++            const isActive = hover === datum.label;
++            const isDimmed = hover !== null && !isActive;
+             return (
+               <circle
+                 key={datum.label}
+@@ -57,47 +69,51 @@ export function Donut({
+                 r={radius}
+                 fill="none"
+                 stroke={datum.color}
+-                strokeWidth={hover === datum.label ? thickness + 4 : thickness}
+-                strokeDasharray={`${Math.max(dash - 2, 0)} ${circumference}`}
+-                strokeDashoffset={offset}
+-                strokeLinecap="butt"
+-                className={cn(
+-                  "draw-ring cursor-pointer transition-all duration-200",
+-                  dimmed && "opacity-25",
+-                )}
++                strokeWidth={isActive ? thickness + 4 : thickness}
++                strokeDasharray={`${dash} ${circumference - dash}`}
++                strokeDashoffset={dashOffset}
++                strokeLinecap="round"
++                className="draw-ring cursor-pointer transition-all duration-200"
++                opacity={isDimmed ? 0.28 : 1}
+                 onMouseEnter={() => setHover(datum.label)}
+                 onMouseLeave={() => setHover(null)}
+               />
+             );
+           })}
+         </svg>
+-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+-          <span className="tnum text-[26px] font-semibold leading-8 tracking-tight text-text">
++        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
++          <span className="tnum text-[26px] font-semibold leading-none tracking-[-0.03em] text-foreground">
+             {active ? active.value : (centerValue ?? total)}
+           </span>
+-          <span className="max-w-[100px] truncate text-[11px] text-muted">
+-            {active ? active.label : (centerLabel ?? "ukupno")}
+-          </span>
++          {active !== null || centerLabel !== undefined ? (
++            <span className="mt-1.5 max-w-[96px] truncate text-[11px] font-medium leading-tight text-muted-foreground">
++              {active ? active.label : centerLabel}
++            </span>
++          ) : null}
+         </div>
+       </div>
+-      <ul className="min-w-0 flex-1 space-y-1.5">
++      <ul className="min-w-0 flex-1 space-y-1">
+         {data.map((datum) => (
+           <li
+             key={datum.label}
+             className={cn(
+               "flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 transition-colors",
+-              hover === datum.label ? "bg-elevated" : "hover:bg-elevated/60",
++              hover === datum.label ? "bg-elevated" : "hover:bg-elevated/70",
+             )}
+             onMouseEnter={() => setHover(datum.label)}
+             onMouseLeave={() => setHover(null)}
+           >
+             <span
+-              className="size-2 shrink-0 rounded-[3px]"
++              className="size-2.5 shrink-0 rounded-[3px]"
+               style={{ background: datum.color }}
+             />
+-            <span className="flex-1 truncate text-[12px] text-muted">{datum.label}</span>
+-            <span className="tnum text-[12px] font-medium text-text">{datum.value}</span>
+-            <span className="tnum w-9 text-right text-[11px] text-muted/70">
++            <span className="min-w-0 flex-1 truncate text-[12px] text-muted-foreground">
++              {datum.label}
++            </span>
++            <span className="tnum text-[12.5px] font-semibold text-foreground">
++              {datum.value}
++            </span>
++            <span className="tnum w-9 text-right text-[11px] text-muted-foreground/70">
+               {total ? Math.round((datum.value / total) * 100) : 0}%
+             </span>
+           </li>
+diff --git a/frontend/src/components/charts/dual-area-chart.tsx b/frontend/src/components/charts/dual-area-chart.tsx
+new file mode 100644
+index 0000000..9ee9428
+--- /dev/null
++++ b/frontend/src/components/charts/dual-area-chart.tsx
+@@ -0,0 +1,201 @@
++import { useId, useState } from "react";
++import { floatingPanelClassName } from "@/components/ui/control";
++import {
++  buildAreaPath,
++  buildLinePath,
++  plotX,
++  resolvePlotMax,
++  type PlotSize,
++} from "@/lib/charts/plot-geometry";
++import { cn } from "@/lib/utils";
++
++/*
++  Pulse dual area chart — the signature chart of the new identity: two series
++  as soft gradient areas with a thin highlighted stroke, dashed reference
++  lines and a hover column with a floating readout.
++
++  Pure SVG, no charting library. Both series come from tokens, so the chart
++  follows the active theme (`classic` included) without any prop changes.
++*/
++
++export interface DualAreaPoint {
++  readonly label: string;
++  /** First series — drawn in `--primary`. */
++  readonly a: number;
++  /** Second series — drawn in `--ok` (resolved / good outcome). */
++  readonly b: number;
++}
++
++interface DualAreaChartProperties {
++  readonly data: readonly DualAreaPoint[];
++  /** Rendered height in pixels; the viewBox is fixed. */
++  readonly height?: number;
++  readonly aLabel: string;
++  readonly bLabel: string;
++  readonly className?: string;
++}
++
++const SIZE: PlotSize = {
++  width: 1000,
++  height: 260,
++  padding: { top: 16, right: 12, bottom: 26, left: 30 },
++};
++const GRID = [0, 0.25, 0.5, 0.75, 1] as const;
++
++const STROKE_A = "rgb(var(--primary))";
++const STROKE_B = "rgb(var(--ok))";
++
++export function DualAreaChart({
++  data,
++  height = 200,
++  aLabel,
++  bLabel,
++  className,
++}: DualAreaChartProperties) {
++  // SVG ids must not contain the colons React's useId emits.
++  const uid = useId().replace(/:/g, "");
++  const [hover, setHover] = useState<number | null>(null);
++
++  if (data.length === 0) {
++    return null;
++  }
++
++  const activePoint = hover === null ? null : (data[hover] ?? null);
++  const baselineY = SIZE.padding.top + (SIZE.height - SIZE.padding.top - SIZE.padding.bottom);
++  const max = resolvePlotMax(data.flatMap((point) => [point.a, point.b]));
++  const step =
++    data.length > 1
++      ? (SIZE.width - SIZE.padding.left - SIZE.padding.right) / (data.length - 1)
++      : 0;
++
++  const series = (key: "a" | "b") => data.map((point) => point[key]);
++  const line = (key: "a" | "b") => buildLinePath(series(key), max, SIZE);
++  const area = (key: "a" | "b") => buildAreaPath(series(key), max, SIZE);
++  const x = (index: number) => plotX(index, data.length, SIZE);
++
++  return (
++    <div className={cn("w-full", className)}>
++      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
++        <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
++          <span className="h-2 w-4 rounded-full" style={{ background: STROKE_A }} />
++          {aLabel}
++        </span>
++        <span className="flex items-center gap-1.5 text-[11.5px] font-medium text-muted-foreground">
++          <span className="h-2 w-4 rounded-full" style={{ background: STROKE_B }} />
++          {bLabel}
++        </span>
++      </div>
++
++      <div className="relative" style={{ height }}>
++        <svg
++          viewBox={`0 0 ${SIZE.width} ${SIZE.height}`}
++          className="h-full w-full"
++          preserveAspectRatio="none"
++        >
++          <defs>
++            <linearGradient id={`da-${uid}`} x1="0" y1="0" x2="0" y2="1">
++              <stop offset="0%" stopColor={STROKE_A} stopOpacity="0.26" />
++              <stop offset="100%" stopColor={STROKE_A} stopOpacity="0.02" />
++            </linearGradient>
++            <linearGradient id={`db-${uid}`} x1="0" y1="0" x2="0" y2="1">
++              <stop offset="0%" stopColor={STROKE_B} stopOpacity="0.22" />
++              <stop offset="100%" stopColor={STROKE_B} stopOpacity="0.02" />
++            </linearGradient>
++          </defs>
++
++          {GRID.map((ratio) => (
++            <line
++              key={ratio}
++              x1={SIZE.padding.left}
++              x2={SIZE.width - SIZE.padding.right}
++              y1={SIZE.padding.top + (baselineY - SIZE.padding.top) * ratio}
++              y2={SIZE.padding.top + (baselineY - SIZE.padding.top) * ratio}
++              stroke="rgb(var(--border))"
++              strokeWidth="1"
++              strokeDasharray={ratio === 1 ? "0" : "3 6"}
++              vectorEffect="non-scaling-stroke"
++            />
++          ))}
++
++          <path d={area("a")} fill={`url(#da-${uid})`} />
++          <path d={area("b")} fill={`url(#db-${uid})`} />
++
++          {(["b", "a"] as const).map((key) => (
++            <path
++              key={key}
++              d={line(key)}
++              fill="none"
++              stroke={key === "a" ? STROKE_A : STROKE_B}
++              strokeWidth="2.4"
++              strokeLinecap="round"
++              strokeLinejoin="round"
++              vectorEffect="non-scaling-stroke"
++            />
++          ))}
++
++          {hover !== null ? (
++            <line
++              x1={x(hover)}
++              x2={x(hover)}
++              y1={SIZE.padding.top}
++              y2={baselineY}
++              stroke="rgb(var(--line-strong))"
++              strokeWidth="1"
++              vectorEffect="non-scaling-stroke"
++            />
++          ) : null}
++
++          {data.map((point, index) => (
++            <rect
++              key={`${point.label}-${index}`}
++              x={x(index) - step / 2}
++              y={SIZE.padding.top}
++              width={step || SIZE.width - SIZE.padding.left - SIZE.padding.right}
++              height={baselineY - SIZE.padding.top}
++              fill="transparent"
++              onMouseEnter={() => setHover(index)}
++              onMouseLeave={() => setHover(null)}
++            />
++          ))}
++        </svg>
++
++        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-[3%] text-[10.5px] font-medium text-muted-foreground/70">
++          {data.map((point, index) => (
++            <span
++              key={`${point.label}-${index}`}
++              className={cn("tnum", index % 2 === 1 && "hidden sm:inline")}
++            >
++              {point.label}
++            </span>
++          ))}
++        </div>
++
++        {activePoint !== null ? (
++          <div
++            className={cn(
++              floatingPanelClassName,
++              "pointer-events-none absolute top-1 z-10 w-36 p-2.5",
++            )}
++            style={{
++              left: `min(max(${((hover ?? 0) / Math.max(data.length - 1, 1)) * 100}%, 0px), calc(100% - 144px))`,
++            }}
++          >
++            <p className="text-[11px] font-semibold text-foreground">
++              {activePoint.label}
++            </p>
++            <p className="mt-1 flex items-center justify-between text-[11.5px] text-muted-foreground">
++              {aLabel}
++              <span className="tnum font-semibold text-foreground">
++                {activePoint.a}
++              </span>
++            </p>
++            <p className="flex items-center justify-between text-[11.5px] text-muted-foreground">
++              {bLabel}
++              <span className="tnum font-semibold text-ok">{activePoint.b}</span>
++            </p>
++          </div>
++        ) : null}
++      </div>
++    </div>
++  );
++}
+diff --git a/frontend/src/components/charts/grouped-bars.tsx b/frontend/src/components/charts/grouped-bars.tsx
+index 9d46678..309ec13 100644
+--- a/frontend/src/components/charts/grouped-bars.tsx
++++ b/frontend/src/components/charts/grouped-bars.tsx
+@@ -2,6 +2,12 @@ import { useId, useState } from "react";
+ import { floatingPanelClassName } from "@/components/ui/control";
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Pulse grouped bars. Same public API as before (`GroupedBarDatum[]`, `aLabel`,
++  `bLabel`, `height`, `className`), new visual language: rounded tops, a soft
++  vertical gradient per series, a baseline and a floating tooltip.
++*/
++
+ export interface GroupedBarDatum {
+   readonly d: string;
+   readonly created: number;
+@@ -16,6 +22,12 @@ interface GroupedBarsProperties {
+   readonly className?: string;
+ }
+ 
++/** Series colours come from tokens, so both themes stay in sync. */
++const SERIES_A_BACKGROUND =
++  "linear-gradient(to top, rgb(var(--primary) / 0.72), rgb(var(--primary)))";
++const SERIES_B_BACKGROUND =
++  "linear-gradient(to top, rgb(var(--ok) / 0.72), rgb(var(--ok)))";
++
+ export function GroupedBars({
+   data,
+   aLabel,
+@@ -23,13 +35,16 @@ export function GroupedBars({
+   height = 148,
+   className,
+ }: GroupedBarsProperties) {
+-  const max = Math.max(...data.map((item) => Math.max(item.created, item.resolved)), 1);
++  const max = Math.max(
++    ...data.map((item) => Math.max(item.created, item.resolved)),
++    1,
++  );
+   const [hover, setHover] = useState<number | null>(null);
+   const groupId = useId();
+ 
+   return (
+     <div className={className}>
+-      <div className="flex items-end gap-[5px]" style={{ height }}>
++      <div className="relative flex items-end gap-[5px]" style={{ height }}>
+         {data.map((item, index) => (
+           <div
+             key={groupId + index}
+@@ -39,21 +54,23 @@ export function GroupedBars({
+           >
+             <div
+               className={cn(
+-                "bar-grow w-full max-w-[11px] rounded-t-[3px] bg-primary transition-all duration-150",
+-                hover !== null && hover !== index && "opacity-35",
++                "bar-grow w-full max-w-[11px] rounded-t-[4px] transition-opacity duration-150",
++                hover !== null && hover !== index && "opacity-30",
+               )}
+               style={{
+                 height: `${(item.created / max) * 100}%`,
++                background: SERIES_A_BACKGROUND,
+                 animationDelay: `${index * 28}ms`,
+               }}
+             />
+             <div
+               className={cn(
+-                "bar-grow w-full max-w-[11px] rounded-t-[3px] bg-line-strong transition-all duration-150",
+-                hover !== null && hover !== index && "opacity-35",
++                "bar-grow w-full max-w-[11px] rounded-t-[4px] transition-opacity duration-150",
++                hover !== null && hover !== index && "opacity-30",
+               )}
+               style={{
+                 height: `${(item.resolved / max) * 100}%`,
++                background: SERIES_B_BACKGROUND,
+                 animationDelay: `${index * 28 + 40}ms`,
+               }}
+             />
+@@ -61,30 +78,32 @@ export function GroupedBars({
+               <div
+                 className={cn(
+                   floatingPanelClassName,
+-                  "pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap px-2 py-1 text-[11px] text-text",
++                  "pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap px-2.5 py-1.5 text-[11px] text-foreground",
+                 )}
+               >
+-                <span className="tnum font-medium">{item.d}</span>
+-                <span className="text-muted"> · </span>
+-                {aLabel} <span className="tnum">{item.created}</span>
+-                <span className="text-muted"> · </span>
+-                {bLabel} <span className="tnum">{item.resolved}</span>
++                <span className="tnum font-semibold">{item.d}</span>
++                <span className="text-muted-foreground"> · </span>
++                {aLabel} <span className="tnum font-medium">{item.created}</span>
++                <span className="text-muted-foreground"> · </span>
++                {bLabel} <span className="tnum font-medium">{item.resolved}</span>
+               </div>
+             ) : null}
+           </div>
+         ))}
+       </div>
+-      <div className="mt-2 flex items-center justify-between text-[10.5px] text-muted/70">
+-        <span>{data[0]?.d}</span>
++      <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-border/60 pt-2.5 text-[10.5px] text-muted-foreground">
++        <span className="tnum">{data[0]?.d}</span>
+         <div className="flex items-center gap-3">
+           <span className="flex items-center gap-1.5">
+-            <span className="size-2 rounded-[3px] bg-primary" /> {aLabel}
++            <span className="size-2.5 rounded-[3px]" style={{ background: SERIES_A_BACKGROUND }} />{" "}
++            {aLabel}
+           </span>
+           <span className="flex items-center gap-1.5">
+-            <span className="size-2 rounded-[3px] bg-line-strong" /> {bLabel}
++            <span className="size-2.5 rounded-[3px]" style={{ background: SERIES_B_BACKGROUND }} />{" "}
++            {bLabel}
+           </span>
+         </div>
+-        <span>{data[data.length - 1]?.d}</span>
++        <span className="tnum">{data[data.length - 1]?.d}</span>
+       </div>
+     </div>
+   );
+diff --git a/frontend/src/components/charts/h-bars.tsx b/frontend/src/components/charts/h-bars.tsx
+index 8ce4aed..18b49c2 100644
+--- a/frontend/src/components/charts/h-bars.tsx
++++ b/frontend/src/components/charts/h-bars.tsx
+@@ -1,5 +1,11 @@
+ import { cn } from "@/lib/utils";
+ 
++/*
++  Pulse horizontal bars. Same public API as before (`HorizontalBarItem[]` with
++  an optional per-item `color` and `suffix`), new visual language: a calmer
++  track, a rounded gradient fill and typography that puts the number first.
++*/
++
+ export interface HorizontalBarItem {
+   readonly label: string;
+   readonly value: number;
+@@ -12,6 +18,9 @@ interface HorizontalBarsProperties {
+   readonly className?: string;
+ }
+ 
++const DEFAULT_FILL =
++  "linear-gradient(to right, rgb(var(--primary) / 0.78), rgb(var(--primary)))";
++
+ export function HBars({ items, className }: HorizontalBarsProperties) {
+   const max = Math.max(...items.map((item) => item.value), 1);
+ 
+@@ -19,25 +28,25 @@ export function HBars({ items, className }: HorizontalBarsProperties) {
+     <ul className={cn("space-y-2.5", className)}>
+       {items.map((item, index) => (
+         <li key={`${item.label}-${index}`} className="group">
+-          <div className="mb-1 flex items-baseline justify-between gap-2 text-[12px]">
+-            <span className="truncate text-muted transition-colors group-hover:text-text">
++          <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[12px]">
++            <span className="truncate text-muted-foreground transition-colors group-hover:text-foreground">
+               {item.label}
+             </span>
+-            <span className="tnum shrink-0 font-medium text-text">
++            <span className="tnum shrink-0 font-semibold text-foreground">
+               {item.value}
+               {item.suffix ? (
+-                <span className="ml-1 text-[11px] font-normal text-muted/70">
++                <span className="ml-1 text-[11px] font-normal text-muted-foreground/70">
+                   {item.suffix}
+                 </span>
+               ) : null}
+             </span>
+           </div>
+-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
++          <div className="h-2 w-full overflow-hidden rounded-full bg-elevated">
+             <div
+               className="h-full rounded-full transition-all duration-500"
+               style={{
+                 width: `${(item.value / max) * 100}%`,
+-                background: item.color ?? "rgb(var(--primary))",
++                background: item.color ?? DEFAULT_FILL,
+               }}
+             />
+           </div>
+diff --git a/frontend/src/components/dashboard/dashboard-charts.tsx b/frontend/src/components/dashboard/dashboard-charts.tsx
+index f96a94f..1493b69 100644
+--- a/frontend/src/components/dashboard/dashboard-charts.tsx
++++ b/frontend/src/components/dashboard/dashboard-charts.tsx
+@@ -1,7 +1,7 @@
+ import { PieChart } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { Donut } from "@/components/charts/donut";
+-import { GroupedBars } from "@/components/charts/grouped-bars";
++import { DualAreaChart } from "@/components/charts/dual-area-chart";
+ import { Card, CardHeader } from "@/components/ui/card";
+ import { EmptyState } from "@/components/ui/empty-state";
+ import type { DashboardSummary } from "@/lib/dashboard/summarize-tickets";
+@@ -49,8 +49,12 @@ export function DashboardCharts({ summary }: DashboardChartsProperties) {
+           subtitle={t("dashboard.volumeChartSubtitle")}
+         />
+         <div className="px-4 py-4">
+-          <GroupedBars
+-            data={[...summary.volume14d]}
++          <DualAreaChart
++            data={summary.volume14d.map((day) => ({
++              label: day.d,
++              a: day.created,
++              b: day.resolved,
++            }))}
+             aLabel={t("dashboard.volumeCreated")}
+             bLabel={t("dashboard.volumeResolved")}
+           />
+diff --git a/frontend/src/components/visual-qa/visual-qa-charts-board.tsx b/frontend/src/components/visual-qa/visual-qa-charts-board.tsx
+new file mode 100644
+index 0000000..d3cb330
+--- /dev/null
++++ b/frontend/src/components/visual-qa/visual-qa-charts-board.tsx
+@@ -0,0 +1,95 @@
++import { Donut } from "@/components/charts/donut";
++import { DualAreaChart } from "@/components/charts/dual-area-chart";
++import { GroupedBars } from "@/components/charts/grouped-bars";
++import { HBars } from "@/components/charts/h-bars";
++import { Card, CardHeader } from "@/components/ui/card";
++import { VisualQaSection } from "@/components/visual-qa/visual-qa-section";
++
++/*
++  Charts board for the Visual QA page. The charts are normally seen only inside
++  the dashboard / reports cards, which makes them hard to compare side by side —
++  especially across the two design systems. Here they are shown on plain cards
++  so a theme switch (`pulse` ⇄ `classic`) can be judged in one screen.
++*/
++
++const DONUT_DATA = [
++  { label: "Novi", value: 12, color: "rgb(var(--info))" },
++  { label: "U radu", value: 9, color: "rgb(var(--primary))" },
++  { label: "Na čekanju", value: 4, color: "rgb(var(--hold))" },
++  { label: "Riješeni", value: 21, color: "rgb(var(--ok))" },
++];
++
++const VOLUME_DATA = [
++  { d: "01. 09", created: 4, resolved: 2 },
++  { d: "02. 09", created: 6, resolved: 3 },
++  { d: "03. 09", created: 3, resolved: 5 },
++  { d: "04. 09", created: 8, resolved: 4 },
++  { d: "05. 09", created: 5, resolved: 7 },
++  { d: "06. 09", created: 2, resolved: 6 },
++  { d: "07. 09", created: 7, resolved: 4 },
++];
++
++const AREA_DATA = VOLUME_DATA.map((day) => ({
++  label: day.d,
++  a: day.created,
++  b: day.resolved,
++}));
++
++const LOAD_ITEMS = [
++  { label: "Centrala Sarajevo", value: 34 },
++  { label: "Regionalna jedinica Mostar", value: 21 },
++  { label: "Regionalna jedinica Tuzla", value: 17 },
++  { label: "Regionalna jedinica Bihać", value: 9, suffix: "•" },
++];
++
++const SLA_ITEMS = [
++  { label: "Prvi odgovor", value: 92, suffix: "%", color: "rgb(var(--ok))" },
++  { label: "Rješavanje", value: 78, suffix: "%", color: "rgb(var(--info))" },
++  { label: "Prekršeni rok", value: 11, suffix: "%", color: "rgb(var(--danger))" },
++];
++
++export function VisualQaChartsBoard() {
++  return (
++    <VisualQaSection title="Chartovi">
++      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
++        <Card>
++          <CardHeader
++            title="Donut — status tiketa"
++            subtitle="Segmenti se dižu na hover, legenda je sinhronizovana"
++          />
++          <div className="px-4 py-4">
++            <Donut data={DONUT_DATA} centerLabel="ukupno" />
++          </div>
++        </Card>
++        <Card>
++          <CardHeader
++            title="Dual area — kreirano / riješeno"
++            subtitle="Gradijenti + hover kolona (koristi ga nadzorna ploča)"
++          />
++          <div className="px-4 py-4">
++            <DualAreaChart data={AREA_DATA} aLabel="Kreirano" bLabel="Riješeno" />
++          </div>
++        </Card>
++        <Card>
++          <CardHeader
++            title="Grouped bars — volumen po danu"
++            subtitle="Rounded tops, dvije serije iz tokena (koristi ga izvještaj)"
++          />
++          <div className="px-4 py-4">
++            <GroupedBars data={VOLUME_DATA} aLabel="Kreirano" bLabel="Riješeno" />
++          </div>
++        </Card>
++        <Card>
++          <CardHeader
++            title="Horizontal bars — distribucija"
++            subtitle="Bez `color` (gradijent iz `--primary`) i sa eksplicitnom bojom"
++          />
++          <div className="grid gap-4 px-4 py-4 sm:grid-cols-2">
++            <HBars items={LOAD_ITEMS} />
++            <HBars items={SLA_ITEMS} />
++          </div>
++        </Card>
++      </div>
++    </VisualQaSection>
++  );
++}
+diff --git a/frontend/src/lib/charts/plot-geometry.spec.ts b/frontend/src/lib/charts/plot-geometry.spec.ts
+new file mode 100644
+index 0000000..79a374b
+--- /dev/null
++++ b/frontend/src/lib/charts/plot-geometry.spec.ts
+@@ -0,0 +1,90 @@
++import { describe, expect, it } from "vitest";
++import {
++  buildAreaPath,
++  buildLinePath,
++  plotInnerHeight,
++  plotInnerWidth,
++  plotX,
++  plotY,
++  resolvePlotMax,
++  type PlotSize,
++} from "@/lib/charts/plot-geometry";
++
++const SIZE: PlotSize = {
++  width: 1000,
++  height: 260,
++  padding: { top: 16, right: 12, bottom: 26, left: 30 },
++};
++
++describe("plot geometry", () => {
++  it("adds headroom above the highest value", () => {
++    expect(resolvePlotMax([1, 5, 3])).toBeCloseTo(5.75);
++    expect(resolvePlotMax([10], 1)).toBe(10);
++  });
++
++  it("never returns zero, NaN or a negative bound", () => {
++    expect(resolvePlotMax([])).toBe(1);
++    expect(resolvePlotMax([0, 0, 0])).toBe(1);
++    expect(resolvePlotMax([Number.NaN, -4, -1])).toBe(1);
++    // a non-finite series contributes nothing, so the axis falls back to 1
++    expect(resolvePlotMax([Number.POSITIVE_INFINITY])).toBe(1);
++  });
++
++  it("keeps the plot inside its padding", () => {
++    expect(plotInnerWidth(SIZE)).toBe(958);
++    expect(plotInnerHeight(SIZE)).toBe(218);
++  });
++
++  it("places a single point on the left edge and spreads many points", () => {
++    expect(plotX(0, 1, SIZE)).toBe(30);
++    expect(plotX(0, 2, SIZE)).toBe(30);
++    expect(plotX(1, 2, SIZE)).toBe(988);
++    expect(plotX(13, 14, SIZE)).toBeCloseTo(988);
++  });
++
++  it("maps values from the baseline up to the top padding", () => {
++    const max = resolvePlotMax([10]);
++    expect(plotY(0, max, SIZE)).toBe(234);
++    expect(plotY(max, max, SIZE)).toBe(16);
++    expect(plotY(max / 2, max, SIZE)).toBe(125);
++  });
++
++  it("keeps every coordinate inside the plot box", () => {
++    // a non-finite value has no position, so it is drawn on the baseline
++    expect(plotY(Number.POSITIVE_INFINITY, 10, SIZE)).toBe(234);
++    expect(plotY(Number.NaN, 10, SIZE)).toBe(234);
++    // an unusable axis falls back to 1, and the value is clamped to the top
++    expect(plotY(5, 0, SIZE)).toBe(16);
++    expect(plotY(5, Number.NaN, SIZE)).toBe(16);
++    expect(plotY(-99, 10, SIZE)).toBe(234);
++
++    for (const value of [0, 3, 7, 500, Number.NaN, Number.POSITIVE_INFINITY]) {
++      for (const max of [0, 1, 12, Number.NaN]) {
++        const y = plotY(value, max, SIZE);
++        expect(y).toBeGreaterThanOrEqual(16);
++        expect(y).toBeLessThanOrEqual(234);
++      }
++    }
++  });
++
++  it("builds a polyline with one command per value", () => {
++    const path = buildLinePath([1, 2, 3, 4], resolvePlotMax([4]), SIZE);
++    expect(path.startsWith("M")).toBe(true);
++    expect(path.match(/[ML]/g)).toHaveLength(4);
++    expect(path).not.toContain("NaN");
++  });
++
++  it("closes the area on the baseline", () => {
++    const max = resolvePlotMax([4, 2]);
++    const area = buildAreaPath([4, 2], max, SIZE);
++    expect(area.endsWith("L30,234 Z")).toBe(true);
++    expect(area).not.toContain("NaN");
++  });
++
++  it("stays finite for degenerate series", () => {
++    const zeroes = buildLinePath([0, 0, 0], resolvePlotMax([0, 0, 0]), SIZE);
++    expect(zeroes).not.toContain("NaN");
++    expect(buildAreaPath([], resolvePlotMax([]), SIZE)).not.toContain("NaN");
++    expect(buildLinePath([7], resolvePlotMax([7]), SIZE)).not.toContain("NaN");
++  });
++});
+diff --git a/frontend/src/lib/charts/plot-geometry.ts b/frontend/src/lib/charts/plot-geometry.ts
+new file mode 100644
+index 0000000..db13602
+--- /dev/null
++++ b/frontend/src/lib/charts/plot-geometry.ts
+@@ -0,0 +1,88 @@
++/**
++ * Pure geometry for the SVG charts.
++ *
++ * Kept out of the components on purpose: the scaling rules are where charts
++ * break silently (an empty series, a single point, an all-zero series would
++ * divide by zero and paint `NaN` into the markup). Living here they are covered
++ * by unit tests instead of being validated by eye.
++ */
++
++export interface PlotPadding {
++  readonly top: number;
++  readonly right: number;
++  readonly bottom: number;
++  readonly left: number;
++}
++
++export interface PlotSize {
++  readonly width: number;
++  readonly height: number;
++  readonly padding: PlotPadding;
++}
++
++/** Upper bound of the value axis: 15% headroom, never zero or NaN. */
++export function resolvePlotMax(
++  values: readonly number[],
++  headroom = 1.15,
++): number {
++  const highest = values.reduce(
++    (max, value) => (Number.isFinite(value) && value > max ? value : max),
++    0,
++  );
++  return highest > 0 ? highest * headroom : 1;
++}
++
++export function plotInnerWidth(size: PlotSize): number {
++  return size.width - size.padding.left - size.padding.right;
++}
++
++export function plotInnerHeight(size: PlotSize): number {
++  return size.height - size.padding.top - size.padding.bottom;
++}
++
++/** Horizontal position of a point; a single point sits on the left edge. */
++export function plotX(index: number, count: number, size: PlotSize): number {
++  const inner = plotInnerWidth(size);
++  const step = count > 1 ? inner / (count - 1) : 0;
++  return size.padding.left + index * step;
++}
++
++/**
++ * Vertical position of a value; `max` comes from `resolvePlotMax`.
++ * Non-finite input (a stray `Infinity`, an unparsed number) is drawn on the
++ * baseline, and anything outside the axis is clamped, so the returned
++ * coordinate always stays inside the plot box.
++ */
++export function plotY(value: number, max: number, size: PlotSize): number {
++  const inner = plotInnerHeight(size);
++  const safeValue = Number.isFinite(value) ? value : 0;
++  const safeMax = Number.isFinite(max) && max > 0 ? max : 1;
++  const y = size.padding.top + inner - (safeValue / safeMax) * inner;
++  // Invariant: a coordinate never escapes the plot box.
++  return Math.min(Math.max(y, size.padding.top), size.padding.top + inner);
++}
++
++/** `M…L…` polyline for one series. */
++export function buildLinePath(
++  values: readonly number[],
++  max: number,
++  size: PlotSize,
++): string {
++  return values
++    .map(
++      (value, index) =>
++        `${index === 0 ? "M" : "L"}${plotX(index, values.length, size).toFixed(1)},${plotY(value, max, size).toFixed(1)}`,
++    )
++    .join(" ");
++}
++
++/** Closed area under the line — the gradient fill of the dual area chart. */
++export function buildAreaPath(
++  values: readonly number[],
++  max: number,
++  size: PlotSize,
++): string {
++  const baselineY = size.padding.top + plotInnerHeight(size);
++  const rightX = size.padding.left + plotInnerWidth(size);
++  return `${buildLinePath(values, max, size)} L${rightX.toFixed(1)},${baselineY} L${size.padding.left},${baselineY} Z`;
++}
+diff --git a/frontend/src/pages/visual-qa-primitives-page.tsx b/frontend/src/pages/visual-qa-primitives-page.tsx
+index dea4e81..35a2989 100644
+--- a/frontend/src/pages/visual-qa-primitives-page.tsx
++++ b/frontend/src/pages/visual-qa-primitives-page.tsx
+@@ -1,4 +1,5 @@
+ import { VisualQaActionsBoard } from "@/components/visual-qa/visual-qa-actions-board";
++import { VisualQaChartsBoard } from "@/components/visual-qa/visual-qa-charts-board";
+ import { VisualQaFormsBoard } from "@/components/visual-qa/visual-qa-forms-board";
+ import { VisualQaSurfacesBoard } from "@/components/visual-qa/visual-qa-surfaces-board";
+ import { VisualQaThemeBoard } from "@/components/visual-qa/visual-qa-theme-board";
+@@ -10,9 +11,10 @@ export function VisualQaPrimitivesPage() {
+       <PageHeader
+         crumbs={["EP-HelpDesk", "Visual QA"]}
+         title="Primitive-i"
+-        subtitle="Pulse identitet: tokeni, Button, Badge, Card, Field, Progress, StatCard, Tabs, EmptyState, Segmented, Chip, Modal, ConfirmDialog, Toast. Chartovi nisu ovdje."
++        subtitle="Pulse identitet: tokeni, Button, Badge, Card, Field, Progress, StatCard, Tabs, EmptyState, Segmented, Chip, Modal, ConfirmDialog, Toast i svi grafikoni."
+       />
+       <VisualQaThemeBoard />
++      <VisualQaChartsBoard />
+       <VisualQaActionsBoard />
+       <VisualQaFormsBoard />
+       <VisualQaSurfacesBoard />

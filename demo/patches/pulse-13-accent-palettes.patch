@@ -1,0 +1,630 @@
+diff --git a/frontend/index.html b/frontend/index.html
+index 8f60539..220c696 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -1,5 +1,5 @@
+ <!doctype html>
+-<html lang="bs" data-theme="pulse">
++<html lang="bs" data-theme="pulse" data-accent="indigo">
+   <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+@@ -24,15 +24,21 @@
+           if (mode !== "light" && mode !== "dark" && mode !== "system") {
+             mode = "system";
+           }
++          var accent = window.localStorage.getItem("ep-helpdesk.theme.accent");
++          if (accent !== "indigo" && accent !== "teal" && accent !== "rose") {
++            accent = "indigo";
++          }
+           var prefersDark =
+             typeof window.matchMedia === "function" &&
+             window.matchMedia("(prefers-color-scheme: dark)").matches;
+           var isDark =
+             design === "classic" || mode === "dark" || (mode === "system" && prefersDark);
+           document.documentElement.setAttribute("data-theme", design);
++          document.documentElement.setAttribute("data-accent", accent);
+           document.documentElement.classList.toggle("dark", isDark);
+         } catch (error) {
+           document.documentElement.setAttribute("data-theme", "classic");
++          document.documentElement.setAttribute("data-accent", "indigo");
+           document.documentElement.classList.add("dark");
+         }
+       })();
+diff --git a/frontend/src/components/layout/theme-switcher.tsx b/frontend/src/components/layout/theme-switcher.tsx
+index 4599d88..cd0a0fd 100644
+--- a/frontend/src/components/layout/theme-switcher.tsx
++++ b/frontend/src/components/layout/theme-switcher.tsx
+@@ -11,9 +11,12 @@ import {
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu";
+ import { useTheme } from "@/lib/theme/theme-provider";
++import { cn } from "@/lib/utils";
+ import {
++  THEME_ACCENTS,
+   THEME_DESIGNS,
+   THEME_MODES,
++  type ThemeAccent,
+   type ThemeDesign,
+   type ThemeMode,
+ } from "@/lib/theme/theme-storage";
+@@ -44,15 +47,30 @@ const DESIGN_HINT_KEY = {
+   classic: "theme.designClassicHint",
+ } as const satisfies Record<ThemeDesign, string>;
+ 
++const ACCENT_LABEL_KEY = {
++  indigo: "theme.accentIndigo",
++  teal: "theme.accentTeal",
++  rose: "theme.accentRose",
++} as const satisfies Record<ThemeAccent, string>;
++
++/* `.accent-swatch-*` lives in `src/index.css` — a preview has to render a
++   palette that is NOT active, so it cannot read `--primary`. */
++const ACCENT_SWATCH_CLASS = {
++  indigo: "accent-swatch-indigo",
++  teal: "accent-swatch-teal",
++  rose: "accent-swatch-rose",
++} as const satisfies Record<ThemeAccent, string>;
++
+ /**
+- * Appearance control. Design (Pulse / classic) and brightness (light / dark /
+- * system) are separate choices: the legacy design is dark-only, so the
+- * brightness group is hidden while it is selected.
++ * Appearance control. Design (Pulse / classic), brightness (light / dark /
++ * system) and the brand palette (indigo / teal / rose) are separate choices:
++ * the legacy design is dark-only and has its own blue, so both the brightness
++ * and the palette groups are hidden while it is selected.
+  */
+ export function ThemeSwitcher() {
+   const { t } = useTranslation();
+   const navigate = useNavigate();
+-  const { design, mode, setDesign, setMode } = useTheme();
++  const { design, mode, accent, setDesign, setMode, setAccent } = useTheme();
+   const ModeIcon = MODE_ICON[mode];
+ 
+   return (
+@@ -107,6 +125,25 @@ export function ThemeSwitcher() {
+             })}
+           </>
+         ) : null}
++        {design === "pulse" ? (
++          <>
++            <DropdownMenuSeparator />
++            <DropdownMenuLabel>{t("theme.accentGroup")}</DropdownMenuLabel>
++            {THEME_ACCENTS.map((value) => (
++              <DropdownMenuItem key={value} onSelect={() => setAccent(value)}>
++                <span
++                  aria-hidden="true"
++                  className={cn(
++                    "size-3.5 shrink-0 rounded-full border border-border",
++                    ACCENT_SWATCH_CLASS[value],
++                  )}
++                />
++                <span className="flex-1">{t(ACCENT_LABEL_KEY[value])}</span>
++                {accent === value ? <Check size={13} className="text-link" /> : null}
++              </DropdownMenuItem>
++            ))}
++          </>
++        ) : null}
+         <DropdownMenuSeparator />
+         <DropdownMenuItem onSelect={() => navigate("/appearance")}>
+           <Palette size={13} className="text-muted-foreground" />
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 18910ff..c066dda 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -64,6 +64,13 @@
+     "designPulseHint": "novi identitet",
+     "designClassic": "Klasična",
+     "designClassicHint": "stara tamna tema",
++    "accentGroup": "Boja",
++    "accentIndigo": "Indigo",
++    "accentIndigoHint": "zadana Pulse paleta",
++    "accentTeal": "Teal",
++    "accentTealHint": "hladna, smirena",
++    "accentRose": "Rose",
++    "accentRoseHint": "topla, izražena",
+     "active": "Aktivno"
+   },
+   "appearance": {
+@@ -73,6 +80,9 @@
+     "designHint": "Dizajn mijenja cijeli interfejs — boje, radijuse, sjene i gustinu — bez promjene funkcionalnosti.",
+     "modeHeading": "Svjetlina",
+     "modeHint": "Važi za Pulse dizajn; klasična tema je uvijek tamna.",
++    "accentHeading": "Paleta boja",
++    "accentHint": "Paleta mijenja samo brend boje — površine, radijusi i semantičke boje ostaju isti. Važi za Pulse dizajn i radi u obje svjetline.",
++    "accentPulseOnly": "Paleta boja važi za Pulse dizajn; klasična tema uvijek zadržava svoju plavu.",
+     "classicForcesDark": "Klasična tema je tamna, pa je izbor svjetline zaključan dok je aktivna. Tvoj izbor se pamti i primjenjuje kad se vratiš na Pulse.",
+     "resolvedHint": "Trenutno se primjenjuje: {{mode}}.",
+     "previewHeading": "Pregled",
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index a2308d5..c1b8504 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -64,6 +64,13 @@
+     "designPulseHint": "new identity",
+     "designClassic": "Classic",
+     "designClassicHint": "legacy dark theme",
++    "accentGroup": "Colour",
++    "accentIndigo": "Indigo",
++    "accentIndigoHint": "the default Pulse palette",
++    "accentTeal": "Teal",
++    "accentTealHint": "cool and calm",
++    "accentRose": "Rose",
++    "accentRoseHint": "warm and bold",
+     "active": "Active"
+   },
+   "appearance": {
+@@ -73,6 +80,9 @@
+     "designHint": "The design drives the whole interface — colours, radii, shadows and density — without changing any behaviour.",
+     "modeHeading": "Brightness",
+     "modeHint": "Applies to the Pulse design; the classic theme is always dark.",
++    "accentHeading": "Brand palette",
++    "accentHint": "A palette rotates only the brand colours — surfaces, radii and semantic colours stay identical. It applies to the Pulse design and works in both brightnesses.",
++    "accentPulseOnly": "The brand palette applies to the Pulse design; the classic theme always keeps its own blue.",
+     "classicForcesDark": "The classic theme is dark, so brightness is locked while it is active. Your choice is remembered and applied when you switch back to Pulse.",
+     "resolvedHint": "Currently applied: {{mode}}.",
+     "previewHeading": "Preview",
+diff --git a/frontend/src/index.css b/frontend/src/index.css
+index 65b098b..a609c4b 100644
+--- a/frontend/src/index.css
++++ b/frontend/src/index.css
+@@ -215,6 +215,76 @@
+     --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(111 102 223 / 0.5);
+   }
+ 
++
++  /*
++    ── Accent palettes ────────────────────────────────────────────────────────
++    A third, optional axis: it rotates ONLY the brand colours (primary family,
++    focus ring, links, text selection, primary glow). Neutral surfaces, radii
++    and the semantic tones (ok / warning / danger / info / accent) stay
++    untouched — which is exactly what makes every palette work in light AND
++    dark without a second token block per mode, and what keeps adding another
++    one cheap.
++
++    Selectors are scoped to `data-theme="pulse"` on purpose: the legacy
++    `classic` design keeps its own blue no matter which palette is selected.
++
++    Contrast (WCAG 2.1, measured — see PULSE_UI_HANDOFF.md §3): every palette
++    holds text-on-primary ≥ 4.5:1, primary-as-text-on-surface ≥ 4.5:1 and
++    selection text ≥ 4.5:1 in both appearances. Two values follow from how the
++    browser paints, not from taste:
++
++      --primary-foreground  a LIGHT primary needs DARK text on top of it, so
++                            the dark palettes flip this to their darkest step;
++      --selection-fg        `::selection` paints the background as an alpha
++                            blend OVER the page, so the result is always light
++                            on light palettes and dark on dark ones — which is
++                            why it stays white in every dark palette.
++  */
++  :root[data-theme="pulse"][data-accent="teal"] {
++    --primary: 15 118 110;
++    --primary-hover: 17 94 89;
++    --primary-active: 19 78 74;
++    --primary-foreground: 255 255 255;
++    --ring: 15 118 110;
++    --link: 17 94 89;
++    --selection-bg: 15 118 110;
++    --selection-fg: 4 47 46;
++    --shadow-glow: 0 1px 2px rgb(15 118 110 / 0.28), 0 8px 20px -8px rgb(15 118 110 / 0.45);
++  }
++  :root[data-theme="pulse"][data-accent="teal"].dark {
++    --primary: 45 212 191;
++    --primary-hover: 94 234 212;
++    --primary-active: 153 246 228;
++    --primary-foreground: 4 47 46;
++    --ring: 45 212 191;
++    --link: 94 234 212;
++    --selection-bg: 45 212 191;
++    --selection-fg: 255 255 255;
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(45 212 191 / 0.5);
++  }
++  :root[data-theme="pulse"][data-accent="rose"] {
++    --primary: 190 18 60;
++    --primary-hover: 159 18 57;
++    --primary-active: 136 19 55;
++    --primary-foreground: 255 255 255;
++    --ring: 190 18 60;
++    --link: 159 18 57;
++    --selection-bg: 190 18 60;
++    --selection-fg: 76 5 25;
++    --shadow-glow: 0 1px 2px rgb(190 18 60 / 0.28), 0 8px 20px -8px rgb(190 18 60 / 0.45);
++  }
++  :root[data-theme="pulse"][data-accent="rose"].dark {
++    --primary: 251 113 133;
++    --primary-hover: 253 164 175;
++    --primary-active: 254 205 211;
++    --primary-foreground: 76 5 25;
++    --ring: 251 113 133;
++    --link: 253 164 175;
++    --selection-bg: 251 113 133;
++    --selection-fg: 255 255 255;
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(251 113 133 / 0.5);
++  }
++
+   html,
+   body,
+   #root {
+@@ -353,6 +423,38 @@
+   }
+ }
+ 
++/*
++  Palette previews. These are the only hardcoded colours outside the token
++  blocks, and deliberately so: a preview has to show what a palette looks like
++  while a DIFFERENT palette is active, so it cannot read `--primary`.
++  Keep them in sync with the palette blocks above (light step / dark step).
++*/
++@layer components {
++  .accent-swatch-indigo {
++    background-color: rgb(91 91 214);
++  }
++
++  .accent-swatch-teal {
++    background-color: rgb(15 118 110);
++  }
++
++  .accent-swatch-rose {
++    background-color: rgb(190 18 60);
++  }
++
++  .dark .accent-swatch-indigo {
++    background-color: rgb(111 102 223);
++  }
++
++  .dark .accent-swatch-teal {
++    background-color: rgb(45 212 191);
++  }
++
++  .dark .accent-swatch-rose {
++    background-color: rgb(251 113 133);
++  }
++}
++
+ .draw-ring {
+   animation: draw-ring 0.7s cubic-bezier(0.22, 0.68, 0.36, 1) both;
+ }
+diff --git a/frontend/src/lib/theme/theme-provider.tsx b/frontend/src/lib/theme/theme-provider.tsx
+index ae88a3c..1d39cb7 100644
+--- a/frontend/src/lib/theme/theme-provider.tsx
++++ b/frontend/src/lib/theme/theme-provider.tsx
+@@ -8,15 +8,19 @@ import {
+   type ReactNode,
+ } from "react";
+ import {
++  DEFAULT_THEME_ACCENT,
+   DEFAULT_THEME_DESIGN,
+   DEFAULT_THEME_MODE,
+   isDarkAppearance,
++  isThemeAccent,
+   isThemeDesign,
+   isThemeMode,
+   resolveColorMode,
++  THEME_ACCENT_STORAGE_KEY,
+   THEME_DESIGN_STORAGE_KEY,
+   THEME_MODE_STORAGE_KEY,
+   type ResolvedColorMode,
++  type ThemeAccent,
+   type ThemeDesign,
+   type ThemeMode,
+ } from "@/lib/theme/theme-storage";
+@@ -24,10 +28,12 @@ import {
+ interface ThemeContextValue {
+   readonly design: ThemeDesign;
+   readonly mode: ThemeMode;
++  readonly accent: ThemeAccent;
+   readonly resolvedMode: ResolvedColorMode;
+   readonly isDark: boolean;
+   readonly setDesign: (design: ThemeDesign) => void;
+   readonly setMode: (mode: ThemeMode) => void;
++  readonly setAccent: (accent: ThemeAccent) => void;
+   readonly toggleMode: () => void;
+ }
+ 
+@@ -70,6 +76,11 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
+     return isThemeMode(stored) ? stored : DEFAULT_THEME_MODE;
+   });
+ 
++  const [accent, setAccentState] = useState<ThemeAccent>(() => {
++    const stored = readStored(THEME_ACCENT_STORAGE_KEY);
++    return isThemeAccent(stored) ? stored : DEFAULT_THEME_ACCENT;
++  });
++
+   const [systemPrefersDark, setSystemPrefersDark] = useState(readSystemPrefersDark);
+ 
+   useEffect(() => {
+@@ -92,7 +103,10 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
+     const root = document.documentElement;
+     root.dataset.theme = design;
+     root.classList.toggle("dark", isDark);
+-  }, [design, isDark]);
++    /* Always mirrored, even for `classic`: the palette CSS ignores it there,
++       so the value survives a switch back to `pulse` without extra state. */
++    root.dataset.accent = accent;
++  }, [design, accent, isDark]);
+ 
+   const setDesign = useCallback((next: ThemeDesign) => {
+     setDesignState(next);
+@@ -104,6 +118,11 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
+     writeStored(THEME_MODE_STORAGE_KEY, next);
+   }, []);
+ 
++  const setAccent = useCallback((next: ThemeAccent) => {
++    setAccentState(next);
++    writeStored(THEME_ACCENT_STORAGE_KEY, next);
++  }, []);
++
+   const toggleMode = useCallback(() => {
+     setModeState((previous) => {
+       const isCurrentlyDark = resolveColorMode(
+@@ -121,13 +140,15 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }) {
+     () => ({
+       design,
+       mode,
++      accent,
+       resolvedMode,
+       isDark,
+       setDesign,
+       setMode,
++      setAccent,
+       toggleMode,
+     }),
+-    [design, mode, resolvedMode, isDark, setDesign, setMode, toggleMode],
++    [design, mode, accent, resolvedMode, isDark, setDesign, setMode, setAccent, toggleMode],
+   );
+ 
+   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+diff --git a/frontend/src/lib/theme/theme-storage.spec.ts b/frontend/src/lib/theme/theme-storage.spec.ts
+index f42b168..af563b3 100644
+--- a/frontend/src/lib/theme/theme-storage.spec.ts
++++ b/frontend/src/lib/theme/theme-storage.spec.ts
+@@ -1,11 +1,14 @@
+ import { describe, expect, it } from "vitest";
+ import {
++  DEFAULT_THEME_ACCENT,
+   DEFAULT_THEME_DESIGN,
+   DEFAULT_THEME_MODE,
+   isDarkAppearance,
+   isThemeDesign,
++  isThemeAccent,
+   isThemeMode,
+   resolveColorMode,
++  THEME_ACCENTS,
+ } from "@/lib/theme/theme-storage";
+ 
+ describe("theme-storage", () => {
+@@ -38,6 +41,21 @@ describe("theme-storage", () => {
+     expect(isDarkAppearance("classic", "light")).toBe(true);
+   });
+ 
++  it("offers exactly three brand palettes", () => {
++    expect(THEME_ACCENTS).toEqual(["indigo", "teal", "rose"]);
++    expect(DEFAULT_THEME_ACCENT).toBe("indigo");
++    expect(THEME_ACCENTS).toContain(DEFAULT_THEME_ACCENT);
++  });
++
++  it("validates the persisted palette the same way as the other axes", () => {
++    expect(isThemeAccent("indigo")).toBe(true);
++    expect(isThemeAccent("teal")).toBe(true);
++    expect(isThemeAccent("rose")).toBe(true);
++    expect(isThemeAccent("pulse")).toBe(false);
++    expect(isThemeAccent("")).toBe(false);
++    expect(isThemeAccent(null)).toBe(false);
++  });
++
+   it("sets the dark class only for dark appearances", () => {
+     expect(isDarkAppearance("pulse", "dark")).toBe(true);
+     expect(isDarkAppearance("pulse", "light")).toBe(false);
+diff --git a/frontend/src/lib/theme/theme-storage.ts b/frontend/src/lib/theme/theme-storage.ts
+index 09cd57b..8340fcb 100644
+--- a/frontend/src/lib/theme/theme-storage.ts
++++ b/frontend/src/lib/theme/theme-storage.ts
+@@ -1,11 +1,17 @@
+ /**
+  * Pulse Design System — theme contract.
+  *
+- * Two orthogonal axes decide what the application looks like:
++ * Three orthogonal axes decide what the application looks like:
+  *
+  *   design : "pulse"   → new identity (see `.cursor/docs/theme.md`)
+  *            "classic" → legacy dark theme, kept available during rollout
+  *   mode   : "light" | "dark" | "system"
++ *   accent : "indigo"  → the brand palette inside the `pulse` design
++ *            "teal" / "rose"
++ *
++ * `accent` rotates only the brand colours (primary family, ring, links,
++ * selection, primary glow) — see the palette blocks in `src/index.css`. It has
++ * no effect on `classic`, so it is intentionally ignored there.
+  *
+  * `classic` is inherently dark, so `isDarkAppearance()` forces dark for it
+  * regardless of `mode`. Everything UI-facing is derived from this file, which
+@@ -15,10 +21,12 @@
+ 
+ export type ThemeDesign = "pulse" | "classic";
+ export type ThemeMode = "light" | "dark" | "system";
++export type ThemeAccent = "indigo" | "teal" | "rose";
+ export type ResolvedColorMode = "light" | "dark";
+ 
+ export const THEME_DESIGN_STORAGE_KEY = "ep-helpdesk.theme.design";
+ export const THEME_MODE_STORAGE_KEY = "ep-helpdesk.theme.mode";
++export const THEME_ACCENT_STORAGE_KEY = "ep-helpdesk.theme.accent";
+ 
+ /**
+  * Rollout switch. The new identity ships as the default; flip this to
+@@ -26,9 +34,11 @@ export const THEME_MODE_STORAGE_KEY = "ep-helpdesk.theme.mode";
+  */
+ export const DEFAULT_THEME_DESIGN: ThemeDesign = "pulse";
+ export const DEFAULT_THEME_MODE: ThemeMode = "system";
++export const DEFAULT_THEME_ACCENT: ThemeAccent = "indigo";
+ 
+ export const THEME_DESIGNS: readonly ThemeDesign[] = ["pulse", "classic"];
+ export const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
++export const THEME_ACCENTS: readonly ThemeAccent[] = ["indigo", "teal", "rose"];
+ 
+ export function isThemeDesign(value: unknown): value is ThemeDesign {
+   return value === "pulse" || value === "classic";
+@@ -38,6 +48,10 @@ export function isThemeMode(value: unknown): value is ThemeMode {
+   return value === "light" || value === "dark" || value === "system";
+ }
+ 
++export function isThemeAccent(value: unknown): value is ThemeAccent {
++  return value === "indigo" || value === "teal" || value === "rose";
++}
++
+ export function resolveColorMode(
+   design: ThemeDesign,
+   mode: ThemeMode,
+diff --git a/frontend/src/pages/appearance-page.tsx b/frontend/src/pages/appearance-page.tsx
+index aaba8e7..fa7bf4c 100644
+--- a/frontend/src/pages/appearance-page.tsx
++++ b/frontend/src/pages/appearance-page.tsx
+@@ -10,10 +10,13 @@ import { Segmented } from "@/components/ui/segmented";
+ import { StatCard } from "@/components/ui/stat-card";
+ import { useTheme } from "@/lib/theme/theme-provider";
+ import {
++  DEFAULT_THEME_ACCENT,
+   DEFAULT_THEME_DESIGN,
+   DEFAULT_THEME_MODE,
++  THEME_ACCENTS,
+   THEME_DESIGNS,
+   THEME_MODES,
++  type ThemeAccent,
+   type ThemeDesign,
+   type ThemeMode,
+ } from "@/lib/theme/theme-storage";
+@@ -54,6 +57,26 @@ const DESIGN_HINT_KEYS = {
+   classic: "theme.designClassicHint",
+ } as const satisfies Record<ThemeDesign, string>;
+ 
++const ACCENT_LABEL_KEYS = {
++  indigo: "theme.accentIndigo",
++  teal: "theme.accentTeal",
++  rose: "theme.accentRose",
++} as const satisfies Record<ThemeAccent, string>;
++
++const ACCENT_HINT_KEYS = {
++  indigo: "theme.accentIndigoHint",
++  teal: "theme.accentTealHint",
++  rose: "theme.accentRoseHint",
++} as const satisfies Record<ThemeAccent, string>;
++
++/* Defined in `src/index.css`: a preview must render a palette that is not the
++   active one, so it cannot read `--primary`. */
++const ACCENT_SWATCH_CLASS = {
++  indigo: "accent-swatch-indigo",
++  teal: "accent-swatch-teal",
++  rose: "accent-swatch-rose",
++} as const satisfies Record<ThemeAccent, string>;
++
+ /** Token chips that make the difference between the two designs visible at a glance. */
+ const DESIGN_SWATCHES = [
+   "bg-primary",
+@@ -113,6 +136,51 @@ function AppearanceDesignOption({
+   );
+ }
+ 
++interface AppearanceAccentOptionProperties {
++  readonly accent: ThemeAccent;
++  readonly isActive: boolean;
++  readonly onSelect: (accent: ThemeAccent) => void;
++}
++
++function AppearanceAccentOption({
++  accent,
++  isActive,
++  onSelect,
++}: AppearanceAccentOptionProperties) {
++  const { t } = useTranslation();
++  return (
++    <button
++      type="button"
++      role="radio"
++      aria-checked={isActive}
++      onClick={() => onSelect(accent)}
++      className={cn(
++        "flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
++        isActive
++          ? "border-primary/50 bg-primary/8"
++          : "border-border bg-surface hover:border-line-strong hover:bg-surface-hover",
++      )}
++    >
++      <span
++        aria-hidden="true"
++        className={cn(
++          "size-6 shrink-0 rounded-full border border-border",
++          ACCENT_SWATCH_CLASS[accent],
++        )}
++      />
++      <span className="grid gap-0.5">
++        <span className="text-[12.5px] font-medium text-foreground">
++          {t(ACCENT_LABEL_KEYS[accent])}
++        </span>
++        <span className="text-[11px] text-muted-foreground">
++          {t(ACCENT_HINT_KEYS[accent])}
++        </span>
++      </span>
++      {isActive ? <Check size={13} className="text-link" aria-hidden="true" /> : null}
++    </button>
++  );
++}
++
+ /** Live sample built from the real primitives — no parallel styles to keep in sync. */
+ function AppearancePreview() {
+   const { t } = useTranslation();
+@@ -172,8 +240,11 @@ function AppearancePreview() {
+ 
+ export function AppearancePage() {
+   const { t } = useTranslation();
+-  const { design, mode, resolvedMode, setDesign, setMode } = useTheme();
+-  const isDefault = design === DEFAULT_THEME_DESIGN && mode === DEFAULT_THEME_MODE;
++  const { design, mode, accent, resolvedMode, setDesign, setMode, setAccent } = useTheme();
++  const isDefault =
++    design === DEFAULT_THEME_DESIGN &&
++    mode === DEFAULT_THEME_MODE &&
++    accent === DEFAULT_THEME_ACCENT;
+ 
+   return (
+     <section>
+@@ -190,6 +261,7 @@ export function AppearancePage() {
+             onClick={() => {
+               setDesign(DEFAULT_THEME_DESIGN);
+               setMode(DEFAULT_THEME_MODE);
++              setAccent(DEFAULT_THEME_ACCENT);
+             }}
+           >
+             <RotateCcw size={14} />
+@@ -220,6 +292,33 @@ export function AppearancePage() {
+             </div>
+           </div>
+         </Card>
++        <Card>
++          <CardHeader
++            title={t("appearance.accentHeading")}
++            subtitle={t("appearance.accentHint")}
++          />
++          <div className="grid gap-3 px-4 py-3.5">
++            <div
++              role="radiogroup"
++              aria-label={t("appearance.accentHeading")}
++              className="flex flex-wrap gap-2.5"
++            >
++              {THEME_ACCENTS.map((value) => (
++                <AppearanceAccentOption
++                  key={value}
++                  accent={value}
++                  isActive={accent === value}
++                  onSelect={setAccent}
++                />
++              ))}
++            </div>
++            {design === "classic" ? (
++              <p className="text-[12px] leading-5 text-muted-foreground">
++                {t("appearance.accentPulseOnly")}
++              </p>
++            ) : null}
++          </div>
++        </Card>
+         <Card>
+           <CardHeader
+             title={t("appearance.modeHeading")}

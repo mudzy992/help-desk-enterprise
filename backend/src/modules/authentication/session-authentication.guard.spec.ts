@@ -1,5 +1,9 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { AUTHENTICATED_PRINCIPAL_REQUEST_KEY } from './authenticated-request';
+import type { PrincipalContext } from '../../common/principal-context/principal-context.types';
+import {
+  AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
+  PRINCIPAL_CONTEXT_REQUEST_KEY,
+} from './authenticated-request';
 import { AuthenticationError } from './authentication.error';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 
@@ -7,16 +11,24 @@ jest.mock('../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-const user = {
-  id: 'user-1',
+/**
+ * Phase 2.2: the guard reads the caller through `PrincipalContextLoader` (one
+ * load, Redis → database) instead of the authentication user loader, so this
+ * fake stands in for that loader. The assertions below are unchanged.
+ */
+const principal: PrincipalContext = {
+  subjectId: 'user-1',
   email: 'agent@example.com',
   displayName: 'Agent',
   isActive: true,
   isLocalOnly: false,
   mustChangePassword: false,
-  localPasswordHash: null,
   entraObjectId: 'entra-object-1',
   roleKeys: ['AGENT'],
+  groupIds: ['group-it'],
+  homeOrganizationalUnitId: 'ou-it',
+  assignments: [],
+  authzVersion: 0,
 };
 
 function createContext(request: Record<string, unknown>) {
@@ -27,17 +39,17 @@ function createContext(request: Record<string, unknown>) {
 
 describe('SessionAuthenticationGuard', () => {
   const verify = jest.fn();
-  const findById = jest.fn();
+  const load = jest.fn();
   const guard = new SessionAuthenticationGuard(
     { verify } as never,
-    { findById } as never,
+    { load } as never,
   );
 
   beforeEach(() => {
     verify.mockReset();
-    findById.mockReset();
+    load.mockReset();
     verify.mockResolvedValue({ subjectId: 'user-1' });
-    findById.mockResolvedValue(user);
+    load.mockResolvedValue(principal);
   });
 
   it('rejects a missing bearer token', async () => {
@@ -48,14 +60,14 @@ describe('SessionAuthenticationGuard', () => {
   });
 
   it('rejects inactive users and broken SuperAdmin identities', async () => {
-    findById.mockResolvedValue({ ...user, isActive: false });
+    load.mockResolvedValue({ ...principal, isActive: false });
     await expect(
       guard.canActivate(
         createContext({ headers: { authorization: 'Bearer session-token' } }),
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    findById.mockResolvedValue({
-      ...user,
+    load.mockResolvedValue({
+      ...principal,
       isLocalOnly: false,
       entraObjectId: 'entra-object-1',
       roleKeys: ['SUPER_ADMIN'],
@@ -88,6 +100,28 @@ describe('SessionAuthenticationGuard', () => {
     expect(request[AUTHENTICATED_PRINCIPAL_REQUEST_KEY]).not.toHaveProperty(
       'roles',
     );
+    // Phase 2.2: the full context rides along for the guards that run after
+    // this one — they must not load the same record again.
+    expect(request[PRINCIPAL_CONTEXT_REQUEST_KEY]).toBe(principal);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a caller whose cached context says the password must change', async () => {
+    load.mockResolvedValue({ ...principal, mustChangePassword: true });
+    await expect(
+      guard.canActivate(
+        createContext({ headers: { authorization: 'Bearer session-token' } }),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('rejects a caller the loader cannot find at all', async () => {
+    load.mockResolvedValue(null);
+    await expect(
+      guard.canActivate(
+        createContext({ headers: { authorization: 'Bearer session-token' } }),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('does not echo the access token when verification fails', async () => {

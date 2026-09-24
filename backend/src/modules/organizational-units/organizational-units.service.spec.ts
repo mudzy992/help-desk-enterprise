@@ -7,13 +7,25 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 }));
 
 describe('OrganizationalUnitsService CRUD', () => {
-  const createService = (): OrganizationalUnitsService => {
-    const { prisma } = createInMemoryOrganizationalUnitPrisma();
-    return new OrganizationalUnitsService(prisma as never);
+  const createService = (
+    invalidateUser = jest.fn().mockResolvedValue(1),
+  ): {
+    service: OrganizationalUnitsService;
+    invalidateUser: jest.Mock;
+    memory: ReturnType<typeof createInMemoryOrganizationalUnitPrisma>;
+  } => {
+    const memory = createInMemoryOrganizationalUnitPrisma();
+    return {
+      service: new OrganizationalUnitsService(memory.prisma as never, {
+        invalidateUser,
+      } as never),
+      invalidateUser,
+      memory,
+    };
   };
 
   it('creates a root OU with DN and canonical path', async () => {
-    const service = createService();
+    const { service } = createService();
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -27,7 +39,7 @@ describe('OrganizationalUnitsService CRUD', () => {
   });
 
   it('creates a child OU under a parent', async () => {
-    const service = createService();
+    const { service } = createService();
     const root = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -46,7 +58,7 @@ describe('OrganizationalUnitsService CRUD', () => {
   });
 
   it('retrieves and updates an OU', async () => {
-    const service = createService();
+    const { service } = createService();
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -60,7 +72,7 @@ describe('OrganizationalUnitsService CRUD', () => {
   });
 
   it('rejects duplicate distinguished names and paths', async () => {
-    const service = createService();
+    const { service } = createService();
     await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -76,7 +88,7 @@ describe('OrganizationalUnitsService CRUD', () => {
   });
 
   it('rejects a distinguished name that does not sit under the parent DN', async () => {
-    const service = createService();
+    const { service } = createService();
     const root = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
@@ -93,7 +105,7 @@ describe('OrganizationalUnitsService CRUD', () => {
   });
 
   it('rejects an invalid parent reference', async () => {
-    const service = createService();
+    const { service } = createService();
     await expect(
       service.create({
         name: 'Direkcija',
@@ -104,8 +116,35 @@ describe('OrganizationalUnitsService CRUD', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('drops the cached authorization data of a user moved to another unit', async () => {
+    // Phase 2.2 (plan §2.2): the unit is part of the principal context.
+    const { service, invalidateUser, memory } = createService();
+    const created = await service.create({
+      name: 'Korisnici',
+      type: 'DIRECTORATE',
+      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+    });
+    memory.seedUser({
+      id: 'local-user',
+      email: 'admin@example.com',
+      displayName: 'Local Admin',
+      organizationalUnitId: null,
+      isLocalOnly: true,
+      entraObjectId: null,
+      localPasswordHash: 'hash-must-not-leak',
+    });
+
+    await service.assignUser({
+      userId: 'local-user',
+      organizationalUnitId: created.id,
+    });
+
+    expect(invalidateUser).toHaveBeenCalledTimes(1);
+    expect(invalidateUser).toHaveBeenCalledWith('local-user');
+  });
+
   it('deletes a leaf OU', async () => {
-    const service = createService();
+    const { service } = createService();
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',

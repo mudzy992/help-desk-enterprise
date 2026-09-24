@@ -29,8 +29,18 @@ export type TicketListQuery = {
   readonly createdFrom?: string;
   readonly createdTo?: string;
   readonly q?: string;
-  /** Internal: the export also searches the description, the list does not. */
+  /**
+   * `q` matches the ticket number and the title. The description is searched
+   * only when the caller asks for it: the export always does, the ticket list
+   * does (its search box did before phase 1.1 moved the filtering server-side),
+   * the global `/search` endpoint does not.
+   */
   readonly searchDescription?: boolean;
+  /**
+   * Internal: narrows to tickets that carry a CSAT submission. The CSAT summary
+   * uses it so its read stays bounded instead of listing every visible ticket.
+   */
+  readonly hasCsatSubmission?: boolean;
   readonly includeArchived?: boolean;
   readonly sort?: TicketListSortField;
   readonly dir?: TicketListSortDirection;

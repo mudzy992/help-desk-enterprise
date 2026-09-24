@@ -1,13 +1,5 @@
-import type { DirectoryUser } from "@/lib/directory/use-directory";
-import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
 import { cn } from "@/lib/utils";
-import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
-import { listKnowledgeArticles } from "@/services/knowledge-base-api";
-import {
-  listOrganizationalUnitTree,
-  listOrganizationalUnitUsers,
-} from "@/services/organizational-units-api";
-import { listTickets, type TicketResponse } from "@/services/tickets-api";
+import { searchEverywhere } from "@/services/search-api";
 
 export const headerSearchGroupLimit = 5;
 
@@ -37,84 +29,68 @@ export function flattenHeaderSearchHits(
   return [...groups.tickets, ...groups.articles, ...groups.users];
 }
 
-function matchesAny(query: string, values: readonly string[]): boolean {
-  const needle = query.trim().toLowerCase();
-  return needle.length > 0 && values.some((value) => value.toLowerCase().includes(needle));
-}
-
-export function matchTicketTitleOrNumber(
-  ticket: Pick<TicketResponse, "ticketNumber" | "title">,
+/**
+ * Maps the answer of `GET /search` onto the palette rows (phase 1.2, plan §1.2).
+ *
+ * The matching itself moved to the server, so this is a pure projection: the
+ * groups arrive already narrowed to what the caller may see and already capped,
+ * and the hrefs stay exactly the ones the client built before.
+ */
+export function toHeaderSearchGroups(
   query: string,
-): boolean {
-  return matchesAny(query, [ticket.ticketNumber, ticket.title]);
-}
-
-export function matchKnowledgeArticle(
-  article: Pick<KnowledgeArticleResponse, "title" | "body">,
-  query: string,
-): boolean {
-  return matchesAny(query, [article.title, article.body]);
-}
-
-export function matchDirectoryUser(
-  user: Pick<DirectoryUser, "displayName" | "email" | "organizationalUnitPath">,
-  query: string,
-): boolean {
-  return matchesAny(query, [user.displayName, user.email, user.organizationalUnitPath]);
-}
-
-function toHits<T>(
-  items: readonly T[],
-  matches: (item: T) => boolean,
-  mapHit: (item: T) => HeaderSearchHit,
-): readonly HeaderSearchHit[] {
-  return items.filter(matches).slice(0, headerSearchGroupLimit).map(mapHit);
-}
-
-export function buildHeaderSearchGroups(
-  query: string,
-  tickets: readonly TicketResponse[],
-  articles: readonly KnowledgeArticleResponse[],
-  users: readonly DirectoryUser[],
+  response: {
+    readonly tickets: readonly { id: string; ticketNumber: string; title: string }[];
+    readonly articles: readonly { id: string; slug: string; title: string }[];
+    readonly users: readonly { id: string; displayName: string; email: string }[];
+  },
 ): HeaderSearchGroups {
   const trimmed = query.trim();
   return {
-    tickets: toHits(tickets, (ticket) => matchTicketTitleOrNumber(ticket, trimmed), (ticket) => ({
-      id: ticket.id, kind: "ticket", title: ticket.ticketNumber, subtitle: ticket.title,
-      href: `/tickets/${ticket.id}`,
-    })),
-    articles: toHits(articles, (article) => matchKnowledgeArticle(article, trimmed), (article) => ({
-      id: article.id, kind: "article", title: article.title, subtitle: "",
+    tickets: response.tickets
+      .slice(0, headerSearchGroupLimit)
+      .map((ticket) => ({
+        id: ticket.id,
+        kind: "ticket" as const,
+        title: ticket.ticketNumber,
+        subtitle: ticket.title,
+        href: `/tickets/${ticket.id}`,
+      })),
+    articles: response.articles.slice(0, headerSearchGroupLimit).map((article) => ({
+      id: article.id,
+      kind: "article" as const,
+      title: article.title,
+      subtitle: article.slug,
       href: `/knowledge-base?q=${encodeURIComponent(trimmed)}`,
     })),
-    users: toHits(users, (user) => matchDirectoryUser(user, trimmed), (user) => ({
-      id: user.id, kind: "user", title: user.displayName, subtitle: user.email,
+    users: response.users.slice(0, headerSearchGroupLimit).map((user) => ({
+      id: user.id,
+      kind: "user" as const,
+      title: user.displayName,
+      subtitle: user.email,
       href: `/users?q=${encodeURIComponent(user.displayName)}`,
     })),
   };
 }
 
-async function loadDirectoryUsers(): Promise<readonly DirectoryUser[]> {
-  const tree = await listOrganizationalUnitTree();
-  const collected = await Promise.all(
-    flattenOriginUnitOptions(tree).map(async (unit) =>
-      (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map((user) => ({
-        ...user, organizationalUnitPath: unit.label,
-      })),
-    ),
-  );
-  return [...new Map(collected.flat().map((user) => [user.id, user])).values()];
-}
-
-export async function searchHeaderSources(query: string): Promise<HeaderSearchGroups> {
-  const [tickets, articles, users] = await Promise.allSettled([
-    listTickets(),
-    listKnowledgeArticles(),
-    loadDirectoryUsers(),
-  ]);
-  const value = <T,>(result: PromiseSettledResult<readonly T[]>) =>
-    result.status === "fulfilled" ? result.value : [];
-  return buildHeaderSearchGroups(query, value(tickets), value(articles), value(users));
+/**
+ * The three former sources of the header search are gone: no ticket download,
+ * no article dump and no `GET /organizational-units/:id/users` per unit. One
+ * bounded request answers all three groups, and a failure of it is a failure of
+ * the whole search (the palette shows its empty state).
+ */
+export async function searchHeaderSources(
+  query: string,
+  signal?: AbortSignal,
+): Promise<HeaderSearchGroups> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) {
+    return emptyHeaderSearchGroups;
+  }
+  const response = await searchEverywhere(trimmed, {
+    limit: headerSearchGroupLimit,
+    ...(signal === undefined ? {} : { signal }),
+  });
+  return toHeaderSearchGroups(trimmed, response);
 }
 
 function HitRow({

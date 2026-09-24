@@ -17,6 +17,7 @@ export function createConfigSnapshotFixture(
       configuration: {
         unroutedQueueEnabled: true,
         unroutedQueueOwnerRole: 'SUPER_ADMIN',
+        requireCoverage: true,
       },
       rules: [
         {

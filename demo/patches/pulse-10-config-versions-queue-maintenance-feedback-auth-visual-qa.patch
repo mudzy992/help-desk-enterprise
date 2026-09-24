@@ -1,0 +1,214 @@
+diff --git a/frontend/src/components/auth/change-password-form.tsx b/frontend/src/components/auth/change-password-form.tsx
+index 48fee31..46b385d 100644
+--- a/frontend/src/components/auth/change-password-form.tsx
++++ b/frontend/src/components/auth/change-password-form.tsx
+@@ -50,7 +50,7 @@ export function ChangePasswordForm({
+   };
+ 
+   return (
+-    <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
++    <form className="fade-in space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+       <p className="text-[13px] leading-5 text-muted-foreground">
+         {t("auth.changePassword.intro")}
+       </p>
+diff --git a/frontend/src/components/config-versions/config-validation-errors.tsx b/frontend/src/components/config-versions/config-validation-errors.tsx
+index 7c35cf2..e2ee12d 100644
+--- a/frontend/src/components/config-versions/config-validation-errors.tsx
++++ b/frontend/src/components/config-versions/config-validation-errors.tsx
+@@ -35,7 +35,7 @@ export function ConfigValidationErrors({ issues }: ConfigValidationErrorsPropert
+           {issues.map((issue, index) => (
+             <tr key={`${issue.path}-${issue.code}-${index}`} className={tableRowClassName}>
+               <td className="px-3 font-mono text-[12px]">{issue.path}</td>
+-              <td className="px-3 tnum">{issue.code}</td>
++              <td className="tnum px-3">{issue.code}</td>
+               <td className="px-3 text-[12.5px]">{issue.message}</td>
+             </tr>
+           ))}
+diff --git a/frontend/src/components/config-versions/config-version-diff-panel.tsx b/frontend/src/components/config-versions/config-version-diff-panel.tsx
+index a323bec..ffa451d 100644
+--- a/frontend/src/components/config-versions/config-version-diff-panel.tsx
++++ b/frontend/src/components/config-versions/config-version-diff-panel.tsx
+@@ -65,7 +65,7 @@ export function ConfigVersionDiffPanel({
+         />
+       ) : null}
+       {diffState.diff !== null && diffState.diff.changes.length > 0 ? (
+-        <ul className="grid gap-1.5 font-mono text-[12px] leading-5 text-muted-foreground">
++        <ul className="fade-in grid gap-1.5 font-mono text-[12px] leading-5 text-muted-foreground">
+           {diffState.diff.changes.map((change) => (
+             <li key={change.path}>{formatConfigDiffChange(change)}</li>
+           ))}
+diff --git a/frontend/src/components/config-versions/config-version-list.tsx b/frontend/src/components/config-versions/config-version-list.tsx
+index 902aa16..2e83c79 100644
+--- a/frontend/src/components/config-versions/config-version-list.tsx
++++ b/frontend/src/components/config-versions/config-version-list.tsx
+@@ -46,7 +46,7 @@ export function ConfigVersionList({
+               )}
+               onClick={() => onSelect(version.id)}
+             >
+-              <td className="px-3 tnum">v{version.version}</td>
++              <td className="tnum px-3">v{version.version}</td>
+               <td className="px-3">
+                 <Badge tone={configVersionBadgeTone(version.status)}>
+                   {t(`configVersions.statuses.${version.status}`)}
+diff --git a/frontend/src/components/config-versions/config-version-shadow-panel.tsx b/frontend/src/components/config-versions/config-version-shadow-panel.tsx
+index b7cfabf..4fe50c6 100644
+--- a/frontend/src/components/config-versions/config-version-shadow-panel.tsx
++++ b/frontend/src/components/config-versions/config-version-shadow-panel.tsx
+@@ -44,7 +44,7 @@ export function ConfigVersionShadowPanel({
+         <PanelSkeleton className="mt-0" label={t("configVersions.shadowLoading")} />
+       ) : null}
+       {!isLoading && result !== null ? (
+-        <ul className="grid gap-1.5 text-[12.5px] leading-5 text-muted-foreground">
++        <ul className="fade-in grid gap-1.5 text-[12.5px] leading-5 text-muted-foreground">
+           <li>
+             {t("configVersions.shadowRoutingResult", {
+               count: result.routingGroupMismatches,
+diff --git a/frontend/src/components/config-versions/config-versions-workspace.tsx b/frontend/src/components/config-versions/config-versions-workspace.tsx
+index e60d08b..dd0601b 100644
+--- a/frontend/src/components/config-versions/config-versions-workspace.tsx
++++ b/frontend/src/components/config-versions/config-versions-workspace.tsx
+@@ -68,7 +68,7 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
+   };
+ 
+   return (
+-    <div className="grid gap-4">
++    <div className="fade-in grid gap-4">
+       {canWrite ? (
+         <Card>
+           <CardHeader
+diff --git a/frontend/src/components/config-versions/selected-config-version-panels.tsx b/frontend/src/components/config-versions/selected-config-version-panels.tsx
+index ee2b0ec..16bd0a3 100644
+--- a/frontend/src/components/config-versions/selected-config-version-panels.tsx
++++ b/frontend/src/components/config-versions/selected-config-version-panels.tsx
+@@ -48,7 +48,7 @@ export function SelectedConfigVersionPanels({
+ 
+   return (
+     <>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("configVersions.selectedHeading", { version: selected.version })}
+           subtitle={t(`configVersions.statuses.${selected.status}`)}
+@@ -65,7 +65,7 @@ export function SelectedConfigVersionPanels({
+           {validation ? <ConfigValidationErrors issues={validation.errors} /> : null}
+         </div>
+       </Card>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader title={t("configVersions.diffHeading")} subtitle={t("configVersions.diffHint")} />
+         <div className="px-4 py-3.5">
+           <ConfigVersionDiffPanel
+@@ -77,7 +77,7 @@ export function SelectedConfigVersionPanels({
+           />
+         </div>
+       </Card>
+-      <Card>
++      <Card className="fade-in">
+         <CardHeader
+           title={t("configVersions.shadowHeading")}
+           subtitle={t("configVersions.shadowHint")}
+diff --git a/frontend/src/components/feedback/action-feedback-banner.tsx b/frontend/src/components/feedback/action-feedback-banner.tsx
+index bd124da..3b808a5 100644
+--- a/frontend/src/components/feedback/action-feedback-banner.tsx
++++ b/frontend/src/components/feedback/action-feedback-banner.tsx
+@@ -41,7 +41,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
+       role={role}
+       aria-live={role === "alert" ? "assertive" : "polite"}
+       className={cn(
+-        "mb-3 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[12.5px] leading-5",
++        "fade-in mb-3 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[12.5px] leading-5",
+         toneClassNames[feedback.tone],
+       )}
+     >
+@@ -53,7 +53,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
+         <button
+           type="button"
+           onClick={feedback.action.onClick}
+-          className="shrink-0 font-medium underline-offset-2 hover:underline"
++          className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+         >
+           {feedback.action.label}
+         </button>
+@@ -62,7 +62,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
+         type="button"
+         onClick={onDismiss}
+         aria-label={t("feedback.dismiss")}
+-        className="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100"
++        className="shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+       >
+         <X size={13} aria-hidden="true" />
+       </button>
+diff --git a/frontend/src/components/maintenance/maintenance-banner.tsx b/frontend/src/components/maintenance/maintenance-banner.tsx
+index 0912faa..199e1d2 100644
+--- a/frontend/src/components/maintenance/maintenance-banner.tsx
++++ b/frontend/src/components/maintenance/maintenance-banner.tsx
+@@ -30,7 +30,7 @@ export function MaintenanceBanner({
+   return (
+     <div
+       role="status"
+-      className="mb-4 flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-3 text-[12.5px] text-foreground"
++      className="fade-in mb-4 flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 px-3.5 py-3 text-[12.5px] text-foreground"
+     >
+       <AlertTriangle
+         size={16}
+@@ -41,7 +41,7 @@ export function MaintenanceBanner({
+         <p className="font-medium">{t("maintenance.title")}</p>
+         <p className="mt-0.5 text-muted-foreground">{message}</p>
+         {period ? (
+-          <p className="mt-1 tnum text-[11.5px] text-muted-foreground/90">
++          <p className="tnum mt-1 text-[11.5px] text-muted-foreground/90">
+             {period}
+           </p>
+         ) : null}
+diff --git a/frontend/src/components/queue/integration-queue-card.tsx b/frontend/src/components/queue/integration-queue-card.tsx
+index c30123f..c37b8cc 100644
+--- a/frontend/src/components/queue/integration-queue-card.tsx
++++ b/frontend/src/components/queue/integration-queue-card.tsx
+@@ -36,7 +36,7 @@ export function IntegrationQueueCard({
+   const workerStatus = useIntegrationWorkerStatus(enabled);
+ 
+   return (
+-    <Card>
++    <Card className="fade-in">
+       <CardHeader
+         title={t("integrationQueue.heading")}
+         subtitle={t("integrationQueue.headingHint")}
+diff --git a/frontend/src/components/queue/integration-queue-table.tsx b/frontend/src/components/queue/integration-queue-table.tsx
+index 0f94cb6..f8b215e 100644
+--- a/frontend/src/components/queue/integration-queue-table.tsx
++++ b/frontend/src/components/queue/integration-queue-table.tsx
+@@ -49,7 +49,7 @@ export function IntegrationQueueTable({
+                   {t(`integrationQueue.statuses.${job.status}`)}
+                 </Badge>
+               </td>
+-              <td className="px-3 tnum">{job.attempts}</td>
++              <td className="tnum px-3">{job.attempts}</td>
+               <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">
+                 {truncateQueueError(job.lastError) || t("integrationQueue.noError")}
+               </td>
+diff --git a/frontend/src/components/visual-qa/visual-qa-section.tsx b/frontend/src/components/visual-qa/visual-qa-section.tsx
+index 15b6ca7..79e381e 100644
+--- a/frontend/src/components/visual-qa/visual-qa-section.tsx
++++ b/frontend/src/components/visual-qa/visual-qa-section.tsx
+@@ -7,7 +7,7 @@ interface VisualQaSectionProperties {
+ 
+ export function VisualQaSection({ title, children }: VisualQaSectionProperties) {
+   return (
+-    <section className="space-y-3">
++    <section className="fade-in space-y-3">
+       <h2 className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+         {title}
+       </h2>
+diff --git a/frontend/src/components/visual-qa/visual-qa-theme-board.tsx b/frontend/src/components/visual-qa/visual-qa-theme-board.tsx
+index 371a35b..076c9cd 100644
+--- a/frontend/src/components/visual-qa/visual-qa-theme-board.tsx
++++ b/frontend/src/components/visual-qa/visual-qa-theme-board.tsx
+@@ -63,7 +63,7 @@ function Swatches({
+       {items.map((item) => (
+         <div key={item.label} className="flex items-center gap-2.5">
+           <span
+-            className={`size-8 shrink-0 rounded-md border border-border ${item.className}`}
++            className={`size-8 shrink-0 rounded-lg border border-border ${item.className}`}
+             aria-hidden="true"
+           />
+           <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">

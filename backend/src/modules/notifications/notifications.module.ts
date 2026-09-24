@@ -7,6 +7,7 @@ import { TicketsModule } from '../tickets/tickets.module';
 import { MAIL_TRANSPORT } from './email/mail-transport';
 import { SmtpMailTransport } from './email/smtp-mail-transport';
 import { NotificationsFanOutService } from './fan-out/notifications-fan-out.service';
+import { NotificationUnreadCountCache } from './notification-unread-count.cache';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 import { TeamsIntegrationService } from './teams/teams-integration.service';
@@ -23,6 +24,7 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
   providers: [
     NotificationsService,
     NotificationsFanOutService,
+    NotificationUnreadCountCache,
     TeamsIntegrationService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },

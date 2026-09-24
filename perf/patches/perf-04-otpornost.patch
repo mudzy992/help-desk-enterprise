@@ -1,0 +1,3311 @@
+perf-04 — FAZA 4: otpornost (svi periodični poslovi u worker, budžeti, CI kapija)
+
+Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)
+Baza: perf-00 + perf-01 + perf-02 + perf-03 primijenjeni.
+
+Sadržaj (po stavci plana §4.1–§4.2):
+  4.1  arhiva / waiting-for-user / KB podsjetnici → BullMQ repeatable u workeru
+       (queue + processor + scheduler po poslu; rasporedi :00/:05/:10)
+  4.1  integration heartbeat + DLQ retencija → queue `integration-worker-maintenance`
+  4.1  realtime most worker → Redis → API (sweep ne gubi live update)
+  4.1  API graf bez job providera; worker dobio tri nova modula; dokazni specovi
+  4.1  FE: status workera bez pollinga (ručno osvježavanje + prijevod bs/en)
+  4.2  PERF_BUDGETS.md, .github/workflows/perf-smoke.yml, query-budget WARN s
+       request_id + path, ops/runbook/{ws-reconnect-storm,redis-down,pg-pool-saturation}.md,
+       ops/quarterly-perf-review.md
+
+Nema migracija. Nema novih paketa; uklonjen je samo nekorišteni @nestjs/schedule.
+
+Verifikacija: backend `npx jest --silent` 363 suita / 1366 testova; frontend
+`npx vitest run` 95/333; `npx tsc --noEmit` čist (oba); `node perf/validate.js` 18/18.
+Detalji, job karta, CI pragovi i zaključni izvještaj: perf/results/after-f4-2026-09-24.md.
+
+---
+diff --git a/.github/workflows/perf-smoke.yml b/.github/workflows/perf-smoke.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/perf-smoke.yml
+@@ -0,0 +1,158 @@
++name: Perf smoke
++
++# Phase 4.2 (plan §4.2, item 1): the performance gate the program was missing.
++#
++# It is a *smoke*, not the full run: 200 virtual users for 5 minutes against a
++# throwaway Postgres + Redis, with the CI thresholds from `perf/config.js`
++# (`ciThresholds`) — every one of them carries a comment naming its source.
++# A failing threshold fails the job; the k6 summary and the API log are uploaded
++# as artefacts so a regression can be read without re-running the pipeline.
++
++on:
++  pull_request:
++    branches: [main, master]
++  workflow_dispatch:
++
++concurrency:
++  group: perf-smoke-${{ github.ref }}
++  cancel-in-progress: true
++
++jobs:
++  perf-smoke:
++    name: k6 smoke (CI thresholds)
++    runs-on: ubuntu-latest
++    services:
++      postgres:
++        image: postgres:16-alpine
++        env:
++          POSTGRES_USER: ephelpdesk
++          POSTGRES_PASSWORD: ephelpdesk
++          POSTGRES_DB: ephelpdesk
++        ports:
++          - 5432:5432
++        options: >-
++          --health-cmd "pg_isready -U ephelpdesk"
++          --health-interval 5s
++          --health-timeout 5s
++          --health-retries 20
++      redis:
++        image: redis:7-alpine
++        ports:
++          - 6379:6379
++        options: >-
++          --health-cmd "redis-cli ping"
++          --health-interval 5s
++          --health-timeout 5s
++          --health-retries 20
++    env:
++      DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
++      REDIS_HOST: 127.0.0.1
++      REDIS_PORT: "6379"
++      REDIS_KEY_PREFIX: ephelpdesk
++      QUEUE_PREFIX: bull:ephelpdesk
++      PORT: "10001"
++      CORS_ORIGIN: http://127.0.0.1:5173
++      # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
++      DB_QUERY_METRICS: "true"
++      DB_QUERY_BUDGET: "3"
++      DB_QUERY_BUDGET_WARN: "true"
++      # Smoke profile + relaxed, documented thresholds.
++      PERF_PROFILE: ci
++      BASE_URL: http://127.0.0.1:10001
++      REPO_ROOT: ${{ github.workspace }}
++    steps:
++      - uses: actions/checkout@v4
++
++      - uses: actions/setup-node@v4
++        with:
++          node-version: "22"
++          cache: npm
++          cache-dependency-path: backend/package-lock.json
++
++      - name: Install backend dependencies
++        working-directory: backend
++        run: npm ci
++
++      - name: Generate Prisma client
++        working-directory: backend
++        run: npx prisma generate
++
++      - name: Apply migrations
++        working-directory: backend
++        run: npx prisma migrate deploy
++
++      - name: Build the API
++        working-directory: backend
++        run: npm run build
++
++      - name: Start the API
++        working-directory: backend
++        run: |
++          nohup node dist/src/main.js > "$REPO_ROOT/api.log" 2>&1 &
++          for attempt in $(seq 1 60); do
++            if curl -fsS "$BASE_URL/health" > /dev/null; then
++              echo "API is up after ${attempt}s"
++              exit 0
++            fi
++            sleep 1
++          done
++          echo "::error::API did not become healthy in 60s"
++          tail -50 "$REPO_ROOT/api.log"
++          exit 1
++
++      - name: Seed the minimal fixture (install wizard endpoints)
++        working-directory: backend
++        env:
++          PERF_ADMIN_EMAIL: perf-admin@example.test
++          PERF_ADMIN_PASSWORD: Perf-Smoke-1!
++        run: |
++          # The install wizard is the supported way to bootstrap the first admin and
++          # the starting catalogue; the second run in the same database is a no-op.
++          status=$(curl -sS -o /tmp/super-admin.json -w '%{http_code}' \
++            -X POST "$BASE_URL/install/super-admin" \
++            -H 'content-type: application/json' \
++            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
++          echo "super-admin: HTTP $status"
++          curl -sS -X POST "$BASE_URL/install/seed" > /tmp/seed.json
++          echo "seed: $(head -c 200 /tmp/seed.json)"
++
++      - uses: grafana/setup-k6-action@v1
++
++      - name: Run the k6 smoke with CI thresholds
++        working-directory: .
++        env:
++          REPORT_LABEL: ci-smoke
++          AGENT_EMAIL: perf-admin@example.test
++          AGENT_PASSWORD: Perf-Smoke-1!
++          REQUESTER_EMAIL: perf-admin@example.test
++          REQUESTER_PASSWORD: Perf-Smoke-1!
++        run: |
++          k6 run perf/smoke.js | tee perf-smoke.log
++          echo "--- threshold verdict ---"
++          grep -E '^(✓|✗|•)' perf-smoke.log || true
++
++      - name: Check the query budget from the API log
++        run: |
++          # Custom threshold (plan §4.2): average `db_queries_per_request` across all
++          # finished requests must stay at or below the documented budget of 3.
++          read -r average count <<<"$(awk -F'db_queries_per_request=' '
++            /db_queries_per_request=/ { split($2, parts, " "); sum += parts[1]; n += 1 }
++            END { if (n == 0) { print "0 0" } else { printf "%.3f %d", sum / n, n } }' api.log)"
++          echo "requests logged: $count"
++          echo "avg db_queries_per_request: $average"
++          if [ "$count" -gt 0 ] && awk -v avg="$average" 'BEGIN { exit !(avg > 3) }'; then
++            echo "::error::avg db_queries_per_request=${average} exceeds the budget of 3"
++            exit 1
++          fi
++
++      - name: Upload the k6 summary and the API log
++        if: always()
++        uses: actions/upload-artifact@v4
++        with:
++          name: perf-smoke-${{ github.run_id }}
++          path: |
++            perf/results/ci-smoke.json
++            perf/results/ci-smoke.md
++            perf-smoke.log
++            api.log
++          retention-days: 30
+
+diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
+index 61060e4..b5f8fa5 100644
+--- a/PERFORMACE_PHASE_PLAN.md
++++ b/PERFORMACE_PHASE_PLAN.md
+@@ -501,7 +501,7 @@ Svaka stavka iza feature flaga ili iza deploy granice (osim indeksa i poola koji
+ | Nakon F1 | ~3× niže † | ~2× niže † | ~7 min † | nepromijenjeno † | ~0 (obavezna paginacija) † | nepromijenjeno † |
+ | Nakon F2 | ~2× niže od F1 ‡ | stabilan ‡ | < 15 s (worker) ‡ | ~200× niže (3 stmt/događaj) ‡ | ~0 (server agregati + keš 15 s) ‡ | nepromijenjeno ‡ |
+ | Nakon F3 | isti kao F2 ‡ | stabilan ‡ | < 15 s ‡ | ~40× niže od baseline § | ~0 § | nepromijenjeno § |
+-| Nakon F4 (cilj) | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
++| Nakon F4 (cilj) ¶ | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+ 
+ \* Red "Baseline" je **model iz statičke analize** (§0.3), ne mjerenje: Faza 0 je
+ isporučila instrumentaciju i `perf/` paket, ali izvršno okruženje nije imalo k6,
+@@ -532,6 +532,19 @@ Detalji, tabela emit matrice, React Query stanje i odstupanja (tranzicioni flag,
+ per-korisnički `id` u notifikacijama):
+ `perf/results/after-f3-2026-09-24.md`.
+ 
++¶ Red „Nakon F4 (cilj)" je **ciljna vrijednost**; F4 je dokazala *mehanizam*: svi
++periodični poslovi (arhiva, waiting-for-user, KB podsjetnici, heartbeat, DLQ
++retencija) izvršavaju se isključivo u workeru pod BullMQ rasporedom
++(`upsertJobScheduler` po stabilnom id-u ⇒ dva workera = jedan raspored),
++`concurrency: 1` + `lockDuration` čuvaju da nema preklapanja, svaki job ima
++dokumentovanu idempotenciju (dupli trigger = isto stanje) i DLQ politiku, a API graf
++više ne sadrži nijednu job klasu (`app.module.spec.ts`). Uz to je isporučena kapija
++koja mjerenje tek omogućava: `PERF_BUDGETS.md`, CI `.github/workflows/perf-smoke.yml`
++(200 VU / 5 min, blokirajući pragovi s izvorom brojke) i tri runbooka
++(`ops/runbook/`). Puni load test (2.800 VU / 30 min) **nije izvršen** — okruženje bez
++k6/Postgres/Redis/LB-a, isto ograničenje kao u F0–F3; job karta, CI pragovi i
++zaključni izvještaj: `perf/results/after-f4-2026-09-24.md`.
++
+ ---
+ 
+ ## 8. Šta NIJE predmet ovog plana
+
+diff --git a/PERF_BUDGETS.md b/PERF_BUDGETS.md
+new file mode 100644
+--- /dev/null
++++ b/PERF_BUDGETS.md
+@@ -0,0 +1,71 @@
++# Performance budžeti (SLO) i kapije
++
++Faza 4.2, plan §4.2. Ovaj dokument je **jedini izvor istine** za granice koje
++performanse moraju zadovoljiti. Svaki broj u tabeli je ili (a) izmjeren i citira
++izvještaj iz `perf/results/`, ili (b) eksplicitno označen kao **kod-nalaz** — onda
++vrijedi aritmetika iz izvještaja, a ne mjerenje.
++
++Kapija u CI-ju je `.github/workflows/perf-smoke.yml` (k6 smoke, 200 VU / 5 min,
++Postgres + Redis service containeri). Prag je **blokirajući**: crven pipeline =
++regresija se ne spaja.
++
++## 1. SLO tabela
++
++| Metrika | Budžet | Stanje nakon F3 | Izvor brojke |
++|---|---|---|---|
++| P95 bilo kojeg read endpointa | < 200 ms | **nije mjereno** (kod-nalaz) | `perf/results/after-f3-2026-09-24.md` §5 — okruženje bez k6/Postgres/Redis/LB; struktura dokazana (paginacija, agregati, keš), mjeri se prvim `k6 run perf/full.js` |
++| P95 bilo koje mutacije | < 400 ms | **nije mjereno** (kod-nalaz) | isto |
++| DB upita po HTTP zahtjevu | ≤ 2 prosječno | instrumentirano, **nije mjereno** | `db_queries_per_request=` log (F0 middleware, `backend/src/common/request-context/request-metrics.middleware.ts`); authz keš: 0 upita po zahtjevu uz pogodak (after-f2 §2.2) |
++| DB QPS ukupno | < 1.000 uz pool 40 | nije mjereno | pool 40 / worker 10 (`DB_POOL_MAX`, F1.4); after-f1 §1 |
++| SLA scan ciklus | < 15 s @ 100k otvorenih | kod-nalaz: 2 statementa po ciklusu, `LIMIT 2000` | after-f2 §2.1 — due-only `nextDueAt` upit + batch `IN`; index `(resolutionCompletedAt, nextDueAt)` |
++| WS emit-ova / s | < 500 | kod-nalaz: ≈ 50/s (flag `off`) vs ≈ 2.040/s prije | after-f3 §2 — grupa od 200 ne dobija puni payload nego `group.feed-changed` < 200 B; metrika `ws_emits_*` je u logu |
++| Dashboard payload | < 100 KB | kod-nalaz: agregatni summary, keš 15 s | after-f2 §2.4 — `GET /reports/dashboard/summary?scope=`, `GET /reports/sla/summary` |
++| Pretraga: zahtjeva po unosu | 1 | kod-nalaz: 1 zahtjev po unosu (AbortController + debounce) | after-f1 §2 + after-f3 §3 — `GET /search?q=…` |
++| Frontend zahtjevi po sesijskoj ruti | katalog ≤ 1 / staleTime | kod-nalaz: React Query keš (`queryKeys.*`, `staleTime` u `frontend/src/lib/query/query-client.ts`) umjesto ponovnog poziva po mountu | after-f3 §3 |
++
++| Metrika | Budžet | CI prag (smoke) | Zašto takav prag |
++|---|---|---|---|
++| k6 error rate (2.800 VU, 30 min) | < 0,5 % | < 1 % | budžet × 2 za dijeljene CI runnere i hladan JIT — komentar u `perf/config.js::ciThresholds` |
++| P95 read (CI) | < 200 ms | < 500 ms | budžet × 2,5: nema izmjerenog P95 iz F3 (kod-nalaz), pa se prag veže na budžet; iron rule „mjereno × 1,5" primjenjuje se na prvom CI runu s pravim brojkama |
++| P95 mutacija (CI) | < 400 ms | < 1.000 ms | isto, budžet × 2,5 |
++| avg `db_queries_per_request` (CI) | ≤ 2 | ≤ 3 | budžet + 1 (agregatni upiti računaju se kao jedan zahtjev); provjerava se iz `api.log` u CI koraku |
++
++## 2. Kako se mjeri
++
++```bash
++# Puni profil (2.800 VU / 30 min) — zaključna kapija programa
++k6 run perf/full.js                       # izvještaj: perf/results/<REPORT_LABEL>.{json,md}
++
++# CI profil (200 VU / 5 min) — isti pragovi koje vidi CI
++PERF_PROFILE=ci k6 run perf/smoke.js
++
++# Broj upita po zahtjevu (dev/staging; u produkciji WARN ostaje isključen)
++DB_QUERY_METRICS=true DB_QUERY_BUDGET=3 DB_QUERY_BUDGET_WARN=true npm run start:prod
++grep query_budget_exceeded api.log | tail -20     # request_id=… path=… budget=3
++```
++
++## 3. Pravila
++
++1. **Budžet se ne popušta da bi CI prošao.** Popuštanje je ljudska odluka i mora
++   ostati zapisana ovdje (red u tabeli + razlog + datum). Prag se mijenja _zajedno_
++   s komentarom u `perf/config.js`.
++2. **Novi endpoint ili novi emit dolazi s budžetom u opisu PR-a** — broj upita po
++   zahtjevu i očekivani payload; ako nema broja, PR nije spreman.
++3. **Mjerenje prije tvrdnje.** Kod-nalaz (kao svi redovi „nakon F1/F2/F3") je
++   privremen dok se ne pokrene `k6 run perf/full.js`; prvi izvještaj prepisuje
++   kolonu „stanje" stvarnim brojkama.
++4. **Kapija je blokirajuća, artefakti ostaju.** `perf-smoke.md` + `api.log` se
++   uploaduju uz svaki run (30 dana) — regresija se analizira bez ponovnog pokretanja.
++5. **Query budžet**: u produkciji je brojač uključen (`DB_QUERY_METRICS=true`), a
++   upozorenje isključeno (`DB_QUERY_BUDGET_WARN=false`); u CI/stagingu je uključeno.
++   Upozorenje sadrži `request_id` i `path`, pa se iz njega ide direktno na uzrok.
++
++## 4. Verifikacija F4.2
++
++- CI: `.github/workflows/perf-smoke.yml` — servisi, migracije, seed, build, API,
++  `k6 run perf/smoke.js` s `PERF_PROFILE=ci`, provjera query budžeta iz loga,
++  artefakti; pad praga = crven job.
++- Regresija se dokazuje namjerno: PR koji podigne broj upita po zahtjevu iznad 3
++  (ili P95 preko praga) mora pasti — vidi `ops/quarterly-perf-review.md` §4.
++- Kvartalno: `ops/quarterly-perf-review.md` (puni load test + revizija indeksa i
++  ekspanata tabela).
+
+diff --git a/backend/.env.example b/backend/.env.example
+index d9484a9..76c03ec 100644
+--- a/backend/.env.example
++++ b/backend/.env.example
+@@ -28,3 +28,12 @@ REDIS_USERNAME=ephelpdesk
+ REDIS_PASSWORD=change-me
+ REDIS_KEY_PREFIX=ephelpdesk
+ QUEUE_PREFIX=bull:ephelpdesk
++
++# Query budget (plan §0.3 + §4.2): one log line per request with the number of
++# statements it cost. DB_QUERY_BUDGET_WARN turns the warning on — keep it OFF in
++# production (the counter is always cheap, the warning is for dev/staging/CI).
++DB_QUERY_METRICS=true
++DB_QUERY_BUDGET=3
++DB_QUERY_BUDGET_WARN=false
++# CI/staging override used by .github/workflows/perf-smoke.yml:
++# DB_QUERY_BUDGET_WARN=true
+
+diff --git a/backend/package.json b/backend/package.json
+index 12a0466..6caf10b 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -26,7 +26,6 @@
+     "@nestjs/passport": "^11.0.5",
+     "@nestjs/platform-express": "^11.0.1",
+     "@nestjs/platform-socket.io": "^11.1.16",
+-    "@nestjs/schedule": "^6.1.1",
+     "@nestjs/websockets": "^11.1.16",
+     "@prisma/adapter-pg": "^7.5.0",
+     "@prisma/client": "^7.5.0",
+
+diff --git a/backend/src/app.module.spec.ts b/backend/src/app.module.spec.ts
+index 1efa805..3354c92 100644
+--- a/backend/src/app.module.spec.ts
++++ b/backend/src/app.module.spec.ts
+@@ -2,6 +2,10 @@ import { getQueueToken } from '@nestjs/bullmq';
+ import { Test } from '@nestjs/testing';
+ import { AppModule } from './app.module';
+ import { integrationQueueName } from './modules/integration-queue/integration-queue.constants';
++import { KnowledgeBaseReviewReminderService } from './modules/knowledge-base/knowledge-base-review-reminder.service';
++import { TicketArchiveAutomationService } from './modules/tickets/archive/ticket-archive-automation.service';
++import { TicketRealtimeBridgeSubscriber } from './modules/tickets/ticket-realtime-bridge.subscriber';
++import { WaitingForUserAutomationService } from './modules/tickets/waiting-for-user/waiting-for-user-automation.service';
+ 
+ jest.mock('./common/prisma/prisma.service', () => ({
+   PrismaService: class PrismaService {
+@@ -10,17 +14,41 @@ jest.mock('./common/prisma/prisma.service', () => ({
+   },
+ }));
+ 
++async function compileAppModule() {
++  process.env.REDIS_HOST = '127.0.0.1';
++  process.env.REDIS_PORT = '6379';
++  process.env.DATABASE_URL = 'postgresql://user:pass@127.0.0.1:5432/ephelpdesk';
++  return Test.createTestingModule({ imports: [AppModule] })
++    .overrideProvider(getQueueToken(integrationQueueName))
++    .useValue(createFakeIntegrationQueue())
++    .compile();
++}
++
+ describe('AppModule', () => {
+   it('compiles session authentication injectables for HTTP modules', async () => {
+-    process.env.REDIS_HOST = '127.0.0.1';
+-    process.env.DATABASE_URL =
+-      'postgresql://user:pass@127.0.0.1:5432/ephelpdesk';
+-    const moduleRef = await Test.createTestingModule({
+-      imports: [AppModule],
+-    })
+-      .overrideProvider(getQueueToken(integrationQueueName))
+-      .useValue(createFakeIntegrationQueue())
+-      .compile();
++    const moduleRef = await compileAppModule();
++    await moduleRef.close();
++  });
++
++  /**
++   * Phase 4.1 (plan §4.1): "the API process must not run periodic jobs". The strongest
++   * form of that guarantee a unit test can give is that the job classes are not even
++   * part of the API module graph — the API cannot start a sweep it does not have.
++   */
++  it('does not provide the periodic job classes', async () => {
++    const moduleRef = await compileAppModule();
++    for (const jobClass of [
++      TicketArchiveAutomationService,
++      WaitingForUserAutomationService,
++      KnowledgeBaseReviewReminderService,
++    ]) {
++      expect(() => moduleRef.get(jobClass, { strict: false })).toThrow();
++    }
++    // ...while the API does keep the receiving end of the worker's realtime bridge,
++    // otherwise the sweeps would publish into the void.
++    expect(
++      moduleRef.get(TicketRealtimeBridgeSubscriber, { strict: false }),
++    ).toBeDefined();
+     await moduleRef.close();
+   });
+ });
+
+diff --git a/backend/src/common/request-context/request-metrics.middleware.spec.ts b/backend/src/common/request-context/request-metrics.middleware.spec.ts
+index 5575015..3ab7a66 100644
+--- a/backend/src/common/request-context/request-metrics.middleware.spec.ts
++++ b/backend/src/common/request-context/request-metrics.middleware.spec.ts
+@@ -103,7 +103,10 @@ describe('RequestMetricsMiddleware', () => {
+     response.emit('finish');
+ 
+     expect(logger.warn).toHaveBeenCalledTimes(1);
+-    expect(String(logger.warn.mock.calls[0]?.[0])).toContain('query_budget_exceeded');
++    const warning = String(logger.warn.mock.calls[0]?.[0]);
++    expect(warning).toContain('query_budget_exceeded');
++    expect(warning).toContain('request_id=request-1');
++    expect(warning).toContain('path=/tickets');
+   });
+ 
+   it('is a no-op passthrough when disabled', () => {
+
+diff --git a/backend/src/common/request-context/request-metrics.middleware.ts b/backend/src/common/request-context/request-metrics.middleware.ts
+index cc1a431..8ceeabf 100644
+--- a/backend/src/common/request-context/request-metrics.middleware.ts
++++ b/backend/src/common/request-context/request-metrics.middleware.ts
+@@ -96,8 +96,11 @@ export class RequestMetricsMiddleware {
+       ` path=${readPath(request)}`;
+     this.logger.log(message, requestMetricsLogContext);
+     if (this.options.warnEnabled && queryCount > this.options.warnAboveQueries) {
++      // Phase 4.2 (plan §4.2, item 2): the warning has to be actionable on its own,
++      // so it carries the correlation id that ties it back to the request log line
++      // and to the endpoint that overspent its query budget.
+       this.logger.warn(
+-        `query_budget_exceeded ${message} budget=${this.options.warnAboveQueries}`,
++        `query_budget_exceeded request_id=${requestId ?? 'unknown'} ${message} budget=${this.options.warnAboveQueries}`,
+         requestMetricsLogContext,
+       );
+     }
+
+diff --git a/backend/src/common/scheduled-jobs/format-job-metrics.spec.ts b/backend/src/common/scheduled-jobs/format-job-metrics.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/scheduled-jobs/format-job-metrics.spec.ts
+@@ -0,0 +1,16 @@
++import { formatJobMetrics } from './format-job-metrics';
++
++describe('formatJobMetrics', () => {
++  it('writes the Phase 0 key=value shape', () => {
++    expect(
++      formatJobMetrics({
++        job: 'ticket-archive-scan',
++        durationMs: 42,
++        processed: 3,
++        failed: 0,
++      }),
++    ).toBe(
++      'job=ticket-archive-scan job_duration_ms=42 job_processed=3 job_failed=0',
++    );
++  });
++});
+
+diff --git a/backend/src/common/scheduled-jobs/format-job-metrics.ts b/backend/src/common/scheduled-jobs/format-job-metrics.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/scheduled-jobs/format-job-metrics.ts
+@@ -0,0 +1,19 @@
++/**
++ * Phase 4.1 (plan §4.1, item 2): one log line per finished scheduled job, in the
++ * same `key=value` shape Phase 0 introduced (`ws_clients_count`, `sla_scan_…`).
++ */
++export type ScheduledJobMetrics = {
++  readonly job: string;
++  readonly durationMs: number;
++  readonly processed: number;
++  readonly failed: number;
++};
++
++export function formatJobMetrics(metrics: ScheduledJobMetrics): string {
++  return [
++    `job=${metrics.job}`,
++    `job_duration_ms=${metrics.durationMs}`,
++    `job_processed=${metrics.processed}`,
++    `job_failed=${metrics.failed}`,
++  ].join(' ');
++}
+
+diff --git a/backend/src/common/scheduled-jobs/register-repeatable-job.spec.ts b/backend/src/common/scheduled-jobs/register-repeatable-job.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/scheduled-jobs/register-repeatable-job.spec.ts
+@@ -0,0 +1,64 @@
++import { registerRepeatableJob } from './register-repeatable-job';
++
++function createRegistration(overrides: Record<string, unknown> = {}) {
++  const upsertJobScheduler = jest.fn().mockResolvedValue({});
++  return {
++    upsertJobScheduler,
++    registration: {
++      queue: { upsertJobScheduler },
++      schedulerId: 'ticket-archive-quarter-hourly',
++      jobName: 'ticket-archive-scan',
++      label: 'ticket_archive',
++      schedule: { kind: 'pattern', pattern: '0 0,15,30,45 * * * *' },
++      attempts: 2,
++      backoffMilliseconds: 30_000,
++      completedJobsToKeep: 20,
++      failedJobsToKeep: 50,
++      logger: { warn: jest.fn() },
++      ...overrides,
++    } as never,
++  };
++}
++
++describe('registerRepeatableJob', () => {
++  it('registers one idempotent schedule with timeout, retries and keep-counts', async () => {
++    const { upsertJobScheduler, registration } = createRegistration();
++
++    await registerRepeatableJob(registration);
++
++    expect(upsertJobScheduler).toHaveBeenCalledTimes(1);
++    const [schedulerId, repeat, template] = upsertJobScheduler.mock.calls[0];
++    expect(schedulerId).toBe('ticket-archive-quarter-hourly');
++    expect(repeat).toEqual({ pattern: '0 0,15,30,45 * * * *' });
++    expect(template.name).toBe('ticket-archive-scan');
++    expect(template.opts.attempts).toBe(2);
++    expect(template.opts.backoff).toEqual({ type: 'exponential', delay: 30_000 });
++    expect(template.opts.removeOnComplete).toEqual({ count: 20 });
++    expect(template.opts.removeOnFail).toEqual({ count: 50 });
++  });
++
++  it('supports an interval schedule', async () => {
++    const { upsertJobScheduler, registration } = createRegistration({
++      schedule: { kind: 'every', milliseconds: 30_000 },
++    });
++
++    await registerRepeatableJob(registration);
++
++    expect(upsertJobScheduler.mock.calls[0]?.[1]).toEqual({ every: 30_000 });
++  });
++
++  it('keeps the worker alive when the schedule cannot be registered', async () => {
++    const logger = { warn: jest.fn() };
++    const { registration } = createRegistration({
++      logger,
++      queue: {
++        upsertJobScheduler: jest.fn().mockRejectedValue(new Error('redis is down')),
++      },
++    });
++
++    await expect(registerRepeatableJob(registration)).resolves.toBeUndefined();
++    expect(logger.warn).toHaveBeenCalledWith(
++      'ticket_archive_schedule_failed reason=redis is down',
++    );
++  });
++});
+
+diff --git a/backend/src/common/scheduled-jobs/register-repeatable-job.ts b/backend/src/common/scheduled-jobs/register-repeatable-job.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/scheduled-jobs/register-repeatable-job.ts
+@@ -0,0 +1,73 @@
++import type { Queue, RepeatOptions } from 'bullmq';
++
++/** Either an interval (`every`) or a cron pattern — both are BullMQ repeat options. */
++export type RepeatableJobSchedule =
++  | { readonly kind: 'every'; readonly milliseconds: number }
++  | { readonly kind: 'pattern'; readonly pattern: string };
++
++export type RepeatableJobRegistration = {
++  readonly queue: Pick<Queue, 'upsertJobScheduler'>;
++  readonly schedulerId: string;
++  readonly jobName: string;
++  readonly label: string;
++  readonly schedule: RepeatableJobSchedule;
++  readonly attempts: number;
++  readonly backoffMilliseconds: number;
++  readonly completedJobsToKeep: number;
++  readonly failedJobsToKeep: number;
++  readonly logger: { warn(message: string): void };
++};
++
++/**
++ * Phase 4.1 (plan §4.1): every periodic job is registered the same way Phase 2.1
++ * registered the SLA scan.
++ *
++ * - `upsertJobScheduler` is idempotent **by scheduler id**, so two worker
++ *   instances converge on exactly one schedule (the "exactly once per schedule"
++ *   requirement) and a restart never doubles a job.
++ * - BullMQ hands a due job to a single worker; the lock is the queue's, not ours.
++ * - `attempts` + `backoff` define the retry and the keep-counts are the DLQ
++ *   policy (failed jobs stay inspectable, then expire).
++ *
++ * Note on the per-job **timeout**: BullMQ v5 has no `opts.timeout` on a job (it
++ * only exists in the Pro edition), so the budget is enforced where the framework
++ * does support it — `lockDuration` on the processor's worker, set from the same
++ * constant (`…JobTimeoutMilliseconds`). A job that overruns loses its lock and is
++ * marked stalled, which is the same operational outcome: a visible failure that
++ * the queue retries instead of a silently stuck worker.
++ * - A worker that cannot reach Redis keeps running for its other queues: the
++ *   failure is logged, not thrown.
++ */
++export async function registerRepeatableJob(
++  registration: RepeatableJobRegistration,
++): Promise<void> {
++  try {
++    await registration.queue.upsertJobScheduler(
++      registration.schedulerId,
++      toRepeatOptions(registration.schedule),
++      {
++        name: registration.jobName,
++        data: {},
++        opts: {
++          attempts: registration.attempts,
++          backoff: {
++            type: 'exponential',
++            delay: registration.backoffMilliseconds,
++          },
++          removeOnComplete: { count: registration.completedJobsToKeep },
++          removeOnFail: { count: registration.failedJobsToKeep },
++        },
++      },
++    );
++  } catch (error) {
++    registration.logger.warn(
++      `${registration.label}_schedule_failed reason=${error instanceof Error ? error.message : String(error)}`,
++    );
++  }
++}
++
++function toRepeatOptions(schedule: RepeatableJobSchedule): RepeatOptions {
++  return schedule.kind === 'every'
++    ? { every: schedule.milliseconds }
++    : { pattern: schedule.pattern };
++}
+
+diff --git a/backend/src/modules/integration-queue/integration-job-dlq-retention.service.ts b/backend/src/modules/integration-queue/integration-job-dlq-retention.service.ts
+index bf85cb7..24e3161 100644
+--- a/backend/src/modules/integration-queue/integration-job-dlq-retention.service.ts
++++ b/backend/src/modules/integration-queue/integration-job-dlq-retention.service.ts
+@@ -1,38 +1,23 @@
+-import {
+-  Injectable,
+-  Logger,
+-  OnModuleDestroy,
+-  OnModuleInit,
+-} from '@nestjs/common';
++import { Injectable, Logger } from '@nestjs/common';
+ import { IntegrationJobRepository } from './integration-job.repository';
+ import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
+ import { SettingsService } from '../settings/settings.service';
+ 
+ @Injectable()
+-export class IntegrationJobDlqRetentionService
+-  implements OnModuleInit, OnModuleDestroy
+-{
++export class IntegrationJobDlqRetentionService {
+   private readonly logger = new Logger(IntegrationJobDlqRetentionService.name);
+-  private timer: ReturnType<typeof setInterval> | undefined;
+ 
+   constructor(
+     private readonly integrationJobRepository: IntegrationJobRepository,
+     private readonly settingsService: SettingsService,
+   ) {}
+ 
+-  async onModuleInit(): Promise<void> {
+-    const settings = await loadIntegrationQueueSettings(this.settingsService);
+-    this.timer = setInterval(() => {
+-      void this.sweep();
+-    }, settings.workerPollSeconds * 1000);
+-  }
+-
+-  onModuleDestroy(): void {
+-    if (this.timer !== undefined) {
+-      clearInterval(this.timer);
+-    }
+-  }
+-
++  /**
++   * Phase 4.1 (plan §4.1): the periodic trigger moved to a BullMQ schedule
++   * (`integration-worker-maintenance.scheduler.service.ts`); the sweep itself — and
++   * the settings it reads on every run — is unchanged. Unlike the old timer, two
++   * workers now produce one sweep per interval instead of two.
++   */
+   async sweep(): Promise<number> {
+     const settings = await loadIntegrationQueueSettings(this.settingsService);
+     const before = new Date(
+
+diff --git a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
+index cebf68b..badbb8f 100644
+--- a/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
++++ b/backend/src/modules/integration-queue/integration-queue-worker-heartbeat.service.ts
+@@ -1,38 +1,26 @@
+-import {
+-  Injectable,
+-  Logger,
+-  OnModuleDestroy,
+-  OnModuleInit,
+-} from '@nestjs/common';
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+ import { RedisService } from '../../common/redis/redis.service';
+ import {
+-  workerHeartbeatIntervalMilliseconds,
+   workerHeartbeatRedisKey,
+   workerHeartbeatTimeToLiveSeconds,
+ } from './integration-queue.constants';
+ 
+ @Injectable()
+-export class IntegrationQueueWorkerHeartbeatService
+-  implements OnModuleInit, OnModuleDestroy
+-{
++export class IntegrationQueueWorkerHeartbeatService implements OnModuleInit {
+   private readonly logger = new Logger(
+     IntegrationQueueWorkerHeartbeatService.name,
+   );
+-  private timer: ReturnType<typeof setInterval> | undefined;
+ 
+   constructor(private readonly redisService: RedisService) {}
+ 
++  /**
++   * Phase 4.1 (plan §4.1): the periodic part moved to a BullMQ schedule
++   * (`integration-worker-maintenance.scheduler.service.ts`) so two workers write
++   * one heartbeat instead of two. The immediate write stays: without it the health
++   * check would flap to "stale" for the first interval after every restart.
++   */
+   async onModuleInit(): Promise<void> {
+     await this.writeHeartbeat();
+-    this.timer = setInterval(() => {
+-      void this.writeHeartbeat();
+-    }, workerHeartbeatIntervalMilliseconds);
+-  }
+-
+-  onModuleDestroy(): void {
+-    if (this.timer !== undefined) {
+-      clearInterval(this.timer);
+-    }
+   }
+ 
+   async writeHeartbeat(): Promise<void> {
+
+diff --git a/backend/src/modules/integration-queue/integration-queue-worker.module.ts b/backend/src/modules/integration-queue/integration-queue-worker.module.ts
+index f23f152..a57be78 100644
+--- a/backend/src/modules/integration-queue/integration-queue-worker.module.ts
++++ b/backend/src/modules/integration-queue/integration-queue-worker.module.ts
+@@ -1,4 +1,5 @@
+ import { Module } from '@nestjs/common';
++import { BullModule } from '@nestjs/bullmq';
+ import { MAIL_TRANSPORT } from '../notifications/email/mail-transport';
+ import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
+ import { SettingsModule } from '../settings/settings.module';
+@@ -6,13 +7,21 @@ import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retenti
+ import { IntegrationQueueCoreModule } from './integration-queue-core.module';
+ import { IntegrationQueueProcessor } from './integration-queue.processor';
+ import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
++import { integrationWorkerMaintenanceQueueName } from './integration-worker-maintenance.job.constants';
++import { IntegrationWorkerMaintenanceProcessor } from './integration-worker-maintenance.processor';
++import { IntegrationWorkerMaintenanceSchedulerService } from './integration-worker-maintenance.scheduler.service';
+ import { ProcessEdgeEventIntegrationJobService } from './process-edge-event-integration-job.service';
+ import { ProcessEmailIntegrationJobService } from './process-email-integration-job.service';
+ import { ProcessTeamsStubIntegrationJobService } from './process-teams-stub-integration-job.service';
+ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.service';
+ 
+ @Module({
+-  imports: [IntegrationQueueCoreModule, SettingsModule],
++  imports: [
++    IntegrationQueueCoreModule,
++    SettingsModule,
++    // Phase 4.1: the heartbeat and DLQ-retention timers became queue schedules.
++    BullModule.registerQueue({ name: integrationWorkerMaintenanceQueueName }),
++  ],
+   providers: [
+     SmtpMailTransport,
+     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
+@@ -23,6 +32,8 @@ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.se
+     IntegrationQueueProcessor,
+     IntegrationJobDlqRetentionService,
+     IntegrationQueueWorkerHeartbeatService,
++    IntegrationWorkerMaintenanceProcessor,
++    IntegrationWorkerMaintenanceSchedulerService,
+   ],
+ })
+ export class IntegrationQueueWorkerModule {}
+
+diff --git a/backend/src/modules/integration-queue/integration-worker-maintenance.job.constants.ts b/backend/src/modules/integration-queue/integration-worker-maintenance.job.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/integration-queue/integration-worker-maintenance.job.constants.ts
+@@ -0,0 +1,60 @@
++import {
++  workerHeartbeatIntervalMilliseconds,
++  workerHeartbeatTimeToLiveSeconds,
++} from './integration-queue.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the two worker-maintenance jobs of the integration queue.
++ *
++ * Both used to be `setInterval` timers inside the worker. Timers are per-process:
++ * with two workers the heartbeat was simply written twice (harmless) and the DLQ
++ * sweep ran twice against the same rows (wasteful, and the reason the plan asks for
++ * a queue-owned schedule). As BullMQ schedulers they are registered in Redis under
++ * a stable id, so N workers converge on exactly one occurrence per interval and the
++ * queue's lock decides which worker runs it.
++ *
++ * Each entry also documents its own budget and dead-letter policy:
++ * - `lockDuration` on the processor is the timeout enforcement (BullMQ v5 has no
++ *   per-job `opts.timeout`; the Pro edition does). It is set to the longest job on
++ *   the queue, so a heartbeat that stalls is reclaimed within two minutes.
++ * - attempts + exponential backoff for the DLQ sweep (a transient DB error should
++ *   not wait a full interval for the next attempt); the heartbeat is not retried —
++ *   the next tick is five seconds away and a late heartbeat is worthless.
++ * - keep-counts are the queue's dead-letter view: failed jobs stay inspectable.
++ */
++export const integrationWorkerMaintenanceQueueName =
++  'integration-worker-maintenance';
++
++export const integrationWorkerHeartbeatJobName = 'integration-worker-heartbeat';
++export const integrationWorkerHeartbeatSchedulerId =
++  'integration-worker-heartbeat-every';
++export const integrationWorkerHeartbeatRepeatEveryMilliseconds =
++  workerHeartbeatIntervalMilliseconds;
++export const integrationWorkerHeartbeatJobAttempts = 1;
++export const integrationWorkerHeartbeatJobBackoffMilliseconds = 5_000;
++export const integrationWorkerHeartbeatCompletedJobsToKeep = 5;
++export const integrationWorkerHeartbeatFailedJobsToKeep = 20;
++export const integrationWorkerHeartbeatJobLabel = 'integration_worker_heartbeat';
++export const integrationWorkerHeartbeatJobLogContext =
++  'IntegrationWorkerHeartbeatJob';
++
++export const integrationDlqRetentionJobName = 'integration-dlq-retention';
++export const integrationDlqRetentionSchedulerId =
++  'integration-dlq-retention-interval';
++export const integrationDlqRetentionJobAttempts = 2;
++export const integrationDlqRetentionJobBackoffMilliseconds = 30_000;
++export const integrationDlqRetentionCompletedJobsToKeep = 20;
++export const integrationDlqRetentionFailedJobsToKeep = 50;
++export const integrationDlqRetentionJobLabel = 'integration_dlq_retention';
++export const integrationDlqRetentionJobLogContext = 'IntegrationDlqRetentionJob';
++
++/** The longest job on the queue bounds how long a stalled run may hold its lock. */
++export const integrationWorkerMaintenanceLockDurationMilliseconds = 120_000;
++
++/**
++ * The heartbeat expires faster than the scheduled interval, which is why the job
++ * also runs once at worker boot (`IntegrationQueueWorkerHeartbeatService`): without
++ * that immediate write the health check would flap for the first interval.
++ */
++export const integrationWorkerHeartbeatTimeToLiveSecondsValue =
++  workerHeartbeatTimeToLiveSeconds;
+
+diff --git a/backend/src/modules/integration-queue/integration-worker-maintenance.processor.ts b/backend/src/modules/integration-queue/integration-worker-maintenance.processor.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/integration-queue/integration-worker-maintenance.processor.ts
+@@ -0,0 +1,95 @@
++import { Logger } from '@nestjs/common';
++import { Processor, WorkerHost } from '@nestjs/bullmq';
++import type { Job } from 'bullmq';
++import { formatJobMetrics } from '../../common/scheduled-jobs/format-job-metrics';
++import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retention.service';
++import { IntegrationQueueWorkerHeartbeatService } from './integration-queue-worker-heartbeat.service';
++import {
++  integrationDlqRetentionJobLogContext,
++  integrationDlqRetentionJobName,
++  integrationWorkerHeartbeatJobLogContext,
++  integrationWorkerHeartbeatJobName,
++  integrationWorkerMaintenanceLockDurationMilliseconds,
++  integrationWorkerMaintenanceQueueName,
++} from './integration-worker-maintenance.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): one processor for the worker's two maintenance jobs.
++ *
++ * `concurrency: 1` is the "no overlapping runs" guarantee from the plan: a slow
++ * sweep delays the next occurrence instead of running beside it, and the queue's
++ * lock means a second worker cannot pick up the same occurrence.
++ */
++@Processor(integrationWorkerMaintenanceQueueName, {
++  concurrency: 1,
++  lockDuration: integrationWorkerMaintenanceLockDurationMilliseconds,
++})
++export class IntegrationWorkerMaintenanceProcessor extends WorkerHost {
++  private readonly heartbeatLogger = new Logger(
++    integrationWorkerHeartbeatJobLogContext,
++  );
++  private readonly retentionLogger = new Logger(
++    integrationDlqRetentionJobLogContext,
++  );
++
++  constructor(
++    private readonly heartbeat: IntegrationQueueWorkerHeartbeatService,
++    private readonly dlqRetention: IntegrationJobDlqRetentionService,
++  ) {
++    super();
++  }
++
++  async process(job: Job): Promise<void> {
++    if (job.name === integrationDlqRetentionJobName) {
++      await this.run(
++        integrationDlqRetentionJobName,
++        this.retentionLogger,
++        async () => this.dlqRetention.sweep(),
++      );
++      return;
++    }
++    if (job.name === integrationWorkerHeartbeatJobName) {
++      await this.run(
++        integrationWorkerHeartbeatJobName,
++        this.heartbeatLogger,
++        async () => {
++          await this.heartbeat.writeHeartbeat();
++          return 1;
++        },
++      );
++      return;
++    }
++    this.heartbeatLogger.warn(
++      `job_ignored job=${job.name} reason=unknown_scheduled_job`,
++    );
++  }
++
++  private async run(
++    jobName: string,
++    logger: Logger,
++    execute: () => Promise<number>,
++  ): Promise<void> {
++    const startedAt = Date.now();
++    try {
++      const processed = await execute();
++      logger.log(
++        formatJobMetrics({
++          job: jobName,
++          durationMs: Date.now() - startedAt,
++          processed,
++          failed: 0,
++        }),
++      );
++    } catch (error) {
++      logger.error(
++        formatJobMetrics({
++          job: jobName,
++          durationMs: Date.now() - startedAt,
++          processed: 0,
++          failed: 1,
++        }),
++      );
++      throw error;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/integration-queue/integration-worker-maintenance.scheduler.service.ts
+@@ -0,0 +1,100 @@
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import { InjectQueue } from '@nestjs/bullmq';
++import { Queue } from 'bullmq';
++import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
++import { SettingsService } from '../settings/settings.service';
++import {
++  integrationDlqRetentionCompletedJobsToKeep,
++  integrationDlqRetentionFailedJobsToKeep,
++  integrationDlqRetentionJobAttempts,
++  integrationDlqRetentionJobBackoffMilliseconds,
++  integrationDlqRetentionJobLabel,
++  integrationDlqRetentionJobName,
++  integrationDlqRetentionSchedulerId,
++  integrationWorkerHeartbeatCompletedJobsToKeep,
++  integrationWorkerHeartbeatFailedJobsToKeep,
++  integrationWorkerHeartbeatJobAttempts,
++  integrationWorkerHeartbeatJobBackoffMilliseconds,
++  integrationWorkerHeartbeatJobLabel,
++  integrationWorkerHeartbeatJobName,
++  integrationWorkerHeartbeatRepeatEveryMilliseconds,
++  integrationWorkerHeartbeatSchedulerId,
++  integrationWorkerMaintenanceQueueName,
++} from './integration-worker-maintenance.job.constants';
++import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
++
++const fallbackPollSeconds = 15;
++
++/**
++ * Phase 4.1 (plan §4.1): registers the worker's two maintenance schedules in Redis.
++ *
++ * Both are idempotent by scheduler id, so starting a second worker (or restarting
++ * one) never doubles them. The DLQ interval keeps coming from the same settings
++ * value the old `setInterval` used, so the cadence is unchanged; the heartbeat keeps
++ * its own 10 s constant.
++ */
++@Injectable()
++export class IntegrationWorkerMaintenanceSchedulerService implements OnModuleInit {
++  private readonly logger = new Logger(
++    IntegrationWorkerMaintenanceSchedulerService.name,
++  );
++
++  constructor(
++    @InjectQueue(integrationWorkerMaintenanceQueueName)
++    private readonly queue: Queue,
++    private readonly settingsService: SettingsService,
++  ) {}
++
++  async onModuleInit(): Promise<void> {
++    await registerRepeatableJob({
++      queue: this.queue,
++      schedulerId: integrationWorkerHeartbeatSchedulerId,
++      jobName: integrationWorkerHeartbeatJobName,
++      label: integrationWorkerHeartbeatJobLabel,
++      schedule: {
++        kind: 'every',
++        milliseconds: integrationWorkerHeartbeatRepeatEveryMilliseconds,
++      },
++      attempts: integrationWorkerHeartbeatJobAttempts,
++      backoffMilliseconds: integrationWorkerHeartbeatJobBackoffMilliseconds,
++      completedJobsToKeep: integrationWorkerHeartbeatCompletedJobsToKeep,
++      failedJobsToKeep: integrationWorkerHeartbeatFailedJobsToKeep,
++      logger: this.logger,
++    });
++
++    await registerRepeatableJob({
++      queue: this.queue,
++      schedulerId: integrationDlqRetentionSchedulerId,
++      jobName: integrationDlqRetentionJobName,
++      label: integrationDlqRetentionJobLabel,
++      schedule: {
++        kind: 'every',
++        milliseconds: await this.resolvePollMilliseconds(),
++      },
++      attempts: integrationDlqRetentionJobAttempts,
++      backoffMilliseconds: integrationDlqRetentionJobBackoffMilliseconds,
++      completedJobsToKeep: integrationDlqRetentionCompletedJobsToKeep,
++      failedJobsToKeep: integrationDlqRetentionFailedJobsToKeep,
++      logger: this.logger,
++    });
++  }
++
++  /**
++   * Settings may be unreachable at boot; the schedule must still be registered —
++   * `sweep()` reads the very same settings on every run, so the fallback only
++   * affects the cadence until the next restart.
++   */
++  private async resolvePollMilliseconds(): Promise<number> {
++    try {
++      const settings = await loadIntegrationQueueSettings(this.settingsService);
++      return Math.max(settings.workerPollSeconds, 1) * 1000;
++    } catch (error) {
++      this.logger.warn(
++        `integration_dlq_retention_settings_failed reason=${
++          error instanceof Error ? error.message : String(error)
++        }`,
++      );
++      return fallbackPollSeconds * 1000;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder-worker.module.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder-worker.module.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder-worker.module.ts
+@@ -0,0 +1,30 @@
++import { Module } from '@nestjs/common';
++import { BullModule } from '@nestjs/bullmq';
++import { SettingsModule } from '../settings/settings.module';
++import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
++import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
++import { KnowledgeBaseReviewReminderProcessor } from './knowledge-base-review-reminder.processor';
++import { KnowledgeBaseReviewReminderSchedulerService } from './knowledge-base-review-reminder.scheduler.service';
++import { knowledgeBaseReviewReminderQueueName } from './knowledge-base-review-reminder.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the review-reminder sweep, worker-only.
++ *
++ * The job body is unchanged: it loads the configuration, finds published articles
++ * whose review is due and persists one notification per recipient with the
++ * `(article, reviewDueAt, user)` dedupe key it always used — so a duplicate run is
++ * still a no-op rather than a second reminder.
++ */
++@Module({
++  imports: [
++    BullModule.registerQueue({ name: knowledgeBaseReviewReminderQueueName }),
++    SettingsModule,
++  ],
++  providers: [
++    KnowledgeBaseConfigurationLoader,
++    KnowledgeBaseReviewReminderService,
++    KnowledgeBaseReviewReminderProcessor,
++    KnowledgeBaseReviewReminderSchedulerService,
++  ],
++})
++export class KnowledgeBaseReviewReminderWorkerModule {}
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.dedupe.spec.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.dedupe.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.dedupe.spec.ts
+@@ -0,0 +1,168 @@
++import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
++import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
++import { toArticleRecord } from './load-knowledge-article';
++
++// Same shim every service-level spec in this repo uses: the real Prisma client is
++// not resolvable offline, and this spec drives a hand-written store anyway.
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++/**
++ * Phase 4.1 (plan §4.1): before the sweep moved into the worker, its idempotency had
++ * to be proven — a scheduled job can be retried (attempts + backoff) or run by two
++ * workers if a lock is ever lost, and a duplicated reminder is a user-visible bug.
++ *
++ * The proof is the dedupe key the service already writes per recipient: the database
++ * rejects the second row (`P2002`) and the sweep counts only rows it really created.
++ * This spec replays the two runs against a store that enforces that uniqueness.
++ */
++type ArticleRow = Parameters<typeof toArticleRecord>[0];
++
++function articleRow(overrides: Partial<ArticleRow> = {}): ArticleRow {
++  return {
++    id: 'article-1',
++    slug: 'vpn-setup',
++    title: 'VPN setup',
++    body: 'Steps',
++    status: 'PUBLISHED',
++    classification: 'INTERNAL',
++    isStale: false,
++    reviewDueAt: new Date('2026-10-01T00:00:00.000Z'),
++    publishedAt: new Date('2026-01-01T00:00:00.000Z'),
++    lastReviewedAt: null,
++    archivedAt: null,
++    ownerUserId: 'user-owner',
++    ownerGroupId: null,
++    reviewerUserId: null,
++    serviceId: 'service-1',
++    organizationalUnitId: 'ou-1',
++    createdAt: new Date('2026-01-01T00:00:00.000Z'),
++    updatedAt: new Date('2026-01-01T00:00:00.000Z'),
++    ...overrides,
++  };
++}
++
++function createStore(input: {
++  readonly articles: readonly ArticleRow[];
++  readonly members?: Readonly<Record<string, readonly string[]>>;
++}) {
++  const created: Array<{ readonly userId: string; readonly dedupeKey: string }> = [];
++  const dedupeKeys = new Set<string>();
++  const prisma = {
++    knowledgeArticle: {
++      findMany: async (query: {
++        readonly where: { readonly status: string; readonly reviewDueAt: { readonly lte: Date } };
++      }) =>
++        input.articles.filter(
++          (row) =>
++            row.status === query.where.status &&
++            row.reviewDueAt !== null &&
++            row.reviewDueAt.getTime() <= query.where.reviewDueAt.lte.getTime(),
++        ),
++    },
++    groupMember: {
++      findMany: async (query: { readonly where: { readonly groupId: string } }) =>
++        (input.members?.[query.where.groupId] ?? []).map((userId) => ({ userId })),
++    },
++    notification: {
++      create: async (query: { readonly data: { readonly userId: string; readonly dedupeKey: string } }) => {
++        if (dedupeKeys.has(query.data.dedupeKey)) {
++          throw Object.assign(new Error('Unique constraint failed'), { code: 'P2002' });
++        }
++        dedupeKeys.add(query.data.dedupeKey);
++        created.push({ userId: query.data.userId, dedupeKey: query.data.dedupeKey });
++        return { id: `notification-${created.length}`, ...query.data };
++      },
++    },
++  };
++  return { created, dedupeKeys, prisma };
++}
++
++function createService(
++  prisma: unknown,
++  configuration: { reviewCycleEnabled: boolean; remindDaysBefore: number },
++) {
++  const loader = { load: async () => configuration } as unknown as KnowledgeBaseConfigurationLoader;
++  return new KnowledgeBaseReviewReminderService(prisma as never, loader);
++}
++
++const now = new Date('2026-09-24T09:00:00.000Z');
++
++describe('KnowledgeBaseReviewReminderService idempotency', () => {
++  it('sends one reminder per owner and none on the second sweep', async () => {
++    const store = createStore({ articles: [articleRow()] });
++    const service = createService(store.prisma, {
++      reviewCycleEnabled: true,
++      remindDaysBefore: 14,
++    });
++
++    await expect(service.processDue(now)).resolves.toBe(1);
++    expect(store.created).toEqual([
++      {
++        userId: 'user-owner',
++        dedupeKey: 'kb-review:article-1:2026-10-01T00:00:00.000Z:user-owner',
++      },
++    ]);
++
++    // The scheduled job retried (or a second worker grabbed the same occurrence).
++    await expect(service.processDue(now)).resolves.toBe(0);
++    expect(store.created).toHaveLength(1);
++  });
++
++  it('reminds every member of the owning group exactly once', async () => {
++    const store = createStore({
++      articles: [articleRow({ ownerUserId: null, ownerGroupId: 'group-1' })],
++      members: { 'group-1': ['user-a', 'user-b'] },
++    });
++    const service = createService(store.prisma, {
++      reviewCycleEnabled: true,
++      remindDaysBefore: 14,
++    });
++
++    await expect(service.processDue(now)).resolves.toBe(2);
++    await expect(service.processDue(now)).resolves.toBe(0);
++    expect(store.created.map((item) => item.userId).sort()).toEqual([
++      'user-a',
++      'user-b',
++    ]);
++  });
++
++  it('remembers the review period, so the next cycle does remind again', async () => {
++    const row = articleRow();
++    const store = createStore({ articles: [row] });
++    const service = createService(store.prisma, {
++      reviewCycleEnabled: true,
++      remindDaysBefore: 14,
++    });
++    await service.processDue(now);
++
++    // The article was reviewed and is due again next year: a new period, new key.
++    store.prisma.knowledgeArticle.findMany = async () => [
++      { ...row, reviewDueAt: new Date('2027-10-01T00:00:00.000Z') },
++    ];
++    await expect(service.processDue(now)).resolves.toBe(1);
++    expect(store.created).toHaveLength(2);
++    expect(store.created[1]?.dedupeKey).toContain('2027-10-01T00:00:00.000Z');
++  });
++
++  it('does nothing while the review cycle is disabled or nothing is due yet', async () => {
++    const store = createStore({ articles: [articleRow()] });
++    const disabled = createService(store.prisma, {
++      reviewCycleEnabled: false,
++      remindDaysBefore: 14,
++    });
++    await expect(disabled.processDue(now)).resolves.toBe(0);
++
++    const enabled = createService(store.prisma, {
++      reviewCycleEnabled: true,
++      remindDaysBefore: 14,
++    });
++    // reviewDueAt is 2026-10-01, the window ends 2026-10-08 — inside; move the clock
++    // back so the same article is still outside the reminder window.
++    await expect(
++      enabled.processDue(new Date('2026-08-01T09:00:00.000Z')),
++    ).resolves.toBe(0);
++    expect(store.created).toHaveLength(0);
++  });
++});
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.job.constants.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.job.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.job.constants.ts
+@@ -0,0 +1,29 @@
++/**
++ * Phase 4.1 (plan §4.1): the schedule of one periodic job, in one place.
++ *
++ * Before this phase the job ran as an `@Interval`/`setInterval` inside the API
++ * process; it now runs in the worker as a BullMQ scheduled job. The cadence is
++ * unchanged (every 15 minutes) — only the phase inside the window is staggered
++ * (u :10 — treći u prozoru), so no two sweeps ever start at the same moment.
++ *
++ * Per-job budget and DLQ policy:
++ * - timeout 120 s — enforced as `lockDuration` on the processor.
++ *   BullMQ v5 has no per-job `opts.timeout` (that option only exists in the Pro
++ *   edition), so the framework-native bound is used: a job that overruns loses its
++ *   lock, is marked stalled and gets retried instead of blocking the worker.
++ * - 2 attempts, exponential backoff starting at 30 s.
++ * - the last 20 completed and 50 failed jobs stay inspectable
++ *   (failed ones are the queue's dead-letter view), then expire.
++ */
++export const knowledgeBaseReviewReminderQueueName = 'knowledge-base-review-reminder';
++export const knowledgeBaseReviewReminderJobName = 'knowledge-base-review-reminder-scan';
++export const knowledgeBaseReviewReminderSchedulerId = 'kb-review-reminder-quarter-hourly';
++export const knowledgeBaseReviewReminderSchedulePattern = '0 10,25,40,55 * * * *';
++export const knowledgeBaseReviewReminderJobAttempts = 2;
++export const knowledgeBaseReviewReminderJobBackoffMilliseconds = 30000;
++export const knowledgeBaseReviewReminderJobTimeoutMilliseconds = 120000;
++export const knowledgeBaseReviewReminderCompletedJobsToKeep = 20;
++export const knowledgeBaseReviewReminderFailedJobsToKeep = 50;
++export const knowledgeBaseReviewReminderJobLabel = 'kb_review_reminder';
++export const knowledgeBaseReviewReminderJobLogContext = 'KnowledgeBaseReviewReminderJob';
++export const knowledgeBaseReviewReminderScheduleWindowSource = '0 10,25,40,55 * * * *';
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.processor.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.processor.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.processor.ts
+@@ -0,0 +1,56 @@
++import { Logger } from '@nestjs/common';
++import { Processor, WorkerHost } from '@nestjs/bullmq';
++import { formatJobMetrics } from '../../common/scheduled-jobs/format-job-metrics';
++import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
++import {
++  knowledgeBaseReviewReminderJobLogContext,
++  knowledgeBaseReviewReminderJobName,
++  knowledgeBaseReviewReminderJobTimeoutMilliseconds,
++  knowledgeBaseReviewReminderQueueName,
++} from './knowledge-base-review-reminder.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the sweep runs here — in the worker process — so the API
++ * log carries no job iterations at all. The business logic is untouched; this is
++ * only the frame around `processDue()`.
++ */
++@Processor(knowledgeBaseReviewReminderQueueName, {
++  // Phase 4.1: one run at a time — a slow sweep delays the next tick instead of
++  // overlapping it, and the queue lock keeps a second worker off the same run.
++  concurrency: 1,
++  lockDuration: knowledgeBaseReviewReminderJobTimeoutMilliseconds,
++})
++export class KnowledgeBaseReviewReminderProcessor extends WorkerHost {
++  private readonly logger = new Logger(knowledgeBaseReviewReminderJobLogContext);
++
++  constructor(private readonly automation: KnowledgeBaseReviewReminderService) {
++    super();
++  }
++
++  async process(): Promise<void> {
++    const startedAt = Date.now();
++    try {
++      // This sweep reports a plain count (notifications actually sent), unlike the
++      // ticket sweeps which return the rows they touched.
++      const processed = await this.automation.processDue();
++      this.logger.log(
++        formatJobMetrics({
++          job: knowledgeBaseReviewReminderJobName,
++          durationMs: Date.now() - startedAt,
++          processed,
++          failed: 0,
++        }),
++      );
++    } catch (error) {
++      this.logger.error(
++        formatJobMetrics({
++          job: knowledgeBaseReviewReminderJobName,
++          durationMs: Date.now() - startedAt,
++          processed: 0,
++          failed: 1,
++        }),
++      );
++      throw error;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.scheduler.service.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.scheduler.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.scheduler.service.ts
+@@ -0,0 +1,41 @@
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import { InjectQueue } from '@nestjs/bullmq';
++import { Queue } from 'bullmq';
++import { registerRepeatableJob } from '../../common/scheduled-jobs/register-repeatable-job';
++import {
++  knowledgeBaseReviewReminderCompletedJobsToKeep,
++  knowledgeBaseReviewReminderFailedJobsToKeep,
++  knowledgeBaseReviewReminderJobAttempts,
++  knowledgeBaseReviewReminderJobBackoffMilliseconds,
++  knowledgeBaseReviewReminderJobLabel,
++  knowledgeBaseReviewReminderJobName,
++  knowledgeBaseReviewReminderQueueName,
++  knowledgeBaseReviewReminderSchedulePattern,
++  knowledgeBaseReviewReminderSchedulerId,
++} from './knowledge-base-review-reminder.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the schedule lives in Redis and is idempotent by id, so
++ * two worker instances converge on exactly one occurrence per slot.
++ */
++@Injectable()
++export class KnowledgeBaseReviewReminderSchedulerService implements OnModuleInit {
++  private readonly logger = new Logger(KnowledgeBaseReviewReminderSchedulerService.name);
++
++  constructor(@InjectQueue(knowledgeBaseReviewReminderQueueName) private readonly queue: Queue) {}
++
++  async onModuleInit(): Promise<void> {
++    await registerRepeatableJob({
++      queue: this.queue,
++      schedulerId: knowledgeBaseReviewReminderSchedulerId,
++      jobName: knowledgeBaseReviewReminderJobName,
++      label: knowledgeBaseReviewReminderJobLabel,
++      schedule: { kind: 'pattern', pattern: knowledgeBaseReviewReminderSchedulePattern },
++      attempts: knowledgeBaseReviewReminderJobAttempts,
++      backoffMilliseconds: knowledgeBaseReviewReminderJobBackoffMilliseconds,
++      completedJobsToKeep: knowledgeBaseReviewReminderCompletedJobsToKeep,
++      failedJobsToKeep: knowledgeBaseReviewReminderFailedJobsToKeep,
++      logger: this.logger,
++    });
++  }
++}
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts
+index dec20c6..90b2630 100644
+--- a/backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts
++++ b/backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts
+@@ -1,11 +1,9 @@
+ import { Injectable, Logger } from '@nestjs/common';
+-import { Interval } from '@nestjs/schedule';
+ import { PrismaService } from '../../common/prisma/prisma.service';
+ import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
+ import { notificationTypes } from '../notifications/notifications.constants';
+ import type { NotificationPayload } from '../notifications/notifications.types';
+ import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
+-import { knowledgeBaseReviewReminderIntervalMs } from './knowledge-base.constants';
+ import { toArticleRecord } from './load-knowledge-article';
+ import { loadOwnerGroupMemberUserIds } from './load-knowledge-article-scope';
+ 
+@@ -18,14 +16,6 @@ export class KnowledgeBaseReviewReminderService {
+     private readonly configurationLoader: KnowledgeBaseConfigurationLoader,
+   ) {}
+ 
+-  @Interval(knowledgeBaseReviewReminderIntervalMs)
+-  async handleInterval(): Promise<void> {
+-    await this.processDue().catch((error: unknown) => {
+-      this.logger.warn(
+-        `Knowledge review reminder sweep failed: ${String(error)}`,
+-      );
+-    });
+-  }
+ 
+   async processDue(now = new Date()): Promise<number> {
+     const configuration = await this.configurationLoader.load();
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base.constants.ts b/backend/src/modules/knowledge-base/knowledge-base.constants.ts
+index 3ca7c5f..e925237 100644
+--- a/backend/src/modules/knowledge-base/knowledge-base.constants.ts
++++ b/backend/src/modules/knowledge-base/knowledge-base.constants.ts
+@@ -39,7 +39,6 @@ export const knowledgeBaseConstants = {
+   interceptLimit: 8,
+ } as const;
+ 
+-export const knowledgeBaseReviewReminderIntervalMs = 15 * 60 * 1000;
+ 
+ export const dataClassificationLevels = [
+   'INTERNAL',
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base.module.ts b/backend/src/modules/knowledge-base/knowledge-base.module.ts
+index a9b8ea2..0a108e3 100644
+--- a/backend/src/modules/knowledge-base/knowledge-base.module.ts
++++ b/backend/src/modules/knowledge-base/knowledge-base.module.ts
+@@ -1,12 +1,10 @@
+ import { Module } from '@nestjs/common';
+-import { ScheduleModule } from '@nestjs/schedule';
+ import { AuthenticationModule } from '../authentication/authentication.module';
+ import { AuthorizationModule } from '../authorization/authorization.module';
+ import { SettingsModule } from '../settings/settings.module';
+ import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
+ import { KnowledgeBaseController } from './knowledge-base.controller';
+ import { KnowledgeBaseDiscoveryService } from './knowledge-base-discovery.service';
+-import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
+ import { KnowledgeBaseService } from './knowledge-base.service';
+ import { KnowledgeBaseWorkflowController } from './knowledge-base-workflow.controller';
+ import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service';
+@@ -16,7 +14,6 @@ import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service'
+     AuthenticationModule,
+     AuthorizationModule,
+     SettingsModule,
+-    ScheduleModule.forRoot(),
+   ],
+   controllers: [KnowledgeBaseController, KnowledgeBaseWorkflowController],
+   providers: [
+@@ -24,7 +21,6 @@ import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service'
+     KnowledgeBaseService,
+     KnowledgeBaseWorkflowService,
+     KnowledgeBaseDiscoveryService,
+-    KnowledgeBaseReviewReminderService,
+   ],
+   exports: [
+     KnowledgeBaseService,
+
+diff --git a/backend/src/modules/tickets/archive/archive.constants.ts b/backend/src/modules/tickets/archive/archive.constants.ts
+index e2bd96f..7d2af4b 100644
+--- a/backend/src/modules/tickets/archive/archive.constants.ts
++++ b/backend/src/modules/tickets/archive/archive.constants.ts
+@@ -5,4 +5,3 @@ export const defaultTicketArchiveConfiguration = {
+   searchable: true,
+ } as const;
+ 
+-export const ticketArchiveAutomationIntervalMs = 15 * 60 * 1000;
+
+diff --git a/backend/src/modules/tickets/archive/ticket-archive-automation.service.ts b/backend/src/modules/tickets/archive/ticket-archive-automation.service.ts
+index 1008dd1..97b5235 100644
+--- a/backend/src/modules/tickets/archive/ticket-archive-automation.service.ts
++++ b/backend/src/modules/tickets/archive/ticket-archive-automation.service.ts
+@@ -1,5 +1,4 @@
+ import { Injectable } from '@nestjs/common';
+-import { Interval } from '@nestjs/schedule';
+ import { PrismaService } from '../../../common/prisma/prisma.service';
+ import { daysToMilliseconds } from '../apply-ticket-lifecycle-timestamps';
+ import type { TicketPersistedMessageSink } from '../collaboration.types';
+@@ -7,7 +6,6 @@ import { publishPersistedTicketMessages } from '../publish-persisted-ticket-mess
+ import { TicketRealtimeHub } from '../ticket-realtime.hub';
+ import type { TicketRecord } from '../tickets.types';
+ import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
+-import { ticketArchiveAutomationIntervalMs } from './archive.constants';
+ import { processClosedTicketArchive } from './process-closed-ticket-archive';
+ import { TicketArchiveConfigurationLoader } from './ticket-archive-configuration.loader';
+ 
+@@ -20,10 +18,6 @@ export class TicketArchiveAutomationService {
+     private readonly realtimeHub: TicketRealtimeHub,
+   ) {}
+ 
+-  @Interval(ticketArchiveAutomationIntervalMs)
+-  async handleInterval(): Promise<void> {
+-    await this.processDue();
+-  }
+ 
+   async processDue(now = new Date()): Promise<readonly TicketRecord[]> {
+     const configuration = await this.configurationLoader.load();
+
+diff --git a/backend/src/modules/tickets/archive/ticket-archive-worker.module.ts b/backend/src/modules/tickets/archive/ticket-archive-worker.module.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/archive/ticket-archive-worker.module.ts
+@@ -0,0 +1,32 @@
++import { Module } from '@nestjs/common';
++import { BullModule } from '@nestjs/bullmq';
++import { SettingsModule } from '../../settings/settings.module';
++import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
++import { TicketRealtimeBridgeModule } from '../ticket-realtime-bridge.module';
++import { ticketArchiveQueueName } from './ticket-archive.job.constants';
++import { TicketArchiveAutomationService } from './ticket-archive-automation.service';
++import { TicketArchiveConfigurationLoader } from './ticket-archive-configuration.loader';
++import { TicketArchiveProcessor } from './ticket-archive.processor';
++import { TicketArchiveSchedulerService } from './ticket-archive.scheduler.service';
++
++/**
++ * Phase 4.1 (plan §4.1): everything the archive sweep needs, and nothing the API
++ * needs. The worker owns the schedule; the API process no longer registers the
++ * automation service at all (`tickets.module.ts`), which is what "the API only does
++ * request/response + websocket" means in practice.
++ */
++@Module({
++  imports: [
++    BullModule.registerQueue({ name: ticketArchiveQueueName }),
++    SettingsModule,
++    TicketRealtimeBridgeModule,
++  ],
++  providers: [
++    TicketArchiveConfigurationLoader,
++    TicketGuardrailsConfigurationLoader,
++    TicketArchiveAutomationService,
++    TicketArchiveProcessor,
++    TicketArchiveSchedulerService,
++  ],
++})
++export class TicketArchiveWorkerModule {}
+
+diff --git a/backend/src/modules/tickets/archive/ticket-archive.job.constants.ts b/backend/src/modules/tickets/archive/ticket-archive.job.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/archive/ticket-archive.job.constants.ts
+@@ -0,0 +1,29 @@
++/**
++ * Phase 4.1 (plan §4.1): the schedule of one periodic job, in one place.
++ *
++ * Before this phase the job ran as an `@Interval`/`setInterval` inside the API
++ * process; it now runs in the worker as a BullMQ scheduled job. The cadence is
++ * unchanged (every 15 minutes) — only the phase inside the window is staggered
++ * (u :00 — prvi u prozoru), so no two sweeps ever start at the same moment.
++ *
++ * Per-job budget and DLQ policy:
++ * - timeout 300 s — enforced as `lockDuration` on the processor.
++ *   BullMQ v5 has no per-job `opts.timeout` (that option only exists in the Pro
++ *   edition), so the framework-native bound is used: a job that overruns loses its
++ *   lock, is marked stalled and gets retried instead of blocking the worker.
++ * - 2 attempts, exponential backoff starting at 30 s.
++ * - the last 20 completed and 50 failed jobs stay inspectable
++ *   (failed ones are the queue's dead-letter view), then expire.
++ */
++export const ticketArchiveQueueName = 'ticket-archive';
++export const ticketArchiveJobName = 'ticket-archive-scan';
++export const ticketArchiveSchedulerId = 'ticket-archive-quarter-hourly';
++export const ticketArchiveSchedulePattern = '0 0,15,30,45 * * * *';
++export const ticketArchiveJobAttempts = 2;
++export const ticketArchiveJobBackoffMilliseconds = 30000;
++export const ticketArchiveJobTimeoutMilliseconds = 300000;
++export const ticketArchiveCompletedJobsToKeep = 20;
++export const ticketArchiveFailedJobsToKeep = 50;
++export const ticketArchiveJobLabel = 'ticket_archive';
++export const ticketArchiveJobLogContext = 'TicketArchiveJob';
++export const ticketArchiveScheduleWindowSource = '0 0,15,30,45 * * * *';
+
+diff --git a/backend/src/modules/tickets/archive/ticket-archive.processor.ts b/backend/src/modules/tickets/archive/ticket-archive.processor.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/archive/ticket-archive.processor.ts
+@@ -0,0 +1,54 @@
++import { Logger } from '@nestjs/common';
++import { Processor, WorkerHost } from '@nestjs/bullmq';
++import { formatJobMetrics } from '../../../common/scheduled-jobs/format-job-metrics';
++import { TicketArchiveAutomationService } from './ticket-archive-automation.service';
++import {
++  ticketArchiveJobLogContext,
++  ticketArchiveJobName,
++  ticketArchiveJobTimeoutMilliseconds,
++  ticketArchiveQueueName,
++} from './ticket-archive.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the sweep runs here — in the worker process — so the API
++ * log carries no job iterations at all. The business logic is untouched; this is
++ * only the frame around `processDue()`.
++ */
++@Processor(ticketArchiveQueueName, {
++  // Phase 4.1: one run at a time — a slow sweep delays the next tick instead of
++  // overlapping it, and the queue lock keeps a second worker off the same run.
++  concurrency: 1,
++  lockDuration: ticketArchiveJobTimeoutMilliseconds,
++})
++export class TicketArchiveProcessor extends WorkerHost {
++  private readonly logger = new Logger(ticketArchiveJobLogContext);
++
++  constructor(private readonly automation: TicketArchiveAutomationService) {
++    super();
++  }
++
++  async process(): Promise<void> {
++    const startedAt = Date.now();
++    try {
++      const processed = (await this.automation.processDue()).length;
++      this.logger.log(
++        formatJobMetrics({
++          job: ticketArchiveJobName,
++          durationMs: Date.now() - startedAt,
++          processed,
++          failed: 0,
++        }),
++      );
++    } catch (error) {
++      this.logger.error(
++        formatJobMetrics({
++          job: ticketArchiveJobName,
++          durationMs: Date.now() - startedAt,
++          processed: 0,
++          failed: 1,
++        }),
++      );
++      throw error;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/tickets/archive/ticket-archive.scheduler.service.ts b/backend/src/modules/tickets/archive/ticket-archive.scheduler.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/archive/ticket-archive.scheduler.service.ts
+@@ -0,0 +1,41 @@
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import { InjectQueue } from '@nestjs/bullmq';
++import { Queue } from 'bullmq';
++import { registerRepeatableJob } from '../../../common/scheduled-jobs/register-repeatable-job';
++import {
++  ticketArchiveCompletedJobsToKeep,
++  ticketArchiveFailedJobsToKeep,
++  ticketArchiveJobAttempts,
++  ticketArchiveJobBackoffMilliseconds,
++  ticketArchiveJobLabel,
++  ticketArchiveJobName,
++  ticketArchiveQueueName,
++  ticketArchiveSchedulePattern,
++  ticketArchiveSchedulerId,
++} from './ticket-archive.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the schedule lives in Redis and is idempotent by id, so
++ * two worker instances converge on exactly one occurrence per slot.
++ */
++@Injectable()
++export class TicketArchiveSchedulerService implements OnModuleInit {
++  private readonly logger = new Logger(TicketArchiveSchedulerService.name);
++
++  constructor(@InjectQueue(ticketArchiveQueueName) private readonly queue: Queue) {}
++
++  async onModuleInit(): Promise<void> {
++    await registerRepeatableJob({
++      queue: this.queue,
++      schedulerId: ticketArchiveSchedulerId,
++      jobName: ticketArchiveJobName,
++      label: ticketArchiveJobLabel,
++      schedule: { kind: 'pattern', pattern: ticketArchiveSchedulePattern },
++      attempts: ticketArchiveJobAttempts,
++      backoffMilliseconds: ticketArchiveJobBackoffMilliseconds,
++      completedJobsToKeep: ticketArchiveCompletedJobsToKeep,
++      failedJobsToKeep: ticketArchiveFailedJobsToKeep,
++      logger: this.logger,
++    });
++  }
++}
+
+diff --git a/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.spec.ts b/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.spec.ts
+@@ -0,0 +1,28 @@
++import { parseTicketRealtimeBridgePayload } from './parse-ticket-realtime-bridge-payload';
++
++const message = { id: 'msg-1', ticketId: 'ticket-1', visibility: 'public' };
++const updated = { ticketId: 'ticket-1', change: 'archived', visibility: 'public' };
++
++describe('parseTicketRealtimeBridgePayload', () => {
++  it('accepts both envelope kinds', () => {
++    expect(parseTicketRealtimeBridgePayload({ kind: 'message', payload: message })).toEqual({
++      kind: 'message',
++      payload: message,
++    });
++    expect(
++      parseTicketRealtimeBridgePayload({ kind: 'updated', payload: updated }),
++    ).toEqual({ kind: 'updated', payload: updated });
++  });
++
++  it('rejects unknown kinds and payloads without a ticket', () => {
++    expect(parseTicketRealtimeBridgePayload({ kind: 'notification', payload: message })).toBeNull();
++    expect(parseTicketRealtimeBridgePayload({ kind: 'message', payload: { id: 'm' } })).toBeNull();
++    expect(parseTicketRealtimeBridgePayload({ kind: 'updated', payload: { ticketId: 't' } })).toBeNull();
++  });
++
++  it('rejects anything that is not an object', () => {
++    expect(parseTicketRealtimeBridgePayload(null)).toBeNull();
++    expect(parseTicketRealtimeBridgePayload('{"kind":"message"}')).toBeNull();
++    expect(parseTicketRealtimeBridgePayload({ kind: 'message', payload: null })).toBeNull();
++  });
++});
+
+diff --git a/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.ts b/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/parse-ticket-realtime-bridge-payload.ts
+@@ -0,0 +1,38 @@
++import type { TicketRealtimeBridgePublish } from './ticket-realtime-bridge.types';
++
++/**
++ * Phase 4.1: the bridge carries JSON over Redis, so the API side validates the
++ * envelope before it touches the hub. A malformed payload is ignored (and logged
++ * by the subscriber) rather than broadcast — the same conservative rule the edge
++ * event subscriber follows.
++ */
++export function parseTicketRealtimeBridgePayload(
++  value: unknown,
++): TicketRealtimeBridgePublish | null {
++  if (typeof value !== 'object' || value === null) {
++    return null;
++  }
++  const candidate = value as { readonly kind?: unknown; readonly payload?: unknown };
++  if (typeof candidate.payload !== 'object' || candidate.payload === null) {
++    return null;
++  }
++  const payload = candidate.payload as { readonly ticketId?: unknown };
++  if (typeof payload.ticketId !== 'string' || payload.ticketId.length === 0) {
++    return null;
++  }
++  if (candidate.kind === 'message') {
++    const message = candidate.payload as { readonly id?: unknown };
++    if (typeof message.id !== 'string' || message.id.length === 0) {
++      return null;
++    }
++    return { kind: 'message', payload: candidate.payload as never };
++  }
++  if (candidate.kind === 'updated') {
++    const updated = candidate.payload as { readonly change?: unknown };
++    if (typeof updated.change !== 'string' || updated.change.length === 0) {
++      return null;
++    }
++    return { kind: 'updated', payload: candidate.payload as never };
++  }
++  return null;
++}
+
+diff --git a/backend/src/modules/tickets/publish-ticket-realtime-to-redis.service.ts b/backend/src/modules/tickets/publish-ticket-realtime-to-redis.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/publish-ticket-realtime-to-redis.service.ts
+@@ -0,0 +1,21 @@
++import { Inject, Injectable } from '@nestjs/common';
++import type Redis from 'ioredis';
++import { redisTokens } from '../../common/redis/redis.tokens';
++import { ticketRealtimeBridgeChannel } from './ticket-realtime-bridge.constants';
++import type { TicketRealtimeBridgePublish } from './ticket-realtime-bridge.types';
++
++/** Worker side of the bridge: see `ticket-realtime-bridge.constants.ts` for why. */
++@Injectable()
++export class PublishTicketRealtimeToRedisService {
++  constructor(@Inject(redisTokens.client) private readonly redisClient: Redis) {}
++
++  async publish(payload: TicketRealtimeBridgePublish): Promise<void> {
++    if (this.redisClient.status === 'wait') {
++      await this.redisClient.connect();
++    }
++    await this.redisClient.publish(
++      ticketRealtimeBridgeChannel,
++      JSON.stringify(payload),
++    );
++  }
++}
+
+diff --git a/backend/src/modules/tickets/ticket-realtime-bridge.constants.ts b/backend/src/modules/tickets/ticket-realtime-bridge.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/ticket-realtime-bridge.constants.ts
+@@ -0,0 +1,12 @@
++/**
++ * Phase 4.1 (plan §4.1): ticket realtime events that the **worker** produces (the
++ * archive and waiting-for-user sweeps publish system messages and status changes)
++ * have to reach the API process, because only the API owns the Socket.IO server.
++ *
++ * This is the same bridge pattern the integration queue already uses for edge
++ * events (`PublishEdgeEventToRedisService` + `EdgeEventRealtimeSubscriber`): the
++ * worker publishes to one Redis channel, the API subscribes once and re-publishes
++ * into the in-process hub that the gateways listen on. Without it, moving the
++ * sweeps to the worker would silently drop every live update for tickets they touch.
++ */
++export const ticketRealtimeBridgeChannel = 'tickets:realtime-bridge';
+
+diff --git a/backend/src/modules/tickets/ticket-realtime-bridge.module.ts b/backend/src/modules/tickets/ticket-realtime-bridge.module.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/ticket-realtime-bridge.module.ts
+@@ -0,0 +1,26 @@
++import { Module } from '@nestjs/common';
++import { PublishTicketRealtimeToRedisService } from './publish-ticket-realtime-to-redis.service';
++import { TicketRealtimeHub } from './ticket-realtime.hub';
++import { TicketRealtimeRedisForwarder } from './ticket-realtime.redis-forwarder';
++
++/**
++ * Phase 4.1 (plan §4.1): shared realtime wiring for the worker process.
++ *
++ * Moving the archive/waiting-for-user sweeps into the worker must not change what
++ * users see: those sweeps publish persisted messages and ticket updates through
++ * `TicketRealtimeHub`. In the API process the gateway listens on that hub; in the
++ * worker nothing does, so this module adds the missing subscriber — the forwarder —
++ * which republishes worker-originated events to Redis for the API to emit.
++ *
++ * The hub is exported, so every worker module that publishes shares one instance
++ * (and therefore one forwarder subscription).
++ */
++@Module({
++  providers: [
++    TicketRealtimeHub,
++    PublishTicketRealtimeToRedisService,
++    TicketRealtimeRedisForwarder,
++  ],
++  exports: [TicketRealtimeHub],
++})
++export class TicketRealtimeBridgeModule {}
+
+diff --git a/backend/src/modules/tickets/ticket-realtime-bridge.subscriber.ts b/backend/src/modules/tickets/ticket-realtime-bridge.subscriber.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/ticket-realtime-bridge.subscriber.ts
+@@ -0,0 +1,70 @@
++import {
++  Inject,
++  Injectable,
++  Logger,
++  OnModuleDestroy,
++  OnModuleInit,
++} from '@nestjs/common';
++import type Redis from 'ioredis';
++import { closeRedisClient } from '../../common/redis/close-redis-client';
++import { redisTokens } from '../../common/redis/redis.tokens';
++import { parseTicketRealtimeBridgePayload } from './parse-ticket-realtime-bridge-payload';
++import { ticketRealtimeBridgeChannel } from './ticket-realtime-bridge.constants';
++import { TicketRealtimeHub } from './ticket-realtime.hub';
++
++/**
++ * API side of the bridge (Phase 4.1): re-publishes worker-originated ticket
++ * realtime events into the in-process hub, so the gateways emit them to exactly
++ * the rooms they always did. Mirrors `EdgeEventRealtimeSubscriber`.
++ */
++@Injectable()
++export class TicketRealtimeBridgeSubscriber implements OnModuleInit, OnModuleDestroy {
++  private readonly logger = new Logger(TicketRealtimeBridgeSubscriber.name);
++  private subscriber: Redis | null = null;
++
++  constructor(
++    @Inject(redisTokens.client) private readonly redisClient: Redis,
++    private readonly hub: TicketRealtimeHub,
++  ) {}
++
++  async onModuleInit(): Promise<void> {
++    const subscriber = this.redisClient.duplicate();
++    this.subscriber = subscriber;
++    if (subscriber.status === 'wait') {
++      await subscriber.connect();
++    }
++    await subscriber.subscribe(ticketRealtimeBridgeChannel);
++    subscriber.on('message', (_channel, message) => {
++      this.dispatch(message);
++    });
++  }
++
++  async onModuleDestroy(): Promise<void> {
++    if (this.subscriber === null) {
++      return;
++    }
++    await closeRedisClient(this.subscriber);
++    this.subscriber = null;
++  }
++
++  private dispatch(message: string): void {
++    try {
++      const payload = parseTicketRealtimeBridgePayload(JSON.parse(message));
++      if (payload === null) {
++        this.logger.warn('Ignored invalid ticket realtime bridge payload');
++        return;
++      }
++      if (payload.kind === 'message') {
++        this.hub.publish(payload.payload);
++        return;
++      }
++      this.hub.publishTicketUpdated(payload.payload);
++    } catch (error) {
++      this.logger.warn(
++        `Failed to dispatch ticket realtime bridge payload: ${
++          error instanceof Error ? error.message : String(error)
++        }`,
++      );
++    }
++  }
++}
+
+diff --git a/backend/src/modules/tickets/ticket-realtime-bridge.types.ts b/backend/src/modules/tickets/ticket-realtime-bridge.types.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/ticket-realtime-bridge.types.ts
+@@ -0,0 +1,6 @@
++import type { TicketRealtimeMessagePayload } from './collaboration.types';
++import type { TicketUpdatedRealtimePayload } from './ticket-realtime.types';
++
++export type TicketRealtimeBridgePublish =
++  | { readonly kind: 'message'; readonly payload: TicketRealtimeMessagePayload }
++  | { readonly kind: 'updated'; readonly payload: TicketUpdatedRealtimePayload };
+
+diff --git a/backend/src/modules/tickets/ticket-realtime.redis-forwarder.ts b/backend/src/modules/tickets/ticket-realtime.redis-forwarder.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/ticket-realtime.redis-forwarder.ts
+@@ -0,0 +1,53 @@
++import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
++import { PublishTicketRealtimeToRedisService } from './publish-ticket-realtime-to-redis.service';
++import { TicketRealtimeHub } from './ticket-realtime.hub';
++
++/**
++ * Phase 4.1: in the worker process nothing is subscribed to the hub (there is no
++ * Socket.IO server there), so a sweep's `publishPersistedTicketMessages` would be
++ * a no-op. This forwarder is that missing subscriber: everything the worker-side
++ * automation puts on the hub is republished to Redis, where the API picks it up
++ * and emits it to the same rooms as before.
++ *
++ * The API process does **not** register this forwarder, so an event the API
++ * itself published can never travel the bridge twice.
++ */
++@Injectable()
++export class TicketRealtimeRedisForwarder implements OnModuleInit, OnModuleDestroy {
++  private readonly logger = new Logger(TicketRealtimeRedisForwarder.name);
++  private readonly unsubscribers: Array<() => void> = [];
++
++  constructor(
++    private readonly hub: TicketRealtimeHub,
++    private readonly publisher: PublishTicketRealtimeToRedisService,
++  ) {}
++
++  onModuleInit(): void {
++    this.unsubscribers.push(
++      this.hub.subscribe((payload) => {
++        void this.forward({ kind: 'message', payload });
++      }),
++      this.hub.subscribeTicketUpdated((payload) => {
++        void this.forward({ kind: 'updated', payload });
++      }),
++    );
++  }
++
++  onModuleDestroy(): void {
++    for (const unsubscribe of this.unsubscribers) {
++      unsubscribe();
++    }
++    this.unsubscribers.length = 0;
++  }
++
++  private async forward(payload: Parameters<PublishTicketRealtimeToRedisService['publish']>[0]) {
++    try {
++      await this.publisher.publish(payload);
++    } catch (error) {
++      // A dropped bridge message costs one live update, never the sweep itself.
++      this.logger.warn(
++        `ticket_realtime_bridge_publish_failed reason=${error instanceof Error ? error.message : String(error)}`,
++      );
++    }
++  }
++}
+
+diff --git a/backend/src/modules/tickets/tickets.module.ts b/backend/src/modules/tickets/tickets.module.ts
+index 6139405..87787ad 100644
+--- a/backend/src/modules/tickets/tickets.module.ts
++++ b/backend/src/modules/tickets/tickets.module.ts
+@@ -1,5 +1,4 @@
+ import { Module } from '@nestjs/common';
+-import { ScheduleModule } from '@nestjs/schedule';
+ import { AuthenticationModule } from '../authentication/authentication.module';
+ import { AuthorizationModule } from '../authorization/authorization.module';
+ import { RoutingModule } from '../routing/routing.module';
+@@ -12,6 +11,7 @@ import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignm
+ import { TicketAssignmentService } from './assignment/ticket-assignment.service';
+ import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
+ import { TicketRealtimeHub } from './ticket-realtime.hub';
++import { TicketRealtimeBridgeSubscriber } from './ticket-realtime-bridge.subscriber';
+ import { TicketsCollaborationController } from './tickets-collaboration.controller';
+ import { TicketsCollaborationService } from './tickets-collaboration.service';
+ import { TicketsRemoteController } from './remote/tickets-remote.controller';
+@@ -51,9 +51,7 @@ import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe
+ import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
+ import { TicketsConfidentialController } from './confidential/tickets-confidential.controller';
+ import { TicketsConfidentialService } from './confidential/tickets-confidential.service';
+-import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
+ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
+-import { TicketArchiveAutomationService } from './archive/ticket-archive-automation.service';
+ import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+ import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
+ import { TicketsCsatController } from './csat/tickets-csat.controller';
+@@ -62,7 +60,6 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
+ 
+ @Module({
+   imports: [
+-    ScheduleModule.forRoot(),
+     AuthenticationModule,
+     AuthorizationModule,
+     RoutingModule,
+@@ -113,8 +110,6 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
+     TicketsSavedViewsService,
+     TicketSavedViewsConfigurationLoader,
+     WaitingForUserConfigurationLoader,
+-    WaitingForUserAutomationService,
+-    TicketArchiveAutomationService,
+     TicketsCollaborationService,
+     TicketsRemoteService,
+     TicketsTimeTrackingService,
+@@ -128,6 +123,8 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
+       useFactory: () => new DiskTicketAttachmentStorage(resolveUploadRoot()),
+     },
+     TicketRealtimeHub,
++    // Phase 4.1: receives worker-originated realtime events over Redis.
++    TicketRealtimeBridgeSubscriber,
+     TicketChatGateway,
+   ],
+   exports: [
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user-automation.service.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user-automation.service.ts
+index f97666d..eab47d8 100644
+--- a/backend/src/modules/tickets/waiting-for-user/waiting-for-user-automation.service.ts
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user-automation.service.ts
+@@ -1,5 +1,4 @@
+ import { Injectable } from '@nestjs/common';
+-import { Interval } from '@nestjs/schedule';
+ import { PrismaService } from '../../../common/prisma/prisma.service';
+ import type { TicketPersistedMessageSink } from '../collaboration.types';
+ import { publishPersistedTicketMessages } from '../publish-persisted-ticket-messages';
+@@ -7,7 +6,6 @@ import { TicketRealtimeHub } from '../ticket-realtime.hub';
+ import type { TicketRecord } from '../tickets.types';
+ import { processWaitingForUserTicket } from './process-waiting-for-user-ticket';
+ import { WaitingForUserConfigurationLoader } from './waiting-for-user-configuration.loader';
+-import { waitingForUserAutomationIntervalMs } from './waiting-for-user.constants';
+ import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
+ import { TicketSlaTimersService } from '../../sla/ticket-sla-timers.service';
+ 
+@@ -21,10 +19,6 @@ export class WaitingForUserAutomationService {
+     private readonly realtimeHub: TicketRealtimeHub,
+   ) {}
+ 
+-  @Interval(waitingForUserAutomationIntervalMs)
+-  async handleInterval(): Promise<void> {
+-    await this.processDue();
+-  }
+ 
+   async processDue(now = new Date()): Promise<readonly TicketRecord[]> {
+     const configuration = await this.configurationLoader.load();
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user-worker.module.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user-worker.module.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user-worker.module.ts
+@@ -0,0 +1,35 @@
++import { Module } from '@nestjs/common';
++import { BullModule } from '@nestjs/bullmq';
++import { SettingsModule } from '../../settings/settings.module';
++import { SlaScanWorkerModule } from '../../sla/sla-scan-worker.module';
++import { TicketGuardrailsConfigurationLoader } from '../guardrails/ticket-guardrails-configuration.loader';
++import { TicketRealtimeBridgeModule } from '../ticket-realtime-bridge.module';
++import { WaitingForUserConfigurationLoader } from './waiting-for-user-configuration.loader';
++import { WaitingForUserAutomationService } from './waiting-for-user-automation.service';
++import { WaitingForUserProcessor } from './waiting-for-user.processor';
++import { WaitingForUserSchedulerService } from './waiting-for-user.scheduler.service';
++import { waitingForUserQueueName } from './waiting-for-user.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the waiting-for-user sweep, worker-only.
++ *
++ * It imports `SlaScanWorkerModule` because the sweep re-applies SLA timers when a
++ * ticket leaves `WAITING_FOR_USER` (`TicketSlaTimersService`); that module already
++ * owns those timers, so the worker keeps a single SLA implementation.
++ */
++@Module({
++  imports: [
++    BullModule.registerQueue({ name: waitingForUserQueueName }),
++    SettingsModule,
++    SlaScanWorkerModule,
++    TicketRealtimeBridgeModule,
++  ],
++  providers: [
++    WaitingForUserConfigurationLoader,
++    TicketGuardrailsConfigurationLoader,
++    WaitingForUserAutomationService,
++    WaitingForUserProcessor,
++    WaitingForUserSchedulerService,
++  ],
++})
++export class WaitingForUserWorkerModule {}
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user.constants.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.constants.ts
+index 19506d2..e09a448 100644
+--- a/backend/src/modules/tickets/waiting-for-user/waiting-for-user.constants.ts
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.constants.ts
+@@ -4,4 +4,3 @@ export const defaultWaitingForUserConfiguration = {
+   autoCloseAfterDays: 7,
+ } as const;
+ 
+-export const waitingForUserAutomationIntervalMs = 15 * 60 * 1000;
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user.job.constants.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.job.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.job.constants.ts
+@@ -0,0 +1,29 @@
++/**
++ * Phase 4.1 (plan §4.1): the schedule of one periodic job, in one place.
++ *
++ * Before this phase the job ran as an `@Interval`/`setInterval` inside the API
++ * process; it now runs in the worker as a BullMQ scheduled job. The cadence is
++ * unchanged (every 15 minutes) — only the phase inside the window is staggered
++ * (u :05 — drugi u prozoru), so no two sweeps ever start at the same moment.
++ *
++ * Per-job budget and DLQ policy:
++ * - timeout 300 s — enforced as `lockDuration` on the processor.
++ *   BullMQ v5 has no per-job `opts.timeout` (that option only exists in the Pro
++ *   edition), so the framework-native bound is used: a job that overruns loses its
++ *   lock, is marked stalled and gets retried instead of blocking the worker.
++ * - 2 attempts, exponential backoff starting at 30 s.
++ * - the last 20 completed and 50 failed jobs stay inspectable
++ *   (failed ones are the queue's dead-letter view), then expire.
++ */
++export const waitingForUserQueueName = 'waiting-for-user';
++export const waitingForUserJobName = 'waiting-for-user-scan';
++export const waitingForUserSchedulerId = 'waiting-for-user-quarter-hourly';
++export const waitingForUserSchedulePattern = '0 5,20,35,50 * * * *';
++export const waitingForUserJobAttempts = 2;
++export const waitingForUserJobBackoffMilliseconds = 30000;
++export const waitingForUserJobTimeoutMilliseconds = 300000;
++export const waitingForUserCompletedJobsToKeep = 20;
++export const waitingForUserFailedJobsToKeep = 50;
++export const waitingForUserJobLabel = 'waiting_for_user';
++export const waitingForUserJobLogContext = 'WaitingForUserJob';
++export const waitingForUserScheduleWindowSource = '0 5,20,35,50 * * * *';
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user.processor.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.processor.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.processor.ts
+@@ -0,0 +1,54 @@
++import { Logger } from '@nestjs/common';
++import { Processor, WorkerHost } from '@nestjs/bullmq';
++import { formatJobMetrics } from '../../../common/scheduled-jobs/format-job-metrics';
++import { WaitingForUserAutomationService } from './waiting-for-user-automation.service';
++import {
++  waitingForUserJobLogContext,
++  waitingForUserJobName,
++  waitingForUserJobTimeoutMilliseconds,
++  waitingForUserQueueName,
++} from './waiting-for-user.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the sweep runs here — in the worker process — so the API
++ * log carries no job iterations at all. The business logic is untouched; this is
++ * only the frame around `processDue()`.
++ */
++@Processor(waitingForUserQueueName, {
++  // Phase 4.1: one run at a time — a slow sweep delays the next tick instead of
++  // overlapping it, and the queue lock keeps a second worker off the same run.
++  concurrency: 1,
++  lockDuration: waitingForUserJobTimeoutMilliseconds,
++})
++export class WaitingForUserProcessor extends WorkerHost {
++  private readonly logger = new Logger(waitingForUserJobLogContext);
++
++  constructor(private readonly automation: WaitingForUserAutomationService) {
++    super();
++  }
++
++  async process(): Promise<void> {
++    const startedAt = Date.now();
++    try {
++      const processed = (await this.automation.processDue()).length;
++      this.logger.log(
++        formatJobMetrics({
++          job: waitingForUserJobName,
++          durationMs: Date.now() - startedAt,
++          processed,
++          failed: 0,
++        }),
++      );
++    } catch (error) {
++      this.logger.error(
++        formatJobMetrics({
++          job: waitingForUserJobName,
++          durationMs: Date.now() - startedAt,
++          processed: 0,
++          failed: 1,
++        }),
++      );
++      throw error;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/tickets/waiting-for-user/waiting-for-user.scheduler.service.ts b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.scheduler.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/waiting-for-user/waiting-for-user.scheduler.service.ts
+@@ -0,0 +1,41 @@
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import { InjectQueue } from '@nestjs/bullmq';
++import { Queue } from 'bullmq';
++import { registerRepeatableJob } from '../../../common/scheduled-jobs/register-repeatable-job';
++import {
++  waitingForUserCompletedJobsToKeep,
++  waitingForUserFailedJobsToKeep,
++  waitingForUserJobAttempts,
++  waitingForUserJobBackoffMilliseconds,
++  waitingForUserJobLabel,
++  waitingForUserJobName,
++  waitingForUserQueueName,
++  waitingForUserSchedulePattern,
++  waitingForUserSchedulerId,
++} from './waiting-for-user.job.constants';
++
++/**
++ * Phase 4.1 (plan §4.1): the schedule lives in Redis and is idempotent by id, so
++ * two worker instances converge on exactly one occurrence per slot.
++ */
++@Injectable()
++export class WaitingForUserSchedulerService implements OnModuleInit {
++  private readonly logger = new Logger(WaitingForUserSchedulerService.name);
++
++  constructor(@InjectQueue(waitingForUserQueueName) private readonly queue: Queue) {}
++
++  async onModuleInit(): Promise<void> {
++    await registerRepeatableJob({
++      queue: this.queue,
++      schedulerId: waitingForUserSchedulerId,
++      jobName: waitingForUserJobName,
++      label: waitingForUserJobLabel,
++      schedule: { kind: 'pattern', pattern: waitingForUserSchedulePattern },
++      attempts: waitingForUserJobAttempts,
++      backoffMilliseconds: waitingForUserJobBackoffMilliseconds,
++      completedJobsToKeep: waitingForUserCompletedJobsToKeep,
++      failedJobsToKeep: waitingForUserFailedJobsToKeep,
++      logger: this.logger,
++    });
++  }
++}
+
+diff --git a/backend/src/scheduled-jobs.wiring.spec.ts b/backend/src/scheduled-jobs.wiring.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/scheduled-jobs.wiring.spec.ts
+@@ -0,0 +1,118 @@
++import {
++  knowledgeBaseReviewReminderJobName,
++  knowledgeBaseReviewReminderSchedulePattern,
++  knowledgeBaseReviewReminderSchedulerId,
++} from './modules/knowledge-base/knowledge-base-review-reminder.job.constants';
++import { KnowledgeBaseReviewReminderSchedulerService } from './modules/knowledge-base/knowledge-base-review-reminder.scheduler.service';
++import {
++  integrationDlqRetentionSchedulerId,
++  integrationWorkerHeartbeatRepeatEveryMilliseconds,
++  integrationWorkerHeartbeatSchedulerId,
++} from './modules/integration-queue/integration-worker-maintenance.job.constants';
++import { IntegrationWorkerMaintenanceSchedulerService } from './modules/integration-queue/integration-worker-maintenance.scheduler.service';
++import {
++  ticketArchiveJobName,
++  ticketArchiveSchedulePattern,
++  ticketArchiveSchedulerId,
++} from './modules/tickets/archive/ticket-archive.job.constants';
++import { TicketArchiveSchedulerService } from './modules/tickets/archive/ticket-archive.scheduler.service';
++import {
++  waitingForUserJobName,
++  waitingForUserSchedulePattern,
++  waitingForUserSchedulerId,
++} from './modules/tickets/waiting-for-user/waiting-for-user.job.constants';
++import { WaitingForUserSchedulerService } from './modules/tickets/waiting-for-user/waiting-for-user.scheduler.service';
++
++// The maintenance scheduler pulls in SettingsService, which imports the Prisma
++// client; the same shim the worker/app module specs use keeps this a pure unit test.
++jest.mock('./common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++/**
++ * Phase 4.1 (plan §4.1): two invariants a pure unit test can still pin down without
++ * Redis —
++ *
++ * 1. Starting a second worker adds no second schedule: every registration is an
++ *    upsert by a stable scheduler id, so the store converges on one entry per job
++ *    (the queue then owns the "exactly one worker runs it" lock).
++ * 2. The three 15-minute sweeps are staggered inside the window, so the archive, the
++ *    waiting-for-user and the knowledge-base sweep never start together.
++ */
++describe('periodic job wiring', () => {
++  function createSchedulerStore() {
++    const entries = new Map<string, unknown>();
++    const queue = {
++      upsertJobScheduler: jest.fn(
++        async (schedulerId: string, _repeat: unknown, template: unknown) => {
++          entries.set(schedulerId, template);
++          return {};
++        },
++      ),
++    };
++    return { entries, queue };
++  }
++
++  function registerAll(queue: unknown) {
++    return [
++      new TicketArchiveSchedulerService(queue as never),
++      new WaitingForUserSchedulerService(queue as never),
++      new KnowledgeBaseReviewReminderSchedulerService(queue as never),
++      new IntegrationWorkerMaintenanceSchedulerService(queue as never, {
++        load: () => {
++          throw new Error('settings unavailable');
++        },
++      } as never),
++    ];
++  }
++
++  it('registers one schedule per job even when two workers start', async () => {
++    const store = createSchedulerStore();
++
++    for (const scheduler of [...registerAll(store.queue), ...registerAll(store.queue)]) {
++      await scheduler.onModuleInit();
++    }
++
++    expect([...store.entries.keys()].sort()).toEqual(
++      [
++        ticketArchiveSchedulerId,
++        waitingForUserSchedulerId,
++        knowledgeBaseReviewReminderSchedulerId,
++        integrationWorkerHeartbeatSchedulerId,
++        integrationDlqRetentionSchedulerId,
++      ].sort(),
++    );
++    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(10);
++    // The eight registrations describe five schedules, so no job can run twice.
++    expect(store.entries.size).toBe(5);
++  });
++
++  it('staggers the three sweeps inside the fifteen-minute window', () => {
++    const minuteFields = [
++      ticketArchiveSchedulePattern,
++      waitingForUserSchedulePattern,
++      knowledgeBaseReviewReminderSchedulePattern,
++    ].map((pattern) => pattern.split(' ')[1]);
++
++    const minuteSets = minuteFields.map(
++      (field) => new Set(field.split(',').map((minute) => Number(minute))),
++    );
++    for (const minutes of minuteSets) {
++      expect(minutes.size).toBe(4);
++    }
++    expect(new Set(minuteFields).size).toBe(3);
++    for (const left of minuteSets) {
++      for (const right of minuteSets) {
++        if (left === right) {
++          continue;
++        }
++        for (const minute of left) {
++          expect(right.has(minute)).toBe(false);
++        }
++      }
++    }
++    // The heartbeat keeps its fast cadence; only the sweeps are staggered.
++    expect(integrationWorkerHeartbeatRepeatEveryMilliseconds).toBe(10_000);
++    expect(new Set([ticketArchiveJobName, waitingForUserJobName]).size).toBe(2);
++  });
++});
+
+diff --git a/backend/src/worker.module.spec.ts b/backend/src/worker.module.spec.ts
+index b1c22f1..9c6368d 100644
+--- a/backend/src/worker.module.spec.ts
++++ b/backend/src/worker.module.spec.ts
+@@ -3,11 +3,19 @@ import { Test } from '@nestjs/testing';
+ import { PrismaService } from './common/prisma/prisma.service';
+ import { RedisService } from './common/redis/redis.service';
+ import { integrationQueueName } from './modules/integration-queue/integration-queue.constants';
++import { integrationWorkerMaintenanceQueueName } from './modules/integration-queue/integration-worker-maintenance.job.constants';
++import { IntegrationWorkerMaintenanceProcessor } from './modules/integration-queue/integration-worker-maintenance.processor';
+ import { notificationRetentionQueueName } from './modules/notifications/notification-retention.constants';
+ import { NotificationRetentionProcessor } from './modules/notifications/notification-retention.processor';
+ import { IntegrationQueueProcessor } from './modules/integration-queue/integration-queue.processor';
++import { knowledgeBaseReviewReminderQueueName } from './modules/knowledge-base/knowledge-base-review-reminder.job.constants';
++import { KnowledgeBaseReviewReminderProcessor } from './modules/knowledge-base/knowledge-base-review-reminder.processor';
+ import { slaScanQueueName } from './modules/sla/sla-scan.constants';
+ import { SlaScanProcessor } from './modules/sla/sla-scan.processor';
++import { ticketArchiveQueueName } from './modules/tickets/archive/ticket-archive.job.constants';
++import { TicketArchiveProcessor } from './modules/tickets/archive/ticket-archive.processor';
++import { waitingForUserQueueName } from './modules/tickets/waiting-for-user/waiting-for-user.job.constants';
++import { WaitingForUserProcessor } from './modules/tickets/waiting-for-user/waiting-for-user.processor';
+ import { WebsocketGateway } from './modules/websocket/websocket.gateway';
+ import { WorkerModule } from './worker.module';
+ 
+@@ -15,6 +23,38 @@ jest.mock('./common/prisma/prisma.service', () => ({
+   PrismaService: class PrismaService {},
+ }));
+ 
++/** Every queue the worker owns (Phase 2.1, 2.3 and 4.1). */
++const scheduledQueueNames = [
++  integrationQueueName,
++  slaScanQueueName,
++  notificationRetentionQueueName,
++  ticketArchiveQueueName,
++  waitingForUserQueueName,
++  knowledgeBaseReviewReminderQueueName,
++  integrationWorkerMaintenanceQueueName,
++] as const;
++
++const processorTypes = [
++  IntegrationQueueProcessor,
++  SlaScanProcessor,
++  NotificationRetentionProcessor,
++  TicketArchiveProcessor,
++  WaitingForUserProcessor,
++  KnowledgeBaseReviewReminderProcessor,
++  IntegrationWorkerMaintenanceProcessor,
++] as const;
++
++function createFakeQueue() {
++  return {
++    upsertJobScheduler: jest.fn().mockResolvedValue({}),
++    add: jest.fn(),
++    close: jest.fn().mockResolvedValue(undefined),
++    disconnect: jest.fn(),
++    on: jest.fn(),
++    off: jest.fn(),
++  };
++}
++
+ describe('WorkerModule', () => {
+   beforeEach(() => {
+     process.env.REDIS_HOST = 'redis-core';
+@@ -22,48 +62,23 @@ describe('WorkerModule', () => {
+     process.env.QUEUE_PREFIX = 'bull:ephelpdesk';
+   });
+ 
+-  it('boots Redis, Prisma, and the queue processor without HTTP or websocket', async () => {
+-    const moduleRef = await Test.createTestingModule({
+-      imports: [WorkerModule],
+-    })
+-      .overrideProvider(getQueueToken(integrationQueueName))
+-      .useValue({
+-        add: jest.fn(),
+-        close: jest.fn().mockResolvedValue(undefined),
+-        on: jest.fn(),
+-        off: jest.fn(),
+-      })
+-      .overrideProvider(IntegrationQueueProcessor)
+-      .useValue({ process: async () => undefined })
+-      // Phase 2.1: the SLA scan is a worker job now — same fake treatment as the
+-      // integration queue so the graph boots without Redis.
+-      .overrideProvider(getQueueToken(slaScanQueueName))
+-      .useValue({
+-        upsertJobScheduler: jest.fn().mockResolvedValue({}),
+-        add: jest.fn(),
+-        close: jest.fn().mockResolvedValue(undefined),
+-        on: jest.fn(),
+-        off: jest.fn(),
+-      })
+-      .overrideProvider(SlaScanProcessor)
+-      .useValue({ process: async () => undefined })
+-      // Phase 2.3: the notification retention sweep is a worker job too.
+-      .overrideProvider(getQueueToken(notificationRetentionQueueName))
+-      .useValue({
+-        upsertJobScheduler: jest.fn().mockResolvedValue({}),
+-        add: jest.fn(),
+-        close: jest.fn().mockResolvedValue(undefined),
+-        on: jest.fn(),
+-        off: jest.fn(),
+-      })
+-      .overrideProvider(NotificationRetentionProcessor)
+-      .useValue({ process: async () => undefined })
+-      .compile();
++  it('boots Redis, Prisma, and every scheduled job without HTTP or websocket', async () => {
++    const builder = Test.createTestingModule({ imports: [WorkerModule] });
++    for (const queueName of scheduledQueueNames) {
++      builder
++        .overrideProvider(getQueueToken(queueName))
++        .useValue(createFakeQueue());
++    }
++    for (const processor of processorTypes) {
++      builder.overrideProvider(processor).useValue({ process: async () => undefined });
++    }
++    const moduleRef = await builder.compile();
++
+     expect(moduleRef.get(RedisService)).toBeDefined();
+     expect(moduleRef.get(PrismaService)).toBeDefined();
+-    expect(moduleRef.get(IntegrationQueueProcessor)).toBeDefined();
+-    expect(moduleRef.get(SlaScanProcessor)).toBeDefined();
+-    expect(moduleRef.get(NotificationRetentionProcessor)).toBeDefined();
++    for (const processor of processorTypes) {
++      expect(moduleRef.get(processor)).toBeDefined();
++    }
+     expect(() => moduleRef.get(WebsocketGateway)).toThrow();
+     await moduleRef.close();
+   });
+
+diff --git a/backend/src/worker.module.ts b/backend/src/worker.module.ts
+index ce25ef1..711a0f8 100644
+--- a/backend/src/worker.module.ts
++++ b/backend/src/worker.module.ts
+@@ -3,9 +3,12 @@ import { ConfigModule } from '@nestjs/config';
+ import { PrismaModule } from './common/prisma/prisma.module';
+ import { RedisModule } from './common/redis/redis.module';
+ import { IntegrationQueueWorkerModule } from './modules/integration-queue/integration-queue-worker.module';
++import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-base/knowledge-base-review-reminder-worker.module';
+ import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
+ import { SettingsModule } from './modules/settings/settings.module';
+ import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
++import { TicketArchiveWorkerModule } from './modules/tickets/archive/ticket-archive-worker.module';
++import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/waiting-for-user-worker.module';
+ 
+ @Module({
+   imports: [
+@@ -19,6 +22,10 @@ import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
+     IntegrationQueueWorkerModule,
+     SlaScanWorkerModule,
+     NotificationRetentionWorkerModule,
++    // Phase 4.1: the periodic business sweeps now live here and nowhere else.
++    TicketArchiveWorkerModule,
++    WaitingForUserWorkerModule,
++    KnowledgeBaseReviewReminderWorkerModule,
+   ],
+ })
+ export class WorkerModule {}
+
+diff --git a/frontend/src/components/queue/integration-queue-card.tsx b/frontend/src/components/queue/integration-queue-card.tsx
+index c37b8cc..5d48c56 100644
+--- a/frontend/src/components/queue/integration-queue-card.tsx
++++ b/frontend/src/components/queue/integration-queue-card.tsx
+@@ -1,7 +1,8 @@
+-import { Database } from "lucide-react";
++import { Database, RefreshCw } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { IntegrationQueueTable } from "@/components/queue/integration-queue-table";
+ import { Badge, type BadgeTone } from "@/components/ui/badge";
++import { Button } from "@/components/ui/button";
+ import { Card, CardHeader } from "@/components/ui/card";
+ import { EmptyState } from "@/components/ui/empty-state";
+ import { PanelSkeleton } from "@/components/ui/skeleton";
+@@ -33,7 +34,7 @@ export function IntegrationQueueCard({
+ }) {
+   const { t } = useTranslation();
+   const queue = useIntegrationQueue(enabled);
+-  const workerStatus = useIntegrationWorkerStatus(enabled);
++  const worker = useIntegrationWorkerStatus(enabled);
+ 
+   return (
+     <Card className="fade-in">
+@@ -41,9 +42,22 @@ export function IntegrationQueueCard({
+         title={t("integrationQueue.heading")}
+         subtitle={t("integrationQueue.headingHint")}
+         actions={
+-          <Badge tone={workerBadgeTone[workerStatus]} dot>
+-            {t(workerBadgeKey[workerStatus])}
+-          </Badge>
++          <div className="flex items-center gap-2">
++            <Badge tone={workerBadgeTone[worker.status]} dot>
++              {t(workerBadgeKey[worker.status])}
++            </Badge>
++            {/* Phase 4.1: status is pulled on demand instead of polled. */}
++            <Button
++              variant="ghost"
++              size="icon"
++              disabled={!enabled || worker.isRefreshing}
++              aria-label={t("integrationQueue.workerRefresh")}
++              title={t("integrationQueue.workerRefresh")}
++              onClick={() => void worker.refresh()}
++            >
++              <RefreshCw className={worker.isRefreshing ? "animate-spin" : undefined} />
++            </Button>
++          </div>
+         }
+       />
+       <div className="px-4 py-3.5">
+
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index c066dda..17bf798 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -1704,6 +1704,7 @@
+     "workerActive": "worker: aktivan",
+     "workerStale": "worker: neaktivan",
+     "workerUnknown": "worker: nepoznato",
++    "workerRefresh": "Osvježi status workera",
+     "retryNow": "Retry now",
+     "retrying": "Ponovno slanje…",
+     "noError": "Nema greške",
+
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index c1b8504..9300684 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -1704,6 +1704,7 @@
+     "workerActive": "worker: active",
+     "workerStale": "worker: inactive",
+     "workerUnknown": "worker: unknown",
++    "workerRefresh": "Refresh worker status",
+     "retryNow": "Retry now",
+     "retrying": "Retrying…",
+     "noError": "No error",
+
+diff --git a/frontend/src/lib/queue/use-integration-worker-status.ts b/frontend/src/lib/queue/use-integration-worker-status.ts
+index b38f4aa..2b6205c 100644
+--- a/frontend/src/lib/queue/use-integration-worker-status.ts
++++ b/frontend/src/lib/queue/use-integration-worker-status.ts
+@@ -4,34 +4,49 @@ import {
+   type IntegrationWorkerStatus,
+ } from "@/services/integration-queue-api";
+ 
+-const workerStatusPollMilliseconds = 15_000;
++export interface IntegrationWorkerStatusState {
++  readonly status: IntegrationWorkerStatus;
++  readonly isRefreshing: boolean;
++  readonly refresh: () => Promise<void>;
++}
+ 
+-export function useIntegrationWorkerStatus(enabled: boolean) {
++/**
++ * Worker health for the integration queue card.
++ *
++ * Phase 4.1 (plan §4.1): this used to poll `/integration-jobs/worker-status` every
++ * 15 seconds for as long as the card was open. The heartbeat is now written by a
++ * worker job (one write per interval, not one per worker), and the card pulls the
++ * status on mount and when the user asks for it — no interval, no traffic for a
++ * screen nobody is looking at.
++ *
++ * The socket is deliberately not used here: the queue card is an admin view and its
++ * channel is not part of the realtime contract, so nothing new is emitted for it.
++ */
++export function useIntegrationWorkerStatus(
++  enabled: boolean,
++): IntegrationWorkerStatusState {
+   const [status, setStatus] = useState<IntegrationWorkerStatus>("unknown");
++  const [isRefreshing, setRefreshing] = useState(false);
+ 
+-  const load = useCallback(async () => {
++  const refresh = useCallback(async () => {
+     if (!enabled) {
+       setStatus("unknown");
+       return;
+     }
++    setRefreshing(true);
+     try {
+       const response = await getIntegrationWorkerStatus();
+       setStatus(response.status);
+     } catch {
+       setStatus("unknown");
++    } finally {
++      setRefreshing(false);
+     }
+   }, [enabled]);
+ 
+   useEffect(() => {
+-    void load();
+-    if (!enabled) {
+-      return;
+-    }
+-    const timer = setInterval(() => {
+-      void load();
+-    }, workerStatusPollMilliseconds);
+-    return () => clearInterval(timer);
+-  }, [enabled, load]);
++    void refresh();
++  }, [refresh]);
+ 
+-  return status;
++  return { status, isRefreshing, refresh };
+ }
+
+diff --git a/ops/quarterly-perf-review.md b/ops/quarterly-perf-review.md
+new file mode 100644
+--- /dev/null
++++ b/ops/quarterly-perf-review.md
+@@ -0,0 +1,75 @@
++# Kvartalna revizija performansi
++
++Faza 4.2, plan §4.2, tačka 3. Ponavlja se **svakog kvartala** (kalendarski: prvi
++radni dan u januaru/aprilu/julu/oktobru). Vlasnik: platform tim. Trajanje: pola dana.
++Rezultat je zapisnik — tabela na kraju ovog dokumenta — plus ažuriranja
++`PERF_BUDGETS.md` i red u planu §7.
++
++## 1. Puni load test (kapija programa)
++
++```bash
++k6 run perf/full.js        # 2.800 VU / 30 min, profil iz perf/config.js
++```
++- Uporedi svaku ćeliju SLO tabele (`PERF_BUDGETS.md` §1) s pragom.
++- Prepiši red „Nakon F4" u `PERFORMANCE_PHASE_PLAN.md` §7 stvarnim brojkama.
++- Ako je ćelija preko budžeta: **ne popuštaj prag** — otvori stavku s uzrokom
++  (`request_id` iz `query_budget_exceeded`, najgori endpoint iz k6 izvještaja).
++
++## 2. Revizija indeksa
++
++```sql
++-- nekorišteni indeksi (kandidati za brisanje)
++select relname, indexrelname, idx_scan from pg_stat_user_indexes where idx_scan = 0 order by 1;
++-- duplirani indeksi (isti stupci, drugi redoslijed)
++select * from pg_indexes where schemaname = 'public' order by tablename, indexname;
++-- veličina i bloat
++select relname, pg_size_pretty(pg_total_relation_size(relid)) from pg_stat_user_tables order by pg_total_relation_size(relid) desc limit 20;
++```
++- Provjeri da su indeksi iz F1/F2 još opravdani: `tickets` kompozitni indeksi
++  (`20260923120000`), trigram GIN ×3 (`20260923140000`), SLA
++  `(resolutionCompletedAt, nextDueAt)` (`20260924140000`).
++- Svaki `idx_scan = 0` indeks koji je stariji od dva kvartala → kandidat za
++  `DROP INDEX CONCURRENTLY` (nikad `DROP` bez `CONCURRENTLY` u produkciji).
++
++## 3. Ekspanzija tabela i particionisanje
++
++| Tabela | Metrika | Prag za akciju |
++|---|---|---|
++| `tickets` | broj redova | **> 5M** ⇒ particionisanje po `createdAt` (mjesec ili kvartal) + provjera svih indeksa na particionisanoj tabeli |
++| `notifications` | broj redova / starost najstarijeg retencijskog reda | retencija (90 dana, queue `notification-retention`) mora držati tabelu; ako najstariji red > 120 dana ⇒ job ne radi |
++| `audit_log` | prirast po kvartalu | > 10M redova/kvartal ⇒ particionisanje ili hladno skladište |
++| `TicketSlaState` | broj zapisa s `nextDueAt` starijim od 30 dana | znak da scan ne stiže (provjeri `job_duration_ms` za `sla-scan`) |
++
++```sql
++select count(*) from "Ticket";
++select min("createdAt"), count(*) from "Notification";
++select relname, n_live_tup from pg_stat_user_tables order by n_live_tup desc limit 10;
++```
++
++## 4. Dokaz da kapija radi (obavezan korak)
++
++Na scratch grani uvedi namjernu regresiju (npr. N+1 u `GET /tickets` ili uklanjanje
++keša dashboarda) i otvori PR:
++- `.github/workflows/perf-smoke.yml` **mora pasti** (P95 ili `db_queries_per_request`),
++- artefakt (`perf-smoke.md`, `api.log`) mora imenovati uzrok,
++- zatvori PR bez merge-a.
++
++Ako kapija ne padne — kapija je pokvarena i to je najvažnija stavka kvartala.
++
++## 5. Provjera automatike i realtime-a
++
++- Periodični poslovi (F4.1): u logu `worker.log` svaki job mora imati
++  `job=<ime> job_duration_ms=… job_processed=… job_failed=…`; nijedan `*_schedule_failed`.
++- **API ne smije imati nijednu job liniju** — `grep 'job=' api.log` mora biti prazan.
++- WS: `ws_adapter_redis_ok=1`, `ws_emits_*` unutar budžeta (plan §4.2), bez
++  `fallback=in_memory` linija.
++
++## 6. Zapisnik (kopiraj u PR/issue)
++
++| Kvartal | P95 read | P95 mutacija | DB QPS | SLA ciklus | Emit-ovi/s | Error rate | Akcije |
++|---|---|---|---|---|---|---|---|
++| 2026-Q4 | | | | | | | |
++| 2027-Q1 | | | | | | | |
++
++Pravilo: **promjena praga je odluka čovjeka** — upiši razlog u `PERF_BUDGETS.md`
++uz red koji mijenjaš; automatsko popuštanje praga nije dopušteno.
+
+diff --git a/ops/runbook/pg-pool-saturation.md b/ops/runbook/pg-pool-saturation.md
+new file mode 100644
+--- /dev/null
++++ b/ops/runbook/pg-pool-saturation.md
+@@ -0,0 +1,51 @@
++# Runbook: zasićenje pg poola
++
++Faza 4.2, plan §4.2. Simptom → dijagnostika → ublažavanje.
++
++## Simptom
++
++- P95 skoči na **svim** endpointima odjednom (nije jedan upit — čeka se konekcija).
++- U logu: `DB_POOL_CONNECTION_TIMEOUT_MS` (default 3 s) poruke, `statement timeout`
++  (default 5 s) greške, a query budžet upozorenja rastu
++  (`query_budget_exceeded request_id=… path=…`).
++- `event-loop-lag` monitor pokazuje skok, ali CPU je umjeren — čeka se I/O.
++
++## Dijagnostika
++
++```bash
++# 1) Ko čeka konekciju (aktivnost u bazi)
++psql "$DATABASE_URL" -c "select state, wait_event_type, count(*) from pg_stat_activity group by 1,2 order by 3 desc;"
++# 2) Najskuplji upiti
++psql "$DATABASE_URL" -c "select calls, mean_exec_time, left(query, 90) from pg_stat_statements order by mean_exec_time desc limit 20;"   # traži pg_stat_statements
++# 3) Naši brojači (pool + po zahtjevu)
++grep -E 'db_pool_|db_queries_per_request=' api.log | tail -50
++grep query_budget_exceeded api.log | tail -20
++```
++`request_id` iz upozorenja vodi direktno na zahtjev i endpoint koji je prekoračio
++budžet od 3 upita — to je prvo mjesto za optimizaciju (N+1 ili nedostajući keš).
++
++## Ublažavanje
++
++1. **Privremeno povećaj pool** (u env, pa restart instance po jedna — rolling):
++   `DB_POOL_MAX` 40 → 60 **samo** ako baza ima slobodne konekcije
++   (`max_connections` − trenutno aktivne). Ako nema, povećanje poola samo pomjera
++   problem na bazu (klasična greška).
++2. **Skini teret** — smanji broj worker replika i/ili pauziraj teške poslove
++   (arhiva/KB) jednim restartom workera; API nastavlja normalno.
++3. **Nađi i ubij dugotrajne upite**:
++   ```bash
++   psql "$DATABASE_URL" -c "select pg_cancel_backend(pid) from pg_stat_activity where state='active' and now()-query_start > interval '30 seconds';"
++   ```
++4. **Statement timeout ostaje** (`DB_STATEMENT_TIMEOUT_MS=5000`): ne diži ga da bi
++   „prošlo" — on je zaštita; ako upit treba > 5 s, treba indeks ili keš, ne timeout.
++5. **PgBouncer (transaction mode)**: drži `DB_POOL_MAX` na 40 po aplikacijskoj
++   instanci; pooler množi konekcije prema bazi — provjeri `pool_mode` i limite
++   prije nego što diraš `DB_POOL_MAX`.
++6. Trajno: novi indeks (kvartalna revizija,
++   `ops/quarterly-perf-review.md`) ili dodatni keš na nivou koji je mjerio budžet.
++
++## Izlazak iz incidenta
++
++- Greske `pool connection timeout` prestale, P95 nazad unutar budžeta (`PERF_BUDGETS.md`),
++- `db_queries_per_request` prosjek ≤ 2, upozorenja svedena na poznate izuzetke,
++- zapis u `ops/quarterly-perf-review.md`: koji upit, koji indeks/keš, koji broj.
+
+diff --git a/ops/runbook/redis-down.md b/ops/runbook/redis-down.md
+new file mode 100644
+--- /dev/null
++++ b/ops/runbook/redis-down.md
+@@ -0,0 +1,57 @@
++# Runbook: Redis je pao (ili je odsječen)
++
++Faza 4.2, plan §4.2. Sistem je projektovan da **ostane živ** bez Redisa: svaka
++putanja ima fail-open granu, a ono što ne radi je jasno vidljivo u logu. Ovaj
++runbook služi da se to ne miješa s „aplikacija je pala".
++
++## Simptom
++
++- API odgovara, ali: keševi promašuju (P95 raste), worker heartbeat je „stale" na
++  admin kartici reda, DLQ/retention se ne čiste, periodični poslovi (arhiva,
++  waiting-for-user, KB podsjetnici) se ne izvršavaju.
++- U logu: `ws adapter: fallback=in_memory`, `*_schedule_failed`, `authz_*_invalidation_skipped`,
++  `Failed to write worker heartbeat`.
++
++## Šta se dešava po komponenti (fail-open grane)
++
++| Komponenta | Bez Redisa | Posljedica |
++|---|---|---|
++| WS adapter (F3.1) | `fallback=in_memory` | emit-ovi rade samo unutar instance; grupa/user sobe na drugoj instanci ne dobijaju ništa |
++| Authz keš (F2.2) | čitanje iz baze | tačno, ali +1 upit po zahtjevu (P95 raste) |
++| Dashboard/SLA summary keš (F2.4) | ponovni izračun | tačno, skuplje |
++| Unread count keš (F2.3) | `count(*)` po zahtjevu | tačno, skuplje |
++| BullMQ rasporedi (F2.1, F2.3, F4.1) | registracija padne uz `*_schedule_failed` | **poslovi se ne pokreću dok se Redis ne vrati** |
++| Worker heartbeat | ne piše se | status „stale" (ne „down") |
++
++## Dijagnostika
++
++```bash
++redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping          # PONG ili timeout
++redis-cli -h "$REDIS_HOST" --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" ping
++grep -E 'schedule_failed|fallback=in_memory|heartbeat' api.log worker.log | tail -30
++redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" info clients
++redis-cli llen 'bull:ephelpdesk:integration-jobs:wait'    # da li red stoji
++```
++Provjeri i ACL (`ops/redis-acl.line`), `REDIS_KEY_PREFIX`/`QUEUE_PREFIX` i da nije
++rijеč o mreži/LB-u između API-ja i Redisa.
++
++## Ublažavanje
++
++1. **Ne restartuj API** — on radi; restart ti ne pomaže, a obara WS sesije.
++2. Vrati Redis (failover na repliku, podigni instancu, otvori mrežu).
++3. **Restartuj worker** nakon što Redis vrati: rasporedi su idempotentni po
++   `scheduler id` (`upsertJobScheduler` u worker boot-u), pa restart samo ponovo
++   registruje iste rasporede — nema duplih izvršenja.
++4. Pusti keševe da se sami napune (authz TTL 60 s, summary 15 s). Ako je potrebno
++   ranije: restart nije potreban, prvi zahtjev puni keš.
++5. Ako Redis ne može brzo da se vrati, **ne pokreći poslove ručno po instancama** —
++   dupli trigger je bezopasan samo za idempotentne poslove (svi su, dokazano u
++   `perf/results/after-f4-*.md`), ali raspored ostaje jedan izvor istine.
++
++## Izlazak iz incidenta
++
++- `redis-cli ping` → `PONG`, `ws_adapter_redis_ok=1`,
++- u logu nema novih `*_schedule_failed` i vidi se prvi uspješan `job=… job_processed=…`,
++- keš-evi pune (P95 se vraća na baseline unutar 2 minuta),
++- `git status` „nije izgubljeno ništa": svi poslovi su due-based, pa prvi ciklus nakon
++  povratka nadoknađuje propušteno (npr. arhiva uzima sve što je `closedAt <= cutoff`).
+
+diff --git a/ops/runbook/ws-reconnect-storm.md b/ops/runbook/ws-reconnect-storm.md
+new file mode 100644
+--- /dev/null
++++ b/ops/runbook/ws-reconnect-storm.md
+@@ -0,0 +1,53 @@
++# Runbook: WS reconnect storm (deploy/restart oluja)
++
++Faza 4.2, plan §4.2. Simptom → dijagnostika → ublažavanje. Bez filozofije: svaki
++korak je komanda ili log linija koju možeš pokrenuti odmah.
++
++## Simptom
++
++- Nakon deploya, restarta ili Redis bljeska: `ws_clients_count` pravi pilu (npr. 900 →
++  200 → 900 u nekoliko sekundi), CPU na API instancama skoči, klijenti prijavljuju
++  „Reconnecting…", a u logu se izmjenjuju `ws adapter: redis` i `fallback=in_memory`.
++- Ponekad uz to: duplirani realtime događaji (klijent je spojen na dvije instance) ili
++  tišina u grupnoj sobi (emit s jedne instance, klijent na drugoj).
++
++## Dijagnostika (po redu)
++
++1. **Koliko klijenata i na kojoj instanci**
++   ```bash
++   grep ws_clients_count api.log | tail -20
++   grep 'ws_emits_' api.log | tail -20      # staff / public / user / group
++   ```
++2. **Adapter: Redis ili in-memory fallback** — `ws_adapter_redis_ok=1` je zdravo.
++   `fallback=in_memory` znači da emit-ovi ne prelaze između instanci (vidi
++   `redis-down.md`).
++3. **Sticky sesije na LB-u** — bez njih reconnect oluja izgleda kao „klijent koji
++   nikad ne ostane spojen". Provjeri afinitet (`ip_hash` / cookie sticky) i da drain
++   timeout nije kraći od 30 s.
++4. **Cross-instance dokaz**
++   ```bash
++   node ops/ws-cross-instance-check.mjs      # 2 instance + Redis adapter + emit s A
++   ```
++5. **Klijentski jitter** — reconnect mora imati jitter
++   (`frontend/src/services/helpdesk-socket.ts`: `helpdeskSocketReconnect`,
++   `createHelpdeskSocketOptions`). Ako je jitter isključen ručno, to je uzrok.
++
++## Ublažavanje
++
++1. **Rolling drain, jedna instanca po jedna** (procedura: `ops/ws-rolling-deploy.md`):
++   `maxSurge 1`, `maxUnavailable 0`, drain ≥ 30 s. Nikad „sve odjednom".
++2. **Drži ≥ 2 instance** — jedna instanca u restartu ne smije značiti prekid.
++3. **Provjeri adapter pa Redis** — ako je `fallback=in_memory`, prvo vrati Redis
++   (`redis-down.md`), pa tek onda ponovo diži instance.
++4. **Ne gasi jitter** i ne povećavaj agresivno `reconnectionAttempts`; oluja se rješava
++   drainom, ne bržim reconnectom.
++5. **Ako oluja traje i nakon drain-a**: provjeri da nije riječ o emit-petlji —
++   `ws_emits_group` naglo raste dok `ws_emits_staff` miruje; tada je uzrok u
++   fan-out putanji (notifikacije/tiket događaji), ne u mreži.
++
++## Izlazak iz incidenta
++
++- `ws_clients_count` se vrati na očekivani broj i ostane stabilan 10 minuta,
++- `ws_adapter_redis_ok=1` na svim instancama,
++- nema novih `fallback=in_memory` linija,
++- grupna soba prima `group.feed-changed` (mali payload), a ne puni `ticket.updated`.
+
+diff --git a/perf/config.js b/perf/config.js
+index fe0b181..7617eb7 100644
+--- a/perf/config.js
++++ b/perf/config.js
+@@ -74,6 +74,10 @@ export const perfConfig = {
+     searchRequestsPerInput: 1,
+     ticketListPayloadKb: 100,
+   },
++  // Phase 4.2 (plan §4.2, item 1): the CI gate is a *smoke*, not the full run.
++  // `PERF_PROFILE=ci` switches the durations to the short profile and the thresholds
++  // to the relaxed numbers below (see `ciThresholds` for where each one comes from).
++  profile: env.PERF_PROFILE || 'full',
+ };
+ 
+ /** Number of virtual users per scenario, derived from the mix above. */
+@@ -89,6 +93,39 @@ export function scenarioVus(config) {
+   };
+ }
+ 
++/**
++ * Phase 4.2 (plan §4.2, item 1): thresholds for the CI smoke step.
++ *
++ * Where the numbers come from — the rule is that a threshold is never invented:
++ * - `http_req_failed < 1%`: the SLO budget is 0.5% (plan §4.2) with the documented
++ *   CI margin of 2× for shared runners and cold JIT.
++ * - read endpoints `p(95) < 500 ms`: this is the 200 ms SLO budget × 2.5, NOT a
++ *   measurement. The honest state after Phase 3 is that `perf/results/after-f3-…`
++ *   is a code finding (the sandbox had no k6/Postgres/Redis/LB), so there is no
++ *   measured P95 to derive 1.5× from. The margin is deliberate and commented; the
++ *   iron rule (budget = measured × 1.5) is applied on the first CI run that has real
++ *   numbers, or by a human decision recorded in `PERF_BUDGETS.md`.
++ * - mutation `p(95) < 1000 ms`: same reasoning, 400 ms budget × 2.5.
++ * - payload budgets are measured by the scenarios themselves and stay at the SLO
++ *   value: they do not depend on runner speed.
++ */
++export function ciThresholds(config) {
++  const readP95Ms = config.budgets.readP95Ms * 2.5;
++  const mutationP95Ms = config.budgets.mutationP95Ms * 2.5;
++  const errorRate = config.budgets.errorRate * 2;
++  return {
++    http_req_failed: [`rate<${errorRate}`],
++    tickets_list_duration: [`p(95)<${readP95Ms}`],
++    ticket_detail_duration: [`p(95)<${readP95Ms}`],
++    unread_count_duration: [`p(95)<${readP95Ms}`],
++    search_duration: [`p(95)<${readP95Ms}`],
++    dashboard_summary_duration: [`p(95)<${readP95Ms}`],
++    ticket_message_duration: [`p(95)<${mutationP95Ms}`],
++    ticket_list_payload_kb: [`p(95)<${config.budgets.ticketListPayloadKb}`],
++    dashboard_payload_kb: [`p(95)<${config.budgets.dashboardPayloadKb}`],
++  };
++}
++
+ /** Threshold block for the full run; smoke.js overrides the durations. */
+ export function fullThresholds(config) {
+   return {
+
+diff --git a/perf/results/after-f4-2026-09-24.md b/perf/results/after-f4-2026-09-24.md
+new file mode 100644
+--- /dev/null
++++ b/perf/results/after-f4-2026-09-24.md
+@@ -0,0 +1,253 @@
++# Faza 4 — otpornost: poslovi u workeru, budžeti i kapije
++
++Datum: 2026-09-24. Ulaz: `prompts/PROMPT_FAZA_4_OTPORNOST.md`, plan §4.1–§4.2.
++Izlaz: `perf/patches/perf-04-otpornost.patch` (perf-00…03 + ovaj = konačan program).
++
++Ovaj izvještaj je ujedno **zaključni izvještaj cijelog programa** (format iz
++prompta §8 je na kraju dokumenta).
++
++---
++
++## 1. STAVKA 4.1 — svi periodični poslovi u worker
++
++### 1.1 Šta je premješteno
++
++| Prije (API proces) | Sada (worker, BullMQ repeatable) | Fajl |
++|---|---|---|
++| `@Interval(15 min)` arhiva | queue `ticket-archive`, `0 0,15,30,45 * * * *` (:00) | `modules/tickets/archive/ticket-archive.{job.constants,processor,scheduler.service}.ts` |
++| `@Interval(15 min)` waiting-for-user | queue `waiting-for-user`, `0 5,20,35,50 * * * *` (:05) | `modules/tickets/waiting-for-user/waiting-for-user.{job.constants,processor,scheduler.service}.ts` |
++| `@Interval(15 min)` KB podsjetnici | queue `knowledge-base-review-reminder`, `0 10,25,40,55 * * * *` (:10) | `modules/knowledge-base/knowledge-base-review-reminder.{job.constants,processor,scheduler.service}.ts` |
++| `setInterval(10 s)` worker heartbeat | queue `integration-worker-maintenance`, `every 10 s` | `modules/integration-queue/integration-worker-maintenance.{job.constants,processor,scheduler.service}.ts` |
++| `setInterval(workerPollSeconds)` DLQ retencija | ista queue, `every settings.workerPollSeconds` | isto |
++
++Rasporedi su **razmješteni unutar 15-minutnog prozora** (`:00` / `:05` / `:10`) da se
++dva sweep-a nikad ne pokrenu u istoj sekundi — dokaz je u
++`scheduled-jobs.wiring.spec.ts` (minutni skupovi su disjunktni).
++
++### 1.2 Job karta (obavezna kolona iz formata izvještaja)
++
++| Job | Raspored | Timeout | Idempotencija (dokaz) | DLQ / retry |
++|---|---|---|---|---|
++| `ticket-archive-scan` | `0 0,15,30,45 * * * *` | 300 s (`lockDuration`, `concurrency: 1`) | `tickets.archive.spec.ts` → „is idempotent under concurrent sweeps": dva paralelna `processDue()` daju **1** arhiviran tiket, status ostaje `ARCHIVED`; `claimTicketArchive` je optimistic claim u istom upitu | 2 pokušaja, exponential backoff 30 s; `removeOnComplete 20` / `removeOnFail 50` |
++| `waiting-for-user-scan` | `0 5,20,35,50 * * * *` | 300 s | `tickets.guardrails.spec.ts` → „emits a waiting-for-user reminder only once under concurrent sweeps" (1 sistemska poruka); tranzicija se primjenjuje samo ako stanje i dalje zadovoljava uslov u istom upitu | 2 / 30 s; 20 / 50 |
++| `knowledge-base-review-reminder-scan` | `0 10,25,40,55 * * * *` | 120 s | **nov** `knowledge-base-review-reminder.dedupe.spec.ts` (4 testa): po vlasniku 1, po članu grupe 1, drugi ciklus (novi `reviewDueAt`) ponovo šalje, dedupe ključ `kb-review:<article>:<period>:<user>` preko `P2002` | 2 / 30 s; 20 / 50 |
++| `integration-worker-heartbeat` | `every 10 s` | 120 s | `SET key value EX 30` — ponovljeno pisanje je definisano (zadnja vrijednost), bez stanja | **1 pokušaj** (sljedeći tick je 10 s daleko); 5 / 20 |
++| `integration-dlq-retention` | `every settings.workerPollSeconds` (fallback 15 s) | 120 s | `deleteDeadLetterOlderThan(cutoff)` — ponovni run ne briše ništa novo | 2 / 30 s; 20 / 50 |
++| `sla-scan` (F2.1, već u perf-02) | `every 60 s` | 120 s | `sla-scan.processor.spec.ts` + due-only scan | 2 / 5 s; 20 / 50 |
++
++> **Napomena o `timeout`:** BullMQ v5 **nema** `opts.timeout` po jobu (to je Pro
++> funkcija), pa je budžet sproveden framework-native: `lockDuration` na procesoru +
++> `concurrency: 1`. Job koji prekorači gubi lock i biva označen kao `stalled` (retry),
++> umjesto da tiho blokira worker. Zapisano u komentaru svakog `*.job.constants.ts`.
++
++### 1.3 „Dva workera = jedno izvršenje"
++
++- `upsertJobScheduler(id, …)` je idempotentan **po id-u**; dva workera se spajaju na
++  isti raspored. Dokaz: `scheduled-jobs.wiring.spec.ts` — dvije instance svakog
++  scheduler servisa nad dijeljenim store-om daju **5 rasporeda iz 10 registracija**
++  (`upsertJobScheduler` pozvan 10×, `Map.size === 5`, ključevi = očekivani id-evi).
++- Zaključavanje izvršenja je queue-semantika: due job dobija **jedan** worker
++  (`concurrency: 1` po procesoru). To je framework garancija; u ovom okruženju (bez
++  Redis-a) može se provjeriti samo unit dokazom rasporeda — vidi §5 (ograničenja).
++- API proces **nema** nijedan job: `app.module.spec.ts` → kompilacija `AppModule`
++  prolazi, a `TicketArchiveAutomationService`, `WaitingForUserAutomationService` i
++  `KnowledgeBaseReviewReminderService` **nisu** u grafu (`moduleRef.get(..., {strict:
++  false})` baca). `grep -rn "@Interval\|@Cron" backend/src` posle ove faze ne nalazi
++  nijedan pogodak (ostali su samo `setInterval` u `event-loop-lag.monitor.ts` i worker
++  keepAlive-u, koji po planu ostaju). Pošto više nijedan fajl ne uvozi ni
++  `ScheduleModule`, zavisnost `@nestjs/schedule` je **uklonjena iz
++  `backend/package.json`** — plan traži da periodika bude isključivo u workeru, a
++  mrtva zavisnost je poziv na vraćanje `@Interval` obrazaca. Nema novih paketa ni u
++  jednoj fazi.
++
++### 1.4 Posljedica koju je trebalo riješiti: realtime most
++
++Arhiva i waiting-for-user sweep objavljuju poruke i promjene kroz `TicketRealtimeHub`.
++U API procesu na hub sluša gateway; u workeru nema gateway-a, pa bi premještanje
++sweep-a **tiho ugasilo** live update za te tikete. Zato je u istom stavkom dodan most:
++
++| Dio | Fajl | Uloga |
++|---|---|---|
++| kanal | `tickets/ticket-realtime-bridge.constants.ts` | `tickets:realtime-bridge` |
++| tipovi + parser | `ticket-realtime-bridge.types.ts`, `parse-ticket-realtime-bridge-payload.ts` (+spec) | validacija envelope-a prije hub-a |
++| worker → Redis | `publish-ticket-realtime-to-redis.service.ts`, `ticket-realtime.redis-forwarder.ts` | forwarder se pretplaćuje na hub i objavljuje dalje (worker-only modul) |
++| Redis → API | `ticket-realtime-bridge.subscriber.ts` (u `tickets.module.ts`) | prima i re-publishuje u hub → gateway emituje u iste sobe kao prije |
++
++Isti obrazac kao `PublishEdgeEventToRedisService` + `EdgeEventRealtimeSubscriber` iz
++integracijske queue — namjerno, da ne postoje dva načina za istu stvar.
++
++### 1.5 Logika jobova
++
++Poslovne funkcije nisu dirane: `processDue()` / `sweep()` / `writeHeartbeat()` su
++bajt-identične, uklonjeni su samo `@Interval`/`setInterval` okviri. Pragovi domene
++(arhiva `afterClosedDays`, waiting-for-user rokovi, KB `remindDaysBefore`) nisu
++mijenjani.
++
++### 1.6 Metrike
++
++Svaki procesor ispisuje jednu liniju po izvršenju (zajednički helper
++`common/scheduled-jobs/format-job-metrics.ts`):
++
++```
++job=ticket-archive-scan job_duration_ms=8123 job_processed=12 job_failed=0
++```
++
++`job_failed=1` se upisuje i preko `logger.error` prije nego što se greška ponovo baci
++(retry/DLQ), pa se neuspjesi vide i u logu i u redu.
++
++### 1.7 Frontend: status workera bez pollinga
++
++`frontend/src/lib/queue/use-integration-worker-status.ts` više ne vrti `setInterval`
++(15 s): status se čita pri montiranju i na zahtjev (`refresh`), a kartica
++`integration-queue-card.tsx` dobila je dugme „Osvježi status workera" (`bs` + `en`
++prijevod). Novi kanal nije uveden — admin pogled ne emituje ništa.
++
++---
++
++## 2. STAVKA 4.2 — budžeti, CI kapija i runbookovi
++
++| Isporuka | Fajl | Sadržaj |
++|---|---|---|
++| SLO budžeti | `PERF_BUDGETS.md` (root) | tabela iz plana §4.2 + kolone „stanje nakon F3" i „izvor brojke"; pravila (prag se ne popušta automatski, novi endpoint dolazi s budžetom, kod-nalaz ≠ mjerenje) |
++| CI kapija | `.github/workflows/perf-smoke.yml` | Postgres 16 + Redis 7 service containeri, `prisma migrate deploy`, build, API, install-wizard fixture (`/install/super-admin` + `/install/seed`), k6 smoke (200 VU / 5 min), provjera query budžeta iz `api.log`, artefakti (30 dana) |
++| CI pragovi | `perf/config.js::ciThresholds` | P95 read < 500 ms (budžet 200 ms × 2,5 — komentar objašnjava da F3 nema mjerenje), P95 mutacija < 1.000 ms, error rate < 1 %, payload budžeti na SLO vrijednosti; `perf/smoke.js` ih bira uz `PERF_PROFILE=ci` |
++| Query budžet | `request-metrics.middleware.ts` (+ `.env.example`) | brojač po `requestId` (F0), WARN sada nosi **`request_id` i `path`**: `query_budget_exceeded request_id=… db_queries_per_request=… budget=3 path=/tickets`; default OFF u produkciji, ON u CI/stagingu |
++| Runbookovi | `ops/runbook/ws-reconnect-storm.md`, `redis-down.md`, `pg-pool-saturation.md` | simptom → dijagnostika (konkretne komande/log linije) → ublažavanje → izlazak iz incidenta |
++| Kvartalna procedura | `ops/quarterly-perf-review.md` | puni load test, revizija indeksa (`pg_stat_user_indexes`), ekspanzija tabela s pragom za particionisanje (`tickets` > 5M), provjera automatike/realtime-a, **obavezan dokaz da kapija radi** (namjerna regresija = crven CI) |
++
++CI pragovi su **izvedeni i komentarisani**, ne „da prođe": jedina dva umnoška su
++2× na error rate i 2,5× na P95 read/mutaciju, oba zapisana u kodu i u
++`PERF_BUDGETS.md`; čim prvi CI run da prave brojke, prag se veže na
++izmjereno × 1,5 (iron rule iz prompta) ili se odluka o drugom broju upisuje u
++`PERF_BUDGETS.md`.
++
++---
++
++## 3. Diff-ovi po stavci (perf-04)
++
++| Grupa | Šta ulazi |
++|---|---|
++| 4.1a arhiva | `tickets/archive/ticket-archive.{job.constants,processor,scheduler.service}.ts`, `ticket-archive-worker.module.ts`, `ticket-archive-automation.service.ts` (bez `@Interval`), `archive.constants.ts` |
++| 4.1b waiting-for-user | `tickets/waiting-for-user/waiting-for-user.{job.constants,processor,scheduler.service}.ts`, `waiting-for-user-worker.module.ts`, servis + konstante |
++| 4.1c KB podsjetnici | `knowledge-base/knowledge-base-review-reminder.{job.constants,processor,scheduler.service,worker.module}.ts`, servis + konstante, **nov** `knowledge-base-review-reminder.dedupe.spec.ts` |
++| 4.1d heartbeat + DLQ | `integration-queue/integration-worker-maintenance.{job.constants,processor,scheduler.service}.ts`, dvije servisne klase bez timera, `integration-queue-worker.module.ts` |
++| 4.1e realtime most | `tickets/ticket-realtime-bridge.{constants,types,subscriber,redis-forwarder,publish-…,parse-…}` (+spec), `ticket-realtime-bridge.module.ts` |
++| 4.1f graf i dokazi | `worker.module.ts`, `tickets.module.ts`, `knowledge-base.module.ts`, `worker.module.spec.ts`, `app.module.spec.ts`, `scheduled-jobs.wiring.spec.ts`, `common/scheduled-jobs/*` |
++| 4.1g FE | `frontend/src/lib/queue/use-integration-worker-status.ts`, `components/queue/integration-queue-card.tsx`, `i18n/locales/{bs,en}/common.json` |
++| 4.1h zavisnost | `backend/package.json` (uklonjen `@nestjs/schedule`; nula referenci u `src/`) |
++| 4.2 | `PERF_BUDGETS.md`, `.github/workflows/perf-smoke.yml`, `perf/config.js`, `perf/smoke.js`, `backend/.env.example`, `ops/runbook/*`, `ops/quarterly-perf-review.md`, `request-metrics.middleware.*` |
++
++---
++
++## 4. Verifikacija
++
++| Provjera | Rezultat |
++|---|---|
++| `npx tsc --noEmit` (backend) | čist |
++| `npx jest --silent` (backend, cijeli paket) | **363 suita / 1366 testova ✓** (prije F4: 358/1352) |
++| Novi specovi | `knowledge-base-review-reminder.dedupe` 4 ✓, `scheduled-jobs.wiring` 2 ✓, `worker.module` 1 ✓, `app.module` 2 ✓, `parse-ticket-realtime-bridge-payload` 3 ✓, `register-repeatable-job` 3 ✓, `format-job-metrics` 1 ✓ |
++| `npx vitest run` (frontend) | **95 fajlova / 333 testa ✓** |
++| `npm run build` (frontend) | ✓ (upozorenje o veličini chunka, pre-existing) |
++| `node perf/validate.js` | 18/18 ✓ |
++| `perf/patches/apply-perf.sh --dry-run` | vidi §6 |
++| Puni load test (2.800 VU / 30 min) | **nije izvršen** — okruženje bez k6/Postgres/Redis/LB-a (vidi §5) |
++
++---
++
++## 5. Ograničenja okruženja (kod-nalaz, ne mjerenje)
++
++1. **Puni zaključni load test nije mjerljiv ovdje.** Sandbox nema k6 (`dl.k6.io` je
++   blokiran), nema Postgres/Redis servera ni Docker-a, pa se `k6 run perf/full.js`
++   (2.800 VU / 30 min) i CI pipeline mogu samo pripremiti, ne i izvršiti. Zato:
++   - CI workflow je napisan tako da se prvi pravi run desi na GitHub runneru;
++   - `PERF_BUDGETS.md` sve redove „nije mjereno" priznaje kao kod-nalaz;
++   - zahtjev iz prompta („DIFF-ovi, puni test, konačna tabela") je ispunjen u dijelu
++     koji ne zavisi od okruženja, a ostatak je eksplicitno označen.
++2. **Dva workera × tri intervala** je dokazano na nivou rasporeda (jedan
++   `scheduler id` po poslu) i na nivou logike (idempotencija po jobu). „Tačno jedno
++   izvršenje" kroz Redis lock se ne može izvesti bez Redis-a; to je framework
++   garancija i prva stavka prvog CI runa (u artefaktu ostaje `job=` linija po jobu).
++3. **CI kapija** („namjerno uvedena regresija = crveno") nije izvršena; procedura je
++   propisana u `ops/quarterly-perf-review.md` §4 i prvi put se izvodi na runneru.
++
++---
++
++## 6. Isporuka
++
++- `perf/patches/perf-04-otpornost.patch` — **peti** patch programa (perf-00…perf-04).
++- `perf/patches/apply-perf.sh` — novi unos `perf-04-otpornost.patch` sa sentinelom
++  `backend/src/modules/tickets/archive/ticket-archive.job.constants.ts`.
++- Redoslijed primjene: `bash perf/patches/apply-perf.sh` (idempotentno; preskače već
++  primijenjene patcheve preko sentinela).
++
++---
++
++## 7. ZAKLJUČNI IZVJEŠTAJ (format iz prompta §8)
++
++```
++FAZA 4 — ZAKLJUČNI IZVJEŠTAJ
++
++Diff-ovi:
++  4.1  arhiva / waiting-for-user / KB podsjetnici → BullMQ repeatable u workeru
++       (zasebni moduli + procesori + scheduler servisi, :00/:05/:10)
++  4.1  integration heartbeat + DLQ retencija → queue `integration-worker-maintenance`
++  4.1  realtime most worker → Redis → API (da sweep ne izgubi live update)
++  4.1  graf: API bez job providera; worker dobio tri nova modula; testovi dokaza
++  4.1  FE: status workera bez pollinga (ručno osvježavanje)
++  4.1  uklonjen nekorišteni @nestjs/schedule (nema više nijednog @Interval/@Cron)
++  4.2  PERF_BUDGETS.md, .github/workflows/perf-smoke.yml, query-budget WARN s
++       request_id + path, tri runbooka, kvartalna procedura
++
++Job karta:
++  ticket-archive-scan          | 0 0,15,30,45 * * * *  | 300 s | arhiva: dupli/concurrent
++     sweep = 1 arhiviran tiket (tickets.archive.spec) | 2×30 s, keep 20/50
++  waiting-for-user-scan        | 0 5,20,35,50 * * * *  | 300 s | podsjetnik jednom pod
++     concurrent sweep (tickets.guardrails.spec)       | 2×30 s, keep 20/50
++  kb-review-reminder-scan      | 0 10,25,40,55 * * * * | 120 s | dedupe ključ po
++     (article, period, user); P2002 (nov spec)        | 2×30 s, keep 20/50
++  integration-worker-heartbeat | every 10 s            | 120 s | SET EX (bez stanja);
++     bez retry-a (nema smisla)                        | 1 pokušaj, keep 5/20
++  integration-dlq-retention    | every settings.poll   | 120 s | cutoff DELETE
++     (ponovni run = 0 redova)                         | 2×30 s, keep 20/50
++
++CI:
++  workflow: .github/workflows/perf-smoke.yml (Postgres+Redis services, migrate,
++  build, API, install seed, k6 smoke 200 VU/5 min, query-budget provjera, artefakti)
++  pragovi:  P95 read < 500 ms  (budžet 200 ms × 2,5; F3 nema mjerenje — komentar)
++            P95 mutacija < 1000 ms (budžet 400 ms × 2,5; isti razlog)
++            error rate < 1 % (budžet 0,5 % × 2)
++            avg db_queries_per_request ≤ 3 (iz api.log, request_id = trag)
++  fail = blokirajući; artefakt: perf-smoke.md/json + api.log
++
++KONAČNA TABELA (baseline → F4):
++  Metrika            | baseline*      | F1 †          | F2 ‡            | F3 §          | F4 (cilj)
++  DB QPS             | ~5.500         | ~3× niže      | ~2× niže od F1  | isti kao F2   | < 1.000
++  P95 read           | > 2 s          | ~2× niže      | stabilan        | stabilan      | < 200 ms
++  SLA ciklus         | ~7 min         | ~7 min        | < 15 s (worker) | < 15 s        | < 15 s
++  Emit-ovi/s         | ~4.600         | nepromijenjeno| ~200× niže      | ~40× od base  | < 500
++  Dashboard KB       | ~240.000       | ~0 (paginacija)| ~0 (agregati)  | ~0            | < 100
++  Error rate (k6)    | > 5 %          | nepromijenjeno| nepromijenjeno  | nepromijenjeno| < 0,5 %
++  * model iz statičke analize (F0 nije imao k6/DB); † struktura dokazana (after-f1);
++  ‡ brojanje statementa (after-f2); § emit matrica + aritmetika (after-f3).
++  Konačan red se prepisuje stvarnim brojkama prvim `k6 run perf/full.js`.
++
++Preostali rizici:
++  1. (platform) Puni k6 test nije izvršen ni u F0 ni ovdje — SLO tabela još nije
++     potvrđena mjerenjem; akcija: pokrenuti CI perf-smoke na prvom PR-u i puni
++     full.js na stagingu; vlasnik: platform tim.
++  2. (platform) Emit-ovi prema grupama su smanjeni ~40× ali opcija „jedna
++     notifikacija po grupi" (F2.3 opcija A: `notification.groupId` + seen-mark) nije
++     implementirana — per-korisnički `id` u mark-as-read blokira group emit; akcija:
++     odluka o opciji A; vlasnik: backend vlasnik notifikacija.
++  3. (ops) Granice: sticky sesije i drain na LB-u su pretpostavka (Coolify),
++     `ws-cross-instance-check.mjs` nije izvršen bez Redis-a; akcija: izvršiti na
++     stagingu prije produkcijskog rollouta; vlasnik: ops.
++
++Preporuke izvan obima:
++  - PgBouncer u transaction modu + `pg_stat_statements` u produkciji (runbook ih
++    pretpostavlja).
++  - Prometheus/Grafana tek kad log-pristup prestane biti dovoljan; do tada su
++    `job_*`, `ws_*`, `db_queries_per_request` i `query_budget_exceeded` dovoljni.
++  - Particionisanje `tickets` i revizija indeksa po pragovima iz kvartalne procedure.
++  - Horizontalno autoskaliranje/Kubernetes/CDN — van obima, kako prompt i traži.
++```
+
+diff --git a/perf/smoke.js b/perf/smoke.js
+index 6d0e50c..c07a82a 100644
+--- a/perf/smoke.js
++++ b/perf/smoke.js
+@@ -1,4 +1,4 @@
+-import { perfConfig, fullThresholds } from './config.js';
++import { perfConfig, fullThresholds, ciThresholds } from './config.js';
+ import { setup as setupSession } from './lib/scenarios.js';
+ import { handleSummary } from './report.js';
+ 
+@@ -8,6 +8,10 @@ import { handleSummary } from './report.js';
+  * before the long baseline is started.
+  *
+  *   k6 run perf/smoke.js
++ *
++ * Phase 4.2 adds the CI mode: `PERF_PROFILE=ci k6 run perf/smoke.js` uses the
++ * relaxed, documented thresholds from `ciThresholds()` — the ones the pipeline in
++ * `.github/workflows/perf-smoke.yml` blocks on.
+  */
+ 
+ const smoke = perfConfig.load.smoke;
+@@ -50,7 +54,8 @@ export const options = {
+       tags: { behaviour: 'ws_clients' },
+     },
+   },
+-  thresholds: fullThresholds(perfConfig),
++  thresholds:
++    perfConfig.profile === 'ci' ? ciThresholds(perfConfig) : fullThresholds(perfConfig),
+ };
+ 
+ export function setup() {

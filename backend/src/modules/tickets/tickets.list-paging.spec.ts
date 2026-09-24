@@ -73,6 +73,7 @@ function setup() {
       isResponseAtRisk: false,
       isResolutionAtRisk: false,
       firedEscalationKeys: [],
+      nextDueAt: null,
       updatedAt: day(1),
       ...flags,
     });
@@ -91,14 +92,17 @@ function setup() {
 }
 
 describe('GET /tickets paging, sorting and filters', () => {
-  it('keeps returning a plain array when no paging is requested', async () => {
+  it('answers the first page and never the whole table', async () => {
     const { tickets } = setup();
+    // Phase 1.1: the service helper that used to read everything unpaged now
+    // returns the first page only; the HTTP route always answers an envelope.
     const result = await tickets.list({}, { actorUserId: agentIt });
     expect(Array.isArray(result)).toBe(true);
     // t5 is archived and t7 belongs to HR: neither is listed.
     expect((result as TicketResponse[]).map((item) => item.id).sort()).toEqual([
       't1', 't2', 't3', 't4', 't6',
     ]);
+    expect((result as TicketResponse[]).length).toBeLessThanOrEqual(25);
   });
 
   it('returns one page with the total across pages', async () => {
@@ -117,7 +121,8 @@ describe('GET /tickets paging, sorting and filters', () => {
     const { page } = setup();
     expect(await page({ page: 1 })).toMatchObject({ page: 1, pageSize: 25 });
     expect(await page({ pageSize: 10 })).toMatchObject({ page: 1, pageSize: 10 });
-    expect((await page({ page: 1, pageSize: 500 })).pageSize).toBe(100);
+    // Phase 1.1: the cap dropped from 100 to 50 rows per response.
+    expect((await page({ page: 1, pageSize: 500 })).pageSize).toBe(50);
     expect((await page({ page: 0, pageSize: 0 }))).toMatchObject({ page: 1, pageSize: 1 });
   });
 

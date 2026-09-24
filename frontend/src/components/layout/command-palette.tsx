@@ -101,19 +101,35 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
       setIsSearching(false);
       return;
     }
-    let isCancelled = false;
+    // Phase 1.2 (plan §1.2): the debounce stays at 300 ms and the in-flight
+    // request is aborted when the next keystroke arrives, so typing never
+    // leaves a queue of searches running behind it. An abort is not an error —
+    // the newer request owns the panel.
+    const controller = new AbortController();
     setIsSearching(true);
     const handle = window.setTimeout(() => {
-      void searchHeaderSources(trimmedQuery).then((nextGroups) => {
-        if (!isCancelled) {
-          setGroups(nextGroups);
+      void searchHeaderSources(trimmedQuery, controller.signal).then(
+        (nextGroups) => {
+          if (!controller.signal.aborted) {
+            setGroups(nextGroups);
+            setIsSearching(false);
+          }
+        },
+        (error: unknown) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+          setGroups(emptyHeaderSearchGroups);
           setIsSearching(false);
-        }
-      });
+        },
+      );
     }, searchDebounceMilliseconds);
     return () => {
-      isCancelled = true;
       window.clearTimeout(handle);
+      controller.abort();
     };
   }, [open, trimmedQuery]);
 

@@ -1,41 +1,30 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { loadCreateTicketCatalog } from "@/lib/tickets/load-create-ticket-catalog";
 import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
+import { queryKeys } from "@/lib/query/query-keys";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 
+/**
+ * Faza 3.3 (plan §3.3, grupa (a) — katalozi): the create-ticket catalog (offered
+ * services + origin units) is cached for the catalog window, so opening the form
+ * twice in a session costs one request. The loader itself is unchanged and stays
+ * covered by its own spec.
+ */
 export function useCreateTicketCatalog(): {
   readonly services: readonly ServiceResponse[];
   readonly originUnits: readonly OriginUnitOption[];
   readonly isLoading: boolean;
   readonly errorKey: "tickets.errorCatalog" | null;
 } {
-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
-  const [originUnits, setOriginUnits] = useState<readonly OriginUnitOption[]>(
-    [],
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorKey, setErrorKey] = useState<"tickets.errorCatalog" | null>(null);
+  const query = useQuery({
+    queryKey: queryKeys.createTicketCatalog,
+    queryFn: () => loadCreateTicketCatalog(),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    void loadCreateTicketCatalog()
-      .then((result) => {
-        if (cancelled) {
-          return;
-        }
-        setServices(result.services);
-        setOriginUnits(result.originUnits);
-        setErrorKey(result.errorKey);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { services, originUnits, isLoading, errorKey };
+  return {
+    services: query.data?.services ?? [],
+    originUnits: query.data?.originUnits ?? [],
+    isLoading: query.isLoading,
+    errorKey: query.data?.errorKey ?? null,
+  };
 }

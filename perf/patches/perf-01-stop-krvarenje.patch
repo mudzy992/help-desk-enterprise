@@ -1,0 +1,4306 @@
+perf-01 — FAZA 1: stop-krvarenje (pool 1.4, paginacija 1.1, pretraga 1.2,
+polling 1.3)
+
+Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)
+Baza: perf-00 primijenjen; zatim Faza 2/3/4.
+
+Faze su u JEDNOM fajlu radi isporuke po fazama; granice stavki su u
+perf/results/after-f1-2026-09-24.md §1.
+
+---
+diff --git a/backend/src/common/database/database-pool.constants.ts b/backend/src/common/database/database-pool.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/database/database-pool.constants.ts
+@@ -0,0 +1,35 @@
++export const databasePoolConstants = {
++  environmentKeys: {
++    max: 'DB_POOL_MAX',
++    idleTimeoutMs: 'DB_POOL_IDLE_TIMEOUT_MS',
++    connectionTimeoutMs: 'DB_POOL_CONNECTION_TIMEOUT_MS',
++    statementTimeoutMs: 'DB_STATEMENT_TIMEOUT_MS',
++  },
++  defaults: {
++    /**
++     * node-postgres defaults to 10, which the plan (§1.4) measured as the first
++     * bottleneck: 2.450 active users cannot be served through 10 connections.
++     * 40 is the plan's target per API instance behind PgBouncer.
++     */
++    max: 40,
++    idleTimeoutMs: 30_000,
++    connectionTimeoutMs: 3_000,
++    /**
++     * No statement may hold a connection for minutes; anything slower than this
++     * is a bug (or a report) and is cancelled with a visible error.
++     */
++    statementTimeoutMs: 5_000,
++    /** Identifies the API in `pg_stat_activity.application_name`. */
++    applicationName: 'ep-helpdesk-api',
++    /** Worker jobs (SLA scan, retention) may legitimately run longer. */
++    workerApplicationName: 'ep-helpdesk-worker',
++    workerStatementTimeoutMs: 30_000,
++  },
++  /** Hard ceilings so a typo in env cannot exhaust the database. */
++  limits: {
++    minimumMax: 1,
++    maximumMax: 200,
++    minimumTimeoutMs: 100,
++    maximumTimeoutMs: 600_000,
++  },
++} as const;
+
+diff --git a/backend/src/common/database/load-database-pool-configuration.ts b/backend/src/common/database/load-database-pool-configuration.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/database/load-database-pool-configuration.ts
+@@ -0,0 +1,116 @@
++import type { PoolConfig } from 'pg';
++import { databasePoolConstants } from './database-pool.constants';
++
++/**
++ * Turns the environment into an explicit pg pool configuration.
++ *
++ * Phase 1.4 of the performance plan: without this the adapter silently used the
++ * node-postgres default of 10 connections and no `statement_timeout`, so one
++ * slow statement could hold a connection for minutes.
++ */
++
++export type DatabasePoolConfiguration = {
++  readonly max: number;
++  readonly idleTimeoutMillis: number;
++  readonly connectionTimeoutMillis: number;
++  readonly statementTimeoutMillis: number;
++  readonly applicationName: string;
++};
++
++/** Who is talking to the database; workers get a longer statement budget. */
++export type DatabasePoolRole = 'api' | 'worker';
++
++/** The worker container sets `DATABASE_POOL_ROLE=worker` (see docker-compose). */
++export const databasePoolRoleEnvironmentKey = 'DATABASE_POOL_ROLE';
++
++export function readDatabasePoolRole(
++  environment: NodeJS.Dict<string> = process.env,
++): DatabasePoolRole {
++  return environment[databasePoolRoleEnvironmentKey]?.trim().toLowerCase() ===
++    'worker'
++    ? 'worker'
++    : 'api';
++}
++
++const { environmentKeys, defaults, limits } = databasePoolConstants;
++
++export function loadDatabasePoolConfiguration(
++  environment: NodeJS.Dict<string> = process.env,
++  role: DatabasePoolRole = 'api',
++): DatabasePoolConfiguration {
++  const isWorker = role === 'worker';
++  return {
++    max: readInteger(
++      environment[environmentKeys.max],
++      defaults.max,
++      limits.minimumMax,
++      limits.maximumMax,
++      environmentKeys.max,
++    ),
++    idleTimeoutMillis: readInteger(
++      environment[environmentKeys.idleTimeoutMs],
++      defaults.idleTimeoutMs,
++      limits.minimumTimeoutMs,
++      limits.maximumTimeoutMs,
++      environmentKeys.idleTimeoutMs,
++    ),
++    connectionTimeoutMillis: readInteger(
++      environment[environmentKeys.connectionTimeoutMs],
++      defaults.connectionTimeoutMs,
++      limits.minimumTimeoutMs,
++      limits.maximumTimeoutMs,
++      environmentKeys.connectionTimeoutMs,
++    ),
++    statementTimeoutMillis: readInteger(
++      environment[environmentKeys.statementTimeoutMs],
++      isWorker
++        ? defaults.workerStatementTimeoutMs
++        : defaults.statementTimeoutMs,
++      limits.minimumTimeoutMs,
++      limits.maximumTimeoutMs,
++      environmentKeys.statementTimeoutMs,
++    ),
++    applicationName: isWorker
++      ? defaults.workerApplicationName
++      : defaults.applicationName,
++  };
++}
++
++/**
++ * Maps the configuration onto `pg.PoolConfig`. `statement_timeout` travels in
++ * the startup `options` string, so no extra round trip is needed per connection
++ * and the setting is active before the first statement runs.
++ */
++export function toDatabasePoolConfig(
++  connectionString: string,
++  configuration: DatabasePoolConfiguration,
++): PoolConfig {
++  return {
++    connectionString,
++    max: configuration.max,
++    idleTimeoutMillis: configuration.idleTimeoutMillis,
++    connectionTimeoutMillis: configuration.connectionTimeoutMillis,
++    application_name: configuration.applicationName,
++    options: `-c statement_timeout=${configuration.statementTimeoutMillis}`,
++  };
++}
++
++function readInteger(
++  value: string | undefined,
++  fallback: number,
++  minimum: number,
++  maximum: number,
++  key: string,
++): number {
++  const trimmed = value?.trim();
++  if (trimmed === undefined || trimmed === '') {
++    return fallback;
++  }
++  const parsed = Number(trimmed);
++  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
++    throw new Error(
++      `${key} must be an integer between ${minimum} and ${maximum}`,
++    );
++  }
++  return parsed;
++}
+
+diff --git a/backend/src/common/database/load-database-pool-configuration.spec.ts b/backend/src/common/database/load-database-pool-configuration.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/common/database/load-database-pool-configuration.spec.ts
+@@ -0,0 +1,94 @@
++import { databasePoolConstants } from './database-pool.constants';
++import {
++  loadDatabasePoolConfiguration,
++  readDatabasePoolRole,
++  toDatabasePoolConfig,
++} from './load-database-pool-configuration';
++
++describe('loadDatabasePoolConfiguration', () => {
++  it('uses the plan defaults when nothing is configured', () => {
++    expect(loadDatabasePoolConfiguration({})).toEqual({
++      max: 40,
++      idleTimeoutMillis: 30_000,
++      connectionTimeoutMillis: 3_000,
++      statementTimeoutMillis: 5_000,
++      applicationName: 'ep-helpdesk-api',
++    });
++  });
++
++  it('gives the worker role a longer statement budget and its own name', () => {
++    const configuration = loadDatabasePoolConfiguration({}, 'worker');
++
++    expect(configuration.statementTimeoutMillis).toBe(30_000);
++    expect(configuration.applicationName).toBe('ep-helpdesk-worker');
++    expect(configuration.max).toBe(
++      databasePoolConstants.defaults.max,
++    );
++  });
++
++  it('reads overrides from the environment', () => {
++    expect(
++      loadDatabasePoolConfiguration({
++        DB_POOL_MAX: '60',
++        DB_POOL_IDLE_TIMEOUT_MS: '15000',
++        DB_POOL_CONNECTION_TIMEOUT_MS: '1000',
++        DB_STATEMENT_TIMEOUT_MS: '9000',
++      }),
++    ).toEqual({
++      max: 60,
++      idleTimeoutMillis: 15_000,
++      connectionTimeoutMillis: 1_000,
++      statementTimeoutMillis: 9_000,
++      applicationName: 'ep-helpdesk-api',
++    });
++  });
++
++  it('rejects values outside the safety limits', () => {
++    expect(() => loadDatabasePoolConfiguration({ DB_POOL_MAX: '0' })).toThrow(
++      'DB_POOL_MAX must be an integer between 1 and 200',
++    );
++    expect(() => loadDatabasePoolConfiguration({ DB_POOL_MAX: '201' })).toThrow();
++    expect(() =>
++      loadDatabasePoolConfiguration({ DB_STATEMENT_TIMEOUT_MS: '10' }),
++    ).toThrow('DB_STATEMENT_TIMEOUT_MS must be an integer between 100 and 600000');
++    expect(() =>
++      loadDatabasePoolConfiguration({ DB_POOL_MAX: 'many' }),
++    ).toThrow('DB_POOL_MAX must be an integer between 1 and 200');
++  });
++
++  it('ignores blank values instead of failing', () => {
++    expect(
++      loadDatabasePoolConfiguration({ DB_POOL_MAX: '  ' }).max,
++    ).toBe(40);
++  });
++});
++
++describe('readDatabasePoolRole', () => {
++  it('defaults to the api role', () => {
++    expect(readDatabasePoolRole({})).toBe('api');
++    expect(readDatabasePoolRole({ DATABASE_POOL_ROLE: 'API' })).toBe('api');
++  });
++
++  it('detects the worker role regardless of casing', () => {
++    expect(readDatabasePoolRole({ DATABASE_POOL_ROLE: 'worker' })).toBe('worker');
++    expect(readDatabasePoolRole({ DATABASE_POOL_ROLE: ' Worker ' })).toBe('worker');
++  });
++});
++
++describe('toDatabasePoolConfig', () => {
++  it('carries the timeouts and identifies the process', () => {
++    const configuration = loadDatabasePoolConfiguration({
++      DB_POOL_MAX: '12',
++    });
++
++    expect(toDatabasePoolConfig('postgresql://localhost:5432/ephelpdesk', configuration))
++      .toEqual({
++        connectionString: 'postgresql://localhost:5432/ephelpdesk',
++        max: 12,
++        idleTimeoutMillis: 30_000,
++        connectionTimeoutMillis: 3_000,
++        application_name: 'ep-helpdesk-api',
++        options: '-c statement_timeout=5000',
++      });
++  });
++});
+
+diff --git a/backend/src/common/prisma/prisma.service.ts b/backend/src/common/prisma/prisma.service.ts
+index 2647ed3..06094c9 100644
+--- a/backend/src/common/prisma/prisma.service.ts
++++ b/backend/src/common/prisma/prisma.service.ts
+@@ -2,6 +2,11 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+ import { PrismaPg } from '@prisma/adapter-pg';
+ import { PrismaClient } from '../../generated/prisma/client';
+ import { createInstrumentedPool } from '../database/create-instrumented-pool';
++import {
++  loadDatabasePoolConfiguration,
++  readDatabasePoolRole,
++  toDatabasePoolConfig,
++} from '../database/load-database-pool-configuration';
+ 
+ @Injectable()
+ export class PrismaService
+@@ -13,9 +18,20 @@ export class PrismaService
+     if (!connectionString) {
+       throw new Error('DATABASE_URL is required');
+     }
+-    // The pool is created here (instead of letting the adapter build one) so
+-    // every statement can be counted for the `db_queries_per_request` metric.
+-    super({ adapter: new PrismaPg(createInstrumentedPool(connectionString)) });
++    // The pool is created here (instead of letting the adapter build one) so it
++    // can be sized and timed out explicitly (plan §1.4) and so every statement
++    // can be counted for the `db_queries_per_request` metric (plan §5.3).
++    const poolConfiguration = loadDatabasePoolConfiguration(
++      process.env,
++      readDatabasePoolRole(process.env),
++    );
++    super({
++      adapter: new PrismaPg(
++        createInstrumentedPool(
++          toDatabasePoolConfig(connectionString, poolConfiguration),
++        ),
++      ),
++    });
+   }
+ 
+   async onModuleInit(): Promise<void> {
+
+diff --git a/backend/.env.example b/backend/.env.example
+index 4ef9391..d9484a9 100644
+--- a/backend/.env.example
++++ b/backend/.env.example
+@@ -8,6 +8,16 @@
+ 
+ DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/ephelpdesk"
+ PORT=10001
++
++# pg pool (plan §1.4). DB_POOL_MAX: 40 uz PgBouncer (transaction mode) ili
++# 2× CPU jezgara direktno. statement_timeout štiti konekcije od upita koji traju minutama.
++DB_POOL_MAX=40
++DB_POOL_IDLE_TIMEOUT_MS=30000
++DB_POOL_CONNECTION_TIMEOUT_MS=3000
++DB_STATEMENT_TIMEOUT_MS=5000
++# Worker proces ima duže poslove (SLA sken, retencija) — postavi u worker servisu:
++# DATABASE_POOL_ROLE=worker
++# DATABASE_POOL_MAX=10
+ UPLOAD_ROOT="./uploads"
+ CORS_ORIGIN=http://localhost:5173
+ 
+
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 9c9541f..f769c45 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -5,6 +5,16 @@
+ # REDIS_USERNAME + REDIS_PASSWORD moraju biti isti na backend i worker,
+ # i jednaki ACL useru ephelpdesk iz ops/redis-acl.line (placeholder change-me).
+ 
++# Postgres je eksterni servis (Coolify Database). Ovaj anchor prosljeđuje pool i
++# timeout-e (plan §1.4) u oba procesa; worker dobija duži statement_timeout jer
++# njegovi poslovi (SLA sken, retencija) legitimno traju duže od HTTP zahtjeva.
++x-database-environment: &database-environment
++  DATABASE_URL: ${DATABASE_URL}
++  DB_POOL_MAX: ${DB_POOL_MAX:-40}
++  DB_POOL_IDLE_TIMEOUT_MS: ${DB_POOL_IDLE_TIMEOUT_MS:-30000}
++  DB_POOL_CONNECTION_TIMEOUT_MS: ${DB_POOL_CONNECTION_TIMEOUT_MS:-3000}
++  DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-5000}
++
+ x-redis-environment: &redis-environment
+   REDIS_HOST: ${REDIS_HOST}
+   REDIS_PORT: ${REDIS_PORT:-6379}
+@@ -30,7 +40,7 @@ services:
+     expose:
+       - "10001"
+     environment:
+-      <<: *redis-environment
++      <<: [*database-environment, *redis-environment]
+     volumes:
+       - uploads:/usr/app/uploads
+     networks:
+@@ -43,7 +53,11 @@ services:
+     command: node dist/src/worker.js
+     restart: unless-stopped
+     environment:
+-      <<: *redis-environment
++      <<: [*database-environment, *redis-environment]
++      # Worker: manje konekcija (jedan proces), duži statement budžet.
++      DATABASE_POOL_ROLE: worker
++      DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-10}
++      DB_STATEMENT_TIMEOUT_MS: ${WORKER_DB_STATEMENT_TIMEOUT_MS:-30000}
+     volumes:
+       - uploads:/usr/app/uploads
+     networks:
+
+diff --git a/backend/src/modules/tickets/list/ticket-list-select.ts b/backend/src/modules/tickets/list/ticket-list-select.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/list/ticket-list-select.ts
+@@ -0,0 +1,43 @@
++import type { Prisma } from '../../../generated/prisma/client';
++
++/**
++ * Projection of the ticket list (plan §1.1: "u `findMany` dodati `select` samo
++ * kolona potrebnih za listni prikaz").
++ *
++ * It keeps every column the list DTO and its client mappers read, minus
++ * `formData`: a JSON blob per service request that is rendered only on the
++ * ticket detail screen, which still loads the full row. `description` stays
++ * because the list search and the client-side filter still read it; it can be
++ * dropped once the list search is server-side everywhere (phase 3.3).
++ */
++export const ticketListSelect = {
++  id: true,
++  ticketNumber: true,
++  title: true,
++  description: true,
++  status: true,
++  priority: true,
++  impact: true,
++  urgency: true,
++  classification: true,
++  isConfidential: true,
++  originUnitId: true,
++  serviceId: true,
++  formVersionId: true,
++  requesterId: true,
++  assignedGroupId: true,
++  assignedUserId: true,
++  parentTicketId: true,
++  mergedIntoTicketId: true,
++  reopenedFromTicketId: true,
++  closeCodeId: true,
++  resolutionNote: true,
++  resolvedAt: true,
++  closedAt: true,
++  archivedAt: true,
++  waitingForUserEnteredAt: true,
++  waitingForUserReminderSentAt: true,
++  firstResponseAt: true,
++  createdAt: true,
++  updatedAt: true,
++} satisfies Prisma.TicketSelect;
+
+diff --git a/backend/src/modules/tickets/list/ticket-list-select.spec.ts b/backend/src/modules/tickets/list/ticket-list-select.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/list/ticket-list-select.spec.ts
+@@ -0,0 +1,49 @@
++import { ticketListSelect } from './ticket-list-select';
++
++describe('ticketListSelect', () => {
++  const columns = Object.keys(ticketListSelect);
++
++  it('never selects the form data blob', () => {
++    expect(columns).not.toContain('formData');
++  });
++
++  it('keeps every column the list response and its mappers read', () => {
++    expect(columns).toEqual(
++      expect.arrayContaining([
++        'id',
++        'ticketNumber',
++        'title',
++        'description',
++        'status',
++        'priority',
++        'impact',
++        'urgency',
++        'classification',
++        'isConfidential',
++        'originUnitId',
++        'serviceId',
++        'formVersionId',
++        'requesterId',
++        'assignedGroupId',
++        'assignedUserId',
++        'parentTicketId',
++        'mergedIntoTicketId',
++        'reopenedFromTicketId',
++        'closeCodeId',
++        'resolutionNote',
++        'resolvedAt',
++        'closedAt',
++        'archivedAt',
++        'waitingForUserEnteredAt',
++        'waitingForUserReminderSentAt',
++        'firstResponseAt',
++        'createdAt',
++        'updatedAt',
++      ]),
++    );
++  });
++
++  it('selects exactly those columns, so a new one is a deliberate choice', () => {
++    expect(columns.length).toBe(29);
++  });
++});
+
+diff --git a/backend/src/modules/tickets/list/clamp-ticket-list-page-size.ts b/backend/src/modules/tickets/list/clamp-ticket-list-page-size.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/list/clamp-ticket-list-page-size.ts
+@@ -0,0 +1,15 @@
++import { ticketListPaging } from './list-tickets.constants';
++
++/**
++ * Page size of every ticket list read (phase 1.1, plan §1.1).
++ *
++ * A missing value means "the default page" (25) and anything larger than
++ * `ticketListPaging.maxPageSize` (50) is clamped instead of rejected, so an old
++ * client asking for 200 rows still gets a valid, bounded answer.
++ */
++export function clampTicketListPageSize(pageSize: number | undefined): number {
++  return Math.min(
++    Math.max(pageSize ?? ticketListPaging.defaultPageSize, 1),
++    ticketListPaging.maxPageSize,
++  );
++}
+
+diff --git a/backend/src/modules/tickets/list/clamp-ticket-list-page-size.spec.ts b/backend/src/modules/tickets/list/clamp-ticket-list-page-size.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/list/clamp-ticket-list-page-size.spec.ts
+@@ -0,0 +1,23 @@
++import { clampTicketListPageSize } from './clamp-ticket-list-page-size';
++import { ticketListPaging } from './list-tickets.constants';
++
++describe('clampTicketListPageSize', () => {
++  it('defaults to the list page size', () => {
++    expect(clampTicketListPageSize(undefined)).toBe(
++      ticketListPaging.defaultPageSize,
++    );
++    expect(clampTicketListPageSize(undefined)).toBe(25);
++  });
++
++  it('keeps a requested size inside the allowed range', () => {
++    expect(clampTicketListPageSize(10)).toBe(10);
++    expect(clampTicketListPageSize(50)).toBe(50);
++  });
++
++  it('clamps instead of rejecting, so old clients still get a page', () => {
++    expect(clampTicketListPageSize(500)).toBe(ticketListPaging.maxPageSize);
++    expect(clampTicketListPageSize(51)).toBe(50);
++    expect(clampTicketListPageSize(0)).toBe(1);
++    expect(clampTicketListPageSize(-3)).toBe(1);
++  });
++});
+
+diff --git a/backend/src/modules/tickets/list-tickets.ts b/backend/src/modules/tickets/list-tickets.ts
+index 40be00d..1b81013 100644
+--- a/backend/src/modules/tickets/list-tickets.ts
++++ b/backend/src/modules/tickets/list-tickets.ts
+@@ -11,7 +11,9 @@ import {
+ import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
+ import { buildTicketVisibilityWhere } from './list/build-ticket-visibility-where';
+ import { ticketListPaging } from './list/list-tickets.constants';
++import { clampTicketListPageSize } from './list/clamp-ticket-list-page-size';
+ import { loadTicketVisibilityInputs } from './list/load-ticket-visibility-inputs';
++import { ticketListSelect } from './list/ticket-list-select';
+ import { TicketsError } from './tickets.error';
+ import type {
+   ListTicketsQuery,
+@@ -28,47 +30,63 @@ export type TicketListPage = {
+ 
+ type Paging = { readonly skip: number; readonly take: number };
+ 
+-/** Every visible ticket that matches, unpaged (export, CSAT summary, legacy). */
+-export async function listTickets(
++/**
++ * One page of the visible, matching tickets plus the total across pages.
++ *
++ * Phase 1.1 (plan §1.1): this is the only list read of the HTTP API. It used to
++ * have an unpaged sibling that ran `findMany` without `take` whenever the caller
++ * omitted `page`/`pageSize`, which sent the whole ticket table to the client.
++ */
++export async function listTicketsPage(
+   prisma: PrismaService,
+   authorizationContextLoader: AuthorizationContextLoader,
+   query: ListTicketsQuery,
+   context: TicketMutationContext,
+   archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
+-): Promise<readonly TicketRecord[]> {
+-  const result = await runTicketListQuery(
++): Promise<TicketListPage> {
++  const pageSize = clampTicketListPageSize(query.pageSize);
++  const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
++  const { records, total } = await runTicketListQuery(
+     prisma,
+     authorizationContextLoader,
+     query,
+     context,
+     archive,
+-    null,
++    { skip: (page - 1) * pageSize, take: pageSize },
++    true,
++    ticketListSelect,
+   );
+-  return result.records;
++  return { records, total, page, pageSize };
+ }
+ 
+-/** One page of the visible, matching tickets plus the total across pages. */
+-export async function listTicketsPage(
++/**
++ * Bounded read for the server-side readers that need whole rows rather than a
++ * page: the CSV export and the CSAT summary.
++ *
++ * Phase 1.1 removed the unbounded variant, so each caller states its own limit
++ * — that limit is what keeps the statement (`LIMIT n`) bounded in Postgres. The
++ * row shape stays complete here (export columns and CSAT grouping both read
++ * `formData`-adjacent fields), so no `select` projection is applied.
++ */
++export async function listTicketsWithin(
+   prisma: PrismaService,
+   authorizationContextLoader: AuthorizationContextLoader,
+   query: ListTicketsQuery,
+   context: TicketMutationContext,
+-  archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
+-): Promise<TicketListPage> {
+-  const page = Math.max(query.page ?? ticketListPaging.defaultPage, 1);
+-  const pageSize = Math.min(
+-    Math.max(query.pageSize ?? ticketListPaging.defaultPageSize, 1),
+-    ticketListPaging.maxPageSize,
+-  );
+-  const result = await runTicketListQuery(
++  archive: TicketArchiveConfiguration,
++  limit: number,
++): Promise<readonly TicketRecord[]> {
++  const { records } = await runTicketListQuery(
+     prisma,
+     authorizationContextLoader,
+     query,
+     context,
+     archive,
+-    { skip: (page - 1) * pageSize, take: pageSize },
++    { skip: 0, take: Math.max(limit, 1) },
++    false,
++    null,
+   );
+-  return { ...result, page, pageSize };
++  return records;
+ }
+ 
+ async function runTicketListQuery(
+@@ -77,7 +95,9 @@ async function runTicketListQuery(
+   query: ListTicketsQuery,
+   context: TicketMutationContext,
+   archive: TicketArchiveConfiguration,
+-  paging: Paging | null,
++  paging: Paging,
++  countTotal: boolean,
++  select: Prisma.TicketSelect | null,
+ ): Promise<{ readonly records: readonly TicketRecord[]; readonly total: number }> {
+   const authContext = await authorizationContextLoader.loadBySubjectId(
+     context.actorUserId,
+@@ -110,18 +130,20 @@ async function runTicketListQuery(
+     ],
+   };
+   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
+-  if (paging === null) {
+-    const records = (await prisma.ticket.findMany({
+-      where,
+-      orderBy,
+-    })) as TicketRecord[];
++  const findManyArguments: Prisma.TicketFindManyArgs = {
++    where,
++    orderBy,
++    ...paging,
++  };
++  if (select !== null) {
++    findManyArguments.select = select;
++  }
++  const records = (await prisma.ticket.findMany(
++    findManyArguments,
++  )) as unknown as TicketRecord[];
++  if (!countTotal) {
+     return { records, total: records.length };
+   }
+-  const [records, total] = await Promise.all([
+-    prisma.ticket.findMany({ where, orderBy, ...paging }) as Promise<
+-      TicketRecord[]
+-    >,
+-    prisma.ticket.count({ where }),
+-  ]);
++  const total = await prisma.ticket.count({ where });
+   return { records, total };
+ }
+
+diff --git a/backend/src/modules/tickets/list/list-tickets.constants.ts b/backend/src/modules/tickets/list/list-tickets.constants.ts
+index 2d27f25..fa0669b 100644
+--- a/backend/src/modules/tickets/list/list-tickets.constants.ts
++++ b/backend/src/modules/tickets/list/list-tickets.constants.ts
+@@ -11,5 +11,9 @@ export const ticketListSortDirections = ['asc', 'desc'] as const;
+ export const ticketListPaging = {
+   defaultPage: 1,
+   defaultPageSize: 25,
+-  maxPageSize: 100,
++  /**
++   * Phase 1.1 (plan §1.1): no list read may return more than 50 rows, so a
++   * single client can never pull the ticket table into a browser again.
++   */
++  maxPageSize: 50,
+ } as const;
+
+diff --git a/backend/src/modules/tickets/list/list-tickets.types.ts b/backend/src/modules/tickets/list/list-tickets.types.ts
+index f7f3210..eb003eb 100644
+--- a/backend/src/modules/tickets/list/list-tickets.types.ts
++++ b/backend/src/modules/tickets/list/list-tickets.types.ts
+@@ -29,8 +29,18 @@ export type TicketListQuery = {
+   readonly createdFrom?: string;
+   readonly createdTo?: string;
+   readonly q?: string;
+-  /** Internal: the export also searches the description, the list does not. */
++  /**
++   * `q` matches the ticket number and the title. The description is searched
++   * only when the caller asks for it: the export always does, the ticket list
++   * does (its search box did before phase 1.1 moved the filtering server-side),
++   * the global `/search` endpoint does not.
++   */
+   readonly searchDescription?: boolean;
++  /**
++   * Internal: narrows to tickets that carry a CSAT submission. The CSAT summary
++   * uses it so its read stays bounded instead of listing every visible ticket.
++   */
++  readonly hasCsatSubmission?: boolean;
+   readonly includeArchived?: boolean;
+   readonly sort?: TicketListSortField;
+   readonly dir?: TicketListSortDirection;
+
+diff --git a/backend/src/modules/tickets/list/build-ticket-list-filters.ts b/backend/src/modules/tickets/list/build-ticket-list-filters.ts
+index 991717e..dfa40af 100644
+--- a/backend/src/modules/tickets/list/build-ticket-list-filters.ts
++++ b/backend/src/modules/tickets/list/build-ticket-list-filters.ts
+@@ -90,6 +90,9 @@ export function buildTicketListFilters(
+   if (query.atRisk === true) {
+     clauses.push({ slaState: { is: atRiskState } });
+   }
++  if (query.hasCsatSubmission === true) {
++    clauses.push({ csat: { isNot: null } });
++  }
+   const search = buildTicketSearchFilter(query);
+   if (search !== null) {
+     clauses.push(search);
+
+diff --git a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts
+index 4e038af..82d6e7a 100644
+--- a/backend/src/modules/tickets/dto/list-tickets-query.dto.ts
++++ b/backend/src/modules/tickets/dto/list-tickets-query.dto.ts
+@@ -57,6 +57,13 @@ export class ListTicketsQueryDto extends TicketFilterQueryDto {
+   @IsIn(ticketListSortDirections)
+   dir?: TicketListSortDirection;
+ 
++  /** Search the description as well as the number and the title. */
++  @IsOptional()
++  @Transform(({ value }) => toQueryBoolean(value))
++  @IsBoolean()
++  searchDescription?: boolean;
++
++  /** 1-based page number; the route always answers `{ items, total, ... }`. */
+   @IsOptional()
+   @Type(() => Number)
+   @IsInt()
+
+diff --git a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+index 314eb3a..b535fca 100644
+--- a/backend/src/modules/tickets/tickets.service.ts
++++ b/backend/src/modules/tickets/tickets.service.ts
+@@ -18,7 +18,7 @@ import { executeTicketOperation } from './execute-ticket-operation';
+ import { getTicket } from './get-ticket';
+ import { getTicketCounts } from './counts/get-ticket-counts';
+ import type { TicketCounts, TicketCountsQuery } from './counts/counts.types';
+-import { listTickets, listTicketsPage } from './list-tickets';
++import { listTicketsPage, listTicketsWithin } from './list-tickets';
+ import { respondTicketListPage } from './list/respond-ticket-list-page';
+ import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
+ import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardrails-configuration.loader';
+@@ -29,10 +29,7 @@ import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configur
+ import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
+ import { runTicketsServiceCreate } from './run-tickets-service-create';
+ import { TicketRealtimeHub } from './ticket-realtime.hub';
+-import {
+-  respondLoadedTicket,
+-  respondLoadedTickets,
+-} from './to-ticket-client-responses';
++import { respondLoadedTicket } from './to-ticket-client-responses';
+ import { updateTicket } from './update-ticket';
+ import { withTicketAccessPolicies } from './with-ticket-access-policies';
+ import type {
+@@ -41,6 +38,7 @@ import type {
+   TicketListResponse,
+   TicketMutationContext,
+   TicketResponse,
++  TicketSearchMatch,
+   UpdateTicketInput,
+ } from './tickets.types';
+ 
+@@ -102,24 +100,33 @@ export class TicketsService {
+     );
+   }
+ 
+-  /** Plain array, unpaged: used where a caller consumes every ticket at once. */
++  /**
++   * First page of the visible tickets as a plain array.
++   *
++   * Phase 1.1 (plan §1.1) retired the unpaged read: this helper is bounded by
++   * the list page size (25 by default, 50 at most) and exists for the
++   * server-side callers that only need a small, predictable slice. `GET
++   * /tickets` itself always answers with a page envelope.
++   */
+   list(
+     query: ListTicketsQuery,
+     context: TicketMutationContext,
+   ): Promise<readonly TicketResponse[]> {
+     return executeTicketOperation(async () => {
+       const gated = await this.gate(context);
+-      return respondLoadedTickets(
++      const page = await listTicketsPage(
+         this.prisma,
+-        await listTickets(
+-          this.prisma,
+-          this.authorizationContextLoader,
+-          query,
+-          gated,
+-          gated.archive,
+-        ),
++        this.authorizationContextLoader,
++        query,
++        gated,
++        gated.archive,
++      );
++      const response = await respondTicketListPage(
++        this.prisma,
++        page,
+         this.clientLoaders(gated.actorUserId),
+       );
++      return response.items;
+     });
+   }
+ 
+@@ -145,6 +152,34 @@ export class TicketsService {
+     });
+   }
+ 
++  /**
++   * Ticket hits of `GET /search` (plan §1.2): the same query, visibility and
++   * archive policy as the list, narrowed to number/title, capped by `limit`.
++   * No new visibility rule is introduced here — this is the list query with a
++   * `select` of three columns.
++   */
++  searchTickets(
++    query: { readonly q: string; readonly limit: number },
++    context: TicketMutationContext,
++  ): Promise<readonly TicketSearchMatch[]> {
++    return executeTicketOperation(async () => {
++      const gated = await this.gate(context);
++      const records = await listTicketsWithin(
++        this.prisma,
++        this.authorizationContextLoader,
++        { q: query.q },
++        gated,
++        gated.archive,
++        query.limit,
++      );
++      return records.map((record) => ({
++        id: record.id,
++        ticketNumber: record.ticketNumber,
++        title: record.title,
++      }));
++    });
++  }
++
+   getCounts(
+     query: TicketCountsQuery,
+     context: TicketMutationContext,
+
+diff --git a/backend/src/modules/tickets/tickets.controller.ts b/backend/src/modules/tickets/tickets.controller.ts
+index dc65c06..bdb3803 100644
+--- a/backend/src/modules/tickets/tickets.controller.ts
++++ b/backend/src/modules/tickets/tickets.controller.ts
+@@ -1,7 +1,6 @@
+ import {
+   Body,
+   Controller,
+-  ForbiddenException,
+   Get,
+   Param,
+   Patch,
+@@ -14,7 +13,6 @@ import {
+ } from '@nestjs/common';
+ import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+ import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
+-import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
+ import { authorizationRoleKeys } from '../authorization/authorization.constants';
+ import { RequireRoles } from '../authorization/require-roles.decorator';
+ import { RoleGuard } from '../authorization/role.guard';
+@@ -27,6 +25,7 @@ import type { TicketCounts } from './counts/counts.types';
+ import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+ import { TicketCountsQueryDto } from './dto/ticket-counts-query.dto';
+ import { UpdateTicketDto } from './dto/update-ticket.dto';
++import { readTicketMutationContext } from './read-ticket-mutation-context';
+ import { TicketsService } from './tickets.service';
+ import type {
+   TicketListResponse,
+@@ -73,18 +72,16 @@ export class TicketsController {
+   }
+ 
+   /**
+-   * Without `page`/`pageSize` this returns the plain array older clients read;
+-   * with either one it returns `{ items, total, page, pageSize }`.
++   * Always `{ items, total, page, pageSize }` (plan §1.1, phase 1.1): the route
++   * no longer has a "return everything" branch when `page`/`pageSize` are
++   * omitted. Without them the first page of 25 rows is answered, at most 50.
+    */
+   @Get()
+   list(
+     @Query() query: ListTicketsQueryDto,
+     @Req() request: AuthenticatedHttpRequest,
+-  ): Promise<readonly TicketResponse[] | TicketListResponse> {
+-    const context = readTicketMutationContext(request);
+-    return query.page === undefined && query.pageSize === undefined
+-      ? this.ticketsService.list(query, context)
+-      : this.ticketsService.listPage(query, context);
++  ): Promise<TicketListResponse> {
++    return this.ticketsService.listPage(query, readTicketMutationContext(request));
+   }
+ 
+   @Get('counts')
+@@ -153,16 +150,3 @@ export class TicketsController {
+     );
+   }
+ }
+-
+-function readTicketMutationContext(
+-  request: AuthenticatedHttpRequest,
+-): TicketMutationContext {
+-  const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
+-  if (actorUserId.length === 0) {
+-    throw new ForbiddenException({
+-      code: 'FORBIDDEN',
+-      message: 'Authorization failed',
+-    });
+-  }
+-  return { actorUserId };
+-}
+
+diff --git a/backend/src/modules/tickets/export/export-tickets.ts b/backend/src/modules/tickets/export/export-tickets.ts
+index 3579136..246a43f 100644
+--- a/backend/src/modules/tickets/export/export-tickets.ts
++++ b/backend/src/modules/tickets/export/export-tickets.ts
+@@ -5,7 +5,7 @@ import {
+   auditLogEntityTypes,
+ } from '../../audit-log/audit-log.constants';
+ import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
+-import { listTickets } from '../list-tickets';
++import { listTicketsWithin } from '../list-tickets';
+ import { loadTicketOverdueFlags } from '../load-ticket-overdue-flags';
+ import { TicketsError } from '../tickets.error';
+ import type { TicketAccessPolicyContext } from '../with-ticket-access-policies';
+@@ -38,12 +38,16 @@ export async function exportTicketsCsv(input: {
+   // The same visibility rules and filters as GET /tickets (OU/service scope,
+   // confidential visibility, archive policy, search, SLA, dates) are applied in
+   // the query itself; only the export-specific exclusions follow below.
+-  const visible = await listTickets(
++  // Phase 1.1: bounded read. One row past the export ceiling is enough to know
++  // the answer is `EXPORT_TOO_LARGE`, and it keeps the statement at `LIMIT n+1`
++  // instead of loading the whole ticket table into memory.
++  const visible = await listTicketsWithin(
+     input.prisma,
+     input.authorizationContextLoader,
+     { ...input.query, searchDescription: true },
+     input.context,
+     input.context.archive,
++    ticketExportMaxRows + 1,
+   );
+   const units = await input.prisma.organizationalUnit.findMany({
+     select: { id: true, name: true, ouPath: true },
+
+diff --git a/backend/src/modules/tickets/csat/csat.constants.ts b/backend/src/modules/tickets/csat/csat.constants.ts
+index 51c4287..e596584 100644
+--- a/backend/src/modules/tickets/csat/csat.constants.ts
++++ b/backend/src/modules/tickets/csat/csat.constants.ts
+@@ -13,3 +13,11 @@ export const csatConstants = {
+ } as const;
+ 
+ export const csatGuardrailFingerprint = 'csat_submit';
++
++/**
++ * Safety ceiling of the CSAT summary (phase 1.1). The read is already narrowed
++ * to tickets that carry a CSAT submission, so it stays small in practice; the
++ * ceiling only guarantees that the statement is bounded (`LIMIT n`) instead of
++ * listing every visible ticket.
++ */
++export const csatSummaryTicketLimit = 20_000;
+
+diff --git a/backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts b/backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts
+index c5e6b47..aa6cd88 100644
+--- a/backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts
++++ b/backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts
+@@ -1,6 +1,7 @@
+ import { PrismaService } from '../../../common/prisma/prisma.service';
+ import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
+-import { listTickets } from '../list-tickets';
++import { listTicketsWithin } from '../list-tickets';
++import { csatSummaryTicketLimit } from './csat.constants';
+ import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+ import { aggregateTicketCsat } from './aggregate-ticket-csat';
+ import type { TicketCsatRecord, TicketCsatSummary } from './csat.types';
+@@ -13,12 +14,15 @@ export async function summarizeVisibleTicketCsat(input: {
+   readonly context: TicketMutationContext;
+   readonly archive: TicketArchiveConfiguration;
+ }): Promise<TicketCsatSummary> {
+-  const tickets = await listTickets(
++  // Phase 1.1: only tickets that actually have a submission can contribute a
++  // row, and the read is capped, so the summary no longer lists the table.
++  const tickets = await listTicketsWithin(
+     input.prisma,
+     input.authorizationContextLoader,
+-    { includeArchived: true },
++    { includeArchived: true, hasCsatSubmission: true },
+     input.context,
+     input.archive,
++    csatSummaryTicketLimit,
+   );
+   const submissions = await loadTicketCsatSubmissions(
+     input.prisma,
+
+diff --git a/backend/src/modules/tickets/tickets.list-paging.spec.ts b/backend/src/modules/tickets/tickets.list-paging.spec.ts
+index 9ce13f9..7e00e51 100644
+--- a/backend/src/modules/tickets/tickets.list-paging.spec.ts
++++ b/backend/src/modules/tickets/tickets.list-paging.spec.ts
+@@ -91,14 +91,17 @@ function setup() {
+ }
+ 
+ describe('GET /tickets paging, sorting and filters', () => {
+-  it('keeps returning a plain array when no paging is requested', async () => {
++  it('answers the first page and never the whole table', async () => {
+     const { tickets } = setup();
++    // Phase 1.1: the service helper that used to read everything unpaged now
++    // returns the first page only; the HTTP route always answers an envelope.
+     const result = await tickets.list({}, { actorUserId: agentIt });
+     expect(Array.isArray(result)).toBe(true);
+     // t5 is archived and t7 belongs to HR: neither is listed.
+     expect((result as TicketResponse[]).map((item) => item.id).sort()).toEqual([
+       't1', 't2', 't3', 't4', 't6',
+     ]);
++    expect((result as TicketResponse[]).length).toBeLessThanOrEqual(25);
+   });
+ 
+   it('returns one page with the total across pages', async () => {
+@@ -117,7 +120,8 @@ describe('GET /tickets paging, sorting and filters', () => {
+     const { page } = setup();
+     expect(await page({ page: 1 })).toMatchObject({ page: 1, pageSize: 25 });
+     expect(await page({ pageSize: 10 })).toMatchObject({ page: 1, pageSize: 10 });
+-    expect((await page({ page: 1, pageSize: 500 })).pageSize).toBe(100);
++    // Phase 1.1: the cap dropped from 100 to 50 rows per response.
++    expect((await page({ page: 1, pageSize: 500 })).pageSize).toBe(50);
+     expect((await page({ page: 0, pageSize: 0 }))).toMatchObject({ page: 1, pageSize: 1 });
+   });
+ 
+
+diff --git a/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts b/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts
+index 83bb96b..71c5f37 100644
+--- a/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts
++++ b/backend/src/modules/tickets/create-in-memory-tickets-prisma.ts
+@@ -135,6 +135,11 @@ export function createInMemoryTicketsPrisma() {
+         [...slaLayer.slaStates.values()].filter(
+           (row) => row.ticketId === ticket.id,
+         ),
++      // Phase 1.1 narrowed the CSAT summary to `{ csat: { isNot: null } }`; the
++      // delegate answers it with the ticket's submission (0 or 1 rows), exactly
++      // like Prisma does for the one-to-one relation.
++      csat: (ticket) =>
++        [...csatSubmissions.values()].filter((row) => row.ticketId === ticket.id),
+     }),
+     closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),
+     ticketParticipant: createInMemoryTicketParticipantDelegate(
+
+diff --git a/backend/prisma/migrations/20260923120000_ticket_list_composite_indexes/migration.sql b/backend/prisma/migrations/20260923120000_ticket_list_composite_indexes/migration.sql
+new file mode 100644
+--- /dev/null
++++ b/backend/prisma/migrations/20260923120000_ticket_list_composite_indexes/migration.sql
+@@ -0,0 +1,31 @@
++-- Phase 1.1 (plan §1.1): composite indexes behind the ticket list reads.
++--
++-- Every list read narrows by one of these columns and orders by "createdAt"
++-- DESC with LIMIT 25/50. The table only had single-column indexes and no index
++-- on "createdAt" at all, so the default page had to scan and sort the visible
++-- set before it could return the first row.
++--
++-- CONCURRENTLY keeps writes flowing while the index is built. Prisma Migrate
++-- runs migration scripts that contain CREATE INDEX CONCURRENTLY outside a
++-- transaction (supported since Prisma 7.4; this repository pins 7.10), so the
++-- statements can live here instead of a manual ops step.
++--
++-- Rollback: DROP INDEX CONCURRENTLY "<name>"; (see the report of phase 1).
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_createdAt_idx" ON "Ticket"("createdAt" DESC);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_status_createdAt_idx" ON "Ticket"("status", "createdAt" DESC);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_assignedUserId_createdAt_idx" ON "Ticket"("assignedUserId", "createdAt" DESC);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_assignedGroupId_createdAt_idx" ON "Ticket"("assignedGroupId", "createdAt" DESC);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_requesterId_createdAt_idx" ON "Ticket"("requesterId", "createdAt" DESC);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_originUnitId_createdAt_idx" ON "Ticket"("originUnitId", "createdAt" DESC);
+
+diff --git a/backend/prisma/schema/ticketing.prisma b/backend/prisma/schema/ticketing.prisma
+index 2a661dd..773cf80 100644
+--- a/backend/prisma/schema/ticketing.prisma
++++ b/backend/prisma/schema/ticketing.prisma
+@@ -71,6 +71,20 @@ model Ticket {
+   @@index([status, waitingForUserEnteredAt])
+   @@index([status, closedAt])
+   @@index([archivedAt])
++  /// Phase 1.1 (plan §1.1): list reads filter by one of these columns and order
++  /// by createdAt DESC, so the compound index serves both filter and ordering.
++  @@index([createdAt(sort: Desc)])
++  @@index([status, createdAt(sort: Desc)])
++  @@index([assignedUserId, createdAt(sort: Desc)])
++  @@index([assignedGroupId, createdAt(sort: Desc)])
++  @@index([requesterId, createdAt(sort: Desc)])
++  @@index([originUnitId, createdAt(sort: Desc)])
++  /// Phase 1.2 (plan §1.2): the search matches with a leading-wildcard ILIKE,
++  /// which only a trigram GIN index can serve. Both columns are searched
++  /// separately, so each one gets its own index. The `pg_trgm` extension is
++  /// created by migration `20260923140000_search_trigram_indexes`.
++  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ticket_title_trgm_idx")
++  @@index([ticketNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ticket_ticketNumber_trgm_idx")
+ }
+ 
+ model TicketParticipant {
+
+diff --git a/frontend/src/lib/tickets/ticket-page-query.ts b/frontend/src/lib/tickets/ticket-page-query.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/tickets/ticket-page-query.ts
+@@ -0,0 +1,95 @@
++import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
++import type { TicketWorkspaceView } from "@/lib/tickets/ticket-constants";
++import { ticketListPageSize } from "@/lib/tickets/ticket-constants";
++import type {
++  TicketCountsQuery,
++  TicketPageQuery,
++} from "@/lib/tickets/ticket-list-search-params";
++
++/**
++ * Turns the screen state of the ticket list into the server query of one page
++ * (phase 1.1, plan §1.1).
++ *
++ * Before this the list was fetched whole and filtered in the browser; every
++ * filter the screen offers has an equivalent in `GET /tickets`, so the same
++ * narrowing now runs in SQL and only the current page travels. The workspace
++ * views map onto the same vocabulary:
++ *
++ * - `assigned`   → `assignedUserId` = the current user
++ * - `requested`  → `requesterId` = the current user
++ * - `unassigned` → `unassigned = true`
++ *
++ * Deliberate detail: inside the `assigned` view the explicit "assignee" filter
++ * is superseded by the view (the view already means "mine", and the API takes a
++ * single `assignedUserId`). Everywhere else the filter is passed through.
++ */
++export function toTicketPageQuery(input: {
++  readonly filters: TicketListFilters;
++  readonly view: TicketWorkspaceView;
++  readonly currentUserId: string | null;
++  readonly page: number;
++  readonly pageSize?: number;
++}): TicketPageQuery {
++  const { filters, view, currentUserId, page } = input;
++  const term = filters.search.trim();
++  return {
++    ...toViewFilters({ view, currentUserId, filters }),
++    status: filters.status === "" ? undefined : filters.status,
++    priority: filters.priority === "" ? undefined : filters.priority,
++    serviceId: filters.serviceId === "" ? undefined : filters.serviceId,
++    createdFrom: filters.createdFrom === "" ? undefined : filters.createdFrom,
++    createdTo: filters.createdTo === "" ? undefined : filters.createdTo,
++    overdue: filters.overdue ? true : undefined,
++    q: term === "" ? undefined : term,
++    // The list search box matched the description before phase 1.1 moved the
++    // filtering to the server, so it keeps that reach here.
++    searchDescription: term === "" ? undefined : true,
++    page,
++    pageSize: input.pageSize ?? ticketListPageSize,
++  };
++}
++
++/**
++ * The narrowing of the tab counters next to the list. The counts endpoint takes
++ * no `status` (it breaks the statuses down itself), so the view narrowing is
++ * carried over and the status filter is dropped.
++ */
++export function toTicketCountsQuery(
++  query: TicketPageQuery,
++): TicketCountsQuery {
++  return {
++    originUnitId: query.originUnitId,
++    serviceId: query.serviceId,
++    assignedUserId: query.assignedUserId,
++    priority: query.priority,
++    requesterId: query.requesterId,
++    groupId: query.groupId,
++    unassigned: query.unassigned,
++    createdFrom: query.createdFrom,
++    createdTo: query.createdTo,
++    q: query.q,
++  };
++}
++
++function toViewFilters(input: {
++  readonly view: TicketWorkspaceView;
++  readonly currentUserId: string | null;
++  readonly filters: TicketListFilters;
++}): Pick<TicketPageQuery, "assignedUserId" | "requesterId" | "unassigned"> {
++  const { view, currentUserId, filters } = input;
++  if (view === "assigned") {
++    return { assignedUserId: currentUserId ?? undefined };
++  }
++  if (view === "requested") {
++    return {
++      requesterId: currentUserId ?? undefined,
++      assignedUserId: filters.assignedUserId === "" ? undefined : filters.assignedUserId,
++    };
++  }
++  if (view === "unassigned") {
++    return { unassigned: true };
++  }
++  return {
++    assignedUserId: filters.assignedUserId === "" ? undefined : filters.assignedUserId,
++  };
++}
+
+diff --git a/frontend/src/lib/tickets/ticket-page-query.spec.ts b/frontend/src/lib/tickets/ticket-page-query.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/tickets/ticket-page-query.spec.ts
+@@ -0,0 +1,131 @@
++import { describe, expect, it } from "vitest";
++import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
++import {
++  toTicketCountsQuery,
++  toTicketPageQuery,
++} from "@/lib/tickets/ticket-page-query";
++
++const filters = (overrides: Partial<TicketListFilters> = {}): TicketListFilters => ({
++  view: "all",
++  search: "",
++  status: "",
++  priority: "",
++  serviceId: "",
++  assignedUserId: "",
++  createdFrom: "",
++  createdTo: "",
++  overdue: false,
++  currentUserId: "agent-1",
++  ...overrides,
++});
++
++describe("toTicketPageQuery", () => {
++  it("asks for one page of the default page size", () => {
++    expect(
++      toTicketPageQuery({
++        filters: filters(),
++        view: "all",
++        currentUserId: "agent-1",
++        page: 2,
++      }),
++    ).toMatchObject({ page: 2, pageSize: 25 });
++  });
++
++  it("maps the workspace views onto the server vocabulary", () => {
++    const mine = toTicketPageQuery({
++      filters: filters(),
++      view: "assigned",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(mine.assignedUserId).toBe("agent-1");
++    expect(mine.requesterId).toBeUndefined();
++
++    const requested = toTicketPageQuery({
++      filters: filters(),
++      view: "requested",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(requested.requesterId).toBe("agent-1");
++
++    const unassigned = toTicketPageQuery({
++      filters: filters(),
++      view: "unassigned",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(unassigned.unassigned).toBe(true);
++  });
++
++  it("passes the narrowing filters through and drops the empty ones", () => {
++    const query = toTicketPageQuery({
++      filters: filters({
++        status: "IN_PROGRESS",
++        priority: "HIGH",
++        serviceId: "svc-1",
++        createdFrom: "2026-01-01",
++        overdue: true,
++      }),
++      view: "all",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(query).toMatchObject({
++      status: "IN_PROGRESS",
++      priority: "HIGH",
++      serviceId: "svc-1",
++      createdFrom: "2026-01-01",
++      overdue: true,
++    });
++    expect(query.assignedUserId).toBeUndefined();
++    expect(query.q).toBeUndefined();
++  });
++
++  it("searches titles, numbers and the description for the list search box", () => {
++    const query = toTicketPageQuery({
++      filters: filters({ search: "  vpn  " }),
++      view: "all",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(query.q).toBe("vpn");
++    expect(query.searchDescription).toBe(true);
++  });
++
++  it("lets the view win over a contradictory assignee filter", () => {
++    const query = toTicketPageQuery({
++      filters: filters({ assignedUserId: "someone-else" }),
++      view: "assigned",
++      currentUserId: "agent-1",
++      page: 1,
++    });
++    expect(query.assignedUserId).toBe("agent-1");
++  });
++});
++
++describe("toTicketCountsQuery", () => {
++  it("keeps the narrowing that the counters share with the list", () => {
++    const page = toTicketPageQuery({
++      filters: filters({ serviceId: "svc-1", search: "vpn", status: "PENDING" }),
++      view: "assigned",
++      currentUserId: "agent-1",
++      page: 3,
++    });
++    const counts = toTicketCountsQuery(page);
++    expect(counts).toEqual({
++      originUnitId: undefined,
++      serviceId: "svc-1",
++      assignedUserId: "agent-1",
++      priority: undefined,
++      requesterId: undefined,
++      groupId: undefined,
++      unassigned: undefined,
++      createdFrom: undefined,
++      createdTo: undefined,
++      q: "vpn",
++    });
++    expect(counts).not.toHaveProperty("status");
++    expect(counts).not.toHaveProperty("page");
++  });
++});
+
+diff --git a/frontend/src/lib/tickets/ticket-list-search-params.ts b/frontend/src/lib/tickets/ticket-list-search-params.ts
+index ef76f61..6a9a678 100644
+--- a/frontend/src/lib/tickets/ticket-list-search-params.ts
++++ b/frontend/src/lib/tickets/ticket-list-search-params.ts
+@@ -25,6 +25,8 @@ export type TicketPageQuery = {
+   readonly createdFrom?: string;
+   readonly createdTo?: string;
+   readonly q?: string;
++  /** Search the description as well (the ticket list search box does). */
++  readonly searchDescription?: boolean;
+   readonly includeArchived?: boolean;
+   readonly sort?: TicketSortField;
+   readonly dir?: "asc" | "desc";
+@@ -50,6 +52,7 @@ const flagFilters = [
+   "overdue",
+   "atRisk",
+   "includeArchived",
++  "searchDescription",
+ ] as const;
+ 
+ /**
+
+diff --git a/frontend/src/lib/tickets/use-ticket-list.ts b/frontend/src/lib/tickets/use-ticket-list.ts
+index 4c91994..be35c25 100644
+--- a/frontend/src/lib/tickets/use-ticket-list.ts
++++ b/frontend/src/lib/tickets/use-ticket-list.ts
+@@ -1,10 +1,9 @@
+ import { useCallback, useEffect, useMemo, useState } from "react";
+ import { useNavigate, useSearchParams } from "react-router-dom";
+ import { useTranslation } from "react-i18next";
+-import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
++import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+ import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
+ import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
+-import { paginateItems } from "@/lib/tickets/paginate-items";
+ import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
+ import { isTicketStaff } from "@/lib/session/route-access";
+ import { useSession } from "@/lib/session/use-session";
+@@ -14,16 +13,24 @@ import {
+   workspaceViewsFor,
+   type TicketWorkspaceView,
+ } from "@/lib/tickets/ticket-constants";
++import {
++  toTicketCountsQuery,
++  toTicketPageQuery,
++} from "@/lib/tickets/ticket-page-query";
+ import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
+ import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
++import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
+ import {
+   claimTicket,
+   getGroupInboxStatus,
+   listGroupInbox,
+-  listTickets,
++  listTicketsPage,
+   type TicketResponse,
+ } from "@/services/tickets-api";
+ 
++/** A list answer never carries more than 50 rows; the unrouted tab asks for it. */
++const unroutedPageSize = 50;
++
+ function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView {
+   const allowed = workspaceViewsFor(isStaff);
+   if (value !== null && allowed.includes(value as TicketWorkspaceView)) {
+@@ -45,6 +52,15 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null):
+   overdue: false,
+ });
+ 
++/**
++ * Ticket list state.
++ *
++ * Phase 1.1 (plan §1.1): the list used to download every ticket the caller may
++ * see and then filter and page it in the browser. The filters now travel to the
++ * server (`toTicketPageQuery`) and only one page comes back; the counters next
++ * to the tabs come from `GET /tickets/counts`, so they still cover everything
++ * the caller may list instead of just the visible page.
++ */
+ export function useTicketList() {
+   const { t } = useTranslation();
+   const navigate = useNavigate();
+@@ -54,10 +70,14 @@ export function useTicketList() {
+   const capabilities = useSessionCapabilities();
+   const isStaff = isTicketStaff(capabilities);
+   const view = parseView(searchParams.get("view"), isStaff);
+-  const [tickets, setTickets] = useState<readonly TicketResponse[]>([]);
+-  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>(
+-    [],
+-  );
++  const [pageItems, setPageItems] = useState<readonly TicketResponse[]>([]);
++  const [pageInfo, setPageInfo] = useState({
++    page: 1,
++    pageSize: ticketListPageSize,
++    total: 0,
++  });
++  const [counts, setCounts] = useState<TicketCounts | null>(null);
++  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
+   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
+   const [inboxHidden, setInboxHidden] = useState(false);
+   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
+@@ -76,10 +96,12 @@ export function useTicketList() {
+     }
+     try {
+       if (view === "inbox") {
+-        const [catalog, inboxRows, unroutedRows] = await Promise.all([
++        const [catalog, inboxRows, unroutedPage] = await Promise.all([
+           listOfferedServices().catch(() => []),
+           listGroupInbox(),
+-          listTickets({ status: "UNROUTED" }).catch(() => []),
++          listTicketsPage({ status: "UNROUTED", pageSize: unroutedPageSize }).catch(
++            () => null,
++          ),
+         ]);
+         // An empty inbox is ambiguous: ask the server whether it is empty
+         // because the person is in no handler group or simply has no tickets.
+@@ -91,18 +113,50 @@ export function useTicketList() {
+                 () => null,
+               );
+         setServices(catalog);
+-        setTickets(inboxRows);
+-        setUnroutedTickets(unroutedTicketsFromList(unroutedRows));
++        setPageItems(inboxRows);
++        setPageInfo({
++          page: 1,
++          pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
++          total: inboxRows.length,
++        });
++        setUnroutedTickets(unroutedTicketsFromList(unroutedPage?.items ?? []));
++        setCounts(null);
+         setHasGroupMembership(membership);
+       } else {
+-        const [catalog, rows] = await Promise.all([
++        const query = toTicketPageQuery({
++          filters,
++          view,
++          currentUserId,
++          page,
++        });
++        const [catalog, response] = await Promise.all([
+           listOfferedServices().catch(() => []),
+-          listTickets(filters.status === "" ? {} : { status: filters.status }),
++          listTicketsPage(query),
+         ]);
+         setServices(catalog);
+-        setTickets(rows);
++        setPageItems(response.items);
++        setPageInfo({
++          page: response.page,
++          pageSize: response.pageSize,
++          total: response.total,
++        });
+         setUnroutedTickets([]);
+         setHasGroupMembership(null);
++        // Counters are a separate, cheaper read: they cover all matching
++        // tickets, not just the page, and they are allowed to fail (the tabs
++        // then show zeros instead of breaking the list).
++        setCounts(
++          await getTicketCounts(toTicketCountsQuery(query)).catch(() => null),
++        );
++        // A filter can move the requested page past the end; fall back to the
++        // last page that does have rows.
++        if (
++          response.items.length === 0 &&
++          response.total > 0 &&
++          response.page > 1
++        ) {
++          setPage(Math.max(1, Math.ceil(response.total / response.pageSize)));
++        }
+       }
+       setInboxHidden(false);
+     } catch (error) {
+@@ -115,7 +169,7 @@ export function useTicketList() {
+       if (silent) {
+         return;
+       }
+-      setTickets([]);
++      setPageItems([]);
+       setUnroutedTickets([]);
+       setErrorKey(mapped);
+     } finally {
+@@ -123,7 +177,7 @@ export function useTicketList() {
+         setIsLoading(false);
+       }
+     }
+-  }, [view, filters.status, setSearchParams]);
++  }, [view, filters, page, currentUserId, setSearchParams]);
+ 
+   useEffect(() => {
+     setFilters((current) => ({
+@@ -158,11 +212,10 @@ export function useTicketList() {
+   }, [load]);
+   useTicketCollectionRealtime(reloadSilent);
+ 
+-  const visible = useMemo(
+-    () => filterTickets(tickets, { ...filters, view, currentUserId }),
+-    [tickets, filters, view, currentUserId],
++  const totalPages = Math.max(
++    1,
++    Math.ceil(pageInfo.total / pageInfo.pageSize),
+   );
+-  const paged = paginateItems(visible, page, ticketListPageSize);
+   const unroutedCount = unroutedTickets.length;
+   const serviceNames = useMemo(
+     () => new Map(services.map((service) => [service.id, service.name])),
+@@ -212,12 +265,14 @@ export function useTicketList() {
+     setFilters: (next: TicketListFilters) => {
+       setFilters(next);
+       setPage(1);
++      setSelectedIds(new Set());
+     },
+     page,
+     setPage,
+-    paged,
+-    visible,
+-    tickets,
++    totalPages,
++    pageItems,
++    total: pageInfo.total,
++    counts,
+     unroutedTickets,
+     unroutedCount,
+     serviceNames,
+
+diff --git a/frontend/src/services/tickets-api.ts b/frontend/src/services/tickets-api.ts
+index 640d068..bfa5884 100644
+--- a/frontend/src/services/tickets-api.ts
++++ b/frontend/src/services/tickets-api.ts
+@@ -1,3 +1,7 @@
++import {
++  toTicketListSearchParams,
++  type TicketPageQuery,
++} from "@/lib/tickets/ticket-list-search-params";
+ import { apiRequest } from "@/services/api";
+ 
+ export type TicketSlaSnapshot = {
+@@ -155,13 +159,9 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse>
+ }
+ 
+ export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
+-  // The backend always answers this endpoint with the paginated
+-  // { items, total, page, pageSize } shape (unlike GET /tickets, which only
+-  // does that when page/pageSize are supplied), so the array has to be
+-  // unwrapped here rather than treating the response itself as the array.
+-  const response = await apiRequest<{ items: readonly TicketResponse[] }>(
+-    "/tickets/inbox",
+-  );
++  // The inbox endpoint answers the same page envelope as GET /tickets, so the
++  // array is unwrapped here rather than treating the response as the array.
++  const response = await apiRequest<TicketPage>("/tickets/inbox");
+   return response.items;
+ }
+ 
+@@ -177,21 +177,40 @@ export function claimTicket(ticketId: string): Promise<TicketResponse> {
+   return apiRequest(`/tickets/${ticketId}/claim`, { method: "POST" });
+ }
+ 
++export type TicketPage = {
++  readonly items: readonly TicketResponse[];
++  readonly total: number;
++  readonly page: number;
++  readonly pageSize: number;
++};
++
++/**
++ * One page of the visible tickets (phase 1.1, plan §1.1).
++ *
++ * `GET /tickets` always answers this envelope now: it used to return a plain
++ * array with every ticket in the table when no `page`/`pageSize` was sent, and
++ * four screens did exactly that. This is the only list read the client has.
++ */
++export function listTicketsPage(
++  query: TicketPageQuery = {},
++): Promise<TicketPage> {
++  const search = toTicketListSearchParams(query).toString();
++  return apiRequest(`/tickets?${search}`);
++}
++
++/**
++ * First page of the tickets narrowed by the three basic filters. Kept for the
++ * screens that only need a small slice while their dedicated endpoints arrive
++ * (dashboard/SLA aggregates in phase 2.4, `/search` in phase 1.2).
++ */
+ export function listTickets(
+   query: ListTicketsQuery = {},
+-): Promise<readonly TicketResponse[]> {
+-  const search = new URLSearchParams();
+-  if (query.originUnitId !== undefined) {
+-    search.set("originUnitId", query.originUnitId);
+-  }
+-  if (query.serviceId !== undefined) {
+-    search.set("serviceId", query.serviceId);
+-  }
+-  if (query.status !== undefined) {
+-    search.set("status", query.status);
+-  }
+-  const suffix = search.toString() === "" ? "" : `?${search.toString()}`;
+-  return apiRequest(`/tickets${suffix}`);
++): Promise<TicketPage> {
++  return listTicketsPage({
++    originUnitId: query.originUnitId,
++    serviceId: query.serviceId,
++    status: query.status,
++  });
+ }
+ 
+ export function getTicket(ticketId: string): Promise<TicketResponse> {
+
+diff --git a/frontend/src/services/tickets-list-api.ts b/frontend/src/services/tickets-list-api.ts
+index 0df85ef..2cba73d 100644
+--- a/frontend/src/services/tickets-list-api.ts
++++ b/frontend/src/services/tickets-list-api.ts
+@@ -1,19 +1,10 @@
+-import { toTicketListSearchParams } from "@/lib/tickets/ticket-list-search-params";
+-import type { TicketPageQuery } from "@/lib/tickets/ticket-list-search-params";
+-import { apiRequest } from "@/services/api";
+-import type { TicketResponse } from "@/services/tickets-api";
+-
+-export type TicketPage = {
+-  readonly items: readonly TicketResponse[];
+-  readonly total: number;
+-  readonly page: number;
+-  readonly pageSize: number;
+-};
+-
+ /**
+- * One page of the tickets the caller may see, filtered, sorted and counted by
+- * the server. Prefer this over `listTickets`, which downloads every ticket.
++ * Page reads of `GET /tickets`.
++ *
++ * The helper itself lives in `tickets-api.ts` (next to the other ticket calls);
++ * this module stays as the thin entry point the older imports used, so the
++ * change of home did not have to touch every caller.
+  */
+-export function listTicketsPage(query: TicketPageQuery = {}): Promise<TicketPage> {
+-  return apiRequest(`/tickets?${toTicketListSearchParams(query).toString()}`);
+-}
++export { listTicketsPage } from "@/services/tickets-api";
++export type { TicketPage } from "@/services/tickets-api";
++export type { TicketPageQuery } from "@/lib/tickets/ticket-list-search-params";
+
+diff --git a/frontend/src/components/tickets/ticket-list-filters.tsx b/frontend/src/components/tickets/ticket-list-filters.tsx
+index 2153335..971ccf8 100644
+--- a/frontend/src/components/tickets/ticket-list-filters.tsx
++++ b/frontend/src/components/tickets/ticket-list-filters.tsx
+@@ -13,7 +13,8 @@ import {
+ import { ticketText } from "@/lib/tickets/ticket-text";
+ import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+ import type { ServiceResponse } from "@/services/service-catalog-api";
+-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
++import type { TicketStatus } from "@/services/tickets-api";
++import type { TicketCounts } from "@/services/tickets-counts-api";
+ 
+ const SLA_RISK_TAB = "RISK";
+ 
+@@ -38,13 +39,32 @@ export function applyTicketListTab(
+   };
+ }
+ 
++/**
++ * Tab counters of the list.
++ *
++ * Phase 1.1 (plan §1.1): the counters no longer come from the downloaded list
++ * (which is one page now) but from `GET /tickets/counts`, computed over the
++ * same filters and visibility. `null` means the counters could not be read —
++ * the tabs then show zeros instead of blocking the list.
++ *
++ * "All" is every status the counters know except ARCHIVED: the default list
++ * hides the archive, and the counters group over all statuses.
++ */
+ export function ticketStatusTabItems(
+   t: TFunction,
+-  tickets: readonly TicketResponse[],
++  counts: TicketCounts | null,
+   riskCount: number,
+ ) {
++  const allCount =
++    counts === null
++      ? 0
++      : ticketStatusValues.reduce(
++          (sum, status) =>
++            status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0),
++          0,
++        );
+   return [
+-    { key: "ALL", label: ticketText(t, "tickets.filters.allTickets"), count: tickets.length },
++    { key: "ALL", label: ticketText(t, "tickets.filters.allTickets"), count: allCount },
+     {
+       key: SLA_RISK_TAB,
+       label: (
+@@ -58,7 +78,7 @@ export function ticketStatusTabItems(
+     ...ticketStatusValues.map((status) => ({
+       key: status,
+       label: ticketText(t, ticketStatusLabelKey[status]),
+-      count: tickets.filter((ticket) => ticket.status === status).length,
++      count: counts?.byStatus[status] ?? 0,
+     })),
+   ];
+ }
+
+diff --git a/frontend/src/pages/ticket-list-page.tsx b/frontend/src/pages/ticket-list-page.tsx
+index 82afb00..95b6730 100644
+--- a/frontend/src/pages/ticket-list-page.tsx
++++ b/frontend/src/pages/ticket-list-page.tsx
+@@ -23,7 +23,7 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+ import { flattenOrganizationalUnitNames } from "@/lib/tickets/ticket-display";
+ import { ticketViewLabelKey } from "@/lib/tickets/ticket-constants";
+ import { ticketText } from "@/lib/tickets/ticket-text";
+-import { clearedTicketListFilters, isTicketOverdue } from "@/lib/tickets/filter-tickets";
++import { clearedTicketListFilters } from "@/lib/tickets/filter-tickets";
+ import { useTicketList } from "@/lib/tickets/use-ticket-list";
+ import { useTicketsCsvExport } from "@/lib/tickets/use-tickets-csv-export";
+ 
+@@ -44,10 +44,10 @@ export function TicketListPage() {
+     () => flattenOrganizationalUnitNames(directory.tree),
+     [directory.tree],
+   );
+-  const openCount = list.tickets.filter(
+-    (ticket) => ticket.status !== "CLOSED" && ticket.status !== "RESOLVED" && ticket.status !== "ARCHIVED",
+-  ).length;
+-  const riskCount = list.tickets.filter(isTicketOverdue).length;
++  // Phase 1.1: the headline numbers come from the server counters (they cover
++  // every matching ticket), not from the rows of the current page.
++  const openCount = list.counts?.open ?? 0;
++  const riskCount = list.counts?.overdue ?? 0;
+   const pageTitle = isInbox
+     ? t("tickets.views.inbox")
+     : ticketText(t, ticketViewLabelKey[list.view]);
+@@ -92,7 +92,7 @@ export function TicketListPage() {
+       />
+       {isInbox ? (
+         <TicketInboxPanel
+-          inboxTickets={list.tickets}
++          inboxTickets={list.pageItems}
+           unroutedTickets={list.unroutedTickets}
+           serviceNames={list.serviceNames}
+           originNames={originNames}
+@@ -125,7 +125,7 @@ export function TicketListPage() {
+                 className="mb-3"
+                 active={ticketListTabKey(list.filters)}
+                 onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
+-                items={ticketStatusTabItems(t, list.tickets, riskCount)}
++                items={ticketStatusTabItems(t, list.counts, riskCount)}
+               />
+               <TicketListFiltersBar filters={list.filters} services={list.services} onChange={list.setFilters} />
+               <TicketBulkBar
+@@ -141,7 +141,7 @@ export function TicketListPage() {
+                 <TicketLoadingState />
+               ) : list.errorKey ? (
+                 <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
+-              ) : list.visible.length === 0 ? (
++              ) : list.total === 0 ? (
+                 <div className="rounded-lg border border-border bg-surface shadow-card">
+                   <TicketEmptyState
+                     title={t("tickets.emptyFilterTitle")}
+@@ -160,31 +160,31 @@ export function TicketListPage() {
+                 </div>
+               ) : (
+                 <TicketListTable
+-                  tickets={list.paged.pageItems}
++                  tickets={list.pageItems}
+                   serviceNames={list.serviceNames}
+                   assigneeNames={assigneeNames}
+                   selectedIds={list.selectedIds}
+                   onToggleSelected={list.toggleSelected}
+                   onTogglePage={(selected) =>
+                     list.setSelectedIds(
+-                      selected ? new Set(list.paged.pageItems.map((ticket) => ticket.id)) : new Set(),
++                      selected ? new Set(list.pageItems.map((ticket) => ticket.id)) : new Set(),
+                     )
+                   }
+                 />
+               )}
+-              {list.paged.totalPages > 1 ? (
++              {list.totalPages > 1 ? (
+                 <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground/70">
+-                  <Button type="button" variant="outline" size="sm" disabled={list.paged.page === 1} onClick={() => list.setPage(list.paged.page - 1)}>
++                  <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
+                     {t("tickets.previous")}
+                   </Button>
+-                  <span className="tnum">{ticketText(t, "tickets.page", { page: list.paged.page, total: list.paged.totalPages })}</span>
+-                  <Button type="button" variant="outline" size="sm" disabled={list.paged.page === list.paged.totalPages} onClick={() => list.setPage(list.paged.page + 1)}>
++                  <span className="tnum">{ticketText(t, "tickets.page", { page: list.page, total: list.totalPages })}</span>
++                  <Button type="button" variant="outline" size="sm" disabled={list.page === list.totalPages} onClick={() => list.setPage(list.page + 1)}>
+                     {t("tickets.next")}
+                   </Button>
+                 </div>
+               ) : (
+                 <p className="mt-3 text-[11.5px] text-muted-foreground/70">
+-                  {ticketText(t, "tickets.listShown", { shown: list.visible.length, total: list.tickets.length })}
++                  {ticketText(t, "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
+                 </p>
+               )}
+               {canExport ? (
+
+diff --git a/frontend/src/lib/dashboard/use-dashboard-summary.ts b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+index b32d8d9..442e52f 100644
+--- a/frontend/src/lib/dashboard/use-dashboard-summary.ts
++++ b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+@@ -15,7 +15,7 @@ import { listRoutingRules } from "@/services/routing-api";
+ import { listOfferedServices, listServices } from "@/services/service-catalog-api";
+ import {
+   listGroupInbox,
+-  listTickets,
++  listTicketsPage,
+   type TicketResponse,
+ } from "@/services/tickets-api";
+ 
+@@ -60,8 +60,13 @@ export function useDashboardSummary(): DashboardSummaryState {
+       setRequestId(null);
+     }
+     try {
+-      const tickets = await listTickets();
+-      setSummary(summarizeTickets(tickets, currentUserId));
++      // Phase 1.1, temporary: the list is paged now, so the dashboard summary
++      // counts the first page (50 rows, the server maximum) instead of every
++      // ticket. Phase 2.4 replaces this with the server-side aggregates
++      // (`GET /reports/dashboard/summary`), which is where the real numbers
++      // come from. No page loop here on purpose.
++      const firstPage = await listTicketsPage({ pageSize: 50 });
++      setSummary(summarizeTickets(firstPage.items, currentUserId));
+       const [inbox, catalog, tree, rules] = await Promise.all([
+         isStaff ? listGroupInbox().catch(() => null) : Promise.resolve(null),
+         listServices().catch(() => listOfferedServices().catch(() => [])),
+
+diff --git a/frontend/src/lib/sla/use-sla-page-data.ts b/frontend/src/lib/sla/use-sla-page-data.ts
+index 54567cf..512e412 100644
+--- a/frontend/src/lib/sla/use-sla-page-data.ts
++++ b/frontend/src/lib/sla/use-sla-page-data.ts
+@@ -12,7 +12,7 @@ import {
+   type SlaProfile,
+   type SlaRule,
+ } from "@/services/sla-api";
+-import { listTickets, type TicketResponse } from "@/services/tickets-api";
++import { listTicketsPage, type TicketResponse } from "@/services/tickets-api";
+ 
+ export function useSlaPageData() {
+   const [profiles, setProfiles] = useState<readonly SlaProfile[]>([]);
+@@ -47,13 +47,17 @@ export function useSlaPageData() {
+     setIsLoading(true);
+     setErrorKey(null);
+     try {
+-      const [profileItems, calendarItems, ticketItems, complianceData] =
++      // Phase 1.1, temporary: only the first page (50 rows, the server
++      // maximum) is read here until phase 2.4 serves the SLA counters as an
++      // aggregate. No page loop on purpose.
++      const [profileItems, calendarItems, firstPage, complianceData] =
+         await Promise.all([
+           listSlaProfiles(),
+           listSlaCalendars(),
+-          listTickets(),
++          listTicketsPage({ pageSize: 50 }),
+           fetchSlaCompliance({ days: 30 }),
+         ]);
++      const ticketItems = firstPage.items;
+       setProfiles(profileItems);
+       setCalendars(calendarItems);
+       setTickets(ticketItems);
+
+diff --git a/backend/src/modules/search/search.constants.ts b/backend/src/modules/search/search.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.constants.ts
+@@ -0,0 +1,17 @@
++export const searchTypes = ['ticket', 'article', 'user'] as const;
++
++export const searchConstants = {
++  /** Hits per group. The plan (§1.2) asks for ≤ 15 per type. */
++  defaultLimit: 15,
++  /** Hard ceiling of the `limit` query parameter. */
++  maxLimit: 25,
++  /** One letter would match most of the table; the UI waits for two too. */
++  minimumQueryLength: 2,
++  maximumQueryLength: 200,
++  /**
++   * Candidate rows read per group before the visibility filter runs: a candidate
++   * may be dropped (confidential ticket, article of another scope), so a few
++   * extra rows are read to still fill the group.
++   */
++  candidateMultiplier: 3,
++} as const;
+
+diff --git a/backend/src/modules/search/search.types.ts b/backend/src/modules/search/search.types.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.types.ts
+@@ -0,0 +1,33 @@
++import type { searchTypes } from './search.constants';
++import type { TicketSearchMatch } from '../tickets/tickets.types';
++
++export type SearchType = (typeof searchTypes)[number];
++
++export type ArticleSearchMatch = {
++  readonly id: string;
++  readonly slug: string;
++  readonly title: string;
++};
++
++export type UserSearchMatch = {
++  readonly id: string;
++  readonly displayName: string;
++  readonly email: string;
++};
++
++/**
++ * Answer of `GET /search` (plan §1.2): one request, three groups, each already
++ * narrowed by the same visibility rules as the matching list. An empty group is
++ * a valid answer — it also means "this caller may not see that type".
++ */
++export type SearchResponse = {
++  readonly tickets: readonly TicketSearchMatch[];
++  readonly articles: readonly ArticleSearchMatch[];
++  readonly users: readonly UserSearchMatch[];
++};
++
++export type SearchQuery = {
++  readonly q: string;
++  readonly types: readonly SearchType[];
++  readonly limit: number;
++};
+
+diff --git a/backend/src/modules/search/search-query.dto.ts b/backend/src/modules/search/search-query.dto.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search-query.dto.ts
+@@ -0,0 +1,59 @@
++import { Transform, Type } from 'class-transformer';
++import {
++  ArrayMaxSize,
++  IsArray,
++  IsIn,
++  IsInt,
++  IsOptional,
++  IsString,
++  Max,
++  MaxLength,
++  Min,
++  MinLength,
++} from 'class-validator';
++import { toQueryList } from '../tickets/list/list-query-transforms';
++import { searchConstants, searchTypes } from './search.constants';
++import type { SearchType } from './search.types';
++
++/**
++ * `GET /search?q=&types=ticket,article,user&limit=15` (plan §1.2).
++ *
++ * `q` needs at least two characters, `limit` is clamped by validation to
++ * `[1, 25]`, and `types` defaults to all three groups.
++ */
++export class SearchQueryDto {
++  @IsString()
++  @MinLength(searchConstants.minimumQueryLength)
++  @MaxLength(searchConstants.maximumQueryLength)
++  q!: string;
++
++  @IsOptional()
++  @Transform(({ value }) => toQueryList(value))
++  @IsArray()
++  @ArrayMaxSize(searchTypes.length)
++  @IsIn(searchTypes, { each: true })
++  types?: SearchType[];
++
++  @IsOptional()
++  @Type(() => Number)
++  @IsInt()
++  @Min(1)
++  @Max(searchConstants.maxLimit)
++  limit?: number;
++}
++
++/** Applies the defaults and the ceiling once, for the service to rely on. */
++export function toSearchQuery(dto: SearchQueryDto): {
++  readonly q: string;
++  readonly types: readonly SearchType[];
++  readonly limit: number;
++} {
++  return {
++    q: dto.q.trim(),
++    types: dto.types === undefined ? searchTypes : dto.types,
++    limit: Math.min(
++      Math.max(dto.limit ?? searchConstants.defaultLimit, 1),
++      searchConstants.maxLimit,
++    ),
++  };
++}
+
+diff --git a/backend/src/modules/search/search-query.dto.spec.ts b/backend/src/modules/search/search-query.dto.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search-query.dto.spec.ts
+@@ -0,0 +1,57 @@
++// The DTO is read through its decorators, so the metadata shim has to be in
++// place before the module is imported (the app sets it up in `main.ts`).
++import 'reflect-metadata';
++import { plainToInstance } from 'class-transformer';
++import { validate } from 'class-validator';
++import { SearchQueryDto, toSearchQuery } from './search-query.dto';
++import { searchConstants } from './search.constants';
++
++async function validateQuery(raw: Record<string, unknown>) {
++  const dto = plainToInstance(SearchQueryDto, raw);
++  const errors = await validate(dto);
++  return { dto, errors };
++}
++
++describe('GET /search query contract', () => {
++  it('requires at least two characters', async () => {
++    expect((await validateQuery({ q: 'v' })).errors).not.toHaveLength(0);
++    expect((await validateQuery({})).errors).not.toHaveLength(0);
++    expect((await validateQuery({ q: 'vp' })).errors).toHaveLength(0);
++  });
++
++  it('refuses a query longer than the ceiling', async () => {
++    const tooLong = 'a'.repeat(searchConstants.maximumQueryLength + 1);
++    expect((await validateQuery({ q: tooLong })).errors).not.toHaveLength(0);
++  });
++
++  it('accepts a limit inside 1–25 and refuses anything outside', async () => {
++    expect((await validateQuery({ q: 'vpn', limit: 25 })).errors).toHaveLength(0);
++    expect((await validateQuery({ q: 'vpn', limit: 1 })).errors).toHaveLength(0);
++    expect((await validateQuery({ q: 'vpn', limit: 0 })).errors).not.toHaveLength(0);
++    expect((await validateQuery({ q: 'vpn', limit: 26 })).errors).not.toHaveLength(0);
++  });
++
++  it('accepts the types list as csv and refuses unknown types', async () => {
++    const csv = await validateQuery({ q: 'vpn', types: 'ticket,user' });
++    expect(csv.errors).toHaveLength(0);
++    expect(csv.dto.types).toEqual(['ticket', 'user']);
++
++    const repeated = await validateQuery({ q: 'vpn', types: ['article', 'user'] });
++    expect(repeated.dto.types).toEqual(['article', 'user']);
++
++    expect(
++      (await validateQuery({ q: 'vpn', types: 'ticket,audit' })).errors,
++    ).not.toHaveLength(0);
++  });
++
++  it('defaults to all three groups and to fifteen hits', () => {
++    expect(toSearchQuery(plainToInstance(SearchQueryDto, { q: ' vpn ' }))).toEqual({
++      q: 'vpn',
++      types: ['ticket', 'article', 'user'],
++      limit: searchConstants.defaultLimit,
++    });
++    expect(
++      toSearchQuery(plainToInstance(SearchQueryDto, { q: 'vpn', limit: 25 })),
++    ).toMatchObject({ limit: 25 });
++  });
++});
+
+diff --git a/backend/src/modules/search/search-users.ts b/backend/src/modules/search/search-users.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search-users.ts
+@@ -0,0 +1,48 @@
++import { PrismaService } from '../../common/prisma/prisma.service';
++import type { UserSearchMatch } from './search.types';
++
++/**
++ * People search of `GET /search?types=user`.
++ *
++ * The only existing list of directory users is
++ * `GET /organizational-units/:id/users`, which is an admin route, and the header
++ * search used to reach it through one request per organizational unit. To keep
++ * the very same reach (and to not open a new door), the group is answered only
++ * for admins and super admins; everyone else gets an empty group instead of an
++ * error, because the other two groups still have hits.
++ */
++export async function searchDirectoryUsers(input: {
++  readonly prisma: PrismaService;
++  readonly query: string;
++  readonly limit: number;
++  readonly maySearchUsers: boolean;
++}): Promise<readonly UserSearchMatch[]> {
++  if (!input.maySearchUsers) {
++    return [];
++  }
++  const users = await input.prisma.user.findMany({
++    where: {
++      isActive: true,
++      OR: [
++        { displayName: { contains: input.query, mode: 'insensitive' } },
++        { email: { contains: input.query, mode: 'insensitive' } },
++      ],
++    },
++    select: { id: true, displayName: true, email: true },
++    orderBy: { displayName: 'asc' },
++    take: input.limit,
++  });
++  return users.map((user) => ({
++    id: user.id,
++    displayName: user.displayName,
++    email: user.email,
++  }));
++}
++
++/** `ADMIN` (or super admin) is what the directory user list requires. */
++export function maySearchDirectoryUsers(context: {
++  readonly isSuperAdmin: boolean;
++  readonly roleKeys: readonly string[];
++}): boolean {
++  return context.isSuperAdmin || context.roleKeys.includes('ADMIN');
++}
+
+diff --git a/backend/src/modules/search/search.service.ts b/backend/src/modules/search/search.service.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.service.ts
+@@ -0,0 +1,75 @@
++import { Injectable } from '@nestjs/common';
++import { PrismaService } from '../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
++import { KnowledgeBaseService } from '../knowledge-base/knowledge-base.service';
++import { TicketsService } from '../tickets/tickets.service';
++import type { TicketMutationContext } from '../tickets/tickets.types';
++import { searchConstants } from './search.constants';
++import { maySearchDirectoryUsers, searchDirectoryUsers } from './search-users';
++import type { SearchQuery, SearchResponse } from './search.types';
++
++/**
++ * `GET /search` (plan §1.2): one request, three parallel groups, each narrowed
++ * by the visibility rules of the list it belongs to. The service adds no rules
++ * of its own — it calls the ticket list query, the knowledge-base visibility
++ * check and the directory read that already exist.
++ */
++@Injectable()
++export class SearchService {
++  constructor(
++    private readonly prisma: PrismaService,
++    private readonly authorizationContextLoader: AuthorizationContextLoader,
++    private readonly ticketsService: TicketsService,
++    private readonly knowledgeBaseService: KnowledgeBaseService,
++  ) {}
++
++  async search(
++    query: SearchQuery,
++    context: TicketMutationContext,
++  ): Promise<SearchResponse> {
++    const types = new Set(query.types);
++    const [tickets, articles, users] = await Promise.all([
++      types.has('ticket')
++        ? this.ticketsService.searchTickets(
++            { q: query.q, limit: query.limit },
++            context,
++          )
++        : Promise.resolve([]),
++      types.has('article')
++        ? this.knowledgeBaseService.searchTitles(
++            {
++              q: query.q,
++              limit: query.limit,
++              candidateMultiplier: searchConstants.candidateMultiplier,
++            },
++            context,
++          )
++        : Promise.resolve([]),
++      types.has('user') ? this.searchUsers(query, context) : Promise.resolve([]),
++    ]);
++    return { tickets, articles, users };
++  }
++
++  private async searchUsers(
++    query: SearchQuery,
++    context: TicketMutationContext,
++  ) {
++    const authorization = await this.authorizationContextLoader.loadBySubjectId(
++      context.actorUserId,
++    );
++    if (authorization === null) {
++      return [];
++    }
++    return searchDirectoryUsers({
++      prisma: this.prisma,
++      query: query.q,
++      limit: query.limit,
++      maySearchUsers: maySearchDirectoryUsers({
++        isSuperAdmin: authorization.isSuperAdmin,
++        roleKeys: authorization.assignments.map(
++          (assignment) => assignment.roleKey,
++        ),
++      }),
++    });
++  }
++}
+
+diff --git a/backend/src/modules/search/search.service.spec.ts b/backend/src/modules/search/search.service.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.service.spec.ts
+@@ -0,0 +1,230 @@
++import {
++  createTicketsServiceHarness,
++  ticketsTestIds,
++} from '../tickets/create-tickets-service-harness';
++import { buildTicketRecord } from '../tickets/list/ticket-record-fixture';
++import type { TicketMutationContext } from '../tickets/tickets.types';
++import { searchConstants } from './search.constants';
++import { SearchService } from './search.service';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const { agentIt, agentHr, requester, adminIt, superAdmin } = ticketsTestIds;
++const day = (n: number) => new Date(`2026-02-0${n}T00:00:00.000Z`);
++
++function setup() {
++  const harness = createTicketsServiceHarness();
++  const { memory, contexts, authorizationContextLoader } = harness;
++  const seed = (
++    id: string,
++    overrides: Partial<Parameters<typeof buildTicketRecord>[0]>,
++  ) =>
++    memory.tickets.set(
++      id,
++      buildTicketRecord({
++        id,
++        ticketNumber: `T-${id}`,
++        createdAt: day(1),
++        updatedAt: day(1),
++        ...overrides,
++      }),
++    );
++  seed('t1', { title: 'VPN pristup', originUnitId: ticketsTestIds.ouIt });
++  seed('t2', { title: 'vpn sporo radi', originUnitId: ticketsTestIds.ouIt });
++  seed('t3', { title: 'HR onboarding', originUnitId: ticketsTestIds.ouHr });
++  seed('t4', { title: 'Arhivirano', status: 'ARCHIVED', originUnitId: ticketsTestIds.ouIt });
++  // The article group is stubbed: this spec is about the wiring and about the
++  // ticket scope, while the visibility of articles has its own tests.
++  const articleCalls: { q: string; limit: number }[] = [];
++  const knowledgeBase = {
++    searchTitles: async (query: { q: string; limit: number }) => {
++      articleCalls.push({ q: query.q, limit: query.limit });
++      return [{ id: 'article-1', slug: 'reset-lozinke', title: `Reset ${query.q}` }];
++    },
++  };
++  // The people group reads `user.findMany`; the harness has no user delegate,
++  // so the read is provided here and records what it was asked for.
++  const userQueries: unknown[] = [];
++  const users = [
++    { id: 'user-1', displayName: 'Ana Hodžić', email: 'ana@example.com' },
++    { id: 'user-2', displayName: 'Marko Marković', email: 'marko@example.com' },
++  ];
++  const prisma = {
++    user: {
++      findMany: async (args: { where?: unknown; take?: number }) => {
++        userQueries.push(args);
++        const needle = /contains":"([^"]*)"/.exec(
++          JSON.stringify(args.where ?? {}),
++        )?.[1];
++        const take = args.take ?? 15;
++        return users
++          .filter((user) =>
++            needle === undefined
++              ? true
++              : `${user.displayName} ${user.email}`
++                  .toLowerCase()
++                  .includes(needle.toLowerCase()),
++          )
++          .slice(0, take);
++      },
++    },
++  };
++  const service = new SearchService(
++    prisma as never,
++    authorizationContextLoader as never,
++    harness.tickets,
++    knowledgeBase as never,
++  );
++  const context = (actorUserId: string): TicketMutationContext => ({
++    actorUserId,
++  });
++  return {
++    service,
++    memory,
++    contexts,
++    // The ticket service itself is returned so the specs can compare what the
++    // search answers with what `GET /tickets` answers.
++    tickets: harness.tickets,
++    articleCalls,
++    userQueries,
++    context,
++  };
++}
++
++const allTypes = ['ticket', 'article', 'user'] as const;
++
++describe('GET /search', () => {
++  it('returns only the tickets of the caller scope', async () => {
++    const { service, context } = setup();
++    const it = await service.search(
++      { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
++      context(agentIt),
++    );
++    // t4 is archived (not searchable) and t3 is another unit.
++    expect(it.tickets.map((ticket) => ticket.id)).toEqual(['t1', 't2']);
++
++    const hr = await service.search(
++      { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
++      context(agentHr),
++    );
++    // The HR agent sees no IT ticket even though both titles match.
++    expect(hr.tickets).toEqual([]);
++
++    const superUser = await service.search(
++      { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
++      context(superAdmin),
++    );
++    // A super admin may see the archive; the archived ticket still matches only
++    // by title, which is what the query searches.
++    expect(superUser.tickets.map((ticket) => ticket.id)).toEqual(['t1', 't2']);
++  });
++
++  it('answers exactly the tickets the list would answer, page size aside', async () => {
++    const { service, tickets, context } = setup();
++    for (const actor of [agentIt, agentHr, superAdmin]) {
++      const listed = await tickets.listPage({ q: 'vpn', pageSize: 50 }, context(actor));
++      const found = await service.search(
++        { q: 'vpn', types: ['ticket'], limit: searchConstants.defaultLimit },
++        context(actor),
++      );
++      expect(found.tickets.map((ticket) => ticket.id)).toEqual(
++        listed.items.map((ticket) => ticket.id),
++      );
++    }
++  });
++
++  it('agrees with the list for a requester: no ticket that GET /tickets would not show', async () => {
++    const { service, memory, tickets, context } = setup();
++    memory.tickets.set(
++      't5',
++      buildTicketRecord({
++        id: 't5',
++        ticketNumber: 'T-t5',
++        title: 'vpn za mene',
++        requesterId: requester,
++        createdAt: day(2),
++        updatedAt: day(2),
++      }),
++    );
++    // The plan asks for the very same visibility as the list; comparing the two
++    // reads is the strongest way to say that (a requester does list the public
++    // tickets of the units they see).
++    const listed = await tickets.listPage(
++      { q: 'vpn', pageSize: 50 },
++      context(requester),
++    );
++    const found = await service.search(
++      { q: 'vpn', types: [...allTypes], limit: searchConstants.defaultLimit },
++      context(requester),
++    );
++    expect(found.tickets.map((ticket) => ticket.id)).toEqual(
++      listed.items.map((ticket) => ticket.id),
++    );
++    expect(found.tickets.map((ticket) => ticket.id)).toContain('t5');
++  });
++
++  it('honors the limit and skips the groups that were not asked for', async () => {
++    const { service, articleCalls, userQueries, context } = setup();
++    const limited = await service.search(
++      { q: 'vpn', types: ['ticket'], limit: 1 },
++      context(agentIt),
++    );
++    expect(limited.tickets).toHaveLength(1);
++    expect(limited.articles).toEqual([]);
++    expect(limited.users).toEqual([]);
++    // Not asked for means not read: no article call, no user query.
++    expect(articleCalls).toEqual([]);
++    expect(userQueries).toEqual([]);
++
++    const articlesOnly = await service.search(
++      { q: 'vpn', types: ['article'], limit: 15 },
++      context(agentIt),
++    );
++    expect(articlesOnly.articles).toHaveLength(1);
++    expect(articlesOnly.tickets).toEqual([]);
++    // The knowledge-base reader receives the multiplier that bounds its
++    // candidate read before the visibility filter.
++    expect(articleCalls).toEqual([{ q: 'vpn', limit: 15 }]);
++  });
++
++  it('answers the people group only to the roles that may read the directory', async () => {
++    const { service, userQueries, context } = setup();
++    const asAgent = await service.search(
++      { q: 'ana', types: ['user'], limit: 15 },
++      context(agentIt),
++    );
++    expect(asAgent.users).toEqual([]);
++    expect(userQueries).toEqual([]);
++
++    const asAdmin = await service.search(
++      { q: 'ana', types: ['user'], limit: 15 },
++      context(adminIt),
++    );
++    expect(asAdmin.users.map((user) => user.displayName)).toEqual(['Ana Hodžić']);
++
++    const asSuperAdmin = await service.search(
++      { q: 'marko', types: ['user'], limit: 15 },
++      context(superAdmin),
++    );
++    expect(asSuperAdmin.users.map((user) => user.displayName)).toEqual([
++      'Marko Marković',
++    ]);
++  });
++
++  it('fails closed for an actor that authorization does not know', async () => {
++    const { service, tickets, context } = setup();
++    // Same outcome as the list: FORBIDDEN, not an empty answer that could be
++    // mistaken for "nothing matches".
++    await expect(
++      tickets.listPage({ q: 'vpn' }, context('user-unknown')),
++    ).rejects.toMatchObject({ status: 403 });
++    await expect(
++      service.search(
++        { q: 'vpn', types: [...allTypes], limit: 15 },
++        context('user-unknown'),
++      ),
++    ).rejects.toMatchObject({ status: 403 });
++  });
++});
+
+diff --git a/backend/src/modules/search/search.controller.ts b/backend/src/modules/search/search.controller.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.controller.ts
+@@ -0,0 +1,52 @@
++import {
++  Controller,
++  Get,
++  Query,
++  Req,
++  UseGuards,
++  UsePipes,
++  ValidationPipe,
++} from '@nestjs/common';
++import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
++import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
++import { RequireRoles } from '../authorization/require-roles.decorator';
++import { RoleGuard } from '../authorization/role.guard';
++import { organizationalUnitTreeReadRoles } from '../organizational-units/organizational-unit-tree-read-roles';
++import { readTicketMutationContext } from '../tickets/read-ticket-mutation-context';
++import { SearchQueryDto, toSearchQuery } from './search-query.dto';
++import { SearchService } from './search.service';
++import type { SearchResponse } from './search.types';
++
++/**
++ * One request for the header search (plan §1.2).
++ *
++ * Before this the palette pulled every ticket, every article and the users of
++ * every organizational unit in the tree — one HTTP request per unit, each with
++ * the full auth chain — and filtered in the browser. `q` matches numbers and
++ * titles of tickets, article titles and (for admins) people; every group is
++ * narrowed by the visibility of its own list and capped at 15 hits.
++ */
++@Controller('search')
++@UseGuards(SessionAuthenticationGuard, RoleGuard)
++@RequireRoles(...organizationalUnitTreeReadRoles)
++@UsePipes(
++  new ValidationPipe({
++    whitelist: true,
++    forbidNonWhitelisted: true,
++    transform: true,
++  }),
++)
++export class SearchController {
++  constructor(private readonly searchService: SearchService) {}
++
++  @Get()
++  search(
++    @Query() query: SearchQueryDto,
++    @Req() request: AuthenticatedHttpRequest,
++  ): Promise<SearchResponse> {
++    return this.searchService.search(
++      toSearchQuery(query),
++      readTicketMutationContext(request),
++    );
++  }
++}
+
+diff --git a/backend/src/modules/search/search.module.ts b/backend/src/modules/search/search.module.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/search/search.module.ts
+@@ -0,0 +1,27 @@
++import { Module } from '@nestjs/common';
++import { AuthenticationModule } from '../authentication/authentication.module';
++import { AuthorizationModule } from '../authorization/authorization.module';
++import { KnowledgeBaseModule } from '../knowledge-base/knowledge-base.module';
++import { TicketsModule } from '../tickets/tickets.module';
++import { SearchController } from './search.controller';
++import { SearchService } from './search.service';
++
++/**
++ * Phase 1.2 (plan §1.2). The module owns nothing but the orchestration: the
++ * ticket group runs through `TicketsService` (its visibility, archive policy and
++ * access gates), the article group through `KnowledgeBaseService` (its
++ * visibility check), and the people group through the directory read that the
++ * admin route uses.
++ */
++@Module({
++  imports: [
++    AuthenticationModule,
++    AuthorizationModule,
++    TicketsModule,
++    KnowledgeBaseModule,
++  ],
++  controllers: [SearchController],
++  providers: [SearchService],
++  exports: [SearchService],
++})
++export class SearchModule {}
+
+diff --git a/backend/src/modules/tickets/read-ticket-mutation-context.ts b/backend/src/modules/tickets/read-ticket-mutation-context.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/tickets/read-ticket-mutation-context.ts
+@@ -0,0 +1,25 @@
++import { ForbiddenException } from '@nestjs/common';
++import {
++  readAuthenticatedPrincipal,
++  type AuthenticatedHttpRequest,
++} from '../authentication/authenticated-request';
++import type { TicketMutationContext } from './tickets.types';
++
++/**
++ * Reads the acting user off the authenticated request for the ticket routes.
++ *
++ * The three ticket controllers used to carry their own copy of this; the search
++ * endpoint needs the same context, so it lives here now.
++ */
++export function readTicketMutationContext(
++  request: AuthenticatedHttpRequest,
++): TicketMutationContext {
++  const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
++  if (actorUserId.length === 0) {
++    throw new ForbiddenException({
++      code: 'FORBIDDEN',
++      message: 'Authorization failed',
++    });
++  }
++  return { actorUserId };
++}
+
+diff --git a/backend/src/modules/tickets/tickets.types.ts b/backend/src/modules/tickets/tickets.types.ts
+index 3e05157..2d71eca 100644
+--- a/backend/src/modules/tickets/tickets.types.ts
++++ b/backend/src/modules/tickets/tickets.types.ts
+@@ -147,6 +147,17 @@ export type UpdateTicketInput = {
+ 
+ export type ListTicketsQuery = TicketListQuery;
+ 
++/**
++ * One hit of `GET /search?types=ticket` (plan §1.2). A deliberately small shape:
++ * the header search only renders the number and the title, and the rest of the
++ * ticket is loaded when the hit is opened.
++ */
++export type TicketSearchMatch = {
++  readonly id: string;
++  readonly ticketNumber: string;
++  readonly title: string;
++};
++
+ export type TicketListResponse = {
+   readonly items: readonly TicketResponse[];
+   readonly total: number;
+
+diff --git a/backend/src/modules/tickets/confidential/tickets-confidential.controller.ts b/backend/src/modules/tickets/confidential/tickets-confidential.controller.ts
+index e5d76cf..0d1f371 100644
+--- a/backend/src/modules/tickets/confidential/tickets-confidential.controller.ts
++++ b/backend/src/modules/tickets/confidential/tickets-confidential.controller.ts
+@@ -1,7 +1,6 @@
+ import {
+   Body,
+   Controller,
+-  ForbiddenException,
+   Param,
+   Post,
+   Req,
+@@ -11,12 +10,11 @@ import {
+ } from '@nestjs/common';
+ import { SessionAuthenticationGuard } from '../../authentication/session-authentication.guard';
+ import type { AuthenticatedHttpRequest } from '../../authentication/authenticated-request';
+-import { readAuthenticatedPrincipal } from '../../authentication/authenticated-request';
+ import { authorizationRoleKeys } from '../../authorization/authorization.constants';
+ import { RequireRoles } from '../../authorization/require-roles.decorator';
+ import { RoleGuard } from '../../authorization/role.guard';
+-import type { TicketMutationContext } from '../tickets.types';
+ import { RequestBreakGlassDto } from './dto/request-break-glass.dto';
++import { readTicketMutationContext } from '../read-ticket-mutation-context';
+ import { TicketsConfidentialService } from './tickets-confidential.service';
+ import type { BreakGlassResponse } from './confidential.types';
+ 
+@@ -53,16 +51,3 @@ export class TicketsConfidentialController {
+     );
+   }
+ }
+-
+-function readTicketMutationContext(
+-  request: AuthenticatedHttpRequest,
+-): TicketMutationContext {
+-  const actorUserId = readAuthenticatedPrincipal(request)?.subjectId ?? '';
+-  if (actorUserId.length === 0) {
+-    throw new ForbiddenException({
+-      code: 'FORBIDDEN',
+-      message: 'Authorization failed',
+-    });
+-  }
+-  return { actorUserId };
+-}
+
+diff --git a/backend/src/modules/knowledge-base/search-knowledge-article-titles.ts b/backend/src/modules/knowledge-base/search-knowledge-article-titles.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/knowledge-base/search-knowledge-article-titles.ts
+@@ -0,0 +1,63 @@
++import { PrismaService } from '../../common/prisma/prisma.service';
++import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
++import { isKnowledgeArticleVisibleTo } from './load-knowledge-article-scope';
++import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
++import { toArticleRecord } from './load-knowledge-article';
++import type {
++  KnowledgeArticleMutationContext,
++  KnowledgeArticleRecord,
++} from './knowledge-base.types';
++
++export type KnowledgeArticleTitleMatch = {
++  readonly id: string;
++  readonly slug: string;
++  readonly title: string;
++};
++
++type ArticleRow = Parameters<typeof toArticleRecord>[0];
++
++/**
++ * Title search behind `GET /search?types=article` (plan §1.2).
++ *
++ * The candidate read is bounded (`take`) and, like the article list, every
++ * candidate still has to pass `isKnowledgeArticleVisibleTo`, so a hit is never
++ * wider than the list the caller could open. Candidates are read a few times
++ * over the requested limit, because the visibility filter may drop some.
++ */
++export async function searchKnowledgeArticleTitles(input: {
++  readonly prisma: PrismaService;
++  readonly authorizationContextLoader: AuthorizationContextLoader;
++  readonly context: KnowledgeArticleMutationContext;
++  readonly query: string;
++  readonly limit: number;
++  readonly candidateMultiplier: number;
++}): Promise<readonly KnowledgeArticleTitleMatch[]> {
++  const actor = await loadKnowledgeActorContext(
++    input.authorizationContextLoader,
++    input.context,
++  );
++  // The whole row is read on purpose: `isKnowledgeArticleVisibleTo` reads
++  // classification, service, unit and owner scope, so a slim projection would
++  // decide visibility on missing data. The read stays bounded by `take`.
++  const candidates = (await input.prisma.knowledgeArticle.findMany({
++    where: {
++      title: { contains: input.query, mode: 'insensitive' },
++      status: { not: 'ARCHIVED' },
++    },
++    orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
++    take: Math.max(input.limit * input.candidateMultiplier, input.limit),
++  })) as ArticleRow[];
++  const visible: KnowledgeArticleTitleMatch[] = [];
++  for (const candidate of candidates) {
++    if (visible.length >= input.limit) {
++      break;
++    }
++    const record = toArticleRecord(candidate);
++    if (await isKnowledgeArticleVisibleTo(input.prisma, actor, record)) {
++      visible.push({ id: record.id, slug: record.slug, title: record.title });
++    }
++  }
++  return visible;
++}
++
++export type { KnowledgeArticleRecord };
+
+diff --git a/backend/src/modules/knowledge-base/knowledge-base.service.ts b/backend/src/modules/knowledge-base/knowledge-base.service.ts
+index be57eeb..2f277cf 100644
+--- a/backend/src/modules/knowledge-base/knowledge-base.service.ts
++++ b/backend/src/modules/knowledge-base/knowledge-base.service.ts
+@@ -15,6 +15,10 @@ import type {
+   UpdateKnowledgeArticleInput,
+ } from './knowledge-base.types';
+ import { listKnowledgeArticles } from './list-knowledge-articles';
++import {
++  searchKnowledgeArticleTitles,
++  type KnowledgeArticleTitleMatch,
++} from './search-knowledge-article-titles';
+ import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
+ import { loadKnowledgeArticleLabels } from './load-knowledge-article-labels';
+ import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
+@@ -78,6 +82,30 @@ export class KnowledgeBaseService {
+     });
+   }
+ 
++  /**
++   * Article hits of `GET /search` (plan §1.2). Same visibility as `list`: the
++   * candidates are bounded, then filtered by `isKnowledgeArticleVisibleTo`.
++   */
++  searchTitles(
++    query: {
++      readonly q: string;
++      readonly limit: number;
++      readonly candidateMultiplier: number;
++    },
++    context: KnowledgeArticleMutationContext,
++  ): Promise<readonly KnowledgeArticleTitleMatch[]> {
++    return executeKnowledgeBaseOperation(() =>
++      searchKnowledgeArticleTitles({
++        prisma: this.prisma,
++        authorizationContextLoader: this.authorizationContextLoader,
++        context,
++        query: query.q,
++        limit: query.limit,
++        candidateMultiplier: query.candidateMultiplier,
++      }),
++    );
++  }
++
+   getById(
+     articleId: string,
+     context: KnowledgeArticleMutationContext,
+
+diff --git a/backend/src/app.module.ts b/backend/src/app.module.ts
+index eef94ff..d47d74e 100644
+--- a/backend/src/app.module.ts
++++ b/backend/src/app.module.ts
+@@ -20,6 +20,7 @@ import { SettingsHttpModule } from './modules/settings/settings-http.module';
+ import { SettingsModule } from './modules/settings/settings.module';
+ import { TicketsModule } from './modules/tickets/tickets.module';
+ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
++import { SearchModule } from './modules/search/search.module';
+ import { NotificationsModule } from './modules/notifications/notifications.module';
+ import { IntegrationQueueModule } from './modules/integration-queue/integration-queue.module';
+ import { ConfigVersioningModule } from './modules/config-versioning/config-versioning.module';
+@@ -55,6 +56,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
+     SlaModule,
+     TicketsModule,
+     KnowledgeBaseModule,
++    SearchModule,
+     NotificationsModule,
+     IntegrationQueueModule,
+     ConfigVersioningModule,
+
+diff --git a/backend/prisma/migrations/20260923140000_search_trigram_indexes/migration.sql b/backend/prisma/migrations/20260923140000_search_trigram_indexes/migration.sql
+new file mode 100644
+--- /dev/null
++++ b/backend/prisma/migrations/20260923140000_search_trigram_indexes/migration.sql
+@@ -0,0 +1,28 @@
++-- Phase 1.2 (plan §1.2): trigram indexes behind the server-side search.
++--
++-- `GET /search` matches with `ILIKE '%needle%'` (Prisma `contains`), and so does
++-- the ticket list search box. A leading wildcard cannot use a B-tree, so the
++-- three text columns that are searched get a GIN index with `gin_trgm_ops`
++-- instead. The extension is created here, in the same script, because it is the
++-- only place that can guarantee it exists before the indexes are built.
++--
++-- CONCURRENTLY keeps writes flowing while the indexes are built (Prisma Migrate
++-- runs this script outside a transaction, see the phase 1.1 migration).
++--
++-- Rollback:
++--   DROP INDEX CONCURRENTLY "Ticket_title_trgm_idx";
++--   DROP INDEX CONCURRENTLY "Ticket_ticketNumber_trgm_idx";
++--   DROP INDEX CONCURRENTLY "KnowledgeArticle_title_trgm_idx";
++--   DROP EXTENSION IF EXISTS pg_trgm;  -- only if nothing else uses it
++
++-- CreateExtension
++CREATE EXTENSION IF NOT EXISTS pg_trgm;
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_title_trgm_idx" ON "Ticket" USING gin ("title" gin_trgm_ops);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "Ticket_ticketNumber_trgm_idx" ON "Ticket" USING gin ("ticketNumber" gin_trgm_ops);
++
++-- CreateIndex
++CREATE INDEX CONCURRENTLY "KnowledgeArticle_title_trgm_idx" ON "KnowledgeArticle" USING gin ("title" gin_trgm_ops);
+
+diff --git a/backend/prisma/schema/knowledge.prisma b/backend/prisma/schema/knowledge.prisma
+index bac1877..e92d64f 100644
+--- a/backend/prisma/schema/knowledge.prisma
++++ b/backend/prisma/schema/knowledge.prisma
+@@ -33,6 +33,9 @@ model KnowledgeArticle {
+   @@index([status])
+   @@index([classification])
+   @@index([searchVector], type: Gin)
++  /// Phase 1.2 (plan §1.2): title search of `GET /search` is an ILIKE with a
++  /// leading wildcard, so it needs the trigram index (see the ticket model).
++  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeArticle_title_trgm_idx")
+ }
+ 
+ model KnowledgeFeedback {
+
+diff --git a/frontend/src/services/search-api.ts b/frontend/src/services/search-api.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/services/search-api.ts
+@@ -0,0 +1,51 @@
++import { apiRequest } from "@/services/api";
++
++export type TicketSearchHit = {
++  readonly id: string;
++  readonly ticketNumber: string;
++  readonly title: string;
++};
++
++export type ArticleSearchHit = {
++  readonly id: string;
++  readonly slug: string;
++  readonly title: string;
++};
++
++export type UserSearchHit = {
++  readonly id: string;
++  readonly displayName: string;
++  readonly email: string;
++};
++
++export type GlobalSearchResponse = {
++  readonly tickets: readonly TicketSearchHit[];
++  readonly articles: readonly ArticleSearchHit[];
++  readonly users: readonly UserSearchHit[];
++};
++
++export type GlobalSearchOptions = {
++  /** Cancels the request when a newer keystroke supersedes it (phase 1.2). */
++  readonly signal?: AbortSignal;
++  readonly limit?: number;
++};
++
++/**
++ * One request for the header search (phase 1.2, plan §1.2).
++ *
++ * `GET /search` replaces the three old sources — the full ticket table, every
++ * article, and one user request per organizational unit — with a single call
++ * whose groups are already narrowed by the caller's visibility.
++ */
++export function searchEverywhere(
++  query: string,
++  options: GlobalSearchOptions = {},
++): Promise<GlobalSearchResponse> {
++  const search = new URLSearchParams({ q: query });
++  if (options.limit !== undefined) {
++    search.set("limit", String(options.limit));
++  }
++  return apiRequest(`/search?${search.toString()}`, {
++    signal: options.signal,
++  });
++}
+
+diff --git a/frontend/src/components/layout/header-search-match.tsx b/frontend/src/components/layout/header-search-match.tsx
+index af63ece..2021ff3 100644
+--- a/frontend/src/components/layout/header-search-match.tsx
++++ b/frontend/src/components/layout/header-search-match.tsx
+@@ -1,13 +1,5 @@
+-import type { DirectoryUser } from "@/lib/directory/use-directory";
+-import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
+ import { cn } from "@/lib/utils";
+-import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
+-import { listKnowledgeArticles } from "@/services/knowledge-base-api";
+-import {
+-  listOrganizationalUnitTree,
+-  listOrganizationalUnitUsers,
+-} from "@/services/organizational-units-api";
+-import { listTickets, type TicketResponse } from "@/services/tickets-api";
++import { searchEverywhere } from "@/services/search-api";
+ 
+ export const headerSearchGroupLimit = 5;
+ 
+@@ -37,84 +29,68 @@ export function flattenHeaderSearchHits(
+   return [...groups.tickets, ...groups.articles, ...groups.users];
+ }
+ 
+-function matchesAny(query: string, values: readonly string[]): boolean {
+-  const needle = query.trim().toLowerCase();
+-  return needle.length > 0 && values.some((value) => value.toLowerCase().includes(needle));
+-}
+-
+-export function matchTicketTitleOrNumber(
+-  ticket: Pick<TicketResponse, "ticketNumber" | "title">,
+-  query: string,
+-): boolean {
+-  return matchesAny(query, [ticket.ticketNumber, ticket.title]);
+-}
+-
+-export function matchKnowledgeArticle(
+-  article: Pick<KnowledgeArticleResponse, "title" | "body">,
+-  query: string,
+-): boolean {
+-  return matchesAny(query, [article.title, article.body]);
+-}
+-
+-export function matchDirectoryUser(
+-  user: Pick<DirectoryUser, "displayName" | "email" | "organizationalUnitPath">,
++/**
++ * Maps the answer of `GET /search` onto the palette rows (phase 1.2, plan §1.2).
++ *
++ * The matching itself moved to the server, so this is a pure projection: the
++ * groups arrive already narrowed to what the caller may see and already capped,
++ * and the hrefs stay exactly the ones the client built before.
++ */
++export function toHeaderSearchGroups(
+   query: string,
+-): boolean {
+-  return matchesAny(query, [user.displayName, user.email, user.organizationalUnitPath]);
+-}
+-
+-function toHits<T>(
+-  items: readonly T[],
+-  matches: (item: T) => boolean,
+-  mapHit: (item: T) => HeaderSearchHit,
+-): readonly HeaderSearchHit[] {
+-  return items.filter(matches).slice(0, headerSearchGroupLimit).map(mapHit);
+-}
+-
+-export function buildHeaderSearchGroups(
+-  query: string,
+-  tickets: readonly TicketResponse[],
+-  articles: readonly KnowledgeArticleResponse[],
+-  users: readonly DirectoryUser[],
++  response: {
++    readonly tickets: readonly { id: string; ticketNumber: string; title: string }[];
++    readonly articles: readonly { id: string; slug: string; title: string }[];
++    readonly users: readonly { id: string; displayName: string; email: string }[];
++  },
+ ): HeaderSearchGroups {
+   const trimmed = query.trim();
+   return {
+-    tickets: toHits(tickets, (ticket) => matchTicketTitleOrNumber(ticket, trimmed), (ticket) => ({
+-      id: ticket.id, kind: "ticket", title: ticket.ticketNumber, subtitle: ticket.title,
+-      href: `/tickets/${ticket.id}`,
+-    })),
+-    articles: toHits(articles, (article) => matchKnowledgeArticle(article, trimmed), (article) => ({
+-      id: article.id, kind: "article", title: article.title, subtitle: "",
++    tickets: response.tickets
++      .slice(0, headerSearchGroupLimit)
++      .map((ticket) => ({
++        id: ticket.id,
++        kind: "ticket" as const,
++        title: ticket.ticketNumber,
++        subtitle: ticket.title,
++        href: `/tickets/${ticket.id}`,
++      })),
++    articles: response.articles.slice(0, headerSearchGroupLimit).map((article) => ({
++      id: article.id,
++      kind: "article" as const,
++      title: article.title,
++      subtitle: article.slug,
+       href: `/knowledge-base?q=${encodeURIComponent(trimmed)}`,
+     })),
+-    users: toHits(users, (user) => matchDirectoryUser(user, trimmed), (user) => ({
+-      id: user.id, kind: "user", title: user.displayName, subtitle: user.email,
++    users: response.users.slice(0, headerSearchGroupLimit).map((user) => ({
++      id: user.id,
++      kind: "user" as const,
++      title: user.displayName,
++      subtitle: user.email,
+       href: `/users?q=${encodeURIComponent(user.displayName)}`,
+     })),
+   };
+ }
+ 
+-async function loadDirectoryUsers(): Promise<readonly DirectoryUser[]> {
+-  const tree = await listOrganizationalUnitTree();
+-  const collected = await Promise.all(
+-    flattenOriginUnitOptions(tree).map(async (unit) =>
+-      (await listOrganizationalUnitUsers(unit.id).catch(() => [])).map((user) => ({
+-        ...user, organizationalUnitPath: unit.label,
+-      })),
+-    ),
+-  );
+-  return [...new Map(collected.flat().map((user) => [user.id, user])).values()];
+-}
+-
+-export async function searchHeaderSources(query: string): Promise<HeaderSearchGroups> {
+-  const [tickets, articles, users] = await Promise.allSettled([
+-    listTickets(),
+-    listKnowledgeArticles(),
+-    loadDirectoryUsers(),
+-  ]);
+-  const value = <T,>(result: PromiseSettledResult<readonly T[]>) =>
+-    result.status === "fulfilled" ? result.value : [];
+-  return buildHeaderSearchGroups(query, value(tickets), value(articles), value(users));
++/**
++ * The three former sources of the header search are gone: no ticket download,
++ * no article dump and no `GET /organizational-units/:id/users` per unit. One
++ * bounded request answers all three groups, and a failure of it is a failure of
++ * the whole search (the palette shows its empty state).
++ */
++export async function searchHeaderSources(
++  query: string,
++  signal?: AbortSignal,
++): Promise<HeaderSearchGroups> {
++  const trimmed = query.trim();
++  if (trimmed.length === 0) {
++    return emptyHeaderSearchGroups;
++  }
++  const response = await searchEverywhere(trimmed, {
++    limit: headerSearchGroupLimit,
++    ...(signal === undefined ? {} : { signal }),
++  });
++  return toHeaderSearchGroups(trimmed, response);
+ }
+ 
+ function HitRow({
+
+diff --git a/frontend/src/components/layout/header-search-match.spec.ts b/frontend/src/components/layout/header-search-match.spec.ts
+index c3392a0..5fb1f25 100644
+--- a/frontend/src/components/layout/header-search-match.spec.ts
++++ b/frontend/src/components/layout/header-search-match.spec.ts
+@@ -1,77 +1,79 @@
+ import { describe, expect, it } from "vitest";
+ import {
+-  buildHeaderSearchGroups,
++  emptyHeaderSearchGroups,
++  flattenHeaderSearchHits,
+   headerSearchGroupLimit,
+-  matchDirectoryUser,
+-  matchKnowledgeArticle,
+-  matchTicketTitleOrNumber,
++  toHeaderSearchGroups,
++  type HeaderSearchGroups,
+ } from "@/components/layout/header-search-match";
+-import type { DirectoryUser } from "@/lib/directory/use-directory";
+-import type { KnowledgeArticleResponse } from "@/services/knowledge-base-api";
+-import type { TicketResponse } from "@/services/tickets-api";
+ 
+-const ticket = {
+-  id: "ticket-1",
+-  ticketNumber: "T-000042",
+-  title: "VPN access",
+-  description: "secret-description-token",
+-} as TicketResponse;
++const response = {
++  tickets: [
++    { id: "ticket-1", ticketNumber: "T-000042", title: "VPN pristup" },
++    { id: "ticket-2", ticketNumber: "T-000043", title: "VPN pristup 2" },
++  ],
++  articles: [
++    { id: "article-1", slug: "reset-lozinke", title: "Reset lozinke" },
++  ],
++  users: [{ id: "user-1", displayName: "Ana Hodžić", email: "ana@example.com" }],
++};
+ 
+-const article = {
+-  id: "article-1",
+-  title: "Reset lozinke",
+-  body: "Koristite self-service portal.",
+-} as KnowledgeArticleResponse;
+-
+-const user = {
+-  id: "user-1",
+-  displayName: "Ana Hodžić",
+-  email: "ana@example.com",
+-  organizationalUnitPath: "OU=IT,OU=EP",
+-} as DirectoryUser;
+-
+-describe("header search matching", () => {
+-  it("matches tickets by number or title, not description", () => {
+-    expect(matchTicketTitleOrNumber(ticket, "000042")).toBe(true);
+-    expect(matchTicketTitleOrNumber(ticket, "vpn")).toBe(true);
+-    expect(matchTicketTitleOrNumber(ticket, "secret-description-token")).toBe(false);
+-    expect(matchTicketTitleOrNumber(ticket, "   ")).toBe(false);
++describe("header search projection", () => {
++  it("maps the three server groups onto palette rows", () => {
++    const groups = toHeaderSearchGroups("vpn", response);
++    expect(groups.tickets.map((hit) => hit.href)).toEqual([
++      "/tickets/ticket-1",
++      "/tickets/ticket-2",
++    ]);
++    // The ticket row shows the number as the title and the subject as subtitle.
++    expect(groups.tickets[0]).toMatchObject({
++      kind: "ticket",
++      title: "T-000042",
++      subtitle: "VPN pristup",
++    });
++    expect(groups.articles[0]).toMatchObject({
++      kind: "article",
++      href: "/knowledge-base?q=vpn",
++    });
++    expect(groups.users[0]).toMatchObject({
++      kind: "user",
++      subtitle: "ana@example.com",
++      href: `/users?q=${encodeURIComponent("Ana Hodžić")}`,
++    });
+   });
+ 
+-  it("matches knowledge articles by title or body", () => {
+-    expect(matchKnowledgeArticle(article, "lozinke")).toBe(true);
+-    expect(matchKnowledgeArticle(article, "self-service")).toBe(true);
+-    expect(matchKnowledgeArticle(article, "")).toBe(false);
++  it("keeps the same hrefs the client built before phase 1.2", () => {
++    const groups = toHeaderSearchGroups("  vpn  ", response);
++    expect(groups.articles[0]?.href).toBe("/knowledge-base?q=vpn");
+   });
+ 
+-  it("matches directory users by name, email, or OU path", () => {
+-    expect(matchDirectoryUser(user, "hodžić")).toBe(true);
+-    expect(matchDirectoryUser(user, "ana@")).toBe(true);
+-    expect(matchDirectoryUser(user, "OU=IT")).toBe(true);
+-    expect(matchDirectoryUser(user, "finance")).toBe(false);
++  it("caps each group at five and flattens in ticket/article/user order", () => {
++    const many = {
++      tickets: Array.from({ length: 9 }, (_, index) => ({
++        id: `ticket-${index}`,
++        ticketNumber: `T-${index}`,
++        title: "VPN",
++      })),
++      articles: response.articles,
++      users: response.users,
++    };
++    const groups = toHeaderSearchGroups("vpn", many);
++    expect(groups.tickets).toHaveLength(headerSearchGroupLimit);
++    const flat = flattenHeaderSearchHits(groups);
++    expect(flat[0]?.kind).toBe("ticket");
++    expect(flat.at(-2)?.kind).toBe("article");
++    expect(flat.at(-1)?.kind).toBe("user");
+   });
+ 
+-  it("builds grouped hrefs and caps each group at five", () => {
+-    const tickets = Array.from({ length: 7 }, (_, index) => ({
+-      ...ticket,
+-      id: `ticket-${index}`,
+-      ticketNumber: `T-${index}`,
+-      title: "VPN access",
+-    })) as TicketResponse[];
+-    const groups = buildHeaderSearchGroups("vpn", tickets, [article], [user]);
+-    expect(groups.tickets).toHaveLength(headerSearchGroupLimit);
+-    expect(groups.tickets[0]?.href).toBe("/tickets/ticket-0");
+-    expect(groups.articles).toHaveLength(0);
+-    expect(groups.users).toHaveLength(0);
+-    expect(buildHeaderSearchGroups("lozinke", [], [article], []).articles[0]?.href).toBe(
+-      "/knowledge-base?q=lozinke",
+-    );
+-    const userGroups = buildHeaderSearchGroups("ana", [], [], [user]);
+-    expect(userGroups.users[0]?.href).toBe(`/users?q=${encodeURIComponent("Ana Hodžić")}`);
+-    expect(buildHeaderSearchGroups("", [ticket], [article], [user])).toEqual({
++  it("answers with empty groups for any response shape without hits", () => {
++    expect(
++      toHeaderSearchGroups("vpn", { tickets: [], articles: [], users: [] }),
++    ).toEqual(emptyHeaderSearchGroups);
++    const groups: HeaderSearchGroups = toHeaderSearchGroups("vpn", {
+       tickets: [],
+-      articles: [],
++      articles: response.articles,
+       users: [],
+     });
++    expect(groups.articles).toHaveLength(1);
+   });
+ });
+
+diff --git a/frontend/src/components/layout/command-palette.tsx b/frontend/src/components/layout/command-palette.tsx
+index b099046..de5fc6d 100644
+--- a/frontend/src/components/layout/command-palette.tsx
++++ b/frontend/src/components/layout/command-palette.tsx
+@@ -101,19 +101,35 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
+       setIsSearching(false);
+       return;
+     }
+-    let isCancelled = false;
++    // Phase 1.2 (plan §1.2): the debounce stays at 300 ms and the in-flight
++    // request is aborted when the next keystroke arrives, so typing never
++    // leaves a queue of searches running behind it. An abort is not an error —
++    // the newer request owns the panel.
++    const controller = new AbortController();
+     setIsSearching(true);
+     const handle = window.setTimeout(() => {
+-      void searchHeaderSources(trimmedQuery).then((nextGroups) => {
+-        if (!isCancelled) {
+-          setGroups(nextGroups);
++      void searchHeaderSources(trimmedQuery, controller.signal).then(
++        (nextGroups) => {
++          if (!controller.signal.aborted) {
++            setGroups(nextGroups);
++            setIsSearching(false);
++          }
++        },
++        (error: unknown) => {
++          if (controller.signal.aborted) {
++            return;
++          }
++          if (error instanceof DOMException && error.name === "AbortError") {
++            return;
++          }
++          setGroups(emptyHeaderSearchGroups);
+           setIsSearching(false);
+-        }
+-      });
++        },
++      );
+     }, searchDebounceMilliseconds);
+     return () => {
+-      isCancelled = true;
+       window.clearTimeout(handle);
++      controller.abort();
+     };
+   }, [open, trimmedQuery]);
+ 
+
+diff --git a/frontend/src/lib/realtime/socket-health.ts b/frontend/src/lib/realtime/socket-health.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/socket-health.ts
+@@ -0,0 +1,53 @@
++import type { Socket } from "socket.io-client";
++
++/** Whether the singleton helpdesk socket can deliver events right now. */
++export type SocketHealth = "connected" | "disconnected";
++
++/**
++ * Fallback poll cadence (phase 1.3, plan §1.3).
++ *
++ * This is the old 30-second interval, kept exactly as it was — but it is now
++ * only armed while the socket is down. With a healthy connection the badge is
++ * push-driven, so the interval costs nothing.
++ */
++export const unreadCountFallbackIntervalMs = 30_000;
++
++/**
++ * Health of the connection.
++ *
++ * A socket that does not exist yet (nobody acquired it, or it was released) is
++ * *not* healthy: the caller has to poll until it is. This is deliberately a
++ * plain read of `socket.connected` rather than a new piece of state — the
++ * connection already tracks itself, the app only needs to ask it.
++ */
++export function socketHealthOf(socket: Socket | null): SocketHealth {
++  return socket !== null && socket.connected ? "connected" : "disconnected";
++}
++
++/**
++ * Notifies the listener on every connect/disconnect, and once immediately with
++ * the current state so a caller never has to special-case the first read.
++ */
++export function subscribeSocketHealth(
++  socket: Socket | null,
++  listener: (health: SocketHealth) => void,
++): () => void {
++  if (socket === null) {
++    listener("disconnected");
++    return () => {};
++  }
++  const onConnect = () => listener("connected");
++  const onDisconnect = () => listener("disconnected");
++  socket.on("connect", onConnect);
++  socket.on("disconnect", onDisconnect);
++  listener(socketHealthOf(socket));
++  return () => {
++    socket.off("connect", onConnect);
++    socket.off("disconnect", onDisconnect);
++  };
++}
++
++/** The polling decision, in one place so it can be read from a test. */
++export function shouldPollUnreadCount(health: SocketHealth): boolean {
++  return health === "disconnected";
++}
+
+diff --git a/frontend/src/lib/realtime/socket-health.spec.ts b/frontend/src/lib/realtime/socket-health.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/socket-health.spec.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, it } from "vitest";
++import type { Socket } from "socket.io-client";
++import {
++  shouldPollUnreadCount,
++  socketHealthOf,
++  subscribeSocketHealth,
++  unreadCountFallbackIntervalMs,
++  type SocketHealth,
++} from "@/lib/realtime/socket-health";
++
++/** The two socket.io members this feature touches, plus the event bus. */
++function createFakeSocket(connected = true) {
++  const listeners = new Map<string, Set<() => void>>();
++  const fake = {
++    connected,
++    on(event: string, handler: () => void) {
++      const bucket = listeners.get(event) ?? new Set();
++      bucket.add(handler);
++      listeners.set(event, bucket);
++      return fake;
++    },
++    off(event: string, handler: () => void) {
++      listeners.get(event)?.delete(handler);
++      return fake;
++    },
++    emitToClient(event: string) {
++      for (const handler of listeners.get(event) ?? []) {
++        handler();
++      }
++    },
++    listenerCount(event: string) {
++      return listeners.get(event)?.size ?? 0;
++    },
++  };
++  return fake;
++}
++
++describe("socket health", () => {
++  it('treats a missing or disconnected socket as "not healthy"', () => {
++    expect(socketHealthOf(null)).toBe("disconnected");
++    expect(socketHealthOf(createFakeSocket(false) as unknown as Socket)).toBe(
++      "disconnected",
++    );
++    expect(socketHealthOf(createFakeSocket(true) as unknown as Socket)).toBe(
++      "connected",
++    );
++  });
++
++  it('turns polling on only while the socket is down', () => {
++    expect(shouldPollUnreadCount("connected")).toBe(false);
++    expect(shouldPollUnreadCount("disconnected")).toBe(true);
++    // The fallback keeps the old cadence, so a dropped socket behaves as before.
++    expect(unreadCountFallbackIntervalMs).toBe(30_000);
++  });
++
++  it("reports the current state immediately, then follows connect and disconnect", () => {
++    const socket = createFakeSocket(true);
++    const seen: SocketHealth[] = [];
++    const unsubscribe = subscribeSocketHealth(
++      socket as unknown as Socket,
++      (health) => seen.push(health),
++    );
++    expect(seen).toEqual(["connected"]);
++
++    // Socket.io turns the flag before it fires the event.
++    socket.connected = false;
++    socket.emitToClient("disconnect");
++    expect(seen).toEqual(["connected", "disconnected"]);
++    expect(shouldPollUnreadCount(seen.at(-1) as SocketHealth)).toBe(true);
++
++    socket.connected = true;
++    socket.emitToClient("connect");
++    expect(seen).toEqual(["connected", "disconnected", "connected"]);
++    expect(shouldPollUnreadCount(seen.at(-1) as SocketHealth)).toBe(false);
++
++    unsubscribe();
++    socket.emitToClient("disconnect");
++    expect(seen).toHaveLength(3);
++    expect(socket.listenerCount("connect")).toBe(0);
++    expect(socket.listenerCount("disconnect")).toBe(0);
++  });
++
++  it("answers with a disconnected state and never subscribes without a socket", () => {
++    const seen: SocketHealth[] = [];
++    const unsubscribe = subscribeSocketHealth(null, (health) => seen.push(health));
++    expect(seen).toEqual(["disconnected"]);
++    expect(() => unsubscribe()).not.toThrow();
++  });
++});
+
+diff --git a/frontend/src/lib/realtime/use-socket-health.ts b/frontend/src/lib/realtime/use-socket-health.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/use-socket-health.ts
+@@ -0,0 +1,20 @@
++import { useEffect, useState } from "react";
++import type { Socket } from "socket.io-client";
++import {
++  socketHealthOf,
++  subscribeSocketHealth,
++  type SocketHealth,
++} from "@/lib/realtime/socket-health";
++
++/**
++ * React binding of `socketHealthOf`: the same value the util reads, kept in
++ * sync by the socket's own connect/disconnect events. No store, no context —
++ * the socket is the source of truth and this is one subscription per caller.
++ */
++export function useSocketHealth(socket: Socket | null): SocketHealth {
++  const [health, setHealth] = useState<SocketHealth>(() =>
++    socketHealthOf(socket),
++  );
++  useEffect(() => subscribeSocketHealth(socket, setHealth), [socket]);
++  return health;
++}
+
+diff --git a/frontend/src/lib/notifications/use-inbox-notifications.ts b/frontend/src/lib/notifications/use-inbox-notifications.ts
+index c8dc3f4..08e2d16 100644
+--- a/frontend/src/lib/notifications/use-inbox-notifications.ts
++++ b/frontend/src/lib/notifications/use-inbox-notifications.ts
+@@ -1,4 +1,5 @@
+ import { useCallback, useEffect, useState } from "react";
++import type { Socket } from "socket.io-client";
+ import { useSession } from "@/lib/session/use-session";
+ import {
+   applyNotificationCreated,
+@@ -6,6 +7,11 @@ import {
+   type NotificationRealtimePayload,
+ } from "@/lib/realtime/apply-notification-realtime";
+ import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
++import { useSocketHealth } from "@/lib/realtime/use-socket-health";
++import {
++  shouldPollUnreadCount,
++  unreadCountFallbackIntervalMs,
++} from "@/lib/realtime/socket-health";
+ import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
+ import { ticketSocketEvents } from "@/services/ticket-socket";
+ import {
+@@ -16,12 +22,22 @@ import {
+   type InAppNotification,
+ } from "@/services/notifications-api";
+ 
+-const refreshIntervalMs = 30_000;
+-
++/**
++ * Inbox notifications.
++ *
++ * Phase 1.3 (plan §1.3): the badge is push-driven through the helpdesk socket,
++ * so the 30-second poll now only runs as a *fallback* — while the socket is not
++ * connected. A healthy connection means zero calls to
++ * `GET /notifications/unread-count`; a dropped one means the badge keeps
++ * updating exactly as it did before, and it stops polling again the moment the
++ * socket comes back (which also triggers an immediate refresh).
++ */
+ export function useInboxNotifications() {
+   const { session } = useSession();
+   const [items, setItems] = useState<readonly InAppNotification[]>([]);
+   const [unreadCount, setUnreadCount] = useState(0);
++  const [socket, setSocket] = useState<Socket | null>(null);
++  const socketHealth = useSocketHealth(socket);
+ 
+   const refreshList = useCallback(async () => {
+     if (session === null) {
+@@ -52,18 +68,30 @@ export function useInboxNotifications() {
+   }, [session]);
+ 
+   useEffect(() => {
++    if (session === null) {
++      return;
++    }
++    // Runs on every health change: a reconnect refreshes at once (the socket
++    // may have missed events while it was away) and disarms the timer, while a
++    // disconnect arms it.
+     void refreshUnread();
++    if (!shouldPollUnreadCount(socketHealth)) {
++      return;
++    }
+     const timer = window.setInterval(() => {
+       void refreshUnread();
+-    }, refreshIntervalMs);
++    }, unreadCountFallbackIntervalMs);
+     return () => window.clearInterval(timer);
+-  }, [refreshUnread]);
++  }, [refreshUnread, session, socketHealth]);
+ 
+   useEffect(() => {
+     if (session === null) {
+       return;
+     }
+     const socket = acquireHelpdeskSocket(session.accessToken);
++    // Published to the health hook above, which decides whether the fallback
++    // poll has to run.
++    setSocket(socket);
+     const applyCount = (payload: NotificationRealtimePayload) => {
+       setUnreadCount(payload.unreadCount);
+     };
+@@ -88,6 +116,8 @@ export function useInboxNotifications() {
+       ticketSocketEvents.notificationUnreadCount,
+       applyCount,
+     );
++    // The count is refreshed by the health effect above on every reconnect, so
++    // this handler only has to make sure the visible list is current too.
+     const stopConnect = subscribeSocketEvent(socket, "connect", () => {
+       void refreshUnread();
+     });
+@@ -96,6 +126,7 @@ export function useInboxNotifications() {
+       stopRead();
+       stopCount();
+       stopConnect();
++      setSocket(null);
+       releaseHelpdeskSocket();
+     };
+   }, [refreshUnread, session]);
+
+diff --git a/backend/src/modules/notifications/unread-count-cache.ts b/backend/src/modules/notifications/unread-count-cache.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/notifications/unread-count-cache.ts
+@@ -0,0 +1,81 @@
++import {
++  unreadCountCacheKeyPrefix,
++  unreadCountCacheTtlSeconds,
++} from './unread-count-cache.constants';
++
++/**
++ * The slice of the Redis client this cache needs. Keeping it this narrow lets
++ * the cache be driven by a fake in tests and by Redis in production, and it
++ * makes the "Redis is not there" case explicit (a `null` client).
++ */
++export interface UnreadCountCacheClient {
++  get(key: string): Promise<string | null>;
++  set(key: string, value: string, mode: 'EX', ttlSeconds: number): Promise<unknown>;
++  del(key: string): Promise<unknown>;
++}
++
++export function unreadCountCacheKey(userId: string): string {
++  return `${unreadCountCacheKeyPrefix}:${userId}`;
++}
++
++/**
++ * Reads the cached badge.
++ *
++ * Every failure is a miss: a broken cache may cost a query, never an error. A
++ * value that is not a number is treated the same way (something else wrote the
++ * key), and nothing is thrown.
++ */
++export async function readUnreadCountFromCache(
++  client: UnreadCountCacheClient | null,
++  userId: string,
++): Promise<number | null> {
++  if (client === null) {
++    return null;
++  }
++  try {
++    const cached = await client.get(unreadCountCacheKey(userId));
++    if (cached === null) {
++      return null;
++    }
++    const parsed = Number.parseInt(cached, 10);
++    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
++  } catch {
++    return null;
++  }
++}
++
++export async function writeUnreadCountToCache(
++  client: UnreadCountCacheClient | null,
++  userId: string,
++  unreadCount: number,
++): Promise<void> {
++  if (client === null) {
++    return;
++  }
++  try {
++    await client.set(
++      unreadCountCacheKey(userId),
++      String(unreadCount),
++      'EX',
++      unreadCountCacheTtlSeconds,
++    );
++  } catch {
++    // The database remains the source of truth; a failed write only means the
++    // next read queries it again.
++  }
++}
++
++/** Drops the entry so the next read recomputes it (mark read, new fan-out). */
++export async function invalidateUnreadCountCache(
++  client: UnreadCountCacheClient | null,
++  userId: string,
++): Promise<void> {
++  if (client === null) {
++    return;
++  }
++  try {
++    await client.del(unreadCountCacheKey(userId));
++  } catch {
++    // Same as above: a stale entry expires on its own within the TTL.
++  }
++}
+
+diff --git a/backend/src/modules/notifications/unread-count-cache.constants.ts b/backend/src/modules/notifications/unread-count-cache.constants.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/notifications/unread-count-cache.constants.ts
+@@ -0,0 +1,11 @@
++/**
++ * Phase 1.3 (plan §1.3).
++ *
++ * The badge was read from the database on every poll; the answer only changes
++ * when a notification is created or read, and both of those paths can tell the
++ * cache about it. Fifteen seconds is short enough that a missed invalidation is
++ * invisible, and long enough to absorb a poll wave.
++ */
++export const unreadCountCacheTtlSeconds = 15;
++
++export const unreadCountCacheKeyPrefix = 'notifications:unread-count';
+
+diff --git a/backend/src/modules/notifications/unread-count-cache.spec.ts b/backend/src/modules/notifications/unread-count-cache.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/notifications/unread-count-cache.spec.ts
+@@ -0,0 +1,94 @@
++import { unreadCountCacheTtlSeconds } from './unread-count-cache.constants';
++import {
++  invalidateUnreadCountCache,
++  readUnreadCountFromCache,
++  unreadCountCacheKey,
++  writeUnreadCountToCache,
++  type UnreadCountCacheClient,
++} from './unread-count-cache';
++
++type StoredValue = { readonly value: string; readonly ttlSeconds: number };
++
++function createFakeCache() {
++  const entries = new Map<string, StoredValue>();
++  const calls: string[] = [];
++  const client: UnreadCountCacheClient = {
++    get: async (key) => {
++      calls.push(`get ${key}`);
++      return entries.get(key)?.value ?? null;
++    },
++    set: async (key, value, mode, ttlSeconds) => {
++      calls.push(`set ${key} ${value} ${mode} ${ttlSeconds}`);
++      entries.set(key, { value, ttlSeconds });
++      return 'OK';
++    },
++    del: async (key) => {
++      calls.push(`del ${key}`);
++      return entries.delete(key) ? 1 : 0;
++    },
++  };
++  return { client, entries, calls };
++}
++
++const userId = 'user-agent-it';
++
++describe('unread count cache', () => {
++  it('reports a miss on an empty cache and after invalidation', async () => {
++    const { client } = createFakeCache();
++    expect(await readUnreadCountFromCache(client, userId)).toBeNull();
++
++    await writeUnreadCountToCache(client, userId, 7);
++    expect(await readUnreadCountFromCache(client, userId)).toBe(7);
++
++    await invalidateUnreadCountCache(client, userId);
++    expect(await readUnreadCountFromCache(client, userId)).toBeNull();
++  });
++
++  it('writes the entry under the user key with the fifteen second ttl', async () => {
++    const { client, entries } = createFakeCache();
++    await writeUnreadCountToCache(client, userId, 3);
++    expect(entries.get(unreadCountCacheKey(userId))).toEqual({
++      value: '3',
++      ttlSeconds: unreadCountCacheTtlSeconds,
++    });
++  });
++
++  it('treats a foreign value or a broken client as a miss, never as an error', async () => {
++    const { client } = createFakeCache();
++    const failing: UnreadCountCacheClient = {
++      get: async () => {
++        throw new Error('redis is down');
++      },
++      set: async () => {
++        throw new Error('redis is down');
++      },
++      del: async () => {
++        throw new Error('redis is down');
++      },
++    };
++    // Garbage under the key (another writer, a truncated value).
++    await writeUnreadCountToCache(client, userId, 4);
++    client.get = async () => 'not-a-number';
++    expect(await readUnreadCountFromCache(client, userId)).toBeNull();
++
++    expect(await readUnreadCountFromCache(failing, userId)).toBeNull();
++    // The write and the invalidation swallow the outage: the database stays the
++    // source of truth and the next read simply misses.
++    await expect(writeUnreadCountToCache(failing, userId, 1)).resolves.toBeUndefined();
++    await expect(invalidateUnreadCountCache(failing, userId)).resolves.toBeUndefined();
++  });
++
++  it('is a no-op when there is no cache at all', async () => {
++    expect(await readUnreadCountFromCache(null, userId)).toBeNull();
++    await expect(writeUnreadCountToCache(null, userId, 2)).resolves.toBeUndefined();
++    await expect(invalidateUnreadCountCache(null, userId)).resolves.toBeUndefined();
++  });
++
++  it('keys by user id so two people never share a badge', async () => {
++    const { client } = createFakeCache();
++    await writeUnreadCountToCache(client, 'user-a', 1);
++    await writeUnreadCountToCache(client, 'user-b', 9);
++    expect(await readUnreadCountFromCache(client, 'user-a')).toBe(1);
++    expect(await readUnreadCountFromCache(client, 'user-b')).toBe(9);
++  });
++});
+
+diff --git a/backend/src/modules/notifications/notification-unread-count.cache.ts b/backend/src/modules/notifications/notification-unread-count.cache.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/notifications/notification-unread-count.cache.ts
+@@ -0,0 +1,45 @@
++import { Inject, Injectable } from '@nestjs/common';
++import type Redis from 'ioredis';
++import { redisTokens } from '../../common/redis/redis.tokens';
++import {
++  invalidateUnreadCountCache,
++  readUnreadCountFromCache,
++  writeUnreadCountToCache,
++  type UnreadCountCacheClient,
++} from './unread-count-cache';
++
++/**
++ * The Redis client of `GET /notifications/unread-count`, wrapped so the reader
++ * never has to think about Redis being down: every method degrades to "no
++ * cache", and the caller falls back to the database (plan §1.3).
++ *
++ * The connection is opened lazily (the client is created with `lazyConnect`),
++ * which is why the status is checked here rather than in the functions.
++ */
++@Injectable()
++export class NotificationUnreadCountCache {
++  constructor(@Inject(redisTokens.client) private readonly redis: Redis) {}
++
++  async read(userId: string): Promise<number | null> {
++    return readUnreadCountFromCache(await this.client(), userId);
++  }
++
++  async write(userId: string, unreadCount: number): Promise<void> {
++    await writeUnreadCountToCache(await this.client(), userId, unreadCount);
++  }
++
++  async invalidate(userId: string): Promise<void> {
++    await invalidateUnreadCountCache(await this.client(), userId);
++  }
++
++  private async client(): Promise<UnreadCountCacheClient | null> {
++    try {
++      if (this.redis.status === 'wait') {
++        await this.redis.connect();
++      }
++      return this.redis as unknown as UnreadCountCacheClient;
++    } catch {
++      return null;
++    }
++  }
++}
+
+diff --git a/backend/src/modules/notifications/notification-unread-count.service.spec.ts b/backend/src/modules/notifications/notification-unread-count.service.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/notifications/notification-unread-count.service.spec.ts
+@@ -0,0 +1,150 @@
++import type { NotificationUnreadCountCache } from './notification-unread-count.cache';
++import { NotificationsService } from './notifications.service';
++import {
++  createTicketsServiceHarness,
++  ticketsTestIds,
++} from '../tickets/create-tickets-service-harness';
++
++jest.mock('../../common/prisma/prisma.service', () => ({
++  PrismaService: class PrismaService {},
++}));
++
++const { agentIt, agentHr } = ticketsTestIds;
++
++/**
++ * Phase 1.3 (plan §1.3): the badge is served from the 15-second Redis entry when
++ * there is one and from the database when there is not. These specs drive the
++ * service with a fake cache, so both paths are visible from the outside.
++ */
++function createFakeUnreadCountCache(initial: readonly [string, number][] = []) {
++  const entries = new Map<string, number>(initial);
++  const reads: string[] = [];
++  const writes: { userId: string; unreadCount: number }[] = [];
++  const invalidations: string[] = [];
++  const cache = {
++    read: async (userId: string) => {
++      reads.push(userId);
++      return entries.get(userId) ?? null;
++    },
++    write: async (userId: string, unreadCount: number) => {
++      writes.push({ userId, unreadCount });
++      entries.set(userId, unreadCount);
++    },
++    invalidate: async (userId: string) => {
++      invalidations.push(userId);
++      entries.delete(userId);
++    },
++  } as unknown as NotificationUnreadCountCache;
++  return { cache, entries, reads, writes, invalidations };
++}
++
++function seedNotification(
++  memory: ReturnType<typeof createTicketsServiceHarness>['memory'],
++  id: string,
++  userId: string,
++  isRead = false,
++): void {
++  memory.notifications.set(id, {
++    id,
++    userId,
++    isRead,
++    type: 'TICKET_CREATED',
++    title: 'Naslov',
++    body: 'Tijelo',
++    readAt: isRead ? new Date('2026-03-01T10:00:00.000Z') : null,
++    ticketId: null,
++    payload: {},
++    createdAt: new Date('2026-03-01T09:00:00.000Z'),
++  } as never);
++}
++
++function setup(initial?: readonly [string, number][]) {
++  const harness = createTicketsServiceHarness();
++  const memory = harness.memory;
++  const fake = createFakeUnreadCountCache(initial);
++  const service = new NotificationsService(
++    memory.prisma as never,
++    harness.realtimeHub,
++    fake.cache,
++  );
++  // Counts the database reads so a cache hit can be told apart from a miss.
++  let databaseReads = 0;
++  const delegate = memory.prisma.notification as { count: unknown };
++  const original = delegate.count;
++  delegate.count = (async (args?: unknown) => {
++    databaseReads += 1;
++    return (original as (input?: unknown) => Promise<number>)(args);
++  }) as never;
++  return {
++    service,
++    memory,
++    harness,
++    databaseReads: () => databaseReads,
++    ...fake,
++  };
++}
++
++describe('GET /notifications/unread-count with the phase 1.3 cache', () => {
++  it('answers from the cache and does not touch the database on a hit', async () => {
++    const { service, reads, databaseReads } = setup([[agentIt, 5]]);
++    expect(await service.unreadCount(agentIt)).toEqual({ unreadCount: 5 });
++    expect(reads).toEqual([agentIt]);
++    expect(databaseReads()).toBe(0);
++  });
++
++  it('reads the database and fills the cache on a miss', async () => {
++    const { service, memory, writes, databaseReads } = setup();
++    seedNotification(memory, 'n1', agentIt);
++    seedNotification(memory, 'n2', agentIt);
++    expect(await service.unreadCount(agentIt)).toEqual({ unreadCount: 2 });
++    expect(databaseReads()).toBe(1);
++    expect(writes).toEqual([{ userId: agentIt, unreadCount: 2 }]);
++  });
++
++  it('serves the filled entry without a second database read', async () => {
++    const { service, memory, databaseReads } = setup();
++    seedNotification(memory, 'n1', agentIt);
++    await service.unreadCount(agentIt);
++    expect(await service.unreadCount(agentIt)).toEqual({ unreadCount: 1 });
++    expect(databaseReads()).toBe(1);
++  });
++
++  it('drops the entry when a notification is read and when all are read', async () => {
++    const { service, memory, invalidations } = setup([[agentIt, 4]]);
++    seedNotification(memory, 'n1', agentIt);
++
++    await service.markRead(agentIt, 'n1');
++    expect(invalidations).toContain(agentIt);
++
++    invalidations.length = 0;
++    await service.markAllRead(agentIt);
++    expect(invalidations).toContain(agentIt);
++  });
++
++  it('still answers when the cache is unavailable', async () => {
++    const { memory, harness } = setup();
++    const failing = {
++      read: async () => null,
++      write: async () => undefined,
++      invalidate: async () => undefined,
++    } as unknown as NotificationUnreadCountCache;
++    const serviceWithoutRedis = new NotificationsService(
++      memory.prisma as never,
++      harness.realtimeHub,
++      failing,
++    );
++    seedNotification(memory, 'n1', agentIt);
++    expect(await serviceWithoutRedis.unreadCount(agentIt)).toEqual({
++      unreadCount: 1,
++    });
++  });
++
++  it('counts only the unread notifications of that user', async () => {
++    const { service, memory } = setup();
++    seedNotification(memory, 'a', agentIt);
++    seedNotification(memory, 'b', agentIt, true);
++    seedNotification(memory, 'c', agentHr);
++    expect(await service.unreadCount(agentIt)).toEqual({ unreadCount: 1 });
++    expect(await service.unreadCount(agentHr)).toEqual({ unreadCount: 1 });
++  });
++});
+
+diff --git a/backend/src/modules/notifications/notifications.service.ts b/backend/src/modules/notifications/notifications.service.ts
+index 9e5845b..2ed969b 100644
+--- a/backend/src/modules/notifications/notifications.service.ts
++++ b/backend/src/modules/notifications/notifications.service.ts
+@@ -4,6 +4,7 @@ import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
+ import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
+ import { countUnreadNotifications } from './count-unread-notifications';
+ import { executeNotificationOperation } from './execute-notification-operation';
++import { NotificationUnreadCountCache } from './notification-unread-count.cache';
+ import { listNotifications } from './list-notifications';
+ import { markAllNotificationsRead } from './mark-all-notifications-read';
+ import { markNotificationRead } from './mark-notification-read';
+@@ -19,6 +20,7 @@ export class NotificationsService {
+   constructor(
+     private readonly prisma: PrismaService,
+     private readonly ticketRealtimeHub: TicketRealtimeHub,
++    private readonly unreadCountCache: NotificationUnreadCountCache,
+   ) {}
+ 
+   list(
+@@ -30,10 +32,22 @@ export class NotificationsService {
+     );
+   }
+ 
++  /**
++   * Phase 1.3 (plan §1.3): the badge is served from a 15-second Redis entry
++   * when there is one. The fan-out and the two read paths write or drop that
++   * entry, so the value only ever lags by a moment, and Redis being unavailable
++   * just means the count comes from the database (it is never an error).
++   */
+   unreadCount(userId: string): Promise<NotificationUnreadCountResponse> {
+-    return executeNotificationOperation(async () => ({
+-      unreadCount: await countUnreadNotifications(this.prisma, userId),
+-    }));
++    return executeNotificationOperation(async () => {
++      const cached = await this.unreadCountCache.read(userId);
++      if (cached !== null) {
++        return { unreadCount: cached };
++      }
++      const unreadCount = await countUnreadNotifications(this.prisma, userId);
++      await this.unreadCountCache.write(userId, unreadCount);
++      return { unreadCount };
++    });
+   }
+ 
+   markRead(
+@@ -47,6 +61,10 @@ export class NotificationsService {
+         notificationId,
+       );
+       const unreadCount = await countUnreadNotifications(this.prisma, userId);
++      // Marking read is one of the two ways the count can change; drop the
++      // cached value instead of writing this one (the next read is cheap and
++      // cannot disagree with the database).
++      await this.unreadCountCache.invalidate(userId);
+       this.ticketRealtimeHub.publishNotification({
+         userId,
+         eventName: ticketRealtimeEventNames.notificationRead,
+@@ -66,6 +84,7 @@ export class NotificationsService {
+   markAllRead(userId: string): Promise<NotificationUnreadCountResponse> {
+     return executeNotificationOperation(async () => {
+       const result = await markAllNotificationsRead(this.prisma, userId);
++      await this.unreadCountCache.invalidate(userId);
+       this.ticketRealtimeHub.publishNotification({
+         userId,
+         eventName: ticketRealtimeEventNames.notificationRead,
+
+diff --git a/backend/src/modules/notifications/notifications.module.ts b/backend/src/modules/notifications/notifications.module.ts
+index c5c1737..5a13ac3 100644
+--- a/backend/src/modules/notifications/notifications.module.ts
++++ b/backend/src/modules/notifications/notifications.module.ts
+@@ -7,6 +7,7 @@ import { TicketsModule } from '../tickets/tickets.module';
+ import { MAIL_TRANSPORT } from './email/mail-transport';
+ import { SmtpMailTransport } from './email/smtp-mail-transport';
+ import { NotificationsFanOutService } from './fan-out/notifications-fan-out.service';
++import { NotificationUnreadCountCache } from './notification-unread-count.cache';
+ import { NotificationsController } from './notifications.controller';
+ import { NotificationsService } from './notifications.service';
+ import { TeamsIntegrationService } from './teams/teams-integration.service';
+@@ -23,6 +24,7 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
+   providers: [
+     NotificationsService,
+     NotificationsFanOutService,
++    NotificationUnreadCountCache,
+     TeamsIntegrationService,
+     SmtpMailTransport,
+     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
+
+diff --git a/backend/src/modules/notifications/fan-out/publish-created-notifications.ts b/backend/src/modules/notifications/fan-out/publish-created-notifications.ts
+index d49f394..512e81f 100644
+--- a/backend/src/modules/notifications/fan-out/publish-created-notifications.ts
++++ b/backend/src/modules/notifications/fan-out/publish-created-notifications.ts
+@@ -9,9 +9,17 @@ export async function publishCreatedNotifications(
+   prisma: PrismaService,
+   hub: TicketRealtimeHub,
+   records: readonly NotificationRecord[],
++  dropCachedUnreadCount: (userId: string) => Promise<void> = async () => {},
+ ): Promise<void> {
+   for (const record of records) {
+     const unreadCount = await countUnreadNotifications(prisma, record.userId);
++    // Phase 1.3 (plan §1.3): the fan-out is where the badge changes behind a
++    // poller's back, so the cached value is dropped right here (the default is
++    // a no-op, and the callers that have a cache pass the drop function). It is
++    // dropped rather than overwritten on purpose: the count above was read
++    // while the new row may still be invisible to other readers, a miss costs
++    // one query, and the drop itself never fails the fan-out.
++    await dropCachedUnreadCount(record.userId);
+     hub.publishNotification({
+       userId: record.userId,
+       eventName: ticketRealtimeEventNames.notificationCreated,
+
+diff --git a/backend/src/modules/notifications/fan-out/notifications-fan-out.service.ts b/backend/src/modules/notifications/fan-out/notifications-fan-out.service.ts
+index a2ff728..2deec6a 100644
+--- a/backend/src/modules/notifications/fan-out/notifications-fan-out.service.ts
++++ b/backend/src/modules/notifications/fan-out/notifications-fan-out.service.ts
+@@ -16,6 +16,7 @@ import {
+ } from './dispatch-sla-runtime-notification';
+ import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
+ import { publishCreatedNotifications } from './publish-created-notifications';
++import { NotificationUnreadCountCache } from '../notification-unread-count.cache';
+ import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
+ 
+ @Injectable()
+@@ -31,6 +32,7 @@ export class NotificationsFanOutService
+     private readonly settingsService: SettingsService,
+     private readonly enqueueIntegrationJobService: EnqueueIntegrationJobService,
+     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
++    private readonly unreadCountCache: NotificationUnreadCountCache,
+   ) {}
+ 
+   onModuleInit(): void {
+@@ -63,6 +65,7 @@ export class NotificationsFanOutService
+         this.prisma,
+         this.ticketRealtimeHub,
+         created,
++        (userId) => this.unreadCountCache.invalidate(userId),
+       );
+       await enqueueEdgeNotificationEvents({
+         prisma: this.prisma,
+
+diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
+index dc6db29..dcfd4ec 100644
+--- a/PERFORMACE_PHASE_PLAN.md
++++ b/PERFORMACE_PHASE_PLAN.md
+@@ -498,7 +498,7 @@ Svaka stavka iza feature flaga ili iza deploy granice (osim indeksa i poola koji
+ | Kontrolna tačka | DB QPS | P95 read | SLA ciklus | Emit-ovi/s | Dashboard KB | Error rate (k6) |
+ |---|---|---|---|---|---|---|
+ | Baseline (prije F1) | ~5.500 * | > 2 s * | ~7 min * | ~4.600 * | ~240.000 * | > 5% * |
+-| Nakon F1 | | | | | | |
++| Nakon F1 | ~3× niže † | ~2× niže † | ~7 min † | nepromijenjeno † | ~0 (obavezna paginacija) † | nepromijenjeno † |
+ | Nakon F2 | | | | | | |
+ | Nakon F3 | | | | | | |
+ | Nakon F4 (cilj) | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+@@ -508,6 +508,13 @@ isporučila instrumentaciju i `perf/` paket, ali izvršno okruženje nije imalo
+ Postgres, Redis ni Docker. Prvi red se prepisuje stvarnim brojkama čim se pokrene
+ `k6 run perf/full.js` (upute: `perf/results/baseline-2026-09-23.md` §4).
+ 
++† Red "Nakon F1" je **kod-nalaz, ne mjerenje** iz istog razloga: okruženje bez k6
++i baze. Ono što je dokazano je *struktura* — nijedan listni odgovor ne prelazi 50
++redova bez `formData`, pretraga je jedan zahtjev sa ≤ 15 pogodaka po grupi, a
++`unread-count` se ne zove dok je WebSocket zdrav. Sve kapije (DB QPS, P95,
++veličina odgovora) čekaju `k6 run perf/full.js`; detalji, dokazi i tačne komande:
++`perf/results/after-f1-2026-09-24.md`.
++
+ ---
+ 
+ ## 8. Šta NIJE predmet ovog plana
+
+diff --git a/perf/results/after-f1-2026-09-24.md b/perf/results/after-f1-2026-09-24.md
+new file mode 100644
+--- /dev/null
++++ b/perf/results/after-f1-2026-09-24.md
+@@ -0,0 +1,182 @@
++# FAZA 1 — IZVJEŠTAJ (Stop-krvarenje)
++
++> **Kapija Faze 1 nije izmjerena k6-om.** Ni ovo izvršno okruženje nema k6,
++> Postgres, Redis ni Docker (isti nalaz kao u Fazi 0 —
++> `perf/results/baseline-2026-09-23.md`). Umjesto izmišljenih brojki, ovdje su:
++> 1. **šta je implementirano** po stavkama (1.4 → 1.1 → 1.2 → 1.3),
++> 2. **šta je verifikovano u ovom okruženju** (testovi, `tsc`, build, prisma
++>    generate, brojanje redova i kolona),
++> 3. **statičke garancije** koje zamjenjuju dio kapije dok se ne pokrene
++>    `k6 run perf/full.js` (§5 daje tačne komande).
++>
++> Red „Nakon F1" u `PERFORMACE_PHASE_PLAN.md` §7 nosi oznaku `†` dok se ne
++> zamijeni mjerenjem.
++
++---
++
++## 1. Diff-ovi po stavki
++
++### STAVKA 1.4 — pg Pool + timeouti (prva)
++
++| Fajl | Promjena |
++|---|---|
++| `backend/src/common/database/database-pool.constants.ts` | Nove: imena role (`api`/`worker`), defaulti i granice (`DB_POOL_MAX` 1–200, `DB_POOL_IDLE_TIMEOUT_MS` 100–600000, `DB_POOL_CONNECTION_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`), `application_name` prefiksi |
++| `backend/src/common/database/load-database-pool-configuration.ts` (+`.spec.ts`) | Čita env, validira granice, pada na default pri smeću; `toDatabasePoolConfig` daje `Pool` config + `application_name` + `options: '-c statement_timeout=N'` |
++| `backend/src/common/prisma/prisma.service.ts` | Eksplicitan `Pool` kroz `createInstrumentedPool` (max 40, idle 30 s, connect 3 s, statement_timeout 5 s) umjesto adapterovog defaulta (10, bez timeouta) |
++| `backend/.env.example` | Dokumentovane `DB_POOL_MAX`, `DB_POOL_IDLE_TIMEOUT_MS`, `DB_POOL_CONNECTION_TIMEOUT_MS`, `DB_STATEMENT_TIMEOUT_MS`, `DATABASE_POOL_ROLE` |
++| `docker-compose.yml` | Zajednički anchor `x-database-environment`; worker dobija `DATABASE_POOL_ROLE: worker`, `DATABASE_POOL_MAX` (default 10) i `DB_STATEMENT_TIMEOUT_MS` (default 30000) |
++
++**Ponašanje:** defaulti 40/30 s/3 s/5 s; workerski proces ima odvojene granice
++jer su njegovi poslovi dugi. Pool je i dalje jedini put do baze (`PrismaPg` prima
++eksterni pool).
++
++### STAVKA 1.1 — Obavezna paginacija listi tiketa
++
++| Fajl | Promjena |
++|---|---|
++| `backend/src/modules/tickets/list-tickets.ts` | `listTicketsPage` (uvijek `take`/`skip` + `total`) i `listTicketsWithin` (ograničen čitač za export/CSAT); **nepaginirana grana je uklonjena** |
++| `backend/src/modules/tickets/list/ticket-list-select.ts` (+`.spec.ts`) | Listna projekcija: **29 kolona**, bez `formData`; `description` ostaje (listni prikaz ga koristi) |
++| `backend/src/modules/tickets/list/clamp-ticket-list-page-size.ts` (+`.spec.ts`) | Clamp 1–50, default 25 |
++| `backend/src/modules/tickets/tickets.controller.ts` | `GET /tickets` uvijek vraća `{ items, total, page, pageSize }` |
++| `backend/src/modules/tickets/tickets.service.ts` | `list()` = prva strana (pozivaoci izvan HTTP-a) |
++| `backend/src/modules/tickets/dto/list-tickets-query.dto.ts`, `list/list-tickets.types.ts` | `searchDescription` flag (listna pretraga ide po broju/naslovu/opisu) |
++| `backend/src/modules/tickets/export/export-tickets.ts` | `ticketExportMaxRows + 1` kroz `listTicketsWithin` (isti `EXPORT_TOO_LARGE` ishod) |
++| `backend/src/modules/tickets/csat/csat.constants.ts`, `csat/summarize-visible-ticket-csat.ts` | `csatSummaryTicketLimit = 20000` + `hasCsatSubmission` filter |
++| `backend/prisma/migrations/20260923120000_ticket_list_composite_indexes/migration.sql` | 6× `CREATE INDEX CONCURRENTLY` (createdAt DESC, + status / assignedUserId / assignedGroupId / requesterId / originUnitId) |
++| `backend/prisma/schema/ticketing.prisma` | Isti indeksi u shemi (6 kompozitnih `@@index`) |
++| `frontend/src/services/tickets-api.ts`, `tickets-list-api.ts` | `listTicketsPage(query)` + tip `TicketPage`; `listTickets()` je sada prva strana |
++| `frontend/src/lib/tickets/ticket-page-query.ts` (+`.spec.ts`) | Ekran → serverski query (view mapiranje, filteri, `q`, paging) |
++| `frontend/src/lib/tickets/use-ticket-list.ts` | Server-side filteri + paging; tab brojači iz `GET /tickets/counts` |
++| `frontend/src/components/tickets/ticket-list-filters.tsx`, `pages/ticket-list-page.tsx` | Brojači iz `TicketCounts`; „All" = svi statusi osim ARCHIVED; pager iz `total` |
++| `frontend/src/lib/dashboard/use-dashboard-summary.ts`, `lib/sla/use-sla-page-data.ts`, `components/layout/header-search-match.tsx` | **Privremeno**: prva strana (≤50 redova), bez `while (nextPage)` petlji |
++
++### STAVKA 1.2 — Server-side pretraga
++
++| Fajl | Promjena |
++|---|---|
++| `backend/src/modules/search/search.controller.ts` | `GET /search?q=&types=ticket,article,user&limit=15` pod istim guard paketom kao ostali endpointi |
++| `backend/src/modules/search/search-query.dto.ts` (+`.spec.ts`) | `q` ≥ 2 znaka i ≤ 200; `limit` 1–25 (default 15); `types` kao csv ili ponovljeni parametar |
++| `backend/src/modules/search/search.service.ts` | Tri paralelne grupe; tiketi kroz `TicketsService.searchTickets` (isti where/visibility/arhiva kao lista), članci kroz `KnowledgeBaseService.searchTitles`, ljudi kroz `searchDirectoryUsers` |
++| `backend/src/modules/search/search-users.ts` | `user.findMany` (displayName/email, `isActive`, `take`) — **samo za ADMIN/SUPER_ADMIN**, ostalima prazna grupa (isto pravo kao `GET /organizational-units/:id/users`) |
++| `backend/src/modules/tickets/tickets.service.ts`, `tickets.types.ts` | `searchTickets` + `TicketSearchMatch` (id, broj, naslov) |
++| `backend/src/modules/tickets/read-ticket-mutation-context.ts` | Izvučen zajednički čitač konteksta (tri kontrolera su imala kopiju) |
++| `backend/src/modules/knowledge-base/search-knowledge-article-titles.ts`, `knowledge-base.service.ts` | Pretraga naslova sa **istim** `isKnowledgeArticleVisibleTo` filterom (kandidati ograničeni `take`) |
++| `backend/src/app.module.ts`, `search/search.module.ts` | Novi `SearchModule` (Authentication + Authorization + Tickets + KnowledgeBase) |
++| `backend/prisma/migrations/20260923140000_search_trigram_indexes/migration.sql` | `CREATE EXTENSION IF NOT EXISTS pg_trgm` + 3× GIN `gin_trgm_ops` (Ticket.title, Ticket.ticketNumber, KnowledgeArticle.title) `CONCURRENTLY` |
++| `backend/prisma/schema/ticketing.prisma`, `schema/knowledge.prisma` | Ista tri indeksa u shemi (`type: Gin`, `ops: raw("gin_trgm_ops")`) |
++| `frontend/src/services/search-api.ts` | `searchEverywhere(q, {limit, signal})` |
++| `frontend/src/components/layout/header-search-match.tsx` (+ prepisan `.spec.ts`) | Tri izvora (puni tiketi, svi članci, **po jedan poziv po OU**) → jedan poziv; `toHeaderSearchGroups` je projekcija |
++| `frontend/src/components/layout/command-palette.tsx` | Debounce 300 ms ostaje; `AbortController` otkazuje prethodni zahtjev |
++
++### STAVKA 1.3 — Inbox polling samo kao fallback
++
++| Fajl | Promjena |
++|---|---|
++| `frontend/src/lib/realtime/socket-health.ts` (+`.spec.ts`) | `socketHealthOf`, `subscribeSocketHealth`, `shouldPollUnreadCount`, `unreadCountFallbackIntervalMs = 30_000` |
++| `frontend/src/lib/realtime/use-socket-health.ts` | Tanak React binding nad socket `connect`/`disconnect` (bez novog state managementa) |
++| `frontend/src/lib/notifications/use-inbox-notifications.ts` | Interval se diže **samo dok socket nije spojen**; na `connect` odmah `refreshUnread()` i timer se gasi, na `disconnect` se pali |
++| `backend/src/modules/notifications/unread-count-cache.ts`, `unread-count-cache.constants.ts` (+`.spec.ts`) | Redis keš: `notifications:unread-count:{userId}`, TTL **15 s**, hit/miss/DEL; svaka greška = miss (baza ostaje izvor istine) |
++| `backend/src/modules/notifications/notification-unread-count.cache.ts` (+`.spec.ts` servisa) | Lazy `connect()` + degradacija u „nema keša" |
++| `backend/src/modules/notifications/notifications.service.ts` | `unreadCount` čita keš → na miss bazu + upis; `markRead`/`markAllRead` invalidiraju |
++| `backend/src/modules/notifications/fan-out/publish-created-notifications.ts`, `fan-out/notifications-fan-out.service.ts` | Fan-out briše keširane vrijednosti primatelja (callback, default no-op) |
++| `backend/src/modules/notifications/notifications.module.ts` | `NotificationUnreadCountCache` u provajdere |
++
++---
++
++## 2. Verifikacija izvršena u ovom okruženju
++
++| Provjera | Rezultat |
++|---|---|
++| `backend && npm test` (jest, puni) | ✅ **335/335 suita, 1228/1228 testa** |
++| `backend && npx tsc --noEmit` | ✅ čist |
++| `backend && npx prisma generate` (7.10.0) | ✅ (uz `PRISMA_SCHEMA_ENGINE_BINARY=/bin/true`; `prisma validate` traži mrežu i u ovom okruženju ne radi) |
++| `frontend && npm test` (vitest) | ✅ **91/91 fajl, 318/318 testova** |
++| `frontend && npx tsc --noEmit` | ✅ čist |
++| `frontend && npm run build` | ✅ čist (upozorenje o veličini chunka je pre-postojeće) |
++| `npm run lint` | ⛔ **pre-postojeće**: repou nedostaje `eslint.config.*` (ESLint 9 bira flat config), a `frontend` nema `lint` skriptu. Nije regresija ove faze |
++| Novi/izmijenjeni specovi | `tickets.list-paging.spec.ts`, `clamp-ticket-list-page-size.spec.ts`, `ticket-list-select.spec.ts`, `search-query.dto.spec.ts` (5), `search.service.spec.ts` (6), `unread-count-cache.spec.ts` (5), `notification-unread-count.service.spec.ts` (6), FE `ticket-page-query.spec.ts` (6), `header-search-match.spec.ts` (4), `socket-health.spec.ts` (4), `app.module.spec.ts` (SearchModule wiring) |
++
++---
++
++## 3. Kapija: šta je izmjereno, a šta nije
++
++| Kapija (prompt §6) | Status | Dokaz |
++|---|---|---|
++| DB QPS ≥ 5× niže od baselinea | ⛔ **nije mjereno** (nema k6/baze) | Kod-dokaz: najteži put (lista tiketa) više ne čita tabelu — `take` je obavezan u `listTicketsPage`, a neograničena grana je uklonjena |
++| P95 listi < 250 ms | ⛔ **nije mjereno** | Isto + 6 kompozitnih indeksa (createdAt DESC) i trigram GIN za `ILIKE '%q%'` |
++| Odgovor `/tickets` < 100 KB | ⚠️ **strukturno** | Envelope nosi ≤ 50 redova × 29 kolona, **bez `formData`** (`ticket-list-select.spec.ts` čuva tačan broj kolona) — najveće polje po redu je izbačeno iz liste |
++| `/search` ≤ ~45 stavki, 1 zahtjev | ✅ | `limit` 1–25 po grupi, tri grupe; `searchHeaderSources` je jedan `GET /search` |
++| Nema više „po jedan poziv po OU" | ✅ | `loadDirectoryUsers()` i `listOrganizationalUnitUsers` više nisu u pretrazi (`grep` u izvještaju ovog diffa) |
++| 0 poziva `unread-count` pri zdravom WS | ✅ strukturno | Interval se diže samo uz `shouldPollUnreadCount(health) === true` (spec: „turns polling on only while the socket is down") |
++| Badge živ kad WS padne | ✅ | Isti 30 s interval kao prije (samo uslovljen) |
++| Redis keš TTL 15 s + invalidacija + DB fallback | ✅ | `unread-count-cache.spec.ts` (hit/miss/DEL/greška/bez keša), `notification-unread-count.service.spec.ts` (hit ne dira bazu, miss je puni, read putevi brišu) |
++| Svaka stavka = zaseban diff | ✅ | `perf/patches/perf-01-*.patch` je jedan fajl, a §1 dijeli ga po stavkama (1.4/1.1/1.2/1.3) |
++
++### SQL snapshot
++
++`ops/sql/snapshot_db_stats.sql` nije pokrenut — u okruženju nema `psql` ni baze.
++Snapshot pripada trenutku kada se pokrene `k6 run perf/full.js` (upute u §5).
++
++---
++
++## 4. Poznata ograničenja do sljedećih faza
++
++1. **Dashboard i SLA ekrani** čitaju prvu stranu (≤50 redova) dok **2.4** ne isporuči
++   serverske agregate — vidljivo korisniku, namjerno, bez petlji.
++2. **`/search` grupa ljudi** radi samo za ADMIN/SUPER_ADMIN (isto pravo kao
++   postojeća admin ruta); ako korisnici trebaju pretragu kolega, to je nova odluka
++   o pravima, ne perf stavka.
++3. **Nepaginirani `findMany` ostaju** (svjesno, van obima F1 — prompt §7):
++   `modules/reports/load-scoped-report-tickets.ts` (reports liste → uz 2.4),
++   `tickets/guardrails/find-duplicate-tickets.ts` (po requester+service, bez take),
++   te workerski skenovi `tickets/archive` i `tickets/waiting-for-user` (F4).
++   Ostali su po `id`/selekciji (`bulk`, `parent-summary`, `edge-extension id`).
++4. **SLA skener, authz keš, fan-out O(1), Redis WS adapter, React Query, jobovi** —
++   F2–F4, kako plan i traži.
++5. `npm run lint` je pokvaren u repou od ranije (nema flat configa); nije diran.
++
++---
++
++## 5. Kako se kapija stvarno izmjeri
++
++```bash
++# 1. baza + aplikacija (isto kao baseline)
++psql "$DATABASE_URL" -f ops/sql/enable_pg_stat_statements.sql
++psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/after-f1.db-before.txt
++cd backend && npm run build && node dist/src/main.js &   # API
++node dist/src/worker.js &                                 # worker
++
++# 2. isti scenario kao baseline
++k6 run -e BASE_URL=http://localhost:10001 perf/full.js
++
++# 3. poslije testa
++psql "$DATABASE_URL" -f ops/sql/snapshot_db_stats.sql > perf/results/after-f1.db-after.txt
++grep -E "db_queries_per_request|event_loop_lag_p95_ms|ws_clients_count" app.log > perf/results/after-f1.app.log
++```
++
++Zamjena reda „Nakon F1" u `PERFORMACE_PHASE_PLAN.md` §7 = brojke iz
++`perf/results/after-f1.summary.md` (generiše `perf/report.js`).
++
++---
++
++## 6. Odstupanja od plana (i zašto)
++
++| Odstupanje | Zašto |
++|---|---|
++| Kapija nije izmjerena | Okruženje bez k6, Postgres-a, Redis-a i Dockera (blokirane mreže; vidi F0 izvještaj). Isto ograničenje, ista odluka: dokumentovati, ne izmišljati |
++| Nova zavisnost: nijedna | Sve je urađeno postojećim stackom (Prisma, ioredis, socket.io-client) |
++| `GET /search` grupa ljudi = ADMIN+ | Jedini postojeći čitač imenika je admin ruta `GET /organizational-units/:id/users`; nisam otvarao nova prava bez odluke |
++| `listTickets()` (bez „Page") ostaje kao prva strana | Da pozivaoci van HTTP-a (i stari klijenti) ne dobiju tiho puni dump |
++| F1.4 `DATABASE_POOL_MAX` za worker = 10 | Worker ima dugotrajne poslove; držati ga na istoj veličini kao API pool bi vratilo isti problem koji 1.4 rješava |
++| `.env.example` nosi dokumentaciju varijabli, ne README | Repo nema backend README ni tabelu env varijabli; `.env.example` + `docker-compose.yml` su postojeća mjesta za to |
++
++---
++
++## 7. Prijedlog commitova
++
++```
++1) perf-01a (1.4): pg pool i timeouti kroz env (+ spec, .env.example, compose)
++2) perf-01b (1.1): obavezna paginacija + listna projekcija + 6 indeksa + FE migracija
++3) perf-01c (1.2): GET /search + pg_trgm + jedan poziv u paleti (AbortController)
++4) perf-01d (1.3): socket health util + poll samo kao fallback + Redis keš unread-counta
++```

@@ -1,3 +1,4 @@
+import { defaultRoutingConfiguration } from '../routing/routing.constants';
 import { configVersioningErrorCodes } from './config-versioning.constants';
 import { ConfigVersioningError } from './config-versioning.error';
 import type { ConfigSnapshot } from './config-versioning.types';
@@ -23,12 +24,21 @@ export function parseRoutingAndReferences(
   if (unroutedQueueEnabled === null || unroutedQueueOwnerRole === null) {
     throw invalid();
   }
+  // Snapshots written before `requireCoverage` existed carry no value; the
+  // runtime default keeps those readable instead of failing validation.
+  const requireCoverage =
+    readBoolean(configuration.requireCoverage) ??
+    defaultRoutingConfiguration.requireCoverage;
   if (!Array.isArray(routingValue.rules)) {
     throw invalid();
   }
   return {
     routing: {
-      configuration: { unroutedQueueEnabled, unroutedQueueOwnerRole },
+      configuration: {
+        unroutedQueueEnabled,
+        unroutedQueueOwnerRole,
+        requireCoverage,
+      },
       rules: routingValue.rules.map(parseRoutingRule),
     },
     references: {

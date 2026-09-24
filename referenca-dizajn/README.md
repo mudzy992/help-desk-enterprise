@@ -9,7 +9,7 @@
 | Sloj | Gdje je sada |
 |---|---|
 | Izgled (boje, radius, sjene, palete, kontrast) | [`demo/`](../demo/) + `.cursor/docs/theme.md` (izvor istine: `frontend/src/index.css`, `frontend/tailwind.config.ts`) |
-| UX / interakcija / layout po ekranu | [`Master UI-UX Design Constitution.md`](../Master%20UI-UX%20Design%20Constitution.md) |
+| UX / interakcija / layout po ekranu | [`Master UI-UX Design Constitution.md`](../docs/design/Master%20UI-UX%20Design%20Constitution.md) |
 | Kod koji se ne dira | `frontend/` — jedini izvor istine za implementaciju |
 
 ## Zašto je arhiviran

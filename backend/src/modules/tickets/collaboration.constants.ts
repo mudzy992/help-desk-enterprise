@@ -100,6 +100,7 @@ export const ticketSystemEventActions = {
 export const ticketRealtimeEventNames = {
   messageCreated: 'ticket.message.created',
   ticketUpdated: 'ticket.updated',
+  groupFeedChanged: 'group.feed-changed',
   join: 'ticket:join',
   leave: 'ticket:leave',
   error: 'ticket:error',

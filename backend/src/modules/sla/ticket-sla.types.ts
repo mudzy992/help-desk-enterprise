@@ -49,6 +49,13 @@ export type TicketSlaStateRecord = {
   readonly isResponseAtRisk: boolean;
   readonly isResolutionAtRisk: boolean;
   readonly firedEscalationKeys: readonly string[];
+  /**
+   * Phase 2.1 (plan §2.1): the earliest instant at which the SLA scanner has to
+   * look at this state again (at-risk mark, breach, escalation), or `null` when
+   * nothing time-driven is pending. Maintained by `computeSlaNextDueAt` on every
+   * write; the scanner reads only `nextDueAt <= now()`.
+   */
+  readonly nextDueAt: Date | null;
   readonly updatedAt: Date;
 };
 

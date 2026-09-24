@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { assignUserOrganizationalUnit } from './assign-user-organizational-unit';
 import { createOrganizationalUnit } from './create-organizational-unit';
 import { deleteOrganizationalUnit } from './delete-organizational-unit';
@@ -19,7 +20,13 @@ import { updateOrganizationalUnit } from './update-organizational-unit';
 
 @Injectable()
 export class OrganizationalUnitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // Phase 2.2: optional so direct construction in tests keeps working; the
+    // module always provides it.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
+  ) {}
 
   async create(
     input: CreateOrganizationalUnitInput,
@@ -61,7 +68,13 @@ export class OrganizationalUnitsService {
   async assignUser(
     input: AssignUserOrganizationalUnitInput,
   ): Promise<OrganizationalUnitUserResponse> {
-    return this.execute(() => assignUserOrganizationalUnit(this.prisma, input));
+    return this.execute(async () => {
+      const response = await assignUserOrganizationalUnit(this.prisma, input);
+      // Phase 2.2: the unit is part of the principal context, so the assignment
+      // invalidates the cached copy of that user right away.
+      await this.principalContextInvalidator?.invalidateUser(input.userId);
+      return response;
+    });
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

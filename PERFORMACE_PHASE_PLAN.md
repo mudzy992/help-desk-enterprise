@@ -497,11 +497,65 @@ Svaka stavka iza feature flaga ili iza deploy granice (osim indeksa i poola koji
 
 | Kontrolna tačka | DB QPS | P95 read | SLA ciklus | Emit-ovi/s | Dashboard KB | Error rate (k6) |
 |---|---|---|---|---|---|---|
-| Baseline (prije F1) | ~5.500 | > 2 s | ~7 min | ~4.600 | ~240.000 | > 5% |
-| Nakon F1 | | | | | | |
-| Nakon F2 | | | | | | |
-| Nakon F3 | | | | | | |
-| Nakon F4 (cilj) | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+| Baseline (prije F1) | ~5.500 * | > 2 s * | ~7 min * | ~4.600 * | ~240.000 * | > 5% * |
+| Nakon F1 | ~3× niže † | ~2× niže † | ~7 min † | nepromijenjeno † | ~0 (obavezna paginacija) † | nepromijenjeno † |
+| Nakon F2 | ~2× niže od F1 ‡ | stabilan ‡ | < 15 s (worker) ‡ | ~200× niže (3 stmt/događaj) ‡ | ~0 (server agregati + keš 15 s) ‡ | nepromijenjeno ‡ |
+| Nakon F3 | isti kao F2 ‡ | stabilan ‡ | < 15 s ‡ | ~40× niže od baseline § | ~0 § | nepromijenjeno § |
+| Nakon F4 (cilj) ¶ | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+
+\* Red "Baseline" je **model iz statičke analize** (§0.3), ne mjerenje: Faza 0 je
+isporučila instrumentaciju i `perf/` paket, ali izvršno okruženje nije imalo k6,
+Postgres, Redis ni Docker. Prvi red se prepisuje stvarnim brojkama čim se pokrene
+`k6 run perf/full.js` (upute: `perf/results/baseline-2026-09-23.md` §4).
+
+† Red "Nakon F1" je **kod-nalaz, ne mjerenje** iz istog razloga: okruženje bez k6
+i baze. Ono što je dokazano je *struktura* — nijedan listni odgovor ne prelazi 50
+redova bez `formData`, pretraga je jedan zahtjev sa ≤ 15 pogodaka po grupi, a
+`unread-count` se ne zove dok je WebSocket zdrav. Sve kapije (DB QPS, P95,
+veličina odgovora) čekaju `k6 run perf/full.js`; detalji, dokazi i tačne komande:
+`perf/results/after-f1-2026-09-24.md`.
+
+‡ Red „Nakon F2" je **kod-nalaz, ne mjerenje** (isto okruženje bez k6/baze). Dokazano
+je *koliko statementa* radi svaka operacija: authz po requestu 0 uz keš pogodak, SLA
+skener 2 upita po ciklusu uz `LIMIT 2000`, notification fan-out 3 statementa po događaju
+nezavisno od veličine grupe, dashboard/SLA ekrani 8 odnosno 4 agregatna upita umjesto
+punih listi. Kapije (DB QPS, authz udio, P95, writes/s) čekaju `k6 run perf/full.js`;
+detalji, odstupanja (2.3 opcija B, TTL 15 s) i tačne komande:
+`perf/results/after-f2-2026-09-24.md`.
+
+§ Red „Nakon F3" je **kod-nalaz + aritmetika**, ne mjerenje (okruženje bez Redis-a,
+LB-a, k6 i browsera). Dokazano je *koliko emisija ide po događaju*: group soba više ne
+dobija puni payload nego laki `group.feed-changed` (< 200 B) — pri 10 događaja/s i
+grupi od 200 članova to je ≈ 50 emit-ova/s umjesto ≈ 2.040/s; cross-instance dokaz je
+skripta `ops/ws-cross-instance-check.mjs`, a mjerenje čeka okruženje s Redis-om i LB-om.
+Detalji, tabela emit matrice, React Query stanje i odstupanja (tranzicioni flag,
+per-korisnički `id` u notifikacijama):
+`perf/results/after-f3-2026-09-24.md`.
+
+¶ Red „Nakon F4 (cilj)" je **ciljna vrijednost**; F4 je dokazala *mehanizam*: svi
+periodični poslovi (arhiva, waiting-for-user, KB podsjetnici, heartbeat, DLQ
+retencija) izvršavaju se isključivo u workeru pod BullMQ rasporedom
+(`upsertJobScheduler` po stabilnom id-u ⇒ dva workera = jedan raspored),
+`concurrency: 1` + `lockDuration` čuvaju da nema preklapanja, svaki job ima
+dokumentovanu idempotenciju (dupli trigger = isto stanje) i DLQ politiku, a API graf
+više ne sadrži nijednu job klasu (`app.module.spec.ts`). Uz to je isporučena kapija
+koja mjerenje tek omogućava: `PERF_BUDGETS.md`, CI `.github/workflows/perf-smoke.yml`
+(200 VU / 5 min, blokirajući pragovi s izvorom brojke) i tri runbooka
+(`ops/runbook/`). Puni load test (2.800 VU / 30 min) **nije izvršen** — okruženje bez
+k6/Postgres/Redis/LB-a, isto ograničenje kao u F0–F3; job karta, CI pragovi i
+zaključni izvještaj: `perf/results/after-f4-2026-09-24.md`.
+
+¶¶ Nakon prve primjene na Windows mašini (`TZ=Europe/Sarajevo`) pao je jedan test:
+granica dashboarda „danas" računala se iz **zone procesa** (`new Date(y, m, d)`),
+pa je u kontejneru (`TZ=UTC`) bila `00:00Z`, a u Sarajevu `22:00Z` prethodnog dana.
+Popravljeno je u `perf-05-dnevna-granica-tz.patch`: granica je sada postavka
+instalacije (`private.reports.timeZone`, default `Europe/Sarajevo`) koju čita
+`startOfCivilDay` preko `Intl`-a, keš ključ dashboarda nosi zonu, a na klijentu je
+dan dio query ključa. Backend je poslije toga zelen u **svakoj** zoni procesa
+(365 suita / 1388 testova; prije: 1 pad u `TZ=Europe/Sarajevo`). Detalji:
+`perf/results/after-f4-2026-09-24.md` §8.
+Baza za primjenu cijelog programa je `5831dfd` + Pulse patchevi
+(`demo/patches/apply-pulse.sh`) — na golom `5831dfd` prolazi samo `perf-00`.
 
 ---
 

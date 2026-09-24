@@ -6,6 +6,8 @@ export type GroupMemberResponse = {
   readonly createdAt: string;
 };
 
+export type { PrincipalInvalidationHook } from '../../common/principal-context/principal-context.types';
+
 export type GroupResponse = {
   readonly id: string;
   readonly name: string;

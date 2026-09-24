@@ -5,6 +5,16 @@
 # REDIS_USERNAME + REDIS_PASSWORD moraju biti isti na backend i worker,
 # i jednaki ACL useru ephelpdesk iz ops/redis-acl.line (placeholder change-me).
 
+# Postgres je eksterni servis (Coolify Database). Ovaj anchor prosljeđuje pool i
+# timeout-e (plan §1.4) u oba procesa; worker dobija duži statement_timeout jer
+# njegovi poslovi (SLA sken, retencija) legitimno traju duže od HTTP zahtjeva.
+x-database-environment: &database-environment
+  DATABASE_URL: ${DATABASE_URL}
+  DB_POOL_MAX: ${DB_POOL_MAX:-40}
+  DB_POOL_IDLE_TIMEOUT_MS: ${DB_POOL_IDLE_TIMEOUT_MS:-30000}
+  DB_POOL_CONNECTION_TIMEOUT_MS: ${DB_POOL_CONNECTION_TIMEOUT_MS:-3000}
+  DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-5000}
+
 x-redis-environment: &redis-environment
   REDIS_HOST: ${REDIS_HOST}
   REDIS_PORT: ${REDIS_PORT:-6379}
@@ -13,6 +23,9 @@ x-redis-environment: &redis-environment
   REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ephelpdesk}
   QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:ephelpdesk}
 
+# Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
+# MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga
+# na WebSocket. Rolling deploy: vidi ops/ws-rolling-deploy.md (drain ≤ 30 s).
 services:
   frontend:
     build:
@@ -30,7 +43,7 @@ services:
     expose:
       - "10001"
     environment:
-      <<: *redis-environment
+      <<: [*database-environment, *redis-environment]
     volumes:
       - uploads:/usr/app/uploads
     networks:
@@ -43,7 +56,11 @@ services:
     command: node dist/src/worker.js
     restart: unless-stopped
     environment:
-      <<: *redis-environment
+      <<: [*database-environment, *redis-environment]
+      # Worker: manje konekcija (jedan proces), duži statement budžet.
+      DATABASE_POOL_ROLE: worker
+      DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-10}
+      DB_STATEMENT_TIMEOUT_MS: ${WORKER_DB_STATEMENT_TIMEOUT_MS:-30000}
     volumes:
       - uploads:/usr/app/uploads
     networks:

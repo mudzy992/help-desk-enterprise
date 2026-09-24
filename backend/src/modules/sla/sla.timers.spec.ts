@@ -25,7 +25,18 @@ const calendar = {
   holidays: [] as const,
 };
 
+// The SLA clocks start from the ticket's `createdAt`, which the harness takes
+// from the wall clock. Freezing "now" keeps these assertions on the fixed
+// 2026-09-11 business window instead of drifting with the real date.
 describe('ticket SLA timers', () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date('2026-09-11T12:00:00.000Z') });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('starts response and resolution clocks from the matching rule', async () => {
     const { prisma, ticket } = await createStartedTicket();
     const state = await loadTicketSlaState(prisma, ticket.id);

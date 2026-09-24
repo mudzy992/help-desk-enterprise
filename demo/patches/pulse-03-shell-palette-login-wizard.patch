@@ -1,0 +1,2204 @@
+diff --git a/e2e/helpers/sign-in.ts b/e2e/helpers/sign-in.ts
+index b7cdaa3..82e2c10 100644
+--- a/e2e/helpers/sign-in.ts
++++ b/e2e/helpers/sign-in.ts
+@@ -1,13 +1,34 @@
+ import type { Page } from '@playwright/test';
+ 
++/**
++ * Sign in through whichever credentials form the app currently exposes.
++ *
++ * Two forms exist, and which one is reachable depends on the route:
++ *  - `#login-email` / `#login-password` on the dedicated login page, where
++ *    `/` lands after `RequireAuth` redirects a visitor with no stored session;
++ *  - `#session-email` / `#session-password` in the compact form embedded in the
++ *    application header, shown when the shell renders with no server session.
++ *
++ * Matching both keeps this helper working no matter which surface the app
++ * shows first.
++ */
++const EMAIL_SELECTOR = '#session-email, #login-email';
++const PASSWORD_SELECTOR = '#session-password, #login-password';
++
+ export async function signIn(
+   page: Page,
+   email: string,
+   password: string,
+ ): Promise<void> {
+   await page.goto('/');
+-  await page.locator('#session-email').fill(email);
+-  await page.locator('#session-password').fill(password);
+-  await page.locator('form').filter({ has: page.locator('#session-email') }).locator('button[type="submit"]').click();
+-  await page.waitForSelector('#session-email', { state: 'detached', timeout: 20_000 });
++  const form = page
++    .locator('form')
++    .filter({ has: page.locator(EMAIL_SELECTOR) });
++  await form.locator(EMAIL_SELECTOR).fill(email);
++  await form.locator(PASSWORD_SELECTOR).fill(password);
++  await form.locator('button[type="submit"]').click();
++  await page.waitForSelector(EMAIL_SELECTOR, {
++    state: 'detached',
++    timeout: 20_000,
++  });
+ }
+diff --git a/frontend/src/components/install/install-addons-step.tsx b/frontend/src/components/install/install-addons-step.tsx
+index 69a60cc..9504f8e 100644
+--- a/frontend/src/components/install/install-addons-step.tsx
++++ b/frontend/src/components/install/install-addons-step.tsx
+@@ -62,11 +62,11 @@ export function InstallAddonsStep({
+   };
+ 
+   if (isLoading) {
+-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
++    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+   }
+ 
+   return (
+-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={(event) => void onSubmit(event)}>
++    <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
+       {items.map((item) => (
+         <AddonSwitch
+           key={item.key}
+diff --git a/frontend/src/components/install/install-complete-step.tsx b/frontend/src/components/install/install-complete-step.tsx
+index 12a8376..6c0bbdf 100644
+--- a/frontend/src/components/install/install-complete-step.tsx
++++ b/frontend/src/components/install/install-complete-step.tsx
+@@ -30,7 +30,7 @@ export function InstallCompleteStep() {
+   };
+ 
+   return (
+-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={(event) => void onSubmit(event)}>
++    <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
+       {errorKey ? (
+         <p className={errorTextClassName}>{t(errorKey)}</p>
+       ) : null}
+diff --git a/frontend/src/components/install/install-gate-skeleton.tsx b/frontend/src/components/install/install-gate-skeleton.tsx
+index 79ff86e..6def1d5 100644
+--- a/frontend/src/components/install/install-gate-skeleton.tsx
++++ b/frontend/src/components/install/install-gate-skeleton.tsx
+@@ -1,18 +1,23 @@
+ import { useTranslation } from "react-i18next";
++import { BrandLockup } from "@/components/layout/brand-mark";
+ import { PanelSkeleton } from "@/components/ui/skeleton";
+ 
++/*
++  Shown while the install gate resolves. Loading is a skeleton of the real
++  layout (brand header + panel), never a spinner.
++*/
+ export function InstallGateSkeleton() {
+   const { t } = useTranslation();
+ 
+   return (
+     <div className="flex min-h-screen flex-col bg-background">
+-      <header className="flex h-14 items-center border-b border-border bg-surface px-4 md:px-6">
+-        <div className="h-4 w-40 rounded-md bg-elevated" aria-hidden="true" />
++      <header className="flex h-14 items-center border-b border-border/70 bg-surface px-4 md:px-6">
++        <BrandLockup subtitle={t("shell.brandTagline")} />
+       </header>
+       <main className="flex-1">
+-        <section className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
++        <div className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8">
+           <PanelSkeleton className="mt-0" label={t("install.loading")} />
+-        </section>
++        </div>
+       </main>
+     </div>
+   );
+diff --git a/frontend/src/components/install/install-login-provider-step.tsx b/frontend/src/components/install/install-login-provider-step.tsx
+index 53c5b4c..28f2131 100644
+--- a/frontend/src/components/install/install-login-provider-step.tsx
++++ b/frontend/src/components/install/install-login-provider-step.tsx
+@@ -108,11 +108,11 @@ export function InstallLoginProviderStep({
+   }
+ 
+   if (isLoading) {
+-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
++    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+   }
+ 
+   return (
+-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
++    <form className="grid gap-4" onSubmit={onSubmit}>
+       <fieldset className="grid gap-2">
+         <legend className="text-[12.5px] font-medium text-foreground">
+           {t("install.loginProvider.mode")}
+diff --git a/frontend/src/components/install/install-seed-step.tsx b/frontend/src/components/install/install-seed-step.tsx
+index 04675f0..1641aa9 100644
+--- a/frontend/src/components/install/install-seed-step.tsx
++++ b/frontend/src/components/install/install-seed-step.tsx
+@@ -57,12 +57,12 @@ export function InstallSeedStep({
+   };
+ 
+   if (isLoading) {
+-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
++    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+   }
+ 
+   if (record?.isSeeded === true) {
+     return (
+-      <div className="mt-6 grid max-w-xl gap-3">
++      <div className="grid gap-4">
+         <p className="text-body leading-6 text-muted-foreground">
+           {t("install.seed.createdBody")}
+         </p>
+@@ -72,7 +72,7 @@ export function InstallSeedStep({
+   }
+ 
+   return (
+-    <div className="mt-6 grid max-w-xl gap-3">
++    <div className="grid gap-4">
+       {errorKey ? (
+         <p className={errorTextClassName}>{t(errorKey)}</p>
+       ) : null}
+diff --git a/frontend/src/components/install/install-smtp-step.tsx b/frontend/src/components/install/install-smtp-step.tsx
+index b3f53ad..77c0d37 100644
+--- a/frontend/src/components/install/install-smtp-step.tsx
++++ b/frontend/src/components/install/install-smtp-step.tsx
+@@ -98,11 +98,11 @@ export function InstallSmtpStep({
+   }
+ 
+   if (isLoading) {
+-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
++    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+   }
+ 
+   return (
+-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
++    <form className="grid gap-4" onSubmit={onSubmit}>
+       <label className="flex items-center gap-2 text-body">
+         <Switch
+           checked={enabled}
+diff --git a/frontend/src/components/install/install-super-admin-step.tsx b/frontend/src/components/install/install-super-admin-step.tsx
+index 4b30477..d4b9494 100644
+--- a/frontend/src/components/install/install-super-admin-step.tsx
++++ b/frontend/src/components/install/install-super-admin-step.tsx
+@@ -80,12 +80,12 @@ export function InstallSuperAdminStep({
+   };
+ 
+   if (isLoading) {
+-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
++    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
+   }
+ 
+   if (superAdmin !== null) {
+     return (
+-      <section className="mt-6 grid max-w-xl gap-3">
++      <section className="grid gap-4">
+         <h3 className="text-body font-medium text-foreground">
+           {t("install.createdHeading")}
+         </h3>
+@@ -112,7 +112,7 @@ export function InstallSuperAdminStep({
+   }
+ 
+   return (
+-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
++    <form className="grid gap-4" onSubmit={onSubmit}>
+       <label className={labelClassName}>
+         {t("install.email")}
+         <input
+diff --git a/frontend/src/components/layout/app-header.tsx b/frontend/src/components/layout/app-header.tsx
+index 02ecd64..cdb904b 100644
+--- a/frontend/src/components/layout/app-header.tsx
++++ b/frontend/src/components/layout/app-header.tsx
+@@ -1,6 +1,6 @@
+ import { Menu } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+-import { HeaderSearch } from "@/components/layout/header-search";
++import { HeaderSearchTrigger } from "@/components/layout/header-search-trigger";
+ import { NotificationsBell } from "@/components/layout/notifications-bell";
+ import { SessionControls } from "@/components/layout/session-controls";
+ import { SystemStatusChip } from "@/components/layout/system-status-chip";
+@@ -9,9 +9,13 @@ import { Button } from "@/components/ui/button";
+ 
+ interface AppHeaderProperties {
+   readonly onOpenNavigation: () => void;
++  readonly onOpenCommandPalette: () => void;
+ }
+ 
+-export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
++export function AppHeader({
++  onOpenNavigation,
++  onOpenCommandPalette,
++}: AppHeaderProperties) {
+   const { t } = useTranslation();
+ 
+   return (
+@@ -26,7 +30,7 @@ export function AppHeader({ onOpenNavigation }: AppHeaderProperties) {
+       >
+         <Menu size={17} strokeWidth={1.9} />
+       </Button>
+-      <HeaderSearch />
++      <HeaderSearchTrigger onOpen={onOpenCommandPalette} />
+       <div className="ml-auto flex min-w-0 items-center gap-1.5">
+         <SystemStatusChip />
+         <ThemeSwitcher />
+diff --git a/frontend/src/components/layout/app-sidebar.tsx b/frontend/src/components/layout/app-sidebar.tsx
+index 84612a6..f541204 100644
+--- a/frontend/src/components/layout/app-sidebar.tsx
++++ b/frontend/src/components/layout/app-sidebar.tsx
+@@ -1,24 +1,10 @@
+-import {
+-  BarChart3,
+-  BookOpen,
+-  Database,
+-  GitBranch,
+-  History,
+-  Inbox,
+-  LayoutDashboard,
+-  LayoutGrid,
+-  LifeBuoy,
+-  Plus,
+-  Settings2,
+-  Ticket,
+-  Timer,
+-  type LucideIcon,
+-} from "lucide-react";
++import { Plus } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ import { Link, NavLink, useLocation } from "react-router-dom";
++import { BrandLockup } from "@/components/layout/brand-mark";
+ import { SidebarCountBadge } from "@/components/layout/sidebar-count-badge";
+ import { SidebarUserCard } from "@/components/layout/sidebar-user-card";
+-import { Kbd } from "@/components/ui/kbd";
++import { navigationIconFor } from "@/lib/navigation-icons";
+ import {
+   isNavigationItemActive,
+   navigationSections,
+@@ -30,20 +16,6 @@ import { useSidebarTicketCounts } from "@/lib/tickets/use-sidebar-ticket-counts"
+ import type { SidebarTicketCounts } from "@/lib/tickets/count-sidebar-ticket-badges";
+ import { cn } from "@/lib/utils";
+ 
+-const navigationIcons: Record<string, LucideIcon> = {
+-  "/": LayoutDashboard,
+-  "/reports": BarChart3,
+-  "/tickets?view=all": Ticket,
+-  "/tickets?view=inbox": Inbox,
+-  "/services": LayoutGrid,
+-  "/knowledge-base": BookOpen,
+-  "/routing": GitBranch,
+-  "/sla": Timer,
+-  "/admin": Settings2,
+-  "/admin/queue": Database,
+-  "/admin/config-versions": History,
+-};
+-
+ interface AppSidebarProperties {
+   readonly onNavigate?: () => void;
+ }
+@@ -57,45 +29,37 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
+   const isCreateActive = location.pathname === "/tickets/new";
+ 
+   return (
+-    <div className="flex h-full flex-col">
+-      <div className="flex h-14 items-center gap-2.5 border-b border-border/70 px-4">
+-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+-          <LifeBuoy size={17} strokeWidth={2} />
+-        </span>
+-        <div className="leading-tight">
+-          <p className="text-[13.5px] font-semibold tracking-tight text-foreground">
+-            EP-HelpDesk
+-          </p>
+-          <p className="text-[10.5px] text-muted-foreground/80">
+-            {t("shell.brandTagline")}
+-          </p>
+-        </div>
++    <div className="flex h-full flex-col bg-surface">
++      <div className="flex h-14 shrink-0 items-center border-b border-border/70 px-4">
++        <Link to="/" onClick={onNavigate} className="min-w-0 rounded-md focus-visible:outline-2 focus-visible:outline-primary/70">
++          <BrandLockup subtitle={t("shell.brandTagline")} />
++        </Link>
+       </div>
++
+       <div className="px-3 pt-3">
+         <NavLink
+           to="/tickets/new"
+           onClick={onNavigate}
+           className={cn(
+-            "flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary text-[13px] font-medium text-primary-foreground transition-colors duration-150",
+-            isCreateActive
+-              ? "bg-primary-hover"
+-              : "bg-primary hover:bg-primary-hover active:bg-primary-active",
++            "pulse-gradient flex h-9 w-full items-center justify-center gap-2 rounded-md text-[13px] font-semibold text-white shadow-glow transition-all duration-200 hover:brightness-[1.06] active:brightness-95",
++            isCreateActive && "brightness-95",
+           )}
+         >
+-          <Plus size={15} strokeWidth={2.2} />
++          <Plus size={15} strokeWidth={2.5} />
+           {t("tickets.createAction")}
+-          <span className="ml-1 opacity-70">
+-            <Kbd>N</Kbd>
++          <span className="ml-0.5 rounded-[5px] bg-white/20 px-1 text-[10px] font-bold">
++            N
+           </span>
+         </NavLink>
+       </div>
++
+       <nav
+-        className="flex-1 overflow-y-auto px-3 py-3"
++        className="min-h-0 flex-1 overflow-y-auto px-3 py-3"
+         aria-label={t("shell.primaryNavigation")}
+       >
+         {visibleSections.map((section) => (
+-          <div key={section.labelKey} className="mb-4">
+-            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
++          <div key={section.labelKey} className="mb-4 last:mb-0">
++            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+               {t(section.labelKey)}
+             </p>
+             <ul className="space-y-0.5">
+@@ -112,6 +76,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
+           </div>
+         ))}
+       </nav>
++
+       <SidebarUserCard />
+     </div>
+   );
+@@ -130,7 +95,7 @@ function SidebarLink({
+ }: SidebarLinkProperties) {
+   const { t } = useTranslation();
+   const location = useLocation();
+-  const Icon = navigationIcons[item.path] ?? LayoutDashboard;
++  const Icon = navigationIconFor(item.path);
+   const isActive = isNavigationItemActive(
+     item,
+     location.pathname,
+@@ -143,26 +108,25 @@ function SidebarLink({
+       onClick={onNavigate}
+       aria-current={isActive ? "page" : undefined}
+       className={cn(
+-        "group relative flex h-[34px] w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors duration-150",
++        "group relative flex h-[34px] w-full items-center gap-2.5 rounded-[9px] px-2 text-[13px] transition-colors duration-150",
+         isActive
+-          ? "bg-elevated font-medium text-foreground"
+-          : "text-muted-foreground hover:bg-elevated/60 hover:text-foreground",
++          ? "bg-primary/10 font-medium text-foreground"
++          : "text-muted-foreground hover:bg-surface-hover hover:text-foreground",
+       )}
+     >
+       {isActive ? (
+-        <span className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-full bg-primary" />
++        <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-r-full bg-primary" />
+       ) : null}
+       <Icon
+         size={15.5}
+         strokeWidth={1.9}
+-        className={
+-          isActive
+-            ? "text-link"
+-            : "text-muted-foreground/80 group-hover:text-muted-foreground"
+-        }
++        className={cn(
++          "shrink-0",
++          isActive ? "text-link" : "text-muted-foreground group-hover:text-foreground",
++        )}
+         aria-hidden="true"
+       />
+-      <span className="flex-1 truncate text-left">{t(item.labelKey)}</span>
++      <span className="min-w-0 flex-1 truncate text-left">{t(item.labelKey)}</span>
+       <SidebarCountBadge item={item} ticketCounts={ticketCounts} />
+     </Link>
+   );
+diff --git a/frontend/src/components/layout/brand-mark.tsx b/frontend/src/components/layout/brand-mark.tsx
+new file mode 100644
+index 0000000..6d24f95
+--- /dev/null
++++ b/frontend/src/components/layout/brand-mark.tsx
+@@ -0,0 +1,72 @@
++import { cn } from "@/lib/utils";
++
++/*
++  Pulse brand mark: a "volt" spark on the brand gradient. Used by the sidebar,
++  the sign-in page and the install wizard so the product reads the same
++  everywhere. The gradient lives in `index.css` (`.pulse-gradient`) because it
++  is decorative — never a semantic surface.
++*/
++
++interface BrandMarkProperties {
++  readonly size?: number;
++  readonly className?: string;
++}
++
++export function BrandMark({ size = 32, className }: BrandMarkProperties) {
++  return (
++    <span
++      className={cn(
++        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[11px] pulse-gradient shadow-glow",
++        className,
++      )}
++      style={{ width: size, height: size }}
++    >
++      <svg
++        viewBox="0 0 32 32"
++        width={size * 0.62}
++        height={size * 0.62}
++        aria-hidden="true"
++        focusable="false"
++      >
++        <path
++          d="M18.6 3.2 8.4 18.1h5.9L13.1 28.8 23.6 13.6h-6.1l1.1-10.4Z"
++          fill="white"
++          fillOpacity="0.98"
++        />
++      </svg>
++    </span>
++  );
++}
++
++interface BrandLockupProperties {
++  readonly compact?: boolean;
++  readonly titleClassName?: string;
++  readonly subtitle?: string;
++}
++
++export function BrandLockup({
++  compact = false,
++  titleClassName,
++  subtitle,
++}: BrandLockupProperties) {
++  return (
++    <div className="flex items-center gap-2.5">
++      <BrandMark />
++      {compact ? null : (
++        <div className="min-w-0 leading-tight">
++          <p
++            className={cn(
++              "truncate text-[14px] font-semibold tracking-[-0.02em] text-foreground",
++              titleClassName,
++            )}
++          >
++            EP<span className="text-primary">·</span>HelpDesk
++          </p>
++          {subtitle ? (
++            <p className="truncate text-[10.5px] text-muted-foreground">{subtitle}</p>
++          ) : null}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/frontend/src/components/layout/command-palette.tsx b/frontend/src/components/layout/command-palette.tsx
+new file mode 100644
+index 0000000..9f3a528
+--- /dev/null
++++ b/frontend/src/components/layout/command-palette.tsx
+@@ -0,0 +1,385 @@
++import * as DialogPrimitive from "@radix-ui/react-dialog";
++import {
++  BookOpen,
++  CornerDownLeft,
++  Plus,
++  Search,
++  Ticket,
++  User as UserIcon,
++  type LucideIcon,
++} from "lucide-react";
++import { useEffect, useMemo, useRef, useState } from "react";
++import { useTranslation } from "react-i18next";
++import { useNavigate } from "react-router-dom";
++import {
++  flattenHeaderSearchHits,
++  searchHeaderSources,
++  type HeaderSearchGroups,
++  type HeaderSearchHit,
++  emptyHeaderSearchGroups,
++} from "@/components/layout/header-search-match";
++import { Kbd } from "@/components/ui/kbd";
++import {
++  buildNavigationCommands,
++  filterNavigationCommands,
++  type NavigationCommand,
++} from "@/lib/command-palette/build-navigation-commands";
++import { navigationIconFor } from "@/lib/navigation-icons";
++import { navigationSections } from "@/lib/navigation";
++import { filterNavigationSections } from "@/lib/session/route-access";
++import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
++import { cn } from "@/lib/utils";
++
++/*
++  Pulse command palette — one overlay for "jump to a page" and "find a record".
++  It replaces the inline topbar dropdown: the same data sources
++  (`searchHeaderSources`) and the same navigation tree feed it, only the
++  interaction is the modern one (⌘K / Ctrl+K, or `/`).
++
++  Radix Dialog provides the focus trap, scroll lock and Escape handling; the
++  arrow-key navigation over the result rows is ours.
++*/
++
++const searchDebounceMilliseconds = 250;
++const minimumRemoteQueryLength = 2;
++
++interface CommandPaletteProperties {
++  readonly open: boolean;
++  readonly onOpenChange: (open: boolean) => void;
++}
++
++type Row =
++  | { readonly kind: "action"; readonly id: string; readonly label: string; readonly hint: string; readonly shortcut: string; readonly path: string; readonly icon: LucideIcon }
++  | { readonly kind: "navigation"; readonly id: string; readonly command: NavigationCommand; readonly label: string }
++  | { readonly kind: "hit"; readonly id: string; readonly hit: HeaderSearchHit };
++
++const HIT_ICONS: Record<HeaderSearchHit["kind"], LucideIcon> = {
++  ticket: Ticket,
++  article: BookOpen,
++  user: UserIcon,
++};
++
++export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties) {
++  const { t } = useTranslation();
++  const navigate = useNavigate();
++  const inputReference = useRef<HTMLInputElement>(null);
++  const capabilities = useSessionCapabilities();
++
++  const [query, setQuery] = useState("");
++  const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
++  const [isSearching, setIsSearching] = useState(false);
++  const [activeIndex, setActiveIndex] = useState(0);
++
++  const visibleSections = useMemo(
++    () => filterNavigationSections(navigationSections, capabilities),
++    [capabilities],
++  );
++
++  const navigationCommands = useMemo(
++    () => buildNavigationCommands(visibleSections),
++    [visibleSections],
++  );
++
++  const trimmedQuery = query.trim();
++
++  useEffect(() => {
++    if (!open) {
++      return;
++    }
++    setQuery("");
++    setGroups(emptyHeaderSearchGroups);
++    setActiveIndex(0);
++    setIsSearching(false);
++  }, [open]);
++
++  useEffect(() => {
++    if (!open) {
++      return;
++    }
++    if (trimmedQuery.length < minimumRemoteQueryLength) {
++      setGroups(emptyHeaderSearchGroups);
++      setIsSearching(false);
++      return;
++    }
++    let isCancelled = false;
++    setIsSearching(true);
++    const handle = window.setTimeout(() => {
++      void searchHeaderSources(trimmedQuery).then((nextGroups) => {
++        if (!isCancelled) {
++          setGroups(nextGroups);
++          setIsSearching(false);
++        }
++      });
++    }, searchDebounceMilliseconds);
++    return () => {
++      isCancelled = true;
++      window.clearTimeout(handle);
++    };
++  }, [open, trimmedQuery]);
++
++  const rows = useMemo<readonly Row[]>(() => {
++    const needle = trimmedQuery.toLowerCase();
++
++    const newTicketRow: Extract<Row, { kind: "action" }> = {
++      kind: "action",
++      id: "action:new-ticket",
++      label: t("palette.createTicket"),
++      hint: t("palette.createTicketHint"),
++      shortcut: "N",
++      path: "/tickets/new",
++      icon: Plus,
++    };
++
++    const actions: readonly Row[] = [newTicketRow].filter(
++      (row) => needle === "" || row.label.toLowerCase().includes(needle),
++    );
++
++    const navigation: readonly Row[] = filterNavigationCommands(
++      navigationCommands,
++      trimmedQuery,
++      t,
++      t,
++    ).map((command) => ({
++      kind: "navigation",
++      id: command.id,
++      command,
++      label: t(command.labelKey),
++    }));
++
++    const hits: readonly Row[] = flattenHeaderSearchHits(groups).map((hit) => ({
++      kind: "hit",
++      id: `hit:${hit.kind}:${hit.id}`,
++      hit,
++    }));
++
++    return [...actions, ...navigation, ...hits];
++  }, [trimmedQuery, t, navigationCommands, groups]);
++
++  useEffect(() => {
++    setActiveIndex(0);
++  }, [trimmedQuery]);
++
++  const goTo = (row: Row) => {
++    onOpenChange(false);
++    if (row.kind === "hit") {
++      navigate(row.hit.href);
++      return;
++    }
++    if (row.kind === "action") {
++      navigate(row.path);
++      return;
++    }
++    navigate(row.command.path);
++  };
++
++  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
++    if (event.key === "ArrowDown") {
++      event.preventDefault();
++      setActiveIndex((index) => (rows.length === 0 ? 0 : (index + 1) % rows.length));
++    } else if (event.key === "ArrowUp") {
++      event.preventDefault();
++      setActiveIndex((index) =>
++        rows.length === 0 ? 0 : (index - 1 + rows.length) % rows.length,
++      );
++    } else if (event.key === "Home") {
++      event.preventDefault();
++      setActiveIndex(0);
++    } else if (event.key === "End") {
++      event.preventDefault();
++      setActiveIndex(Math.max(0, rows.length - 1));
++    } else if (event.key === "Enter") {
++      event.preventDefault();
++      const row = rows[activeIndex];
++      if (row !== undefined) {
++        goTo(row);
++      }
++    }
++  };
++
++  const isAction = (row: Row): row is Extract<Row, { kind: "action" }> =>
++    row.kind === "action";
++  const isNavigation = (row: Row): row is Extract<Row, { kind: "navigation" }> =>
++    row.kind === "navigation";
++  const isHit = (row: Row): row is Extract<Row, { kind: "hit" }> => row.kind === "hit";
++
++  const sections = useMemo(() => {
++    const actionRows = rows.filter(isAction);
++    const navigationRows = rows.filter(isNavigation);
++    const hitRows = rows.filter(isHit);
++    const hitsOf = (kind: HeaderSearchHit["kind"]) =>
++      hitRows.filter((row) => row.hit.kind === kind);
++    return [
++      { key: "actions", label: t("palette.groupActions"), items: actionRows },
++      { key: "navigation", label: t("palette.groupNavigation"), items: navigationRows },
++      { key: "tickets", label: t("shell.searchGroupTickets"), items: hitsOf("ticket") },
++      { key: "articles", label: t("shell.searchGroupKnowledge"), items: hitsOf("article") },
++      { key: "users", label: t("shell.searchGroupUsers"), items: hitsOf("user") },
++    ].filter((section) => section.items.length > 0);
++  }, [rows, t]);
++
++  const rowIndexOf = (row: Row) => rows.findIndex((candidate) => candidate.id === row.id);
++
++  return (
++    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
++      <DialogPrimitive.Portal>
++        <DialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-scrim/50 backdrop-blur-[3px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
++        <DialogPrimitive.Content
++          aria-label={t("palette.title")}
++          onKeyDown={onKeyDown}
++          onOpenAutoFocus={(event) => {
++            event.preventDefault();
++            inputReference.current?.focus();
++          }}
++          className="fixed left-1/2 top-[12vh] z-[70] w-[calc(100vw-2rem)] max-w-[620px] -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-popover shadow-pop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
++        >
++          <DialogPrimitive.Title className="sr-only">{t("palette.title")}</DialogPrimitive.Title>
++          <DialogPrimitive.Description className="sr-only">
++            {t("palette.scope")}
++          </DialogPrimitive.Description>
++
++          <div className="flex items-center gap-3 border-b border-border px-4">
++            <Search size={17} className="shrink-0 text-muted-foreground" aria-hidden="true" />
++            <input
++              ref={inputReference}
++              value={query}
++              onChange={(event) => setQuery(event.target.value)}
++              placeholder={t("palette.placeholder")}
++              role="combobox"
++              aria-expanded
++              aria-controls="command-palette-results"
++              aria-activedescendant={rows.length > 0 ? `palette-row-${activeIndex}` : undefined}
++              className="h-[52px] min-w-0 flex-1 bg-transparent text-[14.5px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
++            />
++            <Kbd>ESC</Kbd>
++          </div>
++
++          <div
++            id="command-palette-results"
++            role="listbox"
++            aria-label={t("palette.title")}
++            className="max-h-[52vh] overflow-y-auto p-2"
++          >
++            {sections.map((section) => (
++              <div key={section.key} className="mb-1.5">
++                <p className="px-2.5 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
++                  {section.label}
++                </p>
++                <ul>
++                  {section.items.map((entry) => {
++                    const index = rowIndexOf(entry);
++                    const isActive = index === activeIndex;
++                    return (
++                      <li key={entry.id}>
++                        <PaletteRow
++                          row={entry}
++                          index={index}
++                          isActive={isActive}
++                          onHover={setActiveIndex}
++                          onSelect={goTo}
++                        />
++                      </li>
++                    );
++                  })}
++                </ul>
++              </div>
++            ))}
++
++            {rows.length === 0 ? (
++              <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">
++                {isSearching
++                  ? t("palette.searching")
++                  : t("palette.noResults", { query: trimmedQuery })}
++              </p>
++            ) : null}
++          </div>
++
++          <div className="flex items-center gap-4 border-t border-border px-4 py-2 text-[10.5px] text-muted-foreground">
++            <span className="flex items-center gap-1.5">
++              <Kbd>↑</Kbd>
++              <Kbd>↓</Kbd>
++              {t("palette.navigateHint")}
++            </span>
++            <span className="flex items-center gap-1.5">
++              <Kbd>
++                <CornerDownLeft size={9} aria-hidden="true" />
++              </Kbd>
++              {t("palette.selectHint")}
++            </span>
++            <span className="ml-auto hidden items-center gap-1.5 sm:flex">
++              <Kbd>ESC</Kbd>
++              {t("palette.closeHint")}
++            </span>
++          </div>
++        </DialogPrimitive.Content>
++      </DialogPrimitive.Portal>
++    </DialogPrimitive.Root>
++  );
++}
++
++function PaletteRow({
++  row,
++  index,
++  isActive,
++  onHover,
++  onSelect,
++}: {
++  readonly row: Row;
++  readonly index: number;
++  readonly isActive: boolean;
++  readonly onHover: (index: number) => void;
++  readonly onSelect: (row: Row) => void;
++}) {
++  const Icon =
++    row.kind === "action"
++      ? row.icon
++      : row.kind === "hit"
++        ? HIT_ICONS[row.hit.kind]
++        : navigationIconFor(row.command.path);
++
++  const label = row.kind === "navigation" ? row.label : row.kind === "hit" ? row.hit.title : row.label;
++  const hint =
++    row.kind === "action"
++      ? row.hint
++      : row.kind === "hit"
++        ? row.hit.subtitle
++        : undefined;
++
++  return (
++    <button
++      type="button"
++      id={`palette-row-${index}`}
++      role="option"
++      aria-selected={isActive}
++      onMouseMove={() => onHover(index)}
++      onMouseDown={(event) => event.preventDefault()}
++      onClick={() => onSelect(row)}
++      className={cn(
++        "flex w-full items-center gap-3 rounded-[9px] px-2.5 py-2 text-left transition-colors duration-150",
++        isActive ? "bg-primary/10" : "hover:bg-surface-hover",
++      )}
++    >
++      <Icon
++        size={15}
++        strokeWidth={1.9}
++        className={cn("shrink-0", isActive ? "text-link" : "text-muted-foreground")}
++        aria-hidden="true"
++      />
++      <span className="min-w-0 flex-1">
++        <span
++          className={cn(
++            "block truncate text-[13px] font-medium",
++            row.kind === "hit" && row.hit.kind === "ticket" ? "tnum text-link" : "text-foreground",
++          )}
++        >
++          {label}
++        </span>
++        {hint ? (
++          <span className="block truncate text-[11.5px] text-muted-foreground">{hint}</span>
++        ) : null}
++      </span>
++      {row.kind === "action" ? (
++        <Kbd>{row.shortcut}</Kbd>
++      ) : null}
++    </button>
++  );
++}
+diff --git a/frontend/src/components/layout/header-search-trigger.tsx b/frontend/src/components/layout/header-search-trigger.tsx
+new file mode 100644
+index 0000000..15efe09
+--- /dev/null
++++ b/frontend/src/components/layout/header-search-trigger.tsx
+@@ -0,0 +1,41 @@
++import { Command, Search } from "lucide-react";
++import { useTranslation } from "react-i18next";
++import { Kbd } from "@/components/ui/kbd";
++
++/*
++  The topbar no longer hosts a second search box — it hosts the door to the
++  command palette. Same data sources, one search surface (⌘K / Ctrl+K or `/`).
++*/
++
++interface HeaderSearchTriggerProperties {
++  readonly onOpen: () => void;
++}
++
++export function HeaderSearchTrigger({ onOpen }: HeaderSearchTriggerProperties) {
++  const { t } = useTranslation();
++
++  return (
++    <button
++      type="button"
++      onClick={onOpen}
++      aria-label={t("palette.open")}
++      className="group flex h-9 w-full max-w-md min-w-0 items-center gap-2.5 rounded-md border border-border bg-surface px-3 text-left transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
++    >
++      <Search
++        size={14.5}
++        className="shrink-0 text-muted-foreground"
++        aria-hidden="true"
++      />
++      <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">
++        {t("shell.searchTrigger")}
++        <span className="hidden sm:inline"> {t("palette.scope")}</span>
++      </span>
++      <span className="hidden shrink-0 items-center gap-1 sm:flex">
++        <Kbd>
++          <Command size={10} aria-hidden="true" />
++        </Kbd>
++        <Kbd>K</Kbd>
++      </span>
++    </button>
++  );
++}
+diff --git a/frontend/src/components/layout/header-search.tsx b/frontend/src/components/layout/header-search.tsx
+deleted file mode 100644
+index 2c77a55..0000000
+--- a/frontend/src/components/layout/header-search.tsx
++++ /dev/null
+@@ -1,184 +0,0 @@
+-import { Command, Search } from "lucide-react";
+-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
+-import { useTranslation } from "react-i18next";
+-import { useNavigate } from "react-router-dom";
+-import {
+-  emptyHeaderSearchGroups,
+-  flattenHeaderSearchHits,
+-  HeaderSearchResultsPanel,
+-  searchHeaderSources,
+-  type HeaderSearchGroups,
+-  type HeaderSearchHit,
+-} from "@/components/layout/header-search-match";
+-import { floatingPanelClassName } from "@/components/ui/control";
+-import { Kbd } from "@/components/ui/kbd";
+-import { cn } from "@/lib/utils";
+-
+-const searchDebounceMs = 250;
+-
+-export function HeaderSearch() {
+-  const { t } = useTranslation();
+-  const navigate = useNavigate();
+-  const inputReference = useRef<HTMLInputElement>(null);
+-  const rootReference = useRef<HTMLFormElement>(null);
+-  const requestGeneration = useRef(0);
+-  const [query, setQuery] = useState("");
+-  const [groups, setGroups] = useState<HeaderSearchGroups>(emptyHeaderSearchGroups);
+-  const [isOpen, setIsOpen] = useState(false);
+-  const [isLoading, setIsLoading] = useState(false);
+-  const [activeIndex, setActiveIndex] = useState(0);
+-
+-  useEffect(() => {
+-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+-        event.preventDefault();
+-        inputReference.current?.focus();
+-      }
+-    };
+-    const onPointerDown = (event: PointerEvent) => {
+-      if (!rootReference.current?.contains(event.target as Node)) {
+-        setIsOpen(false);
+-      }
+-    };
+-    window.addEventListener("keydown", onKeyDown);
+-    document.addEventListener("pointerdown", onPointerDown);
+-    return () => {
+-      window.removeEventListener("keydown", onKeyDown);
+-      document.removeEventListener("pointerdown", onPointerDown);
+-    };
+-  }, []);
+-
+-  useEffect(() => {
+-    const trimmed = query.trim();
+-    if (trimmed.length === 0) {
+-      requestGeneration.current += 1;
+-      setGroups(emptyHeaderSearchGroups);
+-      setIsOpen(false);
+-      setIsLoading(false);
+-      setActiveIndex(0);
+-      return;
+-    }
+-    const handle = window.setTimeout(() => {
+-      void applySearch(trimmed);
+-    }, searchDebounceMs);
+-    return () => window.clearTimeout(handle);
+-  }, [query]);
+-
+-  const applySearch = async (trimmed: string): Promise<HeaderSearchGroups> => {
+-    const generation = ++requestGeneration.current;
+-    setIsLoading(true);
+-    setIsOpen(true);
+-    const next = await searchHeaderSources(trimmed);
+-    if (generation !== requestGeneration.current) {
+-      return emptyHeaderSearchGroups;
+-    }
+-    setGroups(next);
+-    setIsLoading(false);
+-    setActiveIndex(0);
+-    return next;
+-  };
+-
+-  const selectHit = (hit: HeaderSearchHit) => {
+-    setIsOpen(false);
+-    navigate(hit.href);
+-  };
+-
+-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+-    event.preventDefault();
+-    const trimmed = query.trim();
+-    if (trimmed.length === 0) {
+-      return;
+-    }
+-    const currentHits = flattenHeaderSearchHits(groups);
+-    if (isOpen && currentHits.length > 0) {
+-      selectHit(currentHits[activeIndex] ?? currentHits[0]);
+-      return;
+-    }
+-    const nextHits = flattenHeaderSearchHits(await applySearch(trimmed));
+-    if (nextHits.length > 0) {
+-      selectHit(nextHits[0]);
+-    }
+-  };
+-
+-  const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+-    if (event.key === "Escape") {
+-      event.preventDefault();
+-      setIsOpen(false);
+-      return;
+-    }
+-    const hits = flattenHeaderSearchHits(groups);
+-    if (hits.length === 0) {
+-      return;
+-    }
+-    if (event.key === "ArrowDown") {
+-      event.preventDefault();
+-      setIsOpen(true);
+-      setActiveIndex((index) => (index + 1) % hits.length);
+-    } else if (event.key === "ArrowUp") {
+-      event.preventDefault();
+-      setIsOpen(true);
+-      setActiveIndex((index) => (index - 1 + hits.length) % hits.length);
+-    }
+-  };
+-
+-  const hits = flattenHeaderSearchHits(groups);
+-
+-  return (
+-    <form
+-      ref={rootReference}
+-      className="relative min-w-0 w-full max-w-md"
+-      onSubmit={(event) => void onSubmit(event)}
+-    >
+-      <Search
+-        size={14.5}
+-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+-        aria-hidden="true"
+-      />
+-      <label className="sr-only" htmlFor="global-search">
+-        {t("shell.searchPlaceholder")}
+-      </label>
+-      <input
+-        id="global-search"
+-        ref={inputReference}
+-        value={query}
+-        role="combobox"
+-        aria-autocomplete="list"
+-        aria-expanded={isOpen}
+-        aria-controls="global-search-results"
+-        aria-activedescendant={
+-          isOpen && hits.length > 0 ? `global-search-hit-${activeIndex}` : undefined
+-        }
+-        onChange={(event) => setQuery(event.target.value)}
+-        onKeyDown={onInputKeyDown}
+-        placeholder={t("shell.searchPlaceholder")}
+-        className="h-9 w-full rounded-md border border-border bg-background/60 pl-9 pr-4 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none sm:pr-16"
+-      />
+-      <span className="absolute right-2.5 top-1/2 hidden -translate-y-1/2 items-center gap-1 sm:flex">
+-        <Kbd>
+-          <Command size={10} aria-hidden="true" />
+-        </Kbd>
+-        <Kbd>K</Kbd>
+-      </span>
+-      {isOpen ? (
+-        <div
+-          id="global-search-results"
+-          role="listbox"
+-          className={cn(floatingPanelClassName, "absolute left-0 right-0 top-[calc(100%+6px)] z-50")}
+-        >
+-          <HeaderSearchResultsPanel
+-            groups={groups}
+-            activeIndex={activeIndex}
+-            isLoading={isLoading}
+-            labels={{
+-              tickets: t("shell.searchGroupTickets"),
+-              articles: t("shell.searchGroupKnowledge"),
+-              users: t("shell.searchGroupUsers"),
+-              empty: t("shell.searchNoResults"),
+-            }}
+-            onSelect={selectHit}
+-          />
+-        </div>
+-      ) : null}
+-    </form>
+-  );
+-}
+diff --git a/frontend/src/components/layout/notifications-list.tsx b/frontend/src/components/layout/notifications-list.tsx
+index e46f2b1..2f6216c 100644
+--- a/frontend/src/components/layout/notifications-list.tsx
++++ b/frontend/src/components/layout/notifications-list.tsx
+@@ -20,7 +20,7 @@ const KIND_TONE: Record<NotificationKind, string> = {
+   ticket: "border-primary/30 bg-primary/10 text-link",
+   sla: "border-danger/30 bg-danger/10 text-danger",
+   approval: "border-warning/30 bg-warning/10 text-warning",
+-  system: "border-border bg-background text-muted-foreground",
++  system: "border-border bg-elevated text-muted-foreground",
+ };
+ 
+ interface NotificationsListProperties {
+@@ -54,7 +54,10 @@ export function NotificationsList({
+           <li key={notification.id}>
+             <button
+               type="button"
+-              className="flex w-full items-start gap-3 border-b border-border/40 px-3.5 py-3 text-left transition-colors hover:bg-background/50"
++              className={cn(
++                "flex w-full items-start gap-3 border-b border-border/50 px-3.5 py-3 text-left transition-colors duration-150 last:border-0 hover:bg-surface-hover",
++                notification.isRead ? "" : "bg-primary/[0.04]",
++              )}
+               onClick={() => onSelect(notification)}
+             >
+               <span
+@@ -86,7 +89,7 @@ export function NotificationsList({
+                   />
+                 </span>
+                 {notification.body ? (
+-                  <span className="mt-0.5 block text-[11.5px] leading-4.5 text-muted-foreground">
++                  <span className="mt-0.5 block text-[11.5px] leading-4 text-muted-foreground">
+                     {notification.body}
+                   </span>
+                 ) : null}
+diff --git a/frontend/src/components/layout/notifications-panel.tsx b/frontend/src/components/layout/notifications-panel.tsx
+index 64c172a..45ad143 100644
+--- a/frontend/src/components/layout/notifications-panel.tsx
++++ b/frontend/src/components/layout/notifications-panel.tsx
+@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
+ import { useTranslation } from "react-i18next";
+ import { Badge } from "@/components/ui/badge";
+ import { NotificationsList } from "@/components/layout/notifications-list";
++import { Segmented } from "@/components/ui/segmented";
+ import { useLocale } from "@/i18n/use-locale";
+-import { cn } from "@/lib/utils";
+ import type { InAppNotification } from "@/services/notifications-api";
+ 
+ interface NotificationsPanelProperties {
+@@ -31,32 +31,30 @@ export function NotificationsPanel({
+ 
+   return (
+     <div className="flex h-full flex-col">
+-      <div className="flex items-center justify-between border-b border-border/70 px-3.5 py-2.5">
+-        <div className="flex items-center gap-2">
+-          <p className="text-[13px] font-semibold text-foreground">
++      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 px-3.5 py-2.5">
++        <div className="flex min-w-0 items-center gap-2">
++          <p className="truncate text-[13px] font-semibold text-foreground">
+             {t("notifications.title")}
+           </p>
+           {unreadCount > 0 ? (
+             <Badge tone="primary">{t("notifications.unreadCount", { count: unreadCount })}</Badge>
+           ) : null}
+         </div>
+-        <div className="flex items-center gap-2 text-[11.5px]">
+-          <button
+-            type="button"
+-            onClick={() => setFilter(filter === "all" ? "unread" : "all")}
+-            className={cn(
+-              "rounded-md px-2 py-1 transition-colors",
+-              filter === "unread"
+-                ? "bg-background text-foreground"
+-                : "text-muted-foreground hover:text-foreground",
+-            )}
+-          >
+-            {filter === "unread" ? t("notifications.filterUnread") : t("notifications.filterAll")}
+-          </button>
++        <div className="flex items-center gap-2">
++          <Segmented
++            size="sm"
++            ariaLabel={t("notifications.title")}
++            value={filter}
++            onChange={setFilter}
++            items={[
++              { value: "all", label: t("notifications.filterAll") },
++              { value: "unread", label: t("notifications.filterUnread") },
++            ]}
++          />
+           <button
+             type="button"
+             onClick={() => void onMarkAllRead()}
+-            className="rounded-md px-2 py-1 text-muted-foreground transition-colors hover:text-foreground"
++            className="rounded-md px-2 py-1 text-[11.5px] text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+           >
+             {t("notifications.markAllRead")}
+           </button>
+diff --git a/frontend/src/components/layout/session-controls.tsx b/frontend/src/components/layout/session-controls.tsx
+index 3ee857c..093944a 100644
+--- a/frontend/src/components/layout/session-controls.tsx
++++ b/frontend/src/components/layout/session-controls.tsx
+@@ -7,6 +7,7 @@ import {
+   DropdownMenu,
+   DropdownMenuContent,
+   DropdownMenuItem,
++  DropdownMenuLabel,
+   DropdownMenuSeparator,
+   DropdownMenuTrigger,
+ } from "@/components/ui/dropdown-menu";
+@@ -39,7 +40,7 @@ export function SessionControls() {
+       <DropdownMenuTrigger asChild>
+         <button
+           type="button"
+-          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary/70"
++          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
+         >
+           <Avatar name={displayName} size="sm" />
+           <span className="hidden text-left leading-tight md:block">
+@@ -52,12 +53,13 @@ export function SessionControls() {
+           </span>
+           <ChevronDown
+             size={13}
+-            className="text-muted-foreground/70"
++            className="text-muted-foreground"
+             aria-hidden="true"
+           />
+         </button>
+       </DropdownMenuTrigger>
+-      <DropdownMenuContent align="end">
++      <DropdownMenuContent align="end" className="min-w-[15rem]">
++        <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
+         <DropdownMenuItem onSelect={() => navigate("/tickets?view=assigned")}>
+           <Ticket size={13} /> {t("shell.assignedTickets")}
+         </DropdownMenuItem>
+@@ -73,7 +75,7 @@ export function SessionControls() {
+         </DropdownMenuItem>
+         <DropdownMenuSeparator />
+         <DropdownMenuItem
+-          className="text-danger/90"
++          className="text-danger"
+           onSelect={() => {
+             signOut();
+           }}
+diff --git a/frontend/src/components/layout/sidebar-user-card.tsx b/frontend/src/components/layout/sidebar-user-card.tsx
+index 0603e51..df24c96 100644
+--- a/frontend/src/components/layout/sidebar-user-card.tsx
++++ b/frontend/src/components/layout/sidebar-user-card.tsx
+@@ -18,16 +18,18 @@ export function SidebarUserCard() {
+   );
+   return (
+     <div className="border-t border-border/70 p-3">
+-      <div className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5">
++      <div className="flex items-center gap-2.5 rounded-md border border-transparent px-1.5 py-1.5 transition-colors duration-150 hover:border-border hover:bg-surface-hover">
+         <Avatar name={session.principal.displayName} size="md" />
+         <div className="min-w-0 flex-1 leading-tight">
+           <p className="truncate text-[12.5px] font-medium text-foreground">
+             {session.principal.displayName}
+           </p>
+           <p className="flex items-center gap-1 text-[10.5px] text-muted-foreground">
+-            <ShieldCheck size={11} className="text-link" aria-hidden="true" />
+-            {t(roleKey)}
+-            {session.principal.isLocalOnly ? ` · ${t("shell.localAccount")}` : ""}
++            <ShieldCheck size={11} className="shrink-0 text-link" aria-hidden="true" />
++            <span className="truncate">
++              {t(roleKey)}
++              {session.principal.isLocalOnly ? ` · ${t("shell.localAccount")}` : ""}
++            </span>
+           </p>
+         </div>
+       </div>
+diff --git a/frontend/src/components/layout/system-status-chip.tsx b/frontend/src/components/layout/system-status-chip.tsx
+index 7d43695..b782f00 100644
+--- a/frontend/src/components/layout/system-status-chip.tsx
++++ b/frontend/src/components/layout/system-status-chip.tsx
+@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
+ export function SystemStatusChip() {
+   const { t } = useTranslation();
+   return (
+-    <div className="mr-1 hidden items-center gap-2 rounded-md border border-border bg-background/50 px-2.5 py-1.5 md:flex">
+-      <span className="dot-pulse size-1.5 rounded-full bg-success" />
++    <div className="mr-1 hidden items-center gap-2 rounded-full border border-border bg-surface px-2.5 py-1.5 md:flex">
++      <span className="dot-pulse size-1.5 rounded-full bg-ok" />
+       <span className="text-[11.5px] text-muted-foreground">
+         {t("shell.systemsPrefix")}{" "}
+         <span className="text-foreground/85">{t("shell.systemsLive")}</span>
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 83881a9..8e3c395 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -48,7 +48,8 @@
+       "admin": "Admin",
+       "agent": "Agent",
+       "user": "Korisnik"
+-    }
++    },
++    "searchTrigger": "Pretraži…"
+   },
+   "theme": {
+     "label": "Izgled",
+@@ -1408,6 +1409,15 @@
+       "saving": "Zaključavanje…",
+       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
+       "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
++    },
++    "progress": "Korak {{current}} od {{total}}",
++    "steps": {
++      "superAdmin": "SuperAdmin",
++      "loginProvider": "Prijava",
++      "smtp": "Email",
++      "seed": "Uloge i podaci",
++      "addons": "Dodaci",
++      "complete": "Završetak"
+     }
+   },
+   "routing": {
+@@ -1835,7 +1845,15 @@
+   "login": {
+     "title": "Prijava",
+     "subtitle": "Enterprise servisni centar",
+-    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji."
++    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji.",
++    "panelTitle": "Servisni centar na jednom mjestu",
++    "panelBody": "Tiketi, katalog usluga, baza znanja i SLA — bez prebacivanja između alata.",
++    "pointTickets": "Katalog usluga sa jasnim SLA rokovima",
++    "pointKnowledge": "Baza znanja koja rješava prije nego tiket nastane",
++    "pointInsight": "Pregled opterećenja i izvještaji za odluke",
++    "installHint": "Prvo podešavanje sistema?",
++    "installLink": "Pokreni čarobnjak",
++    "secure": "Veza je šifrovana. Lozinke se čuvaju samo kao hash."
+   },
+   "auth": {
+     "changePassword": {
+@@ -2357,5 +2375,20 @@
+     "inDays_one": "za {{count}} dan",
+     "inDays_few": "za {{count}} dana",
+     "inDays_other": "za {{count}} dana"
++  },
++  "palette": {
++    "title": "Komandna paleta",
++    "open": "Otvori komandnu paletu",
++    "placeholder": "Pretraži ili skoči na…",
++    "scope": "tiketi, članci, korisnici, stranice",
++    "groupActions": "Akcije",
++    "groupNavigation": "Navigacija",
++    "noResults": "Nema rezultata za „{{query}}”.",
++    "createTicket": "Novi tiket",
++    "createTicketHint": "Iz kataloga usluga",
++    "navigateHint": "pomjeri se",
++    "selectHint": "otvori",
++    "closeHint": "zatvori",
++    "searching": "Pretraga u toku…"
+   }
+ }
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index 8bf73cc..14fc83f 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -48,7 +48,8 @@
+       "admin": "Admin",
+       "agent": "Agent",
+       "user": "User"
+-    }
++    },
++    "searchTrigger": "Search…"
+   },
+   "theme": {
+     "label": "Appearance",
+@@ -1408,6 +1409,15 @@
+       "saving": "Locking…",
+       "errorSuperAdmin": "Create the SuperAdmin account first.",
+       "errorGeneric": "Setup cannot be locked right now."
++    },
++    "progress": "Step {{current}} of {{total}}",
++    "steps": {
++      "superAdmin": "SuperAdmin",
++      "loginProvider": "Sign-in",
++      "smtp": "Email",
++      "seed": "Roles and data",
++      "addons": "Add-ons",
++      "complete": "Finish"
+     }
+   },
+   "routing": {
+@@ -1835,7 +1845,15 @@
+   "login": {
+     "title": "Sign in",
+     "subtitle": "Enterprise service center",
+-    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration."
++    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration.",
++    "panelTitle": "Your service desk in one place",
++    "panelBody": "Tickets, service catalog, knowledge base and SLA — without switching tools.",
++    "pointTickets": "Service catalog with clear SLA targets",
++    "pointKnowledge": "A knowledge base that solves before a ticket exists",
++    "pointInsight": "Workload overview and reports you can act on",
++    "installHint": "First-time setup?",
++    "installLink": "Open the wizard",
++    "secure": "The connection is encrypted. Passwords are stored as hashes only."
+   },
+   "auth": {
+     "changePassword": {
+@@ -2357,5 +2375,20 @@
+     "inDays_one": "in {{count}} day",
+     "inDays_few": "in {{count}} days",
+     "inDays_other": "in {{count}} days"
++  },
++  "palette": {
++    "title": "Command palette",
++    "open": "Open command palette",
++    "placeholder": "Search or jump to…",
++    "scope": "tickets, articles, users, pages",
++    "groupActions": "Actions",
++    "groupNavigation": "Navigation",
++    "noResults": "No results for “{{query}}”.",
++    "createTicket": "New ticket",
++    "createTicketHint": "From the service catalog",
++    "navigateHint": "to move",
++    "selectHint": "to open",
++    "closeHint": "to close",
++    "searching": "Searching…"
+   }
+ }
+diff --git a/frontend/src/layouts/application-shell.tsx b/frontend/src/layouts/application-shell.tsx
+index 436fab0..fb3c2ad 100644
+--- a/frontend/src/layouts/application-shell.tsx
++++ b/frontend/src/layouts/application-shell.tsx
+@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
+ import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
+ import { AppHeader } from "@/components/layout/app-header";
+ import { AppSidebar } from "@/components/layout/app-sidebar";
++import { CommandPalette } from "@/components/layout/command-palette";
+ import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
+ import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
+ import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
+@@ -11,6 +12,14 @@ import { useSession } from "@/lib/session/use-session";
+ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+ 
++/** True when the keystroke is typing, so shortcuts must stay out of the way. */
++function isTypingTarget(target: EventTarget | null): boolean {
++  if (!(target instanceof HTMLElement)) {
++    return false;
++  }
++  return target.closest("input, textarea, select, [contenteditable='true']") !== null;
++}
++
+ export function ApplicationShell() {
+   const { t } = useTranslation();
+   const location = useLocation();
+@@ -19,6 +28,7 @@ export function ApplicationShell() {
+   const { session, isLoading } = useSessionCapabilities();
+   const { maintenance } = usePublicMaintenance();
+   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
++  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+ 
+   useEffect(() => {
+     setIsMobileNavigationOpen(false);
+@@ -26,21 +36,26 @@ export function ApplicationShell() {
+ 
+   useEffect(() => {
+     const onKeyDown = (event: KeyboardEvent) => {
+-      if (event.key !== "n" && event.key !== "N") {
++      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
++        event.preventDefault();
++        setIsCommandPaletteOpen((current) => !current);
+         return;
+       }
+-      if (event.metaKey || event.ctrlKey || event.altKey) {
++
++      if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) {
+         return;
+       }
+-      const target = event.target;
+-      if (!(target instanceof HTMLElement)) {
++
++      if (event.key === "/") {
++        event.preventDefault();
++        setIsCommandPaletteOpen(true);
+         return;
+       }
+-      if (target.closest("input, textarea, select, [contenteditable='true']")) {
+-        return;
++
++      if (event.key === "n" || event.key === "N") {
++        event.preventDefault();
++        navigate("/tickets/new");
+       }
+-      event.preventDefault();
+-      navigate("/tickets/new");
+     };
+     window.addEventListener("keydown", onKeyDown);
+     return () => window.removeEventListener("keydown", onKeyDown);
+@@ -55,13 +70,16 @@ export function ApplicationShell() {
+   }
+ 
+   return (
+-    <div className="flex h-full min-h-0 overflow-x-hidden">
++    <div className="flex h-full min-h-0 bg-background">
+       <HelpdeskSocketHost />
+-      <aside className="hidden w-[248px] shrink-0 border-r border-border bg-surface lg:block">
++      <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block">
+         <AppSidebar />
+       </aside>
+       <div className="flex min-w-0 flex-1 flex-col">
+-        <AppHeader onOpenNavigation={() => setIsMobileNavigationOpen(true)} />
++        <AppHeader
++          onOpenNavigation={() => setIsMobileNavigationOpen(true)}
++          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
++        />
+         <Sheet open={isMobileNavigationOpen} onOpenChange={setIsMobileNavigationOpen}>
+           <SheetContent side="left" className="flex w-[270px] flex-col p-0">
+             <SheetTitle className="sr-only">{t("shell.navigation")}</SheetTitle>
+@@ -71,6 +89,10 @@ export function ApplicationShell() {
+             <AppSidebar onNavigate={closeMobileNavigation} />
+           </SheetContent>
+         </Sheet>
++        <CommandPalette
++          open={isCommandPaletteOpen}
++          onOpenChange={setIsCommandPaletteOpen}
++        />
+         <main className="min-h-0 flex-1 overflow-y-auto">
+           <div
+             key={location.pathname}
+diff --git a/frontend/src/lib/command-palette/build-navigation-commands.spec.ts b/frontend/src/lib/command-palette/build-navigation-commands.spec.ts
+new file mode 100644
+index 0000000..30ee36f
+--- /dev/null
++++ b/frontend/src/lib/command-palette/build-navigation-commands.spec.ts
+@@ -0,0 +1,113 @@
++import { describe, expect, it } from "vitest";
++import {
++  buildNavigationCommands,
++  filterNavigationCommands,
++} from "@/lib/command-palette/build-navigation-commands";
++import {
++  navigationSections,
++  type NavigationLabelKey,
++  type NavigationSectionKey,
++} from "@/lib/navigation";
++
++const labels: Record<NavigationLabelKey, string> = {
++  "navigation.dashboard": "Nadzorna ploča",
++  "navigation.reports": "Izvještaji",
++  "navigation.tickets": "Svi tiketi",
++  "navigation.inbox": "Grupni inbox",
++  "navigation.services": "Katalog usluga",
++  "navigation.knowledgeBase": "Baza znanja",
++  "navigation.routing": "Usmjeravanje",
++  "navigation.sla": "SLA",
++  "navigation.admin": "Administracija",
++  "navigation.queue": "Red poslova",
++  "navigation.configVersions": "Verzije konfiguracije",
++};
++
++const sectionLabels: Record<NavigationSectionKey, string> = {
++  "navigation.sections.overview": "Pregled",
++  "navigation.sections.tickets": "Tiketi",
++  "navigation.sections.services": "Usluge i znanje",
++  "navigation.sections.administration": "Administracija",
++};
++
++const translate = (key: NavigationLabelKey) => labels[key];
++const translateSection = (key: NavigationSectionKey) => sectionLabels[key];
++
++describe("buildNavigationCommands", () => {
++  it("flattens every sidebar section in sidebar order", () => {
++    const commands = buildNavigationCommands(navigationSections);
++    expect(commands).toHaveLength(
++      navigationSections.reduce((total, section) => total + section.items.length, 0),
++    );
++    expect(commands[0]?.path).toBe("/");
++    expect(commands[1]?.path).toBe("/reports");
++  });
++
++  it("carries the owning section so the palette can group results", () => {
++    const commands = buildNavigationCommands(navigationSections);
++    const sla = commands.find((command) => command.path === "/sla");
++    expect(sla?.sectionLabelKey).toBe("navigation.sections.administration");
++  });
++
++  it("produces a unique id per destination", () => {
++    const ids = buildNavigationCommands(navigationSections).map((command) => command.id);
++    expect(new Set(ids).size).toBe(ids.length);
++  });
++});
++
++describe("filterNavigationCommands", () => {
++  const commands = buildNavigationCommands(navigationSections);
++  const filter = (query: string) =>
++    filterNavigationCommands(commands, query, translate, translateSection);
++
++  it("returns everything, in sidebar order, for an empty query", () => {
++    expect(filter("")).toEqual(commands);
++    expect(filter("   ")).toEqual(commands);
++  });
++
++  it("matches case-insensitively on the translated label", () => {
++    expect(filter("sla").map((command) => command.path)).toEqual(["/sla"]);
++    expect(filter("BAZA").map((command) => command.path)).toEqual(["/knowledge-base"]);
++  });
++
++  it("ranks a prefix match above a contained match", () => {
++    // "tiketi" is contained in "Svi tiketi"; "Tiketi" only names a section.
++    const paths = filter("tiketi").map((command) => command.path);
++    expect(paths[0]).toBe("/tickets?view=all");
++  });
++
++  it("falls back to the section name when no label matches", () => {
++    const paths = filter("pregled").map((command) => command.path);
++    expect(paths).toEqual(["/", "/reports"]);
++  });
++
++  it("returns nothing when neither label nor section matches", () => {
++    expect(filter("nema-ovoga")).toEqual([]);
++  });
++
++  it("sorts by rank first, then by sidebar order inside a rank", () => {
++    // "ja" is contained in "Baza znanja" and "Administracija" (rank 2), and
++    // names the section "Administracija" (rank 3) for the remaining admin rows.
++    const paths = filter("ja").map((command) => command.path);
++
++    // rank 2 — both contain the query; ties keep sidebar order.
++    expect(paths.slice(0, 2)).toEqual(["/knowledge-base", "/admin"]);
++    // rank 3 — matched only through their section, still in sidebar order.
++    expect(paths.slice(2)).toEqual([
++      "/routing",
++      "/sla",
++      "/admin/queue",
++      "/admin/config-versions",
++    ]);
++  });
++
++  it("never places a weaker match before a stronger one", () => {
++    const paths = filter("a").map((command) => command.path);
++
++    // Only "Administracija" starts with "a" (rank 1) — it must lead, even though
++    // it sits far below "Nadzorna ploča", which merely contains "a" (rank 2).
++    expect(paths[0]).toBe("/admin");
++    expect(paths[1]).toBe("/");
++    expect(paths.length).toBeGreaterThan(2);
++  });
++});
+diff --git a/frontend/src/lib/command-palette/build-navigation-commands.ts b/frontend/src/lib/command-palette/build-navigation-commands.ts
+new file mode 100644
+index 0000000..8809996
+--- /dev/null
++++ b/frontend/src/lib/command-palette/build-navigation-commands.ts
+@@ -0,0 +1,87 @@
++import type {
++  NavigationLabelKey,
++  NavigationSection,
++  NavigationSectionKey,
++} from "@/lib/navigation";
++
++/**
++ * Command palette — pure model.
++ *
++ * Kept free of React and of translations so the ranking/filtering rules can be
++ * unit tested. The component supplies the visible sections (already filtered by
++ * capabilities) and a translate function; this module decides what is a match
++ * and in which order results appear.
++ */
++
++export interface NavigationCommand {
++  readonly id: string;
++  readonly labelKey: NavigationLabelKey;
++  readonly sectionLabelKey: NavigationSectionKey;
++  readonly path: string;
++}
++
++/**
++ * Flattens the navigation tree into palette commands, preserving sidebar order
++ * so the palette never contradicts the sidebar.
++ */
++export function buildNavigationCommands(
++  sections: readonly NavigationSection[],
++): readonly NavigationCommand[] {
++  return sections.flatMap((section) =>
++    section.items.map((item) => ({
++      id: `nav:${item.path}`,
++      labelKey: item.labelKey,
++      sectionLabelKey: section.labelKey,
++      path: item.path,
++    })),
++  );
++}
++
++/**
++ * Rank order: exact label → label starts with query → label contains query →
++ * only the section name matches. Ties keep sidebar order (stable sort).
++ */
++function matchRank(label: string, sectionLabel: string, query: string): number | null {
++  const needle = query.trim().toLowerCase();
++  if (needle.length === 0) {
++    return 0;
++  }
++  const normalizedLabel = label.toLowerCase();
++  const normalizedSection = sectionLabel.toLowerCase();
++  if (normalizedLabel === needle) {
++    return 0;
++  }
++  if (normalizedLabel.startsWith(needle)) {
++    return 1;
++  }
++  if (normalizedLabel.includes(needle)) {
++    return 2;
++  }
++  if (normalizedSection.includes(needle)) {
++    return 3;
++  }
++  return null;
++}
++
++export function filterNavigationCommands(
++  commands: readonly NavigationCommand[],
++  query: string,
++  translate: (key: NavigationLabelKey) => string,
++  translateSection: (key: NavigationSectionKey) => string,
++): readonly NavigationCommand[] {
++  return commands
++    .map((command, index) => {
++      const rank = matchRank(
++        translate(command.labelKey),
++        translateSection(command.sectionLabelKey),
++        query,
++      );
++      return { command, index, rank };
++    })
++    .filter(
++      (entry): entry is { command: NavigationCommand; index: number; rank: number } =>
++        entry.rank !== null,
++    )
++    .sort((left, right) => left.rank - right.rank || left.index - right.index)
++    .map((entry) => entry.command);
++}
+diff --git a/frontend/src/lib/navigation-icons.ts b/frontend/src/lib/navigation-icons.ts
+new file mode 100644
+index 0000000..0aeeea8
+--- /dev/null
++++ b/frontend/src/lib/navigation-icons.ts
+@@ -0,0 +1,36 @@
++import {
++  BarChart3,
++  BookOpen,
++  Database,
++  GitBranch,
++  History,
++  Inbox,
++  LayoutDashboard,
++  LayoutGrid,
++  Settings2,
++  Ticket,
++  Timer,
++  type LucideIcon,
++} from "lucide-react";
++
++/**
++ * Icon per navigation destination. Shared by the sidebar and the command
++ * palette so the same page never gets two different glyphs.
++ */
++const navigationIcons: Record<string, LucideIcon> = {
++  "/": LayoutDashboard,
++  "/reports": BarChart3,
++  "/tickets?view=all": Ticket,
++  "/tickets?view=inbox": Inbox,
++  "/services": LayoutGrid,
++  "/knowledge-base": BookOpen,
++  "/routing": GitBranch,
++  "/sla": Timer,
++  "/admin": Settings2,
++  "/admin/queue": Database,
++  "/admin/config-versions": History,
++};
++
++export function navigationIconFor(path: string): LucideIcon {
++  return navigationIcons[path] ?? LayoutDashboard;
++}
+diff --git a/frontend/src/pages/install-page.tsx b/frontend/src/pages/install-page.tsx
+index 0a7559d..4505133 100644
+--- a/frontend/src/pages/install-page.tsx
++++ b/frontend/src/pages/install-page.tsx
+@@ -1,15 +1,15 @@
+ import { useEffect, useState } from "react";
+ import { useTranslation } from "react-i18next";
+-import { LifeBuoy } from "lucide-react";
+ import { InstallAddonsStep } from "@/components/install/install-addons-step";
+ import { InstallCompleteStep } from "@/components/install/install-complete-step";
+ import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
+ import { InstallSeedStep } from "@/components/install/install-seed-step";
+ import { InstallSmtpStep } from "@/components/install/install-smtp-step";
+ import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
++import { BrandLockup } from "@/components/layout/brand-mark";
+ import { LocaleSelect } from "@/components/layout/locale-select";
+-import { PageHeader } from "@/components/ui/page-header";
+ import { PanelSkeleton } from "@/components/ui/skeleton";
++import { WizardStepper } from "@/components/ui/wizard-stepper";
+ import {
+   installWizardCopyKeys,
+   resolveInstallWizardStep,
+@@ -19,6 +19,30 @@ import { loadInstallSuperAdmin } from "@/services/install-api";
+ import { loadInstallSeed } from "@/services/install-seed-api";
+ import { loadInstallSmtp } from "@/services/install-smtp-api";
+ 
++/*
++  Pulse install wizard. The step machine (`resolveInstallWizardStep`) and every
++  step form are untouched — this file only supplies the shell: brand header,
++  progress, and the step frames.
++*/
++
++const WIZARD_STEP_ORDER: readonly InstallWizardStep[] = [
++  "superAdmin",
++  "loginProvider",
++  "smtp",
++  "seed",
++  "addons",
++  "complete",
++];
++
++const STEP_LABEL_KEYS = {
++  superAdmin: "install.steps.superAdmin",
++  loginProvider: "install.steps.loginProvider",
++  smtp: "install.steps.smtp",
++  seed: "install.steps.seed",
++  addons: "install.steps.addons",
++  complete: "install.steps.complete",
++} as const satisfies Record<InstallWizardStep, string>;
++
+ export function InstallPage() {
+   const { t } = useTranslation();
+   const [step, setStep] = useState<InstallWizardStep | null>(null);
+@@ -52,45 +76,73 @@ export function InstallPage() {
+   }, []);
+ 
+   const copy = step === null ? null : installWizardCopyKeys[step];
++  const activeIndex = step === null ? 0 : WIZARD_STEP_ORDER.indexOf(step);
+ 
+   return (
+     <div className="flex min-h-screen flex-col bg-background">
+       <header className="flex h-14 items-center gap-3 border-b border-border/70 bg-surface px-4 md:px-6">
+-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+-          <LifeBuoy size={17} strokeWidth={2} />
++        <BrandLockup subtitle={t("install.title")} />
++        <span className="ml-auto flex items-center gap-3">
++          <LocaleSelect />
+         </span>
+-        <p className="min-w-0 flex-1 truncate text-[13.5px] font-semibold tracking-tight text-foreground">
+-          EP-HelpDesk
+-        </p>
+-        <LocaleSelect />
+       </header>
++
+       <main className="flex-1">
+-        <section className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
+-          <PageHeader
+-            crumbs={["EP-HelpDesk", t("install.title")]}
+-            title={t(copy?.heading ?? "install.heading")}
+-            subtitle={t(copy?.body ?? "install.body")}
++        <div className="page-in mx-auto max-w-[1000px] px-4 py-8 lg:px-8">
++          <div className="mb-6 flex items-center gap-3">
++            <span className="h-1 flex-1 overflow-hidden rounded-full bg-border/70">
++              <span
++                className="pulse-gradient block h-full rounded-full transition-[width] duration-500"
++                style={{ width: `${((activeIndex + 1) / WIZARD_STEP_ORDER.length) * 100}%` }}
++              />
++            </span>
++            <span className="tnum shrink-0 text-[11px] font-medium text-muted-foreground">
++              {t("install.progress", {
++                current: activeIndex + 1,
++                total: WIZARD_STEP_ORDER.length,
++              })}
++            </span>
++          </div>
++
++          <WizardStepper
++            activeIndex={activeIndex}
++            steps={WIZARD_STEP_ORDER.map((wizardStep) => ({
++              key: wizardStep,
++              label: t(STEP_LABEL_KEYS[wizardStep]),
++            }))}
+           />
+-          {step === null ? (
+-            <PanelSkeleton label={t("install.loading")} />
+-          ) : null}
+-          {step === "complete" ? <InstallCompleteStep /> : null}
+-          {step === "addons" ? (
+-            <InstallAddonsStep onSaved={() => setStep("complete")} />
+-          ) : null}
+-          {step === "seed" ? (
+-            <InstallSeedStep onSaved={() => setStep("addons")} />
+-          ) : null}
+-          {step === "smtp" ? (
+-            <InstallSmtpStep onSaved={() => setStep("seed")} />
+-          ) : null}
+-          {step === "loginProvider" ? (
+-            <InstallLoginProviderStep onSaved={() => setStep("smtp")} />
+-          ) : null}
+-          {step === "superAdmin" ? (
+-            <InstallSuperAdminStep onCreated={() => setStep("loginProvider")} />
+-          ) : null}
+-        </section>
++
++          <section className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
++            <h1 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
++              {t(copy?.heading ?? "install.heading")}
++            </h1>
++            <p className="mt-1.5 max-w-2xl text-[12.5px] leading-5 text-muted-foreground">
++              {t(copy?.body ?? "install.body")}
++            </p>
++
++            <div className="mt-6">
++              {step === null ? (
++                <PanelSkeleton className="mt-0 border-0 bg-transparent p-0 shadow-none" label={t("install.loading")} />
++              ) : null}
++              {step === "complete" ? <InstallCompleteStep /> : null}
++              {step === "addons" ? (
++                <InstallAddonsStep onSaved={() => setStep("complete")} />
++              ) : null}
++              {step === "seed" ? (
++                <InstallSeedStep onSaved={() => setStep("addons")} />
++              ) : null}
++              {step === "smtp" ? (
++                <InstallSmtpStep onSaved={() => setStep("seed")} />
++              ) : null}
++              {step === "loginProvider" ? (
++                <InstallLoginProviderStep onSaved={() => setStep("smtp")} />
++              ) : null}
++              {step === "superAdmin" ? (
++                <InstallSuperAdminStep onCreated={() => setStep("loginProvider")} />
++              ) : null}
++            </div>
++          </section>
++        </div>
+       </main>
+     </div>
+   );
+diff --git a/frontend/src/pages/login-page.tsx b/frontend/src/pages/login-page.tsx
+index a681a24..854c632 100644
+--- a/frontend/src/pages/login-page.tsx
++++ b/frontend/src/pages/login-page.tsx
+@@ -1,16 +1,30 @@
+-import { LifeBuoy } from "lucide-react";
++import { BookOpen, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
+ import { type FormEvent, useState } from "react";
+ import { useTranslation } from "react-i18next";
+-import { Navigate, useLocation, useNavigate } from "react-router-dom";
++import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+ import { ChangePasswordForm } from "@/components/auth/change-password-form";
++import { BrandMark } from "@/components/layout/brand-mark";
+ import { Button } from "@/components/ui/button";
+ import {
+   controlClassName,
+   errorTextClassName,
++  labelClassName,
+ } from "@/components/ui/control";
+ import { useSession } from "@/lib/session/use-session";
+ import { ApiError } from "@/services/api";
+ 
++/*
++  Pulse sign-in: the brand panel carries the identity on the left, the form
++  stays narrow and focused on the right. The form markup (ids, submit button,
++  change-password flow) is unchanged on purpose — it is the E2E entry point.
++*/
++
++const POINTS = [
++  { icon: Ticket, key: "login.pointTickets" },
++  { icon: BookOpen, key: "login.pointKnowledge" },
++  { icon: TrendingUp, key: "login.pointInsight" },
++] as const;
++
+ export function LoginPage() {
+   const { t } = useTranslation();
+   const navigate = useNavigate();
+@@ -56,97 +70,144 @@ export function LoginPage() {
+   };
+ 
+   return (
+-    <div className="flex min-h-screen flex-col bg-background">
+-      <main className="flex flex-1 items-center justify-center px-4 py-10">
+-        <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-sm">
+-          <div className="mb-6 flex items-center gap-3">
+-            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+-              <LifeBuoy size={20} strokeWidth={2} />
+-            </span>
++    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
++      {/* ── Brand panel — hidden on small screens ─────────────────────── */}
++      <aside className="pulse-gradient relative hidden flex-col justify-between overflow-hidden p-10 lg:flex xl:p-14">
++        <div
++          className="absolute inset-0 opacity-[0.14]"
++          style={{
++            backgroundImage:
++              "radial-gradient(circle at 18% 12%, white 0, transparent 42%), radial-gradient(circle at 82% 78%, white 0, transparent 46%)",
++          }}
++          aria-hidden="true"
++        />
++        <div className="relative flex items-center gap-2.5">
++          <BrandMark size={36} className="shadow-none" />
++          <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
++            EP<span className="text-white/60">·</span>HelpDesk
++          </p>
++        </div>
++
++        <div className="relative max-w-md">
++          <h1 className="text-[27px] font-semibold leading-[1.2] tracking-[-0.02em] text-white xl:text-[31px]">
++            {t("login.panelTitle")}
++          </h1>
++          <p className="mt-3 text-[13.5px] leading-6 text-white/85">
++            {t("login.panelBody")}
++          </p>
++          <ul className="mt-7 space-y-3">
++            {POINTS.map((point) => (
++              <li key={point.key} className="flex items-start gap-3">
++                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-white/15 text-white">
++                  <point.icon size={14} strokeWidth={2} aria-hidden="true" />
++                </span>
++                <span className="text-[12.5px] leading-5 text-white/90">
++                  {t(point.key)}
++                </span>
++              </li>
++            ))}
++          </ul>
++        </div>
++
++        <p className="relative flex items-center gap-1.5 text-[11.5px] text-white/70">
++          <ShieldCheck size={12} aria-hidden="true" />
++          {t("login.secure")}
++        </p>
++      </aside>
++
++      {/* ── Form ──────────────────────────────────────────────────────── */}
++      <main className="flex flex-col justify-center px-4 py-10 sm:px-8 lg:px-12">
++        <section className="mx-auto w-full max-w-[26rem]">
++          <div className="mb-7 flex items-center gap-2.5 lg:hidden">
++            <BrandMark />
+             <div className="leading-tight">
+-              <p className="text-[15px] font-semibold tracking-tight text-foreground">
+-                EP-HelpDesk
++              <p className="text-[14px] font-semibold tracking-[-0.02em] text-foreground">
++                EP<span className="text-primary">·</span>HelpDesk
+               </p>
+-              <p className="text-[11px] text-muted-foreground">
++              <p className="text-[10.5px] text-muted-foreground">
+                 {t("login.subtitle")}
+               </p>
+             </div>
+           </div>
+-          {passwordChangeToken !== null ? (
+-            <>
+-              <h1 className="text-[18px] font-semibold tracking-tight text-foreground">
+-                {t("auth.changePassword.title")}
+-              </h1>
+-              <div className="mt-4">
+-                <ChangePasswordForm
+-                  onCompleted={async (newPassword) => {
+-                    await completePasswordChange(
+-                      passwordChangeToken,
+-                      newPassword,
+-                    );
+-                    navigate(redirectPath, { replace: true });
+-                  }}
+-                  onCancel={() => setPasswordChangeToken(null)}
+-                />
+-              </div>
+-            </>
+-          ) : (
+-            <>
+-              <h1 className="text-[18px] font-semibold tracking-tight text-foreground">
+-                {t("login.title")}
+-              </h1>
+-              <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
+-                {t("login.intro")}
+-              </p>
+-              <form
+-                className="mt-6 space-y-3"
+-                onSubmit={(event) => void handleSubmit(event)}
+-              >
+-                <div>
+-                  <label
+-                    className="mb-1 block text-[12px] font-medium text-foreground"
+-                    htmlFor="login-email"
+-                  >
+-                    {t("session.email")}
+-                  </label>
+-                  <input
+-                    id="login-email"
+-                    className={controlClassName}
+-                    type="email"
+-                    autoComplete="username"
+-                    value={email}
+-                    onChange={(event) => setEmail(event.target.value)}
+-                    required
++
++          <div className="rounded-xl border border-border bg-surface p-6 shadow-card sm:p-7">
++            {passwordChangeToken !== null ? (
++              <>
++                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
++                  {t("auth.changePassword.title")}
++                </h2>
++                <div className="mt-5">
++                  <ChangePasswordForm
++                    onCompleted={async (newPassword) => {
++                      await completePasswordChange(
++                        passwordChangeToken,
++                        newPassword,
++                      );
++                      navigate(redirectPath, { replace: true });
++                    }}
++                    onCancel={() => setPasswordChangeToken(null)}
+                   />
+                 </div>
+-                <div>
+-                  <label
+-                    className="mb-1 block text-[12px] font-medium text-foreground"
+-                    htmlFor="login-password"
+-                  >
+-                    {t("session.password")}
++              </>
++            ) : (
++              <>
++                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
++                  {t("login.title")}
++                </h2>
++                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
++                  {t("login.intro")}
++                </p>
++                <form
++                  className="mt-6 space-y-4"
++                  onSubmit={(event) => void handleSubmit(event)}
++                >
++                  <label className={labelClassName} htmlFor="login-email">
++                    <span>{t("session.email")}</span>
++                    <input
++                      id="login-email"
++                      className={controlClassName}
++                      type="email"
++                      autoComplete="username"
++                      value={email}
++                      onChange={(event) => setEmail(event.target.value)}
++                      required
++                    />
+                   </label>
+-                  <input
+-                    id="login-password"
+-                    className={controlClassName}
+-                    type="password"
+-                    autoComplete="current-password"
+-                    value={password}
+-                    onChange={(event) => setPassword(event.target.value)}
+-                    required
+-                  />
+-                </div>
+-                {hasError ? (
+-                  <p className={errorTextClassName} role="alert">
+-                    {t("session.error")}
+-                  </p>
+-                ) : null}
+-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+-                  {isSubmitting ? t("session.signingIn") : t("session.signIn")}
+-                </Button>
+-              </form>
+-            </>
+-          )}
++                  <label className={labelClassName} htmlFor="login-password">
++                    <span>{t("session.password")}</span>
++                    <input
++                      id="login-password"
++                      className={controlClassName}
++                      type="password"
++                      autoComplete="current-password"
++                      value={password}
++                      onChange={(event) => setPassword(event.target.value)}
++                      required
++                    />
++                  </label>
++                  {hasError ? (
++                    <p className={errorTextClassName} role="alert">
++                      {t("session.error")}
++                    </p>
++                  ) : null}
++                  <Button type="submit" className="w-full" disabled={isSubmitting}>
++                    {isSubmitting ? t("session.signingIn") : t("session.signIn")}
++                  </Button>
++                </form>
++              </>
++            )}
++          </div>
++
++          <p className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-[11.5px] text-muted-foreground">
++            <Lock size={11} aria-hidden="true" />
++            {t("login.installHint")}
++            <Link
++              to="/install"
++              className="text-link underline-offset-4 hover:underline"
++            >
++              {t("login.installLink")}
++            </Link>
++          </p>
+         </section>
+       </main>
+     </div>

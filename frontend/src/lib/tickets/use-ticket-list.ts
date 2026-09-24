@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { filterTickets, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
-import { paginateItems } from "@/lib/tickets/paginate-items";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
@@ -14,15 +15,23 @@ import {
   workspaceViewsFor,
   type TicketWorkspaceView,
 } from "@/lib/tickets/ticket-constants";
+import {
+  toTicketCountsQuery,
+  toTicketPageQuery,
+} from "@/lib/tickets/ticket-page-query";
 import { unroutedTicketsFromList } from "@/lib/tickets/inbox-view-tabs";
 import { listOfferedServices, type ServiceResponse } from "@/services/service-catalog-api";
+import { getTicketCounts, type TicketCounts } from "@/services/tickets-counts-api";
 import {
   claimTicket,
   getGroupInboxStatus,
   listGroupInbox,
-  listTickets,
+  listTicketsPage,
   type TicketResponse,
 } from "@/services/tickets-api";
+
+/** A list answer never carries more than 50 rows; the unrouted tab asks for it. */
+const unroutedPageSize = 50;
 
 function parseView(value: string | null, isStaff: boolean): TicketWorkspaceView {
   const allowed = workspaceViewsFor(isStaff);
@@ -45,19 +54,33 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
   overdue: false,
 });
 
+/**
+ * Ticket list state.
+ *
+ * Phase 1.1 (plan §1.1): the list used to download every ticket the caller may
+ * see and then filter and page it in the browser. The filters now travel to the
+ * server (`toTicketPageQuery`) and only one page comes back; the counters next
+ * to the tabs come from `GET /tickets/counts`, so they still cover everything
+ * the caller may list instead of just the visible page.
+ */
 export function useTicketList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const feedback = useActionFeedback();
   const { currentUserId } = useSession();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const capabilities = useSessionCapabilities();
   const isStaff = isTicketStaff(capabilities);
   const view = parseView(searchParams.get("view"), isStaff);
-  const [tickets, setTickets] = useState<readonly TicketResponse[]>([]);
-  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>(
-    [],
-  );
+  const [pageItems, setPageItems] = useState<readonly TicketResponse[]>([]);
+  const [pageInfo, setPageInfo] = useState({
+    page: 1,
+    pageSize: ticketListPageSize,
+    total: 0,
+  });
+  const [counts, setCounts] = useState<TicketCounts | null>(null);
+  const [unroutedTickets, setUnroutedTickets] = useState<readonly TicketResponse[]>([]);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
@@ -76,10 +99,27 @@ export function useTicketList() {
     }
     try {
       if (view === "inbox") {
-        const [catalog, inboxRows, unroutedRows] = await Promise.all([
-          listOfferedServices().catch(() => []),
-          listGroupInbox(),
-          listTickets({ status: "UNROUTED" }).catch(() => []),
+        // Faza 3.3: reads go through the query cache, so coming back to a screen
+        // inside `staleTime` costs no request — the socket invalidates the keys
+        // when something really changed.
+        const [catalog, inboxRows, unroutedPage] = await Promise.all([
+          queryClient
+            .fetchQuery({
+              queryKey: queryKeys.offeredServices,
+              queryFn: () => listOfferedServices(),
+            })
+            .catch(() => []),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.groupInbox,
+            queryFn: () => listGroupInbox(),
+          }),
+          queryClient
+            .fetchQuery({
+              queryKey: queryKeys.ticketList({ status: "UNROUTED", pageSize: unroutedPageSize }),
+              queryFn: () =>
+                listTicketsPage({ status: "UNROUTED", pageSize: unroutedPageSize }),
+            })
+            .catch(() => null),
         ]);
         // An empty inbox is ambiguous: ask the server whether it is empty
         // because the person is in no handler group or simply has no tickets.
@@ -91,18 +131,64 @@ export function useTicketList() {
                 () => null,
               );
         setServices(catalog);
-        setTickets(inboxRows);
-        setUnroutedTickets(unroutedTicketsFromList(unroutedRows));
+        setPageItems(inboxRows);
+        setPageInfo({
+          page: 1,
+          pageSize: inboxRows.length === 0 ? ticketListPageSize : inboxRows.length,
+          total: inboxRows.length,
+        });
+        setUnroutedTickets(unroutedTicketsFromList(unroutedPage?.items ?? []));
+        setCounts(null);
         setHasGroupMembership(membership);
       } else {
-        const [catalog, rows] = await Promise.all([
-          listOfferedServices().catch(() => []),
-          listTickets(filters.status === "" ? {} : { status: filters.status }),
+        const query = toTicketPageQuery({
+          filters,
+          view,
+          currentUserId,
+          page,
+        });
+        const [catalog, response] = await Promise.all([
+          queryClient
+            .fetchQuery({
+              queryKey: queryKeys.offeredServices,
+              queryFn: () => listOfferedServices(),
+            })
+            .catch(() => []),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList(query),
+            queryFn: () => listTicketsPage(query),
+          }),
         ]);
         setServices(catalog);
-        setTickets(rows);
+        setPageItems(response.items);
+        setPageInfo({
+          page: response.page,
+          pageSize: response.pageSize,
+          total: response.total,
+        });
         setUnroutedTickets([]);
         setHasGroupMembership(null);
+        // Counters are a separate, cheaper read: they cover all matching
+        // tickets, not just the page, and they are allowed to fail (the tabs
+        // then show zeros instead of breaking the list).
+        const countsQuery = toTicketCountsQuery(query);
+        setCounts(
+          await queryClient
+            .fetchQuery({
+              queryKey: queryKeys.ticketCounts(countsQuery),
+              queryFn: () => getTicketCounts(countsQuery),
+            })
+            .catch(() => null),
+        );
+        // A filter can move the requested page past the end; fall back to the
+        // last page that does have rows.
+        if (
+          response.items.length === 0 &&
+          response.total > 0 &&
+          response.page > 1
+        ) {
+          setPage(Math.max(1, Math.ceil(response.total / response.pageSize)));
+        }
       }
       setInboxHidden(false);
     } catch (error) {
@@ -115,7 +201,7 @@ export function useTicketList() {
       if (silent) {
         return;
       }
-      setTickets([]);
+      setPageItems([]);
       setUnroutedTickets([]);
       setErrorKey(mapped);
     } finally {
@@ -123,7 +209,7 @@ export function useTicketList() {
         setIsLoading(false);
       }
     }
-  }, [view, filters.status, setSearchParams]);
+  }, [view, filters, page, currentUserId, queryClient, setSearchParams]);
 
   useEffect(() => {
     setFilters((current) => ({
@@ -158,11 +244,10 @@ export function useTicketList() {
   }, [load]);
   useTicketCollectionRealtime(reloadSilent);
 
-  const visible = useMemo(
-    () => filterTickets(tickets, { ...filters, view, currentUserId }),
-    [tickets, filters, view, currentUserId],
+  const totalPages = Math.max(
+    1,
+    Math.ceil(pageInfo.total / pageInfo.pageSize),
   );
-  const paged = paginateItems(visible, page, ticketListPageSize);
   const unroutedCount = unroutedTickets.length;
   const serviceNames = useMemo(
     () => new Map(services.map((service) => [service.id, service.name])),
@@ -173,6 +258,8 @@ export function useTicketList() {
     setClaimingId(ticketId);
     try {
       await claimTicket(ticketId);
+      // The claim changed a ticket, so the cached pages and counters are stale.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists });
       // Claim errors/success now go through the feedback seam instead of
       // `errorKey`, so a failed claim never blanks the inbox (Constitution
       // §30) and a successful one no longer forces a skeleton flash — the
@@ -212,12 +299,14 @@ export function useTicketList() {
     setFilters: (next: TicketListFilters) => {
       setFilters(next);
       setPage(1);
+      setSelectedIds(new Set());
     },
     page,
     setPage,
-    paged,
-    visible,
-    tickets,
+    totalPages,
+    pageItems,
+    total: pageInfo.total,
+    counts,
     unroutedTickets,
     unroutedCount,
     serviceNames,

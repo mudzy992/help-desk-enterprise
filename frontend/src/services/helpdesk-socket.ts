@@ -1,4 +1,9 @@
-import { io, type Socket } from "socket.io-client";
+import {
+  io,
+  type ManagerOptions,
+  type Socket,
+  type SocketOptions,
+} from "socket.io-client";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -6,6 +11,28 @@ let socket: Socket | null = null;
 let token: string | null = null;
 let referenceCount = 0;
 let releaseTimer: number | null = null;
+
+/**
+ * Faza 3.1 (plan §3.1): a rolling deploy reconnects every client at once, so the
+ * reconnect delay is jittered — without it the second deploy in a row produces a
+ * synchronised spike of handshakes and room re-joins.
+ */
+export const helpdeskSocketReconnect = {
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 10_000,
+  randomizationFactor: 0.5,
+} as const;
+
+export function createHelpdeskSocketOptions(
+  accessToken: string,
+): Partial<ManagerOptions & SocketOptions> {
+  return {
+    auth: { token: accessToken },
+    autoConnect: true,
+    reconnection: true,
+    ...helpdeskSocketReconnect,
+  };
+}
 
 export function getHelpdeskSocket(): Socket | null {
   return socket;
@@ -22,11 +49,7 @@ export function acquireHelpdeskSocket(accessToken: string): Socket {
   }
   disconnectSocket();
   token = accessToken;
-  socket = io(apiBaseUrl, {
-    auth: { token: accessToken },
-    autoConnect: true,
-    reconnection: true,
-  });
+  socket = io(apiBaseUrl, createHelpdeskSocketOptions(accessToken));
   return socket;
 }
 

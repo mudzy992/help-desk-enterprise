@@ -59,6 +59,8 @@ export function overdueSlaState(ticketId: string): TicketSlaStateRecord {
     isResponseAtRisk: false,
     isResolutionAtRisk: false,
     firedEscalationKeys: [],
+    // Phase 2.1: report fixtures are read, never scanned.
+    nextDueAt: null,
     updatedAt: timestamp,
   };
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Socket } from "socket.io-client";
 import { useSession } from "@/lib/session/use-session";
 import {
   applyNotificationCreated,
@@ -6,6 +7,11 @@ import {
   type NotificationRealtimePayload,
 } from "@/lib/realtime/apply-notification-realtime";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
+import { useSocketHealth } from "@/lib/realtime/use-socket-health";
+import {
+  shouldPollUnreadCount,
+  unreadCountFallbackIntervalMs,
+} from "@/lib/realtime/socket-health";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
 import {
@@ -16,12 +22,22 @@ import {
   type InAppNotification,
 } from "@/services/notifications-api";
 
-const refreshIntervalMs = 30_000;
-
+/**
+ * Inbox notifications.
+ *
+ * Phase 1.3 (plan §1.3): the badge is push-driven through the helpdesk socket,
+ * so the 30-second poll now only runs as a *fallback* — while the socket is not
+ * connected. A healthy connection means zero calls to
+ * `GET /notifications/unread-count`; a dropped one means the badge keeps
+ * updating exactly as it did before, and it stops polling again the moment the
+ * socket comes back (which also triggers an immediate refresh).
+ */
 export function useInboxNotifications() {
   const { session } = useSession();
   const [items, setItems] = useState<readonly InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketHealth = useSocketHealth(socket);
 
   const refreshList = useCallback(async () => {
     if (session === null) {
@@ -52,18 +68,30 @@ export function useInboxNotifications() {
   }, [session]);
 
   useEffect(() => {
+    if (session === null) {
+      return;
+    }
+    // Runs on every health change: a reconnect refreshes at once (the socket
+    // may have missed events while it was away) and disarms the timer, while a
+    // disconnect arms it.
     void refreshUnread();
+    if (!shouldPollUnreadCount(socketHealth)) {
+      return;
+    }
     const timer = window.setInterval(() => {
       void refreshUnread();
-    }, refreshIntervalMs);
+    }, unreadCountFallbackIntervalMs);
     return () => window.clearInterval(timer);
-  }, [refreshUnread]);
+  }, [refreshUnread, session, socketHealth]);
 
   useEffect(() => {
     if (session === null) {
       return;
     }
     const socket = acquireHelpdeskSocket(session.accessToken);
+    // Published to the health hook above, which decides whether the fallback
+    // poll has to run.
+    setSocket(socket);
     const applyCount = (payload: NotificationRealtimePayload) => {
       setUnreadCount(payload.unreadCount);
     };
@@ -88,6 +116,8 @@ export function useInboxNotifications() {
       ticketSocketEvents.notificationUnreadCount,
       applyCount,
     );
+    // The count is refreshed by the health effect above on every reconnect, so
+    // this handler only has to make sure the visible list is current too.
     const stopConnect = subscribeSocketEvent(socket, "connect", () => {
       void refreshUnread();
     });
@@ -96,6 +126,7 @@ export function useInboxNotifications() {
       stopRead();
       stopCount();
       stopConnect();
+      setSocket(null);
       releaseHelpdeskSocket();
     };
   }, [refreshUnread, session]);
