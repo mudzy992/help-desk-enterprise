@@ -106,48 +106,53 @@ jobs:
           tail -50 "$REPO_ROOT/api.log"
           exit 1
 
-      - name: Seed the minimal fixture (install wizard endpoints)
+      - name: Run the install wizard (super-admin -> login-provider -> seed -> complete)
         env:
           PERF_ADMIN_EMAIL: perf-admin@example.test
           PERF_ADMIN_PASSWORD: Perf-Smoke-1!
         run: |
-          # The install wizard is the supported way to bootstrap the first admin and the
-          # starting catalogue; running it twice against the same database is a no-op.
+          # The wizard is a sequence, and the CI fixture used to run only half of it:
+          # without `login-provider` the setting `private.auth.mode` stays unset and every
+          # `POST /auth/login` answers 503 AUTHENTICATION_UNAVAILABLE; without `complete`
+          # there is no JWT signing secret. k6 then reported "2 requests, 0s wall clock".
           #
-          # Every call is checked: a silent failure here reached k6 only as "2 requests,
-          # 0s wall clock" three steps later, and nobody saw it.
-          status=$(curl -sS -o /tmp/super-admin.json -w '%{http_code}' \
-            -X POST "$BASE_URL/install/super-admin" \
-            -H 'content-type: application/json' \
-            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
-          echo "super-admin: HTTP $status"
-          cat /tmp/super-admin.json
-          echo ""
-          case "$status" in
-            20*|409) ;;
-            *) echo "::error::/install/super-admin returned HTTP $status"; exit 1 ;;
-          esac
+          # Every step is checked, and a failure prints the response body — a silent
+          # failure here cost a day of "the smoke gate is green but empty".
+          post() {
+            local path="$1" payload="$2" allowed="$3" file
+            file="/tmp/install-$(echo "$path" | tr '/' '-').json"
+            local status
+            if [ -n "$payload" ]; then
+              status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path" \
+                -H 'content-type: application/json' -d "$payload")
+            else
+              status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path")
+            fi
+            echo "$path -> HTTP $status"
+            head -c 400 "$file"; echo ""
+            case "$status" in
+              $allowed) ;;
+              *) echo "::error::$path returned HTTP $status"; exit 1 ;;
+            esac
+          }
 
-          seed_status=$(curl -sS -o /tmp/seed.json -w '%{http_code}' -X POST "$BASE_URL/install/seed")
-          echo "seed: HTTP $seed_status"
-          head -c 400 /tmp/seed.json
-          echo ""
-          case "$seed_status" in
-            20*) ;;
-            *) echo "::error::/install/seed returned HTTP $seed_status"; exit 1 ;;
-          esac
+          post /install/super-admin \
+            "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" "20*|409"
+          post /install/login-provider '{"mode":"local"}' "20*"
+          post /install/seed "" "20*"
+          post /install/complete "" "20*"
 
-          # Prove that the account the k6 scenarios log in with actually works: a 401
-          # here is the difference between "no load at all" and a real smoke run.
+          # Prove that the account the k6 scenarios log in with actually works: a 401 here
+          # is the difference between "no load at all" and a real smoke run.
           login_status=$(curl -sS -o /tmp/login.json -w '%{http_code}' \
             -X POST "$BASE_URL/auth/login" \
             -H 'content-type: application/json' \
             -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
           echo "login probe: HTTP $login_status"
           if [ "$login_status" != "200" ] && [ "$login_status" != "201" ]; then
-            echo "::warning::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status — k6 setup will fail"
-            head -c 300 /tmp/login.json
-            echo ""
+            echo "::error::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status"
+            head -c 400 /tmp/login.json; echo ""
+            exit 1
           fi
 
       - uses: grafana/setup-k6-action@v1
