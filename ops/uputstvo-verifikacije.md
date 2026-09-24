@@ -158,7 +158,7 @@ E2E paket ostavlja tikete (`E2E …`) i servise (`e2e-…`); C ostavlja `[stagin
 Na serveru, iz korijena repozitorija:
 
 ```bash
-ops/cleanup-e2e-data.sh                 # proba: samo broji (ROLLBACK)
+ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W   # proba: samo broji (ROLLBACK)
 ops/cleanup-e2e-data.sh --apply         # briše E2E tikete i servise
 ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 ```
