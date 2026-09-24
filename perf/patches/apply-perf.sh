@@ -37,6 +37,7 @@ fi
 #   "ime.patch:putanja:marker"   → fajl mora da sadrži marker (za patcheve bez novih fajlova)
 PATCHES=(
   "perf-00-measurement-and-baseline.patch:backend/src/common/database/db-query-counter.ts"
+  "perf-01-stop-krvarenje.patch:backend/src/modules/search/search.controller.ts"
 )
 
 applied=0
@@ -140,8 +141,10 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd backend && npm install"
   echo "  npx prisma generate        # ako je blokiran download: PRISMA_SCHEMA_ENGINE_BINARY=/bin/true npx prisma generate"
-  echo "  npx jest                   # očekivano: 330 suita / 1203 testa"
+  echo "  npx prisma migrate deploy  # 6 kompozitnih + 3 trigram indeksa (CONCURRENTLY)"
+  echo "  npx jest                   # očekivano: 335 suita / 1228 testa"
   echo "  npm run build              # očekivano: uspješno"
+  echo "  cd ../frontend && npm install && npm test   # očekivano: 91 fajl / 318 testova"
   echo
   echo "Perf paket (bez k6, radi svuda):"
   echo "  node perf/validate.js      # očekivano: all checks passed"
