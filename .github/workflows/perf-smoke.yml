@@ -118,29 +118,34 @@ jobs:
           #
           # Every step is checked, and a failure prints the response body — a silent
           # failure here cost a day of "the smoke gate is green but empty".
+          rm -f /tmp/install-wizard.log
+          note() { echo "$*" | tee -a /tmp/install-wizard.log; }
+
           post() {
-            local path="$1" payload="$2" allowed="$3" file
-            file="/tmp/install-$(echo "$path" | tr '/' '-').json"
-            local status
+            local path="$1" payload="$2" allowed="$3" file status
+            file="/tmp/install$(echo "$path" | tr '/' '-').json"
             if [ -n "$payload" ]; then
               status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path" \
                 -H 'content-type: application/json' -d "$payload")
             else
               status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path")
             fi
-            echo "$path -> HTTP $status"
-            head -c 400 "$file"; echo ""
-            case "$status" in
-              $allowed) ;;
-              *) echo "::error::$path returned HTTP $status"; exit 1 ;;
-            esac
+            note "$path -> HTTP $status"
+            note "  $(head -c 400 "$file" 2>/dev/null)"
+            # Regex, not `case` with a variable pattern: an expanded `20*|409` is a single
+            # literal pattern in bash (`|` is not alternation after expansion), so a
+            # perfectly good 201 was reported as a failure.
+            if ! printf '%s' "$status" | grep -qE "^($allowed)$"; then
+              note "::error::$path returned HTTP $status"
+              exit 1
+            fi
           }
 
           post /install/super-admin \
-            "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" "20*|409"
-          post /install/login-provider '{"mode":"local"}' "20*"
-          post /install/seed "" "20*"
-          post /install/complete "" "20*"
+            "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" "20[0-9]|409"
+          post /install/login-provider '{"mode":"local"}' "20[0-9]"
+          post /install/seed "" "20[0-9]"
+          post /install/complete "" "20[0-9]"
 
           # Prove that the account the k6 scenarios log in with actually works: a 401 here
           # is the difference between "no load at all" and a real smoke run.
@@ -148,10 +153,10 @@ jobs:
             -X POST "$BASE_URL/auth/login" \
             -H 'content-type: application/json' \
             -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
-          echo "login probe: HTTP $login_status"
+          note "login probe -> HTTP $login_status"
           if [ "$login_status" != "200" ] && [ "$login_status" != "201" ]; then
-            echo "::error::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status"
-            head -c 400 /tmp/login.json; echo ""
+            note "  $(head -c 400 /tmp/login.json 2>/dev/null)"
+            note "::error::login probe for $PERF_ADMIN_EMAIL returned HTTP $login_status"
             exit 1
           fi
 
@@ -286,6 +291,13 @@ jobs:
               echo '```'
               echo "</details>"
             fi
+            echo ""
+            echo "<details><summary>Install wizard — transkript</summary>"
+            echo ""
+            echo '```'
+            cat /tmp/install-wizard.log 2>/dev/null | tail -30 || echo "(korak wizarda nije pisao transkript)"
+            echo '```'
+            echo "</details>"
             echo ""
             echo "<details><summary>API log — login / seed / greške (zadnjih 25 linija)</summary>"
             echo ""
