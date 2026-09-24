@@ -34,9 +34,9 @@ Pulse je novi vizuelni identitet i **default tema** frontenda. Definisan je u
 | `data-theme="pulse"` | novi identitet, svijetli po defaultu |
 | `data-theme="classic"` | stara tamna tema, sačuvana tokom tranzicije |
 | `.dark` | tamni mod aktivne teme (`classic` je uvijek tamna) |
-| `data-accent="indigo\|teal\|rose"` | **brend paleta** unutar Pulse-a (`indigo` je zadana) |
+| `data-accent="indigo\|teal\|rose\|cyan\|amber\|orange"` | **brend paleta** unutar Pulse-a (`indigo` je zadana) |
 
-Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`) × jedna od tri palete
+Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`) × jedna od šest paleti
 (paleta se ignoriše u `classic` — tamo je brend uvijek njegova plava).
 
 - Kontrakt je u [`frontend/src/lib/theme/theme-storage.ts`](../../frontend/src/lib/theme/theme-storage.ts),
@@ -71,16 +71,27 @@ zato paleta radi u obje svjetline bez ijednog dodatnog bloka po modu. Paletni bl
 | Indigo (**zadana**) | `indigo` | 91 91 214 | 111 102 223 | postojeći Pulse brend |
 | Teal | `teal` | 15 118 110 | 45 212 191 | hladna, smirena |
 | Rose | `rose` | 190 18 60 | 251 113 133 | topla, izražena |
+| Cyan | `cyan` | 14 116 144 | 6 182 212 | svježa, tehnička |
+| Amber | `amber` | 161 98 7 | 231 183 2 | topla, zlatna |
+| Orange | `orange` | 194 65 12 | 249 115 22 | žarka, energična |
 
 Selektori su oblikovani kao `:root[data-theme="pulse"][data-accent="teal"]` (specifičnost pobjeđuje bazni blok
 bez obzira na redoslijed) i **scoped su na `pulse`** — `classic` zadržava svoju plavu.
 
-**Kako dodati paletu (3 koraka):**
+**Pravilo rampe za tri kasnije palete (cyan / amber / orange):** brend hex je **tamni** korak. Živahna brend
+boja ne može da drži bijeli tekst na 4.5:1 u svijetlom modu (`#06b6d4` daje 2.43:1), pa svijetli blok uzima
+istu nijansu jedan stepen niže u Tailwind rampi (700) — isto kao što `teal` i `rose` već rade. Tamni blok
+vraća brend hex u punoj vrijednosti, uz hover/active korake svjetlijim (300/200).
+
+**Kako dodati paletu (5 koraka):**
 
 1. Blok `:root[data-theme="pulse"][data-accent="<ime>"]` i njegov `.dark` par u `frontend/src/index.css`
    (8 varijabli + `--shadow-glow`).
-2. Ime u `ThemeAccent` i `THEME_ACCENTS` (`frontend/src/lib/theme/theme-storage.ts`).
+2. Ime u `ThemeAccent`, `THEME_ACCENTS` i `isThemeAccent` (`frontend/src/lib/theme/theme-storage.ts`).
 3. Ključevi `theme.accent<Ime>` (+ `…Hint`) u `bs` **i** `en`.
+4. Preview uzorci `.accent-swatch-<ime>` (+ `.dark` varijanta) u `index.css`.
+5. Vrijednost u sanitizaciju pre-paint skripte u `frontend/index.html` — bez toga se izbor tiho vrati na
+   `indigo` nakon prvog reloada.
 
 UI se prilagođava sam (birač, `/appearance`, `role="radiogroup"` iteriraju `THEME_ACCENTS`).
 `--primary-foreground` nije ukras: **svijetla primary boja traži taman tekst na sebi**.
@@ -89,7 +100,7 @@ paletu koja **nije** aktivna, pa ne mogu čitati `--primary`.
 
 ## Kontrast (izmjerene vrijednosti)
 
-Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (6 kombinacija × 4 mjerenja = 24/24 na novim paletama):
+Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (12 kombinacija × 4 mjerenja = 48/48 na svim paletama):
 
 | Paleta | Svjetlina | Tekst na primary | Primary kao tekst | Link | Selekcija |
 |---|---|---|---|---|---|
@@ -99,9 +110,16 @@ Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (6 kombinacija × 4 m
 | teal | tamna | 7.77:1 | 9.71:1 | 12.22:1 | 8.79:1 |
 | rose | svjetla | 6.29:1 | 6.29:1 | 8.02:1 | 9.87:1 |
 | rose | tamna | 5.81:1 | 6.72:1 | 9.56:1 | 10.51:1 |
+| cyan | svjetla | 5.36:1 | 5.36:1 | 7.27:1 | 9.13:1 |
+| cyan | tamna | 5.52:1 | 7.45:1 | 12.48:1 | 9.99:1 |
+| amber | svjetla | 4.92:1 | 4.92:1 | 6.85:1 | 10.11:1 |
+| amber | tamna | 7.75:1 | 9.62:1 | 13.72:1 | 8.81:1 |
+| orange | svjetla | 5.18:1 | 5.18:1 | 7.31:1 | 10.53:1 |
+| orange | tamna | 5.58:1 | 6.45:1 | 10.72:1 | 10.79:1 |
 
 ⚠ jedina vrijednost ispod AA je **postojeća** indigo paleta u tamnom modu (`text-primary` = 4.00:1) — baseline iz Faze 0,
-ne regresija; nove palete su strože.
+ne regresija; nove palete su strože. Najniža od novih je **amber u svijetlom modu (4.92:1)** — žuta rampa pada
+ispod 4.5:1 već od 600 stepena, zato je 700 najsvjetliji korak koji može biti svijetla `--primary`.
 
 **Dva pravila koja se lako pogrešno „poprave":**
 

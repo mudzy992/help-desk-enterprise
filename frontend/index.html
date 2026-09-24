@@ -25,7 +25,14 @@
             mode = "system";
           }
           var accent = window.localStorage.getItem("ep-helpdesk.theme.accent");
-          if (accent !== "indigo" && accent !== "teal" && accent !== "rose") {
+          if (
+            accent !== "indigo" &&
+            accent !== "teal" &&
+            accent !== "rose" &&
+            accent !== "cyan" &&
+            accent !== "amber" &&
+            accent !== "orange"
+          ) {
             accent = "indigo";
           }
           var prefersDark =

@@ -61,12 +61,18 @@ const ACCENT_LABEL_KEYS = {
   indigo: "theme.accentIndigo",
   teal: "theme.accentTeal",
   rose: "theme.accentRose",
+  cyan: "theme.accentCyan",
+  amber: "theme.accentAmber",
+  orange: "theme.accentOrange",
 } as const satisfies Record<ThemeAccent, string>;
 
 const ACCENT_HINT_KEYS = {
   indigo: "theme.accentIndigoHint",
   teal: "theme.accentTealHint",
   rose: "theme.accentRoseHint",
+  cyan: "theme.accentCyanHint",
+  amber: "theme.accentAmberHint",
+  orange: "theme.accentOrangeHint",
 } as const satisfies Record<ThemeAccent, string>;
 
 /* Defined in `src/index.css`: a preview must render a palette that is not the
@@ -75,6 +81,9 @@ const ACCENT_SWATCH_CLASS = {
   indigo: "accent-swatch-indigo",
   teal: "accent-swatch-teal",
   rose: "accent-swatch-rose",
+  cyan: "accent-swatch-cyan",
+  amber: "accent-swatch-amber",
+  orange: "accent-swatch-orange",
 } as const satisfies Record<ThemeAccent, string>;
 
 /** Token chips that make the difference between the two designs visible at a glance. */

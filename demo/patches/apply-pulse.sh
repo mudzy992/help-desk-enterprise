@@ -53,6 +53,7 @@ PATCHES=(
   "pulse-13-accent-palettes.patch:frontend/src/index.css:data-accent=\"teal\""
   "pulse-14-docs-and-rules.patch:.cursor/docs/theme.md:## Brend palete"
   "pulse-15-verification-a11y-and-guard.patch:scripts/check-pulse-design-system.mjs"
+  "pulse-16-accent-palettes-cyan-amber-orange.patch:frontend/src/index.css:data-accent=\"cyan\""
 )
 
 applied=0

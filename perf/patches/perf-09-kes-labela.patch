@@ -1,0 +1,864 @@
+diff --git a/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts b/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts
+index e628a86..60576be 100644
+--- a/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts
++++ b/backend/src/modules/tickets/create-tickets-lifecycle-harness.ts
+@@ -53,9 +53,12 @@ export function createTicketsLifecycleHarness(input: {
+     input.archiveLoader as never,
+     csatLoader as never,
+     input.slaTimers as never,
+-    input.realtimeHub,
+-    input.assignmentConfigurationLoader as never,
+-  );
++      input.realtimeHub,
++      input.assignmentConfigurationLoader as never,
++      // No label cache here: the harness runs without Redis, which is exactly the
++      // "cache is down" path — the display labels are read from the database.
++      undefined as never,
++    );
+   const csat = new TicketsCsatService(
+     input.prisma as never,
+     input.authorizationContextLoader as never,
+diff --git a/backend/src/modules/tickets/labels/ticket-label-cache.service.ts b/backend/src/modules/tickets/labels/ticket-label-cache.service.ts
+new file mode 100644
+index 0000000..46ebdde
+--- /dev/null
++++ b/backend/src/modules/tickets/labels/ticket-label-cache.service.ts
+@@ -0,0 +1,48 @@
++import { Inject, Injectable } from '@nestjs/common';
++import type Redis from 'ioredis';
++import { redisTokens } from '../../../common/redis/redis.tokens';
++import {
++  readTicketLabels,
++  writeTicketLabels,
++  type TicketLabelCache,
++  type TicketLabelCacheClient,
++  type TicketLabelCacheEntry,
++  type TicketLabelKind,
++  type TicketLabelRow,
++} from './ticket-label-cache';
++
++/**
++ * The Redis client of the ticket display labels, wrapped so the callers never
++ * have to think about Redis being down: every method degrades to "no cache" and
++ * `loadTicketDisplayLabels` reads the database (same contract as
++ * `ReportSummaryCache` and `PrincipalContextLoader`).
++ */
++@Injectable()
++export class TicketLabelCacheService implements TicketLabelCache {
++  constructor(@Inject(redisTokens.client) private readonly redis: Redis) {}
++
++  async read(
++    kind: TicketLabelKind,
++    ids: readonly string[],
++  ): Promise<ReadonlyMap<string, TicketLabelRow | null>> {
++    return readTicketLabels(await this.client(), kind, ids);
++  }
++
++  async write(
++    kind: TicketLabelKind,
++    entries: readonly TicketLabelCacheEntry[],
++  ): Promise<void> {
++    await writeTicketLabels(await this.client(), kind, entries);
++  }
++
++  private async client(): Promise<TicketLabelCacheClient | null> {
++    try {
++      if (this.redis.status === 'wait') {
++        await this.redis.connect();
++      }
++      return this.redis as unknown as TicketLabelCacheClient;
++    } catch {
++      return null;
++    }
++  }
++}
+diff --git a/backend/src/modules/tickets/labels/ticket-label-cache.spec.ts b/backend/src/modules/tickets/labels/ticket-label-cache.spec.ts
+new file mode 100644
+index 0000000..d350ff6
+--- /dev/null
++++ b/backend/src/modules/tickets/labels/ticket-label-cache.spec.ts
+@@ -0,0 +1,192 @@
++import {
++  parseTicketLabel,
++  readTicketLabels,
++  ticketLabelCacheKey,
++  ticketLabelCacheTtlSeconds,
++  ticketLabelKinds,
++  writeTicketLabels,
++  type TicketLabelCacheClient,
++  type TicketLabelKind,
++} from './ticket-label-cache';
++
++class FakeRedis implements TicketLabelCacheClient {
++  readonly store = new Map<string, string>();
++  readonly writes: { readonly key: string; readonly ttl: number }[] = [];
++  failReads = false;
++  failWrites = false;
++
++  async mget(...keys: string[]): Promise<(string | null)[]> {
++    if (this.failReads) {
++      throw new Error('redis is down');
++    }
++    return keys.map((key) => this.store.get(key) ?? null);
++  }
++
++  async set(
++    key: string,
++    value: string,
++    mode: 'EX',
++    ttlSeconds: number,
++  ): Promise<unknown> {
++    if (this.failWrites) {
++      throw new Error('redis is down');
++    }
++    expect(mode).toBe('EX');
++    this.store.set(key, value);
++    this.writes.push({ key, ttl: ttlSeconds });
++    return 'OK';
++  }
++}
++
++describe('ticketLabelCacheKey', () => {
++  it('namespaces a label by kind and id', () => {
++    expect(ticketLabelCacheKey('group', 'g-it')).toBe('label:group:g-it');
++  });
++
++  it('covers exactly the five catalogues a list resolves', () => {
++    expect([...ticketLabelKinds]).toEqual([
++      'user',
++      'group',
++      'formVersion',
++      'organizationalUnit',
++      'service',
++    ]);
++  });
++});
++
++describe('parseTicketLabel', () => {
++  it('accepts a stored row of the matching shape', () => {
++    expect(
++      parseTicketLabel('user', JSON.stringify({ id: 'u-1', displayName: 'Ana' })),
++    ).toEqual({ hit: true, row: { id: 'u-1', displayName: 'Ana' } });
++  });
++
++  it('treats the JSON literal null as "this row does not exist"', () => {
++    expect(parseTicketLabel('service', 'null')).toEqual({ hit: true, row: null });
++  });
++
++  it.each([
++    ['broken json', '{not json'],
++    ['another shape', JSON.stringify({ id: 'u-1' })],
++    ['the wrong field type', JSON.stringify({ id: 'u-1', displayName: 7 })],
++    ['no id', JSON.stringify({ displayName: 'Ana' })],
++    ['an empty id', JSON.stringify({ id: '', displayName: 'Ana' })],
++    ['a bare string', JSON.stringify('u-1')],
++  ])('counts %s as a miss', (_label, raw) => {
++    expect(parseTicketLabel('user', raw)).toEqual({ hit: false });
++  });
++
++  it('checks the fields of the kind it was asked about', () => {
++    const row = JSON.stringify({ id: 'fv-1', version: 3 });
++    expect(parseTicketLabel('formVersion', row)).toEqual({
++      hit: true,
++      row: { id: 'fv-1', version: 3 },
++    });
++    // `version` is not a field of a service label, so the payload is not trusted.
++    expect(parseTicketLabel('service', row)).toEqual({ hit: false });
++  });
++
++  it('keeps the origin unit path under the field the row uses', () => {
++    expect(
++      parseTicketLabel(
++        'organizationalUnit',
++        JSON.stringify({ id: 'ou-1', name: 'IT', ouPath: '/IT' }),
++      ).hit,
++    ).toBe(true);
++  });
++});
++
++describe('readTicketLabels', () => {
++  it('is a miss for every id without a client', async () => {
++    const hits = await readTicketLabels(null, 'user', ['u-1']);
++    expect(hits.size).toBe(0);
++  });
++
++  it('is a miss when there is nothing to look up', async () => {
++    const hits = await readTicketLabels(new FakeRedis(), 'user', []);
++    expect(hits.size).toBe(0);
++  });
++
++  it('separates hits, negative hits and unknown ids in one round trip', async () => {
++    const redis = new FakeRedis();
++    redis.store.set(
++      ticketLabelCacheKey('user', 'u-1'),
++      JSON.stringify({ id: 'u-1', displayName: 'Ana' }),
++    );
++    redis.store.set(ticketLabelCacheKey('user', 'u-gone'), 'null');
++
++    const hits = await readTicketLabels(redis, 'user', ['u-1', 'u-gone', 'u-new']);
++
++    expect(hits.get('u-1')).toEqual({ id: 'u-1', displayName: 'Ana' });
++    expect(hits.get('u-gone')).toBeNull();
++    expect(hits.has('u-new')).toBe(false);
++  });
++
++  it('degrades to a miss when redis throws', async () => {
++    const redis = new FakeRedis();
++    redis.failReads = true;
++    const hits = await readTicketLabels(redis, 'group', ['g-1']);
++    expect(hits.size).toBe(0);
++  });
++
++  it('does not fail on a payload written by an older shape', async () => {
++    const redis = new FakeRedis();
++    redis.store.set(ticketLabelCacheKey('group', 'g-1'), '{"id":"g-1"}');
++    const hits = await readTicketLabels(redis, 'group', ['g-1']);
++    expect(hits.size).toBe(0);
++  });
++});
++
++describe('writeTicketLabels', () => {
++  it('stores rows and the absence of a row under the sixty second TTL', async () => {
++    const redis = new FakeRedis();
++    await writeTicketLabels(redis, 'group', [
++      { id: 'g-1', row: { id: 'g-1', name: 'IT podrška' } },
++      { id: 'g-gone', row: null },
++    ]);
++
++    expect(ticketLabelCacheTtlSeconds).toBe(60);
++    expect(redis.writes.map((write) => write.key)).toEqual([
++      'label:group:g-1',
++      'label:group:g-gone',
++    ]);
++    expect(redis.writes.every((write) => write.ttl === 60)).toBe(true);
++    expect(redis.store.get('label:group:g-1')).toBe(
++      JSON.stringify({ id: 'g-1', name: 'IT podrška' }),
++    );
++    expect(redis.store.get('label:group:g-gone')).toBe('null');
++  });
++
++  it('does nothing without a client or without entries', async () => {
++    const redis = new FakeRedis();
++    await writeTicketLabels(null, 'user', [{ id: 'u-1', row: null }]);
++    await writeTicketLabels(redis, 'user', []);
++    expect(redis.writes).toHaveLength(0);
++  });
++
++  it('never lets a write failure reach the caller', async () => {
++    const redis = new FakeRedis();
++    redis.failWrites = true;
++    await expect(
++      writeTicketLabels(redis, 'service', [{ id: 's-1', row: { id: 's-1', name: 'VPN' } }]),
++    ).resolves.toBeUndefined();
++  });
++
++  it('round-trips every kind through read and write', async () => {
++    const redis = new FakeRedis();
++    const rows: Record<TicketLabelKind, Record<string, unknown> & { id: string }> = {
++      user: { id: 'u-1', displayName: 'Ana' },
++      group: { id: 'g-1', name: 'IT' },
++      formVersion: { id: 'fv-1', version: 2 },
++      organizationalUnit: { id: 'ou-1', name: 'IT', ouPath: '/IT' },
++      service: { id: 's-1', name: 'VPN' },
++    };
++    for (const kind of ticketLabelKinds) {
++      await writeTicketLabels(redis, kind, [{ id: rows[kind].id as string, row: rows[kind] }]);
++    }
++    for (const kind of ticketLabelKinds) {
++      const hits = await readTicketLabels(redis, kind, [rows[kind].id as string]);
++      expect(hits.get(rows[kind].id as string)).toEqual(rows[kind]);
++    }
++  });
++});
+diff --git a/backend/src/modules/tickets/labels/ticket-label-cache.ts b/backend/src/modules/tickets/labels/ticket-label-cache.ts
+new file mode 100644
+index 0000000..29dbf6a
+--- /dev/null
++++ b/backend/src/modules/tickets/labels/ticket-label-cache.ts
+@@ -0,0 +1,194 @@
++/**
++ * Plan §4.2 (continuation of the "fewer queries per request" work, §2.2/§2.4).
++ *
++ * A ticket list resolves at most five catalogues to turn ids into something a
++ * human can read: the requester/assignee, the handling group, the form version,
++ * the origin unit and the service. They are small, they change rarely, and every
++ * list request in an installation resolves the same handful of rows — measured
++ * on seeded data, those five reads are the largest single block left in the
++ * `GET /tickets` request (`perf/results/ci-smoke-2026-09-24.md` §3c).
++ *
++ * So they are cached per id for sixty seconds, the same TTL the authorization
++ * context uses. Sixty seconds is a bound on staleness, not a promise of
++ * freshness: rename a group and a list may show the old name for up to a minute.
++ * That is the trade the dashboard counters already make (15 s), and it is
++ * documented rather than hidden — nothing here invalidates on write, because
++ * that would mean teaching every catalogue mutation which caches to drop.
++ *
++ * A cached id is either a row or the fact that there is no row (a deleted user
++ * still referenced by an old ticket). Both are stored, so a missing row does not
++ * cost a query on every request; the second one is stored as the JSON literal
++ * `null`, which `mget` distinguishes from "not cached" (a missing key is `null`
++ * as well, so the payload is the only thing that can tell them apart).
++ */
++
++export const ticketLabelCacheTtlSeconds = 60;
++
++export const ticketLabelKinds = [
++  'user',
++  'group',
++  'formVersion',
++  'organizationalUnit',
++  'service',
++] as const;
++
++export type TicketLabelKind = (typeof ticketLabelKinds)[number];
++
++/** A row as it was read from the database, plus its id. */
++export type TicketLabelRow = { readonly id: string } & Record<string, unknown>;
++
++export type TicketLabelCacheEntry = {
++  readonly id: string;
++  /** `null` records that the row does not exist. */
++  readonly row: TicketLabelRow | null;
++};
++
++/**
++ * The slice of the Redis client this cache needs, so tests can drive it with a
++ * fake and "Redis is not there" stays explicit (a `null` client).
++ */
++export interface TicketLabelCacheClient {
++  mget(...keys: string[]): Promise<(string | null)[]>;
++  set(
++    key: string,
++    value: string,
++    mode: 'EX',
++    ttlSeconds: number,
++  ): Promise<unknown>;
++}
++
++/**
++ * What `loadTicketDisplayLabels` talks to: `read` answers for the ids it knows
++ * (a hit may be a `null` row), `write` stores what the database just returned.
++ * Implemented by `TicketLabelCacheService`; tests pass a plain map.
++ */
++export interface TicketLabelCache {
++  read(
++    kind: TicketLabelKind,
++    ids: readonly string[],
++  ): Promise<ReadonlyMap<string, TicketLabelRow | null>>;
++  write(
++    kind: TicketLabelKind,
++    entries: readonly TicketLabelCacheEntry[],
++  ): Promise<void>;
++}
++
++export function ticketLabelCacheKey(kind: TicketLabelKind, id: string): string {
++  return `label:${kind}:${id}`;
++}
++
++export type TicketLabelCacheHit =
++  | { readonly hit: true; readonly row: TicketLabelRow | null }
++  | { readonly hit: false };
++
++const requiredFieldsByKind: Record<
++  TicketLabelKind,
++  readonly (readonly [string, 'string' | 'number'])[]
++> = {
++  user: [['displayName', 'string']],
++  group: [['name', 'string']],
++  formVersion: [['version', 'number']],
++  organizationalUnit: [
++    ['name', 'string'],
++    ['ouPath', 'string'],
++  ],
++  service: [['name', 'string']],
++};
++
++/**
++ * Reads one stored payload. A miss, invalid JSON and a payload with another
++ * shape all end as `{ hit: false }` — the caller then reads the database. Never
++ * throws: a cache that cannot be trusted may cost queries, never an error.
++ */
++export function parseTicketLabel(
++  kind: TicketLabelKind,
++  raw: string,
++): TicketLabelCacheHit {
++  if (raw === 'null') {
++    return { hit: true, row: null };
++  }
++  try {
++    const parsed: unknown = JSON.parse(raw);
++    if (parsed === null) {
++      return { hit: true, row: null };
++    }
++    if (typeof parsed !== 'object') {
++      return { hit: false };
++    }
++    const candidate = parsed as Record<string, unknown>;
++    if (typeof candidate.id !== 'string' || candidate.id.length === 0) {
++      return { hit: false };
++    }
++    for (const [field, type] of requiredFieldsByKind[kind]) {
++      if (typeof candidate[field] !== type) {
++        return { hit: false };
++      }
++    }
++    return { hit: true, row: candidate as TicketLabelRow };
++  } catch {
++    return { hit: false };
++  }
++}
++
++/**
++ * Reads the ids the cache knows about, one `mget` for the whole page. The
++ * returned map contains only hits, so the caller can see which ids still have to
++ * be read (`row === null` means "cached: does not exist").
++ */
++export async function readTicketLabels(
++  client: TicketLabelCacheClient | null,
++  kind: TicketLabelKind,
++  ids: readonly string[],
++): Promise<Map<string, TicketLabelRow | null>> {
++  const hits = new Map<string, TicketLabelRow | null>();
++  if (client === null || ids.length === 0) {
++    return hits;
++  }
++  try {
++    const values = await client.mget(
++      ...ids.map((id) => ticketLabelCacheKey(kind, id)),
++    );
++    ids.forEach((id, index) => {
++      const raw = values[index];
++      if (typeof raw !== 'string') {
++        return;
++      }
++      const parsed = parseTicketLabel(kind, raw);
++      if (parsed.hit) {
++        hits.set(id, parsed.row);
++      }
++    });
++  } catch {
++    return new Map();
++  }
++  return hits;
++}
++
++/**
++ * Stores what the database returned, including the ids it did not return: the
++ * absence of a row is an answer too. A failure is swallowed — the next request
++ * simply reads the database again.
++ */
++export async function writeTicketLabels(
++  client: TicketLabelCacheClient | null,
++  kind: TicketLabelKind,
++  entries: readonly TicketLabelCacheEntry[],
++): Promise<void> {
++  if (client === null || entries.length === 0) {
++    return;
++  }
++  try {
++    await Promise.all(
++      entries.map((entry) =>
++        client.set(
++          ticketLabelCacheKey(kind, entry.id),
++          JSON.stringify(entry.row),
++          'EX',
++          ticketLabelCacheTtlSeconds,
++        ),
++      ),
++    );
++  } catch {
++    // Fail-open: the database stays the source of truth.
++  }
++}
+diff --git a/backend/src/modules/tickets/load-ticket-display-labels.spec.ts b/backend/src/modules/tickets/load-ticket-display-labels.spec.ts
+index 06165f9..b98cfcf 100644
+--- a/backend/src/modules/tickets/load-ticket-display-labels.spec.ts
++++ b/backend/src/modules/tickets/load-ticket-display-labels.spec.ts
+@@ -1,5 +1,11 @@
+ import { loadTicketDisplayLabels } from './load-ticket-display-labels';
+ import { toTicketLabelFields } from './ticket-label-fields';
++import type {
++  TicketLabelCache,
++  TicketLabelCacheEntry,
++  TicketLabelKind,
++  TicketLabelRow,
++} from './labels/ticket-label-cache';
+ 
+ jest.mock('../../common/prisma/prisma.service', () => ({
+   PrismaService: class PrismaService {},
+@@ -32,6 +38,37 @@ function createPrismaStub() {
+   return stub;
+ }
+ 
++/**
++ * The cache contract in memory: `read` answers for what a previous call stored,
++ * `write` records rows and the absence of a row. The stub prisma below counts
++ * its calls, so "the second request does not touch the database" is an assertion
++ * and not a hope.
++ */
++function createLabelCache(): TicketLabelCache & {
++  readonly store: Map<string, TicketLabelRow | null>;
++} {
++  const store = new Map<string, TicketLabelRow | null>();
++  const key = (kind: TicketLabelKind, id: string) => `${kind}:${id}`;
++  return {
++    store,
++    read: jest.fn(async (kind, ids) => {
++      const hits = new Map<string, TicketLabelRow | null>();
++      for (const id of ids) {
++        const stored = store.get(key(kind, id));
++        if (store.has(key(kind, id))) {
++          hits.set(id, stored ?? null);
++        }
++      }
++      return hits;
++    }),
++    write: jest.fn(async (kind, entries: readonly TicketLabelCacheEntry[]) => {
++      for (const entry of entries) {
++        store.set(key(kind, entry.id), entry.row);
++      }
++    }),
++  };
++}
++
+ const base = {
+   requesterId: 'u-req',
+   assignedUserId: null,
+@@ -80,6 +117,80 @@ describe('loadTicketDisplayLabels', () => {
+   });
+ });
+ 
++describe('loadTicketDisplayLabels with a cache', () => {
++  it('reads the catalogues once, then answers from the cache', async () => {
++    const prisma = createPrismaStub();
++    const cache = createLabelCache();
++    const records = [
++      base,
++      { ...base, assignedUserId: 'u-agent', assignedGroupId: 'g-it' },
++    ];
++
++    const first = await loadTicketDisplayLabels(prisma as never, records, cache);
++    const second = await loadTicketDisplayLabels(prisma as never, records, cache);
++
++    expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
++    expect(prisma.group.findMany).toHaveBeenCalledTimes(1);
++    expect(prisma.service.findMany).toHaveBeenCalledTimes(1);
++    expect(second.services.get('s-vpn')).toBe(first.services.get('s-vpn'));
++    expect(second.users.get('u-agent')).toBe('Agent Ago');
++  });
++
++  it('remembers ids that do not exist instead of asking again', async () => {
++    const prisma = createPrismaStub();
++    const cache = createLabelCache();
++    const records = [{ ...base, requesterId: 'u-gone', serviceId: 's-gone' }];
++
++    const first = await loadTicketDisplayLabels(prisma as never, records, cache);
++    const second = await loadTicketDisplayLabels(prisma as never, records, cache);
++
++    expect(first.users.size).toBe(0);
++    expect(second.users.size).toBe(0);
++    expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
++    expect(prisma.service.findMany).toHaveBeenCalledTimes(1);
++    expect(cache.store.get('user:u-gone')).toBeNull();
++  });
++
++  it('asks only for the ids the cache does not know', async () => {
++    const prisma = createPrismaStub();
++    const cache = createLabelCache();
++    await loadTicketDisplayLabels(prisma as never, [base], cache);
++
++    await loadTicketDisplayLabels(
++      prisma as never,
++      [{ ...base, originUnitId: 'ou-hr' }],
++      cache,
++    );
++
++    expect(prisma.organizationalUnit.findMany).toHaveBeenLastCalledWith({
++      where: { id: { in: ['ou-hr'] } },
++      select: { id: true, name: true, ouPath: true },
++    });
++  });
++
++  it('behaves exactly as before when the cache is absent', async () => {
++    const prisma = createPrismaStub();
++    const labels = await loadTicketDisplayLabels(prisma as never, [base], undefined);
++    expect(labels.services.get('s-vpn')).toBe('VPN pristup');
++    expect(prisma.service.findMany).toHaveBeenCalledTimes(1);
++  });
++
++  it('keeps the order of the ids it was asked about', async () => {
++    const prisma = createPrismaStub();
++    const cache = createLabelCache();
++    const records = [
++      { ...base, originUnitId: 'ou-hr' },
++      { ...base, originUnitId: 'ou-it' },
++    ];
++    const labels = await loadTicketDisplayLabels(prisma as never, records, cache);
++    expect(prisma.organizationalUnit.findMany).toHaveBeenCalledWith({
++      where: { id: { in: ['ou-hr', 'ou-it'] } },
++      select: { id: true, name: true, ouPath: true },
++    });
++    expect([...labels.originUnits.keys()]).toEqual(['ou-hr', 'ou-it']);
++  });
++});
++
+ describe('toTicketLabelFields', () => {
+   it('returns names and the origin unit path, never ids', async () => {
+     const labels = await loadTicketDisplayLabels(createPrismaStub() as never, [
+diff --git a/backend/src/modules/tickets/load-ticket-display-labels.ts b/backend/src/modules/tickets/load-ticket-display-labels.ts
+index 3f849ef..5b494bc 100644
+--- a/backend/src/modules/tickets/load-ticket-display-labels.ts
++++ b/backend/src/modules/tickets/load-ticket-display-labels.ts
+@@ -1,4 +1,9 @@
+ import { PrismaService } from '../../common/prisma/prisma.service';
++import type {
++  TicketLabelCache,
++  TicketLabelKind,
++  TicketLabelRow,
++} from './labels/ticket-label-cache';
+ import type { TicketRecord } from './tickets.types';
+ 
+ export type TicketOriginUnitLabel = {
+@@ -27,12 +32,49 @@ function unique(values: readonly (string | null)[]): string[] {
+   ];
+ }
+ 
+-/** Skips the round trip when the result set references no ids of this kind. */
+-async function findByIds<Row>(
++function toCachedRow<Row extends { readonly id: string }>(
++  row: Row | undefined,
++): TicketLabelRow | null {
++  return row === undefined ? null : (row as TicketLabelRow);
++}
++
++/**
++ * Resolves one kind of label for the whole page. The cache answers for the ids
++ * it already knows, the database is asked only for the rest, and whatever came
++ * back is written to the cache — including the ids the database did not return
++ * (a deleted user is still referenced by old tickets, and remembering that
++ * spares the same fruitless query on every later list).
++ *
++ * Without a cache — tests, or Redis being down — this is the plain batch query
++ * it always was: one round trip per kind, no per-ticket queries.
++ */
++async function findByIds<Row extends { readonly id: string }>(
++  kind: TicketLabelKind,
+   ids: readonly string[],
+   find: (ids: readonly string[]) => Promise<Row[]>,
++  cache?: TicketLabelCache,
+ ): Promise<Row[]> {
+-  return ids.length === 0 ? [] : find(ids);
++  if (ids.length === 0) {
++    return [];
++  }
++  const cached = (await cache?.read(kind, ids)) ?? new Map();
++  const missing = ids.filter((id) => !cached.has(id));
++  const rowsById = new Map<string, Row>();
++  if (missing.length > 0) {
++    for (const row of await find(missing)) {
++      rowsById.set(row.id, row);
++    }
++    await cache?.write(
++      kind,
++      missing.map((id) => ({ id, row: toCachedRow(rowsById.get(id)) })),
++    );
++  }
++  return ids.flatMap((id) => {
++    // A cache hit is the JSON payload of a row of this shape, so the only thing
++    // the compiler needs is a nudge; `null` (cached "no such row") drops out.
++    const row = (rowsById.get(id) ?? cached.get(id) ?? null) as Row | null;
++    return row === null ? [] : [row];
++  });
+ }
+ 
+ function toNameMap(rows: readonly NamedRow[]): Map<string, string> {
+@@ -48,7 +90,8 @@ function toNameMap(rows: readonly NamedRow[]): Map<string, string> {
+ /**
+  * Resolves the human-readable names of the people, group, form version,
+  * origin unit and service a ticket points at, in one batch query per kind for
+- * the whole result set (no per-ticket queries).
++ * the whole result set (no per-ticket queries). With a cache, even those five
++ * round trips disappear for ids a previous request already resolved.
+  */
+ export async function loadTicketDisplayLabels(
+   prisma: PrismaService,
+@@ -61,10 +104,12 @@ export async function loadTicketDisplayLabels(
+     | 'originUnitId'
+     | 'serviceId'
+   >[],
++  cache?: TicketLabelCache,
+ ): Promise<TicketDisplayLabels> {
+   const [users, groups, formVersions, originUnits, services] =
+     await Promise.all([
+       findByIds(
++        'user',
+         unique(
+           records.flatMap((record) => [
+             record.requesterId,
+@@ -76,38 +121,47 @@ export async function loadTicketDisplayLabels(
+             where: { id: { in: [...ids] } },
+             select: { id: true, displayName: true },
+           }) as Promise<NamedUserRow[]>,
++        cache,
+       ),
+       findByIds(
++        'group',
+         unique(records.map((record) => record.assignedGroupId)),
+         (ids) =>
+           prisma.group.findMany({
+             where: { id: { in: [...ids] } },
+             select: { id: true, name: true },
+           }) as Promise<NamedRow[]>,
++        cache,
+       ),
+       findByIds(
++        'formVersion',
+         unique(records.map((record) => record.formVersionId)),
+         (ids) =>
+           prisma.formVersion.findMany({
+             where: { id: { in: [...ids] } },
+             select: { id: true, version: true },
+           }) as Promise<FormVersionRow[]>,
++        cache,
+       ),
+       findByIds(
++        'organizationalUnit',
+         unique(records.map((record) => record.originUnitId)),
+         (ids) =>
+           prisma.organizationalUnit.findMany({
+             where: { id: { in: [...ids] } },
+             select: { id: true, name: true, ouPath: true },
+           }) as Promise<OriginUnitRow[]>,
++        cache,
+       ),
+       findByIds(
++        'service',
+         unique(records.map((record) => record.serviceId)),
+         (ids) =>
+           prisma.service.findMany({
+             where: { id: { in: [...ids] } },
+             select: { id: true, name: true },
+           }) as Promise<NamedRow[]>,
++        cache,
+       ),
+     ]);
+   return {
+diff --git a/backend/src/modules/tickets/tickets.module.ts b/backend/src/modules/tickets/tickets.module.ts
+index 87787ad..1a26d8c 100644
+--- a/backend/src/modules/tickets/tickets.module.ts
++++ b/backend/src/modules/tickets/tickets.module.ts
+@@ -54,6 +54,7 @@ import { TicketsConfidentialService } from './confidential/tickets-confidential.
+ import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
+ import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
+ import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
++import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
+ import { TicketsCsatController } from './csat/tickets-csat.controller';
+ import { TicketsCsatSummaryController } from './csat/tickets-csat-summary.controller';
+ import { TicketsCsatService } from './csat/tickets-csat.service';
+@@ -98,6 +99,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
+     TicketSafeLoggingConfigurationLoader,
+     TicketArchiveConfigurationLoader,
+     TicketCsatConfigurationLoader,
++    TicketLabelCacheService,
+     TicketAccessPolicyBinder,
+     TicketsConfidentialService,
+     TicketsCsatService,
+diff --git a/backend/src/modules/tickets/tickets.service.ts b/backend/src/modules/tickets/tickets.service.ts
+index b535fca..aa6a95b 100644
+--- a/backend/src/modules/tickets/tickets.service.ts
++++ b/backend/src/modules/tickets/tickets.service.ts
+@@ -29,6 +29,7 @@ import { TicketReopenConfigurationLoader } from './reopen/ticket-reopen-configur
+ import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe-logging-configuration.loader';
+ import { runTicketsServiceCreate } from './run-tickets-service-create';
+ import { TicketRealtimeHub } from './ticket-realtime.hub';
++import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
+ import { respondLoadedTicket } from './to-ticket-client-responses';
+ import { updateTicket } from './update-ticket';
+ import { withTicketAccessPolicies } from './with-ticket-access-policies';
+@@ -62,6 +63,7 @@ export class TicketsService {
+     private readonly slaTimers: TicketSlaTimersService,
+     private readonly realtimeHub: TicketRealtimeHub,
+     private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
++    private readonly ticketLabelCache: TicketLabelCacheService,
+   ) {}
+ 
+   previewRouting(
+@@ -308,6 +310,10 @@ export class TicketsService {
+       closeCodes: this.closeCodesConfigurationLoader,
+       csat: this.csatLoader,
+       actorUserId,
++      // Plan §4.2: the five catalogue reads behind the display labels are the
++      // largest block left in a list request; the cache answers for ids a
++      // previous request in the last minute already resolved.
++      labelCache: this.ticketLabelCache,
+     };
+   }
+ }
+diff --git a/backend/src/modules/tickets/to-ticket-client-responses.ts b/backend/src/modules/tickets/to-ticket-client-responses.ts
+index 60473e4..7a02e9c 100644
+--- a/backend/src/modules/tickets/to-ticket-client-responses.ts
++++ b/backend/src/modules/tickets/to-ticket-client-responses.ts
+@@ -11,6 +11,7 @@ import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
+ import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
+ import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
+ import { loadTicketDisplayLabels } from './load-ticket-display-labels';
++import type { TicketLabelCache } from './labels/ticket-label-cache';
+ import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
+ import { toTicketLabelFields } from './ticket-label-fields';
+ import { toTicketClientResponse } from './to-ticket-response';
+@@ -26,6 +27,7 @@ export async function toTicketClientResponses(
+     readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
+     readonly csat?: TicketCsatConfiguration;
+     readonly actorUserId?: string;
++    readonly labelCache?: TicketLabelCache;
+     readonly now?: Date;
+   },
+ ): Promise<readonly TicketResponse[]> {
+@@ -36,7 +38,7 @@ export async function toTicketClientResponses(
+   const ticketIds = records.map((record) => record.id);
+   const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
+   const parentsById = await loadParentTicketSummaries(prisma, records);
+-  const labels = await loadTicketDisplayLabels(prisma, records);
++  const labels = await loadTicketDisplayLabels(prisma, records, input.labelCache);
+   const submissions =
+     input.csat === undefined
+       ? new Map()
+@@ -90,6 +92,7 @@ export async function toSingleTicketClientResponse(
+     readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
+     readonly csat?: TicketCsatConfiguration;
+     readonly actorUserId?: string;
++    readonly labelCache?: TicketLabelCache;
+     readonly now?: Date;
+   },
+ ): Promise<TicketResponse> {
+@@ -105,6 +108,7 @@ export async function respondLoadedTicket(
+     readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
+     readonly csat?: { load: () => Promise<TicketCsatConfiguration> };
+     readonly actorUserId?: string;
++    readonly labelCache?: TicketLabelCache;
+   },
+   redactionWarnings?: readonly RedactionMatch[],
+   duplicateWarnings?: readonly DuplicateTicketMatch[],
+@@ -114,6 +118,7 @@ export async function respondLoadedTicket(
+     closeCodes: await loaders.closeCodes.load(),
+     csat: loaders.csat === undefined ? undefined : await loaders.csat.load(),
+     actorUserId: loaders.actorUserId,
++    labelCache: loaders.labelCache,
+     redactionWarnings,
+     duplicateWarnings,
+   });
+@@ -127,6 +132,7 @@ export async function respondLoadedTickets(
+     readonly closeCodes: { load: () => Promise<TicketCloseCodesConfiguration> };
+     readonly csat?: { load: () => Promise<TicketCsatConfiguration> };
+     readonly actorUserId?: string;
++    readonly labelCache?: TicketLabelCache;
+   },
+ ): Promise<readonly TicketResponse[]> {
+   return toTicketClientResponses(prisma, records, {
+@@ -134,5 +140,6 @@ export async function respondLoadedTickets(
+     closeCodes: await loaders.closeCodes.load(),
+     csat: loaders.csat === undefined ? undefined : await loaders.csat.load(),
+     actorUserId: loaders.actorUserId,
++    labelCache: loaders.labelCache,
+   });
+ }

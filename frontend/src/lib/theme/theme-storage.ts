@@ -7,7 +7,7 @@
  *            "classic" → legacy dark theme, kept available during rollout
  *   mode   : "light" | "dark" | "system"
  *   accent : "indigo"  → the brand palette inside the `pulse` design
- *            "teal" / "rose"
+ *            "teal" / "rose" / "cyan" / "amber" / "orange"
  *
  * `accent` rotates only the brand colours (primary family, ring, links,
  * selection, primary glow) — see the palette blocks in `src/index.css`. It has
@@ -21,7 +21,7 @@
 
 export type ThemeDesign = "pulse" | "classic";
 export type ThemeMode = "light" | "dark" | "system";
-export type ThemeAccent = "indigo" | "teal" | "rose";
+export type ThemeAccent = "indigo" | "teal" | "rose" | "cyan" | "amber" | "orange";
 export type ResolvedColorMode = "light" | "dark";
 
 export const THEME_DESIGN_STORAGE_KEY = "ep-helpdesk.theme.design";
@@ -38,7 +38,14 @@ export const DEFAULT_THEME_ACCENT: ThemeAccent = "indigo";
 
 export const THEME_DESIGNS: readonly ThemeDesign[] = ["pulse", "classic"];
 export const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
-export const THEME_ACCENTS: readonly ThemeAccent[] = ["indigo", "teal", "rose"];
+export const THEME_ACCENTS: readonly ThemeAccent[] = [
+  "indigo",
+  "teal",
+  "rose",
+  "cyan",
+  "amber",
+  "orange",
+];
 
 export function isThemeDesign(value: unknown): value is ThemeDesign {
   return value === "pulse" || value === "classic";
@@ -49,7 +56,14 @@ export function isThemeMode(value: unknown): value is ThemeMode {
 }
 
 export function isThemeAccent(value: unknown): value is ThemeAccent {
-  return value === "indigo" || value === "teal" || value === "rose";
+  return (
+    value === "indigo" ||
+    value === "teal" ||
+    value === "rose" ||
+    value === "cyan" ||
+    value === "amber" ||
+    value === "orange"
+  );
 }
 
 export function resolveColorMode(

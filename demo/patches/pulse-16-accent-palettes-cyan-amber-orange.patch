@@ -1,0 +1,435 @@
+diff --git a/.cursor/docs/theme.md b/.cursor/docs/theme.md
+index c10773e..b809a4b 100644
+--- a/.cursor/docs/theme.md
++++ b/.cursor/docs/theme.md
+@@ -34,9 +34,9 @@ Pulse je novi vizuelni identitet i **default tema** frontenda. Definisan je u
+ | `data-theme="pulse"` | novi identitet, svijetli po defaultu |
+ | `data-theme="classic"` | stara tamna tema, sačuvana tokom tranzicije |
+ | `.dark` | tamni mod aktivne teme (`classic` je uvijek tamna) |
+-| `data-accent="indigo\|teal\|rose"` | **brend paleta** unutar Pulse-a (`indigo` je zadana) |
++| `data-accent="indigo\|teal\|rose\|cyan\|amber\|orange"` | **brend paleta** unutar Pulse-a (`indigo` je zadana) |
+ 
+-Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`) × jedna od tri palete
++Kombinacije: `pulse` (svijetla) · `pulse` + `.dark` · `classic` (uvijek `.dark`) × jedna od šest paleti
+ (paleta se ignoriše u `classic` — tamo je brend uvijek njegova plava).
+ 
+ - Kontrakt je u [`frontend/src/lib/theme/theme-storage.ts`](../../frontend/src/lib/theme/theme-storage.ts),
+@@ -71,16 +71,27 @@ zato paleta radi u obje svjetline bez ijednog dodatnog bloka po modu. Paletni bl
+ | Indigo (**zadana**) | `indigo` | 91 91 214 | 111 102 223 | postojeći Pulse brend |
+ | Teal | `teal` | 15 118 110 | 45 212 191 | hladna, smirena |
+ | Rose | `rose` | 190 18 60 | 251 113 133 | topla, izražena |
++| Cyan | `cyan` | 14 116 144 | 6 182 212 | svježa, tehnička |
++| Amber | `amber` | 161 98 7 | 231 183 2 | topla, zlatna |
++| Orange | `orange` | 194 65 12 | 249 115 22 | žarka, energična |
+ 
+ Selektori su oblikovani kao `:root[data-theme="pulse"][data-accent="teal"]` (specifičnost pobjeđuje bazni blok
+ bez obzira na redoslijed) i **scoped su na `pulse`** — `classic` zadržava svoju plavu.
+ 
+-**Kako dodati paletu (3 koraka):**
++**Pravilo rampe za tri kasnije palete (cyan / amber / orange):** brend hex je **tamni** korak. Živahna brend
++boja ne može da drži bijeli tekst na 4.5:1 u svijetlom modu (`#06b6d4` daje 2.43:1), pa svijetli blok uzima
++istu nijansu jedan stepen niže u Tailwind rampi (700) — isto kao što `teal` i `rose` već rade. Tamni blok
++vraća brend hex u punoj vrijednosti, uz hover/active korake svjetlijim (300/200).
++
++**Kako dodati paletu (5 koraka):**
+ 
+ 1. Blok `:root[data-theme="pulse"][data-accent="<ime>"]` i njegov `.dark` par u `frontend/src/index.css`
+    (8 varijabli + `--shadow-glow`).
+-2. Ime u `ThemeAccent` i `THEME_ACCENTS` (`frontend/src/lib/theme/theme-storage.ts`).
++2. Ime u `ThemeAccent`, `THEME_ACCENTS` i `isThemeAccent` (`frontend/src/lib/theme/theme-storage.ts`).
+ 3. Ključevi `theme.accent<Ime>` (+ `…Hint`) u `bs` **i** `en`.
++4. Preview uzorci `.accent-swatch-<ime>` (+ `.dark` varijanta) u `index.css`.
++5. Vrijednost u sanitizaciju pre-paint skripte u `frontend/index.html` — bez toga se izbor tiho vrati na
++   `indigo` nakon prvog reloada.
+ 
+ UI se prilagođava sam (birač, `/appearance`, `role="radiogroup"` iteriraju `THEME_ACCENTS`).
+ `--primary-foreground` nije ukras: **svijetla primary boja traži taman tekst na sebi**.
+@@ -89,7 +100,7 @@ paletu koja **nije** aktivna, pa ne mogu čitati `--primary`.
+ 
+ ## Kontrast (izmjerene vrijednosti)
+ 
+-Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (6 kombinacija × 4 mjerenja = 24/24 na novim paletama):
++Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (12 kombinacija × 4 mjerenja = 48/48 na svim paletama):
+ 
+ | Paleta | Svjetlina | Tekst na primary | Primary kao tekst | Link | Selekcija |
+ |---|---|---|---|---|---|
+@@ -99,9 +110,16 @@ Prag: **≥ 4.5:1** za tekst. Mjereno na generisanom CSS-u (6 kombinacija × 4 m
+ | teal | tamna | 7.77:1 | 9.71:1 | 12.22:1 | 8.79:1 |
+ | rose | svjetla | 6.29:1 | 6.29:1 | 8.02:1 | 9.87:1 |
+ | rose | tamna | 5.81:1 | 6.72:1 | 9.56:1 | 10.51:1 |
++| cyan | svjetla | 5.36:1 | 5.36:1 | 7.27:1 | 9.13:1 |
++| cyan | tamna | 5.52:1 | 7.45:1 | 12.48:1 | 9.99:1 |
++| amber | svjetla | 4.92:1 | 4.92:1 | 6.85:1 | 10.11:1 |
++| amber | tamna | 7.75:1 | 9.62:1 | 13.72:1 | 8.81:1 |
++| orange | svjetla | 5.18:1 | 5.18:1 | 7.31:1 | 10.53:1 |
++| orange | tamna | 5.58:1 | 6.45:1 | 10.72:1 | 10.79:1 |
+ 
+ ⚠ jedina vrijednost ispod AA je **postojeća** indigo paleta u tamnom modu (`text-primary` = 4.00:1) — baseline iz Faze 0,
+-ne regresija; nove palete su strože.
++ne regresija; nove palete su strože. Najniža od novih je **amber u svijetlom modu (4.92:1)** — žuta rampa pada
++ispod 4.5:1 već od 600 stepena, zato je 700 najsvjetliji korak koji može biti svijetla `--primary`.
+ 
+ **Dva pravila koja se lako pogrešno „poprave":**
+ 
+diff --git a/docs/design/Master UI-UX Design Constitution.md b/docs/design/Master UI-UX Design Constitution.md
+index e0fb7b8..ae08e32 100644
+--- a/docs/design/Master UI-UX Design Constitution.md	
++++ b/docs/design/Master UI-UX Design Constitution.md	
+@@ -7,7 +7,7 @@
+ > Implementacijski katalog tokena, paleta i kontrastnih pravila: **`.cursor/docs/theme.md`**.
+ > Prototip novog identiteta i vizuelni dokaz: **`demo/`**. Stara referenca (`referenca-dizajn/`) je arhivirana.
+ >
+-> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose`).
++> Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose` | `cyan` | `amber` | `orange`).
+ 
+ Ova pravila definišu vizuelni i UX smjer cijelog EP-HelpDesk frontenda.
+ 
+@@ -621,9 +621,9 @@ Boja se **nikad** ne piše u komponentu. Sve ide kroz CSS varijablu (RGB kanali)
+ 
+ ## 22.2 Boja brenda je izbor, ne konstanta
+ 
+-Pulse ima **tri palete** (`data-accent`: `indigo` zadana, `teal`, `rose`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
++Pulse ima **šest paleta** (`data-accent`: `indigo` zadana, `teal`, `rose`, `cyan`, `amber`, `orange`) koje rotiraju **samo** brend boje: `--primary`, `--primary-hover`, `--primary-active`, `--primary-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg` i `--shadow-glow`. Neutralne površine, radijusi, sjene i semantički tonovi (`ok` / `warning` / `danger` / `info` / `accent`) se **ne mijenjaju** s paletom.
+ 
+-Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u `teal`/`rose` paleti.
++Zato nova komponenta nikad ne smije pretpostaviti konkretnu nijansu brenda, niti da je `--primary` tamna — ta pretpostavka pada u tamnom modu i u svijetlim paletama (`teal`, `cyan`, `amber`, `orange`).
+ 
+ ## 22.3 Kontrast (obavezno, mjerljivo)
+ 
+@@ -1015,7 +1015,7 @@ Modernost dolazi iz:
+ ### 38.1 Anti-obrasci specifični za Pulse
+ 
+ - hardkodirana boja u komponenti (`#RRGGBB`, `rgb(...)`, Tailwind paleta tipa `bg-slate-100`)
+-- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u `teal`/`rose` paleti)
++- pretpostavka da je `--primary` tamna boja (pada u tamnom modu i u svijetlim paletama: `teal`, `cyan`, `amber`, `orange`)
+ - `text-primary` za tekst na neutralnoj površini (koristi `text-link`)
+ - `rounded-xl` i druge klase koje ne čitaju token
+ - novi token koji postoji samo u dva od tri bloka
+diff --git a/frontend/index.html b/frontend/index.html
+index 220c696..8b454cf 100644
+--- a/frontend/index.html
++++ b/frontend/index.html
+@@ -25,7 +25,14 @@
+             mode = "system";
+           }
+           var accent = window.localStorage.getItem("ep-helpdesk.theme.accent");
+-          if (accent !== "indigo" && accent !== "teal" && accent !== "rose") {
++          if (
++            accent !== "indigo" &&
++            accent !== "teal" &&
++            accent !== "rose" &&
++            accent !== "cyan" &&
++            accent !== "amber" &&
++            accent !== "orange"
++          ) {
+             accent = "indigo";
+           }
+           var prefersDark =
+diff --git a/frontend/src/components/layout/theme-switcher.tsx b/frontend/src/components/layout/theme-switcher.tsx
+index cd0a0fd..f8f008d 100644
+--- a/frontend/src/components/layout/theme-switcher.tsx
++++ b/frontend/src/components/layout/theme-switcher.tsx
+@@ -51,6 +51,9 @@ const ACCENT_LABEL_KEY = {
+   indigo: "theme.accentIndigo",
+   teal: "theme.accentTeal",
+   rose: "theme.accentRose",
++  cyan: "theme.accentCyan",
++  amber: "theme.accentAmber",
++  orange: "theme.accentOrange",
+ } as const satisfies Record<ThemeAccent, string>;
+ 
+ /* `.accent-swatch-*` lives in `src/index.css` — a preview has to render a
+@@ -59,13 +62,17 @@ const ACCENT_SWATCH_CLASS = {
+   indigo: "accent-swatch-indigo",
+   teal: "accent-swatch-teal",
+   rose: "accent-swatch-rose",
++  cyan: "accent-swatch-cyan",
++  amber: "accent-swatch-amber",
++  orange: "accent-swatch-orange",
+ } as const satisfies Record<ThemeAccent, string>;
+ 
+ /**
+  * Appearance control. Design (Pulse / classic), brightness (light / dark /
+- * system) and the brand palette (indigo / teal / rose) are separate choices:
+- * the legacy design is dark-only and has its own blue, so both the brightness
+- * and the palette groups are hidden while it is selected.
++ * system) and the brand palette (indigo / teal / rose / cyan / amber /
++ * orange) are separate choices: the legacy design is dark-only and has its own
++ * blue, so both the brightness and the palette groups are hidden while it is
++ * selected.
+  */
+ export function ThemeSwitcher() {
+   const { t } = useTranslation();
+diff --git a/frontend/src/i18n/locales/bs/common.json b/frontend/src/i18n/locales/bs/common.json
+index 17bf798..04b0b5f 100644
+--- a/frontend/src/i18n/locales/bs/common.json
++++ b/frontend/src/i18n/locales/bs/common.json
+@@ -71,6 +71,12 @@
+     "accentTealHint": "hladna, smirena",
+     "accentRose": "Rose",
+     "accentRoseHint": "topla, izražena",
++    "accentCyan": "Cyan",
++    "accentCyanHint": "svježa, tehnička",
++    "accentAmber": "Amber",
++    "accentAmberHint": "topla, zlatna",
++    "accentOrange": "Orange",
++    "accentOrangeHint": "žarka, energična",
+     "active": "Aktivno"
+   },
+   "appearance": {
+diff --git a/frontend/src/i18n/locales/en/common.json b/frontend/src/i18n/locales/en/common.json
+index 9300684..3088aab 100644
+--- a/frontend/src/i18n/locales/en/common.json
++++ b/frontend/src/i18n/locales/en/common.json
+@@ -71,6 +71,12 @@
+     "accentTealHint": "cool and calm",
+     "accentRose": "Rose",
+     "accentRoseHint": "warm and bold",
++    "accentCyan": "Cyan",
++    "accentCyanHint": "fresh and technical",
++    "accentAmber": "Amber",
++    "accentAmberHint": "warm gold",
++    "accentOrange": "Orange",
++    "accentOrangeHint": "bright and energetic",
+     "active": "Active"
+   },
+   "appearance": {
+diff --git a/frontend/src/index.css b/frontend/src/index.css
+index a609c4b..2f410ff 100644
+--- a/frontend/src/index.css
++++ b/frontend/src/index.css
+@@ -239,6 +239,11 @@
+                             blend OVER the page, so the result is always light
+                             on light palettes and dark on dark ones — which is
+                             why it stays white in every dark palette.
++
++    Ramp rule for the three palettes added later (cyan / amber / orange): the
++    brand hex is the DARK step, because a vivid brand colour cannot hold
++    white text at 4.5:1 in light mode — the light block therefore takes the
++    same hue one ramp down (700 step), exactly like teal and rose do.
+   */
+   :root[data-theme="pulse"][data-accent="teal"] {
+     --primary: 15 118 110;
+@@ -284,6 +289,72 @@
+     --selection-fg: 255 255 255;
+     --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(251 113 133 / 0.5);
+   }
++  :root[data-theme="pulse"][data-accent="cyan"] {
++    --primary: 14 116 144;
++    --primary-hover: 21 94 117;
++    --primary-active: 22 78 99;
++    --primary-foreground: 255 255 255;
++    --ring: 14 116 144;
++    --link: 21 94 117;
++    --selection-bg: 14 116 144;
++    --selection-fg: 8 51 68;
++    --shadow-glow: 0 1px 2px rgb(14 116 144 / 0.28), 0 8px 20px -8px rgb(14 116 144 / 0.45);
++  }
++  :root[data-theme="pulse"][data-accent="cyan"].dark {
++    --primary: 6 182 212;
++    --primary-hover: 103 232 249;
++    --primary-active: 165 243 252;
++    --primary-foreground: 8 51 68;
++    --ring: 6 182 212;
++    --link: 103 232 249;
++    --selection-bg: 6 182 212;
++    --selection-fg: 255 255 255;
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(6 182 212 / 0.5);
++  }
++  :root[data-theme="pulse"][data-accent="amber"] {
++    --primary: 161 98 7;
++    --primary-hover: 133 77 14;
++    --primary-active: 113 63 18;
++    --primary-foreground: 255 255 255;
++    --ring: 161 98 7;
++    --link: 133 77 14;
++    --selection-bg: 161 98 7;
++    --selection-fg: 66 32 6;
++    --shadow-glow: 0 1px 2px rgb(161 98 7 / 0.28), 0 8px 20px -8px rgb(161 98 7 / 0.45);
++  }
++  :root[data-theme="pulse"][data-accent="amber"].dark {
++    --primary: 231 183 2;
++    --primary-hover: 253 224 71;
++    --primary-active: 254 240 138;
++    --primary-foreground: 66 32 6;
++    --ring: 231 183 2;
++    --link: 253 224 71;
++    --selection-bg: 231 183 2;
++    --selection-fg: 255 255 255;
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(231 183 2 / 0.5);
++  }
++  :root[data-theme="pulse"][data-accent="orange"] {
++    --primary: 194 65 12;
++    --primary-hover: 154 52 18;
++    --primary-active: 124 45 18;
++    --primary-foreground: 255 255 255;
++    --ring: 194 65 12;
++    --link: 154 52 18;
++    --selection-bg: 194 65 12;
++    --selection-fg: 67 20 7;
++    --shadow-glow: 0 1px 2px rgb(194 65 12 / 0.28), 0 8px 20px -8px rgb(194 65 12 / 0.45);
++  }
++  :root[data-theme="pulse"][data-accent="orange"].dark {
++    --primary: 249 115 22;
++    --primary-hover: 253 186 116;
++    --primary-active: 254 215 170;
++    --primary-foreground: 67 20 7;
++    --ring: 249 115 22;
++    --link: 253 186 116;
++    --selection-bg: 249 115 22;
++    --selection-fg: 255 255 255;
++    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(249 115 22 / 0.5);
++  }
+ 
+   html,
+   body,
+@@ -442,6 +513,18 @@
+     background-color: rgb(190 18 60);
+   }
+ 
++  .accent-swatch-cyan {
++    background-color: rgb(14 116 144);
++  }
++
++  .accent-swatch-amber {
++    background-color: rgb(161 98 7);
++  }
++
++  .accent-swatch-orange {
++    background-color: rgb(194 65 12);
++  }
++
+   .dark .accent-swatch-indigo {
+     background-color: rgb(111 102 223);
+   }
+@@ -453,6 +536,18 @@
+   .dark .accent-swatch-rose {
+     background-color: rgb(251 113 133);
+   }
++
++  .dark .accent-swatch-cyan {
++    background-color: rgb(6 182 212);
++  }
++
++  .dark .accent-swatch-amber {
++    background-color: rgb(231 183 2);
++  }
++
++  .dark .accent-swatch-orange {
++    background-color: rgb(249 115 22);
++  }
+ }
+ 
+ .draw-ring {
+diff --git a/frontend/src/lib/theme/theme-storage.spec.ts b/frontend/src/lib/theme/theme-storage.spec.ts
+index af563b3..4e5ad20 100644
+--- a/frontend/src/lib/theme/theme-storage.spec.ts
++++ b/frontend/src/lib/theme/theme-storage.spec.ts
+@@ -41,8 +41,8 @@ describe("theme-storage", () => {
+     expect(isDarkAppearance("classic", "light")).toBe(true);
+   });
+ 
+-  it("offers exactly three brand palettes", () => {
+-    expect(THEME_ACCENTS).toEqual(["indigo", "teal", "rose"]);
++  it("offers six brand palettes", () => {
++    expect(THEME_ACCENTS).toEqual(["indigo", "teal", "rose", "cyan", "amber", "orange"]);
+     expect(DEFAULT_THEME_ACCENT).toBe("indigo");
+     expect(THEME_ACCENTS).toContain(DEFAULT_THEME_ACCENT);
+   });
+@@ -51,6 +51,9 @@ describe("theme-storage", () => {
+     expect(isThemeAccent("indigo")).toBe(true);
+     expect(isThemeAccent("teal")).toBe(true);
+     expect(isThemeAccent("rose")).toBe(true);
++    expect(isThemeAccent("cyan")).toBe(true);
++    expect(isThemeAccent("amber")).toBe(true);
++    expect(isThemeAccent("orange")).toBe(true);
+     expect(isThemeAccent("pulse")).toBe(false);
+     expect(isThemeAccent("")).toBe(false);
+     expect(isThemeAccent(null)).toBe(false);
+diff --git a/frontend/src/lib/theme/theme-storage.ts b/frontend/src/lib/theme/theme-storage.ts
+index 8340fcb..1ed8242 100644
+--- a/frontend/src/lib/theme/theme-storage.ts
++++ b/frontend/src/lib/theme/theme-storage.ts
+@@ -7,7 +7,7 @@
+  *            "classic" → legacy dark theme, kept available during rollout
+  *   mode   : "light" | "dark" | "system"
+  *   accent : "indigo"  → the brand palette inside the `pulse` design
+- *            "teal" / "rose"
++ *            "teal" / "rose" / "cyan" / "amber" / "orange"
+  *
+  * `accent` rotates only the brand colours (primary family, ring, links,
+  * selection, primary glow) — see the palette blocks in `src/index.css`. It has
+@@ -21,7 +21,7 @@
+ 
+ export type ThemeDesign = "pulse" | "classic";
+ export type ThemeMode = "light" | "dark" | "system";
+-export type ThemeAccent = "indigo" | "teal" | "rose";
++export type ThemeAccent = "indigo" | "teal" | "rose" | "cyan" | "amber" | "orange";
+ export type ResolvedColorMode = "light" | "dark";
+ 
+ export const THEME_DESIGN_STORAGE_KEY = "ep-helpdesk.theme.design";
+@@ -38,7 +38,14 @@ export const DEFAULT_THEME_ACCENT: ThemeAccent = "indigo";
+ 
+ export const THEME_DESIGNS: readonly ThemeDesign[] = ["pulse", "classic"];
+ export const THEME_MODES: readonly ThemeMode[] = ["light", "dark", "system"];
+-export const THEME_ACCENTS: readonly ThemeAccent[] = ["indigo", "teal", "rose"];
++export const THEME_ACCENTS: readonly ThemeAccent[] = [
++  "indigo",
++  "teal",
++  "rose",
++  "cyan",
++  "amber",
++  "orange",
++];
+ 
+ export function isThemeDesign(value: unknown): value is ThemeDesign {
+   return value === "pulse" || value === "classic";
+@@ -49,7 +56,14 @@ export function isThemeMode(value: unknown): value is ThemeMode {
+ }
+ 
+ export function isThemeAccent(value: unknown): value is ThemeAccent {
+-  return value === "indigo" || value === "teal" || value === "rose";
++  return (
++    value === "indigo" ||
++    value === "teal" ||
++    value === "rose" ||
++    value === "cyan" ||
++    value === "amber" ||
++    value === "orange"
++  );
+ }
+ 
+ export function resolveColorMode(
+diff --git a/frontend/src/pages/appearance-page.tsx b/frontend/src/pages/appearance-page.tsx
+index fa7bf4c..bb7a695 100644
+--- a/frontend/src/pages/appearance-page.tsx
++++ b/frontend/src/pages/appearance-page.tsx
+@@ -61,12 +61,18 @@ const ACCENT_LABEL_KEYS = {
+   indigo: "theme.accentIndigo",
+   teal: "theme.accentTeal",
+   rose: "theme.accentRose",
++  cyan: "theme.accentCyan",
++  amber: "theme.accentAmber",
++  orange: "theme.accentOrange",
+ } as const satisfies Record<ThemeAccent, string>;
+ 
+ const ACCENT_HINT_KEYS = {
+   indigo: "theme.accentIndigoHint",
+   teal: "theme.accentTealHint",
+   rose: "theme.accentRoseHint",
++  cyan: "theme.accentCyanHint",
++  amber: "theme.accentAmberHint",
++  orange: "theme.accentOrangeHint",
+ } as const satisfies Record<ThemeAccent, string>;
+ 
+ /* Defined in `src/index.css`: a preview must render a palette that is not the
+@@ -75,6 +81,9 @@ const ACCENT_SWATCH_CLASS = {
+   indigo: "accent-swatch-indigo",
+   teal: "accent-swatch-teal",
+   rose: "accent-swatch-rose",
++  cyan: "accent-swatch-cyan",
++  amber: "accent-swatch-amber",
++  orange: "accent-swatch-orange",
+ } as const satisfies Record<ThemeAccent, string>;
+ 
+ /** Token chips that make the difference between the two designs visible at a glance. */

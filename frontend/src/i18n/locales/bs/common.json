@@ -71,6 +71,12 @@
     "accentTealHint": "hladna, smirena",
     "accentRose": "Rose",
     "accentRoseHint": "topla, izražena",
+    "accentCyan": "Cyan",
+    "accentCyanHint": "svježa, tehnička",
+    "accentAmber": "Amber",
+    "accentAmberHint": "topla, zlatna",
+    "accentOrange": "Orange",
+    "accentOrangeHint": "žarka, energična",
     "active": "Aktivno"
   },
   "appearance": {
