@@ -184,3 +184,9 @@ kao zaseban patch (migracija + payload ugovor + testovi), ne u istom koraku.
 | 3a–3d | ti | `<label>.json` + `<label>.md` + `api.log` isječci |
 | 3e, upis u dokumente | ja | patch za `PERF_BUDGETS.md` / izvještaj |
 | 4 | ti pokreće upite, ja tumačim | odluka o opciji A |
+
+## Brojke nakon runa
+
+Jedna komanda (SLO tabela + `db_queries_per_request` po pravilima CI kapije):
+`ops/collect-staging-numbers.sh perf/results/<label>.json api.log`.
+Detaljno uputstvo za verifikacije A/B/C: `ops/uputstvo-verifikacije.md`.
