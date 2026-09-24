@@ -11,12 +11,20 @@ runbook služi da se to ne miješa s „aplikacija je pala".
   waiting-for-user, KB podsjetnici) se ne izvršavaju.
 - U logu: `ws adapter: fallback=in_memory`, `*_schedule_failed`, `authz_*_invalidation_skipped`,
   `Failed to write worker heartbeat`.
-- **ACL, ne pad Redisa** (drugačiji slučaj, isti korijen): API se uopšte ne digne, u
-  logu `ReplyError: NOPERM No permissions to access a channel` s
-  `command: { name: 'psubscribe', args: ['socket.io#/#*'] }`. ACL useru `ephelpdesk`
-  nedostaje kanal — vidi `ops/redis-acl.line` (Socket.IO traži `socket.io#*`,
-  `socket.io-request#*`, `socket.io-response#*`; F4 most `tickets:realtime-bridge`).
-  Kanal se **ne** prefiksira `REDIS_KEY_PREFIX`-om, pa `&ephelpdesk:*` ovdje ne pomaže.
+- **ACL, ne pad Redisa** (drugačiji slučaj, isti korijen): u logu
+  `ws_adapter_redis_acl_denied channel=socket.io#/#*`, `ws_adapter_redis_command_denied
+  command=psubscribe …` ili `ReplyError: NOPERM No permissions to access a channel`
+  (`command: { name: 'psubscribe', args: ['socket.io#/#*'] }`). API ostaje živ —
+  gateway od F4 dopune ne instalira Redis adapter kad ACL odbija kanal, nego radi s
+  in-memory adapterom — ali tada **sobe ne važe preko instanci**: emit s jedne
+  instance ne stiže klijentima na drugoj. Popravi ACL i restartuj API.
+  - **Pravilo poklapanja (ovdje se ljudi najčešće prevare):** `PUBLISH`/`SUBSCRIBE` se
+    poklapaju s globom, a **`PSUBSCRIBE` traži literalno poklapanje** — `&socket.io#*`
+    **ne** dozvoljava `PSUBSCRIBE socket.io#/#*`. U ACL-u mora stajati i
+    `&socket.io#/#*` (adapter), uz `&socket.io-request#*`/`&socket.io-response#*`
+    (request/response kanali) i `&tickets:realtime-bridge` (F4 most).
+  - Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om, pa `&ephelpdesk:*` ovdje ne
+    pomaže: adapter je `socket.io…`, bez prefiksa.
 
 ## Šta se dešava po komponenti (fail-open grane)
 
@@ -39,7 +47,7 @@ redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" info clients
 redis-cli llen 'bull:ephelpdesk:integration-jobs:wait'    # da li red stoji
 ```
 Provjeri i ACL (`ops/redis-acl.line`), `REDIS_KEY_PREFIX`/`QUEUE_PREFIX` i da nije
-rijеč o mreži/LB-u između API-ja i Redisa.
+riječ o mreži/LB-u između API-ja i Redisa.
 
 ```bash
 redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
@@ -48,12 +56,16 @@ redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
 #              &socket.io-response:*
 redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
   psubscribe 'socket.io#/#*'          # NOPERM = ACL, ne mreža; odmah Ctrl-C
+redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
+  subscribe 'socket.io-request#/#'    # glob poklapanje; prazno = čeka poruke
 ```
 
-> **Napomena (dok se ne zatvori fail-open praznina):** odbijen `psubscribe` obara API
-> proces (unhandled rejection iz adaptera), a ne prelazi u `fallback=in_memory` kao
-> ostale Redis putanje. Zato je ACL greška **dostupnost**, ne degradacija: popravi ACL
-> i restartuj API.
+> **Napomena (zatvoreno u F4 dopuni):** prije dopune je odbijen `psubscribe` obarao
+> API proces (unhandled rejection iz adaptera). Sada `WebsocketGateway.onModuleInit`
+> provjerava kanale prije instalacije adaptera (`checkRealtimeAdapterSubscriptions`),
+> a komande adaptera su umotane (`attachRealtimeCommandGuards`), pa ACL greška daje
+> `fallback=in_memory reason=acl_denied` i API ostaje gore. Cijena: bez cross-instance
+> emit-a — dakle popravi ACL, ali nema više ispada.
 
 ## Ublažavanje
 

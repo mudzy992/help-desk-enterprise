@@ -1,5 +1,5 @@
 import { Inject, Logger, Optional } from '@nestjs/common';
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -28,8 +28,10 @@ import {
   startWebsocketEmitCountReporter,
 } from './websocket-emit-counter';
 import {
+  checkRealtimeAdapterSubscriptions,
   createWebsocketRedisAdapter,
   formatWebsocketAdapterStatus,
+  type RealtimeAdapterSubscriptionCheck,
   type WebsocketRedisAdapterHandle,
 } from './ws-redis-adapter';
 
@@ -39,13 +41,25 @@ import {
   },
 })
 export class WebsocketGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnModuleInit,
+    OnModuleDestroy
 {
   private readonly logger = new Logger(WebsocketGateway.name);
 
   private stopClientCountReporter: (() => void) | null = null;
   private stopEmitCountReporter: (() => void) | null = null;
   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
+
+  /**
+   * Faza 3.1, dopuna: whether the ACL lets this user subscribe to the adapter's
+   * channels. Resolved once at module init (before the WebSocket server exists)
+   * and read synchronously when the adapter is installed.
+   */
+  private adapterSubscriptionCheck: RealtimeAdapterSubscriptionCheck = 'unknown';
 
   constructor(
     private readonly socketAuthenticationService: SocketAuthenticationService,
@@ -57,6 +71,21 @@ export class WebsocketGateway
     @Inject(redisTokens.configuration)
     private readonly redisConfiguration?: RedisConfiguration,
   ) {}
+
+  /**
+   * Runs before `afterInit` (Nest calls every `onModuleInit` in `init()`, while
+   * the WebSocket server is created when the HTTP server starts listening), so
+   * the adapter decision is already known when it is applied.
+   */
+  async onModuleInit(): Promise<void> {
+    if (this.redisConfiguration === undefined) {
+      return;
+    }
+    this.adapterSubscriptionCheck = await checkRealtimeAdapterSubscriptions(
+      this.redisConfiguration,
+      this.logger,
+    );
+  }
 
   afterInit(server: Server): void {
     server.use((socket: Socket, next: (error?: Error) => void) => {
@@ -88,6 +117,15 @@ export class WebsocketGateway
    * the handshake or the room rules — only how an emit travels between processes.
    */
   private applyRealtimeAdapter(server: Server): void {
+    // An ACL that denies the channel would kill the process on the adapter's
+    // first `PSUBSCRIBE` (the adapter does not await it), so a known denial is
+    // answered here instead: in-memory adapter, one explicit log line, API up.
+    if (this.adapterSubscriptionCheck === 'denied') {
+      this.logger.warn(
+        `${formatWebsocketAdapterStatus(false)} fallback=in_memory reason=acl_denied`,
+      );
+      return;
+    }
     const handle =
       this.redisConfiguration === undefined
         ? null
