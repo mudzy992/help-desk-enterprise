@@ -163,6 +163,9 @@ jobs:
       - uses: grafana/setup-k6-action@v1
 
       - name: Run the k6 smoke with CI thresholds
+        # 200 VU / 5 min profile; the ceiling is here so a stalled run fails the job
+        # instead of sitting in the queue for hours (the first honest run did exactly that).
+        timeout-minutes: 20
         env:
           REPORT_LABEL: ci-smoke
           AGENT_EMAIL: perf-admin@example.test
@@ -291,6 +294,13 @@ jobs:
               echo '```'
               echo "</details>"
             fi
+            echo ""
+            echo "<details><summary>k6 izlaz (zadnjih 30 linija perf-smoke.log)</summary>"
+            echo ""
+            echo '```'
+            tail -30 perf-smoke.log 2>/dev/null || echo "(k6 nije ništa zapisao — run je stao prije prve iteracije)"
+            echo '```'
+            echo "</details>"
             echo ""
             echo "<details><summary>Install wizard — transkript</summary>"
             echo ""
