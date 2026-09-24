@@ -38,6 +38,7 @@ fi
 PATCHES=(
   "perf-00-measurement-and-baseline.patch:backend/src/common/database/db-query-counter.ts"
   "perf-01-stop-krvarenje.patch:backend/src/modules/search/search.controller.ts"
+  "perf-02-baza-event-loop.patch:backend/src/common/principal-context/principal-context.cache.ts"
 )
 
 applied=0
@@ -141,10 +142,10 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd backend && npm install"
   echo "  npx prisma generate        # ako je blokiran download: PRISMA_SCHEMA_ENGINE_BINARY=/bin/true npx prisma generate"
-  echo "  npx prisma migrate deploy  # 6 kompozitnih + 3 trigram indeksa (CONCURRENTLY)"
-  echo "  npx jest                   # očekivano: 335 suita / 1228 testa"
+  echo "  npx prisma migrate deploy  # F1: 6 kompozitnih + 3 trigram indeksa; F2: authzVersion + SLA nextDueAt (CONCURRENTLY)"
+  echo "  npx jest                   # očekivano: 356 suita / 1340 testova"
   echo "  npm run build              # očekivano: uspješno"
-  echo "  cd ../frontend && npm install && npm test   # očekivano: 91 fajl / 318 testova"
+  echo "  cd ../frontend && npm install && npm test   # očekivano: 91 fajl / 320 testova"
   echo
   echo "Perf paket (bez k6, radi svuda):"
   echo "  node perf/validate.js      # očekivano: all checks passed"
