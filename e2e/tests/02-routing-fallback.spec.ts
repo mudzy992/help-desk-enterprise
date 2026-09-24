@@ -36,7 +36,11 @@ test.describe('02 routing / fallback', () => {
     expect(unrouted.status).toBe('UNROUTED');
     expect(unrouted.assignedGroupId).toBeNull();
     await signIn(page, env.superAdminEmail, env.superAdminPassword);
-    await page.goto('/tickets?view=inbox');
-    await expect(page.getByText(routed.title)).toBeVisible({ timeout: 20_000 });
+    // The inbox shows only the viewer's own groups; the SuperAdmin need not be a
+    // member of the group the ticket was routed to. The full list shows it (as in 07).
+    await page.goto('/tickets');
+    await expect(page.getByText(routed.title).first()).toBeVisible({
+      timeout: 20_000,
+    });
   });
 });
