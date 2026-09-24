@@ -1,0 +1,537 @@
+perf-06 — ACL odbijen kanal ne obara API (graceful fallback + kanali u kodu)
+
+Primjena: bash perf/patches/apply-perf.sh   (POSLIJE perf-00 … perf-05 i ops-01)
+
+Zašto: `@socket.io/redis-adapter` ne awaita svoje `PSUBSCRIBE`/`PUBLISH` pozive.
+Kad Redis ACL odbije kanal, odbijeni promise nema handlera → Node 22 to tretira
+kao unhandled rejection i **ubije proces**:
+
+  ReplyError: NOPERM No permissions to access a channel
+      at parseError (.../redis-parser/lib/parser.js:179:12)
+    command: { name: 'psubscribe', args: [ 'socket.io#/#*' ] }
+
+To je suprotno pravilu iz Faze 3.1 („adapter nikad ne blokira boot, padne na
+in-memory"). Dva production ispada su došla iz ovoga.
+
+Šta mijenja:
+  ws-redis-adapter.ts
+    + realtimeAdapterChannelPattern / RequestChannel / ResponseChannel (nazivi koje
+      adapter stvarno koristi; `socket.io#/#*` je i literalni ACL pattern)
+    + checkRealtimeAdapterSubscriptions(): proba psubscribe/subscribe na zasebnoj
+      vezi PRIJE instalacije adaptera; 'denied' | 'allowed' | 'unknown' (timeout 2 s
+      i ECONNREFUSED = 'unknown' → ponašanje kao prije, ioredis dalje retrya)
+    + attachRealtimeCommandGuards(): pSubscribe/subscribe/publish dobiju .catch, pa
+      odbijena komanda ostavi jednu log liniju umjesto da ubije proces
+  websocket.gateway.ts
+    + onModuleInit() (Nest ga izvrši prije `afterInit`) rezolvira ACL provjeru;
+      `applyRealtimeAdapter` na 'denied' loguje
+      `ws_adapter_redis_ok=0 fallback=in_memory reason=acl_denied` i ostavlja
+      in-memory adapter. Ostali ishodi = instalacija adaptera kao i prije.
+  ws-redis-adapter.spec.ts
+    + 7 testova: allowed/denied/unknown/timeout probe, guard za publish i subscribe,
+      klijent bez komandi
+
+Nema novih paketa, nema migracija, nema promjene ponašanja soba kad ACL valja.
+Verifikacija: backend `npx jest --silent` 365 suita / 1395 testova; `npx tsc --noEmit`
+čist. Detalji i komande: ops/runbook/redis-down.md.
+
+---
+diff --git a/backend/src/modules/websocket/websocket.gateway.ts b/backend/src/modules/websocket/websocket.gateway.ts
+index e950220..446ecf5 100644
+--- a/backend/src/modules/websocket/websocket.gateway.ts
++++ b/backend/src/modules/websocket/websocket.gateway.ts
+@@ -1,5 +1,5 @@
+ import { Inject, Logger, Optional } from '@nestjs/common';
+-import { OnModuleDestroy } from '@nestjs/common';
++import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+ import {
+   OnGatewayConnection,
+   OnGatewayDisconnect,
+@@ -28,8 +28,10 @@ import {
+   startWebsocketEmitCountReporter,
+ } from './websocket-emit-counter';
+ import {
++  checkRealtimeAdapterSubscriptions,
+   createWebsocketRedisAdapter,
+   formatWebsocketAdapterStatus,
++  type RealtimeAdapterSubscriptionCheck,
+   type WebsocketRedisAdapterHandle,
+ } from './ws-redis-adapter';
+ 
+@@ -39,7 +41,12 @@ import {
+   },
+ })
+ export class WebsocketGateway
+-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
++  implements
++    OnGatewayInit,
++    OnGatewayConnection,
++    OnGatewayDisconnect,
++    OnModuleInit,
++    OnModuleDestroy
+ {
+   private readonly logger = new Logger(WebsocketGateway.name);
+ 
+@@ -47,6 +54,13 @@ export class WebsocketGateway
+   private stopEmitCountReporter: (() => void) | null = null;
+   private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
+ 
++  /**
++   * Faza 3.1, dopuna: whether the ACL lets this user subscribe to the adapter's
++   * channels. Resolved once at module init (before the WebSocket server exists)
++   * and read synchronously when the adapter is installed.
++   */
++  private adapterSubscriptionCheck: RealtimeAdapterSubscriptionCheck = 'unknown';
++
+   constructor(
+     private readonly socketAuthenticationService: SocketAuthenticationService,
+     private readonly socketGroupMembershipService: SocketGroupMembershipService,
+@@ -58,6 +72,21 @@ export class WebsocketGateway
+     private readonly redisConfiguration?: RedisConfiguration,
+   ) {}
+ 
++  /**
++   * Runs before `afterInit` (Nest calls every `onModuleInit` in `init()`, while
++   * the WebSocket server is created when the HTTP server starts listening), so
++   * the adapter decision is already known when it is applied.
++   */
++  async onModuleInit(): Promise<void> {
++    if (this.redisConfiguration === undefined) {
++      return;
++    }
++    this.adapterSubscriptionCheck = await checkRealtimeAdapterSubscriptions(
++      this.redisConfiguration,
++      this.logger,
++    );
++  }
++
+   afterInit(server: Server): void {
+     server.use((socket: Socket, next: (error?: Error) => void) => {
+       void this.authenticateHandshake(socket, next);
+@@ -88,6 +117,15 @@ export class WebsocketGateway
+    * the handshake or the room rules — only how an emit travels between processes.
+    */
+   private applyRealtimeAdapter(server: Server): void {
++    // An ACL that denies the channel would kill the process on the adapter's
++    // first `PSUBSCRIBE` (the adapter does not await it), so a known denial is
++    // answered here instead: in-memory adapter, one explicit log line, API up.
++    if (this.adapterSubscriptionCheck === 'denied') {
++      this.logger.warn(
++        `${formatWebsocketAdapterStatus(false)} fallback=in_memory reason=acl_denied`,
++      );
++      return;
++    }
+     const handle =
+       this.redisConfiguration === undefined
+         ? null
+diff --git a/backend/src/modules/websocket/ws-redis-adapter.spec.ts b/backend/src/modules/websocket/ws-redis-adapter.spec.ts
+index ad090ea..b34dcf2 100644
+--- a/backend/src/modules/websocket/ws-redis-adapter.spec.ts
++++ b/backend/src/modules/websocket/ws-redis-adapter.spec.ts
+@@ -1,7 +1,12 @@
+ import { createRedisClient } from '../../common/redis/create-redis-client';
+ import {
++  attachRealtimeCommandGuards,
++  checkRealtimeAdapterSubscriptions,
+   createWebsocketRedisAdapter,
+   formatWebsocketAdapterStatus,
++  realtimeAdapterChannelPattern,
++  realtimeAdapterRequestChannel,
++  realtimeAdapterResponseChannel,
+ } from './ws-redis-adapter';
+ 
+ jest.mock('@socket.io/redis-adapter', () => ({
+@@ -23,10 +28,22 @@ type FakeClient = {
+   readonly emitter: Map<string, ((error: Error) => void)[]>;
+   readonly status: string;
+   on(event: string, listener: (error: Error) => void): void;
++  connect(): Promise<void>;
+   disconnect(): void;
+   quit(): Promise<void>;
++  psubscribe: jest.Mock;
++  subscribe: jest.Mock;
++  publish: jest.Mock;
+ };
+ 
++/** Same shape an ioredis reply error has when the ACL denies a channel. */
++function channelPermissionError(command: string, channel: string): Error {
++  return Object.assign(
++    new Error('NOPERM No permissions to access a channel'),
++    { command: { name: command, args: [channel] } },
++  );
++}
++
+ function createFakeClient(): FakeClient {
+   return {
+     emitter: new Map(),
+@@ -36,8 +53,12 @@ function createFakeClient(): FakeClient {
+       listeners.push(listener);
+       this.emitter.set(event, listeners);
+     },
++    connect: jest.fn(async () => undefined),
+     disconnect: jest.fn(),
+     quit: jest.fn(async () => undefined),
++    psubscribe: jest.fn(async () => undefined),
++    subscribe: jest.fn(async () => undefined),
++    publish: jest.fn(async () => undefined),
+   };
+ }
+ 
+@@ -122,3 +143,120 @@ describe('createWebsocketRedisAdapter', () => {
+     expect(formatWebsocketAdapterStatus(false)).toBe('ws_adapter_redis_ok=0');
+   });
+ });
++
++describe('attachRealtimeCommandGuards', () => {
++  const logger = { warn: jest.fn(), log: jest.fn() };
++
++  beforeEach(() => {
++    logger.warn.mockReset();
++  });
++
++  it('keeps a denied publish from becoming an unhandled rejection', async () => {
++    const client = createFakeClient();
++    client.publish = jest.fn(async () => {
++      throw channelPermissionError('publish', 'socket.io#/#room-1#');
++    });
++    attachRealtimeCommandGuards(client as never, logger);
++
++    // The adapter calls publish without awaiting it; the guard must swallow the
++    // rejection and leave one log line behind.
++    client.publish('socket.io#/#room-1#', 'x');
++    await new Promise((resolve) => setImmediate(resolve));
++
++    expect(logger.warn).toHaveBeenCalledWith(
++      expect.stringContaining('ws_adapter_redis_command_denied command=publish'),
++    );
++  });
++
++  it('passes a successful command through unchanged', async () => {
++    const client = createFakeClient();
++    const original = client.subscribe;
++    attachRealtimeCommandGuards(client as never, logger);
++
++    await expect(
++      (client.subscribe as jest.Mock)(realtimeAdapterRequestChannel),
++    ).resolves.toBeUndefined();
++    expect(original).toHaveBeenCalledWith(realtimeAdapterRequestChannel);
++    expect(logger.warn).not.toHaveBeenCalled();
++  });
++
++  it('skips clients that do not have the command (the unit-test fakes)', () => {
++    const bare = { on: jest.fn(), disconnect: jest.fn() };
++    expect(() => attachRealtimeCommandGuards(bare as never, logger)).not.toThrow();
++  });
++});
++
++describe('checkRealtimeAdapterSubscriptions', () => {
++  const logger = { warn: jest.fn(), log: jest.fn() };
++
++  beforeEach(() => {
++    logger.warn.mockReset();
++    logger.log.mockReset();
++    createRedisClientMock.mockReset();
++  });
++
++  it('reports the adapter channels as allowed and closes the probe', async () => {
++    const probe = createFakeClient();
++    createRedisClientMock.mockReturnValueOnce(probe as never);
++
++    await expect(
++      checkRealtimeAdapterSubscriptions(configuration, logger),
++    ).resolves.toBe('allowed');
++
++    expect(probe.connect).toHaveBeenCalledTimes(1);
++    expect(probe.psubscribe).toHaveBeenCalledWith(realtimeAdapterChannelPattern);
++    expect(probe.subscribe).toHaveBeenCalledWith(
++      realtimeAdapterRequestChannel,
++      realtimeAdapterResponseChannel,
++    );
++    expect(probe.disconnect).toHaveBeenCalledTimes(1);
++  });
++
++  it('reports denied when the ACL refuses the pattern subscription', async () => {
++    const probe = createFakeClient();
++    probe.psubscribe = jest.fn(async () => {
++      throw channelPermissionError('psubscribe', realtimeAdapterChannelPattern);
++    });
++    createRedisClientMock.mockReturnValueOnce(probe as never);
++
++    await expect(
++      checkRealtimeAdapterSubscriptions(configuration, logger),
++    ).resolves.toBe('denied');
++
++    expect(logger.warn).toHaveBeenCalledWith(
++      `ws_adapter_redis_acl_denied channel=${realtimeAdapterChannelPattern}`,
++    );
++    expect(probe.disconnect).toHaveBeenCalledTimes(1);
++  });
++
++  it('keeps the previous behaviour when Redis is unreachable', async () => {
++    const probe = createFakeClient();
++    probe.connect = jest.fn(async () => {
++      throw new Error('connect ECONNREFUSED 10.0.0.5:6379');
++    });
++    createRedisClientMock.mockReturnValueOnce(probe as never);
++
++    await expect(
++      checkRealtimeAdapterSubscriptions(configuration, logger),
++    ).resolves.toBe('unknown');
++
++    expect(logger.warn).toHaveBeenCalledWith(
++      expect.stringContaining('ws_adapter_redis_acl_check=unknown reason=connect ECONNREFUSED'),
++    );
++  });
++
++  it('gives up after the timeout and leaves the decision to ioredis', async () => {
++    const probe = createFakeClient();
++    probe.connect = jest.fn(() => new Promise<void>(() => undefined));
++    createRedisClientMock.mockReturnValueOnce(probe as never);
++
++    await expect(
++      checkRealtimeAdapterSubscriptions(configuration, logger, { timeoutMs: 5 }),
++    ).resolves.toBe('unknown');
++
++    expect(logger.warn).toHaveBeenCalledWith(
++      'ws_adapter_redis_acl_check=unknown reason=timeout',
++    );
++    expect(probe.disconnect).toHaveBeenCalledTimes(1);
++  });
++});
+diff --git a/backend/src/modules/websocket/ws-redis-adapter.ts b/backend/src/modules/websocket/ws-redis-adapter.ts
+index f38d9a6..fe69295 100644
+--- a/backend/src/modules/websocket/ws-redis-adapter.ts
++++ b/backend/src/modules/websocket/ws-redis-adapter.ts
+@@ -17,11 +17,43 @@ export type WebsocketRedisAdapterHandle = {
+   close(): Promise<void>;
+ };
+ 
++/**
++ * The channels `@socket.io/redis-adapter` touches, spelled out so the Redis ACL
++ * can be written and checked before the adapter runs.
++ *
++ * They mirror the package (`opts.key || "socket.io"` plus the namespace name,
++ * here the root namespace `/`):
++ *   channel          → `socket.io#/#<room>#`   (PUBLISH, per room)
++ *   requestChannel   → `socket.io-request#/#`  (PUBLISH + SUBSCRIBE)
++ *   responseChannel  → `socket.io-response#/#<uid>#` (PUBLISH + SUBSCRIBE)
++ * and the adapter subscribes with `PSUBSCRIBE socket.io#/#*`.
++ *
++ * Redis ACL treats the two kinds of subscription differently: `PUBLISH` and
++ * `SUBSCRIBE` are matched against the allowed globs, but **`PSUBSCRIBE` needs a
++ * literal match** — `&socket.io#*` does not cover `socket.io#/#*`. That is why
++ * the pattern below is its own constant: it is the exact string the ACL has to
++ * allow (`&socket.io#/#*`), and the one this module probes for.
++ */
++export const realtimeAdapterChannelPrefix = 'socket.io';
++export const realtimeAdapterChannelPattern = `${realtimeAdapterChannelPrefix}#/#*`;
++export const realtimeAdapterRequestChannel = `${realtimeAdapterChannelPrefix}-request#/#`;
++export const realtimeAdapterResponseChannel = `${realtimeAdapterChannelPrefix}-response#/#`;
++
++/**
++ * How long the boot-time probe waits before it stops caring. Two seconds is
++ * longer than a healthy local Redis needs and short enough that a Redis that is
++ * down cannot delay the API: an unfinished probe is "unknown", and "unknown"
++ * behaves exactly like before this check existed.
++ */
++export const realtimeAdapterCheckTimeoutMs = 2_000;
++
++export type RealtimeAdapterSubscriptionCheck = 'allowed' | 'denied' | 'unknown';
++
+ /**
+  * Phase 3.1 (plan §3.1): the Socket.IO Redis adapter, so two API instances share
+  * one set of rooms instead of each serving a private universe.
+  *
+- * Three rules the plan calls out:
++ * Four rules the plan calls out:
+  * 1. **Dedicated connections.** The subscriber connection cannot run normal
+  *    commands, and BullMQ already owns its own connections — so this creates two
+  *    fresh clients through the existing factory (`create-redis-client.ts`), with
+@@ -32,6 +64,11 @@ export type WebsocketRedisAdapterHandle = {
+  *    back on its own once Redis is reachable again.
+  * 3. **No unhandled errors.** ioredis emits `error` on connection loss; without a
+  *    listener that is an uncaught exception. Both clients get a listener here.
++ * 4. **No unhandled command rejections.** The adapter subscribes and publishes
++ *    without awaiting, so a *reply* error (an ACL that denies the channel) is a
++ *    rejected promise nobody handles — Node then kills the process. The subscribe
++ *    and publish commands are wrapped (`attachRealtimeCommandGuards`) so that a
++ *    denial is logged and the process stays up.
+  */
+ export function createWebsocketRedisAdapter(
+   configuration: RedisConfiguration,
+@@ -42,6 +79,8 @@ export function createWebsocketRedisAdapter(
+     const subscribeClient = createRedisClient(configuration);
+     attachConnectionErrorLogging(publishClient, logger);
+     attachConnectionErrorLogging(subscribeClient, logger);
++    attachRealtimeCommandGuards(publishClient, logger);
++    attachRealtimeCommandGuards(subscribeClient, logger);
+     return {
+       adapter: createAdapter(publishClient, subscribeClient),
+       publishClient,
+@@ -61,11 +100,166 @@ export function createWebsocketRedisAdapter(
+   }
+ }
+ 
++/**
++ * Asks Redis whether this user may subscribe to the channels the adapter will
++ * use, before the adapter is installed.
++ *
++ * `denied` is the answer to act on: the gateway then keeps the in-memory adapter
++ * and the API boots degraded instead of dying on the first `PSUBSCRIBE`
++ * (`NOPERM No permissions to access a channel`, which is what a Redis ACL that
++ * only grants `&socket.io#*` produces — see `ops/redis-acl.line`).
++ *
++ * `unknown` covers everything else — Redis unreachable, a reply we do not
++ * recognise, the timeout above — and means "do what we did before": install the
++ * adapter and let ioredis retry, because a Redis that is merely down must not
++ * cost us the cross-instance adapter.
++ */
++export async function checkRealtimeAdapterSubscriptions(
++  configuration: RedisConfiguration,
++  logger: WebsocketAdapterLogger,
++  options: { readonly timeoutMs?: number } = {},
++): Promise<RealtimeAdapterSubscriptionCheck> {
++  let probe: Redis;
++  try {
++    probe = createRedisClient(configuration);
++  } catch (error) {
++    logger.warn(
++      `ws_adapter_redis_acl_check=unknown reason=${error instanceof Error ? error.message : String(error)}`,
++    );
++    return 'unknown';
++  }
++  try {
++    const outcome = await withTimeout(
++      probeSubscriptions(probe),
++      options.timeoutMs ?? realtimeAdapterCheckTimeoutMs,
++    );
++    if (outcome === 'timeout') {
++      logger.warn('ws_adapter_redis_acl_check=unknown reason=timeout');
++      return 'unknown';
++    }
++    return 'allowed';
++  } catch (error) {
++    if (isChannelPermissionDenied(error)) {
++      logger.warn(
++        `ws_adapter_redis_acl_denied channel=${readDeniedChannel(error) ?? realtimeAdapterChannelPattern}`,
++      );
++      return 'denied';
++    }
++    logger.warn(
++      `ws_adapter_redis_acl_check=unknown reason=${error instanceof Error ? error.message : String(error)}`,
++    );
++    return 'unknown';
++  } finally {
++    // `disconnect` rather than `quit`: the probe must not keep a retry loop (or
++    // the process) alive when Redis is not answering.
++    try {
++      probe.disconnect();
++    } catch {
++      // The connection was never established; nothing to close.
++    }
++  }
++}
++
+ /** One line per state change, same shape as the other `ws_*` metrics from Faza 0. */
+ export function formatWebsocketAdapterStatus(active: boolean): string {
+   return `ws_adapter_redis_ok=${active ? 1 : 0}`;
+ }
+ 
++/**
++ * The adapter never awaits its own commands, so this is where an ACL denial stops
++ * being an unhandled rejection: the promise the caller ignores gets a handler that
++ * logs one line and keeps the process alive. Methods a client does not have (the
++ * fakes in the unit tests) are simply skipped.
++ */
++export function attachRealtimeCommandGuards(
++  client: Redis,
++  logger: WebsocketAdapterLogger,
++): Redis {
++  for (const method of [
++    'pSubscribe',
++    'psubscribe',
++    'subscribe',
++    'publish',
++  ] as const) {
++    const target = client as unknown as Record<string, unknown>;
++    const original = target[method];
++    if (typeof original !== 'function') {
++      continue;
++    }
++    target[method] = (...args: unknown[]) => {
++      const result = (original as (...commandArgs: unknown[]) => unknown).apply(
++        client,
++        args,
++      );
++      if (
++        typeof result === 'object' &&
++        result !== null &&
++        typeof (result as Promise<unknown>).catch === 'function'
++      ) {
++        void (result as Promise<unknown>).catch((error: unknown) => {
++          logger.warn(
++            `ws_adapter_redis_command_denied command=${method} reason=${error instanceof Error ? error.message : String(error)}`,
++          );
++        });
++      }
++      return result;
++    };
++  }
++  return client;
++}
++
++async function probeSubscriptions(probe: Redis): Promise<void> {
++  if (probe.status === 'wait') {
++    await probe.connect();
++  }
++  await probe.psubscribe(realtimeAdapterChannelPattern);
++  await probe.subscribe(
++    realtimeAdapterRequestChannel,
++    realtimeAdapterResponseChannel,
++  );
++}
++
++async function withTimeout<T>(
++  work: Promise<T>,
++  timeoutMs: number,
++): Promise<T | 'timeout'> {
++  let timer: ReturnType<typeof setTimeout> | undefined;
++  try {
++    return await Promise.race([
++      work,
++      new Promise<'timeout'>((resolve) => {
++        timer = setTimeout(() => resolve('timeout'), timeoutMs);
++      }),
++    ]);
++  } finally {
++    if (timer !== undefined) {
++      clearTimeout(timer);
++    }
++  }
++}
++
++function isChannelPermissionDenied(error: unknown): boolean {
++  if (!(error instanceof Error)) {
++    return false;
++  }
++  return (
++    error.message.includes('NOPERM') ||
++    error.message.includes('permissions to access a channel')
++  );
++}
++
++/** ioredis puts the rejected command on the error; it names the offending channel. */
++function readDeniedChannel(error: unknown): string | null {
++  const command = (error as { readonly command?: { readonly args?: unknown } })
++    ?.command;
++  const args = command?.args;
++  if (!Array.isArray(args) || args.length === 0) {
++    return null;
++  }
++  const [channel] = args as readonly unknown[];
++  return typeof channel === 'string' ? channel : null;
++}
++
+ function attachConnectionErrorLogging(
+   client: Redis,
+   logger: WebsocketAdapterLogger,
