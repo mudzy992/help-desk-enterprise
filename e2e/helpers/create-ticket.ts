@@ -69,3 +69,14 @@ export async function loadSeedCatalog(api: ApiClient): Promise<{
     formVersionRef: active?.formVersionRef,
   };
 }
+
+export async function firstServiceCategoryId(api: ApiClient): Promise<string> {
+  const categories = await api.requestJson<Array<{ id: string }>>(
+    '/service-categories',
+  );
+  const id = categories[0]?.id;
+  if (id === undefined) {
+    throw new Error('No service category available for E2E services');
+  }
+  return id;
+}

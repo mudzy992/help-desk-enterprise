@@ -27,9 +27,7 @@ test.describe('05 bulk broadcast', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          action: 'BROADCAST',
           ticketIds: [first.id, second.id],
-          message: 'E2E broadcast preview',
         }),
       },
     );

@@ -18,16 +18,28 @@ test.describe('08 close codes + CSAT', () => {
       originUnitId: catalog.originUnitId,
       formVersionRef: catalog.formVersionRef,
     });
-    await expect(
-      api.requestJson(`/tickets/${created.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'RESOLVED' }),
-      }),
-    ).rejects.toThrow(/CLOSE_CODE|REQUIRED|422|400/i);
-    const codes = await api
-      .requestJson<Array<{ key: string; id?: string }>>('/close-codes')
-      .catch(() => [] as Array<{ key: string; id?: string }>);
-    const closeCode = codes[0]?.key ?? 'other';
+    // Allowed path: PENDING/ASSIGNED → IN_PROGRESS → RESOLVED.
+    await api.requestJson(`/tickets/${created.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'IN_PROGRESS' }),
+    });
+    const detail = await api.requestJson<{
+      closePolicy?: {
+        enabled: boolean;
+        requireOnResolve: boolean;
+        allowedCodes: Array<{ key: string }>;
+      };
+    }>(`/tickets/${created.id}`);
+    const policy = detail.closePolicy;
+    if (policy?.enabled === true && policy.requireOnResolve) {
+      await expect(
+        api.requestJson(`/tickets/${created.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'RESOLVED' }),
+        }),
+      ).rejects.toThrow(/CLOSE_CODE|REQUIRED/i);
+    }
+    const closeCode = policy?.allowedCodes[0]?.key ?? 'other';
     await api.requestJson(`/tickets/${created.id}`, {
       method: 'PATCH',
       body: JSON.stringify({

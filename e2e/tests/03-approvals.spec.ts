@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
-import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
+import {
+  createTicketViaApi,
+  firstServiceCategoryId,
+  loadSeedCatalog,
+} from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
 
@@ -17,7 +21,7 @@ test.describe('03 approvals', () => {
         slug: `e2e-approval-${Date.now()}`,
         classification: 'INTERNAL',
         requiresApproval: true,
-        changeReason: 'e2e-approvals',
+        categoryId: await firstServiceCategoryId(api),
       }),
     });
     const rules = await api.requestJson<
@@ -31,7 +35,7 @@ test.describe('03 approvals', () => {
           originUnitId: catalog.originUnitId,
           serviceId: service.id,
           groupId: seedRule.groupId,
-          changeReason: 'e2e-approvals-routing',
+          reason: 'e2e-approvals-routing',
         }),
       });
     }

@@ -20,9 +20,14 @@ test.describe('04 realtime / queue', () => {
     });
     await expect
       .poll(async () => {
-        const jobs = await api.requestJson<Array<{ type: string }>>(
-          '/integration-jobs',
-        );
+        const jobs: Array<{ type: string }> = [];
+        for (const status of ['PENDING', 'PROCESSING', 'COMPLETED']) {
+          jobs.push(
+            ...(await api.requestJson<Array<{ type: string }>>(
+              `/integration-jobs?status=${status}`,
+            )),
+          );
+        }
         return jobs.some(
           (job) => job.type === 'EMAIL' || job.type === 'EDGE_EVENT',
         );

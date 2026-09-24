@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
-import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
+import {
+  createTicketViaApi,
+  firstServiceCategoryId,
+  loadSeedCatalog,
+} from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
 
@@ -27,7 +31,7 @@ test.describe('02 routing / fallback', () => {
         name: `E2E Unrouted ${Date.now()}`,
         slug: `e2e-unrouted-${Date.now()}`,
         classification: 'INTERNAL',
-        changeReason: 'e2e-routing-fallback',
+        categoryId: await firstServiceCategoryId(api),
       }),
     });
     const unrouted = await createTicketViaApi(api, {

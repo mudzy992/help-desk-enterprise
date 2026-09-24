@@ -10,7 +10,7 @@ test.describe('09 config ops', () => {
     await api.login(env.superAdminEmail, env.superAdminPassword);
     const created = await api.requestJson<{ id: string }>('/config-versions', {
       method: 'POST',
-      body: JSON.stringify({ reason: `E2E config ${Date.now()}` }),
+      body: JSON.stringify({ releaseNotes: `E2E config ${Date.now()}` }),
     });
     await api.requestJson(`/config-versions/${created.id}/validate`, {
       method: 'POST',
@@ -18,11 +18,10 @@ test.describe('09 config ops', () => {
     });
     await api.requestJson(`/config-versions/${created.id}/shadow`, {
       method: 'POST',
-      body: JSON.stringify({ sampleSize: 5 }),
     });
     await api.requestJson(`/config-versions/${created.id}/activate`, {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify({ reason: 'E2E activate' }),
     });
     const rolled = await api.requestJson<{ id: string }>(
       `/config-versions/${created.id}/rollback`,

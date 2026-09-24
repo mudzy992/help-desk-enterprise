@@ -16,15 +16,22 @@ test.describe('01 ticket create', () => {
     const title = `E2E create ${Date.now()}`;
     await page.getByLabel(/naslov|title/i).fill(title);
     await page.getByLabel(/opis|description/i).fill('E2E ticket description body');
-    await page.getByRole('button', { name: /dalje|next|nastavi/i }).click();
-    await page.getByRole('button', { name: /nastavi|continue|dalje/i }).click();
-    await page.getByRole('button', { name: /kreiraj|create|pošalji|submit/i }).click();
-    await expect(page).toHaveURL(/\/tickets\/[^/]+$/, { timeout: 30_000 });
+    await page
+      .getByRole('button', { name: /provjeri bazu znanja|check knowledge base/i })
+      .click();
+    await page
+      .getByRole('button', { name: /nastavi sa slanjem|continue with submission/i })
+      .click();
+    await page.getByRole('button', { name: /pošalji tiket|send ticket/i }).click();
+    const duplicate = page.getByRole('button', { name: /svejedno kreiraj|create anyway/i });
+    if (await duplicate.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await duplicate.click();
+    }
+    await expect(page).toHaveURL(/\/tickets\/[^/?#]+$/, { timeout: 30_000 });
+    const ticketId = new URL(page.url()).pathname.split('/').pop() ?? '';
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
-    const inbox = await api.requestJson<Array<{ title: string }>>(
-      '/tickets/inbox',
-    );
-    expect(inbox.some((ticket) => ticket.title === title)).toBe(true);
+    const created = await api.requestJson<{ title: string }>(`/tickets/${ticketId}`);
+    expect(created.title).toBe(title);
   });
 });
