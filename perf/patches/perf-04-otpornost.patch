@@ -14,7 +14,7 @@ Sadržaj (po stavci plana §4.1–§4.2):
        request_id + path, ops/runbook/{ws-reconnect-storm,redis-down,pg-pool-saturation}.md,
        ops/quarterly-perf-review.md
 
-Nema migracija. Nema novih paketa.
+Nema migracija. Nema novih paketa; uklonjen je samo nekorišteni @nestjs/schedule.
 
 Verifikacija: backend `npx jest --silent` 363 suita / 1366 testova; frontend
 `npx vitest run` 95/333; `npx tsc --noEmit` čist (oba); `node perf/validate.js` 18/18.
@@ -313,6 +313,19 @@ index d9484a9..76c03ec 100644
 +DB_QUERY_BUDGET_WARN=false
 +# CI/staging override used by .github/workflows/perf-smoke.yml:
 +# DB_QUERY_BUDGET_WARN=true
+
+diff --git a/backend/package.json b/backend/package.json
+index 12a0466..6caf10b 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -26,7 +26,6 @@
+     "@nestjs/passport": "^11.0.5",
+     "@nestjs/platform-express": "^11.0.1",
+     "@nestjs/platform-socket.io": "^11.1.16",
+-    "@nestjs/schedule": "^6.1.1",
+     "@nestjs/websockets": "^11.1.16",
+     "@prisma/adapter-pg": "^7.5.0",
+     "@prisma/client": "^7.5.0",
 
 diff --git a/backend/src/app.module.spec.ts b/backend/src/app.module.spec.ts
 index 1efa805..3354c92 100644
@@ -3010,7 +3023,7 @@ diff --git a/perf/results/after-f4-2026-09-24.md b/perf/results/after-f4-2026-09
 new file mode 100644
 --- /dev/null
 +++ b/perf/results/after-f4-2026-09-24.md
-@@ -0,0 +1,247 @@
+@@ -0,0 +1,253 @@
 +# Faza 4 — otpornost: poslovi u workeru, budžeti i kapije
 +
 +Datum: 2026-09-24. Ulaz: `prompts/PROMPT_FAZA_4_OTPORNOST.md`, plan §4.1–§4.2.
@@ -3067,7 +3080,11 @@ new file mode 100644
 +  `KnowledgeBaseReviewReminderService` **nisu** u grafu (`moduleRef.get(..., {strict:
 +  false})` baca). `grep -rn "@Interval\|@Cron" backend/src` posle ove faze ne nalazi
 +  nijedan pogodak (ostali su samo `setInterval` u `event-loop-lag.monitor.ts` i worker
-+  keepAlive-u, koji po planu ostaju).
++  keepAlive-u, koji po planu ostaju). Pošto više nijedan fajl ne uvozi ni
++  `ScheduleModule`, zavisnost `@nestjs/schedule` je **uklonjena iz
++  `backend/package.json`** — plan traži da periodika bude isključivo u workeru, a
++  mrtva zavisnost je poziv na vraćanje `@Interval` obrazaca. Nema novih paketa ni u
++  jednoj fazi.
 +
 +### 1.4 Posljedica koju je trebalo riješiti: realtime most
 +
@@ -3143,6 +3160,7 @@ new file mode 100644
 +| 4.1e realtime most | `tickets/ticket-realtime-bridge.{constants,types,subscriber,redis-forwarder,publish-…,parse-…}` (+spec), `ticket-realtime-bridge.module.ts` |
 +| 4.1f graf i dokazi | `worker.module.ts`, `tickets.module.ts`, `knowledge-base.module.ts`, `worker.module.spec.ts`, `app.module.spec.ts`, `scheduled-jobs.wiring.spec.ts`, `common/scheduled-jobs/*` |
 +| 4.1g FE | `frontend/src/lib/queue/use-integration-worker-status.ts`, `components/queue/integration-queue-card.tsx`, `i18n/locales/{bs,en}/common.json` |
++| 4.1h zavisnost | `backend/package.json` (uklonjen `@nestjs/schedule`; nula referenci u `src/`) |
 +| 4.2 | `PERF_BUDGETS.md`, `.github/workflows/perf-smoke.yml`, `perf/config.js`, `perf/smoke.js`, `backend/.env.example`, `ops/runbook/*`, `ops/quarterly-perf-review.md`, `request-metrics.middleware.*` |
 +
 +---
@@ -3202,6 +3220,7 @@ new file mode 100644
 +  4.1  realtime most worker → Redis → API (da sweep ne izgubi live update)
 +  4.1  graf: API bez job providera; worker dobio tri nova modula; testovi dokaza
 +  4.1  FE: status workera bez pollinga (ručno osvježavanje)
++  4.1  uklonjen nekorišteni @nestjs/schedule (nema više nijednog @Interval/@Cron)
 +  4.2  PERF_BUDGETS.md, .github/workflows/perf-smoke.yml, query-budget WARN s
 +       request_id + path, tri runbooka, kvartalna procedura
 +
