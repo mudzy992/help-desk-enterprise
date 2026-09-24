@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { ApiClient } from '../helpers/api-client';
-import { createTicketViaApi, loadSeedCatalog } from '../helpers/create-ticket';
+import { createOfferedService, createTicketViaApi } from '../helpers/create-ticket';
 import { readE2EEnvironment } from '../helpers/environment';
 import { signIn } from '../helpers/sign-in';
 
@@ -17,14 +17,16 @@ test.describe('06 confidential', () => {
     const env = readE2EEnvironment();
     const adminApi = new ApiClient();
     await adminApi.login(env.superAdminEmail, env.superAdminPassword);
-    const catalog = await loadSeedCatalog(adminApi);
+    // A routed ticket is visible to its assignee and handler group by design
+    // (`evaluate-confidential-ticket-access.ts`), so the agent could legitimately
+    // see it. A fresh service without a routing rule leaves the ticket UNROUTED.
+    const service = await createOfferedService(adminApi, { label: 'Confidential' });
     const userApi = new ApiClient();
     await userApi.login(env.userEmail, env.userPassword);
     const created = await createTicketViaApi(userApi, {
       title: `E2E confidential ${Date.now()}`,
       description: 'secret body',
-      serviceId: catalog.serviceId,
-      formVersionRef: catalog.formVersionRef,
+      serviceId: service.id,
       isConfidential: true,
     });
     const agentApi = new ApiClient();

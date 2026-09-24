@@ -31,7 +31,9 @@ test.describe('01 ticket create', () => {
     if (await duplicate.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await duplicate.click();
     }
-    await expect(page).toHaveURL(/\/tickets\/[^/?#]+$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/tickets\/(?!new(?:[/?#]|$))[^/?#]+$/, {
+      timeout: 30_000,
+    });
     const ticketId = new URL(page.url()).pathname.split('/').pop() ?? '';
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);

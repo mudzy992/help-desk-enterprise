@@ -14,6 +14,9 @@ test.describe('03 approvals', () => {
     const api = new ApiClient();
     await api.login(env.superAdminEmail, env.superAdminPassword);
     const catalog = await loadSeedCatalog(api);
+    // APPROVAL_SELF_FORBIDDEN: the requester may not approve, so the E2E USER files.
+    const userApi = new ApiClient();
+    await userApi.login(env.userEmail, env.userPassword);
     const service = await createOfferedService(api, {
       label: 'Approval',
       requiresApproval: true,
@@ -33,10 +36,9 @@ test.describe('03 approvals', () => {
         }),
       });
     }
-    const approveTicket = await createTicketViaApi(api, {
+    const approveTicket = await createTicketViaApi(userApi, {
       title: `E2E approve ${Date.now()}`,
       serviceId: service.id,
-      originUnitId: catalog.originUnitId,
     });
     expect(approveTicket.status).toBe('PENDING_APPROVAL');
     const approvals = await api.requestJson<Array<{ id: string }>>(
@@ -54,10 +56,9 @@ test.describe('03 approvals', () => {
       `/tickets/${approveTicket.id}`,
     );
     expect(afterApprove.status).not.toBe('PENDING_APPROVAL');
-    const rejectTicket = await createTicketViaApi(api, {
+    const rejectTicket = await createTicketViaApi(userApi, {
       title: `E2E reject ${Date.now()}`,
       serviceId: service.id,
-      originUnitId: catalog.originUnitId,
     });
     const rejectApprovals = await api.requestJson<Array<{ id: string }>>(
       `/tickets/${rejectTicket.id}/approvals`,
