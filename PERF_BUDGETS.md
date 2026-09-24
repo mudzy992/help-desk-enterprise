@@ -19,6 +19,7 @@ regresija se ne spaja.
 | DB QPS ukupno | < 1.000 uz pool 40 | nije mjereno | pool 40 / worker 10 (`DB_POOL_MAX`, F1.4); after-f1 §1 |
 | SLA scan ciklus | < 15 s @ 100k otvorenih | kod-nalaz: 2 statementa po ciklusu, `LIMIT 2000` | after-f2 §2.1 — due-only `nextDueAt` upit + batch `IN`; index `(resolutionCompletedAt, nextDueAt)` |
 | WS emit-ova / s | < 500 | kod-nalaz: ≈ 50/s (flag `off`) vs ≈ 2.040/s prije | after-f3 §2 — grupa od 200 ne dobija puni payload nego `group.feed-changed` < 200 B; metrika `ws_emits_*` je u logu |
+| WS emit-ova / s — **notifikacije (fan-out po korisniku)** | < 500 sve zajedno | **kod-nalaz, širi budžet**: grupa od 200 članova = 200 redova u `Notification` **i 200 emita** po događaju; pri 10 događaja/s ≈ 2.000/s — samostalno preko budžeta | `notifications/fan-out/publish-created-notifications.ts` (per-user emit) — `perf/results/after-f4-2026-09-24.md` §7 rizik 2; mjeri se `ops/sql/measure-notification-fan-out.sql` + `ws_emits_user` iz loga |
 | Dashboard payload | < 100 KB | kod-nalaz: agregatni summary, keš 15 s | after-f2 §2.4 — `GET /reports/dashboard/summary?scope=`, `GET /reports/sla/summary` |
 | Pretraga: zahtjeva po unosu | 1 | kod-nalaz: 1 zahtjev po unosu (AbortController + debounce) | after-f1 §2 + after-f3 §3 — `GET /search?q=…` |
 | Frontend zahtjevi po sesijskoj ruti | katalog ≤ 1 / staleTime | kod-nalaz: React Query keš (`queryKeys.*`, `staleTime` u `frontend/src/lib/query/query-client.ts`) umjesto ponovnog poziva po mountu | after-f3 §3 |
@@ -28,7 +29,7 @@ regresija se ne spaja.
 | k6 error rate (2.800 VU, 30 min) | < 0,5 % | < 1 % | budžet × 2 za dijeljene CI runnere i hladan JIT — komentar u `perf/config.js::ciThresholds` |
 | P95 read (CI) | < 200 ms | < 500 ms | budžet × 2,5: nema izmjerenog P95 iz F3 (kod-nalaz), pa se prag veže na budžet; iron rule „mjereno × 1,5" primjenjuje se na prvom CI runu s pravim brojkama |
 | P95 mutacija (CI) | < 400 ms | < 1.000 ms | isto, budžet × 2,5 |
-| avg `db_queries_per_request` (CI) | ≤ 2 | ≤ 3 | budžet + 1 (agregatni upiti računaju se kao jedan zahtjev); provjerava se iz `api.log` u CI koraku |
+| avg `db_queries_per_request` (CI) | ≤ 2 | ≤ 3 | budžet + 1 (agregatni upiti računaju se kao jedan zahtjev); provjerava se iz `api.log` u CI koraku. **Bootstrap (`/install/*`, `/health`) se izuzima** — vrti se jednom po stacku i nije dio profila opterećenja; ispisuje se odvojeno u istom koraku |
 
 ## 2. Kako se mjeri
 
