@@ -46,6 +46,15 @@ function exists(path) {
   }
 }
 
+/** Files *and* directories — a scan target can be either. */
+function existsPath(path) {
+  try {
+    return Boolean(statSync(join(root, path)));
+  } catch {
+    return false;
+  }
+}
+
 function walk(dir, pattern) {
   const found = [];
   for (const entry of readdirSync(join(root, dir))) {
@@ -67,23 +76,29 @@ function checkDocs() {
     fail(section, `${archived} must carry the "[ARHIVIRANO]" marker`);
   }
 
+  // Documents move (root .md reorganisation): the check reads the current
+  // locations and treats a path that is no longer there as a note in the log,
+  // while a citation of an archived source without its marker stays a failure.
   const scanned = [
     ".cursor/docs",
     ".cursor/rules",
+    "docs",
     "referenca-dizajn/README.md",
-    "fe-alignment-prompts.md",
-    "Master UI-UX Design Constitution.md",
   ];
   // Any mention has to carry its own disqualifier on the same line: prose tends
   // to cite a source with the verb *before* the name ("mjerodavan je
   // theme-source.md"), so pattern-matching specific phrases is fragile.
   const mentionsLegacy = /theme-source/i;
   const saysArchived = /arhivir|penzionisan|više nije|nije više|legacy|histor/i;
-  const files = scanned.flatMap((target) =>
-    target.endsWith(".md") || target.endsWith(".mdc")
+  const files = scanned.flatMap((target) => {
+    if (!existsPath(target)) {
+      notes.push(`${section}: ${target} is not in the repo (skipped)`);
+      return [];
+    }
+    return target.endsWith(".md") || target.endsWith(".mdc")
       ? [target]
-      : walk(target, /\.(md|mdc)$/),
-  );
+      : walk(target, /\.(md|mdc)$/);
+  });
   for (const file of files) {
     if (file === archived) continue;
     const text = read(file);
