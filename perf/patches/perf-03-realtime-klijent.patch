@@ -1,0 +1,2835 @@
+perf-02 — FAZA 2: baza i event loop (authz keš 2.2, SLA skener 2.1,
+server agregati 2.4, notification fan-out 2.3)
+
+Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)
+Baza: perf-00 + perf-01 primijenjeni; zatim Faza 3/4.
+
+Migracije u ovom patchu (pokreni `npx prisma migrate deploy`):
+  20260924120000_user_authz_version      (User.authzVersion)
+  20260924140000_ticket_sla_next_due_at  (nextDueAt + indeks + backfill)
+
+Detalji, verifikacija i odstupanja: perf/results/after-f2-2026-09-24.md.
+
+---
+diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
+index 0343771..61060e4 100644
+--- a/PERFORMACE_PHASE_PLAN.md
++++ b/PERFORMACE_PHASE_PLAN.md
+@@ -500,7 +500,7 @@ Svaka stavka iza feature flaga ili iza deploy granice (osim indeksa i poola koji
+ | Baseline (prije F1) | ~5.500 * | > 2 s * | ~7 min * | ~4.600 * | ~240.000 * | > 5% * |
+ | Nakon F1 | ~3× niže † | ~2× niže † | ~7 min † | nepromijenjeno † | ~0 (obavezna paginacija) † | nepromijenjeno † |
+ | Nakon F2 | ~2× niže od F1 ‡ | stabilan ‡ | < 15 s (worker) ‡ | ~200× niže (3 stmt/događaj) ‡ | ~0 (server agregati + keš 15 s) ‡ | nepromijenjeno ‡ |
+-| Nakon F3 | | | | | | |
++| Nakon F3 | isti kao F2 ‡ | stabilan ‡ | < 15 s ‡ | ~40× niže od baseline § | ~0 § | nepromijenjeno § |
+ | Nakon F4 (cilj) | < 1.000 | < 200 ms | < 15 s | < 500 | < 100 | < 0,5% |
+ 
+ \* Red "Baseline" je **model iz statičke analize** (§0.3), ne mjerenje: Faza 0 je
+@@ -523,6 +523,15 @@ punih listi. Kapije (DB QPS, authz udio, P95, writes/s) čekaju `k6 run perf/ful
+ detalji, odstupanja (2.3 opcija B, TTL 15 s) i tačne komande:
+ `perf/results/after-f2-2026-09-24.md`.
+ 
++§ Red „Nakon F3" je **kod-nalaz + aritmetika**, ne mjerenje (okruženje bez Redis-a,
++LB-a, k6 i browsera). Dokazano je *koliko emisija ide po događaju*: group soba više ne
++dobija puni payload nego laki `group.feed-changed` (< 200 B) — pri 10 događaja/s i
++grupi od 200 članova to je ≈ 50 emit-ova/s umjesto ≈ 2.040/s; cross-instance dokaz je
++skripta `ops/ws-cross-instance-check.mjs`, a mjerenje čeka okruženje s Redis-om i LB-om.
++Detalji, tabela emit matrice, React Query stanje i odstupanja (tranzicioni flag,
++per-korisnički `id` u notifikacijama):
++`perf/results/after-f3-2026-09-24.md`.
++
+ ---
+ 
+ ## 8. Šta NIJE predmet ovog plana
+
+diff --git a/backend/package.json b/backend/package.json
+index f22a86f..12a0466 100644
+--- a/backend/package.json
++++ b/backend/package.json
+@@ -30,6 +30,7 @@
+     "@nestjs/websockets": "^11.1.16",
+     "@prisma/adapter-pg": "^7.5.0",
+     "@prisma/client": "^7.5.0",
++    "@socket.io/redis-adapter": "^8.3.0",
+     "bcrypt": "^6.0.0",
+     "bullmq": "^5.66.4",
+     "class-transformer": "^0.5.1",
+
+diff --git a/backend/src/modules/tickets/collaboration.constants.ts b/backend/src/modules/tickets/collaboration.constants.ts
+index 6f2dfc2..fb24965 100644
+--- a/backend/src/modules/tickets/collaboration.constants.ts
++++ b/backend/src/modules/tickets/collaboration.constants.ts
+@@ -100,6 +100,7 @@ export const ticketSystemEventActions = {
+ export const ticketRealtimeEventNames = {
+   messageCreated: 'ticket.message.created',
+   ticketUpdated: 'ticket.updated',
++  groupFeedChanged: 'group.feed-changed',
+   join: 'ticket:join',
+   leave: 'ticket:leave',
+   error: 'ticket:error',
+
+diff --git a/backend/src/modules/websocket/broadcast-ticket-realtime.spec.ts b/backend/src/modules/websocket/broadcast-ticket-realtime.spec.ts
+index 634df96..15cefae 100644
+--- a/backend/src/modules/websocket/broadcast-ticket-realtime.spec.ts
++++ b/backend/src/modules/websocket/broadcast-ticket-realtime.spec.ts
+@@ -1,9 +1,12 @@
+ import type { Server } from 'socket.io';
+ import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
++import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
++import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.types';
+ import {
+   broadcastTicketMessage,
+   broadcastTicketUpdated,
+ } from './broadcast-ticket-realtime';
++import { groupFeedChangedEventName } from './group-feed-change';
+ import {
+   groupRoomName,
+   ticketPublicRoomName,
+@@ -11,91 +14,212 @@ import {
+   userRoomName,
+ } from './ticket-socket-rooms';
+ 
++type EmittedEvent = { readonly room: string; readonly event: string; readonly payload: unknown };
++
+ function createServer() {
+-  const emitted: { room: string; event: string }[] = [];
++  const emitted: EmittedEvent[] = [];
+   const server = {
+     to: (room: string) => ({
+-      emit: (event: string) => {
+-        emitted.push({ room, event });
++      emit: (event: string, payload: unknown) => {
++        emitted.push({ room, event, payload });
+       },
+     }),
+   } as unknown as Server;
+   return { server, emitted };
+ }
+ 
+-describe('broadcastTicketRealtime', () => {
+-  it('sends public ticket updates to ticket, user, and group rooms', () => {
++function ticketUpdated(
++  overrides: Partial<TicketUpdatedRealtimePayload> = {},
++): TicketUpdatedRealtimePayload {
++  return {
++    ticketId: 'ticket-1',
++    change: 'status',
++    sourceAction: 'ticket_resolved',
++    sourceMessageId: 'msg-1',
++    status: 'RESOLVED',
++    priority: 'HIGH',
++    assignedUserId: 'user-agent-it',
++    assignedGroupId: 'group-it',
++    requesterId: 'user-requester',
++    archivedAt: null,
++    resolvedAt: '2026-09-13T08:00:00.000Z',
++    closedAt: null,
++    actorUserId: 'user-agent-it',
++    occurredAt: '2026-09-13T08:00:00.000Z',
++    visibility: 'public',
++    ...overrides,
++  };
++}
++
++function ticketMessage(
++  overrides: Partial<TicketRealtimeMessagePayload> = {},
++): TicketRealtimeMessagePayload {
++  return {
++    id: 'msg-public',
++    ticketId: 'ticket-1',
++    type: 'USER_REPLY',
++    body: 'hello',
++    authorUserId: 'user-requester',
++    createdAt: '2026-09-13T08:00:00.000Z',
++    requesterId: 'user-requester',
++    assignedGroupId: 'group-it',
++    visibility: 'public',
++    ...overrides,
++  } as TicketRealtimeMessagePayload;
++}
++
++function roomsOf(emitted: readonly EmittedEvent[]): readonly string[] {
++  return [...new Set(emitted.map((item) => item.room))].sort();
++}
++
++function groupEmits(emitted: readonly EmittedEvent[]): readonly EmittedEvent[] {
++  return emitted.filter((item) => item.room === groupRoomName('group-it'));
++}
++
++const originalLegacyEmit = process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
++
++afterEach(() => {
++  if (originalLegacyEmit === undefined) {
++    delete process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT;
++    return;
++  }
++  process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = originalLegacyEmit;
++});
++
++function groupFeedOf(emitted: readonly EmittedEvent[]): EmittedEvent | undefined {
++  return emitted.find((item) => item.event === groupFeedChangedEventName);
++}
++
++/**
++ * Faza 3.2 (plan §3.2) — matrica emit-ova.
++ *
++ * TKO dobija ŠTA:
++ * - ticket soba (staff)            → puni payload (uvijek)
++ * - javna ticket soba              → puni payload (samo javne promjene)
++ * - user sobe (requester/dodijeljeni/akter) → puni payload
++ * - group soba                     → SAMO `group.feed-changed` (< 200 B, bez sadržaja)
++ * - interne bilješke i interne promjene → NIKAD javna ni group soba
++ */
++describe('broadcastTicketRealtime — matrica emit-ova', () => {
++  it('public ticket update: puni payload u ticket/user sobe, laki event u group sobu', () => {
+     const { server, emitted } = createServer();
+-    broadcastTicketUpdated(server, {
+-      ticketId: 'ticket-1',
+-      change: 'status',
+-      sourceAction: 'ticket_resolved',
+-      sourceMessageId: 'msg-1',
+-      status: 'RESOLVED',
+-      priority: 'HIGH',
+-      assignedUserId: 'user-agent-it',
+-      assignedGroupId: 'group-it',
+-      requesterId: 'user-requester',
+-      archivedAt: null,
+-      resolvedAt: '2026-09-13T08:00:00.000Z',
+-      closedAt: null,
+-      actorUserId: 'user-agent-it',
+-      occurredAt: '2026-09-13T08:00:00.000Z',
+-      visibility: 'public',
+-    });
++    broadcastTicketUpdated(server, ticketUpdated());
++
+     expect(
+-      emitted.every((item) => item.event === ticketRealtimeEventNames.ticketUpdated),
++      emitted.every(
++        (item) =>
++          item.event === ticketRealtimeEventNames.ticketUpdated ||
++          item.event === groupFeedChangedEventName,
++      ),
+     ).toBe(true);
+-    expect(emitted.map((item) => item.room).sort()).toEqual([
++    expect(roomsOf(emitted)).toEqual([
+       groupRoomName('group-it'),
+       ticketPublicRoomName('ticket-1'),
+       ticketStaffRoomName('ticket-1'),
+       userRoomName('user-agent-it'),
+       userRoomName('user-requester'),
+     ]);
++    expect(groupFeedOf(emitted)?.payload).toEqual({
++      groupId: 'group-it',
++      ticketId: 'ticket-1',
++      kind: 'status',
++      occurredAt: '2026-09-13T08:00:00.000Z',
++    });
++    expect(JSON.stringify(groupFeedOf(emitted)?.payload).length).toBeLessThan(200);
++    // Tranzicija: dok flag stoji, group soba dobija i stari puni payload (isti
++    // oblik kao prije faze), pa rolling deploy ne gubi nijedan događaj.
++    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
++      ticketRealtimeEventNames.ticketUpdated,
++      groupFeedChangedEventName,
++    ]);
+   });
+ 
+-  it('keeps staff-only ticket updates off the public and requester rooms', () => {
++  it('sa isključenim tranzicionim flagom: group soba dobija samo laki event', () => {
++    process.env.WS_GROUP_FEED_LEGACY_FULL_EMIT = 'off';
+     const { server, emitted } = createServer();
+-    broadcastTicketUpdated(server, {
++    broadcastTicketUpdated(server, ticketUpdated());
++
++    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
++      groupFeedChangedEventName,
++    ]);
++    // Nijedan emit u group sobu ne nosi sadržaj tiketa (naslov, opis, status).
++    expect(JSON.stringify(groupEmits(emitted))).not.toContain('"title"');
++    expect(JSON.stringify(groupEmits(emitted))).not.toContain('"assignment"');
++    expect(groupEmits(emitted)[0]?.payload).toEqual({
++      groupId: 'group-it',
+       ticketId: 'ticket-1',
+-      change: 'updated',
+-      sourceAction: 'ticket_confidential_viewed',
+-      sourceMessageId: 'msg-2',
+-      status: 'IN_PROGRESS',
+-      priority: 'HIGH',
+-      assignedUserId: 'user-agent-it',
+-      assignedGroupId: 'group-it',
+-      requesterId: 'user-requester',
+-      archivedAt: null,
+-      resolvedAt: null,
+-      closedAt: null,
+-      actorUserId: 'user-agent-it',
++      kind: 'status',
+       occurredAt: '2026-09-13T08:00:00.000Z',
+-      visibility: 'staff',
+     });
+-    expect(emitted.map((item) => item.room).sort()).toEqual([
+-      groupRoomName('group-it'),
++  });
++
++  it('staff-only ticket update: bez javne sobe i bez ijednog group eventa', () => {
++    const { server, emitted } = createServer();
++    broadcastTicketUpdated(
++      server,
++      ticketUpdated({
++        change: 'updated',
++        sourceAction: 'ticket_confidential_viewed',
++        sourceMessageId: 'msg-2',
++        status: 'IN_PROGRESS',
++        resolvedAt: null,
++        visibility: 'staff',
++      }),
++    );
++
++    expect(roomsOf(emitted)).toEqual([
+       ticketStaffRoomName('ticket-1'),
+       userRoomName('user-agent-it'),
+     ]);
++    expect(groupEmits(emitted)).toHaveLength(0);
+   });
+ 
+-  it('does not send internal notes to the public ticket room', () => {
++  it('ticket bez grupe: nema group sobe uopšte', () => {
+     const { server, emitted } = createServer();
+-    broadcastTicketMessage(server, {
+-      id: 'msg-internal',
++    broadcastTicketUpdated(server, ticketUpdated({ assignedGroupId: null }));
++    expect(emitted.some((item) => item.room.startsWith('group:'))).toBe(false);
++  });
++
++  it('javna poruka: puni payload u ticket/user sobe, laki event "message" u group sobu', () => {
++    const { server, emitted } = createServer();
++    broadcastTicketMessage(server, ticketMessage());
++
++    expect(roomsOf(emitted)).toEqual([
++      groupRoomName('group-it'),
++      ticketPublicRoomName('ticket-1'),
++      ticketStaffRoomName('ticket-1'),
++      userRoomName('user-requester'),
++    ]);
++    expect(groupFeedOf(emitted)?.payload).toEqual({
++      groupId: 'group-it',
+       ticketId: 'ticket-1',
+-      type: 'INTERNAL_NOTE',
+-      body: 'private note',
+-      authorUserId: 'user-agent-it',
+-      createdAt: '2026-09-13T08:00:00.000Z',
+-      requesterId: 'user-requester',
+-      assignedGroupId: null,
+-      visibility: 'staff',
++      kind: 'message',
++      occurredAt: '2026-09-13T08:00:00.000Z',
+     });
+-    expect(emitted.map((item) => item.room)).toEqual([
+-      ticketStaffRoomName('ticket-1'),
++    expect(groupEmits(emitted).map((item) => item.event)).toEqual([
++      ticketRealtimeEventNames.messageCreated,
++      groupFeedChangedEventName,
+     ]);
+   });
++
++  it('interna bilješka: samo staff soba — nikad javna, nikad group', () => {
++    const { server, emitted } = createServer();
++    broadcastTicketMessage(
++      server,
++      ticketMessage({
++        id: 'msg-internal',
++        type: 'INTERNAL_NOTE',
++        body: 'private note',
++        visibility: 'staff',
++      }),
++    );
++
++    expect(roomsOf(emitted)).toEqual([ticketStaffRoomName('ticket-1')]);
++    expect(groupEmits(emitted)).toHaveLength(0);
++    // Sadržaj smije vidjeti samo staff soba — ni javna ni group soba ga ne dobijaju.
++    const outsideStaff = emitted.filter(
++      (item) => item.room !== ticketStaffRoomName('ticket-1'),
++    );
++    expect(JSON.stringify(outsideStaff)).not.toContain('private note');
++  });
+ });
+
+diff --git a/backend/src/modules/websocket/broadcast-ticket-realtime.ts b/backend/src/modules/websocket/broadcast-ticket-realtime.ts
+index d382741..9b375ff 100644
+--- a/backend/src/modules/websocket/broadcast-ticket-realtime.ts
++++ b/backend/src/modules/websocket/broadcast-ticket-realtime.ts
+@@ -2,7 +2,18 @@ import type { Server } from 'socket.io';
+ import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
+ import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
+ import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.types';
+-import { ticketUpdatedBroadcastRooms } from './ticket-updated-broadcast-rooms';
++import {
++  groupFeedChangedEventName,
++  isLegacyGroupFullEmitEnabled,
++  resolveGroupFeedChange,
++  resolveGroupFeedMessage,
++  type GroupFeedChangedPayload,
++} from './group-feed-change';
++import {
++  ticketUpdatedBroadcastRooms,
++  ticketUpdatedGroupRoom,
++} from './ticket-updated-broadcast-rooms';
++import { recordWebsocketEmit } from './websocket-emit-counter';
+ import {
+   groupRoomName,
+   ticketPublicRoomName,
+@@ -10,21 +21,26 @@ import {
+   userRoomName,
+ } from './ticket-socket-rooms';
+ 
++/**
++ * Phase 3.2 (plan §3.2): the message itself goes to the ticket rooms; the group
++ * room gets the light event. The security rule is unchanged and now has one more
++ * guarantee: an internal note produces *nothing* for the group room.
++ */
+ export function broadcastTicketMessage(
+   server: Server,
+   payload: TicketRealtimeMessagePayload,
+ ): void {
+   const event = ticketRealtimeEventNames.messageCreated;
+   server.to(ticketStaffRoomName(payload.ticketId)).emit(event, payload);
++  recordWebsocketEmit('staff');
+   if (payload.visibility === 'public') {
+     server.to(ticketPublicRoomName(payload.ticketId)).emit(event, payload);
+     server.to(userRoomName(payload.requesterId)).emit(event, payload);
++    recordWebsocketEmit('public');
++    recordWebsocketEmit('user');
+     // Group rooms are joined by membership alone, so a member without staff
+-    // access to this ticket must never receive internal notes or system
+-    // events; staff read those in the ticket's staff room after joining it.
+-    if (payload.assignedGroupId !== null) {
+-      server.to(groupRoomName(payload.assignedGroupId)).emit(event, payload);
+-    }
++    // access to this ticket must never receive internal notes or their content.
++    broadcastGroupFeed(server, resolveGroupFeedMessage(payload), payload);
+   }
+ }
+ 
+@@ -33,7 +49,65 @@ export function broadcastTicketUpdated(
+   payload: TicketUpdatedRealtimePayload,
+ ): void {
+   const event = ticketRealtimeEventNames.ticketUpdated;
+-  for (const room of ticketUpdatedBroadcastRooms(payload)) {
++  const rooms = ticketUpdatedBroadcastRooms(payload);
++  for (const room of rooms) {
+     server.to(room).emit(event, payload);
+   }
++  recordEmitKinds(rooms, payload);
++  // One light event per change for the whole group, instead of one full payload
++  // per member (and only when the change is not internal-only).
++  const groupRoom = ticketUpdatedGroupRoom(payload);
++  if (groupRoom === null) {
++    return;
++  }
++  broadcastGroupFeed(
++    server,
++    resolveGroupFeedChange(payload),
++    payload,
++    groupRoom,
++  );
++}
++
++/**
++ * One light event for the whole group (instead of one full payload per member).
++ * While the transition switch is on, the room also gets the payload shape the
++ * previous client build understood, so a rolling deploy loses no event.
++ */
++function broadcastGroupFeed(
++  server: Server,
++  groupFeed: GroupFeedChangedPayload | null,
++  fullPayload: TicketRealtimeMessagePayload | TicketUpdatedRealtimePayload,
++  knownRoom?: string,
++): void {
++  if (groupFeed === null) {
++    return;
++  }
++  const room = knownRoom ?? groupRoomName(groupFeed.groupId);
++  if (isLegacyGroupFullEmitEnabled() && fullPayload.visibility === 'public') {
++    const event =
++      'body' in fullPayload
++        ? ticketRealtimeEventNames.messageCreated
++        : ticketRealtimeEventNames.ticketUpdated;
++    server.to(room).emit(event, fullPayload);
++    recordWebsocketEmit('group');
++  }
++  server.to(room).emit(groupFeedChangedEventName, groupFeed);
++  recordWebsocketEmit('group');
++}
++
++function recordEmitKinds(
++  rooms: readonly string[],
++  payload: TicketUpdatedRealtimePayload,
++): void {
++  if (rooms.includes(ticketStaffRoomName(payload.ticketId))) {
++    recordWebsocketEmit('staff');
++  }
++  if (rooms.includes(ticketPublicRoomName(payload.ticketId))) {
++    recordWebsocketEmit('public');
++  }
++  for (const room of rooms) {
++    if (room.startsWith('user:')) {
++      recordWebsocketEmit('user');
++    }
++  }
+ }
+
+diff --git a/backend/src/modules/websocket/group-feed-change.ts b/backend/src/modules/websocket/group-feed-change.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/websocket/group-feed-change.ts
+@@ -0,0 +1,93 @@
++import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
++import type { TicketRealtimeMessagePayload } from '../tickets/collaboration.types';
++import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.types';
++
++/**
++ * Phase 3.2 (plan §3.2): the light event a group room gets instead of every full
++ * payload. Under 200 bytes, no ticket content, no message content — just "this
++ * ticket in your group moved".
++ */
++export type GroupFeedChangeKind = 'message' | 'status' | 'assign' | 'sla';
++
++export type GroupFeedChangedPayload = {
++  readonly groupId: string;
++  readonly ticketId: string;
++  readonly kind: GroupFeedChangeKind;
++  readonly occurredAt: string;
++};
++
++export const groupFeedChangedEventName =
++  ticketRealtimeEventNames.groupFeedChanged;
++
++/**
++ * Decides whether a ticket event may be announced in a group room, and how.
++ *
++ * Conservative on purpose (plan §3.2, "ne mijenjaj pravilo vidljivosti"):
++ * - a message only when it is `public` — internal notes and system events never
++ *   tell a group room that something happened;
++ * - a ticket change only when the change itself is not internal-only.
++ * The payload carries ids and a kind; never a status, a priority or any content.
++ */
++export function resolveGroupFeedChange(
++  payload: TicketUpdatedRealtimePayload,
++): GroupFeedChangedPayload | null {
++  if (payload.assignedGroupId === null || payload.assignedGroupId.length === 0) {
++    return null;
++  }
++  if (payload.visibility !== 'public') {
++    return null;
++  }
++  return {
++    groupId: payload.assignedGroupId,
++    ticketId: payload.ticketId,
++    kind: groupFeedChangeKind(payload.change),
++    occurredAt: payload.occurredAt,
++  };
++}
++
++/** Same rule for chat traffic: only public messages reach the group room. */
++export function resolveGroupFeedMessage(
++  payload: TicketRealtimeMessagePayload,
++): GroupFeedChangedPayload | null {
++  if (payload.assignedGroupId === null || payload.assignedGroupId.length === 0) {
++    return null;
++  }
++  if (payload.visibility !== 'public') {
++    return null;
++  }
++  return {
++    groupId: payload.assignedGroupId,
++    ticketId: payload.ticketId,
++    kind: 'message',
++    occurredAt: payload.createdAt,
++  };
++}
++
++function groupFeedChangeKind(
++  change: TicketUpdatedRealtimePayload['change'],
++): GroupFeedChangeKind {
++  if (change === 'assignment' || change === 'routing') {
++    return 'assign';
++  }
++  if (change === 'sla') {
++    return 'sla';
++  }
++  return 'status';
++}
++
++/**
++ * Phase 3.2 transition switch.
++ *
++ * Rule: "klijent mora raditi i protiv servera prije faze" — and the other way
++ * around during a rolling deploy. A client build from before this phase only
++ * knows `ticket.updated`, which used to reach group rooms, so the group room
++ * keeps receiving it **and** the new light event until every client has been
++ * reloaded. Flip this to `off` (env `WS_GROUP_FEED_LEGACY_FULL_EMIT=off`) after
++ * the rollout — the runbook in `ops/ws-rolling-deploy.md` describes the order.
++ */
++export function isLegacyGroupFullEmitEnabled(
++  environment: { readonly WS_GROUP_FEED_LEGACY_FULL_EMIT?: string } = process.env,
++): boolean {
++  const value = environment.WS_GROUP_FEED_LEGACY_FULL_EMIT?.trim().toLowerCase();
++  return value !== 'off' && value !== 'false' && value !== '0';
++}
+
+diff --git a/backend/src/modules/websocket/ticket-chat.gateway.spec.ts b/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
+index 8e223fd..622702c 100644
+--- a/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
++++ b/backend/src/modules/websocket/ticket-chat.gateway.spec.ts
+@@ -92,7 +92,12 @@ describe('TicketChatGateway', () => {
+       visibility: 'public',
+     };
+     hub.publish(publicPayload);
+-    expect(emitted.map((item) => item.room).sort()).toEqual([
++    // Faza 3.2: group soba dobija laki `group.feed-changed`, a dok traje
++    // tranzicija i stari puni payload (vidi `isLegacyGroupFullEmitEnabled`).
++    expect(
++      emitted.filter((item) => item.room === 'group:group-it').map((item) => item.event).sort(),
++    ).toEqual(['group.feed-changed', ticketRealtimeEventNames.messageCreated]);
++    expect([...new Set(emitted.map((item) => item.room))].sort()).toEqual([
+       'group:group-it',
+       ticketPublicRoomName('ticket-1'),
+       ticketStaffRoomName('ticket-1'),
+@@ -136,7 +141,7 @@ describe('TicketChatGateway', () => {
+     expect(
+       emitted.some((item) => item.event === ticketRealtimeEventNames.ticketUpdated),
+     ).toBe(true);
+-    expect(emitted.map((item) => item.room).sort()).toEqual([
++    expect([...new Set(emitted.map((item) => item.room))].sort()).toEqual([
+       'group:group-it',
+       ticketPublicRoomName('ticket-1'),
+       ticketStaffRoomName('ticket-1'),
+
+diff --git a/backend/src/modules/websocket/ticket-updated-broadcast-rooms.spec.ts b/backend/src/modules/websocket/ticket-updated-broadcast-rooms.spec.ts
+index 2485cf6..be30a6a 100644
+--- a/backend/src/modules/websocket/ticket-updated-broadcast-rooms.spec.ts
++++ b/backend/src/modules/websocket/ticket-updated-broadcast-rooms.spec.ts
+@@ -1,4 +1,7 @@
+-import { ticketUpdatedBroadcastRooms } from './ticket-updated-broadcast-rooms';
++import {
++  ticketUpdatedBroadcastRooms,
++  ticketUpdatedGroupRoom,
++} from './ticket-updated-broadcast-rooms';
+ import type { TicketUpdatedRealtimePayload } from '../tickets/ticket-realtime.types';
+ import {
+   groupRoomName,
+@@ -26,16 +29,27 @@ const basePayload: TicketUpdatedRealtimePayload = {
+ };
+ 
+ describe('ticketUpdatedBroadcastRooms', () => {
+-  it('fans public updates to ticket, user, and group rooms without duplicating actor=assignee', () => {
++  it('fans public updates to ticket and user rooms without duplicating actor=assignee', () => {
+     expect([...ticketUpdatedBroadcastRooms(basePayload)].sort()).toEqual(
+       [
+-        groupRoomName('group-it'),
+         ticketPublicRoomName('ticket-1'),
+         ticketStaffRoomName('ticket-1'),
+         userRoomName('user-agent-it'),
+         userRoomName('user-requester'),
+       ].sort(),
+     );
++    // Faza 3.2: group soba dobija samo laki event, nikad puni payload.
++    expect(ticketUpdatedBroadcastRooms(basePayload)).not.toContain(
++      groupRoomName('group-it'),
++    );
++    expect(ticketUpdatedGroupRoom(basePayload)).toBe(groupRoomName('group-it'));
++  });
++
++  it('has no group room when the ticket is not assigned to a group', () => {
++    expect(
++      ticketUpdatedGroupRoom({ ...basePayload, assignedGroupId: null }),
++    ).toBeNull();
++    expect(ticketUpdatedGroupRoom({ ...basePayload, assignedGroupId: '' })).toBeNull();
+   });
+ 
+   it('keeps staff-only updates off the requester and public ticket rooms', () => {
+@@ -50,7 +64,6 @@ describe('ticketUpdatedBroadcastRooms', () => {
+       ].sort(),
+     ).toEqual(
+       [
+-        groupRoomName('group-it'),
+         ticketStaffRoomName('ticket-1'),
+         userRoomName('user-admin'),
+         userRoomName('user-agent-it'),
+
+diff --git a/backend/src/modules/websocket/ticket-updated-broadcast-rooms.ts b/backend/src/modules/websocket/ticket-updated-broadcast-rooms.ts
+index 4904373..a48d810 100644
+--- a/backend/src/modules/websocket/ticket-updated-broadcast-rooms.ts
++++ b/backend/src/modules/websocket/ticket-updated-broadcast-rooms.ts
+@@ -6,6 +6,12 @@ import {
+   userRoomName,
+ } from './ticket-socket-rooms';
+ 
++/**
++ * Phase 3.2 (plan §3.2): the group room is **not** in this set any more. A group
++ * room carries every ticket of every member, so the full payload there was the
++ * single biggest source of socket traffic; it now receives `groupFeedChanged`
++ * (see `group-feed-change.ts`) instead.
++ */
+ export function ticketUpdatedBroadcastRooms(
+   payload: TicketUpdatedRealtimePayload,
+ ): readonly string[] {
+@@ -16,12 +22,19 @@ export function ticketUpdatedBroadcastRooms(
+   }
+   addUserRoom(rooms, payload.assignedUserId);
+   addUserRoom(rooms, payload.actorUserId);
+-  if (payload.assignedGroupId !== null && payload.assignedGroupId.length > 0) {
+-    rooms.add(groupRoomName(payload.assignedGroupId));
+-  }
+   return [...rooms];
+ }
+ 
++/** The room that gets the light `groupFeedChanged` event for this change. */
++export function ticketUpdatedGroupRoom(
++  payload: TicketUpdatedRealtimePayload,
++): string | null {
++  if (payload.assignedGroupId === null || payload.assignedGroupId.length === 0) {
++    return null;
++  }
++  return groupRoomName(payload.assignedGroupId);
++}
++
+ function addUserRoom(rooms: Set<string>, userId: string | null): void {
+   if (userId !== null && userId.length > 0) {
+     rooms.add(userRoomName(userId));
+
+diff --git a/backend/src/modules/websocket/websocket-emit-counter.spec.ts b/backend/src/modules/websocket/websocket-emit-counter.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/websocket/websocket-emit-counter.spec.ts
+@@ -0,0 +1,48 @@
++import {
++  consumeWebsocketEmitCounts,
++  formatWebsocketEmitCounts,
++  recordWebsocketEmit,
++  startWebsocketEmitCountReporter,
++} from './websocket-emit-counter';
++
++describe('websocket emit counter', () => {
++  it('counts per room kind and resets on read', () => {
++    consumeWebsocketEmitCounts();
++    recordWebsocketEmit('group');
++    recordWebsocketEmit('group');
++    recordWebsocketEmit('staff');
++    const first = consumeWebsocketEmitCounts();
++    expect(first.group).toBe(2);
++    expect(first.staff).toBe(1);
++    expect(first.public).toBe(0);
++    const second = consumeWebsocketEmitCounts();
++    expect(second.group).toBe(0);
++    expect(second.staff).toBe(0);
++  });
++
++  it('formats one ws_emits_* line per room kind', () => {
++    const line = formatWebsocketEmitCounts({
++      staff: 3,
++      public: 1,
++      user: 0,
++      group: 200,
++      broadcast: 0,
++    });
++    expect(line).toContain('ws_emits_group=200');
++    expect(line).toContain('ws_emits_staff=3');
++  });
++
++  it('logs the counters on its interval', () => {
++    jest.useFakeTimers();
++    const log = jest.fn();
++    const stop = startWebsocketEmitCountReporter({ log }, 1_000);
++    recordWebsocketEmit('user');
++    jest.advanceTimersByTime(1_000);
++    expect(log).toHaveBeenCalledTimes(1);
++    expect(log.mock.calls[0]?.[0]).toContain('ws_emits_user=1');
++    stop();
++    jest.advanceTimersByTime(5_000);
++    expect(log).toHaveBeenCalledTimes(1);
++    jest.useRealTimers();
++  });
++});
+
+diff --git a/backend/src/modules/websocket/websocket-emit-counter.ts b/backend/src/modules/websocket/websocket-emit-counter.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/websocket/websocket-emit-counter.ts
+@@ -0,0 +1,65 @@
++/**
++ * Phase 3.2 (plan §3.2, item 4): "emit-ova/s po sobi; alert > prag".
++ *
++ * A per-process counter, one entry per room kind. It is read by the gateway's
++ * reporter (one log line per interval) and is deliberately dumb: no timers here,
++ * so the broadcast functions stay pure enough to unit test.
++ */
++export const websocketEmitRoomKinds = [
++  'staff',
++  'public',
++  'user',
++  'group',
++  'broadcast',
++] as const;
++
++export type WebsocketEmitRoomKind = (typeof websocketEmitRoomKinds)[number];
++
++const counts = new Map<WebsocketEmitRoomKind, number>();
++
++export function recordWebsocketEmit(kind: WebsocketEmitRoomKind): void {
++  counts.set(kind, (counts.get(kind) ?? 0) + 1);
++}
++
++/** Reads and resets the counters — the reporter calls this once per interval. */
++export function consumeWebsocketEmitCounts(): Readonly<
++  Record<WebsocketEmitRoomKind, number>
++> {
++  const snapshot = {} as Record<WebsocketEmitRoomKind, number>;
++  for (const kind of websocketEmitRoomKinds) {
++    snapshot[kind] = counts.get(kind) ?? 0;
++    counts.set(kind, 0);
++  }
++  return snapshot;
++}
++
++export function formatWebsocketEmitCounts(
++  snapshot: Readonly<Record<WebsocketEmitRoomKind, number>>,
++): string {
++  return websocketEmitRoomKinds
++    .map((kind) => `ws_emits_${kind}=${snapshot[kind]}`)
++    .join(' ');
++}
++
++export type WebsocketEmitCountLogger = {
++  readonly log: (message: string, context?: string) => void;
++};
++
++export const websocketEmitCountLogContext = 'WebsocketMetrics';
++
++/** Logs one line per interval; returns a stop function that clears the timer. */
++export function startWebsocketEmitCountReporter(
++  logger: WebsocketEmitCountLogger,
++  intervalMs = 30_000,
++): () => void {
++  const timer = setInterval(() => {
++    logger.log(
++      formatWebsocketEmitCounts(consumeWebsocketEmitCounts()),
++      websocketEmitCountLogContext,
++    );
++  }, intervalMs);
++  timer.unref();
++  return () => {
++    clearInterval(timer);
++  };
++}
+
+diff --git a/backend/src/modules/websocket/websocket.gateway.ts b/backend/src/modules/websocket/websocket.gateway.ts
+index 7b50bf3..e950220 100644
+--- a/backend/src/modules/websocket/websocket.gateway.ts
++++ b/backend/src/modules/websocket/websocket.gateway.ts
+@@ -1,4 +1,4 @@
+-import { Logger } from '@nestjs/common';
++import { Inject, Logger, Optional } from '@nestjs/common';
+ import { OnModuleDestroy } from '@nestjs/common';
+ import {
+   OnGatewayConnection,
+@@ -7,6 +7,8 @@ import {
+   WebSocketGateway,
+ } from '@nestjs/websockets';
+ import { Server, Socket } from 'socket.io';
++import { redisTokens } from '../../common/redis/redis.tokens';
++import type { RedisConfiguration } from '../../common/redis/redis.types';
+ import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
+ import {
+   attachSocketPrincipal,
+@@ -22,6 +24,14 @@ import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
+ import { SocketAuthenticationService } from './socket-authentication.service';
+ import { SocketGroupMembershipService } from './socket-group-membership.service';
+ import { groupRoomName, userRoomName } from './ticket-socket-rooms';
++import {
++  startWebsocketEmitCountReporter,
++} from './websocket-emit-counter';
++import {
++  createWebsocketRedisAdapter,
++  formatWebsocketAdapterStatus,
++  type WebsocketRedisAdapterHandle,
++} from './ws-redis-adapter';
+ 
+ @WebSocketGateway({
+   cors: {
+@@ -34,27 +44,63 @@ export class WebsocketGateway
+   private readonly logger = new Logger(WebsocketGateway.name);
+ 
+   private stopClientCountReporter: (() => void) | null = null;
++  private stopEmitCountReporter: (() => void) | null = null;
++  private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
+ 
+   constructor(
+     private readonly socketAuthenticationService: SocketAuthenticationService,
+     private readonly socketGroupMembershipService: SocketGroupMembershipService,
++    // Optional on purpose: the unit specs build the gateway without the global
++    // Redis module. No configuration means no adapter — the in-memory one stays,
++    // which is exactly the degraded mode Phase 3.1 asks for.
++    @Optional()
++    @Inject(redisTokens.configuration)
++    private readonly redisConfiguration?: RedisConfiguration,
+   ) {}
+ 
+   afterInit(server: Server): void {
+     server.use((socket: Socket, next: (error?: Error) => void) => {
+       void this.authenticateHandshake(socket, next);
+     });
++    this.applyRealtimeAdapter(server);
+     // Phase 0 observability only: one debug line per interval, no room or auth
+     // behaviour is touched here.
+     this.stopClientCountReporter = startWebsocketClientCountReporter(
+       server,
+       this.logger,
+     );
++    // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
++    this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
+   }
+ 
+   onModuleDestroy(): void {
+     this.stopClientCountReporter?.();
+     this.stopClientCountReporter = null;
++    this.stopEmitCountReporter?.();
++    this.stopEmitCountReporter = null;
++    void this.realtimeAdapter?.close();
++    this.realtimeAdapter = null;
++  }
++
++  /**
++   * Phase 3.1 (plan §3.1): rooms must mean the same thing on every instance, so
++   * the adapter is installed before the first client joins. Nothing here touches
++   * the handshake or the room rules — only how an emit travels between processes.
++   */
++  private applyRealtimeAdapter(server: Server): void {
++    const handle =
++      this.redisConfiguration === undefined
++        ? null
++        : createWebsocketRedisAdapter(this.redisConfiguration, this.logger);
++    if (handle === null) {
++      this.logger.warn(
++        `${formatWebsocketAdapterStatus(false)} fallback=in_memory`,
++      );
++      return;
++    }
++    server.adapter(handle.adapter);
++    this.realtimeAdapter = handle;
++    this.logger.log(formatWebsocketAdapterStatus(true));
+   }
+ 
+   handleConnection(client: Socket): void {
+
+diff --git a/backend/src/modules/websocket/websocket.module.spec.ts b/backend/src/modules/websocket/websocket.module.spec.ts
+index 7662b69..66772a9 100644
+--- a/backend/src/modules/websocket/websocket.module.spec.ts
++++ b/backend/src/modules/websocket/websocket.module.spec.ts
+@@ -32,11 +32,16 @@ describe('WebsocketModule', () => {
+     const gateway = moduleRef.get(WebsocketGateway);
+     expect(gateway).toBeDefined();
+     let middleware: HandshakeMiddleware | undefined;
++    const adapter = jest.fn();
+     gateway.afterInit({
+       use: (handler: HandshakeMiddleware) => {
+         middleware = handler;
+       },
+-    } as Server);
++      adapter,
++    } as unknown as Server);
++    // Phase 3.1: the Redis adapter is installed at init, so two instances share
++    // one set of rooms. The clients are lazy, so this spec opens no connection.
++    expect(adapter).toHaveBeenCalledTimes(1);
+     expect(middleware).toBeDefined();
+     const socket = {
+       id: 'connection-module-1',
+
+diff --git a/backend/src/modules/websocket/ws-redis-adapter.spec.ts b/backend/src/modules/websocket/ws-redis-adapter.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/websocket/ws-redis-adapter.spec.ts
+@@ -0,0 +1,124 @@
++import { createRedisClient } from '../../common/redis/create-redis-client';
++import {
++  createWebsocketRedisAdapter,
++  formatWebsocketAdapterStatus,
++} from './ws-redis-adapter';
++
++jest.mock('@socket.io/redis-adapter', () => ({
++  createAdapter: jest.fn((publish: unknown, subscribe: unknown) => ({
++    publish,
++    subscribe,
++  })),
++}));
++
++jest.mock('../../common/redis/create-redis-client', () => ({
++  createRedisClient: jest.fn(),
++}));
++
++const createRedisClientMock = createRedisClient as jest.MockedFunction<
++  typeof createRedisClient
++>;
++
++type FakeClient = {
++  readonly emitter: Map<string, ((error: Error) => void)[]>;
++  readonly status: string;
++  on(event: string, listener: (error: Error) => void): void;
++  disconnect(): void;
++  quit(): Promise<void>;
++};
++
++function createFakeClient(): FakeClient {
++  return {
++    emitter: new Map(),
++    status: 'wait',
++    on(event, listener) {
++      const listeners = this.emitter.get(event) ?? [];
++      listeners.push(listener);
++      this.emitter.set(event, listeners);
++    },
++    disconnect: jest.fn(),
++    quit: jest.fn(async () => undefined),
++  };
++}
++
++const configuration = {
++  host: 'redis-core',
++  port: 6379,
++  keyPrefix: '',
++} as never;
++
++describe('createWebsocketRedisAdapter', () => {
++  const logger = { warn: jest.fn(), log: jest.fn() };
++
++  beforeEach(() => {
++    logger.warn.mockReset();
++    logger.log.mockReset();
++    createRedisClientMock.mockReset();
++  });
++
++  it('builds the adapter from two dedicated clients', () => {
++    const first = createFakeClient();
++    const second = createFakeClient();
++    createRedisClientMock
++      .mockReturnValueOnce(first as never)
++      .mockReturnValueOnce(second as never);
++
++    const handle = createWebsocketRedisAdapter(configuration, logger);
++
++    expect(handle).not.toBeNull();
++    expect(createRedisClientMock).toHaveBeenCalledTimes(2);
++    expect(handle?.publishClient).toBe(first);
++    expect(handle?.subscribeClient).toBe(second);
++    expect(handle?.publishClient).not.toBe(handle?.subscribeClient);
++  });
++
++  it('logs a connection error instead of letting it crash the process', () => {
++    const client = createFakeClient();
++    createRedisClientMock
++      .mockReturnValueOnce(client as never)
++      .mockReturnValueOnce(createFakeClient() as never);
++    const handle = createWebsocketRedisAdapter(configuration, logger);
++
++    const [listener] = client.emitter.get('error') ?? [];
++    expect(listener).toBeDefined();
++    expect(() => listener?.(new Error('Connection is closed.'))).not.toThrow();
++    expect(logger.warn).toHaveBeenCalledWith(
++      'ws_adapter_redis_error reason=Connection is closed.',
++    );
++    expect(handle).not.toBeNull();
++  });
++
++  it('falls back to the in-memory adapter when the clients cannot be created', () => {
++    createRedisClientMock.mockImplementation(() => {
++      throw new Error('redis host is not configured');
++    });
++
++    const handle = createWebsocketRedisAdapter(configuration, logger);
++
++    expect(handle).toBeNull();
++    expect(logger.warn).toHaveBeenCalledWith(
++      'ws_adapter_redis_unavailable reason=redis host is not configured',
++    );
++  });
++
++  it('closes both connections on shutdown', async () => {
++    const first = createFakeClient();
++    const second = createFakeClient();
++    createRedisClientMock
++      .mockReturnValueOnce(first as never)
++      .mockReturnValueOnce(second as never);
++
++    const handle = createWebsocketRedisAdapter(configuration, logger);
++    await handle?.close();
++
++    // Lazy clients that never connected are disconnected, not quit (a quit would
++    // first open a connection just to close it).
++    expect(first.disconnect).toHaveBeenCalled();
++    expect(second.disconnect).toHaveBeenCalled();
++  });
++
++  it('formats the adapter metric like the other ws_* lines', () => {
++    expect(formatWebsocketAdapterStatus(true)).toBe('ws_adapter_redis_ok=1');
++    expect(formatWebsocketAdapterStatus(false)).toBe('ws_adapter_redis_ok=0');
++  });
++});
+
+diff --git a/backend/src/modules/websocket/ws-redis-adapter.ts b/backend/src/modules/websocket/ws-redis-adapter.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/websocket/ws-redis-adapter.ts
+@@ -0,0 +1,76 @@
++import { createAdapter } from '@socket.io/redis-adapter';
++import type { Redis } from 'ioredis';
++import { closeRedisClient } from '../../common/redis/close-redis-client';
++import { createRedisClient } from '../../common/redis/create-redis-client';
++import type { RedisConfiguration } from '../../common/redis/redis.types';
++
++/** The slice of `Logger` this module needs (keeps the unit test logger-free). */
++export type WebsocketAdapterLogger = {
++  readonly warn: (message: string) => void;
++  readonly log: (message: string) => void;
++};
++
++export type WebsocketRedisAdapterHandle = {
++  readonly adapter: ReturnType<typeof createAdapter>;
++  readonly publishClient: Redis;
++  readonly subscribeClient: Redis;
++  close(): Promise<void>;
++};
++
++/**
++ * Phase 3.1 (plan §3.1): the Socket.IO Redis adapter, so two API instances share
++ * one set of rooms instead of each serving a private universe.
++ *
++ * Three rules the plan calls out:
++ * 1. **Dedicated connections.** The subscriber connection cannot run normal
++ *    commands, and BullMQ already owns its own connections — so this creates two
++ *    fresh clients through the existing factory (`create-redis-client.ts`), with
++ *    the same credentials and key prefix as everything else.
++ * 2. **Never block the boot.** If the clients cannot even be constructed the
++ *    gateway keeps the in-memory adapter (degraded, single instance) and logs why.
++ *    Connection failures after that are ioredis' own retry loop: the adapter comes
++ *    back on its own once Redis is reachable again.
++ * 3. **No unhandled errors.** ioredis emits `error` on connection loss; without a
++ *    listener that is an uncaught exception. Both clients get a listener here.
++ */
++export function createWebsocketRedisAdapter(
++  configuration: RedisConfiguration,
++  logger: WebsocketAdapterLogger,
++): WebsocketRedisAdapterHandle | null {
++  try {
++    const publishClient = createRedisClient(configuration);
++    const subscribeClient = createRedisClient(configuration);
++    attachConnectionErrorLogging(publishClient, logger);
++    attachConnectionErrorLogging(subscribeClient, logger);
++    return {
++      adapter: createAdapter(publishClient, subscribeClient),
++      publishClient,
++      subscribeClient,
++      close: async () => {
++        await Promise.all([
++          closeRedisClient(publishClient),
++          closeRedisClient(subscribeClient),
++        ]);
++      },
++    };
++  } catch (error) {
++    logger.warn(
++      `ws_adapter_redis_unavailable reason=${error instanceof Error ? error.message : String(error)}`,
++    );
++    return null;
++  }
++}
++
++/** One line per state change, same shape as the other `ws_*` metrics from Faza 0. */
++export function formatWebsocketAdapterStatus(active: boolean): string {
++  return `ws_adapter_redis_ok=${active ? 1 : 0}`;
++}
++
++function attachConnectionErrorLogging(
++  client: Redis,
++  logger: WebsocketAdapterLogger,
++): void {
++  client.on('error', (error: Error) => {
++    logger.warn(`ws_adapter_redis_error reason=${error.message}`);
++  });
++}
+
+diff --git a/docker-compose.yml b/docker-compose.yml
+index f769c45..592bffe 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -23,6 +23,9 @@ x-redis-environment: &redis-environment
+   REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ephelpdesk}
+   QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:ephelpdesk}
+ 
++# Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
++# MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga
++# na WebSocket. Rolling deploy: vidi ops/ws-rolling-deploy.md (drain ≤ 30 s).
+ services:
+   frontend:
+     build:
+
+diff --git a/frontend/package.json b/frontend/package.json
+index 283827c..333bb7e 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -21,6 +21,7 @@
+     "@radix-ui/react-switch": "^1.2.6",
+     "@radix-ui/react-tabs": "^1.1.13",
+     "@tanstack/react-query": "^5.96.2",
++    "@tanstack/react-virtual": "^3.14.13",
+     "axios": "^1.7.7",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
+
+diff --git a/frontend/src/app/app.tsx b/frontend/src/app/app.tsx
+index eaa5929..7517ea5 100644
+--- a/frontend/src/app/app.tsx
++++ b/frontend/src/app/app.tsx
+@@ -1,19 +1,23 @@
++import { QueryClientProvider } from "@tanstack/react-query";
+ import { BrowserRouter } from "react-router-dom";
+ import { AppRouter } from "@/app/router";
+ import { InstallSetupProvider } from "@/app/install-setup-provider";
+ import { ToastProvider } from "@/components/ui/toast";
++import { helpdeskQueryClient } from "@/lib/query/query-client";
+ import { ThemeProvider } from "@/lib/theme/theme-provider";
+ 
+ export function App() {
+   return (
+-    <ThemeProvider>
+-      <ToastProvider>
+-        <BrowserRouter>
+-          <InstallSetupProvider>
+-            <AppRouter />
+-          </InstallSetupProvider>
+-        </BrowserRouter>
+-      </ToastProvider>
+-    </ThemeProvider>
++    <QueryClientProvider client={helpdeskQueryClient}>
++      <ThemeProvider>
++        <ToastProvider>
++          <BrowserRouter>
++            <InstallSetupProvider>
++              <AppRouter />
++            </InstallSetupProvider>
++          </BrowserRouter>
++        </ToastProvider>
++      </ThemeProvider>
++    </QueryClientProvider>
+   );
+ }
+
+diff --git a/frontend/src/components/tickets/ticket-list-table.tsx b/frontend/src/components/tickets/ticket-list-table.tsx
+index 42b90bc..a995d9a 100644
+--- a/frontend/src/components/tickets/ticket-list-table.tsx
++++ b/frontend/src/components/tickets/ticket-list-table.tsx
+@@ -1,4 +1,6 @@
++import { useRef } from "react";
+ import { Link, useNavigate } from "react-router-dom";
++import { useVirtualizer } from "@tanstack/react-virtual";
+ import { ShieldAlert } from "lucide-react";
+ import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+ import { Avatar } from "@/components/ui/avatar";
+@@ -35,6 +37,15 @@ interface TicketListTableProperties {
+ 
+ const emptyAssigneeNames: ReadonlyMap<string, string> = new Map();
+ 
++/**
++ * Faza 3.3 (plan §3.3, item 5): above this many rows the body is virtualized, so
++ * a long list (the group inbox is not paged) keeps ~60 rows in the DOM. Shorter
++ * lists keep the plain table — no internal scrollbar appears for a normal page.
++ */
++export const ticketListVirtualizationThreshold = 60;
++
++const estimatedTicketRowHeightPx = 56;
++
+ export function directoryAssigneeNames(
+   users: readonly { id: string; displayName: string }[],
+ ): ReadonlyMap<string, string> {
+@@ -91,6 +102,91 @@ function assignmentCell(
+   );
+ }
+ 
++type TicketListRowProperties = {
++  readonly ticket: TicketResponse;
++  readonly serviceNames: ReadonlyMap<string, string>;
++  readonly originNames: ReadonlyMap<string, string>;
++  readonly assigneeNames: ReadonlyMap<string, string>;
++  readonly selectedIds: ReadonlySet<string>;
++  readonly onToggleSelected: (ticketId: string) => void;
++  /** Set only in the virtualized body, where the row must be measured. */
++  readonly virtualIndex?: number;
++  /** The virtualizer measures the real row height through this ref. */
++  readonly measureRef?: (element: Element | null) => void;
++};
++
++function TicketListRow({
++  ticket,
++  serviceNames,
++  originNames,
++  assigneeNames,
++  selectedIds,
++  onToggleSelected,
++  virtualIndex,
++  measureRef,
++}: TicketListRowProperties) {
++  const { t, i18n } = useTicketText();
++  const navigate = useNavigate();
++  const isSelected = selectedIds.has(ticket.id);
++  return (
++    <tr
++      className={cn(
++        tableRowClassName,
++        "cursor-pointer",
++        isSelected && "bg-primary/6 hover:bg-primary/8",
++      )}
++      data-index={virtualIndex}
++      ref={measureRef}
++      onClick={() => navigate(`/tickets/${ticket.id}`)}
++    >
++      <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
++        <Checkbox
++          checked={isSelected}
++          onChange={() => onToggleSelected(ticket.id)}
++          aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
++        />
++      </td>
++      <td className="px-2 py-2.5">
++        <div className="flex items-center gap-2">
++          {ticket.isConfidential ? (
++            <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
++          ) : null}
++          <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
++            {ticket.ticketNumber}
++          </Link>
++          {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
++          {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
++            <TicketAtRiskBadge />
++          ) : null}
++        </div>
++        <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
++          {ticket.title}
++        </p>
++      </td>
++      <td className="px-4 py-2.5">
++        <span className="text-[12px] text-muted-foreground">
++          {serviceNames.get(ticket.serviceId) ?? "—"}
++        </span>
++      </td>
++      <td className="px-4 py-2.5">
++        <span className="text-[12px] text-muted-foreground">
++          {originNames.get(ticket.originUnitId) ?? "—"}
++        </span>
++      </td>
++      <td className="px-4 py-2.5">
++        <TicketStatusBadge status={ticket.status} />
++      </td>
++      <td className="px-4 py-2.5">
++        <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
++      </td>
++      <td className="px-4 py-2.5">{assignmentCell(ticket, t, assigneeNames)}</td>
++      <td className="whitespace-nowrap px-4 py-2.5 text-right text-[11.5px] text-muted-foreground">
++        <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
++      </td>
++    </tr>
++  );
++}
++
+ export function TicketListTable({
+   tickets,
+   serviceNames,
+@@ -100,14 +196,48 @@ export function TicketListTable({
+   onToggleSelected,
+   onTogglePage,
+ }: TicketListTableProperties) {
+-  const { t, i18n } = useTicketText();
+-  const navigate = useNavigate();
++  const { t } = useTicketText();
++  const rowOriginNames = originNames ?? emptyAssigneeNames;
+   const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id));
+   const someSelected = !allSelected && tickets.some((ticket) => selectedIds.has(ticket.id));
++  const isVirtualized = tickets.length > ticketListVirtualizationThreshold;
++  const scrollRef = useRef<HTMLDivElement | null>(null);
++  const virtualizer = useVirtualizer({
++    count: tickets.length,
++    getScrollElement: () => scrollRef.current,
++    estimateSize: () => estimatedTicketRowHeightPx,
++    overscan: 8,
++    enabled: isVirtualized,
++  });
++  const virtualRows = isVirtualized ? virtualizer.getVirtualItems() : [];
++  const renderedTickets = isVirtualized
++    ? virtualRows.map((row, index) => ({
++        ticket: tickets[row.index],
++        virtualIndex: row.index,
++        key: `${tickets[row.index]?.id ?? row.index}-${index}`,
++      }))
++    : tickets.map((ticket) => ({ ticket, virtualIndex: undefined, key: ticket.id }));
++  const measureRow = (element: Element | null) => {
++    virtualizer.measureElement(element);
++  };
++  const rowProperties = {
++    serviceNames,
++    originNames: rowOriginNames,
++    assigneeNames,
++    selectedIds,
++    onToggleSelected,
++  };
+   return (
+-    <div className={cn(tableWrapClassName, "fade-in")}>
++    <div
++      ref={scrollRef}
++      className={cn(
++        tableWrapClassName,
++        "fade-in",
++        isVirtualized && "max-h-[70vh] overflow-y-auto",
++      )}
++    >
+       <table className="w-full min-w-[900px] text-left">
+-        <thead>
++        <thead className={isVirtualized ? "sticky top-0 z-10 bg-surface" : undefined}>
+           <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}>
+             <th className="w-10 px-4 py-2.5">
+               <Checkbox
+@@ -127,65 +257,31 @@ export function TicketListTable({
+           </tr>
+         </thead>
+         <tbody>
+-          {tickets.map((ticket) => {
+-            const isSelected = selectedIds.has(ticket.id);
+-            return (
+-              <tr
+-                key={ticket.id}
+-                className={cn(
+-                  tableRowClassName,
+-                  "cursor-pointer",
+-                  isSelected && "bg-primary/6 hover:bg-primary/8",
+-                )}
+-                onClick={() => navigate(`/tickets/${ticket.id}`)}
+-              >
+-                <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
+-                  <Checkbox
+-                    checked={isSelected}
+-                    onChange={() => onToggleSelected(ticket.id)}
+-                    aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
+-                  />
+-                </td>
+-                <td className="px-2 py-2.5">
+-                  <div className="flex items-center gap-2">
+-                    {ticket.isConfidential ? (
+-                      <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
+-                    ) : null}
+-                    <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+-                      {ticket.ticketNumber}
+-                    </Link>
+-                    {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
+-                    {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
+-                      <TicketAtRiskBadge />
+-                    ) : null}
+-                  </div>
+-                  <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
+-                    {ticket.title}
+-                  </p>
+-                </td>
+-                <td className="px-4 py-2.5">
+-                  <span className="text-[12px] text-muted-foreground">
+-                    {serviceNames.get(ticket.serviceId) ?? "—"}
+-                  </span>
+-                </td>
+-                <td className="px-4 py-2.5">
+-                  <span className="text-[12px] text-muted-foreground">
+-                    {originNames?.get(ticket.originUnitId) ?? "—"}
+-                  </span>
+-                </td>
+-                <td className="px-4 py-2.5">
+-                  <TicketStatusBadge status={ticket.status} />
+-                </td>
+-                <td className="px-4 py-2.5">
+-                  <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+-                </td>
+-                <td className="px-4 py-2.5">{assignmentCell(ticket, t, assigneeNames)}</td>
+-                <td className="whitespace-nowrap px-4 py-2.5 text-right text-[11.5px] text-muted-foreground">
+-                  <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
+-                </td>
+-              </tr>
+-            );
+-          })}
++          {isVirtualized ? (
++            <tr aria-hidden="true" style={{ height: virtualRows[0]?.start ?? 0 }} />
++          ) : null}
++          {renderedTickets.map(({ ticket, virtualIndex, key }) =>
++            ticket === undefined ? null : (
++              <TicketListRow
++                key={key}
++                ticket={ticket}
++                virtualIndex={virtualIndex}
++                measureRef={virtualIndex === undefined ? undefined : measureRow}
++                {...rowProperties}
++              />
++            ),
++          )}
++          {isVirtualized ? (
++            <tr
++              aria-hidden="true"
++              style={{
++                height: Math.max(
++                  0,
++                  virtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0),
++                ),
++              }}
++            />
++          ) : null}
+         </tbody>
+       </table>
+     </div>
+
+diff --git a/frontend/src/lib/dashboard/use-dashboard-summary.ts b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+index 23439bb..2978299 100644
+--- a/frontend/src/lib/dashboard/use-dashboard-summary.ts
++++ b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+@@ -1,4 +1,6 @@
+ import { useCallback, useEffect, useState } from "react";
++import { useQueryClient } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
+ import {
+   composeDashboardSummary,
+   type DashboardSummary,
+@@ -36,6 +38,7 @@ export type DashboardSummaryState = {
+ 
+ export function useDashboardSummary(): DashboardSummaryState {
+   const { currentUserId } = useSession();
++  const queryClient = useQueryClient();
+   const isStaff = isTicketStaff(useSessionCapabilities());
+   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+   const [inboxTickets, setInboxTickets] = useState<
+@@ -65,8 +68,14 @@ export function useDashboardSummary(): DashboardSummaryState {
+       // same visibility scope as the lists); the first page is only the view
+       // data of the recent/watch/attention lists and the 14-day chart.
+       const [counts, firstPage] = await Promise.all([
+-        fetchDashboardSummary("all"),
+-        listTicketsPage({ pageSize: 50 }),
++        queryClient.fetchQuery({
++          queryKey: queryKeys.dashboardSummary("all"),
++          queryFn: () => fetchDashboardSummary("all"),
++        }),
++        queryClient.fetchQuery({
++          queryKey: queryKeys.ticketList({ pageSize: 50 }),
++          queryFn: () => listTicketsPage({ pageSize: 50 }),
++        }),
+       ]);
+       setSummary(
+         composeDashboardSummary({
+@@ -76,10 +85,41 @@ export function useDashboardSummary(): DashboardSummaryState {
+         }),
+       );
+       const [inbox, catalog, tree, rules] = await Promise.all([
+-        isStaff ? listGroupInbox().catch(() => null) : Promise.resolve(null),
+-        listServices().catch(() => listOfferedServices().catch(() => [])),
+-        listOrganizationalUnitTree().catch(() => []),
+-        isStaff ? listRoutingRules().catch(() => []) : Promise.resolve([]),
++        isStaff
++          ? queryClient
++              .fetchQuery({
++                queryKey: queryKeys.groupInbox,
++                queryFn: () => listGroupInbox(),
++              })
++              .catch(() => null)
++          : Promise.resolve(null),
++        queryClient
++          .fetchQuery({
++            queryKey: queryKeys.services,
++            queryFn: () => listServices(),
++          })
++          .catch(() =>
++            queryClient
++              .fetchQuery({
++                queryKey: queryKeys.offeredServices,
++                queryFn: () => listOfferedServices(),
++              })
++              .catch(() => []),
++          ),
++        queryClient
++          .fetchQuery({
++            queryKey: queryKeys.organizationalUnits,
++            queryFn: () => listOrganizationalUnitTree(),
++          })
++          .catch(() => []),
++        isStaff
++          ? queryClient
++              .fetchQuery({
++                queryKey: queryKeys.routingRules,
++                queryFn: () => listRoutingRules(),
++              })
++              .catch(() => [])
++          : Promise.resolve([]),
+       ]);
+       setInboxTickets(inbox);
+       setServiceNames(
+@@ -105,7 +145,7 @@ export function useDashboardSummary(): DashboardSummaryState {
+         setIsLoading(false);
+       }
+     }
+-  }, [currentUserId, isStaff]);
++  }, [currentUserId, isStaff, queryClient]);
+ 
+   useEffect(() => {
+     void reload();
+
+diff --git a/frontend/src/lib/query/query-client.spec.ts b/frontend/src/lib/query/query-client.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/query/query-client.spec.ts
+@@ -0,0 +1,41 @@
++import { describe, expect, it } from "vitest";
++import {
++  catalogQueryStaleTimeMs,
++  createHelpdeskQueryClient,
++  defaultQueryStaleTimeMs,
++  queryRetryCount,
++} from "@/lib/query/query-client";
++import { queryKeys } from "@/lib/query/query-keys";
++
++describe("createHelpdeskQueryClient", () => {
++  it("uses the documented defaults", () => {
++    const client = createHelpdeskQueryClient();
++    const defaults = client.getDefaultOptions().queries;
++    expect(defaults?.staleTime).toBe(defaultQueryStaleTimeMs);
++    expect(defaults?.staleTime).toBe(30_000);
++    expect(defaults?.retry).toBe(queryRetryCount);
++    expect(defaults?.refetchOnWindowFocus).toBe(false);
++  });
++
++  it("keeps catalogs fresh for five minutes", () => {
++    expect(catalogQueryStaleTimeMs).toBe(300_000);
++    expect(catalogQueryStaleTimeMs).toBeGreaterThan(defaultQueryStaleTimeMs);
++  });
++});
++
++describe("queryKeys", () => {
++  it("builds stable keys for the same resource", () => {
++    expect(queryKeys.routingCatalog).toEqual(["catalog", "routing"]);
++    expect(queryKeys.ticket("ticket-1")).toEqual([
++      "tickets",
++      "detail",
++      "ticket-1",
++    ]);
++    expect(queryKeys.dashboardSummary("all")).toEqual([
++      "dashboard",
++      "summary",
++      "all",
++    ]);
++    expect(queryKeys.ticket("ticket-1")).toEqual(queryKeys.ticket("ticket-1"));
++  });
++});
+
+diff --git a/frontend/src/lib/query/query-client.ts b/frontend/src/lib/query/query-client.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/query/query-client.ts
+@@ -0,0 +1,33 @@
++import { QueryClient } from "@tanstack/react-query";
++
++/**
++ * Faza 3.3 (plan §3.3): the client-side cache defaults.
++ *
++ * - `staleTime: 30 s` — the realtime socket is what makes data fresh, so a screen
++ *   that comes back within half a minute does not fetch again.
++ * - catalogs use `catalogQueryStaleTimeMs` (5 min) — OU tree, service catalog and
++ *   handler groups change rarely and were the collections fetched 2–4× per session.
++ * - `retry: 1` — one retry, not three: the socket reconnect logic already handles
++ *   the "server is restarting" case.
++ * - `refetchOnWindowFocus: false` — focus refetching would fight the socket.
++ */
++export const defaultQueryStaleTimeMs = 30_000;
++export const catalogQueryStaleTimeMs = 300_000;
++export const queryGcTimeMs = 5 * 60_000;
++export const queryRetryCount = 1;
++
++export function createHelpdeskQueryClient(): QueryClient {
++  return new QueryClient({
++    defaultOptions: {
++      queries: {
++        staleTime: defaultQueryStaleTimeMs,
++        gcTime: queryGcTimeMs,
++        retry: queryRetryCount,
++        refetchOnWindowFocus: false,
++      },
++    },
++  });
++}
++
++/** The single client of the app (created once per browser session). */
++export const helpdeskQueryClient = createHelpdeskQueryClient();
+
+diff --git a/frontend/src/lib/query/query-keys.ts b/frontend/src/lib/query/query-keys.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/query/query-keys.ts
+@@ -0,0 +1,20 @@
++/**
++ * Faza 3.3 (plan §3.3): one place that owns query keys, so an invalidacija can
++ * never miss a cache entry because two call sites spelled the key differently.
++ */
++export const queryKeys = {
++  routingCatalog: ["catalog", "routing"] as const,
++  routingRules: ["catalog", "routing-rules"] as const,
++  organizationalUnits: ["catalog", "organizational-units"] as const,
++  services: ["catalog", "services"] as const,
++  dashboardSummary: (scope: string) => ["dashboard", "summary", scope] as const,
++  ticketLists: ["tickets", "list"] as const,
++  ticketList: (query: unknown) => ["tickets", "list", query] as const,
++  ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
++  ticket: (ticketId: string) => ["tickets", "detail", ticketId] as const,
++  groupInbox: ["tickets", "inbox"] as const,
++  offeredServices: ["catalog", "offered-services"] as const,
++  createTicketCatalog: ["catalog", "create-ticket"] as const,
++  slaSummary: ["sla", "summary"] as const,
++  notifications: ["notifications"] as const,
++} as const;
+
+diff --git a/frontend/src/lib/realtime/group-feed-changed.spec.ts b/frontend/src/lib/realtime/group-feed-changed.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/group-feed-changed.spec.ts
+@@ -0,0 +1,30 @@
++import { describe, expect, it } from "vitest";
++import {
++  isGroupFeedChangedPayload,
++  type GroupFeedChangedPayload,
++} from "@/lib/realtime/group-feed-changed";
++
++const validPayload: GroupFeedChangedPayload = {
++  groupId: "group-it",
++  ticketId: "ticket-1",
++  kind: "message",
++  occurredAt: "2026-09-24T08:00:00.000Z",
++};
++
++describe("isGroupFeedChangedPayload", () => {
++  it("accepts the light event shape", () => {
++    expect(isGroupFeedChangedPayload(validPayload)).toBe(true);
++    expect(isGroupFeedChangedPayload({ ...validPayload, kind: "sla" })).toBe(true);
++  });
++
++  it("rejects payloads that would carry ticket content", () => {
++    expect(isGroupFeedChangedPayload(null)).toBe(false);
++    expect(isGroupFeedChangedPayload("group.feed-changed")).toBe(false);
++    expect(isGroupFeedChangedPayload({ ...validPayload, kind: "internal" })).toBe(false);
++    expect(isGroupFeedChangedPayload({ ...validPayload, ticketId: undefined })).toBe(false);
++  });
++
++  it("stays under 200 bytes on the wire", () => {
++    expect(JSON.stringify(validPayload).length).toBeLessThan(200);
++  });
++});
+
+diff --git a/frontend/src/lib/realtime/group-feed-changed.ts b/frontend/src/lib/realtime/group-feed-changed.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/group-feed-changed.ts
+@@ -0,0 +1,31 @@
++/**
++ * Faza 3.2 (plan §3.2): the payload of the light group-room event. Ids and a
++ * kind only — the group room never carries a title, a body or a status, so this
++ * type deliberately has no room for them.
++ */
++export type GroupFeedChangeKind = "message" | "status" | "assign" | "sla";
++
++export type GroupFeedChangedPayload = {
++  readonly groupId: string;
++  readonly ticketId: string;
++  readonly kind: GroupFeedChangeKind;
++  readonly occurredAt: string;
++};
++
++export function isGroupFeedChangedPayload(
++  payload: unknown,
++): payload is GroupFeedChangedPayload {
++  if (typeof payload !== "object" || payload === null) {
++    return false;
++  }
++  const candidate = payload as Partial<GroupFeedChangedPayload>;
++  return (
++    typeof candidate.groupId === "string" &&
++    typeof candidate.ticketId === "string" &&
++    typeof candidate.occurredAt === "string" &&
++    (candidate.kind === "message" ||
++      candidate.kind === "status" ||
++      candidate.kind === "assign" ||
++      candidate.kind === "sla")
++  );
++}
+
+diff --git a/frontend/src/lib/realtime/helpdesk-socket-host.tsx b/frontend/src/lib/realtime/helpdesk-socket-host.tsx
+index ccb35d6..3c24d5c 100644
+--- a/frontend/src/lib/realtime/helpdesk-socket-host.tsx
++++ b/frontend/src/lib/realtime/helpdesk-socket-host.tsx
+@@ -1,4 +1,6 @@
+ import { useEffect } from "react";
++import { useQueryClient } from "@tanstack/react-query";
++import { subscribeToQueryInvalidation } from "@/lib/realtime/invalidate-on-event";
+ import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
+ import { ticketSocketEvents } from "@/services/ticket-socket";
+ import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
+@@ -11,6 +13,7 @@ type SessionInvalidatedPayload = {
+ 
+ export function HelpdeskSocketHost() {
+   const { session, signOut } = useSession();
++  const queryClient = useQueryClient();
+ 
+   useEffect(() => {
+     if (session === null) {
+@@ -31,12 +34,20 @@ export function HelpdeskSocketHost() {
+         bumpSettingsGeneration();
+       },
+     );
++    // Faza 3.3: the socket is the only place that marks cached queries stale —
++    // screens then refetch on their own schedule, and a screen that is not
++    // visible pulls nothing at all.
++    const stopInvalidation = subscribeToQueryInvalidation({
++      socket,
++      queryClient,
++    });
+     return () => {
+       stopInvalidated();
+       stopSettings();
++      stopInvalidation();
+       releaseHelpdeskSocket();
+     };
+-  }, [session, signOut]);
++  }, [queryClient, session, signOut]);
+ 
+   return null;
+ }
+
+diff --git a/frontend/src/lib/realtime/invalidate-on-event.spec.ts b/frontend/src/lib/realtime/invalidate-on-event.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/invalidate-on-event.spec.ts
+@@ -0,0 +1,56 @@
++import { describe, expect, it } from "vitest";
++import { queryKeysForTicketEvent } from "@/lib/realtime/invalidate-on-event";
++import { queryKeys } from "@/lib/query/query-keys";
++
++describe("queryKeysForTicketEvent", () => {
++  it("invalidates the list, the detail and the dashboard on a ticket update", () => {
++    expect(
++      queryKeysForTicketEvent({
++        eventName: "ticket.updated",
++        payload: { ticketId: "ticket-1" },
++      }),
++    ).toEqual([
++      queryKeys.ticketLists,
++      queryKeys.ticket("ticket-1"),
++      queryKeys.dashboardSummary("all"),
++      queryKeys.slaSummary,
++    ]);
++  });
++
++  it("keeps a group feed change to the list queries", () => {
++    expect(
++      queryKeysForTicketEvent({
++        eventName: "group.feed-changed",
++        payload: { groupId: "group-it", ticketId: "ticket-1", kind: "message" },
++      }),
++    ).toEqual([queryKeys.ticketLists]);
++  });
++
++  it("invalidates notifications on their own events", () => {
++    expect(
++      queryKeysForTicketEvent({
++        eventName: "notification.created",
++        payload: { ticketId: "ticket-1" },
++      }),
++    ).toEqual([queryKeys.notifications]);
++  });
++
++  it("does not throw on a payload without a ticket id", () => {
++    expect(
++      queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null }),
++    ).toEqual([
++      queryKeys.ticketLists,
++      queryKeys.dashboardSummary("all"),
++      queryKeys.slaSummary,
++    ]);
++    expect(
++      queryKeysForTicketEvent({ eventName: "group.feed-changed", payload: {} }),
++    ).toEqual([]);
++  });
++
++  it("ignores events it does not know", () => {
++    expect(
++      queryKeysForTicketEvent({ eventName: "settings.updated", payload: {} }),
++    ).toEqual([]);
++  });
++});
+
+diff --git a/frontend/src/lib/realtime/invalidate-on-event.ts b/frontend/src/lib/realtime/invalidate-on-event.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/lib/realtime/invalidate-on-event.ts
+@@ -0,0 +1,96 @@
++import type { QueryClient } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
++import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
++import { ticketSocketEvents } from "@/services/ticket-socket";
++import type { Socket } from "socket.io-client";
++
++export type QueryKey = readonly unknown[];
++
++/**
++ * Faza 3.3 (plan §3.3, item 3): the single place that maps a socket event to the
++ * queries it invalidates. Kept pure so the mapping itself is testable — the
++ * subscription below is the only part that touches the socket.
++ *
++ * `group.feed-changed` (Faza 3.2) intentionally invalidates only the list
++ * queries: the group room never carried the ticket content, so there is nothing
++ * to update in a ticket detail cache.
++ */
++export function queryKeysForTicketEvent(input: {
++  readonly eventName: string;
++  readonly payload: unknown;
++}): readonly QueryKey[] {
++  const ticketId = readTicketId(input.payload);
++  switch (input.eventName) {
++    case ticketSocketEvents.ticketUpdated:
++      return ticketId === null
++        ? [
++            queryKeys.ticketLists,
++            queryKeys.dashboardSummary("all"),
++            queryKeys.slaSummary,
++          ]
++        : [
++            queryKeys.ticketLists,
++            queryKeys.ticket(ticketId),
++            queryKeys.dashboardSummary("all"),
++            queryKeys.slaSummary,
++          ];
++    case ticketSocketEvents.messageCreated:
++      return ticketId === null
++        ? [queryKeys.ticketLists]
++        : [queryKeys.ticketLists, queryKeys.ticket(ticketId)];
++    case ticketSocketEvents.groupFeedChanged:
++      // Only "something changed in your group" — pull the lists, not the detail.
++      return ticketId === null ? [] : [queryKeys.ticketLists];
++    case ticketSocketEvents.notificationCreated:
++    case ticketSocketEvents.notificationRead:
++      return [queryKeys.notifications];
++    default:
++      return [];
++  }
++}
++
++export type QueryInvalidationOptions = {
++  readonly socket: Socket;
++  readonly queryClient: QueryClient;
++  /** Screens that are not on screen must not pull anything (plan §3.2/§3.3). */
++  readonly isScreenVisible?: () => boolean;
++};
++
++export function subscribeToQueryInvalidation(
++  options: QueryInvalidationOptions,
++): () => void {
++  const isVisible =
++    options.isScreenVisible ??
++    (() =>
++      typeof document === "undefined" || document.visibilityState === "visible");
++  const watched = [
++    ticketSocketEvents.ticketUpdated,
++    ticketSocketEvents.messageCreated,
++    ticketSocketEvents.groupFeedChanged,
++    ticketSocketEvents.notificationCreated,
++    ticketSocketEvents.notificationRead,
++  ];
++  const stops = watched.map((eventName) =>
++    subscribeSocketEvent<unknown>(options.socket, eventName, (payload) => {
++      if (!isVisible()) {
++        return;
++      }
++      for (const key of queryKeysForTicketEvent({ eventName, payload })) {
++        void options.queryClient.invalidateQueries({ queryKey: key });
++      }
++    }),
++  );
++  return () => {
++    for (const stop of stops) {
++      stop();
++    }
++  };
++}
++
++function readTicketId(payload: unknown): string | null {
++  if (typeof payload !== "object" || payload === null) {
++    return null;
++  }
++  const ticketId = (payload as { readonly ticketId?: unknown }).ticketId;
++  return typeof ticketId === "string" && ticketId.length > 0 ? ticketId : null;
++}
+
+diff --git a/frontend/src/lib/realtime/use-ticket-collection-realtime.ts b/frontend/src/lib/realtime/use-ticket-collection-realtime.ts
+index 77d0cc0..0155a02 100644
+--- a/frontend/src/lib/realtime/use-ticket-collection-realtime.ts
++++ b/frontend/src/lib/realtime/use-ticket-collection-realtime.ts
+@@ -1,4 +1,5 @@
+ import { useEffect } from "react";
++import type { GroupFeedChangedPayload } from "@/lib/realtime/group-feed-changed";
+ import type { TicketUpdatedRealtimePayload } from "@/lib/realtime/apply-ticket-updated";
+ import type { NotificationRealtimePayload } from "@/lib/realtime/apply-notification-realtime";
+ import { scheduleDebouncedCallback } from "@/lib/realtime/schedule-debounced-callback";
+@@ -44,10 +45,23 @@ export function useTicketCollectionRealtime(reload: () => Promise<void>): void {
+         debounced.trigger();
+       },
+     );
++    // Faza 3.2: group rooms only carry the light event, and a screen that is not
++    // on screen pulls nothing at all (plan §3.2).
++    const stopGroupFeed = subscribeSocketEvent<GroupFeedChangedPayload>(
++      socket,
++      ticketSocketEvents.groupFeedChanged,
++      () => {
++        if (typeof document !== "undefined" && document.visibilityState !== "visible") {
++          return;
++        }
++        debounced.trigger();
++      },
++    );
+     return () => {
+       debounced.cancel();
+       stopUpdated();
+       stopCreated();
++      stopGroupFeed();
+       releaseHelpdeskSocket();
+     };
+   }, [reload, session]);
+
+diff --git a/frontend/src/lib/routing/use-routing-catalog.ts b/frontend/src/lib/routing/use-routing-catalog.ts
+index 1fe7672..6dc8ba6 100644
+--- a/frontend/src/lib/routing/use-routing-catalog.ts
++++ b/frontend/src/lib/routing/use-routing-catalog.ts
+@@ -1,65 +1,49 @@
+-import { useEffect, useState } from "react";
+-import { mapRoutingError, type RoutingErrorKey } from "@/lib/routing/map-routing-error";
++import { useCallback } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
++import { mapRoutingError } from "@/lib/routing/map-routing-error";
+ import { readApiRequestId } from "@/lib/map-api-error";
+-import {
+-  flattenOriginUnitOptions,
+-  type OriginUnitOption,
+-} from "@/lib/tickets/ticket-display";
++import { flattenOriginUnitOptions } from "@/lib/tickets/ticket-display";
+ import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
+-import {
+-  listRoutingHandlerGroups,
+-  type RoutingHandlerGroup,
+-} from "@/services/routing-api";
+-import { listServices, type ServiceResponse } from "@/services/service-catalog-api";
++import { listRoutingHandlerGroups } from "@/services/routing-api";
++import { listServices } from "@/services/service-catalog-api";
+ 
++/**
++ * Faza 3.3 (plan §3.3, grupa (a) — katalozi): OU stablo, servisi i grupe rukovaoca
++ * se drže u React Query kešu (`staleTime` 5 min), pa se kroz sesiju povlače
++ * najviše jednom — prije ove faze isti katalog se dohvatao 2–4×.
++ *
++ * Ugovor prema ekranima je nepromijenjen (`originUnits`, `services`, `groups`,
++ * `isLoading`, `errorKey`, `requestId`), a `reload` sada samo obara keš.
++ */
+ export function useRoutingCatalog() {
+-  const [originUnits, setOriginUnits] = useState<readonly OriginUnitOption[]>(
+-    [],
+-  );
+-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
+-  const [groups, setGroups] = useState<readonly RoutingHandlerGroup[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);
+-  const [requestId, setRequestId] = useState<string | null>(null);
++  const query = useQuery({
++    queryKey: queryKeys.routingCatalog,
++    queryFn: async () => {
++      const [tree, catalog, handlerGroups] = await Promise.all([
++        listOrganizationalUnitTree(),
++        listServices(),
++        listRoutingHandlerGroups(),
++      ]);
++      return {
++        originUnits: flattenOriginUnitOptions(tree),
++        services: catalog,
++        groups: handlerGroups,
++      };
++    },
++  });
+ 
+-  useEffect(() => {
+-    let cancelled = false;
+-    const load = async () => {
+-      setIsLoading(true);
+-      setErrorKey(null);
+-      setRequestId(null);
+-      try {
+-        const [tree, catalog, handlerGroups] = await Promise.all([
+-          listOrganizationalUnitTree(),
+-          listServices(),
+-          listRoutingHandlerGroups(),
+-        ]);
+-        if (cancelled) {
+-          return;
+-        }
+-        setOriginUnits(flattenOriginUnitOptions(tree));
+-        setServices(catalog);
+-        setGroups(handlerGroups);
+-      } catch (error) {
+-        if (cancelled) {
+-          return;
+-        }
+-        setOriginUnits([]);
+-        setServices([]);
+-        setGroups([]);
+-        setErrorKey(mapRoutingError(error));
+-        setRequestId(readApiRequestId(error));
+-      } finally {
+-        if (!cancelled) {
+-          setIsLoading(false);
+-        }
+-      }
+-    };
+-    void load();
+-    return () => {
+-      cancelled = true;
+-    };
+-  }, []);
++  const reload = useCallback(async () => {
++    await query.refetch();
++  }, [query]);
+ 
+-  return { originUnits, services, groups, isLoading, errorKey, requestId };
++  return {
++    originUnits: query.data?.originUnits ?? [],
++    services: query.data?.services ?? [],
++    groups: query.data?.groups ?? [],
++    isLoading: query.isLoading,
++    errorKey: query.error === null ? null : mapRoutingError(query.error),
++    requestId: query.error === null ? null : readApiRequestId(query.error),
++    reload,
++  };
+ }
+
+diff --git a/frontend/src/lib/services/use-service-catalog.ts b/frontend/src/lib/services/use-service-catalog.ts
+index 19bdbc1..e4e3243 100644
+--- a/frontend/src/lib/services/use-service-catalog.ts
++++ b/frontend/src/lib/services/use-service-catalog.ts
+@@ -1,4 +1,6 @@
+-import { useCallback, useEffect, useState } from "react";
++import { useCallback } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
+ import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
+ import {
+   getServiceForm,
+@@ -20,40 +22,36 @@ export type ServiceCatalogState = {
+   readonly reload: () => Promise<void>;
+ };
+ 
++/**
++ * Faza 3.3 (plan §3.3, grupa (a) — katalozi): servisi i njihove forme se drže u
++ * React Query kešu (`staleTime` 5 min). Ekran zadržava isti ugovor (`rows`,
++ * `isLoading`, `errorKey`, `requestId`, `reload`), a `reload` sada samo obara keš.
++ */
+ export function useServiceCatalog(): ServiceCatalogState {
+-  const [rows, setRows] = useState<readonly ServiceCatalogRow[]>([]);
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [errorKey, setErrorKey] = useState<ApiErrorKey | null>(null);
+-  const [requestId, setRequestId] = useState<string | null>(null);
+-
+-  const reload = useCallback(async () => {
+-    setIsLoading(true);
+-    setErrorKey(null);
+-    setRequestId(null);
+-    try {
++  const query = useQuery({
++    queryKey: queryKeys.services,
++    queryFn: async (): Promise<readonly ServiceCatalogRow[]> => {
+       const services = await listServices();
+-      setRows(
+-        await Promise.all(
+-          // A service with no form version at all answers 404, which is the
+-          // state this screen exists to fix rather than an error to report.
+-          services.map(async (service) => ({
+-            service,
+-            form: await getServiceForm(service.id).catch(() => null),
+-          })),
+-        ),
++      return Promise.all(
++        // A service with no form version at all answers 404, which is the state
++        // this screen exists to fix rather than an error to report.
++        services.map(async (service) => ({
++          service,
++          form: await getServiceForm(service.id).catch(() => null),
++        })),
+       );
+-    } catch (error) {
+-      setRows([]);
+-      setErrorKey(mapApiError(error));
+-      setRequestId(readApiRequestId(error));
+-    } finally {
+-      setIsLoading(false);
+-    }
+-  }, []);
++    },
++  });
+ 
+-  useEffect(() => {
+-    void reload();
+-  }, [reload]);
++  const reload = useCallback(async () => {
++    await query.refetch();
++  }, [query]);
+ 
+-  return { rows, isLoading, errorKey, requestId, reload };
++  return {
++    rows: query.data ?? [],
++    isLoading: query.isLoading,
++    errorKey: query.error === null ? null : mapApiError(query.error),
++    requestId: query.error === null ? null : readApiRequestId(query.error),
++    reload,
++  };
+ }
+
+diff --git a/frontend/src/lib/sla/use-sla-page-data.ts b/frontend/src/lib/sla/use-sla-page-data.ts
+index 56d9337..e40f740 100644
+--- a/frontend/src/lib/sla/use-sla-page-data.ts
++++ b/frontend/src/lib/sla/use-sla-page-data.ts
+@@ -1,4 +1,6 @@
+ import { useCallback, useEffect, useState } from "react";
++import { useQueryClient } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
+ import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
+ import {
+   fetchSlaCompliance,
+@@ -19,6 +21,7 @@ import {
+ import { fetchSlaSummary } from "@/services/report-summary-api";
+ 
+ export function useSlaPageData() {
++  const queryClient = useQueryClient();
+   const [profiles, setProfiles] = useState<readonly SlaProfile[]>([]);
+   const [calendars, setCalendars] = useState<readonly BusinessHoursCalendar[]>([]);
+   const [rules, setRules] = useState<readonly SlaRule[]>([]);
+@@ -59,7 +62,10 @@ export function useSlaPageData() {
+         await Promise.all([
+           listSlaProfiles(),
+           listSlaCalendars(),
+-          fetchSlaSummary(),
++          queryClient.fetchQuery({
++            queryKey: queryKeys.slaSummary,
++            queryFn: () => fetchSlaSummary(),
++          }),
+           fetchSlaCompliance({ days: 30 }),
+         ]);
+       setProfiles(profileItems);
+
+diff --git a/frontend/src/lib/tickets/use-create-ticket-catalog.ts b/frontend/src/lib/tickets/use-create-ticket-catalog.ts
+index 33a5676..094f120 100644
+--- a/frontend/src/lib/tickets/use-create-ticket-catalog.ts
++++ b/frontend/src/lib/tickets/use-create-ticket-catalog.ts
+@@ -1,41 +1,30 @@
+-import { useEffect, useState } from "react";
++import { useQuery } from "@tanstack/react-query";
+ import { loadCreateTicketCatalog } from "@/lib/tickets/load-create-ticket-catalog";
+ import type { OriginUnitOption } from "@/lib/tickets/ticket-display";
++import { queryKeys } from "@/lib/query/query-keys";
+ import type { ServiceResponse } from "@/services/service-catalog-api";
+ 
++/**
++ * Faza 3.3 (plan §3.3, grupa (a) — katalozi): the create-ticket catalog (offered
++ * services + origin units) is cached for the catalog window, so opening the form
++ * twice in a session costs one request. The loader itself is unchanged and stays
++ * covered by its own spec.
++ */
+ export function useCreateTicketCatalog(): {
+   readonly services: readonly ServiceResponse[];
+   readonly originUnits: readonly OriginUnitOption[];
+   readonly isLoading: boolean;
+   readonly errorKey: "tickets.errorCatalog" | null;
+ } {
+-  const [services, setServices] = useState<readonly ServiceResponse[]>([]);
+-  const [originUnits, setOriginUnits] = useState<readonly OriginUnitOption[]>(
+-    [],
+-  );
+-  const [isLoading, setIsLoading] = useState(true);
+-  const [errorKey, setErrorKey] = useState<"tickets.errorCatalog" | null>(null);
++  const query = useQuery({
++    queryKey: queryKeys.createTicketCatalog,
++    queryFn: () => loadCreateTicketCatalog(),
++  });
+ 
+-  useEffect(() => {
+-    let cancelled = false;
+-    void loadCreateTicketCatalog()
+-      .then((result) => {
+-        if (cancelled) {
+-          return;
+-        }
+-        setServices(result.services);
+-        setOriginUnits(result.originUnits);
+-        setErrorKey(result.errorKey);
+-      })
+-      .finally(() => {
+-        if (!cancelled) {
+-          setIsLoading(false);
+-        }
+-      });
+-    return () => {
+-      cancelled = true;
+-    };
+-  }, []);
+-
+-  return { services, originUnits, isLoading, errorKey };
++  return {
++    services: query.data?.services ?? [],
++    originUnits: query.data?.originUnits ?? [],
++    isLoading: query.isLoading,
++    errorKey: query.data?.errorKey ?? null,
++  };
+ }
+
+diff --git a/frontend/src/lib/tickets/use-ticket-list.ts b/frontend/src/lib/tickets/use-ticket-list.ts
+index be35c25..c907a1e 100644
+--- a/frontend/src/lib/tickets/use-ticket-list.ts
++++ b/frontend/src/lib/tickets/use-ticket-list.ts
+@@ -1,4 +1,6 @@
+ import { useCallback, useEffect, useMemo, useState } from "react";
++import { useQueryClient } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
+ import { useNavigate, useSearchParams } from "react-router-dom";
+ import { useTranslation } from "react-i18next";
+ import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+@@ -66,6 +68,7 @@ export function useTicketList() {
+   const navigate = useNavigate();
+   const feedback = useActionFeedback();
+   const { currentUserId } = useSession();
++  const queryClient = useQueryClient();
+   const [searchParams, setSearchParams] = useSearchParams();
+   const capabilities = useSessionCapabilities();
+   const isStaff = isTicketStaff(capabilities);
+@@ -96,12 +99,27 @@ export function useTicketList() {
+     }
+     try {
+       if (view === "inbox") {
++        // Faza 3.3: reads go through the query cache, so coming back to a screen
++        // inside `staleTime` costs no request — the socket invalidates the keys
++        // when something really changed.
+         const [catalog, inboxRows, unroutedPage] = await Promise.all([
+-          listOfferedServices().catch(() => []),
+-          listGroupInbox(),
+-          listTicketsPage({ status: "UNROUTED", pageSize: unroutedPageSize }).catch(
+-            () => null,
+-          ),
++          queryClient
++            .fetchQuery({
++              queryKey: queryKeys.offeredServices,
++              queryFn: () => listOfferedServices(),
++            })
++            .catch(() => []),
++          queryClient.fetchQuery({
++            queryKey: queryKeys.groupInbox,
++            queryFn: () => listGroupInbox(),
++          }),
++          queryClient
++            .fetchQuery({
++              queryKey: queryKeys.ticketList({ status: "UNROUTED", pageSize: unroutedPageSize }),
++              queryFn: () =>
++                listTicketsPage({ status: "UNROUTED", pageSize: unroutedPageSize }),
++            })
++            .catch(() => null),
+         ]);
+         // An empty inbox is ambiguous: ask the server whether it is empty
+         // because the person is in no handler group or simply has no tickets.
+@@ -130,8 +148,16 @@ export function useTicketList() {
+           page,
+         });
+         const [catalog, response] = await Promise.all([
+-          listOfferedServices().catch(() => []),
+-          listTicketsPage(query),
++          queryClient
++            .fetchQuery({
++              queryKey: queryKeys.offeredServices,
++              queryFn: () => listOfferedServices(),
++            })
++            .catch(() => []),
++          queryClient.fetchQuery({
++            queryKey: queryKeys.ticketList(query),
++            queryFn: () => listTicketsPage(query),
++          }),
+         ]);
+         setServices(catalog);
+         setPageItems(response.items);
+@@ -145,8 +171,14 @@ export function useTicketList() {
+         // Counters are a separate, cheaper read: they cover all matching
+         // tickets, not just the page, and they are allowed to fail (the tabs
+         // then show zeros instead of breaking the list).
++        const countsQuery = toTicketCountsQuery(query);
+         setCounts(
+-          await getTicketCounts(toTicketCountsQuery(query)).catch(() => null),
++          await queryClient
++            .fetchQuery({
++              queryKey: queryKeys.ticketCounts(countsQuery),
++              queryFn: () => getTicketCounts(countsQuery),
++            })
++            .catch(() => null),
+         );
+         // A filter can move the requested page past the end; fall back to the
+         // last page that does have rows.
+@@ -177,7 +209,7 @@ export function useTicketList() {
+         setIsLoading(false);
+       }
+     }
+-  }, [view, filters, page, currentUserId, setSearchParams]);
++  }, [view, filters, page, currentUserId, queryClient, setSearchParams]);
+ 
+   useEffect(() => {
+     setFilters((current) => ({
+@@ -226,6 +258,8 @@ export function useTicketList() {
+     setClaimingId(ticketId);
+     try {
+       await claimTicket(ticketId);
++      // The claim changed a ticket, so the cached pages and counters are stale.
++      await queryClient.invalidateQueries({ queryKey: queryKeys.ticketLists });
+       // Claim errors/success now go through the feedback seam instead of
+       // `errorKey`, so a failed claim never blanks the inbox (Constitution
+       // §30) and a successful one no longer forces a skeleton flash — the
+
+diff --git a/frontend/src/lib/tickets/use-ticket-service-name.ts b/frontend/src/lib/tickets/use-ticket-service-name.ts
+index ebb2ac9..f53e8b1 100644
+--- a/frontend/src/lib/tickets/use-ticket-service-name.ts
++++ b/frontend/src/lib/tickets/use-ticket-service-name.ts
+@@ -1,19 +1,24 @@
+-import { useEffect, useState } from "react";
++import { useQuery } from "@tanstack/react-query";
++import { queryKeys } from "@/lib/query/query-keys";
+ import { listOfferedServices } from "@/services/service-catalog-api";
+ import type { TicketResponse } from "@/services/tickets-api";
+ 
++/**
++ * Faza 3.3: the detail header reads the service name from the shared catalog
++ * cache instead of asking for the whole catalog on every ticket open.
++ */
+ export function useTicketServiceName(ticket: TicketResponse | null): string {
+-  const [serviceName, setServiceName] = useState("");
+-  useEffect(() => {
+-    if (ticket === null) {
+-      return;
+-    }
+-    void listOfferedServices()
+-      .then((services) => {
+-        const match = services.find((item) => item.id === ticket.serviceId);
+-        setServiceName(match?.name ?? ticket.serviceId);
+-      })
+-      .catch(() => setServiceName(ticket.serviceId));
+-  }, [ticket]);
+-  return serviceName;
++  const query = useQuery({
++    queryKey: queryKeys.offeredServices,
++    queryFn: () => listOfferedServices(),
++    enabled: ticket !== null,
++  });
++  if (ticket === null) {
++    return "";
++  }
++  const match = query.data?.find((item) => item.id === ticket.serviceId);
++  if (match !== undefined) {
++    return match.name;
++  }
++  return query.data === undefined ? "" : ticket.serviceId;
+ }
+
+diff --git a/frontend/src/services/helpdesk-socket.spec.ts b/frontend/src/services/helpdesk-socket.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/frontend/src/services/helpdesk-socket.spec.ts
+@@ -0,0 +1,30 @@
++import { describe, expect, it } from "vitest";
++import {
++  createHelpdeskSocketOptions,
++  helpdeskSocketReconnect,
++} from "@/services/helpdesk-socket";
++
++/**
++ * Faza 3.1 (plan §3.1): the socket must keep working exactly as before (same auth
++ * handshake, same auto-connect) with one addition — jittered reconnects, so a
++ * deploy does not make every client reconnect on the same millisecond.
++ */
++describe("createHelpdeskSocketOptions", () => {
++  it("keeps the auth handshake and auto-connect behaviour", () => {
++    const options = createHelpdeskSocketOptions("access-token-1");
++    expect(options.auth).toEqual({ token: "access-token-1" });
++    expect(options.autoConnect).toBe(true);
++    expect(options.reconnection).toBe(true);
++  });
++
++  it("jitters the reconnect delay", () => {
++    expect(helpdeskSocketReconnect.reconnectionDelay).toBe(500);
++    expect(helpdeskSocketReconnect.reconnectionDelayMax).toBe(10_000);
++    expect(helpdeskSocketReconnect.randomizationFactor).toBeGreaterThan(0);
++    expect(helpdeskSocketReconnect.randomizationFactor).toBeLessThanOrEqual(1);
++    const options = createHelpdeskSocketOptions("access-token-1");
++    expect(options.randomizationFactor).toBe(
++      helpdeskSocketReconnect.randomizationFactor,
++    );
++  });
++});
+
+diff --git a/frontend/src/services/helpdesk-socket.ts b/frontend/src/services/helpdesk-socket.ts
+index 4174e64..c398e1f 100644
+--- a/frontend/src/services/helpdesk-socket.ts
++++ b/frontend/src/services/helpdesk-socket.ts
+@@ -1,4 +1,9 @@
+-import { io, type Socket } from "socket.io-client";
++import {
++  io,
++  type ManagerOptions,
++  type Socket,
++  type SocketOptions,
++} from "socket.io-client";
+ 
+ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+ 
+@@ -7,6 +12,28 @@ let token: string | null = null;
+ let referenceCount = 0;
+ let releaseTimer: number | null = null;
+ 
++/**
++ * Faza 3.1 (plan §3.1): a rolling deploy reconnects every client at once, so the
++ * reconnect delay is jittered — without it the second deploy in a row produces a
++ * synchronised spike of handshakes and room re-joins.
++ */
++export const helpdeskSocketReconnect = {
++  reconnectionDelay: 500,
++  reconnectionDelayMax: 10_000,
++  randomizationFactor: 0.5,
++} as const;
++
++export function createHelpdeskSocketOptions(
++  accessToken: string,
++): Partial<ManagerOptions & SocketOptions> {
++  return {
++    auth: { token: accessToken },
++    autoConnect: true,
++    reconnection: true,
++    ...helpdeskSocketReconnect,
++  };
++}
++
+ export function getHelpdeskSocket(): Socket | null {
+   return socket;
+ }
+@@ -22,11 +49,7 @@ export function acquireHelpdeskSocket(accessToken: string): Socket {
+   }
+   disconnectSocket();
+   token = accessToken;
+-  socket = io(apiBaseUrl, {
+-    auth: { token: accessToken },
+-    autoConnect: true,
+-    reconnection: true,
+-  });
++  socket = io(apiBaseUrl, createHelpdeskSocketOptions(accessToken));
+   return socket;
+ }
+ 
+
+diff --git a/frontend/src/services/ticket-socket.ts b/frontend/src/services/ticket-socket.ts
+index 11012ea..d81d98e 100644
+--- a/frontend/src/services/ticket-socket.ts
++++ b/frontend/src/services/ticket-socket.ts
+@@ -7,6 +7,8 @@ export const ticketSocketEvents = {
+   leave: "ticket:leave",
+   messageCreated: "ticket.message.created",
+   ticketUpdated: "ticket.updated",
++  // Faza 3.2: laki event za group sobe (< 200 B, bez sadržaja tiketa).
++  groupFeedChanged: "group.feed-changed",
+   notificationCreated: "notification.created",
+   notificationRead: "notification.read",
+   notificationUnreadCount: "notification.unread-count",
+
+diff --git a/ops/ws-cross-instance-check.mjs b/ops/ws-cross-instance-check.mjs
+new file mode 100644
+--- /dev/null
++++ b/ops/ws-cross-instance-check.mjs
+@@ -0,0 +1,69 @@
++#!/usr/bin/env node
++/**
++ * Faza 3.1 — cross-instance dokaz: dva Socket.IO servera (kao dvije API instance)
++ * dijele Redis adapter, klijent je spojen na instancu B, a emit ide s instance A.
++ *
++ * Pokretanje:  node ops/ws-cross-instance-check.mjs   (traži Redis na REDIS_URL)
++ * Izlaz:       ✔ / ✖ + izlazni kod (0 = dokazano)
++ */
++import { createServer } from 'node:http';
++import { createRequire } from 'node:module';
++
++// Server-side paketi žive u backend/, klijentski u frontend/ — skripta se zato
++// ne oslanja na cwd, nego učitava svaki paket iz svog paketa.
++const backendRequire = createRequire(new URL('../backend/package.json', import.meta.url));
++const frontendRequire = createRequire(new URL('../frontend/package.json', import.meta.url));
++const { default: Redis } = backendRequire('ioredis');
++const { Server } = backendRequire('socket.io');
++const { createAdapter } = backendRequire('@socket.io/redis-adapter');
++const { io: createClient } = frontendRequire('socket.io-client');
++
++const redisUrl = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379';
++const room = 'group:cross-instance-check';
++
++async function bootInstance(port) {
++  const httpServer = createServer();
++  const server = new Server(httpServer, { cors: { origin: '*' } });
++  const pub = new Redis(redisUrl);
++  const sub = new Redis(redisUrl);
++  sub.on('error', () => undefined);
++  pub.on('error', () => undefined);
++  server.adapter(createAdapter(pub, sub));
++  await new Promise((resolve) => httpServer.listen(port, '127.0.0.1', resolve));
++  return { server, close: () => Promise.all([pub.quit(), sub.quit(), server.close()]) };
++}
++
++const instanceA = await bootInstance(4321);
++const instanceB = await bootInstance(4322);
++
++const client = createClient('http://127.0.0.1:4322', { transports: ['websocket'] });
++const received = new Promise((resolve) => {
++  client.on('group.feedChanged', (payload) => resolve(payload));
++  client.on('connect', () => client.emit('join', room));
++});
++
++// Klijent se sam ne joinuje u sobu u ovoj provjeri — join radimo ručno na B.
++client.on('connect', () => {
++  instanceB.server.in(room).socketsJoin(room);
++  // Emit ide s instance A; adapter ga mora prenijeti u sobu na instanci B.
++  setTimeout(() => {
++    instanceA.server.to(room).emit('group.feedChanged', {
++      groupId: 'cross-instance-check',
++      ticketId: 'ticket-1',
++      kind: 'status',
++    });
++  }, 150);
++});
++
++const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
++const payload = await Promise.race([received, timeout]);
++
++client.close();
++await instanceA.close();
++await instanceB.close();
++
++if (payload === null) {
++  console.error('✖ klijent na instanci B NIJE dobio emit s instance A (Redis adapter ne radi)');
++  process.exit(1);
++}
++console.log('✔ klijent na instanci B dobio je emit s instance A:', payload);
+
+diff --git a/ops/ws-rolling-deploy.md b/ops/ws-rolling-deploy.md
+new file mode 100644
+--- /dev/null
++++ b/ops/ws-rolling-deploy.md
+@@ -0,0 +1,62 @@
++# WebSocket — rolling deploy i horizontalno skaliranje (Faza 3.1)
++
++> Vrijedi od Faze 3.1: Socket.IO više ne koristi in-memory adapter, nego Redis
++> pub/sub (`ws-redis-adapter.ts`). Time sobe i emit-i vrijede za **sve** instance,
++> ali uvodi dva zahtjeva na infrastrukturu: **sticky sesije** i **drain pri deployu**.
++
++## 1. Zašto sticky sesije
++
++Socket.IO klijent radi prvo HTTP polling, pa `upgrade` na WebSocket. Ako prvi
++polling zahtjev završi na instanci A, a upgrade na instanci B, handshake padne
++(`socket_authentication_rejected`) i klijent ulazi u reconnect petlju.
++
++- LB: uključi sticky po **cookie-u** (npr. Traefik: `sticky.cookie`, nginx:
++  `ip_hash` ili `hash $cookie_io`), ili
++- postavi `transports: ['websocket']` na klijentu (u ovom repou klijent ih ne
++  ograničava, pa sticky ostaje primarni mehanizam).
++
++Redis adapter sam po sebi **ne rješava** sticky: on širi emit-e preko instanci,
++ali handshake i dalje mora ostati na jednoj.
++
++## 2. Drain procedura (rolling deploy)
++
++Cilj: nijedan klijent ne ostane bez događaja, a pauza ostane < 5 s za < 1% klijenata.
++
++1. **Označi instancu kao "ne primaj nove"** — u LB-u skini instancu iz rotacije
++   (health check → 503 na `/health`), pa **sačekaj 30 s**. Postojeći WebSocketi
++   ostaju otvoreni, novi ne dolaze.
++2. **Zatvori sokete meko**: instanca šalje `server.disconnectSockets(false)` ili se
++   gasi nakon `SO_LINGER`-a (postojeći `onModuleDestroy` prvo zatvara adapter, pa
++   onda HTTP server).
++3. **Kill instancu** tek kad je broj konekcija pao na 0 (metrika `ws_clients_count`
++   iz Faze 0 se loguje svakih 30 s: `ws_clients_count=0` je zeleno svjetlo).
++4. Ponovi za sljedeću instancu. Klijentima je reconnect jitterovan
++   (`randomizationFactor: 0.5`, 500 ms – 10 s), pa se ne vraćaju svi u istom
++   milisekundu.
++
++**Rollback:** stara instanca i nova instanca koriste isti Redis adapter → emit-i s
++jedne vidljivi su i na drugoj; ako nova verzija ima grešku, vrati staru sliku —
++klijenti se sami reconnectuju (jitter).
++
++## 3. Metrike i alarmi
++
++| Linija u logu | Značenje | Alarm |
++|---|---|---|
++| `ws_adapter_redis_ok=1` | adapter instaliran pri bootu | nema (očekivano) |
++| `ws_adapter_redis_ok=0 fallback=in_memory` | **degradirano**: sobe su samo lokalne | alarm (instanca ne vidi druge) |
++| `ws_adapter_redis_error reason=…` | ioredis reconnectuje | alarm ako traje > 1 min |
++| `ws_clients_count=N` | broj konekcija | pad na 0 po instanci = završen drain |
++
++## 4. Dokaz da dvije instance dijele sobe
++
++Automatizovana provjera (zahtijeva Redis; u ovom okruženju nije izvršena):
++
++```bash
++redis-server --port 6379 &            # ili docker run -p 6379:6379 redis:7
++node ops/ws-cross-instance-check.mjs  # 2 socket.io servera + 1 klijent
++# očekivano: "✔ klijent na instanci B dobio je emit s instance A"
++```
++
++Skripta podiže dvije Socket.IO instance s Redis adapterom, spoji klijenta na B,
++emituje s A i traži da poruka stigne — to je isti dokaz koji kapija Faze 3 traži
++(„cross-instance emit dokazan").
+
+diff --git a/perf/results/after-f3-2026-09-24.md b/perf/results/after-f3-2026-09-24.md
+new file mode 100644
+--- /dev/null
++++ b/perf/results/after-f3-2026-09-24.md
+@@ -0,0 +1,134 @@
++# Faza 3 — Realtime i klijent (3.1 → 3.2 → 3.3)
++
++**Datum:** 2026-09-24 · **Grana:** `arena/01a0cefc-help-desk-enterprise` · **Baza:** F0+F1+F2 (patch 00–02)
++**Okruženje:** bez Redis-a, Postgresa, Dockera, k6 i browsera — sve kapije koje traže
++mrežu su **kod-nalaz**, ne mjerenje (isto ograničenje kao u F1/F2).
++
++---
++
++## 1. STAVKA 3.1 — Socket.IO Redis adapter + deploy otpornost
++
++| Fajl | Šta radi |
++|---|---|
++| `backend/src/modules/websocket/ws-redis-adapter.ts` *(nov)* | `createWebsocketRedisAdapter(configuration, logger)` — dva **dedicirana** klijenta iz postojećeg `create-redis-client.ts` (sub klijent ne dijeli ništa s BullMQ-om), `createAdapter(pub, sub)`, `close()`, `ws_adapter_redis_ok=1/0`, `error` listener na oba klijenta (ioredis bez listenera ruši proces) |
++| `websocket.gateway.ts` | `afterInit` instalira adapter **prije** prve konekcije; `@Optional() @Inject(redisTokens.configuration)` — bez konfiguracije (unit specovi) nema adaptera nego in-memory, tj. tačno degradirani režim iz prompta; `onModuleDestroy` zatvara oba klijenta |
++| `websocket.module.spec.ts` | dokaz da se adapter stvarno instalira (`server.adapter` pozvan 1×) |
++| `ws-redis-adapter.spec.ts` *(nov, 5 testova)* | dva različita klijenta, logovanje `error`-a bez pada, fallback kad klijent ne može da se konstruiše, zatvaranje veza, format metrike |
++| `ops/ws-rolling-deploy.md` *(nov)* | sticky sesije, drain ≤ 30 s, tabela `ws_*` metrika i alarma, rollback |
++| `ops/ws-cross-instance-check.mjs` *(nov)* | automatizovan dokaz: 2 Socket.IO instance + Redis adapter + klijent na B + emit s A |
++| `docker-compose.yml` | komentar iznad `services:` — LB **mora** imati sticky cookie, inače handshake pada pri upgrade-u s pollinga |
++| `frontend/src/services/helpdesk-socket.ts` (+spec) | `helpdeskSocketReconnect` = `reconnectionDelay 500 ms`, `max 10 s`, `randomizationFactor 0.5` — rolling deploy više ne pravi sinhronizovan reconnect pik; auth/autoConnect ponašanje nepromijenjeno |
++
++**Ponašanje:** bez Redis-a pri bootu → `ws_adapter_redis_ok=0 fallback=in_memory` + warn, gateway nastavlja s in-memory adapterom (živ, ali single-node); kad Redis padne posle boota, ioredis reconnectuje sam, a `error` se loguje.
++
++## 2. STAVKA 3.2 — Granulacija emit-ova
++
++| Fajl | Šta radi |
++|---|---|
++| `group-feed-change.ts` *(nov)* | tip `GroupFeedChangedPayload` (`groupId`, `ticketId`, `kind: message\|status\|assign\|sla`, `occurredAt`) + `resolveGroupFeedChange` / `resolveGroupFeedMessage` + tranzicioni prekidač `isLegacyGroupFullEmitEnabled` |
++| `websocket-emit-counter.ts` *(nov, +spec)* | brojači po vrsti sobe → jedna log-linija po intervalu: `ws_emits_staff=… ws_emits_public=… ws_emits_user=… ws_emits_group=…` |
++| `ticket-updated-broadcast-rooms.ts` | group soba **izbačena** iz skupa soba koje dobijaju puni payload; novi `ticketUpdatedGroupRoom()` |
++| `broadcast-ticket-realtime.ts` | jedan laki event po događaju u `group:{id}`; interna bilješka i staff-only promjena ne generišu **ništa** za group sobu |
++| `broadcast-ticket-realtime.spec.ts` | matrica: public update, staff-only update, tiket bez grupe, javna poruka, interna bilješka, + tranzicioni flag (ukupno 6 testova) |
++| `frontend/src/lib/realtime/group-feed-changed.ts` (+spec) | tip + `isGroupFeedChangedPayload` guard; test tvrdi < 200 B i odbija sadržaj tiketa |
++| `frontend/src/lib/realtime/use-ticket-collection-realtime.ts` | listni ekrani se pretplaćuju na `group.feed-changed` (debounce 300 ms) i **ne povlače ništa** ako `document.visibilityState !== "visible"` |
++| `services/ticket-socket.ts` | nova konstanta `groupFeedChanged: "group.feed-changed"` |
++
++### Emit matrica (TKO dobija ŠTA)
++
++| Događaj | ticket soba (staff) | javna ticket soba | user sobe | group soba — PRIJE | group soba — POSLIJE |
++|---|---|---|---|---|---|
++| `ticket.updated` (javna promjena) | pun payload | pun payload | pun payload (requester/assignee/actor) | **pun payload** (svaki član grupe) | `group.feed-changed` + tranziciono i pun payload |
++| `ticket.updated` (staff-only) | pun payload | — | pun payload (actor/assignee) | pun payload | — (0 emisija) |
++| `ticket.message.created` (javna) | pun payload | pun payload | pun payload (requester) | pun payload | `group.feed-changed {kind:"message"}` + tranziciono i pun payload |
++| `ticket.message.created` (interna/system) | pun payload | — | — | — | **— (0 emisija)** |
++| `notification.created/read/unread-count` | — | — | `user:{id}` (nepromijenjeno, F2.3) | — | — |
++
++**Tranzicioni prekidač (pravila 2 i 3):** dok je `WS_GROUP_FEED_LEGACY_FULL_EMIT=on`
++(default), group soba dobija i stari puni payload, pa klijent build prije faze ne
++izgubi nijedan događaj tokom rolling deploya; posle rollouta se isključi (`off`) i
++ostaje samo laki event. Redoslijed je u `ops/ws-rolling-deploy.md`.
++
++**Arithmetic kapije (10 događaja/s, grupa od 200 članova):** prije ≈ 204 emisije po
++događaju (≈ 2.040/s); posle (flag `off`) = 1 staff + 1 javna + ~2 user + 1 group ≈ 5
++po događaju ≈ **50/s** → **~40× niže**, cilj < 500/s zadovoljen sa velikom marginom.
++Sa uključenim tranzicionim flagom je dvostruko u group sobi (≈ 60/s) i dalje daleko
++ispod cilja.
++
++## 3. STAVKA 3.3 — React Query keš sloj + virtualizacija
++
++**Infrastruktura**
++- `lib/query/query-client.ts` *(nov)*: `staleTime 30 s`, `gcTime 5 min`, `retry: 1`, `refetchOnWindowFocus: false`; `catalogQueryStaleTimeMs = 300 s`.
++- `lib/query/query-keys.ts` *(nov)*: jedini vlasnik ključeva (`routingCatalog`, `routingRules`, `organizationalUnits`, `services`, `offeredServices`, `createTicketCatalog`, `dashboardSummary(scope)`, `ticketLists`, `ticketList(query)`, `ticketCounts(query)`, `ticket(id)`, `groupInbox`, `slaSummary`, `notifications`).
++- `app/app.tsx`: `QueryClientProvider` (jedan klijent, `helpdeskQueryClient`).
++- `lib/realtime/invalidate-on-event.ts` (+spec 5 testova): mapa `socketEvent → queryKey[]`; `group.feed-changed` invalidira **samo listne** ključeve (nikad detalj tiketa); `ticket.updated` invalidira listu + tačan tiket + dashboard + SLA; pretplata je vezana na postojeći singleton socket kroz `HelpdeskSocketHost`, uz `document.visibilityState` kapiju.
++- Zustand: u frontend kodu **nema nijednog store-a** (`grep zustand` = 0) — nema duplog izvora istine koji bi se uklanjao; UI stanje (filteri, selekcije) je i dalje lokalno `useState`.
++
++**Migracija (po prioritetu iz prompta)**
++- (a) katalozi: `useRoutingCatalog` (OU stablo + servisi + grupe rukovaoca) → `useQuery` s `staleTime` 5 min; `useServiceCatalog` (servisi + forme) → `useQuery`; `useCreateTicketCatalog` → `useQuery`; `useTicketServiceName` → isti `offeredServices` ključ.
++- (b) listni upiti: `useTicketList` čita kroz `queryClient.fetchQuery` (stranica, brojači, grupa inbox, ponuđeni servisi) — povratak na listu unutar `staleTime` **ne pravi nijedan zahtjev**, a socket invalidacija ih osvježava; `claim` invalidira listne ključeve.
++- (d) dashboard/SLA: `useDashboardSummary` (agregat 2.4 + prva strana + katalozi) i `useSlaPageData` (SLA summary) idu kroz keš.
++- (c) detalj tiketa: **zadržan direktni socket update** (`setQueryData` ekvivalent — `applyTicketUpdatedPayload` upisuje u lokalni state) jer je UX danas instant; keširanje detalja je ostavljeno kao backlog (nema regresije, nema duplog izvora istine).
++
++**Virtualizacija** (`@tanstack/react-virtual`, jedina nova FE zavisnost uz `@socket.io/redis-adapter` na backendu)
++- `components/tickets/ticket-list-table.tsx`: iznad `ticketListVirtualizationThreshold = 60` redova tabela se virtualizuje (`measureElement` po redu, `overscan: 8`, `max-h-[70vh]`, sticky `<thead>`); kratke liste zadržavaju **identičan** izgled i ponašanje (klik na red, checkbox, linkovi).
++- Audit-log/queue liste nisu dirane: straničene su i kratke (plan traži virtualizaciju „ako je iznad ~200 redova tipično") — backlog.
++
++## 4. KAPIJA FAZE 3 (šta je dokazano, šta čeka mrežu)
++
++| Kriterij | Status |
++|---|---|
++| Cross-instance emit dokazan automatiziranim testom | Skripta `ops/ws-cross-instance-check.mjs` (2 instance + klijent) — **nije izvršena** (nema Redis-a u okruženju); logika adaptera pokrivena unit specovima (5/5) |
++| Rolling deploy < 1% klijenata s pauzom > 5 s | Drain procedura + sticky zahtjev + jitter documented; **mjerenje čeka okruženje s LB-om** |
++| Emit-ovi/s < 500 pri 10 događaja/s | Metrika `ws_emits_*` implementirana; aritmetika ≈ 50/s (flag `off`) / ≈ 60/s (tranzicija) vs ≈ 2.040/s prije → **≥ 10× niže** (kod-nalaz) |
++| Broadcast matrica pokriva sve kombinacije; 0 curenja internog sadržaja | 6 matrica testova + postojeći `ticket-chat.gateway.spec` i `ticket-updated-broadcast-rooms.spec` — interno nikad u javnu ni group sobu |
++| ≥ 50% manje zahtjeva po sesiji | Mehanizam (staleTime + invalidacija + keš kataloga) implementiran; mjerenje network logom **čeka browser** |
++| `npm test`, build, lint zeleni | BE `npx jest` **358 suita / 1352 testa ✓**, `tsc --noEmit` ✓; FE `vitest run` **95/95 fajlova, 333/333 testa ✓**, `npm run build` ✓; lint je pre-existing neispravan (nema `eslint.config.*`) pa nije mjerljiv |
++
++## 5. VERIFIKACIJA
++
++```
++backend:   npx tsc --noEmit                     ✓
++backend:   npx jest --silent                    358 suita / 1352 testa ✓
++backend:   npx jest src/modules/websocket       13 suita / 47 testova ✓
++frontend:  npx tsc --noEmit                     ✓
++frontend:  npx vitest run                       95 fajlova / 333 testa ✓
++frontend:  npm run build                        ✓
++```
++
++## 6. ODSTUPANJA I ODLUKE
++
++1. **Tranzicioni flag `WS_GROUP_FEED_LEGACY_FULL_EMIT` (default uključen).** Pravilo
++   „nula gubitaka u tranziciji" nadjačava trenutnu uštedu: bez flag-a bi klijent
++   build prije faze prestao dobijati `ticket.updated` u group sobi i listni ekrani bi
++   mu stali do reload-a. Isključiti posle rollouta (runbook §2).
++2. **Emit-collapse za notifikacije nije rađen u F3.** U `POST /notifications/:id/read`
++   autorizacija ide po **per-korisničkom** `id` zapisa (F2.3 opcija B), pa bi jedan
++   emit u group sobu podijelio N-1 primaocu `id` koji ne smiju označiti pročitanim.
++   Kolaps je moguć samo uz F2.3 opciju A (`notification.groupId` + `notification_seen`);
++   vidi `after-f2-2026-09-24.md` §6. Emit-ova po notifikaciji i dalje ima N, ali su
++   DB troškovi već svedeni na 3 statementa po događaju.
++3. **Cross-instance dokaz je u `ops/`, ne u `e2e/`.** `e2e/` paket je Playwright/browser
++   orijentisan i u njemu nema Redis servisa; skripta u `ops/` podiže dvije prave
++   Socket.IO instance i isti je dokaz, pokreće se jednom komandom (runbook §4).
++4. **FE migracija ide kroz `queryClient.fetchQuery` unutar postojećih hookova**, a ne
++   kroz `useQuery` render petlje. Razlog: pravilo 4 („postojeće ponašanje osvježavanja
++   se ne smije pogoršati") — ekrani zadržavaju isti state/UX, a keš, dedupe i
++   staleTime dobijaju se bez rizika od promjene ponašanja u 20+ komponenti.
++   Posljedica je da dio kataloga koje ekrani dohvataju direktno (grupe, korisnici,
++   KB, izvještaji, policy packs, SLA forma) ostaje backlog za sljedeći prolaz.
++5. **Virtualizacija samo listе tiketa.** Straničene audit/queue liste su kratke
++   (< 100 redova) pa virtualizacija ne bi donijela ništa osim rizika.
++6. **Backlog (neimplementirano, svjesno):** presence/typing indikatori (van obima),
++   keš detalja tiketa (c), virtualizacija audit loga, migracija preostalih direktnih
++   kataloških dohvata.
++
++## 7. COMMIT GRANICE (predlog)
++
++- `03a` — 3.1: `ws-redis-adapter.ts` + gateway/module spec + `ops/ws-rolling-deploy.md`,
++  `ops/ws-cross-instance-check.mjs`, `docker-compose.yml`, FE jitter.
++- `03b` — 3.2: `group-feed-change.ts`, `websocket-emit-counter.ts`,
++  `ticket-updated-broadcast-rooms.ts`, `broadcast-ticket-realtime.ts` + specovi,
++  FE `group-feed-changed.ts` + pretplata listnih ekrana.
++- `03c` — 3.3: `lib/query/*`, `app/app.tsx`, `lib/realtime/invalidate-on-event.ts`,
++  migracije hookova, virtualizacija `ticket-list-table.tsx`, `package.json`(BE+FE).

@@ -39,6 +39,7 @@ PATCHES=(
   "perf-00-measurement-and-baseline.patch:backend/src/common/database/db-query-counter.ts"
   "perf-01-stop-krvarenje.patch:backend/src/modules/search/search.controller.ts"
   "perf-02-baza-event-loop.patch:backend/src/common/principal-context/principal-context.cache.ts"
+  "perf-03-realtime-klijent.patch:frontend/src/lib/query/query-client.ts"
 )
 
 applied=0
@@ -142,10 +143,13 @@ if [ "$applied" -gt 0 ]; then
   echo "Sljedeće:"
   echo "  cd backend && npm install"
   echo "  npx prisma generate        # ako je blokiran download: PRISMA_SCHEMA_ENGINE_BINARY=/bin/true npx prisma generate"
+  echo "  # Faza 3 traži dvije nove zavisnosti (patch ne nosi lock fajlove):"
+  echo "  #   backend: npm install @socket.io/redis-adapter@^8.3.0"
+  echo "  #   frontend: npm install @tanstack/react-virtual@^3.14.13"
   echo "  npx prisma migrate deploy  # F1: 6 kompozitnih + 3 trigram indeksa; F2: authzVersion + SLA nextDueAt (CONCURRENTLY)"
-  echo "  npx jest                   # očekivano: 356 suita / 1340 testova"
+  echo "  npx jest                   # očekivano: 358 suita / 1352 testa"
   echo "  npm run build              # očekivano: uspješno"
-  echo "  cd ../frontend && npm install && npm test   # očekivano: 91 fajl / 320 testova"
+  echo "  cd ../frontend && npm install && npm test   # očekivano: 95 fajlova / 333 testa"
   echo
   echo "Perf paket (bez k6, radi svuda):"
   echo "  node perf/validate.js      # očekivano: all checks passed"
