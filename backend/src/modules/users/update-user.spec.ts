@@ -75,6 +75,57 @@ describe('updateUser', () => {
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
 
+  it('invalidates the cached authorization data when the user changes', async () => {
+    // Phase 2.2 (plan §2.2): deactivation must bite on the very next request.
+    const update = jest.fn().mockResolvedValue({});
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          email: 'local@example.com',
+          isLocalOnly: true,
+        }),
+        update,
+      },
+      organizationalUnit: { findUnique: jest.fn() },
+    };
+    const invalidatePrincipal = jest.fn().mockResolvedValue(1);
+
+    await updateUser(
+      prisma as never,
+      { userId: 'user-1', isActive: false },
+      invalidatePrincipal,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: { isActive: false },
+    });
+    expect(invalidatePrincipal).toHaveBeenCalledTimes(1);
+    expect(invalidatePrincipal).toHaveBeenCalledWith('user-1');
+  });
+
+  it('does not invalidate when the update changed nothing', async () => {
+    const update = jest.fn().mockResolvedValue({});
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          email: 'local@example.com',
+          isLocalOnly: true,
+        }),
+        update,
+      },
+      organizationalUnit: { findUnique: jest.fn() },
+    };
+    const invalidatePrincipal = jest.fn().mockResolvedValue(1);
+
+    await updateUser(prisma as never, { userId: 'user-1' }, invalidatePrincipal);
+
+    expect(update).not.toHaveBeenCalled();
+    expect(invalidatePrincipal).not.toHaveBeenCalled();
+  });
+
   it('rejects email conflicts for local users', async () => {
     const prisma = {
       user: {

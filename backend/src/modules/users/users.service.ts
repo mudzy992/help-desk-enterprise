@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { DirectorySyncService } from '../directory-sync/directory-sync.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { SettingsService } from '../settings/settings.service';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { assignUserRole } from './assign-user-role';
@@ -32,7 +33,18 @@ export class UsersService {
     private readonly settingsService: SettingsService,
     private readonly mailTransport: SmtpMailTransport,
     private readonly directorySyncService: DirectorySyncService,
+    // Phase 2.2: optional so a unit test can build the service without Redis and
+    // without the invalidation wiring; the module always provides it.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
   ) {}
+
+  /** Phase 2.2: hands the mutation functions the authorization cache hook. */
+  private invalidatePrincipal(): (userId: string) => Promise<unknown> {
+    return (userId) =>
+      this.principalContextInvalidator?.invalidateUser(userId) ??
+      Promise.resolve(null);
+  }
 
   listSummary(): Promise<readonly UserSummaryResponse[]> {
     return this.execute(() => listUsersSummary(this.prisma));
@@ -82,11 +94,15 @@ export class UsersService {
   }
 
   update(input: UpdateUserInput): Promise<UserSummaryResponse> {
-    return this.execute(() => updateUser(this.prisma, input));
+    return this.execute(() =>
+      updateUser(this.prisma, input, this.invalidatePrincipal()),
+    );
   }
 
   delete(userId: string): Promise<void> {
-    return this.execute(() => deleteUser(this.prisma, userId));
+    return this.execute(() =>
+      deleteUser(this.prisma, userId, this.invalidatePrincipal()),
+    );
   }
 
   listRoles(userId: string): Promise<readonly UserRoleResponse[]> {
@@ -94,11 +110,15 @@ export class UsersService {
   }
 
   assignRole(input: AssignUserRoleInput): Promise<UserRoleResponse> {
-    return this.execute(() => assignUserRole(this.prisma, input));
+    return this.execute(() =>
+      assignUserRole(this.prisma, input, this.invalidatePrincipal()),
+    );
   }
 
   removeRole(input: RemoveUserRoleInput): Promise<void> {
-    return this.execute(() => removeUserRole(this.prisma, input));
+    return this.execute(() =>
+      removeUserRole(this.prisma, input, this.invalidatePrincipal()),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

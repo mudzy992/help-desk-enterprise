@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { RoutingModule } from '../routing/routing.module';
@@ -12,6 +11,7 @@ import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignm
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
 import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
+import { TicketRealtimeBridgeSubscriber } from './ticket-realtime-bridge.subscriber';
 import { TicketsCollaborationController } from './tickets-collaboration.controller';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
 import { TicketsRemoteController } from './remote/tickets-remote.controller';
@@ -51,9 +51,7 @@ import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe
 import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { TicketsConfidentialController } from './confidential/tickets-confidential.controller';
 import { TicketsConfidentialService } from './confidential/tickets-confidential.service';
-import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
-import { TicketArchiveAutomationService } from './archive/ticket-archive-automation.service';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
 import { TicketsCsatController } from './csat/tickets-csat.controller';
@@ -62,7 +60,6 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
     AuthenticationModule,
     AuthorizationModule,
     RoutingModule,
@@ -113,8 +110,6 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsSavedViewsService,
     TicketSavedViewsConfigurationLoader,
     WaitingForUserConfigurationLoader,
-    WaitingForUserAutomationService,
-    TicketArchiveAutomationService,
     TicketsCollaborationService,
     TicketsRemoteService,
     TicketsTimeTrackingService,
@@ -128,6 +123,8 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
       useFactory: () => new DiskTicketAttachmentStorage(resolveUploadRoot()),
     },
     TicketRealtimeHub,
+    // Phase 4.1: receives worker-originated realtime events over Redis.
+    TicketRealtimeBridgeSubscriber,
     TicketChatGateway,
   ],
   exports: [

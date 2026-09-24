@@ -30,6 +30,7 @@ describe('validateConfigSnapshot', () => {
         configuration: {
           unroutedQueueEnabled: false,
           unroutedQueueOwnerRole: 'SUPER_ADMIN',
+          requireCoverage: true,
         },
         rules: [],
       },

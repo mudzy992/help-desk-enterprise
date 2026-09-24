@@ -18,7 +18,17 @@ const pauseOffsetMs = 20 * 60 * 1000;
 const responseBreachOffsetMs = 3 * 60 * 60 * 1000;
 const resolutionBreachOffsetMs = 10 * 24 * 60 * 60 * 1000;
 
+// Ticket creation stamps `createdAt` from the wall clock while the assertions
+// below use fixed business-hour dates, so "now" is frozen for determinism.
 describe('ticket SLA breach and escalation', () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date('2026-09-11T12:00:00.000Z') });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('detects a response SLA breach on scan and keeps the flag sticky', async () => {
     const { prisma, ticket, configuration, memory } = await createStartedTicket();
     const responseBreachAt = new Date(ticket.createdAt.getTime() + responseBreachOffsetMs);
@@ -74,11 +84,26 @@ describe('ticket SLA breach and escalation', () => {
       configuration,
       now: responseBreachAt,
     });
-    expect(scanned[0]?.pausedAt?.toISOString()).toBe(pauseAt.toISOString());
-    expect(scanned[0]?.isResponseBreached).toBe(false);
-    expect(scanned[0]?.isResolutionBreached).toBe(false);
+    // Phase 2.1 (plan §2.1): a paused state has no time-driven transition left
+    // (`nextDueAt` is null while paused), so the scan does not even select it.
+    expect(scanned).toEqual([]);
+    const paused = await loadTicketSlaState(prisma, ticket.id);
+    expect(paused?.pausedAt?.toISOString()).toBe(pauseAt.toISOString());
+    expect(paused?.isResponseBreached).toBe(false);
+    expect(paused?.isResolutionBreached).toBe(false);
+    expect(paused?.nextDueAt).toBeNull();
     expect(reasons(memory)).toEqual([]);
     expect(systemBodies(memory)).toEqual([]);
+
+    // Resuming is an event, and it puts the state back on the schedule.
+    await syncTicketSlaTimers(prisma, {
+      ticket: withStatus(ticket, 'IN_PROGRESS'),
+      previousStatus: 'WAITING_FOR_USER',
+      now: responseBreachAt,
+      event: 'user_resumed',
+      configuration,
+    });
+    expect((await loadTicketSlaState(prisma, ticket.id))?.nextDueAt).not.toBeNull();
   });
 
   it('emits an escalation event from the profile rule when the timer expires', async () => {

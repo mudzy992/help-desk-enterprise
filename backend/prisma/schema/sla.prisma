@@ -80,12 +80,16 @@ model TicketSlaState {
   isResponseAtRisk        Boolean   @default(false)
   isResolutionAtRisk      Boolean   @default(false)
   firedEscalationKeys     String[]  @default([])
+  /// Phase 2.1: when the scanner has to look at this state again (null = nothing
+  /// time-driven is pending). Maintained by computeSlaNextDueAt on every write.
+  nextDueAt               DateTime?
   ticket                  Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   updatedAt               DateTime  @updatedAt
 
   @@index([pausedAt])
   @@index([responseDueAt])
   @@index([resolutionDueAt])
+  @@index([resolutionCompletedAt, nextDueAt])
 }
 
 model SlaEscalationRule {

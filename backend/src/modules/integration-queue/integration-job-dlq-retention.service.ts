@@ -1,38 +1,23 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { IntegrationJobRepository } from './integration-job.repository';
 import { loadIntegrationQueueSettings } from './load-integration-queue-settings';
 import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
-export class IntegrationJobDlqRetentionService
-  implements OnModuleInit, OnModuleDestroy
-{
+export class IntegrationJobDlqRetentionService {
   private readonly logger = new Logger(IntegrationJobDlqRetentionService.name);
-  private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(
     private readonly integrationJobRepository: IntegrationJobRepository,
     private readonly settingsService: SettingsService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    const settings = await loadIntegrationQueueSettings(this.settingsService);
-    this.timer = setInterval(() => {
-      void this.sweep();
-    }, settings.workerPollSeconds * 1000);
-  }
-
-  onModuleDestroy(): void {
-    if (this.timer !== undefined) {
-      clearInterval(this.timer);
-    }
-  }
-
+  /**
+   * Phase 4.1 (plan §4.1): the periodic trigger moved to a BullMQ schedule
+   * (`integration-worker-maintenance.scheduler.service.ts`); the sweep itself — and
+   * the settings it reads on every run — is unchanged. Unlike the old timer, two
+   * workers now produce one sweep per interval instead of two.
+   */
   async sweep(): Promise<number> {
     const settings = await loadIntegrationQueueSettings(this.settingsService);
     const before = new Date(

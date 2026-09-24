@@ -15,6 +15,10 @@ import type {
   UpdateKnowledgeArticleInput,
 } from './knowledge-base.types';
 import { listKnowledgeArticles } from './list-knowledge-articles';
+import {
+  searchKnowledgeArticleTitles,
+  type KnowledgeArticleTitleMatch,
+} from './search-knowledge-article-titles';
 import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
 import { loadKnowledgeArticleLabels } from './load-knowledge-article-labels';
 import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
@@ -76,6 +80,30 @@ export class KnowledgeBaseService {
         ...labels.get(record.id),
       }));
     });
+  }
+
+  /**
+   * Article hits of `GET /search` (plan §1.2). Same visibility as `list`: the
+   * candidates are bounded, then filtered by `isKnowledgeArticleVisibleTo`.
+   */
+  searchTitles(
+    query: {
+      readonly q: string;
+      readonly limit: number;
+      readonly candidateMultiplier: number;
+    },
+    context: KnowledgeArticleMutationContext,
+  ): Promise<readonly KnowledgeArticleTitleMatch[]> {
+    return executeKnowledgeBaseOperation(() =>
+      searchKnowledgeArticleTitles({
+        prisma: this.prisma,
+        authorizationContextLoader: this.authorizationContextLoader,
+        context,
+        query: query.q,
+        limit: query.limit,
+        candidateMultiplier: query.candidateMultiplier,
+      }),
+    );
   }
 
   getById(

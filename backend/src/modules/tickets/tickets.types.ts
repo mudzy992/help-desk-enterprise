@@ -147,6 +147,17 @@ export type UpdateTicketInput = {
 
 export type ListTicketsQuery = TicketListQuery;
 
+/**
+ * One hit of `GET /search?types=ticket` (plan §1.2). A deliberately small shape:
+ * the header search only renders the number and the title, and the rest of the
+ * ticket is loaded when the hit is opened.
+ */
+export type TicketSearchMatch = {
+  readonly id: string;
+  readonly ticketNumber: string;
+  readonly title: string;
+};
+
 export type TicketListResponse = {
   readonly items: readonly TicketResponse[];
   readonly total: number;

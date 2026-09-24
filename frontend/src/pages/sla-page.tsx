@@ -93,7 +93,7 @@ export function SlaPage() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[300px_1fr]">
         <SlaProfileList
           profiles={data.profiles}
-          tickets={data.tickets}
+          exposure={data.exposure}
           selectedId={data.selectedId}
           isLoading={data.isLoading}
           canWrite={canWrite}
@@ -106,7 +106,7 @@ export function SlaPage() {
           calendar={selectedCalendar}
           rules={data.rules}
           changes={data.changes}
-          tickets={data.tickets}
+          exposure={data.exposure}
           compliance={data.compliance}
           canWrite={canWrite}
           errorKey={data.errorKey}

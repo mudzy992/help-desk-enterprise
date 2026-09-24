@@ -7,12 +7,17 @@ import {
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { assertCanAssignRole } from './assert-can-assign-role';
 import { mapUserRoleResponse } from './map-user-role-response';
-import type { AssignUserRoleInput, UserRoleResponse } from './users.types';
+import type {
+  AssignUserRoleInput,
+  PrincipalInvalidationHook,
+  UserRoleResponse,
+} from './users.types';
 import { UsersError } from './users.error';
 
 export async function assignUserRole(
   prisma: PrismaService,
   input: AssignUserRoleInput,
+  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
 ): Promise<UserRoleResponse> {
   const userId = input.userId.trim();
   const roleKey = input.roleKey.trim();
@@ -70,7 +75,7 @@ export async function assignUserRole(
   if (existing !== null) {
     return mapUserRoleResponse(existing);
   }
-  return prisma.$transaction(async (transaction) => {
+  const response = await prisma.$transaction(async (transaction) => {
     const created = await transaction.userRole.create({
       data: {
         userId,
@@ -99,4 +104,8 @@ export async function assignUserRole(
     });
     return mapUserRoleResponse(created);
   });
+  // A new role changes what this user may do: the cached principal context of
+  // that user is dropped (and its version bumped) right after the write.
+  await invalidatePrincipal(userId);
+  return response;
 }

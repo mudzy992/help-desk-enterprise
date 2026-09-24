@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { localDayKey, queryKeys } from "@/lib/query/query-keys";
 import {
-  summarizeTickets,
+  composeDashboardSummary,
   type DashboardSummary,
-} from "@/lib/dashboard/summarize-tickets";
+} from "@/lib/dashboard/compose-dashboard-summary";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
@@ -13,9 +15,10 @@ import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-er
 import { listOrganizationalUnitTree } from "@/services/organizational-units-api";
 import { listRoutingRules } from "@/services/routing-api";
 import { listOfferedServices, listServices } from "@/services/service-catalog-api";
+import { fetchDashboardSummary } from "@/services/report-summary-api";
 import {
   listGroupInbox,
-  listTickets,
+  listTicketsPage,
   type TicketResponse,
 } from "@/services/tickets-api";
 
@@ -35,6 +38,11 @@ export type DashboardSummaryState = {
 
 export function useDashboardSummary(): DashboardSummaryState {
   const { currentUserId } = useSession();
+  // The counters carry a day ("opened today"), so the day is part of the key:
+  // when it changes the callback identity changes with it and the effect below
+  // fetches the new day instead of showing yesterday's payload.
+  const dayKey = localDayKey();
+  const queryClient = useQueryClient();
   const isStaff = isTicketStaff(useSessionCapabilities());
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [inboxTickets, setInboxTickets] = useState<
@@ -60,13 +68,62 @@ export function useDashboardSummary(): DashboardSummaryState {
       setRequestId(null);
     }
     try {
-      const tickets = await listTickets();
-      setSummary(summarizeTickets(tickets, currentUserId));
+      // Phase 2.4: the counters come from the server aggregate (SQL over the
+      // same visibility scope as the lists); the first page is only the view
+      // data of the recent/watch/attention lists and the 14-day chart.
+      const [counts, firstPage] = await Promise.all([
+        queryClient.fetchQuery({
+          queryKey: queryKeys.dashboardSummary("all", dayKey),
+          queryFn: () => fetchDashboardSummary("all"),
+        }),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.ticketList({ pageSize: 50 }),
+          queryFn: () => listTicketsPage({ pageSize: 50 }),
+        }),
+      ]);
+      setSummary(
+        composeDashboardSummary({
+          counts,
+          tickets: firstPage.items,
+          currentUserId,
+        }),
+      );
       const [inbox, catalog, tree, rules] = await Promise.all([
-        isStaff ? listGroupInbox().catch(() => null) : Promise.resolve(null),
-        listServices().catch(() => listOfferedServices().catch(() => [])),
-        listOrganizationalUnitTree().catch(() => []),
-        isStaff ? listRoutingRules().catch(() => []) : Promise.resolve([]),
+        isStaff
+          ? queryClient
+              .fetchQuery({
+                queryKey: queryKeys.groupInbox,
+                queryFn: () => listGroupInbox(),
+              })
+              .catch(() => null)
+          : Promise.resolve(null),
+        queryClient
+          .fetchQuery({
+            queryKey: queryKeys.services,
+            queryFn: () => listServices(),
+          })
+          .catch(() =>
+            queryClient
+              .fetchQuery({
+                queryKey: queryKeys.offeredServices,
+                queryFn: () => listOfferedServices(),
+              })
+              .catch(() => []),
+          ),
+        queryClient
+          .fetchQuery({
+            queryKey: queryKeys.organizationalUnits,
+            queryFn: () => listOrganizationalUnitTree(),
+          })
+          .catch(() => []),
+        isStaff
+          ? queryClient
+              .fetchQuery({
+                queryKey: queryKeys.routingRules,
+                queryFn: () => listRoutingRules(),
+              })
+              .catch(() => [])
+          : Promise.resolve([]),
       ]);
       setInboxTickets(inbox);
       setServiceNames(
@@ -92,7 +149,7 @@ export function useDashboardSummary(): DashboardSummaryState {
         setIsLoading(false);
       }
     }
-  }, [currentUserId, isStaff]);
+  }, [currentUserId, dayKey, isStaff, queryClient]);
 
   useEffect(() => {
     void reload();

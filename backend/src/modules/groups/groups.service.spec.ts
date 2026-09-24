@@ -26,7 +26,7 @@ describe('GroupsService', () => {
     _count: { members: 0 },
   };
 
-  const createService = () => {
+  const createService = (invalidateUser = jest.fn().mockResolvedValue(1)) => {
     const prisma: {
       organizationalUnit: { findUnique: jest.Mock };
       group: {
@@ -88,8 +88,10 @@ describe('GroupsService', () => {
         prisma as never,
         { loadBySubjectId: async () => null } as never,
         { load: async () => { throw new Error('not used'); } } as never,
+        { invalidateUser } as never,
       ),
       prisma,
+      invalidateUser,
     };
   };
 
@@ -158,6 +160,45 @@ describe('GroupsService', () => {
     expect(added.members).toHaveLength(1);
     const removed = await service.removeMember(groupRecord.id, user.id);
     expect(removed.members).toHaveLength(0);
+  });
+
+  it('drops the cached authorization data of the member whose access changed', async () => {
+    // Phase 2.2 (plan §2.2): group membership feeds the principal context, so
+    // every membership change has to invalidate exactly that member.
+    const { service, prisma, invalidateUser } = createService();
+    prisma.groupMember.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'member-1' });
+    const withMember = {
+      ...groupRecord,
+      members: [
+        { id: 'member-1', userId: user.id, createdAt: now, user },
+      ],
+      _count: { members: 1 },
+    };
+    prisma.group.findUnique
+      .mockResolvedValueOnce(groupRecord)
+      .mockResolvedValueOnce(withMember)
+      .mockResolvedValueOnce(withMember)
+      .mockResolvedValueOnce(groupRecord);
+
+    await service.addMember(groupRecord.id, user.id);
+    expect(invalidateUser).toHaveBeenCalledTimes(1);
+    expect(invalidateUser).toHaveBeenCalledWith(user.id);
+
+    await service.removeMember(groupRecord.id, user.id);
+    expect(invalidateUser).toHaveBeenCalledTimes(2);
+    expect(invalidateUser).toHaveBeenLastCalledWith(user.id);
+  });
+
+  it('does not invalidate when the membership change was rejected', async () => {
+    const { service, prisma, invalidateUser } = createService();
+    prisma.group.findUnique.mockResolvedValue(groupRecord);
+    prisma.groupMember.findUnique.mockResolvedValue({ id: 'member-1' });
+    await expect(service.addMember(groupRecord.id, user.id)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(invalidateUser).not.toHaveBeenCalled();
   });
 
   it('maps missing groups to not found', async () => {

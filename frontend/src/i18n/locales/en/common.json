@@ -1704,6 +1704,7 @@
     "workerActive": "worker: active",
     "workerStale": "worker: inactive",
     "workerUnknown": "worker: unknown",
+    "workerRefresh": "Refresh worker status",
     "retryNow": "Retry now",
     "retrying": "Retrying…",
     "noError": "No error",

@@ -10,7 +10,15 @@ export const policyPackTestIds = {
   entraUser: 'user-entra',
 } as const;
 
-export function createPolicyPackTestWorld(): {
+export function createPolicyPackTestWorld(
+  options: {
+    /**
+     * Phase 2.2: lets a test observe the authorization cache invalidations that
+     * a policy pack apply triggers for the users it granted roles to.
+     */
+    readonly invalidateUser?: (userId: string) => Promise<unknown>;
+  } = {},
+): {
   memory: ReturnType<typeof createInMemoryPolicyPackPrisma>;
   service: PolicyPacksService;
 } {
@@ -47,6 +55,11 @@ export function createPolicyPackTestWorld(): {
   });
   return {
     memory,
-    service: new PolicyPacksService(memory.prisma as never),
+    service: new PolicyPacksService(
+      memory.prisma as never,
+      options.invalidateUser === undefined
+        ? undefined
+        : ({ invalidateUser: options.invalidateUser } as never),
+    ),
   };
 }

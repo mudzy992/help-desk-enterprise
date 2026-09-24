@@ -13,3 +13,11 @@ export const csatConstants = {
 } as const;
 
 export const csatGuardrailFingerprint = 'csat_submit';
+
+/**
+ * Safety ceiling of the CSAT summary (phase 1.1). The read is already narrowed
+ * to tickets that carry a CSAT submission, so it stays small in practice; the
+ * ceiling only guarantees that the statement is bounded (`LIMIT n`) instead of
+ * listing every visible ticket.
+ */
+export const csatSummaryTicketLimit = 20_000;

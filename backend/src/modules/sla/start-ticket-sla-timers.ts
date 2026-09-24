@@ -1,5 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { addBusinessMinutes } from './add-business-minutes';
+import { computeSlaNextDueAt } from './compute-sla-next-due-at';
 import { evaluateTicketSlaAtRisk } from './evaluate-ticket-sla-at-risk';
 import { evaluateTicketSlaBreach } from './evaluate-ticket-sla-breach';
 import { isSlaPauseStatus } from './is-sla-pause-status';
@@ -45,37 +46,47 @@ export async function startTicketSlaTimers(
   }
   const startedAt = ticket.createdAt;
   const paused = isSlaPauseStatus(ticket.status, configuration);
-  return persistTicketSlaState(
-    prisma,
-    evaluateTicketSlaAtRisk(
-      evaluateTicketSlaBreach(
-        {
-          ticketId: ticket.id,
-          slaProfileId: profile.id,
-          slaRuleId: rule.id,
-          responseMinutes: rule.responseMinutes,
-          resolutionMinutes: rule.resolutionMinutes,
+  const fresh = evaluateTicketSlaAtRisk(
+    evaluateTicketSlaBreach(
+      {
+        ticketId: ticket.id,
+        slaProfileId: profile.id,
+        slaRuleId: rule.id,
+        responseMinutes: rule.responseMinutes,
+        resolutionMinutes: rule.resolutionMinutes,
+        startedAt,
+        responseDueAt: addBusinessMinutes(calendar, startedAt, rule.responseMinutes),
+        resolutionDueAt: addBusinessMinutes(
+          calendar,
           startedAt,
-          responseDueAt: addBusinessMinutes(calendar, startedAt, rule.responseMinutes),
-          resolutionDueAt: addBusinessMinutes(
-            calendar,
-            startedAt,
-            rule.resolutionMinutes,
-          ),
-          respondedAt: null,
-          resolutionCompletedAt: null,
-          pausedAt: paused ? startedAt : null,
-          pausedBusinessMinutes: 0,
-          isResponseBreached: false,
-          isResolutionBreached: false,
-          isResponseAtRisk: false,
-          isResolutionAtRisk: false,
-          firedEscalationKeys: [],
-        },
-        now,
-      ),
+          rule.resolutionMinutes,
+        ),
+        respondedAt: null,
+        resolutionCompletedAt: null,
+        pausedAt: paused ? startedAt : null,
+        pausedBusinessMinutes: 0,
+        isResponseBreached: false,
+        isResolutionBreached: false,
+        isResponseAtRisk: false,
+        isResolutionAtRisk: false,
+        firedEscalationKeys: [],
+        nextDueAt: null,
+      },
       now,
-      configuration.notifyBeforeOverdueMinutes,
     ),
+    now,
+    configuration.notifyBeforeOverdueMinutes,
   );
+  return persistTicketSlaState(prisma, {
+    ...fresh,
+    // Phase 2.1: escalation rules are not loaded here — `syncTicketSlaTimers`
+    // (the only caller) rewrites `nextDueAt` with the real rules in the same
+    // request. Until then a breached clock stays due immediately.
+    nextDueAt: computeSlaNextDueAt({
+      state: fresh,
+      rules: [],
+      calendar,
+      configuration,
+    }),
+  });
 }

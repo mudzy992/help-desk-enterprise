@@ -7,6 +7,8 @@ export const ticketSocketEvents = {
   leave: "ticket:leave",
   messageCreated: "ticket.message.created",
   ticketUpdated: "ticket.updated",
+  // Faza 3.2: laki event za group sobe (< 200 B, bez sadržaja tiketa).
+  groupFeedChanged: "group.feed-changed",
   notificationCreated: "notification.created",
   notificationRead: "notification.read",
   notificationUnreadCount: "notification.unread-count",

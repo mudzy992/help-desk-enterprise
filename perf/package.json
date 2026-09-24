@@ -1,0 +1,6 @@
+{
+  "name": "help-desk-perf",
+  "private": true,
+  "type": "module",
+  "description": "Phase 0 load-test package (k6). No dependencies: k6 is a CLI, not an npm package."
+}

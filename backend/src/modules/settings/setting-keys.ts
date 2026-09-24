@@ -302,6 +302,7 @@ export const settingKeys = {
   privateReportsEnabled: 'private.reports.enabled',
   privateReportsPacksJson: 'private.reports.packsJson',
   privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',
+  privateReportsTimeZone: 'private.reports.timeZone',
   privateDashboardBottlenecksEnabled: 'private.dashboard.bottlenecks.enabled',
   privateDashboardBottlenecksDefaultWindowDays:
     'private.dashboard.bottlenecks.defaultWindowDays',

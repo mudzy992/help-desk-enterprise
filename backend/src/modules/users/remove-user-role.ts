@@ -5,12 +5,16 @@ import {
   auditLogEntityTypes,
 } from '../audit-log/audit-log.constants';
 import type { AuditLogWriteClient } from '../audit-log/audit-log.types';
-import type { RemoveUserRoleInput } from './users.types';
+import type {
+  PrincipalInvalidationHook,
+  RemoveUserRoleInput,
+} from './users.types';
 import { UsersError } from './users.error';
 
 export async function removeUserRole(
   prisma: PrismaService,
   input: RemoveUserRoleInput,
+  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
 ): Promise<void> {
   const userId = input.userId.trim();
   const userRoleId = input.userRoleId.trim();
@@ -42,4 +46,6 @@ export async function removeUserRole(
       requestId: input.requestId,
     });
   });
+  // The role is gone; so is the cached decision that granted it.
+  await invalidatePrincipal(userId);
 }

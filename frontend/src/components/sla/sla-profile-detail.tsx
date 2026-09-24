@@ -23,7 +23,7 @@ import type {
   SlaProfile,
   SlaRule,
 } from "@/services/sla-api";
-import type { TicketResponse } from "@/services/tickets-api";
+import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
 
 interface SlaProfileDetailProperties {
   readonly profile: SlaProfile | undefined;
@@ -31,7 +31,7 @@ interface SlaProfileDetailProperties {
   readonly calendar: BusinessHoursCalendar | undefined;
   readonly rules: readonly SlaRule[];
   readonly changes: readonly SlaChangeLogEntry[];
-  readonly tickets: readonly TicketResponse[];
+  readonly exposure: SlaExposureIndex;
   readonly compliance: SlaComplianceResponse | null;
   readonly canWrite: boolean;
   readonly errorKey: string | null;
@@ -50,7 +50,7 @@ export function SlaProfileDetail({
   calendar,
   rules,
   changes,
-  tickets,
+  exposure,
   compliance,
   canWrite,
   errorKey,
@@ -105,7 +105,7 @@ export function SlaProfileDetail({
       >
         <SlaPriorityTargetsTable
           rules={baseline}
-          tickets={tickets}
+          exposure={exposure}
           slaProfileId={profile.id}
           calendarLabel={calendar?.name ?? profile.calendarName}
         />

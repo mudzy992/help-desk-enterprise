@@ -1,4 +1,5 @@
-import { Logger } from '@nestjs/common';
+import { Inject, Logger, Optional } from '@nestjs/common';
+import { OnModuleDestroy } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -6,6 +7,9 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { redisTokens } from '../../common/redis/redis.tokens';
+import type { RedisConfiguration } from '../../common/redis/redis.types';
+import { startWebsocketClientCountReporter } from '../observability/metrics/websocket-client-count.reporter';
 import {
   attachSocketPrincipal,
   getSocketPrincipal,
@@ -20,6 +24,14 @@ import { resolveSocketCorsOrigin } from './resolve-socket-cors-origin';
 import { SocketAuthenticationService } from './socket-authentication.service';
 import { SocketGroupMembershipService } from './socket-group-membership.service';
 import { groupRoomName, userRoomName } from './ticket-socket-rooms';
+import {
+  startWebsocketEmitCountReporter,
+} from './websocket-emit-counter';
+import {
+  createWebsocketRedisAdapter,
+  formatWebsocketAdapterStatus,
+  type WebsocketRedisAdapterHandle,
+} from './ws-redis-adapter';
 
 @WebSocketGateway({
   cors: {
@@ -27,19 +39,68 @@ import { groupRoomName, userRoomName } from './ticket-socket-rooms';
   },
 })
 export class WebsocketGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   private readonly logger = new Logger(WebsocketGateway.name);
+
+  private stopClientCountReporter: (() => void) | null = null;
+  private stopEmitCountReporter: (() => void) | null = null;
+  private realtimeAdapter: WebsocketRedisAdapterHandle | null = null;
 
   constructor(
     private readonly socketAuthenticationService: SocketAuthenticationService,
     private readonly socketGroupMembershipService: SocketGroupMembershipService,
+    // Optional on purpose: the unit specs build the gateway without the global
+    // Redis module. No configuration means no adapter — the in-memory one stays,
+    // which is exactly the degraded mode Phase 3.1 asks for.
+    @Optional()
+    @Inject(redisTokens.configuration)
+    private readonly redisConfiguration?: RedisConfiguration,
   ) {}
 
   afterInit(server: Server): void {
     server.use((socket: Socket, next: (error?: Error) => void) => {
       void this.authenticateHandshake(socket, next);
     });
+    this.applyRealtimeAdapter(server);
+    // Phase 0 observability only: one debug line per interval, no room or auth
+    // behaviour is touched here.
+    this.stopClientCountReporter = startWebsocketClientCountReporter(
+      server,
+      this.logger,
+    );
+    // Phase 3.2 metric: emit-ova/s po vrsti sobe (staff/public/user/group).
+    this.stopEmitCountReporter = startWebsocketEmitCountReporter(this.logger);
+  }
+
+  onModuleDestroy(): void {
+    this.stopClientCountReporter?.();
+    this.stopClientCountReporter = null;
+    this.stopEmitCountReporter?.();
+    this.stopEmitCountReporter = null;
+    void this.realtimeAdapter?.close();
+    this.realtimeAdapter = null;
+  }
+
+  /**
+   * Phase 3.1 (plan §3.1): rooms must mean the same thing on every instance, so
+   * the adapter is installed before the first client joins. Nothing here touches
+   * the handshake or the room rules — only how an emit travels between processes.
+   */
+  private applyRealtimeAdapter(server: Server): void {
+    const handle =
+      this.redisConfiguration === undefined
+        ? null
+        : createWebsocketRedisAdapter(this.redisConfiguration, this.logger);
+    if (handle === null) {
+      this.logger.warn(
+        `${formatWebsocketAdapterStatus(false)} fallback=in_memory`,
+      );
+      return;
+    }
+    server.adapter(handle.adapter);
+    this.realtimeAdapter = handle;
+    this.logger.log(formatWebsocketAdapterStatus(true));
   }
 
   handleConnection(client: Socket): void {

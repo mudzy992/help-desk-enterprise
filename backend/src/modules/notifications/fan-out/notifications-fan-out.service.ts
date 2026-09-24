@@ -16,6 +16,7 @@ import {
 } from './dispatch-sla-runtime-notification';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
+import { NotificationUnreadCountCache } from '../notification-unread-count.cache';
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 
 @Injectable()
@@ -31,6 +32,7 @@ export class NotificationsFanOutService
     private readonly settingsService: SettingsService,
     private readonly enqueueIntegrationJobService: EnqueueIntegrationJobService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
+    private readonly unreadCountCache: NotificationUnreadCountCache,
   ) {}
 
   onModuleInit(): void {
@@ -63,6 +65,7 @@ export class NotificationsFanOutService
         this.prisma,
         this.ticketRealtimeHub,
         created,
+        (userId) => this.unreadCountCache.invalidate(userId),
       );
       await enqueueEdgeNotificationEvents({
         prisma: this.prisma,

@@ -15,6 +15,7 @@ import { createInMemoryTicketApprovalDelegate } from './approvals/create-in-memo
 import type { TicketApprovalRecord } from './approvals/approvals.types';
 import { createInMemoryTicketsLookups } from './create-in-memory-tickets-lookups';
 import { createInMemoryTicketDelegate } from './create-in-memory-ticket-delegate';
+import type { InMemoryTicketRelations } from './in-memory-ticket-where';
 import { createInMemoryTicketMessageDelegate } from './create-in-memory-ticket-message-delegate';
 import { createInMemoryTicketParticipantDelegate } from './create-in-memory-ticket-participant-delegate';
 import { createInMemoryTicketAttachmentDelegate } from './create-in-memory-ticket-attachment-delegate';
@@ -85,7 +86,37 @@ export function createInMemoryTicketsPrisma() {
   const now = () => new Date();
   const nextId = () => `ticket-record-${nextIdentifier++}`;
   const nextPrefixedId = (prefix: string) => `${prefix}-${nextIdentifier++}`;
-  const slaLayer = createInMemoryTicketSlaLayer(nextPrefixedId, now);
+  // The relation resolvers are built below; the SLA delegate reads them through
+  // this getter so the two layers can see each other's stores without a cycle.
+  let ticketRelations: InMemoryTicketRelations = {};
+  const slaLayer = createInMemoryTicketSlaLayer(
+    nextPrefixedId,
+    now,
+    (ticketId) => tickets.get(ticketId) ?? null,
+    () => ticketRelations,
+  );
+
+  ticketRelations = {
+    participants: (ticket) =>
+      [...participants.values()].filter((row) => row.ticketId === ticket.id),
+    confidentialGrants: (ticket) =>
+      [...confidentialGrants.values()].filter(
+        (row) => row.ticketId === ticket.id,
+      ),
+    breakGlassEvents: (ticket) =>
+      [...breakGlassEvents.values()].filter(
+        (row) => row.ticketId === ticket.id,
+      ),
+    slaState: (ticket) =>
+      [...slaLayer.slaStates.values()].filter(
+        (row) => row.ticketId === ticket.id,
+      ),
+    // Phase 1.1 narrowed the CSAT summary to `{ csat: { isNot: null } }`; the
+    // delegate answers it with the ticket's submission (0 or 1 rows), exactly
+    // like Prisma does for the one-to-one relation.
+    csat: (ticket) =>
+      [...csatSubmissions.values()].filter((row) => row.ticketId === ticket.id),
+  };
 
   const prisma = {
     ...createInMemoryTicketsLookups({ units, services, groups, users }),
@@ -120,22 +151,7 @@ export function createInMemoryTicketsPrisma() {
       findUnique: async () => null,
     },
     groupMember: createInMemoryGroupMemberDelegate(members),
-    ticket: createInMemoryTicketDelegate(tickets, nextId, now, {
-      participants: (ticket) =>
-        [...participants.values()].filter((row) => row.ticketId === ticket.id),
-      confidentialGrants: (ticket) =>
-        [...confidentialGrants.values()].filter(
-          (row) => row.ticketId === ticket.id,
-        ),
-      breakGlassEvents: (ticket) =>
-        [...breakGlassEvents.values()].filter(
-          (row) => row.ticketId === ticket.id,
-        ),
-      slaState: (ticket) =>
-        [...slaLayer.slaStates.values()].filter(
-          (row) => row.ticketId === ticket.id,
-        ),
-    }),
+    ticket: createInMemoryTicketDelegate(tickets, nextId, now, ticketRelations),
     closeCode: createInMemoryCloseCodeDelegate(closeCodes, nextId, now),
     ticketParticipant: createInMemoryTicketParticipantDelegate(
       participants,

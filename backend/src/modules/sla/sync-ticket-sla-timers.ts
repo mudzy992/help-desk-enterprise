@@ -14,6 +14,7 @@ import {
   isSlaPauseStatus,
   isSlaTerminalStatus,
 } from './is-sla-pause-status';
+import { computeSlaNextDueAt } from './compute-sla-next-due-at';
 import { loadBusinessHoursCalendar } from './load-business-hours-calendar';
 import { loadSlaEscalationRules } from './load-sla-escalation-rules';
 import {
@@ -57,7 +58,17 @@ export async function syncTicketSlaTimers(
     input.configuration,
     now,
   );
-  const persisted = await persistTicketSlaState(prisma, next);
+  const persisted = await persistTicketSlaState(prisma, {
+    ...next,
+    // Phase 2.1: one column tells the scanner when to come back. Every write
+    // path (ticket event, scan, creation) goes through here.
+    nextDueAt: computeSlaNextDueAt({
+      state: next,
+      rules,
+      calendar,
+      configuration: input.configuration,
+    }),
+  });
   await emitTicketSlaRuntimeEvents(prisma, {
     ticketId: input.ticket.id,
     previous: previousMarks,

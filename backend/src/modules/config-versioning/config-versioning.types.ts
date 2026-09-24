@@ -111,6 +111,11 @@ export type ConfigSnapshot = {
     readonly configuration: {
       readonly unroutedQueueEnabled: boolean;
       readonly unroutedQueueOwnerRole: string;
+      /**
+       * Mirrors `RoutingConfiguration.requireCoverage` so a snapshot can be
+       * re-evaluated by the same coverage logic the runtime uses.
+       */
+      readonly requireCoverage: boolean;
     };
   };
   readonly sla: {

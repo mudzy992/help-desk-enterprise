@@ -1,0 +1,158 @@
+name: Perf smoke
+
+# Phase 4.2 (plan §4.2, item 1): the performance gate the program was missing.
+#
+# It is a *smoke*, not the full run: 200 virtual users for 5 minutes against a
+# throwaway Postgres + Redis, with the CI thresholds from `perf/config.js`
+# (`ciThresholds`) — every one of them carries a comment naming its source.
+# A failing threshold fails the job; the k6 summary and the API log are uploaded
+# as artefacts so a regression can be read without re-running the pipeline.
+
+on:
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: perf-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  perf-smoke:
+    name: k6 smoke (CI thresholds)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ephelpdesk
+          POSTGRES_PASSWORD: ephelpdesk
+          POSTGRES_DB: ephelpdesk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ephelpdesk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: "6379"
+      REDIS_KEY_PREFIX: ephelpdesk
+      QUEUE_PREFIX: bull:ephelpdesk
+      PORT: "10001"
+      CORS_ORIGIN: http://127.0.0.1:5173
+      # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
+      DB_QUERY_METRICS: "true"
+      DB_QUERY_BUDGET: "3"
+      DB_QUERY_BUDGET_WARN: "true"
+      # Smoke profile + relaxed, documented thresholds.
+      PERF_PROFILE: ci
+      BASE_URL: http://127.0.0.1:10001
+      REPO_ROOT: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Apply migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Build the API
+        working-directory: backend
+        run: npm run build
+
+      - name: Start the API
+        working-directory: backend
+        run: |
+          nohup node dist/src/main.js > "$REPO_ROOT/api.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -fsS "$BASE_URL/health" > /dev/null; then
+              echo "API is up after ${attempt}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API did not become healthy in 60s"
+          tail -50 "$REPO_ROOT/api.log"
+          exit 1
+
+      - name: Seed the minimal fixture (install wizard endpoints)
+        working-directory: backend
+        env:
+          PERF_ADMIN_EMAIL: perf-admin@example.test
+          PERF_ADMIN_PASSWORD: Perf-Smoke-1!
+        run: |
+          # The install wizard is the supported way to bootstrap the first admin and
+          # the starting catalogue; the second run in the same database is a no-op.
+          status=$(curl -sS -o /tmp/super-admin.json -w '%{http_code}' \
+            -X POST "$BASE_URL/install/super-admin" \
+            -H 'content-type: application/json' \
+            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"displayName\":\"Perf Smoke\",\"password\":\"$PERF_ADMIN_PASSWORD\"}")
+          echo "super-admin: HTTP $status"
+          curl -sS -X POST "$BASE_URL/install/seed" > /tmp/seed.json
+          echo "seed: $(head -c 200 /tmp/seed.json)"
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Run the k6 smoke with CI thresholds
+        working-directory: .
+        env:
+          REPORT_LABEL: ci-smoke
+          AGENT_EMAIL: perf-admin@example.test
+          AGENT_PASSWORD: Perf-Smoke-1!
+          REQUESTER_EMAIL: perf-admin@example.test
+          REQUESTER_PASSWORD: Perf-Smoke-1!
+        run: |
+          k6 run perf/smoke.js | tee perf-smoke.log
+          echo "--- threshold verdict ---"
+          grep -E '^(✓|✗|•)' perf-smoke.log || true
+
+      - name: Check the query budget from the API log
+        run: |
+          # Custom threshold (plan §4.2): average `db_queries_per_request` across all
+          # finished requests must stay at or below the documented budget of 3.
+          read -r average count <<<"$(awk -F'db_queries_per_request=' '
+            /db_queries_per_request=/ { split($2, parts, " "); sum += parts[1]; n += 1 }
+            END { if (n == 0) { print "0 0" } else { printf "%.3f %d", sum / n, n } }' api.log)"
+          echo "requests logged: $count"
+          echo "avg db_queries_per_request: $average"
+          if [ "$count" -gt 0 ] && awk -v avg="$average" 'BEGIN { exit !(avg > 3) }'; then
+            echo "::error::avg db_queries_per_request=${average} exceeds the budget of 3"
+            exit 1
+          fi
+
+      - name: Upload the k6 summary and the API log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-smoke-${{ github.run_id }}
+          path: |
+            perf/results/ci-smoke.json
+            perf/results/ci-smoke.md
+            perf-smoke.log
+            api.log
+          retention-days: 30

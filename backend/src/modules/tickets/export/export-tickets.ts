@@ -5,7 +5,7 @@ import {
   auditLogEntityTypes,
 } from '../../audit-log/audit-log.constants';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
-import { listTickets } from '../list-tickets';
+import { listTicketsWithin } from '../list-tickets';
 import { loadTicketOverdueFlags } from '../load-ticket-overdue-flags';
 import { TicketsError } from '../tickets.error';
 import type { TicketAccessPolicyContext } from '../with-ticket-access-policies';
@@ -38,12 +38,16 @@ export async function exportTicketsCsv(input: {
   // The same visibility rules and filters as GET /tickets (OU/service scope,
   // confidential visibility, archive policy, search, SLA, dates) are applied in
   // the query itself; only the export-specific exclusions follow below.
-  const visible = await listTickets(
+  // Phase 1.1: bounded read. One row past the export ceiling is enough to know
+  // the answer is `EXPORT_TOO_LARGE`, and it keeps the statement at `LIMIT n+1`
+  // instead of loading the whole ticket table into memory.
+  const visible = await listTicketsWithin(
     input.prisma,
     input.authorizationContextLoader,
     { ...input.query, searchDescription: true },
     input.context,
     input.context.archive,
+    ticketExportMaxRows + 1,
   );
   const units = await input.prisma.organizationalUnit.findMany({
     select: { id: true, name: true, ouPath: true },

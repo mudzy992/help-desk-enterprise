@@ -1,3 +1,7 @@
+import {
+  toTicketListSearchParams,
+  type TicketPageQuery,
+} from "@/lib/tickets/ticket-list-search-params";
 import { apiRequest } from "@/services/api";
 
 export type TicketSlaSnapshot = {
@@ -155,13 +159,9 @@ export function createTicket(input: CreateTicketInput): Promise<TicketResponse> 
 }
 
 export async function listGroupInbox(): Promise<readonly TicketResponse[]> {
-  // The backend always answers this endpoint with the paginated
-  // { items, total, page, pageSize } shape (unlike GET /tickets, which only
-  // does that when page/pageSize are supplied), so the array has to be
-  // unwrapped here rather than treating the response itself as the array.
-  const response = await apiRequest<{ items: readonly TicketResponse[] }>(
-    "/tickets/inbox",
-  );
+  // The inbox endpoint answers the same page envelope as GET /tickets, so the
+  // array is unwrapped here rather than treating the response as the array.
+  const response = await apiRequest<TicketPage>("/tickets/inbox");
   return response.items;
 }
 
@@ -177,21 +177,40 @@ export function claimTicket(ticketId: string): Promise<TicketResponse> {
   return apiRequest(`/tickets/${ticketId}/claim`, { method: "POST" });
 }
 
+export type TicketPage = {
+  readonly items: readonly TicketResponse[];
+  readonly total: number;
+  readonly page: number;
+  readonly pageSize: number;
+};
+
+/**
+ * One page of the visible tickets (phase 1.1, plan §1.1).
+ *
+ * `GET /tickets` always answers this envelope now: it used to return a plain
+ * array with every ticket in the table when no `page`/`pageSize` was sent, and
+ * four screens did exactly that. This is the only list read the client has.
+ */
+export function listTicketsPage(
+  query: TicketPageQuery = {},
+): Promise<TicketPage> {
+  const search = toTicketListSearchParams(query).toString();
+  return apiRequest(`/tickets?${search}`);
+}
+
+/**
+ * First page of the tickets narrowed by the three basic filters. Kept for the
+ * screens that only need a small slice while their dedicated endpoints arrive
+ * (dashboard/SLA aggregates in phase 2.4, `/search` in phase 1.2).
+ */
 export function listTickets(
   query: ListTicketsQuery = {},
-): Promise<readonly TicketResponse[]> {
-  const search = new URLSearchParams();
-  if (query.originUnitId !== undefined) {
-    search.set("originUnitId", query.originUnitId);
-  }
-  if (query.serviceId !== undefined) {
-    search.set("serviceId", query.serviceId);
-  }
-  if (query.status !== undefined) {
-    search.set("status", query.status);
-  }
-  const suffix = search.toString() === "" ? "" : `?${search.toString()}`;
-  return apiRequest(`/tickets${suffix}`);
+): Promise<TicketPage> {
+  return listTicketsPage({
+    originUnitId: query.originUnitId,
+    serviceId: query.serviceId,
+    status: query.status,
+  });
 }
 
 export function getTicket(ticketId: string): Promise<TicketResponse> {

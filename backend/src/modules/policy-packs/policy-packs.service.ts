@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { applyPolicyPack } from './apply-policy-pack';
 import { listPolicyPacks } from './list-policy-packs';
 import { mapPolicyPackError } from './map-policy-pack-error';
@@ -12,7 +13,13 @@ import { validatePolicyPackApply } from './validate-policy-pack-apply';
 
 @Injectable()
 export class PolicyPacksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // Phase 2.2: optional so the in-memory test world can build the service
+    // without Redis; the module always provides it.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
+  ) {}
 
   list() {
     return listPolicyPacks();
@@ -30,7 +37,14 @@ export class PolicyPacksService {
     requestId: string | null = null,
   ): Promise<PolicyPackApplyResult> {
     return this.execute(() =>
-      applyPolicyPack(this.prisma, input, { actorUserId, requestId }),
+      applyPolicyPack(
+        this.prisma,
+        input,
+        { actorUserId, requestId },
+        (userId) =>
+          this.principalContextInvalidator?.invalidateUser(userId) ??
+          Promise.resolve(null),
+      ),
     );
   }
 

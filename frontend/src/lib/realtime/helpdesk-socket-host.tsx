@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { subscribeToQueryInvalidation } from "@/lib/realtime/invalidate-on-event";
 import { acquireHelpdeskSocket, releaseHelpdeskSocket } from "@/services/helpdesk-socket";
 import { ticketSocketEvents } from "@/services/ticket-socket";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
@@ -11,6 +13,7 @@ type SessionInvalidatedPayload = {
 
 export function HelpdeskSocketHost() {
   const { session, signOut } = useSession();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (session === null) {
@@ -31,12 +34,20 @@ export function HelpdeskSocketHost() {
         bumpSettingsGeneration();
       },
     );
+    // Faza 3.3: the socket is the only place that marks cached queries stale —
+    // screens then refetch on their own schedule, and a screen that is not
+    // visible pulls nothing at all.
+    const stopInvalidation = subscribeToQueryInvalidation({
+      socket,
+      queryClient,
+    });
     return () => {
       stopInvalidated();
       stopSettings();
+      stopInvalidation();
       releaseHelpdeskSocket();
     };
-  }, [session, signOut]);
+  }, [queryClient, session, signOut]);
 
   return null;
 }

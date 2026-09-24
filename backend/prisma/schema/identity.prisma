@@ -9,6 +9,10 @@ model User {
   localPasswordHash    String?
   /// When true, local login must complete password change before a session is issued.
   mustChangePassword   Boolean                    @default(false)
+  /// Phase 2.2: bumped whenever this user's roles, groups, unit or active flag
+  /// change. It is part of the authorization cache key (`authz:{id}:v{n}`), so a
+  /// bump makes every cached decision unreachable at once.
+  authzVersion         Int                        @default(0)
   /// Directory object id for linked users. Must remain null for SuperAdmin.
   entraObjectId        String?                    @unique
   distinguishedName    String?

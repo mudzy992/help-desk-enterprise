@@ -1,11 +1,16 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
-import type { UpdateUserInput, UserSummaryResponse } from './users.types';
+import type {
+  PrincipalInvalidationHook,
+  UpdateUserInput,
+  UserSummaryResponse,
+} from './users.types';
 import { UsersError } from './users.error';
 import { listUsersSummary } from './list-users-summary';
 
 export async function updateUser(
   prisma: PrismaService,
   input: UpdateUserInput,
+  invalidatePrincipal: PrincipalInvalidationHook = async () => {},
 ): Promise<UserSummaryResponse> {
   const existing = await prisma.user.findUnique({
     where: { id: input.userId },
@@ -20,6 +25,10 @@ export async function updateUser(
       where: { id: input.userId },
       data,
     });
+    // Phase 2.2: displayName, unit and (above all) the active flag are part of
+    // the cached principal context. Deactivation has to bite on the very next
+    // request, so the entry is dropped and its version bumped here.
+    await invalidatePrincipal(input.userId);
   }
   const summaries = await listUsersSummary(prisma);
   const summary = summaries.find((user) => user.id === input.userId);

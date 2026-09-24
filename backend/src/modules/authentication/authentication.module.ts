@@ -6,6 +6,8 @@ import { AuthenticationModeLoader } from './authentication-mode.loader';
 import { AuthenticationProviderResolver } from './authentication-provider.resolver';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticationUserLoader } from './authentication-user.loader';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
+import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
 import { EntraAuthenticationConfigurationLoader } from './entra-authentication-configuration.loader';
 import { EntraAuthenticationProvider } from './entra-authentication.provider';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
@@ -20,6 +22,8 @@ import { SessionTokenService } from './session-token.service';
   controllers: [AuthenticationController],
   providers: [
     AuthenticationUserLoader,
+    PrincipalContextLoader,
+    PrincipalContextInvalidator,
     AuthenticationModeLoader,
     JwtSigningSecretLoader,
     EntraAuthenticationConfigurationLoader,
@@ -38,6 +42,8 @@ import { SessionTokenService } from './session-token.service';
     SessionAuthenticationGuard,
     SessionTokenService,
     AuthenticationUserLoader,
+    PrincipalContextLoader,
+    PrincipalContextInvalidator,
   ],
 })
 export class AuthenticationModule {}

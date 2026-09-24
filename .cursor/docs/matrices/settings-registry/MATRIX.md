@@ -152,5 +152,6 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.reports.enabled` (private, boolean, default `true`)
 - `private.reports.packsJson` (secret, string JSON, default minimalni set 4 packa kad nije upisan)
 - `private.reports.exportFormatsCsv` (private, string, default `csv,json`)
+- `private.reports.timeZone` (private, string IANA zona, default `Europe/Sarajevo`) — granica reporting dana za dashboard `openedToday`; nevalidan naziv → `SettingsError`, a čitanje koje padne vraća default (`readInstallationTimeZone`). Nema oslanjanja na `TZ` procesa.
 - `private.dashboard.bottlenecks.enabled` (private, boolean, default `true`)
 - `private.dashboard.bottlenecks.defaultWindowDays` (private, number, default `30`)

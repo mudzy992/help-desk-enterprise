@@ -1,7 +1,8 @@
-import { Database } from "lucide-react";
+import { Database, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { IntegrationQueueTable } from "@/components/queue/integration-queue-table";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -33,7 +34,7 @@ export function IntegrationQueueCard({
 }) {
   const { t } = useTranslation();
   const queue = useIntegrationQueue(enabled);
-  const workerStatus = useIntegrationWorkerStatus(enabled);
+  const worker = useIntegrationWorkerStatus(enabled);
 
   return (
     <Card className="fade-in">
@@ -41,9 +42,22 @@ export function IntegrationQueueCard({
         title={t("integrationQueue.heading")}
         subtitle={t("integrationQueue.headingHint")}
         actions={
-          <Badge tone={workerBadgeTone[workerStatus]} dot>
-            {t(workerBadgeKey[workerStatus])}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge tone={workerBadgeTone[worker.status]} dot>
+              {t(workerBadgeKey[worker.status])}
+            </Badge>
+            {/* Phase 4.1: status is pulled on demand instead of polled. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!enabled || worker.isRefreshing}
+              aria-label={t("integrationQueue.workerRefresh")}
+              title={t("integrationQueue.workerRefresh")}
+              onClick={() => void worker.refresh()}
+            >
+              <RefreshCw className={worker.isRefreshing ? "animate-spin" : undefined} />
+            </Button>
+          </div>
         }
       />
       <div className="px-4 py-3.5">

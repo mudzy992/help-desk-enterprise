@@ -3,16 +3,16 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { tableHeadClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
-import { countSlaPriorityExposure } from "@/lib/sla/count-sla-profile-exposure";
+import type { SlaExposureIndex } from "@/lib/sla/sla-exposure-index";
 import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import { formatHours, formatMinutes } from "@/lib/reports/report-format";
 import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
 import type { SlaRule } from "@/services/sla-types";
-import type { TicketPriority, TicketResponse } from "@/services/tickets-api";
+import type { TicketPriority } from "@/services/tickets-api";
 
 interface SlaPriorityTargetsTableProperties {
   readonly rules: readonly SlaRule[];
-  readonly tickets: readonly TicketResponse[];
+  readonly exposure: SlaExposureIndex;
   readonly slaProfileId: string;
   readonly calendarLabel: string;
 }
@@ -26,7 +26,7 @@ function formatTargetMinutes(minutes: number, locale: string): string {
 
 export function SlaPriorityTargetsTable({
   rules,
-  tickets,
+  exposure,
   slaProfileId,
   calendarLabel,
 }: SlaPriorityTargetsTableProperties) {
@@ -58,7 +58,7 @@ export function SlaPriorityTargetsTable({
         <tbody className="divide-y divide-border/50">
           {rules.map((rule) => {
             const priority = rule.priority as TicketPriority;
-            const exposure = countSlaPriorityExposure(tickets, slaProfileId, priority);
+            const priorityExposure = exposure.exposure(slaProfileId, priority);
             return (
               <tr key={rule.id} className="transition-colors hover:bg-surface-hover">
                 <td className="px-4 py-3">
@@ -82,16 +82,16 @@ export function SlaPriorityTargetsTable({
                 <td className="px-4 py-3 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-1.5">
                     <span className="tnum text-[12.5px] font-medium text-foreground">
-                      {exposure.open}
+                      {priorityExposure.open}
                     </span>
-                    {exposure.atRisk > 0 ? (
+                    {priorityExposure.atRisk > 0 ? (
                       <Badge tone="warning" dot={false}>
-                        {t("sla.exposedAtRisk", { count: exposure.atRisk })}
+                        {t("sla.exposedAtRisk", { count: priorityExposure.atRisk })}
                       </Badge>
                     ) : null}
-                    {exposure.breached > 0 ? (
+                    {priorityExposure.breached > 0 ? (
                       <Badge tone="danger" dot={false}>
-                        {t("sla.exposedBreached", { count: exposure.breached })}
+                        {t("sla.exposedBreached", { count: priorityExposure.breached })}
                       </Badge>
                     ) : null}
                   </div>

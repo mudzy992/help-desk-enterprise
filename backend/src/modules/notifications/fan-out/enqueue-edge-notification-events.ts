@@ -6,7 +6,7 @@ import { loadIntegrationQueueSettings } from '../../integration-queue/load-integ
 import { settingKeys } from '../../settings/setting-keys';
 import type { SettingsService } from '../../settings/settings.service';
 import { ticketRealtimeEventNames } from '../../tickets/collaboration.constants';
-import { countUnreadNotifications } from '../count-unread-notifications';
+import { loadUnreadCountsForUsers } from '../load-unread-counts-for-users';
 import type { NotificationRecord } from '../notifications.types';
 import { toNotificationRealtimeClientPayload } from '../to-notification-realtime-client-payload';
 import { toNotificationResponse } from '../to-notification-response';
@@ -30,11 +30,13 @@ export async function enqueueEdgeNotificationEvents(input: {
   ) {
     return;
   }
+  // Phase 2.3 (plan §2.3): the badge of every recipient in one query.
+  const unreadCounts = await loadUnreadCountsForUsers(
+    input.prisma,
+    input.records.map((record) => record.userId),
+  );
   for (const record of input.records) {
-    const unreadCount = await countUnreadNotifications(
-      input.prisma,
-      record.userId,
-    );
+    const unreadCount = unreadCounts.get(record.userId) ?? 0;
     await input.enqueueIntegrationJobService.enqueue({
       type: IntegrationJobType.EDGE_EVENT,
       payload: {

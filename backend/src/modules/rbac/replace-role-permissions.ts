@@ -11,14 +11,24 @@ import { getRolePermissions } from './get-role-permissions';
 import { loadRoleByKey } from './load-role-by-key';
 import type { ReplaceRolePermissionsInput } from './rbac.types';
 
+/**
+ * Phase 2.2: a role's permission set is part of every holder's cached principal
+ * context, so the caller passes a hook that invalidates all of them once the
+ * transaction has committed (`PrincipalContextInvalidator.invalidateRoleHolders`).
+ */
+export type RoleHoldersInvalidationHook = (
+  roleId: string,
+) => Promise<unknown>;
+
 export async function replaceRolePermissions(
   prisma: PrismaService,
   input: ReplaceRolePermissionsInput,
+  invalidateRoleHolders: RoleHoldersInvalidationHook = async () => 0,
 ): Promise<readonly string[]> {
   const role = await loadRoleByKey(prisma, input.roleKey);
   const previousPermissionKeys = await getRolePermissions(prisma, role.key);
   const nextPermissionKeys = assertKnownPermissionKeys(input.permissionKeys);
-  return prisma.$transaction(async (transaction) => {
+  const nextPermissionKeysApplied = await prisma.$transaction(async (transaction) => {
     const idsByKey = await ensurePermissionRows(
       transaction as PrismaService,
       nextPermissionKeys,
@@ -47,4 +57,6 @@ export async function replaceRolePermissions(
     });
     return nextPermissionKeys;
   });
+  await invalidateRoleHolders(role.id);
+  return nextPermissionKeysApplied;
 }

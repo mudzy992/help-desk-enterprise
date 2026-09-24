@@ -1,11 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTypes } from '../notifications/notifications.constants';
 import type { NotificationPayload } from '../notifications/notifications.types';
 import { KnowledgeBaseConfigurationLoader } from './knowledge-base-configuration.loader';
-import { knowledgeBaseReviewReminderIntervalMs } from './knowledge-base.constants';
 import { toArticleRecord } from './load-knowledge-article';
 import { loadOwnerGroupMemberUserIds } from './load-knowledge-article-scope';
 
@@ -18,14 +16,6 @@ export class KnowledgeBaseReviewReminderService {
     private readonly configurationLoader: KnowledgeBaseConfigurationLoader,
   ) {}
 
-  @Interval(knowledgeBaseReviewReminderIntervalMs)
-  async handleInterval(): Promise<void> {
-    await this.processDue().catch((error: unknown) => {
-      this.logger.warn(
-        `Knowledge review reminder sweep failed: ${String(error)}`,
-      );
-    });
-  }
 
   async processDue(now = new Date()): Promise<number> {
     const configuration = await this.configurationLoader.load();

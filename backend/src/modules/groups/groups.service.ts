@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { TicketAssignmentConfigurationLoader } from '../tickets/assignment/ticket-assignment-configuration.loader';
@@ -15,6 +15,7 @@ import type {
   MyGroupResponse,
   UpdateGroupInput,
 } from './groups.types';
+import { PrincipalContextInvalidator } from '../../common/principal-context/principal-context-invalidator.service';
 import { listGroups } from './list-groups';
 import { listMyGroups } from './list-my-groups';
 import { removeGroupMember } from './remove-group-member';
@@ -26,7 +27,18 @@ export class GroupsService {
     private readonly prisma: PrismaService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly configurationLoader: TicketAssignmentConfigurationLoader,
+    // Phase 2.2: optional so direct construction in tests keeps working; the
+    // module always provides it.
+    @Optional()
+    private readonly principalContextInvalidator?: PrincipalContextInvalidator,
   ) {}
+
+  /** Phase 2.2: the member's cached authorization data is dropped on change. */
+  private invalidatePrincipal(): (userId: string) => Promise<unknown> {
+    return (userId) =>
+      this.principalContextInvalidator?.invalidateUser(userId) ??
+      Promise.resolve(null);
+  }
 
   list(query: ListGroupsQuery = {}): Promise<readonly GroupListItemResponse[]> {
     return this.execute(() => listGroups(this.prisma, query));
@@ -60,11 +72,15 @@ export class GroupsService {
   }
 
   addMember(groupId: string, userId: string): Promise<GroupResponse> {
-    return this.execute(() => addGroupMember(this.prisma, groupId, userId));
+    return this.execute(() =>
+      addGroupMember(this.prisma, groupId, userId, this.invalidatePrincipal()),
+    );
   }
 
   removeMember(groupId: string, userId: string): Promise<GroupResponse> {
-    return this.execute(() => removeGroupMember(this.prisma, groupId, userId));
+    return this.execute(() =>
+      removeGroupMember(this.prisma, groupId, userId, this.invalidatePrincipal()),
+    );
   }
 
   private async execute<T>(operation: () => Promise<T>): Promise<T> {

@@ -7,11 +7,12 @@ import {
 import { assertSuperAdminIsLocalOnly } from './assert-super-admin-is-local-only';
 import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
+  PRINCIPAL_CONTEXT_REQUEST_KEY,
   type AuthenticatedHttpRequest,
 } from './authenticated-request';
 import { AuthenticationError } from './authentication.error';
-import { AuthenticationUserLoader } from './authentication-user.loader';
 import { createAuthenticatedPrincipal } from './create-authenticated-principal';
+import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
 import { readBearerAccessToken } from './read-bearer-access-token';
 import { SessionTokenService } from './session-token.service';
 import { toAuthorizationPrincipal } from './to-authorization-principal';
@@ -20,7 +21,7 @@ import { toAuthorizationPrincipal } from './to-authorization-principal';
 export class SessionAuthenticationGuard implements CanActivate {
   constructor(
     private readonly sessionTokenService: SessionTokenService,
-    private readonly authenticationUserLoader: AuthenticationUserLoader,
+    private readonly principalContextLoader: PrincipalContextLoader,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -31,24 +32,28 @@ export class SessionAuthenticationGuard implements CanActivate {
     }
     try {
       const claims = await this.sessionTokenService.verify(accessToken);
-      const user = await this.authenticationUserLoader.findById(claims.subjectId);
-      if (user === null || !user.isActive) {
+      // Phase 2.2: one load (Redis → database) answers every check below and is
+      // then handed to the rest of the request, instead of each guard and
+      // service reading the same rows again.
+      const context = await this.principalContextLoader.load(claims.subjectId);
+      if (context === null || !context.isActive) {
         throw createSessionUnauthorizedException();
       }
-      if (user.mustChangePassword) {
+      if (context.mustChangePassword) {
         throw createSessionUnauthorizedException();
       }
       assertSuperAdminIsLocalOnly({
-        isLocalOnly: user.isLocalOnly,
-        entraObjectId: user.entraObjectId,
-        roleKeys: user.roleKeys,
+        isLocalOnly: context.isLocalOnly,
+        entraObjectId: context.entraObjectId,
+        roleKeys: context.roleKeys,
       });
+      request[PRINCIPAL_CONTEXT_REQUEST_KEY] = context;
       request[AUTHENTICATED_PRINCIPAL_REQUEST_KEY] = toAuthorizationPrincipal(
         createAuthenticatedPrincipal({
-          subjectId: user.id,
-          email: user.email,
-          displayName: user.displayName,
-          isLocalOnly: user.isLocalOnly,
+          subjectId: context.subjectId,
+          email: context.email,
+          displayName: context.displayName,
+          isLocalOnly: context.isLocalOnly,
         }),
       );
       return true;

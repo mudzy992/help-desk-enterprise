@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query/query-keys";
 import { mapSlaError, type SlaErrorKey } from "@/lib/sla/map-sla-error";
 import {
   fetchSlaCompliance,
@@ -12,14 +14,23 @@ import {
   type SlaProfile,
   type SlaRule,
 } from "@/services/sla-api";
-import { listTickets, type TicketResponse } from "@/services/tickets-api";
+import {
+  buildSlaExposureIndex,
+  type SlaExposureIndex,
+} from "@/lib/sla/sla-exposure-index";
+import { fetchSlaSummary } from "@/services/report-summary-api";
 
 export function useSlaPageData() {
+  const queryClient = useQueryClient();
   const [profiles, setProfiles] = useState<readonly SlaProfile[]>([]);
   const [calendars, setCalendars] = useState<readonly BusinessHoursCalendar[]>([]);
   const [rules, setRules] = useState<readonly SlaRule[]>([]);
   const [changes, setChanges] = useState<readonly SlaChangeLogEntry[]>([]);
-  const [tickets, setTickets] = useState<readonly TicketResponse[]>([]);
+  // Phase 2.4: the exposure numbers are served as aggregates; the screen keeps
+  // only the lookup it renders from.
+  const [exposure, setExposure] = useState<SlaExposureIndex>(
+    () => buildSlaExposureIndex(null),
+  );
   const [compliance, setCompliance] = useState<SlaComplianceResponse | null>(null);
   const [selectedId, setSelectedIdState] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -47,16 +58,19 @@ export function useSlaPageData() {
     setIsLoading(true);
     setErrorKey(null);
     try {
-      const [profileItems, calendarItems, ticketItems, complianceData] =
+      const [profileItems, calendarItems, slaSummary, complianceData] =
         await Promise.all([
           listSlaProfiles(),
           listSlaCalendars(),
-          listTickets(),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.slaSummary,
+            queryFn: () => fetchSlaSummary(),
+          }),
           fetchSlaCompliance({ days: 30 }),
         ]);
       setProfiles(profileItems);
       setCalendars(calendarItems);
-      setTickets(ticketItems);
+      setExposure(buildSlaExposureIndex(slaSummary));
       setCompliance(complianceData);
       if (isCreating) {
         setRules([]);
@@ -92,7 +106,7 @@ export function useSlaPageData() {
     calendars,
     rules,
     changes,
-    tickets,
+    exposure,
     compliance,
     selectedId,
     selected: isCreating

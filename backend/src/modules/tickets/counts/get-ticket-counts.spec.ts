@@ -1,5 +1,6 @@
 import { createTicketsServiceHarness, ticketsTestIds } from '../create-tickets-service-harness';
 import { defaultTicketArchiveConfiguration } from '../archive/archive.constants';
+import type { TicketArchiveConfiguration } from '../archive/archive.types';
 import { buildTicketRecord } from '../list/ticket-record-fixture';
 import { getTicketCounts } from './get-ticket-counts';
 
@@ -43,7 +44,7 @@ function setup() {
       resolutionCompletedAt: null, pausedAt: null, pausedBusinessMinutes: 0,
       isResponseBreached: false, isResolutionBreached: false,
       isResponseAtRisk: false, isResolutionAtRisk: false,
-      firedEscalationKeys: [], updatedAt: day(1), ...flags,
+      firedEscalationKeys: [], nextDueAt: null, updatedAt: day(1), ...flags,
     });
   sla(2, { isResolutionBreached: true, isResolutionAtRisk: true }); // overdue only
   sla(3, { isResolutionAtRisk: true }); // at risk
@@ -133,7 +134,11 @@ describe('GET /tickets/counts', () => {
 });
 
 describe('getTicketCounts (direct)', () => {
-  const direct = (actor: string, archive?: typeof defaultTicketArchiveConfiguration, groupInboxEnabled = true) => {
+  const direct = (
+    actor: string,
+    archive: TicketArchiveConfiguration = defaultTicketArchiveConfiguration,
+    groupInboxEnabled = true,
+  ) => {
     const harness = setup();
     return getTicketCounts({
       prisma: harness.memory.prisma as never,

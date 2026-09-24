@@ -57,6 +57,13 @@ export class ListTicketsQueryDto extends TicketFilterQueryDto {
   @IsIn(ticketListSortDirections)
   dir?: TicketListSortDirection;
 
+  /** Search the description as well as the number and the title. */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  searchDescription?: boolean;
+
+  /** 1-based page number; the route always answers `{ items, total, ... }`. */
   @IsOptional()
   @Type(() => Number)
   @IsInt()

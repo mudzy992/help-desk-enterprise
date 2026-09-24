@@ -1,16 +1,30 @@
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { DirectoryReadResult } from './directory-sync.types';
 
+/**
+ * Phase 2.2: a directory read rewrites display names and unit membership for
+ * already-known users, i.e. fields that live in the cached principal context.
+ * The ids of the rows that actually changed are handed to the caller, which
+ * drops their cache entries once the whole read has been materialized.
+ */
+export type DirectoryUserInvalidationHook = (
+  userIds: readonly string[],
+) => Promise<unknown>;
+
 export async function materializeDirectoryRead(
   prisma: PrismaService,
   result: DirectoryReadResult,
+  invalidateUsers: DirectoryUserInvalidationHook = async () => {},
 ): Promise<void> {
   if (result.operation === 'organizational_units') {
     await materializeOrganizationalUnits(prisma, result);
     return;
   }
   if (result.operation === 'users') {
-    await materializeUsers(prisma, result);
+    const affectedUserIds = await materializeUsers(prisma, result);
+    if (affectedUserIds.length > 0) {
+      await invalidateUsers(affectedUserIds);
+    }
     return;
   }
   if (result.operation === 'groups') {
@@ -71,7 +85,8 @@ async function materializeOrganizationalUnits(
 async function materializeUsers(
   prisma: PrismaService,
   result: DirectoryReadResult,
-): Promise<void> {
+): Promise<readonly string[]> {
+  const updatedUserIds = new Set<string>();
   for (const user of result.users) {
     if (!user.email) {
       continue;
@@ -90,7 +105,7 @@ async function materializeUsers(
     if (existing?.isLocalOnly === true) {
       continue;
     }
-    await prisma.user.upsert({
+    const materialized = await prisma.user.upsert({
       where: { email: user.email },
       create: {
         email: user.email,
@@ -105,8 +120,15 @@ async function materializeUsers(
         distinguishedName: user.distinguishedName,
         organizationalUnitId: organizationalUnit?.id ?? null,
       },
+      select: { id: true },
     });
+    if (existing !== null) {
+      // Only the update branch can leave a stale cache behind: a freshly
+      // created user has never been loaded.
+      updatedUserIds.add(materialized.id);
+    }
   }
+  return [...updatedUserIds];
 }
 
 async function materializeGroups(

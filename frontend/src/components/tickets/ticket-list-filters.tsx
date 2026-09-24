@@ -13,7 +13,8 @@ import {
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
-import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
+import type { TicketStatus } from "@/services/tickets-api";
+import type { TicketCounts } from "@/services/tickets-counts-api";
 
 const SLA_RISK_TAB = "RISK";
 
@@ -38,13 +39,32 @@ export function applyTicketListTab(
   };
 }
 
+/**
+ * Tab counters of the list.
+ *
+ * Phase 1.1 (plan §1.1): the counters no longer come from the downloaded list
+ * (which is one page now) but from `GET /tickets/counts`, computed over the
+ * same filters and visibility. `null` means the counters could not be read —
+ * the tabs then show zeros instead of blocking the list.
+ *
+ * "All" is every status the counters know except ARCHIVED: the default list
+ * hides the archive, and the counters group over all statuses.
+ */
 export function ticketStatusTabItems(
   t: TFunction,
-  tickets: readonly TicketResponse[],
+  counts: TicketCounts | null,
   riskCount: number,
 ) {
+  const allCount =
+    counts === null
+      ? 0
+      : ticketStatusValues.reduce(
+          (sum, status) =>
+            status === "ARCHIVED" ? sum : sum + (counts.byStatus[status] ?? 0),
+          0,
+        );
   return [
-    { key: "ALL", label: ticketText(t, "tickets.filters.allTickets"), count: tickets.length },
+    { key: "ALL", label: ticketText(t, "tickets.filters.allTickets"), count: allCount },
     {
       key: SLA_RISK_TAB,
       label: (
@@ -58,7 +78,7 @@ export function ticketStatusTabItems(
     ...ticketStatusValues.map((status) => ({
       key: status,
       label: ticketText(t, ticketStatusLabelKey[status]),
-      count: tickets.filter((ticket) => ticket.status === status).length,
+      count: counts?.byStatus[status] ?? 0,
     })),
   ];
 }

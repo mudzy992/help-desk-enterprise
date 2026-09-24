@@ -71,6 +71,20 @@ model Ticket {
   @@index([status, waitingForUserEnteredAt])
   @@index([status, closedAt])
   @@index([archivedAt])
+  /// Phase 1.1 (plan §1.1): list reads filter by one of these columns and order
+  /// by createdAt DESC, so the compound index serves both filter and ordering.
+  @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([assignedUserId, createdAt(sort: Desc)])
+  @@index([assignedGroupId, createdAt(sort: Desc)])
+  @@index([requesterId, createdAt(sort: Desc)])
+  @@index([originUnitId, createdAt(sort: Desc)])
+  /// Phase 1.2 (plan §1.2): the search matches with a leading-wildcard ILIKE,
+  /// which only a trigram GIN index can serve. Both columns are searched
+  /// separately, so each one gets its own index. The `pg_trgm` extension is
+  /// created by migration `20260923140000_search_trigram_indexes`.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ticket_title_trgm_idx")
+  @@index([ticketNumber(ops: raw("gin_trgm_ops"))], type: Gin, map: "Ticket_ticketNumber_trgm_idx")
 }
 
 model TicketParticipant {

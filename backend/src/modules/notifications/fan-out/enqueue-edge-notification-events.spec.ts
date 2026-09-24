@@ -6,13 +6,14 @@ import { notificationTypes } from '../notifications.constants';
 describe('enqueueEdgeNotificationEvents', () => {
   const getSetting = jest.fn();
   const enqueue = jest.fn();
-  const count = jest.fn();
+  // Phase 2.3: the badge of every recipient comes from one `GROUP BY`.
+  const groupBy = jest.fn();
 
   beforeEach(() => {
     getSetting.mockReset();
     enqueue.mockReset();
-    count.mockReset();
-    count.mockResolvedValue(1);
+    groupBy.mockReset();
+    groupBy.mockResolvedValue([{ userId: 'user-1', _count: { _all: 1 } }]);
     getSetting.mockImplementation((key: string) => {
       const values: Record<string, unknown> = {
         [settingKeys.privateAddonsEdge]: true,
@@ -40,7 +41,7 @@ describe('enqueueEdgeNotificationEvents', () => {
       return Promise.resolve(true);
     });
     await enqueueEdgeNotificationEvents({
-      prisma: { notification: { count } } as never,
+      prisma: { notification: { groupBy } } as never,
       settingsService: { getSetting } as never,
       enqueueIntegrationJobService: { enqueue } as never,
       records: [
@@ -64,7 +65,7 @@ describe('enqueueEdgeNotificationEvents', () => {
 
   it('enqueues EDGE_EVENT with eventId equal to the notification id', async () => {
     await enqueueEdgeNotificationEvents({
-      prisma: { notification: { count } } as never,
+      prisma: { notification: { groupBy } } as never,
       settingsService: { getSetting } as never,
       enqueueIntegrationJobService: { enqueue } as never,
       records: [
