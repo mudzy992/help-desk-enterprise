@@ -1,3 +1,4 @@
+import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { routingOutcomes } from '../routing/routing.constants';
 import { resolveTicketRouting } from '../routing/resolve-ticket-routing';
@@ -19,9 +20,9 @@ export async function seedInstallMinimum(
   prisma: PrismaService,
   context: InstallSeedContext,
 ): Promise<InstallSeedResult> {
-  return prisma.$transaction((transaction) =>
+  return invalidateConfigurationCachesAfter(prisma.$transaction((transaction) =>
     seedInstallMinimumWithClient(transaction as PrismaService, context),
-  );
+  ));
 }
 
 async function seedInstallMinimumWithClient(

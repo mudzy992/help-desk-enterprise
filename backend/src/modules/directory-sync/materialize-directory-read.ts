@@ -1,3 +1,4 @@
+import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { DirectoryReadResult } from './directory-sync.types';
 
@@ -79,6 +80,7 @@ async function materializeOrganizationalUnits(
         parentId: parent?.id ?? null,
       },
     });
+    invalidateOrganizationalUnitScopeCache();
   }
 }
 

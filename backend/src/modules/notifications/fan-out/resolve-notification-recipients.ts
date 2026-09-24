@@ -24,6 +24,81 @@ export async function resolveNotificationRecipients(
   );
 }
 
+/**
+ * Option A (F2.3, 2026-09-24): in-app audience = a few PERSONAL recipients plus at most
+ * one GROUP audience. The group part becomes one `Notification` row and one emit into
+ * the group room instead of one row + one emit per member (a 200-member group was 200
+ * of each per event).
+ *
+ * Anyone who already gets a personal row (requester, assignee, watchers) and the actor
+ * are written into `excludedUserIds`, so nobody sees the same event twice and nobody is
+ * notified about their own action — without reading the member list at all.
+ *
+ * E-mail keeps using `resolveNotificationRecipients` (it needs addresses per person).
+ */
+export type NotificationAudience = {
+  readonly userIds: readonly string[];
+  readonly group: {
+    readonly groupId: string;
+    readonly excludedUserIds: readonly string[];
+  } | null;
+};
+
+export async function resolveNotificationAudience(
+  prisma: PrismaService,
+  input: {
+    readonly type: NotificationType;
+    readonly ticket: TicketRecord;
+    readonly actorUserId: string | null;
+    readonly event?: string;
+    readonly messageBody?: string;
+  },
+): Promise<NotificationAudience> {
+  const groupId = input.ticket.assignedGroupId;
+  const withoutActor = (ids: readonly (string | null)[]) =>
+    unique(
+      ids.filter(
+        (id): id is string =>
+          id !== null && id.length > 0 && id !== input.actorUserId,
+      ),
+    );
+  if (input.type === notificationTypes.ticketCreated && groupId !== null) {
+    return {
+      userIds: [],
+      group: {
+        groupId,
+        excludedUserIds: unique(
+          [input.actorUserId, input.ticket.assignedUserId].filter(
+            (id): id is string => id !== null && id.length > 0,
+          ),
+        ),
+      },
+    };
+  }
+  if (input.type === notificationTypes.ticketMessage && groupId !== null) {
+    const personal = withoutActor([
+      input.ticket.requesterId,
+      input.ticket.assignedUserId,
+      ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
+    ]);
+    return {
+      userIds: personal,
+      group: {
+        groupId,
+        excludedUserIds: unique(
+          [...personal, input.actorUserId].filter(
+            (id): id is string => id !== null && id.length > 0,
+          ),
+        ),
+      },
+    };
+  }
+  return {
+    userIds: await resolveNotificationRecipients(prisma, input),
+    group: null,
+  };
+}
+
 async function collectRecipients(
   prisma: PrismaService,
   input: {

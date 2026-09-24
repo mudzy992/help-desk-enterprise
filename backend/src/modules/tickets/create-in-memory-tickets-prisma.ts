@@ -42,7 +42,11 @@ import type { GuardrailClaimRecord } from './guardrails/guardrails.types';
 import { createInMemoryGuardrailClaimDelegate } from './guardrails/create-in-memory-guardrail-claim-delegate';
 import { createInMemoryTicketCsatDelegate } from './create-in-memory-ticket-csat-delegate';
 import type { TicketCsatRecord } from './csat/csat.types';
-import { createInMemoryNotificationDelegate } from '../notifications/create-in-memory-notification-delegate';
+import {
+  createInMemoryNotificationDelegate,
+  createInMemoryNotificationReceiptDelegate,
+  type InMemoryNotificationReceipt,
+} from '../notifications/create-in-memory-notification-delegate';
 import {
   createInMemoryNotificationEmailDeliveryDelegate,
   type NotificationEmailDeliveryRecord,
@@ -79,6 +83,7 @@ export function createInMemoryTicketsPrisma() {
   const guardrailClaims = new Map<string, GuardrailClaimRecord>();
   const csatSubmissions = new Map<string, TicketCsatRecord>();
   const notifications = new Map<string, NotificationRecord>();
+  const notificationReceipts = new Map<string, InMemoryNotificationReceipt>();
   const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
@@ -187,7 +192,15 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
-    notification: createInMemoryNotificationDelegate(notifications, nextId, now),
+    notification: createInMemoryNotificationDelegate(
+      notifications,
+      nextId,
+      now,
+      notificationReceipts,
+    ),
+    notificationReceipt: createInMemoryNotificationReceiptDelegate(
+      notificationReceipts,
+    ),
     notificationEmailDelivery: createInMemoryNotificationEmailDeliveryDelegate(
       emailDeliveries,
       nextPrefixedId.bind(null, 'email-delivery'),

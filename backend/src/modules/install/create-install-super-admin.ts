@@ -1,3 +1,4 @@
+import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { applySuperAdminLocalOnlyInvariant } from '../authentication/apply-super-admin-local-only-invariant';
 import { assertSuperAdminIsLocalOnly } from '../authentication/assert-super-admin-is-local-only';
 import { authenticationConstants } from '../authentication/authentication.constants';
@@ -37,7 +38,7 @@ export async function createInstallSuperAdmin(
   ) {
     throw new InstallSuperAdminError('INVALID_SUPER_ADMIN_CREDENTIALS');
   }
-  return prisma.$transaction(async (transaction) => {
+  return invalidateConfigurationCachesAfter(prisma.$transaction(async (transaction) => {
     if ((await findInstallSuperAdmin(transaction)) !== null) {
       throw new InstallSuperAdminError('SUPER_ADMIN_ALREADY_EXISTS');
     }
@@ -74,5 +75,5 @@ export async function createInstallSuperAdmin(
       throw new InstallSuperAdminError('INVALID_SUPER_ADMIN_CREDENTIALS');
     }
     return publicRecord;
-  });
+  }));
 }

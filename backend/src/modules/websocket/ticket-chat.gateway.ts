@@ -20,6 +20,7 @@ import {
 } from './broadcast-ticket-realtime';
 import { broadcastEdgeEventRealtime } from './broadcast-edge-realtime';
 import {
+  broadcastGroupNotificationRealtime,
   broadcastNotificationRealtime,
   broadcastSettingsUpdated,
 } from './broadcast-user-realtime';
@@ -59,6 +60,9 @@ export class TicketChatGateway implements OnGatewayInit, OnModuleDestroy {
       }),
       this.ticketRealtimeHub.subscribeNotification((payload) => {
         broadcastNotificationRealtime(this.server, payload);
+      }),
+      this.ticketRealtimeHub.subscribeGroupNotification((payload) => {
+        broadcastGroupNotificationRealtime(this.server, payload);
       }),
       this.ticketRealtimeHub.subscribeEdgeEvent((payload) => {
         broadcastEdgeEventRealtime(this.server, payload);

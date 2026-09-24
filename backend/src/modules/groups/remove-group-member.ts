@@ -1,3 +1,4 @@
+import { invalidateActorGroupsCache } from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { GroupsError } from './groups.error';
 import type { PrincipalInvalidationHook } from './groups.types';
@@ -20,6 +21,7 @@ export async function removeGroupMember(
     throw new GroupsError('MEMBER_NOT_FOUND');
   }
   await prisma.groupMember.delete({ where: { id: existing.id } });
+  invalidateActorGroupsCache();
   await invalidatePrincipal(userId);
   return toGroupResponse(await loadGroupRecord(prisma, groupId));
 }

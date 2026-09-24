@@ -50,3 +50,18 @@ describe("notification realtime helpers", () => {
     expect(all).toHaveLength(2);
   });
 });
+
+describe("option A group notifications", () => {
+  const base = { notification: null, readAll: false, occurredAt: "2026-09-24T10:00:00.000Z" };
+  it("adds the delta when the event carries no per-user count", async () => {
+    const { nextUnreadCount } = await import("./apply-notification-realtime");
+    expect(nextUnreadCount(3, { ...base, unreadDelta: 1 })).toBe(4);
+    expect(nextUnreadCount(3, { ...base, unreadCount: 7 })).toBe(7);
+  });
+  it("ignores a group event for excluded members only", async () => {
+    const { isExcludedGroupEvent } = await import("./apply-notification-realtime");
+    const payload = { ...base, unreadDelta: 1, excludedUserIds: ["actor"] };
+    expect(isExcludedGroupEvent(payload, "actor")).toBe(true);
+    expect(isExcludedGroupEvent(payload, "member")).toBe(false);
+  });
+});

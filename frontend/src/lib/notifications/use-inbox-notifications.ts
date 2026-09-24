@@ -5,6 +5,8 @@ import {
   applyNotificationCreated,
   applyNotificationRead,
   type NotificationRealtimePayload,
+  isExcludedGroupEvent,
+  nextUnreadCount,
 } from "@/lib/realtime/apply-notification-realtime";
 import { subscribeSocketEvent } from "@/lib/realtime/subscribe-socket-event";
 import { useSocketHealth } from "@/lib/realtime/use-socket-health";
@@ -92,13 +94,17 @@ export function useInboxNotifications() {
     // Published to the health hook above, which decides whether the fallback
     // poll has to run.
     setSocket(socket);
+    const currentUserId = session.principal.subjectId;
     const applyCount = (payload: NotificationRealtimePayload) => {
-      setUnreadCount(payload.unreadCount);
+      setUnreadCount((current) => nextUnreadCount(current, payload));
     };
     const stopCreated = subscribeSocketEvent<NotificationRealtimePayload>(
       socket,
       ticketSocketEvents.notificationCreated,
       (payload) => {
+        if (isExcludedGroupEvent(payload, currentUserId)) {
+          return;
+        }
         setItems((current) => applyNotificationCreated(current, payload));
         applyCount(payload);
       },

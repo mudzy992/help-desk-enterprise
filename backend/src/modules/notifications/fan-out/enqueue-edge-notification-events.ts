@@ -6,8 +6,9 @@ import { loadIntegrationQueueSettings } from '../../integration-queue/load-integ
 import { settingKeys } from '../../settings/setting-keys';
 import type { SettingsService } from '../../settings/settings.service';
 import { ticketRealtimeEventNames } from '../../tickets/collaboration.constants';
-import { loadUnreadCountsForUsers } from '../load-unread-counts-for-users';
+import { countUnreadNotifications } from '../count-unread-notifications';
 import type { NotificationRecord } from '../notifications.types';
+import type { FannedOutNotifications } from './fan-out-in-app-notifications';
 import { toNotificationRealtimeClientPayload } from '../to-notification-realtime-client-payload';
 import { toNotificationResponse } from '../to-notification-response';
 
@@ -15,9 +16,9 @@ export async function enqueueEdgeNotificationEvents(input: {
   readonly prisma: PrismaService;
   readonly settingsService: SettingsService;
   readonly enqueueIntegrationJobService: EnqueueIntegrationJobService;
-  readonly records: readonly NotificationRecord[];
+  readonly records: FannedOutNotifications;
 }): Promise<void> {
-  if (input.records.length === 0) {
+  if (input.records.personal.length === 0 && input.records.group === null) {
     return;
   }
   if (!(await isEdgeEventDeliveryEnabled(input.settingsService))) {
@@ -30,23 +31,38 @@ export async function enqueueEdgeNotificationEvents(input: {
   ) {
     return;
   }
-  // Phase 2.3 (plan §2.3): the badge of every recipient in one query.
-  const unreadCounts = await loadUnreadCountsForUsers(
-    input.prisma,
-    input.records.map((record) => record.userId),
-  );
-  for (const record of input.records) {
-    const unreadCount = unreadCounts.get(record.userId) ?? 0;
+  // The edge channel is per person, so a group row is expanded to its members here —
+  // and only here: this branch runs only when the Edge add-on is switched on, which
+  // keeps the member read (and the per-member badge) off the default fan-out path.
+  const deliveries: { readonly userId: string; readonly record: NotificationRecord }[] =
+    input.records.personal.flatMap((record) =>
+      record.userId === null ? [] : [{ userId: record.userId, record }],
+    );
+  const group = input.records.group;
+  if (group !== null && group.groupId) {
+    const excluded = new Set(group.excludedUserIds ?? []);
+    const members = await input.prisma.groupMember.findMany({
+      where: { groupId: group.groupId },
+      select: { userId: true },
+    });
+    for (const member of members) {
+      if (!excluded.has(member.userId)) {
+        deliveries.push({ userId: member.userId, record: group });
+      }
+    }
+  }
+  for (const delivery of deliveries) {
+    const unreadCount = await countUnreadNotifications(input.prisma, delivery.userId);
     await input.enqueueIntegrationJobService.enqueue({
       type: IntegrationJobType.EDGE_EVENT,
       payload: {
-        userId: record.userId,
-        ticketId: record.ticketId ?? undefined,
+        userId: delivery.userId,
+        ticketId: delivery.record.ticketId ?? undefined,
         eventName: ticketRealtimeEventNames.notificationCreated,
         data: toNotificationRealtimeClientPayload({
-          userId: record.userId,
+          userId: delivery.userId,
           eventName: ticketRealtimeEventNames.notificationCreated,
-          notification: toNotificationResponse(record),
+          notification: toNotificationResponse(delivery.record),
           unreadCount,
         }),
       },

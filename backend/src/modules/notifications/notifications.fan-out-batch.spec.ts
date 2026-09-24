@@ -1,6 +1,7 @@
 import { fanOutInAppNotifications } from './fan-out/fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './fan-out/publish-created-notifications';
 import { listNotifications } from './list-notifications';
+import { markNotificationRead } from './mark-notification-read';
 import {
   createTicketsServiceHarness,
   ticketsTestIds,
@@ -18,18 +19,13 @@ const groupMemberCount = 200;
 const audienceSize = groupMemberCount + 1;
 
 /**
- * Phase 2.3 (plan §2.3) verification: a message for a group of 200 agents costs
- * a constant number of statements, and every member still sees the notification
- * in their own inbox.
- *
- * Statement budget per event (was: one INSERT per member + one count per member):
- *   1 × `findMany` (which recipients already have this exact event)
- *   1 × `createMany` (all recipients, one statement)
- *   1 × `groupBy`   (the unread badge of every recipient, one statement)
- * plus one emit per recipient (see the note in the test below).
+ * Option A (2026-09-24, group of 50+ assumed): a ticket-created event for a group
+ * of 200 agents writes ONE group row and emits ONE group-room event — cost no
+ * longer grows with the group. Each member still sees it in their inbox and reads
+ * it independently (per-user `NotificationReceipt`).
  */
-describe('notification fan-out with a large group', () => {
-  it('writes a 200-member audience with one batch insert', async () => {
+describe('notification fan-out with a large group (option A)', () => {
+  it('writes one group row and emits once into the group room', async () => {
     const harness = await createTicketsServiceHarnessWithLargeGroup();
     await harness.tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
@@ -39,62 +35,76 @@ describe('notification fan-out with a large group', () => {
       harness.memory.prisma.notification,
       'createMany',
     );
-    const findMany = jest.spyOn(harness.memory.prisma.notification, 'findMany');
-    const groupBy = jest.spyOn(harness.memory.prisma.notification, 'groupBy');
     const publishNotification = jest.fn();
+    const publishGroupNotification = jest.fn();
+    const bump = jest.fn(async () => undefined);
     const created = await ingestTicketCreatedEvent(harness);
     await publishCreatedNotifications(
       harness.memory.prisma as never,
-      { publishNotification } as never,
+      { publishNotification, publishGroupNotification } as never,
       created,
+      async () => undefined,
+      bump,
     );
 
-    expect(created).toHaveLength(audienceSize);
+    expect(created.personal).toHaveLength(0);
+    expect(created.group?.groupId).toBe(ticketsTestIds.groupIt);
+    expect(created.group?.excludedUserIds).toContain(ticketsTestIds.requester);
     expect(create).not.toHaveBeenCalled();
-    expect(findMany).toHaveBeenCalledTimes(1);
     expect(createMany).toHaveBeenCalledTimes(1);
-    expect(createMany.mock.calls[0]?.[0]?.data).toHaveLength(audienceSize);
-    // The badge of every recipient is one statement, not one per recipient.
-    expect(groupBy).toHaveBeenCalledTimes(1);
-    // Emits stay per recipient on purpose: the row id is what `POST
-    // /notifications/:id/read` authorizes against, so each member needs their own
-    // (see the decision note in the F2 report).
-    expect(publishNotification).toHaveBeenCalledTimes(audienceSize);
+    expect(createMany.mock.calls[0]?.[0]?.data).toHaveLength(1);
+    expect(bump).toHaveBeenCalledWith(ticketsTestIds.groupIt);
+    expect(publishGroupNotification).toHaveBeenCalledTimes(1);
+    expect(publishNotification).not.toHaveBeenCalled();
   });
 
-  it('shows the event once in every member inbox, still isolated per user', async () => {
+  it('shows the event in every member inbox and reads it per user', async () => {
     const harness = await createTicketsServiceHarnessWithLargeGroup();
     await harness.tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
     });
     await ingestTicketCreatedEvent(harness);
-    const first = await listNotifications(
-      harness.memory.prisma as never,
-      'agent-batch-0',
-    );
+    const prisma = harness.memory.prisma as never;
+    const first = await listNotifications(prisma, 'agent-batch-0');
     const last = await listNotifications(
-      harness.memory.prisma as never,
+      prisma,
       `agent-batch-${groupMemberCount - 1}`,
     );
     expect(first.items).toHaveLength(1);
     expect(first.unreadCount).toBe(1);
     expect(last.items).toHaveLength(1);
-    expect(last.items[0]?.id).not.toBe(first.items[0]?.id);
+    // Same row, shared by the group.
+    expect(last.items[0]?.id).toBe(first.items[0]?.id);
+
+    await markNotificationRead(prisma, 'agent-batch-0', first.items[0]!.id);
+    expect((await listNotifications(prisma, 'agent-batch-0')).unreadCount).toBe(0);
+    expect(
+      (await listNotifications(prisma, `agent-batch-${groupMemberCount - 1}`))
+        .unreadCount,
+    ).toBe(1);
   });
 
-  it('spends no extra statement when the same event is ingested twice', async () => {
+  it('hides the group row from an outsider', async () => {
     const harness = await createTicketsServiceHarnessWithLargeGroup();
     await harness.tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
     });
     await ingestTicketCreatedEvent(harness);
-    const createMany = jest.spyOn(
-      harness.memory.prisma.notification,
-      'createMany',
+    const outsider = await listNotifications(
+      harness.memory.prisma as never,
+      'not-a-member',
     );
+    expect(outsider.items).toHaveLength(0);
+  });
+
+  it('writes nothing new when the same event is ingested twice', async () => {
+    const harness = await createTicketsServiceHarnessWithLargeGroup();
+    await harness.tickets.create(vpnCreateInput(), {
+      actorUserId: ticketsTestIds.requester,
+    });
+    await ingestTicketCreatedEvent(harness);
     const created = await ingestTicketCreatedEvent(harness);
-    expect(created).toEqual([]);
-    expect(createMany).not.toHaveBeenCalled();
+    expect(created).toEqual({ personal: [], group: null });
   });
 });
 

@@ -30,6 +30,15 @@ function createFakeUnreadCountCache(initial: readonly [string, number][] = []) {
       writes.push({ userId, unreadCount });
       entries.set(userId, unreadCount);
     },
+    readWithEpochs: async (userId: string) => {
+      reads.push(userId);
+      return { count: entries.get(userId) ?? null, epochs: null };
+    },
+    writeWithEpochs: async (userId: string, unreadCount: number) => {
+      writes.push({ userId, unreadCount });
+      entries.set(userId, unreadCount);
+    },
+    bumpGroup: async () => undefined,
     invalidate: async (userId: string) => {
       invalidations.push(userId);
       entries.delete(userId);
@@ -126,6 +135,8 @@ describe('GET /notifications/unread-count with the phase 1.3 cache', () => {
     const failing = {
       read: async () => null,
       write: async () => undefined,
+      readWithEpochs: async () => ({ count: null, epochs: null }),
+      writeWithEpochs: async () => undefined,
       invalidate: async () => undefined,
     } as unknown as NotificationUnreadCountCache;
     const serviceWithoutRedis = new NotificationsService(

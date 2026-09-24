@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { TicketRealtimeMessagePayload } from './collaboration.types';
-import type { NotificationRealtimePublish } from '../notifications/notification-realtime.types';
+import type {
+  GroupNotificationRealtimePublish,
+  NotificationRealtimePublish,
+} from '../notifications/notification-realtime.types';
 import type {
   EdgeEventRealtimePublish,
   TicketUpdatedRealtimePayload,
@@ -10,6 +13,9 @@ type TicketMessageListener = (payload: TicketRealtimeMessagePayload) => void;
 type TicketUpdatedListener = (payload: TicketUpdatedRealtimePayload) => void;
 type NotificationListener = (payload: NotificationRealtimePublish) => void;
 type EdgeEventListener = (payload: EdgeEventRealtimePublish) => void;
+type GroupNotificationListener = (
+  payload: GroupNotificationRealtimePublish,
+) => void;
 
 @Injectable()
 export class TicketRealtimeHub {
@@ -17,6 +23,21 @@ export class TicketRealtimeHub {
   private readonly ticketUpdatedListeners = new Set<TicketUpdatedListener>();
   private readonly notificationListeners = new Set<NotificationListener>();
   private readonly edgeEventListeners = new Set<EdgeEventListener>();
+  private readonly groupNotificationListeners =
+    new Set<GroupNotificationListener>();
+
+  subscribeGroupNotification(listener: GroupNotificationListener): () => void {
+    this.groupNotificationListeners.add(listener);
+    return () => {
+      this.groupNotificationListeners.delete(listener);
+    };
+  }
+
+  publishGroupNotification(payload: GroupNotificationRealtimePublish): void {
+    for (const listener of this.groupNotificationListeners) {
+      listener(payload);
+    }
+  }
 
   subscribe(listener: TicketMessageListener): () => void {
     this.messageListeners.add(listener);

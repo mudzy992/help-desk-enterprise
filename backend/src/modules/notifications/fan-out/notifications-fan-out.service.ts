@@ -66,6 +66,7 @@ export class NotificationsFanOutService
         this.ticketRealtimeHub,
         created,
         (userId) => this.unreadCountCache.invalidate(userId),
+        (groupId) => this.unreadCountCache.bumpGroup(groupId),
       );
       await enqueueEdgeNotificationEvents({
         prisma: this.prisma,

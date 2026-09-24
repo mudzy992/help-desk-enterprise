@@ -6,14 +6,17 @@ import { notificationTypes } from '../notifications.constants';
 describe('enqueueEdgeNotificationEvents', () => {
   const getSetting = jest.fn();
   const enqueue = jest.fn();
-  // Phase 2.3: the badge of every recipient comes from one `GROUP BY`.
+  // The badge is counted per delivered user (Option A: it includes group rows).
   const groupBy = jest.fn();
+  const count = jest.fn();
 
   beforeEach(() => {
     getSetting.mockReset();
     enqueue.mockReset();
     groupBy.mockReset();
     groupBy.mockResolvedValue([{ userId: 'user-1', _count: { _all: 1 } }]);
+    count.mockReset();
+    count.mockResolvedValue(1);
     getSetting.mockImplementation((key: string) => {
       const values: Record<string, unknown> = {
         [settingKeys.privateAddonsEdge]: true,
@@ -41,10 +44,12 @@ describe('enqueueEdgeNotificationEvents', () => {
       return Promise.resolve(true);
     });
     await enqueueEdgeNotificationEvents({
-      prisma: { notification: { groupBy } } as never,
+      prisma: { notification: { groupBy, count } } as never,
       settingsService: { getSetting } as never,
       enqueueIntegrationJobService: { enqueue } as never,
-      records: [
+      records: {
+        group: null,
+        personal: [
         {
           id: 'notif-1',
           userId: 'user-1',
@@ -58,17 +63,20 @@ describe('enqueueEdgeNotificationEvents', () => {
           dedupeKey: 'k',
           createdAt: new Date('2026-09-14T10:00:00.000Z'),
         },
-      ],
+        ],
+      },
     });
     expect(enqueue).not.toHaveBeenCalled();
   });
 
   it('enqueues EDGE_EVENT with eventId equal to the notification id', async () => {
     await enqueueEdgeNotificationEvents({
-      prisma: { notification: { groupBy } } as never,
+      prisma: { notification: { groupBy, count } } as never,
       settingsService: { getSetting } as never,
       enqueueIntegrationJobService: { enqueue } as never,
-      records: [
+      records: {
+        group: null,
+        personal: [
         {
           id: 'notif-1',
           userId: 'user-1',
@@ -82,7 +90,8 @@ describe('enqueueEdgeNotificationEvents', () => {
           dedupeKey: 'k',
           createdAt: new Date('2026-09-14T10:00:00.000Z'),
         },
-      ],
+        ],
+      },
     });
     expect(enqueue).toHaveBeenCalledWith({
       type: IntegrationJobType.EDGE_EVENT,
@@ -96,5 +105,44 @@ describe('enqueueEdgeNotificationEvents', () => {
         }),
       }),
     });
+  });
+
+  it('expands a group notification to its members, minus the excluded ones (Option A)', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      { userId: 'member-1' },
+      { userId: 'actor-1' },
+      { userId: 'member-2' },
+    ]);
+    await enqueueEdgeNotificationEvents({
+      prisma: { notification: { groupBy, count }, groupMember: { findMany } } as never,
+      settingsService: { getSetting } as never,
+      enqueueIntegrationJobService: { enqueue } as never,
+      records: {
+        personal: [],
+        group: {
+          id: 'notif-g',
+          userId: null,
+          groupId: 'group-1',
+          excludedUserIds: ['actor-1'],
+          type: notificationTypes.ticketCreated,
+          title: 'Created',
+          body: null,
+          isRead: false,
+          readAt: null,
+          ticketId: 'ticket-1',
+          payload: null,
+          dedupeKey: 'k',
+          createdAt: new Date('2026-09-14T10:00:00.000Z'),
+        },
+      },
+    });
+    expect(findMany).toHaveBeenCalledWith({
+      where: { groupId: 'group-1' },
+      select: { userId: true },
+    });
+    expect(enqueue.mock.calls.map((call) => call[0].payload.userId)).toEqual([
+      'member-1',
+      'member-2',
+    ]);
   });
 });

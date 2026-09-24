@@ -1,3 +1,4 @@
+import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { requireChangeReason } from '../change-log/require-change-reason';
 import type { SettingsRegistry } from '../settings/settings.types';
@@ -61,7 +62,7 @@ export async function executeConfigRollback(input: {
     releaseNotes: `Rollback of version ${current.version} to ${target.version}`,
     createdByUserId: input.actorUserId,
   });
-  await input.prisma.$transaction((transaction) =>
+  await invalidateConfigurationCachesAfter(input.prisma.$transaction((transaction) =>
     persistActivatedConfigVersion(transaction, {
       candidate: created,
       snapshot,
@@ -72,7 +73,7 @@ export async function executeConfigRollback(input: {
       auditAction: 'config_version.rollback',
       registry: input.registry,
     }),
-  );
+  ));
   const record = await requireConfigVersionRecord(input.repository, created.id);
   return toConfigVersionDetailResponse(record, parseConfigSnapshot(record.snapshot));
 }

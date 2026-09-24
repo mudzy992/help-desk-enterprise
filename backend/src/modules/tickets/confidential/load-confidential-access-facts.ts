@@ -1,6 +1,7 @@
 import { permissionKeys } from '../../authorization/authorization.constants';
 import { decideAuthorizationAccess } from '../../authorization/evaluate-authorization-access';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
+import { loadActorGroupIds } from '../../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { canManageTicketsInScope } from '../authorize-ticket-actor';
 import type { TicketRecord } from '../tickets.types';
@@ -25,11 +26,7 @@ export async function loadConfidentialAccessFacts(
   },
 ): Promise<ConfidentialAccessFacts> {
   const actorUserId = input.context.subjectId;
-  const memberships = await prisma.groupMember.findMany({
-    where: { userId: actorUserId },
-    select: { groupId: true },
-  });
-  const actorGroupIds = memberships.map((membership) => membership.groupId);
+  const actorGroupIds = await loadActorGroupIds(prisma, actorUserId);
   const [grants, breakGlassEvents, participant] = await Promise.all([
     prisma.ticketConfidentialGrant.findMany({
       where: { ticketId: input.ticket.id },

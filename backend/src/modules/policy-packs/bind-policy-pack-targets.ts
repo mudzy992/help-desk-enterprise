@@ -1,3 +1,4 @@
+import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { PolicyPackApplyTarget } from './policy-pack.types';
 
@@ -11,6 +12,7 @@ export async function bindPolicyPackTargets(
       where: { id: target.organizationalUnitId },
       data: { policyPackId },
     });
+    invalidateOrganizationalUnitScopeCache();
   }
   if (target.serviceId !== null) {
     await prisma.service.update({

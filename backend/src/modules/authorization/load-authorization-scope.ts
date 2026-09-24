@@ -1,3 +1,7 @@
+import {
+  canUseScopeCatalogCache,
+  loadCachedOrganizationalUnitPath,
+} from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export async function loadOrganizationalUnitPath(
@@ -6,6 +10,9 @@ export async function loadOrganizationalUnitPath(
 ): Promise<string | null> {
   if (organizationalUnitId === null || organizationalUnitId.trim().length === 0) {
     return null;
+  }
+  if (canUseScopeCatalogCache(prisma)) {
+    return loadCachedOrganizationalUnitPath(prisma, organizationalUnitId.trim());
   }
   const record = await prisma.organizationalUnit.findUnique({
     where: { id: organizationalUnitId.trim() },

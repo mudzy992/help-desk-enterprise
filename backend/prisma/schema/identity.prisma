@@ -44,6 +44,7 @@ model User {
   knowledgeFeedbacks   KnowledgeFeedback[]
   knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   notifications                   Notification[]
+  notificationReceipts            NotificationReceipt[]
   notificationEmailDeliveries     NotificationEmailDelivery[]
   auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
@@ -113,6 +114,7 @@ model Group {
   autoAssignStrategy   AutoAssignStrategy     @default(NONE)
   organizationalUnit   OrganizationalUnit     @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
   members              GroupMember[]
+  notifications        Notification[]
   assignedTickets      Ticket[]               @relation("TicketAssignedGroup")
   participants         TicketParticipant[]
   routingRules         RoutingRule[]

@@ -1,3 +1,4 @@
+import { invalidateSharedSettingsSnapshot } from '../settings/settings-snapshot';
 import { mapVisibilityToPersistence } from '../settings/settings.persistence-map';
 import { validateSettingValue } from '../settings/settings-value';
 import type { SettingDefinition, SettingValue } from '../settings/settings.types';
@@ -26,4 +27,5 @@ export async function upsertInstallSetting(
       description: definition.description,
     },
   });
+    invalidateSharedSettingsSnapshot();
 }

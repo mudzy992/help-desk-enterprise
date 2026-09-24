@@ -1,4 +1,5 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { loadActorGroupIds } from '../../../common/cache/scope-catalog-cache';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 
 export type InboxGroupWhere = { not: null } | { in: string[] };
@@ -10,11 +11,7 @@ export async function resolveInboxGroupWhere(
   if (context.isSuperAdmin) {
     return { not: null };
   }
-  const memberships = await prisma.groupMember.findMany({
-    where: { userId: context.subjectId },
-    select: { groupId: true },
-  });
-  const groupIds = memberships.map((membership) => membership.groupId);
+  const groupIds = [...(await loadActorGroupIds(prisma, context.subjectId))];
   if (groupIds.length === 0) {
     return null;
   }

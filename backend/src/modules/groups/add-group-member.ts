@@ -1,3 +1,4 @@
+import { invalidateActorGroupsCache } from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { GroupsError } from './groups.error';
 import type { PrincipalInvalidationHook } from './groups.types';
@@ -27,6 +28,7 @@ export async function addGroupMember(
     throw new GroupsError('MEMBER_ALREADY_EXISTS');
   }
   await prisma.groupMember.create({ data: { groupId, userId } });
+  invalidateActorGroupsCache();
   // Phase 2.2: group membership is part of the principal context (and of the
   // inbox/visibility decisions derived from it), so the member's cache is stale
   // the moment this row lands.

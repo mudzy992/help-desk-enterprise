@@ -6,6 +6,8 @@ export class SocketGroupMembershipService {
   constructor(private readonly prisma: PrismaService) {}
 
   async groupIdsForUser(userId: string): Promise<readonly string[]> {
+    // Not cached on purpose: joined once per connection, and it must reflect the
+    // membership as of the handshake.
     const memberships = await this.prisma.groupMember.findMany({
       where: { userId },
       select: { groupId: true },

@@ -2,7 +2,12 @@ import type { NotificationType } from './notifications.constants';
 
 export type NotificationRecord = {
   readonly id: string;
-  readonly userId: string;
+  /** Recipient of a personal notification; `null` for a group notification. */
+  readonly userId: string | null;
+  /** Option A: the group whose members see this row (personal rows: `null`). */
+  readonly groupId?: string | null;
+  /** Option A: members of `groupId` who must NOT see this row (actor, …). */
+  readonly excludedUserIds?: readonly string[];
   readonly type: string;
   readonly title: string;
   readonly body: string | null;

@@ -63,10 +63,12 @@ export async function insertNotificationBatch(
     dedupeKey: input.dedupeKey,
     createdAt,
   }));
-  const data: Prisma.NotificationCreateManyInput[] = records.map((record) => ({
-    ...record,
-    payload: record.payload as Prisma.InputJsonValue,
-  }));
+  const data: Prisma.NotificationCreateManyInput[] = records.map(
+    ({ excludedUserIds: _excluded, groupId: _group, ...record }) => ({
+      ...record,
+      payload: record.payload as Prisma.InputJsonValue,
+    }),
+  );
   await prisma.notification.createMany({
     data,
     // Two events of the same kind for the same ticket can race; the loser skips

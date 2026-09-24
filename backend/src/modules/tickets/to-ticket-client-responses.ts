@@ -6,13 +6,12 @@ import type { DuplicateTicketMatch } from './guardrails/guardrails.types';
 import type { TicketReopenConfiguration } from './reopen/reopen.types';
 import type { TicketCsatConfiguration } from './csat/csat.types';
 import { describeTicketCsat } from './csat/describe-ticket-csat';
-import { loadTicketCsatSubmissions } from './csat/load-ticket-csat-submissions';
 import { isTicketSlaAtRisk } from '../sla/is-ticket-sla-at-risk';
 import { isTicketSlaOverdue } from '../sla/is-ticket-sla-overdue';
 import { loadParentTicketSummaries } from './load-parent-ticket-summaries';
 import { loadTicketDisplayLabels } from './load-ticket-display-labels';
 import type { TicketLabelCache } from './labels/ticket-label-cache';
-import { loadTicketSlaSnapshots } from './load-ticket-sla-snapshots';
+import { loadTicketSlaAndCsat } from './load-ticket-sla-and-csat';
 import { toTicketLabelFields } from './ticket-label-fields';
 import { toTicketClientResponse } from './to-ticket-response';
 import type { TicketRecord, TicketResponse } from './tickets.types';
@@ -36,13 +35,14 @@ export async function toTicketClientResponses(
     records.map((record) => record.closeCodeId ?? ''),
   );
   const ticketIds = records.map((record) => record.id);
-  const slaByTicketId = await loadTicketSlaSnapshots(prisma, ticketIds);
+  // SLA and CSAT of the whole page in one round trip (`load-ticket-sla-and-csat.ts`).
+  const { sla: slaByTicketId, csat: submissions } = await loadTicketSlaAndCsat(
+    prisma,
+    ticketIds,
+    input.csat !== undefined,
+  );
   const parentsById = await loadParentTicketSummaries(prisma, records);
   const labels = await loadTicketDisplayLabels(prisma, records, input.labelCache);
-  const submissions =
-    input.csat === undefined
-      ? new Map()
-      : await loadTicketCsatSubmissions(prisma, ticketIds);
   return records.map((record) => {
     const parent =
       record.parentTicketId === null

@@ -1,3 +1,4 @@
+import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { assertDistinguishedNameMatchesParent } from './assert-distinguished-name-matches-parent';
 import { assertOrganizationalUnitIdentityIsAvailable } from './assert-organizational-unit-identity-is-available';
@@ -119,5 +120,6 @@ export async function updateOrganizationalUnit(
     throwIfUniqueConstraintViolated(error);
     throw error;
   }
+  invalidateOrganizationalUnitScopeCache();
   return getOrganizationalUnit(prisma, organizationalUnitId);
 }

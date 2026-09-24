@@ -2,9 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import type Redis from 'ioredis';
 import { redisTokens } from '../../common/redis/redis.tokens';
 import {
+  bumpGroupUnreadEpoch,
   invalidateUnreadCountCache,
   readUnreadCountFromCache,
+  readUnreadCountWithEpochs,
   writeUnreadCountToCache,
+  writeUnreadCountWithEpochs,
+  type GroupEpochs,
   type UnreadCountCacheClient,
 } from './unread-count-cache';
 
@@ -26,6 +30,27 @@ export class NotificationUnreadCountCache {
 
   async write(userId: string, unreadCount: number): Promise<void> {
     await writeUnreadCountToCache(await this.client(), userId, unreadCount);
+  }
+
+  /** Option A: badge + epochs of the user's groups in one round trip. */
+  async readWithEpochs(
+    userId: string,
+    groupIds: readonly string[],
+  ): Promise<{ readonly count: number | null; readonly epochs: GroupEpochs | null }> {
+    return readUnreadCountWithEpochs(await this.client(), userId, groupIds);
+  }
+
+  async writeWithEpochs(
+    userId: string,
+    unreadCount: number,
+    epochs: GroupEpochs | null,
+  ): Promise<void> {
+    await writeUnreadCountWithEpochs(await this.client(), userId, unreadCount, epochs);
+  }
+
+  /** Option A: a new group notification — every member's cached badge becomes a miss. */
+  async bumpGroup(groupId: string): Promise<void> {
+    await bumpGroupUnreadEpoch(await this.client(), groupId);
   }
 
   async invalidate(userId: string): Promise<void> {

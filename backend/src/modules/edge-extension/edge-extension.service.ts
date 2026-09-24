@@ -1,3 +1,7 @@
+import {
+  loadNotificationAudience,
+  visibleNotificationWhere,
+} from '../notifications/notification-audience';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
@@ -101,8 +105,17 @@ export class EdgeExtensionService {
     if (!configuration.receiptsEnabled) {
       throw new EdgeExtensionError('RECEIPTS_DISABLED');
     }
+    // Option A: a group notification is delivered to members too, so it is theirs to
+    // acknowledge (same audience rule as the inbox).
+    const memberships = await loadNotificationAudience(
+      this.prisma,
+      principal.subjectId,
+    );
     const notification = await this.prisma.notification.findFirst({
-      where: { id: input.notificationId, userId: principal.subjectId },
+      where: {
+        id: input.notificationId,
+        ...visibleNotificationWhere(principal.subjectId, memberships),
+      },
       select: { id: true },
     });
     if (notification === null) {

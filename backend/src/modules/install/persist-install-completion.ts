@@ -1,3 +1,4 @@
+import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { changeLogEntityTypes } from '../change-log/change-log.constants';
 import type { ChangeLogPrismaClient } from '../change-log/change-log.types';
 import { recordChangeLog } from '../change-log/record-change-log';
@@ -40,7 +41,7 @@ export async function persistInstallCompletion(
   if (typeof completedAt !== 'string' || !isInstallSetupComplete(completedAt)) {
     throw new Error('Install completion timestamp must be a valid ISO datetime');
   }
-  return prisma.$transaction(async (transaction) => {
+  return invalidateConfigurationCachesAfter(prisma.$transaction(async (transaction) => {
     await ensureInstallJwtSigningSecret(transaction, registry, {
       actorUserId: input.actorUserId,
       reason,
@@ -82,5 +83,5 @@ export async function persistInstallCompletion(
       }),
     });
     return { completedAt, alreadyCompleted: false };
-  });
+  }));
 }

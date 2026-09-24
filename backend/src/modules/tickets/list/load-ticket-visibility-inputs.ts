@@ -1,4 +1,8 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import {
+  loadActorGroupIds,
+  loadOrganizationalUnitScopeRows,
+} from '../../../common/cache/scope-catalog-cache';
 import type { OrganizationalUnitScopeRow } from './build-manage-scope-where';
 
 /**
@@ -12,15 +16,11 @@ export async function loadTicketVisibilityInputs(
   readonly units: readonly OrganizationalUnitScopeRow[];
   readonly actorGroupIds: readonly string[];
 }> {
-  const [units, memberships] = await Promise.all([
-    prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true } }),
-    prisma.groupMember.findMany({
-      where: { userId: actorUserId },
-      select: { groupId: true },
-    }),
+  // Both catalogues are cached per process for a few seconds inside a request
+  // (`common/cache/scope-catalog-cache.ts`); outside a request they are read here.
+  const [units, actorGroupIds] = await Promise.all([
+    loadOrganizationalUnitScopeRows(prisma),
+    loadActorGroupIds(prisma, actorUserId),
   ]);
-  return {
-    units,
-    actorGroupIds: memberships.map((membership) => membership.groupId),
-  };
+  return { units, actorGroupIds };
 }

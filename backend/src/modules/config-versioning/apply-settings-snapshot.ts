@@ -1,3 +1,4 @@
+import { invalidateSharedSettingsSnapshot } from '../settings/settings-snapshot';
 import type { Prisma } from '../../generated/prisma/client';
 import { mapVisibilityToPersistence } from '../settings/settings.persistence-map';
 import type { SettingsRegistry } from '../settings/settings.types';
@@ -30,5 +31,6 @@ export async function applySettingsSnapshot(
         description: definition.description,
       },
     });
+    invalidateSharedSettingsSnapshot();
   }
 }

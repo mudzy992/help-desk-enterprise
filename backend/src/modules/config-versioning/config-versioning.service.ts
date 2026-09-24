@@ -1,3 +1,4 @@
+import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { ChangeLogDiffPayload } from '../change-log/change-log.types';
@@ -123,7 +124,7 @@ export class ConfigVersioningService {
     const snapshot = parseConfigSnapshot(record.snapshot);
     assertConfigActivationAllowed(snapshot, this.registry, configuration);
     const previousActive = await this.repository.findActive();
-    await this.prisma.$transaction((transaction) =>
+    await invalidateConfigurationCachesAfter(this.prisma.$transaction((transaction) =>
       persistActivatedConfigVersion(transaction, {
         candidate: record,
         snapshot,
@@ -134,7 +135,7 @@ export class ConfigVersioningService {
         auditAction: 'config_version.activate',
         registry: this.registry,
       }),
-    );
+    ));
     return this.get(id);
   }
 

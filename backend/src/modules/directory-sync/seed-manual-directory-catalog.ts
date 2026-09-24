@@ -1,3 +1,4 @@
+import { invalidateSharedSettingsSnapshot } from '../settings/settings-snapshot';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import { settingKeys } from '../settings/setting-keys';
 import { defaultManualDirectoryCatalog } from './default-manual-directory-catalog';
@@ -97,5 +98,6 @@ async function ensureManualDirectorySyncSettings(
         description: setting.description,
       },
     });
+    invalidateSharedSettingsSnapshot();
   }
 }

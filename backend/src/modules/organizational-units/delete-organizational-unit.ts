@@ -1,3 +1,4 @@
+import { invalidateOrganizationalUnitScopeCache } from '../../common/cache/scope-catalog-cache';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrganizationalUnitError } from './organizational-unit.error';
 
@@ -25,4 +26,5 @@ export async function deleteOrganizationalUnit(
   await prisma.organizationalUnit.delete({
     where: { id: organizationalUnitId },
   });
+  invalidateOrganizationalUnitScopeCache();
 }

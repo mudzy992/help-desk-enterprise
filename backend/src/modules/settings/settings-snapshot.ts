@@ -11,9 +11,9 @@ import { getRequestId } from '../../common/request-context/request-context.stora
  *
  * Two properties keep it honest:
  *
- * - the snapshot is scoped to the request id, so it is never shared between requests:
- *   values are exactly as fresh as before, and a request that writes a setting updates
- *   its own snapshot (`rememberSettingValue`);
+ * - the snapshot is scoped to the request id; a request that writes a setting updates
+ *   its own snapshot (`rememberSettingValue`). The listing behind it may be reused
+ *   across requests for a few seconds — see "Cross-request reuse" below;
  * - outside a request (worker jobs, boot, scripts) there is no request id and every call
  *   falls back to the caller's single read, so background work always sees what was just
  *   written.
@@ -21,6 +21,24 @@ import { getRequestId } from '../../common/request-context/request-context.stora
  * A client that cannot list rows (the hand-written delegates in unit tests) is detected
  * once per request and falls back to the same single-read path.
  */
+
+/**
+ * Cross-request reuse (2026-09-24, "maksimum" korak): the listing a request made is
+ * reused by the next requests for a few seconds instead of being re-read by each of
+ * them. It was the one query EVERY authenticated request paid (~1.0 of the 5.0
+ * average). Rules:
+ *
+ * - TTL `SETTINGS_SNAPSHOT_TTL_MS` (default 5000 ms; `0` switches reuse off and
+ *   restores the strict one-listing-per-request behaviour);
+ * - every write through `SettingsService` (and the install / config-restore writers)
+ *   drops the shared listing on this instance immediately, so read-after-write in the
+ *   next request is exact here; other instances converge within the TTL;
+ * - the shared listing is keyed by client (`WeakMap`), so a test's in-memory client
+ *   never sees another test's rows;
+ * - each request still gets its own copy, so `rememberSettingValue` stays local.
+ */
+let sharedTtlMs = readSharedTtl();
+let shared = new WeakMap<object, { readonly expiresAt: number; readonly rows: Promise<SettingsSnapshot | null> }>();
 
 /** In-flight requests whose snapshot is kept; older entries are dropped first. */
 export const maxSettingsSnapshots = 200;
@@ -80,11 +98,25 @@ export function rememberSettingValue(
     return;
   }
   snapshots.get(requestId)?.set(key, value);
+  invalidateSharedSettingsSnapshot();
+}
+
+/** Drops the cross-request listing (call after any `AppSetting` write). */
+export function invalidateSharedSettingsSnapshot(): void {
+  shared = new WeakMap();
+}
+
+/** Test helper — overrides the cross-request TTL (`0` = off). */
+export function setSharedSettingsSnapshotTtlMs(ttlMs: number): void {
+  sharedTtlMs = ttlMs;
+  invalidateSharedSettingsSnapshot();
 }
 
 /** Test helper — drops all snapshots so cases cannot see each other's requests. */
 export function resetSettingsSnapshots(): void {
   snapshots.clear();
+  invalidateSharedSettingsSnapshot();
+  sharedTtlMs = readSharedTtl();
 }
 
 /** Test helper — how many requests currently hold a snapshot. */
@@ -98,6 +130,28 @@ async function loadSnapshot(
   if (typeof prisma?.appSetting?.findMany !== 'function') {
     return null;
   }
+  if (sharedTtlMs <= 0) {
+    return listSnapshot(prisma);
+  }
+  const now = Date.now();
+  const cached = shared.get(prisma);
+  if (cached !== undefined && cached.expiresAt > now) {
+    const rows = await cached.rows;
+    return rows === null ? null : new Map(rows);
+  }
+  const bucket = shared;
+  const entry = { expiresAt: now + sharedTtlMs, rows: listSnapshot(prisma) };
+  bucket.set(prisma, entry);
+  const rows = await entry.rows;
+  if (rows === null && bucket.get(prisma) === entry) {
+    bucket.delete(prisma);
+  }
+  return rows === null ? null : new Map(rows);
+}
+
+async function listSnapshot(
+  prisma: SettingsSnapshotSource,
+): Promise<SettingsSnapshot | null> {
   try {
     const rows = await prisma.appSetting.findMany({
       select: { key: true, value: true },
@@ -108,6 +162,11 @@ async function loadSnapshot(
     // reports the real error (or the real value) exactly as it did before.
     return null;
   }
+}
+
+function readSharedTtl(): number {
+  const parsed = Number(process.env.SETTINGS_SNAPSHOT_TTL_MS);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 5000;
 }
 
 function trimSnapshots(): void {
