@@ -354,13 +354,13 @@ Nije novi dizajn: paleta rotira **samo brend boje**, a površine, radijusi, sjen
 | Paleta | Svjetlina | Tekst na primary | Primary kao tekst | Link | Selekcija |
 |---|---|---|---|---|---|
 | indigo (zadana) | svjetla | 5.37:1 ✓ | 5.37:1 ✓ | 6.41:1 ✓ | 12.44:1 ✓ |
-| indigo (zadana) | tamna | 4.52:1 ✓ | **4.00:1** ⚠ | 6.68:1 ✓ | 12.77:1 ✓ |
+| indigo (zadana) | tamna | 5.43:1 ✓ | 5.73:1 ✓ | 8.04:1 ✓ | ✓ |
 | **teal** | svjetla | 5.47:1 ✓ | 5.47:1 ✓ | 7.58:1 ✓ | 9.88:1 ✓ |
 | **teal** | tamna | 7.77:1 ✓ | 9.71:1 ✓ | 12.22:1 ✓ | 8.79:1 ✓ |
 | **rose** | svjetla | 6.29:1 ✓ | 6.29:1 ✓ | 8.02:1 ✓ | 9.87:1 ✓ |
 | **rose** | tamna | 5.81:1 ✓ | 6.72:1 ✓ | 9.56:1 ✓ | 10.51:1 ✓ |
 
-> ⚠ jedina vrijednost ispod AA je **postojeća** indigo paleta u tamnom modu (`text-primary` 4.00:1) — to je baseline iz Faze 0 koji nisam mijenjao jer popravka mijenja izgled primarnih dugmadi u tamnom modu (vidi §7).
+> ✓ **Popravljeno 2026-09-24** (odluka korisnika): tamna indigo paleta i `classic` sada slijede isto pravilo kao ostale tamne palete — svijetla primarna boja + taman tekst na dugmetu. Indigo dark: `--primary` 139 132 240, `--primary-foreground` 24 21 66. Classic: `--primary` 96 165 250 (blue-400), `--primary-foreground` 23 37 84. Sve palete, oba moda: 0 padova ispod 4.5:1 — provjera: `node frontend/scripts/contrast-audit.mjs` (čita tokene iz `src/index.css`, izlaz 1 ako nešto padne). Minimum preko svih paleta: `muted` na `elevated` u tamnom modu 4.68:1.
 
 | Uputa za tim — još jedna paleta | 1) dodaj blok `:root[data-theme="pulse"][data-accent="<ime>"]` i njegov `.dark` par u `src/index.css` (8 varijabli + glow); 2) dodaj ime u `ThemeAccent` i `THEME_ACCENTS`; 3) dodaj `theme.accent<Ime>` ključ u `bs` i `en`. UI (birač teme, `/appearance`, `role="radiogroup"`) radi sam jer iterira `THEME_ACCENTS` |
 | **Svjesni izuzetak** | `.accent-swatch-*` klase u `index.css` su **jedine hardkodirane boje van tokena** — preview mora prikazati paletu koja **nije** aktivna, pa ne može čitati `--primary`. Imaju po jednu svjetlu i tamnu vrijednost i drže se uz paletne blokove |
@@ -629,7 +629,7 @@ html[data-theme="classic"]         → stara tema (uvijek tamna)
 | **`theme-source.md` i `referenca-dizajn/` nisu obrisani** | Namjerno: arhivirani su oznakom, pa istorija i dalje radi i ništa se ne lomi (patch je 57 KB umjesto 26 brisanja). Ako želiš čist folder, brisanje je jedna komanda — ali onda i `git log --follow` postaje jedini izvor tih vrijednosti |
 | **`appearance.*` i `theme.accent*` su novi blokovi u i18n** | 22 + 10 ključeva su dodata u `bs` i `en`; ako imaš i druge lokale, parity test (2142 → **2174**) će ih prijaviti kao nedostajuće |
 | **Paleta je izbor, ne brend** | Kao i dizajn i svjetlina, paleta se pamti u `localStorage` **tog pregledača** — ne na nalogu. Ako želiš da svi korisnici na instalaciji imaju istu paletu, to je jedan ključ kroz settings registry (isti obrazac kao za default temu iz plana) |
-| **`text-primary` u tamnoj indigo paleti je 4.00:1** | To je **postojeće stanje** (Faza 0), ne regresija — nove palete su tu strože i drže 6.72–9.71:1. Popravka bi bila jedna linija (tamniji `--primary-foreground` + svjetlija `--primary`), ali mijenja kako izgledaju primarna dugmad u tamnom modu, pa čeka tvoju odluku |
+| ~~`text-primary` u tamnoj indigo paleti je 4.00:1~~ | **Riješeno 2026-09-24**: tamni indigo i classic prebačeni na svijetli primary + taman tekst na dugmetu (vidi §3). Default za pilot potvrđen: `pulse` + `indigo` |
 | **`/appearance` nije u `navigation.ts`** | Stranica je namjerno dostupna iz korisničkog menija i birača teme, **ne** iz sidebar navigacije — izgled nije modul aplikacije. Ako je želiš u sidebaru, dodaje se jedan red u `lib/navigation.ts` + ključ u oba lokala |
 | **Fiksna visina razgovora** | Visina je `320px` (mobilni) / `420px` (`sm+`). Ako ti na tvom ekranu treba drugačije, to je jedna klasa u `ticket-conversation.tsx` (`VIEWPORT_CLASS.fixed`). |
 

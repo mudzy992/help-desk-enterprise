@@ -44,10 +44,10 @@
     --foreground: 229 231 235;
     --muted: 156 163 175;
 
-    --primary: 37 99 235;
-    --primary-hover: 29 79 216;
-    --primary-active: 27 68 190;
-    --primary-foreground: 255 255 255;
+    --primary: 96 165 250;
+    --primary-hover: 147 197 253;
+    --primary-active: 191 219 254;
+    --primary-foreground: 23 37 84;
     --link: 127 168 245;
 
     --accent: 34 197 94;
@@ -58,7 +58,7 @@
     --info: 56 189 248;
     --hold: 192 132 252;
 
-    --ring: 37 99 235;
+    --ring: 96 165 250;
     --scrim: 0 0 0;
     --popover: 27 36 54;
     --surface-hover: 27 36 54;
@@ -78,7 +78,7 @@
 
     --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --calendar-icon-filter: invert(0.7);
-    --selection-bg: 37 99 235;
+    --selection-bg: 96 165 250;
     --selection-alpha: 0.35;
     --selection-fg: 255 255 255;
     --scrollbar-thumb: 36 48 68;
@@ -168,11 +168,11 @@
     --foreground: 233 235 241;
     --muted: 127 135 152;
 
-    --primary: 111 102 223;
-    --primary-hover: 124 115 228;
-    --primary-active: 138 129 233;
-    --primary-foreground: 255 255 255;
-    --link: 154 147 236;
+    --primary: 139 132 240;
+    --primary-hover: 165 160 245;
+    --primary-active: 191 187 250;
+    --primary-foreground: 24 21 66;
+    --link: 170 164 245;
 
     --accent: 45 212 191;
     --danger: 248 113 113;
@@ -182,7 +182,7 @@
     --info: 56 189 248;
     --hold: 192 132 252;
 
-    --ring: 111 102 223;
+    --ring: 139 132 240;
     --scrim: 0 0 0;
     --popover: 30 33 41;
     --surface-hover: 30 34 42;
@@ -202,7 +202,7 @@
 
     --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f8798' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     --calendar-icon-filter: invert(0.7);
-    --selection-bg: 111 102 223;
+    --selection-bg: 139 132 240;
     --selection-alpha: 0.35;
     --selection-fg: 255 255 255;
     --scrollbar-thumb: 38 42 52;
@@ -212,7 +212,7 @@
     --radius-lg: 12px;
     --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
     --shadow-pop: 0 14px 36px -12px rgb(0 0 0 / 0.7), 0 3px 8px -3px rgb(0 0 0 / 0.45);
-    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(111 102 223 / 0.5);
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(139 132 240 / 0.5);
   }
 
 
@@ -526,7 +526,7 @@
   }
 
   .dark .accent-swatch-indigo {
-    background-color: rgb(111 102 223);
+    background-color: rgb(139 132 240);
   }
 
   .dark .accent-swatch-teal {

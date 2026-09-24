@@ -29,8 +29,8 @@ export const THEME_MODE_STORAGE_KEY = "ep-helpdesk.theme.mode";
 export const THEME_ACCENT_STORAGE_KEY = "ep-helpdesk.theme.accent";
 
 /**
- * Rollout switch. The new identity ships as the default; flip this to
- * `"classic"` for a pilot week, or read it from the settings registry later.
+ * Rollout switch. Pilot default potvrđen 2026-09-24: `pulse` + `indigo`
+ * (mode prati sistem). `"classic"` ostaje dostupan kao opcija u biraču teme.
  */
 export const DEFAULT_THEME_DESIGN: ThemeDesign = "pulse";
 export const DEFAULT_THEME_MODE: ThemeMode = "system";
