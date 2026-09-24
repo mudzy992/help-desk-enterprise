@@ -19,6 +19,10 @@
 #
 # Upotreba:
 #   bash perf/patches/apply-perf.sh              # primijeni sve što fali
+#
+# `ops-01` je ops/dokumentacija: dopunjava Redis ACL kanalima koje traže F3.1
+# (Socket.IO adapter) i F4 (worker→API most). Bez njih API pada na bootu s
+# `NOPERM No permissions to access a channel` (`psubscribe socket.io#/#*`).
 #   bash perf/patches/apply-perf.sh --dry-run    # samo reci šta bi se desilo
 #
 set -uo pipefail
@@ -48,6 +52,7 @@ PATCHES=(
   "perf-03-realtime-klijent.patch:frontend/src/lib/query/query-client.ts"
   "perf-04-otpornost.patch:backend/src/modules/tickets/archive/ticket-archive.job.constants.ts"
   "perf-05-dnevna-granica-tz.patch:backend/src/modules/reports/summary/start-of-civil-day.ts"
+  "ops-01-redis-acl-kanali.patch:ops/redis-acl.line:&socket.io#*"
 )
 
 applied=0
