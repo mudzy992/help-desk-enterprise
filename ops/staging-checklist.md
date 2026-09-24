@@ -27,12 +27,39 @@ pravim Redis adapterom i pravim klijentom — ne treba aplikacija, samo Redis):
 ```bash
 # u repo rootu; trebaju node_modules u backend/ i frontend/ (npm install u oba)
 export REDIS_URL='redis://ephelpdesk:<REDIS_PASSWORD>@<redis-host>:6379'
+
+# prvo SAMO Redis + ACL (ne diže servere) — kaže TAČNO gdje je problem
+node ops/ws-cross-instance-check.mjs --preflight
+
+# pa puni dokaz
 node ops/ws-cross-instance-check.mjs
 ```
 
-Očekivano: `✔` i izlazni kod 0. **Ako padne s `NOPERM`**, ACL ne dozvoljava
-`PSUBSCRIBE socket.io#/#*` — vidi `ops/runbook/redis-down.md` (pattern za
-`PSUBSCRIBE` mora biti literalno u ACL-u, `&socket.io#/#*`).
+Očekivano: `✔` i izlazni kod 0.
+
+**Izlazni kodovi** (razlikuju „nije dokazano" od „nije ni mjereno"):
+
+| Kod | Značenje |
+|---|---|
+| 0 | dokazano — emit s instance A stigao je klijentu na instanci B |
+| 1 | adapter nije prenio — Redis je zdrav, dokaz nije prošao |
+| 2 | Redis nedostupan ili ACL odbija kanale — vidi ispis preflighta |
+| 3 | greška harnessa / provjera je neispravna, nije presuda o adapteru |
+
+Kod 2 s `ECONNRESET` uz tunel koji pokazuje `LISTENING` znači: ssh prihvati vezu
+lokalno, pa ne uspije otvoriti kanal do cilja (najčešće `redis-core` je Docker
+mrežno ime koje SSH server ne razrješava). Tražiti u `ssh -v` ispisu:
+`channel N: open failed: connect failed: <razlog>`, pa tunel usmjeriti na **IP
+kontejnera** ili na objavljeni host port, a ne na Docker mrežno ime.
+Kod 2 s `NOPERM ... access a channel` znači ACL: dodati **aditivno**, bez
+`resetchannels` — `ACL SETUSER ephelpdesk &socket.io#/#*` pa `ACL SAVE`
+(`PSUBSCRIBE` traži literalno poklapanje patterna; `&socket.io#*` ne pokriva
+`socket.io#/#*`). Detalji u `ops/runbook/redis-down.md`.
+
+**Prečac bez tunela:** aplikacija već sama sebi dokazuje adapter pri startu —
+u API logu svake instance tražiti `ws_adapter_redis_ok=1`. Ako je umjesto toga
+`ws_adapter_redis_acl_denied channel=...`, instanca radi s in-memory adapterom i
+sobe su samo lokalne (vidi `ops/ws-rolling-deploy.md`).
 
 **1b. Rolling deploy s dvije instance** (drain + reconnect, `ops/ws-rolling-deploy.md`):
 
