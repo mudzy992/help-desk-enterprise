@@ -42,6 +42,16 @@ export function browserDashboard(config, data) {
   expectOk(unread, 'notifications.unreadCount');
   recordResponse('notifications.unreadCount', unread, config);
 
+  // A Phase 2.4 endpoint that `PERF_BUDGETS.md` gives both a P95 and a payload budget.
+  // Nothing called it, so `dashboard_summary_duration` and `dashboard_payload_kb` were
+  // "ok" with p95 = 0 — a threshold that cannot fail is not a gate.
+  const summary = http.get(`${config.baseUrl}${config.paths.dashboardSummary}`, {
+    ...headers,
+    tags: { endpoint: 'reports.dashboardSummary' },
+  });
+  expectOk(summary, 'reports.dashboardSummary');
+  recordResponse('reports.dashboardSummary', summary, config);
+
   sleep(thinkTime(config));
 }
 
@@ -76,8 +86,12 @@ export function agentTicketFlow(config, data) {
     const message = http.post(
       `${config.baseUrl}${config.paths.tickets}/${ticketId}/messages`,
       JSON.stringify({
+        // `CreateTicketMessageDto` is exactly `{ type, body }`, and the controller runs
+        // with `forbidNonWhitelisted: true`: the earlier `visibility` field would have
+        // been rejected with a 400 the moment this branch became reachable (the inbox
+        // used to be empty, so the endpoint was never actually called).
+        type: 'AGENT_REPLY',
         body: `load test probe ${now}`,
-        visibility: 'staff',
       }),
       { ...headers, tags: { endpoint: 'tickets.message' } },
     );

@@ -60,11 +60,12 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
       DB_QUERY_METRICS: "true"
-      # Measured baseline is ~21 queries per application request (CI smoke 2026-09-24);
-      # the gate is baseline × 1.5 (the plan's iron rule), the target is the engineering
-      # goal tracked in PERF_BUDGETS.md.
-      DB_QUERY_BUDGET: "32"
-      DB_QUERY_TARGET: "8"
+      # Baseline after perf-07 (settings snapshot): 3.6 queries per application request,
+      # down from 18.4 (CI smoke 2026-09-24). The gate is baseline × ~2.2 so ordinary
+      # jitter does not fail the build, while a regression of the kind perf-07 removed
+      # (18 > 8) does. The target is the engineering goal tracked in PERF_BUDGETS.md.
+      DB_QUERY_BUDGET: "8"
+      DB_QUERY_TARGET: "3"
       DB_QUERY_BUDGET_WARN: "true"
       # Smoke profile + relaxed, documented thresholds.
       PERF_PROFILE: ci
@@ -164,6 +165,97 @@ jobs:
             exit 1
           fi
 
+      - name: Seed load-test tickets (detail, messages and the dashboard need them)
+        env:
+          PERF_ADMIN_EMAIL: perf-admin@example.test
+          PERF_ADMIN_PASSWORD: Perf-Smoke-1!
+          SEED_TICKETS: "120"
+        run: |
+          # The install wizard seeds the catalogue but no tickets, so until this step the
+          # agent flow had nothing to open: `GET /tickets/:id`, `POST …/messages` and the
+          # dashboard summary reported p95 = 0 — three budgets "passed" without measuring
+          # anything. Creating 120 tickets through the public API also exercises the same
+          # code path the smoke then measures.
+          #
+          # The two ids come from the seed the wizard just created: `/install/seed` makes
+          # the organisational unit, an ACTIVE service and the routing rule (OU + service
+          # -> fallback group), so a ticket created with them is `PENDING` with a group —
+          # which is exactly what the group inbox lists. Created without the routing rule
+          # the ticket would be `UNROUTED`, invisible in the inbox, and the detail and
+          # message endpoints would still report 0,00.
+          set -euo pipefail
+          read_json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
+          rm -f /tmp/seed-tickets.log
+          note() { echo "$*" | tee -a /tmp/seed-tickets.log; }
+
+          token=$(curl -sS -X POST "$BASE_URL/auth/login" \
+            -H 'content-type: application/json' \
+            -d "{\"email\":\"$PERF_ADMIN_EMAIL\",\"password\":\"$PERF_ADMIN_PASSWORD\"}" \
+            | read_json 'd.get("accessToken","")')
+          if [ -z "$token" ]; then
+            echo "::error::no access token — cannot seed tickets"
+            exit 1
+          fi
+          auth="Authorization: Bearer $token"
+
+          seed_file=/tmp/install-install-seed.json
+          organizational_unit_id=""
+          service_id=""
+          if [ -f "$seed_file" ]; then
+            organizational_unit_id=$(read_json 'd["organizationalUnit"]["id"]' < "$seed_file" || true)
+            service_id=$(read_json 'd["service"]["id"]' < "$seed_file" || true)
+          fi
+          if [ -z "$organizational_unit_id" ] || [ -z "$service_id" ]; then
+            note "seed response carried no ids; reading them from the public API instead"
+            service_id=$(curl -sS -H "$auth" "$BASE_URL/services?lifecycle=ACTIVE" \
+              | read_json '(d if isinstance(d, list) else d.get("items", []))[0]["id"]')
+            organizational_unit_id=$(curl -sS -H "$auth" "$BASE_URL/organizational-units/tree" \
+              | python3 -c "import json,sys
+          def walk(nodes):
+              for node in nodes or []:
+                  if isinstance(node, dict) and node.get('id'):
+                      return node['id']
+                  if isinstance(node, dict):
+                      found = walk(node.get('children'))
+                      if found:
+                          return found
+              return ''
+          print(walk(json.load(sys.stdin)))")
+          fi
+          if [ -z "$service_id" ] || [ -z "$organizational_unit_id" ]; then
+            echo "::error::no service (or no organisational unit) to create tickets in — is the install seed in place?"
+            exit 1
+          fi
+          note "seeding $SEED_TICKETS tickets: service $service_id, origin unit $organizational_unit_id"
+
+          created=0
+          failed=0
+          for index in $(seq 1 "$SEED_TICKETS"); do
+            status=$(curl -sS -o /tmp/ticket.json -w '%{http_code}' \
+              -X POST "$BASE_URL/tickets" -H "$auth" -H 'content-type: application/json' \
+              -d "{\"title\":\"Perf smoke ticket $index\",\"description\":\"Seeded by the perf-smoke workflow so the detail, message and dashboard endpoints are measurable. Ticket $index of $SEED_TICKETS; safe to delete.\",\"impact\":\"MEDIUM\",\"urgency\":\"MEDIUM\",\"serviceId\":\"$service_id\",\"originUnitId\":\"$organizational_unit_id\",\"acknowledgeDuplicate\":true}")
+            case "$status" in
+              2*) created=$((created + 1)) ;;
+              *) failed=$((failed + 1)); [ "$failed" -le 3 ] && head -c 200 /tmp/ticket.json ;;
+            esac
+          done
+          note "tickets created: $created, failed: $failed"
+
+          if [ "$created" -eq 0 ]; then
+            echo "::error::no ticket could be created — the smoke would measure an empty app"
+            exit 1
+          fi
+
+          inbox=$(curl -sS -H "$auth" "$BASE_URL/tickets/inbox?pageSize=5" \
+            | read_json 'len(d.get("items", []) if isinstance(d, dict) else d)')
+          note "tickets visible in /tickets/inbox: $inbox"
+          if [ "$inbox" -eq 0 ]; then
+            # Not fatal, but it is the difference between "the agent flow measured nothing"
+            # and a real number: the group inbox lists unassigned PENDING tickets with a
+            # group, so an empty inbox means routing did not assign one.
+            note "::warning::the group inbox is empty — \`GET /tickets/:id\` and the message endpoint will report 0,00"
+          fi
+
       - uses: grafana/setup-k6-action@v1
 
       - name: Run the k6 smoke with CI thresholds
@@ -237,8 +329,8 @@ jobs:
           # Gate = the measured baseline plus headroom (the plan's iron rule: a threshold
           # comes from a measurement, not from an aspiration). TARGET is the engineering
           # goal tracked in PERF_BUDGETS.md; the gap is a work item, not a hidden failure.
-          BUDGET="${DB_QUERY_BUDGET:-32}"
-          TARGET="${DB_QUERY_TARGET:-8}"
+          BUDGET="${DB_QUERY_BUDGET:-8}"
+          TARGET="${DB_QUERY_TARGET:-3}"
           P95=0
           MAX=0
           if [ -s /tmp/app-queries.txt ]; then
@@ -329,6 +421,13 @@ jobs:
             echo ""
             echo '```'
             tail -30 perf-smoke.log 2>/dev/null || echo "(k6 nije ništa zapisao — run je stao prije prve iteracije)"
+            echo '```'
+            echo "</details>"
+            echo ""
+            echo "<details><summary>Seed tiketa — transkript</summary>"
+            echo ""
+            echo '```'
+            cat /tmp/seed-tickets.log 2>/dev/null || echo "(korak seeda nije pisao transkript)"
             echo '```'
             echo "</details>"
             echo ""

@@ -52,6 +52,7 @@ export const perfConfig = {
     unreadCount: '/notifications/unread-count',
     notifications: '/notifications',
     search: '/search',
+    dashboardSummary: '/reports/dashboard/summary',
   },
   behaviour: {
     // One message every 30 s per virtual agent (plan §5.1).
