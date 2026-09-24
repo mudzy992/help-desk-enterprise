@@ -29,7 +29,7 @@ regresija se ne spaja.
 | k6 error rate (2.800 VU, 30 min) | < 0,5 % | < 1 % | budžet × 2 za dijeljene CI runnere i hladan JIT — komentar u `perf/config.js::ciThresholds` |
 | P95 read (CI) | < 200 ms | < 500 ms | budžet × 2,5: nema izmjerenog P95 iz F3 (kod-nalaz), pa se prag veže na budžet; iron rule „mjereno × 1,5" primjenjuje se na prvom CI runu s pravim brojkama |
 | P95 mutacija (CI) | < 400 ms | < 1.000 ms | isto, budžet × 2,5 |
-| avg `db_queries_per_request` (CI) | ≤ 2 | ≤ 3 | budžet + 1 (agregatni upiti računaju se kao jedan zahtjev); provjerava se iz `api.log` u CI koraku. **Bootstrap (`/install/*`, `/health`) se izuzima** — vrti se jednom po stacku i nije dio profila opterećenja; ispisuje se odvojeno u istom koraku |
+| avg `db_queries_per_request` (CI) | ≤ 2 | ≤ 3 | budžet + 1 (agregatni upiti računaju se kao jedan zahtjev); provjerava se iz `api.log` u CI koraku. **Bootstrap (`/install/*`, `/health`, `/auth/login|logout|refresh`) se izuzima iz kapije** — vrti se jednom po stacku odnosno po sesiji (`setup()`), pa nije dio profila opterećenja; ispisuje se odvojeno u istom koraku. Izmjereno: `POST /auth/login` ≈ 9 upita (2026-09-24) — nije u SLO tabeli, ali stoji u PR komentaru da se cijena vidi |
 
 ## 2. Kako se mjeri
 

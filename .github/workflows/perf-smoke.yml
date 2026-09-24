@@ -203,7 +203,10 @@ jobs:
               }
               if (path == "") path = "?";
               total_sum += query; total_n += 1;
-              if (path ~ /^\/install/ || path ~ /^\/health/) {
+              # Bracket expression instead of `\/`: awk implementations disagree about
+              # an escaped slash inside a regex, and the first CI runs classified the
+              # bootstrap requests as application traffic because of it.
+              if (path ~ /^[/](install|health)/ || path ~ /^[/]auth[/](login|logout|refresh)/) {
                 bootstrap_sum += query; bootstrap_n += 1;
               } else {
                 app_sum += query; app_n += 1;
@@ -231,7 +234,7 @@ jobs:
           echo "avg (sve):              ${TOTAL_AVG} preko ${TOTAL_N} zahtjeva"
           echo "avg (aplikacija):       ${APP_AVG} preko ${APP_N} zahtjeva   <- kapija, budžet ${BUDGET}"
           echo "p95 / max (aplikacija): ${P95} / ${MAX}"
-          echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health)"
+          echo "bootstrap (izuzeto):    ${BOOTSTRAP_N} zahtjeva (install/health/auth-login)"
           echo "najskuplje rute:"
           sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -5 | sed 's/^/  /' || true
 
@@ -241,9 +244,9 @@ jobs:
             echo "| avg \`db_queries_per_request\` (aplikacija) | **${APP_AVG}** preko ${APP_N} zahtjeva (budžet ${BUDGET}) |"
             echo "| p95 / max (aplikacija) | ${P95} / ${MAX} |"
             echo "| avg (sve, s bootstrapom) | ${TOTAL_AVG} preko ${TOTAL_N} |"
-            echo "| bootstrap (\`/install/*\`, \`/health\`, izuzeto) | ${BOOTSTRAP_N} |"
+            echo "| bootstrap (\`/install/*\`, \`/health\`, \`/auth/login|logout|refresh\` — izuzeto iz kapije) | ${BOOTSTRAP_N} |"
             echo ""
-            echo "<details><summary>najskuplje rute po prosjeku upita</summary>"
+            echo "<details><summary>najskuplje rute po prosjeku upita (uključuje i izuzete rute)</summary>"
             echo ""
             echo '```'
             sort -k1,1nr /tmp/query-budget-paths.txt 2>/dev/null | head -8 || true
