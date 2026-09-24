@@ -52,7 +52,7 @@ export function TicketSplitPanel({
         {ticket.parentTicketId ? (
           <p className="mt-3 text-[12px]">
             {t("tickets.split.parent")}:{" "}
-            <Link className="tnum text-[#7FA8F5] hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
+            <Link className="tnum text-link transition-colors duration-150 hover:underline" to={`/tickets/${ticket.parentTicketId}`}>
               {formatParentTicketLabel(ticket) ?? t("tickets.split.parentFallback")}
             </Link>
           </p>
@@ -69,7 +69,7 @@ export function TicketSplitPanel({
           {t("tickets.split.childTwo")}
           <input className={controlClassName} value={secondTitle} onChange={(event) => setSecondTitle(event.target.value)} />
         </label>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-2 border-t border-border/70 pt-4">
           <Button
             type="button"
             size="sm"

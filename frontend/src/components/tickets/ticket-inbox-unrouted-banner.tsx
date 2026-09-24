@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export function TicketInboxUnroutedBanner() {
   const { t } = useTranslation();
   return (
-    <div className="mb-3 flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/6 px-4 py-3">
+    <div className="fade-in mb-3 flex items-start gap-3 rounded-lg border border-danger/30 bg-danger/6 px-4 py-3">
       <ShieldAlert
         size={16}
         className="mt-0.5 shrink-0 text-danger"

@@ -54,7 +54,7 @@ export function CreateTicketDraftView({
   onSubmit,
 }: CreateTicketDraftViewProperties) {
   return (
-    <form className="mt-1" onSubmit={onSubmit}>
+    <form className="fade-in mt-1" onSubmit={onSubmit}>
       <CreateTicketStepper activeIndex={step} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
         <Card>

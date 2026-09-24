@@ -146,7 +146,7 @@ export function KnowledgeArticleEditForm({
   };
 
   return (
-    <form className="grid gap-3" onSubmit={onSubmit}>
+    <form className="fade-in grid gap-3" onSubmit={onSubmit}>
       <Field label={t("knowledgeBase.titleField")} required>
         <Input
           value={title}

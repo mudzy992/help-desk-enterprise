@@ -53,7 +53,7 @@ export function OnboardingServiceStep({
   };
 
   return (
-    <form className="grid max-w-xl gap-3" onSubmit={submit}>
+    <form className="fade-in grid max-w-xl gap-3" onSubmit={submit}>
       <Field label={t("services.name")} required>
         <Input value={name} maxLength={128} required onChange={(event) => setName(event.target.value)} />
       </Field>

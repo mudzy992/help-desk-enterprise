@@ -33,7 +33,7 @@ export function ServiceOnboardingPipelineCard({
   const activeIndex = completed;
 
   return (
-    <Card className="mt-4">
+    <Card className="fade-in mt-4">
       <CardHeader
         title={t("services.onboarding.title")}
         subtitle={t("services.onboarding.subtitle")}
@@ -44,7 +44,7 @@ export function ServiceOnboardingPipelineCard({
         }
       />
       <div className="grid grid-cols-1 gap-3 px-4 pb-4 md:grid-cols-[220px_1fr]">
-        <div className="rounded-md border border-border bg-background/40 p-3">
+        <div className="rounded-lg border border-border bg-elevated/40 p-3">
           <p className="text-[12.5px] font-semibold text-foreground">
             {service?.name ?? "—"}
           </p>

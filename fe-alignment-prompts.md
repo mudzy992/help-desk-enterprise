@@ -2,6 +2,11 @@
 
 Generisano na osnovu `.cursor/docs/frontend-reference-alignment-plan.md` (status u planu: PLAN VALIDATED, implementacija još nije krenula).
 
+> **Istorijski dokument (prije Pulse-a).** Generisan je za staru tamnu temu i kanonski `referenca-dizajn/`.
+> Danas je kanonski **Pulse**: važi **samo `.cursor/docs/theme.md`** (a `theme-source.md` je arhiviran).
+> Vizuelni targeti iz arhiviranog `referenca-dizajn/` više ne važe; za izgled su mjerodavni
+> `Master UI-UX Design Constitution.md` i `demo/` prototip.
+
 ## Kako koristiti ovaj dokument
 
 1. Za **svaki task otvori NOVU agent sesiju** (novi chat) — ne nastavljaj stari razgovor, jer stari kontekst poskupljuje svaki naredni zahtjev.
@@ -90,7 +95,7 @@ Identični BADGE_TONES kao `ui.tsx`.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -136,7 +141,7 @@ Krivulja `cubic-bezier(0.22, 0.68, 0.36, 1)`.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -182,7 +187,7 @@ Label 12.5px, hint 11.5px.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -228,7 +233,7 @@ StatCard 24px tabular-nums; delta boja samo kad nosi odluku (nije dekorativna).
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -274,7 +279,7 @@ Thickness ~15, bar top radius 3px, stagger 28ms animacija.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -298,7 +303,7 @@ NE diraj druge FE-* taskove, ne implementiraj druge module, ne radi refactor ili
 
 Prije pisanja koda:
 1. Pročitaj sekciju FE-0.6 u `.cursor/docs/frontend-reference-alignment-plan.md`.
-2. Pročitaj referentne fajlove: Live `referenca-dizajn` (`Shell.tsx`, `ui.tsx`); `.cursor/docs/theme.md`; `.cursor/docs/theme-source.md` §13.
+2. Pročitaj referentne fajlove: `.cursor/docs/theme.md` (tokeni, palete, kontrast) i `Master UI-UX Design Constitution.md` (layout po ekranu); prototip identiteta je u `demo/`.
 3. Pročitaj trenutne fajlove koje mijenjaš: Live `frontend` (`application-shell`, `components/ui/*`).
 4. Dependency (mora već biti gotovo prije ovog taska): FE-0.1, FE-0.2, FE-0.3, FE-0.4, FE-0.5. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 5. Predloži kratak plan implementacije prije pisanja koda; sačekaj moju potvrdu.
@@ -326,7 +331,7 @@ Vizuelni zahtjevi (Visual):
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -378,7 +383,7 @@ Sekcijski naslov 10px uppercase, letter-spacing 0.12em.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -421,7 +426,7 @@ Broj dolazi iz API-ja; 0 se prikazuje konzistentno s referencom (referenca prika
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -467,7 +472,7 @@ Isti input chrome kao referenca.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -510,7 +515,7 @@ Filter all/unread vizuelno kao referenca (`bg-background` kad je "unread" filter
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -553,7 +558,7 @@ Nema regresije autentikacije.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -601,7 +606,7 @@ StatCard hover border `#31405C`.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -647,7 +652,7 @@ Legenda desno, tabular-nums, `.bar-grow` animacija.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -693,7 +698,7 @@ ID boja `#7FA8F5`, pause chip za waiting/approval statuse.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -736,7 +741,7 @@ Loading skeleton ostaje netaknut.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -784,7 +789,7 @@ Table head 10.5px uppercase; row hover `elevated/40`.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -832,7 +837,7 @@ Danger banner, "Preuzmi" dugme kao primary.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -886,7 +891,7 @@ Header card `px-5 py-4`, sidebar 330px. Ovo je PRIORITY visual gate (§13.5) —
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -931,7 +936,7 @@ Completed step ima success kvačicu; active step ima primary fill.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -979,7 +984,7 @@ Progress h-1.5, tabular-nums remaining vrijeme.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1027,7 +1032,7 @@ max-w 1400 već dolazi iz shell-a.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1073,7 +1078,7 @@ Warning boja samo za max bar (usko grlo/bottleneck).
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1116,7 +1121,7 @@ Dugme je `disabled` + `aria-disabled`; date filter mijenja agregacije u prikazu.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1164,7 +1169,7 @@ Vizuelni zahtjevi (Visual):
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1212,7 +1217,7 @@ Outline/danger dugmad; change reason kao Field komponenta.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1258,7 +1263,7 @@ Vizuelni zahtjevi (Visual):
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1306,7 +1311,7 @@ Hover title boja `#7FA8F5`; search kartica bez loma border-input chrome-a.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1354,7 +1359,7 @@ PageHeader crumbs "Usluge i znanje / [naziv članka]".
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1400,7 +1405,7 @@ CELL_STYLE klase preuzete iz reference.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1446,7 +1451,7 @@ UnderlineTabs komponenta.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1494,7 +1499,7 @@ Selected profile: `border-primary/50 bg-primary/8`.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1542,7 +1547,7 @@ n/a
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1585,7 +1590,7 @@ SLA/approval notifikacije otvaraju ispravan tiket; nepoznat kind ne ruši aplika
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1628,7 +1633,7 @@ Neuspješno slanje ne gubi draft tekst poruke.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1671,7 +1676,7 @@ Grep je čist osim dopuštenih vrijednosti: `#7FA8F5`, `#1D4FD8`, `#31405C`, ava
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1714,7 +1719,7 @@ Tab navigacija kroz cijeli shell + ticket list checkbox radi; SVI §13.5 module 
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1759,7 +1764,7 @@ Nijedna lista nije samo "Nema podataka" bez sljedećeg koraka za korisnika.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1805,7 +1810,7 @@ UnderlineTabs + PageHeader "Administracija sistema".
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1848,7 +1853,7 @@ Read-only mod AKO već postoji session read-only flag u FE (UNVERIFIED — provj
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1891,7 +1896,7 @@ NE implementirati config versioning/rollback.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 
@@ -1934,7 +1939,7 @@ Nula mock jobova — EmptyState samo, ništa izmišljeno.
 Opšta pravila iz plana (obavezno poštovati):
 - Postojeća API/state integracija ostaje; mijenja se samo vizuelni i interakcijski sloj kroz shared primitive-e.
 - Zabranjeni su izmišljeni/mock/hardcoded produkcijski podaci svugdje gdje postoji stvarni API/state.
-- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` i `.cursor/docs/theme-source.md`.
+- Ne uvoditi nove boje/hexove/radiuse/sjene mimo `.cursor/docs/theme.md` (izvor istine je kod: `frontend/src/index.css`).
 - Ne migrirati Tailwind v3→v4; ne mijenjati backend enume/DTO-ove osim ako je task eksplicitno backend-contract task.
 - Ako naiđeš na OPEN BLOCKER ili UNVERIFIED stavku (npr. B1–B6 iz poglavlja 14 plana) koja je izvan scope-a ovog taska, ne izmišljaj podatke/API — zaustavi se na tom dijelu, primijeni fallback opisan u tasku (ako postoji) i javi mi.
 

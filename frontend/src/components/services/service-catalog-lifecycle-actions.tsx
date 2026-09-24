@@ -60,7 +60,7 @@ export function ServiceCatalogLifecycleActions({
   };
 
   return (
-    <div className="grid w-full gap-2">
+    <div className="fade-in grid w-full gap-2">
       <Field label={t("services.changeReason")} required>
         <Input
           value={reason}

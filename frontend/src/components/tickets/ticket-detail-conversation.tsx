@@ -26,7 +26,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
   const { t } = useTranslation();
   return (
     <>
-      <div className="flex gap-3">
+      <div className="fade-in flex gap-3">
         <Avatar name={props.requesterName} size="md" />
         <div className="min-w-0 max-w-[78%]">
           <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
               {t("tickets.detail.description")}
             </span>
           </div>
-          <div className="mt-1 rounded-lg border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95">
+          <div className="mt-1 rounded-lg border border-border bg-surface px-3.5 py-2.5 text-[13px] leading-relaxed text-foreground/95 shadow-card">
             <p className="whitespace-pre-wrap">{props.ticket.description}</p>
           </div>
         </div>
@@ -47,6 +47,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           messages={props.messages}
           currentUserId={props.currentUserId}
           authorNames={props.authorNames}
+          viewport="fixed"
         />
       </div>
       {props.ticket.status === "ARCHIVED" ? null : (

@@ -48,7 +48,66 @@
       "admin": "Admin",
       "agent": "Agent",
       "user": "User"
-    }
+    },
+    "searchTrigger": "Search…"
+  },
+  "theme": {
+    "label": "Appearance",
+    "toggle": "Change appearance",
+    "modeGroup": "Brightness",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "systemHint": "follows the operating system",
+    "designGroup": "Design",
+    "designPulse": "Pulse",
+    "designPulseHint": "new identity",
+    "designClassic": "Classic",
+    "designClassicHint": "legacy dark theme",
+    "accentGroup": "Colour",
+    "accentIndigo": "Indigo",
+    "accentIndigoHint": "the default Pulse palette",
+    "accentTeal": "Teal",
+    "accentTealHint": "cool and calm",
+    "accentRose": "Rose",
+    "accentRoseHint": "warm and bold",
+    "active": "Active"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "subtitle": "Your choice is stored in this browser and applied instantly — it does not change how the application looks for anyone else.",
+    "designHeading": "Design",
+    "designHint": "The design drives the whole interface — colours, radii, shadows and density — without changing any behaviour.",
+    "modeHeading": "Brightness",
+    "modeHint": "Applies to the Pulse design; the classic theme is always dark.",
+    "accentHeading": "Brand palette",
+    "accentHint": "A palette rotates only the brand colours — surfaces, radii and semantic colours stay identical. It applies to the Pulse design and works in both brightnesses.",
+    "accentPulseOnly": "The brand palette applies to the Pulse design; the classic theme always keeps its own blue.",
+    "classicForcesDark": "The classic theme is dark, so brightness is locked while it is active. Your choice is remembered and applied when you switch back to Pulse.",
+    "resolvedHint": "Currently applied: {{mode}}.",
+    "previewHeading": "Preview",
+    "previewHint": "The core elements in the selected combination of design and brightness.",
+    "previewCardTitle": "Ticket card",
+    "previewCardBody": "A short description showing the typography, border and shadow on a card surface.",
+    "previewPrimaryAction": "Save",
+    "previewSecondaryAction": "Cancel",
+    "previewFieldLabel": "Subject",
+    "previewFieldValue": "I cannot connect to the VPN",
+    "previewProgress": "SLA used",
+    "previewBadge": "In progress",
+    "previewStatLabel": "Open tickets",
+    "storedNote": "The choice is stored locally in the browser (localStorage) and applied instantly; it does not affect other users.",
+    "reset": "Reset to default",
+    "openSettings": "All appearance settings"
+  },
+  "ui": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "dismiss": "Dismiss notification",
+    "clear": "Clear",
+    "selectAll": "Select all",
+    "loading": "Loading…"
   },
   "notifications": {
     "title": "Notifications",
@@ -1384,6 +1443,15 @@
       "saving": "Locking…",
       "errorSuperAdmin": "Create the SuperAdmin account first.",
       "errorGeneric": "Setup cannot be locked right now."
+    },
+    "progress": "Step {{current}} of {{total}}",
+    "steps": {
+      "superAdmin": "SuperAdmin",
+      "loginProvider": "Sign-in",
+      "smtp": "Email",
+      "seed": "Roles and data",
+      "addons": "Add-ons",
+      "complete": "Finish"
     }
   },
   "routing": {
@@ -1811,7 +1879,15 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Enterprise service center",
-    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration."
+    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration.",
+    "panelTitle": "Your service desk in one place",
+    "panelBody": "Tickets, service catalog, knowledge base and SLA — without switching tools.",
+    "pointTickets": "Service catalog with clear SLA targets",
+    "pointKnowledge": "A knowledge base that solves before a ticket exists",
+    "pointInsight": "Workload overview and reports you can act on",
+    "installHint": "First-time setup?",
+    "installLink": "Open the wizard",
+    "secure": "The connection is encrypted. Passwords are stored as hashes only."
   },
   "auth": {
     "changePassword": {
@@ -2333,5 +2409,20 @@
     "inDays_one": "in {{count}} day",
     "inDays_few": "in {{count}} days",
     "inDays_other": "in {{count}} days"
+  },
+  "palette": {
+    "title": "Command palette",
+    "open": "Open command palette",
+    "placeholder": "Search or jump to…",
+    "scope": "tickets, articles, users, pages",
+    "groupActions": "Actions",
+    "groupNavigation": "Navigation",
+    "noResults": "No results for “{{query}}”.",
+    "createTicket": "New ticket",
+    "createTicketHint": "From the service catalog",
+    "navigateHint": "to move",
+    "selectHint": "to open",
+    "closeHint": "to close",
+    "searching": "Searching…"
   }
 }

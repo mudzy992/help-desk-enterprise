@@ -64,7 +64,7 @@ export function DirectorySyncCard({
   }
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("directory.syncTitle")}
         subtitle={t("directory.syncSubtitle", {

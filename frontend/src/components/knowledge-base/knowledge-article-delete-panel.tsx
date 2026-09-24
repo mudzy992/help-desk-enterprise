@@ -52,7 +52,7 @@ export function KnowledgeArticleDeletePanel({
 
   if (!isConfirmOpen) {
     return (
-      <div className="border-t border-border/50 px-4 py-3">
+      <div className="border-t border-border/70 px-4 py-3">
         <Button
           type="button"
           size="sm"

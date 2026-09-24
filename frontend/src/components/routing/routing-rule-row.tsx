@@ -39,21 +39,21 @@ export function RoutingRuleRow({
     <>
       <tr className={tableRowClassName}>
         <td
-          className="px-4 py-2.5 tnum text-[12px] font-medium text-[#7FA8F5]"
+          className="px-4 py-2.5 tnum text-[12px] font-medium text-link"
           title={rule.id}
         >
           {truncateIdentifier(rule.id).toUpperCase()}
         </td>
         <td className="px-4 py-2.5">
-          <span className="block text-[12px] text-text/90">{rule.originUnitPath}</span>
+          <span className="block text-[12px] text-foreground/90">{rule.originUnitPath}</span>
         </td>
-        <td className="px-4 py-2.5 text-[12px] text-text/85">{rule.serviceName}</td>
+        <td className="px-4 py-2.5 text-[12px] text-foreground/85">{rule.serviceName}</td>
         <td className="px-4 py-2.5">
           <Badge tone="primary" dot={false}>
             {rule.groupName}
           </Badge>
         </td>
-        <td className="px-4 py-2.5 text-right text-[11px] text-muted">
+        <td className="px-4 py-2.5 text-right text-[11px] text-muted-foreground">
           <RelativeTime value={rule.updatedAt} locale={locale} />
         </td>
         <td className="px-4 py-2.5 text-right">

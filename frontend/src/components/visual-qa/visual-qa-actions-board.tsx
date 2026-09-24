@@ -10,6 +10,7 @@ const BADGE_TONES: readonly BadgeTone[] = [
   "warning",
   "danger",
   "info",
+  "hold",
 ];
 
 export function VisualQaActionsBoard() {

@@ -96,7 +96,7 @@ export function RoutingResolutionTester() {
           title={t("routing.testerInputTitle")}
           subtitle={t("routing.testerInputSubtitle")}
         />
-        <div className="space-y-4 px-4 py-4">
+        <div className="fade-in space-y-4 px-4 py-4">
           <Field
             label={t("routing.originUnitId")}
             hint={t("routing.testerOriginHint")}
@@ -125,8 +125,8 @@ export function RoutingResolutionTester() {
               ))}
             </Select>
           </Field>
-          <div className="rounded-md border border-border bg-background/50 px-3 py-2.5 text-[11px] leading-4.5 text-muted">
-            <code className="tnum text-text/80">
+          <div className="rounded-lg border border-border bg-elevated/50 px-3 py-2.5 text-[11px] leading-[15px] text-muted-foreground">
+            <code className="tnum text-foreground/80">
               GET /routing/resolve
               <br />
               ?originUnitId={originUnitId}

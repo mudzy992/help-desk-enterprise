@@ -65,7 +65,7 @@ export function ConfigVersionDiffPanel({
         />
       ) : null}
       {diffState.diff !== null && diffState.diff.changes.length > 0 ? (
-        <ul className="grid gap-1.5 font-mono text-[12px] leading-5 text-muted-foreground">
+        <ul className="fade-in grid gap-1.5 font-mono text-[12px] leading-5 text-muted-foreground">
           {diffState.diff.changes.map((change) => (
             <li key={change.path}>{formatConfigDiffChange(change)}</li>
           ))}

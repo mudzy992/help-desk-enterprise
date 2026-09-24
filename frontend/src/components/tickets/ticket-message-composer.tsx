@@ -3,6 +3,7 @@ import { MessageSquareLock, Paperclip, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
 import { errorTextClassName, textareaClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 import {
@@ -13,6 +14,8 @@ import {
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { MessageType } from "@/services/tickets-collaboration-api";
+
+type ComposerMode = "reply" | "internal";
 
 interface TicketMessageComposerProperties {
   readonly access: ComposerAccess;
@@ -43,6 +46,17 @@ export function TicketMessageComposer({
   const publicType = defaultMessageType(access);
   const type: MessageType = internal && canInternal ? "INTERNAL_NOTE" : publicType;
 
+  const composerModes: readonly SegmentedItem<ComposerMode>[] = canInternal
+    ? [
+        { value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> },
+        {
+          value: "internal",
+          label: t("tickets.detail.internalNote"),
+          icon: <MessageSquareLock size={12.5} />,
+        },
+      ]
+    : [{ value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> }];
+
   const submit = async () => {
     if (body.trim().length === 0) {
       return;
@@ -63,33 +77,14 @@ export function TicketMessageComposer({
   return (
     <Card className="mt-4">
       <form onSubmit={(event) => void onSubmit(event)}>
-        <div className="flex items-center gap-1 border-b border-border/70 px-3 py-2">
-          <button
-            type="button"
-            onClick={() => setInternal(false)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
-              !internal
-                ? "bg-primary/15 text-[#7FA8F5]"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Send size={12.5} /> {t("tickets.detail.publicReply")}
-          </button>
-          {canInternal ? (
-            <button
-              type="button"
-              onClick={() => setInternal(true)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors duration-150",
-                internal
-                  ? "bg-warning/15 text-warning"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <MessageSquareLock size={12.5} /> {t("tickets.detail.internalNote")}
-            </button>
-          ) : null}
+        <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
+          <Segmented<ComposerMode>
+            size="sm"
+            ariaLabel={t("tickets.detail.publicReply")}
+            value={internal && canInternal ? "internal" : "reply"}
+            onChange={(next) => setInternal(next === "internal")}
+            items={composerModes}
+          />
           <span className="ml-auto text-[11px] text-muted-foreground/70">
             {internal ? t("tickets.detail.internalHint") : t("tickets.detail.publicHint")}
           </span>

@@ -61,7 +61,7 @@ export function SlaEscalationsCard({
               <div key={rule.id} className="flex items-start gap-2.5">
                 <span
                   className={cn(
-                    "mt-0.5 flex size-6 items-center justify-center rounded-md border",
+                    "mt-0.5 flex size-6 items-center justify-center rounded-lg border",
                     isImmediate
                       ? "border-danger/30 bg-danger/10"
                       : "border-warning/30 bg-warning/10",
@@ -73,15 +73,15 @@ export function SlaEscalationsCard({
                   />
                 </span>
                 <div className="flex-1">
-                  <p className="tnum text-[12.5px] font-medium text-text">
+                  <p className="tnum text-[12.5px] font-medium text-foreground">
                     {t("sla.escalationAtOffset", {
                       minutes: rule.triggerOffsetMinutes,
                       level: rule.level,
                     })}
                   </p>
-                  <p className="text-[11.5px] leading-[18px] text-muted">
+                  <p className="text-[11.5px] leading-[18px] text-muted-foreground">
                     {t("sla.escalationNotifyAction")} ·{" "}
-                    <span className="text-text/70">
+                    <span className="text-foreground/70">
                       {formatSlaEscalationTarget(rule, t as never)}
                     </span>
                   </p>

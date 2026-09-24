@@ -97,7 +97,7 @@ export function LinkDirectoryIdentityDialog({
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("users.linkDirectoryHint")}
         </SheetDescription>
-        <div className="mt-4 grid gap-3 rounded-md border border-border/70 p-3 text-[12px]">
+        <div className="mt-4 grid gap-3 rounded-lg border border-border/70 p-3 text-[12px]">
           <p className="font-medium text-foreground">
             {t("users.linkDirectoryLocalLabel")}
           </p>
@@ -118,10 +118,10 @@ export function LinkDirectoryIdentityDialog({
                 <li key={entry.externalId}>
                   <button
                     type="button"
-                    className={`w-full rounded-md border px-2.5 py-2 text-left text-[12px] ${
+                    className={`w-full rounded-lg border px-2.5 py-2 text-left text-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 ${
                       selectedExternalId === entry.externalId
                         ? "border-primary bg-primary/10"
-                        : "border-border/70 hover:bg-elevated/50"
+                        : "border-border/70 hover:bg-surface-hover"
                     }`}
                     onClick={() => setSelectedExternalId(entry.externalId)}
                   >
@@ -136,7 +136,7 @@ export function LinkDirectoryIdentityDialog({
           )}
         </div>
         {selected ? (
-          <div className="mt-4 grid gap-2 rounded-md border border-border/70 p-3 text-[12px]">
+          <div className="mt-4 grid gap-2 rounded-lg border border-border/70 p-3 text-[12px]">
             <p className="font-medium">{t("users.linkDirectoryConfirmCompare")}</p>
             <p>
               {user.displayName} ({user.email}) → {selected.displayName} (

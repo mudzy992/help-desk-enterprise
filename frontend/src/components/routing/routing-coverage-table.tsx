@@ -66,10 +66,10 @@ export function RoutingCoverageTable({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[12px] text-muted">
+        <p className="text-[12px] text-muted-foreground">
           {t("routing.coverageStats", matrix.stats)}
         </p>
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted">
+        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
           {LEGEND.map((entry) => (
             <span key={entry.kind} className="flex items-center gap-1.5">
               <span
@@ -92,7 +92,7 @@ export function RoutingCoverageTable({
         >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted/70">
+              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground/70">
                 {t("routing.matrixAxis")}
               </th>
               {matrix.originUnits.map((origin) => (
@@ -101,13 +101,13 @@ export function RoutingCoverageTable({
                     className={cn(
                       "block text-[10.5px] font-medium",
                       hover?.originUnitId === origin.originUnitId
-                        ? "text-text"
-                        : "text-muted/80",
+                        ? "text-foreground"
+                        : "text-muted-foreground/80",
                     )}
                   >
                     {origin.originUnitShortName}
                   </span>
-                  <span className="block truncate text-[8.5px] font-normal text-muted/40">
+                  <span className="block truncate text-[8.5px] font-normal text-muted-foreground/40">
                     {origin.originUnitPath}
                   </span>
                 </th>
@@ -122,8 +122,8 @@ export function RoutingCoverageTable({
                     className={cn(
                       "text-[11.5px]",
                       hover?.serviceId === service.serviceId
-                        ? "text-text"
-                        : "text-text/80",
+                        ? "text-foreground"
+                        : "text-foreground/80",
                     )}
                   >
                     {service.serviceName}

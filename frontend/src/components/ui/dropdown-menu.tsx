@@ -26,6 +26,21 @@ export const DropdownMenuContent = forwardRef<
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
+export const DropdownMenuLabel = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.Label>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label>
+>(({ className, ...properties }, reference) => (
+  <DropdownMenuPrimitive.Label
+    ref={reference}
+    className={cn(
+      "px-3.5 pb-1 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
+      className,
+    )}
+    {...properties}
+  />
+));
+DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
+
 export const DropdownMenuItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Item>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
@@ -34,7 +49,7 @@ export const DropdownMenuItem = forwardRef<
     ref={reference}
     className={cn(
       "flex cursor-pointer items-center gap-2 px-3.5 py-2 text-[12.5px] text-foreground/90 outline-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-primary/70",
-      "focus:bg-background/60 data-[highlighted]:bg-background/60",
+      "focus:bg-surface-hover data-[highlighted]:bg-surface-hover",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-45",
       className,
     )}

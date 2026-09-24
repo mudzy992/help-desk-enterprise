@@ -60,11 +60,11 @@ export function TicketCsatPanel({ ticket, onComplete, onError }: TicketCsatPanel
                 setRating(value);
               }
             }}
-            className="rounded-md p-0.5 text-border transition-colors duration-150 hover:text-warning disabled:opacity-70"
+            className="rounded-full p-1 text-border transition-all duration-150 hover:scale-105 hover:text-warning focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70 disabled:opacity-70 disabled:hover:scale-100"
             aria-label={String(value)}
           >
             <Star
-              size={17}
+              size={18}
               className={cn(value <= rating ? "fill-warning text-warning" : "text-border")}
             />
           </button>

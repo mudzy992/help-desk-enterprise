@@ -77,7 +77,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
     });
   }
   return (
-    <div className="min-w-0">
+    <div className="page-in min-w-0">
       <UnderlineTabs
         className="mb-3"
         active={tab}

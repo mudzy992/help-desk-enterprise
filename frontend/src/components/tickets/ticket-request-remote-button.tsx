@@ -22,7 +22,7 @@ export function TicketRequestRemoteButton({
     return null;
   }
   return (
-    <span className="inline-flex flex-col items-end gap-1">
+    <span className="inline-flex flex-col items-end gap-1" aria-live="polite">
       <Button
         type="button"
         variant="outline"

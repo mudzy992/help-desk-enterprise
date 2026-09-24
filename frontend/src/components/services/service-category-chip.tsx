@@ -18,10 +18,10 @@ export function ServiceCategoryChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
         active
-          ? "border-primary/50 bg-primary/15 text-[#7FA8F5]"
-          : "border-border bg-surface text-muted-foreground hover:bg-elevated hover:text-foreground",
+          ? "border-primary/50 bg-primary/15 text-link"
+          : "border-border bg-surface text-muted-foreground hover:bg-surface-hover hover:text-foreground",
       )}
     >
       {label}

@@ -21,7 +21,7 @@ export function ServiceDowntimeWindowRow({
 }: ServiceDowntimeWindowRowProperties) {
   const { t, i18n } = useTranslation();
   return (
-    <li className="rounded-md border border-border/60 bg-elevated/20 px-3 py-2">
+    <li className="rounded-lg border border-border/70 bg-elevated/20 px-3 py-2">
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge
           tone={window.phase === "ACTIVE" ? "warning" : "info"}

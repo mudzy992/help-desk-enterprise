@@ -2,6 +2,7 @@ import { Bell, Flame, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ticketIdClassName } from "@/components/ui/control";
@@ -11,6 +12,13 @@ import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
 import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
 import { unroutedInboxTabKey } from "@/lib/tickets/inbox-view-tabs";
 import type { TicketResponse } from "@/services/tickets-api";
+
+/*
+  Pulse inbox: rows are list items, not table rows. The requester's avatar and
+  the priority pip carry the "who is waiting" signal, the badges stay on the
+  right edge where the eye scans for state, and the whole row is one big hit
+  target that brightens on hover (`group` also underlines the ticket number).
+*/
 
 interface TicketInboxListProperties {
   readonly activeTab: string;
@@ -50,7 +58,7 @@ export function TicketInboxList({
             }
           />
         ) : (
-          <ul className="divide-y divide-border/50">
+          <ul className="fade-in divide-y divide-border/50">
             {tickets.map((ticket) => (
               <InboxTicketRow
                 key={ticket.id}
@@ -77,6 +85,19 @@ export function TicketInboxList({
   );
 }
 
+function priorityMarker(ticket: TicketResponse) {
+  if (ticket.priority === "CRITICAL") {
+    return <Flame size={15} className="shrink-0 text-danger" aria-hidden="true" />;
+  }
+  return (
+    <span
+      className="size-[9px] shrink-0 rounded-full ring-2 ring-elevated"
+      style={{ backgroundColor: TICKET_PRIORITY_META[ticket.priority].dot }}
+      aria-hidden="true"
+    />
+  );
+}
+
 function InboxTicketRow({
   ticket,
   serviceNames,
@@ -98,20 +119,17 @@ function InboxTicketRow({
 }) {
   const navigate = useNavigate();
   const meta = inboxRowMeta(ticket, serviceNames, originNames, requesterNames);
+  const requesterName = requesterNames.get(ticket.requesterId)?.trim();
   return (
-    <li className="flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-elevated/40">
-      {ticket.priority === "CRITICAL" ? (
-        <Flame size={15} className="shrink-0 text-danger" aria-hidden="true" />
-      ) : (
-        <span
-          className="size-[15px] shrink-0 rounded-full border-2"
-          style={{ borderColor: TICKET_PRIORITY_META[ticket.priority].dot }}
-        />
-      )}
+    <li className="group flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-surface-hover">
+      {requesterName !== undefined && requesterName.length > 0 ? (
+        <Avatar name={requesterName} size="sm" />
+      ) : null}
+      <span className="flex w-3 shrink-0 justify-center">{priorityMarker(ticket)}</span>
       <button
         type="button"
         onClick={() => navigate(`/tickets/${ticket.id}`)}
-        className="min-w-0 flex-1 text-left"
+        className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
       >
         <p className="flex items-center gap-2">
           <span className={ticketIdClassName}>{ticket.ticketNumber}</span>

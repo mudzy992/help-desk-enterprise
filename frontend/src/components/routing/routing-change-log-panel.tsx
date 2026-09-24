@@ -36,18 +36,18 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
               <Badge tone="neutral" dot={false} className="tnum">
                 {entry.diff.action} · {entry.entityType}
               </Badge>
-              <span className="text-[11.5px] text-muted">
+              <span className="text-[11.5px] text-muted-foreground">
                 {entry.actorDisplayName ?? t("routing.changeUnknownActor")}{" "}
                 · <RelativeTime value={entry.createdAt} locale={i18n.language} />
               </span>
             </div>
-            <p className="mt-1.5 text-[12.5px] italic text-text/85">
+            <p className="mt-1.5 text-[12.5px] italic text-foreground/85">
               “{entry.reason}”
             </p>
-            <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-md border border-border`}>
+            <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
               <table className="w-full">
                 <thead>
-                  <tr className="bg-background/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted/70">
+                  <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground/70">
                     <th className="px-3 py-1.5 font-medium">
                       {t("routing.changeField")}
                     </th>
@@ -62,20 +62,20 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
                 <tbody className="divide-y divide-border/40">
                   {entry.diff.changes.length === 0 ? (
                     <tr className={tableRowClassName}>
-                      <td className="px-3 py-1.5 text-[11.5px] text-muted" colSpan={3}>
+                      <td className="px-3 py-1.5 text-[11.5px] text-muted-foreground" colSpan={3}>
                         {entry.diff.action}
                       </td>
                     </tr>
                   ) : (
                     entry.diff.changes.map((change) => (
                       <tr key={`${entry.id}-${change.path}`}>
-                        <td className="px-3 py-1.5 text-[11.5px] text-muted">
+                        <td className="px-3 py-1.5 text-[11.5px] text-muted-foreground">
                           {change.path}
                         </td>
                         <td className="px-3 py-1.5 text-[11.5px] text-danger/85 line-through decoration-danger/40 tnum">
                           {stringifyChange(change.before)}
                         </td>
-                        <td className="px-3 py-1.5 text-[11.5px] text-[#4ADE80] tnum">
+                        <td className="px-3 py-1.5 text-[11.5px] text-ok tnum">
                           {stringifyChange(change.after)}
                         </td>
                       </tr>

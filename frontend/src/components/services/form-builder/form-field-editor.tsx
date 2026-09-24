@@ -28,7 +28,7 @@ export function FormFieldEditor({
 }: FormFieldEditorProperties) {
   const { t } = useTranslation();
   return (
-    <div className="grid gap-2 rounded-md border border-border bg-background/40 p-3">
+    <div className="grid gap-2 rounded-lg border border-border bg-elevated/40 p-3">
       <div className="grid gap-2 md:grid-cols-2">
         <Field label={t("services.forms.fieldId")} required>
           <Input

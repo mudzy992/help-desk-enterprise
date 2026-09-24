@@ -142,7 +142,7 @@ export function TicketListPage() {
               ) : list.errorKey ? (
                 <TicketErrorState errorKey={list.errorKey} onRetry={() => void list.load()} />
               ) : list.visible.length === 0 ? (
-                <div className="rounded-lg border border-border bg-surface">
+                <div className="rounded-lg border border-border bg-surface shadow-card">
                   <TicketEmptyState
                     title={t("tickets.emptyFilterTitle")}
                     body={t("tickets.emptyFilterHint")}

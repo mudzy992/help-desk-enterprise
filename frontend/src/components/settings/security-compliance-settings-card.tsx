@@ -84,19 +84,19 @@ export function SecurityComplianceSettingsCard({
 
   return (
     <>
-      <Card>
+      <Card className="fade-in">
         <CardHeader title={t("settings.security.title")} />
         <div className="space-y-2 px-4 py-4">
           {rows.map((row) => (
             <button
               key={row.id}
               type="button"
-              className="flex w-full items-center gap-2.5 rounded-md border border-border/60 bg-background/40 px-3 py-2 text-left transition-colors hover:border-[#31405C]"
+              className="flex w-full items-center gap-2.5 rounded-lg border border-border/70 bg-elevated/40 px-3 py-2 text-left transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
               onClick={() => setOpenRow(row.id)}
             >
               <row.icon
                 size={14}
-                className={row.enabled ? "text-[#4ADE80]" : "text-muted-foreground/60"}
+                className={row.enabled ? "text-ok" : "text-muted-foreground/60"}
               />
               <span className="flex-1 text-[12px] text-foreground/90">
                 {t(row.labelKey)}

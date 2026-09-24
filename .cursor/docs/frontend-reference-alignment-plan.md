@@ -1,8 +1,11 @@
 # Frontend ↔ referenca-dizajn alignment plan
 
-Status: **PLAN VALIDATED** (visual QA baseline korigovan 2026-09-13; nema implementacije).
+Status: **ISTORIJSKI — većinski izvršen.** Ovaj plan je uveden dok je `referenca-dizajn/` (stara tamna tema)
+bio kanonski; danas je kanonski **Pulse** dizajn-sistem, a `referenca-dizajn/` je arhiviran.
+Zadržan je kao zapis **funkcionalnog** obima (FE-0…FE-6 taskovi: IA, primitive-i, semantičke mape, layout po ekranu)
+— sve što je u njemu „vizuelni target" **ne važi**; za izgled važe `Master UI-UX Design Constitution.md` i `.cursor/docs/theme.md`.
 Datum audita: 2026-09-13.
-Scope audita: frontend do kraja Faze 7 (Socket.IO ticket/chat, notifications, settings) + kanonski `referenca-dizajn/`.
+Scope audita: frontend do kraja Faze 7 (Socket.IO ticket/chat, notifications, settings) + `referenca-dizajn/` (tada kanonski).
 
 ---
 
@@ -30,8 +33,9 @@ Pregledano (repo, nije nagađanje):
 
 | Sloj | Šta |
 | --- | --- |
-| Referenca | `referenca-dizajn/src/{App,nav,index.css,lib/core}.ts(x)`, `components/{Shell,ui,charts}.tsx`, pages: Dashboard, Tickets, TicketDetail, NewTicket, Inbox, Catalog, Knowledge, Routing, Sla, Admin, Reports |
-| Tokeni | `.cursor/docs/theme.md`, `.cursor/docs/theme-source.md` |
+| Referenca (arhivirana) | `referenca-dizajn/src/{App,nav,index.css,lib/core}.ts(x)`, `components/{Shell,ui,charts}.tsx`, pages: Dashboard, Tickets, TicketDetail, NewTicket, Inbox, Catalog, Knowledge, Routing, Sla, Admin, Reports |
+| Referenca (aktuelna) | `demo/` — prototip Pulse identiteta |
+| Tokeni | `.cursor/docs/theme.md` (izvor istine: `frontend/src/index.css` + `tailwind.config.ts`) |
 | UX | `Master UI-UX Design Constitution.md` |
 | Current FE | `frontend/src/{app,layouts,pages,components,lib,services,i18n}` |
 | Domain | `.cursor/docs/00-mvp-scope.md`, `02-routing-logic.md`, matrice: catalog, onboarding, KB, routing, SLA, overdue, websocket, ticketing, bulk, participants |
@@ -43,10 +47,10 @@ Nije rađeno u auditu: vizuelni screenshot/browser pass, runtime protiv live API
 
 ## 3. Source hierarchy
 
-1. **Tematika:** `.cursor/docs/theme-source.md` pobjeđuje.
+1. **Tematika:** `.cursor/docs/theme.md` (izvor istine je kod). `theme-source.md` je **arhiviran**.
 2. **UX / interakcija:** `Master UI-UX Design Constitution.md` pobjeđuje.
-3. **Dokaz izgleda:** `referenca-dizajn/` je kanonski.
-4. **Implementacijski katalog tokena:** `.cursor/docs/theme.md`.
+3. **Dokaz izgleda:** **Pulse** — `demo/` prototip + `/appearance` + Visual QA tabla. `referenca-dizajn/` je **arhiviran**.
+4. **Implementacijski katalog tokena:** `.cursor/docs/theme.md` (tri ose: `data-theme`, `.dark`, `data-accent`).
 5. **Funkcionalnosti:** domain/matrix + postojeći `frontend/src/services/*`. Nema izmišljenih CRUD-ova.
 
 Terminologija (Constitution §11): tiket, usluga, katalog usluga, jedinica porijekla, handler grupa, neusmjereni red, baza znanja, usmjeravanje. Current nav label `Usluge` ostaje; vizuelni target je reference “Katalog usluga”.
@@ -433,7 +437,7 @@ Svaki task je jedan implementation prompt. Checkbox se označava tek nakon verif
   - Viewports (DevTools): **desktop 1440×900**, **mobile 390×844**. Desktop je primarni workspace (Constitution §33); mobile mora ostati funkcionalan, ne “umanjeni desktop”.
   - Screenshot side-by-side (OS/DevTools capture). U repo-u **nema** Playwright / Chromatic / Percy / Storybook — **ne uvoditi** novi visual-regression framework radi ovog plana. Radni snimci nisu git artefakt.
   - Prvi pass: Button aliases, Badge/MetaBadge, Card, Field/Input/Select/Textarea, Progress, StatCard, Tabs, EmptyState, plus shell chrome (sidebar 248 / overlay 270, topbar h-14, search, bell). Charts rendered smoke **nije** ovdje — to je FE-2.2 gate.
-**Reference:** live `referenca-dizajn` (`Shell.tsx`, `ui.tsx`); theme.md ekrani; theme-source §13.
+**Reference:** `theme.md` (shell mjere i tokeni) + `demo/` prototip. Arhivirani `referenca-dizajn` služio je kao istorijski izvor za ove mjere.
 **Current:** live `frontend` (`application-shell`, `components/ui/*`).
 **Dependencies:** FE-0.1–0.5.
 **Preserve:** ne novi design system; fix samo ako FE-0.1–0.5 primitive padne vizuelno.
@@ -967,7 +971,7 @@ Linear implementation prompt sequence je u §15.
 
 ## 12. Definition of Done (global)
 
-- [ ] kanonski theme tokens (hex iz theme-source; dual alias dozvoljen)
+- [ ] kanonski theme tokens (u Pulse-u: tokeni iz `index.css`; bez hardkodiranih hexova u komponentama)
 - [ ] shared primitives (Badge, Button aliases, Card, PageHeader, Tabs, Progress, Field/Input, Charts, EmptyState)
 - [ ] reference-equivalent layout (shell 248/h-14, content max-w 1400)
 - [ ] reference-equivalent spacing (kartice gap-3, header mb-5)
@@ -1037,7 +1041,7 @@ Task nije gotov dok rendered current ne zadovolji, u odnosu na referencu:
 | Layout | shell 248 / overlay 270 / topbar h-14; content max-w 1400 (izuzeća: detail 1440, new ticket 1060); Ticket Detail `xl:grid-cols-[1fr_330px]` KEEP |
 | Typography | Inter; PageHeader breadcrumb 11.5px, title 19px (Ticket Detail ID **16px** KEEP); jedan H1; `.tnum` na ID / brojačima / tajmerima |
 | Spacing | page `px-4 py-6 lg:px-8`; kartice `gap-3`; header `mb-5` |
-| Colors/tokens | hex samo iz theme-source / theme.md + dopušteni (`#7FA8F5`, `#1D4FD8`, `#31405C`, `#1B2436`, `#3B4A6B`, avatar hues) |
+| Colors/tokens | samo iz `theme.md` / `frontend/src/index.css` (bez hardkodiranih hexova u komponentama; stari „dopušteni hexovi" su važili za classic i više nisu pravilo) |
 | Borders | `border-border`; card hover border `#31405C`, ne sjena |
 | Radius | controls 6px, cards/panels 8px; nema pill CTA; nema kartica >8px |
 | Shadows | samo floating (`shadow-xl shadow-black/40` + `pop-in`) |

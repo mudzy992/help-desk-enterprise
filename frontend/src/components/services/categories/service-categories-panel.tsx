@@ -70,7 +70,7 @@ export function ServiceCategoriesPanel({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="fade-in grid gap-3">
       {errorKey ? (
         <ApiErrorText messageKey={errorKey} requestId={requestId} />
       ) : null}

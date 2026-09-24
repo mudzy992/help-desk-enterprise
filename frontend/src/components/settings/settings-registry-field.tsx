@@ -62,7 +62,7 @@ export function SettingsRegistryField({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-mono text-[11.5px] text-muted-foreground tnum">
+            <p className="tnum font-mono text-[11.5px] text-muted-foreground">
               {entry.key}
             </p>
             <Badge tone={visibilityTone[entry.visibility]} dot={false}>
@@ -86,7 +86,7 @@ export function SettingsRegistryField({
         />
       </div>
       {canWrite && isDirty ? (
-        <div className="flex flex-wrap items-end gap-2 border-t border-border/50 pt-2">
+        <div className="flex flex-wrap items-end gap-2 border-t border-border/70 pt-2">
           <input
             className={controlCompactClassName}
             value={reason}

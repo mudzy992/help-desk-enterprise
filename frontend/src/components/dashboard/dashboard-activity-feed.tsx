@@ -31,7 +31,7 @@ export function DashboardActivityFeed() {
   }, [refreshList]);
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("dashboard.activityTitle")}
         subtitle={t("dashboard.activitySubtitle")}
@@ -63,7 +63,7 @@ export function DashboardActivityFeed() {
                       navigate(path);
                     }
                   }}
-                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-elevated/50 disabled:cursor-default disabled:hover:bg-transparent"
+                  className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-hover disabled:cursor-default disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
                 >
                   <span
                     className="mt-1.5 size-1.5 shrink-0 rounded-full"
@@ -71,7 +71,7 @@ export function DashboardActivityFeed() {
                     aria-hidden="true"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[12px] leading-4.5 text-foreground/85">
+                    <span className="block text-[12px] leading-[18px] text-foreground/85">
                       {t(notificationTitleKey(notification.type), {
                         ticketNumber:
                           notification.payload?.ticketNumber ?? "",

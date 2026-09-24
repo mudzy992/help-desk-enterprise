@@ -37,8 +37,9 @@ interface TicketDetailSideStackProperties {
 
 export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
   return (
-    <div className="space-y-4">
+    <div className="page-in space-y-4">
       <TicketSlaPanel
+        key={props.ticket.id}
         ticket={props.ticket}
         context={props.slaContext}
         canConfigure={props.canConfigureSla}

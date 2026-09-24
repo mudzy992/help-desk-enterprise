@@ -37,19 +37,19 @@ export function GroupCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-colors hover:border-[#31405C]",
+        "fade-in overflow-hidden transition-colors hover:border-line-strong",
         group.isFallback && "border-l-[3px] border-l-warning",
-        isExpanded && "border-[#31405C] bg-elevated/40",
+        isExpanded && "border-line-strong bg-elevated/40",
       )}
     >
       <button
         type="button"
-        className="flex w-full items-start gap-3 px-4 py-3.5 text-left"
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
         onClick={onOpen}
         aria-expanded={isExpanded}
         aria-label={t("groups.openCard", { name: group.name })}
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-elevated text-muted-foreground">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-elevated text-muted-foreground">
           <UsersRound size={16} />
         </span>
         <div className="min-w-0 flex-1">
@@ -80,7 +80,7 @@ export function GroupCard({
           </p>
         </div>
       </button>
-      <div className="flex flex-wrap gap-1.5 border-t border-border/60 px-4 py-2">
+      <div className="flex flex-wrap gap-1.5 border-t border-border/70 px-4 py-2">
         <Button type="button" size="xs" variant="outline" onClick={onOpen}>
           {isExpanded ? t("groups.hideMembers") : t("groups.manageMembers")}
         </Button>

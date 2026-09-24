@@ -3,6 +3,7 @@ import { ShieldAlert } from "lucide-react";
 import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   tableHeadClassName,
   tableRowClassName,
@@ -12,7 +13,15 @@ import {
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
 import { useTicketText } from "@/lib/tickets/use-ticket-text";
+import { cn } from "@/lib/utils";
 import type { TicketResponse } from "@/services/tickets-api";
+
+/*
+  Pulse list table: a calm surface with one loud element per row (the state
+  badges). The ticket cell carries two lines — number plus title — so the row
+  reads as a list item, not as eight unrelated columns; the title only brightens
+  on hover, which keeps a full table from looking busy.
+*/
 
 interface TicketListTableProperties {
   readonly tickets: readonly TicketResponse[];
@@ -60,9 +69,7 @@ function assignmentCell(
   if (ticket.assignedUserId === null) {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="tnum text-[12px] text-foreground/80">
-          {groupName}
-        </span>
+        <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
         <Badge tone="info" dot={false}>
           {t("tickets.assignment.groupOnly")}
         </Badge>
@@ -71,12 +78,10 @@ function assignmentCell(
   }
   return (
     <div className="flex items-center gap-1.5">
-      <span className="tnum text-[12px] text-foreground/80">
-        {groupName}
-      </span>
+      <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
       {assigneeName !== null ? (
         <>
-          <span className="text-muted-foreground/50">·</span>
+          <span className="text-muted-foreground/40">·</span>
           <Avatar name={assigneeName} size="xs" />
         </>
       ) : (
@@ -98,16 +103,16 @@ export function TicketListTable({
   const { t, i18n } = useTicketText();
   const navigate = useNavigate();
   const allSelected = tickets.length > 0 && tickets.every((ticket) => selectedIds.has(ticket.id));
+  const someSelected = !allSelected && tickets.some((ticket) => selectedIds.has(ticket.id));
   return (
-    <div className={tableWrapClassName}>
+    <div className={cn(tableWrapClassName, "fade-in")}>
       <table className="w-full min-w-[900px] text-left">
         <thead>
-          <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
+          <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}>
             <th className="w-10 px-4 py-2.5">
-              <input
-                type="checkbox"
-                className="size-3.5"
+              <Checkbox
                 checked={allSelected}
+                indeterminate={someSelected}
                 onChange={(event) => onTogglePage(event.target.checked)}
                 aria-label={t("tickets.bulk.select")}
               />
@@ -122,60 +127,65 @@ export function TicketListTable({
           </tr>
         </thead>
         <tbody>
-          {tickets.map((ticket) => (
-            <tr
-              key={ticket.id}
-              className={`${tableRowClassName} cursor-pointer`}
-              onClick={() => navigate(`/tickets/${ticket.id}`)}
-            >
-              <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
-                <input
-                  type="checkbox"
-                  className="size-3.5"
-                  checked={selectedIds.has(ticket.id)}
-                  onChange={() => onToggleSelected(ticket.id)}
-                  aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
-                />
-              </td>
-              <td className="px-2 py-2.5">
-                <div className="flex items-center gap-2">
-                  {ticket.isConfidential ? (
-                    <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
-                  ) : null}
-                  <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
-                    {ticket.ticketNumber}
-                  </Link>
-                  {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
-                  {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
-                    <TicketAtRiskBadge />
-                  ) : null}
-                </div>
-                <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-foreground/90">
-                  {ticket.title}
-                </p>
-              </td>
-              <td className="px-4 py-2.5">
-                <span className="text-[12px] text-muted-foreground">
-                  {serviceNames.get(ticket.serviceId) ?? "—"}
-                </span>
-              </td>
-              <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
-                {originNames?.get(ticket.originUnitId) ?? "—"}
-              </td>
-              <td className="px-4 py-2.5">
-                <TicketStatusBadge status={ticket.status} />
-              </td>
-              <td className="px-4 py-2.5">
-                <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
-              </td>
-              <td className="px-4 py-2.5">
-                {assignmentCell(ticket, t, assigneeNames)}
-              </td>
-              <td className="px-4 py-2.5 text-right text-[12px] text-muted-foreground">
-                <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
-              </td>
-            </tr>
-          ))}
+          {tickets.map((ticket) => {
+            const isSelected = selectedIds.has(ticket.id);
+            return (
+              <tr
+                key={ticket.id}
+                className={cn(
+                  tableRowClassName,
+                  "cursor-pointer",
+                  isSelected && "bg-primary/6 hover:bg-primary/8",
+                )}
+                onClick={() => navigate(`/tickets/${ticket.id}`)}
+              >
+                <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => onToggleSelected(ticket.id)}
+                    aria-label={t("tickets.bulk.selectRow", { number: ticket.ticketNumber })}
+                  />
+                </td>
+                <td className="px-2 py-2.5">
+                  <div className="flex items-center gap-2">
+                    {ticket.isConfidential ? (
+                      <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
+                    ) : null}
+                    <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+                      {ticket.ticketNumber}
+                    </Link>
+                    {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
+                    {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
+                      <TicketAtRiskBadge />
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 max-w-[340px] truncate text-[12.5px] text-muted-foreground transition-colors duration-150 group-hover:text-foreground/95">
+                    {ticket.title}
+                  </p>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="text-[12px] text-muted-foreground">
+                    {serviceNames.get(ticket.serviceId) ?? "—"}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="text-[12px] text-muted-foreground">
+                    {originNames?.get(ticket.originUnitId) ?? "—"}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <TicketStatusBadge status={ticket.status} />
+                </td>
+                <td className="px-4 py-2.5">
+                  <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
+                </td>
+                <td className="px-4 py-2.5">{assignmentCell(ticket, t, assigneeNames)}</td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-right text-[11.5px] text-muted-foreground">
+                  <RelativeTime value={ticket.updatedAt} locale={i18n.language} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

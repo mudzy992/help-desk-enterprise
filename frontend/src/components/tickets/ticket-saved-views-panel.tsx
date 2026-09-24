@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName } from "@/components/ui/control";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { filtersFromSavedView, savedViewInputFromFilters } from "@/lib/tickets/saved-view-filters";
@@ -69,8 +70,8 @@ export function TicketSavedViewsPanel({
           }}
           className={
             activeId === view.id
-              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left"
-              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-elevated/60"
+              ? "w-full rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+              : "w-full rounded-md border border-transparent px-3 py-2 text-left transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
           }
         >
           <span className="flex items-center justify-between gap-2">
@@ -87,10 +88,12 @@ export function TicketSavedViewsPanel({
         onChange={(event) => setName(event.target.value)}
         placeholder={t("tickets.savedViews.namePlaceholder")}
       />
-      <label className="flex items-center gap-2 px-1 text-[12px] text-muted-foreground">
-        <input type="checkbox" checked={asDefault} onChange={(event) => setAsDefault(event.target.checked)} />
-        {t("tickets.savedViews.makeDefault")}
-      </label>
+      <Checkbox
+        className="px-1"
+        checked={asDefault}
+        onChange={(event) => setAsDefault(event.target.checked)}
+        label={t("tickets.savedViews.makeDefault")}
+      />
       <Button
         type="button"
         size="sm"

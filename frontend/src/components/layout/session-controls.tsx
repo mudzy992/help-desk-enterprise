@@ -1,4 +1,4 @@
-import { ChevronDown, Languages, LogOut, Settings2, Ticket } from "lucide-react";
+import { ChevronDown, Languages, LogOut, Palette, Settings2, Ticket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -39,7 +40,7 @@ export function SessionControls() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-elevated focus-visible:outline-2 focus-visible:outline-primary/70"
+          className="flex items-center gap-2 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-primary/70"
         >
           <Avatar name={displayName} size="sm" />
           <span className="hidden text-left leading-tight md:block">
@@ -52,14 +53,18 @@ export function SessionControls() {
           </span>
           <ChevronDown
             size={13}
-            className="text-muted-foreground/70"
+            className="text-muted-foreground"
             aria-hidden="true"
           />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-[15rem]">
+        <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => navigate("/tickets?view=assigned")}>
           <Ticket size={13} /> {t("shell.assignedTickets")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate("/appearance")}>
+          <Palette size={13} /> {t("theme.label")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate("/settings")}>
           <Settings2 size={13} /> {t("shell.accountSettings")}
@@ -73,7 +78,7 @@ export function SessionControls() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-danger/90"
+          className="text-danger"
           onSelect={() => {
             signOut();
           }}

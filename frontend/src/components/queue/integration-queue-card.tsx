@@ -36,7 +36,7 @@ export function IntegrationQueueCard({
   const workerStatus = useIntegrationWorkerStatus(enabled);
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("integrationQueue.heading")}
         subtitle={t("integrationQueue.headingHint")}

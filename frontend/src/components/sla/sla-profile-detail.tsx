@@ -96,7 +96,7 @@ export function SlaProfileDetail({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="fade-in space-y-4">
       <SlaProfileDetailHeader
         profile={profile}
         canWrite={canWrite}

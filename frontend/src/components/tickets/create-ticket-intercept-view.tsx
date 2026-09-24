@@ -31,7 +31,7 @@ export function CreateTicketInterceptView({
 }: CreateTicketInterceptViewProperties) {
   const { t } = useTranslation();
   return (
-    <div className="mt-1">
+    <div className="fade-in mt-1">
       <CreateTicketStepper activeIndex={2} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
         <Card>

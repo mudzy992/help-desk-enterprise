@@ -52,7 +52,7 @@ export function CreateTicketFields({
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.titleField")}
-            <span className="text-danger"> *</span>
+            <span className="text-danger" aria-hidden="true"> *</span>
           </span>
           <input
             className={controlClassName}
@@ -66,7 +66,7 @@ export function CreateTicketFields({
           <label className={labelClassName}>
             <span>
               {t("tickets.originUnit")}
-              <span className="text-danger"> *</span>
+              <span className="text-danger" aria-hidden="true"> *</span>
             </span>
             <select
               className={selectClassName}
@@ -95,7 +95,7 @@ export function CreateTicketFields({
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.descriptionField")}
-            <span className="text-danger"> *</span>
+            <span className="text-danger" aria-hidden="true"> *</span>
           </span>
           <textarea
             className={textareaClassName}
@@ -105,7 +105,7 @@ export function CreateTicketFields({
           />
         </label>
         {activeForm ? (
-          <div className="grid gap-2 md:col-span-2">
+          <div className="grid gap-2 border-t border-border/70 pt-4 md:col-span-2">
             <p className="text-[13.5px] font-semibold text-foreground">{t("tickets.formFields")}</p>
             <ServiceFormFields
               schema={activeForm.schema}

@@ -43,7 +43,7 @@ export function DashboardInboxSnapshot({
   }));
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("dashboard.inboxSnapshotTitle")}
         subtitle={t("dashboard.inboxSnapshotSubtitle")}
@@ -59,7 +59,7 @@ export function DashboardInboxSnapshot({
         {unroutedCount > 0 ? (
           <Link
             to="/tickets?view=all&status=UNROUTED"
-            className="mb-3.5 flex w-full items-center gap-2.5 rounded-md border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/12"
+            className="mb-3.5 flex w-full items-center gap-2.5 rounded-lg border border-danger/35 bg-danger/8 px-3 py-2.5 text-left transition-colors hover:bg-danger/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
           >
             <ShieldAlert size={15} className="shrink-0 text-danger" />
             <span className="flex-1 text-[12.5px] text-foreground">

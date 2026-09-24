@@ -32,7 +32,7 @@ export function AddonsSettingsPanel({
   }
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("settings.addons.title")}
         subtitle={t("settings.addons.subtitle")}

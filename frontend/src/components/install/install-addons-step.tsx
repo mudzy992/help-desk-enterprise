@@ -62,11 +62,11 @@ export function InstallAddonsStep({
   };
 
   if (isLoading) {
-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
   return (
-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={(event) => void onSubmit(event)}>
+    <form className="grid gap-4" onSubmit={(event) => void onSubmit(event)}>
       {items.map((item) => (
         <AddonSwitch
           key={item.key}

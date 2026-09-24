@@ -30,7 +30,7 @@ export function TicketWorkspaceNav({
           key={item}
           to={item === "inbox" ? "/tickets" : `/tickets?view=${item}`}
           className={cn(
-            "relative flex h-[38px] items-center whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150",
+            "relative flex h-[38px] items-center whitespace-nowrap rounded-t-md px-3 text-[12.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
             view === item
               ? "text-foreground"
               : "text-muted-foreground hover:text-foreground",

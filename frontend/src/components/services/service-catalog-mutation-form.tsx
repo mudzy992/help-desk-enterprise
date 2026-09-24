@@ -63,7 +63,7 @@ export function ServiceCatalogMutationForm({
   };
 
   return (
-    <form className="mt-4 grid gap-3" onSubmit={submit}>
+    <form className="fade-in mt-4 grid gap-3" onSubmit={submit}>
       <Field label={t("services.name")} required>
         <Input
           value={name}

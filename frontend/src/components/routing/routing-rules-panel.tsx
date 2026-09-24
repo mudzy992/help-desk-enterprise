@@ -41,7 +41,7 @@ export function RoutingRulesPanel() {
   }, [loadRules]);
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
+    <div className="fade-in grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
       <Card>
         <CardHeader
           title={t("routing.rulesHeading")}

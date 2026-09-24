@@ -108,11 +108,11 @@ export function InstallLoginProviderStep({
   }
 
   if (isLoading) {
-    return <PanelSkeleton className="mt-6" label={t("install.loading")} />;
+    return <PanelSkeleton className="mt-0" label={t("install.loading")} />;
   }
 
   return (
-    <form className="mt-6 grid max-w-xl gap-3" onSubmit={onSubmit}>
+    <form className="grid gap-4" onSubmit={onSubmit}>
       <fieldset className="grid gap-2">
         <legend className="text-[12.5px] font-medium text-foreground">
           {t("install.loginProvider.mode")}

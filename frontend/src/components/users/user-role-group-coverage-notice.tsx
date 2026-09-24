@@ -14,7 +14,7 @@ export function UserRoleGroupCoverageNotice({
   return (
     <p
       role="status"
-      className="mt-1 text-[11px] text-sky-800 dark:text-sky-300"
+      className="mt-1 text-[11px] text-info"
     >
       <Trans
         i18nKey="users.roleGroupCoverageWarning"

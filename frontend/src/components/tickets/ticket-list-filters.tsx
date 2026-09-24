@@ -1,13 +1,8 @@
 import type { TFunction } from "i18next";
 import { Filter, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import {
-  controlCompactClassName,
-  filterChipActiveClassName,
-  filterChipClassName,
-  filterChipIdleClassName,
-  selectCompactClassName,
-} from "@/components/ui/control";
+import { Chip } from "@/components/ui/chip";
+import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 import {
   ticketPriorityValues,
@@ -101,30 +96,20 @@ export function TicketListFiltersBar({
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
-        <button
-          type="button"
+        <Chip
+          active={filters.priority === ""}
           onClick={() => onChange({ ...filters, priority: "" })}
-          className={cn(
-            filterChipClassName,
-            filters.priority === "" ? filterChipActiveClassName : filterChipIdleClassName,
-          )}
         >
           {t("tickets.filters.priorityAll")}
-        </button>
+        </Chip>
         {ticketPriorityValues.map((priority) => (
-          <button
+          <Chip
             key={priority}
-            type="button"
+            active={filters.priority === priority}
             onClick={() => onChange({ ...filters, priority })}
-            className={cn(
-              filterChipClassName,
-              filters.priority === priority
-                ? filterChipActiveClassName
-                : filterChipIdleClassName,
-            )}
           >
             {ticketText(t, ticketPriorityLabelKey[priority])}
-          </button>
+          </Chip>
         ))}
       </div>
       <label className="sr-only" htmlFor="ticket-list-service">

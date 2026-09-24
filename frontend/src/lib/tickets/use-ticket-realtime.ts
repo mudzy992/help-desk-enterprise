@@ -7,6 +7,7 @@ import {
 } from "@/services/ticket-socket";
 import {
   applyTicketUpdatedPayload,
+  shouldReloadTicketFromUpdated,
   type TicketUpdatedRealtimePayload,
 } from "@/lib/realtime/apply-ticket-updated";
 import { nextJoinedTicketRoom } from "@/lib/realtime/next-joined-ticket-room";
@@ -76,6 +77,11 @@ export function useTicketRealtime({
           return;
         }
         applyTicket((current) => applyTicketUpdatedPayload(current, payload));
+        if (shouldReloadTicketFromUpdated(payload)) {
+          // SLA state lives only on the server snapshot; re-read it so the
+          // panel and the badge cannot drift from the stored timers.
+          void reload();
+        }
       },
     );
     return () => {

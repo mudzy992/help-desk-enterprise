@@ -1,35 +1,68 @@
 ---
-description: EP-HelpDesk UI/UX — Constitution is the design source of truth.
+description: EP-HelpDesk UI/UX — Pulse je aktivni dizajn-sistem, classic je naslijeđe.
 globs: ["frontend/**/*.tsx", "frontend/**/*.ts", "frontend/**/*.css", ".cursor/docs/theme.md"]
 alwaysApply: false
 ---
 
-# UI/UX (Constitution)
+# UI/UX (Pulse)
 
-Source of truth: `Master UI-UX Design Constitution.md`.
-Tokens: `.cursor/docs/theme.md`.
-Ignoriši globalna “Apple-linear / one-page / marketing landing” pravila.
+Dizajn-sistem: **Pulse** — `.cursor/docs/theme.md` § Pulse.
+Naslijeđe: **classic** (stara tamna tema) — ostaje dostupno preko `data-theme="classic"`.
+Ignoriši globalna "Apple-linear / one-page / marketing landing" pravila.
 
 North star: **maximum operational clarity with minimum visual noise.**
+Identitet: **light-first, sa ravnopravnim tamnim modom.** Nije više dark-only.
+
+## Kako tema radi
+
+- `data-theme` na `<html>`: `pulse` (default) ili `classic`. Biramo u topbaru (`ThemeSwitcher`).
+- `.dark` klasa na `<html>`: tamni mod unutar Pulse-a (i obavezna za `classic`).
+- `data-accent` na `<html>`: **brend paleta** unutar Pulse-a — `indigo` (default) / `teal` / `rose`.
+  Paleta rotira **samo** brend boje (`--primary*`, `--ring`, `--link`, `--selection-*`, `--shadow-glow`); površine,
+  radius i semantički tonovi se ne mijenjaju. U `classic` se ignoriše (tamo je brend uvijek plava).
+- Nikad ne pretpostavljaj da je `--primary` tamna boja — u tamnom modu i u `teal`/`rose` paleti je svijetla.
+- **Nikad ne piši hardkodiranu boju** (`#RRGGBB`, `rgb(...)`) u komponentu. Samo tokeni.
+- Prozirnost ide kroz alpha modifier nad tokenom: `bg-surface/60`, `border-border/70`, `text-muted-foreground/70`.
+- Tokeni su RGB kanali u `src/index.css` (`--surface: 255 255 255`) i mapiraju se u `tailwind.config.ts`
+  (`rgb(var(--surface) / <alpha-value>)`). Dodavanje nove boje znači dodavanje varijable u **sva tri** bloka.
+- Tekst na primary tintu koristi `text-link`, nikad `text-primary` (`--link` je token za čitljiv brand-tekst).
+- Kontrast je mjerljiv zahtjev: tekst na `primary` **i** `primary` kao tekst na površini ≥ **4.5:1** u obje svjetline
+  i u svakoj paleti. `--selection-fg` mora biti taman u svijetlim paletama, a svijetao u tamnim (selekcija se crta
+  kao alpha blend preko podloge); `--primary-foreground` prati primarnu boju, ne svjetlinu teme.
+- Radius i sjena su tokeni po temi: `rounded-md` = 8px / `rounded-lg` = 12px u Pulse (6px/8px u classic);
+  `shadow-card` = `none` u classic. `rounded-xl` se **ne koristi** — nije vezan na token.
+- `--shadow-glow` je namjerni Pulse izuzetak (meki primary glow), u `classic` je `none`.
+- Boje statusa dolaze iz `src/lib/theme/semantic-meta.ts` (`SEMANTIC_DOT_HEX`) — tamo su već CSS varijable.
 
 ## Layout
 
 - Application shell: compact sidebar + content. Bez hero sekcija i ornamentalnih gridova.
-- Svaki ekran po poslu: list = tabela; ticket details = workspace; OU = tree; routing = WHEN/THEN; dashboard = “šta da uradim”, ne BI.
-- Dense but breathable. 80–90% neutrals. Primary samo CTA / active nav / focus.
+- Svaki ekran po poslu: list = tabela; ticket details = workspace; OU = tree; routing = WHEN/THEN; dashboard = "šta da uradim", ne BI.
+- Raspored i gustoća se **ne mijenjaju** sa promjenom teme — mijenja se samo vizuelni sloj.
 
 ## Must
 
 - Ticket create: KB intercept je obavezan UX korak.
-- Status/priority labele: RAW (`Pending`…`Closed`, `Low`…`Critical`), vizuelni tretman iz Constitution.
+- Status/priority labele: RAW (`Pending`…`Closed`, `Low`…`Critical`), vizuelni tretman iz `semantic-meta.ts`.
 - Forms: label (ne placeholder), loading/error/success/disabled. Nema sirovih backend poruka.
 - Loading = skeleton layout-a. Empty state = šta / zašto / sljedeća akcija.
-- Realtime = diskretan update, ne toast za svaku promjenu.
+- Realtime = diskretan update, ne toast za svaku promjenu. Toast je za ishod korisničke akcije.
+- Destruktivne radnje: `ConfirmDialog` sa `intent="danger"` + razlog gdje ga change log zahtijeva.
 - Desktop primary; mobilni breakpoint: drawer/sheet umjesto dialoga.
+- Fokus mora biti vidljiv: `focus-visible:outline-2 focus-visible:outline-primary/70` ili `focus:ring-2 focus:ring-primary/25`.
+- Preferiraj postojeće primitive iz `components/ui` — Segmented, Chip, Modal, ConfirmDialog, Toast,
+  Sheet, Tabs, Table (klase u `control.ts`) prije nove komponente.
+- Ako dodaješ token (boju), dodaj ga u **sva tri** bloka u `src/index.css` — blok koji nedostaje znači da
+  vrijednost pada na tuđu (klasičnu) boju. Brend boje idu u paletne blokove, ne u bazni.
 
 ## Zabranjeno
 
-Glassmorphism, neon/purple/AI gradijenti, glowing borders, giant radius, card-grid za sve, decorative charts, gradient buttons, Linear clone.
+Glassmorphism, glowing borders, neon, decorative charts, card-grid za sve, Linear clone,
+gradijenti u komponentama (jedini izuzetak je `.pulse-gradient` kao brend pano na prijavi/instalaciji),
+proizvoljne boje van tokena, `!important`, i nova zavisnost bez potrebe.
+
+Provjera prije nego što tvrdiš da je UI gotov: `npx tsc -b`, `npx vitest run`, `npx vite build` (klase i
+`t()` ključevi se provjeravaju protiv generisanog CSS-a / oba lokala — „izgleda ispravno u kodu" nije dokaz).
 
 Prije novog UI elementa: `components/ui` → shared → tokeni → tek onda nova komponenta.
-Prije većeg ekrana: pročitaj odgovarajući paragraf Constitution (ne nagađaj layout).
+Prije većeg ekrana: pročitaj odgovarajući paragraf u `.cursor/docs/theme.md` (ne nagađaj layout).

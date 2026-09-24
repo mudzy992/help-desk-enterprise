@@ -53,10 +53,10 @@ export function CreateTicketServicePicker({
               type="button"
               onClick={() => onSelect(service.id)}
               className={cn(
-                "rounded-lg border p-3.5 text-left transition-all duration-150",
+                "rounded-lg border p-3.5 text-left transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                 selected
                   ? "border-primary/60 bg-primary/10"
-                  : "border-border bg-background/40 hover:border-[#31405C] hover:bg-elevated/50",
+                  : "border-border bg-background/40 hover:border-line-strong hover:bg-surface-hover",
               )}
             >
               <div className="flex items-center justify-between gap-2">

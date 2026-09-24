@@ -24,6 +24,7 @@ import { InstallPage } from "@/pages/install-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { AdminPage } from "@/pages/admin-page";
+import { AppearancePage } from "@/pages/appearance-page";
 import { LoginPage } from "@/pages/login-page";
 import { ReportsPage } from "@/pages/reports-page";
 import { RoutingPage } from "@/pages/routing-page";
@@ -70,6 +71,7 @@ export function AppRouter() {
               <Route index element={<KnowledgeBasePage />} />
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
             </Route>
+            <Route path="appearance" element={<AppearancePage />} />
             <Route
               path="users"
               element={<LegacyAdminRedirect tab="users" />}

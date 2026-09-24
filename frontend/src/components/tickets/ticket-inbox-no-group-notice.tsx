@@ -15,7 +15,7 @@ export function TicketInboxNoGroupNotice({
   return (
     <div
       role="status"
-      className="mb-3 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3"
+      className="fade-in mb-3 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/6 px-4 py-3"
     >
       <Users
         size={16}

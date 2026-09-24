@@ -102,14 +102,14 @@ export function KnowledgeArticleList({
     );
   }
   return (
-    <ul className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+    <ul className="fade-in grid grid-cols-1 gap-3 xl:grid-cols-2">
       {items.map((item) => {
         const owner = ownerLabel(item, ownerNames, t("tickets.detail.unknownUser"));
         const serviceName =
           pickName(item.serviceName, serviceNames.get(item.serviceId)) ?? "—";
         return (
           <li key={item.id}>
-            <Card className="group h-full transition-all hover:border-[#31405C]">
+            <Card className="group h-full transition-colors hover:border-line-strong">
               <div className="px-4 pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -118,7 +118,7 @@ export function KnowledgeArticleList({
                     </p>
                     <Link
                       to={`/knowledge-base/${item.id}`}
-                      className="mt-0.5 block text-[14px] font-semibold leading-5 text-foreground transition-colors group-hover:text-[#7FA8F5]"
+                      className="mt-0.5 block text-[14px] font-semibold leading-5 text-foreground transition-colors group-hover:text-link"
                     >
                       {item.title}
                     </Link>
@@ -139,7 +139,7 @@ export function KnowledgeArticleList({
                   {item.body.slice(0, 280)}
                 </p>
               </div>
-              <div className="mt-3 flex items-center gap-3 border-t border-border/50 px-4 py-2.5 text-[11px] text-muted-foreground">
+              <div className="mt-3 flex items-center gap-3 border-t border-border/70 px-4 py-2.5 text-[11px] text-muted-foreground">
                 {owner ? (
                   <span className="flex min-w-0 items-center gap-1">
                     <Avatar name={owner} size="xs" />
@@ -154,10 +154,10 @@ export function KnowledgeArticleList({
                       type="button"
                       aria-label={t("knowledgeBase.helpful")}
                       className={cn(
-                        "rounded-md border p-1.5 transition-colors",
+                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                         item.viewerFeedback === true
-                          ? "border-success/45 bg-success/12 text-[#4ADE80]"
-                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                          ? "border-success/45 bg-success/15 text-ok"
+                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
                       )}
                       onClick={() => {
                         void submitKnowledgeFeedback(item.id, true).then(onFeedback);
@@ -169,10 +169,10 @@ export function KnowledgeArticleList({
                       type="button"
                       aria-label={t("knowledgeBase.notHelpful")}
                       className={cn(
-                        "rounded-md border p-1.5 transition-colors",
+                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
                         item.viewerFeedback === false
-                          ? "border-danger/45 bg-danger/12 text-danger"
-                          : "border-border text-muted-foreground hover:bg-elevated hover:text-foreground",
+                          ? "border-danger/45 bg-danger/15 text-danger"
+                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
                       )}
                       onClick={() => {
                         void submitKnowledgeFeedback(item.id, false).then(onFeedback);

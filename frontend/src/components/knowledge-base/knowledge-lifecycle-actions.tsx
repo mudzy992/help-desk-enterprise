@@ -54,7 +54,7 @@ export function KnowledgeLifecycleActions({
 
   const isReasonMissing = reason.trim().length === 0;
   return (
-    <div className="grid gap-2 border-t border-border pt-2">
+    <div className="grid gap-2 border-t border-border/70 pt-2">
       <label className="grid gap-1">
         <span className={hintClassName}>{t("knowledgeBase.reasonLabel")}</span>
         <input

@@ -24,7 +24,7 @@ export function ServiceCatalogCategoryChips({
 }: ServiceCatalogCategoryChipsProperties) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
+    <div className="fade-in flex flex-wrap items-center gap-1.5">
       <ServiceCategoryChip
         label={t("services.allCategories")}
         count={rows.length}

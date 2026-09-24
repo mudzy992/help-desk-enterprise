@@ -7,7 +7,7 @@ interface VisualQaSectionProperties {
 
 export function VisualQaSection({ title, children }: VisualQaSectionProperties) {
   return (
-    <section className="space-y-3">
+    <section className="fade-in space-y-3">
       <h2 className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         {title}
       </h2>

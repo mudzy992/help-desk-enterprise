@@ -35,7 +35,7 @@ export function ConfigValidationErrors({ issues }: ConfigValidationErrorsPropert
           {issues.map((issue, index) => (
             <tr key={`${issue.path}-${issue.code}-${index}`} className={tableRowClassName}>
               <td className="px-3 font-mono text-[12px]">{issue.path}</td>
-              <td className="px-3 tnum">{issue.code}</td>
+              <td className="tnum px-3">{issue.code}</td>
               <td className="px-3 text-[12.5px]">{issue.message}</td>
             </tr>
           ))}

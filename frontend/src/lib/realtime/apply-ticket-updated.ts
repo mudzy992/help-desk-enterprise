@@ -14,6 +14,15 @@ export type TicketUpdatedRealtimePayload = {
   readonly occurredAt: string;
 };
 
+/*
+  The payload carries status/assignment fields only — it never carries the SLA
+  snapshot. Deriving `isOverdue` from the action name used to make the flag
+  sticky: once a breach event arrived, the ticket stayed marked as breached for
+  the rest of the session, in every later render, even after it was resolved or
+  reopened. SLA changes therefore reload the ticket instead (see
+  `shouldReloadTicketFromUpdated`), so the badge and the panel always render the
+  snapshot the server just computed for that one ticket.
+*/
 export function applyTicketUpdatedPayload(
   current: TicketResponse | null,
   payload: TicketUpdatedRealtimePayload,
@@ -31,10 +40,12 @@ export function applyTicketUpdatedPayload(
     resolvedAt: payload.resolvedAt,
     closedAt: payload.closedAt,
     updatedAt: payload.occurredAt,
-    isOverdue:
-      payload.change === "sla" &&
-      (payload.sourceAction?.includes("breached") ?? false)
-        ? true
-        : current.isOverdue,
   };
+}
+
+/** SLA events must be re-read from the server; the payload has no snapshot. */
+export function shouldReloadTicketFromUpdated(
+  payload: TicketUpdatedRealtimePayload,
+): boolean {
+  return payload.change === "sla";
 }

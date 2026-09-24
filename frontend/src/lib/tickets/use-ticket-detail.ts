@@ -74,6 +74,16 @@ export function useTicketDetail(ticketId: string | undefined) {
   }, [ticketId]);
 
   useEffect(() => {
+    // Switching tickets must not leave a single field in place: the SLA panel,
+    // badges and message list all read from this state, so a stale row would
+    // show the previous ticket's data under the new ticket's number.
+    setTicket(null);
+    setMessages([]);
+    setParticipants([]);
+    setTimeLogs([]);
+    setAttachments([]);
+    setCanChangeStatus(true);
+    setActionError(null);
     void load();
   }, [load]);
 

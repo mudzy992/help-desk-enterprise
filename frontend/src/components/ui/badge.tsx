@@ -8,16 +8,24 @@ export type BadgeTone =
   | "success"
   | "warning"
   | "danger"
-  | "info";
+  | "info"
+  | "hold";
 
+/*
+  One badge shape for the whole application: a pill with a tinted background,
+  a hairline border and a text colour that is contrast-checked per theme.
+  `hold` is new — it carries approval / confidential semantics that previously
+  had no colour of its own.
+*/
 const BADGE_TONES: Record<BadgeTone, string> = {
-  neutral: "bg-elevated/70 text-muted border-border",
-  primary: "bg-primary/15 text-[#7FA8F5] border-primary/35",
-  accent: "bg-accent/10 text-accent border-accent/30",
-  success: "bg-success/10 text-[#4ADE80] border-success/30",
-  warning: "bg-warning/10 text-warning border-warning/30",
-  danger: "bg-danger/10 text-danger border-danger/35",
-  info: "bg-info/10 text-info border-info/30",
+  neutral: "border-border bg-elevated/70 text-muted-foreground",
+  primary: "border-primary/25 bg-primary/10 text-link",
+  accent: "border-accent/25 bg-accent/10 text-accent",
+  success: "border-success/30 bg-success/10 text-ok",
+  warning: "border-warning/30 bg-warning/10 text-warning",
+  danger: "border-danger/30 bg-danger/10 text-danger",
+  info: "border-info/30 bg-info/10 text-info",
+  hold: "border-hold/30 bg-hold/10 text-hold",
 };
 
 interface BadgeProperties {
@@ -36,7 +44,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-4",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4",
         BADGE_TONES[tone],
         className,
       )}

@@ -16,10 +16,10 @@ export function PageHeader({
   return (
     <div className="mb-5">
       {crumbs.length > 0 ? (
-        <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground/80">
+        <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
           {crumbs.map((crumb, index) => (
             <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
-              {index > 0 ? <span className="text-border">/</span> : null}
+              {index > 0 ? <span className="text-muted-foreground/50">/</span> : null}
               <span className={index === crumbs.length - 1 ? "text-muted-foreground" : ""}>
                 {crumb}
               </span>
@@ -29,7 +29,7 @@ export function PageHeader({
       ) : null}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-page font-semibold tracking-[-0.01em] text-foreground">
+          <h1 className="text-page font-semibold tracking-[-0.02em] text-foreground">
             {title}
           </h1>
           {subtitle ? (

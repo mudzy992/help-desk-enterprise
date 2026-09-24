@@ -27,13 +27,13 @@ export function AdminAuditExportCard({
   const verify =
     verifyResult === null ? null : describeVerifyResult(verifyResult);
   return (
-    <Card>
+    <Card className="fade-in">
       <div className="px-4 py-4">
         <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-          <Download size={14} className="text-[#7FA8F5]" />
+          <Download size={14} className="text-link" />
           {t("admin.ops.auditTitle")}
         </p>
-        <p className="mt-1.5 text-[11.5px] leading-4.5 text-muted-foreground">
+        <p className="mt-1.5 text-[11.5px] leading-[15px] text-muted-foreground">
           {t("admin.ops.auditBody")}
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -66,7 +66,7 @@ export function AdminAuditExportCard({
           <p
             className={
               verify.tone === "success"
-                ? "mt-2 text-[11.5px] text-[#4ADE80]"
+                ? "mt-2 text-[11.5px] text-ok"
                 : verify.tone === "danger"
                   ? `mt-2 ${errorTextClassName}`
                   : "mt-2 text-[11.5px] text-muted-foreground"

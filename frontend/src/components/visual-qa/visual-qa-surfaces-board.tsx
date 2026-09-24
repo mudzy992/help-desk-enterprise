@@ -24,7 +24,8 @@ export function VisualQaSurfacesBoard() {
             }
           />
           <div className="px-4 py-3 text-[13px] text-muted-foreground">
-            Tijelo kartice. Hover: border #31405C, bez sjene.
+            Tijelo kartice. Hover: <span className="text-foreground">border-line-strong</span>,
+            elevacija kroz <span className="text-foreground">shadow-card</span>.
           </div>
         </Card>
       </VisualQaSection>

@@ -49,7 +49,7 @@ export function IntegrationQueueTable({
                   {t(`integrationQueue.statuses.${job.status}`)}
                 </Badge>
               </td>
-              <td className="px-3 tnum">{job.attempts}</td>
+              <td className="tnum px-3">{job.attempts}</td>
               <td className="max-w-[280px] truncate px-3 text-[12px] text-muted-foreground">
                 {truncateQueueError(job.lastError) || t("integrationQueue.noError")}
               </td>

@@ -61,7 +61,7 @@ export function RoutingCoveragePanel({ onCreateRule }: RoutingCoveragePanelPrope
   return (
     <Card>
       <CardHeader title={t("routing.coverageHeading")} />
-      <div className="px-4 py-3.5">
+      <div className="fade-in px-4 py-3.5">
         {isLoading ? (
           <PanelSkeleton className="mt-0" label={t("routing.coverageHeading")} />
         ) : errorKey ? (

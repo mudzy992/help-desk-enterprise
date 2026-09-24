@@ -20,7 +20,7 @@ export function FormFieldList({
 }: FormFieldListProperties) {
   const { t } = useTranslation();
   return (
-    <div className="grid gap-3">
+    <div className="fade-in grid gap-3">
       {fields.map((field, index) => (
         <FormFieldEditor
           key={`${field.id}-${index}`}

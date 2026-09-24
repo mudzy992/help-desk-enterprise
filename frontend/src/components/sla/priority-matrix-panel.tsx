@@ -70,7 +70,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
   };
 
   return (
-    <div className="space-y-4">
+    <div className="fade-in space-y-4">
       <p className="text-[13px] text-muted-foreground">{t("sla.priorityMatrixHint")}</p>
       {errorKey ? (
         <p role="alert" className={errorTextClassName}>
@@ -103,7 +103,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
                   return (
                     <td key={key} className="border border-border px-1.5 py-1">
                       <select
-                        className="w-full rounded-md border border-border bg-background px-1.5 py-1"
+                        className="w-full rounded-lg border border-border bg-surface px-1.5 py-1"
                         disabled={!canWrite || isSaving}
                         value={value}
                         aria-label={`${impact} × ${urgency}`}
@@ -133,7 +133,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
           <label className={`flex-1 space-y-1 ${labelClassName}`}>
             <span>{t("sla.reason")}</span>
             <input
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px]"
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px]"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               placeholder={t("sla.priorityMatrixReasonPlaceholder")}

@@ -94,7 +94,7 @@ function PolicyPacksWorkspace() {
     );
   }
   return (
-    <div className="mb-4 space-y-4">
+    <div className="fade-in mb-4 space-y-4">
       <PolicyPackCards packs={packs} />
       <PolicyPackApplyForm
         packs={packs}

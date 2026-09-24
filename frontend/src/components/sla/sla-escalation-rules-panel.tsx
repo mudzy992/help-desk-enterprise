@@ -114,7 +114,7 @@ export function SlaEscalationRulesPanel({
   if (embedded) {
     return (
       <div className="space-y-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted/70">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
           {t("sla.escalationsHeading")}
         </p>
         {table}
@@ -124,7 +124,7 @@ export function SlaEscalationRulesPanel({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="fade-in grid gap-4">
       <Card>
         <CardHeader title={t("sla.escalationsHeading")} subtitle={t("sla.escalationsHint")} />
         {table}

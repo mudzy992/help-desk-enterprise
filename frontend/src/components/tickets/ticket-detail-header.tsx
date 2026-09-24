@@ -6,10 +6,20 @@ import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from 
 import { TicketConfidentialBanner } from "@/components/tickets/ticket-confidential-banner";
 import { TicketDetailHeaderActions } from "@/components/tickets/ticket-detail-header-actions";
 import { TicketResolveFields } from "@/components/tickets/ticket-resolve-fields";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RelativeTime } from "@/components/ui/relative-time";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
+
+/*
+  Pulse ticket header.
+
+  The old header put the ticket number, the badges and the title on one crowded
+  line. Here the number becomes a small identifier, the title is the only
+  large text on the page, and the requester / origin / time drop to a quiet
+  meta row — the shape people already read on the list screens.
+*/
 
 interface TicketDetailAssignUser {
   readonly id: string;
@@ -38,6 +48,10 @@ interface TicketDetailHeaderProperties {
   readonly onSplit: () => void;
 }
 
+function metaSeparator() {
+  return <span className="text-border">·</span>;
+}
+
 export function TicketDetailHeader({
   ticket,
   serviceName,
@@ -64,12 +78,14 @@ export function TicketDetailHeader({
   const [closeCode, setCloseCode] = useState(ticket.closePolicy?.closeCode?.key ?? "");
   const [resolutionNote, setResolutionNote] = useState(ticket.closePolicy?.resolutionNote ?? "");
   const formVersionLabel = t("tickets.detail.formVersion").toLowerCase();
+  const isPaused =
+    ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL";
   return (
-    <div>
+    <div className="page-in">
       <div className="mb-4 flex items-center gap-2 text-[12px] text-muted-foreground">
         <Link
           to="/tickets"
-          className="flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-elevated hover:text-foreground"
+          className="flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
         >
           <ArrowLeft size={13} /> {t("tickets.title")}
         </Link>
@@ -78,43 +94,46 @@ export function TicketDetailHeader({
         <span className="text-border">/</span>
         <span className="tnum text-foreground/80">{ticket.ticketNumber}</span>
       </div>
-      <Card>
+      <Card className="overflow-hidden">
         <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="tnum text-[16px] font-semibold text-foreground">
+              <span className="tnum text-[11.5px] font-medium tracking-[0.02em] text-muted-foreground">
                 {ticket.ticketNumber}
-              </h1>
+              </span>
               <TicketStatusBadge status={ticket.status} />
               <TicketPriorityBadge priority={ticket.priority} showCriticalMark />
-              {ticket.status === "WAITING_FOR_USER" || ticket.status === "PENDING_APPROVAL" ? (
+              {isPaused ? (
                 <Badge tone="warning" dot>
                   {t("tickets.detail.pauseBadge")}
                 </Badge>
               ) : null}
               {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
             </div>
-            <p className="mt-1.5 max-w-2xl text-[14.5px] leading-5 text-foreground/95">
+            <h1 className="mt-2 max-w-3xl text-[16px] font-semibold leading-6 text-foreground">
               {ticket.title}
-            </p>
-            <p className="mt-1.5 text-[12px] text-muted-foreground">
-              {t("tickets.detail.reportedBy")}{" "}
-              <span className="text-foreground/80">{requesterName}</span>
-              {" · "}
-              {originName}
-              {" · "}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Avatar name={requesterName} size="xs" />
+                <span className="text-foreground/80">{requesterName}</span>
+              </span>
+              {metaSeparator()}
+              <span>{originName}</span>
+              {metaSeparator()}
               <RelativeTime value={ticket.createdAt} locale={i18n.language} />
               {ticket.formVersionNumber === null || ticket.formVersionNumber === undefined ? null : (
                 <>
-                  {" · "}
-                  {formVersionLabel}{" "}
-                  <span className="tnum">
-                    {t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
-                  </span>{" "}
-                  ({serviceName})
+                  {metaSeparator()}
+                  <span>
+                    {formVersionLabel}{" "}
+                    <span className="tnum">
+                      {t("tickets.detail.formVersionValue", { version: ticket.formVersionNumber })}
+                    </span>
+                  </span>
                 </>
               )}
-            </p>
+            </div>
           </div>
           <TicketDetailHeaderActions
             ticket={ticket}
@@ -157,7 +176,7 @@ export function TicketDetailHeader({
           </p>
         ) : null}
         {pendingStatus !== null ? (
-          <div className="border-t border-border/70 px-5 py-3">
+          <div className="border-t border-border/70 bg-elevated/40 px-5 py-3">
             <TicketResolveFields
               pendingStatus={pendingStatus}
               closePolicy={ticket.closePolicy}

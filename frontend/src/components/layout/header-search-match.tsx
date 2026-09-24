@@ -130,6 +130,10 @@ function HitRow({
       type="button"
       id={`global-search-hit-${itemIndex}`}
       role="option"
+      /* Deliberately not a tab stop: the combobox owns focus and moves the
+         active option with ArrowUp/ArrowDown (`aria-activedescendant`); that
+         highlighted row is what makes keyboard focus visible here. */
+      tabIndex={-1}
       aria-selected={isActive}
       className={cn(
         "flex w-full flex-col items-start gap-0.5 px-3.5 py-2 text-left transition-colors duration-150",
@@ -139,7 +143,7 @@ function HitRow({
       onClick={() => onSelect(hit)}
     >
       <span className={hit.kind === "ticket"
-        ? "tnum text-[12px] font-medium text-[#7FA8F5]"
+        ? "tnum text-[12px] font-medium text-link"
         : "text-[12.5px] text-foreground"}
       >
         {hit.title}

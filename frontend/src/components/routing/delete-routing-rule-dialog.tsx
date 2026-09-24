@@ -54,10 +54,10 @@ export function DeleteRoutingRuleDialog({
   };
 
   return (
-    <div className="grid gap-3 rounded-md border border-danger/25 bg-danger/5 px-3 py-3">
-      <p className="text-[12.5px] text-text/90">{t("routing.deleteConfirmTitle")}</p>
+    <div className="grid gap-3 rounded-lg border border-danger/25 bg-danger/5 px-3 py-3">
+      <p className="text-[12.5px] text-foreground/90">{t("routing.deleteConfirmTitle")}</p>
       {impact ? (
-        <p className="text-[12px] leading-5 text-text/80">
+        <p className="text-[12px] leading-5 text-foreground/80">
           {t("routing.deleteImpact", {
             before: impact.before.outcome,
             after: impact.after.outcome,

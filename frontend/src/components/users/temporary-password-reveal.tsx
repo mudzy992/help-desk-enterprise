@@ -22,7 +22,7 @@ export function TemporaryPasswordReveal({
 
   if (result.temporaryPasswordDelivery === "email") {
     return (
-      <div className="space-y-2 border-b border-border/60 px-4 py-3">
+      <div className="space-y-2 border-b border-border/70 px-4 py-3">
         <p className="text-[13px] text-foreground" role="status">
           {t("users.temporaryPasswordEmailed")}
         </p>
@@ -34,7 +34,7 @@ export function TemporaryPasswordReveal({
   }
 
   return (
-    <div className="space-y-2 border-b border-border/60 px-4 py-3">
+    <div className="space-y-2 border-b border-border/70 px-4 py-3">
       <p className="text-[13px] font-medium text-foreground">
         {t("users.temporaryPasswordTitle")}
       </p>
@@ -42,7 +42,7 @@ export function TemporaryPasswordReveal({
         {t("users.temporaryPasswordHint")}
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 break-all rounded-md border border-border bg-elevated px-2 py-1.5 text-[12px]">
+        <code className="flex-1 break-all rounded-lg border border-border bg-elevated px-2 py-1.5 text-[12px]">
           {result.temporaryPassword}
         </code>
         <Button

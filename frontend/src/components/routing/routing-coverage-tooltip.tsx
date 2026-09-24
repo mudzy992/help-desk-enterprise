@@ -79,8 +79,8 @@ export function RoutingCoverageTooltip({
       style={style}
       role="tooltip"
     >
-      <p className="text-[11px] font-medium text-text">{item.serviceName}</p>
-      <p className="text-[10.5px] text-muted">{item.originUnitPath}</p>
+      <p className="text-[11px] font-medium text-foreground">{item.serviceName}</p>
+      <p className="text-[10.5px] text-muted-foreground">{item.originUnitPath}</p>
       <div className="mt-1.5 flex items-center gap-1.5">
         <MetaBadge
           meta={{
@@ -89,13 +89,13 @@ export function RoutingCoverageTooltip({
           }}
         />
         {groupName ? (
-          <span className="tnum text-[10.5px] text-text/85">→ {groupName}</span>
+          <span className="tnum text-[10.5px] text-foreground/85">→ {groupName}</span>
         ) : null}
       </div>
-      <p className="mt-1 tnum text-[10px] text-muted/70">
+      <p className="mt-1 tnum text-[10px] text-muted-foreground/70">
         {fallbackPath || item.originUnitPath}
       </p>
-      <p className="mt-0.5 text-[10px] text-muted/70">
+      <p className="mt-0.5 text-[10px] text-muted-foreground/70">
         {t("routing.fallbackDepth", { depth: item.resolution.fallbackDepth })}
       </p>
       {kind === "unrouted" ? (

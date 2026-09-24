@@ -50,14 +50,14 @@ export function UnroutedQueueSettingsCard({
 
   return (
     <>
-      <Card>
+      <Card className="fade-in">
         <CardHeader
           title={t("settings.unrouted.title")}
           subtitle={t("settings.unrouted.subtitle")}
         />
         <div className="space-y-2.5 px-4 py-4 text-[12px]">
           <p className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[11px] text-muted-foreground tnum">
+            <span className="tnum font-mono text-[11px] text-muted-foreground">
               {unroutedSettingKeys.enabled}
             </span>
             <Switch
@@ -68,14 +68,14 @@ export function UnroutedQueueSettingsCard({
             />
           </p>
           <p className="flex items-center justify-between gap-2">
-            <span className="font-mono text-[11px] text-muted-foreground tnum">
+            <span className="tnum font-mono text-[11px] text-muted-foreground">
               {unroutedSettingKeys.ownerRole}
             </span>
             <Badge tone="danger" dot={false}>
               {ownerRole || "—"}
             </Badge>
           </p>
-          <p className="flex items-start gap-1.5 border-t border-border/60 pt-3 text-[11px] leading-4 text-muted-foreground/70">
+          <p className="flex items-start gap-1.5 border-t border-border/70 pt-3 text-[11px] leading-[15px] text-muted-foreground/70">
             <Mail size={11.5} className="mt-0.5 shrink-0" />
             {t("settings.unrouted.hint")}
           </p>

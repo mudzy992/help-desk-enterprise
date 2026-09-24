@@ -11,7 +11,7 @@ export function TicketConfidentialBanner({
 }: TicketConfidentialBannerProperties) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-wrap items-center gap-3 border-t border-warning/25 bg-warning/6 px-5 py-2.5">
+    <div className="fade-in flex flex-wrap items-center gap-3 border-t border-warning/25 bg-warning/6 px-5 py-2.5">
       <ShieldAlert size={15} className="shrink-0 text-warning" aria-hidden="true" />
       <p className="flex-1 text-[12px] leading-[18px] text-foreground/90">
         {t("tickets.confidential.banner")}

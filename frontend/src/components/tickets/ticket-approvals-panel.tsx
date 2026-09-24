@@ -45,7 +45,7 @@ export function TicketApprovalsPanel({
   };
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("tickets.detail.approvals")}
         subtitle={`${done} / ${items.length}`}
@@ -65,7 +65,7 @@ export function TicketApprovalsPanel({
               <span
                 className={cn(
                   "z-10 flex size-7 shrink-0 items-center justify-center rounded-full border",
-                  item.status === "APPROVED" && "border-success/40 bg-success/15 text-[#4ADE80]",
+                  item.status === "APPROVED" && "border-success/40 bg-success/15 text-ok",
                   item.status === "PENDING" && "border-warning/40 bg-warning/10 text-warning",
                   item.status === "REJECTED" && "border-danger/40 bg-danger/10 text-danger",
                 )}

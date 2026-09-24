@@ -128,7 +128,7 @@ export function PermissionsPanel() {
   }
 
   return (
-    <Card>
+    <Card className="fade-in">
       <CardHeader
         title={t("permissions.heading")}
         subtitle={t("permissions.intro")}
@@ -157,7 +157,7 @@ export function PermissionsPanel() {
         enabledKeys={enabledKeys}
         onToggle={handleToggle}
       />
-      <div className="border-t border-border/60 px-4 py-3">
+      <div className="border-t border-border/70 px-4 py-3">
         <Button type="button" size="sm" onClick={() => void handlePreview()} disabled={pending}>
           {t("permissions.previewAction")}
         </Button>

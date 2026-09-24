@@ -90,7 +90,7 @@ export function SlaCalendarsPanel() {
   };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
+    <div className="fade-in grid gap-4 xl:grid-cols-[300px_1fr]">
       <SlaAdminListColumn
         isLoading={isLoading}
         isEmpty={calendars.length === 0}

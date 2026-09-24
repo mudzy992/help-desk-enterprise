@@ -3,11 +3,288 @@
 @tailwind utilities;
 
 /*
-  EP-HelpDesk theme tokens — source: .cursor/docs/theme.md
-  Dark hierarchy: background → surface → elevated.
+  EP-HelpDesk — Pulse Design System
+  ==================================
+
+  Tokens are split into TWO orthogonal axes:
+
+    data-theme="classic"  →  legacy dark theme (visually unchanged)
+    data-theme="pulse"    →  new identity, light by default
+    .dark                 →  dark mode for the active design system
+
+  `classic` is inherently dark, so the provider always pairs it with `.dark`.
+
+  Every color token is stored as **space separated RGB channels** (not a finished
+  colour). That is what keeps `/alpha` modifiers working, e.g. `bg-surface/60`,
+  `border-border/70`, in both design systems:
+
+      --surface: 255 255 255;                         — channels
+      surface: "rgb(var(--surface) / <alpha-value>)"  — tailwind.config.ts
+
+  Changing one attribute on <html> therefore restyles the entire application
+  without touching a single component.
 */
 
 @layer base {
+  /* ═══════════════════════════════════════════════════════════════════════
+     CLASSIC — legacy dark theme. Every colour is the exact value the theme
+     used before, so the fallback keeps its look. Shared interaction
+     refinements (focus ring, hover fills, surface-based inputs) apply here
+     too, on purpose: they are improvements, not theme differences.
+     ═══════════════════════════════════════════════════════════════════════ */
+  :root,
+  :root[data-theme="classic"] {
+    color-scheme: dark;
+
+    --background: 11 18 32;
+    --surface: 17 24 39;
+    --elevated: 27 36 54;
+    --border: 36 48 68;
+    --line-strong: 49 64 92;
+    --foreground: 229 231 235;
+    --muted: 156 163 175;
+
+    --primary: 37 99 235;
+    --primary-hover: 29 79 216;
+    --primary-active: 27 68 190;
+    --primary-foreground: 255 255 255;
+    --link: 127 168 245;
+
+    --accent: 34 197 94;
+    --danger: 239 68 68;
+    --ok: 74 222 128;
+    --success: 22 163 74;
+    --warning: 245 158 11;
+    --info: 56 189 248;
+    --hold: 192 132 252;
+
+    --ring: 37 99 235;
+    --scrim: 0 0 0;
+    --popover: 27 36 54;
+    --surface-hover: 27 36 54;
+
+    --avatar-1-bg: 34 53 92;
+    --avatar-1-fg: 157 188 245;
+    --avatar-2-bg: 29 58 52;
+    --avatar-2-fg: 138 216 194;
+    --avatar-3-bg: 58 45 29;
+    --avatar-3-fg: 228 190 138;
+    --avatar-4-bg: 45 42 74;
+    --avatar-4-fg: 182 173 240;
+    --avatar-5-bg: 58 36 48;
+    --avatar-5-fg: 232 167 188;
+    --avatar-6-bg: 38 56 62;
+    --avatar-6-fg: 147 211 228;
+
+    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --calendar-icon-filter: invert(0.7);
+    --selection-bg: 37 99 235;
+    --selection-alpha: 0.35;
+    --selection-fg: 255 255 255;
+    --scrollbar-thumb: 36 48 68;
+    --scrollbar-thumb-hover: 49 64 92;
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --shadow-card: none;
+    --shadow-pop: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-glow: none;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     PULSE · LIGHT
+     Contrast checked against surface #FFFFFF / canvas #F5F6F8 — every
+     semantic text token is ≥ 4.5:1.
+     ═══════════════════════════════════════════════════════════════════════ */
+  :root[data-theme="pulse"] {
+    color-scheme: light;
+
+    --background: 245 246 248;
+    --surface: 255 255 255;
+    --elevated: 248 249 251;
+    --border: 228 230 235;
+    --line-strong: 209 213 221;
+    --foreground: 20 22 29;
+    --muted: 106 113 128;
+
+    --primary: 91 91 214;
+    --primary-hover: 74 74 196;
+    --primary-active: 63 63 176;
+    --primary-foreground: 255 255 255;
+    --link: 79 79 199;
+
+    --accent: 15 118 110;
+    --danger: 220 38 38;
+    --ok: 21 128 61;
+    --success: 21 128 61;
+    --warning: 180 83 9;
+    --info: 3 105 161;
+    --hold: 126 34 206;
+
+    --ring: 91 91 214;
+    --scrim: 15 18 25;
+    --popover: 255 255 255;
+    --surface-hover: 243 244 247;
+
+    --avatar-1-bg: 224 226 251;
+    --avatar-1-fg: 59 59 168;
+    --avatar-2-bg: 220 242 234;
+    --avatar-2-fg: 16 97 79;
+    --avatar-3-bg: 245 232 212;
+    --avatar-3-fg: 138 90 18;
+    --avatar-4-bg: 231 227 250;
+    --avatar-4-fg: 74 63 158;
+    --avatar-5-bg: 248 223 231;
+    --avatar-5-fg: 155 44 83;
+    --avatar-6-bg: 218 238 243;
+    --avatar-6-fg: 18 98 111;
+
+    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a7180' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --calendar-icon-filter: invert(0.35);
+    --selection-bg: 91 91 214;
+    --selection-alpha: 0.22;
+    --selection-fg: 20 22 29;
+    --scrollbar-thumb: 214 218 224;
+    --scrollbar-thumb-hover: 190 195 204;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-card: 0 1px 2px rgb(15 18 25 / 0.04), 0 1px 3px rgb(15 18 25 / 0.03);
+    --shadow-pop: 0 12px 32px -10px rgb(15 18 25 / 0.18), 0 3px 8px -3px rgb(15 18 25 / 0.08);
+    --shadow-glow: 0 1px 2px rgb(91 91 214 / 0.28), 0 8px 20px -8px rgb(91 91 214 / 0.45);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     PULSE · DARK — same hues, translucent overlays instead of new colours.
+     ═══════════════════════════════════════════════════════════════════════ */
+  :root[data-theme="pulse"].dark {
+    color-scheme: dark;
+
+    --background: 13 14 18;
+    --surface: 20 22 28;
+    --elevated: 26 29 36;
+    --border: 38 42 52;
+    --line-strong: 58 63 76;
+    --foreground: 233 235 241;
+    --muted: 127 135 152;
+
+    --primary: 111 102 223;
+    --primary-hover: 124 115 228;
+    --primary-active: 138 129 233;
+    --primary-foreground: 255 255 255;
+    --link: 154 147 236;
+
+    --accent: 45 212 191;
+    --danger: 248 113 113;
+    --ok: 74 222 128;
+    --success: 34 197 94;
+    --warning: 251 191 36;
+    --info: 56 189 248;
+    --hold: 192 132 252;
+
+    --ring: 111 102 223;
+    --scrim: 0 0 0;
+    --popover: 30 33 41;
+    --surface-hover: 30 34 42;
+
+    --avatar-1-bg: 42 46 74;
+    --avatar-1-fg: 175 180 246;
+    --avatar-2-bg: 30 54 48;
+    --avatar-2-fg: 138 216 194;
+    --avatar-3-bg: 58 45 29;
+    --avatar-3-fg: 228 190 138;
+    --avatar-4-bg: 45 42 74;
+    --avatar-4-fg: 182 173 240;
+    --avatar-5-bg: 58 36 48;
+    --avatar-5-fg: 232 167 188;
+    --avatar-6-bg: 34 52 58;
+    --avatar-6-fg: 147 211 228;
+
+    --chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237f8798' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    --calendar-icon-filter: invert(0.7);
+    --selection-bg: 111 102 223;
+    --selection-alpha: 0.35;
+    --selection-fg: 255 255 255;
+    --scrollbar-thumb: 38 42 52;
+    --scrollbar-thumb-hover: 58 63 76;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-pop: 0 14px 36px -12px rgb(0 0 0 / 0.7), 0 3px 8px -3px rgb(0 0 0 / 0.45);
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(111 102 223 / 0.5);
+  }
+
+
+  /*
+    ── Accent palettes ────────────────────────────────────────────────────────
+    A third, optional axis: it rotates ONLY the brand colours (primary family,
+    focus ring, links, text selection, primary glow). Neutral surfaces, radii
+    and the semantic tones (ok / warning / danger / info / accent) stay
+    untouched — which is exactly what makes every palette work in light AND
+    dark without a second token block per mode, and what keeps adding another
+    one cheap.
+
+    Selectors are scoped to `data-theme="pulse"` on purpose: the legacy
+    `classic` design keeps its own blue no matter which palette is selected.
+
+    Contrast (WCAG 2.1, measured — see PULSE_UI_HANDOFF.md §3): every palette
+    holds text-on-primary ≥ 4.5:1, primary-as-text-on-surface ≥ 4.5:1 and
+    selection text ≥ 4.5:1 in both appearances. Two values follow from how the
+    browser paints, not from taste:
+
+      --primary-foreground  a LIGHT primary needs DARK text on top of it, so
+                            the dark palettes flip this to their darkest step;
+      --selection-fg        `::selection` paints the background as an alpha
+                            blend OVER the page, so the result is always light
+                            on light palettes and dark on dark ones — which is
+                            why it stays white in every dark palette.
+  */
+  :root[data-theme="pulse"][data-accent="teal"] {
+    --primary: 15 118 110;
+    --primary-hover: 17 94 89;
+    --primary-active: 19 78 74;
+    --primary-foreground: 255 255 255;
+    --ring: 15 118 110;
+    --link: 17 94 89;
+    --selection-bg: 15 118 110;
+    --selection-fg: 4 47 46;
+    --shadow-glow: 0 1px 2px rgb(15 118 110 / 0.28), 0 8px 20px -8px rgb(15 118 110 / 0.45);
+  }
+  :root[data-theme="pulse"][data-accent="teal"].dark {
+    --primary: 45 212 191;
+    --primary-hover: 94 234 212;
+    --primary-active: 153 246 228;
+    --primary-foreground: 4 47 46;
+    --ring: 45 212 191;
+    --link: 94 234 212;
+    --selection-bg: 45 212 191;
+    --selection-fg: 255 255 255;
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(45 212 191 / 0.5);
+  }
+  :root[data-theme="pulse"][data-accent="rose"] {
+    --primary: 190 18 60;
+    --primary-hover: 159 18 57;
+    --primary-active: 136 19 55;
+    --primary-foreground: 255 255 255;
+    --ring: 190 18 60;
+    --link: 159 18 57;
+    --selection-bg: 190 18 60;
+    --selection-fg: 76 5 25;
+    --shadow-glow: 0 1px 2px rgb(190 18 60 / 0.28), 0 8px 20px -8px rgb(190 18 60 / 0.45);
+  }
+  :root[data-theme="pulse"][data-accent="rose"].dark {
+    --primary: 251 113 133;
+    --primary-hover: 253 164 175;
+    --primary-active: 254 205 211;
+    --primary-foreground: 76 5 25;
+    --ring: 251 113 133;
+    --link: 253 164 175;
+    --selection-bg: 251 113 133;
+    --selection-fg: 255 255 255;
+    --shadow-glow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 22px -8px rgb(251 113 133 / 0.5);
+  }
+
   html,
   body,
   #root {
@@ -24,31 +301,31 @@
   }
 
   ::selection {
-    background: rgba(37, 99, 235, 0.35);
-    color: #fff;
+    background: rgb(var(--selection-bg) / var(--selection-alpha));
+    color: rgb(var(--selection-fg));
   }
 
   :focus-visible {
-    outline: 2px solid rgba(37, 99, 235, 0.7);
+    outline: 2px solid rgb(var(--ring) / 0.7);
     outline-offset: 1px;
     border-radius: 4px;
   }
 
   input[type="checkbox"],
   input[type="radio"] {
-    accent-color: var(--tw-color-primary, #2563eb);
+    accent-color: rgb(var(--primary));
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.7);
+    filter: var(--calendar-icon-filter);
     cursor: pointer;
   }
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #243044 transparent;
+  scrollbar-color: rgb(var(--scrollbar-thumb)) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -57,12 +334,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #243044;
+  background: rgb(var(--scrollbar-thumb));
   border-radius: 8px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #31405c;
+  background: rgb(var(--scrollbar-thumb-hover));
 }
 
 *::-webkit-scrollbar-corner {
@@ -115,10 +392,10 @@
 @keyframes dot-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45);
+    box-shadow: 0 0 0 0 rgb(var(--ok) / 0.45);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0);
+    box-shadow: 0 0 0 4px rgb(var(--ok) / 0);
   }
 }
 
@@ -146,6 +423,38 @@
   }
 }
 
+/*
+  Palette previews. These are the only hardcoded colours outside the token
+  blocks, and deliberately so: a preview has to show what a palette looks like
+  while a DIFFERENT palette is active, so it cannot read `--primary`.
+  Keep them in sync with the palette blocks above (light step / dark step).
+*/
+@layer components {
+  .accent-swatch-indigo {
+    background-color: rgb(91 91 214);
+  }
+
+  .accent-swatch-teal {
+    background-color: rgb(15 118 110);
+  }
+
+  .accent-swatch-rose {
+    background-color: rgb(190 18 60);
+  }
+
+  .dark .accent-swatch-indigo {
+    background-color: rgb(111 102 223);
+  }
+
+  .dark .accent-swatch-teal {
+    background-color: rgb(45 212 191);
+  }
+
+  .dark .accent-swatch-rose {
+    background-color: rgb(251 113 133);
+  }
+}
+
 .draw-ring {
   animation: draw-ring 0.7s cubic-bezier(0.22, 0.68, 0.36, 1) both;
 }
@@ -156,10 +465,24 @@
 }
 
 select.appearance-none {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: var(--chevron-down);
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 12px;
+}
+
+/*
+  Pulse brand accent — used for the single "brand" moment per screen
+  (login panel, install wizard header). Kept out of the token layer
+  because it is a decorative gradient, never a semantic surface.
+*/
+.pulse-gradient {
+  background-image: linear-gradient(
+    118deg,
+    rgb(var(--primary)) 0%,
+    rgb(var(--info) / 0.92) 52%,
+    rgb(var(--accent) / 0.9) 100%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

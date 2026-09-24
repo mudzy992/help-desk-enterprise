@@ -48,7 +48,66 @@
       "admin": "Admin",
       "agent": "Agent",
       "user": "Korisnik"
-    }
+    },
+    "searchTrigger": "Pretraži…"
+  },
+  "theme": {
+    "label": "Izgled",
+    "toggle": "Promijeni izgled",
+    "modeGroup": "Svjetlina",
+    "light": "Svijetla",
+    "dark": "Tamna",
+    "system": "Sistemska",
+    "systemHint": "prati operativni sistem",
+    "designGroup": "Dizajn",
+    "designPulse": "Pulse",
+    "designPulseHint": "novi identitet",
+    "designClassic": "Klasična",
+    "designClassicHint": "stara tamna tema",
+    "accentGroup": "Boja",
+    "accentIndigo": "Indigo",
+    "accentIndigoHint": "zadana Pulse paleta",
+    "accentTeal": "Teal",
+    "accentTealHint": "hladna, smirena",
+    "accentRose": "Rose",
+    "accentRoseHint": "topla, izražena",
+    "active": "Aktivno"
+  },
+  "appearance": {
+    "title": "Izgled",
+    "subtitle": "Izbor se pamti u ovom pregledaču i primjenjuje odmah — ne mijenja izgled kod drugih korisnika.",
+    "designHeading": "Dizajn",
+    "designHint": "Dizajn mijenja cijeli interfejs — boje, radijuse, sjene i gustinu — bez promjene funkcionalnosti.",
+    "modeHeading": "Svjetlina",
+    "modeHint": "Važi za Pulse dizajn; klasična tema je uvijek tamna.",
+    "accentHeading": "Paleta boja",
+    "accentHint": "Paleta mijenja samo brend boje — površine, radijusi i semantičke boje ostaju isti. Važi za Pulse dizajn i radi u obje svjetline.",
+    "accentPulseOnly": "Paleta boja važi za Pulse dizajn; klasična tema uvijek zadržava svoju plavu.",
+    "classicForcesDark": "Klasična tema je tamna, pa je izbor svjetline zaključan dok je aktivna. Tvoj izbor se pamti i primjenjuje kad se vratiš na Pulse.",
+    "resolvedHint": "Trenutno se primjenjuje: {{mode}}.",
+    "previewHeading": "Pregled",
+    "previewHint": "Osnovni elementi u odabranoj kombinaciji dizajna i svjetline.",
+    "previewCardTitle": "Kartica tiketa",
+    "previewCardBody": "Kratak opis pokazuje tipografiju, obrub i sjenu na površini kartice.",
+    "previewPrimaryAction": "Sačuvaj",
+    "previewSecondaryAction": "Otkaži",
+    "previewFieldLabel": "Naslov",
+    "previewFieldValue": "Ne mogu se spojiti na VPN",
+    "previewProgress": "SLA iskorištenost",
+    "previewBadge": "U radu",
+    "previewStatLabel": "Otvoreni tiketi",
+    "storedNote": "Izbor se čuva lokalno u pregledaču (localStorage) i primjenjuje odmah; na druge korisnike ne utiče.",
+    "reset": "Vrati na zadano",
+    "openSettings": "Sva podešavanja izgleda"
+  },
+  "ui": {
+    "close": "Zatvori",
+    "cancel": "Odustani",
+    "confirm": "Potvrdi",
+    "dismiss": "Zatvori obavještenje",
+    "clear": "Očisti",
+    "selectAll": "Odaberi sve",
+    "loading": "Učitavanje…"
   },
   "notifications": {
     "title": "Obavještenja",
@@ -1384,6 +1443,15 @@
       "saving": "Zaključavanje…",
       "errorSuperAdmin": "Prvo kreirajte SuperAdmin nalog.",
       "errorGeneric": "Podešavanje trenutno nije moguće zaključati."
+    },
+    "progress": "Korak {{current}} od {{total}}",
+    "steps": {
+      "superAdmin": "SuperAdmin",
+      "loginProvider": "Prijava",
+      "smtp": "Email",
+      "seed": "Uloge i podaci",
+      "addons": "Dodaci",
+      "complete": "Završetak"
     }
   },
   "routing": {
@@ -1811,7 +1879,15 @@
   "login": {
     "title": "Prijava",
     "subtitle": "Enterprise servisni centar",
-    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji."
+    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji.",
+    "panelTitle": "Servisni centar na jednom mjestu",
+    "panelBody": "Tiketi, katalog usluga, baza znanja i SLA — bez prebacivanja između alata.",
+    "pointTickets": "Katalog usluga sa jasnim SLA rokovima",
+    "pointKnowledge": "Baza znanja koja rješava prije nego tiket nastane",
+    "pointInsight": "Pregled opterećenja i izvještaji za odluke",
+    "installHint": "Prvo podešavanje sistema?",
+    "installLink": "Pokreni čarobnjak",
+    "secure": "Veza je šifrovana. Lozinke se čuvaju samo kao hash."
   },
   "auth": {
     "changePassword": {
@@ -2333,5 +2409,20 @@
     "inDays_one": "za {{count}} dan",
     "inDays_few": "za {{count}} dana",
     "inDays_other": "za {{count}} dana"
+  },
+  "palette": {
+    "title": "Komandna paleta",
+    "open": "Otvori komandnu paletu",
+    "placeholder": "Pretraži ili skoči na…",
+    "scope": "tiketi, članci, korisnici, stranice",
+    "groupActions": "Akcije",
+    "groupNavigation": "Navigacija",
+    "noResults": "Nema rezultata za „{{query}}”.",
+    "createTicket": "Novi tiket",
+    "createTicketHint": "Iz kataloga usluga",
+    "navigateHint": "pomjeri se",
+    "selectHint": "otvori",
+    "closeHint": "zatvori",
+    "searching": "Pretraga u toku…"
   }
 }

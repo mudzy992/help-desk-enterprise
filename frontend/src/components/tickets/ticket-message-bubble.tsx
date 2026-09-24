@@ -22,7 +22,7 @@ export function TicketMessageBubble({
   const { t } = useTranslation();
   const isInternal = message.type === "INTERNAL_NOTE";
   return (
-    <div className={cn("flex gap-3", isOwn && "flex-row-reverse")}>
+    <div className={cn("fade-in flex gap-3", isOwn && "flex-row-reverse")}>
       <Avatar name={authorName} size="md" />
       <div className={cn("min-w-0 max-w-[78%]", isOwn && "flex flex-col items-end")}>
         <div className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export function TicketMessageBubble({
         </div>
         <div
           className={cn(
-            "mt-1 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed",
+            "mt-1 rounded-lg border px-3.5 py-2.5 text-[13px] leading-relaxed shadow-card",
             isInternal
               ? "border-warning/25 bg-warning/6 text-foreground/90"
               : isOwn

@@ -10,7 +10,7 @@ interface ActionFeedbackBannerProperties {
 
 const toneClassNames: Record<ActionFeedback["tone"], string> = {
   success: "border-success/35 bg-success/10 text-success",
-  info: "border-primary/35 bg-primary/10 text-[#7FA8F5]",
+  info: "border-primary/35 bg-primary/10 text-link",
   warning: "border-warning/35 bg-warning/10 text-warning",
   error: "border-danger/35 bg-danger/10 text-danger",
 };
@@ -41,7 +41,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
       role={role}
       aria-live={role === "alert" ? "assertive" : "polite"}
       className={cn(
-        "mb-3 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[12.5px] leading-5",
+        "fade-in mb-3 flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-[12.5px] leading-5",
         toneClassNames[feedback.tone],
       )}
     >
@@ -53,7 +53,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
         <button
           type="button"
           onClick={feedback.action.onClick}
-          className="shrink-0 font-medium underline-offset-2 hover:underline"
+          className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
         >
           {feedback.action.label}
         </button>
@@ -62,7 +62,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
         type="button"
         onClick={onDismiss}
         aria-label={t("feedback.dismiss")}
-        className="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100"
+        className="shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
       >
         <X size={13} aria-hidden="true" />
       </button>

@@ -217,7 +217,7 @@ export function UserRolesSection({
       {showOrganizationalUnitScopeWarning ? (
         <p
           role="status"
-          className="mt-2 text-[12px] text-amber-700 dark:text-amber-400"
+          className="mt-2 text-[12px] text-warning"
         >
           {t("users.scopeOrganizationalUnitRequiredWarning")}
         </p>

@@ -50,7 +50,7 @@ export function ChangePasswordForm({
   };
 
   return (
-    <form className="space-y-3" onSubmit={(event) => void handleSubmit(event)}>
+    <form className="fade-in space-y-3" onSubmit={(event) => void handleSubmit(event)}>
       <p className="text-[13px] leading-5 text-muted-foreground">
         {t("auth.changePassword.intro")}
       </p>
