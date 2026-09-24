@@ -60,12 +60,16 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.
       DB_QUERY_METRICS: "true"
-      # Baseline after perf-07 (settings snapshot): 3.6 queries per application request,
-      # down from 18.4 (CI smoke 2026-09-24). The gate is baseline × ~2.2 so ordinary
-      # jitter does not fail the build, while a regression of the kind perf-07 removed
-      # (18 > 8) does. The target is the engineering goal tracked in PERF_BUDGETS.md.
-      DB_QUERY_BUDGET: "8"
-      DB_QUERY_TARGET: "3"
+      # Measured on seeded data (120 tickets, CI smoke 2026-09-24): 9.6 queries per
+      # application request, down from 18.4. The gate is the measurement × ~1.25, so
+      # jitter does not fail the build while a regression of the kind perf-07 removed
+      # (18 > 12) does. The target stays the engineering goal tracked in PERF_BUDGETS.md.
+      #
+      # Note the 3.6 this gate briefly claimed: that was the same run on an EMPTY
+      # database. The batch loaders skip their round trips when there is nothing to
+      # resolve, so an empty app looks cheap. Only seeded data measures real queries.
+      DB_QUERY_BUDGET: "12"
+      DB_QUERY_TARGET: "8"
       DB_QUERY_BUDGET_WARN: "true"
       # Smoke profile + relaxed, documented thresholds.
       PERF_PROFILE: ci
@@ -329,8 +333,8 @@ jobs:
           # Gate = the measured baseline plus headroom (the plan's iron rule: a threshold
           # comes from a measurement, not from an aspiration). TARGET is the engineering
           # goal tracked in PERF_BUDGETS.md; the gap is a work item, not a hidden failure.
-          BUDGET="${DB_QUERY_BUDGET:-8}"
-          TARGET="${DB_QUERY_TARGET:-3}"
+          BUDGET="${DB_QUERY_BUDGET:-12}"
+          TARGET="${DB_QUERY_TARGET:-8}"
           P95=0
           MAX=0
           if [ -s /tmp/app-queries.txt ]; then
