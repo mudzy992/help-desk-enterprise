@@ -40,6 +40,7 @@ PATCHES=(
   "perf-01-stop-krvarenje.patch:backend/src/modules/search/search.controller.ts"
   "perf-02-baza-event-loop.patch:backend/src/common/principal-context/principal-context.cache.ts"
   "perf-03-realtime-klijent.patch:frontend/src/lib/query/query-client.ts"
+  "perf-04-otpornost.patch:backend/src/modules/tickets/archive/ticket-archive.job.constants.ts"
 )
 
 applied=0
@@ -147,10 +148,13 @@ if [ "$applied" -gt 0 ]; then
   echo "  #   backend: npm install @socket.io/redis-adapter@^8.3.0"
   echo "  #   frontend: npm install @tanstack/react-virtual@^3.14.13"
   echo "  npx prisma migrate deploy  # F1: 6 kompozitnih + 3 trigram indeksa; F2: authzVersion + SLA nextDueAt (CONCURRENTLY)"
-  echo "  npx jest                   # očekivano: 358 suita / 1352 testa"
+  echo "  npx jest                   # očekivano: 363 suita / 1366 testova"
   echo "  npm run build              # očekivano: uspješno"
   echo "  cd ../frontend && npm install && npm test   # očekivano: 95 fajlova / 333 testa"
   echo
   echo "Perf paket (bez k6, radi svuda):"
   echo "  node perf/validate.js      # očekivano: all checks passed"
+  echo
+  echo "Faza 4 (worker): pokreni i worker proces — poslovi su samo tamo:"
+  echo "  node dist/src/worker.js    # očekivano: 5 rasporeda + job=... linije u logu"
 fi
