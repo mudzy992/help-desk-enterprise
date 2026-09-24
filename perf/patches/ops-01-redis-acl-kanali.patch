@@ -1,41 +1,12 @@
-ops-01 — Redis ACL, ispravka: `PSUBSCRIBE` traži LITERALNI pattern (+ docs)
-
-Primjena: na granu koja već nosi `reds` (rundu-1 ACL dopunu). Aditivno —
-ne mijenja ništa što je već primijenjeno, samo ispravlja kanal i dokumentaciju.
-Može i ručno: `bash perf/patches/apply-perf.sh` (sada ima 8 unosa).
-
-Zašto (2. krug): runda-1 je dodala `&socket.io#*` i NOPERM je **ostao**, iako su
-kanali upisani (`ACL GETUSER` ih vidi, `ACL SAVE` ih sačuva u users.acl):
-
-    ReplyError: NOPERM No permissions to access a channel
-      command: { name: 'psubscribe', args: [ 'socket.io#/#*' ] }
-
-Redis ACL `&<pattern>` se za `PSUBSCRIBE` poklapa **literalno**, ne po globu
-(drugi su put za PUBLISH/SUBSCRIBE, gdje glob važi). Zato `&socket.io#*` **ne**
-dozvoljava `PSUBSCRIBE socket.io#/#*` — taj string mora u ACL-u stajati doslovno.
-
-Šta mijenja:
-  ops/redis-acl.line          + &socket.io#/#*  (literalni pattern adaptera;
-                              &socket.io#* ostaje — pokriva PUBLISH/SUBSCRIBE)
-  ops/COOLIFY.md              pravilo glob-vs-literal + zašto kanali nemaju REDIS_KEY_PREFIX
-  ops/runbook/redis-down.md   novi logs (ws_adapter_redis_acl_denied …) + provjera
-                              oba puta: psubscribe i subscribe
-
-Ručna komanda (aditivna, ne dira postojeće kanale):
-  docker exec redis-core-j4yv1noel7cxdmghjcwhfymh-090809466522 \
-    redis-cli -a '<REDIS_PASSWORD>' ACL SETUSER ephelpdesk '&socket.io#/#*'
-  ACL SAVE
-
----
 diff --git a/ops/COOLIFY.md b/ops/COOLIFY.md
-index 88db010..3176d18 100644
+index 57321df..3176d18 100644
 --- a/ops/COOLIFY.md
 +++ b/ops/COOLIFY.md
 @@ -6,7 +6,20 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
  
  - **PostgreSQL**: Coolify Database. Connection string → `DATABASE_URL`. Backup/retention na DB resursu.
  - **Redis**: postojeći kontejner `redis-core` na external mreži `redis_net` (compose ime; RAW kaže `redis-net`).
--- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`. Kanali: keyspace `&ephelpdesk:*` i `&bull:ephelpdesk:*` (keševi i BullMQ), `&integration-queue:*` (edge realtime), `&tickets:realtime-bridge` (F4 worker→API most) i **`&socket.io#*` `&socket.io-request#*` `&socket.io-response#*`** (F3.1 Redis adapter; bez ovih API pada na bootu s `NOPERM No permissions to access a channel` na `psubscribe socket.io#/#*`). Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om — zato `socket.io…` stoji bez `ephelpdesk:`.
+-- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`. Kanali: `&integration-queue:*` `&ephelpdesk:*` `&bull:ephelpdesk:*` (nije Socket.IO adapter).
 +- ACL user `ephelpdesk`: sadržaj `ops/redis-acl.line`. Lozinka iza `>` = `REDIS_PASSWORD`. `+info` mora biti poslije `-@dangerous`.
 +- **Kanali (F3.1/F4)** — Redis razlikuje dva slučaja i to je jedina zamka ovdje:
 +  - `PUBLISH` i `SUBSCRIBE` se poklapaju s dozvoljenim **globom** (`&socket.io#*` pokriva
@@ -54,28 +25,22 @@ index 88db010..3176d18 100644
  
  ## Coolify projekat
 diff --git a/ops/redis-acl.line b/ops/redis-acl.line
-index eb1c990..4c97385 100644
+index 66e2273..4c97385 100644
 --- a/ops/redis-acl.line
 +++ b/ops/redis-acl.line
 @@ -1 +1 @@
--ACL SETUSER ephelpdesk on >Mojalozinka!1 ~bull:ephelpdesk:* ~ephelpdesk:* resetchannels &bull:ephelpdesk:* &ephelpdesk:* &integration-queue:* &tickets:realtime-bridge &socket.io#* &socket.io-request#* &socket.io-response#* -@all +@read +@write +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection +@blocking +@keyspace +ping +hello +select +eval +evalsha +script|exists +script|load -@admin -@dangerous +info +client|setname +client|setinfo
+-ACL SETUSER ephelpdesk on >Mojalozinka!1 ~bull:ephelpdesk:* ~ephelpdesk:* resetchannels &bull:ephelpdesk:* &ephelpdesk:* &integration-queue:* -@all +@read +@write +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection +@blocking +@keyspace +ping +hello +select +eval +evalsha +script|exists +script|load -@admin -@dangerous +info +client|setname +client|setinfo
 \ No newline at end of file
 +ACL SETUSER ephelpdesk on >Mojalozinka!1 ~bull:ephelpdesk:* ~ephelpdesk:* resetchannels &bull:ephelpdesk:* &ephelpdesk:* &integration-queue:* &tickets:realtime-bridge &socket.io#* &socket.io#/#* &socket.io-request#* &socket.io-response#* -@all +@read +@write +@hash +@string +@list +@set +@sortedset +@stream +@pubsub +@transaction +@connection +@blocking +@keyspace +ping +hello +select +eval +evalsha +script|exists +script|load -@admin -@dangerous +info +client|setname +client|setinfo
 \ No newline at end of file
 diff --git a/ops/runbook/redis-down.md b/ops/runbook/redis-down.md
-index 4296085..3e6c6c9 100644
+index 34b597f..3e6c6c9 100644
 --- a/ops/runbook/redis-down.md
 +++ b/ops/runbook/redis-down.md
-@@ -11,12 +11,20 @@ runbook služi da se to ne miješa s „aplikacija je pala".
+@@ -11,6 +11,20 @@ runbook služi da se to ne miješa s „aplikacija je pala".
    waiting-for-user, KB podsjetnici) se ne izvršavaju.
  - U logu: `ws adapter: fallback=in_memory`, `*_schedule_failed`, `authz_*_invalidation_skipped`,
    `Failed to write worker heartbeat`.
--- **ACL, ne pad Redisa** (drugačiji slučaj, isti korijen): API se uopšte ne digne, u
--  logu `ReplyError: NOPERM No permissions to access a channel` s
--  `command: { name: 'psubscribe', args: ['socket.io#/#*'] }`. ACL useru `ephelpdesk`
--  nedostaje kanal — vidi `ops/redis-acl.line` (Socket.IO traži `socket.io#*`,
--  `socket.io-request#*`, `socket.io-response#*`; F4 most `tickets:realtime-bridge`).
--  Kanal se **ne** prefiksira `REDIS_KEY_PREFIX`-om, pa `&ephelpdesk:*` ovdje ne pomaže.
 +- **ACL, ne pad Redisa** (drugačiji slučaj, isti korijen): u logu
 +  `ws_adapter_redis_acl_denied channel=socket.io#/#*`, `ws_adapter_redis_command_denied
 +  command=psubscribe …` ili `ReplyError: NOPERM No permissions to access a channel`
@@ -93,27 +58,24 @@ index 4296085..3e6c6c9 100644
  
  ## Šta se dešava po komponenti (fail-open grane)
  
-@@ -39,7 +47,7 @@ redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" info clients
+@@ -33,7 +47,25 @@ redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" info clients
  redis-cli llen 'bull:ephelpdesk:integration-jobs:wait'    # da li red stoji
  ```
  Provjeri i ACL (`ops/redis-acl.line`), `REDIS_KEY_PREFIX`/`QUEUE_PREFIX` i da nije
 -rijеč o mreži/LB-u između API-ja i Redisa.
 +riječ o mreži/LB-u između API-ja i Redisa.
- 
- ```bash
- redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
-@@ -48,12 +56,16 @@ redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
- #              &socket.io-response:*
- redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
-   psubscribe 'socket.io#/#*'          # NOPERM = ACL, ne mreža; odmah Ctrl-C
++
++```bash
++redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
++#   očekivano: &ephelpdesk:* &bull:ephelpdesk:* &integration-queue:*
++#              &tickets:realtime-bridge &socket.io#* &socket.io-request#*
++#              &socket.io-response:*
++redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
++  psubscribe 'socket.io#/#*'          # NOPERM = ACL, ne mreža; odmah Ctrl-C
 +redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \
 +  subscribe 'socket.io-request#/#'    # glob poklapanje; prazno = čeka poruke
- ```
- 
--> **Napomena (dok se ne zatvori fail-open praznina):** odbijen `psubscribe` obara API
--> proces (unhandled rejection iz adaptera), a ne prelazi u `fallback=in_memory` kao
--> ostale Redis putanje. Zato je ACL greška **dostupnost**, ne degradacija: popravi ACL
--> i restartuj API.
++```
++
 +> **Napomena (zatvoreno u F4 dopuni):** prije dopune je odbijen `psubscribe` obarao
 +> API proces (unhandled rejection iz adaptera). Sada `WebsocketGateway.onModuleInit`
 +> provjerava kanale prije instalacije adaptera (`checkRealtimeAdapterSubscriptions`),

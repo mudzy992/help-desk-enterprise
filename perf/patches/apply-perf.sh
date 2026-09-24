@@ -27,6 +27,15 @@
 # adaptera), nego daje `fallback=in_memory reason=acl_denied`.
 # `ops-02` je CI: Prisma `DATABASE_URL` u backend jobu + design-check koji ne puca
 # na pomjerene dokumente (uzrok crvenog CI-ja na masteru).
+# `perf-07` je kod: settingsi se čitaju jednom po zahtjevu (snapshot u ALS-u) —
+# 45 `*-configuration.loader.ts` fajlova je tražilo svoj `appSetting` red po ključu.
+# `perf-08` je mjerni lanac: smoke seeda 120 tiketa kroz API (detalj, poruke i
+# dashboard su do tada mjerili 0,00 jer u CI-ju nije bilo nijednog tiketa), poziva
+# dashboard summary, šalje `{ type, body }` na poruke (DTO je tačno ta dva polja) i
+# drži kapiju/cilj na izmjerenom (8/5). Izvještaj mjerenja
+# (`perf/results/ci-smoke-*.md`) nije u patchu — to je artefakt runa, ne kod.
+# `perf-09` je kod: pet kataloga za display labele (korisnik, grupa, form version,
+# jedinica, servis) se pamti 60 s u Redisu — 9,6 → 5,0 upita po zahtjevu.
 #   bash perf/patches/apply-perf.sh --dry-run    # samo reci šta bi se desilo
 #
 set -uo pipefail
@@ -59,6 +68,9 @@ PATCHES=(
   "ops-01-redis-acl-kanali.patch:ops/redis-acl.line:&socket.io#/#*"
   "perf-06-redis-acl-fail-graceful.patch:backend/src/modules/websocket/ws-redis-adapter.ts:realtimeAdapterChannelPattern"
   "ops-02-zeleni-ci.patch:scripts/check-pulse-design-system.mjs:existsPath("
+  "perf-07-settings-snapshot.patch:backend/src/modules/settings/settings-snapshot.ts"
+  "perf-08-mjerni-lanac.patch:.github/workflows/perf-smoke.yml:Seed load-test tickets"
+  "perf-09-kes-labela.patch:backend/src/modules/tickets/labels/ticket-label-cache.ts"
 )
 
 applied=0
