@@ -68,6 +68,8 @@ model Ticket {
   @@index([formVersionId])
   @@index([parentTicketId])
   @@index([mergedIntoTicketId])
+  // Self-FK (onDelete: SetNull): without it every deleted ticket scans the table.
+  @@index([reopenedFromTicketId])
   @@index([status, waitingForUserEnteredAt])
   @@index([status, closedAt])
   @@index([archivedAt])
