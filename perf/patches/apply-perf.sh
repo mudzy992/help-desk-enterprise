@@ -4,7 +4,7 @@
 #
 # Zašto postoji: `git apply` je ATOMIČAN. Ako mu daš više patcheva odjednom
 # (`git apply a.patch b.patch c.patch`) i samo jedan ne prođe — ne primijeni se
-# NI JEDAN. Faze se primjenjuju redom 00 → 01 → 02 → 03 → 04.
+# NI JEDAN. Faze se primjenjuju redom 00 → 01 → 02 → 03 → 04 → 05.
 #
 # Ova skripta:
 #   1. provjeri CRLF zamku (patch fajl mora biti LF, inače `git apply` pada na Windowsu)
@@ -41,6 +41,7 @@ PATCHES=(
   "perf-02-baza-event-loop.patch:backend/src/common/principal-context/principal-context.cache.ts"
   "perf-03-realtime-klijent.patch:frontend/src/lib/query/query-client.ts"
   "perf-04-otpornost.patch:backend/src/modules/tickets/archive/ticket-archive.job.constants.ts"
+  "perf-05-dnevna-granica-tz.patch:backend/src/modules/reports/summary/start-of-civil-day.ts"
 )
 
 applied=0
@@ -148,9 +149,9 @@ if [ "$applied" -gt 0 ]; then
   echo "  #   backend: npm install @socket.io/redis-adapter@^8.3.0"
   echo "  #   frontend: npm install @tanstack/react-virtual@^3.14.13"
   echo "  npx prisma migrate deploy  # F1: 6 kompozitnih + 3 trigram indeksa; F2: authzVersion + SLA nextDueAt (CONCURRENTLY)"
-  echo "  npx jest                   # očekivano: 363 suita / 1366 testova"
+  echo "  npx jest                   # očekivano: 365 suita / 1388 testova (u BILO kojoj TZ)"
   echo "  npm run build              # očekivano: uspješno"
-  echo "  cd ../frontend && npm install && npm test   # očekivano: 95 fajlova / 333 testa"
+  echo "  cd ../frontend && npm install && npm test   # očekivano: 95 fajlova / 334 testa"
   echo
   echo "Perf paket (bez k6, radi svuda):"
   echo "  node perf/validate.js      # očekivano: all checks passed"

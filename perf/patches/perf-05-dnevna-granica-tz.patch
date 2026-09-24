@@ -1,0 +1,1220 @@
+perf-05 — FAZA 4 dopuna: granica reporting dana u zoni instalacije (TZ bug)\n
+Primjena: bash perf/patches/apply-perf.sh   (ili git apply --3way)\nBaza: perf-00 … perf-04 primijenjeni.\n
+Zašto: na mašini u zoni Europe/Sarajevo padao je jedan backend test —
+granica dashboarda „opened today" računala se iz zone PROCESA
+(`new Date(y, m, d)`), pa je u kontejneru (TZ=UTC) bila 00:00Z, a u Sarajevu
+22:00Z prethodnog dana. Isti kod, dva različita broja.
+
+Šta mijenja:
+  BE  start-of-civil-day.ts (nov): startOfCivilDay/civilDayKey/offsetMillisecondsAt
+      kroz Intl (IANA baza iz runtime-a, bez nove zavisnosti)
+  BE  private.reports.timeZone (nov ključ, default Europe/Sarajevo, IANA validacija)
+  BE  read-installation-time-zone.ts (nov): svaka greška čitanja → default
+  BE  load-dashboard-summary-counts prima timeZone; ReportSummaryService ga čita
+      po zahtjevu i prosljeđuje u upit i u keš
+  BE  dashboardSummaryCacheKey nosi zonu (…:<user>:<scope>:<zone>)
+  FE  queryKeys.dashboardSummary(scope, dayKey) + dashboardSummaryPrefix(scope);
+      invalidacija ide po prefiksu, tab preko ponoći pita za novi dan
+  DOC .cursor/docs/matrices/settings-registry/{MATRIX,CHANGELOG}.md
+
+Verifikacija: backend `npx jest --silent` 365 suita / 1388 testova u
+TZ=Europe/Sarajevo, TZ=UTC i TZ=Pacific/Kiritimati; `npx tsc --noEmit` čist;
+frontend `npx vitest run` 95/334 + `npm run build` ✓. Detalji:
+perf/results/after-f4-2026-09-24.md §8.
+
+---
+diff --git a/.cursor/docs/matrices/settings-registry/CHANGELOG.md b/.cursor/docs/matrices/settings-registry/CHANGELOG.md
+--- a/.cursor/docs/matrices/settings-registry/CHANGELOG.md
++++ b/.cursor/docs/matrices/settings-registry/CHANGELOG.md
+@@ -1,4 +1,7 @@
+ # CHANGELOG — settings-registry
++
++## 2026-09-24
++- Dodan `private.reports.timeZone` (private, IANA zona, default `Europe/Sarajevo`): granica reporting dana za dashboard `openedToday` (`loadDashboardSummaryCounts` → `startOfCivilDay`). Dosadašnja granica je dolazila iz zone procesa (`new Date(y, m, d)`), pa je isti upit davao različit broj na `TZ=UTC` i `TZ=Europe/Sarajevo`. Keš ključ dashboarda sada nosi zonu.
+ 
+ ## 2026-09-14
+ - Dodani `private.reports.*` i `private.dashboard.bottlenecks.*` za report packove i bottleneck window. Addon flag ostaje `private.addons.reports`. `packsJson` je secret.
+
+diff --git a/.cursor/docs/matrices/settings-registry/MATRIX.md b/.cursor/docs/matrices/settings-registry/MATRIX.md
+--- a/.cursor/docs/matrices/settings-registry/MATRIX.md
++++ b/.cursor/docs/matrices/settings-registry/MATRIX.md
+@@ -152,5 +152,6 @@
+ - `private.reports.enabled` (private, boolean, default `true`)
+ - `private.reports.packsJson` (secret, string JSON, default minimalni set 4 packa kad nije upisan)
+ - `private.reports.exportFormatsCsv` (private, string, default `csv,json`)
++- `private.reports.timeZone` (private, string IANA zona, default `Europe/Sarajevo`) — granica reporting dana za dashboard `openedToday`; nevalidan naziv → `SettingsError`, a čitanje koje padne vraća default (`readInstallationTimeZone`). Nema oslanjanja na `TZ` procesa.
+ - `private.dashboard.bottlenecks.enabled` (private, boolean, default `true`)
+ - `private.dashboard.bottlenecks.defaultWindowDays` (private, number, default `30`)
+
+diff --git a/PERFORMACE_PHASE_PLAN.md b/PERFORMACE_PHASE_PLAN.md
+--- a/PERFORMACE_PHASE_PLAN.md
++++ b/PERFORMACE_PHASE_PLAN.md
+@@ -545,6 +545,16 @@
+ k6/Postgres/Redis/LB-a, isto ograničenje kao u F0–F3; job karta, CI pragovi i
+ zaključni izvještaj: `perf/results/after-f4-2026-09-24.md`.
+ 
++¶¶ Nakon prve primjene na Windows mašini (`TZ=Europe/Sarajevo`) pao je jedan test:
++granica dashboarda „danas" računala se iz **zone procesa** (`new Date(y, m, d)`),
++pa je u kontejneru (`TZ=UTC`) bila `00:00Z`, a u Sarajevu `22:00Z` prethodnog dana.
++Popravljeno je u `perf-05-dnevna-granica-tz.patch`: granica je sada postavka
++instalacije (`private.reports.timeZone`, default `Europe/Sarajevo`) koju čita
++`startOfCivilDay` preko `Intl`-a, keš ključ dashboarda nosi zonu, a na klijentu je
++dan dio query ključa. Backend je poslije toga zelen u **svakoj** zoni procesa
++(365 suita / 1388 testova; prije: 1 pad u `TZ=Europe/Sarajevo`). Detalji:
++`perf/results/after-f4-2026-09-24.md` §8.
++
+ ---
+ 
+ ## 8. Šta NIJE predmet ovog plana
+
+diff --git a/backend/src/modules/reports/report-summary.cache.ts b/backend/src/modules/reports/report-summary.cache.ts
+--- a/backend/src/modules/reports/report-summary.cache.ts
++++ b/backend/src/modules/reports/report-summary.cache.ts
+@@ -30,10 +30,11 @@
+   async readDashboardSummary(
+     userId: string,
+     scope: DashboardSummaryScope,
++    timeZone: string,
+   ): Promise<DashboardSummaryResponse | null> {
+     return readReportSummaryCache(
+       await this.client(),
+-      dashboardSummaryCacheKey(userId, scope),
++      dashboardSummaryCacheKey(userId, scope, timeZone),
+       parseDashboardSummaryResponse,
+     );
+   }
+@@ -41,10 +42,11 @@
+   async writeDashboardSummary(
+     userId: string,
+     summary: DashboardSummaryResponse,
++    timeZone: string,
+   ): Promise<void> {
+     await writeReportSummaryCache(
+       await this.client(),
+-      dashboardSummaryCacheKey(userId, summary.scope),
++      dashboardSummaryCacheKey(userId, summary.scope, timeZone),
+       summary,
+     );
+   }
+
+diff --git a/backend/src/modules/reports/report-summary.service.spec.ts b/backend/src/modules/reports/report-summary.service.spec.ts
+--- a/backend/src/modules/reports/report-summary.service.spec.ts
++++ b/backend/src/modules/reports/report-summary.service.spec.ts
+@@ -7,10 +7,12 @@
+ }));
+ import type { TicketSlaStateRecord } from '../sla/ticket-sla.types';
+ import { defaultTicketArchiveConfiguration } from '../tickets/archive/archive.constants';
++import { defaultReportsTimeZone } from '../settings/definitions/reports-settings';
+ import { createTicketsServiceHarness } from '../tickets/create-tickets-service-harness';
+ import { listTicketsPage } from '../tickets/list-tickets';
+ import { buildTicketRecord } from '../tickets/list/ticket-record-fixture';
+ import { ticketsTestIds } from '../tickets/tickets-test-ids';
++import type { SettingsService } from '../settings/settings.service';
+ import type { ReportSummaryCache } from './report-summary.cache';
+ import { ReportSummaryService } from './report-summary.service';
+ import type {
+@@ -24,14 +26,20 @@
+ 
+ function createFakeCache() {
+   const store = new Map<string, unknown>();
++  // Same shape as `dashboardSummaryCacheKey`: the reporting zone is part of the
++  // key, so a payload must not survive a change of the day boundary.
++  const dashboardKey = (userId: string, scope: string, timeZone: string) =>
++    `dashboard:${userId}:${scope}:${timeZone}`;
+   const cache: ReportSummaryCache = {
+-    readDashboardSummary: async (userId: string, scope: string) =>
+-      (store.get(`dashboard:${userId}:${scope}`) as DashboardSummaryResponse) ?? null,
++    readDashboardSummary: async (userId: string, scope: string, timeZone: string) =>
++      (store.get(dashboardKey(userId, scope, timeZone)) as DashboardSummaryResponse) ??
++      null,
+     writeDashboardSummary: async (
+       userId: string,
+       summary: DashboardSummaryResponse,
++      timeZone: string,
+     ) => {
+-      store.set(`dashboard:${userId}:${summary.scope}`, summary);
++      store.set(dashboardKey(userId, summary.scope, timeZone), summary);
+     },
+     readSlaSummary: async (userId: string) =>
+       (store.get(`sla:${userId}`) as SlaSummaryResponse) ?? null,
+@@ -42,7 +50,7 @@
+   return { cache, store };
+ }
+ 
+-function createService(world: World) {
++function createService(world: World, settingsTimeZone?: string) {
+   const { cache, store } = createFakeCache();
+   return {
+     store,
+@@ -50,6 +58,11 @@
+       world.memory.prisma as never,
+       world.authorizationContextLoader as never,
+       cache,
++      settingsTimeZone === undefined
++        ? undefined
++        : ({
++            getSetting: async () => settingsTimeZone,
++          } as unknown as SettingsService),
+     ),
+   };
+ }
+@@ -267,7 +280,43 @@
+     expect(callsAfterFirst).toBe(2);
+     expect(groupBy.mock.calls.length).toBe(callsAfterFirst);
+     expect(second).toEqual(first);
+-    expect(store.get(`dashboard:${ticketsTestIds.requester}:all`)).toEqual(first);
++    // No settings service in this construction: the installation default zone.
++    expect(
++      store.get(`dashboard:${ticketsTestIds.requester}:all:${defaultReportsTimeZone}`),
++    ).toEqual(first);
++  });
++
++  it('bounds "opened today" with the zone from the settings, not the process', async () => {
++    const world = createTicketsServiceHarness();
++    seedTickets(world);
++    // One spy for the whole test: a second `jest.spyOn` would return this same
++    // mock with the calls of every earlier round still in it.
++    const count = jest.spyOn(world.memory.prisma.ticket, 'count');
++    const openedTodayClauseFor = async (settingsTimeZone?: string) => {
++      count.mockClear();
++      const { service } = createService(world, settingsTimeZone);
++      await service.loadDashboardSummary({
++        actorUserId: ticketsTestIds.requester,
++        scope: 'all',
++        now,
++      });
++      // Calls in order: critical, openedToday, unassigned, assignedToMe,
++      // requestedByMe, overdue.
++      return (count.mock.calls[1]?.[0] as { where: { AND: readonly unknown[] } })
++        .where.AND[1];
++    };
++
++    await expect(openedTodayClauseFor('UTC')).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-24T00:00:00.000Z') },
++    });
++    await expect(openedTodayClauseFor('Europe/Sarajevo')).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
++    });
++    // Nothing configured (or no settings service in the graph) → the default.
++    expect(defaultReportsTimeZone).toBe('Europe/Sarajevo');
++    await expect(openedTodayClauseFor(undefined)).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
++    });
+   });
+ 
+   it('rejects an actor without an authorization context', async () => {
+
+diff --git a/backend/src/modules/reports/report-summary.service.ts b/backend/src/modules/reports/report-summary.service.ts
+--- a/backend/src/modules/reports/report-summary.service.ts
++++ b/backend/src/modules/reports/report-summary.service.ts
+@@ -1,6 +1,8 @@
+-import { ForbiddenException, Injectable } from '@nestjs/common';
++import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
+ import { PrismaService } from '../../common/prisma/prisma.service';
+ import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
++import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
++import type { SettingsService } from '../settings/settings.service';
+ import { defaultTicketArchiveConfiguration } from '../tickets/archive/archive.constants';
+ import {
+   buildTicketListWhere,
+@@ -23,7 +25,9 @@
+  *
+  * Both endpoints reuse the ticket list's scope (`buildTicketListWhere`) — the
+  * same RBAC and visibility clauses, not a copy of them — and cache the answer
+- * for fifteen seconds per user (and scope). The full visibility rules stay in
++ * for fifteen seconds per user (and scope). The dashboard's "opened today"
++ * boundary comes from the installation's reporting zone
++ * (`settingKeys.privateReportsTimeZone`), never from the process `TZ`. The full visibility rules stay in
+  * one place: the counters are a different projection of the same query, never a
+  * re-implementation of it.
+  */
+@@ -33,6 +37,13 @@
+     private readonly prisma: PrismaService,
+     private readonly authorizationContextLoader: AuthorizationContextLoader,
+     private readonly cache: ReportSummaryCache,
++    /**
++     * Optional so a direct `new ReportSummaryService(...)` in a test keeps
++     * working; without it the zone falls back to the installation default
++     * (`readInstallationTimeZone`). `ReportsModule` imports `SettingsModule`,
++     * so the running application always has it.
++     */
++    @Optional() private readonly settingsService?: SettingsService,
+   ) {}
+ 
+   async loadDashboardSummary(input: {
+@@ -41,9 +52,11 @@
+     /** Injected by the tests; the endpoints always use "now". */
+     readonly now?: Date;
+   }): Promise<DashboardSummaryResponse> {
++    const timeZone = await this.resolveTimeZone();
+     const cached = await this.cache.readDashboardSummary(
+       input.actorUserId,
+       input.scope,
++      timeZone,
+     );
+     if (cached !== null) {
+       return cached;
+@@ -60,13 +73,14 @@
+             : withTicketWhereClause(where, scopeClause),
+       actorUserId: input.actorUserId,
+       now,
++      timeZone,
+     });
+     const response: DashboardSummaryResponse = {
+       ...counts,
+       scope: input.scope,
+       generatedAt: now.toISOString(),
+     };
+-    await this.cache.writeDashboardSummary(input.actorUserId, response);
++    await this.cache.writeDashboardSummary(input.actorUserId, response, timeZone);
+     return response;
+   }
+ 
+@@ -90,6 +104,16 @@
+     };
+     await this.cache.writeSlaSummary(input.actorUserId, response);
+     return response;
++  }
++
++  /**
++   * The zone the reporting day starts in, from the installation settings. Read
++   * per request: the value is one row and the counters behind it are cached
++   * anyway, so a change takes effect with the next cache window instead of with
++   * the next deploy.
++   */
++  private async resolveTimeZone(): Promise<string> {
++    return readInstallationTimeZone(this.settingsService);
+   }
+ 
+   /**
+
+diff --git a/backend/src/modules/reports/summary/load-dashboard-summary-counts.spec.ts b/backend/src/modules/reports/summary/load-dashboard-summary-counts.spec.ts
+--- a/backend/src/modules/reports/summary/load-dashboard-summary-counts.spec.ts
++++ b/backend/src/modules/reports/summary/load-dashboard-summary-counts.spec.ts
+@@ -11,7 +11,13 @@
+ /**
+  * Phase 2.4 (plan §2.4): the dashboard counters come from `GROUP BY` plus a few
+  * `count`s — one statement per number, never a page of rows.
++ *
++ * The "opened today" boundary is asserted as an absolute UTC instant in the
++ * installation zone, so these expectations hold on any machine: the boundary
++ * used to come from the process zone (`new Date(y, m, d)`) and the suite only
++ * passed where the process zone happened to be UTC.
+  */
++const installationTimeZone = 'Europe/Sarajevo';
+ function createFakePrisma(input: {
+   readonly statusRows: readonly { status: string; count: number }[];
+   readonly priorityRows: readonly { priority: string; count: number }[];
+@@ -64,6 +70,7 @@
+     const counts = await loadDashboardSummaryCounts(prisma as never, {
+       where: baseWhere,
+       actorUserId: 'user-1',
++      timeZone: installationTimeZone,
+       now: new Date('2026-09-24T10:00:00.000Z'),
+     });
+ 
+@@ -95,6 +102,7 @@
+     const counts = await loadDashboardSummaryCounts(prisma as never, {
+       where: baseWhere,
+       actorUserId: 'user-1',
++      timeZone: installationTimeZone,
+       now: new Date(),
+     });
+ 
+@@ -116,6 +124,7 @@
+     await loadDashboardSummaryCounts(prisma as never, {
+       where: baseWhere,
+       actorUserId: 'user-1',
++      timeZone: installationTimeZone,
+       now: new Date('2026-09-24T10:00:00.000Z'),
+     });
+ 
+@@ -125,8 +134,10 @@
+       priority: 'CRITICAL',
+       status: { in: ['PENDING', 'UNROUTED', 'ASSIGNED', 'IN_PROGRESS'] },
+     });
++    // 00:00 in Europe/Sarajevo on 2026-09-24 is 22:00 UTC on 2026-09-23 (CEST);
++    // the process zone must not matter.
+     expect(clauses[1]).toEqual({
+-      createdAt: { gte: new Date('2026-09-24T00:00:00.000Z') },
++      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
+     });
+     expect(clauses[2]).toEqual({
+       assignedUserId: null,
+@@ -140,4 +151,32 @@
+       },
+     });
+   });
++
++  it('moves the opened-today boundary with the installation zone', async () => {
++    const now = new Date('2026-09-24T10:00:00.000Z');
++    const openTodayClauseFor = async (timeZone: string) => {
++      const { prisma, calls } = createFakePrisma({
++        statusRows: [],
++        priorityRows: [],
++        counts: [0, 0, 0, 0, 0, 0],
++      });
++      await loadDashboardSummaryCounts(prisma as never, {
++        where: baseWhere,
++        actorUserId: 'user-1',
++        now,
++        timeZone,
++      });
++      return (calls.count[1]?.where.AND as readonly unknown[])[1];
++    };
++
++    await expect(openTodayClauseFor('UTC')).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-24T00:00:00.000Z') },
++    });
++    await expect(openTodayClauseFor('Europe/Sarajevo')).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-23T22:00:00.000Z') },
++    });
++    await expect(openTodayClauseFor('America/New_York')).resolves.toEqual({
++      createdAt: { gte: new Date('2026-09-24T04:00:00.000Z') },
++    });
++  });
+ });
+
+diff --git a/backend/src/modules/reports/summary/load-dashboard-summary-counts.ts b/backend/src/modules/reports/summary/load-dashboard-summary-counts.ts
+--- a/backend/src/modules/reports/summary/load-dashboard-summary-counts.ts
++++ b/backend/src/modules/reports/summary/load-dashboard-summary-counts.ts
+@@ -2,6 +2,7 @@
+ import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
+ import { PrismaService } from '../../../common/prisma/prisma.service';
+ import { withTicketWhereClause } from '../../tickets/list/build-ticket-list-where';
++import { startOfCivilDay } from './start-of-civil-day';
+ import type {
+   DashboardSummaryCounts,
+   TicketPriorityCount,
+@@ -62,9 +63,15 @@
+     readonly where: Prisma.TicketWhereInput;
+     readonly actorUserId: string;
+     readonly now: Date;
++    /**
++     * The zone the reporting day starts in (`readInstallationTimeZone`). Passed
++     * in rather than read from the process, so a container on `TZ=UTC` and a
++     * workstation on `TZ=Europe/Sarajevo` count the same tickets.
++     */
++    readonly timeZone: string;
+   },
+ ): Promise<DashboardSummaryCounts> {
+-  const { where, actorUserId, now } = input;
++  const { where, actorUserId, now, timeZone } = input;
+   const [
+     statusRows,
+     priorityRows,
+@@ -93,7 +100,7 @@
+     }),
+     prisma.ticket.count({
+       where: withTicketWhereClause(where, {
+-        createdAt: { gte: startOfDay(now) },
++        createdAt: { gte: startOfCivilDay(now, timeZone) },
+       }),
+     }),
+     prisma.ticket.count({
+@@ -157,13 +164,3 @@
+     priorityCounts,
+   };
+ }
+-
+-/**
+- * Start of the current day in the server's timezone. The client compared
+- * against its own local day (`isSameLocalDay`); this keeps the number meaningful
+- * for an installation whose server and users share a timezone, which is the
+- * documented deployment for the help desk.
+- */
+-function startOfDay(now: Date): Date {
+-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+-}
+
+diff --git a/backend/src/modules/reports/summary/report-summary-cache.spec.ts b/backend/src/modules/reports/summary/report-summary-cache.spec.ts
+--- a/backend/src/modules/reports/summary/report-summary-cache.spec.ts
++++ b/backend/src/modules/reports/summary/report-summary-cache.spec.ts
+@@ -29,8 +29,11 @@
+ 
+ describe('report summary cache', () => {
+   it('keys by user and scope', () => {
+-    expect(dashboardSummaryCacheKey('user-1', 'all')).toBe(
+-      'reports:dashboard-summary:user-1:all',
++    expect(dashboardSummaryCacheKey('user-1', 'all', 'Europe/Sarajevo')).toBe(
++      'reports:dashboard-summary:user-1:all:Europe/Sarajevo',
++    );
++    expect(dashboardSummaryCacheKey('user-1', 'all', 'UTC')).not.toBe(
++      dashboardSummaryCacheKey('user-1', 'all', 'Europe/Sarajevo'),
+     );
+     expect(slaSummaryCacheKey('user-1')).toBe('reports:sla-summary:user-1');
+   });
+
+diff --git a/backend/src/modules/reports/summary/report-summary-cache.ts b/backend/src/modules/reports/summary/report-summary-cache.ts
+--- a/backend/src/modules/reports/summary/report-summary-cache.ts
++++ b/backend/src/modules/reports/summary/report-summary-cache.ts
+@@ -26,11 +26,18 @@
+   del(key: string): Promise<unknown>;
+ }
+ 
++/**
++ * `…:<user>:<scope>:<zone>` — the installation zone is part of the key on
++ * purpose: the counters carry a day boundary ("opened today"), so a payload
++ * computed in the old zone must not be served for the fifteen seconds after
++ * the setting changes. Two zones, two keys.
++ */
+ export function dashboardSummaryCacheKey(
+   userId: string,
+   scope: string,
++  timeZone: string,
+ ): string {
+-  return `${dashboardSummaryCacheKeyPrefix}:${userId}:${scope}`;
++  return `${dashboardSummaryCacheKeyPrefix}:${userId}:${scope}:${timeZone}`;
+ }
+ 
+ export function slaSummaryCacheKey(userId: string): string {
+
+diff --git a/backend/src/modules/reports/summary/start-of-civil-day.spec.ts b/backend/src/modules/reports/summary/start-of-civil-day.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/reports/summary/start-of-civil-day.spec.ts
+@@ -0,0 +1,143 @@
++import {
++  civilDayKey,
++  offsetMillisecondsAt,
++  startOfCivilDay,
++} from './start-of-civil-day';
++
++/**
++ * Every expectation below is an absolute UTC instant, so the suite gives the
++ * same answer on a machine in Sarajevo, in UTC or in New York — which is the
++ * whole point of the helper (the process zone must not decide the boundary).
++ */
++const utc = (iso: string): Date => new Date(iso);
++
++describe('startOfCivilDay', () => {
++  it('uses the zone offset, not the process zone (Europe/Sarajevo, summer)', () => {
++    expect(
++      startOfCivilDay(utc('2026-09-24T10:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toEqual(utc('2026-09-23T22:00:00.000Z'));
++  });
++
++  it('uses the winter offset of the same zone', () => {
++    expect(
++      startOfCivilDay(utc('2026-01-15T10:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toEqual(utc('2026-01-14T23:00:00.000Z'));
++  });
++
++  it('is UTC midnight for a zone without an offset', () => {
++    expect(startOfCivilDay(utc('2026-09-24T10:00:00.000Z'), 'UTC')).toEqual(
++      utc('2026-09-24T00:00:00.000Z'),
++    );
++  });
++
++  it('moves forward for a zone west of Greenwich', () => {
++    // 02:00 UTC is still 22:00 of the previous day in New York.
++    expect(
++      startOfCivilDay(utc('2026-09-24T02:00:00.000Z'), 'America/New_York'),
++    ).toEqual(utc('2026-09-23T04:00:00.000Z'));
++    expect(
++      startOfCivilDay(utc('2026-09-24T10:00:00.000Z'), 'America/New_York'),
++    ).toEqual(utc('2026-09-24T04:00:00.000Z'));
++  });
++
++  it('handles half-hour offsets', () => {
++    expect(
++      startOfCivilDay(utc('2026-09-24T10:00:00.000Z'), 'Asia/Kolkata'),
++    ).toEqual(utc('2026-09-23T18:30:00.000Z'));
++  });
++
++  it('handles the far-east offset', () => {
++    expect(
++      startOfCivilDay(utc('2026-09-23T20:00:00.000Z'), 'Pacific/Kiritimati'),
++    ).toEqual(utc('2026-09-23T10:00:00.000Z'));
++  });
++
++  it('starts exactly at local midnight, not a second early', () => {
++    const midnight = utc('2026-09-23T22:00:00.000Z');
++    expect(startOfCivilDay(midnight, 'Europe/Sarajevo')).toEqual(midnight);
++    expect(
++      startOfCivilDay(new Date(midnight.getTime() - 1), 'Europe/Sarajevo'),
++    ).toEqual(utc('2026-09-22T22:00:00.000Z'));
++    expect(
++      startOfCivilDay(new Date(midnight.getTime() + 1), 'Europe/Sarajevo'),
++    ).toEqual(midnight);
++  });
++
++  it('lands on the right day when the offset changes that day (spring forward)', () => {
++    // 2026-03-29: CEST starts at 02:00 local, i.e. 01:00 UTC. The day begins
++    // while CET is still in effect, so the boundary is 23:00 UTC the day before.
++    expect(
++      startOfCivilDay(utc('2026-03-29T12:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toEqual(utc('2026-03-28T23:00:00.000Z'));
++    expect(civilDayKey(utc('2026-03-29T12:00:00.000Z'), 'Europe/Sarajevo')).toBe(
++      '2026-03-29',
++    );
++  });
++
++  it('lands on the right day when the offset changes that day (fall back)', () => {
++    // 2026-10-25: CET returns at 03:00 local (01:00 UTC); midnight was still CEST.
++    expect(
++      startOfCivilDay(utc('2026-10-25T12:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toEqual(utc('2026-10-24T22:00:00.000Z'));
++  });
++
++  it('is at or before the instant, and never more than a day before', () => {
++    const instants = [
++      '2026-01-01T00:00:00.000Z',
++      '2026-03-29T00:30:00.000Z',
++      '2026-06-30T23:59:59.999Z',
++      '2026-10-24T22:00:00.000Z',
++      '2026-12-31T23:59:59.000Z',
++    ];
++    const zones = [
++      'UTC',
++      'Europe/Sarajevo',
++      'America/New_York',
++      'Asia/Kolkata',
++      'Pacific/Kiritimati',
++      'Pacific/Pago_Pago',
++    ];
++    for (const instant of instants) {
++      for (const zone of zones) {
++        const now = utc(instant);
++        const start = startOfCivilDay(now, zone);
++        expect(start.getTime()).toBeLessThanOrEqual(now.getTime());
++        expect(now.getTime() - start.getTime()).toBeLessThan(25 * 60 * 60 * 1000);
++        expect(civilDayKey(start, zone)).toBe(civilDayKey(now, zone));
++      }
++    }
++  });
++});
++
++describe('offsetMillisecondsAt', () => {
++  it('reports the summer and winter offsets of a zone', () => {
++    expect(
++      offsetMillisecondsAt(utc('2026-09-24T10:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toBe(2 * 60 * 60 * 1000);
++    expect(
++      offsetMillisecondsAt(utc('2026-01-15T10:00:00.000Z'), 'Europe/Sarajevo'),
++    ).toBe(1 * 60 * 60 * 1000);
++    expect(offsetMillisecondsAt(utc('2026-09-24T10:00:00.000Z'), 'UTC')).toBe(0);
++    expect(
++      offsetMillisecondsAt(utc('2026-09-24T10:00:00.000Z'), 'America/New_York'),
++    ).toBe(-4 * 60 * 60 * 1000);
++  });
++
++  it('ignores the sub-second part of the instant', () => {
++    expect(
++      offsetMillisecondsAt(utc('2026-09-24T10:00:00.750Z'), 'Europe/Sarajevo'),
++    ).toBe(2 * 60 * 60 * 1000);
++  });
++});
++
++describe('civilDayKey', () => {
++  it('rolls over at the zone midnight, not at the process midnight', () => {
++    expect(civilDayKey(utc('2026-09-23T21:59:59.999Z'), 'Europe/Sarajevo')).toBe(
++      '2026-09-23',
++    );
++    expect(civilDayKey(utc('2026-09-23T22:00:00.000Z'), 'Europe/Sarajevo')).toBe(
++      '2026-09-24',
++    );
++    expect(civilDayKey(utc('2026-09-23T22:00:00.000Z'), 'UTC')).toBe('2026-09-23');
++  });
++});
+
+diff --git a/backend/src/modules/reports/summary/start-of-civil-day.ts b/backend/src/modules/reports/summary/start-of-civil-day.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/reports/summary/start-of-civil-day.ts
+@@ -0,0 +1,113 @@
++/**
++ * The reporting day boundary, expressed in a named time zone.
++ *
++ * Why this exists: the dashboard's "opened today" counter has to agree with the
++ * day the *installation* lives in, not with whatever zone the server process
++ * happens to run in. Before this helper the boundary came from
++ * `new Date(y, m, d)`, which reads the process zone: a container on `TZ=UTC`
++ * and a developer machine on `TZ=Europe/Sarajevo` produced two different
++ * boundaries for the same request, which is exactly how the CI-vs-Windows
++ * difference showed up.
++ *
++ * The zone is an IANA name (`Europe/Sarajevo`), so the answer is a property of
++ * the installation and the plan (one help desk, one working day), never of the
++ * machine that runs the query. `Intl` is the only dependency: the runtime
++ * already ships the IANA database, so there is no offset table to keep correct
++ * and no new package.
++ */
++
++/** A civil date in a zone — `month` is 1–12, unlike `Date.getMonth()`. */
++export type CivilDate = {
++  readonly year: number;
++  readonly month: number;
++  readonly day: number;
++};
++
++type ZonedParts = CivilDate & {
++  readonly hour: number;
++  readonly minute: number;
++  readonly second: number;
++};
++
++/**
++ * `00:00` of the civil day that `now` falls in, inside `timeZone`.
++ *
++ * The guess is UTC midnight of that civil date; the answer is the guess shifted
++ * by the zone offset that is in effect *at the shifted instant*. The offset is
++ * read again after each shift, because the one in effect at UTC midnight is not
++ * always the one in effect at local midnight (a DST switch on the boundary
++ * day). Every correction is applied to the original guess — never to the
++ * already-corrected value, which would count the offset twice. The loop is
++ * bounded, so a zone whose offset never settles still returns a value instead
++ * of spinning.
++ */
++export function startOfCivilDay(now: Date, timeZone: string): Date {
++  const civil = civilDateOf(now, timeZone);
++  const guess = Date.UTC(civil.year, civil.month - 1, civil.day);
++  let candidate = guess;
++  for (let attempt = 0; attempt < 3; attempt += 1) {
++    const corrected = guess - offsetMillisecondsAt(new Date(candidate), timeZone);
++    if (corrected === candidate) {
++      break;
++    }
++    candidate = corrected;
++  }
++  return new Date(candidate);
++}
++
++/** The civil day of `instant` in `timeZone`, as `YYYY-MM-DD`. */
++export function civilDayKey(instant: Date, timeZone: string): string {
++  const civil = civilDateOf(instant, timeZone);
++  return `${String(civil.year).padStart(4, '0')}-${String(civil.month).padStart(2, '0')}-${String(civil.day).padStart(2, '0')}`;
++}
++
++/** The civil date of `instant` in `timeZone` (the zone arithmetic is `Intl`'s). */
++export function civilDateOf(instant: Date, timeZone: string): CivilDate {
++  const parts = zonedParts(instant, timeZone);
++  return { year: parts.year, month: parts.month, day: parts.day };
++}
++
++/**
++ * How far ahead of UTC the zone's wall clock is at `instant`, in milliseconds:
++ * positive east of Greenwich (`Europe/Sarajevo` → +1h in winter, +2h in
++ * summer), negative west (`America/New_York` → −5h/−4h).
++ */
++export function offsetMillisecondsAt(instant: Date, timeZone: string): number {
++  const parts = zonedParts(instant, timeZone);
++  const wallClock = Date.UTC(
++    parts.year,
++    parts.month - 1,
++    parts.day,
++    parts.hour,
++    parts.minute,
++    parts.second,
++  );
++  // `instant` is whole milliseconds; the wall clock is whole seconds, so the
++  // difference is the offset plus (at most) the sub-second part of `instant`.
++  return wallClock - instant.getTime() + instant.getMilliseconds();
++}
++
++function zonedParts(instant: Date, timeZone: string): ZonedParts {
++  const parts = new Map(
++    new Intl.DateTimeFormat('en-US', {
++      timeZone,
++      year: 'numeric',
++      month: '2-digit',
++      day: '2-digit',
++      hour: '2-digit',
++      minute: '2-digit',
++      second: '2-digit',
++      hourCycle: 'h23',
++    })
++      .formatToParts(instant)
++      .map((part) => [part.type, part.value] as const),
++  );
++  return {
++    year: Number(parts.get('year')),
++    month: Number(parts.get('month')),
++    day: Number(parts.get('day')),
++    hour: Number(parts.get('hour')),
++    minute: Number(parts.get('minute')),
++    second: Number(parts.get('second')),
++  };
++}
+
+diff --git a/backend/src/modules/settings/definitions/reports-settings.ts b/backend/src/modules/settings/definitions/reports-settings.ts
+--- a/backend/src/modules/settings/definitions/reports-settings.ts
++++ b/backend/src/modules/settings/definitions/reports-settings.ts
+@@ -17,6 +17,14 @@
+ export const defaultReportPacksJson = JSON.stringify([...defaultReportPackKeys]);
+ export const defaultReportExportFormatsCsv = 'csv,json';
+ export const defaultBottleneckWindowDays = 30;
++
++/**
++ * The zone the reporting day starts in. One help desk serves one working day —
++ * the deployment this runs in is `Europe/Sarajevo` — and the value is a setting
++ * rather than a process constant so that the boundary never depends on the
++ * `TZ` of whichever machine happens to run the query.
++ */
++export const defaultReportsTimeZone = 'Europe/Sarajevo';
+ 
+ export const reportsSettings: readonly SettingDefinition[] = [
+   definePrivateSetting({
+@@ -44,6 +52,16 @@
+     defaultValue: defaultReportExportFormatsCsv,
+   }),
+   definePrivateSetting({
++    key: settingKeys.privateReportsTimeZone,
++    categoryId: settingCategoryIds.privateReports,
++    valueType: 'string',
++    description:
++      'IANA time zone of the reporting day boundary (dashboard "opened today")',
++    isRequired: true,
++    defaultValue: defaultReportsTimeZone,
++    assertValue: assertIanaTimeZone,
++  }),
++  definePrivateSetting({
+     key: settingKeys.privateDashboardBottlenecksEnabled,
+     categoryId: settingCategoryIds.privateDashboard,
+     valueType: 'boolean',
+@@ -61,6 +79,20 @@
+     assertValue: assertPositiveInteger,
+   }),
+ ];
++
++/** Rejects anything `Intl` cannot resolve as a zone name, so a typo is a 400. */
++function assertIanaTimeZone(value: SettingValue): void {
++  if (typeof value !== 'string' || value.trim().length === 0) {
++    throw new SettingsError('Reports time zone must be an IANA zone name');
++  }
++  try {
++    new Intl.DateTimeFormat('en-US', { timeZone: value.trim() }).format(new Date());
++  } catch {
++    throw new SettingsError(
++      `Reports time zone is not a known IANA zone: ${value}`,
++    );
++  }
++}
+ 
+ function assertPositiveInteger(value: SettingValue): void {
+   if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+
+diff --git a/backend/src/modules/settings/read-installation-time-zone.spec.ts b/backend/src/modules/settings/read-installation-time-zone.spec.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/settings/read-installation-time-zone.spec.ts
+@@ -0,0 +1,79 @@
++import {
++  defaultReportsTimeZone,
++} from './definitions/reports-settings';
++import {
++  normalizeTimeZone,
++  readInstallationTimeZone,
++} from './read-installation-time-zone';
++import type { SettingsService } from './settings.service';
++
++function createSettings(value: unknown, onRead?: () => void) {
++  return {
++    getSetting: async () => {
++      onRead?.();
++      return value;
++    },
++  } as unknown as SettingsService;
++}
++
++describe('readInstallationTimeZone', () => {
++  it('reads the configured zone', async () => {
++    await expect(
++      readInstallationTimeZone(createSettings('America/New_York')),
++    ).resolves.toBe('America/New_York');
++  });
++
++  it('trims the stored value', async () => {
++    await expect(
++      readInstallationTimeZone(createSettings('  Asia/Kolkata  ')),
++    ).resolves.toBe('Asia/Kolkata');
++  });
++
++  it('falls back to the installation default when nothing is stored', async () => {
++    await expect(readInstallationTimeZone(createSettings(undefined))).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++  });
++
++  it('falls back when the stored value is not a zone name', async () => {
++    await expect(readInstallationTimeZone(createSettings('Mars/Olympus'))).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++    await expect(readInstallationTimeZone(createSettings('  '))).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++    await expect(readInstallationTimeZone(createSettings(42))).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++  });
++
++  it('falls back when the settings read itself fails', async () => {
++    const broken = {
++      getSetting: async () => {
++        throw new Error('redis is down');
++      },
++    } as unknown as SettingsService;
++    await expect(readInstallationTimeZone(broken)).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++  });
++
++  it('falls back when the settings service is not part of the graph', async () => {
++    await expect(readInstallationTimeZone(undefined)).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++    await expect(readInstallationTimeZone(null as never)).resolves.toBe(
++      defaultReportsTimeZone,
++    );
++  });
++});
++
++describe('normalizeTimeZone', () => {
++  it('keeps a valid zone and replaces everything else', () => {
++    expect(normalizeTimeZone('UTC')).toBe('UTC');
++    expect(normalizeTimeZone(' Europe/Sarajevo ')).toBe('Europe/Sarajevo');
++    expect(normalizeTimeZone('not a zone')).toBe(defaultReportsTimeZone);
++    expect(normalizeTimeZone(null)).toBe(defaultReportsTimeZone);
++    expect(normalizeTimeZone('')).toBe(defaultReportsTimeZone);
++  });
++});
+
+diff --git a/backend/src/modules/settings/read-installation-time-zone.ts b/backend/src/modules/settings/read-installation-time-zone.ts
+new file mode 100644
+--- /dev/null
++++ b/backend/src/modules/settings/read-installation-time-zone.ts
+@@ -0,0 +1,40 @@
++import { defaultReportsTimeZone } from './definitions/reports-settings';
++import { settingKeys } from './setting-keys';
++import type { SettingsService } from './settings.service';
++
++/**
++ * The zone the reporting day starts in, as configured for this installation.
++ *
++ * The caller gets a usable zone name whatever happens: an unset value, a value
++ * that is not a string, or a settings read that fails (Redis/DB trouble) all
++ * fall back to `defaultReportsTimeZone`. A counter that is a day boundary off
++ * is a wrong number; a settings outage must not turn into a failed dashboard.
++ */
++export async function readInstallationTimeZone(
++  settingsService: SettingsService | undefined,
++): Promise<string> {
++  if (settingsService === undefined) {
++    return defaultReportsTimeZone;
++  }
++  try {
++    return normalizeTimeZone(
++      await settingsService.getSetting(settingKeys.privateReportsTimeZone),
++    );
++  } catch {
++    return defaultReportsTimeZone;
++  }
++}
++
++/** Accepts only a zone name `Intl` knows; anything else becomes the default. */
++export function normalizeTimeZone(candidate: unknown): string {
++  if (typeof candidate !== 'string' || candidate.trim().length === 0) {
++    return defaultReportsTimeZone;
++  }
++  const trimmed = candidate.trim();
++  try {
++    new Intl.DateTimeFormat('en-US', { timeZone: trimmed }).format(new Date());
++  } catch {
++    return defaultReportsTimeZone;
++  }
++  return trimmed;
++}
+
+diff --git a/backend/src/modules/settings/setting-keys.ts b/backend/src/modules/settings/setting-keys.ts
+--- a/backend/src/modules/settings/setting-keys.ts
++++ b/backend/src/modules/settings/setting-keys.ts
+@@ -302,6 +302,7 @@
+   privateReportsEnabled: 'private.reports.enabled',
+   privateReportsPacksJson: 'private.reports.packsJson',
+   privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',
++  privateReportsTimeZone: 'private.reports.timeZone',
+   privateDashboardBottlenecksEnabled: 'private.dashboard.bottlenecks.enabled',
+   privateDashboardBottlenecksDefaultWindowDays:
+     'private.dashboard.bottlenecks.defaultWindowDays',
+
+diff --git a/frontend/src/lib/dashboard/use-dashboard-summary.ts b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+--- a/frontend/src/lib/dashboard/use-dashboard-summary.ts
++++ b/frontend/src/lib/dashboard/use-dashboard-summary.ts
+@@ -1,6 +1,6 @@
+ import { useCallback, useEffect, useState } from "react";
+ import { useQueryClient } from "@tanstack/react-query";
+-import { queryKeys } from "@/lib/query/query-keys";
++import { localDayKey, queryKeys } from "@/lib/query/query-keys";
+ import {
+   composeDashboardSummary,
+   type DashboardSummary,
+@@ -38,6 +38,10 @@
+ 
+ export function useDashboardSummary(): DashboardSummaryState {
+   const { currentUserId } = useSession();
++  // The counters carry a day ("opened today"), so the day is part of the key:
++  // when it changes the callback identity changes with it and the effect below
++  // fetches the new day instead of showing yesterday's payload.
++  const dayKey = localDayKey();
+   const queryClient = useQueryClient();
+   const isStaff = isTicketStaff(useSessionCapabilities());
+   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+@@ -69,7 +73,7 @@
+       // data of the recent/watch/attention lists and the 14-day chart.
+       const [counts, firstPage] = await Promise.all([
+         queryClient.fetchQuery({
+-          queryKey: queryKeys.dashboardSummary("all"),
++          queryKey: queryKeys.dashboardSummary("all", dayKey),
+           queryFn: () => fetchDashboardSummary("all"),
+         }),
+         queryClient.fetchQuery({
+@@ -145,7 +149,7 @@
+         setIsLoading(false);
+       }
+     }
+-  }, [currentUserId, isStaff, queryClient]);
++  }, [currentUserId, dayKey, isStaff, queryClient]);
+ 
+   useEffect(() => {
+     void reload();
+
+diff --git a/frontend/src/lib/query/query-client.spec.ts b/frontend/src/lib/query/query-client.spec.ts
+--- a/frontend/src/lib/query/query-client.spec.ts
++++ b/frontend/src/lib/query/query-client.spec.ts
+@@ -5,7 +5,7 @@
+   defaultQueryStaleTimeMs,
+   queryRetryCount,
+ } from "@/lib/query/query-client";
+-import { queryKeys } from "@/lib/query/query-keys";
++import { localDayKey, queryKeys } from "@/lib/query/query-keys";
+ 
+ describe("createHelpdeskQueryClient", () => {
+   it("uses the documented defaults", () => {
+@@ -23,6 +23,16 @@
+   });
+ });
+ 
++describe("localDayKey", () => {
++  it("keys the browser's local day, not the UTC day", () => {
++    // Constructed in local time (`monthIndex` 8 = September), so the answer is
++    // the same whatever zone the test process runs in.
++    expect(localDayKey(new Date(2026, 8, 24, 22, 30))).toBe("2026-09-24");
++    expect(localDayKey(new Date(2026, 0, 1, 0, 5))).toBe("2026-01-01");
++    expect(localDayKey(new Date(2026, 11, 31, 23, 59, 59, 999))).toBe("2026-12-31");
++  });
++});
++
+ describe("queryKeys", () => {
+   it("builds stable keys for the same resource", () => {
+     expect(queryKeys.routingCatalog).toEqual(["catalog", "routing"]);
+@@ -31,7 +41,17 @@
+       "detail",
+       "ticket-1",
+     ]);
+-    expect(queryKeys.dashboardSummary("all")).toEqual([
++    expect(queryKeys.dashboardSummary("all", "2026-09-24")).toEqual([
++      "dashboard",
++      "summary",
++      "all",
++      "2026-09-24",
++    ]);
++    // A new day is a new entry, never a stale hit.
++    expect(queryKeys.dashboardSummary("all", "2026-09-25")).not.toEqual(
++      queryKeys.dashboardSummary("all", "2026-09-24"),
++    );
++    expect(queryKeys.dashboardSummaryPrefix("all")).toEqual([
+       "dashboard",
+       "summary",
+       "all",
+
+diff --git a/frontend/src/lib/query/query-keys.ts b/frontend/src/lib/query/query-keys.ts
+--- a/frontend/src/lib/query/query-keys.ts
++++ b/frontend/src/lib/query/query-keys.ts
+@@ -2,12 +2,33 @@
+  * Faza 3.3 (plan §3.3): one place that owns query keys, so an invalidacija can
+  * never miss a cache entry because two call sites spelled the key differently.
+  */
++
++/** The local civil day (`YYYY-MM-DD`) of the browser, for day-bounded keys. */
++export function localDayKey(now: Date = new Date()): string {
++  const year = String(now.getFullYear()).padStart(4, "0");
++  const month = String(now.getMonth() + 1).padStart(2, "0");
++  const day = String(now.getDate()).padStart(2, "0");
++  return `${year}-${month}-${day}`;
++}
++
+ export const queryKeys = {
+   routingCatalog: ["catalog", "routing"] as const,
+   routingRules: ["catalog", "routing-rules"] as const,
+   organizationalUnits: ["catalog", "organizational-units"] as const,
+   services: ["catalog", "services"] as const,
+-  dashboardSummary: (scope: string) => ["dashboard", "summary", scope] as const,
++  /**
++   * The dashboard counters contain a day ("opened today") that the server turns
++   * over at the installation's midnight, so the day is part of the key: a tab
++   * left open across midnight asks for the new day instead of keeping the
++   * previous day's payload.
++   */
++  dashboardSummary: (scope: string, dayKey: string) =>
++    ["dashboard", "summary", scope, dayKey] as const,
++  /**
++   * The invalidation handle: React Query matches keys by prefix, so a realtime
++   * event drops every day's entry without having to know which day is on screen.
++   */
++  dashboardSummaryPrefix: (scope: string) => ["dashboard", "summary", scope] as const,
+   ticketLists: ["tickets", "list"] as const,
+   ticketList: (query: unknown) => ["tickets", "list", query] as const,
+   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
+
+diff --git a/frontend/src/lib/realtime/invalidate-on-event.spec.ts b/frontend/src/lib/realtime/invalidate-on-event.spec.ts
+--- a/frontend/src/lib/realtime/invalidate-on-event.spec.ts
++++ b/frontend/src/lib/realtime/invalidate-on-event.spec.ts
+@@ -2,6 +2,10 @@
+ import { queryKeysForTicketEvent } from "@/lib/realtime/invalidate-on-event";
+ import { queryKeys } from "@/lib/query/query-keys";
+ 
++/**
++ * The dashboard key carries a day, so what an event invalidates is its prefix —
++ * which is what these expectations pin down.
++ */
+ describe("queryKeysForTicketEvent", () => {
+   it("invalidates the list, the detail and the dashboard on a ticket update", () => {
+     expect(
+@@ -12,7 +16,7 @@
+     ).toEqual([
+       queryKeys.ticketLists,
+       queryKeys.ticket("ticket-1"),
+-      queryKeys.dashboardSummary("all"),
++      queryKeys.dashboardSummaryPrefix("all"),
+       queryKeys.slaSummary,
+     ]);
+   });
+@@ -40,7 +44,7 @@
+       queryKeysForTicketEvent({ eventName: "ticket.updated", payload: null }),
+     ).toEqual([
+       queryKeys.ticketLists,
+-      queryKeys.dashboardSummary("all"),
++      queryKeys.dashboardSummaryPrefix("all"),
+       queryKeys.slaSummary,
+     ]);
+     expect(
+
+diff --git a/frontend/src/lib/realtime/invalidate-on-event.ts b/frontend/src/lib/realtime/invalidate-on-event.ts
+--- a/frontend/src/lib/realtime/invalidate-on-event.ts
++++ b/frontend/src/lib/realtime/invalidate-on-event.ts
+@@ -14,7 +14,11 @@
+  * `group.feed-changed` (Faza 3.2) intentionally invalidates only the list
+  * queries: the group room never carried the ticket content, so there is nothing
+  * to update in a ticket detail cache.
++ *
++ * The dashboard key carries a day, so the invalidation uses its prefix: an
++ * event drops today's counters without having to know which day is on screen.
+  */
++const QUERY_KEYS_DASHBOARD_SUMMARY = queryKeys.dashboardSummaryPrefix("all");
+ export function queryKeysForTicketEvent(input: {
+   readonly eventName: string;
+   readonly payload: unknown;
+@@ -25,13 +29,13 @@
+       return ticketId === null
+         ? [
+             queryKeys.ticketLists,
+-            queryKeys.dashboardSummary("all"),
++            QUERY_KEYS_DASHBOARD_SUMMARY,
+             queryKeys.slaSummary,
+           ]
+         : [
+             queryKeys.ticketLists,
+             queryKeys.ticket(ticketId),
+-            queryKeys.dashboardSummary("all"),
++            QUERY_KEYS_DASHBOARD_SUMMARY,
+             queryKeys.slaSummary,
+           ];
+     case ticketSocketEvents.messageCreated:
+
+diff --git a/perf/results/after-f4-2026-09-24.md b/perf/results/after-f4-2026-09-24.md
+--- a/perf/results/after-f4-2026-09-24.md
++++ b/perf/results/after-f4-2026-09-24.md
+@@ -251,3 +251,83 @@
+   - Particionisanje `tickets` i revizija indeksa po pragovima iz kvartalne procedure.
+   - Horizontalno autoskaliranje/Kubernetes/CDN — van obima, kako prompt i traži.
+ ```
++
++---
++
++## 8. Dopuna nakon prve primjene (perf-05): granica „danas" nije smjela zavisiti od zone procesa
++
++**Simptom.** Na Windows mašini (radna zona `Europe/Sarajevo`, UTC+2) pao je
++jedan test cijelog backend paketa:
++
++```
++FAIL modules/reports/summary/load-dashboard-summary-counts.spec.ts
++  ● narrows every count with its own clause on top of the list scope
++    - "gte": 2026-09-24T00:00:00.000Z
++    + "gte": 2026-09-23T22:00:00.000Z
++Test Suites: 1 failed, 362 passed  Tests: 1 failed, 1365 passed
++```
++
++U kontejneru (`TZ=UTC`) je isti paket bio zelen, pa se razlika nije vidjela dok
++se nije pokrenula na mašini u drugoj zoni.
++
++**Uzrok (F2.4, `load-dashboard-summary-counts.ts`).** Granica dana je bila
++
++```ts
++function startOfDay(now: Date): Date {
++  return new Date(now.getFullYear(), now.getMonth(), now.getDate()); // zona PROCESA
++}
++```
++
++`new Date(y, m, d)` čita zonu procesa, pa je „danas" zavisilo od toga gdje se kod
++izvršava: UTC kontejner → `00:00Z`, Sarajevo → `22:00Z prethodnog dana`. Isto
++tako, ostatak report modula je od početka računao u UTC-u (`resolve-report-window`,
++`aggregate-report-volume-series` → `Date.UTC` + `toISOString().slice(0, 10)`), pa
++je ovaj jedan izuzetak bio i nedosljedan i netestiran u drugoj zoni.
++
++**Popravka (najbolja preporuka: zona je postavka instalacije, ne procesa).**
++
++| Dio | Fajl | Šta radi |
++|---|---|---|
++| granica dana | `backend/src/modules/reports/summary/start-of-civil-day.ts` (nov) | `startOfCivilDay(instant, timeZone)` kroz `Intl` (IANA baza iz runtime-a, bez nove zavisnosti) + `civilDayKey`/`offsetMillisecondsAt`; DST prelaz se rješava re-čitanjem offseta, najviše 3 prolaza |
++| postavka | `settingKeys.privateReportsTimeZone = 'private.reports.timeZone'`, default `Europe/Sarajevo`, `assertValue` odbija nevalidan naziv | zona se mijenja kroz settings, bez deploya |
++| čitanje | `backend/src/modules/settings/read-installation-time-zone.ts` (nov) | svaki problem (nema vrijednosti, nije string, settings pada) → default; dashboard nikad ne pada zbog postavke |
++| upit | `loadDashboardSummaryCounts(..., timeZone)` | `createdAt: { gte: startOfCivilDay(now, timeZone) }` |
++| servis | `ReportSummaryService` (`@Optional() settingsService`) | čita zonu po zahtjevu i prosljeđuje je i u upit i u keš |
++| keš | `dashboardSummaryCacheKey(userId, scope, timeZone)` | `…:<user>:<scope>:<zone>` — promjena zone ne servira payload iz stare zone |
++| klijent | `queryKeys.dashboardSummary(scope, dayKey)` + `dashboardSummaryPrefix(scope)` | dan je dio ključa, pa tab otvoren preko ponoći pita za novi dan; invalidacija ide po prefiksu (React Query matchira prefiks) |
++
++**Zašto ne `TZ` procesa niti UTC po defaultu.** Jedan help desk ima jedno radno
++dano; „danas" mora biti isti broj za sve koji ga gledaju, a ne svojstvo kontejnera.
++UTC bi bio bolji od zone procesa, ali bi za instalaciju u Sarajevu pomjerio dan na
++02:00 lokalno — zato je vrijednost postavka (default `Europe/Sarajevo`), a kod je
++nezavisan od procesa.
++
++**Dokazi (novi/izmijenjeni testovi).**
++
++| Test | Šta zaključava |
++|---|---|
++| `start-of-civil-day.spec.ts` (13) | zone istok/zapad/UTC/pola sata/+14; DST prelaz u oba smjera; „tačno u ponoć, ni sekund prije"; invarijanta preko 5 instanata × 6 zona (`start <= instant`, `< 25 h`, isti `civilDayKey`) — svi expectationi su apsolutni UTC trenuci, pa test **isti** rezultat daje u svakoj zoni procesa |
++| `load-dashboard-summary-counts.spec.ts` (+1, postojeći prebačen na zone) | granica je `2026-09-23T22:00:00.000Z` za `Europe/Sarajevo`; isti trenutak daje `00:00Z` za `UTC` i `04:00Z` za `America/New_York` |
++| `report-summary.service.spec.ts` (+1) | zona iz settings-a stiže do `count` uslova; bez settings-a → default; ključ keša nosi zonu |
++| `read-installation-time-zone.spec.ts` (6) | trim, nevalidan naziv, ne-string, settings koji baca, odsutan servis → default |
++| `report-summary-cache.spec.ts` (+1) | dva različita zone → dva različita ključa |
++| `query-client.spec.ts` (+2) | dan je dio ključa, prefiks je ono što se invalidira; `localDayKey` je lokalni, ne UTC dan |
++| `invalidate-on-event.spec.ts` (izmijenjen) | događaj invalidira prefiks dashboarda |
++
++**Verifikacija poslije popravke.**
++
++| Provjera | Prije | Poslije |
++|---|---|---|
++| `npx jest --silent` **`TZ=Europe/Sarajevo`** | 1 pad (1365/1366) | **365 suita / 1388 testova ✓** |
++| `npx jest --silent` `TZ=UTC` | 363/1366 ✓ | **365 suita / 1388 ✓** |
++| `npx tsc --noEmit` | ✓ | ✓ |
++| `npx vitest run` (FE) | 95 / 333 ✓ | **95 / 334 ✓** |
++| `npm run build` (FE) | ✓ | ✓ |
++| `grep` za lokalnom civilnom matematikom u `backend/src` (bez specova) | 1 mjesto (`startOfDay`) | **0 mjesta** |
++
++**Šta nije dirano (i zašto).** Izvozni izvještaji (`resolve-report-window`) i
++14-dnevni graf na ekranu Izvještaja i dalje računaju u UTC-u odnosno lokalnoj zoni
++browsera. To je postojeće, dokumentovano ponašanje izvan Faze 4 (izvoz prima
++eksplicitne datume), i mijenjanje bi značilo promjenu semantike izvoza — predlaže se
++kao zasebna stavka: uskladiti `resolve-report-window` i FE `report-window.ts` s
++`private.reports.timeZone`. U Fazi 4 je popravljeno samo ono što je padalo.
