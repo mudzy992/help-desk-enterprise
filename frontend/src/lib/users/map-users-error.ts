@@ -5,6 +5,7 @@ export type UsersErrorKey =
   | "users.errorForbidden"
   | "users.errorNotFound"
   | "users.errorSuperAdminGrant"
+  | "users.errorSuperAdminManage"
   | "users.errorGeneric";
 
 const codeKeys: Partial<Record<string, UsersErrorKey>> = {
@@ -16,6 +17,7 @@ const codeKeys: Partial<Record<string, UsersErrorKey>> = {
   ORGANIZATIONAL_UNIT_NOT_FOUND: "users.errorNotFound",
   SERVICE_NOT_FOUND: "users.errorNotFound",
   SUPER_ADMIN_GRANT_FORBIDDEN: "users.errorSuperAdminGrant",
+  SUPER_ADMIN_MANAGE_FORBIDDEN: "users.errorSuperAdminManage",
 };
 
 export function mapUsersError(error: unknown): UsersErrorKey {

@@ -14,6 +14,7 @@ import {
 import { resolveTicketPriority } from './resolve-ticket-priority';
 import {
   nextTicketNumber,
+  withTicketNumberRetry,
   readHighestTicketSequence,
 } from './generate-ticket-number';
 import {
@@ -152,7 +153,7 @@ export async function createTicket(
         sink: duplicateWarnings,
         now: guardrailNow,
       });
-      return prisma.$transaction(async (transaction) => {
+      return withTicketNumberRetry(() => prisma.$transaction(async (transaction) => {
         const ticketNumber = await nextTicketNumber(
           () => transaction.ticket.count(),
           () => readHighestTicketSequence(transaction),
@@ -199,7 +200,7 @@ export async function createTicket(
           duplicateWarnings,
         );
         return record;
-      });
+      }));
     },
   );
   return created;

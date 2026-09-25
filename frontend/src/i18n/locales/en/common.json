@@ -409,6 +409,7 @@
     "errorForbidden": "You do not have permission to manage user roles.",
     "errorNotFound": "User, role, or scope was not found.",
     "errorSuperAdminGrant": "Only SuperAdmin can assign the SuperAdmin role.",
+    "errorSuperAdminManage": "Only a SuperAdmin can edit, reset or delete a SuperAdmin account.",
     "errorGeneric": "User role operation failed.",
     "addUser": "Add user",
     "editUser": "Edit",

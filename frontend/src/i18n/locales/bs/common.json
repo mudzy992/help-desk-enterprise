@@ -409,6 +409,7 @@
     "errorForbidden": "Nemate dozvolu za upravljanje ulogama korisnika.",
     "errorNotFound": "Korisnik, uloga ili scope nije pronađen.",
     "errorSuperAdminGrant": "Samo SuperAdmin može dodijeliti SuperAdmin ulogu.",
+    "errorSuperAdminManage": "Samo SuperAdmin može mijenjati, resetovati ili brisati SuperAdmin nalog.",
     "errorGeneric": "Operacija nad ulogom korisnika nije uspjela.",
     "addUser": "Dodaj korisnika",
     "editUser": "Uredi",

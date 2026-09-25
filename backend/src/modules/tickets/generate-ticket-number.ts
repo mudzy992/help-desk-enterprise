@@ -51,3 +51,42 @@ export async function readHighestTicketSequence(
   )) as readonly { highest: bigint | number }[];
   return Number(rows[0]?.highest ?? 0);
 }
+
+/**
+ * Review 2026-09-25: `max + 1` is read inside the create transaction, but two
+ * concurrent creates (different requesters — the duplicate guardrail lock is per
+ * requester + service) read the same max under READ COMMITTED and the second
+ * insert hits the unique index on `ticketNumber` (P2002 → HTTP 500). Re-running
+ * the whole transaction reads the new max, so a short retry is enough.
+ */
+export const ticketNumberCollisionAttempts = 5;
+
+export function isTicketNumberCollision(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const candidate = error as { code?: unknown; meta?: { target?: unknown } };
+  if (candidate.code !== 'P2002') {
+    return false;
+  }
+  const target = candidate.meta?.target;
+  const text = Array.isArray(target) ? target.join(',') : String(target ?? '');
+  // Prisma 7 driver adapters may omit `target`; P2002 inside ticket create is
+  // then still most likely the number (the only other unique key is the id).
+  return text.length === 0 || text.includes('ticketNumber');
+}
+
+export async function withTicketNumberRetry<T>(
+  run: () => Promise<T>,
+  attempts: number = ticketNumberCollisionAttempts,
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      if (attempt >= attempts || !isTicketNumberCollision(error)) {
+        throw error;
+      }
+    }
+  }
+}

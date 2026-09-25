@@ -30,6 +30,7 @@ import type {
   UserSummaryResponse,
 } from './users.types';
 import { UsersService } from './users.service';
+import { assertCanManageTargetUser } from './assert-can-manage-target-user';
 
 @Controller('users')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
@@ -73,17 +74,30 @@ export class UsersController {
   }
 
   @Post(':userId/reset-password')
-  resetTemporaryPassword(
+  async resetTemporaryPassword(
     @Param('userId') userId: string,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<ResetUserPasswordResponse> {
+    await this.assertCanManageTarget(request, userId);
     return this.usersService.resetTemporaryPassword(userId);
   }
 
   @Patch(':userId')
-  update(
+  async update(
     @Param('userId') userId: string,
     @Body() body: UpdateUserDto,
+    @Req() request: AuthenticatedHttpRequest,
   ): Promise<UserSummaryResponse> {
+    await this.assertCanManageTarget(request, userId);
+    if (
+      body.isActive === false &&
+      readAuthenticatedPrincipal(request)?.subjectId === userId
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_INPUT',
+        message: 'Cannot deactivate your own account',
+      });
+    }
     return this.usersService.update({
       userId,
       displayName: body.displayName,
@@ -106,6 +120,7 @@ export class UsersController {
         message: 'Cannot delete your own account',
       });
     }
+    await this.assertCanManageTarget(request, userId);
     await this.usersService.delete(userId);
   }
 
@@ -120,6 +135,7 @@ export class UsersController {
     @Body() body: AssignUserRoleDto,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<UserRoleResponse> {
+    await this.assertCanManageTarget(request, userId);
     const principal = readAuthenticatedPrincipal(request);
     return this.usersService.assignRole({
       userId,
@@ -139,12 +155,26 @@ export class UsersController {
     @Param('userRoleId') userRoleId: string,
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
+    await this.assertCanManageTarget(request, userId);
     const principal = readAuthenticatedPrincipal(request);
     await this.usersService.removeRole({
       userId,
       userRoleId,
       actorUserId: principal?.subjectId ?? null,
       requestId: readRequestId(request),
+    });
+  }
+
+  private async assertCanManageTarget(
+    request: AuthenticatedHttpRequest,
+    targetUserId: string,
+  ): Promise<void> {
+    const target = await this.authorizationContextLoader.loadBySubjectId(
+      targetUserId,
+    );
+    assertCanManageTargetUser({
+      actorIsSuperAdmin: await this.resolveActorIsSuperAdmin(request),
+      targetIsSuperAdmin: target?.isSuperAdmin === true,
     });
   }
 
