@@ -36,7 +36,7 @@ export async function resetUserTemporaryPassword(
     email: existing.email,
     displayName: existing.displayName,
   });
-  const summaries = await listUsersSummary(prisma);
+  const summaries = await listUsersSummary(prisma, { ids: [existing.id] });
   const summary = summaries.find((user) => user.id === existing.id);
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');

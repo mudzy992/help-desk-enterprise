@@ -17,11 +17,47 @@ export function resolveUserRoleTone(roleKey: string | null): UserRoleTone {
   return 'user';
 }
 
+export const userListMaxTake = 500;
+
+export type ListUsersSummaryOptions = {
+  /** Only these users (single-user reloads after create/update/reset). */
+  readonly ids?: readonly string[];
+  /** Case-insensitive match on display name or e-mail. */
+  readonly query?: string;
+  readonly take?: number;
+  readonly skip?: number;
+};
+
+/**
+ * Review 2026-09-25 (S3): every mutation used to reload the whole directory to
+ * return one row, and `GET /users` had no way to page. `ids` narrows to single
+ * users; `query`/`take`/`skip` are optional (without them the full list is
+ * returned, as the admin screen expects), `take` is capped at 500.
+ */
 export async function listUsersSummary(
   prisma: PrismaService,
+  options: ListUsersSummaryOptions = {},
 ): Promise<readonly UserSummaryResponse[]> {
+  const query = options.query?.trim() ?? '';
   const users = await prisma.user.findMany({
-    orderBy: { displayName: 'asc' },
+    where: {
+      ...(options.ids !== undefined ? { id: { in: [...options.ids] } } : {}),
+      ...(query.length > 0
+        ? {
+            OR: [
+              { displayName: { contains: query, mode: 'insensitive' as const } },
+              { email: { contains: query, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+    },
+    ...(options.take !== undefined
+      ? { take: Math.min(Math.max(1, Math.trunc(options.take)), userListMaxTake) }
+      : {}),
+    ...(options.skip !== undefined && options.skip > 0
+      ? { skip: Math.trunc(options.skip) }
+      : {}),
+    orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
     include: {
       organizationalUnit: {
         select: {

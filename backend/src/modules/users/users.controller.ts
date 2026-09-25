@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -52,8 +53,20 @@ export class UsersController {
   ) {}
 
   @Get()
-  listSummary(): Promise<readonly UserSummaryResponse[]> {
-    return this.usersService.listSummary();
+  listSummary(
+    @Query('q') query?: string,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ): Promise<readonly UserSummaryResponse[]> {
+    const toInt = (value?: string) => {
+      const parsed = Number.parseInt(value ?? '', 10);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    return this.usersService.listSummary({
+      query: typeof query === 'string' ? query : undefined,
+      take: toInt(take),
+      skip: toInt(skip),
+    });
   }
 
   @Post()

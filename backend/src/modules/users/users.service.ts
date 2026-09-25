@@ -12,6 +12,7 @@ import { listUserRoles } from './list-user-roles';
 import { listUsersSummary } from './list-users-summary';
 import { mapUsersError } from './map-users-error';
 import { removeUserRole } from './remove-user-role';
+import type { ListUsersSummaryOptions } from './list-users-summary';
 import { resetUserTemporaryPassword } from './reset-user-temporary-password';
 import { unlinkUserDirectoryIdentity } from './unlink-user-directory-identity';
 import { updateUser } from './update-user';
@@ -46,8 +47,10 @@ export class UsersService {
       Promise.resolve(null);
   }
 
-  listSummary(): Promise<readonly UserSummaryResponse[]> {
-    return this.execute(() => listUsersSummary(this.prisma));
+  listSummary(
+    options: ListUsersSummaryOptions = {},
+  ): Promise<readonly UserSummaryResponse[]> {
+    return this.execute(() => listUsersSummary(this.prisma, options));
   }
 
   create(input: CreateUserInput): Promise<CreateUserResponse> {

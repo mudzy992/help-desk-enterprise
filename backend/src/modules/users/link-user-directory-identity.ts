@@ -62,7 +62,7 @@ export async function linkUserDirectoryIdentity(input: {
       mustChangePassword: false,
     },
   });
-  const summaries = await listUsersSummary(input.prisma);
+  const summaries = await listUsersSummary(input.prisma, { ids: [existing.id] });
   const summary = summaries.find((user) => user.id === existing.id);
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');

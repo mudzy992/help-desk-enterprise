@@ -30,7 +30,7 @@ export async function updateUser(
     // request, so the entry is dropped and its version bumped here.
     await invalidatePrincipal(input.userId);
   }
-  const summaries = await listUsersSummary(prisma);
+  const summaries = await listUsersSummary(prisma, { ids: [input.userId] });
   const summary = summaries.find((user) => user.id === input.userId);
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');

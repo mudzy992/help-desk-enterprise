@@ -12,7 +12,10 @@ import type {
 } from './collaboration.types';
 import { createTicketMessage } from './create-ticket-message';
 import { executeTicketOperation } from './execute-ticket-operation';
-import { listTicketMessages } from './list-ticket-messages';
+import {
+  listTicketMessages,
+  type ListTicketMessagesOptions,
+} from './list-ticket-messages';
 import { listTicketParticipants } from './list-ticket-participants';
 import { loadAccessibleTicket } from './load-accessible-ticket';
 import { publishForTicketId } from './publish-for-ticket-id';
@@ -99,13 +102,18 @@ export class TicketsCollaborationService {
     });
   }
 
-  listMessages(ticketId: string, context: TicketMutationContext) {
+  listMessages(
+    ticketId: string,
+    context: TicketMutationContext,
+    options: ListTicketMessagesOptions = {},
+  ) {
     return executeTicketOperation(async () =>
       listTicketMessages(
         this.prisma,
         this.authorizationContextLoader,
         ticketId,
         await this.accessPolicies.bind(context),
+        options,
       ),
     );
   }

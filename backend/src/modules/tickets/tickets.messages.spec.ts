@@ -52,6 +52,11 @@ describe('TicketsCollaborationService messages', () => {
     expect(
       forAgent.filter((item) => item.type === 'SYSTEM_EVENT').map((item) => item.body),
     ).toContain(ticketSystemEventActions.created);
+    // Review S6: `take` returns the newest messages, still oldest-first.
+    const newestTwo = await harness.collaboration.listMessages(ticketId, agentIt, { take: 2 });
+    expect(newestTwo.map((item) => item.id)).toEqual(forAgent.slice(-2).map((item) => item.id));
+    const requesterNewest = await harness.collaboration.listMessages(ticketId, requester, { take: 1 });
+    expect(requesterNewest.map((item) => item.id)).toEqual([agentReply.id]);
   });
 
   it('rejects unauthorized message access and requester internal notes', async () => {

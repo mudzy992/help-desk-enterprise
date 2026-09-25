@@ -7,6 +7,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
   UsePipes,
@@ -87,10 +88,22 @@ export class TicketsCollaborationController {
   listMessages(
     @Param('ticketId') ticketId: string,
     @Req() request: AuthenticatedHttpRequest,
+    @Query('before') before?: string,
+    @Query('take') take?: string,
   ) {
+    const beforeDate =
+      typeof before === 'string' && before.length > 0 ? new Date(before) : undefined;
+    const takeNumber = Number.parseInt(typeof take === 'string' ? take : '', 10);
     return this.ticketsCollaborationService.listMessages(
       ticketId,
       readContext(request),
+      {
+        before:
+          beforeDate !== undefined && !Number.isNaN(beforeDate.getTime())
+            ? beforeDate
+            : undefined,
+        take: Number.isFinite(takeNumber) ? takeNumber : undefined,
+      },
     );
   }
 

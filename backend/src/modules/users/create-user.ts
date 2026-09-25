@@ -67,7 +67,7 @@ export async function createUser(
     actorIsSuperAdmin: input.actorIsSuperAdmin,
     requestId: input.requestId,
   });
-  const summaries = await listUsersSummary(prisma);
+  const summaries = await listUsersSummary(prisma, { ids: [created.id] });
   const summary = summaries.find((user) => user.id === created.id);
   if (summary === undefined) {
     throw new UsersError('USER_NOT_FOUND');
