@@ -323,6 +323,7 @@ export const settingKeys = {
   privateReportsPacksJson: 'private.reports.packsJson',
   privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',
   privateReportsTimeZone: 'private.reports.timeZone',
+  privateReportsPingPongThreshold: 'private.reports.pingPongThreshold',
   privateDashboardBottlenecksEnabled: 'private.dashboard.bottlenecks.enabled',
   privateDashboardBottlenecksDefaultWindowDays:
     'private.dashboard.bottlenecks.defaultWindowDays',

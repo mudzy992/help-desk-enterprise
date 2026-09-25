@@ -38,6 +38,9 @@ export const ticketListSelect = {
   waitingForUserEnteredAt: true,
   waitingForUserReminderSentAt: true,
   firstResponseAt: true,
+  forwardCount: true,
+  lastForwardedAt: true,
+  lastForwardFromGroupName: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.TicketSelect;

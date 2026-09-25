@@ -48,6 +48,37 @@ import { ReportsService } from './reports.service';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+  @Get('packs')
+  @Header('Cache-Control', 'no-store')
+  // The OU scope guard applies to the whole controller, so the list also names a unit.
+  listPacks(@Query() _query: ReportScopeQueryDto) {
+    return this.listPacksInternal();
+  }
+
+  private async listPacksInternal() {
+    try {
+      return await this.reportsService.listPacks();
+    } catch (error) {
+      throw mapReportsError(error);
+    }
+  }
+
+  @Get('packs/:packSlug/preview')
+  @Header('Cache-Control', 'no-store')
+  async previewPack(
+    @Param('packSlug') packSlug: string,
+    @Query() query: ReportScopeQueryDto,
+  ) {
+    try {
+      return await this.reportsService.previewPack({
+        ...query,
+        pack: parseReportPackSlug(packSlug),
+      });
+    } catch (error) {
+      throw mapReportsError(error);
+    }
+  }
+
   @Get('packs/:packSlug')
   @Header('Cache-Control', 'no-store')
   async exportPack(

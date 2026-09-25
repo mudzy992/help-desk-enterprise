@@ -2,6 +2,7 @@ import type { ReportExportRow, ReportPackBuildInput } from '../reports.types';
 
 export const overdueByServiceColumns = [
   'serviceId',
+  'serviceName',
   'overdueCount',
 ] as const;
 
@@ -16,7 +17,11 @@ export function buildOverdueByServiceReport(
     counts.set(ticket.serviceId, (counts.get(ticket.serviceId) ?? 0) + 1);
   }
   return [...counts.entries()]
-    .map(([serviceId, overdueCount]) => ({ serviceId, overdueCount }))
+    .map(([serviceId, overdueCount]) => ({
+      serviceId,
+      serviceName: input.serviceNamesById?.get(serviceId) ?? null,
+      overdueCount,
+    }))
     .sort((left, right) => {
       const byCount = Number(right.overdueCount) - Number(left.overdueCount);
       return byCount !== 0

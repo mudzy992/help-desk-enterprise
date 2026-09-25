@@ -13,8 +13,8 @@ describe('buildOverdueByServiceReport', () => {
       ]),
     );
     expect(rows).toEqual([
-      { serviceId: 'vpn', overdueCount: 2 },
-      { serviceId: 'access', overdueCount: 1 },
+      { serviceId: 'vpn', serviceName: null, overdueCount: 2 },
+      { serviceId: 'access', serviceName: null, overdueCount: 1 },
     ]);
   });
 });

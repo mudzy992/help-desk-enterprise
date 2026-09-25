@@ -31,6 +31,9 @@ export class ReportsConfigurationLoader {
         defaultWindowDays: await this.settingsService.getSetting(
           settingKeys.privateDashboardBottlenecksDefaultWindowDays,
         ),
+        pingPongThreshold: await this.settingsService
+          .getSetting(settingKeys.privateReportsPingPongThreshold)
+          .catch(() => undefined),
       });
     } catch (error) {
       if (error instanceof ReportsError) {

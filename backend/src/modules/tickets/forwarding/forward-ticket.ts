@@ -195,6 +195,14 @@ export async function applyTicketForward(input: {
         assignedGroupId: plan.target.id,
         assignedUserId: plan.targetUserId,
         status: nextStatusAfterForward(before, plan.targetUserId),
+        // Package 1.6: a reassignment inside the group is not a forward.
+        ...(plan.isReassign
+          ? {}
+          : {
+              forwardCount: (before.forwardCount ?? 0) + 1,
+              lastForwardedAt: new Date(),
+              lastForwardFromGroupName: plan.fromGroup?.name ?? null,
+            }),
       },
     })) as TicketRecord;
     await rewriteParticipants(tx, {

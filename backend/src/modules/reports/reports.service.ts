@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { aggregateBottleneckDashboard } from './bottleneck/aggregate-bottleneck-dashboard';
-import { buildReportPackRows } from './build-report-pack-rows';
+import { buildReportPackRows, reportPackColumns } from './build-report-pack-rows';
 import {
   buildReportsDashboard,
   type ReportsDashboard,
@@ -9,16 +9,25 @@ import {
 import { loadReportPackBuildInput } from './load-report-pack-build-input';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { recordReportExportAudit } from './record-report-export-audit';
-import { reportErrorCodes } from './reports.constants';
+import {
+  reportErrorCodes,
+  reportPackKeyList,
+  reportPackLimits,
+  reportPackSlugs,
+  type ReportExportFormat,
+  type ReportPackKey,
+} from './reports.constants';
 import { ReportsConfigurationLoader } from './reports-configuration.loader';
 import { ReportsError } from './reports.error';
 import { resolveReportOrganizationalUnitScope } from './resolve-report-organizational-unit-scope';
-import { resolveReportWindow } from './resolve-report-window';
+import { assertReportWindowSpan, resolveReportWindow } from './resolve-report-window';
 import { serializeReportPackExport } from './serialize-report-pack-export';
 import type {
   BottleneckDashboard,
   ExportReportPackQuery,
   ReportExportResult,
+  ReportPackDescriptor,
+  ReportPackPreview,
   ReportScopeQuery,
   ReportsConfiguration,
 } from './reports.types';
@@ -30,6 +39,46 @@ export class ReportsService {
     private readonly configurationLoader: ReportsConfigurationLoader,
   ) {}
 
+  /** Package 1.6: the packs this installation offers, in display order. */
+  async listPacks(): Promise<{
+    readonly packs: readonly ReportPackDescriptor[];
+    readonly formats: readonly ReportExportFormat[];
+    readonly limits: typeof reportPackLimits;
+    readonly pingPongThreshold: number;
+  }> {
+    const configuration = await this.configurationLoader.load();
+    this.assertReportsEnabled(configuration);
+    return {
+      packs: reportPackKeyList
+        .filter((pack) => configuration.enabledPacks.includes(pack))
+        .map((pack) => ({
+          key: pack,
+          slug: reportPackSlugs[pack],
+          columns: reportPackColumns(pack),
+        })),
+      formats: configuration.allowedFormats,
+      limits: reportPackLimits,
+      pingPongThreshold: configuration.pingPongThreshold,
+    };
+  }
+
+  /** Package 1.6 (plan §3 D3): first rows as JSON, not audited, not a file. */
+  async previewPack(
+    query: ReportScopeQuery & { readonly pack: ReportPackKey },
+    now: Date = new Date(),
+  ): Promise<ReportPackPreview> {
+    const configuration = await this.requireReports(query.pack);
+    const { window, built } = await this.buildPack(query, configuration, now);
+    return {
+      pack: query.pack,
+      columns: built.columns,
+      rows: built.rows.slice(0, reportPackLimits.previewRows),
+      totalRows: built.rows.length,
+      truncated: built.rows.length > reportPackLimits.previewRows,
+      window: { from: window.from.toISOString(), to: window.to.toISOString() },
+    };
+  }
+
   async exportPack(
     query: ExportReportPackQuery,
     actorUserId: string,
@@ -37,26 +86,20 @@ export class ReportsService {
     now: Date = new Date(),
   ): Promise<ReportExportResult> {
     const configuration = await this.requireReports(query.pack, query.format);
-    const window = resolveReportWindow({
-      from: query.from,
-      to: query.to,
-      now,
-      defaultWindowDays: configuration.defaultWindowDays,
-      mode: 'month',
+    const { window, built } = await this.buildPack(query, configuration, now);
+    if (built.rows.length > reportPackLimits.exportRows) {
+      throw new ReportsError(reportErrorCodes.tooLarge);
+    }
+    const unit = await this.prisma.organizationalUnit.findUnique({
+      where: { id: query.organizationalUnitId },
+      select: { name: true },
     });
-    const scopedIds = await resolveReportOrganizationalUnitScope(
-      this.prisma,
-      query.organizationalUnitId,
-    );
-    const built = buildReportPackRows(
-      query.pack,
-      await loadReportPackBuildInput(this.prisma, scopedIds, window),
-    );
     const exported = serializeReportPackExport(
       query.pack,
       query.format,
       built.columns,
       built.rows,
+      { unitCode: unit?.name ?? null, window },
     );
     await recordReportExportAudit(this.prisma, {
       actorUserId,
@@ -65,8 +108,40 @@ export class ReportsService {
       format: query.format,
       recordCount: built.rows.length,
       requestId,
+      window,
+      fileName: exported.fileName,
     });
     return exported;
+  }
+
+  private async buildPack(
+    query: ReportScopeQuery & { readonly pack: ReportPackKey },
+    configuration: ReportsConfiguration,
+    now: Date,
+  ) {
+    const window = resolveReportWindow({
+      from: query.from,
+      to: query.to,
+      now,
+      defaultWindowDays: configuration.defaultWindowDays,
+      mode: 'month',
+    });
+    assertReportWindowSpan(window, reportPackLimits.maxWindowDays);
+    const scopedIds = await resolveReportOrganizationalUnitScope(
+      this.prisma,
+      query.organizationalUnitId,
+    );
+    const built = buildReportPackRows(
+      query.pack,
+      await loadReportPackBuildInput(
+        this.prisma,
+        scopedIds,
+        window,
+        query.pack,
+        configuration.pingPongThreshold,
+      ),
+    );
+    return { window, built };
   }
 
   async bottleneck(
@@ -111,14 +186,14 @@ export class ReportsService {
 
   private async requireReports(
     pack: ExportReportPackQuery['pack'],
-    format: ExportReportPackQuery['format'],
+    format?: ExportReportPackQuery['format'],
   ): Promise<ReportsConfiguration> {
     const configuration = await this.configurationLoader.load();
     this.assertReportsEnabled(configuration);
     if (!configuration.enabledPacks.includes(pack)) {
       throw new ReportsError(reportErrorCodes.packNotEnabled);
     }
-    if (!configuration.allowedFormats.includes(format)) {
+    if (format !== undefined && !configuration.allowedFormats.includes(format)) {
       throw new ReportsError(reportErrorCodes.formatNotAllowed);
     }
     return configuration;

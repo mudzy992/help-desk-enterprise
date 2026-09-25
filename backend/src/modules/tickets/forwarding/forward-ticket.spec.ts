@@ -187,6 +187,9 @@ describe('forwardTicket (package 1.1)', () => {
       reason: 'Riješeno na strani Direkcije, vraćam',
     });
     expect(reload().assignedGroupId).toBe(ticketsTestIds.groupIt);
+    // Package 1.6: denormalised counters follow every group-to-group forward.
+    expect(reload()).toMatchObject({ forwardCount: 2, lastForwardFromGroupName: 'Telefonija HR' });
+    expect(reload().lastForwardedAt).toBeInstanceOf(Date);
     resetScopeCatalogCache();
     await expect(
       harness.tickets.getById(ticket.id, { actorUserId: ticketsTestIds.agentHr }),
@@ -213,6 +216,8 @@ describe('forwardTicket (package 1.1)', () => {
       .map((row) => `${row.role}:${row.groupId ?? row.userId}`);
     expect(roles).toContain(`ASSIGNEE:${ticketsTestIds.agentItPeer}`);
     expect(roles.some((role) => role.startsWith('FORWARDED_'))).toBe(false);
+    // Package 1.6: a reassignment inside the group does not count as a forward.
+    expect(memory.tickets.get(ticket.id)?.forwardCount ?? 0).toBe(0);
     const [event] = [...memory.forwardEvents.values()];
     expect(event).toMatchObject({
       fromGroupId: ticketsTestIds.groupIt,

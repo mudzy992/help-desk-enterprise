@@ -24,6 +24,11 @@ export type TicketListQuery = {
   readonly requesterId?: string;
   readonly groupId?: string;
   readonly unassigned?: boolean;
+  /**
+   * Package 1.6, staff only (ignored for requesters): `any` = forwarded at least
+   * once; `toMyGroups` = forwarded and currently in one of the caller's groups.
+   */
+  readonly forwarded?: 'any' | 'toMyGroups';
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;

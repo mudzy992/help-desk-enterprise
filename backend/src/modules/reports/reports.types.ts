@@ -13,6 +13,7 @@ export type ReportsConfiguration = {
   readonly allowedFormats: readonly ReportExportFormat[];
   readonly bottlenecksEnabled: boolean;
   readonly defaultWindowDays: number;
+  readonly pingPongThreshold: number;
 };
 
 export type ReportWindow = {
@@ -52,6 +53,48 @@ export type ReportPackBuildInput = {
   readonly closeCodesById: ReadonlyMap<string, CloseCodeLookup>;
   readonly articles: readonly KnowledgeArticleRecord[];
   readonly feedback: readonly KnowledgeFeedbackVote[];
+  /** Package 1.6 */
+  readonly serviceNamesById?: ReadonlyMap<string, string>;
+  readonly forwardTickets?: readonly ForwardPingPongTicket[];
+  readonly pingPongThreshold?: number;
+};
+
+export type ForwardPingPongEvent = {
+  readonly fromGroupId: string | null;
+  readonly fromGroupName: string | null;
+  readonly fromUnitId: string | null;
+  readonly toGroupId: string;
+  readonly toGroupName: string;
+  readonly toUnitId: string;
+  readonly isCrossOu: boolean;
+  readonly createdAt: Date;
+};
+
+export type ForwardPingPongTicket = {
+  readonly id: string;
+  readonly ticketNumber: string;
+  readonly title: string;
+  readonly isConfidential: boolean;
+  readonly status: string;
+  readonly serviceName: string | null;
+  readonly currentGroupName: string | null;
+  /** Group-to-group forwards inside the window, oldest first. */
+  readonly events: readonly ForwardPingPongEvent[];
+};
+
+export type ReportPackDescriptor = {
+  readonly key: ReportPackKey;
+  readonly slug: string;
+  readonly columns: readonly string[];
+};
+
+export type ReportPackPreview = {
+  readonly pack: ReportPackKey;
+  readonly columns: readonly string[];
+  readonly rows: readonly ReportExportRow[];
+  readonly totalRows: number;
+  readonly truncated: boolean;
+  readonly window: { readonly from: string; readonly to: string };
 };
 
 export type BottleneckCounts = {

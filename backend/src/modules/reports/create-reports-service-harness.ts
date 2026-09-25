@@ -39,7 +39,8 @@ export function createReportsServiceHarness() {
     enabledPacks: reportPackKeyList,
     allowedFormats: ['csv', 'json'],
     bottlenecksEnabled: true,
-    defaultWindowDays: 30,
+    pingPongThreshold: 3,
+        defaultWindowDays: 30,
   };
   const reports = new ReportsService(prisma as never, {
     load: async () => configuration,

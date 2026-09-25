@@ -12,12 +12,17 @@ export function serializeReportCsv(
       columns.map((column) => csvCell(row[column] ?? null)).join(','),
     ),
   ];
-  return `${lines.join('\n')}\n`;
+  // UTF-8 BOM: Excel otherwise opens č/ć/ž/š/đ as mojibake (plan §3 D6).
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }
 
+/** OWASP CSV injection: text starting like a formula is prefixed with `'`. */
+const formulaPrefix = /^[=+\-@\t\r]/;
+
 function csvCell(value: string | number | null): string {
-  const text = value === null ? '' : String(value);
-  if (!/[",\n]/.test(text)) {
+  const raw = value === null ? '' : String(value);
+  const text = typeof value === 'string' && formulaPrefix.test(raw) ? `'${raw}` : raw;
+  if (!/[",\r\n]/.test(text)) {
     return text;
   }
   return `"${text.replaceAll('"', '""')}"`;

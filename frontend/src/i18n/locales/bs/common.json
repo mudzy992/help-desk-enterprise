@@ -1088,7 +1088,66 @@
     "aging3to7": "3–7 dana",
     "agingGt7": "> 7 dana",
     "agingWaitingHint": "{{count}} tiketa starijih od 7 dana je u statusu „Čeka korisnika“.",
-    "unroutedGroup": "Neusmjereni"
+    "unroutedGroup": "Neusmjereni",
+    "tabs": {
+      "overview": "Pregled",
+      "packs": "Paketi izvještaja"
+    },
+    "packs": {
+      "title": "Paketi izvještaja",
+      "unit": "Organizaciona jedinica",
+      "show": "Prikaži",
+      "download": "Preuzmi {{format}}",
+      "downloaded": "Preuzeto: {{file}}",
+      "pressShow": "Izaberite paket i period, pa kliknite „Prikaži“ za pregled prije preuzimanja.",
+      "emptyTitle": "Nema podataka za izabrani period",
+      "emptyBody": "Probajte duži period ili drugu organizacionu jedinicu.",
+      "noneTitle": "Nijedan paket nije uključen",
+      "noneBody": "Administrator može uključiti pakete u postavkama izvještaja.",
+      "rows_one": "{{count}} red",
+      "rows_few": "{{count}} reda",
+      "rows_other": "{{count}} redova",
+      "truncated": "Prikazano prvih {{shown}}; preuzimanje sadrži sve redove.",
+      "scopeHint": "Period {{from}} – {{to}} · najviše {{max}} dana · svako preuzimanje se bilježi u audit",
+      "confidential": "[povjerljivo]",
+      "names": {
+        "monthly_kpi": "Mjesečni KPI",
+        "overdue_by_service": "Prekoračeni po servisu",
+        "top_close_codes": "Najčešći kodovi zatvaranja",
+        "kb_helpfulness": "Korisnost baze znanja",
+        "forward_ping_pong": "Ping-pong prosljeđivanja"
+      },
+      "descriptions": {
+        "monthly_kpi": "Kreirani, riješeni i zatvoreni tiketi, SLA prekoračenja, CSAT i prosječna vremena odziva i rješavanja.",
+        "overdue_by_service": "Broj tiketa s prekoračenim SLA-om po servisu, za tikete aktivne u periodu.",
+        "top_close_codes": "Kodovi zatvaranja riješenih i zatvorenih tiketa, od najčešćeg.",
+        "kb_helpfulness": "Glasovi „pomoglo / nije pomoglo“ po članku baze znanja.",
+        "forward_ping_pong": "Tiketi proslijeđeni između grupa najmanje {{threshold}} puta u periodu, s putanjom kroz grupe."
+      },
+      "columns": {
+        "createdCount": "Kreirano",
+        "resolvedCount": "Riješeno",
+        "closedCount": "Zatvoreno",
+        "overdueCount": "Prekoračeno",
+        "csatCount": "CSAT ocjena",
+        "csatAverage": "CSAT prosjek",
+        "averageFirstResponseMinutes": "Prosj. prvi odziv (min)",
+        "averageResolutionMinutes": "Prosj. rješavanje (min)",
+        "serviceId": "ID servisa",
+        "serviceName": "Servis",
+        "ticketNumber": "Tiket",
+        "title": "Naslov",
+        "service": "Servis",
+        "currentGroup": "Trenutna grupa",
+        "status": "Status",
+        "forwardsInPeriod": "Prosljeđivanja",
+        "crossOuForwards": "Između OJ",
+        "distinctGroups": "Različitih grupa",
+        "groupPath": "Putanja",
+        "firstForwardAt": "Prvo prosljeđivanje",
+        "lastForwardAt": "Zadnje prosljeđivanje"
+      }
+    }
   },
   "services": {
     "title": "Katalog usluga",
@@ -2558,6 +2617,18 @@
       "targetAgentRequired": "Agent (obavezno)",
       "reassignDone": "Tiket je dodijeljen: {{name}}.",
       "reassignBadge": "Preraspodjela"
+    },
+    "forwarding": {
+      "indicatorCount_one": "Proslijeđen {{count}} put",
+      "indicatorCount_few": "Proslijeđen {{count}} puta",
+      "indicatorCount_other": "Proslijeđen {{count}} puta",
+      "indicatorWhen": "zadnji put {{when}}",
+      "indicatorFrom": "od: {{group}}",
+      "chip": "Proslijeđen {{count}}×",
+      "filterLabel": "Prosljeđivanje",
+      "filterAll": "Svi tiketi",
+      "filterAny": "Proslijeđeni",
+      "filterToMyGroups": "Proslijeđeni u moju grupu"
     }
   },
   "relativeTime": {

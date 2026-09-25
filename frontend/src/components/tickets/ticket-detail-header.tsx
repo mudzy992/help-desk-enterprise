@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indicator";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -100,6 +101,15 @@ export function TicketDetailHeader({
                 </Badge>
               ) : null}
               {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
+              <TicketForwardIndicator
+                ticket={ticket}
+                variant="chip"
+                onClick={() =>
+                  document
+                    .querySelector('[data-testid="forward-history"]')
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              />
             </div>
             <h1 className="mt-2 max-w-3xl text-[16px] font-semibold leading-6 text-foreground">
               {ticket.title}

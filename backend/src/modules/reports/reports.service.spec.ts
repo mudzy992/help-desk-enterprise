@@ -38,6 +38,62 @@ describe('ReportsService OU scoping', () => {
     );
   });
 
+  it('package 1.6: previews without auditing, exports with period in the audit', async () => {
+    const harness = createReportsServiceHarness();
+    seedScopedTickets(harness);
+    const scope = {
+      organizationalUnitId: ticketsTestIds.ouIt,
+      from: '2026-09-01T00:00:00.000Z',
+      to: '2026-09-30T23:59:59.000Z',
+    };
+    const preview = await harness.reports.previewPack(
+      { ...scope, pack: reportPackKeys.monthlyKpi },
+      now,
+    );
+    expect(preview).toMatchObject({ totalRows: 1, truncated: false });
+    expect(preview.columns).toContain('createdCount');
+    expect(await harness.prisma.auditLog.findMany()).toHaveLength(0);
+
+    const exported = await harness.reports.exportPack(
+      { ...scope, pack: reportPackKeys.monthlyKpi, format: 'csv' },
+      ticketsTestIds.adminIt,
+      null,
+      now,
+    );
+    expect(exported.fileName).toMatch(/^ephelpdesk_monthly_kpi_.+_2026-09-01_2026-09-30\.csv$/);
+    expect(exported.content.startsWith('\uFEFF')).toBe(true);
+    const [audit] = (await harness.prisma.auditLog.findMany()) as Array<{ metadata: unknown }>;
+    expect(audit?.metadata).toMatchObject({
+      format: 'csv',
+      pack: 'monthly_kpi',
+      organizationalUnitId: ticketsTestIds.ouIt,
+      from: scope.from,
+      to: '2026-09-30T23:59:59.000Z',
+    });
+  });
+
+  it('package 1.6: rejects periods longer than 366 days', async () => {
+    const harness = createReportsServiceHarness();
+    await expect(
+      harness.reports.previewPack(
+        {
+          pack: reportPackKeys.monthlyKpi,
+          organizationalUnitId: ticketsTestIds.ouIt,
+          from: '2025-01-01T00:00:00.000Z',
+          to: '2026-06-01T00:00:00.000Z',
+        },
+        now,
+      ),
+    ).rejects.toMatchObject({ code: 'REPORT_WINDOW_INVALID' });
+  });
+
+  it('package 1.6: lists enabled packs with columns', async () => {
+    const harness = createReportsServiceHarness();
+    const listed = await harness.reports.listPacks();
+    expect(listed.packs.map((pack) => pack.slug)).toContain('monthly-kpi');
+    expect(listed.limits.previewRows).toBe(200);
+  });
+
   it('aggregates bottlenecks for the requested OU tree only', async () => {
     const harness = createReportsServiceHarness();
     seedScopedTickets(harness);

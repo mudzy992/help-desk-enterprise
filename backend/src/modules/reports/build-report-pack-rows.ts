@@ -1,5 +1,9 @@
 import { reportPackKeys, type ReportPackKey } from './reports.constants';
 import {
+  buildForwardPingPongReport,
+  forwardPingPongColumns,
+} from './packs/build-forward-ping-pong-report';
+import {
   buildKbHelpfulnessReport,
   kbHelpfulnessColumns,
 } from './packs/build-kb-helpfulness-report';
@@ -39,8 +43,31 @@ export function buildReportPackRows(
       rows: buildTopCloseCodesReport(input),
     };
   }
+  if (pack === reportPackKeys.forwardPingPong) {
+    return {
+      columns: forwardPingPongColumns,
+      rows: buildForwardPingPongReport(input),
+    };
+  }
   return {
     columns: kbHelpfulnessColumns,
     rows: buildKbHelpfulnessReport(input),
   };
 }
+
+/** Column list per pack without building anything (for `GET /reports/packs`). */
+export function reportPackColumns(pack: ReportPackKey): readonly string[] {
+  return buildReportPackRows(pack, emptyBuildInput).columns;
+}
+
+const emptyBuildInput: ReportPackBuildInput = {
+  window: { from: new Date(0), to: new Date(0) },
+  tickets: [],
+  csatByTicketId: new Map(),
+  closeCodesById: new Map(),
+  articles: [],
+  feedback: [],
+  serviceNamesById: new Map(),
+  forwardTickets: [],
+  pingPongThreshold: 3,
+};

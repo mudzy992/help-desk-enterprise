@@ -45,6 +45,10 @@ export type TicketRecord = {
   readonly waitingForUserEnteredAt: Date | null;
   readonly waitingForUserReminderSentAt: Date | null;
   readonly firstResponseAt: Date | null;
+  /** Package 1.6 (optional so fixtures and projections without it stay valid). */
+  readonly forwardCount?: number;
+  readonly lastForwardedAt?: Date | null;
+  readonly lastForwardFromGroupName?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -83,6 +87,9 @@ export type TicketResponse = {
   readonly closedAt: string | null;
   readonly archivedAt: string | null;
   readonly waitingForUserEnteredAt: string | null;
+  readonly forwardCount: number;
+  readonly lastForwardedAt: string | null;
+  readonly lastForwardFromGroupName: string | null;
   readonly isOverdue: boolean;
   readonly isAtRisk: boolean;
   readonly sla?: TicketSlaClientSnapshot | null;

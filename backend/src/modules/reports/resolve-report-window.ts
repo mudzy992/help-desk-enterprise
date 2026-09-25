@@ -88,3 +88,11 @@ function parseInstant(value: string): Date {
 function addUtcDays(value: Date, days: number): Date {
   return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
 }
+
+/** Package 1.6 (plan §3 D5): report packs cover at most `maxDays` days. */
+export function assertReportWindowSpan(window: ReportWindow, maxDays: number): void {
+  const spanMs = window.to.getTime() - window.from.getTime();
+  if (spanMs > maxDays * 24 * 60 * 60 * 1000) {
+    throw new ReportsError(reportErrorCodes.windowInvalid);
+  }
+}

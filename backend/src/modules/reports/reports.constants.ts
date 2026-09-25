@@ -5,6 +5,7 @@ export const reportPackKeys = {
   overdueByService: 'overdue_by_service',
   topCloseCodes: 'top_close_codes',
   kbHelpfulness: 'kb_helpfulness',
+  forwardPingPong: 'forward_ping_pong',
 } as const satisfies Record<string, (typeof defaultReportPackKeys)[number]>;
 
 export const reportPackKeyList = Object.values(reportPackKeys);
@@ -22,6 +23,7 @@ export const reportErrorCodes = {
   packNotEnabled: 'REPORT_PACK_NOT_ENABLED',
   windowInvalid: 'REPORT_WINDOW_INVALID',
   organizationalUnitNotFound: 'REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND',
+  tooLarge: 'REPORT_TOO_LARGE',
   forbidden: 'FORBIDDEN',
 } as const;
 
@@ -36,7 +38,25 @@ export const reportErrorMessages: Record<ReportErrorCode, string> = {
   REPORT_WINDOW_INVALID: 'The requested report window is invalid',
   REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND:
     'The requested organizational unit was not found',
+  REPORT_TOO_LARGE:
+    'The report has too many rows; choose a shorter period or a narrower unit',
   FORBIDDEN: 'Authorization failed',
+};
+
+/** Package 1.6 limits (plan §3 D3/D5). */
+export const reportPackLimits = {
+  previewRows: 200,
+  exportRows: 50_000,
+  maxWindowDays: 366,
+} as const;
+
+/** URL slugs, in display order. */
+export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {
+  monthly_kpi: 'monthly-kpi',
+  overdue_by_service: 'overdue-by-service',
+  top_close_codes: 'top-close-codes',
+  kb_helpfulness: 'kb-helpfulness',
+  forward_ping_pong: 'forward-ping-pong',
 };
 
 export const bottleneckStatusKeys = [

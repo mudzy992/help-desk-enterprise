@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   HttpException,
   NotFoundException,
+  PayloadTooLargeException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { reportErrorCodes, reportErrorMessages } from './reports.constants';
@@ -18,6 +19,9 @@ export function mapReportsError(error: unknown): HttpException {
   };
   if (error.code === reportErrorCodes.forbidden) {
     return new ForbiddenException(body);
+  }
+  if (error.code === reportErrorCodes.tooLarge) {
+    return new PayloadTooLargeException(body);
   }
   if (error.code === reportErrorCodes.organizationalUnitNotFound) {
     return new NotFoundException(body);

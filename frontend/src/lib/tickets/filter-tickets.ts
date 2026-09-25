@@ -11,8 +11,16 @@ export type TicketListFilters = {
   readonly createdFrom: string;
   readonly createdTo: string;
   readonly overdue: boolean;
+  /** Package 1.6, staff only. */
+  readonly forwarded?: TicketForwardedFilter;
   readonly currentUserId: string | null;
 };
+
+export type TicketForwardedFilter = "" | "any" | "toMyGroups";
+
+export function parseForwardedFilter(value: string | null): TicketForwardedFilter {
+  return value === "any" || value === "toMyGroups" ? value : "";
+}
 
 export function isTicketOverdue(
   ticket: Pick<TicketResponse, "isOverdue">,
@@ -65,6 +73,7 @@ export function clearedTicketListFilters(
     createdFrom: "",
     createdTo: "",
     overdue: false,
+    forwarded: "",
   };
 }
 

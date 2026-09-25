@@ -37,6 +37,9 @@ describe('ticketListSelect', () => {
         'waitingForUserEnteredAt',
         'waitingForUserReminderSentAt',
         'firstResponseAt',
+        'forwardCount',
+        'lastForwardedAt',
+        'lastForwardFromGroupName',
         'createdAt',
         'updatedAt',
       ]),
@@ -44,6 +47,6 @@ describe('ticketListSelect', () => {
   });
 
   it('selects exactly those columns, so a new one is a deliberate choice', () => {
-    expect(columns.length).toBe(29);
+    expect(columns.length).toBe(32);
   });
 });

@@ -12,6 +12,7 @@ import {
   tableWrapClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
+import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indicator";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { pickName } from "@/lib/tickets/ticket-names";
 import { useTicketText } from "@/lib/tickets/use-ticket-text";
@@ -154,6 +155,7 @@ function TicketListRow({
           <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
             {ticket.ticketNumber}
           </Link>
+          <TicketForwardIndicator ticket={ticket} />
           {ticket.isOverdue === true ? <TicketOverdueBadge /> : null}
           {ticket.isOverdue !== true && ticket.isAtRisk === true ? (
             <TicketAtRiskBadge />

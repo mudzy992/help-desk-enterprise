@@ -40,6 +40,7 @@ export function toTicketPageQuery(input: {
     createdFrom: filters.createdFrom === "" ? undefined : filters.createdFrom,
     createdTo: filters.createdTo === "" ? undefined : filters.createdTo,
     overdue: filters.overdue ? true : undefined,
+    forwarded: filters.forwarded ? filters.forwarded : undefined,
     q: term === "" ? undefined : term,
     // The list search box matched the description before phase 1.1 moved the
     // filtering to the server, so it keeps that reach here.
@@ -65,6 +66,7 @@ export function toTicketCountsQuery(
     requesterId: query.requesterId,
     groupId: query.groupId,
     unassigned: query.unassigned,
+    forwarded: query.forwarded,
     createdFrom: query.createdFrom,
     createdTo: query.createdTo,
     q: query.q,

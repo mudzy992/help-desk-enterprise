@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { parseForwardedFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
@@ -52,6 +52,7 @@ const emptyFilters = (view: TicketWorkspaceView, currentUserId: string | null): 
   createdTo: "",
   currentUserId,
   overdue: false,
+  forwarded: "",
 });
 
 /**
@@ -85,7 +86,11 @@ export function useTicketList() {
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [inboxHidden, setInboxHidden] = useState(false);
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
-  const [filters, setFilters] = useState<TicketListFilters>(emptyFilters(view, currentUserId));
+  const [filters, setFilters] = useState<TicketListFilters>(() => ({
+    ...emptyFilters(view, currentUserId),
+    // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
+    forwarded: isStaff ? parseForwardedFilter(searchParams.get("forwarded")) : "",
+  }));
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);

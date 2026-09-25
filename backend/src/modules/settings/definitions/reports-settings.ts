@@ -12,11 +12,15 @@ export const defaultReportPackKeys = [
   'overdue_by_service',
   'top_close_codes',
   'kb_helpfulness',
+  'forward_ping_pong',
 ] as const;
 
 export const defaultReportPacksJson = JSON.stringify([...defaultReportPackKeys]);
 export const defaultReportExportFormatsCsv = 'csv,json';
 export const defaultBottleneckWindowDays = 30;
+/** Package 1.6: a ticket forwarded at least this many times is "ping-pong". */
+export const defaultPingPongThreshold = 3;
+export const pingPongThresholdRange = { min: 2, max: 20 } as const;
 
 /**
  * The zone the reporting day starts in. One help desk serves one working day —
@@ -60,6 +64,16 @@ export const reportsSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: defaultReportsTimeZone,
     assertValue: assertIanaTimeZone,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsPingPongThreshold,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description:
+      'Forward ping-pong report: minimum number of group-to-group forwards (2-20)',
+    isRequired: true,
+    defaultValue: defaultPingPongThreshold,
+    assertValue: assertPingPongThreshold,
   }),
   definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksEnabled,
@@ -118,5 +132,16 @@ function assertReportPacksJson(value: SettingValue): void {
   const allowed = new Set<string>(defaultReportPackKeys);
   if (parsed.some((item) => typeof item !== 'string' || !allowed.has(item))) {
     throw new SettingsError('Report packs JSON contains an unknown pack key');
+  }
+}
+
+function assertPingPongThreshold(value: SettingValue): void {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < pingPongThresholdRange.min ||
+    value > pingPongThresholdRange.max
+  ) {
+    throw new SettingsError('Ping-pong threshold must be an integer between 2 and 20');
   }
 }

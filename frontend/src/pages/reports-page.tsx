@@ -1,16 +1,18 @@
 import { BarChart3 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ReportsCharts } from "@/components/reports/reports-charts";
 import { ReportsDateFilter } from "@/components/reports/reports-date-filter";
-import { ReportsExportButton } from "@/components/reports/reports-export-button";
+import { ReportPacksPanel } from "@/components/reports/report-packs-panel";
 import { ReportsMetricGrid } from "@/components/reports/reports-metric-grid";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { UnderlineTabs } from "@/components/ui/tabs";
+import { selectCompactClassName } from "@/components/ui/control";
 import {
   mapAgingBars,
   mapBottleneckBars,
@@ -43,12 +45,16 @@ export function ReportsPage() {
   const [preset, setPreset] = useState<ReportPreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
+  const [unitOptions, setUnitOptions] = useState<readonly { id: string; label: string }[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "packs" ? "packs" : "overview";
 
   useEffect(() => {
     void listOrganizationalUnitTree()
       .then((tree) => {
-        const first = flattenOriginUnitOptions(tree)[0]?.id ?? null;
-        setOrganizationalUnitId(first);
+        const options = flattenOriginUnitOptions(tree);
+        setUnitOptions(options);
+        setOrganizationalUnitId(options[0]?.id ?? null);
       })
       .catch(() => setOrganizationalUnitId(null));
   }, []);
@@ -141,11 +147,38 @@ export function ReportsPage() {
               onCustomFromChange={setCustomFrom}
               onCustomToChange={setCustomTo}
             />
-            <ReportsExportButton />
+            {unitOptions.length > 1 ? (
+              <select
+                aria-label={t("reports.packs.unit")}
+                className={`${selectCompactClassName} max-w-[260px]`}
+                value={organizationalUnitId ?? ""}
+                onChange={(event) => setOrganizationalUnitId(event.target.value)}
+                data-testid="reports-unit"
+              >
+                {unitOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </>
         }
       />
-      {isLoading ? (
+      <UnderlineTabs
+        className="mb-4"
+        items={[
+          { key: "overview", label: t("reports.tabs.overview") },
+          { key: "packs", label: t("reports.tabs.packs") },
+        ]}
+        active={tab}
+        onChange={(key) =>
+          setSearchParams(key === "packs" ? { tab: "packs" } : {}, { replace: true })
+        }
+      />
+      {tab === "packs" ? (
+        <ReportPacksPanel organizationalUnitId={organizationalUnitId} from={fromIso} to={toIso} />
+      ) : isLoading ? (
         <PanelSkeleton className="mt-0" label={t("reports.title")} />
       ) : errorKey ? (
         <ApiErrorText messageKey={errorKey} requestId={requestId} />

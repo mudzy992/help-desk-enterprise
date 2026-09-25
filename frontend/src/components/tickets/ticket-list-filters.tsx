@@ -11,7 +11,7 @@ import {
   ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { parseForwardedFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { TicketStatus } from "@/services/tickets-api";
 import type { TicketCounts } from "@/services/tickets-counts-api";
@@ -87,12 +87,15 @@ interface TicketListFiltersBarProperties {
   readonly filters: TicketListFilters;
   readonly services: readonly ServiceResponse[];
   readonly onChange: (filters: TicketListFilters) => void;
+  /** Package 1.6: the "forwarded" filter is staff-only. */
+  readonly isStaff?: boolean;
 }
 
 export function TicketListFiltersBar({
   filters,
   services,
   onChange,
+  isStaff = false,
 }: TicketListFiltersBarProperties) {
   const { t } = useTranslation();
   return (
@@ -132,12 +135,32 @@ export function TicketListFiltersBar({
           </Chip>
         ))}
       </div>
+      {isStaff ? (
+        <>
+          <label className="sr-only" htmlFor="ticket-list-forwarded">
+            {t("tickets.forwarding.filterLabel")}
+          </label>
+          <select
+            id="ticket-list-forwarded"
+            data-testid="ticket-list-forwarded"
+            className={cn(selectCompactClassName, "ml-auto w-auto min-w-[9rem]")}
+            value={filters.forwarded ?? ""}
+            onChange={(event) =>
+              onChange({ ...filters, forwarded: parseForwardedFilter(event.target.value) })
+            }
+          >
+            <option value="">{t("tickets.forwarding.filterAll")}</option>
+            <option value="any">{t("tickets.forwarding.filterAny")}</option>
+            <option value="toMyGroups">{t("tickets.forwarding.filterToMyGroups")}</option>
+          </select>
+        </>
+      ) : null}
       <label className="sr-only" htmlFor="ticket-list-service">
         {t("tickets.filters.service")}
       </label>
       <select
         id="ticket-list-service"
-        className={cn(selectCompactClassName, "ml-auto w-auto min-w-[9rem]")}
+        className={cn(selectCompactClassName, isStaff ? "w-auto min-w-[9rem]" : "ml-auto w-auto min-w-[9rem]")}
         value={filters.serviceId}
         onChange={(event) => onChange({ ...filters, serviceId: event.target.value })}
       >

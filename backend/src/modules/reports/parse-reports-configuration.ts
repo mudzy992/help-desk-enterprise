@@ -7,6 +7,8 @@ import {
 } from './reports.constants';
 import {
   defaultBottleneckWindowDays,
+  defaultPingPongThreshold,
+  pingPongThresholdRange,
   defaultReportExportFormatsCsv,
   defaultReportPacksJson,
 } from '../settings/definitions/reports-settings';
@@ -20,6 +22,7 @@ export function parseReportsConfiguration(input: {
   readonly allowedFormatsCsv: unknown;
   readonly bottlenecksEnabled: unknown;
   readonly defaultWindowDays: unknown;
+  readonly pingPongThreshold?: unknown;
 }): ReportsConfiguration {
   if (
     typeof input.reportsEnabled !== 'boolean' ||
@@ -41,7 +44,17 @@ export function parseReportsConfiguration(input: {
     ),
     bottlenecksEnabled: input.bottlenecksEnabled,
     defaultWindowDays: parseWindowDays(input.defaultWindowDays),
+    pingPongThreshold: parsePingPongThreshold(input.pingPongThreshold),
   };
+}
+
+function parsePingPongThreshold(value: unknown): number {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= pingPongThresholdRange.min &&
+    value <= pingPongThresholdRange.max
+    ? value
+    : defaultPingPongThreshold;
 }
 
 function parsePacks(value: string): readonly ReportPackKey[] {

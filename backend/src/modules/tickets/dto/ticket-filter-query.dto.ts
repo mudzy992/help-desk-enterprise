@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsISO8601,
   IsOptional,
   IsString,
@@ -50,6 +51,10 @@ export class TicketFilterQueryDto {
   @Transform(({ value }) => toQueryBoolean(value))
   @IsBoolean()
   unassigned?: boolean;
+
+  @IsOptional()
+  @IsIn(['any', 'toMyGroups'])
+  forwarded?: 'any' | 'toMyGroups';
 
   @IsOptional()
   @IsISO8601()

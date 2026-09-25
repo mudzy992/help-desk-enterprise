@@ -78,7 +78,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Threading (`Message-ID`, `In-Reply-To`) da e-mailovi istog tiketa idu u isti razgovor
   (priprema za 2.3 odgovor e-mailom).
 
-### 1.6 Izvještaji u UI-ju (G6)  · ~2 RD
+### 1.6 Izvještaji u UI-ju (G6)  · ~2 RD  · ✅ (docs/plans/modules/1.6-izvjestaji-ui.md)
 - Stranica Izvještaji → „Paketi izvještaja": Monthly KPI, Overdue by service, Top close codes,
   KB helpfulness; filter perioda i OU-a; preuzimanje CSV/JSON; pregled u tabeli prije preuzimanja.
 - Audit svakog izvoza (ko, šta, period).

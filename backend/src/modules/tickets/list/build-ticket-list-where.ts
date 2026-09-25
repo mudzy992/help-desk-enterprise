@@ -53,6 +53,14 @@ export async function buildTicketListWhere(
     AND: [
       statusFilter,
       ...buildTicketListFilters(query),
+      ...buildForwardedFilter(
+        query,
+        {
+          isSuperAdmin: authContext.isSuperAdmin,
+          roleKeys: authContext.assignments.map((assignment) => assignment.roleKey),
+        },
+        visibilityInputs.actorGroupIds,
+      ),
       ...buildTicketVisibilityWhere({
         context: authContext,
         ...visibilityInputs,
@@ -73,4 +81,28 @@ export function withTicketWhereClause(
   clause: Prisma.TicketWhereInput,
 ): Prisma.TicketWhereInput {
   return { AND: [where, clause] };
+}
+
+const staffRoleKeys = new Set(['AGENT', 'ADMIN', 'SUPER_ADMIN']);
+
+/**
+ * Package 1.6: "forwarded" narrowing. Requesters never get it (the internal
+ * movement of a ticket is staff information); for them it is silently ignored.
+ */
+export function buildForwardedFilter(
+  query: Pick<ListTicketsQuery, 'forwarded'>,
+  actor: { readonly isSuperAdmin: boolean; readonly roleKeys: readonly string[] },
+  actorGroupIds: readonly string[],
+): Prisma.TicketWhereInput[] {
+  if (query.forwarded === undefined) {
+    return [];
+  }
+  const isStaff = actor.isSuperAdmin || actor.roleKeys.some((key) => staffRoleKeys.has(key));
+  if (!isStaff) {
+    return [];
+  }
+  if (query.forwarded === 'any') {
+    return [{ forwardCount: { gt: 0 } }];
+  }
+  return [{ forwardCount: { gt: 0 }, assignedGroupId: { in: [...actorGroupIds] } }];
 }

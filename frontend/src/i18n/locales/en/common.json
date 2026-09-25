@@ -1087,7 +1087,65 @@
     "aging3to7": "3–7 days",
     "agingGt7": "> 7 days",
     "agingWaitingHint": "{{count}} tickets older than 7 days are in Waiting for user.",
-    "unroutedGroup": "Unrouted"
+    "unroutedGroup": "Unrouted",
+    "tabs": {
+      "overview": "Overview",
+      "packs": "Report packs"
+    },
+    "packs": {
+      "title": "Report packs",
+      "unit": "Organisational unit",
+      "show": "Show",
+      "download": "Download {{format}}",
+      "downloaded": "Downloaded: {{file}}",
+      "pressShow": "Choose a pack and a period, then press “Show” to preview before downloading.",
+      "emptyTitle": "No data for the selected period",
+      "emptyBody": "Try a longer period or another organisational unit.",
+      "noneTitle": "No report pack is enabled",
+      "noneBody": "An administrator can enable packs in the reports settings.",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows",
+      "truncated": "Showing the first {{shown}}; the download contains every row.",
+      "scopeHint": "Period {{from}} – {{to}} · at most {{max}} days · every download is audited",
+      "confidential": "[confidential]",
+      "names": {
+        "monthly_kpi": "Monthly KPI",
+        "overdue_by_service": "Overdue by service",
+        "top_close_codes": "Top close codes",
+        "kb_helpfulness": "Knowledge base helpfulness",
+        "forward_ping_pong": "Forward ping-pong"
+      },
+      "descriptions": {
+        "monthly_kpi": "Created, resolved and closed tickets, SLA breaches, CSAT and average response and resolution times.",
+        "overdue_by_service": "Tickets with a breached SLA per service, among tickets active in the period.",
+        "top_close_codes": "Close codes of resolved and closed tickets, most frequent first.",
+        "kb_helpfulness": "“Helpful / not helpful” votes per knowledge article.",
+        "forward_ping_pong": "Tickets forwarded between groups at least {{threshold}} times in the period, with their path."
+      },
+      "columns": {
+        "createdCount": "Created",
+        "resolvedCount": "Resolved",
+        "closedCount": "Closed",
+        "overdueCount": "Overdue",
+        "csatCount": "CSAT ratings",
+        "csatAverage": "CSAT average",
+        "averageFirstResponseMinutes": "Avg first response (min)",
+        "averageResolutionMinutes": "Avg resolution (min)",
+        "serviceId": "Service ID",
+        "serviceName": "Service",
+        "ticketNumber": "Ticket",
+        "title": "Title",
+        "service": "Service",
+        "currentGroup": "Current group",
+        "status": "Status",
+        "forwardsInPeriod": "Forwards",
+        "crossOuForwards": "Cross-unit",
+        "distinctGroups": "Distinct groups",
+        "groupPath": "Path",
+        "firstForwardAt": "First forward",
+        "lastForwardAt": "Last forward"
+      }
+    }
   },
   "services": {
     "title": "Service catalog",
@@ -2557,6 +2615,17 @@
       "targetAgentRequired": "Agent (required)",
       "reassignDone": "The ticket was assigned to {{name}}.",
       "reassignBadge": "Reassignment"
+    },
+    "forwarding": {
+      "indicatorCount_one": "Forwarded {{count}} time",
+      "indicatorCount_other": "Forwarded {{count}} times",
+      "indicatorWhen": "last {{when}}",
+      "indicatorFrom": "from: {{group}}",
+      "chip": "Forwarded {{count}}×",
+      "filterLabel": "Forwarding",
+      "filterAll": "All tickets",
+      "filterAny": "Forwarded",
+      "filterToMyGroups": "Forwarded to my group"
     }
   },
   "relativeTime": {

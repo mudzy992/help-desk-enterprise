@@ -20,6 +20,8 @@ export type TicketPageQuery = {
   readonly requesterId?: string;
   readonly groupId?: string;
   readonly unassigned?: boolean;
+  /** Package 1.6 (staff only; the API ignores it for requesters). */
+  readonly forwarded?: "any" | "toMyGroups";
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;
@@ -41,6 +43,7 @@ const textFilters = [
   "priority",
   "requesterId",
   "groupId",
+  "forwarded",
   "createdFrom",
   "createdTo",
   "sort",
@@ -106,6 +109,7 @@ export type TicketCountsQuery = Pick<
   | "requesterId"
   | "groupId"
   | "unassigned"
+  | "forwarded"
   | "createdFrom"
   | "createdTo"
   | "q"
@@ -118,6 +122,7 @@ const countsTextFilters = [
   "priority",
   "requesterId",
   "groupId",
+  "forwarded",
   "createdFrom",
   "createdTo",
 ] as const;

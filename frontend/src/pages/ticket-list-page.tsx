@@ -127,7 +127,12 @@ export function TicketListPage() {
                 onChange={(key) => list.setFilters(applyTicketListTab(list.filters, key))}
                 items={ticketStatusTabItems(t, list.counts, riskCount)}
               />
-              <TicketListFiltersBar filters={list.filters} services={list.services} onChange={list.setFilters} />
+              <TicketListFiltersBar
+                filters={list.filters}
+                services={list.services}
+                onChange={list.setFilters}
+                isStaff={list.isStaff}
+              />
               <TicketBulkBar
                 selectedIds={list.selectedIds}
                 onClear={() => list.setSelectedIds(new Set())}
