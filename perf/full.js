@@ -19,37 +19,38 @@ import { handleSummary } from './report.js';
 
 const vus = scenarioVus(perfConfig);
 
+/**
+ * RAMP_UP (e.g. `30s`): ramp each scenario from 0 to its VUs first, then hold for
+ * DURATION. Staging C (2026-09-25): 140 VUs starting in the same second hit
+ * every per-user cache cold at once (dashboard/counts COUNTs up to 2 s), which
+ * real users logging in over minutes never do. Unset = old constant-vus shape.
+ */
+function loadShape(exec, target, behaviour) {
+  const rampUp = __ENV.RAMP_UP;
+  const tags = { behaviour };
+  if (!rampUp) {
+    return { executor: 'constant-vus', exec, vus: target, duration: perfConfig.load.duration, tags };
+  }
+  return {
+    executor: 'ramping-vus',
+    exec,
+    startVUs: 0,
+    stages: [
+      { duration: rampUp, target },
+      { duration: perfConfig.load.duration, target },
+    ],
+    gracefulRampDown: '30s',
+    tags,
+  };
+}
+
 export const options = {
   discardResponseBodies: false,
   scenarios: {
-    browser_dashboard: {
-      executor: 'constant-vus',
-      exec: 'browserDashboard',
-      vus: vus.browserDashboard,
-      duration: perfConfig.load.duration,
-      tags: { behaviour: 'browser_dashboard' },
-    },
-    agent_ticket_flow: {
-      executor: 'constant-vus',
-      exec: 'agentTicketFlow',
-      vus: vus.agentTicketFlow,
-      duration: perfConfig.load.duration,
-      tags: { behaviour: 'agent_ticket_flow' },
-    },
-    search_heavy: {
-      executor: 'constant-vus',
-      exec: 'searchHeavy',
-      vus: vus.searchHeavy,
-      duration: perfConfig.load.duration,
-      tags: { behaviour: 'search_heavy' },
-    },
-    websocket_clients: {
-      executor: 'constant-vus',
-      exec: 'websocketClients',
-      vus: vus.websocketClients,
-      duration: perfConfig.load.duration,
-      tags: { behaviour: 'ws_clients' },
-    },
+    browser_dashboard: loadShape('browserDashboard', vus.browserDashboard, 'browser_dashboard'),
+    agent_ticket_flow: loadShape('agentTicketFlow', vus.agentTicketFlow, 'agent_ticket_flow'),
+    search_heavy: loadShape('searchHeavy', vus.searchHeavy, 'search_heavy'),
+    websocket_clients: loadShape('websocketClients', vus.websocketClients, 'ws_clients'),
   },
   thresholds: fullThresholds(perfConfig),
 };
