@@ -173,7 +173,7 @@ ops/collect-staging-numbers.sh perf/results/staging-2026-09-30.json api.log
    Ispisuje SLO tabelu (`perf/import-results.mjs`) i `db_queries_per_request`
    (ista pravila kao CI kapija: ANSI strip, bootstrap `/install*`, `/health`,
    `/auth/{login,logout,refresh}` izuzet). Izlaz `0` = sve u budžetu, `1` = nešto
-   pada, `2` = ulaz ne valja. Kapija/cilj: `DB_QUERY_BUDGET` (2.5) / `DB_QUERY_TARGET` (2.0).
+   pada, `2` = ulaz ne valja. Kapija/cilj: `DB_QUERY_BUDGET` (2.1) / `DB_QUERY_TARGET` (2.0).
    Provjera same skripte: `ops/collect-staging-numbers.sh --self-test` → `7/7`.
 
 5. Pošalji cijeli ispis iz koraka 4 — ide u `PERF_BUDGETS.md` §1.

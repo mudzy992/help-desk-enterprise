@@ -71,7 +71,7 @@ jobs:
       # Note the 3.6 this gate once claimed: that was an EMPTY database. The batch
       # loaders skip their round trips when there is nothing to resolve, so an empty
       # app looks cheap. Only seeded data measures real queries.
-      DB_QUERY_BUDGET: "2.5"
+      DB_QUERY_BUDGET: "2.1"
       DB_QUERY_TARGET: "2.0"
       DB_QUERY_BUDGET_WARN: "true"
       # Smoke profile + relaxed, documented thresholds.
@@ -79,9 +79,9 @@ jobs:
       BASE_URL: http://127.0.0.1:10001
       REPO_ROOT: ${{ github.workspace }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -291,7 +291,7 @@ jobs:
         if: always()
         run: |
           # Custom threshold (plan §4.2): the average `db_queries_per_request` must stay at
-          # or below the documented budget (DB_QUERY_BUDGET, default 3).
+          # or below the documented budget (DB_QUERY_BUDGET, default 2.1).
           #
           # Bootstrap traffic (`/install/*`, `/health`) is reported separately and NOT
           # counted into the average: it runs once per stack (super-admin + seed) and is not
@@ -336,7 +336,7 @@ jobs:
           # Gate = the measured baseline plus headroom (the plan's iron rule: a threshold
           # comes from a measurement, not from an aspiration). TARGET is the engineering
           # goal tracked in PERF_BUDGETS.md; the gap is a work item, not a hidden failure.
-          BUDGET="${DB_QUERY_BUDGET:-2.5}"
+          BUDGET="${DB_QUERY_BUDGET:-2.1}"
           TARGET="${DB_QUERY_TARGET:-2.0}"
           P95=0
           MAX=0
@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload the k6 summary and the API log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: perf-smoke-${{ github.run_id }}
           path: |

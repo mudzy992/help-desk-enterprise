@@ -144,3 +144,10 @@ Preostali spori upiti u stabilnom stanju: ~8/min (>100 ms), to su osvježavanja
 keša dashboarda/brojača po korisniku (TTL 60 s / 30 s); ne utiču na p95.
 Ako broj korisnika jako poraste, sljedeći korak je da dashboard `GROUP BY` broji
 samo otvorene tikete (mijenja prikazane brojke — traži odluku).
+
+### 5.2 Kapija DB upita spuštena na 2.1 (2026-09-25)
+
+CI perf-smoke (nakon 3295074): **1.752** upita/zahtjev preko 55 615 aplikacijskih
+zahtjeva (ranije 2.084). Po pravilu *kapija = najbolje izmjereno × 1,2*:
+1.752 × 1,2 = 2.10 → `DB_QUERY_BUDGET=2.1` (perf-smoke.yml, collect-staging-numbers.sh).
+Cilj ostaje 2.0. Najskuplje rute: prva poruka 3.93, `/tickets/inbox` 3.01, `/search` 3.00.
