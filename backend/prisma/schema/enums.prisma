@@ -145,3 +145,10 @@ enum SettingScope {
   PUBLIC
   PRIVATE
 }
+
+/// Package 1.4 (T1): which composer mode offers the template.
+enum ResponseTemplateKind {
+  REPLY
+  INTERNAL
+  ANY
+}

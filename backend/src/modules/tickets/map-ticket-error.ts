@@ -119,7 +119,8 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'TICKET_NOT_MERGED' ||
     error.code === 'MERGE_PARENT_INVALID' ||
     error.code === 'MERGE_CHILD_INVALID' ||
-    error.code === 'MERGE_CONFIDENTIAL_MISMATCH'
+    error.code === 'MERGE_CONFIDENTIAL_MISMATCH' ||
+    error.code === 'PLAYBOOK_REQUIRED_STEPS_OPEN'
   ) {
     return new ConflictException(body);
   }

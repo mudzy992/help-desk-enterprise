@@ -4,6 +4,7 @@ import { applyCatalogSnapshot } from './apply-catalog-snapshot';
 import { applyRoutingSnapshot } from './apply-routing-snapshot';
 import { applySettingsSnapshot } from './apply-settings-snapshot';
 import { applySlaSnapshot } from './apply-sla-snapshot';
+import { applyTemplatesSnapshot } from './apply-templates-snapshot';
 import { configVersioningErrorCodes } from './config-versioning.constants';
 import { ConfigVersioningError } from './config-versioning.error';
 import type { ConfigSnapshot } from './config-versioning.types';
@@ -18,6 +19,7 @@ export async function applyConfigSnapshot(
     await applySlaSnapshot(transaction, snapshot);
     await applyCatalogSnapshot(transaction, snapshot);
     await applyRoutingSnapshot(transaction, snapshot);
+    await applyTemplatesSnapshot(transaction, snapshot);
   } catch (error) {
     if (error instanceof ConfigVersioningError) {
       throw error;

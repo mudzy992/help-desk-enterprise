@@ -100,6 +100,30 @@ export type ConfigPriorityMatrixSnapshot = {
   readonly priority: TicketPriority;
 };
 
+/** Package 1.4 — shared (non-personal) response template header + bodies. */
+export type ConfigResponseTemplateSnapshot = {
+  readonly id: string;
+  readonly name: string;
+  readonly bodyBs: string;
+  readonly bodyEn: string | null;
+  readonly kind: string;
+  readonly tags: readonly string[];
+  readonly isActive: boolean;
+  readonly deletedAt: string | null;
+};
+
+/**
+ * Package 1.4 — playbook header. Steps are versioned by the playbook itself
+ * (tickets keep a snapshot), so a config rollback restores only the header.
+ */
+export type ConfigPlaybookSnapshot = {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly isActive: boolean;
+  readonly deletedAt: string | null;
+};
+
 export type ConfigSnapshot = {
   readonly schemaVersion: 1;
   readonly capturedAt: string;
@@ -134,6 +158,11 @@ export type ConfigSnapshot = {
   readonly references: {
     readonly organizationalUnits: readonly ConfigOrganizationalUnitSnapshot[];
     readonly groups: readonly { readonly id: string }[];
+  };
+  /** Absent in snapshots captured before package 1.4. */
+  readonly templates?: {
+    readonly responseTemplates: readonly ConfigResponseTemplateSnapshot[];
+    readonly playbooks: readonly ConfigPlaybookSnapshot[];
   };
 };
 

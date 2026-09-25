@@ -71,6 +71,7 @@ model Ticket {
   slaState             TicketSlaState?
   notifications        Notification[]
   forwardEvents        TicketForwardEvent[]
+  playbooks            TicketPlaybook[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
 
@@ -129,6 +130,9 @@ model TicketMessage {
   type         MessageType
   body         String
   authorUserId String?
+  /// Package 1.4 (T4): the shared/personal template the text started from.
+  responseTemplateId String?
+  responseTemplate   ResponseTemplate? @relation(fields: [responseTemplateId], references: [id], onDelete: SetNull)
   ticket       Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author       User?             @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   attachments  TicketAttachment[]
@@ -138,6 +142,7 @@ model TicketMessage {
   @@index([ticketId, type])
   @@index([ticketId, createdAt])
   @@index([authorUserId])
+  @@index([responseTemplateId])
 }
 
 model TicketActivity {

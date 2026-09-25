@@ -6,6 +6,8 @@ export const configVersioningScopes = {
   sla: 'sla',
   serviceCatalog: 'service_catalog',
   serviceForms: 'service_forms',
+  /** Package 1.4 — shared response templates and playbooks. */
+  templates: 'templates',
 } as const;
 
 export const configVersioningScopeValues = Object.values(

@@ -1,3 +1,4 @@
+import { TemplatesConfigurationLoader } from '../templates/templates-configuration.loader';
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
@@ -107,6 +108,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsService,
     TicketWorkflowService,
     UnroutedQueueConfigurationLoader,
+    TemplatesConfigurationLoader,
     TicketsApprovalsService,
     TicketApprovalsConfigurationLoader,
     TicketsReopenService,
@@ -164,6 +166,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsTimeTrackingService,
     TicketsAttachmentsService,
     TicketRealtimeHub,
+    TicketAccessPolicyBinder,
   ],
 })
 export class TicketsModule {}

@@ -23,7 +23,9 @@ export type WorkflowGuard =
   | 'reopen_window'
   | 'waiting_auto_close'
   | 'archive_after'
-  | 'group_required';
+  | 'group_required'
+  /** Package 1.4 (P5): required playbook steps (off / warn / block). */
+  | 'playbook_steps';
 
 export type WorkflowPhase = 'intake' | 'work' | 'done';
 
@@ -47,7 +49,7 @@ export const workflowStatusPhases: Readonly<Record<TicketStatus, WorkflowPhase>>
   ARCHIVED: 'done',
 };
 
-const closing: readonly WorkflowGuard[] = ['close_code', 'required_fields'];
+const closing: readonly WorkflowGuard[] = ['close_code', 'required_fields', 'playbook_steps'];
 
 export const ticketWorkflowTransitions: readonly WorkflowTransition[] = [
   { from: 'UNROUTED', to: 'PENDING', actors: ['STAFF'], triggers: ['forward'], guards: ['group_required'] },
@@ -68,7 +70,7 @@ export const ticketWorkflowTransitions: readonly WorkflowTransition[] = [
   { from: 'IN_PROGRESS', to: 'ASSIGNED', actors: ['STAFF'], triggers: ['status_change', 'forward'], guards: [] },
   { from: 'WAITING_FOR_USER', to: 'IN_PROGRESS', actors: ['STAFF', 'REQUESTER', 'SYSTEM'], triggers: ['status_change', 'automation'], guards: [] },
   { from: 'WAITING_FOR_USER', to: 'RESOLVED', actors: ['STAFF'], triggers: ['status_change'], guards: [...closing, 'resolution_note'] },
-  { from: 'WAITING_FOR_USER', to: 'CLOSED', actors: ['STAFF', 'SYSTEM'], triggers: ['status_change', 'automation'], guards: ['waiting_auto_close'] },
+  { from: 'WAITING_FOR_USER', to: 'CLOSED', actors: ['STAFF', 'SYSTEM'], triggers: ['status_change', 'automation'], guards: ['waiting_auto_close', 'playbook_steps'] },
   { from: 'RESOLVED', to: 'CLOSED', actors: ['STAFF', 'SYSTEM'], triggers: ['status_change', 'automation'], guards: [] },
   { from: 'RESOLVED', to: 'IN_PROGRESS', actors: ['REQUESTER', 'STAFF'], triggers: ['reopen'], guards: ['reopen_window'] },
   { from: 'CLOSED', to: 'ARCHIVED', actors: ['SYSTEM'], triggers: ['automation'], guards: ['archive_after'] },

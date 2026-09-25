@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { TemplatesConfigurationLoader } from '../../templates/templates-configuration.loader';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
 import { TicketArchiveConfigurationLoader } from '../archive/ticket-archive-configuration.loader';
@@ -25,6 +26,10 @@ export type TicketWorkflowParameters = {
   } | null;
   readonly approvals: { readonly enabled: boolean } | null;
   readonly archive: { readonly enabled: boolean; readonly afterClosedDays: number } | null;
+  readonly playbooks: {
+    readonly enabled: boolean;
+    readonly requiredStepsOnResolve: 'off' | 'warn' | 'block';
+  } | null;
   readonly unrouted: {
     readonly enabled: boolean;
     readonly ownerRole: string;
@@ -55,12 +60,13 @@ export class TicketWorkflowService {
     private readonly approvals: TicketApprovalsConfigurationLoader,
     private readonly archive: TicketArchiveConfigurationLoader,
     private readonly unrouted: UnroutedQueueConfigurationLoader,
+    @Optional() private readonly templates?: TemplatesConfigurationLoader,
   ) {}
 
   async describe(): Promise<TicketWorkflowResponse> {
     // A single unavailable setting must not blank the whole screen.
     const safe = <T>(promise: Promise<T>) => promise.catch(() => null);
-    const [closeCodes, requiredFields, reopen, waiting, approvals, archive, unrouted] =
+    const [closeCodes, requiredFields, reopen, waiting, approvals, archive, unrouted, templates] =
       await Promise.all([
         safe(this.closeCodes.load()),
         safe(this.requiredFields.load()),
@@ -69,6 +75,7 @@ export class TicketWorkflowService {
         safe(this.approvals.load()),
         safe(this.archive.load()),
         this.unrouted.load(),
+        this.templates === undefined ? Promise.resolve(null) : safe(this.templates.load()),
       ]);
     const targetGroup =
       unrouted.targetGroupId === null
@@ -102,6 +109,10 @@ export class TicketWorkflowService {
         archive: archive && {
           enabled: archive.enabled,
           afterClosedDays: archive.afterClosedDays,
+        },
+        playbooks: templates && {
+          enabled: templates.playbooksEnabled,
+          requiredStepsOnResolve: templates.requiredStepsOnResolve,
         },
         unrouted: {
           enabled: unrouted.enabled,

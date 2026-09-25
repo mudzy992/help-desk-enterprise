@@ -84,6 +84,13 @@ export const ticketSystemEventActions = {
   ticketBulkBroadcast: 'ticket_bulk_broadcast',
   ticketBulkMerge: 'ticket_bulk_merge',
   priorityOverridden: 'ticket_priority_overridden',
+  // Package 1.4: playbook checklist (staff only).
+  playbookAttached: 'ticket_playbook_attached',
+  playbookDetached: 'ticket_playbook_detached',
+  playbookUpgraded: 'ticket_playbook_upgraded',
+  playbookStepChecked: 'ticket_playbook_step_checked',
+  playbookStepUnchecked: 'ticket_playbook_step_unchecked',
+  playbookCompleted: 'ticket_playbook_completed',
   ticketMerged: 'ticket_merged',
   ticketMergedChild: 'ticket_merged_child',
   ticketUnmerged: 'ticket_unmerged',

@@ -7,6 +7,7 @@ import { parseCatalogAndForms } from './parse-snapshot-catalog';
 import { parseRoutingAndReferences } from './parse-snapshot-routing';
 import { parseSettingsRecord } from './parse-snapshot-settings';
 import { parseSlaSection } from './parse-snapshot-sla';
+import { parseTemplatesSection } from './parse-snapshot-templates';
 
 export function parseConfigSnapshot(value: unknown): ConfigSnapshot {
   if (!isPlainObject(value)) {
@@ -48,5 +49,6 @@ export function parseConfigSnapshot(value: unknown): ConfigSnapshot {
     sla,
     catalog: catalogAndForms.catalog,
     forms: catalogAndForms.forms,
+    ...(value.templates === undefined ? {} : { templates: parseTemplatesSection(value.templates) }),
   };
 }

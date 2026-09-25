@@ -1,5 +1,5 @@
 /** Package 1.7 (R2): configuration domains other admins may be looking at. */
-export const adminConfigDomains = ['routing', 'sla', 'catalog', 'groups'] as const;
+export const adminConfigDomains = ['routing', 'sla', 'catalog', 'groups', 'templates'] as const;
 export type AdminConfigDomain = (typeof adminConfigDomains)[number];
 
 export const adminRealtimeEventNames = {

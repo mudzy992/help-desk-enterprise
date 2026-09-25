@@ -10,7 +10,7 @@ describe('listPermissionCatalog', () => {
     const catalog = listPermissionCatalog();
     const knownCategories = new Set(Object.values(permissionCategoryIds));
     expect(catalog).toHaveLength(allPermissionKeys.length);
-    expect(allPermissionKeys).toHaveLength(29);
+    expect(allPermissionKeys).toHaveLength(32);
     expect(catalog).toBe(permissionCatalogEntries);
     const catalogKeys = catalog.map((entry) => entry.key);
     expect(catalogKeys.sort()).toEqual([...allPermissionKeys].sort());

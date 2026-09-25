@@ -34,6 +34,8 @@ import {
 } from './merge/propagate-merged-status';
 import type { TicketRequiredFieldsConfiguration } from './required-fields/required-fields.types';
 import { ticketChangeLogReasons } from './tickets.constants';
+import type { PlaybookRequiredStepsMode } from '../templates/templates.constants';
+import { assertPlaybookStepsComplete } from './playbooks/assert-playbook-steps-complete';
 import { TicketsError } from './tickets.error';
 import { toTicketFormDataInput } from './to-ticket-form-data-input';
 import type {
@@ -46,6 +48,8 @@ export type TicketUpdatePolicies = {
   readonly closeCodes: TicketCloseCodesConfiguration;
   readonly requiredFields: TicketRequiredFieldsConfiguration;
   readonly redaction: TicketRedactionConfiguration;
+  /** Package 1.4 (P5); absent → no playbook guard. */
+  readonly playbookMode?: PlaybookRequiredStepsMode;
 };
 
 export async function updateTicket(
@@ -92,6 +96,12 @@ export async function updateTicket(
     assertPatchTicketStatus({
       context: authContext,
       from: current.status,
+      to: input.status,
+    });
+    await assertPlaybookStepsComplete({
+      prisma,
+      mode: policies?.playbookMode,
+      tickets: [{ id: current.id, ticketNumber: current.ticketNumber, from: current.status }],
       to: input.status,
     });
   }

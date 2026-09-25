@@ -1,3 +1,4 @@
+import type { PlaybookRequiredStepsMode } from '../../templates/templates.constants';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
@@ -28,6 +29,8 @@ export async function executeTicketBulk(input: {
   readonly configuration: TicketBulkConfiguration;
   readonly messages: TicketPersistedMessageSink;
   readonly forwarding: BulkForwardingDependencies;
+  /** Package 1.4 (P5). */
+  readonly playbookMode?: PlaybookRequiredStepsMode;
 }): Promise<{
   readonly batchId: string | null;
   readonly tickets: readonly TicketRecord[];
@@ -72,6 +75,7 @@ async function dispatchBulkAction(input: {
   readonly messages: TicketPersistedMessageSink;
   readonly forwarding: BulkForwardingDependencies;
   readonly batchId: string | null;
+  readonly playbookMode?: PlaybookRequiredStepsMode;
 }): Promise<{
   readonly batchId: string | null;
   readonly tickets: readonly TicketRecord[];
@@ -101,7 +105,11 @@ async function dispatchBulkAction(input: {
   if (input.body.actionType === 'set_status') {
     return {
       batchId: input.batchId,
-      tickets: await applyBulkStatus({ ...shared, context: input.context }),
+      tickets: await applyBulkStatus({
+        ...shared,
+        context: input.context,
+        playbookMode: input.playbookMode,
+      }),
     };
   }
   if (input.body.actionType === 'set_priority') {

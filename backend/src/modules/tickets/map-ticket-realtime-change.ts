@@ -54,6 +54,13 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.csatSubmitted,
   // Package 1.2: the reason is internal; the requester sees the new priority only.
   ticketSystemEventActions.priorityOverridden,
+  // Package 1.4: the checklist is internal UX help.
+  ticketSystemEventActions.playbookAttached,
+  ticketSystemEventActions.playbookDetached,
+  ticketSystemEventActions.playbookUpgraded,
+  ticketSystemEventActions.playbookStepChecked,
+  ticketSystemEventActions.playbookStepUnchecked,
+  ticketSystemEventActions.playbookCompleted,
 ]);
 
 export function mapTicketRealtimeChange(

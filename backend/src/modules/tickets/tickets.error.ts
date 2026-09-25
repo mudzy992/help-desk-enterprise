@@ -140,7 +140,8 @@ export type TicketsErrorCode =
   | 'MERGE_CHILD_INVALID'
   | 'MERGE_CONFIDENTIAL_MISMATCH'
   | 'MERGE_LIMIT_EXCEEDED'
-  | 'MERGE_REASON_REQUIRED';
+  | 'MERGE_REASON_REQUIRED'
+  | 'PLAYBOOK_REQUIRED_STEPS_OPEN';
 
 export class TicketsError extends Error {
   constructor(

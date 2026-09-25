@@ -49,13 +49,48 @@ export async function createTicketMessage(
     message: normalized.body,
   });
   assertRedactionAllowed(scan);
+  const responseTemplateId = await countTemplateUse(
+    prisma,
+    input.responseTemplateId,
+    context.actorUserId,
+  );
   const message = (await prisma.ticketMessage.create({
     data: {
       ticketId: ticket.id,
       type: normalized.type,
       body: normalized.body,
       authorUserId: context.actorUserId,
+      ...(responseTemplateId === null ? {} : { responseTemplateId }),
     },
   })) as TicketMessageRecord;
   return { ticket, message, scan };
+}
+
+/**
+ * Package 1.4 (T4): counts a use of a shared or own template when the reply
+ * is sent. An unknown, deleted or foreign template is ignored: statistics must
+ * never stop a reply from going out.
+ */
+async function countTemplateUse(
+  prisma: PrismaService,
+  templateId: string | undefined,
+  actorUserId: string,
+): Promise<string | null> {
+  const id = templateId?.trim() ?? '';
+  if (id.length === 0) {
+    return null;
+  }
+  try {
+    const updated = await prisma.responseTemplate.updateMany({
+      where: {
+        id,
+        deletedAt: null,
+        OR: [{ ownerUserId: null }, { ownerUserId: actorUserId }],
+      },
+      data: { usageCount: { increment: 1 }, lastUsedAt: new Date() },
+    });
+    return updated.count > 0 ? id : null;
+  } catch {
+    return null;
+  }
 }

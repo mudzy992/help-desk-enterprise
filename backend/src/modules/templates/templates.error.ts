@@ -1,0 +1,35 @@
+export type TemplatesErrorCode =
+  | 'TEMPLATES_DISABLED'
+  | 'PLAYBOOKS_DISABLED'
+  | 'FORBIDDEN'
+  | 'TEMPLATE_NOT_FOUND'
+  | 'PLAYBOOK_NOT_FOUND'
+  | 'TEMPLATE_NAME_INVALID'
+  | 'TEMPLATE_NAME_TAKEN'
+  | 'TEMPLATE_BODY_INVALID'
+  | 'TEMPLATE_UNKNOWN_VARIABLE'
+  | 'TEMPLATE_KIND_MISMATCH'
+  | 'TEMPLATE_SCOPE_INVALID'
+  | 'TEMPLATE_SCOPE_FORBIDDEN'
+  | 'TEMPLATE_TAGS_INVALID'
+  | 'REASON_REQUIRED'
+  | 'PLAYBOOK_NAME_INVALID'
+  | 'PLAYBOOK_NAME_TAKEN'
+  | 'PLAYBOOK_STEPS_INVALID'
+  | 'PLAYBOOK_REFERENCE_INVALID'
+  | 'TICKET_PLAYBOOK_NOT_FOUND'
+  | 'TICKET_PLAYBOOK_ALREADY_ATTACHED'
+  | 'TICKET_PLAYBOOK_NOT_APPLICABLE'
+  | 'TICKET_PLAYBOOK_UP_TO_DATE'
+  | 'TICKET_PLAYBOOK_STEP_NOT_FOUND'
+  | 'TICKET_PLAYBOOK_READ_ONLY';
+
+export class TemplatesError extends Error {
+  constructor(
+    readonly code: TemplatesErrorCode,
+    readonly details?: Readonly<Record<string, unknown>>,
+  ) {
+    super(code);
+    this.name = 'TemplatesError';
+  }
+}

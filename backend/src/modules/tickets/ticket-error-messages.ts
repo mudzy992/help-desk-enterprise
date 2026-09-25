@@ -152,6 +152,8 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
     'A reason of 3 to 500 characters is required',
   PRIORITY_NOT_OVERRIDDEN:
     'The ticket priority already follows the impact × urgency matrix',
+  PLAYBOOK_REQUIRED_STEPS_OPEN:
+    'Finish the required playbook steps (or remove the playbook with a reason) before resolving or closing',
   TICKET_NOT_EDITABLE:
     'The ticket cannot be changed in its current status',
   TICKET_MERGED:

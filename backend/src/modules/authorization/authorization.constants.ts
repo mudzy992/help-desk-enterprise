@@ -12,6 +12,9 @@ export const permissionKeys = {
   ticketMerge: 'ticket.merge',
   ticketPriorityOverride: 'ticket.priority.override',
   ticketTimeManage: 'ticket.time.manage',
+  ticketTemplatesUse: 'ticket.templates.use',
+  ticketTemplatesPersonal: 'ticket.templates.personal',
+  ticketTemplatesManage: 'ticket.templates.manage',
   ticketBulkAssign: 'ticket.bulk.assign',
   ticketBulkStatusUpdate: 'ticket.bulk.status_update',
   ticketBulkPriorityUpdate: 'ticket.bulk.priority_update',
@@ -58,6 +61,8 @@ const agentPermissionKeys = [
   permissionKeys.ticketBulkStatusUpdate,
   permissionKeys.ticketForwardCrossOu,
   permissionKeys.knowledgeArticleWrite,
+  permissionKeys.ticketTemplatesUse,
+  permissionKeys.ticketTemplatesPersonal,
 ] as const;
 
 const adminPermissionKeys = [
@@ -65,6 +70,7 @@ const adminPermissionKeys = [
   permissionKeys.ticketBulkPriorityUpdate,
   permissionKeys.ticketBulkBroadcast,
   permissionKeys.ticketTimeManage,
+  permissionKeys.ticketTemplatesManage,
   permissionKeys.routingWrite,
   permissionKeys.groupManage,
   permissionKeys.serviceCatalogWrite,

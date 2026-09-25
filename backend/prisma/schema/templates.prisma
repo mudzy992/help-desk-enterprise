@@ -1,0 +1,157 @@
+/// Package 1.4 (T1): a canned reply an agent inserts in the composer.
+/// `ownerUserId = null` → shared (managed with ticket.templates.manage);
+/// set → personal template of that agent (ticket.templates.personal).
+model ResponseTemplate {
+  id          String               @id @default(cuid())
+  name        String
+  bodyBs      String
+  bodyEn      String?
+  kind        ResponseTemplateKind @default(ANY)
+  tags        String[]             @default([])
+  isActive    Boolean              @default(true)
+  ownerUserId String?
+  usageCount  Int                  @default(0)
+  lastUsedAt  DateTime?
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+  owner       User?                @relation("ResponseTemplateOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  services    ResponseTemplateService[]
+  categories  ResponseTemplateCategory[]
+  groups      ResponseTemplateGroup[]
+  messages    TicketMessage[]
+  playbookSteps PlaybookStep[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([ownerUserId, isActive])
+  @@index([deletedAt, isActive])
+}
+
+model ResponseTemplateService {
+  templateId String
+  serviceId  String
+  template   ResponseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  service    Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, serviceId])
+  @@index([serviceId])
+}
+
+model ResponseTemplateCategory {
+  templateId String
+  categoryId String
+  template   ResponseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  category   ServiceCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, categoryId])
+  @@index([categoryId])
+}
+
+model ResponseTemplateGroup {
+  templateId String
+  groupId    String
+  template   ResponseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  group      Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, groupId])
+  @@index([groupId])
+}
+
+/// Package 1.4 (P1): a checklist of steps for a service or category.
+/// `version` grows on every change of the steps (P2 snapshot upgrade).
+model Playbook {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean            @default(true)
+  version     Int                @default(1)
+  createdById String?
+  updatedById String?
+  deletedAt   DateTime?
+  steps       PlaybookStep[]
+  services    PlaybookService[]
+  categories  PlaybookCategory[]
+  tickets     TicketPlaybook[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([deletedAt, isActive])
+}
+
+model PlaybookStep {
+  id                 String            @id @default(cuid())
+  playbookId         String
+  /// Stable across versions, so a ticket upgrade keeps finished steps.
+  stepKey            String
+  position           Int
+  title              String
+  instructions       String?
+  required           Boolean           @default(false)
+  knowledgeArticleId String?
+  responseTemplateId String?
+  playbook           Playbook          @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  knowledgeArticle   KnowledgeArticle? @relation(fields: [knowledgeArticleId], references: [id], onDelete: SetNull)
+  responseTemplate   ResponseTemplate? @relation(fields: [responseTemplateId], references: [id], onDelete: SetNull)
+
+  @@unique([playbookId, stepKey])
+  @@index([playbookId, position])
+}
+
+model PlaybookService {
+  playbookId String
+  serviceId  String
+  playbook   Playbook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([playbookId, serviceId])
+  @@index([serviceId])
+}
+
+model PlaybookCategory {
+  playbookId String
+  categoryId String
+  playbook   Playbook        @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  category   ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([playbookId, categoryId])
+  @@index([categoryId])
+}
+
+/// Package 1.4 (P2): a playbook attached to a ticket, with a copy of its
+/// steps. At most one row per ticket has `detachedAt = null` (checked in the
+/// attaching transaction; no partial index because of Prisma drift).
+model TicketPlaybook {
+  id              String               @id @default(cuid())
+  ticketId        String
+  playbookId      String
+  playbookVersion Int
+  playbookName    String
+  stepsSnapshot   Json
+  attachedById    String?
+  autoAttached    Boolean              @default(false)
+  detachedAt      DateTime?
+  detachedById    String?
+  detachReason    String?
+  ticket          Ticket               @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  playbook        Playbook             @relation(fields: [playbookId], references: [id], onDelete: Restrict)
+  steps           TicketPlaybookStep[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([ticketId, detachedAt])
+  @@index([playbookId])
+}
+
+model TicketPlaybookStep {
+  id               String         @id @default(cuid())
+  ticketPlaybookId String
+  stepKey          String
+  checkedById      String?
+  checkedAt        DateTime
+  ticketPlaybook   TicketPlaybook @relation(fields: [ticketPlaybookId], references: [id], onDelete: Cascade)
+  checkedBy        User?          @relation("TicketPlaybookStepCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+
+  @@unique([ticketPlaybookId, stepKey])
+  @@index([checkedById])
+}

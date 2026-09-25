@@ -16,6 +16,7 @@ import { respondLoadedTicket } from './to-ticket-client-responses';
 import type {
   CreateTicketInput,
   TicketMutationContext,
+  TicketRecord,
   TicketResponse,
 } from './tickets.types';
 import type { TicketCloseCodesConfigurationLoader } from './close-codes/ticket-close-codes-configuration.loader';
@@ -34,6 +35,11 @@ export async function runTicketsServiceCreate(input: {
   readonly realtimeHub: TicketRealtimeHub;
   readonly body: CreateTicketInput;
   readonly context: TicketMutationContext;
+  /** Package 1.4 (P3): runs after assignment; must not throw. */
+  readonly afterCreate?: (
+    ticket: TicketRecord,
+    messages: TicketPersistedMessageSink,
+  ) => Promise<void>;
 }): Promise<TicketResponse> {
   const messages: TicketPersistedMessageSink = [];
   const duplicateWarnings: DuplicateTicketMatch[] = [];
@@ -63,6 +69,9 @@ export async function runTicketsServiceCreate(input: {
     event: 'created',
     now: assigned.createdAt,
   });
+  if (input.afterCreate !== undefined) {
+    await input.afterCreate(assigned, messages);
+  }
   publishPersistedTicketMessages(input.realtimeHub, assigned, messages);
   return respondLoadedTicket(
     input.prisma,

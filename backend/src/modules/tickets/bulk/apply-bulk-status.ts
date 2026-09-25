@@ -1,3 +1,5 @@
+import type { PlaybookRequiredStepsMode } from '../../templates/templates.constants';
+import { assertPlaybookStepsComplete } from '../playbooks/assert-playbook-steps-complete';
 import { stopActiveTicketTimeLogs, stopsTimeTracking } from '../time-tracking/stop-active-ticket-time-logs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
@@ -27,6 +29,7 @@ export async function applyBulkStatus(input: {
   readonly body: ExecuteTicketBulkInput;
   readonly batchId: string | null;
   readonly messages: TicketPersistedMessageSink;
+  readonly playbookMode?: PlaybookRequiredStepsMode;
 }): Promise<readonly TicketRecord[]> {
   const status = input.body.status;
   if (status === undefined) {
@@ -42,6 +45,17 @@ export async function applyBulkStatus(input: {
     // Package 1.2 (M3): merged children follow their parent only.
     assertTicketNotMerged(ticket);
   }
+  // Package 1.4 (P5): all or nothing, before the first ticket changes.
+  await assertPlaybookStepsComplete({
+    prisma: input.prisma,
+    mode: input.playbookMode,
+    tickets: input.tickets.map((ticket) => ({
+      id: ticket.id,
+      ticketNumber: ticket.ticketNumber,
+      from: ticket.status,
+    })),
+    to: status,
+  });
   for (const ticket of input.tickets) {
     assertPatchTicketStatus({
       context: input.context,

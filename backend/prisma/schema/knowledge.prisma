@@ -23,6 +23,7 @@ model KnowledgeArticle {
   organizationalUnit   OrganizationalUnit             @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
   feedbacks            KnowledgeFeedback[]
   interceptResolutions KnowledgeInterceptResolution[]
+  playbookSteps        PlaybookStep[]
   createdAt            DateTime                       @default(now())
   updatedAt            DateTime                       @updatedAt
 

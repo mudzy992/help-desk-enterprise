@@ -20,6 +20,7 @@ import { SlaModule } from './modules/sla/sla.module';
 import { SettingsHttpModule } from './modules/settings/settings-http.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { TemplatesModule } from './modules/templates/templates.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { SearchModule } from './modules/search/search.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -57,6 +58,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ServiceOnboardingModule,
     SlaModule,
     TicketsModule,
+    TemplatesModule,
     KnowledgeBaseModule,
     SearchModule,
     NotificationsModule,

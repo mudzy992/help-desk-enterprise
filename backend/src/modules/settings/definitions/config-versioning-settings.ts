@@ -4,7 +4,7 @@ import type { SettingDefinition } from '../settings.types';
 import { settingCategoryIds } from '../setting-categories';
 
 export const defaultConfigVersioningScopesCsv =
-  'settings,routing,sla,service_catalog,service_forms';
+  'settings,routing,sla,service_catalog,service_forms,templates';
 
 export const configVersioningSettings: readonly SettingDefinition[] = [
   definePrivateSetting({

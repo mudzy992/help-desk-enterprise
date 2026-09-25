@@ -15,4 +15,10 @@ export class CreateTicketMessageDto {
   @IsOptional()
   @IsBoolean()
   alsoToMerged?: boolean;
+
+  /** Package 1.4 (T4) */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  responseTemplateId?: string;
 }

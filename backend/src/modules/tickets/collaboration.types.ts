@@ -52,6 +52,8 @@ export type CreateTicketMessageInput = {
   readonly body: string;
   /** Package 1.2 (M4): copy a public agent reply to merged child tickets. */
   readonly alsoToMerged?: boolean;
+  /** Package 1.4 (T4): the template the text started from (statistics only). */
+  readonly responseTemplateId?: string;
 };
 
 export type TicketTimeLogRecord = {

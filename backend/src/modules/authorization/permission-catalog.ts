@@ -43,6 +43,23 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
       "Correct or delete other people's time entries and see deleted entries (reason required, audited).",
   },
   {
+    key: permissionKeys.ticketTemplatesUse,
+    categoryId: ticket,
+    description:
+      'Insert response templates in the composer and work with the ticket playbook checklist.',
+  },
+  {
+    key: permissionKeys.ticketTemplatesPersonal,
+    categoryId: ticket,
+    description: 'Create and edit personal response templates (visible only to their owner).',
+  },
+  {
+    key: permissionKeys.ticketTemplatesManage,
+    categoryId: ticket,
+    description:
+      'Manage shared response templates and playbooks (within the service scope, reason required, versioned).',
+  },
+  {
     key: permissionKeys.ticketBulkAssign,
     categoryId: ticket,
     description: 'Bulk-assign tickets to a group or user.',

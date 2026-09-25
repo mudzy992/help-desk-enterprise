@@ -1,7 +1,10 @@
+import { autoAttachPlaybook } from '../templates/ticket-playbooks/attach-playbook-to-ticket';
+import { TemplatesConfigurationLoader } from '../templates/templates-configuration.loader';
+import type { PlaybookRequiredStepsMode } from '../templates/templates.constants';
 import { UnroutedQueueConfigurationLoader } from './unrouted/unrouted-queue-configuration.loader';
 import { defaultUnroutedQueueConfiguration } from './unrouted/unrouted-queue.types';
 import { unroutedCutoff } from './unrouted/build-unrouted-overdue-where';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
@@ -41,6 +44,7 @@ import type {
   ListTicketsQuery,
   TicketListResponse,
   TicketMutationContext,
+  TicketRecord,
   TicketResponse,
   TicketSearchMatch,
   UpdateTicketInput,
@@ -48,6 +52,8 @@ import type {
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly routingService: RoutingService,
@@ -69,7 +75,20 @@ export class TicketsService {
     private readonly ticketLabelCache: TicketLabelCacheService,
     @Optional()
     private readonly unroutedQueueLoader?: UnroutedQueueConfigurationLoader,
+    @Optional()
+    private readonly templatesLoader?: TemplatesConfigurationLoader,
   ) {}
+
+  /** Package 1.4 (P5): read only when the status changes. */
+  private async loadPlaybookMode(
+    status: UpdateTicketInput['status'],
+  ): Promise<PlaybookRequiredStepsMode | undefined> {
+    if (status === undefined || this.templatesLoader === undefined) {
+      return undefined;
+    }
+    const configuration = await this.templatesLoader.load();
+    return configuration.playbooksEnabled ? configuration.requiredStepsOnResolve : 'off';
+  }
 
   /** Package 1.7 (U3): the unrouted settings, tolerant of a missing loader. */
   private async loadUnroutedScope(): Promise<{
@@ -130,8 +149,30 @@ export class TicketsService {
         realtimeHub: this.realtimeHub,
         body: input,
         context: await this.gate(context),
+        afterCreate: (ticket, messages) => this.autoAttachPlaybook(ticket, messages),
       }),
     );
+  }
+
+  /** Package 1.4 (P3): best effort — a playbook problem never fails creation. */
+  private async autoAttachPlaybook(
+    ticket: TicketRecord,
+    messages: TicketPersistedMessageSink,
+  ): Promise<void> {
+    if (this.templatesLoader === undefined) {
+      return;
+    }
+    try {
+      const configuration = await this.templatesLoader.load();
+      if (!configuration.playbooksEnabled || !configuration.autoAttach) {
+        return;
+      }
+      await autoAttachPlaybook({ prisma: this.prisma, ticket, messages });
+    } catch (error) {
+      this.logger.warn(
+        `Playbook auto-attach failed for ticket ${ticket.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /**
@@ -302,10 +343,11 @@ export class TicketsService {
     return executeTicketOperation(async () => {
       const gated = await this.gate(context);
       const messages: TicketPersistedMessageSink = [];
-      const [closeCodes, requiredFields, redaction] = await Promise.all([
+      const [closeCodes, requiredFields, redaction, playbookMode] = await Promise.all([
         this.closeCodesConfigurationLoader.load(),
         this.requiredFieldsConfigurationLoader.load(),
         this.redactionConfigurationLoader.load(),
+        this.loadPlaybookMode(input.status),
       ]);
       const updated = await updateTicket(
         this.prisma,
@@ -314,7 +356,7 @@ export class TicketsService {
         input,
         gated,
         messages,
-        { closeCodes, requiredFields, redaction },
+        { closeCodes, requiredFields, redaction, playbookMode },
       );
       publishPersistedTicketMessages(this.realtimeHub, updated, messages);
       return respondLoadedTicket(

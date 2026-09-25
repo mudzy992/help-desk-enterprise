@@ -33,6 +33,8 @@ model User {
   authoredMessages     TicketMessage[]
   ticketActivities     TicketActivity[]
   timeLogs             TicketTimeLog[]
+  responseTemplates    ResponseTemplate[] @relation("ResponseTemplateOwner")
+  playbookStepChecks   TicketPlaybookStep[] @relation("TicketPlaybookStepCheckedBy")
   uploadedAttachments  TicketAttachment[]         @relation("TicketAttachmentUploader")
   approvals            TicketApproval[]
   savedViews           SavedView[]
@@ -123,6 +125,7 @@ model Group {
   ownedArticles        KnowledgeArticle[]
   escalationRules      SlaEscalationRule[]
   confidentialGrants   TicketConfidentialGrant[]
+  responseTemplates    ResponseTemplateGroup[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 

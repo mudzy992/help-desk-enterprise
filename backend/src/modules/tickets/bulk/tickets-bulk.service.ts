@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { TemplatesConfigurationLoader } from '../../templates/templates-configuration.loader';
 import { TicketForwardingConfigurationLoader } from '../forwarding/ticket-forwarding-configuration.loader';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
@@ -41,6 +42,8 @@ export class TicketsBulkService {
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
     private readonly forwardingConfigurationLoader: TicketForwardingConfigurationLoader,
+    @Optional()
+    private readonly templatesLoader?: TemplatesConfigurationLoader,
   ) {}
 
   preview(
@@ -139,6 +142,12 @@ export class TicketsBulkService {
               ? await this.forwardingConfigurationLoader.load()
               : null,
         },
+        playbookMode:
+          body.actionType === 'set_status' && this.templatesLoader !== undefined
+            ? await this.templatesLoader.load().then((configuration) =>
+                configuration.playbooksEnabled ? configuration.requiredStepsOnResolve : 'off',
+              )
+            : undefined,
       });
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();

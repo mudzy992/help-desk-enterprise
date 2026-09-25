@@ -7,6 +7,8 @@ model ServiceCategory {
   parent    ServiceCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
   children  ServiceCategory[] @relation("CategoryTree")
   services  Service[]
+  responseTemplates ResponseTemplateCategory[]
+  playbooks PlaybookCategory[]
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 }
@@ -36,6 +38,8 @@ model Service {
   knowledgeArticles    KnowledgeArticle[]
   knowledgeInterceptResolutions KnowledgeInterceptResolution[]
   closeCodes           CloseCode[]
+  responseTemplates    ResponseTemplateService[]
+  playbooks            PlaybookService[]
   userRoles            UserRole[]
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt

@@ -44,6 +44,26 @@ export async function collectConfigSnapshot(
       }),
       prisma.group.findMany({ select: { id: true }, orderBy: { id: 'asc' } }),
     ]);
+  const [responseTemplates, playbooks] = await Promise.all([
+    prisma.responseTemplate.findMany({
+      where: { ownerUserId: null },
+      select: {
+        id: true,
+        name: true,
+        bodyBs: true,
+        bodyEn: true,
+        kind: true,
+        tags: true,
+        isActive: true,
+        deletedAt: true,
+      },
+      orderBy: { id: 'asc' },
+    }),
+    prisma.playbook.findMany({
+      select: { id: true, name: true, description: true, isActive: true, deletedAt: true },
+      orderBy: { id: 'asc' },
+    }),
+  ]);
   return {
     schemaVersion: 1,
     capturedAt,
@@ -112,6 +132,16 @@ export async function collectConfigSnapshot(
     references: {
       organizationalUnits: units,
       groups,
+    },
+    templates: {
+      responseTemplates: responseTemplates.map((template) => ({
+        ...template,
+        deletedAt: template.deletedAt?.toISOString() ?? null,
+      })),
+      playbooks: playbooks.map((playbook) => ({
+        ...playbook,
+        deletedAt: playbook.deletedAt?.toISOString() ?? null,
+      })),
     },
   };
 }

@@ -113,6 +113,11 @@ export const settingKeys = {
     'private.ticket.waitingForUser.autoCloseAfterDays',
   privateTicketReopenEnabled: 'private.ticket.reopen.enabled',
   privateTicketReopenWindowDays: 'private.ticket.reopen.windowDays',
+  privateTicketTemplatesEnabled: 'private.ticket.templates.enabled',
+  privateTicketPlaybooksEnabled: 'private.ticket.playbooks.enabled',
+  privateTicketPlaybooksAutoAttach: 'private.ticket.playbooks.autoAttach',
+  privateTicketPlaybooksRequiredStepsOnResolve:
+    'private.ticket.playbooks.requiredStepsOnResolve',
   privateTicketSplitEnabled: 'private.ticket.split.enabled',
   privateTicketSplitAllowAttachmentMove:
     'private.ticket.split.allowAttachmentMove',
