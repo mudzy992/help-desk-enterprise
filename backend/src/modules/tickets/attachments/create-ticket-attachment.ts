@@ -20,6 +20,7 @@ import type {
   TicketAttachmentUploadInput,
   TicketAttachmentConfiguration,
 } from './attachments.types';
+import { scanAttachmentWithClamav } from './scan-attachment-with-clamav';
 import { toTicketAttachmentResponse } from './to-attachment-response';
 import { validateTicketAttachment } from './validate-ticket-attachment';
 
@@ -55,6 +56,7 @@ export async function createTicketAttachment(
   if (contents === undefined) {
     throw new TicketsError('ATTACHMENT_REQUIRED');
   }
+  await scanAttachmentWithClamav(contents);
   const storagePath = await storage.write({
     ticketId: ticket.id,
     extension: validated.extension,

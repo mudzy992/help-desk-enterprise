@@ -2412,7 +2412,8 @@
       },
       "assignedTo": "ticket automatically assigned to {{name}}",
       "subtitlePublic": "Your ticket's progress: key changes and handling steps"
-    }
+    },
+    "errorAttachmentInfected": "The antivirus scan rejected this file."
   },
   "relativeTime": {
     "justNow": "just now",

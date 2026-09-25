@@ -91,6 +91,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   ATTACHMENT_TOO_LARGE: "tickets.errorValidation",
   ATTACHMENT_TYPE_NOT_ALLOWED: "tickets.errorValidation",
   ATTACHMENT_LIMIT_REACHED: "tickets.errorValidation",
+  ATTACHMENT_INFECTED: "tickets.errorAttachmentInfected",
   ORIGIN_UNIT_REQUIRED: "tickets.errorValidation",
   EXPORT_TOO_LARGE: "tickets.errorExportTooLarge",
 };

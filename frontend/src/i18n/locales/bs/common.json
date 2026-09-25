@@ -2412,7 +2412,8 @@
       },
       "assignedTo": "tiket automatski dodijeljen: {{name}}",
       "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade"
-    }
+    },
+    "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl."
   },
   "relativeTime": {
     "justNow": "upravo sada",

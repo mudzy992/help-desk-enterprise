@@ -47,6 +47,8 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   CLASSIFICATION_DOWNGRADE:
     'Attachment classification cannot be lower than the ticket',
   ATTACHMENTS_STORAGE_UNAVAILABLE: 'Attachment storage is unavailable',
+  ATTACHMENT_INFECTED: 'The antivirus scan rejected this file',
+  ATTACHMENT_SCAN_UNAVAILABLE: 'The antivirus scanner is unavailable, try again later',
   APPROVALS_DISABLED: 'Ticket approvals are disabled',
   APPROVALS_UNAVAILABLE: 'Ticket approvals are unavailable',
   APPROVAL_NOT_FOUND: 'Ticket approval was not found',
