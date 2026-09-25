@@ -14,8 +14,6 @@ import {
 import {
   addTicketParticipant,
   removeTicketParticipant,
-  startTicketTimeLog,
-  stopTicketTimeLog,
   type MessageType,
   type ParticipantRole,
   type TicketMessageResponse,
@@ -131,6 +129,7 @@ export function useTicketDetail(ticketId: string | undefined) {
     actionError,
     setActionError,
     applyTicket: setTicket,
+    setTimeLogs,
     reload: load,
     claim: () => onTicket((id) => runAction(async () => {
       setTicket(await claimTicket(id));
@@ -178,14 +177,6 @@ export function useTicketDetail(ticketId: string | undefined) {
         await removeTicketParticipant(id, participantId);
         setParticipants((current) => current.filter((item) => item.id !== participantId));
       })),
-    startTimer: () => onTicket((id) => runAction(async () => {
-      const created = await startTicketTimeLog(id);
-      setTimeLogs((current) => [...current, created]);
-    })),
-    stopTimer: (timeLogId: string) => onTicket((id) => runAction(async () => {
-      const stopped = await stopTicketTimeLog(id, timeLogId);
-      setTimeLogs((current) => current.map((item) => (item.id === timeLogId ? stopped : item)));
-    })),
     upload: (file: File) => onTicket((id) => runAction(async () => {
       const created = await uploadTicketAttachment(id, file);
       setAttachments((current) => [...current, created]);

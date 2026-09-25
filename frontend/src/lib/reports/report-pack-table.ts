@@ -39,7 +39,11 @@ export function nextReportSort(current: ReportSort | null, column: string): Repo
 export function formatReportCell(
   value: ReportCell,
   locale: string,
-  labels: { readonly confidential: string },
+  labels: {
+    readonly confidential: string;
+    /** Stable markers the server writes verbatim (e.g. time-tracking row types). */
+    readonly values?: Readonly<Record<string, string>>;
+  },
 ): string {
   if (value === null) {
     return "—";
@@ -49,6 +53,10 @@ export function formatReportCell(
   }
   if (value === "[confidential]") {
     return labels.confidential;
+  }
+  const mapped = labels.values?.[value];
+  if (mapped !== undefined) {
+    return mapped;
   }
   if (isoInstant.test(value)) {
     const date = new Date(value);

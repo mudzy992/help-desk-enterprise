@@ -12,6 +12,7 @@ import type {
   TicketMessageResponse,
   TicketTimeLogResponse,
 } from "@/services/tickets-collaboration-api";
+import type { TicketTimeTrackingControls } from "@/lib/time-tracking/use-ticket-time-tracking";
 import type { TicketAttachmentResponse } from "@/services/tickets-attachments-api";
 import type { TicketResponse } from "@/services/tickets-api";
 import type {
@@ -39,9 +40,8 @@ interface TicketDetailWorkspaceProperties {
   readonly timeLogs: readonly TicketTimeLogResponse[];
   readonly timeVisible: boolean;
   readonly userNames: ReadonlyMap<string, string>;
-  readonly isTimeSaving: boolean;
-  readonly onStartTimer: () => void;
-  readonly onStopTimer: (timeLogId: string) => void;
+  readonly canTrackTime: boolean;
+  readonly timeTracking: TicketTimeTrackingControls;
   readonly attachments: readonly TicketAttachmentResponse[];
   readonly attachmentsVisible: boolean;
   readonly canUpload: boolean;
@@ -117,9 +117,8 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           visible={props.timeVisible}
           currentUserId={props.currentUserId}
           userNames={props.userNames}
-          isSaving={props.isTimeSaving}
-          onStart={props.onStartTimer}
-          onStop={props.onStopTimer}
+          canTrack={props.canTrackTime}
+          controls={props.timeTracking}
         />
       ) : null}
       {tab === "files" ? (

@@ -1,5 +1,6 @@
 import { Menu } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ActiveTimerIndicator } from "@/components/layout/active-timer-indicator";
 import { HeaderSearchTrigger } from "@/components/layout/header-search-trigger";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { SessionControls } from "@/components/layout/session-controls";
@@ -32,6 +33,7 @@ export function AppHeader({
       </Button>
       <HeaderSearchTrigger onOpen={onOpenCommandPalette} />
       <div className="ml-auto flex min-w-0 items-center gap-1.5">
+        <ActiveTimerIndicator />
         <SystemStatusChip />
         <ThemeSwitcher />
         <NotificationsBell />

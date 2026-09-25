@@ -42,13 +42,9 @@ export class TimeTrackingSweepProcessor extends WorkerHost {
           result.messages.filter((message) => message.ticketId === ticketId),
         );
       }
-      for (const userId of result.ownerUserIds) {
-        this.realtimeHub.publishEdgeEvent({
-          userId,
-          eventName: 'time.timer.changed',
-          data: { at: new Date().toISOString() },
-        });
-      }
+      // The worker bridge forwards ticket messages only; an owner's browser learns
+      // about the stop from its next heartbeat (TIME_LOG_NOT_ACTIVE) or the ticket
+      // message event, and then re-reads GET /me/active-timer.
       this.logger.log(
         formatJobMetrics({
           job: timeTrackingSweepJobName,

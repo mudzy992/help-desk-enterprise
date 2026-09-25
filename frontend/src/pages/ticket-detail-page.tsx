@@ -28,6 +28,7 @@ import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
 import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
+import { useTicketTimeTracking } from "@/lib/time-tracking/use-ticket-time-tracking";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 export function TicketDetailPage() {
@@ -38,10 +39,14 @@ export function TicketDetailPage() {
   const { session, hasPermission } = useSessionCapabilities();
   const detail = useTicketDetail(ticketId);
   const approvals = useTicketApprovals(ticketId);
+  const timeTracking = useTicketTimeTracking({
+    ticketId,
+    setTimeLogs: detail.setTimeLogs,
+    canManage: hasPermission(permissionKeys.ticketTimeManage),
+  });
   const directory = useDirectory();
   const serviceName = useTicketServiceName(detail.ticket);
   const [isSending, setIsSending] = useState(false);
-  const [isTimeSaving, setIsTimeSaving] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
@@ -265,17 +270,10 @@ export function TicketDetailPage() {
             void detail.changeStatus("WAITING_FOR_USER").finally(() => setIsSavingStatus(false));
           }}
           timeLogs={detail.timeLogs}
-          timeVisible={detail.timeVisible && actions.trackTime}
+          timeVisible={detail.timeVisible && actions.viewActivity}
           userNames={authorNames}
-          isTimeSaving={isTimeSaving}
-          onStartTimer={() => {
-            setIsTimeSaving(true);
-            void detail.startTimer().finally(() => setIsTimeSaving(false));
-          }}
-          onStopTimer={(timeLogId) => {
-            setIsTimeSaving(true);
-            void detail.stopTimer(timeLogId).finally(() => setIsTimeSaving(false));
-          }}
+          canTrackTime={actions.trackTime}
+          timeTracking={timeTracking}
           attachments={detail.attachments}
           attachmentsVisible={detail.attachmentsVisible}
           canUpload={detail.attachmentsVisible && actions.uploadAttachments}

@@ -6,7 +6,8 @@ export type ReportPackKey =
   | "overdue_by_service"
   | "top_close_codes"
   | "kb_helpfulness"
-  | "forward_ping_pong";
+  | "forward_ping_pong"
+  | "time_tracking";
 
 export type ReportExportFormat = "csv" | "json";
 

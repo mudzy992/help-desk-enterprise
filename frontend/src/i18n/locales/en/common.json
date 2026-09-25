@@ -134,7 +134,8 @@
       "remoteRequested": "Remote assistance requested: {{ticketNumber}}",
       "knowledgeReviewDue": "Knowledge article review is due",
       "unknown": "Notification",
-      "ticketForwarded": "Ticket {{ticketNumber}} forwarded"
+      "ticketForwarded": "Ticket {{ticketNumber}} forwarded",
+      "ticketTimeAutoStopped": "Timer stopped automatically (maximum duration)"
     }
   },
   "placeholders": {
@@ -867,7 +868,14 @@
         "private.notifications.email.accentColor": "Accent colour of e-mails (#rrggbb).",
         "private.i18n.defaultLocale": "Language for users who have not chosen one (e-mail and first sign-in).",
         "private.i18n.fallbackLocale": "Language used when a text is missing in the chosen language.",
-        "private.i18n.supportedLocalesCsv": "Languages offered to users, comma separated (bs, en)."
+        "private.i18n.supportedLocalesCsv": "Languages offered to users, comma separated (bs, en).",
+        "private.timeTracking.idleAutoPauseMinutes": "Minutes of inactivity (hidden tab or no input) after which the timer pauses; 0 disables.",
+        "private.timeTracking.autoResume": "After an idle pause the timer resumes automatically when the agent returns (with a notice).",
+        "private.timeTracking.maxSessionHours": "Maximum length of one timer segment in hours; a longer segment is closed at this limit.",
+        "private.timeTracking.singleActivePerUser": "An agent may run only one timer; starting on another ticket offers to switch.",
+        "private.timeTracking.manualEntry.enabled": "Allow manual time entries (work outside the system) with a required note.",
+        "private.timeTracking.manualEntry.maxBackdateDays": "How many days back manual entries and corrections of own entries are allowed.",
+        "private.timeTracking.manualEntry.maxMinutes": "Maximum length of one manual entry in minutes."
       }
     },
     "emailTemplates": {
@@ -1115,14 +1123,16 @@
         "overdue_by_service": "Overdue by service",
         "top_close_codes": "Top close codes",
         "kb_helpfulness": "Knowledge base helpfulness",
-        "forward_ping_pong": "Forward ping-pong"
+        "forward_ping_pong": "Forward ping-pong",
+        "time_tracking": "Logged time"
       },
       "descriptions": {
         "monthly_kpi": "Created, resolved and closed tickets, SLA breaches, CSAT and average response and resolution times.",
         "overdue_by_service": "Tickets with a breached SLA per service, among tickets active in the period.",
         "top_close_codes": "Close codes of resolved and closed tickets, most frequent first.",
         "kb_helpfulness": "“Helpful / not helpful” votes per knowledge article.",
-        "forward_ping_pong": "Tickets forwarded between groups at least {{threshold}} times in the period, with their path."
+        "forward_ping_pong": "Tickets forwarded between groups at least {{threshold}} times in the period, with their path.",
+        "time_tracking": "Time per agent and service: entries, hours, tickets, share of manual and auto-stopped entries, number of corrections. A high share is a signal for a conversation, not a penalty."
       },
       "columns": {
         "createdCount": "Created",
@@ -1145,7 +1155,22 @@
         "distinctGroups": "Distinct groups",
         "groupPath": "Path",
         "firstForwardAt": "First forward",
-        "lastForwardAt": "Last forward"
+        "lastForwardAt": "Last forward",
+        "rowType": "Row type",
+        "agent": "Agent",
+        "entries": "Entries",
+        "totalHours": "Total hours",
+        "tickets": "Tickets",
+        "averageHoursPerTicket": "Avg. hours per ticket",
+        "manualShare": "Manual entries (%)",
+        "autoIdleShare": "Idle pauses (%)",
+        "autoMaxDurationShare": "Maximum exceeded (%)",
+        "corrections": "Corrections"
+      },
+      "rowTypes": {
+        "agent_service": "Agent × service",
+        "agent_total": "Agent total",
+        "total": "Total"
       }
     }
   },
@@ -2689,6 +2714,55 @@
       "eventChild": "Merged into {{number}}",
       "eventUnmerged": "Unmerged ({{number}})",
       "eventPropagated": "Status taken over from {{number}}: {{status}}"
+    },
+    "timeTracking": {
+      "addManual": "Manual entry",
+      "showDeleted": "Show deleted entries",
+      "sourceManual": "Manual",
+      "stopIdle": "Paused (idle)",
+      "stopMax": "Maximum exceeded",
+      "stopClosed": "Ticket closed",
+      "corrected": "Corrected",
+      "correctedTooltip": "Corrected by {{user}} — reason: {{reason}}",
+      "deleted": "Deleted",
+      "deletedTooltip": "Deleted by {{user}} — reason: {{reason}}",
+      "edit": "Correct entry",
+      "delete": "Delete entry",
+      "switchTitle": "A timer is already running on another ticket",
+      "switchBody": "Your timer is currently running on ticket {{ticket}}. Stop it and start it on this ticket?",
+      "switchConfirm": "Switch timer",
+      "manualTitle": "Manual time entry",
+      "manualHint": "For work outside the system (phone, on site). At most {{days}} days back and {{minutes}} minutes per entry; a note is required.",
+      "startedAt": "Start",
+      "endedAt": "End",
+      "durationMinutes": "Duration (minutes)",
+      "note": "Note",
+      "reason": "Reason",
+      "save": "Save",
+      "editTitle": "Correct time entry",
+      "editHint": "Every correction is recorded with its reason and shown in the list.",
+      "deleteTitle": "Delete time entry",
+      "deleteHint": "The entry is not removed permanently: it stays in the trail and is visible to administrators.",
+      "pausedTitle": "Timer paused",
+      "pausedBody": "The timer on ticket {{ticket}} stopped after {{minutes}} min of inactivity. Time was recorded up to your last activity.",
+      "resumedTitle": "Timer resumed",
+      "resumedBody": "Time tracking on ticket {{ticket}} has resumed.",
+      "indicatorLabel": "Timer running on ticket {{ticket}}, elapsed {{elapsed}}",
+      "errors": {
+        "activeElsewhere": "A timer is already running on another ticket.",
+        "overlap": "The entry overlaps one of your existing time entries.",
+        "status": "Time cannot be tracked on a ticket in this status.",
+        "manualDisabled": "Manual time entry is disabled.",
+        "window": "The correction window for this entry has expired.",
+        "range": "The time range is not valid.",
+        "noteRequired": "A note is required.",
+        "reasonRequired": "A reason is required.",
+        "running": "A running timer cannot be edited — stop it first.",
+        "notActive": "The timer is no longer running.",
+        "notFound": "Time entry not found.",
+        "forbidden": "You are not allowed to do this.",
+        "generic": "The time entry action failed."
+      }
     }
   },
   "relativeTime": {

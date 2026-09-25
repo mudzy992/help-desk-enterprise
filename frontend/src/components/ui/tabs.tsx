@@ -35,6 +35,7 @@ export function UnderlineTabs({
             key={item.key}
             type="button"
             role="tab"
+            data-testid={`tab-${item.key}`}
             aria-selected={isActive}
             onClick={() => onChange(item.key)}
             className={cn(

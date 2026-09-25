@@ -48,7 +48,24 @@ export type TicketTimeLogResponse = {
   readonly endedAt: string | null;
   readonly durationSeconds: number | null;
   readonly createdAt: string;
+  /** Package 1.3 */
+  readonly source?: TimeLogSource;
+  readonly stopReason?: TimeLogStopReason | null;
+  readonly note?: string | null;
+  readonly correctedAt?: string | null;
+  readonly correctedByUserId?: string | null;
+  readonly correctionReason?: string | null;
+  readonly deletedAt?: string | null;
+  readonly deletedByUserId?: string | null;
+  readonly deleteReason?: string | null;
 };
+
+export type TimeLogSource = "TIMER" | "MANUAL";
+export type TimeLogStopReason =
+  | "MANUAL"
+  | "AUTO_IDLE"
+  | "AUTO_MAX_DURATION"
+  | "AUTO_TICKET_CLOSED";
 
 export function listTicketParticipants(
   ticketId: string,
@@ -102,21 +119,100 @@ export function createTicketMessage(
 
 export function listTicketTimeLogs(
   ticketId: string,
+  options: { readonly includeDeleted?: boolean } = {},
 ): Promise<readonly TicketTimeLogResponse[]> {
-  return apiRequest(`/tickets/${ticketId}/time-logs`);
+  const query = options.includeDeleted === true ? "?includeDeleted=true" : "";
+  return apiRequest(`/tickets/${ticketId}/time-logs${query}`);
 }
 
 export function startTicketTimeLog(
   ticketId: string,
+  options: { readonly switchFromActive?: boolean } = {},
 ): Promise<TicketTimeLogResponse> {
-  return apiRequest(`/tickets/${ticketId}/time-logs/start`, { method: "POST" });
+  return apiRequest(`/tickets/${ticketId}/time-logs/start`, {
+    method: "POST",
+    body: JSON.stringify(options.switchFromActive === true ? { switchFromActive: true } : {}),
+  });
 }
 
 export function stopTicketTimeLog(
   ticketId: string,
   timeLogId: string,
+  options: { readonly reason?: "MANUAL" | "AUTO_IDLE"; readonly endedAt?: string } = {},
 ): Promise<TicketTimeLogResponse> {
   return apiRequest(`/tickets/${ticketId}/time-logs/${timeLogId}/stop`, {
     method: "POST",
+    body: JSON.stringify(options),
   });
+}
+
+/** Package 1.3 (T3): proof of activity; the server ignores calls closer than 20 s. */
+export function heartbeatTicketTimeLog(ticketId: string, timeLogId: string): Promise<void> {
+  return apiRequest(`/tickets/${ticketId}/time-logs/${timeLogId}/heartbeat`, {
+    method: "POST",
+  });
+}
+
+export function addManualTicketTimeLog(
+  ticketId: string,
+  input: { readonly startedAt: string; readonly durationMinutes: number; readonly note: string },
+): Promise<TicketTimeLogResponse> {
+  return apiRequest(`/tickets/${ticketId}/time-logs/manual`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function correctTicketTimeLog(
+  ticketId: string,
+  timeLogId: string,
+  input: {
+    readonly startedAt?: string;
+    readonly endedAt?: string;
+    readonly note?: string;
+    readonly reason: string;
+  },
+): Promise<TicketTimeLogResponse> {
+  return apiRequest(`/tickets/${ticketId}/time-logs/${timeLogId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteTicketTimeLog(
+  ticketId: string,
+  timeLogId: string,
+  reason: string,
+): Promise<TicketTimeLogResponse> {
+  return apiRequest(`/tickets/${ticketId}/time-logs/${timeLogId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export type ActiveTimer = {
+  readonly timeLogId: string;
+  readonly ticketId: string;
+  readonly ticketNumber: string;
+  readonly ticketTitle: string;
+  readonly startedAt: string;
+};
+
+export type TimeTrackingPolicy = {
+  readonly idleAutoPauseMinutes: number;
+  readonly autoResume: boolean;
+  readonly maxSessionHours: number;
+  readonly singleActivePerUser: boolean;
+  readonly manualEntryEnabled: boolean;
+  readonly maxBackdateDays: number;
+  readonly manualMaxMinutes: number;
+};
+
+export type ActiveTimerResponse = {
+  readonly timer: ActiveTimer | null;
+  readonly policy: TimeTrackingPolicy;
+};
+
+export function getActiveTimer(): Promise<ActiveTimerResponse> {
+  return apiRequest("/me/active-timer");
 }

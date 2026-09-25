@@ -9,6 +9,8 @@ import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
+import { roleKeys } from "@/lib/session/permission-keys";
+import { ActiveTimerHost } from "@/lib/time-tracking/active-timer-host";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
@@ -72,6 +74,11 @@ export function ApplicationShell() {
   return (
     <div className="flex h-full min-h-0 bg-background">
       <HelpdeskSocketHost />
+      {session.isSuperAdmin ||
+      session.roleKeys.includes(roleKeys.agent) ||
+      session.roleKeys.includes(roleKeys.admin) ? (
+        <ActiveTimerHost accessToken={storedSession.accessToken} />
+      ) : null}
       <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block">
         <AppSidebar />
       </aside>

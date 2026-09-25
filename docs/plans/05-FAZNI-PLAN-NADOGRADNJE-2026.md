@@ -54,7 +54,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   poruka na glavnom tiketu (opcija „pošalji i povezanim") ide requesterima spojenih; prikaz
   „spojeno u T-…" i lista spojenih na glavnom tiketu; poništavanje merge-a (unmerge) s razlogom.
 
-### 1.3 Mjerenje vremena — zaštita od zloupotrebe (G3)  · ~1,5 RD · dizajn: `modules/1.3-mjerenje-vremena.md`
+### 1.3 Mjerenje vremena — zaštita od zloupotrebe (G3)  · ~1,5 RD · dizajn: `modules/1.3-mjerenje-vremena.md` · ✅ implementirano
 - `private.timeTracking.inactiveTabAutoPauseMinutes`, `maxSessionHours`.
 - Frontend: pauza kad je tab neaktivan > X min (Page Visibility API), nastavak na povratku.
 - Backend: tvrdi limit — timer stariji od `maxSessionHours` se zatvara automatski (scheduler),

@@ -134,7 +134,8 @@
       "remoteRequested": "Zahtjev za udaljenu podršku: {{ticketNumber}}",
       "knowledgeReviewDue": "Pregled KB članka dospijeva",
       "unknown": "Obavještenje",
-      "ticketForwarded": "Proslijeđen tiket {{ticketNumber}}"
+      "ticketForwarded": "Proslijeđen tiket {{ticketNumber}}",
+      "ticketTimeAutoStopped": "Timer je automatski zaustavljen (maksimalno trajanje)"
     }
   },
   "placeholders": {
@@ -867,7 +868,14 @@
         "private.notifications.email.accentColor": "Boja naglaska u e-mailovima (#rrggbb).",
         "private.i18n.defaultLocale": "Jezik za korisnike koji ga nisu izabrali (e-mail i prva prijava).",
         "private.i18n.fallbackLocale": "Jezik kad tekst nedostaje na izabranom jeziku.",
-        "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima, odvojeni zarezom (bs, en)."
+        "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima, odvojeni zarezom (bs, en).",
+        "private.timeTracking.idleAutoPauseMinutes": "Minute neaktivnosti (sakriven tab ili bez unosa) nakon kojih se timer pauzira; 0 isključuje.",
+        "private.timeTracking.autoResume": "Nakon pauze zbog neaktivnosti timer se automatski nastavlja kad se agent vrati (uz obavještenje).",
+        "private.timeTracking.maxSessionHours": "Maksimalno trajanje jednog segmenta timera u satima; duži segment se zatvara na ovoj granici.",
+        "private.timeTracking.singleActivePerUser": "Agent može imati samo jedan aktivan timer; pokretanje na drugom tiketu nudi prebacivanje.",
+        "private.timeTracking.manualEntry.enabled": "Dozvoli ručni unos vremena (rad van sistema) uz obaveznu napomenu.",
+        "private.timeTracking.manualEntry.maxBackdateDays": "Koliko dana unazad je dozvoljen ručni unos i ispravka vlastitih unosa.",
+        "private.timeTracking.manualEntry.maxMinutes": "Najveće trajanje jednog ručnog unosa u minutama."
       }
     },
     "emailTemplates": {
@@ -1117,14 +1125,16 @@
         "overdue_by_service": "Prekoračeni po servisu",
         "top_close_codes": "Najčešći kodovi zatvaranja",
         "kb_helpfulness": "Korisnost baze znanja",
-        "forward_ping_pong": "Ping-pong prosljeđivanja"
+        "forward_ping_pong": "Ping-pong prosljeđivanja",
+        "time_tracking": "Evidentirano vrijeme"
       },
       "descriptions": {
         "monthly_kpi": "Kreirani, riješeni i zatvoreni tiketi, SLA prekoračenja, CSAT i prosječna vremena odziva i rješavanja.",
         "overdue_by_service": "Broj tiketa s prekoračenim SLA-om po servisu, za tikete aktivne u periodu.",
         "top_close_codes": "Kodovi zatvaranja riješenih i zatvorenih tiketa, od najčešćeg.",
         "kb_helpfulness": "Glasovi „pomoglo / nije pomoglo“ po članku baze znanja.",
-        "forward_ping_pong": "Tiketi proslijeđeni između grupa najmanje {{threshold}} puta u periodu, s putanjom kroz grupe."
+        "forward_ping_pong": "Tiketi proslijeđeni između grupa najmanje {{threshold}} puta u periodu, s putanjom kroz grupe.",
+        "time_tracking": "Vrijeme po agentu i servisu: unosi, sati, tiketi, udio ručnih i automatski zaustavljenih unosa, broj ispravki. Visok udio je signal za razgovor, ne kazna."
       },
       "columns": {
         "createdCount": "Kreirano",
@@ -1147,7 +1157,22 @@
         "distinctGroups": "Različitih grupa",
         "groupPath": "Putanja",
         "firstForwardAt": "Prvo prosljeđivanje",
-        "lastForwardAt": "Zadnje prosljeđivanje"
+        "lastForwardAt": "Zadnje prosljeđivanje",
+        "rowType": "Vrsta reda",
+        "agent": "Agent",
+        "entries": "Unosa",
+        "totalHours": "Ukupno sati",
+        "tickets": "Tiketa",
+        "averageHoursPerTicket": "Prosj. sati po tiketu",
+        "manualShare": "Ručni unosi (%)",
+        "autoIdleShare": "Pauza neaktivnost (%)",
+        "autoMaxDurationShare": "Prekoračen maksimum (%)",
+        "corrections": "Ispravki"
+      },
+      "rowTypes": {
+        "agent_service": "Agent × servis",
+        "agent_total": "Zbir agenta",
+        "total": "Ukupno"
       }
     }
   },
@@ -2692,6 +2717,55 @@
       "eventChild": "Spojen u {{number}}",
       "eventUnmerged": "Spajanje poništeno ({{number}})",
       "eventPropagated": "Status preuzet s tiketa {{number}}: {{status}}"
+    },
+    "timeTracking": {
+      "addManual": "Ručni unos",
+      "showDeleted": "Prikaži obrisane unose",
+      "sourceManual": "Ručno",
+      "stopIdle": "Pauza (neaktivnost)",
+      "stopMax": "Prekoračen maksimum",
+      "stopClosed": "Tiket zatvoren",
+      "corrected": "Ispravljeno",
+      "correctedTooltip": "Ispravio: {{user}} — razlog: {{reason}}",
+      "deleted": "Obrisano",
+      "deletedTooltip": "Obrisao: {{user}} — razlog: {{reason}}",
+      "edit": "Ispravi unos",
+      "delete": "Obriši unos",
+      "switchTitle": "Timer već radi na drugom tiketu",
+      "switchBody": "Vaš timer trenutno mjeri vrijeme na tiketu {{ticket}}. Zaustaviti ga i pokrenuti na ovom tiketu?",
+      "switchConfirm": "Prebaci timer",
+      "manualTitle": "Ručni unos vremena",
+      "manualHint": "Za rad van sistema (telefon, teren). Najviše {{days}} dana unazad i {{minutes}} minuta po unosu; napomena je obavezna.",
+      "startedAt": "Početak",
+      "endedAt": "Kraj",
+      "durationMinutes": "Trajanje (minute)",
+      "note": "Napomena",
+      "reason": "Razlog",
+      "save": "Sačuvaj",
+      "editTitle": "Ispravka unosa vremena",
+      "editHint": "Svaka ispravka se bilježi s razlogom i vidljiva je u listi.",
+      "deleteTitle": "Brisanje unosa vremena",
+      "deleteHint": "Unos se ne briše trajno: ostaje u tragu i vidljiv je administratorima.",
+      "pausedTitle": "Timer je pauziran",
+      "pausedBody": "Timer na tiketu {{ticket}} je zaustavljen nakon {{minutes}} min neaktivnosti. Vrijeme je zabilježeno do posljednje aktivnosti.",
+      "resumedTitle": "Timer je nastavljen",
+      "resumedBody": "Mjerenje vremena na tiketu {{ticket}} je nastavljeno.",
+      "indicatorLabel": "Aktivan timer na tiketu {{ticket}}, proteklo {{elapsed}}",
+      "errors": {
+        "activeElsewhere": "Timer već radi na drugom tiketu.",
+        "overlap": "Unos se preklapa s vašim postojećim unosom vremena.",
+        "status": "Vrijeme se ne može mjeriti na tiketu u ovom statusu.",
+        "manualDisabled": "Ručni unos vremena je isključen.",
+        "window": "Rok za ispravku ovog unosa je istekao.",
+        "range": "Vremenski raspon nije ispravan.",
+        "noteRequired": "Napomena je obavezna.",
+        "reasonRequired": "Razlog je obavezan.",
+        "running": "Aktivni timer se ne može uređivati — prvo ga zaustavite.",
+        "notActive": "Timer više nije aktivan.",
+        "notFound": "Unos vremena nije pronađen.",
+        "forbidden": "Nemate pravo na ovu radnju.",
+        "generic": "Radnja nad unosom vremena nije uspjela."
+      }
     }
   },
   "relativeTime": {

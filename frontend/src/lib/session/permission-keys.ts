@@ -16,6 +16,7 @@ export const permissionKeys = {
   ticketBulkAssign: "ticket.bulk.assign",
   ticketMerge: "ticket.merge",
   ticketPriorityOverride: "ticket.priority.override",
+  ticketTimeManage: "ticket.time.manage",
   ticketAttachmentsUpload: "ticket.attachments.upload",
   auditExport: "audit.export",
   reportsExport: "reports.export",

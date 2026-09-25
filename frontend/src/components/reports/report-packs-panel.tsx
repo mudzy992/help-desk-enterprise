@@ -257,6 +257,11 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                             >
                               {formatReportCell(value, i18n.language, {
                                 confidential: t("reports.packs.confidential"),
+                                values: {
+                                  agent_service: t("reports.packs.rowTypes.agent_service"),
+                                  agent_total: t("reports.packs.rowTypes.agent_total"),
+                                  total: t("reports.packs.rowTypes.total"),
+                                },
                               })}
                             </td>
                           );
