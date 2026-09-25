@@ -66,7 +66,14 @@ export function agentTicketFlow(config, data) {
   });
   expectOk(inbox, 'tickets.inbox');
 
-  const ticketId = readFirstTicketId(inbox);
+  // Staging seed (2026-09-25): seeded tickets are already claimed, so the inbox is
+  // empty and detail/reply were never measured (p95 = 0). Fall back to TICKET_IDS.
+  const fallbackIds = config.behaviour.ticketIds || [];
+  const ticketId =
+    readFirstTicketId(inbox) ??
+    (fallbackIds.length > 0
+      ? fallbackIds[Math.floor(Math.random() * fallbackIds.length)]
+      : null);
   if (ticketId === null) {
     sleep(thinkTime(config));
     return;
