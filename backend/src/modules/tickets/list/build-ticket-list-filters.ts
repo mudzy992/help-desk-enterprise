@@ -1,3 +1,4 @@
+import { ticketConstants } from '../tickets.constants';
 import type { Prisma } from '../../../generated/prisma/client';
 import type { TicketStatus } from '../../../generated/prisma/enums';
 import type { TicketListQuery } from './list-tickets.types';
@@ -107,6 +108,12 @@ function buildTicketSearchFilter(
   if (needle.length === 0) {
     return null;
   }
+  // k6 C fast path: a full ticket number (`T-000123`) is an exact lookup on the
+  // unique index instead of an ILIKE over the trigram indexes.
+  const exactNumber = exactTicketNumberFromNeedle(needle);
+  if (exactNumber !== null) {
+    return { ticketNumber: exactNumber };
+  }
   const contains = { contains: needle, mode: 'insensitive' as const };
   const alternatives: Prisma.TicketWhereInput[] = [
     { ticketNumber: contains },
@@ -116,4 +123,17 @@ function buildTicketSearchFilter(
     alternatives.push({ description: contains });
   }
   return { OR: alternatives };
+}
+
+/** `T-000123` / `t-000123` → `T-000123`; anything else (partial, free text) → null. */
+export function exactTicketNumberFromNeedle(needle: string): string | null {
+  const prefix = ticketConstants.ticketNumberPrefix;
+  if (needle.length < prefix.length + ticketConstants.ticketNumberPad) {
+    return null;
+  }
+  if (needle.slice(0, prefix.length).toUpperCase() !== prefix.toUpperCase()) {
+    return null;
+  }
+  const digits = needle.slice(prefix.length);
+  return /^[0-9]+$/.test(digits) ? `${prefix}${digits}` : null;
 }

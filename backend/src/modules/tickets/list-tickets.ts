@@ -151,10 +151,18 @@ async function runTicketListQuery(
     return { records: [], total: 0, totalIsCapped: false };
   }
   const orderBy = buildTicketListOrderBy(query.sort, query.dir);
+  // k6 C (200 VU): search was the only read over budget (p95 763 ms) — the
+  // capped COUNT re-ran the ILIKE over up to 10 001 rows for every keystroke-ish
+  // query and is never reused (each `q` is a new cache key). With `q` the page
+  // reads one extra row instead and reports "more exist" through
+  // `totalIsCapped`, so the client shows "N+" and keeps the next-page button.
+  const searchWithoutCount =
+    countTotal && (query.q?.trim().length ?? 0) > 0;
   const findManyArguments: Prisma.TicketFindManyArgs = {
     where,
     orderBy,
-    ...paging,
+    skip: paging.skip,
+    take: searchWithoutCount ? paging.take + 1 : paging.take,
   };
   if (select !== null) {
     findManyArguments.select = select;
@@ -162,6 +170,17 @@ async function runTicketListQuery(
   const records = (await prisma.ticket.findMany(
     findManyArguments,
   )) as unknown as TicketRecord[];
+  if (searchWithoutCount) {
+    const hasMore = records.length > paging.take;
+    const pageRecords = hasMore ? records.slice(0, paging.take) : records;
+    return {
+      records: pageRecords,
+      // One past the page when more exist, so `ceil(total / pageSize)` opens
+      // the next page; exact when this is the last page.
+      total: paging.skip + pageRecords.length + (hasMore ? 1 : 0),
+      totalIsCapped: hasMore,
+    };
+  }
   if (!countTotal) {
     return { records, total: records.length, totalIsCapped: false };
   }
