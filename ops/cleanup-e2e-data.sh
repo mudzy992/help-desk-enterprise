@@ -9,7 +9,7 @@
 #
 # Opcije:  --db IME   --user KORISNIK   -W|--password (traži lozinku, ne ispisuje je)
 #          --url URL  (ili env DATABASE_URL; host iz perspektive kontejnera, npr. 127.0.0.1)
-#          --container IME (ili env PG_CONTAINER; default: prvi kontejner s 'postgres' u imenu)
+#          --container IME (ili env PG_CONTAINER; default: prvi kontejner s 'postgres' u imenu ili imageu)
 set -euo pipefail
 
 apply=0
@@ -39,7 +39,8 @@ sql="$here/sql/cleanup-e2e-data.sql"
 [ -f "$sql" ] || { echo "nema $sql" >&2; exit 2; }
 
 if [ -z "$container" ]; then
-  container="$(docker ps --format '{{.Names}}' | grep -i postgres | head -n1 || true)"
+  # Coolify names containers by id (e.g. hgpchekx…), so match the image too.
+  container="$(docker ps --format '{{.Names}} {{.Image}}' | grep -i postgres | head -n1 | cut -d' ' -f1 || true)"
 fi
 [ -n "$container" ] || { echo "Postgres kontejner nije pronađen; --container <ime>" >&2; exit 2; }
 
