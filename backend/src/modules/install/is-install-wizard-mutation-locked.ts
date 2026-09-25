@@ -4,6 +4,11 @@ import {
   normalizeInstallHttpPath,
 } from './normalize-install-http-path';
 
+const installReadPathsOpenAfterCompletion: ReadonlySet<string> = new Set([
+  '/install/status',
+  '/install/addons',
+]);
+
 export function isInstallWizardMutationLocked(input: {
   readonly method: unknown;
   readonly path: unknown;
@@ -20,8 +25,14 @@ export function isInstallWizardMutationLocked(input: {
     return false;
   }
   const method = normalizeInstallHttpMethod(input.method);
-  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
+  if (method === 'OPTIONS') {
     return false;
+  }
+  if (method === 'GET' || method === 'HEAD') {
+    // Review 2026-09-25: these steps are unauthenticated; after completion they
+    // exposed the super admin e-mail, SMTP host/user and the Entra tenant to
+    // anyone. Only the status and the add-on catalog (settings page) stay open.
+    return !installReadPathsOpenAfterCompletion.has(path);
   }
   return !(
     method === installSetupAllowlist.completeMethod &&

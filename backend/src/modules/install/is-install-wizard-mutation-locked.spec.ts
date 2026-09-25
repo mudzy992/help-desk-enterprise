@@ -64,3 +64,23 @@ describe('isInstallWizardMutationLocked', () => {
     ).toBe(false);
   });
 });
+
+describe('install reads after completion (review 2026-09-25)', () => {
+  const locked = (path: string, method = 'GET') =>
+    isInstallWizardMutationLocked({ method, path, isCompleted: true });
+  it('hides super admin, SMTP, login provider and seed details', () => {
+    expect(locked('/install/super-admin')).toBe(true);
+    expect(locked('/install/smtp')).toBe(true);
+    expect(locked('/install/login-provider')).toBe(true);
+    expect(locked('/install/seed')).toBe(true);
+  });
+  it('keeps status and the add-on catalog readable', () => {
+    expect(locked('/install/status')).toBe(false);
+    expect(locked('/install/addons')).toBe(false);
+  });
+  it('leaves everything open before completion', () => {
+    expect(
+      isInstallWizardMutationLocked({ method: 'GET', path: '/install/smtp', isCompleted: false }),
+    ).toBe(false);
+  });
+});
