@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { createGlobalValidationPipe } from './common/validation/create-global-validation-pipe';
 import { configureApplicationCors } from './common/cors/configure-application-cors';
 import { RecentRequestLogBuffer } from './common/request-context/recent-request-log.buffer';
 import { RequestContextLogger } from './common/request-context/request-context.logger';
@@ -41,6 +42,7 @@ async function bootstrap(): Promise<void> {
     helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
   );
   configureApplicationCors(application);
+  application.useGlobalPipes(createGlobalValidationPipe());
   const requestContextLogger = new RequestContextLogger(
     application.get(RecentRequestLogBuffer),
   );
