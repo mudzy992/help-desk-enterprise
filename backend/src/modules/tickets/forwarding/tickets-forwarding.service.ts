@@ -15,10 +15,12 @@ import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { forwardTicket } from './forward-ticket';
 import type {
   ForwardHistoryItem,
+  ForwardTargetAgent,
   ForwardTargetsResponse,
   ForwardTicketInput,
 } from './forwarding.types';
 import { listForwardHistory } from './list-forward-history';
+import { listForwardTargetAgents } from './list-forward-target-agents';
 import { listForwardTargets } from './list-forward-targets';
 import { publishPreviousGroupFeed } from './publish-previous-group-feed';
 import { TicketForwardingConfigurationLoader } from './ticket-forwarding-configuration.loader';
@@ -95,6 +97,24 @@ export class TicketsForwardingService {
         configuration: await this.configurationLoader.load(),
         ticketId,
         query,
+        context: gated,
+      });
+    });
+  }
+
+  listTargetAgents(
+    ticketId: string,
+    groupId: string,
+    context: TicketMutationContext,
+  ): Promise<readonly ForwardTargetAgent[]> {
+    return executeTicketOperation(async () => {
+      const gated = await this.accessPolicies.bind(context);
+      return listForwardTargetAgents({
+        prisma: this.prisma,
+        authorizationContextLoader: this.authorizationContextLoader,
+        configuration: await this.configurationLoader.load(),
+        ticketId,
+        groupId,
         context: gated,
       });
     });

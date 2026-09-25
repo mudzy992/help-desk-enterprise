@@ -1,6 +1,7 @@
 export const emailTemplateKeys = [
   "ticket.created",
   "ticket.assigned",
+  "ticket.forwarded",
   "ticket.message",
   "ticket.resolved",
   "ticket.closed",
@@ -29,6 +30,7 @@ export type EmailTemplateRegistry = Record<EmailTemplateKey, EmailTemplateDefini
 export const emailTemplateLabelKeys = {
   "ticket.created": "settings.email.templates.ticketCreated",
   "ticket.assigned": "settings.email.templates.ticketAssigned",
+  "ticket.forwarded": "settings.email.templates.ticketForwarded",
   "ticket.message": "settings.email.templates.ticketMessage",
   "ticket.resolved": "settings.email.templates.ticketResolved",
   "ticket.closed": "settings.email.templates.ticketClosed",

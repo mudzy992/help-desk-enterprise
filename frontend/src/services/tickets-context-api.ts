@@ -58,6 +58,7 @@ export type TicketAllowedActions = {
   readonly assign: boolean;
   readonly changeStatus: boolean;
   readonly split: boolean;
+  readonly forward: boolean;
   readonly requestRemote: boolean;
   readonly addInternalNote: boolean;
   readonly waitForUser: boolean;

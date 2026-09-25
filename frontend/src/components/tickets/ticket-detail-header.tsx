@@ -39,6 +39,7 @@ interface TicketDetailHeaderProperties {
   readonly reopening: boolean;
   readonly assigning: boolean;
   readonly canSplit: boolean;
+  readonly canForward: boolean;
   readonly canAssign: boolean;
   readonly assignableUsers: readonly TicketDetailAssignUser[];
   readonly onClaim: () => void;
@@ -46,6 +47,7 @@ interface TicketDetailHeaderProperties {
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
   readonly onSplit: () => void;
+  readonly onForward: () => void;
 }
 
 function metaSeparator() {
@@ -65,6 +67,7 @@ export function TicketDetailHeader({
   reopening,
   assigning,
   canSplit,
+  canForward,
   canAssign,
   assignableUsers,
   onClaim,
@@ -72,6 +75,7 @@ export function TicketDetailHeader({
   onStatusChange,
   onReopen,
   onSplit,
+  onForward,
 }: TicketDetailHeaderProperties) {
   const { t, i18n } = useTranslation();
   const [pendingStatus, setPendingStatus] = useState<TicketStatus | null>(null);
@@ -145,6 +149,7 @@ export function TicketDetailHeader({
             reopening={reopening}
             assigning={assigning}
             canSplit={canSplit}
+            canForward={canForward}
             canAssign={canAssign}
             assignableUsers={assignableUsers}
             onClaim={onClaim}
@@ -152,6 +157,7 @@ export function TicketDetailHeader({
             onStatusChange={onStatusChange}
             onReopen={onReopen}
             onSplit={onSplit}
+            onForward={onForward}
             onRequestClose={setPendingStatus}
           />
         </div>

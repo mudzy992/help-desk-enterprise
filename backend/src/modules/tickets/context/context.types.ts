@@ -52,6 +52,8 @@ export type TicketAllowedActions = {
   readonly assign: boolean;
   readonly changeStatus: boolean;
   readonly split: boolean;
+  /** Package 1.1: forward to another group (cross-OU is checked per target). */
+  readonly forward: boolean;
   readonly requestRemote: boolean;
   readonly addInternalNote: boolean;
   readonly waitForUser: boolean;

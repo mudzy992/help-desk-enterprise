@@ -9,6 +9,7 @@ import type { EmailTemplateRegistry } from "@/lib/settings/email-template-keys";
 const valid: EmailTemplateRegistry = {
   "ticket.created": { subject: "New {{ticketNumber}}", body: "{{ticketTitle}}" },
   "ticket.assigned": { subject: "Assigned {{ticketNumber}}", body: "{{ticketId}}" },
+  "ticket.forwarded": { subject: "Forwarded {{ticketNumber}}", body: "{{ticketTitle}}" },
   "ticket.message": { subject: "Message {{ticketNumber}}", body: "{{type}}" },
   "ticket.resolved": { subject: "Resolved {{ticketNumber}}", body: "{{event}}" },
   "ticket.closed": { subject: "Closed {{ticketNumber}}", body: "{{ticketTitle}}" },

@@ -133,7 +133,8 @@
       "ticketSla": "SLA event: {{ticketNumber}}",
       "remoteRequested": "Remote assistance requested: {{ticketNumber}}",
       "knowledgeReviewDue": "Knowledge article review is due",
-      "unknown": "Notification"
+      "unknown": "Notification",
+      "ticketForwarded": "Ticket {{ticketNumber}} forwarded"
     }
   },
   "placeholders": {
@@ -563,7 +564,8 @@
         "ticketClosed": "Closed",
         "ticketApproval": "Approval",
         "ticketSla": "SLA",
-        "remoteRequested": "Remote support"
+        "remoteRequested": "Remote support",
+        "ticketForwarded": "Forwarding"
       }
     },
     "addons": {
@@ -848,7 +850,12 @@
         "public.maintenance.isBlocking": "When on, may block ticket creation for affected services (keep off for MVP).",
         "public.maintenance.message": "Text shown in the maintenance banner when enabled.",
         "public.maintenance.scope": "Maintenance banner scope: global, per_service, or both.",
-        "public.maintenance.toAt": "Maintenance window end time (ISO datetime)."
+        "public.maintenance.toAt": "Maintenance window end time (ISO datetime).",
+        "private.ticket.forwarding.allowCrossOu": "Allow forwarding tickets to groups of other organizational units (requires the ticket.forward.cross_ou permission).",
+        "private.ticket.forwarding.requireReason": "A forwarding reason is required.",
+        "private.ticket.forwarding.keepPreviousHandlersAsWatchers": "The previous assignee stays on the ticket as a watcher.",
+        "private.ticket.forwarding.notifyRequester": "Notify the requester that the ticket was forwarded (without the reason or unit name).",
+        "private.ticket.forwarding.minReasonLength": "Minimum number of characters for the forwarding reason."
       }
     }
   },
@@ -2400,7 +2407,8 @@
         "ticket_sla_response_escalated": "first response SLA escalated",
         "ticket_sla_resolution_escalated": "resolution SLA escalated",
         "ticket_remote_requested": "remote assistance requested",
-        "ticket_remote_acknowledged": "remote assistance acknowledged"
+        "ticket_remote_acknowledged": "remote assistance acknowledged",
+        "ticket_forwarded": "ticket forwarded to another group"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -2413,7 +2421,47 @@
       "assignedTo": "ticket automatically assigned to {{name}}",
       "subtitlePublic": "Your ticket's progress: key changes and handling steps"
     },
-    "errorAttachmentInfected": "The antivirus scan rejected this file."
+    "errorAttachmentInfected": "The antivirus scan rejected this file.",
+    "errorForwardStatus": "A ticket in this status cannot be forwarded.",
+    "errorForwardSameGroup": "The ticket is already assigned to that group.",
+    "errorForwardCrossOuDisabled": "Forwarding to another organizational unit is disabled in settings.",
+    "errorForwardCrossOuForbidden": "You are not allowed to forward the ticket to another organizational unit.",
+    "errorForwardReason": "Enter a forwarding reason.",
+    "errorForwardTargetUser": "The selected agent is not a member of the target group.",
+    "errorForwardNoPrevious": "The ticket has no previous group.",
+    "forward": {
+      "action": "Forward",
+      "title": "Forward ticket",
+      "hint": "The ticket moves to another group, if needed in another organizational unit. The SLA clock keeps running.",
+      "currentGroup": "Current group",
+      "loading": "Loading groups…",
+      "handBackTo": "Hand back to {{name}}",
+      "targetGroup": "Target group",
+      "targetGroupPlaceholder": "Select a group",
+      "sameOu": "Same organizational unit",
+      "otherOu": "Other organizational units",
+      "noTargets": "There are no groups you can forward this ticket to.",
+      "crossOuUnavailable": "Only groups of the same organizational unit are shown.",
+      "crossOuNotice": "The ticket moves to the {{unit}} unit. Members of the target group get access to it.",
+      "targetAgent": "Agent (optional)",
+      "targetAgentNone": "No agent — the group picks it up",
+      "targetAgentHint": "Without an agent the ticket waits in the target group's inbox.",
+      "reason": "Reason",
+      "reasonRequired": "Reason (required)",
+      "reasonHint": "At least {{count}} characters. Only agents see the reason.",
+      "keepMeAsWatcher": "Stay on the ticket as a watcher",
+      "effects": "The current assignee is removed and the status becomes \"Pending\" (or \"Assigned\" with a selected agent).",
+      "submit": "Forward",
+      "forwarding": "Forwarding…",
+      "done": "The ticket was forwarded to {{name}}.",
+      "historyTitle": "Forwarding history",
+      "historyCount": "Forwards: {{count}}",
+      "noGroup": "No group",
+      "crossOuBadge": "Other unit",
+      "bulkBadge": "Bulk action",
+      "toAgent": "To agent: {{name}}",
+      "confidentialNotice": "This ticket is confidential: after forwarding, members of the target group get access and the current assignee loses it (unless kept as a watcher)."
+    }
   },
   "relativeTime": {
     "justNow": "just now",

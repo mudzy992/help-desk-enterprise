@@ -21,7 +21,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 
 | # | Stavka zadatka | Stanje | Šta fali |
 |---|---|---|---|
-| G1 | **Prosljeđivanje / eskalacija tiketa (cross-OU forwarding)** | 🟡 | Nema akcije „Proslijedi" na tiketu. Grupa se mijenja samo kroz **bulk assign**, i to bez obaveznog razloga, bez `FORWARDED_FROM/TO_GROUP` participanata (enum postoji, niko ga ne upisuje) i **bez provjere permisije `ticket.forward.cross_ou`** (definisana, nigdje korištena). Ciljna grupa se ne provjerava po OU-u. |
+| G1 | **Prosljeđivanje / eskalacija tiketa (cross-OU forwarding)** | ✅ (paket 1.1, 2026-09-25) | Nema akcije „Proslijedi" na tiketu. Grupa se mijenja samo kroz **bulk assign**, i to bez obaveznog razloga, bez `FORWARDED_FROM/TO_GROUP` participanata (enum postoji, niko ga ne upisuje) i **bez provjere permisije `ticket.forward.cross_ou`** (definisana, nigdje korištena). Ciljna grupa se ne provjerava po OU-u. |
 | G2 | **Ticket templates / playbooks** (agent-side) | ❌ | Nema modela, API-ja ni UI-ja; ključevi `private.ticket.templates.*` nisu registrovani. |
 | G3 | **Time tracking anti-abuse** | 🟡 | Start/Stop radi (jedan aktivni timer po korisniku/tiketu). Fali auto-pauza kad tab nije aktivan > X min i tvrdi limit trajanja sesije (`private.timeTracking.*` ne postoje) → zaboravljen timer broji danima. |
 | G4 | **Merge: child prati parent** | 🟡 | Merge postavlja `mergedIntoTicketId`, ali promjena statusa parenta se **ne prenosi** na child tikete, niti broadcast na parent automatski ide child requesterima. |
@@ -76,7 +76,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | Impact/urgency matrica → prioritet (admin pravila) | ✅ | `PriorityMatrixRule`, `calculate-ticket-priority.ts` |
 | Priority override agenta, auditovan | 🟡 G5 | samo `apply-bulk-priority.ts` |
 | Group inbox + „preuzmi" + auto-assign (Least Busy / Round Robin) | ✅ | `assignment/` |
-| Prosljeđivanje / eskalacija / cross-OU s razlogom | 🟡 **G1** | samo `apply-bulk-assign.ts` |
+| Prosljeđivanje / eskalacija / cross-OU s razlogom | ✅ **G1** | `tickets/forwarding/*`, bulk kroz isti servis |
 | Approvals (Pending Approval → approve/reject s razlogom) | ✅ | `tickets/approvals/`, e2e `03-approvals` |
 | Waiting for User: podsjetnik + auto-close | ✅ | `WaitingForUserSchedulerService` |
 | Reopen u roku N dana, poslije toga novi povezani tiket | ✅ | `tickets/reopen/` |

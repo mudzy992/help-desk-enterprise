@@ -1,3 +1,4 @@
+import { forwardableStatuses } from "@/lib/tickets/ticket-forwarding";
 import { canShowClaimAction } from "@/lib/tickets/ticket-actions";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { TicketResponse } from "@/services/tickets-api";
@@ -20,6 +21,7 @@ const noActions: Omit<TicketActionView, "composerAccess"> = {
   assign: false,
   changeStatus: false,
   split: false,
+  forward: false,
   requestRemote: false,
   addInternalNote: false,
   waitForUser: false,
@@ -71,6 +73,7 @@ export function deriveActionsFromSession(
     assign: staffCanWrite && holds(permissionKeys.ticketBulkAssign),
     changeStatus: staffCanWrite,
     split: staffCanWrite,
+    forward: staffCanWrite && forwardableStatuses.includes(ticket.status),
     requestRemote: staffCanWrite,
     addInternalNote: staffCanWrite,
     waitForUser: staffCanWrite,

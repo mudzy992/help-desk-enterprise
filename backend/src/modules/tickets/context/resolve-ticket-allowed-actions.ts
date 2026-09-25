@@ -9,6 +9,7 @@ import { loadOrganizationalUnitPath } from '../../authorization/load-authorizati
 import { claimableTicketStatuses } from '../assignment/assignment.constants';
 import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assignment-configuration.loader';
 import { canChangeTicketStatus } from '../authorize-ticket-actor';
+import { forwardableTicketStatuses } from '../forwarding/forwarding.constants';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
@@ -91,6 +92,17 @@ export async function resolveTicketAllowedActions(input: {
       !isAgentOnly ||
       ticket.assignedGroupId === null ||
       isGroupMember);
+  // Mirrors planTicketForward: forwardable status, not merged, and an
+  // AGENT-only actor forwards only work of their own group or assigned to them.
+  const forward =
+    canChangeStatus &&
+    ticket.mergedIntoTicketId === null &&
+    (forwardableTicketStatuses as readonly string[]).includes(ticket.status) &&
+    (authContext.isSuperAdmin ||
+      !isAgentOnly ||
+      ticket.assignedGroupId === null ||
+      ticket.assignedUserId === authContext.subjectId ||
+      isGroupMember);
   const uploadAttachments =
     writable &&
     decideAuthorizationAccess({
@@ -109,6 +121,7 @@ export async function resolveTicketAllowedActions(input: {
     assign,
     changeStatus: canChangeStatus,
     split: canChangeStatus,
+    forward,
     requestRemote: staffCanWrite,
     addInternalNote: staffCanWrite,
     waitForUser: canChangeStatus,

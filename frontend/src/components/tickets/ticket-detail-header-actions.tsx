@@ -1,4 +1,4 @@
-import { ChevronDown, Pencil, Split, UserCheck, UserPlus } from "lucide-react";
+import { ChevronDown, Forward, Pencil, Split, UserCheck, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
@@ -29,6 +29,7 @@ interface TicketDetailHeaderActionsProperties {
   readonly reopening: boolean;
   readonly assigning: boolean;
   readonly canSplit: boolean;
+  readonly canForward: boolean;
   readonly canAssign: boolean;
   readonly assignableUsers: readonly TicketDetailAssignableUser[];
   readonly onClaim: () => void;
@@ -36,6 +37,7 @@ interface TicketDetailHeaderActionsProperties {
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
   readonly onSplit: () => void;
+  readonly onForward: () => void;
   readonly onRequestClose: (status: TicketStatus) => void;
 }
 
@@ -49,6 +51,7 @@ export function TicketDetailHeaderActions({
   reopening,
   assigning,
   canSplit,
+  canForward,
   canAssign,
   assignableUsers,
   onClaim,
@@ -56,6 +59,7 @@ export function TicketDetailHeaderActions({
   onStatusChange,
   onReopen,
   onSplit,
+  onForward,
   onRequestClose,
 }: TicketDetailHeaderActionsProperties) {
   const { t } = useTranslation();
@@ -102,6 +106,11 @@ export function TicketDetailHeaderActions({
             : ticket.reopen?.createsNewTicket
               ? t("tickets.detail.reopenAsNew")
               : t("tickets.detail.reopen")}
+        </Button>
+      ) : null}
+      {canForward ? (
+        <Button type="button" variant="outline" size="sm" onClick={onForward} data-testid="ticket-forward">
+          <Forward size={14} /> {t("tickets.forward.action")}
         </Button>
       ) : null}
       {canSplit ? (

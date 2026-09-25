@@ -34,6 +34,13 @@ export type TicketErrorKey =
   | "tickets.errorFormVersionMissing"
   | "tickets.errorExportTooLarge"
   | "tickets.errorClaimForbidden"
+  | "tickets.errorForwardStatus"
+  | "tickets.errorForwardSameGroup"
+  | "tickets.errorForwardCrossOuDisabled"
+  | "tickets.errorForwardCrossOuForbidden"
+  | "tickets.errorForwardReason"
+  | "tickets.errorForwardTargetUser"
+  | "tickets.errorForwardNoPrevious"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -95,6 +102,15 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   ATTACHMENT_INFECTED: "tickets.errorAttachmentInfected",
   ORIGIN_UNIT_REQUIRED: "tickets.errorValidation",
   EXPORT_TOO_LARGE: "tickets.errorExportTooLarge",
+  FORWARDING_UNAVAILABLE: "tickets.errorForbidden",
+  FORWARD_NOT_ALLOWED_IN_STATUS: "tickets.errorForwardStatus",
+  FORWARD_SAME_GROUP: "tickets.errorForwardSameGroup",
+  FORWARD_CROSS_OU_DISABLED: "tickets.errorForwardCrossOuDisabled",
+  FORWARD_CROSS_OU_FORBIDDEN: "tickets.errorForwardCrossOuForbidden",
+  FORWARD_REASON_REQUIRED: "tickets.errorForwardReason",
+  FORWARD_TARGET_USER_NOT_MEMBER: "tickets.errorForwardTargetUser",
+  FORWARD_NO_PREVIOUS_GROUP: "tickets.errorForwardNoPrevious",
+  HANDLER_GROUP_NOT_FOUND: "tickets.errorValidation",
 };
 
 export function mapTicketError(error: unknown): TicketErrorKey {

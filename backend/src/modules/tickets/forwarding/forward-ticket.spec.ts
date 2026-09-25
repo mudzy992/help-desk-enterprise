@@ -23,6 +23,7 @@ import type {
 } from './forwarding.types';
 import { forwardTicket } from './forward-ticket';
 import { listForwardHistory } from './list-forward-history';
+import { listForwardTargetAgents } from './list-forward-target-agents';
 import { listForwardTargets } from './list-forward-targets';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
@@ -306,6 +307,18 @@ describe('forwardTicket (package 1.1)', () => {
       [groupIt2, false],
       [groupHr, true],
     ]);
+    const agents = (actorUserId: string, groupId: string) =>
+      listForwardTargetAgents({
+        prisma: memory.prisma as never,
+        authorizationContextLoader: harness.authorizationContextLoader as never,
+        configuration,
+        ticketId: ticket.id,
+        groupId,
+        context: { actorUserId },
+      });
+    expect((await agents(ticketsTestIds.agentIt, groupHr)).map((agent) => agent.id)).toEqual([
+      ticketsTestIds.agentHr,
+    ]);
     contexts.set(
       ticketsTestIds.agentIt,
       staffContext(ticketsTestIds.agentIt, ticketsTestIds.ouIt, '/Korisnici/IT', {
@@ -314,6 +327,10 @@ describe('forwardTicket (package 1.1)', () => {
     );
     const narrow = await targets(ticketsTestIds.agentIt);
     expect(narrow.groups.map((group) => group.id)).toEqual([groupIt2]);
+    // Without cross-OU rights the other OU's member list is not exposed.
+    await expect(agents(ticketsTestIds.agentIt, groupHr)).rejects.toMatchObject({
+      code: 'HANDLER_GROUP_NOT_FOUND',
+    });
     await forward(ticketsTestIds.agentIt, { targetGroupId: groupIt2, reason });
     const history = await listForwardHistory({
       prisma: memory.prisma as never,

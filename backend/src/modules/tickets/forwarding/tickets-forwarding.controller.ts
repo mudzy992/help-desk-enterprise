@@ -55,6 +55,19 @@ export class TicketsForwardingController {
     );
   }
 
+  @Get(':ticketId/forward-targets/:groupId/agents')
+  listTargetAgents(
+    @Param('ticketId') ticketId: string,
+    @Param('groupId') groupId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.forwardingService.listTargetAgents(
+      ticketId,
+      groupId,
+      readContext(request),
+    );
+  }
+
   @Get(':ticketId/forward-history')
   listHistory(
     @Param('ticketId') ticketId: string,

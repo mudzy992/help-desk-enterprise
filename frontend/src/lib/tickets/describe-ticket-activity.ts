@@ -72,7 +72,8 @@ export function describeMessageActivity(
     actor,
     text: describeEventText(
       action,
-      detail === null
+      // A forward event carries its TicketForwardEvent id, not a user id.
+      detail === null || action === "ticket_forwarded"
         ? null
         : (authorNames.get(detail) ?? ticketText(t, "tickets.detail.unknownUser")),
       t,

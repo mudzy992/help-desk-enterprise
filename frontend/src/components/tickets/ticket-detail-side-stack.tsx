@@ -2,6 +2,7 @@ import { TicketSlaPanel } from "@/components/tickets/ticket-sla-panel";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
 import { TicketDetailSidebar } from "@/components/tickets/ticket-detail-sidebar";
+import { TicketForwardHistoryPanel } from "@/components/tickets/ticket-forward-history-panel";
 import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
 import { TicketParticipantsPanel } from "@/components/tickets/ticket-participants-panel";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -27,6 +28,7 @@ interface TicketDetailSideStackProperties {
   readonly participants: readonly TicketParticipantResponse[];
   readonly participantCandidates: readonly { readonly id: string; readonly displayName: string }[];
   readonly canManageParticipants: boolean;
+  readonly forwardHistoryVisible: boolean;
   readonly onError: (key: TicketErrorKey) => void;
   readonly onCsatComplete: (ticket: TicketResponse) => void;
   readonly onApprove: (approvalId: string, comment: string) => Promise<void>;
@@ -59,6 +61,11 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
         authorNames={props.authorNames}
         onApprove={props.onApprove}
         onReject={props.onReject}
+      />
+      <TicketForwardHistoryPanel
+        ticketId={props.ticket.id}
+        versionKey={props.ticket.updatedAt}
+        visible={props.forwardHistoryVisible}
       />
       <TicketParticipantsPanel
         items={props.participants}

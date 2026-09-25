@@ -17,6 +17,7 @@ export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>
   ticket_created: "status",
   ticket_claimed: "assign",
   ticket_assigned: "assign",
+  ticket_forwarded: "routing",
   ticket_participant_added: "assign",
   ticket_participant_removed: "assign",
   ticket_time_started: "assign",

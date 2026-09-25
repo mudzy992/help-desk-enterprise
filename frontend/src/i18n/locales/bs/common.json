@@ -133,7 +133,8 @@
       "ticketSla": "SLA događaj: {{ticketNumber}}",
       "remoteRequested": "Zahtjev za udaljenu podršku: {{ticketNumber}}",
       "knowledgeReviewDue": "Pregled KB članka dospijeva",
-      "unknown": "Obavještenje"
+      "unknown": "Obavještenje",
+      "ticketForwarded": "Proslijeđen tiket {{ticketNumber}}"
     }
   },
   "placeholders": {
@@ -563,7 +564,8 @@
         "ticketClosed": "Zatvoren",
         "ticketApproval": "Odobrenje",
         "ticketSla": "SLA",
-        "remoteRequested": "Udaljena podrška"
+        "remoteRequested": "Udaljena podrška",
+        "ticketForwarded": "Prosljeđivanje"
       }
     },
     "addons": {
@@ -848,7 +850,12 @@
         "public.maintenance.isBlocking": "Kad je uključeno, može blokirati kreiranje tiketa za pogođene usluge (za MVP ostavi isključeno).",
         "public.maintenance.message": "Tekst prikazan u banneru održavanja kad je uključeno.",
         "public.maintenance.scope": "Opseg bannera održavanja: global, per_service ili both.",
-        "public.maintenance.toAt": "Kraj prozora održavanja (ISO datum/vrijeme)."
+        "public.maintenance.toAt": "Kraj prozora održavanja (ISO datum/vrijeme).",
+        "private.ticket.forwarding.allowCrossOu": "Dozvoli prosljeđivanje tiketa grupama drugih organizacionih jedinica (uz permisiju ticket.forward.cross_ou).",
+        "private.ticket.forwarding.requireReason": "Razlog prosljeđivanja je obavezan.",
+        "private.ticket.forwarding.keepPreviousHandlersAsWatchers": "Prethodni dodijeljeni agent ostaje na tiketu kao posmatrač.",
+        "private.ticket.forwarding.notifyRequester": "Obavijesti podnosioca da je tiket proslijeđen (bez razloga i naziva OJ).",
+        "private.ticket.forwarding.minReasonLength": "Minimalan broj znakova razloga prosljeđivanja."
       }
     }
   },
@@ -2400,7 +2407,8 @@
         "ticket_sla_response_escalated": "eskaliran SLA za prvi odgovor",
         "ticket_sla_resolution_escalated": "eskaliran SLA za rješenje",
         "ticket_remote_requested": "zatražena udaljena podrška",
-        "ticket_remote_acknowledged": "udaljena podrška potvrđena"
+        "ticket_remote_acknowledged": "udaljena podrška potvrđena",
+        "ticket_forwarded": "tiket proslijeđen drugoj grupi"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -2413,7 +2421,47 @@
       "assignedTo": "tiket automatski dodijeljen: {{name}}",
       "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade"
     },
-    "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl."
+    "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
+    "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",
+    "errorForwardSameGroup": "Tiket je već dodijeljen toj grupi.",
+    "errorForwardCrossOuDisabled": "Prosljeđivanje u drugu organizacionu jedinicu je isključeno u postavkama.",
+    "errorForwardCrossOuForbidden": "Nemate pravo proslijediti tiket u drugu organizacionu jedinicu.",
+    "errorForwardReason": "Unesite razlog prosljeđivanja.",
+    "errorForwardTargetUser": "Odabrani agent nije član ciljne grupe.",
+    "errorForwardNoPrevious": "Tiket nema prethodnu grupu.",
+    "forward": {
+      "action": "Proslijedi",
+      "title": "Proslijedi tiket",
+      "hint": "Tiket prelazi drugoj grupi, po potrebi i u drugu organizacionu jedinicu. SLA rok teče dalje.",
+      "currentGroup": "Trenutna grupa",
+      "loading": "Učitavanje grupa…",
+      "handBackTo": "Vrati grupi {{name}}",
+      "targetGroup": "Ciljna grupa",
+      "targetGroupPlaceholder": "Odaberite grupu",
+      "sameOu": "Ista organizaciona jedinica",
+      "otherOu": "Druge organizacione jedinice",
+      "noTargets": "Nema grupa kojima možete proslijediti ovaj tiket.",
+      "crossOuUnavailable": "Prikazane su samo grupe iste organizacione jedinice.",
+      "crossOuNotice": "Tiket prelazi u organizacionu jedinicu {{unit}}. Članovi ciljne grupe dobijaju pristup tiketu.",
+      "targetAgent": "Agent (opcionalno)",
+      "targetAgentNone": "Bez agenta — grupa preuzima",
+      "targetAgentHint": "Bez agenta tiket čeka u sandučiću ciljne grupe.",
+      "reason": "Razlog",
+      "reasonRequired": "Razlog (obavezno)",
+      "reasonHint": "Najmanje {{count}} znakova. Razlog vide samo agenti.",
+      "keepMeAsWatcher": "Ostani na tiketu kao posmatrač",
+      "effects": "Trenutni agent se uklanja s tiketa, a status prelazi u „Na čekanju” (ili „Dodijeljen” uz odabranog agenta).",
+      "submit": "Proslijedi",
+      "forwarding": "Prosljeđivanje…",
+      "done": "Tiket je proslijeđen grupi {{name}}.",
+      "historyTitle": "Historija prosljeđivanja",
+      "historyCount": "Prosljeđivanja: {{count}}",
+      "noGroup": "Bez grupe",
+      "crossOuBadge": "Druga OJ",
+      "bulkBadge": "Grupna akcija",
+      "toAgent": "Agentu: {{name}}",
+      "confidentialNotice": "Tiket je povjerljiv: nakon prosljeđivanja pristup dobijaju članovi ciljne grupe, a trenutni agent ga gubi (osim ako ostane posmatrač)."
+    }
   },
   "relativeTime": {
     "justNow": "upravo sada",

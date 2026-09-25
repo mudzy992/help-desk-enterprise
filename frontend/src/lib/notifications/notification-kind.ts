@@ -3,6 +3,7 @@ export type NotificationKind = "ticket" | "sla" | "approval" | "system";
 const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "ticket.created": "ticket",
   "ticket.assigned": "ticket",
+  "ticket.forwarded": "ticket",
   "ticket.message": "ticket",
   "ticket.resolved": "ticket",
   "ticket.closed": "ticket",
@@ -36,6 +37,7 @@ export function notificationTitleKey(
 ):
   | "notifications.items.ticketCreated"
   | "notifications.items.ticketAssigned"
+  | "notifications.items.ticketForwarded"
   | "notifications.items.ticketMessage"
   | "notifications.items.ticketResolved"
   | "notifications.items.ticketClosed"
@@ -48,6 +50,8 @@ export function notificationTitleKey(
       return "notifications.items.ticketCreated";
     case "ticket.assigned":
       return "notifications.items.ticketAssigned";
+    case "ticket.forwarded":
+      return "notifications.items.ticketForwarded";
     case "ticket.message":
       return "notifications.items.ticketMessage";
     case "ticket.resolved":

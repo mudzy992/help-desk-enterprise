@@ -1,36 +1,11 @@
-export type TicketForwardingConfiguration = {
-  readonly allowCrossOu: boolean;
-  readonly requireReason: boolean;
-  readonly keepPreviousHandlersAsWatchers: boolean;
-  readonly notifyRequester: boolean;
-  readonly minReasonLength: number;
-};
+import { apiRequest } from "@/services/api";
+import type { TicketResponse } from "@/services/tickets-api";
 
 export type ForwardTicketInput = {
   readonly targetGroupId: string;
   readonly targetUserId?: string;
   readonly reason?: string;
-  /** Per-forward opt-in: the forwarding agent stays on the ticket as a watcher. */
   readonly keepMeAsWatcher?: boolean;
-};
-
-export type TicketForwardEventRecord = {
-  readonly id: string;
-  readonly ticketId: string;
-  readonly fromGroupId: string | null;
-  readonly fromGroupName: string | null;
-  readonly fromUnitId: string | null;
-  readonly toGroupId: string;
-  readonly toGroupName: string;
-  readonly toUnitId: string;
-  readonly toUserId: string | null;
-  readonly previousAssigneeId: string | null;
-  readonly actorUserId: string | null;
-  readonly reason: string;
-  readonly isCrossOu: boolean;
-  readonly requesterNotified: boolean;
-  readonly viaBulk: boolean;
-  readonly createdAt: Date;
 };
 
 export type ForwardTargetGroup = {
@@ -41,11 +16,6 @@ export type ForwardTargetGroup = {
   readonly organizationalUnitPath: string | null;
   readonly isCrossOu: boolean;
   readonly memberCount: number;
-};
-
-export type ForwardTargetAgent = {
-  readonly id: string;
-  readonly displayName: string;
 };
 
 export type ForwardTargetsResponse = {
@@ -75,3 +45,39 @@ export type ForwardHistoryItem = {
   readonly viaBulk: boolean;
   readonly createdAt: string;
 };
+
+export function forwardTicket(
+  ticketId: string,
+  input: ForwardTicketInput,
+): Promise<TicketResponse> {
+  return apiRequest(`/tickets/${ticketId}/forward`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listForwardTargets(
+  ticketId: string,
+  query?: string,
+): Promise<ForwardTargetsResponse> {
+  const search = query && query.trim().length > 0 ? `?q=${encodeURIComponent(query.trim())}` : "";
+  return apiRequest(`/tickets/${ticketId}/forward-targets${search}`);
+}
+
+export function listForwardHistory(ticketId: string): Promise<readonly ForwardHistoryItem[]> {
+  return apiRequest(`/tickets/${ticketId}/forward-history`);
+}
+
+export type ForwardTargetAgent = {
+  readonly id: string;
+  readonly displayName: string;
+};
+
+export function listForwardTargetAgents(
+  ticketId: string,
+  groupId: string,
+): Promise<readonly ForwardTargetAgent[]> {
+  return apiRequest(
+    `/tickets/${ticketId}/forward-targets/${encodeURIComponent(groupId)}/agents`,
+  );
+}

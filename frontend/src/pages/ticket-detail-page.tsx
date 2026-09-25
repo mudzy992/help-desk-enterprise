@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/components/ui/toast";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
 import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-blocking-state";
 import { TicketDetailWorkspace } from "@/components/tickets/ticket-detail-workspace";
+import { TicketForwardPanel } from "@/components/tickets/ticket-forward-panel";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { filterVisibleMessages } from "@/lib/tickets/filter-visible-messages";
@@ -38,6 +40,8 @@ export function TicketDetailPage() {
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const { toast } = useToast();
   const versionKey = [
     detail.ticket?.updatedAt ?? "",
     detail.messages.length,
@@ -132,6 +136,7 @@ export function TicketDetailPage() {
         reopening={isReopening}
         assigning={isAssigning}
         canSplit={actions.split}
+        canForward={actions.forward}
         canAssign={actions.assign}
         assignableUsers={candidates?.assignees ?? []}
         onClaim={() => {
@@ -158,6 +163,7 @@ export function TicketDetailPage() {
             .finally(() => setIsReopening(false));
         }}
         onSplit={() => setSplitOpen(true)}
+        onForward={() => setForwardOpen(true)}
       />
       {detail.actionError || approvals.errorKey ? (
         <p className="mt-3 text-[12.5px] text-danger">
@@ -228,6 +234,7 @@ export function TicketDetailPage() {
           participants={detail.participants}
           participantCandidates={participantCandidates}
           canManageParticipants={actions.manageParticipants}
+          forwardHistoryVisible={actions.viewActivity}
           onError={detail.setActionError}
           onCsatComplete={detail.applyTicket}
           onApprove={async (approvalId, comment) => {
@@ -244,6 +251,22 @@ export function TicketDetailPage() {
           onRemoveParticipant={detail.removeParticipant}
         />
       </div>
+      <TicketForwardPanel
+        ticket={ticket}
+        open={forwardOpen}
+        onOpenChange={setForwardOpen}
+        onComplete={(updated) => {
+          toast({
+            tone: "success",
+            title: ticketText(t, "tickets.forward.done", {
+              name: updated.assignedGroupName ?? "",
+            }),
+          });
+          // After a cross-OU forward the actor may no longer see the ticket;
+          // the reload then shows the regular "no access" state.
+          void detail.reload();
+        }}
+      />
       <TicketSplitPanel
         ticket={ticket}
         open={splitOpen}
