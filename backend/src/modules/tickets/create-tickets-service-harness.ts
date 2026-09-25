@@ -18,6 +18,8 @@ import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
 import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
+import { defaultTimeTrackingConfiguration } from './time-tracking/time-tracking.constants';
+import type { TimeTrackingConfiguration } from './time-tracking/time-tracking.types';
 import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { WaitingForUserAutomationService } from './waiting-for-user/waiting-for-user-automation.service';
 import { defaultWaitingForUserConfiguration } from './waiting-for-user/waiting-for-user.constants';
@@ -180,11 +182,15 @@ export function createTicketsServiceHarness() {
     policy.accessPolicies,
     realtimeHub,
   );
+  const timeTrackingConfig: { -readonly [K in keyof TimeTrackingConfiguration]: TimeTrackingConfiguration[K] } = {
+    ...defaultTimeTrackingConfiguration,
+  };
   const timeTracking = new TicketsTimeTrackingService(
     memory.prisma as never,
     authorizationContextLoader as never,
     policy.accessPolicies,
     realtimeHub,
+    { load: async () => ({ ...timeTrackingConfig }) } as never,
   );
   const waitingAutomation = new WaitingForUserAutomationService(
     memory.prisma as never,
@@ -215,6 +221,7 @@ export function createTicketsServiceHarness() {
     reopen,
     collaboration,
     timeTracking,
+    timeTrackingConfig,
     waitingAutomation,
     archiveAutomation: lifecycle.archiveAutomation,
     csat: lifecycle.csat,

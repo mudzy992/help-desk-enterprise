@@ -63,7 +63,7 @@ describe('TicketsTimeTrackingService', () => {
     );
     await expect(
       harness.timeTracking.stopTimeLog(ticketId, started.id, agentIt, endedAt),
-    ).rejects.toMatchObject({ response: { code: 'TIME_LOG_IMMUTABLE' } });
+    ).rejects.toMatchObject({ response: { code: 'TIME_LOG_NOT_ACTIVE' } });
     await expect(
       harness.timeTracking.startTimeLog(ticketId, requester, startedAt),
     ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });

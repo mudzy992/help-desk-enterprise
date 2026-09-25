@@ -22,7 +22,6 @@ import { RoleGuard } from '../authorization/role.guard';
 import { AddTicketParticipantDto } from './dto/add-ticket-participant.dto';
 import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
-import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
 import type { TicketMutationContext } from './tickets.types';
 
 @Controller('tickets')
@@ -43,7 +42,6 @@ import type { TicketMutationContext } from './tickets.types';
 export class TicketsCollaborationController {
   constructor(
     private readonly ticketsCollaborationService: TicketsCollaborationService,
-    private readonly ticketsTimeTrackingService: TicketsTimeTrackingService,
   ) {}
 
   @Get(':ticketId/participants')
@@ -116,41 +114,6 @@ export class TicketsCollaborationController {
     return this.ticketsCollaborationService.createMessage(
       ticketId,
       body,
-      readContext(request),
-    );
-  }
-
-  @Get(':ticketId/time-logs')
-  listTimeLogs(
-    @Param('ticketId') ticketId: string,
-    @Req() request: AuthenticatedHttpRequest,
-  ) {
-    return this.ticketsTimeTrackingService.listTimeLogs(
-      ticketId,
-      readContext(request),
-    );
-  }
-
-  @Post(':ticketId/time-logs/start')
-  startTimeLog(
-    @Param('ticketId') ticketId: string,
-    @Req() request: AuthenticatedHttpRequest,
-  ) {
-    return this.ticketsTimeTrackingService.startTimeLog(
-      ticketId,
-      readContext(request),
-    );
-  }
-
-  @Post(':ticketId/time-logs/:timeLogId/stop')
-  stopTimeLog(
-    @Param('ticketId') ticketId: string,
-    @Param('timeLogId') timeLogId: string,
-    @Req() request: AuthenticatedHttpRequest,
-  ) {
-    return this.ticketsTimeTrackingService.stopTimeLog(
-      ticketId,
-      timeLogId,
       readContext(request),
     );
   }

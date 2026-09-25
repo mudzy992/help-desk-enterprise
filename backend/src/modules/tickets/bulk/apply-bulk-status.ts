@@ -1,3 +1,4 @@
+import { stopActiveTicketTimeLogs, stopsTimeTracking } from '../time-tracking/stop-active-ticket-time-logs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
@@ -67,6 +68,14 @@ export async function applyBulkStatus(input: {
       messages: input.messages,
     });
     updated.push(next);
+    if (stopsTimeTracking(next.status)) {
+      await stopActiveTicketTimeLogs(input.prisma, {
+        ticketIds: [next.id],
+        actorUserId: input.actor.actorUserId,
+        now,
+        messages: input.messages,
+      });
+    }
     await applyTicketSlaTimers(input.actor, {
       ticket: next,
       previousStatus: ticket.status,

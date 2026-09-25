@@ -48,3 +48,20 @@ function payload(
     visibility: type === 'USER_REPLY' ? 'public' : 'staff',
   };
 }
+
+describe('mapTicketEventToNotification — package 1.3 timer auto stop', () => {
+  const event = (body: string) =>
+    ({ type: 'SYSTEM_EVENT', body }) as Parameters<typeof mapTicketEventToNotification>[0];
+
+  it('notifies only when the maximum-duration guard stopped the timer', () => {
+    expect(
+      mapTicketEventToNotification(event('ticket_time_auto_stopped:AUTO_MAX_DURATION:u1')),
+    ).toEqual({ type: 'ticket.timeAutoStopped', event: 'ticket_time_auto_stopped' });
+    expect(
+      mapTicketEventToNotification(event('ticket_time_auto_stopped:AUTO_IDLE:u1')),
+    ).toBeNull();
+    expect(
+      mapTicketEventToNotification(event('ticket_time_auto_stopped:AUTO_TICKET_CLOSED:u1')),
+    ).toBeNull();
+  });
+});

@@ -14,6 +14,8 @@ import { slaScanQueueName } from './modules/sla/sla-scan.constants';
 import { SlaScanProcessor } from './modules/sla/sla-scan.processor';
 import { ticketArchiveQueueName } from './modules/tickets/archive/ticket-archive.job.constants';
 import { TicketArchiveProcessor } from './modules/tickets/archive/ticket-archive.processor';
+import { timeTrackingSweepQueueName } from './modules/tickets/time-tracking/time-tracking-sweep.job.constants';
+import { TimeTrackingSweepProcessor } from './modules/tickets/time-tracking/time-tracking-sweep.processor';
 import { waitingForUserQueueName } from './modules/tickets/waiting-for-user/waiting-for-user.job.constants';
 import { WaitingForUserProcessor } from './modules/tickets/waiting-for-user/waiting-for-user.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
@@ -32,6 +34,7 @@ const scheduledQueueNames = [
   waitingForUserQueueName,
   knowledgeBaseReviewReminderQueueName,
   integrationWorkerMaintenanceQueueName,
+  timeTrackingSweepQueueName,
 ] as const;
 
 const processorTypes = [
@@ -42,6 +45,7 @@ const processorTypes = [
   WaitingForUserProcessor,
   KnowledgeBaseReviewReminderProcessor,
   IntegrationWorkerMaintenanceProcessor,
+  TimeTrackingSweepProcessor,
 ] as const;
 
 function createFakeQueue() {

@@ -57,6 +57,20 @@ export type ReportPackBuildInput = {
   readonly serviceNamesById?: ReadonlyMap<string, string>;
   readonly forwardTickets?: readonly ForwardPingPongTicket[];
   readonly pingPongThreshold?: number;
+  /** Package 1.3 */
+  readonly timeEntries?: readonly TimeTrackingReportEntry[];
+};
+
+export type TimeTrackingReportEntry = {
+  readonly ticketId: string;
+  readonly userId: string;
+  readonly userName: string;
+  readonly serviceId: string;
+  readonly serviceName: string | null;
+  readonly durationSeconds: number;
+  readonly isManual: boolean;
+  readonly stopReason: string | null;
+  readonly isCorrected: boolean;
 };
 
 export type ForwardPingPongEvent = {

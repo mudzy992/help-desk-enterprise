@@ -1,51 +1,31 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
-import { loadOrganizationalUnitPath } from '../authorization/load-authorization-scope';
 import type { TicketTimeLogResponse } from './collaboration.types';
-import { loadAccessibleTicket } from './load-accessible-ticket';
-import { isTicketStaffActor } from './resolve-ticket-actor-access';
-import { TicketsError } from './tickets.error';
 import { toTicketTimeLogResponse } from './to-collaboration-response';
 import type { TicketMutationContext } from './tickets.types';
+import { canManageTimeLogs } from './time-tracking/correct-ticket-time-log';
+import { loadTimeTrackingTicket } from './time-tracking/load-time-tracking-ticket';
 
+/**
+ * Every staff member on the ticket sees every entry; deleted entries only
+ * with `ticket.time.manage` and on request (package 1.3, T11).
+ */
 export async function listTicketTimeLogs(
   prisma: PrismaService,
   authorizationContextLoader: AuthorizationContextLoader,
   ticketId: string,
   context: TicketMutationContext,
+  options: { readonly includeDeleted?: boolean } = {},
 ): Promise<readonly TicketTimeLogResponse[]> {
-  const { ticket } = await loadAccessibleTicket(
+  const { authContext } = await loadTimeTrackingTicket(
     prisma,
     authorizationContextLoader,
     ticketId,
     context,
   );
-  const authContext = await authorizationContextLoader.loadBySubjectId(
-    context.actorUserId,
-  );
-  if (authContext === null) {
-    throw new TicketsError('FORBIDDEN');
-  }
-  const originUnitPath = await loadOrganizationalUnitPath(
-    prisma,
-    ticket.originUnitId,
-  );
-  if (originUnitPath === null) {
-    throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
-  }
-  if (
-    !(await isTicketStaffActor(prisma, {
-      context: authContext,
-      originUnitId: ticket.originUnitId,
-      originUnitPath,
-      serviceId: ticket.serviceId,
-      assignedGroupId: ticket.assignedGroupId,
-    }))
-  ) {
-    throw new TicketsError('FORBIDDEN');
-  }
+  const includeDeleted = options.includeDeleted === true && canManageTimeLogs(authContext);
   const records = await prisma.ticketTimeLog.findMany({
-    where: { ticketId },
+    where: includeDeleted ? { ticketId } : { ticketId, deletedAt: null },
     orderBy: { startedAt: 'asc' },
   });
   return records.map(toTicketTimeLogResponse);

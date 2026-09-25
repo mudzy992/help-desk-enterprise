@@ -13,6 +13,7 @@ export const defaultReportPackKeys = [
   'top_close_codes',
   'kb_helpfulness',
   'forward_ping_pong',
+  'time_tracking',
 ] as const;
 
 export const defaultReportPacksJson = JSON.stringify([...defaultReportPackKeys]);

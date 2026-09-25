@@ -6,6 +6,7 @@ export const reportPackKeys = {
   topCloseCodes: 'top_close_codes',
   kbHelpfulness: 'kb_helpfulness',
   forwardPingPong: 'forward_ping_pong',
+  timeTracking: 'time_tracking',
 } as const satisfies Record<string, (typeof defaultReportPackKeys)[number]>;
 
 export const reportPackKeyList = Object.values(reportPackKeys);
@@ -57,6 +58,7 @@ export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {
   top_close_codes: 'top-close-codes',
   kb_helpfulness: 'kb-helpfulness',
   forward_ping_pong: 'forward-ping-pong',
+  time_tracking: 'time-tracking',
 };
 
 export const bottleneckStatusKeys = [

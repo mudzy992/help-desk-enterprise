@@ -37,6 +37,12 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
       'Set the ticket priority manually, overriding the impact × urgency matrix (reason required, audited).',
   },
   {
+    key: permissionKeys.ticketTimeManage,
+    categoryId: ticket,
+    description:
+      "Correct or delete other people's time entries and see deleted entries (reason required, audited).",
+  },
+  {
     key: permissionKeys.ticketBulkAssign,
     categoryId: ticket,
     description: 'Bulk-assign tickets to a group or user.',

@@ -62,7 +62,26 @@ export type TicketTimeLogRecord = {
   readonly endedAt: Date | null;
   readonly durationSeconds: number | null;
   readonly createdAt: Date;
+  /** Package 1.3 (T2); optional so pre-1.3 fixtures stay valid. */
+  readonly source?: TimeLogSource;
+  readonly stopReason?: TimeLogStopReason | null;
+  readonly lastHeartbeatAt?: Date | null;
+  readonly note?: string | null;
+  readonly correctedAt?: Date | null;
+  readonly correctedByUserId?: string | null;
+  readonly correctionReason?: string | null;
+  readonly deletedAt?: Date | null;
+  readonly deletedByUserId?: string | null;
+  readonly deleteReason?: string | null;
 };
+
+export type TimeLogSource = 'TIMER' | 'MANUAL';
+export type TimeLogStopReason =
+  | 'MANUAL'
+  | 'AUTO_IDLE'
+  | 'AUTO_MAX_DURATION'
+  | 'AUTO_TICKET_CLOSED'
+  | 'AUTO_SWITCHED';
 
 export type TicketTimeLogResponse = {
   readonly id: string;
@@ -72,6 +91,15 @@ export type TicketTimeLogResponse = {
   readonly endedAt: string | null;
   readonly durationSeconds: number | null;
   readonly createdAt: string;
+  readonly source: TimeLogSource;
+  readonly stopReason: TimeLogStopReason | null;
+  readonly note: string | null;
+  readonly correctedAt: string | null;
+  readonly correctedByUserId: string | null;
+  readonly correctionReason: string | null;
+  readonly deletedAt: string | null;
+  readonly deletedByUserId: string | null;
+  readonly deleteReason: string | null;
 };
 
 export type TicketMessageVisibility = 'public' | 'staff';

@@ -209,6 +209,10 @@ async function collectRecipients(
           : [input.ticket.assignedUserId]),
         ...(await forwardEventRecipients(prisma, input.messageBody)),
       ];
+    case notificationTypes.ticketTimeAutoStopped: {
+      const ownerUserId = input.messageBody?.split(':')[2] ?? '';
+      return ownerUserId.length === 0 ? [] : [ownerUserId];
+    }
     case notificationTypes.ticketMessage:
       return [
         input.ticket.requesterId,

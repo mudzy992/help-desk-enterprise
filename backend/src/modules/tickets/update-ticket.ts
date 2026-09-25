@@ -1,3 +1,4 @@
+import { stopActiveTicketTimeLogs, stopsTimeTracking } from './time-tracking/stop-active-ticket-time-logs';
 import { applyTicketLifecycleTimestamps } from './apply-ticket-lifecycle-timestamps';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
@@ -186,6 +187,15 @@ export async function updateTicket(
       scan,
       messages,
     });
+    // Package 1.3 (T6): resolving/closing stops every running timer.
+    if (current.status !== record.status && stopsTimeTracking(record.status)) {
+      await stopActiveTicketTimeLogs(transaction as PrismaService, {
+        ticketIds: [record.id],
+        actorUserId: context.actorUserId,
+        now,
+        messages,
+      });
+    }
     propagated = await propagateMergedStatus({
       tx: transaction as PrismaService,
       parent: record,

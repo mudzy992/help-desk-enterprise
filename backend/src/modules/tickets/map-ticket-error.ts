@@ -53,6 +53,8 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'REMOTE_DISABLED',
   'FORWARD_CROSS_OU_DISABLED',
   'FORWARD_CROSS_OU_FORBIDDEN',
+  'TIME_LOG_EDIT_WINDOW_EXPIRED',
+  'MANUAL_TIME_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -74,6 +76,7 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'CSAT_UNAVAILABLE',
   'ARCHIVE_UNAVAILABLE',
   'FORWARDING_UNAVAILABLE',
+  'TIME_TRACKING_UNAVAILABLE',
 ];
 
 export function mapTicketError(error: unknown): HttpException {
@@ -102,6 +105,10 @@ export function mapTicketError(error: unknown): HttpException {
   }
   if (
     error.code === 'OVERLAPPING_TIMER' ||
+    error.code === 'ACTIVE_TIMER_ELSEWHERE' ||
+    error.code === 'TIME_TRACKING_NOT_ALLOWED_IN_STATUS' ||
+    error.code === 'TIME_LOG_OVERLAP' ||
+    error.code === 'TIME_LOG_NOT_ACTIVE' ||
     error.code === 'SAVED_VIEW_NAME_TAKEN' ||
     error.code === 'DUPLICATE_TICKET_BLOCKED' ||
     error.code === 'CSAT_ALREADY_SUBMITTED' ||

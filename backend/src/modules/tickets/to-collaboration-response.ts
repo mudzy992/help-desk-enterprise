@@ -50,6 +50,15 @@ export function toTicketTimeLogResponse(
     endedAt: record.endedAt?.toISOString() ?? null,
     durationSeconds: record.durationSeconds,
     createdAt: record.createdAt.toISOString(),
+    source: record.source ?? 'TIMER',
+    stopReason: record.stopReason ?? (record.endedAt === null ? null : 'MANUAL'),
+    note: record.note ?? null,
+    correctedAt: record.correctedAt?.toISOString() ?? null,
+    correctedByUserId: record.correctedByUserId ?? null,
+    correctionReason: record.correctionReason ?? null,
+    deletedAt: record.deletedAt?.toISOString() ?? null,
+    deletedByUserId: record.deletedByUserId ?? null,
+    deleteReason: record.deleteReason ?? null,
   };
 }
 

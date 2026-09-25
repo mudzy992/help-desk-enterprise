@@ -1,3 +1,4 @@
+import { stopActiveTicketTimeLogs, stopsTimeTracking } from '../time-tracking/stop-active-ticket-time-logs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketStatus } from '../../../generated/prisma/enums';
 import { changeLogActions } from '../../change-log/change-log.constants';
@@ -82,6 +83,14 @@ export async function propagateMergedStatus(input: {
           actorUserId: input.actorUserId,
         }),
       );
+    }
+    if (stopsTimeTracking(after.status)) {
+      await stopActiveTicketTimeLogs(input.tx, {
+        ticketIds: [child.id],
+        actorUserId: input.actorUserId,
+        now,
+        messages: input.messages,
+      });
     }
     changes.push({ before: child, after });
   }

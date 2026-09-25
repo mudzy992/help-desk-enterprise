@@ -167,7 +167,7 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     ticketMessage: createInMemoryTicketMessageDelegate(messages, nextId, now),
-    ticketTimeLog: createInMemoryTicketTimeLogDelegate(timeLogs, nextId, now),
+    ticketTimeLog: createInMemoryTicketTimeLogDelegate(timeLogs, nextId, now, tickets),
     ticketAttachment: createInMemoryTicketAttachmentDelegate(
       attachments,
       nextId,

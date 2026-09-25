@@ -97,6 +97,7 @@ function createScopedContext(
             ? [
                 permissionKeys.ticketBulkPriorityUpdate,
                 permissionKeys.ticketBulkBroadcast,
+                permissionKeys.ticketTimeManage,
               ]
             : []),
         ]

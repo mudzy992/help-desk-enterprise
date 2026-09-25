@@ -23,6 +23,11 @@ import { TicketsExportService } from './export/tickets-export.service';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
+import {
+  MyActiveTimerController,
+  TicketsTimeTrackingController,
+} from './time-tracking/tickets-time-tracking.controller';
+import { TimeTrackingConfigurationLoader } from './time-tracking/time-tracking-configuration.loader';
 import { TicketChatGateway } from '../websocket/ticket-chat.gateway';
 import { TICKET_ATTACHMENT_STORAGE } from './attachments/attachment-storage.token';
 import { DiskTicketAttachmentStorage } from './attachments/disk-ticket-attachment-storage';
@@ -79,6 +84,8 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsCsatSummaryController,
     TicketsBulkController,
     TicketsExportController,
+    TicketsTimeTrackingController,
+    MyActiveTimerController,
     TicketsController,
     TicketsContextController,
     TicketsCollaborationController,
@@ -125,6 +132,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsCollaborationService,
     TicketsRemoteService,
     TicketsTimeTrackingService,
+    TimeTrackingConfigurationLoader,
     TicketsAttachmentsService,
     TicketAssignmentService,
     TicketAssignmentConfigurationLoader,

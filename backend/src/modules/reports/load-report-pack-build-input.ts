@@ -3,6 +3,7 @@ import { loadTicketCsatSubmissions } from '../tickets/csat/load-ticket-csat-subm
 import { toArticleRecord } from '../knowledge-base/load-knowledge-article';
 import type { KnowledgeArticleRecord } from '../knowledge-base/knowledge-base.types';
 import { loadForwardPingPongTickets } from './load-forward-ping-pong-tickets';
+import { loadTimeTrackingEntries } from './load-time-tracking-entries';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { reportPackKeys, type ReportPackKey } from './reports.constants';
 import type {
@@ -25,7 +26,9 @@ export async function loadReportPackBuildInput(
   pingPongThreshold: number,
 ): Promise<ReportPackBuildInput> {
   const needsTickets =
-    pack !== reportPackKeys.kbHelpfulness && pack !== reportPackKeys.forwardPingPong;
+    pack !== reportPackKeys.kbHelpfulness &&
+    pack !== reportPackKeys.forwardPingPong &&
+    pack !== reportPackKeys.timeTracking;
   const tickets = needsTickets
     ? await loadScopedReportTickets(prisma, organizationalUnitIds, true, window)
     : [];
@@ -40,6 +43,10 @@ export async function loadReportPackBuildInput(
           window,
           threshold: pingPongThreshold,
         })
+      : [];
+  const timeEntries =
+    pack === reportPackKeys.timeTracking
+      ? await loadTimeTrackingEntries(prisma, { organizationalUnitIds, window })
       : [];
   const [csatByTicketId, closeCodesById, feedback, serviceNamesById] = await Promise.all([
     pack === reportPackKeys.monthlyKpi
@@ -68,6 +75,7 @@ export async function loadReportPackBuildInput(
     serviceNamesById,
     forwardTickets,
     pingPongThreshold,
+    timeEntries,
     csatByTicketId,
     closeCodesById,
     articles,

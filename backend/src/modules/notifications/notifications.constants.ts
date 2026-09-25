@@ -9,6 +9,8 @@ export const notificationTypes = {
   remoteRequested: 'remote.requested',
   ticketForwarded: 'ticket.forwarded',
   knowledgeReviewDue: 'knowledge.reviewDue',
+  // Package 1.3: only a timer ended by the maximum-duration guard notifies its owner.
+  ticketTimeAutoStopped: 'ticket.timeAutoStopped',
 } as const;
 
 export type NotificationType =
@@ -27,6 +29,8 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.ticketForwarded]: 'notifications.items.ticketForwarded',
     [notificationTypes.knowledgeReviewDue]:
       'notifications.items.knowledgeReviewDue',
+    [notificationTypes.ticketTimeAutoStopped]:
+      'notifications.items.ticketTimeAutoStopped',
   };
 
 export const notificationListLimits = {

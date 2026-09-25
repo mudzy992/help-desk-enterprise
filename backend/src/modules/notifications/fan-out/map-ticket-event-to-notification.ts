@@ -27,6 +27,7 @@ const systemEventTypes: Readonly<Record<string, NotificationType>> = {
   [ticketSystemEventActions.slaResolutionEscalated]: notificationTypes.ticketSla,
   [ticketSystemEventActions.remoteRequested]: notificationTypes.remoteRequested,
   [ticketSystemEventActions.forwarded]: notificationTypes.ticketForwarded,
+  [ticketSystemEventActions.timeAutoStopped]: notificationTypes.ticketTimeAutoStopped,
 };
 
 export function mapTicketEventToNotification(
@@ -41,6 +42,13 @@ export function mapTicketEventToNotification(
   const action = payload.body.split(':')[0] ?? payload.body;
   const type = systemEventTypes[action];
   if (type === undefined) {
+    return null;
+  }
+  // `ticket_time_auto_stopped:<reason>:<ownerUserId>` — an idle pause is silent.
+  if (
+    type === notificationTypes.ticketTimeAutoStopped &&
+    payload.body.split(':')[1] !== 'AUTO_MAX_DURATION'
+  ) {
     return null;
   }
   return { type, event: action };

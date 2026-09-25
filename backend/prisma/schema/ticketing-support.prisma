@@ -1,17 +1,45 @@
+/// Package 1.3: where a time entry came from.
+enum TimeLogSource {
+  TIMER
+  MANUAL
+}
+
+/// Package 1.3: why a timer segment ended (null while it runs).
+enum TimeLogStopReason {
+  MANUAL
+  AUTO_IDLE
+  AUTO_MAX_DURATION
+  AUTO_TICKET_CLOSED
+  AUTO_SWITCHED
+}
+
 model TicketTimeLog {
-  id              String    @id @default(cuid())
-  ticketId        String
-  userId          String
-  startedAt       DateTime
-  endedAt         DateTime?
-  durationSeconds Int?
-  ticket          Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  createdAt       DateTime  @default(now())
+  id                String             @id @default(cuid())
+  ticketId          String
+  userId            String
+  startedAt         DateTime
+  endedAt           DateTime?
+  durationSeconds   Int?
+  /// Package 1.3 (T2)
+  source            TimeLogSource      @default(TIMER)
+  stopReason        TimeLogStopReason?
+  lastHeartbeatAt   DateTime?
+  note              String?
+  correctedAt       DateTime?
+  correctedByUserId String?
+  correctionReason  String?
+  deletedAt         DateTime?
+  deletedByUserId   String?
+  deleteReason      String?
+  ticket            Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  createdAt         DateTime           @default(now())
 
   @@index([ticketId])
   @@index([userId])
   @@index([userId, ticketId])
+  @@index([userId, endedAt])
+  @@index([endedAt, startedAt])
 }
 
 model TicketAttachment {

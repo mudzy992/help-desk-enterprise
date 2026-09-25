@@ -120,6 +120,15 @@ export const settingKeys = {
   privateTicketSavedViewsAllowDefaultView:
     'private.ticket.savedViews.allowDefaultView',
   privateTicketSavedViewsAllowSharing: 'private.ticket.savedViews.allowSharing',
+  // Package 1.3 — time tracking guard.
+  privateTimeTrackingIdleAutoPauseMinutes: 'private.timeTracking.idleAutoPauseMinutes',
+  privateTimeTrackingAutoResume: 'private.timeTracking.autoResume',
+  privateTimeTrackingMaxSessionHours: 'private.timeTracking.maxSessionHours',
+  privateTimeTrackingSingleActivePerUser: 'private.timeTracking.singleActivePerUser',
+  privateTimeTrackingManualEntryEnabled: 'private.timeTracking.manualEntry.enabled',
+  privateTimeTrackingManualEntryMaxBackdateDays:
+    'private.timeTracking.manualEntry.maxBackdateDays',
+  privateTimeTrackingManualEntryMaxMinutes: 'private.timeTracking.manualEntry.maxMinutes',
   privateTicketForwardingAllowCrossOu: 'private.ticket.forwarding.allowCrossOu',
   privateTicketForwardingRequireReason:
     'private.ticket.forwarding.requireReason',

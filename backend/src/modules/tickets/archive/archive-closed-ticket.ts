@@ -1,3 +1,4 @@
+import { stopActiveTicketTimeLogs } from '../time-tracking/stop-active-ticket-time-logs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { changeLogActions } from '../../change-log/change-log.constants';
 import { applyTicketLifecycleTimestamps } from '../apply-ticket-lifecycle-timestamps';
@@ -40,5 +41,11 @@ export async function archiveClosedTicket(input: {
       actorUserId: null,
     }),
   );
+  await stopActiveTicketTimeLogs(input.prisma, {
+    ticketIds: [updated.id],
+    actorUserId: null,
+    now: input.now,
+    messages: input.messages,
+  });
   return updated;
 }

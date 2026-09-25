@@ -19,6 +19,10 @@ import {
   buildTopCloseCodesReport,
   topCloseCodesColumns,
 } from './packs/build-top-close-codes-report';
+import {
+  buildTimeTrackingReport,
+  timeTrackingColumns,
+} from './packs/build-time-tracking-report';
 import type { ReportExportRow, ReportPackBuildInput } from './reports.types';
 
 export function buildReportPackRows(
@@ -49,6 +53,9 @@ export function buildReportPackRows(
       rows: buildForwardPingPongReport(input),
     };
   }
+  if (pack === reportPackKeys.timeTracking) {
+    return { columns: timeTrackingColumns, rows: buildTimeTrackingReport(input) };
+  }
   return {
     columns: kbHelpfulnessColumns,
     rows: buildKbHelpfulnessReport(input),
@@ -70,4 +77,5 @@ const emptyBuildInput: ReportPackBuildInput = {
   serviceNamesById: new Map(),
   forwardTickets: [],
   pingPongThreshold: 3,
+  timeEntries: [],
 };

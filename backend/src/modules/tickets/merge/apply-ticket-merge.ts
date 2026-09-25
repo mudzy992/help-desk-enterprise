@@ -1,3 +1,4 @@
+import { stopActiveTicketTimeLogs } from '../time-tracking/stop-active-ticket-time-logs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   auditLogActions,
@@ -60,6 +61,13 @@ export async function applyTicketMerge(input: {
         },
       })) as TicketRecord;
       registerMessageTicket(input.messages, after);
+      // Package 1.3 (T6): a merged child is read-only, its timers stop.
+      await stopActiveTicketTimeLogs(tx, {
+        ticketIds: [child.id],
+        actorUserId: context.actorUserId,
+        now,
+        messages: input.messages,
+      });
       await recordTicketChange(tx, {
         action: changeLogActions.update,
         reason: ticketChangeLogReasons.merge,
