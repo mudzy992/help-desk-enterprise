@@ -11,6 +11,7 @@
  *   - primary kao tekst (text-primary) na background / surface / elevated
  *   - link na background / surface / elevated
  *   - muted tekst na background / surface / elevated
+ *   - primary-foreground na info / accent (pulse-gradient), on-danger na danger (bedž)
  */
 import { readFileSync } from "node:fs";
 
@@ -43,6 +44,10 @@ if (classic) themes.push({ name: "classic/dark", t: classic[1] });
 
 const checks = [
   ...["primary", "primary-hover", "primary-active"].map((bg) => ["primary-foreground", bg]),
+  // pulse-gradient (sidebar "Novi tiket", login panel) = primary → info → accent
+  ...["info", "accent"].map((bg) => ["primary-foreground", bg]),
+  // bedž nepročitanih notifikacija
+  ["on-danger", "danger"],
   ...["background", "surface", "elevated", "card"].flatMap((bg) => [["primary", bg], ["link", bg], ["muted", bg]]),
 ];
 const onlyFails = process.argv.includes("--fails");

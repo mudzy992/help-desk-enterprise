@@ -75,6 +75,7 @@ export default {
           foreground: channel("--primary-foreground"),
         },
         danger: channel("--danger"),
+        "on-danger": channel("--on-danger"),
         ok: channel("--ok"),
         success: channel("--success"),
         warning: channel("--warning"),

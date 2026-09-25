@@ -52,7 +52,7 @@ export function NotificationsBell() {
 
   const badge =
     inbox.unreadCount > 0 ? (
-      <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-danger text-[8.5px] font-bold text-white tnum">
+      <span className="absolute right-1 top-1 flex size-3.5 items-center justify-center rounded-full bg-danger text-[8.5px] font-bold text-on-danger tnum">
         {inbox.unreadCount > 9 ? "9+" : inbox.unreadCount}
       </span>
     ) : null;

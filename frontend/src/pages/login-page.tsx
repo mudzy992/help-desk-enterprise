@@ -83,25 +83,25 @@ export function LoginPage() {
         />
         <div className="relative flex items-center gap-2.5">
           <BrandMark size={36} className="shadow-none" />
-          <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
-            EP<span className="text-white/60">·</span>HelpDesk
+          <p className="text-[15px] font-semibold tracking-[-0.02em] text-primary-foreground">
+            EP<span className="text-primary-foreground/60">·</span>HelpDesk
           </p>
         </div>
 
         <div className="relative max-w-md">
-          <h1 className="text-[27px] font-semibold leading-[1.2] tracking-[-0.02em] text-white xl:text-[31px]">
+          <h1 className="text-[27px] font-semibold leading-[1.2] tracking-[-0.02em] text-primary-foreground xl:text-[31px]">
             {t("login.panelTitle")}
           </h1>
-          <p className="mt-3 text-[13.5px] leading-6 text-white/85">
+          <p className="mt-3 text-[13.5px] leading-6 text-primary-foreground/85">
             {t("login.panelBody")}
           </p>
           <ul className="mt-7 space-y-3">
             {POINTS.map((point) => (
               <li key={point.key} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+                <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15 text-primary-foreground">
                   <point.icon size={14} strokeWidth={2} aria-hidden="true" />
                 </span>
-                <span className="text-[12.5px] leading-5 text-white/90">
+                <span className="text-[12.5px] leading-5 text-primary-foreground/90">
                   {t(point.key)}
                 </span>
               </li>
@@ -109,7 +109,7 @@ export function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative flex items-center gap-1.5 text-[11.5px] text-white/70">
+        <p className="relative flex items-center gap-1.5 text-[11.5px] text-primary-foreground/70">
           <ShieldCheck size={12} aria-hidden="true" />
           {t("login.secure")}
         </p>

@@ -41,13 +41,13 @@ export function AppSidebar({ onNavigate }: AppSidebarProperties) {
           to="/tickets/new"
           onClick={onNavigate}
           className={cn(
-            "pulse-gradient flex h-9 w-full items-center justify-center gap-2 rounded-md text-[13px] font-semibold text-white shadow-glow transition-all duration-200 hover:brightness-[1.06] active:brightness-95",
+            "pulse-gradient flex h-9 w-full items-center justify-center gap-2 rounded-md text-[13px] font-semibold text-primary-foreground shadow-glow transition-all duration-200 hover:brightness-[1.06] active:brightness-95",
             isCreateActive && "brightness-95",
           )}
         >
           <Plus size={15} strokeWidth={2.5} />
           {t("tickets.createAction")}
-          <span className="ml-0.5 rounded-[5px] bg-white/20 px-1 text-[10px] font-bold">
+          <span className="ml-0.5 rounded-[5px] bg-primary-foreground/20 px-1 text-[10px] font-bold">
             N
           </span>
         </NavLink>
