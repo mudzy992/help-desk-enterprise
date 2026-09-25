@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
+import { lazyPage } from "@/app/lazy-page";
 import { RequireAccess } from "@/components/layout/require-access";
 import { RequireAuth } from "@/components/layout/require-auth";
 import { ApplicationShell } from "@/layouts/application-shell";
@@ -18,23 +19,26 @@ import {
   canOpenSla,
 } from "@/lib/session/route-access";
 import { DashboardPage } from "@/pages/dashboard-page";
-import { InstallPage } from "@/pages/install-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
-import { AdminPage } from "@/pages/admin-page";
 import { AppearancePage } from "@/pages/appearance-page";
 import { LoginPage } from "@/pages/login-page";
-import { ReportsPage } from "@/pages/reports-page";
-import { RoutingPage } from "@/pages/routing-page";
 import { ServicesPage } from "@/pages/services-page";
-import { ConfigVersionsPage } from "@/pages/config-versions-page";
 import { LegacyAdminRedirect } from "@/pages/legacy-admin-redirect";
-import { SlaPage } from "@/pages/sla-page";
 import { TicketsPage } from "@/pages/tickets-page";
 import { TicketCreatePage } from "@/pages/ticket-create-page";
 import { TicketDetailPage } from "@/pages/ticket-detail-page";
 import { TicketListPage } from "@/pages/ticket-list-page";
-import { VisualQaPrimitivesPage } from "@/pages/visual-qa-primitives-page";
+
+const InstallPage = lazyPage(() => import("@/pages/install-page"), "InstallPage");
+const AdminPage = lazyPage(() => import("@/pages/admin-page"), "AdminPage");
+const ReportsPage = lazyPage(() => import("@/pages/reports-page"), "ReportsPage");
+const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage");
+const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
+const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
+const VisualQaPrimitivesPage = import.meta.env.DEV
+  ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
+  : null;
 
 export function AppRouter() {
   return (
@@ -137,7 +141,10 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
-            <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
+            {/* Review N9: the primitives QA page exists in development builds only. */}
+            {VisualQaPrimitivesPage !== null ? (
+              <Route path="_visual-qa" element={<VisualQaPrimitivesPage />} />
+            ) : null}
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

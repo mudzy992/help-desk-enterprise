@@ -5,6 +5,7 @@ export type TicketErrorKey =
   | "tickets.errorForbidden"
   | "tickets.errorNotFound"
   | "tickets.errorValidation"
+  | "tickets.errorAttachmentInfected"
   | "tickets.errorInboxDisabled"
   | "tickets.errorNotClaimable"
   | "tickets.errorStatusForbidden"
