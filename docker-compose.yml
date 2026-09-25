@@ -68,8 +68,24 @@ services:
       - redis_net
       - db_net
 
+  # Antivirus za priloge (review N5). Backend ga nalazi kao `clamav:3310` na
+  # default mreži ovog compose projekta — postaviti CLAMAV_HOST=clamav na backendu.
+  # Prvi start skida bazu potpisa (~300 MB, 3–10 min); treba ~1,5–2 GB RAM-a.
+  # Port se NE izlaže van (samo interna mreža).
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    expose:
+      - "3310"
+    volumes:
+      - clamav-db:/var/lib/clamav
+    mem_limit: 2g
+    networks:
+      - default
+
 volumes:
   uploads:
+  clamav-db:
 
 networks:
   db_net:
