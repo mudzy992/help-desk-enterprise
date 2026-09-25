@@ -48,7 +48,7 @@ describe('TicketsService authorization and status guards', () => {
     await expect(
       tickets.update(
         created.id,
-        { status: 'CLOSED' },
+        { status: 'RESOLVED' },
         { actorUserId: ticketsTestIds.agentIt },
       ),
     ).rejects.toMatchObject({

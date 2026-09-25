@@ -38,6 +38,7 @@ describe("ticket actions", () => {
     expect(nextTicketStatuses("IN_PROGRESS")).toContain("RESOLVED");
     expect(nextTicketStatuses("WAITING_FOR_USER")).toContain("CLOSED");
     expect(nextTicketStatuses("RESOLVED")).toEqual(["CLOSED"]);
+    expect(nextTicketStatuses("UNROUTED")).toEqual(["PENDING", "CLOSED"]);
     expect(nextTicketStatuses("CLOSED")).toEqual([]);
     expect(nextTicketStatuses("ARCHIVED")).toEqual([]);
   });

@@ -13,6 +13,8 @@ describe('ticket status transitions', () => {
     // Review 2026-09-25: duplicate / spam / withdrawn tickets close directly.
     expect(() => assertTicketStatusTransition('PENDING', 'CLOSED')).not.toThrow();
     expect(() => assertTicketStatusTransition('ASSIGNED', 'CLOSED')).not.toThrow();
+    // Review N3: spam can be closed before it is routed.
+    expect(() => assertTicketStatusTransition('UNROUTED', 'CLOSED')).not.toThrow();
     expect(() =>
       assertTicketStatusTransition('PENDING', 'IN_PROGRESS'),
     ).not.toThrow();
