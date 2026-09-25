@@ -372,6 +372,7 @@ function AccentColorField({
           type="color"
           aria-label={t("settings.emailTemplates.fields.accentColor")}
           className="h-9 w-12 cursor-pointer rounded-md border border-border bg-surface p-1 disabled:opacity-45"
+          // design-system-allow-hex: e-mail accent is template data, not a UI token.
           value={colourPattern.test(value) ? value : "#4f46e5"}
           disabled={disabled}
           data-testid="email-template-field-accentColor-picker"

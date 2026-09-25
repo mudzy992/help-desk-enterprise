@@ -125,11 +125,14 @@ function checkColors() {
 
   for (const file of walk("frontend/src", /\.(tsx|ts)$/)) {
     if (/\.spec\.(tsx|ts)$/.test(file)) continue;
-    read(file)
-      .split("\n")
-      .forEach((line, index) => {
+    const lines = read(file).split("\n");
+    lines.forEach((line, index) => {
         const where = `${file}:${index + 1}`;
-        if (hex.test(line)) fail(section, `${where} hardcoded hex colour: ${line.trim()}`);
+        // Colours that are *data* (e.g. an e-mail template accent sent to
+        // mail clients, which cannot read CSS tokens) are opted out explicitly
+        // with a marker comment on the preceding line.
+        const allowHex = index > 0 && lines[index - 1].includes("design-system-allow-hex:");
+        if (hex.test(line) && !allowHex) fail(section, `${where} hardcoded hex colour: ${line.trim()}`);
         if (rawColorFunction.test(line))
           fail(section, `${where} raw colour function without a token: ${line.trim()}`);
         if (namedPalette.test(line))
@@ -264,7 +267,16 @@ function leaves(value, prefix = "", into = new Set()) {
   return into;
 }
 
+// i18next plural forms: `key_one`/`key_few`/`key_other`… resolve `t("key")`.
+// Bosnian needs `_few`, English does not, so parity compares plural bases.
+const pluralSuffix = /_(zero|one|two|few|many|other)$/;
+
 function hasKey(dictionary, key) {
+  if (hasExactKey(dictionary, key)) return true;
+  return ["one", "few", "other"].some((form) => hasExactKey(dictionary, `${key}_${form}`));
+}
+
+function hasExactKey(dictionary, key) {
   let current = dictionary;
   for (const part of key.split(".")) {
     if (current === null || typeof current !== "object" || !(part in current)) return false;
@@ -289,8 +301,14 @@ function checkI18n() {
     locales[locale] = JSON.parse(read(`frontend/src/i18n/locales/${locale}/common.json`));
   }
   const keys = { bs: leaves(locales.bs), en: leaves(locales.en) };
-  const onlyBs = difference(keys.bs, keys.en);
-  const onlyEn = difference(keys.en, keys.bs);
+  const pluralTolerant = (from, to) =>
+    difference(from, to).filter((key) => {
+      if (!pluralSuffix.test(key)) return true;
+      const base = key.replace(pluralSuffix, "");
+      return ![...to].some((other) => other.replace(pluralSuffix, "") === base && pluralSuffix.test(other));
+    });
+  const onlyBs = pluralTolerant(keys.bs, keys.en);
+  const onlyEn = pluralTolerant(keys.en, keys.bs);
   if (onlyBs.length > 0) fail(section, `keys only in bs: ${onlyBs.slice(0, 10).join(", ")}`);
   if (onlyEn.length > 0) fail(section, `keys only in en: ${onlyEn.slice(0, 10).join(", ")}`);
   notes.push(`i18n: ${keys.bs.size} keys, bs/en parity ok`);
