@@ -3,10 +3,12 @@ import {
   Controller,
   Headers,
   Post,
+  Req,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
+import { LoginAttemptLimiter, loginAttemptKey } from './login-attempt-limiter';
 import type {
   AuthenticationLoginResponse,
   AuthenticationSessionResponse,
@@ -25,14 +27,24 @@ import { readBearerAccessTokenFromHeader } from './read-bearer-access-token';
   }),
 )
 export class AuthenticationController {
-  constructor(private readonly authenticationService: AuthenticationService) {}
+  constructor(
+    private readonly authenticationService: AuthenticationService,
+    private readonly loginAttemptLimiter: LoginAttemptLimiter,
+  ) {}
 
   @Post('login')
-  login(@Body() body: LocalLoginDto): Promise<AuthenticationLoginResponse> {
-    return this.authenticationService.loginWithPassword({
-      email: body.email,
-      password: body.password,
-    });
+  login(
+    @Body() body: LocalLoginDto,
+    @Req() request: { readonly ip?: string },
+  ): Promise<AuthenticationLoginResponse> {
+    return this.loginAttemptLimiter.guard(
+      loginAttemptKey(body.email, request?.ip),
+      () =>
+        this.authenticationService.loginWithPassword({
+          email: body.email,
+          password: body.password,
+        }),
+    );
   }
 
   @Post('entra')

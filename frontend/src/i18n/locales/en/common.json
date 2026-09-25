@@ -1892,7 +1892,8 @@
     "signingIn": "Signing in…",
     "signOut": "Sign out",
     "loading": "Loading session…",
-    "error": "Sign in failed. Check the email and password."
+    "error": "Sign in failed. Check the email and password.",
+    "errorRateLimited": "Too many failed sign-in attempts. Try again in 15 minutes."
   },
   "login": {
     "title": "Sign in",

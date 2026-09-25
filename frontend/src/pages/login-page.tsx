@@ -34,6 +34,7 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const [passwordChangeToken, setPasswordChangeToken] = useState<string | null>(
     null,
   );
@@ -54,6 +55,7 @@ export function LoginPage() {
     event.preventDefault();
     setIsSubmitting(true);
     setHasError(false);
+    setIsRateLimited(false);
     try {
       const outcome = await signIn(email, password);
       if (outcome.kind === "must_change_password") {
@@ -64,6 +66,7 @@ export function LoginPage() {
       navigate(redirectPath, { replace: true });
     } catch (error) {
       setHasError(error instanceof ApiError || error instanceof Error);
+      setIsRateLimited(error instanceof ApiError && error.status === 429);
     } finally {
       setIsSubmitting(false);
     }
@@ -187,7 +190,7 @@ export function LoginPage() {
                   </label>
                   {hasError ? (
                     <p className={errorTextClassName} role="alert">
-                      {t("session.error")}
+                      {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
                     </p>
                   ) : null}
                   <Button type="submit" className="w-full" disabled={isSubmitting}>

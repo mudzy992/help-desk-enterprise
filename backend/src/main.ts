@@ -21,6 +21,17 @@ async function bootstrap(): Promise<void> {
       requestIdMiddleware.use(request, response, next);
     },
   );
+  // Review 2026-09-25: behind Coolify/Traefik `request.ip` is the proxy unless
+  // Express trusts it. TRUST_PROXY=1 (one hop) makes the login limiter per IP.
+  const trustProxy = process.env.TRUST_PROXY?.trim();
+  if (trustProxy !== undefined && trustProxy.length > 0) {
+    const hops = Number(trustProxy);
+    (
+      application.getHttpAdapter().getInstance() as {
+        set(name: string, value: unknown): void;
+      }
+    ).set('trust proxy', Number.isFinite(hops) ? hops : trustProxy);
+  }
   configureApplicationCors(application);
   const requestContextLogger = new RequestContextLogger(
     application.get(RecentRequestLogBuffer),

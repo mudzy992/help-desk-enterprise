@@ -1,3 +1,4 @@
+import { LoginAttemptLimiter } from './login-attempt-limiter';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { SettingsModule } from '../settings/settings.module';
@@ -32,6 +33,7 @@ import { SessionTokenService } from './session-token.service';
     EntraAuthenticationProvider,
     AuthenticationProviderResolver,
     SessionTokenService,
+    LoginAttemptLimiter,
     JwtSocketAuthenticationVerifier,
     SessionAuthenticationGuard,
     AuthenticationService,

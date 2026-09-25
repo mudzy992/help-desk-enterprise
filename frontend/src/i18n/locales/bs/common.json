@@ -1892,7 +1892,8 @@
     "signingIn": "Prijava…",
     "signOut": "Odjava",
     "loading": "Učitavanje sesije…",
-    "error": "Prijava nije uspjela. Provjerite email i lozinku."
+    "error": "Prijava nije uspjela. Provjerite email i lozinku.",
+    "errorRateLimited": "Previše neuspjelih pokušaja prijave. Pokušajte ponovo za 15 minuta."
   },
   "login": {
     "title": "Prijava",
