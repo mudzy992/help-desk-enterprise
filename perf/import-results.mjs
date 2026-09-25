@@ -92,6 +92,22 @@ const format = (value, unit) => {
   return `${Math.round(value)} ms`;
 };
 
+/**
+ * `k6 run --summary-export` writes the legacy flat shape (`{ "p(95)": … }`,
+ * rates as `value`) instead of handleSummary's `{ values: { … } }`. Accept both
+ * (staging C, 2026-09-25: the export overwrote the handleSummary file).
+ */
+export function normalizeMetrics(metrics) {
+  return Object.fromEntries(
+    Object.entries(metrics ?? {}).map(([name, metric]) => {
+      if (metric && typeof metric.values === "object") return [name, metric];
+      const flat = { ...(metric ?? {}) };
+      if (flat.rate === undefined && typeof flat.value === "number") flat.rate = flat.value;
+      return [name, { values: flat }];
+    }),
+  );
+}
+
 const verdict = (value, budget) => {
   if (value === undefined || Number.isNaN(value)) return "n/a";
   return value <= budget ? "✅" : "⚠";
@@ -101,7 +117,8 @@ const verdict = (value, budget) => {
  * @param {Record<string, { values: Record<string, number> }>} metrics
  * @returns {Array<Record<string, unknown>>} one entry per budget row
  */
-export function measureRows(metrics) {
+export function measureRows(rawMetrics) {
+  const metrics = normalizeMetrics(rawMetrics);
   return rows.map((row) => {
     const present = row.metrics
       .filter((name) => Boolean(metrics[name]))
