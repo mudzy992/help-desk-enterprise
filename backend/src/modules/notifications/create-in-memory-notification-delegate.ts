@@ -114,8 +114,13 @@ export function createInMemoryNotificationDelegate(
     },
     findFirst: async ({ where }: { where?: NotificationWhere } = {}) =>
       matching(where)[0] ?? null,
-    count: async ({ where }: { where?: NotificationWhere } = {}) =>
-      matching(where).length,
+    count: async ({
+      where,
+      take,
+    }: { where?: NotificationWhere; take?: number } = {}) => {
+      const matched = matching(where).length;
+      return take === undefined ? matched : Math.min(matched, take);
+    },
     create: async ({ data }: { data: NotificationCreateData }) => {
       const duplicate = [...records.values()].some(
         (record) =>
