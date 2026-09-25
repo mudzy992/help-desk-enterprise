@@ -19,7 +19,11 @@ export function formatTicketNumber(sequence: number): string {
 export async function nextTicketNumber(
   countExisting: () => Promise<number>,
   highestSequence?: () => Promise<number | null>,
+  reservedSequence: number | null = null,
 ): Promise<string> {
+  if (reservedSequence !== null) {
+    return formatTicketNumber(reservedSequence);
+  }
   const highest = highestSequence === undefined ? null : await highestSequence();
   const base = highest ?? (await countExisting());
   return formatTicketNumber(base + 1);
@@ -52,6 +56,60 @@ export async function readHighestTicketSequence(
   return Number(rows[0]?.highest ?? 0);
 }
 
+export const ticketNumberSequenceName = 'ticket_number_seq';
+
+/**
+ * Review 2026-09-25 (S5): numbers come from a Postgres sequence
+ * (migration 20260925100000_ticket_number_sequence) instead of `max + 1`, which
+ * scanned every ticket number and raced between concurrent creates. `nextval`
+ * runs outside the create transaction on purpose: it is not transactional
+ * anyway, and a missing sequence (migration not applied yet) must not abort the
+ * transaction. Returns null when the sequence is unavailable — callers then
+ * fall back to `max + 1`. Gaps after a rolled-back create are expected.
+ */
+export async function reserveTicketSequence(
+  client: unknown,
+): Promise<number | null> {
+  const raw = (client as RawQueryClient).$queryRawUnsafe;
+  if (typeof raw !== 'function') {
+    return null;
+  }
+  try {
+    const rows = (await raw.call(
+      client,
+      `SELECT nextval('${ticketNumberSequenceName}') AS value`,
+    )) as readonly { value: bigint | number }[];
+    const value = Number(rows[0]?.value);
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * After a collision (rows inserted with explicit numbers, e.g. the seed script)
+ * move the sequence past the highest existing number so the retry succeeds.
+ */
+export async function resyncTicketSequence(client: unknown): Promise<void> {
+  const raw = (client as RawQueryClient).$queryRawUnsafe;
+  if (typeof raw !== 'function') {
+    return;
+  }
+  const highest = await readHighestTicketSequence(client);
+  if (highest === null || highest < 1) {
+    return;
+  }
+  try {
+    await raw.call(
+      client,
+      `SELECT setval('${ticketNumberSequenceName}', GREATEST($1::bigint, (SELECT last_value FROM ${ticketNumberSequenceName})))`,
+      highest,
+    );
+  } catch {
+    // sequence missing: the max + 1 fallback is in use
+  }
+}
+
 /**
  * Review 2026-09-25: `max + 1` is read inside the create transaction, but two
  * concurrent creates (different requesters — the duplicate guardrail lock is per
@@ -79,6 +137,7 @@ export function isTicketNumberCollision(error: unknown): boolean {
 export async function withTicketNumberRetry<T>(
   run: () => Promise<T>,
   attempts: number = ticketNumberCollisionAttempts,
+  onCollision?: () => Promise<void>,
 ): Promise<T> {
   for (let attempt = 1; ; attempt += 1) {
     try {
@@ -87,6 +146,7 @@ export async function withTicketNumberRetry<T>(
       if (attempt >= attempts || !isTicketNumberCollision(error)) {
         throw error;
       }
+      await onCollision?.();
     }
   }
 }

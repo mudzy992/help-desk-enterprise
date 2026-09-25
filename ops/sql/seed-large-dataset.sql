@@ -189,6 +189,17 @@ WHERE "resolutionCompletedAt" IS NULL AND "nextDueAt" <= now()
 ORDER BY "nextDueAt"
 LIMIT 2000;
 
+-- Review S5: keep the ticket number sequence ahead of the explicit seed numbers.
+DO $$
+BEGIN
+  IF to_regclass('ticket_number_seq') IS NOT NULL THEN
+    PERFORM setval('ticket_number_seq', GREATEST(
+      (SELECT last_value FROM ticket_number_seq),
+      (SELECT COALESCE(MAX(substring("ticketNumber" FROM 3)::bigint), 1) FROM "Ticket"
+        WHERE "ticketNumber" LIKE 'T-%' AND substring("ticketNumber" FROM 3) ~ '^[0-9]+$')));
+  END IF;
+END $$;
+
 \echo '── obriši nakon mjerenja: ──'
 \echo '   DELETE FROM "TicketSlaState" s USING "Ticket" t WHERE s."ticketId" = t.id AND t.title LIKE ''[staging-seed]%'';'
 \echo '   DELETE FROM "Ticket" WHERE title LIKE ''[staging-seed]%'';'
