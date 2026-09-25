@@ -8,7 +8,46 @@ import { buildTicketListOrderBy } from './list/build-ticket-list-order-by';
 import { ticketListPaging } from './list/list-tickets.constants';
 import { clampTicketListPageSize } from './list/clamp-ticket-list-page-size';
 import { ticketListSelect } from './list/ticket-list-select';
-import { countTicketsCapped } from './list/count-tickets-capped';
+import {
+  createPerClientSingleFlightCache,
+  readTtlMsFromEnvironment,
+} from '../../common/cache/single-flight-cache';
+import {
+  countTicketsCapped,
+  type CappedTicketTotal,
+} from './list/count-tickets-capped';
+
+/**
+ * Staging slow log (2026-09-25, 100k tickets): the capped `COUNT` (≤ 10 001
+ * visible rows) took ~350 ms on EVERY page request while the page itself was
+ * fast. The total is the same for every page, sort and direction of a filter,
+ * so it is single-flighted and reused per user + filter for
+ * `TICKET_LIST_TOTAL_CACHE_TTL_MS` (default 30 s, 0 in tests). The rows are
+ * never cached; only the "N tickets / page x of y" figure may lag.
+ */
+const ticketListTotals = createPerClientSingleFlightCache<CappedTicketTotal>({
+  ttlMs: () =>
+    readTtlMsFromEnvironment(
+      'TICKET_LIST_TOTAL_CACHE_TTL_MS',
+      process.env.NODE_ENV === 'test' ? 0 : 30_000,
+    ),
+  maxEntries: 5000,
+});
+
+function ticketListTotalKey(
+  query: ListTicketsQuery,
+  context: TicketMutationContext,
+  archive: TicketArchiveConfiguration,
+): string {
+  const { page: _page, pageSize: _pageSize, sort: _sort, dir: _dir, ...filters } =
+    query as ListTicketsQuery & Record<string, unknown>;
+  return JSON.stringify([
+    context.actorUserId,
+    filters,
+    archive,
+    context.confidential ?? null,
+  ]);
+}
 import type {
   ListTicketsQuery,
   TicketMutationContext,
@@ -126,6 +165,9 @@ async function runTicketListQuery(
   if (!countTotal) {
     return { records, total: records.length, totalIsCapped: false };
   }
-  const { total, totalIsCapped } = await countTicketsCapped(prisma, where);
+  const { total, totalIsCapped } = await ticketListTotals(prisma).get(
+    ticketListTotalKey(query, context, archive),
+    () => countTicketsCapped(prisma, where),
+  );
   return { records, total, totalIsCapped };
 }
