@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { configureApplicationCors } from './common/cors/configure-application-cors';
 import { RecentRequestLogBuffer } from './common/request-context/recent-request-log.buffer';
@@ -32,6 +33,13 @@ async function bootstrap(): Promise<void> {
       }
     ).set('trust proxy', Number.isFinite(hops) ? hops : trustProxy);
   }
+  // Review 2026-09-25 (S9): standard security headers (HSTS, nosniff,
+  // frame-ancestors none, no X-Powered-By). The API serves JSON and file
+  // downloads only, so the strict default CSP is fine; CORP stays cross-origin
+  // because the desk and the browser extension load attachments from here.
+  application.use(
+    helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
+  );
   configureApplicationCors(application);
   const requestContextLogger = new RequestContextLogger(
     application.get(RecentRequestLogBuffer),
