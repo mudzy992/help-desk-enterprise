@@ -40,9 +40,11 @@ export function ChangePasswordForm({
       await onCompleted(newPassword);
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : t("auth.changePassword.failed"),
+        error instanceof ApiError && error.status === 429
+          ? t("session.errorRateLimited")
+          : error instanceof ApiError
+            ? error.message
+            : t("auth.changePassword.failed"),
       );
     } finally {
       setIsSubmitting(false);

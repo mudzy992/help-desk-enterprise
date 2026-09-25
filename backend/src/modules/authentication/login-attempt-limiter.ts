@@ -29,6 +29,15 @@ export function loginAttemptKey(email: string, ip: string | undefined): string {
   return `auth:login-fail:${email.trim().toLowerCase()}:${(ip ?? 'unknown').trim()}`;
 }
 
+/**
+ * Review 2026-09-25 (N1): `POST /auth/change-password` is authorised by a
+ * short-lived password-change token only; failed (401) attempts are limited
+ * per client IP with the same window as sign-in.
+ */
+export function changePasswordAttemptKey(ip: string | undefined): string {
+  return `auth:change-password-fail:${(ip ?? 'unknown').trim()}`;
+}
+
 export function createTooManyLoginAttemptsException(): HttpException {
   return new HttpException(
     {

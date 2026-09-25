@@ -19,7 +19,11 @@ import {
   AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
   type AuthenticatedHttpRequest,
 } from './authenticated-request';
-import { LoginAttemptLimiter, loginAttemptKey } from './login-attempt-limiter';
+import {
+  LoginAttemptLimiter,
+  changePasswordAttemptKey,
+  loginAttemptKey,
+} from './login-attempt-limiter';
 import type {
   AuthenticationLoginResponse,
   AuthenticationSessionResponse,
@@ -120,12 +124,17 @@ export class AuthenticationController {
   changePassword(
     @Headers('authorization') authorization: string | undefined,
     @Body() body: ChangePasswordDto,
+    @Req() request?: { readonly ip?: string },
   ): Promise<AuthenticationSessionResponse> {
     const passwordChangeToken =
       readBearerAccessTokenFromHeader(authorization) ?? '';
-    return this.authenticationService.changePasswordWithToken({
-      passwordChangeToken,
-      newPassword: body.newPassword,
-    });
+    return this.loginAttemptLimiter.guard(
+      changePasswordAttemptKey(request?.ip),
+      () =>
+        this.authenticationService.changePasswordWithToken({
+          passwordChangeToken,
+          newPassword: body.newPassword,
+        }),
+    );
   }
 }

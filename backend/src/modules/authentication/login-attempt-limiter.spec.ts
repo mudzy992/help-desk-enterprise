@@ -1,6 +1,7 @@
 import { HttpException, UnauthorizedException } from '@nestjs/common';
 import {
   LoginAttemptLimiter,
+  changePasswordAttemptKey,
   createMemoryLoginAttemptStore,
   loginAttemptKey,
   loginAttemptLimits,
@@ -42,5 +43,13 @@ describe('LoginAttemptLimiter (review 2026-09-25)', () => {
     expect(await store.count('k')).toBe(1);
     now = 61_000;
     expect(await store.count('k')).toBe(0);
+  });
+});
+
+describe('change-password attempt key (review N1)', () => {
+  it('is per client IP and separate from sign-in keys', () => {
+    expect(changePasswordAttemptKey(' 10.0.0.9 ')).toBe('auth:change-password-fail:10.0.0.9');
+    expect(changePasswordAttemptKey(undefined)).toBe('auth:change-password-fail:unknown');
+    expect(changePasswordAttemptKey('10.0.0.9')).not.toBe(loginAttemptKey('x', '10.0.0.9'));
   });
 });

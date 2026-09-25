@@ -2,6 +2,10 @@ import { JwtService } from '@nestjs/jwt';
 import { SessionTokenService } from './session-token.service';
 import { SessionRevocationStore } from './session-revocation.store';
 
+jest.mock('../../common/prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 describe('session revocation (review 2026-09-25, S1/S2)', () => {
   const secret = 'x'.repeat(40);
   const make = () =>
