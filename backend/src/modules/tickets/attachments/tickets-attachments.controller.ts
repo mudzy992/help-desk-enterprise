@@ -1,4 +1,8 @@
 import {
+  attachmentContentDisposition,
+  decodeMultipartFilename,
+} from './sanitize-attachment-filename';
+import {
   Body,
   Controller,
   Delete,
@@ -74,7 +78,7 @@ export class TicketsAttachmentsController {
       file === undefined
         ? undefined
         : {
-            originalName: file.originalname,
+            originalName: decodeMultipartFilename(file.originalname),
             declaredMimeType: file.mimetype,
             size: file.size,
             buffer: file.buffer,
@@ -95,10 +99,9 @@ export class TicketsAttachmentsController {
       attachmentId,
       readContext(request),
     );
-    const filename = result.metadata.originalName.replace(/"/g, '');
     return new StreamableFile(result.contents, {
       type: result.metadata.mimeType,
-      disposition: `attachment; filename="${filename}"`,
+      disposition: attachmentContentDisposition(result.metadata.originalName),
     });
   }
 
