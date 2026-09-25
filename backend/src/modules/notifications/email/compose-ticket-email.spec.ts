@@ -67,6 +67,45 @@ describe('composeTicketEmail', () => {
   });
 });
 
+describe('ticket description placeholders', () => {
+  function withBody(body: string, overrides: Partial<typeof ticket & { description: string }> = {}) {
+    const configuration = createEmailChannelTestConfiguration();
+    const base = configuration.templates;
+    return composeTicketEmail({
+      configuration,
+      templates: {
+        ...base,
+        bs: { ...base.bs, 'ticket.created': { ...base.bs['ticket.created'], body } },
+      },
+      key: 'ticket.created',
+      locale: 'bs',
+      ticket: { ...ticket, description: `${'x'.repeat(400)} lozinka: Tajna123`, ...overrides },
+      serviceName: 'VPN',
+      groupName: 'IT',
+      recipientName: 'E',
+      actorName: '',
+      event: 'created',
+      excerpt: null,
+      dedupeKey: 'd',
+      recipientId: 'u',
+    });
+  }
+
+  it('offers full and shortened content, redacted', () => {
+    const full = withBody('Opis: {{ticketDescription}}');
+    expect(full.text).toContain('[REDACTED]');
+    expect(full.text).not.toContain('Tajna123');
+    const short = withBody('Opis: {{ticketDescriptionShort}}');
+    expect(short.text).toContain('…');
+    expect(short.text).not.toContain('[REDACTED]');
+  });
+
+  it('is empty for confidential tickets', () => {
+    const email = withBody('Opis: {{ticketDescription}}', { isConfidential: true });
+    expect(email.text).not.toContain('xxxx');
+  });
+});
+
 describe('isConfidentialForEmail', () => {
   it('treats the flag and CONFIDENTIAL/RESTRICTED classification as confidential', () => {
     expect(isConfidentialForEmail(ticket)).toBe(false);

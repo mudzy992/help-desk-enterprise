@@ -8,7 +8,8 @@ import type {
 /**
  * Text of one e-mail (decision E1): the admin edits these fields, the HTML
  * layout lives in code. `subjectConfidential` is used for confidential or
- * restricted tickets (E3); `footer` is optional extra text.
+ * restricted tickets (E3); `footer` is optional extra text; `accentColor`
+ * (#rrggbb or empty = installation colour) tints the header line, button and quote.
  */
 export type EmailTemplateContent = Readonly<Record<EmailTemplateField, string>>;
 

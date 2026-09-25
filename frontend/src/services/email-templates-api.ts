@@ -7,6 +7,7 @@ export const emailTemplateFieldNames = [
   "body",
   "cta",
   "footer",
+  "accentColor",
 ] as const;
 export type EmailTemplateField = (typeof emailTemplateFieldNames)[number];
 export type EmailTemplateContent = Readonly<Record<EmailTemplateField, string>>;

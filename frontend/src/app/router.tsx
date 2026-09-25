@@ -2,6 +2,7 @@ import {
   BarChart3,
   GitBranch,
   History,
+  Mail,
   Settings2,
   Timer,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { ApplicationShell } from "@/layouts/application-shell";
 import {
   canOpenAdminArea,
   canOpenConfigVersionsPage,
+  canOpenEmailTemplatesPage,
   canOpenReports,
   canOpenRouting,
   canOpenSla,
@@ -35,6 +37,7 @@ const AdminPage = lazyPage(() => import("@/pages/admin-page"), "AdminPage");
 const ReportsPage = lazyPage(() => import("@/pages/reports-page"), "ReportsPage");
 const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage");
 const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
+const EmailTemplatesPage = lazyPage(() => import("@/pages/email-templates-page"), "EmailTemplatesPage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
@@ -138,6 +141,19 @@ export function AppRouter() {
                   icon={<History size={18} strokeWidth={1.8} />}
                 >
                   <ConfigVersionsPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/email-templates"
+              element={
+                <RequireAccess
+                  check={canOpenEmailTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<Mail size={18} strokeWidth={1.8} />}
+                >
+                  <EmailTemplatesPage />
                 </RequireAccess>
               }
             />

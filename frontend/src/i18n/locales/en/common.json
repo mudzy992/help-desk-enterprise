@@ -899,15 +899,17 @@
         "heading": "Heading",
         "body": "Text",
         "cta": "Button text",
-        "footer": "Footer (optional)"
+        "footer": "Footer (optional)",
+        "accentColor": "Accent colour"
       },
       "hints": {
         "subject": "The ticket number is added at the start automatically.",
         "subjectConfidential": "No ticket title — used for confidential tickets.",
         "heading": "Highlighted line at the top of the message.",
-        "body": "An empty line starts a new paragraph.",
+        "body": "An empty line starts a new paragraph. Ticket content: {{ticketDescription}} (full) or {{ticketDescriptionShort}} (shortened).",
         "cta": "The button opens the ticket (or sign-in).",
-        "footer": "Extra text above the system footer."
+        "footer": "Extra text above the system footer.",
+        "accentColor": "Header line, button and quote. Empty = installation colour from settings."
       },
       "unknownPlaceholder": "Unknown placeholder: {{names}}",
       "placeholdersHint": "Click to insert a placeholder at the cursor.",
@@ -942,7 +944,12 @@
         "ticket_forwarded": "Ticket forwarded",
         "ticket_broadcast": "Notice (broadcast)",
         "user_temporary_password": "Temporary password"
-      }
+      },
+      "accentInherit": "installation",
+      "accentUseGlobal": "Installation colour",
+      "accentInvalid": "Enter a colour as #rrggbb or leave it empty.",
+      "backToSettings": "Back to settings",
+      "loading": "Loading templates…"
     }
   },
   "errors": {

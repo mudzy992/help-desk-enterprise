@@ -29,6 +29,7 @@ export const emailTemplateFields = [
   'body',
   'cta',
   'footer',
+  'accentColor',
 ] as const;
 export type EmailTemplateField = (typeof emailTemplateFields)[number];
 
@@ -37,6 +38,8 @@ export const emailTemplatePlaceholders = [
   'ticketTitle',
   'ticketId',
   'ticketUrl',
+  'ticketDescription',
+  'ticketDescriptionShort',
   'type',
   'event',
   'recipientName',
@@ -80,4 +83,7 @@ export const emailProviderPresets: Readonly<
 };
 
 export const emailMessageExcerptMaxLength = 600;
+/** `{{ticketDescriptionShort}}` vs `{{ticketDescription}}` (full, still capped). */
+export const emailDescriptionShortMaxLength = 300;
+export const emailDescriptionFullMaxLength = 4000;
 export const defaultEmailAccentColor = '#4f46e5';

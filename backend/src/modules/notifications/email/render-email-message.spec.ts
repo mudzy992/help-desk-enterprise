@@ -101,6 +101,16 @@ describe('renderEmailMessage', () => {
   });
 });
 
+describe('per-template accent colour', () => {
+  it('overrides the installation colour and falls back when empty', () => {
+    const green = renderEmailMessage(
+      input({ template: defaultEmailTemplates.bs['ticket.resolved'] }),
+    );
+    expect(green.html).toContain('border-bottom:3px solid #16a34a');
+    expect(renderEmailMessage(input()).html).toContain('border-bottom:3px solid #4f46e5');
+  });
+});
+
 describe('resolveAccent', () => {
   it('keeps white text on dark accents and switches to dark text on light ones', () => {
     expect(resolveAccent('#4f46e5')).toEqual({ background: '#4f46e5', foreground: '#ffffff' });

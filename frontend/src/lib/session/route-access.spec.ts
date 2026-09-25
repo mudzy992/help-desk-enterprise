@@ -9,6 +9,7 @@ import {
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
+  canOpenEmailTemplatesPage,
   canAccessNavigationItem,
   canOpenAdminArea,
   canOpenReports,
@@ -76,5 +77,13 @@ describe("route access", () => {
     expect(visible.flatMap((section) => section.items)).toHaveLength(
       navigationSections.flatMap((section) => section.items).length,
     );
+  });
+});
+
+describe("canOpenEmailTemplatesPage", () => {
+  it("allows admins and super admins, not agents", () => {
+    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(true);
+    expect(canOpenEmailTemplatesPage(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
+    expect(canOpenEmailTemplatesPage(buildCapabilities({ roleKeys: [roleKeys.agent] }))).toBe(false);
   });
 });

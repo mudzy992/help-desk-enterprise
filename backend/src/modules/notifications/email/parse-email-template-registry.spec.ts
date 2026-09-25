@@ -18,7 +18,7 @@ describe('parseEmailTemplateRegistry', () => {
     for (const locale of emailLocales) {
       for (const key of emailTemplateKeys) {
         for (const field of emailTemplateFields) {
-          if (field === 'footer') {
+          if (field === 'footer' || field === 'accentColor') {
             continue;
           }
           expect(defaultEmailTemplates[locale][key][field].trim()).not.toBe('');
@@ -93,6 +93,17 @@ describe('parseEmailTemplateRegistry', () => {
       parseEmailTemplateRegistry(JSON.stringify({ 'ticket.created': { footer: '' } })).bs[
         'ticket.created'
       ].footer,
+    ).toBe('');
+  });
+
+  it('validates the accent colour field', () => {
+    expect(() =>
+      parseEmailTemplateRegistry(JSON.stringify({ 'ticket.created': { accentColor: 'green' } })),
+    ).toThrow(/#rrggbb/);
+    expect(
+      parseEmailTemplateRegistry(JSON.stringify({ 'ticket.resolved': { accentColor: '' } })).bs[
+        'ticket.resolved'
+      ].accentColor,
     ).toBe('');
   });
 

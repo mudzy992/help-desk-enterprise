@@ -15,11 +15,13 @@ const sampleTicket = {
 const sampleText: Readonly<
   Record<
     EmailLocale,
-    { title: string; service: string; group: string; actor: string; excerpt: string }
+    { title: string; description: string; service: string; group: string; actor: string; excerpt: string }
   >
 > = {
   bs: {
     title: 'VPN ne radi nakon promjene lozinke',
+    description:
+      'Nakon jučerašnje promjene lozinke VPN klijent javlja grešku 809 i ne uspostavlja vezu.\n\nPokušao sam restart računara i ponovnu instalaciju klijenta. Radim od kuće i ne mogu pristupiti internim aplikacijama. Molim hitnu pomoć jer sutra imam rok za izvještaj.',
     service: 'VPN pristup',
     group: 'IT podrška',
     actor: 'Amra Hodžić',
@@ -28,6 +30,8 @@ const sampleText: Readonly<
   },
   en: {
     title: 'VPN stopped working after a password change',
+    description:
+      'Since yesterday\'s password change the VPN client reports error 809 and does not connect.\n\nI restarted the computer and reinstalled the client. I work from home and cannot reach internal applications. Please help urgently, I have a report due tomorrow.',
     service: 'VPN access',
     group: 'IT support',
     actor: 'Amra Hodžić',
@@ -83,6 +87,7 @@ export function renderEmailTemplatePreview(input: {
     ticket: {
       ...sampleTicket,
       title: sample.title,
+      description: sample.description,
       isConfidential: input.confidential,
     },
     serviceName: sample.service,

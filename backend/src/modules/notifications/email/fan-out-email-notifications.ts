@@ -11,10 +11,7 @@ import {
   deliverNotificationEmail,
   type PreparedOutboundEmail,
 } from './deliver-notification-email';
-import { composeTicketEmail, resolveEmailLocale } from './compose-ticket-email';
-import { redactSensitiveText } from '../../tickets/redaction/redact-sensitive-text';
-import { defaultTicketRedactionConfiguration } from '../../tickets/redaction/redaction.constants';
-import type { TicketRedactionConfiguration } from '../../tickets/redaction/redaction.types';
+import { composeTicketEmail, redactForEmail, resolveEmailLocale } from './compose-ticket-email';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
 
@@ -139,10 +136,7 @@ function publicExcerpt(payload: TicketRealtimeMessagePayload): string | null {
   if (payload.type !== 'USER_REPLY' && payload.type !== 'AGENT_REPLY') {
     return null;
   }
-  const text = redactSensitiveText(payload.body, {
-    ...defaultTicketRedactionConfiguration,
-    enabled: true,
-  } as unknown as TicketRedactionConfiguration).trim();
+  const text = redactForEmail(payload.body);
   return text.length === 0 ? null : text;
 }
 

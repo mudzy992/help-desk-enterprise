@@ -900,15 +900,17 @@
         "heading": "Uvod",
         "body": "Tekst",
         "cta": "Tekst dugmeta",
-        "footer": "Podnožje (opcionalno)"
+        "footer": "Podnožje (opcionalno)",
+        "accentColor": "Boja naglaska"
       },
       "hints": {
         "subject": "Broj tiketa se dodaje automatski na početak.",
         "subjectConfidential": "Bez naslova tiketa — koristi se za povjerljive tikete.",
         "heading": "Istaknuti red na vrhu poruke.",
-        "body": "Prazan red pravi novi pasus.",
+        "body": "Prazan red pravi novi pasus. Sadržaj tiketa: {{ticketDescription}} (kompletan) ili {{ticketDescriptionShort}} (skraćen).",
         "cta": "Dugme vodi na tiket (ili prijavu).",
-        "footer": "Dodatni tekst iznad sistemskog podnožja."
+        "footer": "Dodatni tekst iznad sistemskog podnožja.",
+        "accentColor": "Linija u zaglavlju, dugme i citat. Prazno = globalna boja iz postavki."
       },
       "unknownPlaceholder": "Nepoznat placeholder: {{names}}",
       "placeholdersHint": "Klik ubacuje placeholder na mjesto kursora.",
@@ -943,7 +945,12 @@
         "ticket_forwarded": "Tiket proslijeđen",
         "ticket_broadcast": "Obavještenje (broadcast)",
         "user_temporary_password": "Privremena lozinka"
-      }
+      },
+      "accentInherit": "globalna",
+      "accentUseGlobal": "Globalna boja",
+      "accentInvalid": "Upišite boju kao #rrggbb ili ostavite prazno.",
+      "backToSettings": "Nazad na postavke",
+      "loading": "Učitavam šablone…"
     }
   },
   "errors": {

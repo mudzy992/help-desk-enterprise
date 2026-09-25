@@ -56,6 +56,8 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
         ticketTitle: input.ticket?.number ?? '',
         serviceName: '',
         groupName: '',
+        ticketDescription: '',
+        ticketDescriptionShort: '',
       }
     : input.variables;
   const fill = (source: string) => interpolate(source, variables);
@@ -71,6 +73,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
   const body = fill(input.template.body);
   const cta = fill(input.template.cta);
   const footer = fill(input.template.footer);
+  // A full description may be long; the body keeps its paragraphs either way.
   const excerpt = confidential || input.excerpt === null ? null : truncate(input.excerpt);
   const ctaUrl = safeUrl(input.ctaUrl);
   const footerNote =
@@ -104,7 +107,9 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     footerNote,
   ].join('\n');
 
-  const accent = resolveAccent(input.accentColor);
+  const accent = resolveAccent(
+    input.template.accentColor.trim().length > 0 ? input.template.accentColor : input.accentColor,
+  );
   const html = renderHtml({
     locale: input.locale,
     subject,

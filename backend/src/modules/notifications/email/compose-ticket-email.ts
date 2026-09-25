@@ -8,6 +8,13 @@ import {
 } from './email-template.constants';
 import type { EmailTemplateRegistry } from './email-template.types';
 import { renderEmailMessage, type RenderedEmailMessage } from './render-email-message';
+import {
+  emailDescriptionFullMaxLength,
+  emailDescriptionShortMaxLength,
+} from './email-template.constants';
+import { redactSensitiveText } from '../../tickets/redaction/redact-sensitive-text';
+import { defaultTicketRedactionConfiguration } from '../../tickets/redaction/redaction.constants';
+import type { TicketRedactionConfiguration } from '../../tickets/redaction/redaction.types';
 
 export type EmailTicketFacts = {
   readonly id: string;
@@ -17,6 +24,7 @@ export type EmailTicketFacts = {
   readonly priority: string;
   readonly classification?: string | null;
   readonly isConfidential: boolean;
+  readonly description?: string | null;
 };
 
 export type ComposedTicketEmail = RenderedEmailMessage & {
@@ -79,6 +87,7 @@ export function composeTicketEmail(input: {
   const statusLabel = labels.statuses[ticket.status] ?? ticket.status;
   const priorityLabel = labels.priorities[ticket.priority] ?? ticket.priority;
   const templates = input.templates ?? configuration.templates;
+  const description = redactForEmail(ticket.description ?? '');
   const rendered = renderEmailMessage({
     template: templates[locale][input.key],
     locale,
@@ -87,6 +96,8 @@ export function composeTicketEmail(input: {
       ticketTitle: ticket.title,
       ticketId: ticket.id,
       ticketUrl: ticketUrl ?? '',
+      ticketDescription: clip(description, emailDescriptionFullMaxLength),
+      ticketDescriptionShort: clip(description, emailDescriptionShortMaxLength),
       type: input.key,
       event: input.event,
       recipientName: input.recipientName,
@@ -130,6 +141,19 @@ export function composeTicketEmail(input: {
       'X-EPHD-Ticket': ticket.ticketNumber,
     },
   };
+}
+
+/** E-mail leaves the system: default redaction patterns always apply. */
+export function redactForEmail(value: string): string {
+  return redactSensitiveText(value, {
+    ...defaultTicketRedactionConfiguration,
+    enabled: true,
+  } as unknown as TicketRedactionConfiguration).trim();
+}
+
+function clip(value: string, max: number): string {
+  const normalized = value.replace(/\r\n/g, '\n').trim();
+  return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1).trimEnd()}…`;
 }
 
 function mailDomain(fromAddress: string | undefined): string {

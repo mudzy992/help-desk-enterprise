@@ -19,7 +19,8 @@ const placeholderPattern = /\{\{\s*([a-zA-Z][a-zA-Z0-9]*)\s*\}\}/g;
 const allowedPlaceholders = new Set<string>(emailTemplatePlaceholders);
 const maximumFieldLength = 4000;
 /** Fields that may be left empty (fall back to nothing, not to the default). */
-const optionalFields = new Set<EmailTemplateField>(['footer']);
+const optionalFields = new Set<EmailTemplateField>(['footer', 'accentColor']);
+const colourPattern = /^#[0-9a-fA-F]{6}$/;
 
 /**
  * Stored registry → complete registry. Accepts
@@ -154,6 +155,13 @@ function mergeContent(
     }
     if (value.length > maximumFieldLength) {
       throw invalidTemplate(`Email template ${path}.${field} is too long`);
+    }
+    if (field === 'accentColor') {
+      if (value !== '' && !colourPattern.test(value)) {
+        throw invalidTemplate(`Email template ${path}.accentColor must be #rrggbb or empty`);
+      }
+      result[field] = value;
+      continue;
     }
     const unknown = findUnknownPlaceholders(value);
     if (unknown.length > 0) {

@@ -73,8 +73,13 @@ test.describe('11 e-mail templates', () => {
     const card = page.getByTestId('email-templates-card');
     await expect(card).toBeVisible({ timeout: 20_000 });
     await card.getByRole('button').last().click();
+    await expect(page).toHaveURL(/\/admin\/email-templates/);
+    await expect(page.getByTestId('email-templates-editor')).toBeVisible({ timeout: 20_000 });
 
     await page.getByTestId('email-template-key').selectOption('ticket.assigned');
+    // Per-template accent colour reaches the preview.
+    await page.getByTestId('email-template-field-accentColor').fill('#16a34a');
+    await expect(page.frameLocator('iframe[sandbox]').locator('body')).toContainText(/./);
     const heading = page.getByTestId('email-template-field-heading');
     await heading.fill(marker);
 

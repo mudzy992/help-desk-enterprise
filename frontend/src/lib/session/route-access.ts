@@ -85,6 +85,19 @@ export function canOpenConfigVersionsPage(
   });
 }
 
+/** Paket 1.5: same audience as the settings page (ADMIN / SUPER_ADMIN). */
+export function canOpenEmailTemplatesPage(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null) {
+    return false;
+  }
+  return (
+    session.isSuperAdmin ||
+    capabilities.hasRole(roleKeys.admin) ||
+    capabilities.hasRole(roleKeys.superAdmin)
+  );
+}
+
 export function canAccessNavigationItem(
   item: NavigationItem,
   capabilities: SessionCapabilities,

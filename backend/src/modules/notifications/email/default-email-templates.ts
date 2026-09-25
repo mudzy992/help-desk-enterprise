@@ -17,10 +17,17 @@ function content(
   heading: string,
   body: string,
   cta: string,
-  footer = '',
+  accentColor = '',
 ): EmailTemplateContent {
-  return { subject, subjectConfidential, heading, body, cta, footer };
+  return { subject, subjectConfidential, heading, body, cta, footer: '', accentColor };
 }
+
+// Status colours (empty = installation accent). AA contrast of the button text
+// is enforced by the renderer, so any colour stays readable.
+const green = '#16a34a';
+const slate = '#475569';
+const red = '#dc2626';
+const amber = '#b45309';
 
 const bs: EmailTemplateSet = {
   'ticket.created': content(
@@ -50,6 +57,7 @@ const bs: EmailTemplateSet = {
     'Vaš tiket je riješen',
     'Tiket {{ticketNumber}} je označen kao riješen. Ako problem nije otklonjen, možete ga ponovo otvoriti u aplikaciji.',
     'Pogledaj rješenje',
+    green,
   ),
   'ticket.closed': content(
     'Tiket je zatvoren: {{ticketTitle}}',
@@ -57,6 +65,7 @@ const bs: EmailTemplateSet = {
     'Tiket je zatvoren',
     'Tiket {{ticketNumber}} je zatvoren.',
     'Otvori tiket',
+    slate,
   ),
   'ticket.approval': content(
     'Čeka vaše odobrenje: {{ticketTitle}}',
@@ -64,6 +73,7 @@ const bs: EmailTemplateSet = {
     'Potrebno je vaše odobrenje',
     'Tiket {{ticketNumber}} čeka vašu odluku.',
     'Odobri ili odbij',
+    amber,
   ),
   'ticket.sla': content(
     'SLA upozorenje: {{ticketTitle}}',
@@ -71,6 +81,7 @@ const bs: EmailTemplateSet = {
     'SLA rok je ugrožen',
     'Tiket {{ticketNumber}} je blizu ili preko SLA roka.',
     'Otvori tiket',
+    red,
   ),
   'remote.requested': content(
     'Zahtjev za udaljenu podršku',
@@ -130,6 +141,7 @@ const en: EmailTemplateSet = {
     'Your ticket was resolved',
     'Ticket {{ticketNumber}} was marked as resolved. If the problem persists, you can reopen it in the application.',
     'View resolution',
+    green,
   ),
   'ticket.closed': content(
     'Ticket closed: {{ticketTitle}}',
@@ -137,6 +149,7 @@ const en: EmailTemplateSet = {
     'Ticket closed',
     'Ticket {{ticketNumber}} was closed.',
     'Open ticket',
+    slate,
   ),
   'ticket.approval': content(
     'Awaiting your approval: {{ticketTitle}}',
@@ -144,6 +157,7 @@ const en: EmailTemplateSet = {
     'Your approval is needed',
     'Ticket {{ticketNumber}} is waiting for your decision.',
     'Approve or reject',
+    amber,
   ),
   'ticket.sla': content(
     'SLA warning: {{ticketTitle}}',
@@ -151,6 +165,7 @@ const en: EmailTemplateSet = {
     'The SLA target is at risk',
     'Ticket {{ticketNumber}} is close to or past its SLA target.',
     'Open ticket',
+    red,
   ),
   'remote.requested': content(
     'Remote support requested',
