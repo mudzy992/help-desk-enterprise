@@ -124,13 +124,14 @@ export function TicketTimeTrackingPanel({
         </p>
       ) : null}
       {controls.canManage ? (
-        <label className="flex items-center gap-2 px-4 pb-2 text-[12px] text-muted-foreground">
+        <div className="border-b border-border/50 px-4 pb-3 pt-1">
           <Checkbox
+            className="text-[12.5px] text-muted-foreground"
+            label={t("tickets.timeTracking.showDeleted")}
             checked={controls.showDeleted}
             onChange={(event) => controls.setShowDeleted(event.currentTarget.checked)}
           />
-          {t("tickets.timeTracking.showDeleted")}
-        </label>
+        </div>
       ) : null}
       {items.length === 0 ? (
         <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
