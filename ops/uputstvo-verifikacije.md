@@ -196,6 +196,25 @@ ops/cleanup-e2e-data.sh --apply         # briše E2E tikete i servise
 ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 ```
 
+### Nakon C (2026-09-25) — tačan redoslijed
+
+```bash
+cd ~/Documents/GitHub/help-desk-enterprise && git pull
+# 1) proba — samo broji, ništa ne briše (ROLLBACK):
+ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W --seed
+# 2) stvarno brisanje (E2E + [staging-seed] tiketi, SLA stanja, notifikacije):
+ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W --apply --seed
+# 3) kontrola — oba broja moraju biti 0:
+docker exec hgpchekxb6dutalsyctu42al psql -U admin -d ephelpdesk-dev -Atc \
+  "select count(*) from \"Ticket\" where title like '[staging-seed]%'; select count(*) from \"Notification\" n where n.\"ticketId\" is null and n.type='ticket.sla';"
+# 4) Coolify → API env: DB_QUERY_METRICS=false → redeploy
+# 5) lokalni artefakti (opciono): rm -f api-*.log
+```
+
+Ako druga kontrola nije 0: to su SLA notifikacije čiji je tiket već obrisan
+(`ticketId` → NULL, onDelete SetNull). Brišu se ovako:
+`DELETE FROM "Notification" WHERE "ticketId" IS NULL AND type = 'ticket.sla';`
+
 Korisnici, audit log, verzije konfiguracije i IntegrationJob se ne diraju (detalji u
 zaglavlju `ops/sql/cleanup-e2e-data.sql`). Kontejner se pronalazi automatski; inače
 `PG_CONTAINER=<ime> ops/cleanup-e2e-data.sh`.

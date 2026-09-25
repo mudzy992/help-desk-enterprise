@@ -13,14 +13,14 @@ regresija se ne spaja.
 
 | Metrika | Budžet | Stanje nakon F3 | Izvor brojke |
 |---|---|---|---|
-| P95 bilo kojeg read endpointa | < 200 ms | **nije mjereno** (kod-nalaz) | `perf/results/after-f3-2026-09-24.md` §5 — okruženje bez k6/Postgres/Redis/LB; struktura dokazana (paginacija, agregati, keš), mjeri se prvim `k6 run perf/full.js` |
-| P95 bilo koje mutacije | < 400 ms | **nije mjereno** (kod-nalaz) | isto |
+| P95 bilo kojeg read endpointa | < 200 ms | **staging 2026-09-25, 100k tiketa, 200 VU: lista 46 · detalj 29 · unread 23 · dashboard 16 ms ✔; pretraga 763 ms ⚠ (poznati izuzetak, §5)** — ranije: nije mjereno (kod-nalaz) | `perf/results/after-f3-2026-09-24.md` §5 — okruženje bez k6/Postgres/Redis/LB; struktura dokazana (paginacija, agregati, keš), mjeri se prvim `k6 run perf/full.js` |
+| P95 bilo koje mutacije | < 400 ms | **staging 2026-09-25, 200 VU: poruka 308 ms ✔** (raste s opterećenjem: 173 → 308 ms od 20 do 200 VU) | §5 |
 | DB upita po HTTP zahtjevu | cilj ≤ 2,0 prosječno (kapija 2,5 = CI 2,084 × 1,2) | **izmjereno u CI-ju (run [36041855923](https://github.com/mudzy992/help-desk-enterprise/actions/runs/36041855923), 65.048 zahtjeva, 2026-09-24): 2,084** — 18,4 → 8,7 → 5,0 → **2,1**. Lokalni rig je pokazao 1,705 (topli keševi; upiti u interaktivnim transakcijama se ne broje) — mjerodavan je CI (lokalno: poruka 4 · lista 3 · inbox 3 · `/search` 3 · detalj 2 · dashboard 0,07 · unread 0,01) | `db_queries_per_request=` iz `api.log` (F0 middleware). Koraci posljednjeg smanjenja: dijeljeni settings snapshot (`SETTINGS_SNAPSHOT_TTL_MS`, invalidacija na promjenu), keš scope kataloga, kratki spoj za povjerljive tikete, jedan raw upit za SLA + CSAT stranice (`load-ticket-sla-and-csat.ts`), opcija A grupnih notifikacija. Ranija historija: settings snapshot (`perf-07`), keš display labela. **Pouka:** prazna baza daje lažno niske brojke — mjeri se samo na seedanim podacima |
 | DB QPS ukupno | < 1.000 uz pool 40 | nije mjereno | pool 40 / worker 10 (`DB_POOL_MAX`, F1.4); after-f1 §1 |
 | SLA scan ciklus | < 15 s @ 100k otvorenih | kod-nalaz: 2 statementa po ciklusu, `LIMIT 2000` | after-f2 §2.1 — due-only `nextDueAt` upit + batch `IN`; index `(resolutionCompletedAt, nextDueAt)` |
 | WS emit-ova / s | < 500 | kod-nalaz: ≈ 50/s (flag `off`) vs ≈ 2.040/s prije | after-f3 §2 — grupa od 200 ne dobija puni payload nego `group.feed-changed` < 200 B; metrika `ws_emits_*` je u logu |
 | WS emit-ova / s — **notifikacije** | < 500 sve zajedno | **riješeno opcijom A** (2026-09-24): događaj za grupu = **1 red** u `Notification` (`groupId`, `excludedUserIds`) i **1 emit** u sobu grupe, neovisno o broju članova; čitanje po korisniku kroz `NotificationReceipt`; badge keš poništava se jednim `INCR` epohe grupe | `notifications/fan-out/insert-group-notification.ts`, `publish-created-notifications.ts`, `unread-count-cache.ts`; migracija `20260924180000_group_notifications` |
-| Dashboard payload | < 100 KB | kod-nalaz: agregatni summary, keš 15 s | after-f2 §2.4 — `GET /reports/dashboard/summary?scope=`, `GET /reports/sla/summary` |
+| Dashboard payload | < 100 KB | **staging: 0,6 KB ✔**; agregatni summary, Redis keš **60 s** (`REPORT_SUMMARY_CACHE_TTL_SECONDS`, odluka vlasnika 2026-09-25) + single-flight | after-f2 §2.4 — `GET /reports/dashboard/summary?scope=`, `GET /reports/sla/summary` |
 | Pretraga: zahtjeva po unosu | 1 | kod-nalaz: 1 zahtjev po unosu (AbortController + debounce) | after-f1 §2 + after-f3 §3 — `GET /search?q=…` |
 | Frontend zahtjevi po sesijskoj ruti | katalog ≤ 1 / staleTime | kod-nalaz: React Query keš (`queryKeys.*`, `staleTime` u `frontend/src/lib/query/query-client.ts`) umjesto ponovnog poziva po mountu | after-f3 §3 |
 
@@ -70,3 +70,48 @@ grep query_budget_exceeded api.log | tail -20     # request_id=… path=… budg
   (ili P95 preko praga) mora pasti — vidi `ops/quarterly-perf-review.md` §4.
 - Kvartalno: `ops/quarterly-perf-review.md` (puni load test + revizija indeksa i
   ekspanata tabela).
+
+## 5. Staging mjerenje C (2026-09-25)
+
+Okruženje: Coolify, jedna API instanca (`DATABASE_POOL_ROLE=api`, pool 40,
+statement timeout 5 s), Postgres i Redis na istom hostu; **k6 radi na istom
+serveru** (dijeli CPU — brojke su konzervativne). Seed: 100.000 tiketa, 10 %
+otvorenih, 12 OU / 3 grupe (`ops/sql/seed-large-dataset.sql`, glavni profil).
+`SEARCH_TERM=SEED-0012`, `TICKET_IDS` = 50 tiketa iz agentovih grupa.
+
+| VU (aktivnih) | Zahtjeva / 3 min | Greške | Lista | Detalj | Poruka | Unread | Dashboard | Pretraga | DB upita/zahtjev |
+|---|---|---|---|---|---|---|---|---|---|
+| 20 (14) | 2.043 | 0 % | 48 | 24 | 173 | 14 | 10 | 105 | 1,43 |
+| 50 (35) | 4.852 | 0 % | 42 | 23 | 252 | 16 | 11 | 453 ⚠ | 1,29 |
+| 100 (71) | 9.715 | 0 % | 43 | 24 | 270 | 16 | 11 | 316 ⚠ | 1,26 |
+| 200 (140) | 18.960 | 0 % | 46 | 29 | 308 | 23 | 16 | 763 ⚠ | 1,25 |
+
+P95 u ms; izvještaji `perf/results/staging-c-{20vu-v5,50vu,100vu,200vu}.{json,md}`
+na serveru. Nijedan 5xx ni na jednoj stepenici (~90 zahtjeva/s na 200 VU).
+
+**Put do ovih brojki** (prvi run 2026-09-24 je pao na 20 VU s 500 — iscrpljen pool):
+
+| Nalaz | Popravka | Commit |
+|---|---|---|
+| Dashboard: 8 paralelnih COUNT-ova nad vidljivim skupom | 1 groupBy + 3 COUNT, single-flight, keš 60 s | `542cc2d`, `bf571c1` |
+| Sidebar counts bez keša | single-flight + 5 s (`TICKET_COUNTS_CACHE_TTL_MS`) | `542cc2d` |
+| Lista: puni `COUNT(*)` na svakoj stranici (~350 ms) | COUNT do 10.001 („10 000+"), keš po korisniku+filteru 30 s (`TICKET_LIST_TOTAL_CACHE_TTL_MS`) | `542cc2d`, `97db249` |
+| Unread badge brojao ~50k SLA notifikacija | COUNT do 1.000 (zvonce ionako „9+") | `be15ff4` |
+| Pool/statement timeout → 500 | 503 `DATABASE_BUSY` + `Retry-After` | `542cc2d` |
+| DELETE tiketa O(n²): self-FK `reopenedFromTicketId` bez indeksa | indeks + migracija `20260924200000` | `478bb5f` |
+| k6: tok agenta s tokenom podnosioca (403), prazan inbox (detalj p95 = 0) | agent token; fallback na `TICKET_IDS` | `c187e38`, `bf571c1` |
+
+**Poznati izuzetak — pretraga.** Plan je ispravan (BitmapOr preko oba trigram
+indeksa, povjerljivi podupiti se ne izvršavaju; 31 ms pojedinačno). Trošak je CPU
+trigram indeksa za pojam čiji su trigrami u svim redovima (`SEED-…`, isto vrijedi
+za djelimičan broj tiketa u produkciji), a jedan korak pretrage ga plaća 3–4 puta
+(lista s `q`, njen COUNT, `/search`). Backlog: (1) brza putanja za unos koji liči na
+broj tiketa (prefiks preko btree), (2) bez COUNT-a u listi kad je zadan `q`.
+
+**Otvoreno:**
+- 800 VU: jedna instanca na dijeljenom hostu to ne može pošteno izmjeriti
+  (dial timeout na Traefiku, k6 bez ramp-upa). Mjeri se s više API replika, k6 na
+  zasebnoj mašini i ramp-upom.
+- SLA notifikacije: ~22 `ticket.sla` notifikacije po prekoračenom tiketu (170k za
+  7,6k tiketa) — provjeriti primaoce i deduplikaciju.
+- Prva poruka na tiketu: 38–41 DB upit (SLA prvi odgovor + notifikacije); sljedeće 4–5.
