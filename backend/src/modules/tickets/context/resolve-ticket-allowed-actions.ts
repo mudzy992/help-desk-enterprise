@@ -11,6 +11,7 @@ import { TicketAssignmentConfigurationLoader } from '../assignment/ticket-assign
 import { canChangeTicketStatus } from '../authorize-ticket-actor';
 import { forwardableTicketStatuses } from '../forwarding/forwarding.constants';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
+import { hasTicketPermission } from '../merge/has-ticket-permission';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
 import type { TicketAllowedActions, TicketComposerAccess } from './context.types';
@@ -53,7 +54,9 @@ export async function resolveTicketAllowedActions(input: {
   const composerAccess: TicketComposerAccess =
     isStaff && isRequester ? 'both' : isStaff ? 'staff' : 'requester';
   const writable = ticket.status !== 'ARCHIVED';
-  const staffCanWrite = isStaff && writable;
+  // Package 1.2 (M3): a merged child is read-only until it is unmerged.
+  const isMergedChild = ticket.mergedIntoTicketId !== null;
+  const staffCanWrite = isStaff && writable && !isMergedChild;
   const canChangeStatus = staffCanWrite && canChangeTicketStatus(authContext);
   const isGroupMember =
     !staffCanWrite ||
@@ -93,6 +96,7 @@ export async function resolveTicketAllowedActions(input: {
       isGroupMember);
   const uploadAttachments =
     writable &&
+    !isMergedChild &&
     decideAuthorizationAccess({
       context: authContext,
       requiredRoles: [],
@@ -103,8 +107,16 @@ export async function resolveTicketAllowedActions(input: {
       requireOrganizationalUnitScope: true,
       requireServiceScope: true,
     }).allowed;
+  const canMerge =
+    isStaff && writable && hasTicketPermission(authContext, permissionKeys.ticketMerge);
   return {
     composerAccess,
+    overridePriority:
+      staffCanWrite &&
+      ticket.status !== 'CLOSED' &&
+      hasTicketPermission(authContext, permissionKeys.ticketPriorityOverride),
+    merge: canMerge && !isMergedChild && ticket.status !== 'CLOSED',
+    unmerge: canMerge && isMergedChild,
     claim,
     changeStatus: canChangeStatus,
     split: canChangeStatus,

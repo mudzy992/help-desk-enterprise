@@ -12,17 +12,18 @@ type ParentTicketRow = Pick<
 >;
 
 /**
- * Loads display data for the parents of split child tickets in one query.
+ * Loads display data for the parents of split and merged child tickets in one query.
  * The title of a confidential parent is never exposed, only its number.
  */
 export async function loadParentTicketSummaries(
   prisma: PrismaService,
-  records: readonly Pick<TicketRecord, 'parentTicketId'>[],
+  records: readonly Pick<TicketRecord, 'parentTicketId' | 'mergedIntoTicketId'>[],
 ): Promise<ReadonlyMap<string, ParentTicketSummary>> {
   const parentIds = [
     ...new Set(
+      // Package 1.2: merge parents come from the same query (no extra round trip).
       records
-        .map((record) => record.parentTicketId)
+        .flatMap((record) => [record.parentTicketId, record.mergedIntoTicketId])
         .filter((id): id is string => id !== null && id.length > 0),
     ),
   ];

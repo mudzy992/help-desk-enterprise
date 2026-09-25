@@ -25,6 +25,12 @@ import { recordRedactionWarning } from './redaction/record-redaction-warning';
 import type { TicketRedactionConfiguration } from './redaction/redaction.types';
 import { recordTicketChange } from './record-ticket-change';
 import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
+import { assertTicketNotMerged } from './merge/assert-ticket-editable';
+import {
+  propagateMergedStatus,
+  syncPropagatedChildrenSla,
+  type PropagatedChildChange,
+} from './merge/propagate-merged-status';
 import type { TicketRequiredFieldsConfiguration } from './required-fields/required-fields.types';
 import { ticketChangeLogReasons } from './tickets.constants';
 import { TicketsError } from './tickets.error';
@@ -79,6 +85,8 @@ export async function updateTicket(
   });
   const nextStatus = input.status ?? current.status;
   assertTicketWritable(current, context);
+  // Package 1.2 (M3): a merged child follows its parent; unmerge first.
+  assertTicketNotMerged(current);
   if (input.status !== undefined) {
     assertPatchTicketStatus({
       context: authContext,
@@ -118,12 +126,19 @@ export async function updateTicket(
         });
   const impact = input.impact ?? current.impact;
   const urgency = input.urgency ?? current.urgency;
+  // Package 1.2 (P1): the matrix runs only when impact or urgency changes and
+  // the priority was not set by hand. Any other edit leaves the priority alone
+  // (so a later matrix change never silently re-prioritises old tickets).
+  const matrixApplies =
+    (impact !== current.impact || urgency !== current.urgency) &&
+    current.priorityOverridden !== true;
   const now = new Date();
   const timestamps = applyTicketLifecycleTimestamps({
     current,
     nextStatus,
     now,
   });
+  let propagated: readonly PropagatedChildChange[] = [];
   const updated = await prisma.$transaction(async (transaction) => {
     const record = (await transaction.ticket.update({
       where: { id: ticketId },
@@ -132,11 +147,9 @@ export async function updateTicket(
         description,
         impact,
         urgency,
-        priority: await resolveTicketPriority(
-          transaction as PrismaService,
-          impact,
-          urgency,
-        ),
+        priority: matrixApplies
+          ? await resolveTicketPriority(transaction as PrismaService, impact, urgency)
+          : current.priority,
         status: nextStatus,
         formData: toTicketFormDataInput(formData),
         closeCodeId: resolution.closeCodeId,
@@ -173,6 +186,14 @@ export async function updateTicket(
       scan,
       messages,
     });
+    propagated = await propagateMergedStatus({
+      tx: transaction as PrismaService,
+      parent: record,
+      previousStatus: current.status,
+      actorUserId: context.actorUserId,
+      messages,
+      now,
+    });
     return record;
   });
   if (current.status !== updated.status) {
@@ -183,5 +204,9 @@ export async function updateTicket(
       event: 'status_changed',
     });
   }
+  if (current.priority !== updated.priority) {
+    await applyTicketSlaTimers(context, { ticket: updated, now, event: 'priority_changed' });
+  }
+  await syncPropagatedChildrenSla(context, propagated, now);
   return updated;
 }

@@ -19,6 +19,7 @@ import {
 import { listTicketParticipants } from './list-ticket-participants';
 import { loadAccessibleTicket } from './load-accessible-ticket';
 import { publishForTicketId } from './publish-for-ticket-id';
+import { copyMessageToMergedTickets } from './merge/copy-message-to-merged-tickets';
 import { publishPersistedTicketMessages } from './publish-persisted-ticket-messages';
 import { removeTicketParticipant } from './remove-ticket-participant';
 import { TicketCollaborationConfigurationLoader } from './ticket-collaboration-configuration.loader';
@@ -157,6 +158,14 @@ export class TicketsCollaborationService {
           ticket: resumed,
           event: 'agent_replied',
         });
+        if (input.alsoToMerged === true) {
+          await copyMessageToMergedTickets({
+            prisma: this.prisma,
+            parent: resumed,
+            message,
+            messages,
+          });
+        }
       }
       publishPersistedTicketMessages(this.realtimeHub, resumed, messages);
       return toTicketMessageResponse(message, scan.matches);

@@ -233,6 +233,7 @@
     "permissions": {
       "ticket.forward.cross_ou": "Proslijedi tiket van OJ",
       "ticket.merge": "Spajanje tiketa",
+      "ticket.priority.override": "Ručna promjena prioriteta",
       "ticket.bulk.assign": "Masovna dodjela",
       "ticket.bulk.status_update": "Masovna promjena statusa",
       "ticket.bulk.priority_update": "Masovna promjena prioriteta",
@@ -358,7 +359,8 @@
       },
       "keys": {
         "ticket.forward.cross_ou": "Proslijedi tiket u drugu organizacionu jedinicu (s OU opsegom i auditom).",
-        "ticket.merge": "Spoji tikete u roditeljski tiket putem masovnog spajanja.",
+        "ticket.merge": "Spoji tikete u glavni tiket (pojedinačno ili masovno) i razdvoji ih.",
+        "ticket.priority.override": "Ručno postavi prioritet tiketa mimo matrice uticaj × hitnost (obavezan razlog, auditovano).",
         "ticket.bulk.assign": "Masovno dodijeli tikete grupi ili korisniku.",
         "ticket.bulk.status_update": "Masovno ažuriraj status tiketa (zatvaranje može i dalje biti blokirano).",
         "ticket.bulk.priority_update": "Masovno ažuriraj prioritet tiketa.",

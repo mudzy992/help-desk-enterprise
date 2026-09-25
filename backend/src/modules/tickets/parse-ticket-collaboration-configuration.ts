@@ -31,7 +31,7 @@ export function parseTicketCollaborationConfiguration(input: {
 
 function parseRoles(value: string): readonly ParticipantRole[] {
   const parsed = splitCsv(value).filter((item): item is ParticipantRole =>
-    participantRoles.includes(item as ParticipantRole),
+    (participantRoles as readonly string[]).includes(item),
   );
   return parsed.length > 0
     ? parsed

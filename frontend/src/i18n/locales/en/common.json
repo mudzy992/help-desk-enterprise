@@ -233,6 +233,7 @@
     "permissions": {
       "ticket.forward.cross_ou": "Forward ticket across OU",
       "ticket.merge": "Merge tickets",
+      "ticket.priority.override": "Override ticket priority",
       "ticket.bulk.assign": "Bulk assign",
       "ticket.bulk.status_update": "Bulk status update",
       "ticket.bulk.priority_update": "Bulk priority update",
@@ -358,7 +359,8 @@
       },
       "keys": {
         "ticket.forward.cross_ou": "Forward a ticket to another organizational unit (OU-scoped and audited).",
-        "ticket.merge": "Merge tickets into a parent ticket via bulk merge.",
+        "ticket.merge": "Merge tickets into a parent ticket (single or bulk) and unmerge them.",
+        "ticket.priority.override": "Set the ticket priority manually, overriding the impact × urgency matrix (reason required, audited).",
         "ticket.bulk.assign": "Bulk-assign tickets to a group or user.",
         "ticket.bulk.status_update": "Bulk-update ticket status (closing statuses may still be blocked).",
         "ticket.bulk.priority_update": "Bulk-update ticket priority.",

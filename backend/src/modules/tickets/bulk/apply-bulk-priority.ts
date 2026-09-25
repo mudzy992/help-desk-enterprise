@@ -1,7 +1,7 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { TicketPriority } from '../../../generated/prisma/enums';
-import { resolveTicketPriority } from '../resolve-ticket-priority';
+import { applyTicketSlaTimers } from '../apply-ticket-sla-timers';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
+import { assertPriorityEditable } from '../merge/assert-ticket-editable';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import {
@@ -11,6 +11,12 @@ import {
 } from './audit-bulk-ticket-change';
 import type { ExecuteTicketBulkInput } from './bulk.types';
 
+/**
+ * Package 1.2 (P4): the bulk action sets exactly the chosen priority and marks
+ * it as manual, the same semantics as `POST /tickets/:id/priority`. Impact and
+ * urgency are left alone (they describe the incident, not the decision), and
+ * the SLA targets follow the new priority (P5).
+ */
 export async function applyBulkPriority(input: {
   readonly prisma: PrismaService;
   readonly actor: TicketMutationContext;
@@ -27,21 +33,19 @@ export async function applyBulkPriority(input: {
   if (reason.length === 0) {
     throw new TicketsError('BULK_REASON_REQUIRED');
   }
-  const updated: TicketRecord[] = [];
   for (const ticket of input.tickets) {
-    const impactUrgency = {
-      impact: priority,
-      urgency: priority,
-    } as const;
+    assertPriorityEditable(ticket);
+  }
+  const updated: TicketRecord[] = [];
+  const now = new Date();
+  for (const ticket of input.tickets) {
     const next = (await input.prisma.ticket.update({
       where: { id: ticket.id },
       data: {
-        ...impactUrgency,
-        priority: await resolveTicketPriority(
-          input.prisma,
-          impactUrgency.impact,
-          impactUrgency.urgency,
-        ),
+        priority,
+        priorityOverridden: true,
+        priorityOverriddenAt: now,
+        priorityOverriddenById: input.actor.actorUserId,
       },
     })) as TicketRecord;
     await auditBulkTicketChange({
@@ -55,6 +59,13 @@ export async function applyBulkPriority(input: {
       messages: input.messages,
     });
     updated.push(next);
+    if (next.priority !== ticket.priority) {
+      await applyTicketSlaTimers(input.actor, {
+        ticket: next,
+        now,
+        event: 'priority_changed',
+      });
+    }
   }
   return updated;
 }

@@ -28,7 +28,13 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
   {
     key: permissionKeys.ticketMerge,
     categoryId: ticket,
-    description: 'Merge tickets into a parent ticket via bulk merge_into_parent.',
+    description: 'Merge tickets into a parent ticket (single or bulk) and unmerge them.',
+  },
+  {
+    key: permissionKeys.ticketPriorityOverride,
+    categoryId: ticket,
+    description:
+      'Set the ticket priority manually, overriding the impact × urgency matrix (reason required, audited).',
   },
   {
     key: permissionKeys.ticketBulkAssign,

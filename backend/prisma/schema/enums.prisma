@@ -82,6 +82,8 @@ enum ParticipantRole {
   FORWARDED_TO_GROUP
   WATCHER
   SYSTEM
+  /// Package 1.2: requester of a ticket merged into this one (public read only).
+  MERGED_REQUESTER
 }
 
 enum MessageType {

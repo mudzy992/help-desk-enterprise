@@ -43,6 +43,8 @@ import { TicketsSplitService } from './split/tickets-split.service';
 import { TicketForwardingConfigurationLoader } from './forwarding/ticket-forwarding-configuration.loader';
 import { TicketsForwardingController } from './forwarding/tickets-forwarding.controller';
 import { TicketsForwardingService } from './forwarding/tickets-forwarding.service';
+import { TicketsMergeController } from './merge/tickets-merge.controller';
+import { TicketsMergeService } from './merge/tickets-merge.service';
 import { TicketBulkConfigurationLoader } from './bulk/ticket-bulk-configuration.loader';
 import { TicketsBulkController } from './bulk/tickets-bulk.controller';
 import { TicketsBulkService } from './bulk/tickets-bulk.service';
@@ -86,6 +88,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsReopenController,
     TicketsSplitController,
     TicketsForwardingController,
+    TicketsMergeController,
     TicketsConfidentialController,
     TicketsCsatController,
   ],
@@ -110,6 +113,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsSplitService,
     TicketSplitConfigurationLoader,
     TicketsForwardingService,
+    TicketsMergeService,
     TicketForwardingConfigurationLoader,
     TicketsBulkService,
     TicketBulkConfigurationLoader,

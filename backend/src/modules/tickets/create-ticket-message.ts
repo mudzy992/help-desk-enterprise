@@ -6,6 +6,7 @@ import type {
   TicketMessageRecord,
 } from './collaboration.types';
 import { loadAccessibleTicket } from './load-accessible-ticket';
+import { assertTicketNotMerged } from './merge/assert-ticket-editable';
 import { normalizeTicketMessageInput } from './normalize-ticket-message-input';
 import {
   assertRedactionAllowed,
@@ -35,6 +36,8 @@ export async function createTicketMessage(
     context,
     { writable: true },
   );
+  // Package 1.2 (M7): a merged child is answered on its parent.
+  assertTicketNotMerged(ticket);
   const normalized = normalizeTicketMessageInput(input, access, configuration);
   const scan = scanTicketContent({
     configuration: redaction ?? {

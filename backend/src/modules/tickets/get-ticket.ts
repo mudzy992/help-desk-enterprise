@@ -36,14 +36,14 @@ export async function getTicket(
   const configuration =
     context.confidential ?? defaultTicketConfidentialConfiguration;
   try {
-    await assertTicketVisible(prisma, {
+    await assertTicketVisibleOrMergedRequester(prisma, {
       context: authContext,
       requesterId: ticket.requesterId,
       originUnitId: ticket.originUnitId,
       originUnitPath,
       serviceId: ticket.serviceId,
       assignedGroupId: ticket.assignedGroupId,
-    });
+    }, ticket.id);
     await assertConfidentialTicketAccess(prisma, {
       context: authContext,
       ticket,
@@ -88,4 +88,35 @@ export async function getTicket(
     }
   }
   return ticket;
+}
+
+/**
+ * Package 1.2 (M2): the requester of a ticket merged into this one reads it
+ * as a MERGED_REQUESTER participant (public messages only, enforced by
+ * `resolveTicketActorAccess`). Edits still go through `assertTicketVisible`
+ * in `updateTicket`, so read access never turns into write access.
+ */
+async function assertTicketVisibleOrMergedRequester(
+  prisma: PrismaService,
+  input: Parameters<typeof assertTicketVisible>[1],
+  ticketId: string,
+): Promise<void> {
+  try {
+    await assertTicketVisible(prisma, input);
+  } catch (error) {
+    if (!(error instanceof TicketsError) || error.code !== 'FORBIDDEN') {
+      throw error;
+    }
+    const participant = await prisma.ticketParticipant.findFirst({
+      where: {
+        ticketId,
+        userId: input.context.subjectId,
+        role: 'MERGED_REQUESTER',
+      },
+      select: { id: true },
+    });
+    if (participant === null) {
+      throw error;
+    }
+  }
 }

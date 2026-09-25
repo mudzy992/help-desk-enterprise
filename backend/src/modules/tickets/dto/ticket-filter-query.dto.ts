@@ -52,6 +52,12 @@ export class TicketFilterQueryDto {
   @IsBoolean()
   unassigned?: boolean;
 
+  /** Package 1.2 (M7): leave out tickets merged into another ticket. */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  hideMerged?: boolean;
+
   @IsOptional()
   @IsIn(['any', 'toMyGroups'])
   forwarded?: 'any' | 'toMyGroups';

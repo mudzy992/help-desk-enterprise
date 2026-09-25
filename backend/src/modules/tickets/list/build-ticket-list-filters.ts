@@ -73,6 +73,9 @@ export function buildTicketListFilters(
   if (query.unassigned === true) {
     clauses.push({ assignedUserId: null });
   }
+  if (query.hideMerged === true) {
+    clauses.push({ mergedIntoTicketId: null });
+  }
   if (query.createdFrom !== undefined || query.createdTo !== undefined) {
     clauses.push({
       createdAt: {

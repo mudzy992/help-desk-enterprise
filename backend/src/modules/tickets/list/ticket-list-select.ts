@@ -41,6 +41,8 @@ export const ticketListSelect = {
   forwardCount: true,
   lastForwardedAt: true,
   lastForwardFromGroupName: true,
+  priorityOverridden: true,
+  mergedAt: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.TicketSelect;

@@ -64,6 +64,13 @@ export function createInMemoryTicketParticipantDelegate(
       records.set(created.id, created);
       return created;
     },
+    deleteMany: async ({ where }: { where?: ParticipantWhere } = {}) => {
+      const items = matching(where);
+      for (const item of items) {
+        records.delete(item.id);
+      }
+      return { count: items.length };
+    },
     delete: async ({ where }: { where: { id: string } }) => {
       const current = records.get(where.id);
       if (current === undefined) {

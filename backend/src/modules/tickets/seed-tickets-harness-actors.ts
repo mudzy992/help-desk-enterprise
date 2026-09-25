@@ -90,6 +90,7 @@ function createScopedContext(
           permissionKeys.ticketAttachmentsUpload,
           permissionKeys.ticketAttachmentsDownload,
           permissionKeys.ticketMerge,
+          permissionKeys.ticketPriorityOverride,
           permissionKeys.ticketBulkAssign,
           permissionKeys.ticketBulkStatusUpdate,
           ...(roleKey === authorizationRoleKeys.admin

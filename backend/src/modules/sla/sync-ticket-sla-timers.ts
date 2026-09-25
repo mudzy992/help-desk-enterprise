@@ -26,6 +26,7 @@ import {
   persistTicketFirstResponseAt,
   persistTicketSlaState,
 } from './persist-ticket-sla-state';
+import { recomputeTicketSlaTargets } from './recompute-ticket-sla-targets';
 import { startTicketSlaTimers } from './start-ticket-sla-timers';
 import type { SyncTicketSlaTimersInput, TicketSlaStateRecord } from './ticket-sla.types';
 
@@ -39,13 +40,17 @@ export async function syncTicketSlaTimers(
   const now = input.now ?? new Date();
   const existing = await loadTicketSlaState(prisma, input.ticket.id);
   const previousMarks = existing ?? emptyTicketSlaRuntimeMarks;
-  const state =
+  const started =
     existing ??
     (await startTicketSlaTimers(prisma, input.ticket, input.configuration, now));
-  if (state === null) {
+  if (started === null) {
     return null;
   }
-  const calendar = await loadCalendarForState(prisma, state);
+  const calendar = await loadCalendarForState(prisma, started);
+  const state =
+    input.event === 'priority_changed' && existing !== null
+      ? await recomputeTicketSlaTargets(prisma, started, input.ticket, calendar)
+      : started;
   const rules = await loadSlaEscalationRules(prisma, state.slaProfileId);
   const next = applyDueSlaEscalations(
     evaluateTicketSlaAtRisk(
@@ -111,6 +116,16 @@ function applyLifecycle(
   const shouldPause = isSlaPauseStatus(input.ticket.status, input.configuration);
   const terminal = isSlaTerminalStatus(input.ticket.status);
   let next = state;
+  // Package 1.2: a merged child's clock stops (the work runs on the parent)
+  // and restarts on unmerge; no other event resumes it while it is merged.
+  if (input.event === 'merged') {
+    return state.pausedAt === null && !terminal ? applyTicketSlaPause(state, now) : state;
+  }
+  if (input.event === 'unmerged') {
+    return state.pausedAt !== null && !shouldPause && !terminal && calendar !== null
+      ? applyTicketSlaResume(calendar, state, now)
+      : state;
+  }
   if (state.pausedAt === null && shouldPause && !terminal) {
     next = applyTicketSlaPause(next, now);
   } else if (

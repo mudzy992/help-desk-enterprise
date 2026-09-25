@@ -63,6 +63,10 @@ export async function toTicketClientResponses(
       ...toTicketLabelFields(record, labels),
       parentTicketNumber: parent?.ticketNumber ?? null,
       parentTicketTitle: parent?.title ?? null,
+      mergedIntoTicketNumber:
+        record.mergedIntoTicketId === null
+          ? null
+          : (parentsById.get(record.mergedIntoTicketId)?.ticketNumber ?? null),
       isOverdue: isTicketSlaOverdue(slaByTicketId.get(record.id)),
       isAtRisk: isTicketSlaAtRisk(slaByTicketId.get(record.id)),
       sla: slaByTicketId.get(record.id) ?? null,

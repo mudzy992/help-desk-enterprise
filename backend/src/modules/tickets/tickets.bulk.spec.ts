@@ -108,6 +108,7 @@ describe('ticket bulk actions', () => {
         ticketIds: [first.id, second.id],
         actionType: 'merge_into_parent',
         parentTicketId: first.id,
+        reason: 'Same VPN outage',
       },
       admin,
     );

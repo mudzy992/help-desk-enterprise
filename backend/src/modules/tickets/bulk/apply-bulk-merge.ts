@@ -1,14 +1,16 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
+import { applyTicketMerge } from '../merge/apply-ticket-merge';
+import { assertMergeAllowed } from '../merge/assert-merge-allowed';
+import { normalizeRequiredReason } from '../merge/normalize-merge-reason';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
-import {
-  auditBulkTicketChange,
-  ticketChangeLogReasons,
-  ticketSystemEventActions,
-} from './audit-bulk-ticket-change';
 import type { ExecuteTicketBulkInput } from './bulk.types';
 
+/**
+ * Package 1.2: bulk "merge into parent" uses the same rules (M1) and writes
+ * (M2) as the single merge from the ticket detail; the reason is required.
+ */
 export async function applyBulkMerge(input: {
   readonly prisma: PrismaService;
   readonly actor: TicketMutationContext;
@@ -27,38 +29,19 @@ export async function applyBulkMerge(input: {
   if (children.length === 0) {
     throw new TicketsError('BULK_ACTION_NOT_ALLOWED');
   }
-  const updated: TicketRecord[] = [parent];
-  for (const child of children) {
-    if (child.mergedIntoTicketId !== null) {
-      throw new TicketsError('BULK_ACTION_NOT_ALLOWED');
-    }
-    const next = (await input.prisma.ticket.update({
-      where: { id: child.id },
-      data: { mergedIntoTicketId: parent.id },
-    })) as TicketRecord;
-    await auditBulkTicketChange({
-      prisma: input.prisma,
-      before: child,
-      after: next,
-      context: input.actor,
-      reason: ticketChangeLogReasons.bulkMerge,
-      action: `${ticketSystemEventActions.ticketBulkMerge}:${parent.ticketNumber}`,
-      batchId: input.batchId,
-      messages: input.messages,
-    });
-    updated.push(next);
+  if ((input.body.reason?.trim() ?? '').length === 0) {
+    throw new TicketsError('BULK_REASON_REQUIRED');
   }
-  await auditBulkTicketChange({
+  const reason = normalizeRequiredReason(input.body.reason, 'MERGE_REASON_REQUIRED');
+  await assertMergeAllowed(input.prisma, parent, children);
+  const merged = await applyTicketMerge({
     prisma: input.prisma,
-    before: parent,
-    after: parent,
+    parent,
+    children,
+    reason,
     context: input.actor,
-    reason: ticketChangeLogReasons.bulkMerge,
-    action: `${ticketSystemEventActions.ticketBulkMerge}:${children
-      .map((child) => child.ticketNumber)
-      .join(',')}`,
-    batchId: input.batchId,
     messages: input.messages,
+    batchId: input.batchId,
   });
-  return updated;
+  return [parent, ...merged];
 }

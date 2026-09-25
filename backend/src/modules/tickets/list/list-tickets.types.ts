@@ -24,6 +24,8 @@ export type TicketListQuery = {
   readonly requesterId?: string;
   readonly groupId?: string;
   readonly unassigned?: boolean;
+  /** Package 1.2 (M7): leave out merged child tickets. */
+  readonly hideMerged?: boolean;
   /**
    * Package 1.6, staff only (ignored for requesters): `any` = forwarded at least
    * once; `toMyGroups` = forwarded and currently in one of the caller's groups.

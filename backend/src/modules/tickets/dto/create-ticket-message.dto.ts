@@ -1,4 +1,4 @@
-import { IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsString, MaxLength, MinLength, IsBoolean, IsOptional } from 'class-validator';
 import { MessageType } from '../../../generated/prisma/enums';
 import { ticketConstants } from '../tickets.constants';
 
@@ -10,4 +10,9 @@ export class CreateTicketMessageDto {
   @MinLength(1)
   @MaxLength(ticketConstants.maximumMessageBodyLength)
   body!: string;
+
+  /** Package 1.2 (M4) */
+  @IsOptional()
+  @IsBoolean()
+  alsoToMerged?: boolean;
 }

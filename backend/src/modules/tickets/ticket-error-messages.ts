@@ -133,4 +133,30 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   FORWARD_TARGET_USER_NOT_MEMBER:
     'The selected agent is not an active member of the target group',
   FORWARD_NO_PREVIOUS_GROUP: 'The ticket has no previous group to return to',
+  PRIORITY_REQUIRED:
+    'Choose a priority or hand the ticket back to the matrix',
+  PRIORITY_UNCHANGED:
+    'The ticket already has this priority',
+  PRIORITY_REASON_REQUIRED:
+    'A reason of 3 to 500 characters is required',
+  PRIORITY_NOT_OVERRIDDEN:
+    'The ticket priority already follows the impact × urgency matrix',
+  TICKET_NOT_EDITABLE:
+    'The ticket cannot be changed in its current status',
+  TICKET_MERGED:
+    'The ticket is merged into another ticket; work on the parent ticket or unmerge it first',
+  TICKET_NOT_MERGED:
+    'The ticket is not merged into another ticket',
+  MERGE_SELF:
+    'A ticket cannot be merged into itself',
+  MERGE_PARENT_INVALID:
+    'The parent ticket is merged, closed or archived',
+  MERGE_CHILD_INVALID:
+    'The ticket is already merged, closed, archived or is itself a parent of merged tickets',
+  MERGE_CONFIDENTIAL_MISMATCH:
+    'A confidential and a non-confidential ticket cannot be merged',
+  MERGE_LIMIT_EXCEEDED:
+    'Too many tickets in one merge',
+  MERGE_REASON_REQUIRED:
+    'A merge reason of 3 to 500 characters is required',
 };

@@ -47,6 +47,6 @@ describe('ticketListSelect', () => {
   });
 
   it('selects exactly those columns, so a new one is a deliberate choice', () => {
-    expect(columns.length).toBe(32);
+    expect(columns.length).toBe(34);
   });
 });

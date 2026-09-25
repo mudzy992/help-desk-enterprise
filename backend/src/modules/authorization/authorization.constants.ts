@@ -10,6 +10,7 @@ export const authorizationRoleKeys = {
 export const permissionKeys = {
   ticketForwardCrossOu: 'ticket.forward.cross_ou',
   ticketMerge: 'ticket.merge',
+  ticketPriorityOverride: 'ticket.priority.override',
   ticketBulkAssign: 'ticket.bulk.assign',
   ticketBulkStatusUpdate: 'ticket.bulk.status_update',
   ticketBulkPriorityUpdate: 'ticket.bulk.priority_update',
@@ -51,6 +52,7 @@ const agentPermissionKeys = [
   permissionKeys.ticketAttachmentsUpload,
   permissionKeys.ticketAttachmentsDownload,
   permissionKeys.ticketMerge,
+  permissionKeys.ticketPriorityOverride,
   permissionKeys.ticketBulkAssign,
   permissionKeys.ticketBulkStatusUpdate,
   permissionKeys.ticketForwardCrossOu,

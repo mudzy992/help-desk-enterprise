@@ -53,6 +53,10 @@ export type TicketAllowedActions = {
   readonly split: boolean;
   /** Package 1.1: forward to another group (cross-OU is checked per target). */
   readonly forward: boolean;
+  /** Package 1.2: manual priority (P2), merge into another ticket (M5), unmerge (M6). */
+  readonly overridePriority: boolean;
+  readonly merge: boolean;
+  readonly unmerge: boolean;
   readonly requestRemote: boolean;
   readonly addInternalNote: boolean;
   readonly waitForUser: boolean;

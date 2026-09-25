@@ -22,6 +22,11 @@ const publicChangeByAction: Readonly<Record<string, TicketRealtimeChange>> = {
   [ticketSystemEventActions.ticketSplit]: 'updated',
   [ticketSystemEventActions.ticketSplitChild]: 'updated',
   [ticketSystemEventActions.ticketBulkMerge]: 'updated',
+  [ticketSystemEventActions.priorityOverridden]: 'priority',
+  [ticketSystemEventActions.ticketMerged]: 'updated',
+  [ticketSystemEventActions.ticketMergedChild]: 'updated',
+  [ticketSystemEventActions.ticketUnmerged]: 'updated',
+  [ticketSystemEventActions.ticketMergedStatusPropagated]: 'status',
   [ticketSystemEventActions.approvalRequested]: 'approval',
   [ticketSystemEventActions.approvalApproved]: 'approval',
   [ticketSystemEventActions.approvalRejected]: 'approval',
@@ -47,6 +52,8 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.guardrailDuplicateWarned,
   ticketSystemEventActions.guardrailLoopSuppressed,
   ticketSystemEventActions.csatSubmitted,
+  // Package 1.2: the reason is internal; the requester sees the new priority only.
+  ticketSystemEventActions.priorityOverridden,
 ]);
 
 export function mapTicketRealtimeChange(

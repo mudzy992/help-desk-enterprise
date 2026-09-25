@@ -6,7 +6,11 @@ export type TicketSlaTimerEvent =
   | 'status_changed'
   | 'agent_replied'
   | 'user_resumed'
-  | 'scanned';
+  | 'scanned'
+  /** Package 1.2 */
+  | 'priority_changed'
+  | 'merged'
+  | 'unmerged';
 
 export type SlaClockKind = 'response' | 'resolution';
 

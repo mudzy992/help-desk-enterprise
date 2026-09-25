@@ -49,6 +49,12 @@ export type TicketRecord = {
   readonly forwardCount?: number;
   readonly lastForwardedAt?: Date | null;
   readonly lastForwardFromGroupName?: string | null;
+  /** Package 1.2 (optional for the same reason). */
+  readonly priorityOverridden?: boolean;
+  readonly priorityOverriddenAt?: Date | null;
+  readonly priorityOverriddenById?: string | null;
+  readonly mergedAt?: Date | null;
+  readonly mergedById?: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -90,6 +96,10 @@ export type TicketResponse = {
   readonly forwardCount: number;
   readonly lastForwardedAt: string | null;
   readonly lastForwardFromGroupName: string | null;
+  /** Package 1.2 */
+  readonly priorityOverridden: boolean;
+  readonly mergedAt: string | null;
+  readonly mergedIntoTicketNumber?: string | null;
   readonly isOverdue: boolean;
   readonly isAtRisk: boolean;
   readonly sla?: TicketSlaClientSnapshot | null;

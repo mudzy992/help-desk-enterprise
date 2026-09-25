@@ -6,6 +6,11 @@ import { ticketSystemEventActions } from '../collaboration.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import { loadAccessibleTicket } from '../load-accessible-ticket';
+import { assertTicketNotMerged } from '../merge/assert-ticket-editable';
+import {
+  propagateMergedStatus,
+  syncPropagatedChildrenSla,
+} from '../merge/propagate-merged-status';
 import { recordTicketChange } from '../record-ticket-change';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import { TicketsError } from '../tickets.error';
@@ -34,6 +39,8 @@ export async function reopenSameTicket(input: {
   if (!input.configuration.enabled) {
     throw new TicketsError('REOPEN_DISABLED');
   }
+  // Package 1.2 (M3): a merged child is reopened through its parent.
+  assertTicketNotMerged(ticket);
   const policy = resolveTicketReopenPolicy({
     ticket,
     configuration: input.configuration,
@@ -75,5 +82,15 @@ export async function reopenSameTicket(input: {
       }),
     );
   }
+  // Package 1.2 (M3): merged children follow the parent back into work.
+  const propagated = await propagateMergedStatus({
+    tx: input.prisma,
+    parent: updated,
+    previousStatus: ticket.status,
+    actorUserId: input.context.actorUserId,
+    messages: input.messages,
+    now: input.now,
+  });
+  await syncPropagatedChildrenSla(input.context, propagated, input.now);
   return updated;
 }

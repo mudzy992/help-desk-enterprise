@@ -106,7 +106,13 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'DUPLICATE_TICKET_BLOCKED' ||
     error.code === 'CSAT_ALREADY_SUBMITTED' ||
     error.code === 'TICKET_NOT_CLAIMABLE' ||
-    error.code === 'FORWARD_NOT_ALLOWED_IN_STATUS'
+    error.code === 'FORWARD_NOT_ALLOWED_IN_STATUS' ||
+    error.code === 'TICKET_NOT_EDITABLE' ||
+    error.code === 'TICKET_MERGED' ||
+    error.code === 'TICKET_NOT_MERGED' ||
+    error.code === 'MERGE_PARENT_INVALID' ||
+    error.code === 'MERGE_CHILD_INVALID' ||
+    error.code === 'MERGE_CONFIDENTIAL_MISMATCH'
   ) {
     return new ConflictException(body);
   }
