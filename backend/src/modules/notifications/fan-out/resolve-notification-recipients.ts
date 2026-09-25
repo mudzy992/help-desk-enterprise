@@ -1,5 +1,12 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketRecord } from '../../tickets/tickets.types';
+import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
+
+/** Escalations keep their own targets (rule user/role/group); see below. */
+const slaEscalationEvents = new Set<string>([
+  ticketSystemEventActions.slaResponseEscalated,
+  ticketSystemEventActions.slaResolutionEscalated,
+]);
 import {
   notificationTypes,
   type NotificationType,
@@ -81,6 +88,28 @@ export async function resolveNotificationAudience(
       input.ticket.assignedUserId,
       ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
     ]);
+    return {
+      userIds: personal,
+      group: {
+        groupId,
+        excludedUserIds: unique(
+          [...personal, input.actorUserId].filter(
+            (id): id is string => id !== null && id.length > 0,
+          ),
+        ),
+      },
+    };
+  }
+  // Staging 2026-09-25: SLA at-risk/breach went out as one PERSONAL row per group
+  // member (170k rows for 7.6k breached tickets, ~22 per ticket). Same Option A
+  // shape as a new ticket: the assignee personally, the rest of the group as ONE
+  // group row. Escalations still resolve their rule's explicit targets.
+  if (
+    input.type === notificationTypes.ticketSla &&
+    groupId !== null &&
+    (input.event === undefined || !slaEscalationEvents.has(input.event))
+  ) {
+    const personal = withoutActor([input.ticket.assignedUserId]);
     return {
       userIds: personal,
       group: {

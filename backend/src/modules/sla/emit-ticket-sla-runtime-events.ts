@@ -92,7 +92,18 @@ async function emitAtRiskTransitions(
     readonly next: TicketSlaStateRecord;
   },
 ): Promise<void> {
-  if (!input.previous.isResponseAtRisk && input.next.isResponseAtRisk) {
+  // A clock that breaches in this same evaluation skips its "at risk" event: the
+  // scanner (or a late run) flips both at once, and a warning next to the breach
+  // is noise — staging 2026-09-25 counted ~22 notifications per breached ticket.
+  const responseBreachesNow =
+    !input.previous.isResponseBreached && input.next.isResponseBreached;
+  const resolutionBreachesNow =
+    !input.previous.isResolutionBreached && input.next.isResolutionBreached;
+  if (
+    !input.previous.isResponseAtRisk &&
+    input.next.isResponseAtRisk &&
+    !responseBreachesNow
+  ) {
     await recordTicketSlaRuntimeEvent(prisma, {
       ticketId: input.ticketId,
       reason: slaChangeLogReasons.responseAtRisk,
@@ -101,7 +112,11 @@ async function emitAtRiskTransitions(
       after: input.next,
     });
   }
-  if (!input.previous.isResolutionAtRisk && input.next.isResolutionAtRisk) {
+  if (
+    !input.previous.isResolutionAtRisk &&
+    input.next.isResolutionAtRisk &&
+    !resolutionBreachesNow
+  ) {
     await recordTicketSlaRuntimeEvent(prisma, {
       ticketId: input.ticketId,
       reason: slaChangeLogReasons.resolutionAtRisk,
