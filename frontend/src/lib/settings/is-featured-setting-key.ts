@@ -42,6 +42,10 @@ export const smtpSettingKeys = {
 export const unroutedSettingKeys = {
   enabled: "private.ticket.unroutedQueue.enabled",
   ownerRole: "private.ticket.unroutedQueue.ownerRole",
+  // Paket 1.7 (U1/U2).
+  targetGroupId: "private.ticket.unroutedQueue.targetGroupId",
+  cleanupSlaHours: "private.ticket.unroutedQueue.cleanupSlaHours",
+  weeklyDigest: "private.ticket.unroutedQueue.weeklyDigest",
 } as const;
 
 export const securityFeatureKeys = {

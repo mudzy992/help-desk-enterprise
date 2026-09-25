@@ -10,6 +10,7 @@ export async function applyCreateTicketRouting(
 ): Promise<{
   readonly status: TicketStatus;
   readonly assignedGroupId: string | null;
+  readonly routedByUnroutedFallback: boolean;
 }> {
   try {
     const resolution = await routingService.resolve(input);
@@ -17,9 +18,16 @@ export async function applyCreateTicketRouting(
       resolution.outcome === routingOutcomes.unrouted ||
       resolution.groupId === null
     ) {
-      return { status: 'UNROUTED', assignedGroupId: null };
+      const targetGroupId = await routingService.resolveUnroutedTargetGroupId();
+      return targetGroupId === null
+        ? { status: 'UNROUTED', assignedGroupId: null, routedByUnroutedFallback: false }
+        : { status: 'PENDING', assignedGroupId: targetGroupId, routedByUnroutedFallback: true };
     }
-    return { status: 'PENDING', assignedGroupId: resolution.groupId };
+    return {
+      status: 'PENDING',
+      assignedGroupId: resolution.groupId,
+      routedByUnroutedFallback: false,
+    };
   } catch (error) {
     if (error instanceof RoutingError && error.code === 'UNAVAILABLE') {
       throw new TicketsError('ROUTING_UNAVAILABLE');

@@ -14,4 +14,13 @@ export class SocketGroupMembershipService {
     });
     return memberships.map((membership) => membership.groupId);
   }
+
+  /** Package 1.7 (R1): ADMIN or SUPER_ADMIN (any scope) joins `role:admins`. */
+  async isAdmin(userId: string): Promise<boolean> {
+    const role = await this.prisma.userRole.findFirst({
+      where: { userId, role: { key: { in: ['ADMIN', 'SUPER_ADMIN'] } } },
+      select: { id: true },
+    });
+    return role !== null;
+  }
 }

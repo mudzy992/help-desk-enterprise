@@ -36,6 +36,7 @@ export function toTicketResponse(record: TicketRecord): TicketResponse {
     forwardCount: record.forwardCount ?? 0,
     lastForwardedAt: toIso(record.lastForwardedAt ?? null),
     lastForwardFromGroupName: record.lastForwardFromGroupName ?? null,
+    routedByUnroutedFallback: record.routedByUnroutedFallback ?? false,
     priorityOverridden: record.priorityOverridden ?? false,
     mergedAt: toIso(record.mergedAt ?? null),
     isOverdue: false,

@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -79,6 +80,7 @@ export class ConfigVersioningController {
     return this.execute(() => this.configVersioningService.validate(id));
   }
 
+  @AdminConfigDomains('routing', 'sla', 'catalog')
   @Post(':id/activate')
   @RequirePermissions(permissionKeys.settingsWrite)
   activate(
@@ -95,6 +97,7 @@ export class ConfigVersioningController {
     );
   }
 
+  @AdminConfigDomains('routing', 'sla', 'catalog')
   @Post(':id/rollback')
   @RequirePermissions(permissionKeys.settingsWrite)
   rollback(

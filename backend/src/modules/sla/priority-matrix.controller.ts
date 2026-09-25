@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -23,6 +24,7 @@ import { PriorityMatrixService } from './priority-matrix.service';
 import { readSlaMutationContext } from './read-sla-mutation-context';
 import type { SlaChangeLogResponse } from './sla.types';
 
+@AdminConfigDomains('sla')
 @Controller('priority-matrix')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @UsePipes(

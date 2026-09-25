@@ -92,6 +92,8 @@ export function useTicketList() {
     forwarded: isStaff ? parseForwardedFilter(searchParams.get("forwarded")) : "",
     // Package 1.2 (M7): staff lists hide merged children unless asked.
     hideMerged: isStaff && searchParams.get("hideMerged") !== "false",
+    // Paket 1.7 (U3): deep link from the dashboard and the weekly digest.
+    unroutedOverdue: isStaff && searchParams.get("unroutedOverdue") === "true",
   }));
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);

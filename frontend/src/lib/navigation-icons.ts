@@ -10,6 +10,7 @@ import {
   Ticket,
   Timer,
   type LucideIcon,
+  GitFork,
 } from "lucide-react";
 
 /**
@@ -27,6 +28,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/sla": Timer,
   "/admin": Settings2,
   "/admin/config-versions": History,
+  "/admin/workflow": GitFork,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

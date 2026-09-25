@@ -11,6 +11,7 @@ const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "ticket.sla": "sla",
   "remote.requested": "ticket",
   "ticket.timeAutoStopped": "ticket",
+  "ticket.unroutedOverdue": "ticket",
 };
 
 export function notificationKind(type: string): NotificationKind {
@@ -21,6 +22,10 @@ export function notificationTicketPath(
   ticketId: string | null | undefined,
   type?: string,
 ): string | null {
+  // Paket 1.7 (U2): the weekly digest points at the overdue list, not a ticket.
+  if (type === "ticket.unroutedDigest") {
+    return "/tickets?view=all&unroutedOverdue=true";
+  }
   if (ticketId === undefined || ticketId === null || ticketId.length === 0) {
     return null;
   }
@@ -46,6 +51,8 @@ export function notificationTitleKey(
   | "notifications.items.ticketSla"
   | "notifications.items.remoteRequested"
   | "notifications.items.ticketTimeAutoStopped"
+  | "notifications.items.ticketUnroutedOverdue"
+  | "notifications.items.ticketUnroutedDigest"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -68,6 +75,10 @@ export function notificationTitleKey(
       return "notifications.items.remoteRequested";
     case "ticket.timeAutoStopped":
       return "notifications.items.ticketTimeAutoStopped";
+    case "ticket.unroutedOverdue":
+      return "notifications.items.ticketUnroutedOverdue";
+    case "ticket.unroutedDigest":
+      return "notifications.items.ticketUnroutedDigest";
     default:
       return "notifications.items.unknown";
   }

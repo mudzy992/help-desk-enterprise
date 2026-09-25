@@ -11,6 +11,9 @@ export const notificationTypes = {
   knowledgeReviewDue: 'knowledge.reviewDue',
   // Package 1.3: only a timer ended by the maximum-duration guard notifies its owner.
   ticketTimeAutoStopped: 'ticket.timeAutoStopped',
+  // Package 1.7 (U2): unrouted past the cleanup deadline, and the Monday digest.
+  ticketUnroutedOverdue: 'ticket.unroutedOverdue',
+  ticketUnroutedDigest: 'ticket.unroutedDigest',
 } as const;
 
 export type NotificationType =
@@ -31,6 +34,10 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
       'notifications.items.knowledgeReviewDue',
     [notificationTypes.ticketTimeAutoStopped]:
       'notifications.items.ticketTimeAutoStopped',
+    [notificationTypes.ticketUnroutedOverdue]:
+      'notifications.items.ticketUnroutedOverdue',
+    [notificationTypes.ticketUnroutedDigest]:
+      'notifications.items.ticketUnroutedDigest',
   };
 
 export const notificationListLimits = {

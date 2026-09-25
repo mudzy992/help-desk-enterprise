@@ -41,6 +41,7 @@ export const ticketListSelect = {
   forwardCount: true,
   lastForwardedAt: true,
   lastForwardFromGroupName: true,
+  routedByUnroutedFallback: true,
   priorityOverridden: true,
   mergedAt: true,
   createdAt: true,

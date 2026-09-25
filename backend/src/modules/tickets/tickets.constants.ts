@@ -4,6 +4,7 @@ import type {
   TicketStatus,
   TicketUrgency,
 } from '../../generated/prisma/enums';
+import { deriveAllowedTransitions } from './workflow/ticket-workflow-definition';
 
 export const ticketStatuses = [
   'PENDING',
@@ -45,21 +46,10 @@ export const ticketSeverityRank: Readonly<Record<TicketImpact, number>> = {
   CRITICAL: 4,
 };
 
+/** Package 1.7: derived from `workflow/ticket-workflow-definition.ts` (W1). */
 export const allowedTicketStatusTransitions: Readonly<
   Record<TicketStatus, readonly TicketStatus[]>
-> = {
-  // Review 2026-09-25: CLOSED directly (duplicate / spam / withdrawn) — the
-  // close-code and required-field rules still apply to the CLOSED target.
-  PENDING: ['ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'CLOSED'],
-  UNROUTED: ['PENDING', 'CLOSED'],
-  PENDING_APPROVAL: ['PENDING', 'CLOSED'],
-  ASSIGNED: ['IN_PROGRESS', 'PENDING', 'WAITING_FOR_USER', 'CLOSED'],
-  IN_PROGRESS: ['WAITING_FOR_USER', 'RESOLVED', 'ASSIGNED'],
-  WAITING_FOR_USER: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
-  RESOLVED: ['CLOSED', 'IN_PROGRESS'],
-  CLOSED: ['ARCHIVED', 'IN_PROGRESS'],
-  ARCHIVED: [],
-};
+> = deriveAllowedTransitions(ticketStatuses);
 
 export const ticketConstants = {
   maximumTitleLength: 200,

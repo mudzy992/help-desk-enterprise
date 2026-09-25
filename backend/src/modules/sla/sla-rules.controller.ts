@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -37,6 +38,7 @@ import type {
   SlaTargetsResponse,
 } from './sla.types';
 
+@AdminConfigDomains('sla')
 @Controller('sla/rules')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

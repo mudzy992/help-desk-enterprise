@@ -1,4 +1,8 @@
-import { Pencil } from "lucide-react";
+import { Pencil, Route as RouteIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { permissionKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
@@ -38,6 +42,13 @@ export function TicketDetailSidebar({
   priorityOverrideTitle,
 }: TicketDetailSidebarProperties) {
   const { t } = useTranslation();
+  const { hasPermission } = useSessionCapabilities();
+  // Paket 1.7 (U3): fix the cause — a rule for this origin unit + service.
+  const withoutRule = ticket.status === "UNROUTED" || ticket.routedByUnroutedFallback === true;
+  const createRuleHref =
+    withoutRule && hasPermission(permissionKeys.routingWrite)
+      ? `/routing?${new URLSearchParams({ originUnitId: ticket.originUnitId, serviceId: ticket.serviceId }).toString()}`
+      : null;
   const requester =
     ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
   const assignee =
@@ -65,6 +76,11 @@ export function TicketDetailSidebar({
       value:
         ticket.status === "UNROUTED" || ticket.assignedGroupId === null ? (
           <Badge tone="danger">{t("tickets.detail.unrouted")}</Badge>
+        ) : ticket.routedByUnroutedFallback === true ? (
+          <span className="flex flex-col items-end gap-1">
+            {group}
+            <Badge tone="warning">{t("tickets.unrouted.fallbackBadge")}</Badge>
+          </span>
         ) : (
           group
         ),
@@ -134,6 +150,15 @@ export function TicketDetailSidebar({
           </div>
         ))}
       </dl>
+      {createRuleHref !== null ? (
+        <div className="border-t border-border/40 px-4 py-3">
+          <Button asChild size="xs" variant="outline" className="w-full">
+            <Link to={createRuleHref} data-testid="ticket-create-routing-rule">
+              <RouteIcon size={12} /> {t("tickets.unrouted.createRule")}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
     </Card>
   );
 }

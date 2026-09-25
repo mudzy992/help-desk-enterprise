@@ -163,6 +163,16 @@ export function TicketListFiltersBar({
             />
             {t("tickets.merge.hideMerged")}
           </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-3.5 accent-danger"
+              data-testid="ticket-list-unrouted-overdue"
+              checked={filters.unroutedOverdue === true}
+              onChange={(event) => onChange({ ...filters, unroutedOverdue: event.target.checked })}
+            />
+            {t("tickets.unrouted.overdueFilter")}
+          </label>
         </>
       ) : null}
       <label className="sr-only" htmlFor="ticket-list-service">

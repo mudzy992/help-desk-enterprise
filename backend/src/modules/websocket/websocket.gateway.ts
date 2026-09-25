@@ -1,3 +1,4 @@
+import { adminRealtimeRoomName } from '../../common/admin-realtime/admin-config-realtime.types';
 import { Inject, Logger, Optional } from '@nestjs/common';
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
@@ -174,6 +175,13 @@ export class WebsocketGateway
         await Promise.all(
           groupIds.map((groupId) => client.join(groupRoomName(groupId))),
         );
+        // Package 1.7 (R1): admin configuration events. Optional-chained so
+        // the unit specs' membership double without `isAdmin` still works.
+        if (
+          (await this.socketGroupMembershipService.isAdmin?.(userId)) === true
+        ) {
+          await client.join(adminRealtimeRoomName);
+        }
       } catch {
         this.logger.warn(
           `socket_group_rooms_failed connectionId=${client.id}`,

@@ -2,6 +2,11 @@ import { ticketConstants } from '../tickets.constants';
 import type { Prisma } from '../../../generated/prisma/client';
 import type { TicketStatus } from '../../../generated/prisma/enums';
 import type { TicketListQuery } from './list-tickets.types';
+import {
+  buildUnroutedOverdueWhere,
+  unroutedCutoff,
+} from '../unrouted/build-unrouted-overdue-where';
+import { defaultUnroutedQueueConfiguration } from '../unrouted/unrouted-queue.types';
 
 function toStatusArray(
   status: TicketListQuery['status'],
@@ -72,6 +77,18 @@ export function buildTicketListFilters(
   }
   if (query.unassigned === true) {
     clauses.push({ assignedUserId: null });
+  }
+  if (query.unroutedOverdue === true) {
+    const scope = query.unroutedOverdueScope ?? {
+      cutoffIso: unroutedCutoff(new Date(), defaultUnroutedQueueConfiguration.cleanupSlaHours).toISOString(),
+      targetGroupId: null,
+    };
+    clauses.push(
+      buildUnroutedOverdueWhere({
+        cutoff: new Date(scope.cutoffIso),
+        targetGroupId: scope.targetGroupId,
+      }),
+    );
   }
   if (query.hideMerged === true) {
     clauses.push({ mergedIntoTicketId: null });

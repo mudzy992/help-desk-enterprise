@@ -21,6 +21,11 @@ import {
   waitingForUserSchedulePattern,
   waitingForUserSchedulerId,
 } from './modules/tickets/waiting-for-user/waiting-for-user.job.constants';
+import {
+  unroutedSweepSchedulePattern,
+  unroutedSweepSchedulerId,
+} from './modules/tickets/unrouted/unrouted-sweep.job.constants';
+import { UnroutedSweepSchedulerService } from './modules/tickets/unrouted/unrouted-sweep.scheduler.service';
 import { WaitingForUserSchedulerService } from './modules/tickets/waiting-for-user/waiting-for-user.scheduler.service';
 
 // The maintenance scheduler pulls in SettingsService, which imports the Prisma
@@ -58,6 +63,7 @@ describe('periodic job wiring', () => {
       new TicketArchiveSchedulerService(queue as never),
       new WaitingForUserSchedulerService(queue as never),
       new KnowledgeBaseReviewReminderSchedulerService(queue as never),
+      new UnroutedSweepSchedulerService(queue as never),
       new IntegrationWorkerMaintenanceSchedulerService(queue as never, {
         load: () => {
           throw new Error('settings unavailable');
@@ -78,20 +84,22 @@ describe('periodic job wiring', () => {
         ticketArchiveSchedulerId,
         waitingForUserSchedulerId,
         knowledgeBaseReviewReminderSchedulerId,
+        unroutedSweepSchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(10);
-    // The eight registrations describe five schedules, so no job can run twice.
-    expect(store.entries.size).toBe(5);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(12);
+    // The twelve registrations describe six schedules, so no job can run twice.
+    expect(store.entries.size).toBe(6);
   });
 
-  it('staggers the three sweeps inside the fifteen-minute window', () => {
+  it('staggers the four sweeps inside the fifteen-minute window', () => {
     const minuteFields = [
       ticketArchiveSchedulePattern,
       waitingForUserSchedulePattern,
       knowledgeBaseReviewReminderSchedulePattern,
+      unroutedSweepSchedulePattern,
     ].map((pattern) => pattern.split(' ')[1]);
 
     const minuteSets = minuteFields.map(
@@ -100,7 +108,7 @@ describe('periodic job wiring', () => {
     for (const minutes of minuteSets) {
       expect(minutes.size).toBe(4);
     }
-    expect(new Set(minuteFields).size).toBe(3);
+    expect(new Set(minuteFields).size).toBe(4);
     for (const left of minuteSets) {
       for (const right of minuteSets) {
         if (left === right) {

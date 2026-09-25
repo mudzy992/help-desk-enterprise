@@ -17,6 +17,10 @@ export type TicketCounts = {
   readonly overdue: number;
   /** The tickets `GET /tickets?atRisk=true` lists. */
   readonly atRisk: number;
+  /** Paket 1.7 (U3): `GET /tickets?unroutedOverdue=true`; absent on older APIs. */
+  readonly unroutedOverdue?: number;
+  /** Cleanup deadline in hours behind `unroutedOverdue`; 0 = disabled. */
+  readonly unroutedCleanupHours?: number;
   readonly byStatus: Readonly<Record<TicketStatus, number>>;
 };
 

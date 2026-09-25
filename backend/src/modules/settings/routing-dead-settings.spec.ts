@@ -24,6 +24,10 @@ describe('routing dead settings housekeeping', () => {
     expect(ticketRoutingSettings.map((definition) => definition.key)).toEqual([
       settingKeys.privateTicketUnroutedQueueEnabled,
       settingKeys.privateTicketUnroutedQueueOwnerRole,
+      // Package 1.7 (U1/U2): live — read at ticket create and by the sweep.
+      settingKeys.privateTicketUnroutedQueueTargetGroupId,
+      settingKeys.privateTicketUnroutedQueueCleanupSlaHours,
+      settingKeys.privateTicketUnroutedQueueWeeklyDigest,
       settingKeys.privateTicketRoutingRequireCoverage,
     ]);
   });

@@ -1,3 +1,8 @@
+import {
+  adminRealtimeEventNames,
+  adminRealtimeRoomName,
+  type AdminConfigUpdatedPayload,
+} from '../../common/admin-realtime/admin-config-realtime.types';
 import type { Server } from 'socket.io';
 import { ticketRealtimeEventNames } from '../tickets/collaboration.constants';
 import type {
@@ -38,6 +43,22 @@ export function broadcastGroupNotificationRealtime(
   server
     .to(groupRoomName(event.groupId))
     .emit(ticketRealtimeEventNames.notificationCreated, payload);
+  recordWebsocketEmit('group');
+}
+
+/**
+ * Package 1.7 (R2): admin room only. Routing changes also go out under the
+ * RAW §749 name `routing.rules.updated`.
+ */
+export function broadcastAdminConfigUpdated(
+  server: Server,
+  payload: AdminConfigUpdatedPayload,
+): void {
+  const room = server.to(adminRealtimeRoomName);
+  room.emit(adminRealtimeEventNames.configUpdated, payload);
+  if (payload.domain === 'routing') {
+    room.emit(adminRealtimeEventNames.routingRulesUpdated, payload);
+  }
   recordWebsocketEmit('group');
 }
 

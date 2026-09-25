@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -27,6 +28,7 @@ import { readSlaMutationContext } from './read-sla-mutation-context';
 import { SlaProfilesService } from './sla-profiles.service';
 import type { SlaChangeLogResponse, SlaProfileResponse } from './sla.types';
 
+@AdminConfigDomains('sla')
 @Controller('sla/profiles')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

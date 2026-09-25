@@ -202,6 +202,10 @@ export async function applyTicketForward(input: {
               forwardCount: (before.forwardCount ?? 0) + 1,
               lastForwardedAt: new Date(),
               lastForwardFromGroupName: plan.fromGroup?.name ?? null,
+              // Package 1.7 (U2): a deliberate forward ends the unrouted
+              // fallback and re-arms the one-time overdue warning.
+              routedByUnroutedFallback: false,
+              unroutedWarnedAt: null,
             }),
       },
     })) as TicketRecord;

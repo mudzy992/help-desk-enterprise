@@ -26,5 +26,9 @@ export type TicketCounts = {
   readonly overdue: number;
   /** Same tickets as `GET /tickets?atRisk=true`. */
   readonly atRisk: number;
+  /** Package 1.7 (U3): same tickets as `GET /tickets?unroutedOverdue=true`. */
+  readonly unroutedOverdue: number;
+  /** The cleanup deadline behind `unroutedOverdue`; 0 = disabled. */
+  readonly unroutedCleanupHours: number;
   readonly byStatus: Readonly<Record<TicketStatus, number>>;
 };

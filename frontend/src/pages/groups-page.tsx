@@ -1,5 +1,7 @@
 import { UsersRound } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { parseAdminGroupsOrganizationalUnitFilter } from "@/lib/admin/parse-admin-tab";
@@ -73,6 +75,13 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
     void reload();
   }, [reload]);
 
+  const containerRef = useRef<HTMLElement>(null);
+  const live = useAdminConfigLiveRefresh({
+    domains: ["groups", "routing"],
+    reload,
+    containerRef,
+  });
+
   useEffect(() => {
     const organizationalUnitIdFromUrl =
       parseAdminGroupsOrganizationalUnitFilter(searchParams);
@@ -102,7 +111,8 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
   };
 
   return (
-    <section>
+    <section ref={containerRef}>
+      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
       {embedded ? null : (
         <PageHeader
           crumbs={["EP-HelpDesk", t("navigation.groups")]}

@@ -32,6 +32,10 @@ model Ticket {
   /// Package 1.6: denormalised from TicketForwardEvent (group-to-group forwards only),
   /// so the list indicator and the "forwarded" filter cost no extra query.
   forwardCount             Int       @default(0)
+  /// Package 1.7 (U1): no routing rule matched; sent to unroutedQueue.targetGroupId.
+  routedByUnroutedFallback Boolean   @default(false)
+  /// Package 1.7 (U2): one-time "unrouted past the cleanup deadline" warning.
+  unroutedWarnedAt         DateTime?
   lastForwardedAt          DateTime?
   lastForwardFromGroupName String?
   /// Package 1.2: set by a manual priority change; the matrix no longer applies.

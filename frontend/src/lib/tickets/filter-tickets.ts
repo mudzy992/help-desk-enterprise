@@ -15,6 +15,8 @@ export type TicketListFilters = {
   readonly forwarded?: TicketForwardedFilter;
   /** Package 1.2 (M7): hide merged children (staff default: on). */
   readonly hideMerged?: boolean;
+  /** Paket 1.7 (U3), staff only: unrouted past the cleanup deadline. */
+  readonly unroutedOverdue?: boolean;
   readonly currentUserId: string | null;
 };
 

@@ -24,6 +24,8 @@ export type TicketPageQuery = {
   readonly forwarded?: "any" | "toMyGroups";
   /** Package 1.2: leave merged children out. */
   readonly hideMerged?: boolean;
+  /** Paket 1.7 (U3). */
+  readonly unroutedOverdue?: boolean;
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;
@@ -59,6 +61,7 @@ const flagFilters = [
   "includeArchived",
   "searchDescription",
   "hideMerged",
+  "unroutedOverdue",
 ] as const;
 
 /**

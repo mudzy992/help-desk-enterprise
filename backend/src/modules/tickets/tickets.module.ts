@@ -61,6 +61,9 @@ import { TicketSafeLoggingConfigurationLoader } from './safe-logging/ticket-safe
 import { TicketAccessPolicyBinder } from './ticket-access-policy-binder';
 import { TicketsConfidentialController } from './confidential/tickets-confidential.controller';
 import { TicketsConfidentialService } from './confidential/tickets-confidential.service';
+import { TicketWorkflowController } from './workflow/ticket-workflow.controller';
+import { TicketWorkflowService } from './workflow/ticket-workflow.service';
+import { UnroutedQueueConfigurationLoader } from './unrouted/unrouted-queue-configuration.loader';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 import { TicketArchiveConfigurationLoader } from './archive/ticket-archive-configuration.loader';
 import { TicketCsatConfigurationLoader } from './csat/ticket-csat-configuration.loader';
@@ -98,9 +101,12 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsMergeController,
     TicketsConfidentialController,
     TicketsCsatController,
+    TicketWorkflowController,
   ],
   providers: [
     TicketsService,
+    TicketWorkflowService,
+    UnroutedQueueConfigurationLoader,
     TicketsApprovalsService,
     TicketApprovalsConfigurationLoader,
     TicketsReopenService,

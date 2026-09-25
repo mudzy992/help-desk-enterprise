@@ -29,4 +29,18 @@ export class RoutingConfigurationLoader {
       throw new RoutingError('UNAVAILABLE');
     }
   }
+
+  /** Package 1.7 (U1): optional group receiving tickets without a rule. */
+  async loadUnroutedTargetGroupId(): Promise<string | null> {
+    try {
+      const value = await this.settingsService.getSetting(
+        settingKeys.privateTicketUnroutedQueueTargetGroupId,
+      );
+      return typeof value === 'string' && value.trim().length > 0
+        ? value.trim()
+        : null;
+    } catch {
+      return null;
+    }
+  }
 }

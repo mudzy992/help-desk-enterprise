@@ -19,7 +19,8 @@
       "tickets": "Tiketi",
       "services": "Usluge i znanje",
       "administration": "Administracija"
-    }
+    },
+    "workflow": "Tok statusa"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -135,7 +136,9 @@
       "knowledgeReviewDue": "Pregled KB članka dospijeva",
       "unknown": "Obavještenje",
       "ticketForwarded": "Proslijeđen tiket {{ticketNumber}}",
-      "ticketTimeAutoStopped": "Timer je automatski zaustavljen (maksimalno trajanje)"
+      "ticketTimeAutoStopped": "Timer je automatski zaustavljen (maksimalno trajanje)",
+      "ticketUnroutedOverdue": "Tiket bez pravila rutiranja čeka duže od roka",
+      "ticketUnroutedDigest": "Sedmični pregled: nerutirani tiketi preko roka"
     }
   },
   "placeholders": {
@@ -524,7 +527,15 @@
       "subtitle": "Postavke opisuju red — nikad ne dodjeljuju grupu",
       "enabled": "Neusmjereni red uključen",
       "hint": "UNROUTED ishod ostaje first-class čak i kad je red isključen — routing ne “spašava” tiket proizvoljnom grupom.",
-      "drawerTitle": "Postavke neusmjerenog reda"
+      "drawerTitle": "Postavke neusmjerenog reda",
+      "targetGroup": "Ciljna grupa za tikete bez pravila",
+      "targetGroupNone": "— Nema (ostaje u UNROUTED redu) —",
+      "targetGroupMissing": "Obrisana grupa (neispravno)",
+      "targetGroupMissingHint": "Podešena ciljna grupa više ne postoji — novi tiketi bez pravila ostaju u UNROUTED redu. Izaberite drugu grupu.",
+      "cleanup": "Rok obrade nerutiranih",
+      "cleanupOff": "isključeno",
+      "cleanupHours": "{{count}} h",
+      "digestOn": "sedmični pregled"
     },
     "security": {
       "title": "Sigurnost i usklađenost",
@@ -839,8 +850,8 @@
         "private.ticket.split.allowMessageCopy": "Dozvoli kopiranje odabranih poruka u child tikete pri split-u.",
         "private.ticket.split.enabled": "Dozvoli agentima da podele tiket na parent/child tikete.",
         "private.ticket.split.requireReason": "Zahtijevaj razlog pri dijeljenju tiketa.",
-        "private.ticket.unroutedQueue.enabled": "Drži neuparene kombinacije origin-unit/usluga u eksplicitnom UNROUTED redu.",
-        "private.ticket.unroutedQueue.ownerRole": "Uloga koja posjeduje UNROUTED red (nikad kao lažna handler grupa).",
+        "private.ticket.unroutedQueue.enabled": "Drži neuparene kombinacije u eksplicitnom UNROUTED redu; s podešenom ciljnom grupom tiketi idu u nju. Tiket se nikad ne gubi.",
+        "private.ticket.unroutedQueue.ownerRole": "Uloga koja posjeduje UNROUTED red i prima upozorenja o roku i sedmični pregled.",
         "private.ticket.routing.requireCoverage": "Blokiraj aktivaciju usluge ako nema routing pravila.",
         "private.ticket.waitingForUser.autoCloseAfterDays": "Dani bez odgovora korisnika prije auto-zatvaranja tiketa na čekanju.",
         "private.ticket.waitingForUser.enabled": "Uključi podsjetnike, auto-zatvaranje i nastavak nakon odgovora dok se čeka korisnik.",
@@ -875,7 +886,10 @@
         "private.timeTracking.singleActivePerUser": "Agent može imati samo jedan aktivan timer; pokretanje na drugom tiketu nudi prebacivanje.",
         "private.timeTracking.manualEntry.enabled": "Dozvoli ručni unos vremena (rad van sistema) uz obaveznu napomenu.",
         "private.timeTracking.manualEntry.maxBackdateDays": "Koliko dana unazad je dozvoljen ručni unos i ispravka vlastitih unosa.",
-        "private.timeTracking.manualEntry.maxMinutes": "Najveće trajanje jednog ručnog unosa u minutama."
+        "private.timeTracking.manualEntry.maxMinutes": "Najveće trajanje jednog ručnog unosa u minutama.",
+        "private.ticket.unroutedQueue.targetGroupId": "Grupa koja prima tikete bez pravila rutiranja (status PENDING, SLA teče). Prazno = ostaju u UNROUTED redu.",
+        "private.ticket.unroutedQueue.cleanupSlaHours": "Sati koliko nerutirani tiket smije čekati prije upozorenja vlasniku (0 = isključeno, 0–168).",
+        "private.ticket.unroutedQueue.weeklyDigest": "Sedmični pregled nerutiranih tiketa preko roka, ponedjeljkom u 08:00."
       }
     },
     "emailTemplates": {
@@ -1042,7 +1056,10 @@
     "columnAssignment": "Grupa / Agent",
     "activityTitle": "Aktivnost",
     "activitySubtitle": "Posljednji događaji",
-    "activityEmpty": "Nema nedavnih događaja."
+    "activityEmpty": "Nema nedavnih događaja.",
+    "unroutedOverdueBanner_one": "{{count}} nerutiran tiket čeka duže od {{hours}} h — riješite ga",
+    "unroutedOverdueBanner_few": "{{count}} nerutirana tiketa čekaju duže od {{hours}} h — riješite ih",
+    "unroutedOverdueBanner_other": "{{count}} nerutiranih tiketa čeka duže od {{hours}} h — riješite ih"
   },
   "reports": {
     "title": "Izvještaji i uska grla",
@@ -2766,6 +2783,11 @@
         "forbidden": "Nemate pravo na ovu radnju.",
         "generic": "Radnja nad unosom vremena nije uspjela."
       }
+    },
+    "unrouted": {
+      "overdueFilter": "Nerutirani preko roka",
+      "fallbackBadge": "Bez pravila rutiranja",
+      "createRule": "Kreiraj pravilo za ovu kombinaciju"
     }
   },
   "relativeTime": {
@@ -2805,5 +2827,99 @@
     "selectHint": "otvori",
     "closeHint": "zatvori",
     "searching": "Pretraga u toku…"
+  },
+  "adminRealtime": {
+    "domains": {
+      "routing": "pravila rutiranja",
+      "sla": "SLA postavke",
+      "catalog": "katalog servisa",
+      "groups": "grupe"
+    },
+    "changedBy": "{{name}} je upravo izmijenio/la {{domain}}. Ekran nije osvježen da ne izgubite unos.",
+    "changed": "Neko je upravo izmijenio {{domain}}. Ekran nije osvježen da ne izgubite unos.",
+    "refresh": "Osvježi",
+    "dismiss": "Zatvori obavještenje"
+  },
+  "workflow": {
+    "title": "Tok statusa",
+    "intro": "Kako tiket prolazi kroz statuse u ovoj instalaciji: ko smije napraviti prelaz, šta ga pokreće i koji uslovi važe.",
+    "fixedNotice": "Tok je fiksan radi konzistentnosti SLA, odobrenja, izvještaja i evidencije vremena. Promjene idu kroz razvoj; ovdje se vide stvarni uslovi prema trenutnim postavkama.",
+    "diagramTitle": "Dijagram",
+    "diagramSubtitle": "Statusi po fazama; boja strelice označava ko pravi prelaz. Brojevi su tiketi u vašem opsegu.",
+    "diagramAria": "Dijagram toka statusa tiketa",
+    "diagramHint": "Klik na status ističe njegove prelaze.",
+    "phases": {
+      "intake": "Prijem",
+      "work": "Obrada",
+      "done": "Završetak"
+    },
+    "actors": {
+      "STAFF": "Osoblje",
+      "REQUESTER": "Podnosilac",
+      "APPROVER": "Odobravač",
+      "SYSTEM": "Sistem (automatski)"
+    },
+    "triggers": {
+      "status_change": "promjena statusa",
+      "claim": "preuzimanje",
+      "forward": "prosljeđivanje",
+      "approval": "odobrenje",
+      "reopen": "ponovno otvaranje",
+      "automation": "automatika"
+    },
+    "guards": {
+      "close_code": "Obavezan kod zatvaranja",
+      "required_fields": "Obavezna polja ({{count}} globalno)",
+      "resolution_note": "Napomena o rješenju",
+      "approval_decision": "Odluka odobravača",
+      "reopen_window": "U roku {{days}} dana",
+      "waiting_auto_close": "Automatski nakon {{days}} dana bez odgovora",
+      "archive_after": "{{days}} dana nakon zatvaranja",
+      "group_required": "Potrebna ciljna grupa"
+    },
+    "guardOff": "isključeno",
+    "tableTitle": "Prelazi",
+    "tableSubtitle": "Svi dozvoljeni prelazi sa akterima, okidačima i uslovima.",
+    "filterStatus": "Status:",
+    "filterAll": "Svi statusi",
+    "columns": {
+      "from": "Od",
+      "to": "Do",
+      "actors": "Ko",
+      "triggers": "Okidač",
+      "guards": "Uslovi"
+    },
+    "paramsTitle": "Trenutni parametri",
+    "paramsSubtitle": "Postavke koje određuju uslove prelaza.",
+    "paramsHint": "Vrijednosti se mijenjaju u postavkama.",
+    "paramsLink": "Otvori postavke",
+    "on": "uključeno",
+    "off": "isključeno",
+    "unavailable": "nedostupno",
+    "params": {
+      "closeCodes": "Kodovi zatvaranja",
+      "requiredOnResolve": "obavezni",
+      "requiredFields": "Obavezna polja",
+      "reopen": "Ponovno otvaranje",
+      "waitingForUser": "Čekanje korisnika",
+      "waitingValues": "podsjetnik {{reminder}} d, zatvaranje {{close}} d",
+      "approvals": "Odobrenja",
+      "archive": "Arhiviranje",
+      "unroutedOwner": "Vlasnik UNROUTED reda",
+      "unroutedTarget": "Ciljna grupa (bez pravila)",
+      "targetNone": "nema — ostaje UNROUTED",
+      "targetMissing": "grupa ne postoji",
+      "unroutedCleanup": "Rok obrade nerutiranih",
+      "digest": "sedmični pregled",
+      "days_one": "{{count}} dan",
+      "days_few": "{{count}} dana",
+      "days_other": "{{count}} dana",
+      "hours_one": "{{count}} sat",
+      "hours_few": "{{count}} sata",
+      "hours_other": "{{count}} sati",
+      "globalFields_one": "{{count}} globalno polje",
+      "globalFields_few": "{{count}} globalna polja",
+      "globalFields_other": "{{count}} globalnih polja"
+    }
   }
 }

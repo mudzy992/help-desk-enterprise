@@ -111,14 +111,19 @@ export async function createTicket(
     serviceId,
     formVersionRef: input.formVersionRef,
   });
+  const routed = await applyCreateTicketRouting(routingService, {
+    originUnitId,
+    serviceId,
+  }).catch(mapCreateDependencyError);
   const routing = await resolveCreateTicketHandlerGroup(
     prisma,
-    await applyCreateTicketRouting(routingService, {
-      originUnitId,
-      serviceId,
-    }).catch(mapCreateDependencyError),
+    routed,
     input.assignedGroupId,
   );
+  // An explicit handler group overrides the fallback, so the flag only
+  // survives when the ticket really landed in the unrouted target group.
+  const routedByUnroutedFallback =
+    input.assignedGroupId === undefined && routed.routedByUnroutedFallback;
   const approvalsConfiguration = await approvalsConfigurationLoader.load();
   const status = resolveCreateTicketApprovalStatus({
     routingStatus: routing.status,
@@ -191,6 +196,7 @@ export async function createTicket(
             requesterId: requester.id,
             assignedGroupId: routing.assignedGroupId,
             assignedUserId: null,
+            routedByUnroutedFallback,
             parentTicketId: input.parentTicketId ?? null,
             reopenedFromTicketId: input.reopenedFromTicketId ?? null,
           },

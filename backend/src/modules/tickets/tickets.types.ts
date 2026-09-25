@@ -49,6 +49,8 @@ export type TicketRecord = {
   readonly forwardCount?: number;
   readonly lastForwardedAt?: Date | null;
   readonly lastForwardFromGroupName?: string | null;
+  /** Package 1.7 (U1), optional for fixtures. */
+  readonly routedByUnroutedFallback?: boolean;
   /** Package 1.2 (optional for the same reason). */
   readonly priorityOverridden?: boolean;
   readonly priorityOverriddenAt?: Date | null;
@@ -96,6 +98,8 @@ export type TicketResponse = {
   readonly forwardCount: number;
   readonly lastForwardedAt: string | null;
   readonly lastForwardFromGroupName: string | null;
+  /** Package 1.7 (U1): sent to the unrouted target group (no routing rule). */
+  readonly routedByUnroutedFallback: boolean;
   /** Package 1.2 */
   readonly priorityOverridden: boolean;
   readonly mergedAt: string | null;

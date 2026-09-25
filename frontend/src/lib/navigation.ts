@@ -14,6 +14,7 @@ export const navigationLabelKeys = {
   sla: "navigation.sla",
   admin: "navigation.admin",
   configVersions: "navigation.configVersions",
+  workflow: "navigation.workflow",
 } as const;
 
 export type NavigationLabelKey =
@@ -111,6 +112,14 @@ export const configVersionsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.configVersions },
 };
 
+/** Paket 1.7 (W3): read-only status flow, ADMIN/SUPER_ADMIN. */
+export const workflowNavigationItem: NavigationItem = {
+  path: "/admin/workflow",
+  labelKey: navigationLabelKeys.workflow,
+  end: false,
+  access: { kind: navigationAccessKinds.admin },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -129,6 +138,7 @@ export const navigationSections: readonly NavigationSection[] = [
     items: [
       routingNavigationItem,
       slaNavigationItem,
+      workflowNavigationItem,
       adminNavigationItem,
       configVersionsNavigationItem,
     ],

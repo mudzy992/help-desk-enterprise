@@ -1,5 +1,7 @@
 import { Blocks, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
 import { ServiceCategoriesAdminSheet } from "@/components/services/categories/service-categories-admin-sheet";
 import { ServiceCategoryMutationSheet } from "@/components/services/categories/service-category-mutation-sheet";
@@ -65,9 +67,16 @@ export function ServicesPage() {
     await categoryState.reload();
     await catalog.reload();
   };
+  const containerRef = useRef<HTMLElement>(null);
+  const live = useAdminConfigLiveRefresh({
+    domains: ["catalog"],
+    reload: reloadCategories,
+    containerRef,
+  });
 
   return (
-    <section>
+    <section ref={containerRef}>
+      <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
       <PageHeader
         crumbs={["EP-HelpDesk", t("navigation.sections.services"), t("services.title")]}
         title={t("services.title")}

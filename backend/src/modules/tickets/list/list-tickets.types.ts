@@ -31,6 +31,16 @@ export type TicketListQuery = {
    * once; `toMyGroups` = forwarded and currently in one of the caller's groups.
    */
   readonly forwarded?: 'any' | 'toMyGroups';
+  /** Package 1.7 (U3): unrouted past the cleanup deadline. */
+  readonly unroutedOverdue?: boolean;
+  /**
+   * Resolved server-side from the unrouted-queue settings (never from the
+   * client); without it the filter uses the defaults (8 h, no target group).
+   */
+  readonly unroutedOverdueScope?: {
+    readonly cutoffIso: string;
+    readonly targetGroupId: string | null;
+  };
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;

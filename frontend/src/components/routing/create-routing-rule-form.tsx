@@ -18,6 +18,9 @@ interface CreateRoutingRuleFormProperties {
   readonly groups: readonly RoutingHandlerGroup[];
   readonly existingRules: readonly RoutingRuleResponse[];
   readonly onCreated: () => Promise<void>;
+  /** Paket 1.7 (U3): pre-filled from an unrouted ticket. */
+  readonly initialOriginUnitId?: string;
+  readonly initialServiceId?: string;
 }
 
 const maximumChangeReasonLength = 512;
@@ -28,10 +31,12 @@ export function CreateRoutingRuleForm({
   groups,
   existingRules,
   onCreated,
+  initialOriginUnitId = "",
+  initialServiceId = "",
 }: CreateRoutingRuleFormProperties) {
   const { t } = useTranslation();
-  const [originUnitId, setOriginUnitId] = useState("");
-  const [serviceId, setServiceId] = useState("");
+  const [originUnitId, setOriginUnitId] = useState(initialOriginUnitId);
+  const [serviceId, setServiceId] = useState(initialServiceId);
   const [groupId, setGroupId] = useState("");
   const [reason, setReason] = useState("");
   const [errorKey, setErrorKey] = useState<RoutingErrorKey | null>(null);

@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -42,6 +43,7 @@ import type {
   RoutingRuleResponse,
 } from './routing.types';
 
+@AdminConfigDomains('routing')
 @Controller('routing')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

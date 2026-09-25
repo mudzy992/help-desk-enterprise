@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -26,6 +27,7 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { GroupsService } from './groups.service';
 import type { GroupListItemResponse, GroupResponse } from './groups.types';
 
+@AdminConfigDomains('groups')
 @Controller('groups')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

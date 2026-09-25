@@ -20,6 +20,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.sla": "SLA",
   "navigation.admin": "Administracija",
   "navigation.configVersions": "Verzije konfiguracije",
+  "navigation.workflow": "Tok statusa",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {
@@ -95,6 +96,7 @@ describe("filterNavigationCommands", () => {
     expect(paths.slice(2)).toEqual([
       "/routing",
       "/sla",
+      "/admin/workflow",
       "/admin/config-versions",
     ]);
   });

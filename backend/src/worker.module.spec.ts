@@ -18,6 +18,8 @@ import { timeTrackingSweepQueueName } from './modules/tickets/time-tracking/time
 import { TimeTrackingSweepProcessor } from './modules/tickets/time-tracking/time-tracking-sweep.processor';
 import { waitingForUserQueueName } from './modules/tickets/waiting-for-user/waiting-for-user.job.constants';
 import { WaitingForUserProcessor } from './modules/tickets/waiting-for-user/waiting-for-user.processor';
+import { unroutedSweepQueueName } from './modules/tickets/unrouted/unrouted-sweep.job.constants';
+import { UnroutedSweepProcessor } from './modules/tickets/unrouted/unrouted-sweep.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
 import { WorkerModule } from './worker.module';
 
@@ -35,6 +37,7 @@ const scheduledQueueNames = [
   knowledgeBaseReviewReminderQueueName,
   integrationWorkerMaintenanceQueueName,
   timeTrackingSweepQueueName,
+  unroutedSweepQueueName,
 ] as const;
 
 const processorTypes = [
@@ -46,6 +49,7 @@ const processorTypes = [
   KnowledgeBaseReviewReminderProcessor,
   IntegrationWorkerMaintenanceProcessor,
   TimeTrackingSweepProcessor,
+  UnroutedSweepProcessor,
 ] as const;
 
 function createFakeQueue() {

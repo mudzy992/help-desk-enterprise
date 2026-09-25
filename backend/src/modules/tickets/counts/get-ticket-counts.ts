@@ -13,6 +13,7 @@ import { defaultTicketConfidentialConfiguration } from '../confidential/confiden
 import { buildTicketListFilters } from '../list/build-ticket-list-filters';
 import { buildTicketVisibilityWhere } from '../list/build-ticket-visibility-where';
 import { loadTicketVisibilityInputs } from '../list/load-ticket-visibility-inputs';
+import { unroutedCutoff } from '../unrouted/build-unrouted-overdue-where';
 import { ticketStatuses } from '../tickets.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext } from '../tickets.types';
@@ -48,6 +49,11 @@ type GetTicketCountsInput = {
   readonly context: TicketMutationContext;
   readonly archive?: TicketArchiveConfiguration;
   readonly groupInboxEnabled: boolean;
+  /** Package 1.7 (U3); absent → counter reported as 0. */
+  readonly unrouted?: {
+    readonly cleanupSlaHours: number;
+    readonly targetGroupId: string | null;
+  };
 };
 
 export function getTicketCounts(input: GetTicketCountsInput): Promise<TicketCounts> {
@@ -57,6 +63,7 @@ export function getTicketCounts(input: GetTicketCountsInput): Promise<TicketCoun
     input.archive ?? null,
     input.context.confidential ?? null,
     input.groupInboxEnabled,
+    input.unrouted ?? null,
   ]);
   return ticketCountsFlights(input.prisma).get(key, () =>
     computeTicketCounts(input),
@@ -99,7 +106,8 @@ async function computeTicketCounts(input: GetTicketCountsInput): Promise<TicketC
   const inboxClauses = input.groupInboxEnabled
     ? buildGroupInboxWhere(visibility)
     : null;
-  const [grouped, overdue, atRisk, inbox] = await Promise.all([
+  const unroutedHours = input.unrouted?.cleanupSlaHours ?? 0;
+  const [grouped, overdue, atRisk, inbox, unroutedOverdue] = await Promise.all([
     input.prisma.ticket.groupBy({
       by: ['status'],
       where: { AND: scope },
@@ -110,6 +118,17 @@ async function computeTicketCounts(input: GetTicketCountsInput): Promise<TicketC
     inboxClauses === null
       ? Promise.resolve(0)
       : input.prisma.ticket.count({ where: { AND: inboxClauses } }),
+    unroutedHours === 0
+      ? Promise.resolve(0)
+      : input.prisma.ticket.count({
+          where: listed({
+            unroutedOverdue: true,
+            unroutedOverdueScope: {
+              cutoffIso: unroutedCutoff(new Date(), unroutedHours).toISOString(),
+              targetGroupId: input.unrouted?.targetGroupId ?? null,
+            },
+          }),
+        }),
   ]);
   const byStatus = Object.fromEntries(
     ticketStatuses.map((status) => [status, 0]),
@@ -128,6 +147,8 @@ async function computeTicketCounts(input: GetTicketCountsInput): Promise<TicketC
     inbox,
     overdue,
     atRisk,
+    unroutedOverdue,
+    unroutedCleanupHours: unroutedHours,
     byStatus,
   };
 }

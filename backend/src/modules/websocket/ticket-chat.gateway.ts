@@ -1,4 +1,5 @@
-import { OnModuleDestroy } from '@nestjs/common';
+import { OnModuleDestroy, Optional } from '@nestjs/common';
+import { AdminConfigRealtimeHub } from '../../common/admin-realtime/admin-config-realtime.hub';
 import {
   ConnectedSocket,
   MessageBody,
@@ -20,6 +21,7 @@ import {
 } from './broadcast-ticket-realtime';
 import { broadcastEdgeEventRealtime } from './broadcast-edge-realtime';
 import {
+  broadcastAdminConfigUpdated,
   broadcastGroupNotificationRealtime,
   broadcastNotificationRealtime,
   broadcastSettingsUpdated,
@@ -48,6 +50,8 @@ export class TicketChatGateway implements OnGatewayInit, OnModuleDestroy {
     private readonly ticketsCollaborationService: TicketsCollaborationService,
     private readonly ticketRealtimeHub: TicketRealtimeHub,
     private readonly settingsRealtimeHub: SettingsRealtimeHub,
+    @Optional()
+    private readonly adminConfigRealtimeHub?: AdminConfigRealtimeHub,
   ) {}
 
   afterInit(): void {
@@ -71,6 +75,13 @@ export class TicketChatGateway implements OnGatewayInit, OnModuleDestroy {
         broadcastSettingsUpdated(this.server, payload);
       }),
     );
+    if (this.adminConfigRealtimeHub !== undefined) {
+      this.unsubscribers.push(
+        this.adminConfigRealtimeHub.subscribe((payload) => {
+          broadcastAdminConfigUpdated(this.server, payload);
+        }),
+      );
+    }
   }
 
   onModuleDestroy(): void {

@@ -19,7 +19,8 @@
       "tickets": "Tickets",
       "services": "Services and knowledge",
       "administration": "Administration"
-    }
+    },
+    "workflow": "Status flow"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -135,7 +136,9 @@
       "knowledgeReviewDue": "Knowledge article review is due",
       "unknown": "Notification",
       "ticketForwarded": "Ticket {{ticketNumber}} forwarded",
-      "ticketTimeAutoStopped": "Timer stopped automatically (maximum duration)"
+      "ticketTimeAutoStopped": "Timer stopped automatically (maximum duration)",
+      "ticketUnroutedOverdue": "Ticket without a routing rule is past the deadline",
+      "ticketUnroutedDigest": "Weekly digest: unrouted tickets past the deadline"
     }
   },
   "placeholders": {
@@ -524,7 +527,15 @@
       "subtitle": "Settings describe the queue — they never assign a handler group",
       "enabled": "Unrouted queue enabled",
       "hint": "UNROUTED stays first-class even when the queue is off — routing never “rescues” a ticket with an arbitrary group.",
-      "drawerTitle": "Unrouted queue settings"
+      "drawerTitle": "Unrouted queue settings",
+      "targetGroup": "Target group for tickets without a rule",
+      "targetGroupNone": "— None (stay in the UNROUTED queue) —",
+      "targetGroupMissing": "Deleted group (invalid)",
+      "targetGroupMissingHint": "The configured target group no longer exists — new tickets without a rule stay in the UNROUTED queue. Pick another group.",
+      "cleanup": "Unrouted cleanup deadline",
+      "cleanupOff": "off",
+      "cleanupHours": "{{count}} h",
+      "digestOn": "weekly digest"
     },
     "security": {
       "title": "Security and compliance",
@@ -839,8 +850,8 @@
         "private.ticket.split.allowMessageCopy": "Allow copying selected messages into split child tickets.",
         "private.ticket.split.enabled": "Allow agents to split a ticket into parent/child tickets.",
         "private.ticket.split.requireReason": "Require a reason when splitting a ticket.",
-        "private.ticket.unroutedQueue.enabled": "Keep unmatched origin-unit/service combinations in the explicit UNROUTED queue.",
-        "private.ticket.unroutedQueue.ownerRole": "Role that owns the UNROUTED queue (never used as a fake handler group).",
+        "private.ticket.unroutedQueue.enabled": "Keep unmatched combinations in the explicit UNROUTED queue; with a target group set, tickets go there. A ticket is never lost.",
+        "private.ticket.unroutedQueue.ownerRole": "Role that owns the UNROUTED queue and receives the deadline warnings and weekly digest.",
         "private.ticket.routing.requireCoverage": "Block service activation when the service has no routing rules.",
         "private.ticket.waitingForUser.autoCloseAfterDays": "Days without a user reply before a waiting ticket is auto-closed.",
         "private.ticket.waitingForUser.enabled": "Enable waiting-for-user reminders, auto-close, and reply resume.",
@@ -875,7 +886,10 @@
         "private.timeTracking.singleActivePerUser": "An agent may run only one timer; starting on another ticket offers to switch.",
         "private.timeTracking.manualEntry.enabled": "Allow manual time entries (work outside the system) with a required note.",
         "private.timeTracking.manualEntry.maxBackdateDays": "How many days back manual entries and corrections of own entries are allowed.",
-        "private.timeTracking.manualEntry.maxMinutes": "Maximum length of one manual entry in minutes."
+        "private.timeTracking.manualEntry.maxMinutes": "Maximum length of one manual entry in minutes.",
+        "private.ticket.unroutedQueue.targetGroupId": "Group that receives tickets without a routing rule (status PENDING, SLA runs). Empty = they stay in the UNROUTED queue.",
+        "private.ticket.unroutedQueue.cleanupSlaHours": "Hours an unrouted ticket may wait before the owner is warned (0 = off, 0–168).",
+        "private.ticket.unroutedQueue.weeklyDigest": "Weekly digest of unrouted tickets past the deadline, Mondays at 08:00."
       }
     },
     "emailTemplates": {
@@ -1041,7 +1055,9 @@
     "columnAssignment": "Group / Agent",
     "activityTitle": "Activity",
     "activitySubtitle": "Latest events",
-    "activityEmpty": "No recent events."
+    "activityEmpty": "No recent events.",
+    "unroutedOverdueBanner_one": "{{count}} unrouted ticket waiting over {{hours}} h — handle it",
+    "unroutedOverdueBanner_other": "{{count}} unrouted tickets waiting over {{hours}} h — handle them"
   },
   "reports": {
     "title": "Reports and bottlenecks",
@@ -2763,6 +2779,11 @@
         "forbidden": "You are not allowed to do this.",
         "generic": "The time entry action failed."
       }
+    },
+    "unrouted": {
+      "overdueFilter": "Unrouted past deadline",
+      "fallbackBadge": "No routing rule",
+      "createRule": "Create a rule for this combination"
     }
   },
   "relativeTime": {
@@ -2802,5 +2823,96 @@
     "selectHint": "to open",
     "closeHint": "to close",
     "searching": "Searching…"
+  },
+  "adminRealtime": {
+    "domains": {
+      "routing": "routing rules",
+      "sla": "SLA settings",
+      "catalog": "the service catalog",
+      "groups": "groups"
+    },
+    "changedBy": "{{name}} just changed {{domain}}. The screen was not refreshed so you keep your input.",
+    "changed": "Someone just changed {{domain}}. The screen was not refreshed so you keep your input.",
+    "refresh": "Refresh",
+    "dismiss": "Dismiss notice"
+  },
+  "workflow": {
+    "title": "Status flow",
+    "intro": "How a ticket moves through statuses in this installation: who may make a transition, what triggers it and which conditions apply.",
+    "fixedNotice": "The flow is fixed to keep SLA, approvals, reports and time tracking consistent. Changes go through development; this page shows the real conditions under the current settings.",
+    "diagramTitle": "Diagram",
+    "diagramSubtitle": "Statuses by phase; the arrow colour shows who makes the transition. Numbers are tickets in your scope.",
+    "diagramAria": "Ticket status flow diagram",
+    "diagramHint": "Click a status to highlight its transitions.",
+    "phases": {
+      "intake": "Intake",
+      "work": "Work",
+      "done": "Done"
+    },
+    "actors": {
+      "STAFF": "Staff",
+      "REQUESTER": "Requester",
+      "APPROVER": "Approver",
+      "SYSTEM": "System (automatic)"
+    },
+    "triggers": {
+      "status_change": "status change",
+      "claim": "claim",
+      "forward": "forward",
+      "approval": "approval",
+      "reopen": "reopen",
+      "automation": "automation"
+    },
+    "guards": {
+      "close_code": "Close code required",
+      "required_fields": "Required fields ({{count}} global)",
+      "resolution_note": "Resolution note",
+      "approval_decision": "Approver decision",
+      "reopen_window": "Within {{days}} days",
+      "waiting_auto_close": "Automatically after {{days}} days without reply",
+      "archive_after": "{{days}} days after closing",
+      "group_required": "Target group required"
+    },
+    "guardOff": "off",
+    "tableTitle": "Transitions",
+    "tableSubtitle": "Every allowed transition with its actors, triggers and conditions.",
+    "filterStatus": "Status:",
+    "filterAll": "All statuses",
+    "columns": {
+      "from": "From",
+      "to": "To",
+      "actors": "Who",
+      "triggers": "Trigger",
+      "guards": "Conditions"
+    },
+    "paramsTitle": "Current parameters",
+    "paramsSubtitle": "Settings that shape the transition conditions.",
+    "paramsHint": "Values are changed in settings.",
+    "paramsLink": "Open settings",
+    "on": "on",
+    "off": "off",
+    "unavailable": "unavailable",
+    "params": {
+      "closeCodes": "Close codes",
+      "requiredOnResolve": "required",
+      "requiredFields": "Required fields",
+      "reopen": "Reopen",
+      "waitingForUser": "Waiting for user",
+      "waitingValues": "reminder {{reminder}} d, close {{close}} d",
+      "approvals": "Approvals",
+      "archive": "Archiving",
+      "unroutedOwner": "UNROUTED queue owner",
+      "unroutedTarget": "Target group (no rule)",
+      "targetNone": "none — stays UNROUTED",
+      "targetMissing": "group does not exist",
+      "unroutedCleanup": "Unrouted cleanup deadline",
+      "digest": "weekly digest",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours",
+      "globalFields_one": "{{count}} global field",
+      "globalFields_other": "{{count}} global fields"
+    }
   }
 }

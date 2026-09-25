@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -35,6 +36,7 @@ import type {
 } from './service-availability.types';
 import type { ServiceResponse } from './service-catalog.types';
 
+@AdminConfigDomains('catalog')
 @Controller('services')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

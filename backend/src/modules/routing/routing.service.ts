@@ -154,6 +154,29 @@ export class RoutingService {
     );
   }
 
+  /**
+   * Package 1.7 (U1): the configured unrouted target group, only when it
+   * still exists. A deleted group silently degrades to the UNROUTED queue so
+   * a stale setting never loses a ticket.
+   */
+  async resolveUnroutedTargetGroupId(): Promise<string | null> {
+    const loader = this.configurationLoader as Partial<RoutingConfigurationLoader>;
+    if (typeof loader.loadUnroutedTargetGroupId !== 'function') {
+      return null;
+    }
+    const groupId = await loader.loadUnroutedTargetGroupId.call(
+      this.configurationLoader,
+    );
+    if (groupId === null) {
+      return null;
+    }
+    const group = await this.prisma.group.findUnique({
+      where: { id: groupId },
+      select: { id: true },
+    });
+    return group?.id ?? null;
+  }
+
   async resolve(input: ResolveRoutingInput): Promise<RoutingResolution> {
     return this.execute(async () =>
       resolveTicketRouting(

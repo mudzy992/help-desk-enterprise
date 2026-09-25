@@ -58,6 +58,12 @@ export class TicketFilterQueryDto {
   @IsBoolean()
   hideMerged?: boolean;
 
+  /** Package 1.7 (U3). */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  unroutedOverdue?: boolean;
+
   @IsOptional()
   @IsIn(['any', 'toMyGroups'])
   forwarded?: 'any' | 'toMyGroups';

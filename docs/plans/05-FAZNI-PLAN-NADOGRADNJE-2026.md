@@ -89,7 +89,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
   Izvor podataka je `TicketForwardEvent`. Lista je pod query-count kapijom.
 
-### 1.7 Workflow, nerutirani tiketi, realtime dopune (G8 + G9 + G10)  · ~2 RD · dizajn: `modules/1.7-workflow-unrouted-realtime.md`
+### 1.7 Workflow, nerutirani tiketi, realtime dopune (G8 + G9 + G10)  · ~2 RD · dizajn: `modules/1.7-workflow-unrouted-realtime.md` · ✅ implementirano
 - Admin: read-only prikaz toka statusa (dijagram dozvoljenih prelaza i ko ih smije raditi).
   Odluka: prelazi se ne uređuju iz UI-ja (sigurnost konzistentnosti SLA/approvals) — dokumentovati.
 - Nerutirani: `targetGroupId` (tiketi bez pravila idu u tu grupu) i `cleanupSlaHours`

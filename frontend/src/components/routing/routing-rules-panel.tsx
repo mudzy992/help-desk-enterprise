@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
 import { CreateRoutingRuleForm } from "@/components/routing/create-routing-rule-form";
 import { RoutingRulesTable } from "@/components/routing/routing-rules-table";
@@ -13,7 +15,11 @@ import {
   type RoutingRuleResponse,
 } from "@/services/routing-api";
 
-export function RoutingRulesPanel() {
+export function RoutingRulesPanel({
+  prefill,
+}: {
+  readonly prefill?: { readonly originUnitId: string; readonly serviceId: string };
+} = {}) {
   const { t } = useTranslation();
   const catalog = useRoutingCatalog();
   const [rules, setRules] = useState<readonly RoutingRuleResponse[]>([]);
@@ -40,7 +46,22 @@ export function RoutingRulesPanel() {
     void loadRules();
   }, [loadRules]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const live = useAdminConfigLiveRefresh({
+    domains: ["routing", "groups", "catalog"],
+    reload: async () => {
+      await Promise.all([loadRules(), catalog.reload()]);
+    },
+    containerRef,
+  });
+
   return (
+    <div ref={containerRef}>
+    <AdminConfigChangedBanner
+      pending={live.pending}
+      onRefresh={live.refreshNow}
+      onDismiss={live.dismiss}
+    />
     <div className="fade-in grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
       <Card>
         <CardHeader
@@ -78,6 +99,8 @@ export function RoutingRulesPanel() {
             />
           ) : (
             <CreateRoutingRuleForm
+              initialOriginUnitId={prefill?.originUnitId}
+              initialServiceId={prefill?.serviceId}
               originUnits={catalog.originUnits}
               services={catalog.services}
               groups={catalog.groups}
@@ -87,6 +110,7 @@ export function RoutingRulesPanel() {
           )}
         </div>
       </Card>
+    </div>
     </div>
   );
 }

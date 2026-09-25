@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -31,6 +32,7 @@ import type {
   ServiceFormResponse,
 } from './service-forms.types';
 
+@AdminConfigDomains('catalog')
 @Controller('services')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

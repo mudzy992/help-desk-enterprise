@@ -69,6 +69,8 @@ export type TicketResponse = {
   readonly waitingForUserEnteredAt?: string | null;
   /** Package 1.6 */
   readonly forwardCount?: number;
+  /** Paket 1.7 (U1): no routing rule matched; sent to the unrouted target group. */
+  readonly routedByUnroutedFallback?: boolean;
   readonly lastForwardedAt?: string | null;
   readonly lastForwardFromGroupName?: string | null;
   /** Package 1.2 */

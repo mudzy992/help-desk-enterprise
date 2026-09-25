@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -33,6 +34,7 @@ import type {
   SlaChangeLogResponse,
 } from './sla.types';
 
+@AdminConfigDomains('sla')
 @Controller('sla/calendars')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

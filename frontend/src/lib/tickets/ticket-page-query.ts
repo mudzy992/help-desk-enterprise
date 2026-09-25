@@ -42,6 +42,7 @@ export function toTicketPageQuery(input: {
     overdue: filters.overdue ? true : undefined,
     forwarded: filters.forwarded ? filters.forwarded : undefined,
     hideMerged: filters.hideMerged === true ? true : undefined,
+    unroutedOverdue: filters.unroutedOverdue === true ? true : undefined,
     q: term === "" ? undefined : term,
     // The list search box matched the description before phase 1.1 moved the
     // filtering to the server, so it keeps that reach here.

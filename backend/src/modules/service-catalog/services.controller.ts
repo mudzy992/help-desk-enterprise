@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -32,6 +33,7 @@ import { readCatalogMutationContext } from './read-catalog-mutation-context';
 import { ServiceCatalogService } from './service-catalog.service';
 import type { ServiceResponse } from './service-catalog.types';
 
+@AdminConfigDomains('catalog')
 @Controller('services')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

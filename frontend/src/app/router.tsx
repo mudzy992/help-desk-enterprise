@@ -5,6 +5,7 @@ import {
   Mail,
   Settings2,
   Timer,
+  GitFork,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
@@ -37,6 +38,7 @@ const AdminPage = lazyPage(() => import("@/pages/admin-page"), "AdminPage");
 const ReportsPage = lazyPage(() => import("@/pages/reports-page"), "ReportsPage");
 const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage");
 const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
+const WorkflowPage = lazyPage(() => import("@/pages/workflow-page"), "WorkflowPage");
 const EmailTemplatesPage = lazyPage(() => import("@/pages/email-templates-page"), "EmailTemplatesPage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
@@ -141,6 +143,19 @@ export function AppRouter() {
                   icon={<History size={18} strokeWidth={1.8} />}
                 >
                   <ConfigVersionsPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/workflow"
+              element={
+                <RequireAccess
+                  check={canOpenAdminArea}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<GitFork size={18} strokeWidth={1.8} />}
+                >
+                  <WorkflowPage />
                 </RequireAccess>
               }
             />

@@ -1,3 +1,4 @@
+import { AdminConfigDomains } from '../../common/admin-realtime/admin-config-domain.decorator';
 import {
   Body,
   Controller,
@@ -35,6 +36,7 @@ import type {
   SlaEscalationRuleResponse,
 } from './sla.types';
 
+@AdminConfigDomains('sla')
 @Controller('sla/escalation-rules')
 @UseGuards(SessionAuthenticationGuard, RoleGuard)
 @RequireRoles(authorizationRoleKeys.admin)

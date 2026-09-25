@@ -1,3 +1,4 @@
+import { AdminRealtimeModule } from './common/admin-realtime/admin-realtime.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -37,6 +38,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
       envFilePath: ['.env'],
     }),
     PrismaModule,
+    AdminRealtimeModule,
     RedisModule,
     SettingsModule,
     SettingsHttpModule,

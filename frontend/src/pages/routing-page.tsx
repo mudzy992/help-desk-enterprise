@@ -1,5 +1,6 @@
 import { History, Plus, Route as RouteIcon, Table2, Zap } from "lucide-react";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { RoutingChangeLogTab } from "@/components/routing/routing-change-log-tab";
 import { RoutingCoveragePanel } from "@/components/routing/routing-coverage-panel";
@@ -11,7 +12,15 @@ import { UnderlineTabs } from "@/components/ui/tabs";
 
 export function RoutingPage() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState("coverage");
+  // Paket 1.7 (U3): "/routing?originUnitId=…&serviceId=…" from an unrouted
+  // ticket opens the rules tab with the combination pre-filled.
+  const [searchParams] = useSearchParams();
+  const prefill = {
+    originUnitId: searchParams.get("originUnitId") ?? "",
+    serviceId: searchParams.get("serviceId") ?? "",
+  };
+  const hasPrefill = prefill.originUnitId.length > 0 || prefill.serviceId.length > 0;
+  const [tab, setTab] = useState(hasPrefill ? "rules" : "coverage");
 
   return (
     <section>
@@ -67,7 +76,7 @@ export function RoutingPage() {
       {tab === "tester" ? (
         <RoutingResolutionTester />
       ) : tab === "rules" ? (
-        <RoutingRulesPanel />
+        <RoutingRulesPanel prefill={hasPrefill ? prefill : undefined} />
       ) : tab === "log" ? (
         <RoutingChangeLogTab />
       ) : (

@@ -1,5 +1,7 @@
 import { CalendarDays, Grid3x3, Plus } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { AdminConfigChangedBanner } from "@/components/admin/admin-config-changed-banner";
+import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
 import { useTranslation } from "react-i18next";
 import { PriorityMatrixPanel } from "@/components/sla/priority-matrix-panel";
 import { SlaCalendarsPanel } from "@/components/sla/sla-calendars-panel";
@@ -20,13 +22,27 @@ export function SlaPage() {
   const data = useSlaPageData();
   const mutations = useSlaPageMutations(data, canWrite);
   const [view, setView] = useState<"profiles" | "calendars" | "matrix">("profiles");
+  // Paket 1.7 (R3): sub-panels load on mount, so a key bump reloads them too.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const containerRef = useRef<HTMLElement>(null);
+  const live = useAdminConfigLiveRefresh({
+    domains: ["sla"],
+    reload: async () => {
+      setRefreshKey((value) => value + 1);
+      await data.load();
+    },
+    containerRef,
+  });
+  const banner = (
+    <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
+  );
   const selectedCalendar = data.calendars.find(
     (calendar) => calendar.id === data.selected?.calendarId,
   );
 
   if (view === "calendars") {
     return (
-      <section>
+      <section ref={containerRef}>
         <PageHeader
           crumbs={["EP-HelpDesk", t("navigation.sla")]}
           title={t("sla.calendarsHeading")}
@@ -37,14 +53,15 @@ export function SlaPage() {
             </Button>
           }
         />
-        <SlaCalendarsPanel />
+        {banner}
+        <SlaCalendarsPanel key={refreshKey} />
       </section>
     );
   }
 
   if (view === "matrix") {
     return (
-      <section>
+      <section ref={containerRef}>
         <PageHeader
           crumbs={["EP-HelpDesk", t("navigation.sla")]}
           title={t("sla.priorityMatrixTitle")}
@@ -55,13 +72,14 @@ export function SlaPage() {
             </Button>
           }
         />
-        <PriorityMatrixPanel canWrite={canWrite} />
+        {banner}
+        <PriorityMatrixPanel key={refreshKey} canWrite={canWrite} />
       </section>
     );
   }
 
   return (
-    <section>
+    <section ref={containerRef}>
       <PageHeader
         crumbs={["EP-HelpDesk", t("navigation.sla")]}
         title={t("sla.title")}
@@ -85,6 +103,7 @@ export function SlaPage() {
           </div>
         }
       />
+      {banner}
       {data.errorKey ? (
         <p role="alert" className={`mb-3 ${errorTextClassName}`}>
           {t(data.errorKey)}

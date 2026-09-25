@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { UnroutedQueueConfigurationLoader } from './unrouted/unrouted-queue-configuration.loader';
+import { defaultUnroutedQueueConfiguration } from './unrouted/unrouted-queue.types';
+import { unroutedCutoff } from './unrouted/build-unrouted-overdue-where';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { RoutingService } from '../routing/routing.service';
@@ -64,7 +67,36 @@ export class TicketsService {
     private readonly realtimeHub: TicketRealtimeHub,
     private readonly assignmentConfigurationLoader: TicketAssignmentConfigurationLoader,
     private readonly ticketLabelCache: TicketLabelCacheService,
+    @Optional()
+    private readonly unroutedQueueLoader?: UnroutedQueueConfigurationLoader,
   ) {}
+
+  /** Package 1.7 (U3): the unrouted settings, tolerant of a missing loader. */
+  private async loadUnroutedScope(): Promise<{
+    readonly cleanupSlaHours: number;
+    readonly targetGroupId: string | null;
+  }> {
+    const configuration =
+      (await this.unroutedQueueLoader?.load()) ?? defaultUnroutedQueueConfiguration;
+    return {
+      cleanupSlaHours: configuration.cleanupSlaHours,
+      targetGroupId: configuration.targetGroupId,
+    };
+  }
+
+  private async withUnroutedScope(query: ListTicketsQuery): Promise<ListTicketsQuery> {
+    if (query.unroutedOverdue !== true) {
+      return query;
+    }
+    const scope = await this.loadUnroutedScope();
+    return {
+      ...query,
+      unroutedOverdueScope: {
+        cutoffIso: unroutedCutoff(new Date(), scope.cleanupSlaHours).toISOString(),
+        targetGroupId: scope.targetGroupId,
+      },
+    };
+  }
 
   previewRouting(
     input: { readonly originUnitId?: string; readonly serviceId: string },
@@ -119,7 +151,7 @@ export class TicketsService {
       const page = await listTicketsPage(
         this.prisma,
         this.authorizationContextLoader,
-        query,
+        await this.withUnroutedScope(query),
         gated,
         gated.archive,
       );
@@ -142,7 +174,7 @@ export class TicketsService {
       const page = await listTicketsPage(
         this.prisma,
         this.authorizationContextLoader,
-        query,
+        await this.withUnroutedScope(query),
         gated,
         gated.archive,
       );
@@ -197,6 +229,7 @@ export class TicketsService {
         context: gated,
         archive: gated.archive,
         groupInboxEnabled: await this.ticketAssignmentService.isGroupInboxEnabled(),
+        unrouted: await this.loadUnroutedScope(),
       });
     });
   }
