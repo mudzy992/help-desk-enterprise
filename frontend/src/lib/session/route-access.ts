@@ -98,6 +98,11 @@ export function canOpenEmailTemplatesPage(capabilities: SessionCapabilities): bo
   );
 }
 
+/** Paket 1.4 (A1): any staff member (tabs inside follow the permissions). */
+export function canOpenTemplatesPage(capabilities: SessionCapabilities): boolean {
+  return isTicketStaff(capabilities);
+}
+
 export function canAccessNavigationItem(
   item: NavigationItem,
   capabilities: SessionCapabilities,

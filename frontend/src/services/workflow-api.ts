@@ -12,7 +12,8 @@ export type WorkflowGuard =
   | "reopen_window"
   | "waiting_auto_close"
   | "archive_after"
-  | "group_required";
+  | "group_required"
+  | "playbook_steps";
 export type WorkflowPhase = "intake" | "work" | "done";
 
 export type WorkflowTransition = {
@@ -37,6 +38,10 @@ export type TicketWorkflowResponse = {
     } | null;
     readonly approvals: { readonly enabled: boolean } | null;
     readonly archive: { readonly enabled: boolean; readonly afterClosedDays: number } | null;
+    readonly playbooks?: {
+      readonly enabled: boolean;
+      readonly requiredStepsOnResolve: "off" | "warn" | "block";
+    } | null;
     readonly unrouted: {
       readonly enabled: boolean;
       readonly ownerRole: string;

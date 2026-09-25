@@ -22,7 +22,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | # | Stavka zadatka | Stanje | Šta fali |
 |---|---|---|---|
 | G1 | **Prosljeđivanje / eskalacija tiketa (cross-OU forwarding)** | ✅ (paket 1.1, 2026-09-25) | Nema akcije „Proslijedi" na tiketu. Grupa se mijenja samo kroz **bulk assign**, i to bez obaveznog razloga, bez `FORWARDED_FROM/TO_GROUP` participanata (enum postoji, niko ga ne upisuje) i **bez provjere permisije `ticket.forward.cross_ou`** (definisana, nigdje korištena). Ciljna grupa se ne provjerava po OU-u. |
-| G2 | **Ticket templates / playbooks** (agent-side) | ❌ | Nema modela, API-ja ni UI-ja; ključevi `private.ticket.templates.*` nisu registrovani. |
+| G2 | **Ticket templates / playbooks** (agent-side) | ✅ (paket 1.4, 2026-10) | ~~Nema modela, API-ja ni UI-ja.~~ Riješeno: šabloni odgovora (zajednički i lični) s pickerom u composeru i playbooks s checklistom na tiketu. **Svjesno odstupanje od RAW §682:** ključ `private.ticket.templates.registryJson` se ne uvodi — pravi model s UI-jem, change logom, soft deleteom i config versioningom (opseg `templates`) ga u potpunosti pokriva, a JSON u postavci bi bio drugi izvor istine. Uvoz/izvoz ide kroz config versioning. |
 | G3 | **Time tracking anti-abuse** | 🟡 | Start/Stop radi (jedan aktivni timer po korisniku/tiketu). Fali auto-pauza kad tab nije aktivan > X min i tvrdi limit trajanja sesije (`private.timeTracking.*` ne postoje) → zaboravljen timer broji danima. |
 | G4 | **Merge: child prati parent** | 🟡 | Merge postavlja `mergedIntoTicketId`, ali promjena statusa parenta se **ne prenosi** na child tikete, niti broadcast na parent automatski ide child requesterima. |
 | G5 | **Priority override (pojedinačno, auditovano)** | 🟡 | Postoji samo bulk priority. Na detalju tiketa agent ne može promijeniti prioritet (DTO nema `priority`). |
@@ -95,7 +95,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | Anti-spam guardrails (duplikati, veliki broadcast) | ✅ | `tickets/guardrails/` |
 | Auto-arhiviranje zatvorenih (read-only) | ✅ | `TicketArchiveSchedulerService` |
 | CSAT 1–5 + komentar, u KPI | ✅ | `tickets/csat/`, e2e `08-close-codes-csat` |
-| Ticket templates / playbooks | ❌ **G2** | — |
+| Ticket templates / playbooks | ✅ (paket 1.4) | `modules/templates/`, `/admin/templates`; bez `registryJson` (vidi G2) |
 
 ### 1.4 SLA
 | Zahtjev | Stanje |

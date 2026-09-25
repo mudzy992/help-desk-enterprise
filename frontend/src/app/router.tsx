@@ -6,6 +6,7 @@ import {
   Settings2,
   Timer,
   GitFork,
+  MessageSquareText,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
@@ -20,6 +21,7 @@ import {
   canOpenReports,
   canOpenRouting,
   canOpenSla,
+  canOpenTemplatesPage,
 } from "@/lib/session/route-access";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-page";
@@ -40,6 +42,12 @@ const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage"
 const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
 const WorkflowPage = lazyPage(() => import("@/pages/workflow-page"), "WorkflowPage");
 const EmailTemplatesPage = lazyPage(() => import("@/pages/email-templates-page"), "EmailTemplatesPage");
+const TemplatesPage = lazyPage(() => import("@/pages/templates-page"), "TemplatesPage");
+const ResponseTemplateEditorPage = lazyPage(
+  () => import("@/pages/response-template-editor-page"),
+  "ResponseTemplateEditorPage",
+);
+const PlaybookEditorPage = lazyPage(() => import("@/pages/playbook-editor-page"), "PlaybookEditorPage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
@@ -169,6 +177,71 @@ export function AppRouter() {
                   icon={<Mail size={18} strokeWidth={1.8} />}
                 >
                   <EmailTemplatesPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/templates"
+              element={
+                <RequireAccess
+                  check={canOpenTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquareText size={18} strokeWidth={1.8} />}
+                >
+                  <TemplatesPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/templates/new"
+              element={
+                <RequireAccess
+                  check={canOpenTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquareText size={18} strokeWidth={1.8} />}
+                >
+                  <ResponseTemplateEditorPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/templates/:templateId"
+              element={
+                <RequireAccess
+                  check={canOpenTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquareText size={18} strokeWidth={1.8} />}
+                >
+                  <ResponseTemplateEditorPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/templates/playbooks/new"
+              element={
+                <RequireAccess
+                  check={canOpenTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquareText size={18} strokeWidth={1.8} />}
+                >
+                  <PlaybookEditorPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/templates/playbooks/:playbookId"
+              element={
+                <RequireAccess
+                  check={canOpenTemplatesPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquareText size={18} strokeWidth={1.8} />}
+                >
+                  <PlaybookEditorPage />
                 </RequireAccess>
               }
             />

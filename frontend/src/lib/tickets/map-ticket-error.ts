@@ -46,6 +46,7 @@ export type TicketErrorKey =
   | "tickets.errorMergeLimit"
   | "tickets.errorMergeReason"
   | "tickets.errorTicketMerged"
+  | "tickets.errorPlaybookStepsOpen"
   | "tickets.errorNotMerged"
   | "tickets.errorPriorityUnchanged"
   | "tickets.errorPriorityReason"
@@ -128,6 +129,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   MERGE_LIMIT_EXCEEDED: "tickets.errorMergeLimit",
   MERGE_REASON_REQUIRED: "tickets.errorMergeReason",
   TICKET_MERGED: "tickets.errorTicketMerged",
+  PLAYBOOK_REQUIRED_STEPS_OPEN: "tickets.errorPlaybookStepsOpen",
   TICKET_NOT_MERGED: "tickets.errorNotMerged",
   PRIORITY_REQUIRED: "tickets.errorValidation",
   PRIORITY_UNCHANGED: "tickets.errorPriorityUnchanged",

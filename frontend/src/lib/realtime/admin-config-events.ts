@@ -9,7 +9,7 @@ export const adminConfigSocketEvents = {
   configUpdated: "admin.config.updated",
 } as const;
 
-export const adminConfigDomains = ["routing", "sla", "catalog", "groups"] as const;
+export const adminConfigDomains = ["routing", "sla", "catalog", "groups", "templates"] as const;
 export type AdminConfigDomain = (typeof adminConfigDomains)[number];
 
 export type AdminConfigUpdatedEvent = {
@@ -57,6 +57,9 @@ export function queryKeysForAdminConfigDomain(
       return [queryKeys.slaSummary];
     case "groups":
       return [queryKeys.routingCatalog];
+    case "templates":
+      // Paket 1.4 (A5): the composer picker loads imperatively on open.
+      return [];
   }
 }
 

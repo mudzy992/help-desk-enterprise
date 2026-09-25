@@ -55,5 +55,16 @@ export function describeWorkflowGuard(guard: WorkflowGuard, parameters: Paramete
       };
     case "group_required":
       return { key: "workflow.guards.group_required", values: {}, inactive: false };
+    case "playbook_steps":
+      // Paket 1.4 (P5): only `block` refuses the change; `warn` just asks.
+      return {
+        key: "workflow.guards.playbook_steps",
+        values: {},
+        inactive:
+          parameters.playbooks === undefined ||
+          parameters.playbooks === null ||
+          !parameters.playbooks.enabled ||
+          parameters.playbooks.requiredStepsOnResolve !== "block",
+      };
   }
 }

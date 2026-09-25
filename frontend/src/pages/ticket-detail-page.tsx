@@ -30,6 +30,9 @@ import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
 import { useTicketTimeTracking } from "@/lib/time-tracking/use-ticket-time-tracking";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { TicketPlaybookPanel } from "@/components/templates/ticket-playbook-panel";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { isPlaybookGuardedTransition, useTicketPlaybook } from "@/lib/templates/use-ticket-playbook";
 
 export function TicketDetailPage() {
   const { t } = useTranslation();
@@ -57,6 +60,20 @@ export function TicketDetailPage() {
   const [alsoToMerged, setAlsoToMerged] = useState(true);
   const [mergedItems, setMergedItems] = useState<readonly MergedTicketItem[]>([]);
   const { toast } = useToast();
+  // Paket 1.4: checklist + composer templates (staff with `ticket.templates.use`).
+  const canUseTemplates =
+    session !== null && (session.isSuperAdmin === true || hasPermission(permissionKeys.ticketTemplatesUse));
+  const playbook = useTicketPlaybook(ticketId, canUseTemplates, detail.ticket?.updatedAt);
+  const [templateInsert, setTemplateInsert] = useState<{
+    readonly templateId: string;
+    readonly name: string;
+    readonly nonce: number;
+  } | null>(null);
+  const [playbookWarning, setPlaybookWarning] = useState<{
+    readonly status: Parameters<typeof detail.changeStatus>[0];
+    readonly extras: Parameters<typeof detail.changeStatus>[1];
+    readonly steps: readonly string[];
+  } | null>(null);
   const versionKey = [
     detail.ticket?.updatedAt ?? "",
     detail.messages.length,
@@ -204,6 +221,17 @@ export function TicketDetailPage() {
           void detail.claim().finally(() => setIsClaiming(false));
         }}
         onStatusChange={(status, extras) => {
+          // Paket 1.4 (P5, `warn`): confirm before resolving with open required steps.
+          const open = playbook.view?.playbook?.progress.openRequired ?? [];
+          if (
+            playbook.view?.enabled === true &&
+            playbook.view.mode === "warn" &&
+            open.length > 0 &&
+            isPlaybookGuardedTransition(ticket.status, status)
+          ) {
+            setPlaybookWarning({ status, extras, steps: open.map((step) => step.title) });
+            return;
+          }
           setIsSavingStatus(true);
           void detail.changeStatus(status, extras).finally(() => setIsSavingStatus(false));
         }}
@@ -255,10 +283,11 @@ export function TicketDetailPage() {
           isSending={isSending}
           sendErrorKey={detail.actionError}
           canWaitForUser={canWaitForUser}
-          onSend={async (type, body) => {
+          onSend={async (type, body, sendOptions) => {
             setIsSending(true);
             try {
               await detail.sendMessage(type, body, {
+                responseTemplateId: sendOptions?.responseTemplateId,
                 alsoToMerged: type !== "INTERNAL_NOTE" && mergedItems.length > 0 && alsoToMerged,
               });
             } finally {
@@ -281,8 +310,26 @@ export function TicketDetailPage() {
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
           composerExtra={composerExtra}
+          composerTemplates={
+            actions.viewActivity && canUseTemplates
+              ? {
+                  ticketId: ticket.id,
+                  insertRequest: templateInsert,
+                  canSavePersonal:
+                    session?.isSuperAdmin === true || hasPermission(permissionKeys.ticketTemplatesPersonal),
+                }
+              : undefined
+          }
         />
         <div className="space-y-4">
+        {canUseTemplates && actions.viewActivity ? (
+          <TicketPlaybookPanel
+            controller={playbook}
+            onInsertTemplate={(templateId, name) =>
+              setTemplateInsert((current) => ({ templateId, name, nonce: (current?.nonce ?? 0) + 1 }))
+            }
+          />
+        ) : null}
         <TicketMergedCard items={mergedItems} />
         <TicketDetailSideStack
           ticket={ticket}
@@ -319,6 +366,26 @@ export function TicketDetailPage() {
         />
         </div>
       </div>
+      <ConfirmDialog
+        open={playbookWarning !== null}
+        onOpenChange={(open) => {
+          if (!open) setPlaybookWarning(null);
+        }}
+        title={t("templates.resolveWarn.title")}
+        description={t("templates.resolveWarn.body", { name: playbook.view?.playbook?.name ?? "" })}
+        confirmLabel={t("templates.resolveWarn.confirm")}
+        onConfirm={() => {
+          const pending = playbookWarning;
+          setPlaybookWarning(null);
+          if (pending === null) return;
+          setIsSavingStatus(true);
+          void detail.changeStatus(pending.status, pending.extras).finally(() => setIsSavingStatus(false));
+        }}
+      >
+        <ul className="mb-2 list-disc space-y-1 pl-5 text-[12.5px] text-foreground" data-testid="playbook-resolve-warning">
+          {playbookWarning?.steps.map((title) => <li key={title}>{title}</li>)}
+        </ul>
+      </ConfirmDialog>
       <TicketForwardPanel
         ticket={ticket}
         open={forwardOpen}

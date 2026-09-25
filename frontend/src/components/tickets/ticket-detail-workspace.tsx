@@ -1,3 +1,4 @@
+import type { ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
@@ -35,7 +36,7 @@ interface TicketDetailWorkspaceProperties {
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
-  readonly onSend: (type: MessageType, body: string) => Promise<void>;
+  readonly onSend: (type: MessageType, body: string, options?: ComposerSendOptions) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly timeLogs: readonly TicketTimeLogResponse[];
   readonly timeVisible: boolean;
@@ -49,6 +50,7 @@ interface TicketDetailWorkspaceProperties {
   readonly onDownload: (attachment: TicketAttachmentResponse) => Promise<void>;
   readonly onDelete: (attachmentId: string) => Promise<void>;
   readonly composerExtra?: ReactNode;
+  readonly composerTemplates?: ComposerTemplatesOptions;
 }
 
 export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
@@ -100,6 +102,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onWaitForUser={props.onWaitForUser}
           onUpload={props.canUpload ? props.onUpload : undefined}
           composerExtra={props.composerExtra}
+          composerTemplates={props.composerTemplates}
         />
       ) : null}
       {tab === "activity" ? (

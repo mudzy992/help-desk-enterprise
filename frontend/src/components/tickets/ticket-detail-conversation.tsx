@@ -1,3 +1,4 @@
+import type { ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,10 +20,11 @@ interface TicketDetailConversationProperties {
   readonly isSending: boolean;
   readonly sendErrorKey?: TicketErrorKey | null;
   readonly canWaitForUser: boolean;
-  readonly onSend: (type: MessageType, body: string) => Promise<void>;
+  readonly onSend: (type: MessageType, body: string, options?: ComposerSendOptions) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly onUpload?: (file: File) => Promise<void>;
   readonly composerExtra?: ReactNode;
+  readonly composerTemplates?: ComposerTemplatesOptions;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
@@ -71,6 +73,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           onWaitForUser={props.onWaitForUser}
           onUpload={props.onUpload}
           publicExtra={props.composerExtra}
+          templates={props.composerTemplates}
         />
       )}
     </>

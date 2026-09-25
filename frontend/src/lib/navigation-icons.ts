@@ -11,6 +11,7 @@ import {
   Timer,
   type LucideIcon,
   GitFork,
+  MessageSquareText,
 } from "lucide-react";
 
 /**
@@ -29,6 +30,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/admin": Settings2,
   "/admin/config-versions": History,
   "/admin/workflow": GitFork,
+  "/admin/templates": MessageSquareText,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

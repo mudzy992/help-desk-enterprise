@@ -21,6 +21,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.admin": "Administracija",
   "navigation.configVersions": "Verzije konfiguracije",
   "navigation.workflow": "Tok statusa",
+  "navigation.templates": "Šabloni i playbooks",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {

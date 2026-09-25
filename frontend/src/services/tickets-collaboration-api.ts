@@ -109,6 +109,8 @@ export function createTicketMessage(
     readonly body: string;
     /** Package 1.2: copy a public reply to merged child tickets. */
     readonly alsoToMerged?: boolean;
+    /** Package 1.4 (T4): the template the text started from (statistics only). */
+    readonly responseTemplateId?: string;
   },
 ): Promise<TicketMessageResponse> {
   return apiRequest(`/tickets/${ticketId}/messages`, {

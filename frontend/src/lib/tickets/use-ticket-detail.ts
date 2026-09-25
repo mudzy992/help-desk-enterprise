@@ -138,12 +138,13 @@ export function useTicketDetail(ticketId: string | undefined) {
       onTicket((id) => runAction(async () => {
         setTicket(await updateTicket(id, { status, ...extras }));
       })),
-    sendMessage: (type: MessageType, body: string, options?: { readonly alsoToMerged?: boolean }) =>
+    sendMessage: (type: MessageType, body: string, options?: { readonly alsoToMerged?: boolean; readonly responseTemplateId?: string }) =>
       onTicket((id) => sendTicketMessageOptimistic({
         ticketId: id,
         type,
         body,
         alsoToMerged: options?.alsoToMerged,
+        responseTemplateId: options?.responseTemplateId,
         authorUserId: currentUserId,
         setMessages,
         setTicket,

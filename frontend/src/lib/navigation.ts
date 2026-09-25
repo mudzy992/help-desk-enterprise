@@ -15,6 +15,7 @@ export const navigationLabelKeys = {
   admin: "navigation.admin",
   configVersions: "navigation.configVersions",
   workflow: "navigation.workflow",
+  templates: "navigation.templates",
 } as const;
 
 export type NavigationLabelKey =
@@ -120,6 +121,14 @@ export const workflowNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.admin },
 };
 
+/** Paket 1.4 (A1): templates & playbooks — agents see their personal tab. */
+export const templatesNavigationItem: NavigationItem = {
+  path: "/admin/templates",
+  labelKey: navigationLabelKeys.templates,
+  end: false,
+  access: { kind: navigationAccessKinds.staff },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -127,7 +136,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem, inboxNavigationItem],
+    items: [ticketsNavigationItem, inboxNavigationItem, templatesNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.services,

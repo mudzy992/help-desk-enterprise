@@ -16,6 +16,7 @@ export async function sendTicketMessageOptimistic(input: {
   readonly type: MessageType;
   readonly body: string;
   readonly alsoToMerged?: boolean;
+  readonly responseTemplateId?: string;
   readonly authorUserId: string | null;
   readonly setMessages: Dispatch<SetStateAction<readonly TicketMessageResponse[]>>;
   readonly setTicket: Dispatch<SetStateAction<TicketResponse | null>>;
@@ -37,6 +38,7 @@ export async function sendTicketMessageOptimistic(input: {
       type: input.type,
       body: input.body,
       ...(input.alsoToMerged === true ? { alsoToMerged: true } : {}),
+      ...(input.responseTemplateId === undefined ? {} : { responseTemplateId: input.responseTemplateId }),
     });
     input.setMessages((current) =>
       reconcileOptimisticMessage(current, created, pendingId),

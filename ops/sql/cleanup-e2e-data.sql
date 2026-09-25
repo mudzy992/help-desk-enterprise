@@ -52,6 +52,10 @@ DELETE FROM "Notification" WHERE "ticketId" IN (SELECT id FROM e2e_tickets);
 -- Veze između tiketa (split/merge/reopen) su SET NULL; ostalo (poruke, aktivnosti,
 -- SLA stanje, odobrenja, CSAT, privici, grantovi, break-glass…) je CASCADE.
 DELETE FROM "Ticket" WHERE id IN (SELECT id FROM e2e_tickets);
+-- Paket 1.4 (test 16): E2E šabloni i playbookovi (koraci/opsezi idu kaskadno).
+DELETE FROM "TicketPlaybook"   WHERE "playbookId" IN (SELECT id FROM "Playbook" WHERE name LIKE 'E2E %');
+DELETE FROM "Playbook"         WHERE name LIKE 'E2E %';
+DELETE FROM "ResponseTemplate" WHERE name LIKE 'E2E %';
 
 -- Servisi: prvo sve što ih referencira s RESTRICT.
 DELETE FROM "RoutingRule"                  WHERE "serviceId" IN (SELECT id FROM e2e_services);
