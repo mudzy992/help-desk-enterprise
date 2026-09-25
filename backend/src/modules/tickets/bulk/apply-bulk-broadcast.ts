@@ -10,6 +10,7 @@ import {
 import { bulkBroadcastRateLimiter } from './bulk-broadcast-rate-limiter';
 import type { ExecuteTicketBulkInput, TicketBulkConfiguration } from './bulk.types';
 import { formatBulkBroadcastMessage } from './format-bulk-broadcast-message';
+import { dispatchBroadcastEmail } from './broadcast-email-channel';
 
 export async function applyBulkBroadcast(input: {
   readonly prisma: PrismaService;
@@ -50,6 +51,13 @@ export async function applyBulkBroadcast(input: {
           },
         }),
       );
+    } else if (input.configuration.broadcastEnableEmail) {
+      await dispatchBroadcastEmail({
+        ticketId: ticket.id,
+        body,
+        actorUserId: input.actor.actorUserId,
+        batchId: input.batchId,
+      });
     }
     await auditBulkTicketChange({
       prisma: input.prisma,

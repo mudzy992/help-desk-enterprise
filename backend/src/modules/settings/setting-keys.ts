@@ -183,6 +183,17 @@ export const settingKeys = {
   privateSmtpUsername: 'private.smtp.username',
   privateSmtpPassword: 'private.smtp.password',
   privateSmtpFromAddress: 'private.smtp.fromAddress',
+  privateSmtpProvider: 'private.smtp.provider',
+  privateNotificationsEmailIncludeMessageExcerpt:
+    'private.notifications.email.includeMessageExcerpt',
+  privateNotificationsEmailReplyMode: 'private.notifications.email.replyMode',
+  privateNotificationsEmailReplyToAddress:
+    'private.notifications.email.replyToAddress',
+  privateNotificationsEmailAccentColor:
+    'private.notifications.email.accentColor',
+  privateI18nDefaultLocale: 'private.i18n.defaultLocale',
+  privateI18nFallbackLocale: 'private.i18n.fallbackLocale',
+  privateI18nSupportedLocalesCsv: 'private.i18n.supportedLocalesCsv',
   privateNotificationsEdgeEnabled: 'private.notifications.edge.enabled',
   privateNotificationsEmailEnabled: 'private.notifications.email.enabled',
   privateNotificationsTemplatesEnabled:

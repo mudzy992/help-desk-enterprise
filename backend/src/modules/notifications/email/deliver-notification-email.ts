@@ -14,6 +14,10 @@ export type PreparedOutboundEmail = {
   readonly text: string;
   readonly templateKey: string;
   readonly dedupeKey: string;
+  readonly html?: string;
+  readonly replyTo?: string;
+  readonly messageId?: string;
+  readonly headers?: Readonly<Record<string, string>>;
 };
 
 export async function deliverNotificationEmail(
@@ -42,6 +46,10 @@ export async function deliverNotificationEmail(
         to: input.toAddress,
         subject: input.subject,
         text: input.text,
+        ...(input.html === undefined ? {} : { html: input.html }),
+        ...(input.replyTo === undefined ? {} : { replyTo: input.replyTo }),
+        ...(input.messageId === undefined ? {} : { messageId: input.messageId }),
+        ...(input.headers === undefined ? {} : { headers: input.headers }),
       },
       smtp,
     );

@@ -69,7 +69,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   varijablama; na tiketu: checklist playbooka s napretkom (ko je štiklirao i kad).
 - Settings `private.ticket.templates.enabled`.
 
-### 1.5 E-mail notifikacije — profesionalni nivo (G7)  · ~3 RD
+### 1.5 E-mail notifikacije — profesionalni nivo (G7)  · ~3 RD · ✅ implementirano (dizajn: `modules/1.5-email-notifikacije.md`)
 - HTML šablon (brendiran, responzivan) + plain-text alternativa.
 - **Link na tiket** (`APP_PUBLIC_URL`) u svakoj poruci; dugme „Otvori tiket".
 - Jezik po korisniku (bs default, en fallback) — polje `preferredLocale` na korisniku.
@@ -223,8 +223,9 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
 
 1. (1.1) Da li „eskalacija" znači samo prosljeđivanje višem nivou ili i automatsku eskalaciju
    (već postoji kroz SLA eskalacije)? Ko definiše „viši nivo" — po grupi ili po servisu?
-2. (1.5 / 2.3) Koji sandučić za podršku (npr. `helpdesk@epbih.ba`) i pristup — IMAP ili Microsoft
-   Graph? Ko registruje aplikaciju u tenantu?
+2. (1.5 / 2.3) ~~Koji sandučić~~ — odlučeno 2026-09-25: oba načina (bez odgovora / zajednički
+   sandučić) biraju se u postavkama, provajderi su modularni (O365, Gmail, vlastiti SMTP).
+   Otvoreno za 2.3: pristup sandučiću (IMAP ili Microsoft Graph) i ko registruje aplikaciju u tenantu.
 3. (2.1) MFA samo za SUPER_ADMIN ili i za ADMIN? (Entra korisnici već imaju MFA kroz Microsoft.)
 4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku EPBiH?
 5. (3.2) Postoji li postojeći popis imovine (Excel, drugi sistem, Intune) za početni import?

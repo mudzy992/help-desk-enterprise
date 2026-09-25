@@ -500,9 +500,10 @@
       "password": "Lozinka (secret)",
       "scope": "Opseg",
       "externalAllowed": "eksterni allow-list",
-      "editDetails": "Uredi SMTP / šablone",
+      "editDetails": "Uredi SMTP i kanal",
       "drawerTitle": "SMTP i email kanal",
-      "drawerDescription": "Transport kredencijali, notification kanal i predlošci."
+      "drawerDescription": "Provajder, kredencijali, način odgovora i pravila isporuke.",
+      "provider": "Provajder"
     },
     "system": {
       "title": "Sistem",
@@ -613,7 +614,8 @@
         "private.ticket": "Tiketi",
         "private.workflow": "Tok rada",
         "public.branding": "Brending",
-        "public.maintenance": "Održavanje sistema"
+        "public.maintenance": "Održavanje sistema",
+        "private.i18n": "Jezik"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -855,7 +857,92 @@
         "private.ticket.forwarding.requireReason": "Razlog prosljeđivanja je obavezan.",
         "private.ticket.forwarding.keepPreviousHandlersAsWatchers": "Prethodni dodijeljeni agent ostaje na tiketu kao posmatrač.",
         "private.ticket.forwarding.notifyRequester": "Obavijesti podnosioca da je tiket proslijeđen (bez razloga i naziva OJ).",
-        "private.ticket.forwarding.minReasonLength": "Minimalan broj znakova razloga prosljeđivanja."
+        "private.ticket.forwarding.minReasonLength": "Minimalan broj znakova razloga prosljeđivanja.",
+        "private.smtp.provider": "Provajder pošte: o365, gmail ili smtp (vlastiti server). Kad host nije upisan, koristi se preset provajdera.",
+        "private.notifications.email.includeMessageExcerpt": "Uključuje isječak javne poruke u e-mail o novoj poruci (nikad za povjerljive tikete).",
+        "private.notifications.email.replyMode": "no_reply: odgovori idu kroz aplikaciju; shared_mailbox: Reply-To je zajednički sandučić.",
+        "private.notifications.email.replyToAddress": "Adresa zajedničkog sandučića za Reply-To (obavezna za shared_mailbox).",
+        "private.notifications.email.accentColor": "Boja naglaska u e-mailovima (#rrggbb).",
+        "private.i18n.defaultLocale": "Jezik za korisnike koji ga nisu izabrali (e-mail i prva prijava).",
+        "private.i18n.fallbackLocale": "Jezik kad tekst nedostaje na izabranom jeziku.",
+        "private.i18n.supportedLocalesCsv": "Jezici ponuđeni korisnicima, odvojeni zarezom (bs, en)."
+      }
+    },
+    "emailTemplates": {
+      "title": "E-mail šabloni",
+      "subtitle": "Tekstovi obavještenja po događaju i jeziku, s pregledom uživo.",
+      "provider": "Provajder",
+      "replyMode": "Odgovori",
+      "replyNone": "Bez odgovora (u aplikaciji)",
+      "replyShared": "Zajednički sandučić: {{address}}",
+      "customized": "Prilagođeno",
+      "allDefault": "Svi zadani",
+      "modifiedCount_one": "{{count}} šablon izmijenjen",
+      "modifiedCount_few": "{{count}} šablona izmijenjena",
+      "modifiedCount_other": "{{count}} šablona izmijenjeno",
+      "replyFallbackWarning": "Odabran je zajednički sandučić, ali adresa nije upisana — e-mailovi se šalju kao „bez odgovora\".",
+      "publicUrlWarning": "APP_PUBLIC_URL nije postavljen — e-mailovi nemaju dugme ni link na tiket.",
+      "smtpMissingWarning": "SMTP je isključen ili nepotpun — slanje i test nisu mogući.",
+      "open": "Uredi šablone",
+      "editorTitle": "E-mail šabloni",
+      "editorDescription": "Mijenjaju se samo tekstovi; izgled je zajednički i provjeren u Outlooku. Spremaju se samo razlike od zadanih tekstova, uz razlog izmjene.",
+      "event": "Događaj",
+      "language": "Jezik",
+      "locales": {
+        "bs": "Bosanski",
+        "en": "Engleski"
+      },
+      "modified": "izmijenjeno",
+      "default": "zadano",
+      "fields": {
+        "subject": "Naslov",
+        "subjectConfidential": "Naslov (povjerljivi tiket)",
+        "heading": "Uvod",
+        "body": "Tekst",
+        "cta": "Tekst dugmeta",
+        "footer": "Podnožje (opcionalno)"
+      },
+      "hints": {
+        "subject": "Broj tiketa se dodaje automatski na početak.",
+        "subjectConfidential": "Bez naslova tiketa — koristi se za povjerljive tikete.",
+        "heading": "Istaknuti red na vrhu poruke.",
+        "body": "Prazan red pravi novi pasus.",
+        "cta": "Dugme vodi na tiket (ili prijavu).",
+        "footer": "Dodatni tekst iznad sistemskog podnožja."
+      },
+      "unknownPlaceholder": "Nepoznat placeholder: {{names}}",
+      "placeholdersHint": "Klik ubacuje placeholder na mjesto kursora.",
+      "resetTemplate": "Vrati na zadano",
+      "sendTest": "Pošalji test na moju adresu",
+      "testSending": "Šaljem…",
+      "testSent": "Test poslan na {{address}}",
+      "testFailed": "Test nije poslan",
+      "saved": "Šabloni su spremljeni",
+      "saveFailed": "Spremanje nije uspjelo",
+      "previewFormat": "Format pregleda",
+      "plainText": "Tekst",
+      "sensitivity": "Osjetljivost",
+      "normal": "Normalno",
+      "confidential": "Povjerljivo",
+      "subjectLabel": "Naslov:",
+      "previewTitle": "Pregled e-maila",
+      "providers": {
+        "o365": "Microsoft 365 (O365)",
+        "gmail": "Gmail / Google Workspace",
+        "smtp": "Vlastiti SMTP server"
+      },
+      "events": {
+        "ticket_created": "Novi tiket",
+        "ticket_assigned": "Tiket dodijeljen",
+        "ticket_message": "Nova poruka",
+        "ticket_resolved": "Tiket riješen",
+        "ticket_closed": "Tiket zatvoren",
+        "ticket_approval": "Odobrenje",
+        "ticket_sla": "SLA upozorenje",
+        "remote_requested": "Udaljena podrška",
+        "ticket_forwarded": "Tiket proslijeđen",
+        "ticket_broadcast": "Obavještenje (broadcast)",
+        "user_temporary_password": "Privremena lozinka"
       }
     }
   },

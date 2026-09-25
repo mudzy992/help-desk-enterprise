@@ -5,6 +5,7 @@ import { DirectorySyncModule } from '../directory-sync/directory-sync.module';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { SettingsModule } from '../settings/settings.module';
 import { UsersController } from './users.controller';
+import { UserPreferencesController } from './user-preferences.controller';
 import { UserDirectoryIdentityController } from './user-directory-identity.controller';
 import { UsersService } from './users.service';
 
@@ -15,7 +16,8 @@ import { UsersService } from './users.service';
     SettingsModule,
     DirectorySyncModule,
   ],
-  controllers: [UsersController, UserDirectoryIdentityController],
+  // The static `me/preferences` path registers before the `:userId` routes.
+  controllers: [UserPreferencesController, UsersController, UserDirectoryIdentityController],
   providers: [UsersService, SmtpMailTransport],
   exports: [UsersService],
 })

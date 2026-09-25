@@ -9,6 +9,8 @@ import { SmtpMailTransport } from './email/smtp-mail-transport';
 import { NotificationsFanOutService } from './fan-out/notifications-fan-out.service';
 import { NotificationUnreadCountCache } from './notification-unread-count.cache';
 import { NotificationsController } from './notifications.controller';
+import { EmailTemplatesController } from './email-templates/email-templates.controller';
+import { EmailTemplatesService } from './email-templates/email-templates.service';
 import { NotificationsService } from './notifications.service';
 import { TeamsIntegrationService } from './teams/teams-integration.service';
 
@@ -20,9 +22,10 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
     TicketsModule,
     IntegrationQueueModule,
   ],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, EmailTemplatesController],
   providers: [
     NotificationsService,
+    EmailTemplatesService,
     NotificationsFanOutService,
     NotificationUnreadCountCache,
     TeamsIntegrationService,

@@ -9,6 +9,13 @@ import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.t
 import { TicketRealtimeHub } from '../../tickets/ticket-realtime.hub';
 import { fanOutEmailNotifications } from '../email/fan-out-email-notifications';
 import { loadEmailChannelConfiguration } from '../email/load-email-channel-configuration';
+import { deliverNotificationEmail, type PreparedOutboundEmail } from '../email/deliver-notification-email';
+import { sendBroadcastEmails } from '../email/send-broadcast-emails';
+import {
+  clearBroadcastEmailSender,
+  registerBroadcastEmailSender,
+  type BroadcastEmailRequest,
+} from '../../tickets/bulk/broadcast-email-channel';
 import { MAIL_TRANSPORT, type MailTransport } from '../email/mail-transport';
 import {
   clearSlaRuntimeNotificationChannels,
@@ -39,6 +46,7 @@ export class NotificationsFanOutService
     this.unsubscribe = this.ticketRealtimeHub.subscribe((payload) => {
       void this.ingest(payload);
     });
+    registerBroadcastEmailSender((request) => this.deliverBroadcastEmail(request));
     registerSlaRuntimeNotificationChannels({
       publish: (payload) => {
         void this.ingest(payload);
@@ -49,6 +57,7 @@ export class NotificationsFanOutService
   onModuleDestroy(): void {
     this.unsubscribe?.();
     clearSlaRuntimeNotificationChannels();
+    clearBroadcastEmailSender();
   }
 
   private async ingest(payload: TicketRealtimeMessagePayload): Promise<void> {
@@ -89,30 +98,12 @@ export class NotificationsFanOutService
       const configuration = await loadEmailChannelConfiguration(
         this.settingsService,
       );
-      const queueSettings = await loadIntegrationQueueSettings(
-        this.settingsService,
-      );
-      const queueEmail =
-        queueSettings.enabled &&
-        isQueuedIntegrationJobType(
-          IntegrationJobType.EMAIL,
-          queueSettings.typeTokens,
-        );
       await fanOutEmailNotifications(
         this.prisma,
         configuration,
         this.mailTransport,
         payload,
-        queueEmail
-          ? {
-              handle: async (work) => {
-                await this.enqueueIntegrationJobService.enqueue({
-                  type: IntegrationJobType.EMAIL,
-                  payload: work,
-                });
-              },
-            }
-          : undefined,
+        await this.emailWorkHandler(configuration),
       );
     } catch (error) {
       this.logger.error(
@@ -120,5 +111,47 @@ export class NotificationsFanOutService
         error instanceof Error ? error.stack : String(error),
       );
     }
+  }
+
+  private async deliverBroadcastEmail(request: BroadcastEmailRequest): Promise<void> {
+    try {
+      const configuration = await loadEmailChannelConfiguration(this.settingsService);
+      await sendBroadcastEmails(
+        this.prisma,
+        configuration,
+        request,
+        await this.emailWorkHandler(configuration),
+      );
+    } catch (error) {
+      // A failed e-mail must not fail the bulk action that triggered it.
+      this.logger.error(
+        `Failed to send broadcast email for ticket ${request.ticketId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
+  /** Queue when the integration queue handles EMAIL, otherwise send inline. */
+  private async emailWorkHandler(
+    configuration: Awaited<ReturnType<typeof loadEmailChannelConfiguration>>,
+  ): Promise<{ handle(work: PreparedOutboundEmail): Promise<void> }> {
+    const queueSettings = await loadIntegrationQueueSettings(this.settingsService);
+    const queueEmail =
+      queueSettings.enabled &&
+      isQueuedIntegrationJobType(IntegrationJobType.EMAIL, queueSettings.typeTokens);
+    if (queueEmail) {
+      return {
+        handle: async (work) => {
+          await this.enqueueIntegrationJobService.enqueue({
+            type: IntegrationJobType.EMAIL,
+            payload: work,
+          });
+        },
+      };
+    }
+    return {
+      handle: (work) =>
+        deliverNotificationEmail(this.prisma, this.mailTransport, configuration, work),
+    };
   }
 }

@@ -64,4 +64,14 @@ export const smtpSettings: readonly SettingDefinition[] = [
     isRequired: false,
     defaultValue: '',
   }),
+  definePrivateSetting({
+    key: settingKeys.privateSmtpProvider,
+    categoryId: settingCategoryIds.privateSmtp,
+    valueType: 'string',
+    description:
+      'Mail provider preset (o365, gmail, smtp); fills host, port and TLS when the host is empty',
+    isRequired: true,
+    defaultValue: 'o365',
+    allowedValues: ['o365', 'gmail', 'smtp'],
+  }),
 ];

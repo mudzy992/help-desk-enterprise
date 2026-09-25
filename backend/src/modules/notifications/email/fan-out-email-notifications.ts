@@ -2,7 +2,6 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
 import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.types';
 import { notificationTypes } from '../notifications.constants';
-import { buildNotificationContent } from '../fan-out/build-notification-content';
 import { mapTicketEventToNotification } from '../fan-out/map-ticket-event-to-notification';
 import { resolveNotificationRecipients } from '../fan-out/resolve-notification-recipients';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
@@ -12,7 +11,10 @@ import {
   deliverNotificationEmail,
   type PreparedOutboundEmail,
 } from './deliver-notification-email';
-import { renderEmailTemplate } from './render-email-template';
+import { composeTicketEmail, resolveEmailLocale } from './compose-ticket-email';
+import { redactSensitiveText } from '../../tickets/redaction/redact-sensitive-text';
+import { defaultTicketRedactionConfiguration } from '../../tickets/redaction/redaction.constants';
+import type { TicketRedactionConfiguration } from '../../tickets/redaction/redaction.types';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
 
@@ -55,31 +57,43 @@ export async function fanOutEmailNotifications(
     event: mapped.event,
     messageBody: payload.body,
   });
-  const content = buildNotificationContent(
-    mapped,
-    ticket,
-    payload.id,
-    payload.authorUserId,
-  );
-  const rendered = renderEmailTemplate(configuration.templates[mapped.type], {
-    ticketNumber: ticket.ticketNumber,
-    ticketTitle: ticket.isConfidential ? ticket.ticketNumber : ticket.title,
-    ticketId: ticket.id,
-    type: content.type,
-    event: mapped.event,
+  if (recipientIds.length === 0) {
+    return;
+  }
+  // One query for all recipients (+ the actor) instead of one per recipient.
+  const people = await prisma.user.findMany({
+    where: {
+      id: {
+        in: [
+          ...new Set([
+            ...recipientIds,
+            ...(payload.authorUserId === null ? [] : [payload.authorUserId]),
+          ]),
+        ],
+      },
+    },
+    select: { id: true, email: true, displayName: true, preferredLocale: true },
   });
+  const peopleById = new Map(people.map((person) => [person.id, person]));
+  const [service, group] = await Promise.all([
+    prisma.service.findUnique({ where: { id: ticket.serviceId }, select: { name: true } }),
+    ticket.assignedGroupId === null
+      ? Promise.resolve(null)
+      : prisma.group.findUnique({ where: { id: ticket.assignedGroupId }, select: { name: true } }),
+  ]);
+  const actorName =
+    payload.authorUserId === null ? '' : (peopleById.get(payload.authorUserId)?.displayName ?? '');
+  const excerpt = publicExcerpt(payload);
   const handler = workHandler ?? {
     handle: (work) =>
       deliverNotificationEmail(prisma, mailTransport, configuration, work),
   };
   const dedupeKey = `${mapped.type}:${payload.id}`;
   for (const userId of recipientIds) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-    const toAddress = user?.email ?? '';
+    const person = peopleById.get(userId);
+    const toAddress = person?.email ?? '';
     if (
+      person === undefined ||
       !isAllowedNotificationEmailAddress(toAddress, {
         internalOnly: configuration.internalOnly,
         allowedExternalDomains: configuration.allowedExternalDomains,
@@ -88,15 +102,48 @@ export async function fanOutEmailNotifications(
     ) {
       continue;
     }
+    const composed = composeTicketEmail({
+      configuration,
+      key: mapped.type,
+      locale: resolveEmailLocale(person.preferredLocale, configuration),
+      ticket,
+      serviceName: service?.name ?? '',
+      groupName: group?.name ?? '',
+      recipientName: person.displayName,
+      actorName,
+      event: mapped.event,
+      excerpt,
+      dedupeKey,
+      recipientId: userId,
+    });
     await handler.handle({
       userId,
       toAddress,
       dedupeKey,
       templateKey: mapped.type,
-      subject: rendered.subject,
-      text: rendered.text,
+      subject: composed.subject,
+      text: composed.text,
+      html: composed.html,
+      messageId: composed.messageId,
+      headers: composed.headers,
+      ...(composed.replyTo === undefined ? {} : { replyTo: composed.replyTo }),
     });
   }
+}
+
+/**
+ * Decision E4: only public replies, passed through the default redaction
+ * patterns regardless of the in-app redaction mode (e-mail leaves the system).
+ */
+function publicExcerpt(payload: TicketRealtimeMessagePayload): string | null {
+  if (payload.type !== 'USER_REPLY' && payload.type !== 'AGENT_REPLY') {
+    return null;
+  }
+  const text = redactSensitiveText(payload.body, {
+    ...defaultTicketRedactionConfiguration,
+    enabled: true,
+  } as unknown as TicketRedactionConfiguration).trim();
+  return text.length === 0 ? null : text;
 }
 
 function isSlaEmailAllowed(

@@ -500,9 +500,10 @@
       "password": "Password (secret)",
       "scope": "Scope",
       "externalAllowed": "external allow-list",
-      "editDetails": "Edit SMTP / templates",
+      "editDetails": "Edit SMTP and channel",
       "drawerTitle": "SMTP and email channel",
-      "drawerDescription": "Transport credentials, notification channel, and templates."
+      "drawerDescription": "Provider, credentials, reply mode and delivery rules.",
+      "provider": "Provider"
     },
     "system": {
       "title": "System",
@@ -613,7 +614,8 @@
         "private.ticket": "Tickets",
         "private.workflow": "Workflow",
         "public.branding": "Branding",
-        "public.maintenance": "System maintenance"
+        "public.maintenance": "System maintenance",
+        "private.i18n": "Language"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -855,7 +857,91 @@
         "private.ticket.forwarding.requireReason": "A forwarding reason is required.",
         "private.ticket.forwarding.keepPreviousHandlersAsWatchers": "The previous assignee stays on the ticket as a watcher.",
         "private.ticket.forwarding.notifyRequester": "Notify the requester that the ticket was forwarded (without the reason or unit name).",
-        "private.ticket.forwarding.minReasonLength": "Minimum number of characters for the forwarding reason."
+        "private.ticket.forwarding.minReasonLength": "Minimum number of characters for the forwarding reason.",
+        "private.smtp.provider": "Mail provider: o365, gmail or smtp (own server). With an empty host the provider preset is used.",
+        "private.notifications.email.includeMessageExcerpt": "Include the public message text in new-message e-mails (never for confidential tickets).",
+        "private.notifications.email.replyMode": "no_reply: replies go through the application; shared_mailbox: Reply-To is the shared mailbox.",
+        "private.notifications.email.replyToAddress": "Shared mailbox address used as Reply-To (required for shared_mailbox).",
+        "private.notifications.email.accentColor": "Accent colour of e-mails (#rrggbb).",
+        "private.i18n.defaultLocale": "Language for users who have not chosen one (e-mail and first sign-in).",
+        "private.i18n.fallbackLocale": "Language used when a text is missing in the chosen language.",
+        "private.i18n.supportedLocalesCsv": "Languages offered to users, comma separated (bs, en)."
+      }
+    },
+    "emailTemplates": {
+      "title": "E-mail templates",
+      "subtitle": "Notification texts per event and language, with a live preview.",
+      "provider": "Provider",
+      "replyMode": "Replies",
+      "replyNone": "No reply (in the application)",
+      "replyShared": "Shared mailbox: {{address}}",
+      "customized": "Customised",
+      "allDefault": "All default",
+      "modifiedCount_one": "{{count}} template changed",
+      "modifiedCount_other": "{{count}} templates changed",
+      "replyFallbackWarning": "Shared mailbox is selected but no address is set — e-mails go out as no-reply.",
+      "publicUrlWarning": "APP_PUBLIC_URL is not set — e-mails have no button or link to the ticket.",
+      "smtpMissingWarning": "SMTP is off or incomplete — sending and tests are not possible.",
+      "open": "Edit templates",
+      "editorTitle": "E-mail templates",
+      "editorDescription": "Only texts change; the layout is shared and tested in Outlook. Only differences from the defaults are stored, with a change reason.",
+      "event": "Event",
+      "language": "Language",
+      "locales": {
+        "bs": "Bosnian",
+        "en": "English"
+      },
+      "modified": "modified",
+      "default": "default",
+      "fields": {
+        "subject": "Subject",
+        "subjectConfidential": "Subject (confidential ticket)",
+        "heading": "Heading",
+        "body": "Text",
+        "cta": "Button text",
+        "footer": "Footer (optional)"
+      },
+      "hints": {
+        "subject": "The ticket number is added at the start automatically.",
+        "subjectConfidential": "No ticket title — used for confidential tickets.",
+        "heading": "Highlighted line at the top of the message.",
+        "body": "An empty line starts a new paragraph.",
+        "cta": "The button opens the ticket (or sign-in).",
+        "footer": "Extra text above the system footer."
+      },
+      "unknownPlaceholder": "Unknown placeholder: {{names}}",
+      "placeholdersHint": "Click to insert a placeholder at the cursor.",
+      "resetTemplate": "Reset to default",
+      "sendTest": "Send a test to my address",
+      "testSending": "Sending…",
+      "testSent": "Test sent to {{address}}",
+      "testFailed": "Test was not sent",
+      "saved": "Templates saved",
+      "saveFailed": "Saving failed",
+      "previewFormat": "Preview format",
+      "plainText": "Text",
+      "sensitivity": "Sensitivity",
+      "normal": "Normal",
+      "confidential": "Confidential",
+      "subjectLabel": "Subject:",
+      "previewTitle": "E-mail preview",
+      "providers": {
+        "o365": "Microsoft 365 (O365)",
+        "gmail": "Gmail / Google Workspace",
+        "smtp": "Custom SMTP server"
+      },
+      "events": {
+        "ticket_created": "New ticket",
+        "ticket_assigned": "Ticket assigned",
+        "ticket_message": "New message",
+        "ticket_resolved": "Ticket resolved",
+        "ticket_closed": "Ticket closed",
+        "ticket_approval": "Approval",
+        "ticket_sla": "SLA warning",
+        "remote_requested": "Remote support",
+        "ticket_forwarded": "Ticket forwarded",
+        "ticket_broadcast": "Notice (broadcast)",
+        "user_temporary_password": "Temporary password"
       }
     }
   },

@@ -14,6 +14,11 @@ export type EmailIntegrationJobPayload = {
   readonly text: string;
   readonly templateKey: string;
   readonly dedupeKey: string;
+  /** 1.5 additions — optional so jobs queued before the upgrade still run. */
+  readonly html?: string;
+  readonly replyTo?: string;
+  readonly messageId?: string;
+  readonly headers?: Readonly<Record<string, string>>;
 };
 
 export type EdgeEventIntegrationJobPayload = {

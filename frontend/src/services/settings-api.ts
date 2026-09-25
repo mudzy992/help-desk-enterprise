@@ -65,4 +65,8 @@ export const emailChannelSettingKeys = {
   allowedExternalEmailsCsv:
     "private.notifications.email.allowedExternalEmailsCsv",
   templatesJson: "private.notifications.templates.registryJson",
+  replyMode: "private.notifications.email.replyMode",
+  replyToAddress: "private.notifications.email.replyToAddress",
+  includeMessageExcerpt: "private.notifications.email.includeMessageExcerpt",
+  accentColor: "private.notifications.email.accentColor",
 } as const;

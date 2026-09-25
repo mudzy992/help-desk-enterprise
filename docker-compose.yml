@@ -23,6 +23,11 @@ x-redis-environment: &redis-environment
   REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ephelpdesk}
   QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:ephelpdesk}
 
+# Paket 1.5: linkovi u e-mailovima. Oba procesa renderuju e-mailove (worker za
+# SLA događaje), pa oba moraju znati javni URL frontenda.
+x-app-environment: &app-environment
+  APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga
 # na WebSocket. Rolling deploy: vidi ops/ws-rolling-deploy.md (drain ≤ 30 s).
@@ -43,7 +48,7 @@ services:
     expose:
       - "10001"
     environment:
-      <<: [*database-environment, *redis-environment]
+      <<: [*database-environment, *redis-environment, *app-environment]
     volumes:
       - uploads:/usr/app/uploads
     networks:
@@ -56,7 +61,7 @@ services:
     command: node dist/src/worker.js
     restart: unless-stopped
     environment:
-      <<: [*database-environment, *redis-environment]
+      <<: [*database-environment, *redis-environment, *app-environment]
       # Worker: manje konekcija (jedan proces), duži statement budžet.
       DATABASE_POOL_ROLE: worker
       DB_POOL_MAX: ${WORKER_DB_POOL_MAX:-10}

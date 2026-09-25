@@ -1,19 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
-import type { MailTransport, OutboundMailMessage } from './mail-transport';
+import type { MailTransport, MailTransportTarget, OutboundMailMessage } from './mail-transport';
 
 @Injectable()
 export class SmtpMailTransport implements MailTransport {
-  async send(
-    message: OutboundMailMessage,
-    smtp: {
-      readonly host: string;
-      readonly port: number;
-      readonly tls: boolean;
-      readonly username: string;
-      readonly password: string;
-    },
-  ): Promise<void> {
+  async send(message: OutboundMailMessage, smtp: MailTransportTarget): Promise<void> {
     const transporter = createTransport({
       host: smtp.host,
       port: smtp.port,
@@ -30,6 +21,10 @@ export class SmtpMailTransport implements MailTransport {
         to: message.to,
         subject: message.subject,
         text: message.text,
+        ...(message.html === undefined ? {} : { html: message.html }),
+        ...(message.replyTo === undefined ? {} : { replyTo: message.replyTo }),
+        ...(message.messageId === undefined ? {} : { messageId: message.messageId }),
+        ...(message.headers === undefined ? {} : { headers: { ...message.headers } }),
       });
     } finally {
       transporter.close();

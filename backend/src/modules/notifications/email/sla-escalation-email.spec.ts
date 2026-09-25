@@ -1,6 +1,6 @@
+import { createEmailChannelTestConfiguration } from './email-channel-test-configuration';
 import { fanOutEmailNotifications } from './fan-out-email-notifications';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
-import { defaultEmailTemplates } from './default-email-templates';
 import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
 import { notificationTypes } from '../notifications.constants';
 
@@ -18,10 +18,20 @@ describe('SLA escalation email gate', () => {
             id: 't1',
             ticketNumber: 'HD-1',
             title: 'x',
+            status: 'ASSIGNED',
+            priority: 'HIGH',
+            serviceId: 'svc-1',
+            assignedGroupId: null,
             isConfidential: false,
           }),
         },
-        user: { findUnique: async () => ({ email: 'a@epbih.ba' }) },
+        service: { findUnique: async () => ({ name: 'VPN' }) },
+        group: { findUnique: async () => null },
+        user: {
+          findMany: async () => [
+            { id: 'user-1', email: 'a@epbih.ba', displayName: 'A', preferredLocale: null },
+          ],
+        },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: false }),
       { send: async () => undefined },
@@ -46,10 +56,20 @@ describe('SLA escalation email gate', () => {
             id: 't1',
             ticketNumber: 'HD-1',
             title: 'x',
+            status: 'ASSIGNED',
+            priority: 'HIGH',
+            serviceId: 'svc-1',
+            assignedGroupId: null,
             isConfidential: false,
           }),
         },
-        user: { findUnique: async () => ({ email: 'a@epbih.ba' }) },
+        service: { findUnique: async () => ({ name: 'VPN' }) },
+        group: { findUnique: async () => null },
+        user: {
+          findMany: async () => [
+            { id: 'user-1', email: 'a@epbih.ba', displayName: 'A', preferredLocale: null },
+          ],
+        },
       } as never,
       enabledConfiguration({ slaEscalationEmailEnabled: true }),
       { send: async () => undefined },
@@ -70,25 +90,5 @@ describe('SLA escalation email gate', () => {
 function enabledConfiguration(
   overrides: Partial<EmailChannelConfiguration> = {},
 ): EmailChannelConfiguration {
-  return {
-    deliveryEnabled: true,
-    smtpEnabled: true,
-    emailAddonEnabled: true,
-    notificationsEmailEnabled: true,
-    slaEscalationEmailEnabled: true,
-    templatesEnabled: true,
-    internalOnly: true,
-    allowedExternalDomains: [],
-    allowedExternalEmails: [],
-    templates: defaultEmailTemplates,
-    smtp: {
-      host: 'smtp.office365.com',
-      port: 587,
-      tls: true,
-      username: 'helpdesk@epbih.ba',
-      password: 'smtp-secret-value',
-      fromAddress: 'helpdesk@epbih.ba',
-    },
-    ...overrides,
-  };
+  return createEmailChannelTestConfiguration(overrides);
 }

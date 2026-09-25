@@ -45,7 +45,10 @@ describe('notification email settings', () => {
       allowedExternalEmailsCsv: '',
       hasSmtpTransport: false,
     });
-    expect(JSON.parse(snapshot.templatesJson)).toEqual(defaultEmailTemplates);
+    expect(JSON.parse(snapshot.templatesJson)).toEqual({
+      version: 2,
+      locales: defaultEmailTemplates,
+    });
   });
 
   it('persists channel flags through the settings registry with a change log', async () => {
@@ -95,9 +98,13 @@ describe('notification email settings', () => {
     const { service } = await createHarness();
     const next = {
       ...defaultEmailTemplates,
-      'ticket.created': {
-        subject: 'New {{ticketNumber}}',
-        body: '{{ticketTitle}}',
+      en: {
+        ...defaultEmailTemplates.en,
+        'ticket.created': {
+          ...defaultEmailTemplates.en['ticket.created'],
+          subject: 'New {{ticketTitle}}',
+          body: '{{ticketTitle}}',
+        },
       },
     };
     await service.setSettingValue(

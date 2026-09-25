@@ -2,6 +2,8 @@ model User {
   id                   String                     @id @default(cuid())
   email                String                     @unique
   displayName          String
+  /// Paket 1.5: UI and e-mail language (bs, en). Null → private.i18n.defaultLocale.
+  preferredLocale      String?                    @db.VarChar(8)
   /// SuperAdmin identities must always be true. External providers cannot bind here.
   isLocalOnly          Boolean                    @default(false)
   isActive             Boolean                    @default(true)

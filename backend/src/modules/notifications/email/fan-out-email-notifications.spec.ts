@@ -1,5 +1,5 @@
+import { createEmailChannelTestConfiguration } from './email-channel-test-configuration';
 import { fanOutEmailNotifications } from './fan-out-email-notifications';
-import { defaultEmailTemplates } from './default-email-templates';
 import type { PreparedOutboundEmail } from './deliver-notification-email';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import type { MailTransport, OutboundMailMessage } from './mail-transport';
@@ -117,32 +117,59 @@ describe('email notification fan-out', () => {
     expect(mail.messages[0]?.text).toContain(created.ticketNumber);
     expect(mail.messages[0]?.text).not.toContain('Secret outage');
   });
+
+  it('sends HTML with threading headers and a link to the ticket (paket 1.5)', async () => {
+    const harness = await routedWithInternalAgent();
+    const created = await harness.tickets.create(vpnCreateInput(), {
+      actorUserId: ticketsTestIds.requester,
+    });
+    const mail = createRecordingTransport();
+    await ingestEmail(harness, mail, enabledConfiguration());
+    const message = mail.messages[0];
+    expect(message?.html).toContain('<!DOCTYPE html>');
+    expect(message?.html).toContain(`https://desk.epbih.ba/tickets/${created.id}`);
+    expect(message?.subject.startsWith(`[${created.ticketNumber}]`)).toBe(true);
+    expect(message?.headers).toMatchObject({
+      References: `<ticket-${created.id}@epbih.ba>`,
+      'Auto-Submitted': 'auto-generated',
+    });
+    expect(message?.messageId).toMatch(/@epbih\.ba>$/);
+    expect(message?.replyTo).toBeUndefined();
+  });
+
+  it("renders in the recipient's preferred language", async () => {
+    const harness = await routedWithInternalAgent();
+    harness.memory.seedUser({
+      id: ticketsTestIds.agentIt,
+      organizationalUnitId: ticketsTestIds.ouIt,
+      email: 'user-agent-it@epbih.ba',
+      preferredLocale: 'en',
+    });
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const mail = createRecordingTransport();
+    await ingestEmail(harness, mail, enabledConfiguration());
+    expect(mail.messages[0]?.subject).toContain('New ticket');
+    expect(mail.messages[0]?.html).toContain('lang="en"');
+  });
+
+  it('loads all recipients with one query instead of one per recipient', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const prisma = harness.memory.prisma as unknown as {
+      user: { findUnique: (...args: unknown[]) => unknown; findMany: (...args: unknown[]) => unknown };
+    };
+    const findUnique = jest.spyOn(prisma.user, 'findUnique');
+    const findMany = jest.spyOn(prisma.user, 'findMany');
+    await ingestEmail(harness, createRecordingTransport(), enabledConfiguration());
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(findUnique).not.toHaveBeenCalled();
+  });
 });
 
 function enabledConfiguration(
   overrides: Partial<EmailChannelConfiguration> = {},
 ): EmailChannelConfiguration {
-  return {
-    deliveryEnabled: true,
-    smtpEnabled: true,
-    emailAddonEnabled: true,
-    notificationsEmailEnabled: true,
-    slaEscalationEmailEnabled: true,
-    templatesEnabled: true,
-    internalOnly: true,
-    allowedExternalDomains: [],
-    allowedExternalEmails: [],
-    templates: defaultEmailTemplates,
-    smtp: {
-      host: 'smtp.office365.com',
-      port: 587,
-      tls: true,
-      username: 'helpdesk@epbih.ba',
-      password: 'smtp-secret-value',
-      fromAddress: 'helpdesk@epbih.ba',
-    },
-    ...overrides,
-  };
+  return createEmailChannelTestConfiguration(overrides);
 }
 
 function createRecordingTransport(): MailTransport & {

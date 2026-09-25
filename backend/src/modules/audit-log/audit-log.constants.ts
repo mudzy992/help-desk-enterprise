@@ -32,6 +32,7 @@ export const auditLogActions = {
   rolePermissionReplace: 'role_permission.replace',
   userRoleAssign: 'user_role.assign',
   userRoleRemove: 'user_role.remove',
+  emailTemplateTestSent: 'email_template.test_sent',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -46,6 +47,7 @@ export const auditLogEntityTypes = {
   notification: 'notification',
   role: 'role',
   userRole: 'user_role',
+  emailTemplate: 'email_template',
 } as const;
 
 export const auditLogErrorCodes = {

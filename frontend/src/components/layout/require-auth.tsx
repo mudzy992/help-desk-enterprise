@@ -5,6 +5,10 @@ import { expireSession, notifySessionRefreshed, useSession } from "@/lib/session
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { startSessionKeepAlive } from "@/lib/session/session-keep-alive";
 import { setUnauthorizedHandler } from "@/services/api";
+import { decideLocaleSync } from "@/i18n/locale-preference-sync";
+import { parseLocale, persistLocale } from "@/i18n/locale";
+import i18n from "i18next";
+import { getUserPreferences, updateUserPreferences } from "@/services/user-preferences-api";
 
 export function RequireAuth() {
   const location = useLocation();
@@ -26,6 +30,30 @@ export function RequireAuth() {
     return () => {
       stop();
       setUnauthorizedHandler(null);
+    };
+  }, [hasSession]);
+
+  // Paket 1.5: align the UI language with the saved preference once per session.
+  useEffect(() => {
+    if (!hasSession) return undefined;
+    let cancelled = false;
+    void getUserPreferences()
+      .then(async (preferences) => {
+        if (cancelled) return;
+        const decision = decideLocaleSync({
+          serverLocale: preferences.preferredLocale,
+          currentLocale: parseLocale(i18n.language),
+        });
+        if (decision.action === "push") {
+          await updateUserPreferences({ preferredLocale: decision.locale });
+        } else if (decision.action === "apply") {
+          persistLocale(decision.locale);
+          await i18n.changeLanguage(decision.locale);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
     };
   }, [hasSession]);
 

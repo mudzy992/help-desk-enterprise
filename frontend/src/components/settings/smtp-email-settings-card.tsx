@@ -23,6 +23,11 @@ import {
   type SettingRegistryEntry,
 } from "@/services/settings-api";
 
+const providerPresetHosts: Readonly<Record<string, string>> = {
+  o365: "smtp.office365.com",
+  gmail: "smtp.gmail.com",
+};
+
 interface SmtpEmailSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
@@ -41,7 +46,13 @@ export function SmtpEmailSettingsCard({
   const [draftEnabled, setDraftEnabled] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const effectiveEnabled = draftEnabled ?? smtpEnabled;
-  const host = readStringSetting(entries, smtpSettingKeys.host, "—");
+  const provider = readStringSetting(entries, "private.smtp.provider", "o365");
+  const typedHost = readStringSetting(entries, smtpSettingKeys.host, "");
+  // Paket 1.5 (E10): an empty host means the provider preset is used.
+  const host =
+    typedHost.length > 0
+      ? typedHost
+      : (providerPresetHosts[provider] ?? "—");
   const username = readStringSetting(entries, smtpSettingKeys.username, "—");
   const passwordSet =
     entries.find((entry) => entry.key === smtpSettingKeys.password)?.isSet === true;
@@ -52,7 +63,13 @@ export function SmtpEmailSettingsCard({
   );
   const drawerEntries = useMemo(() => {
     const smtp = filterSettingsByPrefix(entries, "private.smtp.");
-    const channel = filterSettingsByKeys(entries, Object.values(emailChannelSettingKeys));
+    // The template registry JSON is edited in the "E-mail templates" card.
+    const channel = filterSettingsByKeys(
+      entries,
+      Object.values(emailChannelSettingKeys).filter(
+        (key) => key !== emailChannelSettingKeys.templatesJson,
+      ),
+    );
     return [...smtp, ...channel];
   }, [entries]);
 
@@ -77,6 +94,12 @@ export function SmtpEmailSettingsCard({
             !effectiveEnabled && "pointer-events-none opacity-40",
           )}
         >
+          <p className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t("settings.smtp.provider")}</span>
+            <span className="text-foreground/90" data-testid="smtp-provider">
+              {t(`settings.emailTemplates.providers.${provider}`, { defaultValue: provider })}
+            </span>
+          </p>
           <p className="flex items-center justify-between">
             <span className="text-muted-foreground">{t("settings.smtp.host")}</span>
             <span className="tnum text-foreground/90">{host}</span>
