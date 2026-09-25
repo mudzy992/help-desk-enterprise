@@ -110,6 +110,8 @@ export async function listTicketsWithin(
   context: TicketMutationContext,
   archive: TicketArchiveConfiguration,
   limit: number,
+  /** Narrow projection for callers that read a few columns (global search). */
+  select: Prisma.TicketSelect | null = null,
 ): Promise<readonly TicketRecord[]> {
   const { records } = await runTicketListQuery(
     prisma,
@@ -119,7 +121,7 @@ export async function listTicketsWithin(
     archive,
     { skip: 0, take: Math.max(limit, 1) },
     false,
-    null,
+    select,
   );
   return records;
 }

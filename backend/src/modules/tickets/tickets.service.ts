@@ -173,6 +173,8 @@ export class TicketsService {
         gated,
         gated.archive,
         query.limit,
+        // Global search shows number + title only; skip description/formData.
+        { id: true, ticketNumber: true, title: true },
       );
       return records.map((record) => ({
         id: record.id,
