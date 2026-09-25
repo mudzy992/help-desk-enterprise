@@ -22,6 +22,7 @@ import { teamsIntegrationSettings } from './teams-integration-settings';
 import { ticketApprovalsSettings } from './ticket-approvals-settings';
 import { ticketWaitingAndReopenSettings } from './ticket-waiting-and-reopen-settings';
 import { ticketSplitSettings } from './ticket-split-settings';
+import { ticketForwardingSettings } from './ticket-forwarding-settings';
 import { ticketBulkActionsSettings } from './ticket-bulk-actions-settings';
 import { ticketSavedViewsSettings } from './ticket-saved-views-settings';
 import { ticketAssignmentSettings } from './ticket-assignment-settings';
@@ -55,6 +56,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...ticketApprovalsSettings,
   ...ticketWaitingAndReopenSettings,
   ...ticketSplitSettings,
+  ...ticketForwardingSettings,
   ...ticketBulkActionsSettings,
   ...ticketSavedViewsSettings,
   ...ticketCloseCodesSettings,

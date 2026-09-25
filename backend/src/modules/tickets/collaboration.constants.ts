@@ -95,6 +95,7 @@ export const ticketSystemEventActions = {
   slaResolutionEscalated: 'ticket_sla_resolution_escalated',
   remoteRequested: 'ticket_remote_requested',
   remoteAcknowledged: 'ticket_remote_acknowledged',
+  forwarded: 'ticket_forwarded',
 } as const;
 
 export const ticketRealtimeEventNames = {

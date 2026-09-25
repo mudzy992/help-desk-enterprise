@@ -1,6 +1,6 @@
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthorizationContext } from '../authorization/authorization.types';
-import { canManageTicketsInScope } from './authorize-ticket-actor';
+import { canHandleTicket } from './authorize-ticket-actor';
 import { assertConfidentialTicketAccess } from './confidential/assert-confidential-ticket-access';
 import { defaultTicketConfidentialConfiguration } from './confidential/confidential.constants';
 import type { TicketConfidentialConfiguration } from './confidential/confidential.types';
@@ -8,16 +8,17 @@ import type { TicketActorAccess } from './collaboration.types';
 import { TicketsError } from './tickets.error';
 import type { TicketRecord } from './tickets.types';
 
-export function isTicketStaffActor(input: {
-  readonly context: AuthorizationContext;
-  readonly originUnitId: string;
-  readonly originUnitPath: string;
-  readonly serviceId: string;
-}): boolean {
-  if (input.context.isSuperAdmin) {
-    return true;
-  }
-  return canManageTicketsInScope(input);
+export async function isTicketStaffActor(
+  prisma: PrismaService,
+  input: {
+    readonly context: AuthorizationContext;
+    readonly originUnitId: string;
+    readonly originUnitPath: string;
+    readonly serviceId: string;
+    readonly assignedGroupId: string | null;
+  },
+): Promise<boolean> {
+  return canHandleTicket(prisma, input);
 }
 
 export async function resolveTicketActorAccess(
@@ -37,11 +38,12 @@ export async function resolveTicketActorAccess(
       input.confidential ?? defaultTicketConfidentialConfiguration,
   });
   if (
-    isTicketStaffActor({
+    await isTicketStaffActor(prisma, {
       context: input.context,
       originUnitId: input.ticket.originUnitId,
       originUnitPath: input.originUnitPath,
       serviceId: input.ticket.serviceId,
+      assignedGroupId: input.ticket.assignedGroupId,
     })
   ) {
     return { visibility: 'staff' };

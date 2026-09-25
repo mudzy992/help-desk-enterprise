@@ -84,6 +84,7 @@ export const ticketChangeLogReasons = {
   reopenNew: 'ticket_reopened_new',
   split: 'ticket_split',
   bulkAssign: 'ticket_bulk_assign',
+  forward: 'ticket_forward',
   bulkStatus: 'ticket_bulk_status',
   bulkPriority: 'ticket_bulk_priority',
   bulkBroadcast: 'ticket_bulk_broadcast',

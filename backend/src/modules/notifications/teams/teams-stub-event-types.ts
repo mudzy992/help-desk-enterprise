@@ -4,6 +4,7 @@ export const teamsStubEventTypes = [
   'ticket.message',
   'ticket.resolved',
   'ticket.closed',
+  'ticket.forwarded',
 ] as const;
 
 export type TeamsStubEventType = (typeof teamsStubEventTypes)[number];

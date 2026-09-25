@@ -36,12 +36,13 @@ export async function getTicket(
   const configuration =
     context.confidential ?? defaultTicketConfidentialConfiguration;
   try {
-    assertTicketVisible({
+    await assertTicketVisible(prisma, {
       context: authContext,
       requesterId: ticket.requesterId,
       originUnitId: ticket.originUnitId,
       originUnitPath,
       serviceId: ticket.serviceId,
+      assignedGroupId: ticket.assignedGroupId,
     });
     await assertConfidentialTicketAccess(prisma, {
       context: authContext,

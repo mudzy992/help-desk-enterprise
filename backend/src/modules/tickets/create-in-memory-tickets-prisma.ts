@@ -54,6 +54,8 @@ import {
 import type { NotificationRecord } from '../notifications/notifications.types';
 import { createInMemoryTicketSlaLayer } from '../sla/create-in-memory-ticket-sla-layer';
 import type { TicketRecord } from './tickets.types';
+import { createInMemoryTicketForwardEventDelegate } from './forwarding/create-in-memory-ticket-forward-event-delegate';
+import type { TicketForwardEventRecord } from './forwarding/forwarding.types';
 import type {
   InMemoryTicketChangeLog,
   InMemoryTicketGroup,
@@ -85,6 +87,7 @@ export function createInMemoryTicketsPrisma() {
   const notifications = new Map<string, NotificationRecord>();
   const notificationReceipts = new Map<string, InMemoryNotificationReceipt>();
   const emailDeliveries = new Map<string, NotificationEmailDeliveryRecord>();
+  const forwardEvents = new Map<string, TicketForwardEventRecord>();
   const changeLogs: InMemoryTicketChangeLog[] = [];
   const auditLogs: Parameters<typeof createInMemoryAuditLogDelegate>[0] = [];
   let nextIdentifier = 1;
@@ -192,6 +195,12 @@ export function createInMemoryTicketsPrisma() {
       now,
     ),
     ticketCsat: createInMemoryTicketCsatDelegate(csatSubmissions, nextId, now),
+    ticketForwardEvent: createInMemoryTicketForwardEventDelegate(
+      forwardEvents,
+      () => nextPrefixedId('forward'),
+      now,
+      (ticketId) => tickets.get(ticketId)?.requesterId ?? null,
+    ),
     notification: createInMemoryNotificationDelegate(
       notifications,
       nextId,
@@ -238,6 +247,8 @@ export function createInMemoryTicketsPrisma() {
     csatSubmissions,
     notifications,
     emailDeliveries,
+    forwardEvents,
+    auditLogs,
     slaStates: slaLayer.slaStates,
     seedUnit: (unit: InMemoryTicketUnit) => units.set(unit.id, unit),
     seedService: (service: InMemoryTicketService) =>

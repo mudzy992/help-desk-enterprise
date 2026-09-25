@@ -4,14 +4,21 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { TicketsError } from '../tickets.error';
 import { syncAssigneeParticipant } from '../sync-assignee-participant';
-import { syncHandlerGroupParticipant } from '../sync-handler-group-participant';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import {
   auditBulkTicketChange,
   ticketChangeLogReasons,
   ticketSystemEventActions,
 } from './audit-bulk-ticket-change';
-import type { ExecuteTicketBulkInput } from './bulk.types';
+import {
+  applyTicketForward,
+  planTicketForward,
+  type TicketForwardPlan,
+} from '../forwarding/forward-ticket';
+import type {
+  BulkForwardingDependencies,
+  ExecuteTicketBulkInput,
+} from './bulk.types';
 
 export async function applyBulkAssign(input: {
   readonly prisma: PrismaService;
@@ -21,15 +28,19 @@ export async function applyBulkAssign(input: {
   readonly body: ExecuteTicketBulkInput;
   readonly batchId: string | null;
   readonly messages: TicketPersistedMessageSink;
+  readonly forwarding: BulkForwardingDependencies;
 }): Promise<readonly TicketRecord[]> {
+  if (input.body.actionType === 'assign_group') {
+    return forwardBulkTickets(input);
+  }
   const updated: TicketRecord[] = [];
   for (const ticket of input.tickets) {
     await assertAgentGroupMembership(input.prisma, input.context, ticket);
-    const next =
-      input.body.actionType === 'assign_group'
-        ? await assignGroup(input.prisma, ticket, input.body.assignedGroupId)
-        : await assignUser(input.prisma, ticket, input.body.assignedUserId);
-    await syncHandlerGroupParticipant(input.prisma, next);
+    const next = await assignUser(
+      input.prisma,
+      ticket,
+      input.body.assignedUserId,
+    );
     await syncAssigneeParticipant(input.prisma, next);
     await auditBulkTicketChange({
       prisma: input.prisma,
@@ -46,30 +57,63 @@ export async function applyBulkAssign(input: {
   return updated;
 }
 
-async function assignGroup(
-  prisma: PrismaService,
-  ticket: TicketRecord,
-  assignedGroupId: string | undefined,
-): Promise<TicketRecord> {
-  const groupId = assignedGroupId?.trim() ?? '';
-  if (groupId.length === 0) {
+/**
+ * Every ticket is validated first (status, group membership, cross-OU
+ * permission, reason), so one bad ticket rejects the batch before any write.
+ */
+async function forwardBulkTickets(input: {
+  readonly prisma: PrismaService;
+  readonly context: AuthorizationContext;
+  readonly actor: TicketMutationContext;
+  readonly tickets: readonly TicketRecord[];
+  readonly body: ExecuteTicketBulkInput;
+  readonly batchId: string | null;
+  readonly messages: TicketPersistedMessageSink;
+  readonly forwarding: BulkForwardingDependencies;
+}): Promise<readonly TicketRecord[]> {
+  const configuration = input.forwarding.configuration;
+  if (configuration === null) {
+    throw new TicketsError('FORWARDING_UNAVAILABLE');
+  }
+  const targetGroupId = input.body.assignedGroupId?.trim() ?? '';
+  if (targetGroupId.length === 0) {
     throw new TicketsError('HANDLER_GROUP_NOT_FOUND');
   }
-  const group = await prisma.group.findUnique({
-    where: { id: groupId },
-    select: { id: true },
-  });
-  if (group === null) {
-    throw new TicketsError('HANDLER_GROUP_NOT_FOUND');
+  const plans: TicketForwardPlan[] = [];
+  for (const ticket of input.tickets) {
+    if (ticket.assignedGroupId === targetGroupId) {
+      continue;
+    }
+    plans.push(
+      await planTicketForward({
+        prisma: input.prisma,
+        authorizationContextLoader: input.forwarding.authorizationContextLoader,
+        configuration,
+        authContext: input.context,
+        ticket,
+        body: { targetGroupId, reason: input.body.reason },
+      }),
+    );
   }
-  return prisma.ticket.update({
-    where: { id: ticket.id },
-    data: {
-      assignedGroupId: group.id,
-      assignedUserId: null,
-      status: ticket.status === 'UNROUTED' ? 'PENDING' : ticket.status,
-    },
-  }) as Promise<TicketRecord>;
+  const updated: TicketRecord[] = [];
+  for (const plan of plans) {
+    updated.push(
+      await applyTicketForward({
+        prisma: input.prisma,
+        plan,
+        configuration,
+        actorUserId: input.actor.actorUserId,
+        keepMeAsWatcher: false,
+        viaBulk: true,
+        batchId: input.batchId,
+        messages: input.messages,
+      }),
+    );
+  }
+  const unchanged = input.tickets.filter(
+    (ticket) => !plans.some((plan) => plan.ticket.id === ticket.id),
+  );
+  return [...updated, ...unchanged];
 }
 
 async function assignUser(

@@ -1,5 +1,5 @@
 import type { AuthorizationContext } from '../../authorization/authorization.types';
-import { canManageTicketsInScope } from '../authorize-ticket-actor';
+import { canHandleTicket } from '../authorize-ticket-actor';
 import { isConfidentialTicketVisible } from '../confidential/assert-confidential-ticket-access';
 import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
 import type { TicketRecord } from '../tickets.types';
@@ -18,7 +18,7 @@ jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
-/** The previous list logic, one ticket at a time: the oracle. */
+/** The single-ticket rule (OU scope or D1 handler group), per ticket: the oracle. */
 async function visibleByPerTicketCheck(
   world: World,
   context: AuthorizationContext,
@@ -32,14 +32,14 @@ async function visibleByPerTicketCheck(
       continue;
     }
     const baseline =
-      context.isSuperAdmin ||
       context.subjectId === ticket.requesterId ||
-      canManageTicketsInScope({
+      (await canHandleTicket(world.prisma, {
         context,
         originUnitId: ticket.originUnitId,
         originUnitPath,
         serviceId: ticket.serviceId,
-      });
+        assignedGroupId: ticket.assignedGroupId,
+      }));
     if (
       baseline &&
       (await isConfidentialTicketVisible(world.prisma, {

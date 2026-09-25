@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TicketForwardingConfigurationLoader } from '../forwarding/ticket-forwarding-configuration.loader';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { permissionKeys } from '../../authorization/authorization.constants';
@@ -39,6 +40,7 @@ export class TicketsBulkService {
     private readonly closeCodesConfigurationLoader: TicketCloseCodesConfigurationLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    private readonly forwardingConfigurationLoader: TicketForwardingConfigurationLoader,
   ) {}
 
   preview(
@@ -130,6 +132,13 @@ export class TicketsBulkService {
         body,
         configuration,
         messages,
+        forwarding: {
+          authorizationContextLoader: this.authorizationContextLoader,
+          configuration:
+            body.actionType === 'assign_group'
+              ? await this.forwardingConfigurationLoader.load()
+              : null,
+        },
       });
       const reopen = await this.reopenConfigurationLoader.load();
       const closeCodes = await this.closeCodesConfigurationLoader.load();

@@ -69,7 +69,7 @@ describe('TicketsService auto-assignment', () => {
     expect(created.assignedUserId).toBeNull();
   });
 
-  it('does not assign an out-of-scope group member or an unrouted ticket', async () => {
+  it('does not assign an unrouted ticket; assigns a group member outside the ticket OU (D1)', async () => {
     const { tickets, routing, memory, assignmentConfig } =
       createTicketsServiceHarness();
     assignmentConfig.autoAssignEnabled = true;
@@ -92,8 +92,10 @@ describe('TicketsService auto-assignment', () => {
       actorUserId: ticketsTestIds.requester,
     });
     expect(routed.assignedGroupId).toBe(ticketsTestIds.groupIt);
-    expect(routed.assignedUserId).toBeNull();
-    expect(routed.status).toBe('PENDING');
+    // Group membership is the admin's explicit decision: the HR agent in the
+    // IT group handles the group's tickets (decision D1, package 1.1).
+    expect(routed.assignedUserId).toBe(ticketsTestIds.agentHr);
+    expect(routed.status).toBe('ASSIGNED');
   });
 });
 

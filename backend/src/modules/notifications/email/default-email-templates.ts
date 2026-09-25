@@ -29,6 +29,10 @@ export const defaultEmailTemplates: EmailTemplateRegistry = {
     subject: 'SLA događaj: {{ticketNumber}}',
     body: 'SLA događaj na tiketu {{ticketNumber}}: {{ticketTitle}}',
   },
+  'ticket.forwarded': {
+    subject: 'Tiket {{ticketNumber}} je proslijeđen',
+    body: 'Tiket {{ticketNumber}} je proslijeđen timu koji će ga dalje rješavati: {{ticketTitle}}',
+  },
   'remote.requested': {
     subject: 'Zahtjev za udaljenu podršku: {{ticketNumber}}',
     body: 'Zatražena je udaljena podrška za tiket {{ticketNumber}}.',

@@ -54,6 +54,7 @@ model Ticket {
   guardrailClaims      GuardrailClaim[]
   slaState             TicketSlaState?
   notifications        Notification[]
+  forwardEvents        TicketForwardEvent[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
 
@@ -135,4 +136,31 @@ model TicketActivity {
 
   @@index([ticketId])
   @@index([actorUserId])
+}
+
+/// Package 1.1: one row per forward (manual, bulk or "return to previous group").
+/// Group/unit/user ids are plain strings on purpose: the history must survive a
+/// deleted group or user, so names are snapshotted too.
+model TicketForwardEvent {
+  id                  String   @id @default(cuid())
+  ticketId            String
+  fromGroupId         String?
+  fromGroupName       String?
+  fromUnitId          String?
+  toGroupId           String
+  toGroupName         String
+  toUnitId            String
+  toUserId            String?
+  previousAssigneeId  String?
+  actorUserId         String?
+  reason              String
+  isCrossOu           Boolean
+  requesterNotified   Boolean  @default(false)
+  viaBulk             Boolean  @default(false)
+  ticket              Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([toUnitId, createdAt])
+  @@index([toGroupId, createdAt])
 }

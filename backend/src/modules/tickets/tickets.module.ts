@@ -40,6 +40,9 @@ import { TicketGuardrailsConfigurationLoader } from './guardrails/ticket-guardra
 import { TicketSplitConfigurationLoader } from './split/ticket-split-configuration.loader';
 import { TicketsSplitController } from './split/tickets-split.controller';
 import { TicketsSplitService } from './split/tickets-split.service';
+import { TicketForwardingConfigurationLoader } from './forwarding/ticket-forwarding-configuration.loader';
+import { TicketsForwardingController } from './forwarding/tickets-forwarding.controller';
+import { TicketsForwardingService } from './forwarding/tickets-forwarding.service';
 import { TicketBulkConfigurationLoader } from './bulk/ticket-bulk-configuration.loader';
 import { TicketsBulkController } from './bulk/tickets-bulk.controller';
 import { TicketsBulkService } from './bulk/tickets-bulk.service';
@@ -82,6 +85,7 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsApprovalsController,
     TicketsReopenController,
     TicketsSplitController,
+    TicketsForwardingController,
     TicketsConfidentialController,
     TicketsCsatController,
   ],
@@ -105,6 +109,8 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsCsatService,
     TicketsSplitService,
     TicketSplitConfigurationLoader,
+    TicketsForwardingService,
+    TicketForwardingConfigurationLoader,
     TicketsBulkService,
     TicketBulkConfigurationLoader,
     TicketsExportService,

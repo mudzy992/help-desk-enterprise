@@ -59,7 +59,11 @@ export function seedTicketsHarnessCatalog(
     isConfidentialDefault: false,
     requiresApproval: true,
   });
-  memory.seedGroup({ id: ticketsTestIds.groupIt, name: 'IT Support' });
+  memory.seedGroup({
+    id: ticketsTestIds.groupIt,
+    name: 'IT Support',
+    organizationalUnitId: ticketsTestIds.ouIt,
+  });
   memory.seedUser({
     id: ticketsTestIds.requester,
     organizationalUnitId: ticketsTestIds.ouIt,

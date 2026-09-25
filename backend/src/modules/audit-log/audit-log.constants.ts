@@ -22,6 +22,7 @@ export const auditLogActions = {
   ticketConfidentialDenied: 'ticket_confidential_denied',
   ticketConfidentialBreakGlass: 'ticket_confidential_break_glass',
   ticketBulkExecute: 'ticket_bulk.execute',
+  ticketForwarded: 'ticket.forwarded',
   ticketsExport: 'tickets.export',
   auditExport: 'audit.export',
   reportsExport: 'reports.export',

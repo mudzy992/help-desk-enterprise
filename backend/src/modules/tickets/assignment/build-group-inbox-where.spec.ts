@@ -86,29 +86,24 @@ describe('buildGroupInboxWhere matches the previous group inbox logic', () => {
     // Only the group's unassigned PENDING work; never assigned or in-progress.
     expect(member.every((id) => /:(grp|grp-conf|grp-own|conf-group)$/.test(id))).toBe(true);
     expect(member.some((id) => id.endsWith(':grp-assigned') || id.endsWith(':grp-active'))).toBe(false);
-    // Scope still applies: the member is an IT agent, so no HR-unit tickets,
-    // even the one they requested themselves (the list shows those, the inbox
-    // is a work queue and does not).
-    expect(member.some((id) => id.startsWith('ou-hr:'))).toBe(false);
+    // Decision D1 (package 1.1): the group's queue follows the group, not the
+    // OU. The member is an IT agent, yet HR-unit tickets handled by their
+    // group (e.g. forwarded there) are in their inbox.
+    expect(member.some((id) => id.startsWith('ou-hr:'))).toBe(true);
     expect((await inbox('requester')).length).toBe(0);
     // SuperAdmin sees every group's queue, not only their own.
     const superLocal = await inbox('superLocal');
     expect(superLocal.some((id) => id.endsWith(':grp-other'))).toBe(true);
     expect(member.some((id) => id.endsWith(':grp-other'))).toBe(false);
-    // Service-scoped assignments only reach their own unit and service: IT/vpn
-    // (and its Helpdesk sub-unit) and HR/access, nothing else.
+    // Service-scoped assignments no longer limit the group's own queue (D1):
+    // a member works every ticket handled by their group, and nothing else.
     const multi = await inbox('multi');
     expect(multi.length).toBeGreaterThan(0);
-    expect(
-      multi.every((id) =>
-        /^(ou-it|ou-it-hd):service-vpn:|^ou-hr:service-access:/.test(id),
-      ),
-    ).toBe(true);
+    expect(multi.every((id) => /:(grp|grp-conf|grp-own|conf-group)$/.test(id))).toBe(true);
     expect(multi.some((id) => id.startsWith('ou-hr:service-access:'))).toBe(true);
-    expect(multi.some((id) => id.startsWith('ou-it:service-access:'))).toBe(false);
   });
 
-  it('keeps the list and the inbox different for a requester outside their scope', async () => {
+  it('D1: a ticket of the caller\'s group from an OU outside their scope is in list and inbox', async () => {
     const context = actors.groupMember;
     const inputs = await loadTicketVisibilityInputs(world.prisma, context.subjectId);
     const list = await world.memory.prisma.ticket.findMany({
@@ -122,8 +117,10 @@ describe('buildGroupInboxWhere matches the previous group inbox logic', () => {
       },
     });
     expect(list.some((ticket: TicketRecord) => ticket.id === 'ou-hr:service-vpn:grp-own')).toBe(true);
-    expect(await inboxByWhere(world, context, configurations.default)).not.toContain(
+    expect(await inboxByWhere(world, context, configurations.default)).toContain(
       'ou-hr:service-vpn:grp-own',
     );
+    // Other groups' work outside their scope stays hidden in both.
+    expect(list.some((ticket: TicketRecord) => ticket.id === 'ou-hr:service-vpn:grp-other')).toBe(false);
   });
 });

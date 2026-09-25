@@ -35,7 +35,7 @@ describe('TicketsService group inbox and claim', () => {
     ).toEqual([]);
   });
 
-  it('hides inbox tickets that are outside the agent OU/service scope', async () => {
+  it('shows the group\'s tickets to a member outside the ticket OU (D1)', async () => {
     const { tickets, routing, memory, contexts } = createTicketsServiceHarness();
     await routeVpnToIt(routing);
     memory.seedGroupMember({
@@ -50,7 +50,7 @@ describe('TicketsService group inbox and claim', () => {
     );
     expect(
       (await tickets.listInbox({}, { actorUserId: ticketsTestIds.agentHr })).items,
-    ).toEqual([]);
+    ).toHaveLength(1);
   });
 
   it('lets an authorized group member claim a pending inbox ticket', async () => {
@@ -73,7 +73,7 @@ describe('TicketsService group inbox and claim', () => {
     ).toEqual([]);
   });
 
-  it('rejects invalid claims outside group, scope, or claimable state', async () => {
+  it('rejects claims outside the group or claimable state', async () => {
     const { tickets, routing, memory } = createTicketsServiceHarness();
     const unrouted = await tickets.create(vpnCreateInput(), {
       actorUserId: ticketsTestIds.requester,
@@ -91,13 +91,15 @@ describe('TicketsService group inbox and claim', () => {
     await expect(
       tickets.claim(routed.id, { actorUserId: ticketsTestIds.agentIt }),
     ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    // A member of the handling group may claim even outside the ticket OU (D1).
     memory.seedGroupMember({
       groupId: ticketsTestIds.groupIt,
       userId: ticketsTestIds.agentHr,
     });
-    await expect(
-      tickets.claim(routed.id, { actorUserId: ticketsTestIds.agentHr }),
-    ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
+    const claimed = await tickets.claim(routed.id, {
+      actorUserId: ticketsTestIds.agentHr,
+    });
+    expect(claimed.assignedUserId).toBe(ticketsTestIds.agentHr);
   });
 });
 

@@ -1,4 +1,6 @@
 import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enums';
+import type { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
+import type { TicketForwardingConfiguration } from '../forwarding/forwarding.types';
 import type { TicketResponse } from '../tickets.types';
 
 export const ticketBulkActionTypes = [
@@ -68,4 +70,11 @@ export type TicketBulkResult = {
   readonly actionType: TicketBulkActionType;
   readonly tickets: readonly TicketResponse[];
   readonly recipientCount?: number;
+};
+
+/** Package 1.1: bulk "assign group" is a forward and follows the forward rules. */
+export type BulkForwardingDependencies = {
+  readonly authorizationContextLoader: AuthorizationContextLoader;
+  /** Loaded only for `assign_group`; null for the other action types. */
+  readonly configuration: TicketForwardingConfiguration | null;
 };

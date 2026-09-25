@@ -7,6 +7,7 @@ const publicChangeByAction: Readonly<Record<string, TicketRealtimeChange>> = {
   [ticketSystemEventActions.claimed]: 'assignment',
   [ticketSystemEventActions.assigned]: 'assignment',
   [ticketSystemEventActions.ticketBulkAssign]: 'assignment',
+  [ticketSystemEventActions.forwarded]: 'assignment',
   [ticketSystemEventActions.ticketBulkPriority]: 'priority',
   [ticketSystemEventActions.ticketBulkStatus]: 'status',
   [ticketSystemEventActions.waitingForUserEntered]: 'status',

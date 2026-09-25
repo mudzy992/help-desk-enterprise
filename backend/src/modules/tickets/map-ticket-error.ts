@@ -51,6 +51,8 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'CSAT_DISABLED',
   'TICKET_ARCHIVED_READ_ONLY',
   'REMOTE_DISABLED',
+  'FORWARD_CROSS_OU_DISABLED',
+  'FORWARD_CROSS_OU_FORBIDDEN',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -71,6 +73,7 @@ const unavailableCodes: readonly TicketsErrorCode[] = [
   'GUARDRAILS_UNAVAILABLE',
   'CSAT_UNAVAILABLE',
   'ARCHIVE_UNAVAILABLE',
+  'FORWARDING_UNAVAILABLE',
 ];
 
 export function mapTicketError(error: unknown): HttpException {
@@ -102,7 +105,8 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'SAVED_VIEW_NAME_TAKEN' ||
     error.code === 'DUPLICATE_TICKET_BLOCKED' ||
     error.code === 'CSAT_ALREADY_SUBMITTED' ||
-    error.code === 'TICKET_NOT_CLAIMABLE'
+    error.code === 'TICKET_NOT_CLAIMABLE' ||
+    error.code === 'FORWARD_NOT_ALLOWED_IN_STATUS'
   ) {
     return new ConflictException(body);
   }

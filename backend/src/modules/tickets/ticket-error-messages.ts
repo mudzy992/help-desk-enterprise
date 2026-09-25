@@ -121,4 +121,16 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
     'A remote request was already sent for this ticket within the rate-limit window',
   EXPORT_TOO_LARGE:
     'Too many tickets match this export; narrow the filters and try again',
+  FORWARDING_UNAVAILABLE: 'Ticket forwarding policy is unavailable',
+  FORWARD_NOT_ALLOWED_IN_STATUS:
+    'The ticket cannot be forwarded in its current status',
+  FORWARD_SAME_GROUP: 'The ticket is already handled by this group',
+  FORWARD_CROSS_OU_DISABLED:
+    'Forwarding to another organizational unit is disabled',
+  FORWARD_CROSS_OU_FORBIDDEN:
+    'Forwarding to another organizational unit requires the ticket.forward.cross_ou permission',
+  FORWARD_REASON_REQUIRED: 'A forward reason of the required length is needed',
+  FORWARD_TARGET_USER_NOT_MEMBER:
+    'The selected agent is not an active member of the target group',
+  FORWARD_NO_PREVIOUS_GROUP: 'The ticket has no previous group to return to',
 };

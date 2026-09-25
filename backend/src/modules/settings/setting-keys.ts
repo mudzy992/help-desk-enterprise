@@ -120,6 +120,15 @@ export const settingKeys = {
   privateTicketSavedViewsAllowDefaultView:
     'private.ticket.savedViews.allowDefaultView',
   privateTicketSavedViewsAllowSharing: 'private.ticket.savedViews.allowSharing',
+  privateTicketForwardingAllowCrossOu: 'private.ticket.forwarding.allowCrossOu',
+  privateTicketForwardingRequireReason:
+    'private.ticket.forwarding.requireReason',
+  privateTicketForwardingKeepPreviousHandlersAsWatchers:
+    'private.ticket.forwarding.keepPreviousHandlersAsWatchers',
+  privateTicketForwardingNotifyRequester:
+    'private.ticket.forwarding.notifyRequester',
+  privateTicketForwardingMinReasonLength:
+    'private.ticket.forwarding.minReasonLength',
   privateTicketBulkActionsEnabled: 'private.ticket.bulkActions.enabled',
   privateTicketBulkActionsAllowCrossOuForSuperAdmin:
     'private.ticket.bulkActions.allowCrossOuForSuperAdmin',

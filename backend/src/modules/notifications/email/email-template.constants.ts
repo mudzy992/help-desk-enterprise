@@ -7,6 +7,7 @@ export const emailTemplateKeys = [
   'ticket.approval',
   'ticket.sla',
   'remote.requested',
+  'ticket.forwarded',
   'user.temporary_password',
 ] as const;
 

@@ -38,12 +38,13 @@ export async function loadBulkTickets(
     if (originUnitPath === null) {
       throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
     }
-    assertTicketVisible({
+    await assertTicketVisible(prisma, {
       context: authContext,
       requesterId: ticket.requesterId,
       originUnitId: ticket.originUnitId,
       originUnitPath,
       serviceId: ticket.serviceId,
+      assignedGroupId: ticket.assignedGroupId,
     });
     await assertConfidentialTicketAccess(prisma, {
       context: authContext,

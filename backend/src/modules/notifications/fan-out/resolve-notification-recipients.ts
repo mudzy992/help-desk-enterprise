@@ -122,10 +122,57 @@ export async function resolveNotificationAudience(
       },
     };
   }
+  // Package 1.1: a forward notifies the new handlers — the chosen agent, or
+  // else the target group as ONE group row — plus, personally, the previous
+  // assignee and (by setting, recorded on the event) the requester.
+  if (input.type === notificationTypes.ticketForwarded) {
+    const extra = await forwardEventRecipients(prisma, input.messageBody);
+    const personal = withoutActor([input.ticket.assignedUserId, ...extra]);
+    return {
+      userIds: personal,
+      group:
+        input.ticket.assignedUserId === null && groupId !== null
+          ? {
+              groupId,
+              excludedUserIds: unique(
+                [...personal, input.actorUserId].filter(
+                  (id): id is string => id !== null && id.length > 0,
+                ),
+              ),
+            }
+          : null,
+    };
+  }
   return {
     userIds: await resolveNotificationRecipients(prisma, input),
     group: null,
   };
+}
+
+/** `ticket_forwarded:<forwardEventId>` → previous assignee and requester (if notified). */
+async function forwardEventRecipients(
+  prisma: PrismaService,
+  messageBody: string | undefined,
+): Promise<readonly string[]> {
+  const eventId = messageBody?.split(':')[1] ?? '';
+  if (eventId.length === 0) {
+    return [];
+  }
+  const event = await prisma.ticketForwardEvent.findUnique({
+    where: { id: eventId },
+    select: {
+      previousAssigneeId: true,
+      requesterNotified: true,
+      ticket: { select: { requesterId: true } },
+    },
+  });
+  if (event === null) {
+    return [];
+  }
+  return [
+    event.previousAssigneeId,
+    event.requesterNotified ? event.ticket.requesterId : null,
+  ].filter((id): id is string => id !== null);
 }
 
 async function collectRecipients(
@@ -155,6 +202,13 @@ async function collectRecipients(
       return resolveSlaNotificationRecipients(prisma, input);
     case notificationTypes.remoteRequested:
       return [input.ticket.requesterId];
+    case notificationTypes.ticketForwarded:
+      return [
+        ...(input.ticket.assignedUserId === null
+          ? await groupMemberUserIds(prisma, input.ticket.assignedGroupId)
+          : [input.ticket.assignedUserId]),
+        ...(await forwardEventRecipients(prisma, input.messageBody)),
+      ];
     case notificationTypes.ticketMessage:
       return [
         input.ticket.requesterId,

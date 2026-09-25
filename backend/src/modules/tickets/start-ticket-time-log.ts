@@ -50,12 +50,13 @@ export async function startTicketTimeLog(
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
   if (
-    !isTicketStaffActor({
+    !(await isTicketStaffActor(prisma, {
       context: authContext,
       originUnitId: ticket.originUnitId,
       originUnitPath,
       serviceId: ticket.serviceId,
-    })
+      assignedGroupId: ticket.assignedGroupId,
+    }))
   ) {
     throw new TicketsError('FORBIDDEN');
   }

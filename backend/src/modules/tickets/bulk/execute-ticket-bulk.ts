@@ -13,7 +13,11 @@ import { applyBulkPriority } from './apply-bulk-priority';
 import { applyBulkStatus } from './apply-bulk-status';
 import { assertBulkActionAllowed } from './assert-bulk-action-allowed';
 import { assertBulkTicketScope } from './assert-bulk-ticket-scope';
-import type { ExecuteTicketBulkInput, TicketBulkConfiguration } from './bulk.types';
+import type {
+  BulkForwardingDependencies,
+  ExecuteTicketBulkInput,
+  TicketBulkConfiguration,
+} from './bulk.types';
 
 export async function executeTicketBulk(input: {
   readonly prisma: PrismaService;
@@ -23,6 +27,7 @@ export async function executeTicketBulk(input: {
   readonly body: ExecuteTicketBulkInput;
   readonly configuration: TicketBulkConfiguration;
   readonly messages: TicketPersistedMessageSink;
+  readonly forwarding: BulkForwardingDependencies;
 }): Promise<{
   readonly batchId: string | null;
   readonly tickets: readonly TicketRecord[];
@@ -65,6 +70,7 @@ async function dispatchBulkAction(input: {
   readonly body: ExecuteTicketBulkInput;
   readonly configuration: TicketBulkConfiguration;
   readonly messages: TicketPersistedMessageSink;
+  readonly forwarding: BulkForwardingDependencies;
   readonly batchId: string | null;
 }): Promise<{
   readonly batchId: string | null;
@@ -85,7 +91,11 @@ async function dispatchBulkAction(input: {
   ) {
     return {
       batchId: input.batchId,
-      tickets: await applyBulkAssign({ ...shared, context: input.context }),
+      tickets: await applyBulkAssign({
+        ...shared,
+        context: input.context,
+        forwarding: input.forwarding,
+      }),
     };
   }
   if (input.body.actionType === 'set_status') {

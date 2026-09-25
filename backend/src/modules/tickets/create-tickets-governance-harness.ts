@@ -1,3 +1,4 @@
+import { defaultTicketForwardingConfiguration } from './forwarding/forwarding.constants';
 import type { AuthorizationContext } from '../authorization/authorization.types';
 import { RoutingService } from '../routing/routing.service';
 import { TicketAssignmentService } from './assignment/ticket-assignment.service';
@@ -62,6 +63,7 @@ export function createTicketsGovernanceHarness(input: {
   const guardrailsLoader = input.guardrailsLoader ?? {
     load: async () => ({ ...defaultTicketGuardrailsConfiguration }),
   };
+  const forwardingConfig = { ...defaultTicketForwardingConfiguration };
   const bulk = new TicketsBulkService(
     input.prisma as never,
     input.authorizationContextLoader as never,
@@ -71,6 +73,7 @@ export function createTicketsGovernanceHarness(input: {
     input.closeCodesLoader as never,
     input.accessPolicies,
     input.realtimeHub,
+    { load: async () => ({ ...forwardingConfig }) } as never,
   );
   const savedViews = new TicketsSavedViewsService(
     input.prisma as never,
@@ -82,6 +85,7 @@ export function createTicketsGovernanceHarness(input: {
     savedViews,
     splitConfig,
     bulkConfig,
+    forwardingConfig,
     savedViewsConfig,
   };
 }

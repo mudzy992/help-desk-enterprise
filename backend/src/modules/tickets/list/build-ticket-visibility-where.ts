@@ -1,6 +1,7 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import type { AuthorizationContext } from '../../authorization/authorization.types';
 import type { TicketConfidentialConfiguration } from '../confidential/confidential.types';
+import { hasTicketStaffRole } from '../authorize-ticket-actor';
 import {
   buildManageScopeWhere,
   type OrganizationalUnitScopeRow,
@@ -36,7 +37,10 @@ export type TicketVisibilityInput = {
 export function buildTicketVisibilityWhere(
   input: TicketVisibilityInput,
 ): Prisma.TicketWhereInput[] {
-  const manageScope = buildManageScopeWhere(input.context, input.units);
+  const manageScope = withHandlerGroups(
+    buildManageScopeWhere(input.context, input.units),
+    input,
+  );
   const clauses: Prisma.TicketWhereInput[] = [];
   if (!input.context.isSuperAdmin) {
     clauses.push(
@@ -50,6 +54,27 @@ export function buildTicketVisibilityWhere(
     clauses.push(confidential);
   }
   return clauses;
+}
+
+/**
+ * Decision D1 (package 1.1): an agent/admin also manages tickets currently
+ * assigned to one of their groups, whatever OU the ticket came from. Mirrors
+ * `canHandleTicket` on the single-ticket path.
+ */
+function withHandlerGroups(
+  manageScope: Prisma.TicketWhereInput,
+  input: TicketVisibilityInput,
+): Prisma.TicketWhereInput {
+  if (
+    input.context.isSuperAdmin ||
+    input.actorGroupIds.length === 0 ||
+    !hasTicketStaffRole(input.context)
+  ) {
+    return manageScope;
+  }
+  return {
+    OR: [manageScope, { assignedGroupId: { in: [...input.actorGroupIds] } }],
+  };
 }
 
 function buildConfidentialWhere(

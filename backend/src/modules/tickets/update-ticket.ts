@@ -69,12 +69,13 @@ export async function updateTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
-  assertTicketVisible({
+  await assertTicketVisible(prisma, {
     context: authContext,
     requesterId: current.requesterId,
     originUnitId: current.originUnitId,
     originUnitPath,
     serviceId: current.serviceId,
+    assignedGroupId: current.assignedGroupId,
   });
   const nextStatus = input.status ?? current.status;
   assertTicketWritable(current, context);
