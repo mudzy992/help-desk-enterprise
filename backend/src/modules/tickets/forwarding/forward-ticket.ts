@@ -51,6 +51,8 @@ export type TicketForwardPlan = {
   readonly fromGroup: { readonly id: string; readonly name: string } | null;
   readonly fromUnitId: string;
   readonly isCrossOu: boolean;
+  /** Same group, another agent: a reassignment, not a hand-over. */
+  readonly isReassign: boolean;
   readonly reason: string;
 };
 
@@ -120,7 +122,14 @@ export async function planTicketForward(input: {
   if (target === null) {
     throw new TicketsError('HANDLER_GROUP_NOT_FOUND');
   }
-  if (target.id === ticket.assignedGroupId) {
+  // Same group is a reassignment to a colleague (replaces the old "Assign"
+  // action): only with a target agent other than the current assignee.
+  const isReassign = target.id === ticket.assignedGroupId;
+  if (
+    isReassign &&
+    ((input.body.targetUserId?.trim() ?? '') === '' ||
+      input.body.targetUserId?.trim() === ticket.assignedUserId)
+  ) {
     throw new TicketsError('FORWARD_SAME_GROUP');
   }
   const fromGroup =
@@ -136,7 +145,12 @@ export async function planTicketForward(input: {
       unitIds: [ticket.originUnitId, fromUnitId],
     });
   }
-  const reason = normalizeForwardReason(input.body.reason, input.configuration);
+  // A reassignment inside the group keeps the old assign behaviour: the
+  // reason is optional (still recorded when given).
+  const reason = normalizeForwardReason(
+    input.body.reason,
+    isReassign ? { ...input.configuration, requireReason: false } : input.configuration,
+  );
   const targetUserId = await resolveTargetUser(
     input.prisma,
     input.authorizationContextLoader,
@@ -151,6 +165,7 @@ export async function planTicketForward(input: {
       fromGroup === null ? null : { id: fromGroup.id, name: fromGroup.name },
     fromUnitId,
     isCrossOu,
+    isReassign,
     reason,
   };
 }
@@ -185,7 +200,9 @@ export async function applyTicketForward(input: {
     await rewriteParticipants(tx, {
       before,
       after,
-      fromGroupId: plan.fromGroup?.id ?? null,
+      // A reassignment inside the group is not a hand-over between groups.
+      fromGroupId: plan.isReassign ? null : (plan.fromGroup?.id ?? null),
+      markTargetGroup: !plan.isReassign,
       keepPreviousAssignee:
         input.configuration.keepPreviousHandlersAsWatchers,
       watcherUserId: input.keepMeAsWatcher ? input.actorUserId : null,
@@ -204,7 +221,8 @@ export async function applyTicketForward(input: {
         actorUserId: input.actorUserId,
         reason,
         isCrossOu: plan.isCrossOu,
-        requesterNotified: input.configuration.notifyRequester,
+        // The requester is not told about an internal reassignment.
+        requesterNotified: input.configuration.notifyRequester && !plan.isReassign,
         viaBulk: input.viaBulk,
       },
     })) as TicketForwardEventRecord;
@@ -422,6 +440,7 @@ async function rewriteParticipants(
     readonly before: TicketRecord;
     readonly after: TicketRecord;
     readonly fromGroupId: string | null;
+    readonly markTargetGroup: boolean;
     readonly keepPreviousAssignee: boolean;
     readonly watcherUserId: string | null;
   },
@@ -459,7 +478,7 @@ async function rewriteParticipants(
   if (input.fromGroupId !== null) {
     await addGroup('FORWARDED_FROM_GROUP', input.fromGroupId);
   }
-  if (input.after.assignedGroupId !== null) {
+  if (input.markTargetGroup && input.after.assignedGroupId !== null) {
     await addGroup('FORWARDED_TO_GROUP', input.after.assignedGroupId);
   }
   await syncHandlerGroupParticipant(prisma, input.after);

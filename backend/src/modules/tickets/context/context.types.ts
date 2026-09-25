@@ -49,7 +49,6 @@ export type TicketComposerAccess = 'requester' | 'staff' | 'both';
 export type TicketAllowedActions = {
   readonly composerAccess: TicketComposerAccess;
   readonly claim: boolean;
-  readonly assign: boolean;
   readonly changeStatus: boolean;
   readonly split: boolean;
   /** Package 1.1: forward to another group (cross-OU is checked per target). */

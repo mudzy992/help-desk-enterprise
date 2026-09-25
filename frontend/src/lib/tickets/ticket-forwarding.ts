@@ -10,20 +10,18 @@ export const forwardableStatuses: readonly TicketStatus[] = [
   "WAITING_FOR_USER",
 ];
 
-/** Groups the dialog offers: never the current group, same-OU first, then by name. */
+/**
+ * Groups the dialog offers: the current group first (reassignment to a
+ * colleague), then same-OU groups, then other OUs, each by name.
+ */
 export function orderForwardTargets(
   targets: ForwardTargetsResponse,
 ): readonly ForwardTargetGroup[] {
+  const rank = (group: ForwardTargetGroup): number =>
+    group.id === targets.currentGroupId ? 0 : group.isCrossOu ? 2 : 1;
   return targets.groups
-    .filter((group) => group.id !== targets.currentGroupId)
     .slice()
-    .sort((left, right) =>
-      left.isCrossOu === right.isCrossOu
-        ? left.name.localeCompare(right.name)
-        : left.isCrossOu
-          ? 1
-          : -1,
-    );
+    .sort((left, right) => rank(left) - rank(right) || left.name.localeCompare(right.name));
 }
 
 /** The previous group, when it is still an allowed target ("hand back"). */
@@ -36,10 +34,12 @@ export function findPreviousGroup(
   return targets.groups.find((group) => group.id === targets.previousGroupId) ?? null;
 }
 
+/** Reason rule as on the server; a reassignment within the group needs none. */
 export function forwardReasonError(
   reason: string,
   targets: Pick<ForwardTargetsResponse, "requireReason" | "minReasonLength">,
+  isReassign = false,
 ): boolean {
   const length = reason.replace(/\s+/g, " ").trim().length;
-  return targets.requireReason && length < targets.minReasonLength;
+  return !isReassign && targets.requireReason && length < targets.minReasonLength;
 }

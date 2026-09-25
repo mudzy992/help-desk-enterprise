@@ -82,6 +82,12 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Stranica Izvještaji → „Paketi izvještaja": Monthly KPI, Overdue by service, Top close codes,
   KB helpfulness; filter perioda i OU-a; preuzimanje CSV/JSON; pregled u tabeli prije preuzimanja.
 - Audit svakog izvoza (ko, šta, period).
+- Preneseno iz 1.1 (odluka 2026-09-25):
+  - na listi tiketa indikator „proslijeđen" i filter „proslijeđeni u moju grupu";
+  - brojač prosljeđivanja na tiketu;
+  - izvještaj „tiketi s ≥ 3 prosljeđivanja" (ping-pong).
+
+  Izvor podataka je `TicketForwardEvent`. Lista je pod query-count kapijom.
 
 ### 1.7 Workflow, nerutirani tiketi, realtime dopune (G8 + G9 + G10)  · ~2 RD
 - Admin: read-only prikaz toka statusa (dijagram dozvoljenih prelaza i ko ih smije raditi).

@@ -18,7 +18,6 @@ export type TicketActionSessionFacts = {
 
 const noActions: Omit<TicketActionView, "composerAccess"> = {
   claim: false,
-  assign: false,
   changeStatus: false,
   split: false,
   forward: false,
@@ -70,7 +69,6 @@ export function deriveActionsFromSession(
   return {
     composerAccess,
     claim: staffCanWrite && canShowClaimAction(ticket),
-    assign: staffCanWrite && holds(permissionKeys.ticketBulkAssign),
     changeStatus: staffCanWrite,
     split: staffCanWrite,
     forward: staffCanWrite && forwardableStatuses.includes(ticket.status),

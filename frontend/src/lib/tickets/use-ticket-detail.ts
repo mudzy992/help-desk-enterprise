@@ -22,7 +22,6 @@ import {
   type TicketParticipantResponse,
   type TicketTimeLogResponse,
 } from "@/services/tickets-collaboration-api";
-import { assignTicketUser } from "@/services/tickets-bulk-api";
 import {
   claimTicket,
   reopenTicket,
@@ -136,13 +135,6 @@ export function useTicketDetail(ticketId: string | undefined) {
     claim: () => onTicket((id) => runAction(async () => {
       setTicket(await claimTicket(id));
     }, mapClaimError)),
-    assignUser: (userId: string) => onTicket((id) => runAction(async () => {
-      const updated = await assignTicketUser(id, userId);
-      if (updated !== undefined) {
-        setTicket(updated);
-      }
-      await loadTicketDetail({ ...detailTarget, ticketId: id, silent: true });
-    })),
     changeStatus: (status: TicketStatus, extras: { closeCode?: string; resolutionNote?: string } = {}) =>
       onTicket((id) => runAction(async () => {
         setTicket(await updateTicket(id, { status, ...extras }));

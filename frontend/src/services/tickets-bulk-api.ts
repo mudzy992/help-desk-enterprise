@@ -58,15 +58,3 @@ export function executeTicketBulk(
     body: JSON.stringify(input),
   });
 }
-
-export async function assignTicketUser(
-  ticketId: string,
-  assignedUserId: string,
-): Promise<TicketResponse | undefined> {
-  const result = await executeTicketBulk({
-    ticketIds: [ticketId],
-    actionType: "assign_user",
-    assignedUserId,
-  });
-  return result.tickets[0];
-}

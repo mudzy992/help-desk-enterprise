@@ -193,6 +193,45 @@ describe('forwardTicket (package 1.1)', () => {
     ).rejects.toMatchObject({ response: { code: 'FORBIDDEN' } });
   });
 
+  it('reassigns to a colleague in the same group (replaces "Assign"): no reason, no group hand-over', async () => {
+    const { memory, ticket, forward, messages } = await setup();
+    memory.seedGroupMember({ groupId: ticketsTestIds.groupIt, userId: ticketsTestIds.agentItPeer });
+    await expect(
+      forward(ticketsTestIds.agentIt, { targetGroupId: ticketsTestIds.groupIt, reason }),
+    ).rejects.toMatchObject({ code: 'FORWARD_SAME_GROUP' });
+    const reassigned = await forward(ticketsTestIds.agentIt, {
+      targetGroupId: ticketsTestIds.groupIt,
+      targetUserId: ticketsTestIds.agentItPeer,
+    });
+    expect(reassigned).toMatchObject({
+      assignedGroupId: ticketsTestIds.groupIt,
+      assignedUserId: ticketsTestIds.agentItPeer,
+      status: 'ASSIGNED',
+    });
+    const roles = [...memory.participants.values()]
+      .filter((row) => row.ticketId === ticket.id)
+      .map((row) => `${row.role}:${row.groupId ?? row.userId}`);
+    expect(roles).toContain(`ASSIGNEE:${ticketsTestIds.agentItPeer}`);
+    expect(roles.some((role) => role.startsWith('FORWARDED_'))).toBe(false);
+    const [event] = [...memory.forwardEvents.values()];
+    expect(event).toMatchObject({
+      fromGroupId: ticketsTestIds.groupIt,
+      toGroupId: ticketsTestIds.groupIt,
+      toUserId: ticketsTestIds.agentItPeer,
+      isCrossOu: false,
+      requesterNotified: false,
+      reason: '',
+    });
+    expect(messages.map((message) => message.body)).toContain(`ticket_forwarded:${event?.id}`);
+    // Same agent again is not a change.
+    await expect(
+      forward(ticketsTestIds.agentIt, {
+        targetGroupId: ticketsTestIds.groupIt,
+        targetUserId: ticketsTestIds.agentItPeer,
+      }),
+    ).rejects.toMatchObject({ code: 'FORWARD_SAME_GROUP' });
+  });
+
   it('requires ticket.forward.cross_ou and the allowCrossOu setting for another OU, not within the OU', async () => {
     const { contexts, configuration, forward } = await setup();
     contexts.set(
@@ -304,6 +343,7 @@ describe('forwardTicket (package 1.1)', () => {
     const full = await targets(ticketsTestIds.agentIt);
     expect(full.crossOuAllowed).toBe(true);
     expect(full.groups.map((group) => [group.id, group.isCrossOu])).toEqual([
+      [ticketsTestIds.groupIt, false],
       [groupIt2, false],
       [groupHr, true],
     ]);
@@ -326,7 +366,7 @@ describe('forwardTicket (package 1.1)', () => {
       }),
     );
     const narrow = await targets(ticketsTestIds.agentIt);
-    expect(narrow.groups.map((group) => group.id)).toEqual([groupIt2]);
+    expect(narrow.groups.map((group) => group.id)).toEqual([ticketsTestIds.groupIt, groupIt2]);
     // Without cross-OU rights the other OU's member list is not exposed.
     await expect(agents(ticketsTestIds.agentIt, groupHr)).rejects.toMatchObject({
       code: 'HANDLER_GROUP_NOT_FOUND',

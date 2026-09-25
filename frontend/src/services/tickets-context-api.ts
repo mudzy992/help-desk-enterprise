@@ -55,7 +55,6 @@ export type TicketComposerAccess = "requester" | "staff" | "both";
 export type TicketAllowedActions = {
   readonly composerAccess: TicketComposerAccess;
   readonly claim: boolean;
-  readonly assign: boolean;
   readonly changeStatus: boolean;
   readonly split: boolean;
   readonly forward: boolean;

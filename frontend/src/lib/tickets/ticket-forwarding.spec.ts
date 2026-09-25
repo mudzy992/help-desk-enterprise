@@ -18,6 +18,7 @@ function group(id: string, name: string, isCrossOu: boolean): ForwardTargetGroup
     organizationalUnitName: isCrossOu ? "Direkcija" : "Zenica",
     organizationalUnitPath: null,
     isCrossOu,
+    isCurrent: id === "g-current",
     memberCount: 2,
   };
 }
@@ -38,8 +39,9 @@ const targets: ForwardTargetsResponse = {
 };
 
 describe("ticket forwarding helpers (package 1.1)", () => {
-  it("lists same-OU groups first, never the current group", () => {
+  it("lists the current group first (reassign), then same-OU, then other OUs", () => {
     expect(orderForwardTargets(targets).map((item) => item.id)).toEqual([
+      "g-current",
       "g-same",
       "g-prev",
       "g-cross",
@@ -57,6 +59,7 @@ describe("ticket forwarding helpers (package 1.1)", () => {
     expect(forwardReasonError("   kratko   ", targets)).toBe(true);
     expect(forwardReasonError("Potrebna    Direkcija", targets)).toBe(false);
     expect(forwardReasonError("", { requireReason: false, minReasonLength: 10 })).toBe(false);
+    expect(forwardReasonError("", targets, true)).toBe(false);
   });
 
   it("maps forwarding error codes to dedicated messages", () => {

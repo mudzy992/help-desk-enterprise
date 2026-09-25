@@ -15,6 +15,7 @@ export type ForwardTargetGroup = {
   readonly organizationalUnitName: string | null;
   readonly organizationalUnitPath: string | null;
   readonly isCrossOu: boolean;
+  readonly isCurrent: boolean;
   readonly memberCount: number;
 };
 

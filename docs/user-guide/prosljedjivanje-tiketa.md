@@ -24,6 +24,12 @@ način eskalacije: tiket šaljete grupi koja ima potrebne ovlasti.
 Ako je tiket već bio proslijeđen, u dijalogu se pojavljuje dugme **Vrati grupi …**. Ono
 odmah bira grupu od koje je tiket stigao.
 
+## Dodjela kolegi iz iste grupe
+
+Zasebno dugme „Dodijeli" više ne postoji. Otvorite **Proslijedi**, odaberite prvu stavku
+„(trenutna grupa — preraspodjela kolegi)", zatim odaberite kolegu. Razlog nije obavezan,
+podnosilac ne dobija obavijest, a u historiji se takav unos vidi s oznakom „Preraspodjela".
+
 ## Šta se dešava
 
 | | |

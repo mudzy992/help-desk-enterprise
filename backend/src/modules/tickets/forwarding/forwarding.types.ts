@@ -40,6 +40,8 @@ export type ForwardTargetGroup = {
   readonly organizationalUnitName: string | null;
   readonly organizationalUnitPath: string | null;
   readonly isCrossOu: boolean;
+  /** The ticket's current group (only a reassignment to another agent). */
+  readonly isCurrent: boolean;
   readonly memberCount: number;
 };
 

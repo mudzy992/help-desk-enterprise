@@ -1,4 +1,4 @@
-import { ChevronDown, Forward, Pencil, Split, UserCheck, UserPlus } from "lucide-react";
+import { ChevronDown, Forward, Pencil, Split, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
@@ -14,11 +14,6 @@ import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services/tickets-api";
 
-interface TicketDetailAssignableUser {
-  readonly id: string;
-  readonly displayName: string;
-}
-
 interface TicketDetailHeaderActionsProperties {
   readonly ticket: TicketResponse;
   readonly canChangeStatus: boolean;
@@ -27,13 +22,9 @@ interface TicketDetailHeaderActionsProperties {
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
-  readonly assigning: boolean;
   readonly canSplit: boolean;
   readonly canForward: boolean;
-  readonly canAssign: boolean;
-  readonly assignableUsers: readonly TicketDetailAssignableUser[];
   readonly onClaim: () => void;
-  readonly onAssignUser: (userId: string) => void;
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
   readonly onSplit: () => void;
@@ -49,13 +40,9 @@ export function TicketDetailHeaderActions({
   claiming,
   savingStatus,
   reopening,
-  assigning,
   canSplit,
   canForward,
-  canAssign,
-  assignableUsers,
   onClaim,
-  onAssignUser,
   onStatusChange,
   onReopen,
   onSplit,
@@ -71,33 +58,6 @@ export function TicketDetailHeaderActions({
           <UserCheck size={14} />
           {claiming ? t("tickets.claiming") : t("tickets.claim")}
         </Button>
-      ) : null}
-      {canAssign ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" disabled={assigning}>
-              <UserPlus size={14} />
-              {assigning ? t("tickets.detail.assigning") : t("tickets.detail.assign")}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {assignableUsers.length === 0 ? (
-              <DropdownMenuItem disabled>
-                {t("tickets.detail.participantDirectoryEmpty")}
-              </DropdownMenuItem>
-            ) : (
-              assignableUsers.map((user) => (
-                <DropdownMenuItem
-                  key={user.id}
-                  disabled={user.id === ticket.assignedUserId}
-                  onSelect={() => onAssignUser(user.id)}
-                >
-                  {user.displayName}
-                </DropdownMenuItem>
-              ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
       ) : null}
       {canShowReopenAction(ticket) ? (
         <Button type="button" variant="outline" size="sm" disabled={reopening} onClick={onReopen}>

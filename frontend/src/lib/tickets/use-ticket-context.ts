@@ -103,7 +103,7 @@ export function useTicketContext(
 
   const needsCandidates =
     state.actions !== null &&
-    (state.actions.assign || state.actions.manageParticipants);
+    state.actions.manageParticipants;
 
   useEffect(() => {
     if (ticketId === undefined || !needsCandidates) {

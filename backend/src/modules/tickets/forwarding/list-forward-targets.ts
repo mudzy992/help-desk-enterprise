@@ -45,7 +45,7 @@ export async function listForwardTargets(input: {
   if (authContext === null) {
     throw new TicketsError('FORBIDDEN');
   }
-  const [groups, units, memberships, lastForward] = await Promise.all([
+  const [groups, units, memberships, recentForwards] = await Promise.all([
     input.prisma.group.findMany({
       select: { id: true, name: true, organizationalUnitId: true },
     }) as Promise<{ id: string; name: string; organizationalUnitId: string }[]>,
@@ -55,11 +55,12 @@ export async function listForwardTargets(input: {
     input.prisma.groupMember.findMany({
       select: { groupId: true },
     }) as Promise<{ groupId: string }[]>,
-    input.prisma.ticketForwardEvent.findFirst({
+    input.prisma.ticketForwardEvent.findMany({
       where: { ticketId: ticket.id },
       orderBy: { createdAt: 'desc' },
-      select: { fromGroupId: true },
-    }),
+      take: 20,
+      select: { fromGroupId: true, toGroupId: true },
+    }) as Promise<{ fromGroupId: string | null; toGroupId: string }[]>,
   ]);
   const unitById = new Map(units.map((unit) => [unit.id, unit]));
   const currentGroup = groups.find((group) => group.id === ticket.assignedGroupId);
@@ -82,7 +83,6 @@ export async function listForwardTargets(input: {
   }
   const needle = (input.query ?? '').trim().toLocaleLowerCase('bs');
   const targets: ForwardTargetGroup[] = groups
-    .filter((group) => group.id !== ticket.assignedGroupId)
     .map((group) => {
       const unit = unitById.get(group.organizationalUnitId);
       return {
@@ -92,6 +92,8 @@ export async function listForwardTargets(input: {
         organizationalUnitName: unit?.name ?? null,
         organizationalUnitPath: unit?.ouPath ?? null,
         isCrossOu: group.organizationalUnitId !== currentUnitId,
+        // The current group stays listed for a reassignment to a colleague.
+        isCurrent: group.id === ticket.assignedGroupId,
         memberCount: counts.get(group.id) ?? 0,
       };
     })
@@ -106,6 +108,7 @@ export async function listForwardTargets(input: {
     )
     .sort(
       (left, right) =>
+        Number(right.isCurrent) - Number(left.isCurrent) ||
         Number(left.isCrossOu) - Number(right.isCrossOu) ||
         (left.organizationalUnitPath ?? '').localeCompare(
           right.organizationalUnitPath ?? '',
@@ -114,12 +117,17 @@ export async function listForwardTargets(input: {
         left.name.localeCompare(right.name, 'bs'),
     )
     .slice(0, maximumTargets);
-  const previousGroupId = lastForward?.fromGroupId ?? null;
+  // Reassignments inside a group (from === to) are not a previous group.
+  const previousGroupId =
+    recentForwards.find(
+      (event) => event.fromGroupId !== null && event.fromGroupId !== event.toGroupId,
+    )?.fromGroupId ?? null;
   return {
     currentGroupId: ticket.assignedGroupId,
     currentUnitId,
     previousGroupId:
       previousGroupId !== null &&
+      previousGroupId !== ticket.assignedGroupId &&
       targets.some((group) => group.id === previousGroupId)
         ? previousGroupId
         : null,

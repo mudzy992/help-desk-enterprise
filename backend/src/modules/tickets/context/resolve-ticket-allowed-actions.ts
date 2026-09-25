@@ -77,21 +77,9 @@ export async function resolveTicketAllowedActions(input: {
       ticket.status as (typeof claimableTicketStatuses)[number],
     ) &&
     (authContext.isSuperAdmin || isGroupMember);
-  const holdsAssignPermission =
-    authContext.isSuperAdmin ||
-    authContext.assignments.some((assignment) =>
-      assignment.permissionKeys.includes(permissionKeys.ticketBulkAssign),
-    );
   const isAgentOnly = authContext.assignments.every(
     (assignment) => assignment.roleKey === authorizationRoleKeys.agent,
   );
-  const assign =
-    staffCanWrite &&
-    holdsAssignPermission &&
-    (authContext.isSuperAdmin ||
-      !isAgentOnly ||
-      ticket.assignedGroupId === null ||
-      isGroupMember);
   // Mirrors planTicketForward: forwardable status, not merged, and an
   // AGENT-only actor forwards only work of their own group or assigned to them.
   const forward =
@@ -118,7 +106,6 @@ export async function resolveTicketAllowedActions(input: {
   return {
     composerAccess,
     claim,
-    assign,
     changeStatus: canChangeStatus,
     split: canChangeStatus,
     forward,

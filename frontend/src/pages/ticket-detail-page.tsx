@@ -36,7 +36,6 @@ export function TicketDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const [isTimeSaving, setIsTimeSaving] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isReopening, setIsReopening] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
@@ -134,18 +133,11 @@ export function TicketDetailPage() {
         claiming={isClaiming}
         savingStatus={isSavingStatus}
         reopening={isReopening}
-        assigning={isAssigning}
         canSplit={actions.split}
         canForward={actions.forward}
-        canAssign={actions.assign}
-        assignableUsers={candidates?.assignees ?? []}
         onClaim={() => {
           setIsClaiming(true);
           void detail.claim().finally(() => setIsClaiming(false));
-        }}
-        onAssignUser={(userId) => {
-          setIsAssigning(true);
-          void detail.assignUser(userId).finally(() => setIsAssigning(false));
         }}
         onStatusChange={(status, extras) => {
           setIsSavingStatus(true);
@@ -255,12 +247,16 @@ export function TicketDetailPage() {
         ticket={ticket}
         open={forwardOpen}
         onOpenChange={setForwardOpen}
-        onComplete={(updated) => {
+        onComplete={(updated, isReassign) => {
           toast({
             tone: "success",
-            title: ticketText(t, "tickets.forward.done", {
-              name: updated.assignedGroupName ?? "",
-            }),
+            title: isReassign
+              ? ticketText(t, "tickets.forward.reassignDone", {
+                  name: updated.assignedUserName ?? "",
+                })
+              : ticketText(t, "tickets.forward.done", {
+                  name: updated.assignedGroupName ?? "",
+                }),
           });
           // After a cross-OU forward the actor may no longer see the ticket;
           // the reload then shows the regular "no access" state.

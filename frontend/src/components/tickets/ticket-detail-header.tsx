@@ -21,11 +21,6 @@ import type { TicketResponse, TicketStatus, UpdateTicketInput } from "@/services
   meta row — the shape people already read on the list screens.
 */
 
-interface TicketDetailAssignUser {
-  readonly id: string;
-  readonly displayName: string;
-}
-
 interface TicketDetailHeaderProperties {
   readonly ticket: TicketResponse;
   readonly serviceName: string;
@@ -37,13 +32,9 @@ interface TicketDetailHeaderProperties {
   readonly claiming: boolean;
   readonly savingStatus: boolean;
   readonly reopening: boolean;
-  readonly assigning: boolean;
   readonly canSplit: boolean;
   readonly canForward: boolean;
-  readonly canAssign: boolean;
-  readonly assignableUsers: readonly TicketDetailAssignUser[];
   readonly onClaim: () => void;
-  readonly onAssignUser: (userId: string) => void;
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
   readonly onSplit: () => void;
@@ -65,13 +56,9 @@ export function TicketDetailHeader({
   claiming,
   savingStatus,
   reopening,
-  assigning,
   canSplit,
   canForward,
-  canAssign,
-  assignableUsers,
   onClaim,
-  onAssignUser,
   onStatusChange,
   onReopen,
   onSplit,
@@ -147,13 +134,9 @@ export function TicketDetailHeader({
             claiming={claiming}
             savingStatus={savingStatus}
             reopening={reopening}
-            assigning={assigning}
             canSplit={canSplit}
             canForward={canForward}
-            canAssign={canAssign}
-            assignableUsers={assignableUsers}
             onClaim={onClaim}
-            onAssignUser={onAssignUser}
             onStatusChange={onStatusChange}
             onReopen={onReopen}
             onSplit={onSplit}

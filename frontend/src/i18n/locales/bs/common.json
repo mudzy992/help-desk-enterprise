@@ -2184,8 +2184,6 @@
           "NOT_APPLIED": "SLA tajmeri nisu pokrenuti za ovaj tiket (SLA je isključen ili je tiket kreiran prije dodjele profila)."
         }
       },
-      "assign": "Dodijeli…",
-      "assigning": "Dodjeljivanje…",
       "pendingApprovalHint": "Odobrenje je u toku. SLA tajmer je pauziran dok lanac odobrenja traje.",
       "closeCode": "Šifra zatvaranja",
       "closeCodePlaceholder": "Izaberite šifru",
@@ -2408,7 +2406,7 @@
         "ticket_sla_resolution_escalated": "eskaliran SLA za rješenje",
         "ticket_remote_requested": "zatražena udaljena podrška",
         "ticket_remote_acknowledged": "udaljena podrška potvrđena",
-        "ticket_forwarded": "tiket proslijeđen drugoj grupi"
+        "ticket_forwarded": "tiket proslijeđen ili preraspoređen"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -2460,7 +2458,12 @@
       "crossOuBadge": "Druga OJ",
       "bulkBadge": "Grupna akcija",
       "toAgent": "Agentu: {{name}}",
-      "confidentialNotice": "Tiket je povjerljiv: nakon prosljeđivanja pristup dobijaju članovi ciljne grupe, a trenutni agent ga gubi (osim ako ostane posmatrač)."
+      "confidentialNotice": "Tiket je povjerljiv: nakon prosljeđivanja pristup dobijaju članovi ciljne grupe, a trenutni agent ga gubi (osim ako ostane posmatrač).",
+      "currentGroupOption": "{{name}} (trenutna grupa — preraspodjela kolegi)",
+      "reassignHint": "Preraspodjela unutar grupe: odaberite kolegu. Razlog nije obavezan.",
+      "targetAgentRequired": "Agent (obavezno)",
+      "reassignDone": "Tiket je dodijeljen: {{name}}.",
+      "reassignBadge": "Preraspodjela"
     }
   },
   "relativeTime": {

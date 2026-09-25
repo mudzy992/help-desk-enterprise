@@ -61,6 +61,9 @@ export function TicketForwardHistoryPanel({
               <span>{item.fromGroupName ?? t("tickets.forward.noGroup")}</span>
               <ArrowRight size={12} aria-hidden="true" className="text-muted-foreground" />
               <span className="font-medium">{item.toGroupName}</span>
+              {item.fromGroupId === item.toGroupId ? (
+                <Badge tone="info">{t("tickets.forward.reassignBadge")}</Badge>
+              ) : null}
               {item.isCrossOu ? (
                 <Badge tone="warning">{t("tickets.forward.crossOuBadge")}</Badge>
               ) : null}

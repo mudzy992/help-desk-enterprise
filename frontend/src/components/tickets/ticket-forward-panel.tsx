@@ -32,7 +32,7 @@ interface TicketForwardPanelProperties {
   readonly ticket: TicketResponse;
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
-  readonly onComplete: (ticket: TicketResponse) => void;
+  readonly onComplete: (ticket: TicketResponse, isReassign: boolean) => void;
 }
 
 function groupLabel(group: ForwardTargetGroup): string {
@@ -116,12 +116,19 @@ export function TicketForwardPanel({
     () => (targets === null ? [] : orderForwardTargets(targets)),
     [targets],
   );
-  const sameOu = ordered.filter((group) => !group.isCrossOu);
-  const otherOu = ordered.filter((group) => group.isCrossOu);
+  const current = ordered.find((group) => group.isCurrent) ?? null;
+  const sameOu = ordered.filter((group) => !group.isCurrent && !group.isCrossOu);
+  const otherOu = ordered.filter((group) => !group.isCurrent && group.isCrossOu);
   const selected = ordered.find((group) => group.id === groupId) ?? null;
+  // Same group = reassignment to a colleague (replaces the former "Assign").
+  const isReassign = selected?.isCurrent === true;
+  const agentOptions = isReassign
+    ? agents.filter((agent) => agent.id !== ticket.assignedUserId)
+    : agents;
   const previous = findPreviousGroup(targets);
-  const reasonInvalid = targets !== null && forwardReasonError(reason, targets);
-  const canSubmit = !busy && selected !== null && !reasonInvalid;
+  const reasonInvalid = targets !== null && forwardReasonError(reason, targets, isReassign);
+  const canSubmit =
+    !busy && selected !== null && !reasonInvalid && (!isReassign || userId.length > 0);
 
   const submit = () => {
     if (selected === null) {
@@ -137,7 +144,7 @@ export function TicketForwardPanel({
     })
       .then((updated) => {
         onOpenChange(false);
-        onComplete(updated);
+        onComplete(updated, isReassign);
       })
       .catch((error: unknown) => setSubmitError(mapTicketError(error)))
       .finally(() => setBusy(false));
@@ -185,6 +192,11 @@ export function TicketForwardPanel({
                 data-testid="forward-target-group"
               >
                 <option value="">{t("tickets.forward.targetGroupPlaceholder")}</option>
+                {current !== null ? (
+                  <option value={current.id}>
+                    {ticketText(t, "tickets.forward.currentGroupOption", { name: current.name })}
+                  </option>
+                ) : null}
                 {sameOu.length > 0 ? (
                   <optgroup label={t("tickets.forward.sameOu")}>
                     {sameOu.map((group) => (
@@ -205,7 +217,9 @@ export function TicketForwardPanel({
                 ) : null}
               </select>
             </label>
-            {ordered.length === 0 ? (
+            {isReassign ? (
+              <p className={`mt-2 ${hintClassName}`}>{t("tickets.forward.reassignHint")}</p>
+            ) : ordered.length === 0 ? (
               <p className={`mt-2 ${hintClassName}`}>{t("tickets.forward.noTargets")}</p>
             ) : !targets.crossOuAllowed ? (
               <p className={`mt-2 ${hintClassName}`}>{t("tickets.forward.crossOuUnavailable")}</p>
@@ -224,24 +238,32 @@ export function TicketForwardPanel({
             ) : null}
             {selected !== null ? (
               <label className={`mt-3 ${labelClassName}`}>
-                {t("tickets.forward.targetAgent")}
+                {isReassign
+                  ? t("tickets.forward.targetAgentRequired")
+                  : t("tickets.forward.targetAgent")}
                 <select
                   className={selectClassName}
                   value={userId}
                   onChange={(event) => setUserId(event.target.value)}
                 >
-                  <option value="">{t("tickets.forward.targetAgentNone")}</option>
-                  {agents.map((agent) => (
+                  <option value="">
+                    {isReassign
+                      ? t("tickets.forward.targetGroupPlaceholder")
+                      : t("tickets.forward.targetAgentNone")}
+                  </option>
+                  {agentOptions.map((agent) => (
                     <option key={agent.id} value={agent.id}>
                       {agent.displayName}
                     </option>
                   ))}
                 </select>
-                <span className={hintClassName}>{t("tickets.forward.targetAgentHint")}</span>
+                {isReassign ? null : (
+                  <span className={hintClassName}>{t("tickets.forward.targetAgentHint")}</span>
+                )}
               </label>
             ) : null}
             <label className={`mt-3 ${labelClassName}`}>
-              {targets.requireReason
+              {targets.requireReason && !isReassign
                 ? t("tickets.forward.reasonRequired")
                 : t("tickets.forward.reason")}
               <textarea
@@ -251,7 +273,7 @@ export function TicketForwardPanel({
                 onChange={(event) => setReason(event.target.value)}
                 data-testid="forward-reason"
               />
-              {targets.requireReason ? (
+              {targets.requireReason && !isReassign ? (
                 <span className={hintClassName}>
                   {ticketText(t, "tickets.forward.reasonHint", {
                     count: targets.minReasonLength,
@@ -266,7 +288,9 @@ export function TicketForwardPanel({
                 label={t("tickets.forward.keepMeAsWatcher")}
               />
             </div>
-            <p className={`mt-3 ${hintClassName}`}>{t("tickets.forward.effects")}</p>
+            {isReassign ? null : (
+              <p className={`mt-3 ${hintClassName}`}>{t("tickets.forward.effects")}</p>
+            )}
           </>
         )}
         {submitError !== null ? (

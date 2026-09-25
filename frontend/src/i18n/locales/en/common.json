@@ -2184,8 +2184,6 @@
           "NOT_APPLIED": "SLA timers were not started for this ticket (SLA is disabled or the ticket was created before the profile was assigned)."
         }
       },
-      "assign": "Assign…",
-      "assigning": "Assigning…",
       "pendingApprovalHint": "Approval is in progress. The SLA timer is paused until the approval chain completes.",
       "closeCode": "Close code",
       "closeCodePlaceholder": "Select a close code",
@@ -2408,7 +2406,7 @@
         "ticket_sla_resolution_escalated": "resolution SLA escalated",
         "ticket_remote_requested": "remote assistance requested",
         "ticket_remote_acknowledged": "remote assistance acknowledged",
-        "ticket_forwarded": "ticket forwarded to another group"
+        "ticket_forwarded": "ticket forwarded or reassigned"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -2460,7 +2458,12 @@
       "crossOuBadge": "Other unit",
       "bulkBadge": "Bulk action",
       "toAgent": "To agent: {{name}}",
-      "confidentialNotice": "This ticket is confidential: after forwarding, members of the target group get access and the current assignee loses it (unless kept as a watcher)."
+      "confidentialNotice": "This ticket is confidential: after forwarding, members of the target group get access and the current assignee loses it (unless kept as a watcher).",
+      "currentGroupOption": "{{name}} (current group — reassign to a colleague)",
+      "reassignHint": "Reassignment within the group: pick a colleague. A reason is optional.",
+      "targetAgentRequired": "Agent (required)",
+      "reassignDone": "The ticket was assigned to {{name}}.",
+      "reassignBadge": "Reassignment"
     }
   },
   "relativeTime": {
