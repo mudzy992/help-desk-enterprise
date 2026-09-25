@@ -115,3 +115,32 @@ broj tiketa (prefiks preko btree), (2) bez COUNT-a u listi kad je zadan `q`.
 - SLA notifikacije: ~22 `ticket.sla` notifikacije po prekoračenom tiketu (170k za
   7,6k tiketa) — provjeriti primaoce i deduplikaciju.
 - Prva poruka na tiketu: 38–41 DB upit (SLA prvi odgovor + notifikacije); sljedeće 4–5.
+
+### 5.1 Ponovljeno mjerenje nakon popravki (2026-09-25, backend 3295074)
+
+Seed: 100 000 tiketa, 10 % otvorenih, 504 dospjela SLA stanja (5,04 %), 12 OU / 3 grupe.
+
+**Zvanični broj = run s `RAMP_UP`** (`k6 run -e VU=200 -e RAMP_UP=60s -e DURATION=3m …`).
+Bez ramp-upa 140 VU u istoj sekundi pogodi sve keševe po korisniku hladne
+(dashboard `GROUP BY` do 2 s, ograničeni COUNT liste do 1,3 s) i pretraga/poruke
+čekaju na pool — to je artefakt testa, pravi korisnici se ne prijave u istoj sekundi.
+
+| Metrika (p95) | Budžet | 200 VU bez ramp-upa | **200 VU, RAMP_UP=60s** |
+|---|---|---|---|
+| GET /tickets | 200 ms | 43 ms | **39 ms** |
+| GET /tickets/:id | 200 ms | 26 ms | **23 ms** |
+| GET /search | 200 ms | 243 ms ⚠ | **25 ms** |
+| POST poruka | 400 ms | 412 ms ⚠ | **50 ms** |
+| unread-count | 200 ms | 19 ms | **17 ms** |
+| dashboard summary | 200 ms | 14 ms | **12 ms** |
+| Greške | 0,5 % | 0 % | **0 %** |
+| Payload lista / dashboard | 100 KB | 51,6 / 0,6 KB | 51,6 / 0,6 KB |
+| WS emitovi | < 500/s | ~11/s | — |
+| SLA scan ciklus | < 15 s | 22–137 ms | — |
+
+Pretraga ranije (prije 623d4f4): p95 763 ms na 200 VU.
+
+Preostali spori upiti u stabilnom stanju: ~8/min (>100 ms), to su osvježavanja
+keša dashboarda/brojača po korisniku (TTL 60 s / 30 s); ne utiču na p95.
+Ako broj korisnika jako poraste, sljedeći korak je da dashboard `GROUP BY` broji
+samo otvorene tikete (mijenja prikazane brojke — traži odluku).
