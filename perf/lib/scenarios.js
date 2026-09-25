@@ -21,7 +21,9 @@ export function setup(config) {
       'No access token: set AGENT_EMAIL/AGENT_PASSWORD (and optionally REQUESTER_*) for a seeded environment.',
     );
   }
-  return { tokens };
+  // The agent flow opens tickets of the agent's groups; with the requester token
+  // half of its VUs got 403 (staging 2026-09-25). It uses the agent only.
+  return { tokens, agentTokens: agentToken === null ? tokens : [agentToken] };
 }
 
 /** 40%: read the dashboard the way a requester does. */
@@ -57,7 +59,7 @@ export function browserDashboard(config, data) {
 
 /** 35%: list -> detail -> reply every 30 s. */
 export function agentTicketFlow(config, data) {
-  const token = pickToken(data.tokens, __VU);
+  const token = pickToken(data.agentTokens || data.tokens, __VU);
   const headers = authorizedHeaders(token);
 
   const inbox = http.get(`${config.baseUrl}${config.paths.ticketInbox}`, {

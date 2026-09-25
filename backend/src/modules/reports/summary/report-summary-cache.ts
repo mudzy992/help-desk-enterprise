@@ -11,7 +11,18 @@
  *
  * Every failure is a miss: a broken cache may cost queries, never an error.
  */
-export const reportSummaryCacheTtlSeconds = 15;
+/*
+ * Staging k6 (2026-09-25, 100k tickets): a miss is one GROUP BY over the visible
+ * set (~600 ms), and at 15 s it landed in the p95. The owner approved 60 s
+ * (changes the plan's "refresh within 30 s" acceptance to 60 s). Override with
+ * REPORT_SUMMARY_CACHE_TTL_SECONDS (positive integer).
+ */
+function readReportSummaryCacheTtlSeconds(): number {
+  const parsed = Number(process.env.REPORT_SUMMARY_CACHE_TTL_SECONDS);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 60;
+}
+
+export const reportSummaryCacheTtlSeconds = readReportSummaryCacheTtlSeconds();
 
 export const dashboardSummaryCacheKeyPrefix = 'reports:dashboard-summary';
 export const slaSummaryCacheKeyPrefix = 'reports:sla-summary';
