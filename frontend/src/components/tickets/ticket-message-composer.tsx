@@ -81,7 +81,6 @@ export function TicketMessageComposer({
   return (
     <Card className="mt-4">
       <form onSubmit={(event) => void onSubmit(event)}>
-        {type !== "INTERNAL_NOTE" && publicExtra ? <div className="mb-2">{publicExtra}</div> : null}
         <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
           <Segmented<ComposerMode>
             size="sm"
@@ -110,6 +109,9 @@ export function TicketMessageComposer({
             className={cn(textareaClassName, "min-h-20 resize-y")}
             disabled={isSending}
           />
+          {type !== "INTERNAL_NOTE" && publicExtra ? (
+            <div className="mt-2 flex items-center">{publicExtra}</div>
+          ) : null}
           {sendErrorKey ? (
             <p className={`mt-2 ${errorTextClassName}`} role="alert">
               {ticketText(t, sendErrorKey)}

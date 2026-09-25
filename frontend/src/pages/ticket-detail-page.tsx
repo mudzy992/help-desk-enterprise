@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 import { TicketDetailHeader } from "@/components/tickets/ticket-detail-header";
 import { TicketDetailSideStack } from "@/components/tickets/ticket-detail-side-stack";
@@ -168,16 +169,12 @@ export function TicketDetailPage() {
           .join(" · ");
   const composerExtra =
     mergedItems.length > 0 ? (
-      <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-        <input
-          type="checkbox"
-          className="size-3.5 accent-primary"
-          checked={alsoToMerged}
-          onChange={(event) => setAlsoToMerged(event.target.checked)}
-          data-testid="ticket-also-to-merged"
-        />
-        {t("tickets.merge.alsoToMerged", { count: mergedItems.length })}
-      </label>
+      <Checkbox
+        checked={alsoToMerged}
+        onChange={(event) => setAlsoToMerged(event.target.checked)}
+        data-testid="ticket-also-to-merged"
+        label={t("tickets.merge.alsoToMerged", { count: mergedItems.length })}
+      />
     ) : undefined;
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
