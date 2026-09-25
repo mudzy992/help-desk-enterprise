@@ -1,3 +1,4 @@
+import { SessionRevocationStore } from './session-revocation.store';
 import { LoginAttemptLimiter } from './login-attempt-limiter';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
@@ -34,6 +35,7 @@ import { SessionTokenService } from './session-token.service';
     AuthenticationProviderResolver,
     SessionTokenService,
     LoginAttemptLimiter,
+    SessionRevocationStore,
     JwtSocketAuthenticationVerifier,
     SessionAuthenticationGuard,
     AuthenticationService,

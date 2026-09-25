@@ -49,6 +49,8 @@ export async function changePasswordWithToken(input: {
     displayName: user.displayName,
     isLocalOnly: user.isLocalOnly,
   });
+  // Review 2026-09-25 (S2): sessions issued before the new password stop working.
+  await input.sessionTokenService.revokeAllForUser(user.id);
   const accessToken = await input.sessionTokenService.issue(principal);
   return {
     accessToken,

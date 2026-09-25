@@ -3,6 +3,7 @@ import {
   changePasswordOnFirstLogin,
   isMustChangePasswordResponse,
   loginWithPassword,
+  logoutSession,
 } from "@/services/auth-api";
 import {
   clearStoredSession,
@@ -17,6 +18,18 @@ function emitSessionChange(): void {
   for (const listener of listeners) {
     listener();
   }
+}
+
+/** Session ended outside a user action (expired / revoked / 401). */
+export function expireSession(): void {
+  if (readStoredSession() === null) return;
+  clearStoredSession();
+  emitSessionChange();
+}
+
+/** Keep-alive stored a refreshed token. */
+export function notifySessionRefreshed(): void {
+  emitSessionChange();
 }
 
 function subscribe(listener: () => void): () => void {
@@ -88,6 +101,11 @@ export function useSession() {
   );
 
   const signOut = useCallback(() => {
+    // Review 2026-09-25 (S1): revoke on the server too; the local sign-out
+    // does not wait for it (offline sign-out must still work).
+    if (readStoredSession() !== null) {
+      void logoutSession().catch(() => undefined);
+    }
     clearStoredSession();
     emitSessionChange();
   }, []);

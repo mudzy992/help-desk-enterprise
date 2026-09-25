@@ -2,7 +2,8 @@ export const authenticationConstants = {
   modes: ['local', 'entra_ad'] as const,
   superAdminRoleKey: 'SUPER_ADMIN',
   localPasswordCostFactor: 12,
-  sessionTtlSeconds: 8 * 60 * 60,
+  // Review 2026-09-25: 1 h, extended by POST /auth/refresh while the user is active.
+  sessionTtlSeconds: 60 * 60,
   passwordChangeTokenTtlSeconds: 15 * 60,
   passwordChangePurpose: 'password_change',
   minimumJwtSigningSecretLength: 32,

@@ -28,7 +28,7 @@ describe('SessionTokenService', () => {
   it('issues a signed token with only the subject claim', async () => {
     const accessToken = await service.issue(principal);
     const claims = await service.verify(accessToken);
-    expect(claims).toEqual({ subjectId: 'user-1' });
+    expect(claims).toMatchObject({ subjectId: 'user-1', jti: expect.any(String) });
     const payload = JSON.parse(
       Buffer.from(accessToken.split('.')[1] ?? '', 'base64url').toString(
         'utf8',

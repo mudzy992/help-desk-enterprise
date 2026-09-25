@@ -60,6 +60,10 @@ export type AuthenticationLoginResponse =
 
 export type SessionAccessTokenClaims = {
   readonly subjectId: string;
+  /** Token id (null for tokens issued before revocation existed). */
+  readonly jti: string | null;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
 };
 
 export type PasswordChangeTokenClaims = {

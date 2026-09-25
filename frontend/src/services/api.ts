@@ -10,6 +10,35 @@ function authorizationHeaders(): HeadersInit {
   return { Authorization: `Bearer ${session.accessToken}` };
 }
 
+/**
+ * Review 2026-09-25 (S10): an expired/revoked session used to surface as a
+ * separate "not authorized" error on every screen. A 401 on an authenticated
+ * request now calls this handler once (registered by the session module), which
+ * clears the session and sends the user to sign in.
+ */
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
+const sessionlessPaths = ["/auth/login", "/auth/change-password", "/auth/entra", "/auth/logout", "/install/"];
+
+function notifyUnauthorized(path: string, sentBearer: boolean, status: number): void {
+  if (status !== 401 || !sentBearer || unauthorizedHandler === null) {
+    return;
+  }
+  if (sessionlessPaths.some((prefix) => path.startsWith(prefix))) {
+    return;
+  }
+  unauthorizedHandler();
+}
+
+function overridesAuthorization(headers: HeadersInit | undefined): boolean {
+  if (headers === undefined) return false;
+  return new Headers(headers).has("Authorization");
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -44,11 +73,12 @@ export async function apiRequest<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const authHeaders = authorizationHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...authorizationHeaders(),
+      ...authHeaders,
       ...(init.body && !(init.body instanceof FormData)
         ? { "Content-Type": "application/json" }
         : {}),
@@ -56,6 +86,7 @@ export async function apiRequest<T>(
     },
   });
   if (!response.ok) {
+    notifyUnauthorized(path, "Authorization" in authHeaders && !overridesAuthorization(init.headers), response.status);
     throw await readApiError(response);
   }
   if (response.status === 204) {
@@ -81,15 +112,17 @@ export async function apiDownloadRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<ApiDownloadResult> {
+  const authHeaders = authorizationHeaders();
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       Accept: "*/*",
-      ...authorizationHeaders(),
+      ...authHeaders,
       ...init.headers,
     },
   });
   if (!response.ok) {
+    notifyUnauthorized(path, "Authorization" in authHeaders, response.status);
     throw await readApiError(response);
   }
   return {

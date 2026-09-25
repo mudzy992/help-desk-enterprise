@@ -46,3 +46,13 @@ export function changePasswordOnFirstLogin(input: {
     body: JSON.stringify({ newPassword: input.newPassword }),
   });
 }
+
+/** Review 2026-09-25: 1 h session, extended while the user is active. */
+export function refreshSession(): Promise<AuthenticationSessionResponse> {
+  return apiRequest("/auth/refresh", { method: "POST" });
+}
+
+/** Server-side sign out (revokes the token); failures are ignored by callers. */
+export function logoutSession(): Promise<void> {
+  return apiRequest("/auth/logout", { method: "POST" });
+}

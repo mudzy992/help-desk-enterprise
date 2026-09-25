@@ -2,12 +2,23 @@ import {
   Body,
   Controller,
   Headers,
+  HttpCode,
+  UnauthorizedException,
+  UseGuards,
   Post,
   Req,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
+import { SessionAuthenticationGuard } from './session-authentication.guard';
+import { SessionTokenService } from './session-token.service';
+import { authenticationConstants } from './authentication.constants';
+import { createAuthenticatedPrincipal } from './create-authenticated-principal';
+import {
+  AUTHENTICATED_PRINCIPAL_REQUEST_KEY,
+  type AuthenticatedHttpRequest,
+} from './authenticated-request';
 import { LoginAttemptLimiter, loginAttemptKey } from './login-attempt-limiter';
 import type {
   AuthenticationLoginResponse,
@@ -30,7 +41,58 @@ export class AuthenticationController {
   constructor(
     private readonly authenticationService: AuthenticationService,
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
+    private readonly sessionTokenService: SessionTokenService,
   ) {}
+
+  /**
+   * Review 2026-09-25: sessions last 1 h and the SPA extends them while the user
+   * is active. The old token is revoked, so a refresh never multiplies sessions.
+   */
+  @Post('refresh')
+  @UseGuards(SessionAuthenticationGuard)
+  async refresh(
+    @Headers('authorization') authorization: string | undefined,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<AuthenticationSessionResponse> {
+    const claims = await this.sessionTokenService.verify(
+      readBearerAccessTokenFromHeader(authorization) ?? '',
+    );
+    const principal = request[AUTHENTICATED_PRINCIPAL_REQUEST_KEY];
+    if (principal === undefined) {
+      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Authentication failed' });
+    }
+    const accessToken = await this.sessionTokenService.issue(
+      createAuthenticatedPrincipal({
+        subjectId: principal.subjectId,
+        email: principal.email,
+        displayName: principal.displayName,
+        isLocalOnly: principal.isLocalOnly,
+      }),
+    );
+    await this.sessionTokenService.revoke(claims);
+    return {
+      accessToken,
+      tokenType: 'Bearer',
+      expiresInSeconds: authenticationConstants.sessionTtlSeconds,
+      principal,
+    };
+  }
+
+  /** Server-side sign out: the token is revoked until it would have expired. */
+  @Post('logout')
+  @HttpCode(204)
+  async logout(
+    @Headers('authorization') authorization: string | undefined,
+  ): Promise<void> {
+    try {
+      const claims = await this.sessionTokenService.verify(
+        readBearerAccessTokenFromHeader(authorization) ?? '',
+      );
+      await this.sessionTokenService.revoke(claims);
+    } catch {
+      // Already invalid or expired: signing out is idempotent.
+    }
+  }
 
   @Post('login')
   login(
