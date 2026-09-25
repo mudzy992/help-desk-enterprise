@@ -59,6 +59,10 @@ export class ApiClient {
     if (!headers.has('Content-Type') && init.body !== undefined) {
       headers.set('Content-Type', 'application/json');
     }
+    const installToken = process.env.E2E_INSTALL_TOKEN;
+    if (path.startsWith('/install/') && installToken) {
+      headers.set('X-Install-Token', installToken);
+    }
     if (this.authorization !== null) {
       headers.set('Authorization', `Bearer ${this.authorization}`);
     }

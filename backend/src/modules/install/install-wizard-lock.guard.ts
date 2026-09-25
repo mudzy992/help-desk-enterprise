@@ -2,11 +2,17 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { createInstallLockedException } from './create-install-locked-exception';
 import { InstallSetupService } from './install-setup.service';
 import { isInstallWizardMutationLocked } from './is-install-wizard-mutation-locked';
+import {
+  assertInstallToken,
+  installTokenHeader,
+  isInstallTokenProtectedRequest,
+} from './install-token';
 
 type InstallWizardLockHttpRequest = {
   readonly method?: unknown;
   readonly path?: unknown;
   readonly url?: unknown;
+  readonly headers?: Record<string, unknown>;
 };
 
 @Injectable()
@@ -29,6 +35,15 @@ export class InstallWizardLockGuard implements CanActivate {
       })
     ) {
       throw createInstallLockedException();
+    }
+    if (
+      !isCompleted &&
+      isInstallTokenProtectedRequest({
+        method: request.method,
+        path: request.path ?? request.url,
+      })
+    ) {
+      assertInstallToken(request.headers?.[installTokenHeader]);
     }
     return true;
   }

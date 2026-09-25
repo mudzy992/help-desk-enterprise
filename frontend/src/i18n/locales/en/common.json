@@ -1471,7 +1471,13 @@
       "seed": "Roles and data",
       "addons": "Add-ons",
       "complete": "Finish"
-    }
+    },
+    "tokenHeading": "Install token",
+    "tokenBody": "Enter the value of the INSTALL_TOKEN environment variable from the server. Without it the wizard stays locked.",
+    "tokenLabel": "Install token",
+    "tokenSubmit": "Unlock",
+    "tokenInvalid": "The token is not valid.",
+    "tokenNotConfigured": "INSTALL_TOKEN is not set on the server (at least 16 characters). Set it and restart the API."
   },
   "routing": {
     "title": "Routing",

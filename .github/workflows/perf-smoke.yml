@@ -54,6 +54,7 @@ jobs:
       DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: "6379"
+      INSTALL_TOKEN: perf-smoke-install-token-0001
       REDIS_KEY_PREFIX: ephelpdesk
       QUEUE_PREFIX: bull:ephelpdesk
       PORT: "10001"
@@ -138,9 +139,9 @@ jobs:
             file="/tmp/install$(echo "$path" | tr '/' '-').json"
             if [ -n "$payload" ]; then
               status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path" \
-                -H 'content-type: application/json' -d "$payload")
+                -H "x-install-token: $INSTALL_TOKEN" -H 'content-type: application/json' -d "$payload")
             else
-              status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path")
+              status=$(curl -sS -o "$file" -w '%{http_code}' -X POST "$BASE_URL$path" -H "x-install-token: $INSTALL_TOKEN")
             fi
             note "$path -> HTTP $status"
             note "  $(head -c 400 "$file" 2>/dev/null)"

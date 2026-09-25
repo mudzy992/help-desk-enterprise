@@ -21,6 +21,7 @@ describe('resolveHttpCorsOptions', () => {
       'Accept',
       'Authorization',
       'Content-Type',
+      'X-Install-Token',
     ]);
   });
 

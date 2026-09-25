@@ -5,6 +5,7 @@ import { InstallCompleteStep } from "@/components/install/install-complete-step"
 import { InstallLoginProviderStep } from "@/components/install/install-login-provider-step";
 import { InstallSeedStep } from "@/components/install/install-seed-step";
 import { InstallSmtpStep } from "@/components/install/install-smtp-step";
+import { InstallTokenGate } from "@/components/install/install-token-gate";
 import { InstallSuperAdminStep } from "@/components/install/install-super-admin-step";
 import { BrandLockup } from "@/components/layout/brand-mark";
 import { LocaleSelect } from "@/components/layout/locale-select";
@@ -44,6 +45,14 @@ const STEP_LABEL_KEYS = {
 } as const satisfies Record<InstallWizardStep, string>;
 
 export function InstallPage() {
+  return (
+    <InstallTokenGate>
+      <InstallWizard />
+    </InstallTokenGate>
+  );
+}
+
+function InstallWizard() {
   const { t } = useTranslation();
   const [step, setStep] = useState<InstallWizardStep | null>(null);
 

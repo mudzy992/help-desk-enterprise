@@ -10,6 +10,6 @@ export function resolveHttpCorsOptions(): {
     origin: resolveCorsOrigin(),
     credentials: false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Accept', 'Authorization', 'Content-Type'],
+    allowedHeaders: ['Accept', 'Authorization', 'Content-Type', 'X-Install-Token'],
   };
 }

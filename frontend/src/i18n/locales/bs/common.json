@@ -1471,7 +1471,13 @@
       "seed": "Uloge i podaci",
       "addons": "Dodaci",
       "complete": "Završetak"
-    }
+    },
+    "tokenHeading": "Instalacijski token",
+    "tokenBody": "Unesite vrijednost varijable okruženja INSTALL_TOKEN sa servera. Bez nje čarobnjak ostaje zaključan.",
+    "tokenLabel": "Instalacijski token",
+    "tokenSubmit": "Otključaj",
+    "tokenInvalid": "Token nije ispravan.",
+    "tokenNotConfigured": "INSTALL_TOKEN nije postavljen na serveru (najmanje 16 znakova). Postavite ga i ponovo pokrenite API."
   },
   "routing": {
     "title": "Usmjeravanje",

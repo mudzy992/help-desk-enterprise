@@ -1,3 +1,4 @@
+import { installTokenHeaders } from "@/lib/install/install-token-store";
 import { readStoredSession } from "@/services/session-store";
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
@@ -79,6 +80,7 @@ export async function apiRequest<T>(
     headers: {
       Accept: "application/json",
       ...authHeaders,
+      ...installTokenHeaders(path),
       ...(init.body && !(init.body instanceof FormData)
         ? { "Content-Type": "application/json" }
         : {}),
