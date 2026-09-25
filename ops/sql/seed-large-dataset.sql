@@ -132,17 +132,24 @@ SELECT
   60,
   480,
   t."createdAt",
-  t."createdAt" + interval '1 hour',
-  t."createdAt" + interval '8 hours',
+  -- Rokovi prate `nextDueAt` (ranije createdAt + 1 h/8 h: tiket star do 90 dana
+  -- je nakon prvog scana ispadao prekoračen → ~76 % umjesto ~5 %).
+  CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN t."createdAt" + interval '1 hour' ELSE d.due END,
+  CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN t."createdAt" + interval '8 hours' ELSE d.due + interval '7 hours' END,
   CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN t."createdAt" + interval '6 hours' END,
-  CASE
-    WHEN t.status IN ('RESOLVED', 'CLOSED') THEN NULL
-    WHEN (('x' || substr(md5(t.id), 1, 8))::bit(32)::int % 100) < 5 THEN now() - interval '15 minutes'
-    ELSE now() + (((('x' || substr(md5(t.id), 9, 8))::bit(32)::int % 20160) - 1) || ' minutes')::interval
-  END,
+  CASE WHEN t.status IN ('RESOLVED', 'CLOSED') THEN NULL ELSE d.due END,
   false,
   now()
 FROM "Ticket" t
+-- `& 2147483647`: bit(32)::int je predznačen; bez maske je `% 100` negativan u
+-- pola slučajeva i sve to je padalo u "već dospjelo".
+CROSS JOIN LATERAL (
+  SELECT CASE
+    WHEN ((('x' || substr(md5(t.id), 1, 8))::bit(32)::int & 2147483647) % 100) < 5
+      THEN now() - interval '15 minutes'
+    ELSE now() + ((1 + (('x' || substr(md5(t.id), 9, 8))::bit(32)::int & 2147483647) % 20160) || ' minutes')::interval
+  END AS due
+) d
 WHERE t.title LIKE '[staging-seed]%';
 
 -- 4) Statistika + kontrola.
