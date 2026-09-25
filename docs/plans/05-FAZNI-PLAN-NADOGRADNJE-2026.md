@@ -61,7 +61,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   označava „automatski zaustavljeno"; jedan aktivni timer po korisniku (ne samo po tiketu).
 - Ručna korekcija unosa (vlasnik ili admin) uz razlog i audit; izvještaj vremena po agentu/servisu.
 
-### 1.4 Šabloni odgovora i playbooks (G2)  · ~4 RD
+### 1.4 Šabloni odgovora i playbooks (G2)  · ~4 RD · dizajn: `modules/1.4-sabloni-playbooks.md`
 - Model `ResponseTemplate` (naziv, tijelo s varijablama `{{requester.name}}`, `{{ticket.number}}`…,
   servis/kategorija/grupa scope, jezik, aktivno) i `Playbook` (koraci — checklist po servisu).
 - Admin CRUD s permisijom, change log, verzije kroz config versioning.
