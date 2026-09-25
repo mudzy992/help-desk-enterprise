@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/components/ui/toast";
@@ -8,6 +8,12 @@ import { TicketDetailBlockingState } from "@/components/tickets/ticket-detail-bl
 import { TicketDetailWorkspace } from "@/components/tickets/ticket-detail-workspace";
 import { TicketForwardPanel } from "@/components/tickets/ticket-forward-panel";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
+import { TicketMergePanel } from "@/components/tickets/ticket-merge-panel";
+import { TicketMergedBanner } from "@/components/tickets/ticket-merged-banner";
+import { TicketMergedCard } from "@/components/tickets/ticket-merged-card";
+import { TicketPriorityPanel } from "@/components/tickets/ticket-priority-panel";
+import { findLastPriorityOverride } from "@/lib/tickets/describe-ticket-activity";
+import { listMergedTickets, type MergedTicketItem } from "@/services/tickets-merge-api";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { filterVisibleMessages } from "@/lib/tickets/filter-visible-messages";
 import { resolveTicketActionView } from "@/lib/tickets/ticket-action-matrix";
@@ -40,6 +46,10 @@ export function TicketDetailPage() {
   const [isReopening, setIsReopening] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [forwardOpen, setForwardOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [alsoToMerged, setAlsoToMerged] = useState(true);
+  const [mergedItems, setMergedItems] = useState<readonly MergedTicketItem[]>([]);
   const { toast } = useToast();
   const versionKey = [
     detail.ticket?.updatedAt ?? "",
@@ -71,6 +81,32 @@ export function TicketDetailPage() {
     }
     return names;
   }, [context.groupNames, detail.ticket]);
+  // Package 1.2 (M7): children merged into this ticket, staff only (the
+  // endpoint answers 403 otherwise, which simply leaves the list empty).
+  const loadedTicketId = detail.ticket?.id ?? null;
+  const ticketUpdatedAt = detail.ticket?.updatedAt ?? "";
+  const hasActivityAccess = context.actions?.viewActivity ?? false;
+  useEffect(() => {
+    if (loadedTicketId === null || !hasActivityAccess) {
+      setMergedItems([]);
+      return;
+    }
+    let cancelled = false;
+    void listMergedTickets(loadedTicketId)
+      .then((items) => {
+        if (!cancelled) {
+          setMergedItems(items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMergedItems([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loadedTicketId, ticketUpdatedAt, hasActivityAccess]);
   const candidates = context.candidates;
   const participantCandidates = useMemo(() => {
     const merged = new Map<string, { readonly id: string; readonly displayName: string }>();
@@ -117,6 +153,32 @@ export function TicketDetailPage() {
     t("tickets.detail.unknownOrigin");
   const requesterName =
     ticketRequesterName(ticket, authorNames) ?? t("tickets.detail.unknownUser");
+  const lastOverride = ticket.priorityOverridden ? findLastPriorityOverride(detail.messages) : null;
+  const priorityOverrideTitle =
+    lastOverride === null
+      ? undefined
+      : [
+          lastOverride.authorUserId === null
+            ? null
+            : (authorNames.get(lastOverride.authorUserId) ?? null),
+          new Date(lastOverride.at).toLocaleString(),
+          lastOverride.reason,
+        ]
+          .filter((part): part is string => part !== null && part.length > 0)
+          .join(" · ");
+  const composerExtra =
+    mergedItems.length > 0 ? (
+      <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <input
+          type="checkbox"
+          className="size-3.5 accent-primary"
+          checked={alsoToMerged}
+          onChange={(event) => setAlsoToMerged(event.target.checked)}
+          data-testid="ticket-also-to-merged"
+        />
+        {t("tickets.merge.alsoToMerged", { count: mergedItems.length })}
+      </label>
+    ) : undefined;
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
 
@@ -156,6 +218,16 @@ export function TicketDetailPage() {
         }}
         onSplit={() => setSplitOpen(true)}
         onForward={() => setForwardOpen(true)}
+        canMerge={actions.merge}
+        onMerge={() => setMergeOpen(true)}
+      />
+      <TicketMergedBanner
+        ticket={ticket}
+        canUnmerge={actions.unmerge}
+        onUnmerged={(updated) => {
+          detail.applyTicket(updated);
+          void detail.reload();
+        }}
       />
       {detail.actionError || approvals.errorKey ? (
         <p className="mt-3 text-[12.5px] text-danger">
@@ -184,7 +256,9 @@ export function TicketDetailPage() {
           onSend={async (type, body) => {
             setIsSending(true);
             try {
-              await detail.sendMessage(type, body);
+              await detail.sendMessage(type, body, {
+                alsoToMerged: type !== "INTERNAL_NOTE" && mergedItems.length > 0 && alsoToMerged,
+              });
             } finally {
               setIsSending(false);
             }
@@ -211,7 +285,10 @@ export function TicketDetailPage() {
           onUpload={detail.upload}
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
+          composerExtra={composerExtra}
         />
+        <div className="space-y-4">
+        <TicketMergedCard items={mergedItems} />
         <TicketDetailSideStack
           ticket={ticket}
           originName={originName}
@@ -241,7 +318,11 @@ export function TicketDetailPage() {
           }}
           onAddParticipant={detail.addParticipant}
           onRemoveParticipant={detail.removeParticipant}
+          canOverridePriority={actions.overridePriority}
+          onEditPriority={() => setPriorityOpen(true)}
+          priorityOverrideTitle={priorityOverrideTitle}
         />
+        </div>
       </div>
       <TicketForwardPanel
         ticket={ticket}
@@ -260,6 +341,28 @@ export function TicketDetailPage() {
           });
           // After a cross-OU forward the actor may no longer see the ticket;
           // the reload then shows the regular "no access" state.
+          void detail.reload();
+        }}
+      />
+      <TicketPriorityPanel
+        ticket={ticket}
+        open={priorityOpen}
+        onOpenChange={setPriorityOpen}
+        onComplete={(updated) => {
+          detail.applyTicket(updated);
+          toast({ tone: "success", title: t("tickets.priority.done") });
+          void detail.reload();
+        }}
+      />
+      <TicketMergePanel
+        ticket={ticket}
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        onComplete={(updated) => {
+          toast({
+            tone: "success",
+            title: ticketText(t, "tickets.merge.done", { number: updated.mergedIntoTicketNumber ?? "" }),
+          });
           void detail.reload();
         }}
       />

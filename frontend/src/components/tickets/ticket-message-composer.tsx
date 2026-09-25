@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { type FormEvent, useRef, useState } from "react";
 import { MessageSquareLock, Paperclip, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +26,8 @@ interface TicketMessageComposerProperties {
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly onUpload?: (file: File) => Promise<void>;
+  /** Package 1.2: extra control shown only for public replies ("also to merged"). */
+  readonly publicExtra?: ReactNode;
 }
 
 export function TicketMessageComposer({
@@ -35,6 +38,7 @@ export function TicketMessageComposer({
   onSend,
   onWaitForUser,
   onUpload,
+  publicExtra,
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const types = messageTypesForAccess(access);
@@ -77,6 +81,7 @@ export function TicketMessageComposer({
   return (
     <Card className="mt-4">
       <form onSubmit={(event) => void onSubmit(event)}>
+        {type !== "INTERNAL_NOTE" && publicExtra ? <div className="mb-2">{publicExtra}</div> : null}
         <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
           <Segmented<ComposerMode>
             size="sm"

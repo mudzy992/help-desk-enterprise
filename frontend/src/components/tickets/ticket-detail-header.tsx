@@ -35,6 +35,8 @@ interface TicketDetailHeaderProperties {
   readonly reopening: boolean;
   readonly canSplit: boolean;
   readonly canForward: boolean;
+  readonly canMerge?: boolean;
+  readonly onMerge?: () => void;
   readonly onClaim: () => void;
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
@@ -59,6 +61,8 @@ export function TicketDetailHeader({
   reopening,
   canSplit,
   canForward,
+  canMerge,
+  onMerge,
   onClaim,
   onStatusChange,
   onReopen,
@@ -146,6 +150,8 @@ export function TicketDetailHeader({
             reopening={reopening}
             canSplit={canSplit}
             canForward={canForward}
+            canMerge={canMerge}
+            onMerge={onMerge}
             onClaim={onClaim}
             onStatusChange={onStatusChange}
             onReopen={onReopen}

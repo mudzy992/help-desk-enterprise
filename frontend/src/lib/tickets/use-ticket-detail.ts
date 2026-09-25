@@ -139,11 +139,12 @@ export function useTicketDetail(ticketId: string | undefined) {
       onTicket((id) => runAction(async () => {
         setTicket(await updateTicket(id, { status, ...extras }));
       })),
-    sendMessage: (type: MessageType, body: string) =>
+    sendMessage: (type: MessageType, body: string, options?: { readonly alsoToMerged?: boolean }) =>
       onTicket((id) => sendTicketMessageOptimistic({
         ticketId: id,
         type,
         body,
+        alsoToMerged: options?.alsoToMerged,
         authorUserId: currentUserId,
         setMessages,
         setTicket,

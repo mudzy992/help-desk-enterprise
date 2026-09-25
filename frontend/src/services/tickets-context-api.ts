@@ -58,6 +58,10 @@ export type TicketAllowedActions = {
   readonly changeStatus: boolean;
   readonly split: boolean;
   readonly forward: boolean;
+  /** Package 1.2 */
+  readonly overridePriority: boolean;
+  readonly merge: boolean;
+  readonly unmerge: boolean;
   readonly requestRemote: boolean;
   readonly addInternalNote: boolean;
   readonly waitForUser: boolean;

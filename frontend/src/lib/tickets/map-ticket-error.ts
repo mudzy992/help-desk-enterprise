@@ -41,6 +41,15 @@ export type TicketErrorKey =
   | "tickets.errorForwardReason"
   | "tickets.errorForwardTargetUser"
   | "tickets.errorForwardNoPrevious"
+  | "tickets.errorMergeInvalid"
+  | "tickets.errorMergeConfidential"
+  | "tickets.errorMergeLimit"
+  | "tickets.errorMergeReason"
+  | "tickets.errorTicketMerged"
+  | "tickets.errorNotMerged"
+  | "tickets.errorPriorityUnchanged"
+  | "tickets.errorPriorityReason"
+  | "tickets.errorPriorityNotOverridden"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -111,6 +120,19 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   FORWARD_TARGET_USER_NOT_MEMBER: "tickets.errorForwardTargetUser",
   FORWARD_NO_PREVIOUS_GROUP: "tickets.errorForwardNoPrevious",
   HANDLER_GROUP_NOT_FOUND: "tickets.errorValidation",
+  // Package 1.2
+  MERGE_SELF: "tickets.errorMergeInvalid",
+  MERGE_PARENT_INVALID: "tickets.errorMergeInvalid",
+  MERGE_CHILD_INVALID: "tickets.errorMergeInvalid",
+  MERGE_CONFIDENTIAL_MISMATCH: "tickets.errorMergeConfidential",
+  MERGE_LIMIT_EXCEEDED: "tickets.errorMergeLimit",
+  MERGE_REASON_REQUIRED: "tickets.errorMergeReason",
+  TICKET_MERGED: "tickets.errorTicketMerged",
+  TICKET_NOT_MERGED: "tickets.errorNotMerged",
+  PRIORITY_REQUIRED: "tickets.errorValidation",
+  PRIORITY_UNCHANGED: "tickets.errorPriorityUnchanged",
+  PRIORITY_REASON_REQUIRED: "tickets.errorPriorityReason",
+  PRIORITY_NOT_OVERRIDDEN: "tickets.errorPriorityNotOverridden",
 };
 
 export function mapTicketError(error: unknown): TicketErrorKey {

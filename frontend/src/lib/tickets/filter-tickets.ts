@@ -13,6 +13,8 @@ export type TicketListFilters = {
   readonly overdue: boolean;
   /** Package 1.6, staff only. */
   readonly forwarded?: TicketForwardedFilter;
+  /** Package 1.2 (M7): hide merged children (staff default: on). */
+  readonly hideMerged?: boolean;
   readonly currentUserId: string | null;
 };
 

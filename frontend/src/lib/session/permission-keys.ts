@@ -14,6 +14,8 @@ export const permissionKeys = {
   knowledgeArticlePublish: "knowledge.article.publish",
   confidentialBreakGlass: "confidential.break_glass",
   ticketBulkAssign: "ticket.bulk.assign",
+  ticketMerge: "ticket.merge",
+  ticketPriorityOverride: "ticket.priority.override",
   ticketAttachmentsUpload: "ticket.attachments.upload",
   auditExport: "audit.export",
   reportsExport: "reports.export",

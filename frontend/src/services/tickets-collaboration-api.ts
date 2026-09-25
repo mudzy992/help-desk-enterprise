@@ -87,7 +87,12 @@ export function listTicketMessages(
 
 export function createTicketMessage(
   ticketId: string,
-  input: { readonly type: MessageType; readonly body: string },
+  input: {
+    readonly type: MessageType;
+    readonly body: string;
+    /** Package 1.2: copy a public reply to merged child tickets. */
+    readonly alsoToMerged?: boolean;
+  },
 ): Promise<TicketMessageResponse> {
   return apiRequest(`/tickets/${ticketId}/messages`, {
     method: "POST",

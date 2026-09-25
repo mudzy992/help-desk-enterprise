@@ -90,6 +90,8 @@ export function useTicketList() {
     ...emptyFilters(view, currentUserId),
     // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
     forwarded: isStaff ? parseForwardedFilter(searchParams.get("forwarded")) : "",
+    // Package 1.2 (M7): staff lists hide merged children unless asked.
+    hideMerged: isStaff && searchParams.get("hideMerged") !== "false",
   }));
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
 import { TicketAttachmentsPanel } from "@/components/tickets/ticket-attachments-panel";
@@ -48,6 +48,7 @@ interface TicketDetailWorkspaceProperties {
   readonly onUpload: (file: File) => Promise<void>;
   readonly onDownload: (attachment: TicketAttachmentResponse) => Promise<void>;
   readonly onDelete: (attachmentId: string) => Promise<void>;
+  readonly composerExtra?: ReactNode;
 }
 
 export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
@@ -98,6 +99,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}
           onUpload={props.canUpload ? props.onUpload : undefined}
+          composerExtra={props.composerExtra}
         />
       ) : null}
       {tab === "activity" ? (

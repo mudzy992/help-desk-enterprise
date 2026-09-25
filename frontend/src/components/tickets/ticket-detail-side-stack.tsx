@@ -15,6 +15,9 @@ import type {
 } from "@/services/tickets-collaboration-api";
 
 interface TicketDetailSideStackProperties {
+  readonly canOverridePriority?: boolean;
+  readonly onEditPriority?: () => void;
+  readonly priorityOverrideTitle?: string;
   readonly ticket: TicketResponse;
   readonly originName: string;
   readonly serviceName: string;
@@ -52,6 +55,9 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
         serviceName={props.serviceName}
         authorNames={props.authorNames}
         groupNames={props.groupNames}
+        canOverridePriority={props.canOverridePriority}
+        onEditPriority={props.onEditPriority}
+        priorityOverrideTitle={props.priorityOverrideTitle}
       />
       <TicketFormDataView formData={props.ticket.formData} />
       <TicketApprovalsPanel

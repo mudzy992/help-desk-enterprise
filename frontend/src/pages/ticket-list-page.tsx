@@ -135,6 +135,7 @@ export function TicketListPage() {
               />
               <TicketBulkBar
                 selectedIds={list.selectedIds}
+                ticketNumbers={new Map(list.pageItems.map((ticket) => [ticket.id, ticket.ticketNumber]))}
                 onClear={() => list.setSelectedIds(new Set())}
                 onError={list.setErrorKey}
                 onComplete={() => {

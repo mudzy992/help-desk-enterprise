@@ -22,6 +22,8 @@ export type TicketPageQuery = {
   readonly unassigned?: boolean;
   /** Package 1.6 (staff only; the API ignores it for requesters). */
   readonly forwarded?: "any" | "toMyGroups";
+  /** Package 1.2: leave merged children out. */
+  readonly hideMerged?: boolean;
   readonly overdue?: boolean;
   readonly atRisk?: boolean;
   readonly createdFrom?: string;
@@ -56,6 +58,7 @@ const flagFilters = [
   "atRisk",
   "includeArchived",
   "searchDescription",
+  "hideMerged",
 ] as const;
 
 /**
@@ -110,6 +113,7 @@ export type TicketCountsQuery = Pick<
   | "groupId"
   | "unassigned"
   | "forwarded"
+  | "hideMerged"
   | "createdFrom"
   | "createdTo"
   | "q"
@@ -140,6 +144,9 @@ export function toTicketCountsSearchParams(
   }
   if (query.unassigned === true) {
     search.set("unassigned", "true");
+  }
+  if (query.hideMerged === true) {
+    search.set("hideMerged", "true");
   }
   const term = query.q?.trim() ?? "";
   if (term.length > 0) {

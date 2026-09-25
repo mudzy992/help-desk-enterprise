@@ -153,6 +153,16 @@ export function TicketListFiltersBar({
             <option value="any">{t("tickets.forwarding.filterAny")}</option>
             <option value="toMyGroups">{t("tickets.forwarding.filterToMyGroups")}</option>
           </select>
+          <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <input
+              type="checkbox"
+              className="size-3.5 accent-primary"
+              data-testid="ticket-list-hide-merged"
+              checked={filters.hideMerged === true}
+              onChange={(event) => onChange({ ...filters, hideMerged: event.target.checked })}
+            />
+            {t("tickets.merge.hideMerged")}
+          </label>
         </>
       ) : null}
       <label className="sr-only" htmlFor="ticket-list-service">

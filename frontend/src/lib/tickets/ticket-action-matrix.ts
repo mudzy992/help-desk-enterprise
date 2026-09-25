@@ -21,6 +21,9 @@ const noActions: Omit<TicketActionView, "composerAccess"> = {
   changeStatus: false,
   split: false,
   forward: false,
+  overridePriority: false,
+  merge: false,
+  unmerge: false,
   requestRemote: false,
   addInternalNote: false,
   waitForUser: false,
@@ -63,21 +66,27 @@ export function deriveActionsFromSession(
   const composerAccess: TicketComposerAccess =
     isStaff && isRequester ? "both" : isStaff ? "staff" : "requester";
   const writable = ticket.status !== "ARCHIVED";
-  const staffCanWrite = isStaff && writable;
+  const isMergedChild = (ticket.mergedIntoTicketId ?? null) !== null;
+  const staffCanWrite = isStaff && writable && !isMergedChild;
   const holds = (permission: string): boolean =>
     session.isSuperAdmin || session.permissionKeys.includes(permission);
+  const canMerge = isStaff && writable && holds(permissionKeys.ticketMerge);
   return {
     composerAccess,
     claim: staffCanWrite && canShowClaimAction(ticket),
     changeStatus: staffCanWrite,
     split: staffCanWrite,
     forward: staffCanWrite && forwardableStatuses.includes(ticket.status),
+    overridePriority:
+      staffCanWrite && ticket.status !== "CLOSED" && holds(permissionKeys.ticketPriorityOverride),
+    merge: canMerge && !isMergedChild && ticket.status !== "CLOSED",
+    unmerge: canMerge && isMergedChild,
     requestRemote: staffCanWrite,
     addInternalNote: staffCanWrite,
     waitForUser: staffCanWrite,
     manageParticipants: staffCanWrite,
     trackTime: staffCanWrite,
-    uploadAttachments: writable && holds(permissionKeys.ticketAttachmentsUpload),
+    uploadAttachments: writable && !isMergedChild && holds(permissionKeys.ticketAttachmentsUpload),
     viewActivity: isStaff,
   };
 }

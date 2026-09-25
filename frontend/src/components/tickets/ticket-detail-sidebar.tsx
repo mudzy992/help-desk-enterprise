@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,6 +20,11 @@ interface TicketDetailSidebarProperties {
   readonly serviceName: string;
   readonly authorNames: ReadonlyMap<string, string>;
   readonly groupNames: ReadonlyMap<string, string>;
+  /** Package 1.2 (P6). */
+  readonly canOverridePriority?: boolean;
+  readonly onEditPriority?: () => void;
+  /** Who set the manual priority, when and why (badge tooltip). */
+  readonly priorityOverrideTitle?: string;
 }
 
 export function TicketDetailSidebar({
@@ -27,6 +33,9 @@ export function TicketDetailSidebar({
   serviceName,
   authorNames,
   groupNames,
+  canOverridePriority = false,
+  onEditPriority,
+  priorityOverrideTitle,
 }: TicketDetailSidebarProperties) {
   const { t } = useTranslation();
   const requester =
@@ -81,11 +90,32 @@ export function TicketDetailSidebar({
     {
       label: t("tickets.detail.impactUrgency"),
       value: `${ticketText(t, ticketSeverityLabelKey[ticket.impact])} × ${ticketText(t, ticketSeverityLabelKey[ticket.urgency])}`,
-      hint: t("tickets.detail.priorityFromMatrix"),
+      hint: ticket.priorityOverridden ? undefined : t("tickets.detail.priorityFromMatrix"),
     },
     {
       label: t("tickets.filters.priority"),
-      value: <TicketPriorityBadge priority={ticket.priority} />,
+      value: (
+        <span className="flex items-center justify-end gap-1.5">
+          <TicketPriorityBadge priority={ticket.priority} />
+          {ticket.priorityOverridden ? (
+            <span data-testid="ticket-priority-manual" title={priorityOverrideTitle}>
+              <Badge tone="neutral">{t("tickets.priority.manualBadge")}</Badge>
+            </span>
+          ) : null}
+          {canOverridePriority && onEditPriority ? (
+            <button
+              type="button"
+              onClick={onEditPriority}
+              className="rounded p-0.5 text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+              aria-label={t("tickets.priority.edit")}
+              title={t("tickets.priority.edit")}
+              data-testid="ticket-priority-edit"
+            >
+              <Pencil size={12} aria-hidden="true" />
+            </button>
+          ) : null}
+        </span>
+      ),
     },
   ];
   return (

@@ -71,6 +71,10 @@ export type TicketResponse = {
   readonly forwardCount?: number;
   readonly lastForwardedAt?: string | null;
   readonly lastForwardFromGroupName?: string | null;
+  /** Package 1.2 */
+  readonly priorityOverridden?: boolean;
+  readonly mergedAt?: string | null;
+  readonly mergedIntoTicketNumber?: string | null;
   readonly isOverdue?: boolean;
   readonly isAtRisk?: boolean;
   readonly sla?: TicketSlaSnapshot | null;

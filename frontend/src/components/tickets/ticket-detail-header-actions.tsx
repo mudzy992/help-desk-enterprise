@@ -1,4 +1,4 @@
-import { ChevronDown, Forward, Pencil, Split, UserCheck } from "lucide-react";
+import { ChevronDown, Forward, GitMerge, Pencil, Split, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
@@ -24,6 +24,8 @@ interface TicketDetailHeaderActionsProperties {
   readonly reopening: boolean;
   readonly canSplit: boolean;
   readonly canForward: boolean;
+  readonly canMerge?: boolean;
+  readonly onMerge?: () => void;
   readonly onClaim: () => void;
   readonly onStatusChange: (status: TicketStatus, extras?: UpdateTicketInput) => void;
   readonly onReopen: () => void;
@@ -42,6 +44,8 @@ export function TicketDetailHeaderActions({
   reopening,
   canSplit,
   canForward,
+  canMerge = false,
+  onMerge,
   onClaim,
   onStatusChange,
   onReopen,
@@ -76,6 +80,11 @@ export function TicketDetailHeaderActions({
       {canSplit ? (
         <Button type="button" variant="outline" size="sm" onClick={onSplit}>
           <Split size={14} /> {t("tickets.split.action")}
+        </Button>
+      ) : null}
+      {canMerge && onMerge ? (
+        <Button type="button" variant="outline" size="sm" onClick={onMerge} data-testid="ticket-merge">
+          <GitMerge size={14} /> {t("tickets.merge.action")}
         </Button>
       ) : null}
       {canRequestRemote ? <TicketRequestRemoteButton ticket={ticket} /> : null}

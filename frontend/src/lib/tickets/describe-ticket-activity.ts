@@ -65,6 +65,17 @@ export function describeMessageActivity(
     };
   }
   const { action, detail } = parseSystemEventBody(message.body);
+  const merge = describeMergeOrPriorityEvent(action, detail, t);
+  if (merge !== null) {
+    return {
+      id: message.id,
+      at: message.createdAt,
+      kind: messageActivityKind(message),
+      actor,
+      text: merge.text,
+      note: merge.note,
+    };
+  }
   return {
     id: message.id,
     at: message.createdAt,
@@ -80,6 +91,85 @@ export function describeMessageActivity(
     ),
     note: null,
   };
+}
+
+/**
+ * Package 1.2 events carry structured details (see backend
+ * `formatPriorityEventDetail` and the merge writers):
+ *  - `ticket_priority_overridden:FROM:TO:manual|matrix:reason`
+ *  - `ticket_merged:HD-1,HD-2:reason`, `ticket_merged_child:HD-1:reason`,
+ *    `ticket_unmerged:HD-1:reason`, `ticket_merged_status_propagated:HD-1:STATUS`
+ */
+export function describeMergeOrPriorityEvent(
+  action: string,
+  detail: string | null,
+  t: TFunction,
+): { readonly text: string; readonly note: string | null } | null {
+  if (detail === null) {
+    return null;
+  }
+  if (action === "ticket_priority_overridden") {
+    const [from = "", to = "", mode = "", ...rest] = detail.split(":");
+    const label = (value: string) => {
+      const key = (ticketPriorityLabelKey as Readonly<Record<string, string>>)[value];
+      return key === undefined ? value : ticketText(t, key);
+    };
+    return {
+      text: ticketText(
+        t,
+        mode === "matrix" ? "tickets.priority.eventReset" : "tickets.priority.eventManual",
+        { from: label(from), to: label(to) },
+      ),
+      note: rest.join(":").trim() || null,
+    };
+  }
+  const [head = "", ...rest] = detail.split(":");
+  const tail = rest.join(":").trim() || null;
+  switch (action) {
+    case "ticket_merged":
+      return {
+        text: ticketText(t, "tickets.merge.eventParent", { numbers: head.split(",").join(", ") }),
+        note: tail,
+      };
+    case "ticket_merged_child":
+      return { text: ticketText(t, "tickets.merge.eventChild", { number: head }), note: tail };
+    case "ticket_unmerged":
+      return { text: ticketText(t, "tickets.merge.eventUnmerged", { number: head }), note: tail };
+    case "ticket_merged_status_propagated": {
+      const key = (ticketStatusLabelKey as Readonly<Record<string, string>>)[tail ?? ""];
+      return {
+        text: ticketText(t, "tickets.merge.eventPropagated", {
+          number: head,
+          status: key === undefined ? (tail ?? "") : ticketText(t, key),
+        }),
+        note: null,
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/** The last manual priority change, for the "manual" badge tooltip. */
+export function findLastPriorityOverride(
+  messages: readonly TicketMessageResponse[],
+): { readonly authorUserId: string | null; readonly at: string; readonly reason: string | null } | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message === undefined || message.type !== "SYSTEM_EVENT") {
+      continue;
+    }
+    const { action, detail } = parseSystemEventBody(message.body);
+    if (action !== "ticket_priority_overridden" || detail === null) {
+      continue;
+    }
+    const [, , mode = "", ...rest] = detail.split(":");
+    if (mode !== "manual") {
+      return null;
+    }
+    return { authorUserId: message.authorUserId, at: message.createdAt, reason: rest.join(":").trim() || null };
+  }
+  return null;
 }
 
 /** Event text; an assignment names who the ticket was assigned to. */

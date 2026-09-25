@@ -23,6 +23,8 @@ interface TicketBulkBarProperties {
   readonly onClear: () => void;
   readonly onError: (key: TicketErrorKey) => void;
   readonly onComplete: () => void;
+  /** Package 1.2: ticket numbers of the selection, to pick the merge parent. */
+  readonly ticketNumbers?: ReadonlyMap<string, string>;
 }
 
 export function TicketBulkBar({
@@ -30,6 +32,7 @@ export function TicketBulkBar({
   onClear,
   onError,
   onComplete,
+  ticketNumbers,
 }: TicketBulkBarProperties) {
   const { t } = useTranslation();
   const [actionType, setActionType] = useState<TicketBulkActionType>("assign_group");
@@ -70,6 +73,19 @@ export function TicketBulkBar({
             <option key={priority} value={priority}>{ticketText(t, ticketPriorityLabelKey[priority])}</option>
           ))}
         </select>
+      ) : actionType === "merge_into_parent" ? (
+        <select
+          className={`${selectCompactClassName} w-auto min-w-[9rem]`}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          aria-label={t("tickets.bulk.mergeParent")}
+          data-testid="ticket-bulk-merge-parent"
+        >
+          <option value="">{t("tickets.bulk.mergeParent")}</option>
+          {ticketIds.map((id) => (
+            <option key={id} value={id}>{ticketNumbers?.get(id) ?? id}</option>
+          ))}
+        </select>
       ) : (
         <input className={`${controlCompactClassName} w-40`} value={value} onChange={(event) => setValue(event.target.value)} placeholder={t("tickets.bulk.valuePlaceholder")} />
       )}
@@ -78,7 +94,14 @@ export function TicketBulkBar({
       {broadcastArmed ? (
         <span className="text-[11px] text-muted-foreground">{t("tickets.bulk.confirmRecipients")}</span>
       ) : null}
-      <Button type="button" size="sm" disabled={busy} onClick={() => void runBulk()} className="ml-auto">
+      <Button
+        type="button"
+        size="sm"
+        disabled={
+          busy ||
+          (actionType === "merge_into_parent" && (value === "" || !selectedIds.has(value) || reason.trim().length < 3))
+        }
+        onClick={() => void runBulk()} className="ml-auto">
         {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
       </Button>
       <Button
@@ -120,7 +143,7 @@ export function TicketBulkBar({
           assignedUserId: actionType === "assign_user" ? value : undefined,
           status: actionType === "set_status" ? (value as never) : undefined,
           priority: actionType === "set_priority" ? (value as never) : undefined,
-          parentTicketId: actionType === "merge_into_parent" ? value || ticketIds[0] : undefined,
+          parentTicketId: actionType === "merge_into_parent" ? value : undefined,
           reason,
         });
       }

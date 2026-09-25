@@ -6,6 +6,8 @@ import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import type { MessageType, TicketMessageResponse } from "@/services/tickets-collaboration-api";
 import type { TicketResponse } from "@/services/tickets-api";
 import { useTranslation } from "react-i18next";
+import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 interface TicketDetailConversationProperties {
   readonly ticket: TicketResponse;
@@ -20,6 +22,7 @@ interface TicketDetailConversationProperties {
   readonly onSend: (type: MessageType, body: string) => Promise<void>;
   readonly onWaitForUser?: () => void;
   readonly onUpload?: (file: File) => Promise<void>;
+  readonly composerExtra?: ReactNode;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
@@ -50,7 +53,15 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           viewport="fixed"
         />
       </div>
-      {props.ticket.status === "ARCHIVED" ? null : (
+      {props.ticket.status === "ARCHIVED" ? null : props.ticket.mergedIntoTicketId ? (
+        // Package 1.2 (M3): a merged child is read-only; replies go to the parent.
+        <p className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="ticket-merged-composer-notice">
+          {t("tickets.merge.composerNotice")}{" "}
+          <Link className="tnum font-medium text-link hover:underline" to={`/tickets/${props.ticket.mergedIntoTicketId}`}>
+            {props.ticket.mergedIntoTicketNumber ?? t("tickets.merge.parentFallback")}
+          </Link>
+        </p>
+      ) : (
         <TicketMessageComposer
           access={props.access}
           isSending={props.isSending}
@@ -59,6 +70,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           onSend={props.onSend}
           onWaitForUser={props.onWaitForUser}
           onUpload={props.onUpload}
+          publicExtra={props.composerExtra}
         />
       )}
     </>
