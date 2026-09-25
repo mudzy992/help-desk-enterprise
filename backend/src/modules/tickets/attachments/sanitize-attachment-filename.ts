@@ -69,6 +69,7 @@ export function asciiAttachmentFilename(name: string): string {
  * form valid UTF-8, otherwise keep the input.
  */
 export function decodeMultipartFilename(name: string): string {
+  // eslint-disable-next-line no-control-regex -- stripping control characters is the point
   if (!/[\u0080-\u00ff]/.test(name) || /[^\u0000-\u00ff]/.test(name)) {
     return name;
   }

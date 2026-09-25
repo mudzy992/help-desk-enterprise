@@ -36,5 +36,6 @@ function sanitizeTemplateValue(value: string | undefined): string {
   if (value === undefined) {
     return '';
   }
+  // eslint-disable-next-line no-control-regex -- stripping control characters is the point
   return value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim();
 }
