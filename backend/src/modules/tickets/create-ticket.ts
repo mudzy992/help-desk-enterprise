@@ -12,7 +12,10 @@ import {
   resolveCreateOriginUnitId,
 } from './assert-can-create-ticket';
 import { resolveTicketPriority } from './resolve-ticket-priority';
-import { nextTicketNumber } from './generate-ticket-number';
+import {
+  nextTicketNumber,
+  readHighestTicketSequence,
+} from './generate-ticket-number';
 import {
   loadOfferedService,
   mapCreateDependencyError,
@@ -150,8 +153,9 @@ export async function createTicket(
         now: guardrailNow,
       });
       return prisma.$transaction(async (transaction) => {
-        const ticketNumber = await nextTicketNumber(() =>
-          transaction.ticket.count(),
+        const ticketNumber = await nextTicketNumber(
+          () => transaction.ticket.count(),
+          () => readHighestTicketSequence(transaction),
         );
         const record = (await transaction.ticket.create({
           data: {
