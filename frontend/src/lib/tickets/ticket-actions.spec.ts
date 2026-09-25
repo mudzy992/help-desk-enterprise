@@ -33,7 +33,7 @@ describe("ticket actions", () => {
   });
 
   it("offers backend-allowed status transitions without approval, archive, or reopen shortcuts", () => {
-    expect(nextTicketStatuses("PENDING")).toEqual(["ASSIGNED", "IN_PROGRESS"]);
+    expect(nextTicketStatuses("PENDING")).toEqual(["ASSIGNED", "IN_PROGRESS", "CLOSED"]);
     expect(nextTicketStatuses("PENDING_APPROVAL")).toEqual([]);
     expect(nextTicketStatuses("IN_PROGRESS")).toContain("RESOLVED");
     expect(nextTicketStatuses("WAITING_FOR_USER")).toContain("CLOSED");

@@ -47,10 +47,10 @@ export const claimableTicketStatuses: readonly TicketStatus[] = [
 export const allowedTicketStatusTransitions: Readonly<
   Record<TicketStatus, readonly TicketStatus[]>
 > = {
-  PENDING: ["ASSIGNED", "IN_PROGRESS"],
+  PENDING: ["ASSIGNED", "IN_PROGRESS", "CLOSED"],
   UNROUTED: ["PENDING"],
   PENDING_APPROVAL: [],
-  ASSIGNED: ["IN_PROGRESS", "PENDING", "WAITING_FOR_USER"],
+  ASSIGNED: ["IN_PROGRESS", "PENDING", "WAITING_FOR_USER", "CLOSED"],
   IN_PROGRESS: ["WAITING_FOR_USER", "RESOLVED", "ASSIGNED"],
   WAITING_FOR_USER: ["IN_PROGRESS", "RESOLVED", "CLOSED"],
   RESOLVED: ["CLOSED"],

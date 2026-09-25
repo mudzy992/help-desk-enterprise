@@ -48,10 +48,12 @@ export const ticketSeverityRank: Readonly<Record<TicketImpact, number>> = {
 export const allowedTicketStatusTransitions: Readonly<
   Record<TicketStatus, readonly TicketStatus[]>
 > = {
-  PENDING: ['ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL'],
+  // Review 2026-09-25: CLOSED directly (duplicate / spam / withdrawn) — the
+  // close-code and required-field rules still apply to the CLOSED target.
+  PENDING: ['ASSIGNED', 'IN_PROGRESS', 'PENDING_APPROVAL', 'CLOSED'],
   UNROUTED: ['PENDING'],
   PENDING_APPROVAL: ['PENDING', 'CLOSED'],
-  ASSIGNED: ['IN_PROGRESS', 'PENDING', 'WAITING_FOR_USER'],
+  ASSIGNED: ['IN_PROGRESS', 'PENDING', 'WAITING_FOR_USER', 'CLOSED'],
   IN_PROGRESS: ['WAITING_FOR_USER', 'RESOLVED', 'ASSIGNED'],
   WAITING_FOR_USER: ['IN_PROGRESS', 'RESOLVED', 'CLOSED'],
   RESOLVED: ['CLOSED', 'IN_PROGRESS'],

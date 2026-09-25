@@ -8,7 +8,11 @@ describe('ticket status transitions', () => {
       'ASSIGNED',
       'IN_PROGRESS',
       'PENDING_APPROVAL',
+      'CLOSED',
     ]);
+    // Review 2026-09-25: duplicate / spam / withdrawn tickets close directly.
+    expect(() => assertTicketStatusTransition('PENDING', 'CLOSED')).not.toThrow();
+    expect(() => assertTicketStatusTransition('ASSIGNED', 'CLOSED')).not.toThrow();
     expect(() =>
       assertTicketStatusTransition('PENDING', 'IN_PROGRESS'),
     ).not.toThrow();
@@ -27,11 +31,11 @@ describe('ticket status transitions', () => {
   });
 
   it('rejects jumps that skip the workflow', () => {
-    expect(() => assertTicketStatusTransition('PENDING', 'CLOSED')).toThrow(
+    expect(() => assertTicketStatusTransition('PENDING', 'RESOLVED')).toThrow(
       TicketsError,
     );
     expect(() =>
-      assertTicketStatusTransition('PENDING', 'CLOSED'),
+      assertTicketStatusTransition('ASSIGNED', 'RESOLVED'),
     ).toThrow(/INVALID_STATUS_TRANSITION/);
     expect(() =>
       assertTicketStatusTransition('UNROUTED', 'IN_PROGRESS'),
