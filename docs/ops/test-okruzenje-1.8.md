@@ -56,6 +56,7 @@ docker compose exec samba-ad bash -c \
 
 Samba koristi vlastiti (self-signed) CA. Aplikacija uvijek verifikuje certifikat i ne postoji opcija „ignoriši certifikat", pa CA treba montirati:
 
+1. **Varijanta bez file mounta (Coolify compose resursi — Storages su read-only):** na serveru `base64 -w0 ops/dev/samba-ad/export/samba-ca.pem`, pa u Environment aplikacije `AD_LDAPS_CA_CERT_BASE64=<ispis>` (ostavite `AD_LDAPS_CA_CERT_PATH` prazno) i redeploy. Ako je mount moguć, koristite korake ispod.
 1. U Coolifyju otvorite resurs aplikacije → **Storages** → **Add file mount**. Za **backend i worker** podesite:
    - putanja: `/run/secrets/ad-ca.pem`;
    - sadržaj: kopija fajla `ops/dev/samba-ad/export/samba-ca.pem`.

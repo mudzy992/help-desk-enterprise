@@ -30,6 +30,7 @@ x-app-environment: &app-environment
   # Paket 1.8: PEM vlastitog CA za LDAPS (prazno = sistemsko povjerenje).
   # Fajl se montira u backend i worker (Coolify: Storages → File mount).
   AD_LDAPS_CA_CERT_PATH: ${AD_LDAPS_CA_CERT_PATH:-}
+  AD_LDAPS_CA_CERT_BASE64: ${AD_LDAPS_CA_CERT_BASE64:-}
   # Paket 2.1: AES-256 ključ za TOTP tajne (base64, 32 bajta: `openssl rand -base64 32`).
   # Bez njega MFA se ne može uključiti; promjena ključa poništava sve postavljene MFA.
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}

@@ -94,12 +94,31 @@ export function classifyLdapError(error: unknown): string {
   return 'LDAP_ERROR';
 }
 
-export function readCaCertificate(path: string | undefined): string | null {
-  const trimmed = path?.trim();
-  if (!trimmed) {
-    return null;
+/**
+ * Loads the trusted CA bundle for LDAPS. A file path wins; otherwise the PEM
+ * may be supplied inline as base64 (`AD_LDAPS_CA_CERT_BASE64`) for platforms
+ * where file mounts are unavailable (e.g. Coolify compose resources).
+ * Throws when a configured value does not yield a PEM certificate.
+ */
+export function readCaCertificate(
+  path: string | undefined,
+  base64Pem?: string | undefined,
+): string | null {
+  const trimmedPath = path?.trim();
+  let pem: string | null = null;
+  if (trimmedPath) {
+    pem = readFileSync(trimmedPath, 'utf8');
+  } else {
+    const inline = base64Pem?.replace(/\s+/g, '');
+    if (!inline) {
+      return null;
+    }
+    pem = Buffer.from(inline, 'base64').toString('utf8');
   }
-  return readFileSync(trimmed, 'utf8');
+  if (!pem.includes('-----BEGIN CERTIFICATE-----')) {
+    throw new Error('CA certificate is not PEM');
+  }
+  return pem;
 }
 
 export const createLdaptsClient: LdapClientFactory = async (url, settings) => {

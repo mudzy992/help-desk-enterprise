@@ -48,10 +48,15 @@ export class LdapsSyncConfigurationLoader {
     ]);
     let caCertificatePem: string | null = null;
     try {
-      caCertificatePem = readCaCertificate(process.env.AD_LDAPS_CA_CERT_PATH);
+      caCertificatePem = readCaCertificate(
+        process.env.AD_LDAPS_CA_CERT_PATH,
+        process.env.AD_LDAPS_CA_CERT_BASE64,
+      );
     } catch {
       throw new DirectorySyncError('DIRECTORY_NOT_CONFIGURED', 'CA certificate unreadable', {
-        field: 'AD_LDAPS_CA_CERT_PATH',
+        field: process.env.AD_LDAPS_CA_CERT_PATH?.trim()
+          ? 'AD_LDAPS_CA_CERT_PATH'
+          : 'AD_LDAPS_CA_CERT_BASE64',
       });
     }
     return {
