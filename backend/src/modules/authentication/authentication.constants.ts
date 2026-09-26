@@ -6,6 +6,9 @@ export const authenticationConstants = {
   sessionTtlSeconds: 60 * 60,
   passwordChangeTokenTtlSeconds: 15 * 60,
   passwordChangePurpose: 'password_change',
+  // Paket 2.1 (M3): password → second factor.
+  mfaPurpose: 'mfa',
+  mfaTokenTtlSeconds: 5 * 60,
   minimumJwtSigningSecretLength: 32,
   dummyLocalPasswordHash:
     '$2b$12$y2kLUePvsUF0aUToCZAGEOydZDkmf/R/0W7ZpUpV2RjoqzIc5c8pO',

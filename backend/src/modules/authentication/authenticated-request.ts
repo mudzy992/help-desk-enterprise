@@ -4,6 +4,8 @@ import type { PrincipalContext } from '../../common/principal-context/principal-
 export const AUTHENTICATED_PRINCIPAL_REQUEST_KEY = 'authenticatedPrincipal';
 /** Phase 2.2: the single load of the caller, shared by the guard chain. */
 export const PRINCIPAL_CONTEXT_REQUEST_KEY = 'principalContext';
+/** Paket 2.1: the caller's registry session id (`sid`), null for older tokens. */
+export const SESSION_ID_REQUEST_KEY = 'authenticatedSessionId';
 
 export type AuthenticatedHttpRequest = {
   headers?: { authorization?: string };
@@ -12,7 +14,12 @@ export type AuthenticatedHttpRequest = {
   query?: Record<string, unknown>;
   [AUTHENTICATED_PRINCIPAL_REQUEST_KEY]?: AuthorizationPrincipal;
   [PRINCIPAL_CONTEXT_REQUEST_KEY]?: PrincipalContext;
+  [SESSION_ID_REQUEST_KEY]?: string | null;
 };
+
+export function readSessionId(request: AuthenticatedHttpRequest): string | null {
+  return request[SESSION_ID_REQUEST_KEY] ?? null;
+}
 
 /**
  * Reads the caller's principal context off the request. Guards that run after

@@ -31,6 +31,7 @@ import type {
   UserSummaryResponse,
 } from './users.types';
 import { UsersService } from './users.service';
+import { SessionRegistryService } from '../authentication/security/session-registry.service';
 import { assertCanManageTargetUser } from './assert-can-manage-target-user';
 
 @Controller('users')
@@ -50,6 +51,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly sessionRegistry: SessionRegistryService,
   ) {}
 
   @Get()
@@ -92,7 +94,14 @@ export class UsersController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<ResetUserPasswordResponse> {
     await this.assertCanManageTarget(request, userId);
-    return this.usersService.resetTemporaryPassword(userId);
+    const response = await this.usersService.resetTemporaryPassword(userId);
+    // Paket 2.1: a reset password ends every session of the account.
+    await this.sessionRegistry.revokeAll({
+      userId,
+      reason: 'admin',
+      actorUserId: readAuthenticatedPrincipal(request)?.subjectId ?? null,
+    });
+    return response;
   }
 
   @Patch(':userId')

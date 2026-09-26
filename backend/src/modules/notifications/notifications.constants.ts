@@ -16,6 +16,11 @@ export const notificationTypes = {
   ticketUnroutedDigest: 'ticket.unroutedDigest',
   // Paket 1.8: a directory sync stopped by the deactivation safeguard.
   directorySyncAborted: 'directory.syncAborted',
+  // Paket 2.1: account security events (to the account owner only).
+  accountMfaChanged: 'account.mfaChanged',
+  accountRecoveryCodeUsed: 'account.recoveryCodeUsed',
+  accountPasswordChanged: 'account.passwordChanged',
+  accountNewDevice: 'account.newDevice',
 } as const;
 
 export type NotificationType =
@@ -42,6 +47,12 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
       'notifications.items.ticketUnroutedDigest',
     [notificationTypes.directorySyncAborted]:
       'notifications.items.directorySyncAborted',
+    [notificationTypes.accountMfaChanged]: 'notifications.items.accountMfaChanged',
+    [notificationTypes.accountRecoveryCodeUsed]:
+      'notifications.items.accountRecoveryCodeUsed',
+    [notificationTypes.accountPasswordChanged]:
+      'notifications.items.accountPasswordChanged',
+    [notificationTypes.accountNewDevice]: 'notifications.items.accountNewDevice',
   };
 
 export const notificationListLimits = {

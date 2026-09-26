@@ -8,6 +8,7 @@ import { UsersController } from './users.controller';
 import { UserPreferencesController } from './user-preferences.controller';
 import { UserDirectoryIdentityController } from './user-directory-identity.controller';
 import { UsersService } from './users.service';
+import { UserSecurityController } from './user-security.controller';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { UsersService } from './users.service';
     DirectorySyncModule,
   ],
   // The static `me/preferences` path registers before the `:userId` routes.
-  controllers: [UserPreferencesController, UsersController, UserDirectoryIdentityController],
+  controllers: [UserPreferencesController, UsersController, UserDirectoryIdentityController, UserSecurityController],
   providers: [UsersService, SmtpMailTransport],
   exports: [UsersService],
 })

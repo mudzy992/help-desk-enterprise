@@ -20,10 +20,16 @@ import { LocalAuthenticationProvider } from './local-authentication.provider';
 import { MicrosoftEntraIdTokenVerifier } from './microsoft-entra-id-token.verifier';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 import { SessionTokenService } from './session-token.service';
+import { AccountSecurityController } from './account-security.controller';
+import { AccountSecurityNotifier } from './security/account-security-notifier';
+import { AccountSecurityPolicyLoader } from './security/account-security-policy.loader';
+import { MfaService } from './security/mfa.service';
+import { PasswordChangeService } from './security/password-change.service';
+import { SessionRegistryService } from './security/session-registry.service';
 
 @Module({
   imports: [SettingsModule, JwtModule.register({})],
-  controllers: [AuthenticationController],
+  controllers: [AuthenticationController, AccountSecurityController],
   providers: [
     AuthenticationUserLoader,
     PrincipalContextLoader,
@@ -43,8 +49,17 @@ import { SessionTokenService } from './session-token.service';
     JwtSocketAuthenticationVerifier,
     SessionAuthenticationGuard,
     AuthenticationService,
+    AccountSecurityNotifier,
+    AccountSecurityPolicyLoader,
+    MfaService,
+    PasswordChangeService,
+    SessionRegistryService,
   ],
   exports: [
+    AccountSecurityPolicyLoader,
+    MfaService,
+    PasswordChangeService,
+    SessionRegistryService,
     SessionRevocationStore,
     JwtSocketAuthenticationVerifier,
     AuthenticationService,

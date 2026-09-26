@@ -51,6 +51,8 @@ export async function createInstallSuperAdmin(
         isLocalOnly: localOnly.isLocalOnly,
         entraObjectId: localOnly.entraObjectId,
         localPasswordHash,
+        // Paket 2.1: the super admin password expiry counts from installation.
+        passwordChangedAt: new Date(),
         userRoles: {
           create: {
             roleId: await ensureInstallSuperAdminRole(transaction),

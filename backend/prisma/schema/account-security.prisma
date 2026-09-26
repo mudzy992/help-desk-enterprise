@@ -1,0 +1,61 @@
+/// Paket 2.1 (M1): TOTP second factor of a local account. The secret is
+/// AES-256-GCM encrypted with MFA_ENCRYPTION_KEY; never returned or logged.
+model UserMfa {
+  userId                 String    @id
+  secretEncrypted        String?
+  enabledAt              DateTime?
+  /// Last accepted TOTP time step — a code is never accepted twice (replay).
+  lastUsedStep           BigInt?
+  lastUsedAt             DateTime?
+  /// Enrollment in progress (expires after 15 min).
+  pendingSecretEncrypted String?
+  pendingCreatedAt       DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Paket 2.1 (M4): single-use recovery codes, stored as SHA-256 only.
+model UserMfaRecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Paket 2.1 (M6): one row per sign-in; the id is the `sid` claim and stays
+/// the same across token refreshes.
+model UserSession {
+  id              String    @id @default(cuid())
+  userId          String
+  provider        String    @db.VarChar(16)
+  mfaMethod       String?   @db.VarChar(16)
+  ipAddress       String?   @db.VarChar(64)
+  userAgent       String?   @db.VarChar(512)
+  createdAt       DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  revokedReason   String?   @db.VarChar(32)
+  revokedByUserId String?
+  user            User      @relation("UserSessionOwner", fields: [userId], references: [id], onDelete: Cascade)
+  revokedBy       User?     @relation("UserSessionRevokedBy", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
+}
+
+/// Paket 2.1 (M7): bcrypt hashes of previous local passwords (reuse check).
+model UserPasswordHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

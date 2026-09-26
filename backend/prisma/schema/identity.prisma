@@ -11,6 +11,8 @@ model User {
   localPasswordHash    String?
   /// When true, local login must complete password change before a session is issued.
   mustChangePassword   Boolean                    @default(false)
+  /// Paket 2.1: last local password change (expiry policy). Null = unknown.
+  passwordChangedAt    DateTime?
   /// Phase 2.2: bumped whenever this user's roles, groups, unit or active flag
   /// change. It is part of the authorization cache key (`authz:{id}:v{n}`), so a
   /// bump makes every cached decision unreachable at once.
@@ -59,6 +61,11 @@ model User {
   notificationEmailDeliveries     NotificationEmailDelivery[]
   auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
+  mfa                  UserMfa?
+  mfaRecoveryCodes     UserMfaRecoveryCode[]
+  sessions             UserSession[]         @relation("UserSessionOwner")
+  revokedSessions      UserSession[]         @relation("UserSessionRevokedBy")
+  passwordHistory      UserPasswordHistory[]
   configVersions       ConfigVersion[]
   slaEscalationTargets SlaEscalationRule[]
   createdAt            DateTime                   @default(now())

@@ -16,9 +16,19 @@ import { redisTokens } from '../../common/redis/redis.tokens';
  * Redis outage fails OPEN (logged) — sessions keep working rather than
  * everybody being signed out; the 1 h expiry still bounds the exposure.
  */
+export type RevocationCheck = {
+  jti: string | null;
+  subjectId: string;
+  issuedAt: number;
+  /** Paket 2.1: session id (`sid`); null for tokens issued before the registry. */
+  sessionId?: string | null;
+};
+
 export type SessionRevocationBackend = {
-  isRevoked(input: { jti: string | null; subjectId: string; issuedAt: number }): Promise<boolean>;
+  isRevoked(input: RevocationCheck): Promise<boolean>;
   revokeToken(jti: string, ttlSeconds: number): Promise<void>;
+  /** Paket 2.1: every token of one session (all refreshes) stops working. */
+  revokeSession(sessionId: string, ttlSeconds: number): Promise<void>;
   revokeAllForUser(subjectId: string, nowSeconds: number, ttlSeconds: number): Promise<void>;
 };
 
@@ -26,10 +36,15 @@ export function createMemorySessionRevocationBackend(
   now: () => number = Date.now,
 ): SessionRevocationBackend {
   const revoked = new Map<string, number>();
+  const revokedSessions = new Map<string, number>();
   const validAfter = new Map<string, { at: number; expiresAt: number }>();
   return {
-    isRevoked: async ({ jti, subjectId, issuedAt }) => {
+    isRevoked: async ({ jti, subjectId, issuedAt, sessionId }) => {
       const current = now();
+      if (sessionId) {
+        const until = revokedSessions.get(sessionId);
+        if (until !== undefined && until > current) return true;
+      }
       if (jti !== null) {
         const until = revoked.get(jti);
         if (until !== undefined && until > current) return true;
@@ -40,6 +55,9 @@ export function createMemorySessionRevocationBackend(
     revokeToken: async (jti, ttlSeconds) => {
       revoked.set(jti, now() + ttlSeconds * 1000);
     },
+    revokeSession: async (sessionId, ttlSeconds) => {
+      revokedSessions.set(sessionId, now() + ttlSeconds * 1000);
+    },
     revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds) => {
       validAfter.set(subjectId, { at: nowSeconds, expiresAt: now() + ttlSeconds * 1000 });
     },
@@ -48,16 +66,21 @@ export function createMemorySessionRevocationBackend(
 
 function createRedisSessionRevocationBackend(redis: Redis): SessionRevocationBackend {
   return {
-    isRevoked: async ({ jti, subjectId, issuedAt }) => {
-      const [tokenRevoked, cutoff] = await Promise.all([
-        jti === null ? Promise.resolve(0) : redis.exists(`auth:revoked-jti:${jti}`),
-        redis.get(`auth:sessions-valid-after:${subjectId}`),
-      ]);
-      if (tokenRevoked > 0) return true;
+    isRevoked: async ({ jti, subjectId, issuedAt, sessionId }) => {
+      // One round trip: jti, session and per-user cutoff in a single MGET.
+      const [tokenRevoked, cutoff, sessionRevoked] = await redis.mget(
+        jti === null ? 'auth:revoked-jti:-' : `auth:revoked-jti:${jti}`,
+        `auth:sessions-valid-after:${subjectId}`,
+        sessionId ? `auth:revoked-sid:${sessionId}` : 'auth:revoked-sid:-',
+      );
+      if (tokenRevoked !== null || sessionRevoked !== null) return true;
       return cutoff !== null && issuedAt < Number(cutoff);
     },
     revokeToken: async (jti, ttlSeconds) => {
       await redis.set(`auth:revoked-jti:${jti}`, '1', 'EX', Math.max(1, ttlSeconds));
+    },
+    revokeSession: async (sessionId, ttlSeconds) => {
+      await redis.set(`auth:revoked-sid:${sessionId}`, '1', 'EX', Math.max(1, ttlSeconds));
     },
     revokeAllForUser: async (subjectId, nowSeconds, ttlSeconds) => {
       await redis.set(
@@ -82,7 +105,7 @@ export class SessionRevocationStore {
         : createMemorySessionRevocationBackend();
   }
 
-  async isRevoked(input: { jti: string | null; subjectId: string; issuedAt: number }): Promise<boolean> {
+  async isRevoked(input: RevocationCheck): Promise<boolean> {
     try {
       return await this.backend.isRevoked(input);
     } catch (error) {
@@ -96,6 +119,10 @@ export class SessionRevocationStore {
     const ttl = expiresAt - Math.floor(Date.now() / 1000);
     if (ttl <= 0) return;
     await this.safe(() => this.backend.revokeToken(jti, ttl));
+  }
+
+  async revokeSession(sessionId: string, ttlSeconds: number): Promise<void> {
+    await this.safe(() => this.backend.revokeSession(sessionId, ttlSeconds));
   }
 
   async revokeAllForUser(subjectId: string, sessionTtlSeconds: number): Promise<void> {
