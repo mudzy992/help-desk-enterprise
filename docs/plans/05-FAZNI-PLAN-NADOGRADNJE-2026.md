@@ -47,7 +47,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Bulk assign dobija iste provjere (cross-OU permisija + razlog).
 - Eskalacija: „Eskaliraj" = prosljeđivanje na grupu višeg nivoa definisanu po servisu/grupi.
 
-### 1.2 Upravljanje prioritetom i merge tok (G5 + G4)  · ~2 RD
+### 1.2 Upravljanje prioritetom i merge tok (G5 + G4)  · ~2 RD · dizajn: `modules/1.2-prioritet-i-merge.md` · ✅ implementirano
 - Pojedinačna promjena prioriteta na tiketu: permisija, obavezan razlog, audit, oznaka
   „ručno promijenjeno" (matrica se više ne primjenjuje automatski na taj tiket).
 - Merge: promjena statusa glavnog tiketa (RESOLVED/CLOSED) propagira se na spojene tikete;
@@ -61,7 +61,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   označava „automatski zaustavljeno"; jedan aktivni timer po korisniku (ne samo po tiketu).
 - Ručna korekcija unosa (vlasnik ili admin) uz razlog i audit; izvještaj vremena po agentu/servisu.
 
-### 1.4 Šabloni odgovora i playbooks (G2)  · ~4 RD · dizajn: `modules/1.4-sabloni-playbooks.md`
+### 1.4 Šabloni odgovora i playbooks (G2)  · ~4 RD · dizajn: `modules/1.4-sabloni-playbooks.md` · ✅ implementirano
 - Model `ResponseTemplate` (naziv, tijelo s varijablama `{{requester.name}}`, `{{ticket.number}}`…,
   servis/kategorija/grupa scope, jezik, aktivno) i `Playbook` (koraci — checklist po servisu).
 - Admin CRUD s permisijom, change log, verzije kroz config versioning.
@@ -96,7 +96,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   (upozorenje owneru kad tiket stoji duže; brojač na dashboardu).
 - Realtime `routing.rules.updated` (i ostali admin eventi iz RAW §7) → osvježavanje admin ekrana.
 
-### 1.8 Verifikacija na EPBiH infrastrukturi (V1–V3)  · zavisi od IT-a EPBiH
+### 1.8 Verifikacija na EPBiH infrastrukturi (V1–V3)  · zavisi od IT-a EPBiH · dizajn: `modules/1.8-verifikacija-epbih.md` (~7 RD razvoja: LDAPS provider i Entra login tok ne postoje — nalaz N1–N5)
 - V1 Entra SSO na pravom tenantu — checklist, test nalozi, mapiranje uloga.
 - V2 LDAPS sync na pravim DC-ovima — dry-run, broj korisnika po OU, izuzeci.
 - V3 Restore drill po `ops/DR.md` — izvesti i zapisati rezultat (RPO/RTO).

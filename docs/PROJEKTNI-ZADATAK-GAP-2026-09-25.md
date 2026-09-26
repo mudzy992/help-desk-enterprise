@@ -43,8 +43,8 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | Zahtjev | Stanje | Gdje |
 |---|---|---|
 | Lokalni dev auth sa istim claims modelom | ✅ | `authentication/`, `authorization-provider-independence.spec` |
-| Entra ID SSO, SuperAdmin samo lokalni | ✅ 🔎V1 | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
-| AD sync (manual-only, throttle, cache, scope) | ✅ 🔎V2 | `directory-sync/` (LDAPS + ručni katalog) |
+| Entra ID SSO, SuperAdmin samo lokalni | 🟡 🔎V1 (backend verifikuje token, ali nema login toka u UI-ju ni vezivanja `oid`-a — nalaz N2/N3 u `modules/1.8-verifikacija-epbih.md`) | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
+| AD sync (manual-only, throttle, cache, scope) | 🟡 🔎V2 | `directory-sync/` — samo ručni katalog; LDAPS klijent ne postoji (nalaz N1 u `modules/1.8-verifikacija-epbih.md`) |
 | OU stablo + mapiranje korisnika | ✅ | `organizational-units/`, `materialize-directory-read.ts` |
 | RBAC + OU izolacija, SuperAdmin globalno | ✅ | `authorization/evaluate-authorization-access.*` |
 | Granularne permisije + default mapiranje | ✅ | `permission-catalog.ts`, `default-role-permissions.spec` |
