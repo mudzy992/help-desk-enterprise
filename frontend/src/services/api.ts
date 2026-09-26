@@ -46,6 +46,8 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly requestId: string | null = null,
+    /** Paket 2.1: structured details (e.g. password policy violations). */
+    readonly details: Record<string, unknown> | null = null,
   ) {
     super(message);
     this.name = "ApiError";
@@ -56,6 +58,7 @@ type ApiErrorPayload = {
   code?: string;
   message?: string;
   requestId?: string;
+  details?: Record<string, unknown>;
 };
 
 async function readApiError(response: Response): Promise<ApiError> {
@@ -67,6 +70,7 @@ async function readApiError(response: Response): Promise<ApiError> {
     payload?.code ?? "REQUEST_FAILED",
     payload?.message ?? "Request failed",
     payload?.requestId ?? null,
+    payload?.details && typeof payload.details === "object" ? payload.details : null,
   );
 }
 

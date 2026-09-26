@@ -3,6 +3,9 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
+import { MfaCodeForm } from "@/components/auth/mfa-code-form";
+import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
+import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +13,47 @@ import {
   errorTextClassName,
   labelClassName,
 } from "@/components/ui/control";
-import { useSession } from "@/lib/session/use-session";
+import { type SignInOutcome, useSession } from "@/lib/session/use-session";
 import { startEntraSignIn } from "@/lib/auth/entra-redirect";
 import { ApiError } from "@/services/api";
 import {
   getAuthenticationProviders,
+  startSignInMfaEnrollment,
   type AuthenticationProviders,
 } from "@/services/auth-api";
+
+/*
+  Paket 2.1: sign-in is a small state machine — credentials → (password
+  change) → (second factor | forced MFA set-up → recovery codes) → session.
+*/
+type SignInStep =
+  | { readonly kind: "credentials" }
+  | { readonly kind: "change"; readonly token: string; readonly reason: "temporary" | "expired" }
+  | { readonly kind: "mfa"; readonly token: string }
+  | { readonly kind: "enroll"; readonly token: string }
+  | { readonly kind: "codes"; readonly codes: readonly string[]; readonly finish: () => void };
+
+function stepFromOutcome(outcome: SignInOutcome): SignInStep | null {
+  switch (outcome.kind) {
+    case "must_change_password":
+      return { kind: "change", token: outcome.passwordChangeToken, reason: outcome.reason };
+    case "mfa_required":
+      return { kind: "mfa", token: outcome.mfaToken };
+    case "mfa_enrollment_required":
+      return { kind: "enroll", token: outcome.mfaToken };
+    default:
+      return null;
+  }
+}
+
+/** The header sign-in hands a pending step over through router state. */
+function readPendingStep(state: unknown): SignInStep {
+  if (typeof state === "object" && state !== null && "pendingSignIn" in state) {
+    const step = stepFromOutcome((state as { pendingSignIn: SignInOutcome }).pendingSignIn);
+    if (step) return step;
+  }
+  return { kind: "credentials" };
+}
 
 /*
   Pulse sign-in: the brand panel carries the identity on the left, the form
@@ -34,15 +71,13 @@ export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, signIn, completePasswordChange } = useSession();
+  const { session, signIn, completePasswordChange, completeMfa, confirmMfaEnrollment } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const [passwordChangeToken, setPasswordChangeToken] = useState<string | null>(
-    null,
-  );
+  const [step, setStep] = useState<SignInStep>(() => readPendingStep(location.state));
 
   // Paket 1.8 (A1): Microsoft sign-in when the server runs in entra_ad mode;
   // the local form stays available as the break-glass path.
@@ -79,9 +114,19 @@ export function LoginPage() {
       ? location.state.from
       : "/";
 
-  if (session !== null) {
+  // While recovery codes are on screen the session is held back on purpose.
+  if (session !== null && step.kind !== "codes") {
     return <Navigate to={redirectPath} replace />;
   }
+
+  const advance = (outcome: SignInOutcome) => {
+    const next = stepFromOutcome(outcome);
+    if (next) {
+      setStep(next);
+      return;
+    }
+    navigate(redirectPath, { replace: true });
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,12 +135,8 @@ export function LoginPage() {
     setIsRateLimited(false);
     try {
       const outcome = await signIn(email, password);
-      if (outcome.kind === "must_change_password") {
-        setPasswordChangeToken(outcome.passwordChangeToken);
-        setPassword("");
-        return;
-      }
-      navigate(redirectPath, { replace: true });
+      setPassword("");
+      advance(outcome);
     } catch (error) {
       setHasError(error instanceof ApiError || error instanceof Error);
       setIsRateLimited(error instanceof ApiError && error.status === 429);
@@ -181,21 +222,70 @@ export function LoginPage() {
           </div>
 
           <div className="rounded-lg border border-border bg-surface p-6 shadow-card sm:p-7">
-            {passwordChangeToken !== null ? (
+            {step.kind === "change" ? (
               <>
                 <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
                   {t("auth.changePassword.title")}
                 </h2>
                 <div className="mt-5">
                   <ChangePasswordForm
+                    reason={step.reason}
                     onCompleted={async (newPassword) => {
-                      await completePasswordChange(
-                        passwordChangeToken,
-                        newPassword,
-                      );
+                      advance(await completePasswordChange(step.token, newPassword));
+                    }}
+                    onCancel={() => setStep({ kind: "credentials" })}
+                  />
+                </div>
+              </>
+            ) : step.kind === "mfa" ? (
+              <>
+                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
+                  {t("auth.mfa.verifyTitle")}
+                </h2>
+                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
+                  {t("auth.mfa.verifyIntro")}
+                </p>
+                <div className="mt-5">
+                  <MfaCodeForm
+                    onSubmit={async (code) => {
+                      await completeMfa(step.token, code);
                       navigate(redirectPath, { replace: true });
                     }}
-                    onCancel={() => setPasswordChangeToken(null)}
+                    onCancel={() => setStep({ kind: "credentials" })}
+                  />
+                </div>
+              </>
+            ) : step.kind === "enroll" ? (
+              <>
+                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
+                  {t("auth.mfa.enrollTitle")}
+                </h2>
+                <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
+                  {t("auth.mfa.enrollRequiredIntro")}
+                </p>
+                <div className="mt-5">
+                  <MfaEnrollment
+                    loadSecret={() => startSignInMfaEnrollment(step.token)}
+                    onConfirm={async (code) => {
+                      const result = await confirmMfaEnrollment(step.token, code);
+                      setStep({ kind: "codes", codes: result.recoveryCodes, finish: result.finish });
+                    }}
+                    onCancel={() => setStep({ kind: "credentials" })}
+                  />
+                </div>
+              </>
+            ) : step.kind === "codes" ? (
+              <>
+                <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-foreground">
+                  {t("auth.mfa.recoveryTitle")}
+                </h2>
+                <div className="mt-5">
+                  <RecoveryCodesPanel
+                    codes={step.codes}
+                    onDone={() => {
+                      step.finish();
+                      navigate(redirectPath, { replace: true });
+                    }}
                   />
                 </div>
               </>

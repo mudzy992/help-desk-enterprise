@@ -1,7 +1,12 @@
 import { useCallback, useSyncExternalStore } from "react";
 import {
   changePasswordOnFirstLogin,
+  confirmSignInMfaEnrollment,
+  isMfaResponse,
   isMustChangePasswordResponse,
+  verifyMfaCode,
+  type AuthenticationLoginResponse,
+  type AuthenticationSessionResponse,
   loginWithEntraIdToken,
   loginWithPassword,
   logoutSession,
@@ -55,7 +60,38 @@ export type SignInOutcome =
       readonly kind: "must_change_password";
       readonly passwordChangeToken: string;
       readonly expiresInSeconds: number;
+      readonly reason: "temporary" | "expired";
+    }
+  // Paket 2.1: the second factor comes next.
+  | { readonly kind: "mfa_required"; readonly mfaToken: string }
+  | { readonly kind: "mfa_enrollment_required"; readonly mfaToken: string };
+
+function storeSession(response: AuthenticationSessionResponse): void {
+  writeStoredSession({
+    accessToken: response.accessToken,
+    principal: response.principal,
+  });
+  emitSessionChange();
+}
+
+/** Maps a login-shaped response; stores the session when one was issued. */
+function toSignInOutcome(response: AuthenticationLoginResponse): SignInOutcome {
+  if (isMustChangePasswordResponse(response)) {
+    return {
+      kind: "must_change_password",
+      passwordChangeToken: response.passwordChangeToken,
+      expiresInSeconds: response.expiresInSeconds,
+      reason: response.reason ?? "temporary",
     };
+  }
+  if (isMfaResponse(response)) {
+    return response.status === "MFA_REQUIRED"
+      ? { kind: "mfa_required", mfaToken: response.mfaToken }
+      : { kind: "mfa_enrollment_required", mfaToken: response.mfaToken };
+  }
+  storeSession(response);
+  return { kind: "authenticated" };
+}
 
 export function useSession() {
   const session = useSyncExternalStore(
@@ -69,19 +105,7 @@ export function useSession() {
       const response = await loginWithPassword({ email, password });
       // A local (break-glass) session never triggers Entra single logout.
       forgetEntraConfiguration();
-      if (isMustChangePasswordResponse(response)) {
-        return {
-          kind: "must_change_password",
-          passwordChangeToken: response.passwordChangeToken,
-          expiresInSeconds: response.expiresInSeconds,
-        };
-      }
-      writeStoredSession({
-        accessToken: response.accessToken,
-        principal: response.principal,
-      });
-      emitSessionChange();
-      return { kind: "authenticated" };
+      return toSignInOutcome(response);
     },
     [],
   );
@@ -100,16 +124,32 @@ export function useSession() {
     async (
       passwordChangeToken: string,
       newPassword: string,
-    ): Promise<void> => {
+    ): Promise<SignInOutcome> => {
       const response = await changePasswordOnFirstLogin({
         passwordChangeToken,
         newPassword,
       });
-      writeStoredSession({
-        accessToken: response.accessToken,
-        principal: response.principal,
-      });
-      emitSessionChange();
+      return toSignInOutcome(response);
+    },
+    [],
+  );
+
+  /** Paket 2.1: TOTP or recovery code → session. */
+  const completeMfa = useCallback(async (mfaToken: string, code: string): Promise<void> => {
+    storeSession(await verifyMfaCode({ mfaToken, code }));
+  }, []);
+
+  /**
+   * Paket 2.1: forced enrollment. The session is held back until the user has
+   * seen the recovery codes (`finish`), otherwise the login page redirects away.
+   */
+  const confirmMfaEnrollment = useCallback(
+    async (
+      mfaToken: string,
+      code: string,
+    ): Promise<{ readonly recoveryCodes: readonly string[]; readonly finish: () => void }> => {
+      const response = await confirmSignInMfaEnrollment({ mfaToken, code });
+      return { recoveryCodes: response.recoveryCodes, finish: () => storeSession(response) };
     },
     [],
   );
@@ -132,6 +172,8 @@ export function useSession() {
     signIn,
     signInWithEntra,
     completePasswordChange,
+    completeMfa,
+    confirmMfaEnrollment,
     signOut,
   };
 }

@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
+import { PasswordExpiryBanner } from "@/components/account-security/password-expiry-banner";
 import { usePublicMaintenance } from "@/lib/maintenance/use-public-maintenance";
 import { HelpdeskSocketHost } from "@/lib/realtime/helpdesk-socket-host";
 import { useSession } from "@/lib/session/use-session";
@@ -106,6 +107,7 @@ export function ApplicationShell() {
             className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8"
           >
             <MaintenanceBanner maintenance={maintenance} />
+            <PasswordExpiryBanner />
             <Outlet />
           </div>
         </main>

@@ -49,6 +49,7 @@ const ResponseTemplateEditorPage = lazyPage(
   "ResponseTemplateEditorPage",
 );
 const PlaybookEditorPage = lazyPage(() => import("@/pages/playbook-editor-page"), "PlaybookEditorPage");
+const AccountSecurityPage = lazyPage(() => import("@/pages/account-security-page"), "AccountSecurityPage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
@@ -88,6 +89,7 @@ export function AppRouter() {
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />
             </Route>
             <Route path="appearance" element={<AppearancePage />} />
+            <Route path="account/security" element={<AccountSecurityPage />} />
             <Route
               path="users"
               element={<LegacyAdminRedirect tab="users" />}

@@ -1,4 +1,4 @@
-import { ChevronDown, Languages, LogOut, Palette, Settings2, Ticket } from "lucide-react";
+import { ChevronDown, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
@@ -65,6 +65,9 @@ export function SessionControls() {
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate("/appearance")}>
           <Palette size={13} /> {t("theme.label")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate("/account/security")}>
+          <ShieldCheck size={13} /> {t("account.security.menu")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate("/settings")}>
           <Settings2 size={13} /> {t("shell.accountSettings")}

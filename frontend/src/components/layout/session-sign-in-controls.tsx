@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChangePasswordForm } from "@/components/auth/change-password-form";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   controlCompactClassName,
@@ -12,32 +12,12 @@ import { ApiError } from "@/services/api";
 
 export function SessionSignInControls() {
   const { t } = useTranslation();
-  const { signIn, completePasswordChange } = useSession();
+  const navigate = useNavigate();
+  const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [passwordChangeToken, setPasswordChangeToken] = useState<string | null>(
-    null,
-  );
-
-  if (passwordChangeToken !== null) {
-    return (
-      <div className="min-w-0 max-w-sm rounded-md border border-border bg-surface p-3">
-        <p className="mb-2 text-[12px] font-medium text-foreground">
-          {t("auth.changePassword.title")}
-        </p>
-        <ChangePasswordForm
-          onCompleted={async (newPassword) => {
-            await completePasswordChange(passwordChangeToken, newPassword);
-            setPasswordChangeToken(null);
-            setPassword("");
-          }}
-          onCancel={() => setPasswordChangeToken(null)}
-        />
-      </div>
-    );
-  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,12 +25,11 @@ export function SessionSignInControls() {
     setHasError(false);
     try {
       const outcome = await signIn(email, password);
-      if (outcome.kind === "must_change_password") {
-        setPasswordChangeToken(outcome.passwordChangeToken);
-        setPassword("");
-        return;
-      }
       setPassword("");
+      // Paket 2.1: password change and the second factor continue on /login.
+      if (outcome.kind !== "authenticated") {
+        navigate("/login", { state: { pendingSignIn: outcome } });
+      }
     } catch (error) {
       setHasError(error instanceof ApiError || error instanceof Error);
     } finally {

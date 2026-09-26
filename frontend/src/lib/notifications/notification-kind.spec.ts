@@ -49,5 +49,7 @@ describe("directory sync notifications (paket 1.8)", () => {
     expect(notificationTicketPath(null, "directory.syncAborted")).toBe("/organizational-units");
     expect(notificationTitleKey("directory.syncAborted")).toBe("notifications.items.directorySyncAborted");
     expect(notificationKind("directory.syncAborted")).toBe("system");
+    expect(notificationTicketPath(null, "account.newDevice")).toBe("/account/security");
+    expect(notificationTitleKey("account.recoveryCodeUsed")).toBe("notifications.items.accountRecoveryCodeUsed");
   });
 });

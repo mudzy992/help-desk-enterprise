@@ -30,6 +30,10 @@ export function notificationTicketPath(
   if (type === "directory.syncAborted") {
     return "/organizational-units";
   }
+  // Paket 2.1: account security events open the own security page.
+  if (type?.startsWith("account.")) {
+    return "/account/security";
+  }
   if (ticketId === undefined || ticketId === null || ticketId.length === 0) {
     return null;
   }
@@ -58,6 +62,10 @@ export function notificationTitleKey(
   | "notifications.items.ticketUnroutedOverdue"
   | "notifications.items.ticketUnroutedDigest"
   | "notifications.items.directorySyncAborted"
+  | "notifications.items.accountMfaChanged"
+  | "notifications.items.accountRecoveryCodeUsed"
+  | "notifications.items.accountPasswordChanged"
+  | "notifications.items.accountNewDevice"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -86,6 +94,14 @@ export function notificationTitleKey(
       return "notifications.items.ticketUnroutedDigest";
     case "directory.syncAborted":
       return "notifications.items.directorySyncAborted";
+    case "account.mfaChanged":
+      return "notifications.items.accountMfaChanged";
+    case "account.recoveryCodeUsed":
+      return "notifications.items.accountRecoveryCodeUsed";
+    case "account.passwordChanged":
+      return "notifications.items.accountPasswordChanged";
+    case "account.newDevice":
+      return "notifications.items.accountNewDevice";
     default:
       return "notifications.items.unknown";
   }

@@ -12,6 +12,8 @@ export function localDayKey(now: Date = new Date()): string {
 }
 
 export const queryKeys = {
+  /** Paket 2.1: own account security (profile page and the expiry banner). */
+  accountSecurity: ["account", "security"] as const,
   routingCatalog: ["catalog", "routing"] as const,
   routingRules: ["catalog", "routing-rules"] as const,
   organizationalUnits: ["catalog", "organizational-units"] as const,

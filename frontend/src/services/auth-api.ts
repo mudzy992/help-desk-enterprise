@@ -12,11 +12,50 @@ export type MustChangePasswordLoginResponse = {
   readonly status: "MUST_CHANGE_PASSWORD";
   readonly passwordChangeToken: string;
   readonly expiresInSeconds: number;
+  /** Paket 2.1: a temporary password or an expired one. */
+  readonly reason?: "temporary" | "expired";
+};
+
+/** Paket 2.1: password accepted, second factor pending. */
+export type MfaLoginResponse = {
+  readonly status: "MFA_REQUIRED" | "MFA_ENROLLMENT_REQUIRED";
+  readonly mfaToken: string;
+  readonly expiresInSeconds: number;
 };
 
 export type AuthenticationLoginResponse =
   | AuthenticationSessionResponse
-  | MustChangePasswordLoginResponse;
+  | MustChangePasswordLoginResponse
+  | MfaLoginResponse;
+
+export function isMfaResponse(
+  response: AuthenticationLoginResponse,
+): response is MfaLoginResponse {
+  return "status" in response && (response.status === "MFA_REQUIRED" || response.status === "MFA_ENROLLMENT_REQUIRED");
+}
+
+export function verifyMfaCode(input: {
+  readonly mfaToken: string;
+  readonly code: string;
+}): Promise<AuthenticationSessionResponse> {
+  return apiRequest("/auth/mfa/verify", { method: "POST", body: JSON.stringify(input) });
+}
+
+export type MfaEnrollmentSecret = {
+  readonly secret: string;
+  readonly otpauthUri: string;
+};
+
+export function startSignInMfaEnrollment(mfaToken: string): Promise<MfaEnrollmentSecret> {
+  return apiRequest("/auth/mfa/enroll/start", { method: "POST", body: JSON.stringify({ mfaToken }) });
+}
+
+export function confirmSignInMfaEnrollment(input: {
+  readonly mfaToken: string;
+  readonly code: string;
+}): Promise<AuthenticationSessionResponse & { readonly recoveryCodes: readonly string[] }> {
+  return apiRequest("/auth/mfa/enroll/confirm", { method: "POST", body: JSON.stringify(input) });
+}
 
 export function isMustChangePasswordResponse(
   response: AuthenticationLoginResponse,
@@ -37,7 +76,7 @@ export function loginWithPassword(input: {
 export function changePasswordOnFirstLogin(input: {
   readonly passwordChangeToken: string;
   readonly newPassword: string;
-}): Promise<AuthenticationSessionResponse> {
+}): Promise<AuthenticationLoginResponse> {
   return apiRequest("/auth/change-password", {
     method: "POST",
     headers: {

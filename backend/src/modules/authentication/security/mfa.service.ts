@@ -115,7 +115,7 @@ export class MfaService {
       }),
     ]);
     await this.notifier.audit(auditLogActions.authMfaEnrolled, subject.id, subject.id);
-    await this.notifier.notify(subject.id, notificationTypes.accountMfaChanged, 'enabled', `mfa-enabled:${subject.id}:${now.getTime()}`);
+    await this.notifier.notify(subject.id, notificationTypes.accountMfaChanged, null, `mfa-enabled:${subject.id}:${now.getTime()}`);
     return codes;
   }
 
@@ -156,7 +156,7 @@ export class MfaService {
     await this.verify(subject, code);
     await this.clear(subject.id);
     await this.notifier.audit(auditLogActions.authMfaDisabled, subject.id, subject.id);
-    await this.notifier.notify(subject.id, notificationTypes.accountMfaChanged, 'disabled', `mfa-disabled:${subject.id}:${Date.now()}`);
+    await this.notifier.notify(subject.id, notificationTypes.accountMfaChanged, null, `mfa-disabled:${subject.id}:${Date.now()}`);
   }
 
   async regenerateRecoveryCodes(subject: MfaSubject, code: string): Promise<string[]> {
@@ -180,7 +180,7 @@ export class MfaService {
   async reset(targetUserId: string, actorUserId: string | null, reason: string, via: 'admin' | 'server'): Promise<void> {
     await this.clear(targetUserId);
     await this.notifier.audit(auditLogActions.authMfaReset, targetUserId, actorUserId, { reason, via });
-    await this.notifier.notify(targetUserId, notificationTypes.accountMfaChanged, 'reset', `mfa-reset:${targetUserId}:${Date.now()}`);
+    await this.notifier.notify(targetUserId, notificationTypes.accountMfaChanged, null, `mfa-reset:${targetUserId}:${Date.now()}`);
   }
 
   private async useRecoveryCode(subject: MfaSubject, code: string, now: Date): Promise<'recovery'> {
@@ -193,7 +193,7 @@ export class MfaService {
     }
     const remaining = await this.prisma.userMfaRecoveryCode.count({ where: { userId: subject.id, usedAt: null } });
     await this.notifier.audit(auditLogActions.authMfaRecoveryUsed, subject.id, subject.id, { remaining });
-    await this.notifier.notify(subject.id, notificationTypes.accountRecoveryCodeUsed, String(remaining), `mfa-recovery:${subject.id}:${now.getTime()}`);
+    await this.notifier.notify(subject.id, notificationTypes.accountRecoveryCodeUsed, null, `mfa-recovery:${subject.id}:${now.getTime()}`);
     return 'recovery';
   }
 

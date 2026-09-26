@@ -1,4 +1,5 @@
 import { readE2EEnvironment } from './environment';
+import { currentStep, nextTotpCode, saveMfaSecret, totpForStep } from './mfa';
 
 export type ApiErrorBody = {
   readonly code?: string;
@@ -14,14 +15,40 @@ export class ApiClient {
     this.authorization = token;
   }
 
+  /**
+   * Paket 2.1: password → (MFA verify | forced MFA enrollment) → token. The
+   * enrollment secret is stored for later sign-ins (helpers/mfa.ts).
+   */
   async login(email: string, password: string): Promise<string> {
-    const body = await this.requestJson<{
+    type LoginBody = {
       accessToken?: string;
       token?: string;
-    }>('/auth/login', {
+      status?: string;
+      mfaToken?: string;
+    };
+    let body = await this.requestJson<LoginBody>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    if (body.status === 'MFA_ENROLLMENT_REQUIRED' && body.mfaToken) {
+      const { secret } = await this.requestJson<{ secret: string }>('/auth/mfa/enroll/start', {
+        method: 'POST',
+        body: JSON.stringify({ mfaToken: body.mfaToken }),
+      });
+      const step = currentStep();
+      body = await this.requestJson<LoginBody>('/auth/mfa/enroll/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ mfaToken: body.mfaToken, code: totpForStep(secret, step) }),
+      });
+      saveMfaSecret(email, secret, step);
+    } else if (body.status === 'MFA_REQUIRED' && body.mfaToken) {
+      body = await this.requestJson<LoginBody>('/auth/mfa/verify', {
+        method: 'POST',
+        body: JSON.stringify({ mfaToken: body.mfaToken, code: await nextTotpCode(email) }),
+      });
+    } else if (body.status !== undefined) {
+      throw new Error(`Login requires ${body.status}`);
+    }
     const token = body.accessToken ?? body.token;
     if (token === undefined || token.length === 0) {
       throw new Error('Login response missing access token');

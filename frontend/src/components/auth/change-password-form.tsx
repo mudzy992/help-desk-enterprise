@@ -6,27 +6,34 @@ import {
   errorTextClassName,
 } from "@/components/ui/control";
 import { ApiError } from "@/services/api";
+import { readPasswordFeedbackKeys, type PasswordFeedbackKey } from "@/components/auth/password-feedback";
+import { PasswordStrengthMeter } from "@/components/auth/password-strength-meter";
 
 const minimumPasswordLength = 12;
 
 interface ChangePasswordFormProperties {
   readonly onCompleted: (newPassword: string) => Promise<void>;
   readonly onCancel?: () => void;
+  /** Paket 2.1: an expired password explains itself differently. */
+  readonly reason?: "temporary" | "expired";
 }
 
 export function ChangePasswordForm({
   onCompleted,
   onCancel,
+  reason = "temporary",
 }: ChangePasswordFormProperties) {
   const { t } = useTranslation();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [policyKeys, setPolicyKeys] = useState<PasswordFeedbackKey[] | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage(null);
+    setPolicyKeys(null);
     if (newPassword.length < minimumPasswordLength) {
       setErrorMessage(t("auth.changePassword.tooShort"));
       return;
@@ -39,6 +46,11 @@ export function ChangePasswordForm({
     try {
       await onCompleted(newPassword);
     } catch (error) {
+      const keys = readPasswordFeedbackKeys(error);
+      if (keys) {
+        setPolicyKeys(keys);
+        return;
+      }
       setErrorMessage(
         error instanceof ApiError && error.status === 429
           ? t("session.errorRateLimited")
@@ -54,7 +66,7 @@ export function ChangePasswordForm({
   return (
     <form className="fade-in space-y-3" onSubmit={(event) => void handleSubmit(event)}>
       <p className="text-[13px] leading-5 text-muted-foreground">
-        {t("auth.changePassword.intro")}
+        {reason === "expired" ? t("auth.changePassword.introExpired") : t("auth.changePassword.intro")}
       </p>
       <div>
         <label
@@ -73,6 +85,9 @@ export function ChangePasswordForm({
           required
           minLength={minimumPasswordLength}
         />
+        <div className="mt-1.5">
+          <PasswordStrengthMeter password={newPassword} />
+        </div>
       </div>
       <div>
         <label
@@ -92,6 +107,13 @@ export function ChangePasswordForm({
           minLength={minimumPasswordLength}
         />
       </div>
+      {policyKeys ? (
+        <ul className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
+          {policyKeys.map((key) => (
+            <li key={key}>{t(key)}</li>
+          ))}
+        </ul>
+      ) : null}
       {errorMessage ? (
         <p className={errorTextClassName} role="alert">
           {errorMessage}

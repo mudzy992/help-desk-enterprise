@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { nextTotpCode } from './mfa';
 
 /**
  * Sign in through whichever credentials form the app currently exposes.
@@ -31,4 +32,15 @@ export async function signIn(
     state: 'detached',
     timeout: 20_000,
   });
+  // Paket 2.1: accounts with two-step verification get a code step on /login.
+  const mfaInput = page.locator('#mfa-code');
+  const needsCode = await mfaInput
+    .waitFor({ state: 'visible', timeout: 3_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (needsCode) {
+    await mfaInput.fill(await nextTotpCode(email));
+    await page.locator('form').filter({ has: mfaInput }).locator('button[type="submit"]').click();
+    await mfaInput.waitFor({ state: 'detached', timeout: 20_000 });
+  }
 }

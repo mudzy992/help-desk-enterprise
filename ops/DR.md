@@ -86,3 +86,7 @@ Automatizovani koraci iz ovog runbooka su u `ops/dr/`:
 - `verify-restore.mjs` — četiri provjere (login, tiket, stari prilog, audit export) i JSON za zapisnik.
 
 Postupak mjesečnog drilla s privremenim Coolify stackom i obrazac zapisnika su u `docs/ops/test-okruzenje-1.8.md` (§4 i §5).
+
+## Paket 2.1: ključ za MFA
+
+`MFA_ENCRYPTION_KEY` (backend env) čuvati u backupu tajni. Bez njega se TOTP tajne ne mogu dešifrovati i svi korisnici s MFA moraju proći reset (`ops/runbook/mfa-reset.md`).
