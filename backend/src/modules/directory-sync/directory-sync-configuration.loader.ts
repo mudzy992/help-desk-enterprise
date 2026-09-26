@@ -15,6 +15,9 @@ export class DirectorySyncConfigurationLoader {
         enabled: await this.settingsService.getSetting(
           settingKeys.privateAuthAdReadEnabled,
         ),
+        source: await this.settingsService
+          .getSetting(settingKeys.privateAuthAdReadSource)
+          .catch(() => undefined),
         strategy: await this.settingsService.getSetting(
           settingKeys.privateAuthAdReadStrategy,
         ),

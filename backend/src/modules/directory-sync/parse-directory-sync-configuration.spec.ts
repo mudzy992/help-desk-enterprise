@@ -15,6 +15,7 @@ describe('parseDirectorySyncConfiguration', () => {
   it('parses the manual_only development configuration', () => {
     expect(parseDirectorySyncConfiguration(validInput)).toEqual({
       enabled: true,
+      source: 'manual_catalog',
       strategy: 'manual_only',
       usersBaseDistinguishedName: 'OU=Users,DC=example,DC=com',
       groupsBaseDistinguishedName: 'OU=Groups,DC=example,DC=com',

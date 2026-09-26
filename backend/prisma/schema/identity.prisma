@@ -17,6 +17,13 @@ model User {
   authzVersion         Int                        @default(0)
   /// Directory object id for linked users. Must remain null for SuperAdmin.
   entraObjectId        String?                    @unique
+  /// Paket 1.8: on-premises AD objectGUID (LDAPS sync). Not the Entra `oid`.
+  directoryObjectGuid  String?                    @unique
+  /// Paket 1.8: set when the directory sync deactivated the user (disabled in
+  /// AD or gone from scope). Only such users are reactivated by a later sync;
+  /// an admin deactivation is never undone automatically.
+  directoryDeactivatedAt DateTime?
+  directorySyncedAt    DateTime?
   distinguishedName    String?
   company              String?
   department           String?

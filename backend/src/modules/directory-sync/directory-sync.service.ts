@@ -63,7 +63,10 @@ export class DirectorySyncService {
     if (!configuration.enabled) {
       throw new DirectorySyncError('DIRECTORY_READ_DISABLED');
     }
-    const provider = this.providerResolver.resolve(configuration.strategy);
+    const provider = this.providerResolver.resolve(
+      configuration.strategy,
+      configuration.source,
+    );
     const scope = parseDirectoryReadScope({
       operation: 'users',
       scope: {
@@ -93,11 +96,15 @@ export class DirectorySyncService {
     if (!configuration.enabled) {
       throw new DirectorySyncError('DIRECTORY_READ_DISABLED');
     }
-    const provider = this.providerResolver.resolve(configuration.strategy);
+    const provider = this.providerResolver.resolve(
+      configuration.strategy,
+      configuration.source,
+    );
     const cacheKey = createDirectoryReadCacheKey({
       strategy: provider.strategy,
       operation,
       scope,
+      source: configuration.source,
     });
     const nowMilliseconds = this.clock();
     const forceRefresh = input.forceRefresh === true;

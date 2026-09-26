@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   UnauthorizedException,
@@ -11,6 +12,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
+import {
+  AuthenticationProvidersService,
+  type AuthenticationProvidersResponse,
+} from './authentication-providers.service';
 import { SessionAuthenticationGuard } from './session-authentication.guard';
 import { SessionTokenService } from './session-token.service';
 import { authenticationConstants } from './authentication.constants';
@@ -46,7 +51,14 @@ export class AuthenticationController {
     private readonly authenticationService: AuthenticationService,
     private readonly loginAttemptLimiter: LoginAttemptLimiter,
     private readonly sessionTokenService: SessionTokenService,
+    private readonly authenticationProvidersService: AuthenticationProvidersService,
   ) {}
+
+  /** Paket 1.8: public — tells the login page which sign-in options exist. */
+  @Get('providers')
+  providers(): Promise<AuthenticationProvidersResponse> {
+    return this.authenticationProvidersService.describe();
+  }
 
   /**
    * Review 2026-09-25: sessions last 1 h and the SPA extends them while the user
@@ -116,8 +128,13 @@ export class AuthenticationController {
   @Post('entra')
   loginWithEntra(
     @Body() body: EntraLoginDto,
+    @Req() request?: { readonly ip?: string },
   ): Promise<AuthenticationSessionResponse> {
-    return this.authenticationService.loginWithEntraIdToken(body.idToken);
+    // Paket 1.8: rejected tokens count against the same per-IP window.
+    return this.loginAttemptLimiter.guard(
+      loginAttemptKey('entra', request?.ip),
+      () => this.authenticationService.loginWithEntraIdToken(body.idToken),
+    );
   }
 
   @Post('change-password')

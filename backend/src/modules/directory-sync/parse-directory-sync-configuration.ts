@@ -11,6 +11,7 @@ export function parseDirectorySyncConfiguration(input: {
   readonly maxQueriesPerSecond: unknown;
   readonly cacheTimeToLiveMinutes: unknown;
   readonly organizationalUnitCacheTimeToLiveHours: unknown;
+  readonly source?: unknown;
 }): DirectorySyncConfiguration {
   if (typeof input.enabled !== 'boolean') {
     throw new DirectorySyncError('DIRECTORY_SYNC_UNAVAILABLE');
@@ -20,6 +21,7 @@ export function parseDirectorySyncConfiguration(input: {
   );
   return {
     enabled: input.enabled,
+    source: input.source === 'ldaps' ? 'ldaps' : 'manual_catalog',
     strategy: parseDirectorySyncStrategy(input.strategy),
     usersBaseDistinguishedName: parseOptionalString(
       input.usersBaseDistinguishedName,

@@ -1,3 +1,4 @@
+import { EntraIdentityBinder } from '../authentication/entra-identity-binder';
 import { authenticationConstants } from '../authentication/authentication.constants';
 import { AuthenticationUserLoader } from '../authentication/authentication-user.loader';
 import { EntraAuthenticationProvider } from '../authentication/entra-authentication.provider';
@@ -26,6 +27,11 @@ describe('Install SuperAdmin authentication', () => {
     loader,
     { load: loadConfiguration } as never,
     { verify: verifyIdToken } as never,
+    new EntraIdentityBinder(
+      prisma,
+      { getSetting: async () => false } as never,
+      loader,
+    ),
   );
 
   beforeAll(async () => {

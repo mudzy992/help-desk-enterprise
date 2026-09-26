@@ -15,6 +15,10 @@ import { DirectorySyncStatusStore } from './directory-sync-status.store';
 import { ManualDirectoryCatalogController } from './manual-directory-catalog.controller';
 import { ManualDirectoryCatalogService } from './manual-directory-catalog.service';
 import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.provider';
+import { DirectoryBackoff } from './ldaps/directory-backoff';
+import { DirectoryFullSyncService } from './ldaps/directory-full-sync.service';
+import { LdapsDirectorySyncProvider } from './ldaps/ldaps-directory-sync.provider';
+import { LdapsSyncConfigurationLoader } from './ldaps/ldaps-sync-configuration.loader';
 
 @Module({
   imports: [
@@ -31,6 +35,10 @@ import { ManualOnlyDirectorySyncProvider } from './manual-only-directory-sync.pr
     },
     DirectorySyncConfigurationLoader,
     ManualOnlyDirectorySyncProvider,
+    LdapsSyncConfigurationLoader,
+    DirectoryBackoff,
+    LdapsDirectorySyncProvider,
+    DirectoryFullSyncService,
     DirectorySyncProviderResolver,
     {
       provide: DirectoryReadCache,

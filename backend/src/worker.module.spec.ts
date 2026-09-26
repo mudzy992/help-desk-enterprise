@@ -20,6 +20,8 @@ import { waitingForUserQueueName } from './modules/tickets/waiting-for-user/wait
 import { WaitingForUserProcessor } from './modules/tickets/waiting-for-user/waiting-for-user.processor';
 import { unroutedSweepQueueName } from './modules/tickets/unrouted/unrouted-sweep.job.constants';
 import { UnroutedSweepProcessor } from './modules/tickets/unrouted/unrouted-sweep.processor';
+import { directorySyncQueueName } from './modules/directory-sync/ldaps/directory-sync.job.constants';
+import { DirectorySyncProcessor } from './modules/directory-sync/ldaps/directory-sync.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
 import { WorkerModule } from './worker.module';
 
@@ -38,6 +40,7 @@ const scheduledQueueNames = [
   integrationWorkerMaintenanceQueueName,
   timeTrackingSweepQueueName,
   unroutedSweepQueueName,
+  directorySyncQueueName,
 ] as const;
 
 const processorTypes = [
@@ -50,6 +53,7 @@ const processorTypes = [
   IntegrationWorkerMaintenanceProcessor,
   TimeTrackingSweepProcessor,
   UnroutedSweepProcessor,
+  DirectorySyncProcessor,
 ] as const;
 
 function createFakeQueue() {

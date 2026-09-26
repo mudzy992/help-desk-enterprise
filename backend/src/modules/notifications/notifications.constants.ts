@@ -14,6 +14,8 @@ export const notificationTypes = {
   // Package 1.7 (U2): unrouted past the cleanup deadline, and the Monday digest.
   ticketUnroutedOverdue: 'ticket.unroutedOverdue',
   ticketUnroutedDigest: 'ticket.unroutedDigest',
+  // Paket 1.8: a directory sync stopped by the deactivation safeguard.
+  directorySyncAborted: 'directory.syncAborted',
 } as const;
 
 export type NotificationType =
@@ -38,6 +40,8 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
       'notifications.items.ticketUnroutedOverdue',
     [notificationTypes.ticketUnroutedDigest]:
       'notifications.items.ticketUnroutedDigest',
+    [notificationTypes.directorySyncAborted]:
+      'notifications.items.directorySyncAborted',
   };
 
 export const notificationListLimits = {

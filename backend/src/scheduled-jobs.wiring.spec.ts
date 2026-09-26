@@ -26,6 +26,11 @@ import {
   unroutedSweepSchedulerId,
 } from './modules/tickets/unrouted/unrouted-sweep.job.constants';
 import { UnroutedSweepSchedulerService } from './modules/tickets/unrouted/unrouted-sweep.scheduler.service';
+import {
+  directorySyncSchedulePattern,
+  directorySyncSchedulerId,
+} from './modules/directory-sync/ldaps/directory-sync.job.constants';
+import { DirectorySyncSchedulerService } from './modules/directory-sync/ldaps/directory-sync.scheduler.service';
 import { WaitingForUserSchedulerService } from './modules/tickets/waiting-for-user/waiting-for-user.scheduler.service';
 
 // The maintenance scheduler pulls in SettingsService, which imports the Prisma
@@ -64,6 +69,7 @@ describe('periodic job wiring', () => {
       new WaitingForUserSchedulerService(queue as never),
       new KnowledgeBaseReviewReminderSchedulerService(queue as never),
       new UnroutedSweepSchedulerService(queue as never),
+      new DirectorySyncSchedulerService(queue as never),
       new IntegrationWorkerMaintenanceSchedulerService(queue as never, {
         load: () => {
           throw new Error('settings unavailable');
@@ -85,21 +91,23 @@ describe('periodic job wiring', () => {
         waitingForUserSchedulerId,
         knowledgeBaseReviewReminderSchedulerId,
         unroutedSweepSchedulerId,
+        directorySyncSchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(12);
-    // The twelve registrations describe six schedules, so no job can run twice.
-    expect(store.entries.size).toBe(6);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(14);
+    // The fourteen registrations describe seven schedules, so no job can run twice.
+    expect(store.entries.size).toBe(7);
   });
 
-  it('staggers the four sweeps inside the fifteen-minute window', () => {
+  it('staggers the five sweeps inside the fifteen-minute window', () => {
     const minuteFields = [
       ticketArchiveSchedulePattern,
       waitingForUserSchedulePattern,
       knowledgeBaseReviewReminderSchedulePattern,
       unroutedSweepSchedulePattern,
+      directorySyncSchedulePattern,
     ].map((pattern) => pattern.split(' ')[1]);
 
     const minuteSets = minuteFields.map(
@@ -108,7 +116,7 @@ describe('periodic job wiring', () => {
     for (const minutes of minuteSets) {
       expect(minutes.size).toBe(4);
     }
-    expect(new Set(minuteFields).size).toBe(4);
+    expect(new Set(minuteFields).size).toBe(5);
     for (const left of minuteSets) {
       for (const right of minuteSets) {
         if (left === right) {

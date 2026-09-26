@@ -15,6 +15,7 @@ import type {
 import { AuthenticationUserLoader } from './authentication-user.loader';
 import { canBindExternalIdentity } from './can-bind-external-identity';
 import { createAuthenticatedPrincipal } from './create-authenticated-principal';
+import { EntraIdentityBinder } from './entra-identity-binder';
 import { EntraAuthenticationConfigurationLoader } from './entra-authentication-configuration.loader';
 import { MicrosoftEntraIdTokenVerifier } from './microsoft-entra-id-token.verifier';
 import {
@@ -29,6 +30,7 @@ export class EntraAuthenticationProvider implements AuthenticationProvider {
     private readonly authenticationUserLoader: AuthenticationUserLoader,
     private readonly entraAuthenticationConfigurationLoader: EntraAuthenticationConfigurationLoader,
     private readonly entraIdTokenVerifier: MicrosoftEntraIdTokenVerifier,
+    private readonly entraIdentityBinder: EntraIdentityBinder,
   ) {}
 
   async authenticate(
@@ -69,14 +71,9 @@ export class EntraAuthenticationProvider implements AuthenticationProvider {
       idToken: credentials.idToken,
       configuration,
     });
-    const user = await this.authenticationUserLoader.findByEntraObjectId(
-      identity.externalSubject,
-    );
-    if (
-      user === null ||
-      !user.isActive ||
-      !canBindExternalIdentity(user)
-    ) {
+    // Paket 1.8 (A2): existing link, first-login binding or JIT provisioning.
+    const user = await this.entraIdentityBinder.resolve(identity);
+    if (!user.isActive || !canBindExternalIdentity(user)) {
       throw createInvalidCredentialsError();
     }
     return materializeAuthenticatedPrincipal(user);

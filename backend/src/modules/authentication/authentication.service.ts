@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   BadRequestException,
   Injectable,
   ServiceUnavailableException,
@@ -114,6 +115,18 @@ export class AuthenticationService {
   }
 
   private toHttpException(error: unknown): never {
+    // Paket 1.8: a verified Microsoft identity may learn why it cannot sign in.
+    if (
+      error instanceof AuthenticationError &&
+      (error.code === 'ACCOUNT_DISABLED' ||
+        error.code === 'ENTRA_ACCOUNT_NOT_REGISTERED' ||
+        error.code === 'ENTRA_ACCOUNT_CONFLICT')
+    ) {
+      throw new ForbiddenException({
+        code: error.code,
+        message: 'Sign-in is not allowed for this account',
+      });
+    }
     if (
       error instanceof AuthenticationError &&
       (error.code === 'UNSUPPORTED_AUTHENTICATION_MODE' ||

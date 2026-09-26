@@ -1,6 +1,7 @@
 import { authenticationConstants } from '../authentication/authentication.constants';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { DirectorySyncService } from '../directory-sync/directory-sync.service';
+import { ldapsExternalIdPrefix } from '../directory-sync/ldaps/ldaps-directory.types';
 import { listUsersSummary } from './list-users-summary';
 import type { UserSummaryResponse } from './users.types';
 import { UsersError } from './users.error';
@@ -46,8 +47,16 @@ export async function linkUserDirectoryIdentity(input: {
   if (directoryIdentity === undefined) {
     throw new UsersError('DIRECTORY_IDENTITY_NOT_FOUND');
   }
+  // Paket 1.8: an AD (LDAPS) identity carries the on-premises objectGUID, which
+  // is not the Entra `oid`; the oid is bound on the first Microsoft sign-in.
+  const directoryObjectGuid = directoryExternalId.startsWith(ldapsExternalIdPrefix)
+    ? directoryExternalId.slice(ldapsExternalIdPrefix.length)
+    : null;
   const conflict = await input.prisma.user.findUnique({
-    where: { entraObjectId: directoryExternalId },
+    where:
+      directoryObjectGuid === null
+        ? { entraObjectId: directoryExternalId }
+        : { directoryObjectGuid },
     select: { id: true },
   });
   if (conflict !== null && conflict.id !== existing.id) {
@@ -56,7 +65,12 @@ export async function linkUserDirectoryIdentity(input: {
   await input.prisma.user.update({
     where: { id: existing.id },
     data: {
-      entraObjectId: directoryExternalId,
+      ...(directoryObjectGuid === null
+        ? { entraObjectId: directoryExternalId }
+        : {
+            directoryObjectGuid,
+            distinguishedName: directoryIdentity.distinguishedName,
+          }),
       isLocalOnly: false,
       localPasswordHash: null,
       mustChangePassword: false,

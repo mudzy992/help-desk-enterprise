@@ -2,6 +2,7 @@ import { AuthenticationError } from './authentication.error';
 import { authenticationConstants } from './authentication.constants';
 import type { AuthenticationUserRecord } from './authentication.types';
 import { EntraAuthenticationProvider } from './entra-authentication.provider';
+import { EntraIdentityBinder } from './entra-identity-binder';
 import { hashLocalPassword } from './hash-local-password';
 
 jest.mock('../../common/prisma/prisma.service', () => ({
@@ -37,6 +38,11 @@ describe('EntraAuthenticationProvider', () => {
     { findByEmail, findByEntraObjectId } as never,
     { load: loadConfiguration } as never,
     { verify: verifyIdToken } as never,
+    new EntraIdentityBinder(
+      {} as never,
+      { getSetting: async () => false } as never,
+      { findByEmail, findByEntraObjectId, findById: jest.fn() } as never,
+    ),
   );
 
   beforeEach(() => {
@@ -149,16 +155,18 @@ describe('EntraAuthenticationProvider', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
-  it('fails closed when the Entra user is missing or inactive', async () => {
+  it('rejects an unregistered or disabled Entra user with a specific code (JIT off)', async () => {
     verifyIdToken.mockResolvedValue({
       externalSubject: entraObjectId,
       email: 'agent@example.com',
       displayName: 'Agent',
       tenantId: '11111111-1111-1111-1111-111111111111',
     });
+    findByEmail.mockResolvedValue(null);
     await expect(
       provider.authenticate({ kind: 'entra_id_token', idToken }),
-    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    ).rejects.toMatchObject({ code: 'ENTRA_ACCOUNT_NOT_REGISTERED' });
+    findByEmail.mockReset();
     findByEntraObjectId.mockResolvedValue(
       createUser({
         isActive: false,
@@ -169,8 +177,21 @@ describe('EntraAuthenticationProvider', () => {
     );
     await expect(
       provider.authenticate({ kind: 'entra_id_token', idToken }),
-    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+    ).rejects.toMatchObject({ code: 'ACCOUNT_DISABLED' });
     expect(findByEmail).not.toHaveBeenCalled();
+  });
+
+  it('never binds a Microsoft identity to a local account with the same e-mail', async () => {
+    verifyIdToken.mockResolvedValue({
+      externalSubject: entraObjectId,
+      email: 'admin@example.com',
+      displayName: 'Admin',
+      tenantId: '11111111-1111-1111-1111-111111111111',
+    });
+    findByEmail.mockResolvedValue(createUser());
+    await expect(
+      provider.authenticate({ kind: 'entra_id_token', idToken }),
+    ).rejects.toMatchObject({ code: 'ENTRA_ACCOUNT_CONFLICT' });
   });
 
   it('fails closed when Entra configuration is unavailable', async () => {

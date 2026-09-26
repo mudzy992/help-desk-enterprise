@@ -56,6 +56,7 @@ function createConfiguration(
 ): DirectorySyncConfiguration {
   return {
     enabled: true,
+    source: 'manual_catalog',
     strategy: 'manual_only',
     usersBaseDistinguishedName: 'OU=Users,DC=example,DC=com',
     groupsBaseDistinguishedName: 'OU=Groups,DC=example,DC=com',

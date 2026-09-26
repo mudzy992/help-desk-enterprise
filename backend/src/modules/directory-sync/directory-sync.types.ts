@@ -53,6 +53,8 @@ export type DirectoryReadResult = {
 
 export type DirectorySyncConfiguration = {
   readonly enabled: boolean;
+  /** Paket 1.8: manual_catalog (default) or ldaps. */
+  readonly source: 'manual_catalog' | 'ldaps';
   readonly strategy: DirectorySyncStrategy;
   readonly usersBaseDistinguishedName: string;
   readonly groupsBaseDistinguishedName: string;
@@ -68,6 +70,7 @@ export type DirectoryReadRequest = {
 
 export interface DirectorySyncProvider {
   readonly strategy: DirectorySyncStrategy;
+  readonly source?: 'manual_catalog' | 'ldaps';
   read(request: DirectoryReadRequest): Promise<DirectoryReadResult>;
 }
 

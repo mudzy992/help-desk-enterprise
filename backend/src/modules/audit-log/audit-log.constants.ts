@@ -36,6 +36,13 @@ export const auditLogActions = {
   userRoleAssign: 'user_role.assign',
   userRoleRemove: 'user_role.remove',
   emailTemplateTestSent: 'email_template.test_sent',
+  userEntraBound: 'user.entra_bound',
+  userEntraJitProvisioned: 'user.entra_jit_provisioned',
+  userEntraBindingRejected: 'user.entra_binding_rejected',
+  directoryTestConnection: 'directory.test_connection',
+  directoryDryRun: 'directory.dry_run',
+  directorySyncApplied: 'directory.sync_applied',
+  directorySyncAborted: 'directory.sync_aborted',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -51,6 +58,8 @@ export const auditLogEntityTypes = {
   role: 'role',
   userRole: 'user_role',
   emailTemplate: 'email_template',
+  user: 'user',
+  directorySyncRun: 'directory_sync_run',
 } as const;
 
 export const auditLogErrorCodes = {

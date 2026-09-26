@@ -10,6 +10,7 @@ import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
 import { TicketArchiveWorkerModule } from './modules/tickets/archive/ticket-archive-worker.module';
 import { TimeTrackingSweepWorkerModule } from './modules/tickets/time-tracking/time-tracking-sweep-worker.module';
 import { UnroutedSweepWorkerModule } from './modules/tickets/unrouted/unrouted-sweep-worker.module';
+import { DirectorySyncWorkerModule } from './modules/directory-sync/ldaps/directory-sync-worker.module';
 import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/waiting-for-user-worker.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     UnroutedSweepWorkerModule,
     TimeTrackingSweepWorkerModule,
     KnowledgeBaseReviewReminderWorkerModule,
+    DirectorySyncWorkerModule,
   ],
 })
 export class WorkerModule {}

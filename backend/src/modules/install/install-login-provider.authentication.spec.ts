@@ -1,3 +1,4 @@
+import { EntraIdentityBinder } from '../authentication/entra-identity-binder';
 import { authenticationConstants } from '../authentication/authentication.constants';
 import { AuthenticationModeLoader } from '../authentication/authentication-mode.loader';
 import { AuthenticationProviderResolver } from '../authentication/authentication-provider.resolver';
@@ -44,6 +45,7 @@ describe('Install login provider authentication', () => {
     loader,
     new EntraAuthenticationConfigurationLoader(settingsService),
     { verify: verifyIdToken } as never,
+    new EntraIdentityBinder(prisma, settingsService, loader),
   );
   const resolver = new AuthenticationProviderResolver(
     new AuthenticationModeLoader(settingsService),

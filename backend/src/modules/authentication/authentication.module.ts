@@ -12,6 +12,8 @@ import { PrincipalContextInvalidator } from '../../common/principal-context/prin
 import { PrincipalContextLoader } from '../../common/principal-context/principal-context.loader';
 import { EntraAuthenticationConfigurationLoader } from './entra-authentication-configuration.loader';
 import { EntraAuthenticationProvider } from './entra-authentication.provider';
+import { EntraIdentityBinder } from './entra-identity-binder';
+import { AuthenticationProvidersService } from './authentication-providers.service';
 import { JwtSigningSecretLoader } from './jwt-signing-secret.loader';
 import { JwtSocketAuthenticationVerifier } from './jwt-socket-authentication.verifier';
 import { LocalAuthenticationProvider } from './local-authentication.provider';
@@ -31,6 +33,8 @@ import { SessionTokenService } from './session-token.service';
     EntraAuthenticationConfigurationLoader,
     MicrosoftEntraIdTokenVerifier,
     LocalAuthenticationProvider,
+    EntraIdentityBinder,
+    AuthenticationProvidersService,
     EntraAuthenticationProvider,
     AuthenticationProviderResolver,
     SessionTokenService,
@@ -41,6 +45,7 @@ import { SessionTokenService } from './session-token.service';
     AuthenticationService,
   ],
   exports: [
+    SessionRevocationStore,
     JwtSocketAuthenticationVerifier,
     AuthenticationService,
     SessionAuthenticationGuard,
