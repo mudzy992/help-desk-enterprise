@@ -3,9 +3,12 @@
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
+# --no-install-recommends preskače AD šemu (samba-ad-provision) i AD DC dio
+# (samba-ad-dc), pa se oba navode eksplicitno; `test -f` ruši build ako šema fali.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      samba winbind krb5-user ldb-tools ldap-utils openssl ca-certificates tini \
+      samba samba-ad-dc samba-ad-provision winbind krb5-user ldb-tools ldap-utils openssl ca-certificates tini \
+ && test -f /usr/share/samba/setup/ad-schema/AD_DS_Attributes__Windows_Server_2012_R2.ldf \
  && rm -rf /var/lib/apt/lists/* \
  && rm -f /etc/samba/smb.conf
 

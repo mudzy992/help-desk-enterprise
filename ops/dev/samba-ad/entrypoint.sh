@@ -9,6 +9,10 @@ set -euo pipefail
 
 if [ ! -f /var/lib/samba/private/sam.ldb ]; then
   echo "[samba-ad] provisioning ${SAMBA_REALM}"
+  # A failed earlier attempt leaves smb.conf / partial databases in the volumes,
+  # and `domain provision` refuses to run over them — start clean.
+  rm -f /etc/samba/smb.conf
+  rm -rf /var/lib/samba/private/* /var/lib/samba/sysvol/* 2>/dev/null || true
   samba-tool domain provision \
     --use-rfc2307 \
     --realm="${SAMBA_REALM}" \
