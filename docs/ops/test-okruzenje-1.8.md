@@ -228,6 +228,17 @@ V3 DR drill:   backup od ________ (starost ___ h, RPO ≤ 24 h)
 Odstupanja / napomene:
 ```
 
+### 5.1 Zapisnik — V2, 2026-09-26
+
+```
+Datum: 2026-09-26   Izvršio: administrator (staging mudzy-server)   Verzija: 6330a12
+V2 LDAPS sync: DC ldaps://dc1.test.epbih.lab:636 (Samba AD 4.17, simulacija)
+   L1 ✔ L2 ✔ L3 ✔ L4 ✔ L5 ✔ L6 ✔ L7 ✔ L8 ✔ L9 ✔ L10 ✔ L11 ✔ L12 ✔ L13 ✔ L14 ✔ L15 ✔ (1200+ korisnika) L16 ✔
+V1: odgođeno (nema testnog tenanta).  V3: nije izveden.
+Napomene: CA preko AD_LDAPS_CA_CERT_BASE64 (Coolify compose nema file mount);
+postavke upisane skriptom apply-settings.sh.
+```
+
 ---
 
 ## 6. Odstupanja od dizajna 1.8 (zapisnik implementacije)
