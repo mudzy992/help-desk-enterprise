@@ -27,6 +27,9 @@ x-redis-environment: &redis-environment
 # SLA događaje), pa oba moraju znati javni URL frontenda.
 x-app-environment: &app-environment
   APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+  # Paket 1.8: PEM vlastitog CA za LDAPS (prazno = sistemsko povjerenje).
+  # Fajl se montira u backend i worker (Coolify: Storages → File mount).
+  AD_LDAPS_CA_CERT_PATH: ${AD_LDAPS_CA_CERT_PATH:-}
 
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga

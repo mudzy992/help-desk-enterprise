@@ -43,8 +43,8 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | Zahtjev | Stanje | Gdje |
 |---|---|---|
 | Lokalni dev auth sa istim claims modelom | ✅ | `authentication/`, `authorization-provider-independence.spec` |
-| Entra ID SSO, SuperAdmin samo lokalni | 🟡 🔎V1 (backend verifikuje token, ali nema login toka u UI-ju ni vezivanja `oid`-a — nalaz N2/N3 u `modules/1.8-verifikacija-epbih.md`) | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
-| AD sync (manual-only, throttle, cache, scope) | 🟡 🔎V2 | `directory-sync/` — samo ručni katalog; LDAPS klijent ne postoji (nalaz N1 u `modules/1.8-verifikacija-epbih.md`) |
+| Entra ID SSO, SuperAdmin samo lokalni | ✅ kod (paket 1.8: MSAL redirect, `/auth/callback`, vezivanje `oid`, JIT kao USER) · 🔎V1 verifikacija na tenantu (`docs/ops/test-okruzenje-1.8.md` §3) | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
+| AD sync (manual-only, throttle, cache, scope) | ✅ kod (paket 1.8) · 🔎V2 | `directory-sync/ldaps/` — LDAPS (ldapts), test/probni prolaz/primjena, osigurač 10 %, raspored; testni AD: `ops/dev/samba-ad/`; odstupanja O1–O9 u `docs/ops/test-okruzenje-1.8.md` §6 |
 | OU stablo + mapiranje korisnika | ✅ | `organizational-units/`, `materialize-directory-read.ts` |
 | RBAC + OU izolacija, SuperAdmin globalno | ✅ | `authorization/evaluate-authorization-access.*` |
 | Granularne permisije + default mapiranje | ✅ | `permission-catalog.ts`, `default-role-permissions.spec` |
@@ -134,7 +134,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | i18n bs default + en fallback (UI) | ✅ (2195 ključeva, bez rupa) |
 | Install wizard (+ INSTALL_TOKEN) | ✅ |
 | Observability + support bundle | ✅ `observability/` |
-| DR (backup/restore dokument) | ✅ `ops/DR.md` · 🔎V3 drill |
+| DR (backup/restore dokument) | ✅ `ops/DR.md` + `ops/dr/*` (paket 1.8) · 🔎V3 drill |
 | E2E kritični tokovi (svih 9 iz §10) | ✅ `e2e/tests/01–09` |
 | NFR: < 300 ms, ≥ 1000 korisnika, horizontalno skaliranje | ✅ izmjereno (`PERF_BUDGETS.md`; 200 VU p95 u budžetu, WS cross-instance) |
 

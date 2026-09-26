@@ -26,6 +26,10 @@ export function notificationTicketPath(
   if (type === "ticket.unroutedDigest") {
     return "/tickets?view=all&unroutedOverdue=true";
   }
+  // Paket 1.8 (A3): the aborted directory sync points at the sync panel.
+  if (type === "directory.syncAborted") {
+    return "/organizational-units";
+  }
   if (ticketId === undefined || ticketId === null || ticketId.length === 0) {
     return null;
   }
@@ -53,6 +57,7 @@ export function notificationTitleKey(
   | "notifications.items.ticketTimeAutoStopped"
   | "notifications.items.ticketUnroutedOverdue"
   | "notifications.items.ticketUnroutedDigest"
+  | "notifications.items.directorySyncAborted"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -79,6 +84,8 @@ export function notificationTitleKey(
       return "notifications.items.ticketUnroutedOverdue";
     case "ticket.unroutedDigest":
       return "notifications.items.ticketUnroutedDigest";
+    case "directory.syncAborted":
+      return "notifications.items.directorySyncAborted";
     default:
       return "notifications.items.unknown";
   }

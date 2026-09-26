@@ -2,6 +2,7 @@ import { Network, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DirectorySyncCard } from "@/components/organizational-units/directory-sync-card";
+import { LdapsDirectorySyncPanel } from "@/components/organizational-units/ldaps-directory-sync-panel";
 import { OrganizationalUnitDetailsCard } from "@/components/organizational-units/organizational-unit-details-card";
 import { OrganizationalUnitFormDrawer } from "@/components/organizational-units/organizational-unit-form-drawer";
 import { OrganizationalUnitTree } from "@/components/organizational-units/organizational-unit-tree";
@@ -18,7 +19,10 @@ import { useDirectory } from "@/lib/directory/use-directory";
 import { useManualDirectoryCatalogActions } from "@/lib/directory/use-manual-directory-catalog-actions";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
-import type { ManualDirectoryOrganizationalUnit } from "@/services/directory-sync-api";
+import type {
+  DirectorySyncStatus,
+  ManualDirectoryOrganizationalUnit,
+} from "@/services/directory-sync-api";
 
 interface OrganizationalUnitsPageProperties {
   readonly embedded?: boolean;
@@ -34,6 +38,8 @@ export function OrganizationalUnitsPage({
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<DirectorySyncStatus | null>(null);
+  const [syncReloadToken, setSyncReloadToken] = useState(0);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingUnit, setEditingUnit] =
     useState<ManualDirectoryOrganizationalUnit | null>(null);
@@ -141,6 +147,8 @@ export function OrganizationalUnitsPage({
             ) : null}
             <DirectorySyncCard
               canManage={canManage}
+              onStatusLoaded={setSyncStatus}
+              reloadToken={syncReloadToken}
               onSynced={async () => {
                 await directory.reload();
                 await catalogActions.reloadCatalog();
@@ -149,6 +157,18 @@ export function OrganizationalUnitsPage({
           </div>
         </div>
       )}
+      {canManage && syncStatus?.source === "ldaps" ? (
+        <div className="mt-4">
+          <LdapsDirectorySyncPanel
+            status={syncStatus.ldaps ?? null}
+            onChanged={async () => {
+              setSyncReloadToken((value) => value + 1);
+              await directory.reload();
+              await catalogActions.reloadCatalog();
+            }}
+          />
+        </div>
+      ) : null}
       {canManage ? (
         <OrganizationalUnitFormDrawer
           open={formOpen}

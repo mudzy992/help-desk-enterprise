@@ -1,5 +1,5 @@
 import { BookOpen, Lock, ShieldCheck, Ticket, TrendingUp } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
@@ -11,7 +11,12 @@ import {
   labelClassName,
 } from "@/components/ui/control";
 import { useSession } from "@/lib/session/use-session";
+import { startEntraSignIn } from "@/lib/auth/entra-redirect";
 import { ApiError } from "@/services/api";
+import {
+  getAuthenticationProviders,
+  type AuthenticationProviders,
+} from "@/services/auth-api";
 
 /*
   Pulse sign-in: the brand panel carries the identity on the left, the form
@@ -38,6 +43,33 @@ export function LoginPage() {
   const [passwordChangeToken, setPasswordChangeToken] = useState<string | null>(
     null,
   );
+
+  // Paket 1.8 (A1): Microsoft sign-in when the server runs in entra_ad mode;
+  // the local form stays available as the break-glass path.
+  const [providers, setProviders] = useState<AuthenticationProviders | null>(null);
+  const [showLocalForm, setShowLocalForm] = useState(false);
+  const [entraError, setEntraError] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getAuthenticationProviders()
+      .then((value) => {
+        if (active) setProviders(value);
+      })
+      .catch(() => {
+        if (active) setProviders({ mode: "local", entra: null });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const callbackError =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "entraError" in location.state &&
+    location.state.entraError === true;
 
   const redirectPath =
     typeof location.state === "object" &&
@@ -71,6 +103,21 @@ export function LoginPage() {
       setIsSubmitting(false);
     }
   };
+
+  const handleEntraSignIn = async () => {
+    if (providers?.entra == null) return;
+    setEntraError(false);
+    setIsRedirecting(true);
+    try {
+      await startEntraSignIn(providers.entra, redirectPath);
+    } catch {
+      setEntraError(true);
+      setIsRedirecting(false);
+    }
+  };
+
+  const isEntraMode = providers?.mode === "entra_ad";
+  const localFormVisible = !isEntraMode || showLocalForm;
 
   return (
     <div className="page-in grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
@@ -160,7 +207,42 @@ export function LoginPage() {
                 <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
                   {t("login.intro")}
                 </p>
+                {isEntraMode ? (
+                  <div className="mt-6 space-y-3">
+                    {providers?.entra ? (
+                      <Button
+                        type="button"
+                        className="w-full"
+                        disabled={isRedirecting}
+                        onClick={() => void handleEntraSignIn()}
+                      >
+                        <MicrosoftMark />
+                        {isRedirecting ? t("login.entraRedirecting") : t("login.entraSignIn")}
+                      </Button>
+                    ) : (
+                      <p className="text-[12.5px] leading-5 text-muted-foreground" role="status">
+                        {t("login.entraNotConfigured")}
+                      </p>
+                    )}
+                    {entraError || callbackError ? (
+                      <p className={errorTextClassName} role="alert">
+                        {t("login.entraFailed")}
+                      </p>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="w-full text-center text-[11.5px] text-link underline-offset-4 hover:underline"
+                      aria-expanded={showLocalForm}
+                      aria-controls="login-local-form"
+                      onClick={() => setShowLocalForm((value) => !value)}
+                    >
+                      {showLocalForm ? t("login.localHide") : t("login.localShow")}
+                    </button>
+                  </div>
+                ) : null}
+                {localFormVisible ? (
                 <form
+                  id="login-local-form"
                   className="mt-6 space-y-4"
                   onSubmit={(event) => void handleSubmit(event)}
                 >
@@ -197,6 +279,7 @@ export function LoginPage() {
                     {isSubmitting ? t("session.signingIn") : t("session.signIn")}
                   </Button>
                 </form>
+                ) : null}
               </>
             )}
           </div>
@@ -214,5 +297,21 @@ export function LoginPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+/** Four-square Microsoft logo (brand colours are fixed by Microsoft). */
+function MicrosoftMark() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 21 21" aria-hidden="true" className="mr-1.5">
+      {/* design-system-allow-hex: Microsoft brand mark */}
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      {/* design-system-allow-hex: Microsoft brand mark */}
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      {/* design-system-allow-hex: Microsoft brand mark */}
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      {/* design-system-allow-hex: Microsoft brand mark */}
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
   );
 }

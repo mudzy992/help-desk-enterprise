@@ -1,0 +1,33 @@
+# Paket 1.8 — testni AD za LDAPS sync. Uputstvo: docs/ops/test-okruzenje-1.8.md
+#
+#   cp .env.example .env    # postavi lozinke
+#   docker compose up -d --build
+#   docker compose exec samba-ad seed.sh
+#
+# DC je dostupan backendu i workeru kao ldaps://dc1.test.epbih.lab:636 preko
+# mreže db_net (ista eksterna mreža kao u glavnom docker-compose.yml). Port
+# se NE objavljuje na hostu.
+services:
+  samba-ad:
+    build: .
+    hostname: dc1
+    domainname: test.epbih.lab
+    privileged: false
+    cap_add: [SYS_ADMIN]
+    env_file: .env
+    volumes:
+      - samba-data:/var/lib/samba
+      - samba-etc:/etc/samba
+      - ./export:/export
+    networks:
+      db_net:
+        aliases: [dc1.test.epbih.lab]
+    restart: unless-stopped
+
+volumes:
+  samba-data:
+  samba-etc:
+
+networks:
+  db_net:
+    external: true

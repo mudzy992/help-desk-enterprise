@@ -15,11 +15,17 @@ import {
 interface DirectorySyncCardProperties {
   readonly onSynced: () => Promise<void>;
   readonly canManage: boolean;
+  /** Paket 1.8: lets the page show the LDAPS console for the loaded status. */
+  readonly onStatusLoaded?: (status: DirectorySyncStatus) => void;
+  /** Bumped by the page after an LDAPS apply so the summary is re-read. */
+  readonly reloadToken?: number;
 }
 
 export function DirectorySyncCard({
   onSynced,
   canManage,
+  onStatusLoaded,
+  reloadToken = 0,
 }: DirectorySyncCardProperties) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<DirectorySyncStatus | null>(null);
@@ -28,20 +34,22 @@ export function DirectorySyncCard({
 
   const reloadStatus = useCallback(async () => {
     try {
-      setStatus(await getDirectorySyncStatus());
+      const next = await getDirectorySyncStatus();
+      setStatus(next);
+      onStatusLoaded?.(next);
       setErrorMessage(null);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError ? error.message : t("directory.syncLoadFailed"),
       );
     }
-  }, [t]);
+  }, [t, onStatusLoaded]);
 
   useEffect(() => {
     if (canManage) {
       void reloadStatus();
     }
-  }, [canManage, reloadStatus]);
+  }, [canManage, reloadStatus, reloadToken]);
 
   const handleSync = async () => {
     setIsRunning(true);
@@ -72,6 +80,14 @@ export function DirectorySyncCard({
         })}
       />
       <div className="space-y-2.5 px-4 py-4 text-[12px]">
+        <p className="flex justify-between">
+          <span className="text-muted-foreground">{t("directory.syncSource")}</span>
+          <Badge tone={status?.source === "ldaps" ? "success" : "neutral"} dot={false}>
+            {status?.source === "ldaps"
+              ? t("directory.syncSourceLdaps")
+              : t("directory.syncSourceManual")}
+          </Badge>
+        </p>
         <p className="flex justify-between">
           <span className="text-muted-foreground">{t("directory.syncMode")}</span>
           <Badge tone="info" dot={false}>
@@ -114,15 +130,19 @@ export function DirectorySyncCard({
             {errorMessage}
           </p>
         ) : null}
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          disabled={isRunning}
-          onClick={() => void handleSync()}
-        >
-          <RotateCcw size={13} /> {t("directory.syncRun")}
-        </Button>
+        {status?.source === "ldaps" ? (
+          <p className="text-[11.5px] text-muted-foreground">{t("directory.syncLdapsHint")}</p>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            disabled={isRunning}
+            onClick={() => void handleSync()}
+          >
+            <RotateCcw size={13} /> {t("directory.syncRun")}
+          </Button>
+        )}
       </div>
     </Card>
   );

@@ -56,3 +56,26 @@ export function refreshSession(): Promise<AuthenticationSessionResponse> {
 export function logoutSession(): Promise<void> {
   return apiRequest("/auth/logout", { method: "POST" });
 }
+
+/** Paket 1.8 (A1): which sign-in options the login page offers. */
+export type AuthenticationProviders = {
+  readonly mode: "local" | "entra_ad";
+  readonly entra: {
+    readonly tenantId: string;
+    readonly clientId: string;
+    readonly authority: string;
+    readonly singleLogout: boolean;
+  } | null;
+};
+
+export function getAuthenticationProviders(): Promise<AuthenticationProviders> {
+  return apiRequest("/auth/providers");
+}
+
+/** Exchanges a Microsoft Entra ID token for an application session. */
+export function loginWithEntraIdToken(idToken: string): Promise<AuthenticationSessionResponse> {
+  return apiRequest("/auth/entra", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+}

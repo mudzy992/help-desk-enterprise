@@ -28,6 +28,7 @@ import { KnowledgeArticleDetailPage } from "@/pages/knowledge-article-detail-pag
 import { KnowledgeBasePage } from "@/pages/knowledge-base-page";
 import { AppearancePage } from "@/pages/appearance-page";
 import { LoginPage } from "@/pages/login-page";
+import { AuthCallbackPage } from "@/pages/auth-callback-page";
 import { ServicesPage } from "@/pages/services-page";
 import { LegacyAdminRedirect } from "@/pages/legacy-admin-redirect";
 import { TicketsPage } from "@/pages/tickets-page";
@@ -59,6 +60,7 @@ export function AppRouter() {
       <Route element={<InstallSetupLayout />}>
         <Route path="install" element={<InstallPage />} />
         <Route path="login" element={<LoginPage />} />
+        <Route path="auth/callback" element={<AuthCallbackPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<ApplicationShell />}>
             <Route index element={<DashboardPage />} />

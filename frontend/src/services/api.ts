@@ -23,7 +23,7 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
 }
 
-const sessionlessPaths = ["/auth/login", "/auth/change-password", "/auth/entra", "/auth/logout", "/install/"];
+const sessionlessPaths = ["/auth/login", "/auth/change-password", "/auth/entra", "/auth/logout", "/auth/providers", "/install/"];
 
 function notifyUnauthorized(path: string, sentBearer: boolean, status: number): void {
   if (status !== 401 || !sentBearer || unauthorizedHandler === null) {

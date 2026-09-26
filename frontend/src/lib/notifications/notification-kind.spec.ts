@@ -43,3 +43,11 @@ describe("notification helpers", () => {
     expect(notificationTicketPath("", "ticket.sla")).toBeNull();
   });
 });
+
+describe("directory sync notifications (paket 1.8)", () => {
+  it("routes the aborted sync to the organizational units page", () => {
+    expect(notificationTicketPath(null, "directory.syncAborted")).toBe("/organizational-units");
+    expect(notificationTitleKey("directory.syncAborted")).toBe("notifications.items.directorySyncAborted");
+    expect(notificationKind("directory.syncAborted")).toBe("system");
+  });
+});

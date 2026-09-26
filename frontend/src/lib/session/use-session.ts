@@ -2,9 +2,11 @@ import { useCallback, useSyncExternalStore } from "react";
 import {
   changePasswordOnFirstLogin,
   isMustChangePasswordResponse,
+  loginWithEntraIdToken,
   loginWithPassword,
   logoutSession,
 } from "@/services/auth-api";
+import { forgetEntraConfiguration, signOutOfEntra } from "@/lib/auth/entra-redirect";
 import {
   clearStoredSession,
   readStoredSession,
@@ -65,6 +67,8 @@ export function useSession() {
   const signIn = useCallback(
     async (email: string, password: string): Promise<SignInOutcome> => {
       const response = await loginWithPassword({ email, password });
+      // A local (break-glass) session never triggers Entra single logout.
+      forgetEntraConfiguration();
       if (isMustChangePasswordResponse(response)) {
         return {
           kind: "must_change_password",
@@ -81,6 +85,16 @@ export function useSession() {
     },
     [],
   );
+
+  /** Paket 1.8 (A1): Microsoft ID token → application session. */
+  const signInWithEntra = useCallback(async (idToken: string): Promise<void> => {
+    const response = await loginWithEntraIdToken(idToken);
+    writeStoredSession({
+      accessToken: response.accessToken,
+      principal: response.principal,
+    });
+    emitSessionChange();
+  }, []);
 
   const completePasswordChange = useCallback(
     async (
@@ -108,12 +122,15 @@ export function useSession() {
     }
     clearStoredSession();
     emitSessionChange();
+    // Optional Entra single logout; a no-op for local sessions.
+    void signOutOfEntra().catch(() => undefined);
   }, []);
 
   return {
     session,
     currentUserId: session?.principal.subjectId ?? null,
     signIn,
+    signInWithEntra,
     completePasswordChange,
     signOut,
   };
