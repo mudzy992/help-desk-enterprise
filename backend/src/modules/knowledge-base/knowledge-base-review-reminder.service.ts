@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
+import { SettingsService } from '../settings/settings.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTypes } from '../notifications/notifications.constants';
@@ -14,11 +16,13 @@ export class KnowledgeBaseReviewReminderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: KnowledgeBaseConfigurationLoader,
+    @Optional() private readonly settingsService?: SettingsService,
   ) {}
 
 
   async processDue(now = new Date()): Promise<number> {
     const configuration = await this.configurationLoader.load();
+    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     if (!configuration.reviewCycleEnabled) {
       return 0;
     }
@@ -41,7 +45,9 @@ export class KnowledgeBaseReviewReminderService {
       const recipients = await resolveOwnerRecipients(this.prisma, article);
       const dedupeKey = `kb-review:${article.id}:${article.reviewDueAt.toISOString()}`;
       for (const userId of recipients) {
-        const created = await persistInAppNotification(this.prisma, {
+        const created = await persistInAppNotification(
+          this.prisma,
+          {
           userId,
           type: notificationTypes.knowledgeReviewDue,
           title: 'notifications.items.knowledgeReviewDue',
@@ -56,7 +62,9 @@ export class KnowledgeBaseReviewReminderService {
             confidential: false,
           } satisfies NotificationPayload,
           dedupeKey: `${dedupeKey}:${userId}`,
-        });
+        },
+        policy,
+      );
         if (created !== null) {
           sent += 1;
         }

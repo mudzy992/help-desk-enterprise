@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { loadNotificationPreferencePolicy } from '../../notifications/preferences/notification-preference-policy';
+import { SettingsService } from '../../settings/settings.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { persistInAppNotification } from '../../notifications/fan-out/persist-in-app-notification';
 import { notificationTypes } from '../../notifications/notifications.constants';
@@ -32,10 +34,12 @@ export class UnroutedSweepService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: UnroutedQueueConfigurationLoader,
+    @Optional() private readonly settingsService?: SettingsService,
   ) {}
 
   async processDue(now = new Date()): Promise<UnroutedSweepResult> {
     const configuration = await this.configurationLoader.load();
+    const policy = await loadNotificationPreferencePolicy(this.settingsService);
     if (configuration.cleanupSlaHours === 0) {
       return { warnedTickets: 0, notifications: 0, digestNotifications: 0 };
     }
@@ -54,7 +58,9 @@ export class UnroutedSweepService {
     let notifications = 0;
     for (const ticket of due) {
       for (const userId of recipients) {
-        const created = await persistInAppNotification(this.prisma, {
+        const created = await persistInAppNotification(
+          this.prisma,
+          {
           userId,
           type: notificationTypes.ticketUnroutedOverdue,
           title: 'notifications.items.ticketUnroutedOverdue',
@@ -69,7 +75,9 @@ export class UnroutedSweepService {
             confidential: ticket.isConfidential,
           } satisfies NotificationPayload,
           dedupeKey: `unrouted-overdue:${ticket.id}:${userId}`,
-        });
+        },
+        policy,
+      );
         if (created !== null) {
           notifications += 1;
         }
@@ -81,7 +89,7 @@ export class UnroutedSweepService {
     }
     const digestNotifications =
       configuration.weeklyDigest && isDigestSlot(now)
-        ? await this.sendDigest(now, overdueWhere, recipients)
+        ? await this.sendDigest(now, overdueWhere, recipients, policy)
         : 0;
     return { warnedTickets: due.length, notifications, digestNotifications };
   }
@@ -90,6 +98,7 @@ export class UnroutedSweepService {
     now: Date,
     overdueWhere: ReturnType<typeof buildUnroutedOverdueWhere>,
     recipients: readonly string[],
+    policy: Awaited<ReturnType<typeof loadNotificationPreferencePolicy>>,
   ): Promise<number> {
     const total = await this.prisma.ticket.count({ where: overdueWhere });
     if (total === 0) {
@@ -98,7 +107,9 @@ export class UnroutedSweepService {
     const day = localDateKey(now);
     let sent = 0;
     for (const userId of recipients) {
-      const created = await persistInAppNotification(this.prisma, {
+      const created = await persistInAppNotification(
+          this.prisma,
+          {
         userId,
         type: notificationTypes.ticketUnroutedDigest,
         title: 'notifications.items.ticketUnroutedDigest',
@@ -113,7 +124,9 @@ export class UnroutedSweepService {
           confidential: false,
         } satisfies NotificationPayload,
         dedupeKey: `unrouted-digest:${day}:${userId}`,
-      });
+      },
+      policy,
+    );
       if (created !== null) {
         sent += 1;
       }

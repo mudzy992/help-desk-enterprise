@@ -499,6 +499,22 @@
       "revokeAllHint": "The user is signed out on every device.",
       "revokeAllConfirm": "Sign out all",
       "sessionsRevokedDone": "All sessions of the user were signed out."
+    },
+    "notifications": {
+      "heading": "Notifications",
+      "customized": "Customized",
+      "customizedCount_one": "{{count}} category",
+      "customizedCount_other": "{{count}} categories",
+      "quietHours": "Quiet hours",
+      "weekends": "weekend",
+      "off": "Off",
+      "digestTime": "Digest time",
+      "default": "Default",
+      "pending": "Pending items",
+      "reset": "Reset notifications to defaults",
+      "resetHint": "The user's notification settings return to the defaults. The action is audited.",
+      "resetConfirm": "Reset",
+      "resetDone": "The user's notification settings were reset."
     }
   },
   "settings": {
@@ -946,7 +962,16 @@
         "private.auth.password.maxAgeDays": "Local password expiry in days for everyone except SUPER_ADMIN (0 = never).",
         "private.auth.password.superAdminMaxAgeDays": "SUPER_ADMIN password expiry in days (0 = never).",
         "private.auth.sessions.maxPerUser": "Maximum concurrent sign-ins per user; the oldest is signed out (0 = unlimited).",
-        "private.auth.sessions.newDeviceAlert": "Notify ADMIN/SUPER_ADMIN about a sign-in from a new device or network."
+        "private.auth.sessions.newDeviceAlert": "Notify ADMIN/SUPER_ADMIN about a sign-in from a new device or network.",
+        "private.notifications.preferences.enabled": "Users can choose which notifications they receive (\"My notifications\" page). When off, defaults apply.",
+        "private.notifications.lockedInAppTypesCsv": "Categories (CSV) whose in-app notification users cannot turn off.",
+        "private.notifications.lockedEmailTypesCsv": "Categories (CSV) whose e-mail is always sent immediately; users cannot defer or turn it off.",
+        "private.notifications.defaults.digestTypesCsv": "Categories (CSV) that go to the daily digest by default instead of immediately.",
+        "private.notifications.digest.enabled": "Enables the daily e-mail digest.",
+        "private.notifications.digest.defaultTime": "Default digest send time (HH:MM, 15-minute steps) in the installation time zone.",
+        "private.notifications.digest.maxItems": "Maximum items listed in one digest; the rest is shown as a count.",
+        "private.notifications.quietHours.enabled": "Users can set quiet hours during which e-mails are held.",
+        "private.notifications.quietHours.bypassTypesCsv": "Categories (CSV) that are sent even during quiet hours."
       }
     },
     "emailTemplates": {
@@ -1024,7 +1049,8 @@
         "remote_requested": "Remote support",
         "ticket_forwarded": "Ticket forwarded",
         "ticket_broadcast": "Notice (broadcast)",
-        "user_temporary_password": "Temporary password"
+        "user_temporary_password": "Temporary password",
+        "notification_digest": "Daily digest"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -3434,6 +3460,107 @@
       "expiryBanner_one": "Your password expires in {{count}} day.",
       "expiryBanner_other": "Your password expires in {{count}} days.",
       "expiryBannerLink": "Change it now"
+    },
+    "notifications": {
+      "menu": "My notifications",
+      "title": "Notifications",
+      "subtitle": "Choose which notifications you receive and how.",
+      "loadFailed": "Notification settings could not be loaded.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Notification settings saved.",
+      "saveFailed": "Settings could not be saved.",
+      "reset": "Reset to defaults",
+      "resetHint": "All your changes, quiet hours and digest time return to the defaults.",
+      "resetConfirm": "Reset",
+      "resetDone": "Settings reset to defaults.",
+      "disabledByAdmin": "Personal settings are disabled by the administrator; defaults apply.",
+      "emailUnavailable": "E-mail delivery is currently off; your e-mail choices apply once the administrator enables it.",
+      "eventsTitle": "Events",
+      "eventsSubtitle": "In-app and e-mail notifications for each kind of event.",
+      "columnEvent": "Event",
+      "columnInApp": "In app",
+      "columnEmail": "E-mail",
+      "inAppOnly": "In app only",
+      "emailMode": {
+        "IMMEDIATE": "Immediately",
+        "DIGEST": "In digest",
+        "OFF": "Off"
+      },
+      "locked": "Locked by administrator",
+      "alwaysOn": "Always on",
+      "digestTitle": "Daily digest",
+      "digestSubtitle": "Events set to \"In digest\" arrive in one e-mail (time zone {{zone}}).",
+      "digestTime": "Send time",
+      "digestTimeDefault": "Default ({{time}})",
+      "digestWorkdaysOnly": "Workdays only",
+      "digestNext": "Next digest: {{at}}",
+      "digestPending_one": "{{count}} item waiting",
+      "digestPending_other": "{{count}} items waiting",
+      "testDigest": "Send test digest",
+      "testSent": "A test digest was sent to your e-mail.",
+      "testFailed": "The test digest could not be sent.",
+      "testRateLimited": "A test digest can be sent once every 5 minutes.",
+      "quietTitle": "Quiet hours",
+      "quietSubtitle": "E-mails are held during this period and sent together when it ends.",
+      "quietStart": "From",
+      "quietEnd": "Until",
+      "quietWeekends": "Whole weekend",
+      "quietHint": "Approvals, SLA escalations and security notifications always arrive. In-app notifications are never held.",
+      "categories": {
+        "ticket_created": {
+          "label": "New ticket in my group",
+          "hint": "When a new ticket is routed to a group you belong to."
+        },
+        "ticket_assigned": {
+          "label": "Ticket assigned to me",
+          "hint": "When a ticket is assigned to you."
+        },
+        "ticket_forwarded": {
+          "label": "Ticket forwarded",
+          "hint": "When a ticket is forwarded to you or your group."
+        },
+        "ticket_message": {
+          "label": "New message",
+          "hint": "A new message on a ticket you follow."
+        },
+        "ticket_outcome": {
+          "label": "Ticket resolved or closed",
+          "hint": "The outcome of your ticket."
+        },
+        "ticket_approval": {
+          "label": "Approval",
+          "hint": "An approval request or its outcome."
+        },
+        "ticket_sla": {
+          "label": "SLA warning",
+          "hint": "A deadline is near or breached; e-mail only for escalations."
+        },
+        "remote_requested": {
+          "label": "Remote support",
+          "hint": "A remote access request."
+        },
+        "ticket_timeAutoStopped": {
+          "label": "Timer stopped automatically",
+          "hint": "Time tracking was paused or closed."
+        },
+        "ticket_unrouted": {
+          "label": "Unrouted tickets",
+          "hint": "Reminders and digest for tickets without a group."
+        },
+        "knowledge_reviewDue": {
+          "label": "Knowledge article review",
+          "hint": "An article is due for periodic review."
+        },
+        "directory_syncAborted": {
+          "label": "Directory sync aborted",
+          "hint": "The safeguard stopped the AD sync."
+        },
+        "account_security": {
+          "label": "Account security",
+          "hint": "Password, two-step verification and new sign-in changes."
+        }
+      }
     }
   }
 }

@@ -25,6 +25,10 @@ import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
 import { NotificationUnreadCountCache } from '../notification-unread-count.cache';
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
+import {
+  loadNotificationPreferencePolicy,
+  type NotificationPreferencePolicy,
+} from '../preferences/notification-preference-policy';
 
 @Injectable()
 export class NotificationsFanOutService
@@ -61,15 +65,18 @@ export class NotificationsFanOutService
   }
 
   private async ingest(payload: TicketRealtimeMessagePayload): Promise<void> {
-    await this.persistInApp(payload);
-    await this.deliverEmail(payload);
+    // Paket 2.2: one policy read (settings snapshot) per event for both channels.
+    const policy = await loadNotificationPreferencePolicy(this.settingsService);
+    await this.persistInApp(payload, policy);
+    await this.deliverEmail(payload, policy);
   }
 
   private async persistInApp(
     payload: TicketRealtimeMessagePayload,
+    policy: NotificationPreferencePolicy,
   ): Promise<void> {
     try {
-      const created = await fanOutInAppNotifications(this.prisma, payload);
+      const created = await fanOutInAppNotifications(this.prisma, payload, policy);
       await publishCreatedNotifications(
         this.prisma,
         this.ticketRealtimeHub,
@@ -93,6 +100,7 @@ export class NotificationsFanOutService
 
   private async deliverEmail(
     payload: TicketRealtimeMessagePayload,
+    policy: NotificationPreferencePolicy,
   ): Promise<void> {
     try {
       const configuration = await loadEmailChannelConfiguration(
@@ -104,6 +112,7 @@ export class NotificationsFanOutService
         this.mailTransport,
         payload,
         await this.emailWorkHandler(configuration),
+        policy,
       );
     } catch (error) {
       this.logger.error(

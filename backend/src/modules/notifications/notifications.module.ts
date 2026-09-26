@@ -13,6 +13,9 @@ import { EmailTemplatesController } from './email-templates/email-templates.cont
 import { EmailTemplatesService } from './email-templates/email-templates.service';
 import { NotificationsService } from './notifications.service';
 import { TeamsIntegrationService } from './teams/teams-integration.service';
+import { NotificationDigestService } from './preferences/notification-digest.service';
+import { NotificationPreferencesController } from './preferences/notification-preferences.controller';
+import { NotificationPreferencesService } from './preferences/notification-preferences.service';
 
 @Module({
   imports: [
@@ -22,13 +25,15 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
     TicketsModule,
     IntegrationQueueModule,
   ],
-  controllers: [NotificationsController, EmailTemplatesController],
+  controllers: [NotificationsController, EmailTemplatesController, NotificationPreferencesController],
   providers: [
     NotificationsService,
     EmailTemplatesService,
     NotificationsFanOutService,
     NotificationUnreadCountCache,
     TeamsIntegrationService,
+    NotificationPreferencesService,
+    NotificationDigestService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
   ],

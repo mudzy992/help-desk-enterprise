@@ -34,9 +34,11 @@ export async function enqueueEdgeNotificationEvents(input: {
   // The edge channel is per person, so a group row is expanded to its members here —
   // and only here: this branch runs only when the Edge add-on is switched on, which
   // keeps the member read (and the per-member badge) off the default fan-out path.
+  // Paket 2.2 (N6): no desktop pop-up for a personal recipient in quiet hours.
+  const quiet = new Set(input.records.quietUserIds ?? []);
   const deliveries: { readonly userId: string; readonly record: NotificationRecord }[] =
     input.records.personal.flatMap((record) =>
-      record.userId === null ? [] : [{ userId: record.userId, record }],
+      record.userId === null || quiet.has(record.userId) ? [] : [{ userId: record.userId, record }],
     );
   const group = input.records.group;
   if (group !== null && group.groupId) {

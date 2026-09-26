@@ -70,6 +70,7 @@ model Ticket {
   guardrailClaims      GuardrailClaim[]
   slaState             TicketSlaState?
   notifications        Notification[]
+  notificationDigestItems NotificationDigestItem[]
   forwardEvents        TicketForwardEvent[]
   playbooks            TicketPlaybook[]
   createdAt            DateTime                   @default(now())

@@ -24,6 +24,8 @@ import { directorySyncQueueName } from './modules/directory-sync/ldaps/directory
 import { DirectorySyncProcessor } from './modules/directory-sync/ldaps/directory-sync.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
 import { WorkerModule } from './worker.module';
+import { notificationDigestQueueName } from './modules/notifications/preferences/notification-digest.constants';
+import { NotificationDigestProcessor } from './modules/notifications/preferences/notification-digest.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -41,6 +43,7 @@ const scheduledQueueNames = [
   timeTrackingSweepQueueName,
   unroutedSweepQueueName,
   directorySyncQueueName,
+  notificationDigestQueueName,
 ] as const;
 
 const processorTypes = [
@@ -54,6 +57,7 @@ const processorTypes = [
   TimeTrackingSweepProcessor,
   UnroutedSweepProcessor,
   DirectorySyncProcessor,
+  NotificationDigestProcessor,
 ] as const;
 
 function createFakeQueue() {

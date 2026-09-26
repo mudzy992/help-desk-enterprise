@@ -1,3 +1,4 @@
+import { notificationPreferenceSettings } from './notification-preference-settings';
 import type { SettingDefinition } from '../settings.types';
 import { addonSettings } from './addon-settings';
 import { directorySyncSettings } from './directory-sync-settings';
@@ -84,6 +85,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...knowledgeBaseSettings,
   ...smtpSettings,
   ...notificationEmailSettings,
+  ...notificationPreferenceSettings,
   ...i18nSettings,
   ...edgeExtensionSettings,
   ...integrationQueueSettings,

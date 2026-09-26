@@ -249,6 +249,18 @@ export const settingKeys = {
     'private.notifications.email.allowedExternalEmailsCsv',
   privateNotificationsTemplatesRegistryJson:
     'private.notifications.templates.registryJson',
+  // Paket 2.2: personal preferences, quiet hours, digest.
+  privateNotificationsPreferencesEnabled: 'private.notifications.preferences.enabled',
+  privateNotificationsLockedInAppTypesCsv: 'private.notifications.lockedInAppTypesCsv',
+  privateNotificationsLockedEmailTypesCsv: 'private.notifications.lockedEmailTypesCsv',
+  privateNotificationsDefaultsDigestTypesCsv:
+    'private.notifications.defaults.digestTypesCsv',
+  privateNotificationsDigestEnabled: 'private.notifications.digest.enabled',
+  privateNotificationsDigestDefaultTime: 'private.notifications.digest.defaultTime',
+  privateNotificationsDigestMaxItems: 'private.notifications.digest.maxItems',
+  privateNotificationsQuietHoursEnabled: 'private.notifications.quietHours.enabled',
+  privateNotificationsQuietHoursBypassTypesCsv:
+    'private.notifications.quietHours.bypassTypesCsv',
   privateAddonsSla: addonSettingKey('sla'),
   privateAddonsEmail: addonSettingKey('email'),
   privateAddonsEdge: addonSettingKey('edge'),

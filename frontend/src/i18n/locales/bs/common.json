@@ -500,6 +500,23 @@
       "revokeAllHint": "Korisnik će biti odjavljen sa svih uređaja.",
       "revokeAllConfirm": "Odjavi sve",
       "sessionsRevokedDone": "Sve prijave korisnika su odjavljene."
+    },
+    "notifications": {
+      "heading": "Notifikacije",
+      "customized": "Prilagođeno",
+      "customizedCount_one": "{{count}} kategorija",
+      "customizedCount_few": "{{count}} kategorije",
+      "customizedCount_other": "{{count}} kategorija",
+      "quietHours": "Tihi sati",
+      "weekends": "vikend",
+      "off": "Isključeno",
+      "digestTime": "Vrijeme sažetka",
+      "default": "Zadano",
+      "pending": "Stavke na čekanju",
+      "reset": "Vrati notifikacije na zadano",
+      "resetHint": "Korisnikove postavke notifikacija vraćaju se na zadane. Akcija se bilježi u audit.",
+      "resetConfirm": "Vrati na zadano",
+      "resetDone": "Postavke notifikacija korisnika su vraćene na zadano."
     }
   },
   "settings": {
@@ -947,7 +964,16 @@
         "private.auth.password.maxAgeDays": "Istek lokalne lozinke u danima za sve osim SUPER_ADMIN (0 = bez isteka).",
         "private.auth.password.superAdminMaxAgeDays": "Istek lozinke SUPER_ADMIN naloga u danima (0 = bez isteka).",
         "private.auth.sessions.maxPerUser": "Najveći broj istovremenih prijava po korisniku; najstarija se odjavljuje (0 = bez ograničenja).",
-        "private.auth.sessions.newDeviceAlert": "Obavijesti ADMIN/SUPER_ADMIN o prijavi s novog uređaja ili mreže."
+        "private.auth.sessions.newDeviceAlert": "Obavijesti ADMIN/SUPER_ADMIN o prijavi s novog uređaja ili mreže.",
+        "private.notifications.preferences.enabled": "Korisnici mogu sami birati koja obavještenja primaju (stranica „Moje notifikacije”). Kad je isključeno, primjenjuju se zadane vrijednosti.",
+        "private.notifications.lockedInAppTypesCsv": "Kategorije (CSV) čije obavještenje u aplikaciji korisnik ne može isključiti.",
+        "private.notifications.lockedEmailTypesCsv": "Kategorije (CSV) čiji se e-mail uvijek šalje odmah; korisnik ga ne može odgoditi ni isključiti.",
+        "private.notifications.defaults.digestTypesCsv": "Kategorije (CSV) koje zadano idu u dnevni sažetak umjesto odmah.",
+        "private.notifications.digest.enabled": "Uključuje dnevni e-mail sažetak.",
+        "private.notifications.digest.defaultTime": "Zadano vrijeme slanja sažetka (HH:MM, korak 15 min) u vremenskoj zoni instalacije.",
+        "private.notifications.digest.maxItems": "Najviše stavki prikazanih u jednom sažetku; ostatak se navodi kao broj.",
+        "private.notifications.quietHours.enabled": "Korisnici mogu podesiti tihe sate u kojima se e-mailovi zadržavaju.",
+        "private.notifications.quietHours.bypassTypesCsv": "Kategorije (CSV) koje se šalju i tokom tihih sati."
       }
     },
     "emailTemplates": {
@@ -1026,7 +1052,8 @@
         "remote_requested": "Udaljena podrška",
         "ticket_forwarded": "Tiket proslijeđen",
         "ticket_broadcast": "Obavještenje (broadcast)",
-        "user_temporary_password": "Privremena lozinka"
+        "user_temporary_password": "Privremena lozinka",
+        "notification_digest": "Dnevni sažetak"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -3447,6 +3474,108 @@
       "expiryBanner_few": "Vaša lozinka ističe za {{count}} dana.",
       "expiryBanner_other": "Vaša lozinka ističe za {{count}} dana.",
       "expiryBannerLink": "Promijenite je sada"
+    },
+    "notifications": {
+      "menu": "Moje notifikacije",
+      "title": "Notifikacije",
+      "subtitle": "Odaberite koja obavještenja primate i kako.",
+      "loadFailed": "Postavke notifikacija nije moguće učitati.",
+      "save": "Sačuvaj",
+      "saving": "Čuvanje…",
+      "saved": "Postavke notifikacija su sačuvane.",
+      "saveFailed": "Postavke nije moguće sačuvati.",
+      "reset": "Vrati na zadano",
+      "resetHint": "Sve vaše izmjene, tihi sati i vrijeme sažetka vraćaju se na zadane vrijednosti.",
+      "resetConfirm": "Vrati na zadano",
+      "resetDone": "Postavke su vraćene na zadano.",
+      "disabledByAdmin": "Administrator je isključio lične postavke; primjenjuju se zadane vrijednosti.",
+      "emailUnavailable": "E-mail isporuka trenutno nije uključena; izbor za e-mail primjenjuje se kad je administrator uključi.",
+      "eventsTitle": "Događaji",
+      "eventsSubtitle": "Obavještenja u aplikaciji i e-mail za svaku vrstu događaja.",
+      "columnEvent": "Događaj",
+      "columnInApp": "U aplikaciji",
+      "columnEmail": "E-mail",
+      "inAppOnly": "Samo u aplikaciji",
+      "emailMode": {
+        "IMMEDIATE": "Odmah",
+        "DIGEST": "U sažetku",
+        "OFF": "Isključeno"
+      },
+      "locked": "Zaključao administrator",
+      "alwaysOn": "Uvijek uključeno",
+      "digestTitle": "Dnevni sažetak",
+      "digestSubtitle": "Događaji označeni „U sažetku” stižu u jednom e-mailu (zona {{zone}}).",
+      "digestTime": "Vrijeme slanja",
+      "digestTimeDefault": "Zadano ({{time}})",
+      "digestWorkdaysOnly": "Samo radnim danima",
+      "digestNext": "Sljedeći sažetak: {{at}}",
+      "digestPending_one": "{{count}} stavka čeka",
+      "digestPending_few": "{{count}} stavke čekaju",
+      "digestPending_other": "{{count}} stavki čeka",
+      "testDigest": "Pošalji probni sažetak",
+      "testSent": "Probni sažetak je poslan na vaš e-mail.",
+      "testFailed": "Probni sažetak nije moguće poslati.",
+      "testRateLimited": "Probni sažetak se može slati jednom u 5 minuta.",
+      "quietTitle": "Tihi sati",
+      "quietSubtitle": "U tom periodu e-mailovi se zadržavaju i šalju zajedno kad period završi.",
+      "quietStart": "Od",
+      "quietEnd": "Do",
+      "quietWeekends": "Cijeli vikend",
+      "quietHint": "Odobrenja, SLA eskalacije i sigurnosna obavještenja stižu uvijek. Obavještenja u aplikaciji se ne zadržavaju.",
+      "categories": {
+        "ticket_created": {
+          "label": "Novi tiket u mojoj grupi",
+          "hint": "Kad je novi tiket usmjeren u grupu čiji ste član."
+        },
+        "ticket_assigned": {
+          "label": "Tiket dodijeljen meni",
+          "hint": "Kad vam je tiket dodijeljen ili ste ga preuzeli."
+        },
+        "ticket_forwarded": {
+          "label": "Tiket proslijeđen",
+          "hint": "Kad je tiket proslijeđen vama ili vašoj grupi."
+        },
+        "ticket_message": {
+          "label": "Nova poruka",
+          "hint": "Nova poruka na tiketu koji pratite."
+        },
+        "ticket_outcome": {
+          "label": "Tiket riješen ili zatvoren",
+          "hint": "Ishod vašeg tiketa."
+        },
+        "ticket_approval": {
+          "label": "Odobrenje",
+          "hint": "Zahtjev za odobrenje ili njegov ishod."
+        },
+        "ticket_sla": {
+          "label": "SLA upozorenje",
+          "hint": "Rok se približava ili je prekoračen; e-mail samo za eskalacije."
+        },
+        "remote_requested": {
+          "label": "Udaljena podrška",
+          "hint": "Zahtjev za udaljeni pristup."
+        },
+        "ticket_timeAutoStopped": {
+          "label": "Timer automatski zaustavljen",
+          "hint": "Praćenje vremena je pauzirano ili zatvoreno."
+        },
+        "ticket_unrouted": {
+          "label": "Neusmjereni tiketi",
+          "hint": "Podsjetnici i sažetak za tikete bez grupe."
+        },
+        "knowledge_reviewDue": {
+          "label": "Pregled članka baze znanja",
+          "hint": "Članak čeka periodični pregled."
+        },
+        "directory_syncAborted": {
+          "label": "Sinhronizacija imenika prekinuta",
+          "hint": "Osigurač je zaustavio AD sinhronizaciju."
+        },
+        "account_security": {
+          "label": "Sigurnost naloga",
+          "hint": "Promjene lozinke, dvostepene provjere i nove prijave."
+        }
+      }
     }
   }
 }

@@ -50,6 +50,10 @@ const ResponseTemplateEditorPage = lazyPage(
 );
 const PlaybookEditorPage = lazyPage(() => import("@/pages/playbook-editor-page"), "PlaybookEditorPage");
 const AccountSecurityPage = lazyPage(() => import("@/pages/account-security-page"), "AccountSecurityPage");
+const AccountNotificationsPage = lazyPage(
+  () => import("@/pages/account-notifications-page"),
+  "AccountNotificationsPage",
+);
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
@@ -90,6 +94,7 @@ export function AppRouter() {
             </Route>
             <Route path="appearance" element={<AppearancePage />} />
             <Route path="account/security" element={<AccountSecurityPage />} />
+            <Route path="account/notifications" element={<AccountNotificationsPage />} />
             <Route
               path="users"
               element={<LegacyAdminRedirect tab="users" />}

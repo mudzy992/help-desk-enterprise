@@ -5,6 +5,7 @@ import { RedisModule } from './common/redis/redis.module';
 import { IntegrationQueueWorkerModule } from './modules/integration-queue/integration-queue-worker.module';
 import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-base/knowledge-base-review-reminder-worker.module';
 import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
+import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
 import { TicketArchiveWorkerModule } from './modules/tickets/archive/ticket-archive-worker.module';
@@ -25,6 +26,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     IntegrationQueueWorkerModule,
     SlaScanWorkerModule,
     NotificationRetentionWorkerModule,
+    NotificationDigestWorkerModule,
     // Phase 4.1: the periodic business sweeps now live here and nowhere else.
     TicketArchiveWorkerModule,
     WaitingForUserWorkerModule,

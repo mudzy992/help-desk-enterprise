@@ -104,7 +104,7 @@ describe('notification fan-out with a large group (option A)', () => {
     });
     await ingestTicketCreatedEvent(harness);
     const created = await ingestTicketCreatedEvent(harness);
-    expect(created).toEqual({ personal: [], group: null });
+    expect(created).toEqual({ personal: [], group: null, quietUserIds: [] });
   });
 });
 

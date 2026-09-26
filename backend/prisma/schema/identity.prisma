@@ -59,6 +59,9 @@ model User {
   notifications                   Notification[]
   notificationReceipts            NotificationReceipt[]
   notificationEmailDeliveries     NotificationEmailDelivery[]
+  notificationPreferences         UserNotificationPreference[]
+  notificationSchedule            UserNotificationSchedule?
+  notificationDigestItems         NotificationDigestItem[]
   auditLogs                       AuditLog[]
   changeLogs           ChangeLog[]
   mfa                  UserMfa?

@@ -10,13 +10,15 @@ export const emailTemplateKeys = [
   'ticket.forwarded',
   'ticket.broadcast',
   'user.temporary_password',
+  // Paket 2.2: daily digest / quiet-hours summary.
+  'notification.digest',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
 
 /** Keys about a ticket: rendered with the ticket card, link and threading. */
 export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplateKeys.filter(
-  (key) => key !== 'user.temporary_password',
+  (key) => key !== 'user.temporary_password' && key !== 'notification.digest',
 );
 
 export const emailLocales = ['bs', 'en'] as const;
@@ -53,6 +55,7 @@ export const emailTemplatePlaceholders = [
   'email',
   'temporaryPassword',
   'loginUrl',
+  'itemCount',
 ] as const;
 
 export type EmailTemplatePlaceholder =

@@ -14,6 +14,9 @@ import {
 import { composeTicketEmail, redactForEmail, resolveEmailLocale } from './compose-ticket-email';
 import type { EmailTemplateKey } from './email-template.constants';
 import { emailTemplateKeys } from './email-template.constants';
+import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import { resolveDeliveryDecisions } from '../preferences/resolve-delivery-decisions';
+import { holdForDigest, type HeldDigestItem } from '../preferences/hold-for-digest';
 
 const slaEscalationEvents = new Set<string>([
   ticketSystemEventActions.slaResponseEscalated,
@@ -30,6 +33,8 @@ export async function fanOutEmailNotifications(
   mailTransport: MailTransport,
   payload: TicketRealtimeMessagePayload,
   workHandler?: OutboundEmailWorkHandler,
+  /** Paket 2.2: personal preferences; absent = everyone immediately (as before). */
+  policy?: NotificationPreferencePolicy,
 ): Promise<void> {
   if (!configuration.deliveryEnabled || configuration.smtp === null) {
     return;
@@ -86,6 +91,11 @@ export async function fanOutEmailNotifications(
       deliverNotificationEmail(prisma, mailTransport, configuration, work),
   };
   const dedupeKey = `${mapped.type}:${payload.id}`;
+  const decisions =
+    policy === undefined
+      ? null
+      : await resolveDeliveryDecisions(prisma, policy, { type: mapped.type, userIds: recipientIds });
+  const held: HeldDigestItem[] = [];
   for (const userId of recipientIds) {
     const person = peopleById.get(userId);
     const toAddress = person?.email ?? '';
@@ -97,6 +107,21 @@ export async function fanOutEmailNotifications(
         allowedExternalEmails: configuration.allowedExternalEmails,
       })
     ) {
+      continue;
+    }
+    const decision = decisions?.get(userId)?.email ?? 'IMMEDIATE';
+    if (decision === 'OFF') {
+      continue;
+    }
+    if (decision === 'DIGEST' || decision === 'QUIET') {
+      held.push({
+        userId,
+        type: mapped.type,
+        reason: decision,
+        ticketId: ticket.id,
+        event: mapped.event,
+        dedupeKey,
+      });
       continue;
     }
     const composed = composeTicketEmail({
@@ -126,6 +151,7 @@ export async function fanOutEmailNotifications(
       ...(composed.replyTo === undefined ? {} : { replyTo: composed.replyTo }),
     });
   }
+  await holdForDigest(prisma, held);
 }
 
 /**

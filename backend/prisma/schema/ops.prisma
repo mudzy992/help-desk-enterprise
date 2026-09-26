@@ -55,6 +55,59 @@ model NotificationEmailDelivery {
   @@index([status])
 }
 
+/// Paket 2.2 (N3): one row only where the user differs from the default of a
+/// catalogue category (`null` column = "as default").
+model UserNotificationPreference {
+  userId    String
+  category  String   @db.VarChar(64)
+  inApp     Boolean?
+  /// IMMEDIATE | DIGEST | OFF
+  email     String?  @db.VarChar(16)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, category])
+  @@index([category, inApp])
+}
+
+/// Paket 2.2 (N5/N6): quiet hours and digest time, minutes after local midnight
+/// in the installation time zone.
+model UserNotificationSchedule {
+  userId             String    @id
+  quietHoursEnabled  Boolean   @default(false)
+  quietStartMinute   Int       @default(1080)
+  quietEndMinute     Int       @default(420)
+  quietWeekends      Boolean   @default(false)
+  /// null = administrator default
+  digestMinute       Int?
+  digestWorkdaysOnly Boolean   @default(true)
+  lastDigestSentAt   DateTime?
+  lastQuietFlushAt   DateTime?
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Paket 2.2: an e-mail held back for the daily digest (DIGEST) or until quiet
+/// hours end (QUIET). No message body is stored.
+model NotificationDigestItem {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   @db.VarChar(64)
+  type      String   @db.VarChar(64)
+  /// DIGEST | QUIET
+  reason    String   @db.VarChar(8)
+  ticketId  String?
+  event     String   @db.VarChar(64)
+  dedupeKey String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
 model AuditLog {
   id                     String              @id @default(cuid())
   action                 String

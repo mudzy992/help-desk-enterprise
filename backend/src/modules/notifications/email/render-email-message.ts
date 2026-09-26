@@ -30,6 +30,26 @@ export type RenderEmailMessageInput = {
   readonly excerpt: string | null;
   readonly ctaUrl: string | null;
   readonly replyMode: EmailReplyMode;
+  /** Paket 2.2: footer link to `/account/notifications` (null = no link). */
+  readonly manageUrl?: string | null;
+  /** Paket 2.2: the ticket list of a digest e-mail. */
+  readonly digest?: EmailDigestList | null;
+};
+
+export type EmailDigestRow = {
+  readonly ticketNumber: string;
+  /** Empty for confidential tickets (number only, decision E3). */
+  readonly title: string;
+  readonly statusLabel: string;
+  readonly eventLabel: string;
+  readonly eventCount: number;
+  readonly url: string | null;
+};
+
+export type EmailDigestList = {
+  readonly rows: readonly EmailDigestRow[];
+  /** "and N more …" line, already localized. */
+  readonly more: string | null;
 };
 
 export type RenderedEmailMessage = {
@@ -76,6 +96,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
   // A full description may be long; the body keeps its paragraphs either way.
   const excerpt = confidential || input.excerpt === null ? null : truncate(input.excerpt);
   const ctaUrl = safeUrl(input.ctaUrl);
+  const manageUrl = safeUrl(input.manageUrl ?? null);
   const footerNote =
     input.replyMode === 'shared_mailbox' ? labels.footerReply : labels.footerNoReply;
   const rows: [string, string][] =
@@ -98,13 +119,16 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     ...(confidential ? ['', `[${labels.confidential}]`] : []),
     ...(rows.length > 0 ? ['', ...rows.map(([label, value]) => `${label}: ${value}`)] : []),
     ...(excerpt === null ? [] : ['', `${labels.message}:`, quote(excerpt)]),
+    ...digestText(input.digest ?? null, labels.digestEventCount),
     ...(ctaUrl === null ? [] : ['', `${cta}: ${ctaUrl}`]),
     ...(footer.trim().length > 0 ? ['', footer] : []),
     '',
     '—',
     input.appName,
     ...(input.ticket === null ? [] : [labels.footerReason]),
+    ...(input.digest ? [labels.digestFooterReason] : []),
     footerNote,
+    ...(manageUrl === null ? [] : [`${labels.manageNotifications}: ${manageUrl}`]),
   ].join('\n');
 
   const accent = resolveAccent(
@@ -124,9 +148,13 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     ctaUrl,
     linkFallback: labels.linkFallback,
     footer,
-    footerReason: input.ticket === null ? null : labels.footerReason,
+    footerReason:
+      input.ticket !== null ? labels.footerReason : input.digest ? labels.digestFooterReason : null,
     footerNote,
     accent,
+    digestHtml: digestHtml(input.digest ?? null, labels.digestEventCount),
+    manageLabel: labels.manageNotifications,
+    manageUrl,
   });
   return { subject, html, text };
 }
@@ -148,6 +176,9 @@ function renderHtml(view: {
   readonly footerReason: string | null;
   readonly footerNote: string;
   readonly accent: { readonly background: string; readonly foreground: string };
+  readonly digestHtml: string;
+  readonly manageLabel: string;
+  readonly manageUrl: string | null;
 }): string {
   const e = escapeHtml;
   const cardRows = view.rows
@@ -197,13 +228,63 @@ function renderHtml(view: {
     `<div style="color:#374151;font-size:14px;line-height:1.6;">${paragraphs(view.body)}</div>` +
     card +
     excerpt +
+    view.digestHtml +
     button +
     footer +
     `</td></tr>` +
     `<tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">` +
     (view.footerReason === null ? '' : `${e(view.footerReason)}<br>`) +
-    `${e(view.footerNote)}</td></tr>` +
+    `${e(view.footerNote)}` +
+    (view.manageUrl === null
+      ? ''
+      : `<br><a href="${e(view.manageUrl)}" style="color:#374151;">${e(view.manageLabel)}</a>`) +
+    `</td></tr>` +
     `</table></td></tr></table></body></html>`
+  );
+}
+
+function digestText(digest: EmailDigestList | null, countLabel: string): string[] {
+  if (digest === null || digest.rows.length === 0) {
+    return [];
+  }
+  const lines = digest.rows.map((row) => {
+    const title = row.title.trim().length > 0 ? ` ${row.title}` : '';
+    const count = row.eventCount > 1 ? ` (${countLabel.replace('{count}', String(row.eventCount))})` : '';
+    const url = row.url === null ? '' : `\n  ${row.url}`;
+    return `- [${row.ticketNumber}]${title} — ${row.eventLabel}, ${row.statusLabel}${count}${url}`;
+  });
+  return ['', ...lines, ...(digest.more === null ? [] : ['', digest.more])];
+}
+
+function digestHtml(digest: EmailDigestList | null, countLabel: string): string {
+  if (digest === null || digest.rows.length === 0) {
+    return '';
+  }
+  const e = escapeHtml;
+  const rows = digest.rows
+    .map((row) => {
+      const safe = safeUrl(row.url);
+      const number = safe === null
+        ? e(row.ticketNumber)
+        : `<a href="${e(safe)}" style="color:#111827;font-weight:600;text-decoration:none;">${e(row.ticketNumber)}</a>`;
+      const count = row.eventCount > 1 ? ` · ${e(countLabel.replace('{count}', String(row.eventCount)))}` : '';
+      const title = row.title.trim().length > 0
+        ? `<div style="color:#111827;font-size:13px;margin-top:2px;">${e(row.title)}</div>`
+        : '';
+      return (
+        `<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;">` +
+        `<div style="font-size:13px;">${number}</div>${title}` +
+        `<div style="color:#6b7280;font-size:12px;margin-top:2px;">${e(row.eventLabel)} · ${e(row.statusLabel)}${count}</div>` +
+        `</td></tr>`
+      );
+    })
+    .join('');
+  const more = digest.more === null
+    ? ''
+    : `<p style="margin:12px 0 0;color:#6b7280;font-size:13px;">${e(digest.more)}</p>`;
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;">${rows}</table>` +
+    more
   );
 }
 

@@ -1,6 +1,8 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { NotificationPayload, NotificationRecord } from '../notifications.types';
 import type { NotificationType } from '../notifications.constants';
+import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
+import { resolveDeliveryDecisions } from '../preferences/resolve-delivery-decisions';
 
 export async function persistInAppNotification(
   prisma: PrismaService,
@@ -13,7 +15,17 @@ export async function persistInAppNotification(
     readonly payload: NotificationPayload;
     readonly dedupeKey: string;
   },
+  /** Paket 2.2: honour the recipient's in-app choice (security types always pass). */
+  policy?: NotificationPreferencePolicy,
 ): Promise<NotificationRecord | null> {
+  if (policy !== undefined) {
+    const decision = (
+      await resolveDeliveryDecisions(prisma, policy, { type: input.type, userIds: [input.userId] })
+    ).get(input.userId);
+    if (decision?.inApp === false) {
+      return null;
+    }
+  }
   try {
     return (await prisma.notification.create({
       data: {

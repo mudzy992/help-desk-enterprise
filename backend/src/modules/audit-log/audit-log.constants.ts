@@ -48,6 +48,8 @@ export const auditLogActions = {
   authMfaFailed: 'auth.mfa_failed',
   authSessionRevoked: 'auth.session_revoked',
   authSessionsRevokedAll: 'auth.sessions_revoked_all',
+  // Paket 2.2: an administrator reset a user's notification preferences.
+  notificationPreferencesReset: 'notification.preferences.reset',
   authPasswordChanged: 'auth.password_changed',
   authPasswordExpired: 'auth.password_expired',
   directoryTestConnection: 'directory.test_connection',

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { NotificationsList } from "@/components/layout/notifications-list";
 import { Segmented } from "@/components/ui/segmented";
@@ -58,6 +60,15 @@ export function NotificationsPanel({
           >
             {t("notifications.markAllRead")}
           </button>
+          <Link
+            to="/account/notifications"
+            onClick={onClose}
+            aria-label={t("account.notifications.menu")}
+            title={t("account.notifications.menu")}
+            className="rounded-md p-1 text-muted-foreground transition-colors duration-150 hover:bg-surface-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+          >
+            <Settings2 size={14} aria-hidden="true" />
+          </Link>
         </div>
       </div>
       <NotificationsList

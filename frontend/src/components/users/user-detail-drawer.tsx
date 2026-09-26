@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { UserAdminActions } from "@/components/users/user-admin-actions";
 import { UserDetailForm } from "@/components/users/user-detail-form";
 import { UserRolesSection } from "@/components/users/user-roles-section";
+import { UserNotificationPreferencesSection } from "@/components/users/user-notification-preferences-section";
 import { UserSecuritySection } from "@/components/users/user-security-section";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -97,6 +98,14 @@ export function UserDetailDrawer({
                 {t("users.security.heading")}
               </h3>
               <UserSecuritySection userId={user.id} />
+            </section>
+          ) : null}
+          {canManage && !isSelf ? (
+            <section>
+              <h3 className="mb-3 text-[12px] font-medium text-foreground">
+                {t("users.notifications.heading")}
+              </h3>
+              <UserNotificationPreferencesSection userId={user.id} />
             </section>
           ) : null}
           {canManage ? (

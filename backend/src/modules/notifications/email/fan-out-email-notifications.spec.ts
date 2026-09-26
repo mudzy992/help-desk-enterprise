@@ -9,6 +9,7 @@ import {
 } from '../../tickets/create-tickets-service-harness';
 import { toTicketRealtimePayload } from '../../tickets/to-collaboration-response';
 import { vpnCreateInput } from '../../tickets/vpn-create-input';
+import { defaultNotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 
 jest.mock('../../../common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -163,6 +164,99 @@ describe('email notification fan-out', () => {
     await ingestEmail(harness, createRecordingTransport(), enabledConfiguration());
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe('email fan-out with personal preferences (paket 2.2)', () => {
+  function withPreferences(
+    prisma: unknown,
+    rows: Array<{ userId: string; category: string; inApp: boolean | null; email: string | null }>,
+  ) {
+    const held: unknown[] = [];
+    const proxy = new Proxy(prisma as object, {
+      get(target, property, receiver) {
+        if (property === 'userNotificationPreference') {
+          return {
+            findMany: async (args: { where: { userId: { in: string[] }; category: string } }) =>
+              rows.filter(
+                (row) => args.where.userId.in.includes(row.userId) && row.category === args.where.category,
+              ),
+          };
+        }
+        if (property === 'userNotificationSchedule') {
+          return { findMany: async () => [] };
+        }
+        if (property === 'notificationDigestItem') {
+          return {
+            createMany: async (args: { data: unknown[] }) => {
+              held.push(...args.data);
+              return { count: args.data.length };
+            },
+          };
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    return { proxy, held };
+  }
+
+  async function ingestWith(
+    harness: Awaited<ReturnType<typeof routedWithInternalAgent>>,
+    prisma: unknown,
+    mail: MailTransport,
+  ) {
+    for (const message of harness.memory.messages.values()) {
+      const ticket = harness.memory.tickets.get(message.ticketId);
+      if (ticket === undefined) continue;
+      await fanOutEmailNotifications(
+        prisma as never,
+        enabledConfiguration(),
+        mail,
+        toTicketRealtimePayload(message, ticket),
+        undefined,
+        defaultNotificationPreferencePolicy,
+      );
+    }
+  }
+
+  it('holds the e-mail for the digest instead of sending it', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const { proxy, held } = withPreferences(harness.memory.prisma, [
+      { userId: ticketsTestIds.agentIt, category: 'ticket.created', inApp: null, email: 'DIGEST' },
+    ]);
+    const mail = createRecordingTransport();
+    await ingestWith(harness, proxy, mail);
+    expect(mail.messages).toEqual([]);
+    expect(held).toEqual([
+      expect.objectContaining({
+        userId: ticketsTestIds.agentIt,
+        category: 'ticket.created',
+        type: 'ticket.created',
+        reason: 'DIGEST',
+      }),
+    ]);
+  });
+
+  it('sends nothing when the user turned the e-mail off', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const { proxy, held } = withPreferences(harness.memory.prisma, [
+      { userId: ticketsTestIds.agentIt, category: 'ticket.created', inApp: null, email: 'OFF' },
+    ]);
+    const mail = createRecordingTransport();
+    await ingestWith(harness, proxy, mail);
+    expect(mail.messages).toEqual([]);
+    expect(held).toEqual([]);
+  });
+
+  it('keeps sending immediately for users without preferences', async () => {
+    const harness = await routedWithInternalAgent();
+    await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
+    const { proxy } = withPreferences(harness.memory.prisma, []);
+    const mail = createRecordingTransport();
+    await ingestWith(harness, proxy, mail);
+    expect(mail.messages).toHaveLength(1);
   });
 });
 

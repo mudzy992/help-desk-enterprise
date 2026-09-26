@@ -104,6 +104,13 @@ const bs: EmailTemplateSet = {
     'Tim podrške šalje obavještenje za tiket {{ticketNumber}}.',
     'Otvori tiket',
   ),
+  'notification.digest': content(
+    'Sažetak obavještenja ({{itemCount}})',
+    'Sažetak obavještenja ({{itemCount}})',
+    'Vaš sažetak obavještenja',
+    'Poštovani/a {{recipientName}}, ovo su tiketi s novim događajima od posljednjeg sažetka.',
+    'Otvori tikete',
+  ),
   'user.temporary_password': content(
     'Privremena lozinka za {{appName}}',
     'Privremena lozinka za {{appName}}',
@@ -187,6 +194,13 @@ const en: EmailTemplateSet = {
     'A notice about your ticket',
     'The support team sent a notice about ticket {{ticketNumber}}.',
     'Open ticket',
+  ),
+  'notification.digest': content(
+    'Notification digest ({{itemCount}})',
+    'Notification digest ({{itemCount}})',
+    'Your notification digest',
+    'Dear {{recipientName}}, these tickets had new activity since your last digest.',
+    'Open tickets',
   ),
   'user.temporary_password': content(
     'Temporary password for {{appName}}',

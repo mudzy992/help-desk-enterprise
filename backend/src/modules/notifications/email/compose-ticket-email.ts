@@ -123,6 +123,11 @@ export function composeTicketEmail(input: {
       input.key === 'ticket.broadcast' || presentation.includeMessageExcerpt ? input.excerpt : null,
     ctaUrl: ticketUrl,
     replyMode: presentation.replyMode,
+    // Paket 2.2 (N9): a broadcast is an administrative message, not a preference.
+    manageUrl:
+      presentation.publicUrl === null || input.key === 'ticket.broadcast'
+        ? null
+        : `${presentation.publicUrl}/account/notifications`,
   });
   const domain = mailDomain(configuration.smtp?.fromAddress);
   const threadRoot = `<ticket-${ticket.id}@${domain}>`;

@@ -1,3 +1,4 @@
+import { composeDigestEmail } from './compose-digest-email';
 import { composeTicketEmail } from './compose-ticket-email';
 import type { EmailLocale, EmailTemplateKey } from './email-template.constants';
 import type { EmailTemplateRegistry } from './email-template.types';
@@ -55,6 +56,32 @@ export function renderEmailTemplatePreview(input: {
 }): RenderedEmailMessage {
   const { configuration, locale } = input;
   const sample = sampleText[locale];
+  if (input.key === 'notification.digest') {
+    const now = Date.now();
+    const tickets = new Map([
+      ['preview-1', { ...sampleTicket, id: 'preview-1', title: sample.title, isConfidential: false }],
+      [
+        'preview-2',
+        { ...sampleTicket, id: 'preview-2', ticketNumber: 'HD-2026-000124', status: 'IN_PROGRESS', title: sample.service, isConfidential: input.confidential },
+      ],
+    ]);
+    const composed = composeDigestEmail({
+      configuration,
+      templates: input.templates,
+      locale,
+      recipientId: 'preview',
+      recipientName: input.recipientName,
+      items: [
+        { ticketId: 'preview-1', category: 'ticket.message', createdAt: new Date(now - 60_000) },
+        { ticketId: 'preview-1', category: 'ticket.assigned', createdAt: new Date(now - 3_600_000) },
+        { ticketId: 'preview-2', category: 'ticket.created', createdAt: new Date(now - 7_200_000) },
+      ],
+      tickets,
+      maxItems: 50,
+      dedupeKey: 'preview:notification.digest',
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
   if (input.key === 'user.temporary_password') {
     const loginUrl =
       configuration.presentation.publicUrl === null
