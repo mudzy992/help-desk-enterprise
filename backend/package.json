@@ -16,7 +16,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:init": "prisma migrate deploy && prisma db seed",
-    "cli:reset-mfa": "node dist/src/cli/reset-mfa.js"
+    "cli:reset-mfa": "node dist/src/cli/reset-mfa.js",
+    "cli:apply-settings": "node dist/src/cli/apply-settings.js"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.4",

@@ -75,6 +75,17 @@ docker compose down -v && rm -rf export .env
 
 ## 2. Povezivanje aplikacije s testnim AD-om
 
+**Brže (sve odjednom):** na serveru, iz `ops/dev/samba-ad/`:
+
+```bash
+./apply-settings.sh --dry-run   # validacija
+./apply-settings.sh             # upis (change log: akter „server")
+# varijante: ROLE_SOURCE=ad_groups | OU_STRATEGY=by_company_department | STRATEGY=scheduled | COOLDOWN=15
+# ako auto-detekcija ne nađe kontejner: BACKEND_CONTAINER=<ime iz docker ps> ./apply-settings.sh
+```
+
+Skripta upisuje vrijednosti iz tabele ispod kroz istu validaciju i change log kao UI (`node dist/src/cli/apply-settings.js`). Ručno:
+
 Kao SUPER_ADMIN otvorite **Postavke → Autentikacija** i podesite:
 
 | Ključ | Vrijednost za test |
