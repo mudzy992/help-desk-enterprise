@@ -43,7 +43,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | Zahtjev | Stanje | Gdje |
 |---|---|---|
 | Lokalni dev auth sa istim claims modelom | ✅ | `authentication/`, `authorization-provider-independence.spec` |
-| Entra ID SSO, SuperAdmin samo lokalni | ✅ kod (paket 1.8: MSAL redirect, `/auth/callback`, vezivanje `oid`, JIT kao USER) · 🔎V1 verifikacija na tenantu (`docs/ops/test-okruzenje-1.8.md` §3) | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
+| Entra ID SSO, SuperAdmin samo lokalni | ✅ kod (paket 1.8: MSAL redirect, `/auth/callback`, vezivanje `oid`, JIT kao USER) · 🔎V1 **nekompletirano**: kod implementiran, testovi na tenantu odgođeni (`docs/ops/test-okruzenje-1.8.md` §3) | `entra-authentication.provider.ts`, `assert-super-admin-is-local-only.ts` |
 | AD sync (manual-only, throttle, cache, scope) | ✅ kod (paket 1.8) · 🔎V2 | `directory-sync/ldaps/` — LDAPS (ldapts), test/probni prolaz/primjena, osigurač 10 %, raspored; testni AD: `ops/dev/samba-ad/`; odstupanja O1–O9 u `docs/ops/test-okruzenje-1.8.md` §6 |
 | OU stablo + mapiranje korisnika | ✅ | `organizational-units/`, `materialize-directory-read.ts` |
 | RBAC + OU izolacija, SuperAdmin globalno | ✅ | `authorization/evaluate-authorization-access.*` |

@@ -122,6 +122,8 @@ Iza svakog koraka piše šta se očekuje. Rezultate unesite u zapisnik (§5).
 
 ## 3. Besplatni Microsoft Entra tenant (SSO, checklista V1)
 
+> **Status (2026-09-26): nekompletirano.** Kod je implementiran (MSAL redirect, `/auth/callback`, vezivanje `oid`, JIT), a testovi E1–E7 su odgođeni za kasnije, po odluci korisnika. Do tada V1 ostaje otvoren.
+
 Tenant preduzeća nije potreban. Svaki Microsoft nalog može napraviti vlastiti **Entra ID Free** tenant:
 
 1. Na <https://portal.azure.com> se prijavite privatnim Microsoft nalogom. Ako nemate Azure pretplatu, napravite je. Entra ID Free se ne naplaćuje, a kartica se traži samo za verifikaciju identiteta.
