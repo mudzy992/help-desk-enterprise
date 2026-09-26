@@ -4,6 +4,11 @@
 #   seed.sh                 # base data set (~30 users)
 #   seed.sh --bulk 500      # plus N generated users in OU=Masovni
 set -uo pipefail
+# Pokrenuto na hostu → proslijedi u kontejner (samba-tool radi samo nad bazom DC-a).
+if [ ! -f /var/lib/samba/private/sam.ldb ] && [ -f "$(dirname "$0")/docker-compose.yml" ]; then
+  cd "$(dirname "$0")"
+  exec docker compose exec -T samba-ad "$(basename "$0")" "$@"
+fi
 
 REALM="${SAMBA_REALM:-TEST.EPBIH.LAB}"
 BASE="DC=$(echo "${REALM,,}" | sed 's/\./,DC=/g')"

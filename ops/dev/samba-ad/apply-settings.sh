@@ -10,6 +10,9 @@
 # Lozinka za bind se čita iz .env (SVC_BIND_PASSWORD) i ne ispisuje se.
 set -euo pipefail
 cd "$(dirname "$0")"
+for arg in "$@"; do
+  [ "$arg" = "--dry-run" ] || { echo "Nepoznat argument: $arg (dozvoljeno samo --dry-run; scenariji idu kroz ./scenario.sh)"; exit 2; }
+done
 
 [ -f .env ] || { echo "Nema .env (cp .env.example .env)"; exit 1; }
 SVC_BIND_PASSWORD="$(grep -E '^SVC_BIND_PASSWORD=' .env | head -1 | cut -d= -f2-)"
