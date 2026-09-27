@@ -119,7 +119,10 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   pojedinačnih e-mailova za agente.
 - Admin može zaključati obavezne notifikacije (npr. odobrenja).
 
-### 2.3 Odgovor e-mailom (inbound)  · ~5 RD
+### 2.2a Sedmični pregled tiketa agentima (e-mail)  · ~1,5 RD · dizajn: `modules/2.2a-sedmicni-pregled-tiketa-agentima.md`
+- Pojašnjenje klijenta (2026-09-27): sedmično agentu lista otvorenih tiketa u kojima je učesnik (dodijeljen/gost), sa statusom — podsjetnik šta treba riješiti.
+
+### 2.3 Odgovor e-mailom (inbound)  · ~5,5 RD · dizajn: `modules/2.3-odgovor-emailom.md`
 - Poštanski sandučić (IMAP/Graph) koji worker čita; odgovor na notifikaciju postaje poruka na
   tiketu (prepoznavanje po threading zaglavljima + tokenu u adresi/predmetu).
 - Opcionalno: novi e-mail na adresu podrške kreira tiket (servis „Opšti upit", routing po
