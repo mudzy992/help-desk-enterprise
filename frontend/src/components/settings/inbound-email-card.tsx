@@ -148,26 +148,28 @@ export function InboundEmailCard() {
         </div>
       </div>
       <Sheet open={logOpen} onOpenChange={setLogOpen}>
-        <SheetContent className="w-full max-w-xl overflow-y-auto">
-          <SheetTitle className="text-[15px] font-semibold">{t("settings.inboundEmail.logTitle")}</SheetTitle>
-          <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
-            {t("settings.inboundEmail.logSubtitle")}
-          </SheetDescription>
-          <ul className="mt-4 divide-y divide-border text-[12px]" data-testid="inbound-email-log">
+        <SheetContent side="right" className="flex w-full max-w-xl flex-col p-0">
+          <div className="border-b border-border px-5 py-4 pr-12">
+            <SheetTitle className="text-[15px] font-semibold text-foreground">{t("settings.inboundEmail.logTitle")}</SheetTitle>
+            <SheetDescription className="mt-1 text-[12px] leading-5 text-muted-foreground">
+              {t("settings.inboundEmail.logSubtitle")}
+            </SheetDescription>
+          </div>
+          <ul className="flex-1 space-y-2 overflow-y-auto px-5 py-4 text-[12px]" data-testid="inbound-email-log">
             {(status?.recent ?? []).length === 0 ? (
-              <li className="py-6 text-center text-muted-foreground">{t("settings.inboundEmail.logEmpty")}</li>
+              <li className="py-10 text-center text-muted-foreground">{t("settings.inboundEmail.logEmpty")}</li>
             ) : null}
             {(status?.recent ?? []).map((entry) => {
               const reason = toInboundReasonKey(entry.reason);
               return (
-                <li key={entry.id} className="space-y-1 py-2.5">
-                  <div className="flex items-center justify-between gap-2">
+                <li key={entry.id} className="space-y-1.5 rounded-lg border border-border bg-elevated/40 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3">
                     <Badge tone={statusTones[entry.status]}>{t(`settings.inboundEmail.statuses.${entry.status}`)}</Badge>
-                    <RelativeTime value={entry.createdAt} locale={i18n.language} className="text-muted-foreground" />
+                    <RelativeTime value={entry.createdAt} locale={i18n.language} className="text-[11px] text-muted-foreground" />
                   </div>
-                  <p className="truncate text-foreground/90">{entry.subject.length > 0 ? entry.subject : "—"}</p>
-                  <p className="flex flex-wrap items-center gap-x-2 text-muted-foreground">
-                    <span>{entry.fromAddress ?? "—"}</span>
+                  <p className="truncate font-medium text-foreground/90">{entry.subject.length > 0 ? entry.subject : "—"}</p>
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                    <span className="break-all">{entry.fromAddress ?? "—"}</span>
                     {reason !== null ? <span>· {t(`settings.inboundEmail.reasons.${reason}`)}</span> : null}
                     {entry.ticketId !== null ? (
                       <Link className="text-link hover:underline" to={`/tickets/${entry.ticketId}`}>

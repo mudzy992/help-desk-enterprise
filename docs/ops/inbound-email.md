@@ -55,6 +55,16 @@ Folderi `HelpDesk/Obradjeno` i `HelpDesk/Odbijeno` se kreiraju sami pod Inboxom.
 
 Port 993 koristi implicitni TLS, a ostali portovi STARTTLS kad je `imap.tls = da`.
 
+### 3.1 Gmail — brzo podešavanje
+
+Koristi se isti Gmail nalog i isti app password kao za SMTP. U Gmailu mora biti uključen IMAP (Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP; na novijim nalozima je uvijek uključen).
+
+```bash
+bash ops/inbound/apply-gmail-imap.sh <backend-kontejner>
+```
+
+Skripta pita samo adresu i app password. Postavlja provider `imap`, `imap.gmail.com:993` s TLS-om, korisnika = adresu i `requireAuthPass = da` (Gmail dodaje `Authentication-Results`). Folderi `HelpDesk/Obradjeno` i `HelpDesk/Odbijeno` se u Gmailu pojavljuju kao labele. U e-mail postavkama treba izabrati „zajednički sandučić” s Reply-To = ta ista adresa.
+
 ## 4. Pravila obrade (sažetak)
 
 | Situacija | Ishod |
