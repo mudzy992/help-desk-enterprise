@@ -43,15 +43,42 @@ export function aggregateBottleneckHoursByGroup(input: {
       count: current.count + 1,
     });
   }
-  return [...totals.entries()]
-    .map(([key, total]) => ({
+  return rankBottleneckBars(
+    [...totals.entries()].map(([key, total]) => ({
       key,
-      label:
-        key.length === 0
-          ? input.unroutedLabel
-          : (input.groupNames.get(key) ?? key),
-      value: roundToOneDecimal(total.hours / total.count),
-    }))
+      name: input.groupNames.get(key) ?? null,
+      totalHours: total.hours,
+      count: total.count,
+    })),
+    input.unroutedLabel,
+  );
+}
+
+/** Shared by the in-memory and the SQL dashboard (paket 2.5 §2.2). */
+export function rankBottleneckBars(
+  totals: readonly {
+    readonly key: string;
+    readonly name: string | null;
+    readonly totalHours: number;
+    readonly count: number;
+  }[],
+  unroutedLabel: string,
+): readonly ReportDashboardNamedBar[] {
+  return rankNamedBars(
+    totals
+      .filter((total) => total.count > 0)
+      .map((total) => ({
+        key: total.key,
+        label: total.key.length === 0 ? unroutedLabel : (total.name ?? total.key),
+        value: roundToOneDecimal(total.totalHours / total.count),
+      })),
+  );
+}
+
+export function rankNamedBars(
+  bars: readonly ReportDashboardNamedBar[],
+): readonly ReportDashboardNamedBar[] {
+  return [...bars]
     .sort(
       (left, right) =>
         right.value - left.value || left.label.localeCompare(right.label),
@@ -71,17 +98,13 @@ export function aggregateServiceVolume(input: {
     }
     counts.set(ticket.serviceId, (counts.get(ticket.serviceId) ?? 0) + 1);
   }
-  return [...counts.entries()]
-    .map(([key, value]) => ({
+  return rankNamedBars(
+    [...counts.entries()].map(([key, value]) => ({
       key,
       label: input.serviceNames.get(key) ?? key,
       value,
-    }))
-    .sort(
-      (left, right) =>
-        right.value - left.value || left.label.localeCompare(right.label),
-    )
-    .slice(0, reportChartBarLimit);
+    })),
+  );
 }
 
 export function aggregateAgingBuckets(input: {

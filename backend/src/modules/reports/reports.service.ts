@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { aggregateBottleneckDashboard } from './bottleneck/aggregate-bottleneck-dashboard';
+import { loadBottleneckDashboardFromSql } from './bottleneck/sql-bottleneck-dashboard-store';
 import { buildReportPackRows, reportPackColumns } from './build-report-pack-rows';
 import {
   buildReportsDashboard,
@@ -164,6 +165,10 @@ export class ReportsService {
       this.prisma,
       query.organizationalUnitId,
     );
+    if (typeof this.prisma.$queryRaw === 'function') {
+      // Paket 2.5 §2.2: aggregated in PostgreSQL, no ticket rows loaded.
+      return loadBottleneckDashboardFromSql(this.prisma, scopedIds, window);
+    }
     const tickets = await loadScopedReportTickets(this.prisma, scopedIds, false);
     return aggregateBottleneckDashboard({ tickets, window });
   }

@@ -8,16 +8,21 @@ import {
   aggregateAgingBuckets,
   aggregateBottleneckHoursByGroup,
   aggregateServiceVolume,
+  rankBottleneckBars,
+  rankNamedBars,
 } from './aggregate-report-dashboard-charts';
 import {
   aggregateReportDashboardKpis,
   previousReportWindow,
+  reportDashboardKpisFromTotals,
   type ReportDashboardKpis,
 } from './aggregate-report-dashboard-kpis';
 import {
   aggregateReportVolumeSeries,
+  buildReportVolumeSeries,
   type ReportDashboardVolumePoint,
 } from './aggregate-report-volume-series';
+import { loadReportsDashboardAggregates } from './sql-reports-dashboard-store';
 import type {
   ReportDashboardAging,
   ReportDashboardNamedBar,
@@ -54,6 +59,37 @@ export async function buildReportsDashboard(input: {
     input.prisma,
     input.query.organizationalUnitId,
   );
+  const unroutedLabel = input.unroutedLabel ?? 'Unrouted';
+  if (typeof input.prisma.$queryRaw === 'function') {
+    const [aggregates, kbHelpedCount] = await Promise.all([
+      loadReportsDashboardAggregates(input.prisma, scopedIds, window, previousWindow, now),
+      countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
+    ]);
+    return {
+      window: { from: window.from.toISOString(), to: window.to.toISOString() },
+      previousWindow: {
+        from: previousWindow.from.toISOString(),
+        to: previousWindow.to.toISOString(),
+      },
+      ticketCount: aggregates.ticketCount,
+      kpis: reportDashboardKpisFromTotals({ ...aggregates.kpis, kbHelpedCount }),
+      bottleneckByGroup: rankBottleneckBars(aggregates.groups, unroutedLabel),
+      serviceVolume: rankNamedBars(
+        aggregates.services.map((service) => ({
+          key: service.key,
+          label: service.name ?? service.key,
+          value: service.count,
+        })),
+      ),
+      volumeSeries: buildReportVolumeSeries({
+        window,
+        createdByDay: aggregates.createdByDay,
+        resolvedByDay: aggregates.resolvedByDay,
+      }),
+      aging: aggregates.aging,
+    };
+  }
+  // Reference path (in-memory test clients without `$queryRaw`).
   const tickets = await loadScopedReportTickets(input.prisma, scopedIds, false);
   const [csatByTicketId, groupNames, serviceNames, kbHelpedCount] =
     await Promise.all([
@@ -86,7 +122,7 @@ export async function buildReportsDashboard(input: {
       tickets,
       window,
       groupNames,
-      unroutedLabel: input.unroutedLabel ?? 'Unrouted',
+      unroutedLabel,
     }),
     serviceVolume: aggregateServiceVolume({
       tickets,

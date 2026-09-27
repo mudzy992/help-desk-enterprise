@@ -13,6 +13,37 @@ export function aggregateReportVolumeSeries(input: {
   readonly tickets: readonly ReportTicketSnapshot[];
   readonly window: ReportWindow;
 }): readonly ReportDashboardVolumePoint[] {
+  const createdByDay = new Map<string, number>();
+  const resolvedByDay = new Map<string, number>();
+  for (const ticket of input.tickets) {
+    countDay(createdByDay, ticket.createdAt);
+    countDay(resolvedByDay, ticket.resolvedAt);
+  }
+  return buildReportVolumeSeries({ window: input.window, createdByDay, resolvedByDay });
+}
+
+/** `YYYY-MM-DD` of the UTC calendar day — the key the SQL store groups by. */
+export function utcDayKeyOf(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function countDay(counts: Map<string, number>, value: Date | null): void {
+  if (value === null) {
+    return;
+  }
+  const key = utcDayKeyOf(value);
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+/**
+ * Buckets per-UTC-day counts into the dashboard series (daily up to 31 days,
+ * otherwise 14 equal chunks). Shared by the in-memory and the SQL dashboard.
+ */
+export function buildReportVolumeSeries(input: {
+  readonly window: ReportWindow;
+  readonly createdByDay: ReadonlyMap<string, number>;
+  readonly resolvedByDay: ReadonlyMap<string, number>;
+}): readonly ReportDashboardVolumePoint[] {
   const days = enumerateUtcDays(input.window);
   if (days.length === 0) {
     return [];
@@ -32,9 +63,13 @@ export function aggregateReportVolumeSeries(input: {
       indexByKey.set(key, index);
     }
   });
-  for (const ticket of input.tickets) {
-    incrementBucket(buckets, indexByKey, ticket.createdAt, 'created');
-    incrementBucket(buckets, indexByKey, ticket.resolvedAt, 'resolved');
+  for (const [key, count] of input.createdByDay) {
+    const index = indexByKey.get(key);
+    if (index !== undefined) buckets[index].created += count;
+  }
+  for (const [key, count] of input.resolvedByDay) {
+    const index = indexByKey.get(key);
+    if (index !== undefined) buckets[index].resolved += count;
   }
   return buckets.map(({ d, created, resolved }) => ({ d, created, resolved }));
 }
@@ -90,30 +125,8 @@ function chunkDays(
   return buckets;
 }
 
-function incrementBucket(
-  buckets: Array<{ created: number; resolved: number }>,
-  indexByKey: ReadonlyMap<string, number>,
-  value: Date | null,
-  field: 'created' | 'resolved',
-): void {
-  if (value === null) {
-    return;
-  }
-  const index = indexByKey.get(
-    utcDayKey(
-      new Date(
-        Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
-      ),
-    ),
-  );
-  if (index === undefined) {
-    return;
-  }
-  buckets[index][field] += 1;
-}
-
 function utcDayKey(date: Date): string {
-  return `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
+  return utcDayKeyOf(date);
 }
 
 function formatDayMonthLabel(date: Date): string {

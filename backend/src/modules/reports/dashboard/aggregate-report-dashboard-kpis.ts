@@ -25,6 +25,22 @@ export function previousReportWindow(window: ReportWindow): ReportWindow {
   };
 }
 
+/** Sums and counts behind the KPI cards — what the SQL store returns. */
+export type ReportDashboardKpiTotals = {
+  readonly createdCount: number;
+  readonly previousCreatedCount: number;
+  readonly firstResponse: ReportDashboardSample;
+  readonly previousFirstResponse: ReportDashboardSample;
+  /** Hours. */
+  readonly resolution: ReportDashboardSample;
+  readonly previousResolution: ReportDashboardSample;
+  readonly csat: ReportDashboardSample;
+  readonly kbHelpedCount: number;
+};
+
+/** First response in minutes, resolution in hours, CSAT in points. */
+export type ReportDashboardSample = { readonly sum: number; readonly count: number };
+
 export function aggregateReportDashboardKpis(input: {
   readonly tickets: readonly ReportTicketSnapshot[];
   readonly csatByTicketId: ReadonlyMap<string, TicketCsatRecord>;
@@ -32,49 +48,41 @@ export function aggregateReportDashboardKpis(input: {
   readonly previousWindow: ReportWindow;
   readonly kbHelpedCount?: number;
 }): ReportDashboardKpis {
-  const createdCount = countCreated(input.tickets, input.window);
-  const previousCreated = countCreated(input.tickets, input.previousWindow);
-  const firstResponse = averageFirstResponseMinutes(
-    input.tickets,
-    input.window,
-  );
-  const previousFirstResponse = averageFirstResponseMinutes(
-    input.tickets,
-    input.previousWindow,
-  );
-  const resolution = averageResolutionHours(input.tickets, input.window);
-  const previousResolution = averageResolutionHours(
-    input.tickets,
-    input.previousWindow,
-  );
-  const csat = averageCsat(
-    input.tickets,
-    input.csatByTicketId,
-    input.window,
-  );
-  const kbHelpedCount = input.kbHelpedCount ?? 0;
-  const kbDenominator = kbHelpedCount + createdCount;
+  return reportDashboardKpisFromTotals({
+    createdCount: countCreated(input.tickets, input.window),
+    previousCreatedCount: countCreated(input.tickets, input.previousWindow),
+    firstResponse: firstResponseMinutes(input.tickets, input.window),
+    previousFirstResponse: firstResponseMinutes(input.tickets, input.previousWindow),
+    resolution: resolutionHours(input.tickets, input.window),
+    previousResolution: resolutionHours(input.tickets, input.previousWindow),
+    csat: csatRatings(input.tickets, input.csatByTicketId, input.window),
+    kbHelpedCount: input.kbHelpedCount ?? 0,
+  });
+}
+
+export function reportDashboardKpisFromTotals(
+  totals: ReportDashboardKpiTotals,
+): ReportDashboardKpis {
+  const firstResponse = averageOf(totals.firstResponse);
+  const previousFirstResponse = averageOf(totals.previousFirstResponse);
+  const resolution = roundedAverageOf(totals.resolution);
+  const previousResolution = roundedAverageOf(totals.previousResolution);
+  const kbDenominator = totals.kbHelpedCount + totals.createdCount;
   return {
-    createdCount,
-    createdDeltaPercent: percentChange(createdCount, previousCreated),
-    firstResponseMinutes: firstResponse.average,
-    firstResponseSampleCount: firstResponse.count,
-    firstResponseDeltaMinutes: deltaWhenBoth(
-      firstResponse.average,
-      previousFirstResponse.average,
-    ),
-    resolutionHours: resolution.average,
-    resolutionSampleCount: resolution.count,
-    resolutionDeltaHours: deltaWhenBoth(
-      resolution.average,
-      previousResolution.average,
-    ),
-    csatAverage: csat.average,
-    csatCount: csat.count,
-    csatScaleMax: csat.scaleMax,
-    kbHelpedCount,
+    createdCount: totals.createdCount,
+    createdDeltaPercent: percentChange(totals.createdCount, totals.previousCreatedCount),
+    firstResponseMinutes: firstResponse,
+    firstResponseSampleCount: totals.firstResponse.count,
+    firstResponseDeltaMinutes: deltaWhenBoth(firstResponse, previousFirstResponse),
+    resolutionHours: resolution,
+    resolutionSampleCount: totals.resolution.count,
+    resolutionDeltaHours: deltaWhenBoth(resolution, previousResolution),
+    csatAverage: roundedAverageOf(totals.csat),
+    csatCount: totals.csat.count,
+    csatScaleMax: 5,
+    kbHelpedCount: totals.kbHelpedCount,
     kbResolutionRate:
-      kbDenominator === 0 ? null : kbHelpedCount / kbDenominator,
+      kbDenominator === 0 ? null : totals.kbHelpedCount / kbDenominator,
   };
 }
 
@@ -86,10 +94,10 @@ function countCreated(
     .length;
 }
 
-function averageFirstResponseMinutes(
+function firstResponseMinutes(
   tickets: readonly ReportTicketSnapshot[],
   window: ReportWindow,
-): { average: number | null; count: number } {
+): ReportDashboardSample {
   const samples: number[] = [];
   for (const ticket of tickets) {
     if (!isInWindow(ticket.createdAt, window) || ticket.firstResponseAt === null) {
@@ -100,13 +108,13 @@ function averageFirstResponseMinutes(
       samples.push(minutes);
     }
   }
-  return averageOf(samples);
+  return sampleOf(samples);
 }
 
-function averageResolutionHours(
+function resolutionHours(
   tickets: readonly ReportTicketSnapshot[],
   window: ReportWindow,
-): { average: number | null; count: number } {
+): ReportDashboardSample {
   const samples: number[] = [];
   for (const ticket of tickets) {
     if (ticket.resolvedAt === null || !isInWindow(ticket.resolvedAt, window)) {
@@ -117,37 +125,25 @@ function averageResolutionHours(
       samples.push(hours);
     }
   }
-  const result = averageOf(samples);
-  return {
-    average:
-      result.average === null ? null : roundToOneDecimal(result.average),
-    count: result.count,
-  };
+  return sampleOf(samples);
 }
 
-function averageCsat(
+function csatRatings(
   tickets: readonly ReportTicketSnapshot[],
   csatByTicketId: ReadonlyMap<string, TicketCsatRecord>,
   window: ReportWindow,
-): { average: number | null; count: number; scaleMax: number } {
+): ReportDashboardSample {
   const ratings: number[] = [];
   for (const ticket of tickets) {
     if (!isInWindow(ticket.createdAt, window)) {
       continue;
     }
     const csat = csatByTicketId.get(ticket.id);
-    if (csat === undefined) {
-      continue;
+    if (csat !== undefined) {
+      ratings.push(csat.rating);
     }
-    ratings.push(csat.rating);
   }
-  const average = averageOf(ratings);
-  return {
-    average:
-      average.average === null ? null : roundToOneDecimal(average.average),
-    count: average.count,
-    scaleMax: 5,
-  };
+  return sampleOf(ratings);
 }
 
 function isInWindow(value: Date | null, window: ReportWindow): boolean {
@@ -172,14 +168,20 @@ function roundToOneDecimal(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
-function averageOf(
-  values: readonly number[],
-): { average: number | null; count: number } {
-  if (values.length === 0) {
-    return { average: null, count: 0 };
-  }
-  const sum = values.reduce((total, value) => total + value, 0);
-  return { average: sum / values.length, count: values.length };
+function sampleOf(values: readonly number[]): ReportDashboardSample {
+  return {
+    sum: values.reduce((total, value) => total + value, 0),
+    count: values.length,
+  };
+}
+
+function averageOf(sample: ReportDashboardSample): number | null {
+  return sample.count === 0 ? null : sample.sum / sample.count;
+}
+
+function roundedAverageOf(sample: ReportDashboardSample): number | null {
+  const average = averageOf(sample);
+  return average === null ? null : roundToOneDecimal(average);
 }
 
 function percentChange(current: number, previous: number): number | null {

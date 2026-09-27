@@ -47,6 +47,37 @@ const { buildReportTrendBuckets } = require(D + 'build-report-trend-buckets');
     if (!ok) { failed++; const A = JSON.parse(a), B = JSON.parse(b); for (const k of ['flow', 'csat', 'services']) if (JSON.stringify(A[k]) !== JSON.stringify(B[k])) { console.log(s.name, k, 'SQL', JSON.stringify(A[k]).slice(0, 600)); console.log(s.name, k, 'MEM', JSON.stringify(B[k]).slice(0, 600)); } }
     console.log(s.name, ok ? 'PARITY OK' : 'MISMATCH', `buckets=${plan.buckets.length} sql_ms=${ms}`);
   }
+  // Paket 2.5 §2.2: sanirani dashboard i uska grla vs. stara agregacija u memoriji.
+  const R = path.join(process.cwd(), 'dist/src/modules/reports/');
+  const { buildReportsDashboard } = require(R + 'dashboard/build-reports-dashboard');
+  const { loadBottleneckDashboardFromSql } = require(R + 'bottleneck/sql-bottleneck-dashboard-store');
+  const { aggregateBottleneckDashboard } = require(R + 'bottleneck/aggregate-bottleneck-dashboard');
+  const { loadScopedReportTickets } = require(R + 'load-scoped-report-tickets');
+  const withoutRaw = new Proxy(prisma, {
+    get: (target, key) => (key === '$queryRaw' ? undefined : typeof target[key] === 'function' ? target[key].bind(target) : target[key]),
+  });
+  const close = (a, b, at = '') => {
+    if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(a)) ? [] : [`${at}: ${a} != ${b}`];
+    if (a && b && typeof a === 'object') return [...new Set([...Object.keys(a), ...Object.keys(b)])].flatMap((k) => close(a[k], b[k], `${at}.${k}`));
+    return a === b ? [] : [`${at}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`];
+  };
+  const rootUnit = (await prisma.organizationalUnit.findMany({ select: { id: true, ouPath: true }, orderBy: { ouPath: 'asc' }, take: 1 }))[0];
+  if (rootUnit) {
+    const query = { organizationalUnitId: rootUnit.id };
+    const configuration = { reportsEnabled: true, defaultWindowDays: 30 };
+    const oldDashboard = await buildReportsDashboard({ prisma: withoutRaw, configuration, query, now });
+    const t = Date.now();
+    const newDashboard = await buildReportsDashboard({ prisma, configuration, query, now });
+    const dashboardDiff = close(oldDashboard, newDashboard);
+    if (dashboardDiff.length) { failed++; console.log(dashboardDiff.slice(0, 10).join('\n')); }
+    console.log('dashboard', dashboardDiff.length ? 'MISMATCH' : 'PARITY OK', `sql_ms=${Date.now() - t}`);
+    const window = { from: new Date(now.getTime() - 30 * 86400000), to: now };
+    const oldBottleneck = aggregateBottleneckDashboard({ tickets: await loadScopedReportTickets(prisma, units, false), window });
+    const newBottleneck = await loadBottleneckDashboardFromSql(prisma, units, window);
+    const bottleneckOk = JSON.stringify(oldBottleneck) === JSON.stringify(newBottleneck);
+    if (!bottleneckOk) failed++;
+    console.log('bottleneck', bottleneckOk ? 'PARITY OK' : 'MISMATCH');
+  }
   await prisma.$disconnect();
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(2); });
