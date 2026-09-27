@@ -40,6 +40,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   category('ticket.assigned', [notificationTypes.ticketAssigned], 1, both),
   category('ticket.forwarded', [notificationTypes.ticketForwarded], 1, both),
   category('ticket.message', [notificationTypes.ticketMessage], 0, both),
+  // Paket 2.4: default IMMEDIATE (see the policy defaults).
+  category('ticket.mentioned', [notificationTypes.ticketMentioned], 1, both),
   category(
     'ticket.outcome',
     [notificationTypes.ticketResolved, notificationTypes.ticketClosed],

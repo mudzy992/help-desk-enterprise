@@ -25,6 +25,8 @@ const notFoundCodes: readonly TicketsErrorCode[] = [
   'APPROVAL_NOT_FOUND',
   'HANDLER_GROUP_NOT_FOUND',
   'SAVED_VIEW_NOT_FOUND',
+  'LINK_NOT_FOUND',
+  'LINK_TARGET_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly TicketsErrorCode[] = [
@@ -55,6 +57,11 @@ const forbiddenCodes: readonly TicketsErrorCode[] = [
   'FORWARD_CROSS_OU_FORBIDDEN',
   'TIME_LOG_EDIT_WINDOW_EXPIRED',
   'MANUAL_TIME_DISABLED',
+  'MENTION_NO_ACCESS',
+  'MENTIONS_DISABLED',
+  'FOLLOWERS_DISABLED',
+  'FOLLOW_NOT_ALLOWED',
+  'LINKS_DISABLED',
 ];
 
 const unavailableCodes: readonly TicketsErrorCode[] = [
@@ -120,7 +127,11 @@ export function mapTicketError(error: unknown): HttpException {
     error.code === 'MERGE_PARENT_INVALID' ||
     error.code === 'MERGE_CHILD_INVALID' ||
     error.code === 'MERGE_CONFIDENTIAL_MISMATCH' ||
-    error.code === 'PLAYBOOK_REQUIRED_STEPS_OPEN'
+    error.code === 'PLAYBOOK_REQUIRED_STEPS_OPEN' ||
+    error.code === 'FOLLOWER_LIMIT_REACHED' ||
+    error.code === 'LINK_DUPLICATE' ||
+    error.code === 'LINK_MERGED' ||
+    error.code === 'LINK_LIMIT_REACHED'
   ) {
     return new ConflictException(body);
   }

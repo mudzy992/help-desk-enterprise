@@ -36,6 +36,11 @@ export function mapTicketEventToNotification(
   if (payload.type === 'USER_REPLY' || payload.type === 'AGENT_REPLY') {
     return { type: notificationTypes.ticketMessage, event: payload.type };
   }
+  // Paket 2.4 (C4): an internal note notifies only the colleagues it @mentions
+  // (the recipients come from `TicketMessageMention`; none = no notification).
+  if (payload.type === 'INTERNAL_NOTE') {
+    return { type: notificationTypes.ticketMentioned, event: payload.type };
+  }
   if (payload.type !== 'SYSTEM_EVENT') {
     return null;
   }

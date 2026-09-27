@@ -64,6 +64,8 @@ export const ticketChangeLogReasons = {
   update: 'ticket_update',
   participantAdd: 'ticket_participant_add',
   participantRemove: 'ticket_participant_remove',
+  linkAdd: 'ticket_link_add',
+  linkRemove: 'ticket_link_remove',
   timeStart: 'ticket_time_start',
   timeStop: 'ticket_time_stop',
   timeAutoStop: 'ticket_time_auto_stop',

@@ -93,6 +93,7 @@ function createScopedContext(
           permissionKeys.ticketPriorityOverride,
           permissionKeys.ticketBulkAssign,
           permissionKeys.ticketBulkStatusUpdate,
+          permissionKeys.ticketLinkManage,
           ...(roleKey === authorizationRoleKeys.admin
             ? [
                 permissionKeys.ticketBulkPriorityUpdate,

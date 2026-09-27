@@ -12,6 +12,7 @@ import {
   type NotificationType,
 } from '../notifications.constants';
 import { resolveSlaNotificationRecipients } from './resolve-sla-notification-recipients';
+import { filterFollowersWithAccess } from './follower-access-filter';
 
 export async function resolveNotificationRecipients(
   prisma: PrismaService,
@@ -21,6 +22,8 @@ export async function resolveNotificationRecipients(
     readonly actorUserId: string | null;
     readonly event?: string;
     readonly messageBody?: string;
+    /** Paket 2.4: the triggering message (an internal note's @mentions). */
+    readonly messageId?: string;
   },
 ): Promise<readonly string[]> {
   const recipients = await collectRecipients(prisma, input);
@@ -59,6 +62,8 @@ export async function resolveNotificationAudience(
     readonly actorUserId: string | null;
     readonly event?: string;
     readonly messageBody?: string;
+    /** Paket 2.4: the triggering message (an internal note's @mentions). */
+    readonly messageId?: string;
   },
 ): Promise<NotificationAudience> {
   const groupId = input.ticket.assignedGroupId;
@@ -87,6 +92,7 @@ export async function resolveNotificationAudience(
       input.ticket.requesterId,
       input.ticket.assignedUserId,
       ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
+      ...(await followerUserIds(prisma, input.ticket.id)),
     ]);
     return {
       userIds: personal,
@@ -127,7 +133,11 @@ export async function resolveNotificationAudience(
   // assignee and (by setting, recorded on the event) the requester.
   if (input.type === notificationTypes.ticketForwarded) {
     const extra = await forwardEventRecipients(prisma, input.messageBody);
-    const personal = withoutActor([input.ticket.assignedUserId, ...extra]);
+    const personal = withoutActor([
+      input.ticket.assignedUserId,
+      ...extra,
+      ...(await followerUserIds(prisma, input.ticket.id)),
+    ]);
     return {
       userIds: personal,
       group:
@@ -182,6 +192,8 @@ async function collectRecipients(
     readonly ticket: TicketRecord;
     readonly event?: string;
     readonly messageBody?: string;
+    /** Paket 2.4: the triggering message (an internal note's @mentions). */
+    readonly messageId?: string;
   },
 ): Promise<readonly string[]> {
   switch (input.type) {
@@ -195,7 +207,7 @@ async function collectRecipients(
         : [input.ticket.assignedUserId];
     case notificationTypes.ticketResolved:
     case notificationTypes.ticketClosed:
-      return [input.ticket.requesterId];
+      return [input.ticket.requesterId, ...(await followerUserIds(prisma, input.ticket.id))];
     case notificationTypes.ticketApproval:
       return participantUserIds(prisma, input.ticket.id, 'APPROVER');
     case notificationTypes.ticketSla:
@@ -208,11 +220,16 @@ async function collectRecipients(
           ? await groupMemberUserIds(prisma, input.ticket.assignedGroupId)
           : [input.ticket.assignedUserId]),
         ...(await forwardEventRecipients(prisma, input.messageBody)),
+        ...(await followerUserIds(prisma, input.ticket.id)),
       ];
     case notificationTypes.ticketTimeAutoStopped: {
       const ownerUserId = input.messageBody?.split(':')[2] ?? '';
       return ownerUserId.length === 0 ? [] : [ownerUserId];
     }
+    case notificationTypes.ticketMentioned:
+      return input.messageId === undefined
+        ? []
+        : loadMentionedUserIds(prisma, input.messageId);
     case notificationTypes.ticketMessage:
       return [
         input.ticket.requesterId,
@@ -221,6 +238,7 @@ async function collectRecipients(
           : [input.ticket.assignedUserId]),
         ...(await groupMemberUserIds(prisma, input.ticket.assignedGroupId)),
         ...(await participantUserIds(prisma, input.ticket.id, 'WATCHER')),
+        ...(await followerUserIds(prisma, input.ticket.id)),
       ];
     default:
       return [];
@@ -257,6 +275,33 @@ async function participantUserIds(
   return rows
     .map((row) => row.userId)
     .filter((userId): userId is string => userId !== null);
+}
+
+/** Paket 2.4: followers who can still see the ticket (fail-closed, see the filter). */
+async function followerUserIds(
+  prisma: PrismaService,
+  ticketId: string,
+): Promise<readonly string[]> {
+  const rows = await prisma.ticketParticipant.findMany({
+    where: { ticketId, role: 'FOLLOWER' },
+    select: { userId: true },
+  });
+  const ids = rows
+    .map((row) => row.userId)
+    .filter((userId): userId is string => userId !== null);
+  return filterFollowersWithAccess(ticketId, ids);
+}
+
+/** Paket 2.4: users @mentioned in the triggering internal note. */
+async function loadMentionedUserIds(
+  prisma: PrismaService,
+  messageId: string,
+): Promise<readonly string[]> {
+  const rows = await prisma.ticketMessageMention.findMany({
+    where: { messageId },
+    select: { userId: true },
+  });
+  return rows.map((row) => row.userId);
 }
 
 function unique(userIds: readonly string[]): readonly string[] {

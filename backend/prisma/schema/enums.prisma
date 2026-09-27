@@ -84,6 +84,8 @@ enum ParticipantRole {
   SYSTEM
   /// Package 1.2: requester of a ticket merged into this one (public read only).
   MERGED_REQUESTER
+  /// Paket 2.4 (C1): notifications only — never grants access to the ticket.
+  FOLLOWER
 }
 
 enum MessageType {

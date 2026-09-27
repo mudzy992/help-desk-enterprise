@@ -35,7 +35,7 @@ export async function acknowledgeEdgeRemoteRequest(
   }
   if (ticket.requesterId !== principal.subjectId) {
     const participant = await prisma.ticketParticipant.findFirst({
-      where: { ticketId: ticket.id, userId: principal.subjectId },
+      where: { ticketId: ticket.id, userId: principal.subjectId, role: { not: 'FOLLOWER' } },
       select: { id: true },
     });
     if (participant === null) {

@@ -41,6 +41,10 @@ export async function archiveClosedTicket(input: {
       actorUserId: null,
     }),
   );
+  // Paket 2.4 (C6): an archived ticket has no followers left.
+  await input.prisma.ticketParticipant.deleteMany({
+    where: { ticketId: updated.id, role: 'FOLLOWER' },
+  });
   await stopActiveTicketTimeLogs(input.prisma, {
     ticketIds: [updated.id],
     actorUserId: null,

@@ -73,6 +73,9 @@ model Ticket {
   notificationDigestItems NotificationDigestItem[]
   forwardEvents        TicketForwardEvent[]
   playbooks            TicketPlaybook[]
+  linksAsA             TicketLink[]               @relation("TicketLinkA")
+  linksAsB             TicketLink[]               @relation("TicketLinkB")
+  mentions             TicketMessageMention[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
 
@@ -139,6 +142,7 @@ model TicketMessage {
   ticket       Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author       User?             @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   attachments  TicketAttachment[]
+  mentions     TicketMessageMention[]
   createdAt    DateTime          @default(now())
 
   @@index([ticketId])
@@ -187,4 +191,36 @@ model TicketForwardEvent {
   @@index([ticketId, createdAt])
   @@index([toUnitId, createdAt])
   @@index([toGroupId, createdAt])
+}
+
+/// Paket 2.4 (B3): a colleague @mentioned in an internal note.
+model TicketMessageMention {
+  id        String        @id @default(cuid())
+  messageId String
+  ticketId  String
+  userId    String
+  message   TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  ticket    Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([messageId, userId])
+  @@index([userId, createdAt])
+  @@index([ticketId])
+}
+
+/// Paket 2.4 (D1): symmetric "related to" link; ticketAId < ticketBId.
+model TicketLink {
+  id              String   @id @default(cuid())
+  ticketAId       String
+  ticketBId       String
+  note            String?  @db.VarChar(200)
+  createdByUserId String?
+  ticketA         Ticket   @relation("TicketLinkA", fields: [ticketAId], references: [id], onDelete: Cascade)
+  ticketB         Ticket   @relation("TicketLinkB", fields: [ticketBId], references: [id], onDelete: Cascade)
+  createdBy       User?    @relation("TicketLinkCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+
+  @@unique([ticketAId, ticketBId])
+  @@index([ticketBId])
 }

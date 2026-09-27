@@ -43,6 +43,11 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
       "Correct or delete other people's time entries and see deleted entries (reason required, audited).",
   },
   {
+    key: permissionKeys.ticketLinkManage,
+    categoryId: ticket,
+    description: 'Link related tickets and remove such links (package 2.4).',
+  },
+  {
     key: permissionKeys.ticketTemplatesUse,
     categoryId: ticket,
     description:

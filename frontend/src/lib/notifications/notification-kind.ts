@@ -5,6 +5,7 @@ const KIND_BY_TYPE: Readonly<Record<string, NotificationKind>> = {
   "ticket.assigned": "ticket",
   "ticket.forwarded": "ticket",
   "ticket.message": "ticket",
+  "ticket.mentioned": "ticket",
   "ticket.resolved": "ticket",
   "ticket.closed": "ticket",
   "ticket.approval": "approval",
@@ -57,6 +58,7 @@ export function notificationTitleKey(
   | "notifications.items.ticketAssigned"
   | "notifications.items.ticketForwarded"
   | "notifications.items.ticketMessage"
+  | "notifications.items.ticketMentioned"
   | "notifications.items.ticketResolved"
   | "notifications.items.ticketClosed"
   | "notifications.items.ticketApproval"
@@ -81,6 +83,8 @@ export function notificationTitleKey(
       return "notifications.items.ticketForwarded";
     case "ticket.message":
       return "notifications.items.ticketMessage";
+    case "ticket.mentioned":
+      return "notifications.items.ticketMentioned";
     case "ticket.resolved":
       return "notifications.items.ticketResolved";
     case "ticket.closed":

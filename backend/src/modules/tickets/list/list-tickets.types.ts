@@ -31,6 +31,10 @@ export type TicketListQuery = {
    * once; `toMyGroups` = forwarded and currently in one of the caller's groups.
    */
   readonly forwarded?: 'any' | 'toMyGroups';
+  /** Paket 2.4 (C5): tickets the caller follows. */
+  readonly following?: boolean;
+  /** Paket 2.4 (B6): tickets where the caller was @mentioned in the last 30 days. */
+  readonly mentionedMe?: boolean;
   /** Package 1.7 (U3): unrouted past the cleanup deadline. */
   readonly unroutedOverdue?: boolean;
   /**

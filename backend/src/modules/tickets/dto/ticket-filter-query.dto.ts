@@ -64,6 +64,18 @@ export class TicketFilterQueryDto {
   @IsBoolean()
   unroutedOverdue?: boolean;
 
+  /** Paket 2.4 (C5): tickets I follow. */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  following?: boolean;
+
+  /** Paket 2.4 (B6): tickets where I was @mentioned in the last 30 days. */
+  @IsOptional()
+  @Transform(({ value }) => toQueryBoolean(value))
+  @IsBoolean()
+  mentionedMe?: boolean;
+
   @IsOptional()
   @IsIn(['any', 'toMyGroups'])
   forwarded?: 'any' | 'toMyGroups';

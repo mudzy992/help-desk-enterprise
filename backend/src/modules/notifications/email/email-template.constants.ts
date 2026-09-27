@@ -8,6 +8,8 @@ export const emailTemplateKeys = [
   'ticket.sla',
   'remote.requested',
   'ticket.forwarded',
+  // Paket 2.4
+  'ticket.mentioned',
   'ticket.broadcast',
   'user.temporary_password',
   // Paket 2.2: daily digest / quiet-hours summary.

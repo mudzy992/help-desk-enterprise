@@ -12,6 +12,7 @@ export const participantRoles = [
   'FORWARDED_TO_GROUP',
   'WATCHER',
   'SYSTEM',
+  'FOLLOWER',
 ] as const satisfies readonly ParticipantRole[];
 
 export const messageTypes = [
@@ -112,6 +113,9 @@ export const ticketSystemEventActions = {
   remoteRequested: 'ticket_remote_requested',
   remoteAcknowledged: 'ticket_remote_acknowledged',
   forwarded: 'ticket_forwarded',
+  // Paket 2.4: symmetric "related to" links, written on both tickets.
+  linked: 'ticket_linked',
+  unlinked: 'ticket_unlinked',
 } as const;
 
 export const ticketRealtimeEventNames = {
@@ -126,6 +130,9 @@ export const ticketRealtimeEventNames = {
   notificationUnreadCount: 'notification.unread-count',
   settingsUpdated: 'settings.updated',
   sessionInvalidated: 'session.invalidated',
+  // Paket 2.4: presence ("viewing / typing") on a ticket.
+  presence: 'ticket:presence',
+  presenceUpdate: 'ticket:presence:update',
 } as const;
 
 export const defaultTicketCollaborationConfiguration = {

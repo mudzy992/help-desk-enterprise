@@ -24,10 +24,16 @@ export async function createTicketMessage(
   input: CreateTicketMessageInput,
   context: TicketMutationContext,
   redaction?: TicketRedactionConfiguration,
+  /** Paket 2.4: validates/rewrites the @mentions of an internal note before it is stored. */
+  prepareNoteMentions?: (
+    ticket: TicketRecord,
+    body: string,
+  ) => Promise<{ readonly body: string; readonly userIds: readonly string[] }>,
 ): Promise<{
   ticket: TicketRecord;
   message: TicketMessageRecord;
   scan: RedactionScanResult;
+  mentionUserIds: readonly string[];
 }> {
   const { ticket, access } = await loadAccessibleTicket(
     prisma,
@@ -38,7 +44,12 @@ export async function createTicketMessage(
   );
   // Package 1.2 (M7): a merged child is answered on its parent.
   assertTicketNotMerged(ticket);
-  const normalized = normalizeTicketMessageInput(input, access, configuration);
+  const normalizedInput = normalizeTicketMessageInput(input, access, configuration);
+  const mentions =
+    normalizedInput.type === 'INTERNAL_NOTE' && prepareNoteMentions !== undefined
+      ? await prepareNoteMentions(ticket, normalizedInput.body)
+      : { body: normalizedInput.body, userIds: [] as readonly string[] };
+  const normalized = { ...normalizedInput, body: mentions.body };
   const scan = scanTicketContent({
     configuration: redaction ?? {
       enabled: false,
@@ -64,7 +75,7 @@ export async function createTicketMessage(
       ...(responseTemplateId === null ? {} : { responseTemplateId }),
     },
   })) as TicketMessageRecord;
-  return { ticket, message, scan };
+  return { ticket, message, scan, mentionUserIds: mentions.userIds };
 }
 
 /**

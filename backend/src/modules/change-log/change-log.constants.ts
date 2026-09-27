@@ -3,6 +3,7 @@ export const changeLogEntityTypes = {
   routingRule: 'routing_rule',
   ticket: 'ticket',
   ticketParticipant: 'ticket_participant',
+  ticketLink: 'ticket_link',
   ticketTimeLog: 'ticket_time_log',
   ticketAttachment: 'ticket_attachment',
   knowledgeArticle: 'knowledge_article',

@@ -12,6 +12,7 @@ export const permissionKeys = {
   ticketMerge: 'ticket.merge',
   ticketPriorityOverride: 'ticket.priority.override',
   ticketTimeManage: 'ticket.time.manage',
+  ticketLinkManage: 'ticket.link.manage',
   ticketTemplatesUse: 'ticket.templates.use',
   ticketTemplatesPersonal: 'ticket.templates.personal',
   ticketTemplatesManage: 'ticket.templates.manage',
@@ -63,6 +64,7 @@ const agentPermissionKeys = [
   permissionKeys.knowledgeArticleWrite,
   permissionKeys.ticketTemplatesUse,
   permissionKeys.ticketTemplatesPersonal,
+  permissionKeys.ticketLinkManage,
 ] as const;
 
 const adminPermissionKeys = [

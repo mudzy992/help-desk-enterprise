@@ -172,4 +172,31 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
     'Too many tickets in one merge',
   MERGE_REASON_REQUIRED:
     'A merge reason of 3 to 500 characters is required',
+  // Paket 2.4
+  MENTION_NO_ACCESS:
+    'The mentioned colleague cannot see this ticket; add them as a guest or forward the ticket first',
+  MENTIONS_DISABLED:
+    'Mentions are disabled',
+  FOLLOWERS_DISABLED:
+    'Following tickets is disabled',
+  FOLLOW_NOT_ALLOWED:
+    'Only staff who can see the ticket can follow it',
+  FOLLOWER_LIMIT_REACHED:
+    'This ticket has reached the maximum number of followers',
+  LINKS_DISABLED:
+    'Linked tickets are disabled',
+  LINK_NOT_FOUND:
+    'The ticket link was not found',
+  LINK_TARGET_NOT_FOUND:
+    'No ticket with this number was found, or you cannot see it',
+  LINK_SELF:
+    'A ticket cannot be linked to itself',
+  LINK_DUPLICATE:
+    'The tickets are already linked',
+  LINK_MERGED:
+    'A merged ticket cannot be linked; link its parent instead',
+  LINK_LIMIT_REACHED:
+    'One of the tickets has reached the maximum number of links',
+  INVALID_LINK_NOTE:
+    'The link note can have at most 200 characters',
 };

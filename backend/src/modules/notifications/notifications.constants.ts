@@ -23,6 +23,8 @@ export const notificationTypes = {
   accountNewDevice: 'account.newDevice',
   // Paket 2.3: the inbound mailbox failed three runs in a row.
   inboundMailboxFailing: 'inbound.mailboxFailing',
+  // Paket 2.4: an agent was @mentioned in an internal note.
+  ticketMentioned: 'ticket.mentioned',
 } as const;
 
 export type NotificationType =
@@ -56,6 +58,7 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
       'notifications.items.accountPasswordChanged',
     [notificationTypes.accountNewDevice]: 'notifications.items.accountNewDevice',
     [notificationTypes.inboundMailboxFailing]: 'notifications.items.inboundMailboxFailing',
+    [notificationTypes.ticketMentioned]: 'notifications.items.ticketMentioned',
   };
 
 export const notificationListLimits = {

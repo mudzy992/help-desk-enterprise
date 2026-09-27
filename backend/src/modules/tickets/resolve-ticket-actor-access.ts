@@ -55,6 +55,8 @@ export async function resolveTicketActorAccess(
     where: {
       ticketId: input.ticket.id,
       userId: input.context.subjectId,
+      // Paket 2.4 (C1): following never grants access.
+      role: { not: 'FOLLOWER' },
     },
     select: { id: true },
   });

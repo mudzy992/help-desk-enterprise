@@ -51,6 +51,13 @@ const bs: EmailTemplateSet = {
     '{{actorName}} je dodao/la novu poruku na tiket {{ticketNumber}}.',
     'Pogledaj i odgovori',
   ),
+  'ticket.mentioned': content(
+    'Spomenuti ste: {{ticketTitle}}',
+    'Spomenuti ste u internoj bilješci',
+    'Kolega traži vašu pažnju',
+    '{{actorName}} vas je spomenuo/la u internoj bilješci na tiketu {{ticketNumber}}.',
+    'Otvori bilješku',
+  ),
   'ticket.resolved': content(
     'Tiket je riješen: {{ticketTitle}}',
     'Tiket je riješen',
@@ -148,6 +155,13 @@ const en: EmailTemplateSet = {
     'New message on your ticket',
     '{{actorName}} added a new message to ticket {{ticketNumber}}.',
     'View and reply',
+  ),
+  'ticket.mentioned': content(
+    'You were mentioned: {{ticketTitle}}',
+    'You were mentioned in an internal note',
+    'A colleague needs your attention',
+    '{{actorName}} mentioned you in an internal note on ticket {{ticketNumber}}.',
+    'Open the note',
   ),
   'ticket.resolved': content(
     'Ticket resolved: {{ticketTitle}}',

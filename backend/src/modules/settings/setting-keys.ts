@@ -261,6 +261,15 @@ export const settingKeys = {
   privateNotificationsQuietHoursEnabled: 'private.notifications.quietHours.enabled',
   privateNotificationsQuietHoursBypassTypesCsv:
     'private.notifications.quietHours.bypassTypesCsv',
+  // Paket 2.4: agent collaboration.
+  privateCollaborationPresenceEnabled: 'private.collaboration.presence.enabled',
+  privateCollaborationPresenceShowToRequester: 'private.collaboration.presence.showToRequester',
+  privateCollaborationCollisionWarningEnabled: 'private.collaboration.collisionWarning.enabled',
+  privateCollaborationMentionsEnabled: 'private.collaboration.mentions.enabled',
+  privateCollaborationFollowersEnabled: 'private.collaboration.followers.enabled',
+  privateCollaborationFollowOnReply: 'private.collaboration.followOnReply',
+  privateCollaborationLinksEnabled: 'private.collaboration.links.enabled',
+  privateCollaborationLinksMaxPerTicket: 'private.collaboration.links.maxPerTicket',
   // Paket 2.3: reply by e-mail (inbound mailbox).
   privateInboundEnabled: 'private.inbound.enabled',
   privateInboundProvider: 'private.inbound.provider',

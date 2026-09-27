@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { addTicketParticipant } from './add-ticket-participant';
@@ -32,6 +32,7 @@ import { resumeWaitingForUserOnReply } from './waiting-for-user/resume-waiting-f
 import { applyTicketSlaTimers } from './apply-ticket-sla-timers';
 import { WaitingForUserConfigurationLoader } from './waiting-for-user/waiting-for-user-configuration.loader';
 import { recordRedactionWarning } from './redaction/record-redaction-warning';
+import { TicketsAgentCollaborationService } from './collaboration-extras/tickets-agent-collaboration.service';
 
 @Injectable()
 export class TicketsCollaborationService {
@@ -43,6 +44,8 @@ export class TicketsCollaborationService {
     private readonly redactionConfigurationLoader: TicketRedactionConfigurationLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    // Paket 2.4: absent in the worker (inbound e-mail replies carry no @mentions).
+    @Optional() private readonly agentCollaboration?: TicketsAgentCollaborationService,
   ) {}
 
   listParticipants(ticketId: string, context: TicketMutationContext) {
@@ -126,7 +129,7 @@ export class TicketsCollaborationService {
   ): Promise<TicketMessageResponse> {
     return executeTicketOperation(async () => {
       const gated = await this.accessPolicies.bind(context);
-      const { ticket, message, scan } = await createTicketMessage(
+      const { ticket, message, scan, mentionUserIds } = await createTicketMessage(
         this.prisma,
         this.authorizationContextLoader,
         await this.configurationLoader.load(),
@@ -134,7 +137,18 @@ export class TicketsCollaborationService {
         input,
         gated,
         await this.redactionConfigurationLoader.load(),
+        this.agentCollaboration === undefined
+          ? undefined
+          : (loaded, body) => this.agentCollaboration!.prepareNoteMentions(loaded, body, gated),
       );
+      // Paket 2.4: mention rows exist before the message is published (the
+      // notification fan-out reads them to find the `ticket.mentioned` audience).
+      if (this.agentCollaboration !== undefined) {
+        await this.agentCollaboration.recordNoteMentions(message, mentionUserIds);
+        if (message.type === 'AGENT_REPLY' || message.type === 'INTERNAL_NOTE') {
+          await this.agentCollaboration.followOnReply(ticket, context.actorUserId);
+        }
+      }
       const messages: TicketPersistedMessageSink = [message];
       if (scan.matches.length > 0) {
         await recordRedactionWarning({

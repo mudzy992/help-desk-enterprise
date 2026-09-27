@@ -23,7 +23,10 @@ describe('mapTicketEventToNotification', () => {
         payload('SYSTEM_EVENT', ticketSystemEventActions.remoteRequested),
       )?.type,
     ).toBe(notificationTypes.remoteRequested);
-    expect(mapTicketEventToNotification(payload('INTERNAL_NOTE', 'secret'))).toBeNull();
+    // Paket 2.4: a note maps to `ticket.mentioned`; only @mentioned colleagues receive it.
+    expect(mapTicketEventToNotification(payload('INTERNAL_NOTE', 'secret'))?.type).toBe(
+      notificationTypes.ticketMentioned,
+    );
     expect(
       mapTicketEventToNotification(
         payload('SYSTEM_EVENT', ticketSystemEventActions.timeStarted),

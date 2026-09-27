@@ -35,7 +35,7 @@ export async function loadConfidentialAccessFacts(
       where: { ticketId: input.ticket.id, actorUserId },
     }) as Promise<BreakGlassEventRecord[]>,
     prisma.ticketParticipant.findFirst({
-      where: { ticketId: input.ticket.id, userId: actorUserId },
+      where: { ticketId: input.ticket.id, userId: actorUserId, role: { not: 'FOLLOWER' } },
       select: { id: true },
     }),
   ]);

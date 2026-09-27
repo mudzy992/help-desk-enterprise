@@ -7,6 +7,7 @@ export const notificationPreferenceCategoryKeys = [
   "ticket.assigned",
   "ticket.forwarded",
   "ticket.message",
+  "ticket.mentioned",
   "ticket.outcome",
   "ticket.approval",
   "ticket.sla",

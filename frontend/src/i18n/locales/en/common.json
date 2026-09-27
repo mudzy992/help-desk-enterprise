@@ -129,6 +129,7 @@
       "ticketCreated": "New ticket {{ticketNumber}}",
       "ticketAssigned": "Assigned ticket {{ticketNumber}}",
       "ticketMessage": "New message on {{ticketNumber}}",
+      "ticketMentioned": "You were mentioned on {{ticketNumber}}",
       "ticketResolved": "Ticket {{ticketNumber}} is resolved",
       "ticketClosed": "Ticket {{ticketNumber}} is closed",
       "ticketApproval": "Approval needed: {{ticketNumber}}",
@@ -1076,6 +1077,7 @@
         "ticket_approval": "Approval",
         "ticket_sla": "SLA warning",
         "remote_requested": "Remote support",
+        "ticket_mentioned": "Mention",
         "ticket_forwarded": "Ticket forwarded",
         "ticket_broadcast": "Notice (broadcast)",
         "user_temporary_password": "Temporary password",
@@ -3622,6 +3624,10 @@
         "ticket_message": {
           "label": "New message",
           "hint": "A new message on a ticket you follow."
+        },
+        "ticket_mentioned": {
+          "label": "Mention",
+          "hint": "A colleague mentioned you in an internal note."
         },
         "ticket_outcome": {
           "label": "Ticket resolved or closed",

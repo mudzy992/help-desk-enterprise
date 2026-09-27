@@ -61,6 +61,7 @@ export async function buildTicketListWhere(
         },
         visibilityInputs.actorGroupIds,
       ),
+      ...buildPersonalCollaborationFilter(query, authContext.subjectId, now),
       ...buildTicketVisibilityWhere({
         context: authContext,
         ...visibilityInputs,
@@ -81,6 +82,35 @@ export function withTicketWhereClause(
   clause: Prisma.TicketWhereInput,
 ): Prisma.TicketWhereInput {
   return { AND: [where, clause] };
+}
+
+/** Paket 2.4: B6 look-back for "mentioned me". */
+export const mentionedMeWindowDays = 30;
+
+/**
+ * Paket 2.4: personal narrowings. They only ever narrow — visibility is still
+ * applied on top, so following a ticket never widens what the caller sees.
+ */
+export function buildPersonalCollaborationFilter(
+  query: Pick<ListTicketsQuery, 'following' | 'mentionedMe'>,
+  actorUserId: string,
+  now: Date,
+): Prisma.TicketWhereInput[] {
+  const clauses: Prisma.TicketWhereInput[] = [];
+  if (query.following === true) {
+    clauses.push({ participants: { some: { userId: actorUserId, role: 'FOLLOWER' } } });
+  }
+  if (query.mentionedMe === true) {
+    clauses.push({
+      mentions: {
+        some: {
+          userId: actorUserId,
+          createdAt: { gte: new Date(now.getTime() - mentionedMeWindowDays * 86_400_000) },
+        },
+      },
+    });
+  }
+  return clauses;
 }
 
 const staffRoleKeys = new Set(['AGENT', 'ADMIN', 'SUPER_ADMIN']);

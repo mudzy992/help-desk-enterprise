@@ -18,6 +18,7 @@ import type { TicketRedactionConfiguration } from '../redaction/redaction.types'
 import { ticketChangeLogReasons } from '../tickets.constants';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
 import { terminalTicketStatuses, ticketMergeTexts } from './merge.constants';
+import { transferTicketLinks } from '../collaboration-extras/transfer-ticket-links';
 
 /**
  * Package 1.2, M2 — writes of a validated merge (`assertMergeAllowed` first):
@@ -108,6 +109,7 @@ export async function applyTicketMerge(input: {
         })) as TicketMessageRecord,
       );
       await addMergedRequester(tx, parent, child.requesterId);
+      await transferTicketLinks(tx, child.id, parent.id);
       updated.push(after);
     }
     await recordAuditEntry(tx as unknown as AuditLogTransactionalClient, {

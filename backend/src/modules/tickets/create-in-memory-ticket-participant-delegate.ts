@@ -4,7 +4,7 @@ import { matchesNullableField, pickInMemoryRecord } from './in-memory-record';
 type ParticipantWhere = {
   readonly id?: string;
   readonly ticketId?: string;
-  readonly role?: string;
+  readonly role?: string | { readonly not: string };
   readonly userId?: string | null;
   readonly groupId?: string | null;
 };
@@ -22,8 +22,11 @@ export function createInMemoryTicketParticipantDelegate(
       if (where?.ticketId !== undefined && record.ticketId !== where.ticketId) {
         return false;
       }
-      if (where?.role !== undefined && record.role !== where.role) {
-        return false;
+      if (where?.role !== undefined) {
+        const role = where.role;
+        if (typeof role === 'string' ? record.role !== role : record.role === role.not) {
+          return false;
+        }
       }
       return (
         matchesNullableField(record.userId, where?.userId) &&
@@ -64,6 +67,7 @@ export function createInMemoryTicketParticipantDelegate(
       records.set(created.id, created);
       return created;
     },
+    count: async ({ where }: { where?: ParticipantWhere } = {}) => matching(where).length,
     deleteMany: async ({ where }: { where?: ParticipantWhere } = {}) => {
       const items = matching(where);
       for (const item of items) {

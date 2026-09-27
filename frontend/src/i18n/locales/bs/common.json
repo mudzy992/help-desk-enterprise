@@ -129,6 +129,7 @@
       "ticketCreated": "Novi tiket {{ticketNumber}}",
       "ticketAssigned": "Dodijeljen tiket {{ticketNumber}}",
       "ticketMessage": "Nova poruka na {{ticketNumber}}",
+      "ticketMentioned": "Spomenuti ste na {{ticketNumber}}",
       "ticketResolved": "Tiket {{ticketNumber}} je riješen",
       "ticketClosed": "Tiket {{ticketNumber}} je zatvoren",
       "ticketApproval": "Čeka odobrenje: {{ticketNumber}}",
@@ -1079,6 +1080,7 @@
         "ticket_approval": "Odobrenje",
         "ticket_sla": "SLA upozorenje",
         "remote_requested": "Udaljena podrška",
+        "ticket_mentioned": "Spominjanje",
         "ticket_forwarded": "Tiket proslijeđen",
         "ticket_broadcast": "Obavještenje (broadcast)",
         "user_temporary_password": "Privremena lozinka",
@@ -3637,6 +3639,10 @@
         "ticket_message": {
           "label": "Nova poruka",
           "hint": "Nova poruka na tiketu koji pratite."
+        },
+        "ticket_mentioned": {
+          "label": "Spominjanje",
+          "hint": "Kolega vas je spomenuo u internoj bilješci."
         },
         "ticket_outcome": {
           "label": "Tiket riješen ili zatvoren",

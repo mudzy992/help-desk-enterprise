@@ -15,6 +15,7 @@ export type SettingCategoryId =
   | 'private.guardrails'
   | 'private.i18n'
   | 'private.inbound'
+  | 'private.collaboration'
   | 'private.install'
   | 'private.integrations'
   | 'private.knowledgeBase'
@@ -49,6 +50,7 @@ export const settingCategoryIds = {
   privateGuardrails: 'private.guardrails',
   privateI18n: 'private.i18n',
   privateInbound: 'private.inbound',
+  privateCollaboration: 'private.collaboration',
   privateInstall: 'private.install',
   privateIntegrations: 'private.integrations',
   privateKnowledgeBase: 'private.knowledgeBase',
@@ -72,6 +74,7 @@ export const settingCategoryCatalog: readonly SettingCategory[] = [
   { id: settingCategoryIds.privateNotifications, icon: 'bell', priority: 60 },
   { id: settingCategoryIds.privateI18n, icon: 'languages', priority: 65 },
   { id: settingCategoryIds.privateInbound, icon: 'inbox', priority: 66 },
+  { id: settingCategoryIds.privateCollaboration, icon: 'users', priority: 67 },
   { id: settingCategoryIds.privateAddons, icon: 'puzzle', priority: 70 },
   { id: settingCategoryIds.privateTicket, icon: 'ticket', priority: 80 },
   { id: settingCategoryIds.privateServices, icon: 'layers', priority: 90 },

@@ -72,6 +72,10 @@ import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
 import { TicketsCsatController } from './csat/tickets-csat.controller';
 import { TicketsCsatSummaryController } from './csat/tickets-csat-summary.controller';
 import { TicketsCsatService } from './csat/tickets-csat.service';
+import { AgentCollaborationConfigurationLoader } from './collaboration-extras/agent-collaboration-configuration.loader';
+import { TicketsAgentCollaborationController } from './collaboration-extras/tickets-agent-collaboration.controller';
+import { TicketsAgentCollaborationService } from './collaboration-extras/tickets-agent-collaboration.service';
+import { TicketPresenceService } from './collaboration-extras/presence/ticket-presence.service';
 
 @Module({
   imports: [
@@ -90,6 +94,8 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketsExportController,
     TicketsTimeTrackingController,
     MyActiveTimerController,
+    // Paket 2.4: has the static GET /tickets/collaboration/configuration.
+    TicketsAgentCollaborationController,
     TicketsController,
     TicketsContextController,
     TicketsCollaborationController,
@@ -138,6 +144,9 @@ import { TicketsCsatService } from './csat/tickets-csat.service';
     TicketSavedViewsConfigurationLoader,
     WaitingForUserConfigurationLoader,
     TicketsCollaborationService,
+    AgentCollaborationConfigurationLoader,
+    TicketsAgentCollaborationService,
+    TicketPresenceService,
     TicketsRemoteService,
     TicketsTimeTrackingService,
     TimeTrackingConfigurationLoader,

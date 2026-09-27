@@ -17,6 +17,8 @@ import { TicketsReopenService } from './reopen/tickets-reopen.service';
 import { seedTicketsHarnessActors } from './seed-tickets-harness-actors';
 import { seedTicketsHarnessCatalog } from './seed-tickets-harness-catalog';
 import { TicketsCollaborationService } from './tickets-collaboration.service';
+import { TicketsAgentCollaborationService } from './collaboration-extras/tickets-agent-collaboration.service';
+import { defaultAgentCollaborationConfiguration } from './collaboration-extras/agent-collaboration-configuration.loader';
 import { TicketsTimeTrackingService } from './tickets-time-tracking.service';
 import { defaultTimeTrackingConfiguration } from './time-tracking/time-tracking.constants';
 import type { TimeTrackingConfiguration } from './time-tracking/time-tracking.types';
@@ -171,6 +173,13 @@ export function createTicketsServiceHarness() {
     policy.accessPolicies,
     realtimeHub,
   );
+  const agentCollaboration = new TicketsAgentCollaborationService(
+    memory.prisma as never,
+    authorizationContextLoader as never,
+    policy.accessPolicies,
+    { load: async () => ({ ...defaultAgentCollaborationConfiguration }) } as never,
+    realtimeHub,
+  );
   const collaboration = new TicketsCollaborationService(
     memory.prisma as never,
     authorizationContextLoader as never,
@@ -181,6 +190,7 @@ export function createTicketsServiceHarness() {
     redactionLoader as never,
     policy.accessPolicies,
     realtimeHub,
+    agentCollaboration,
   );
   const timeTrackingConfig: { -readonly [K in keyof TimeTrackingConfiguration]: TimeTrackingConfiguration[K] } = {
     ...defaultTimeTrackingConfiguration,
@@ -220,6 +230,7 @@ export function createTicketsServiceHarness() {
     approvals,
     reopen,
     collaboration,
+    agentCollaboration,
     timeTracking,
     timeTrackingConfig,
     waitingAutomation,

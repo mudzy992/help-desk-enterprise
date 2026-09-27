@@ -58,6 +58,7 @@ export async function fanOutEmailNotifications(
     actorUserId: payload.authorUserId,
     event: mapped.event,
     messageBody: payload.body,
+    messageId: payload.id,
   });
   if (recipientIds.length === 0) {
     return;

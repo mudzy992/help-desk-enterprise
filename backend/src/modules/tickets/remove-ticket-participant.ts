@@ -61,7 +61,7 @@ export async function removeTicketParticipant(
     throw new TicketsError('FORBIDDEN');
   }
   const participant = await prisma.ticketParticipant.findFirst({
-    where: { id: participantId, ticketId },
+    where: { id: participantId, ticketId, role: { not: 'FOLLOWER' } },
   });
   if (participant === null) {
     throw new TicketsError('PARTICIPANT_NOT_FOUND');

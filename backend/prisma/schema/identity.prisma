@@ -69,6 +69,8 @@ model User {
   sessions             UserSession[]         @relation("UserSessionOwner")
   revokedSessions      UserSession[]         @relation("UserSessionRevokedBy")
   passwordHistory      UserPasswordHistory[]
+  ticketMentions       TicketMessageMention[]
+  createdTicketLinks   TicketLink[]          @relation("TicketLinkCreatedBy")
   configVersions       ConfigVersion[]
   slaEscalationTargets SlaEscalationRule[]
   createdAt            DateTime                   @default(now())

@@ -90,7 +90,8 @@ function buildConfidentialWhere(
     { isConfidential: false },
     { requesterId: me },
     { assignedUserId: me },
-    { participants: { some: { userId: me } } },
+    // Paket 2.4 (C1): a follower gets notifications, never visibility.
+    { participants: { some: { userId: me, role: { not: 'FOLLOWER' } } } },
     { confidentialGrants: { some: { userId: me } } },
     {
       breakGlassEvents: {

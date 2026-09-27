@@ -18,7 +18,8 @@ export async function listTicketParticipants(
     context,
   );
   const records = await prisma.ticketParticipant.findMany({
-    where: { ticketId },
+    // Paket 2.4: followers are personal subscriptions, not participants.
+    where: { ticketId, role: { not: 'FOLLOWER' } },
     orderBy: { createdAt: 'asc' },
   });
   return records.map(toTicketParticipantResponse);

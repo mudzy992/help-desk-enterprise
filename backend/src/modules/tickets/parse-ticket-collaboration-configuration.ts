@@ -31,7 +31,8 @@ export function parseTicketCollaborationConfiguration(input: {
 
 function parseRoles(value: string): readonly ParticipantRole[] {
   const parsed = splitCsv(value).filter((item): item is ParticipantRole =>
-    (participantRoles as readonly string[]).includes(item),
+    // Paket 2.4: FOLLOWER is a personal subscription, never seeded on create.
+    item !== 'FOLLOWER' && (participantRoles as readonly string[]).includes(item),
   );
   return parsed.length > 0
     ? parsed
