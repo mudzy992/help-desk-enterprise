@@ -104,6 +104,13 @@ const bs: EmailTemplateSet = {
     'Tim podrške šalje obavještenje za tiket {{ticketNumber}}.',
     'Otvori tiket',
   ),
+  'report.weekly_tickets': content(
+    'Sedmični pregled vaših tiketa ({{ticketCount}}, prekoračeno {{overdueCount}})',
+    'Sedmični pregled vaših tiketa ({{ticketCount}})',
+    'Vaši otvoreni tiketi — {{weekLabel}}',
+    'Poštovani/a {{recipientName}}, ovo su otvoreni tiketi u kojima učestvujete ({{ticketCount}}). Tiketi s prekoračenim SLA rokom su na vrhu.',
+    'Otvori moje tikete',
+  ),
   'notification.digest': content(
     'Sažetak obavještenja ({{itemCount}})',
     'Sažetak obavještenja ({{itemCount}})',
@@ -194,6 +201,13 @@ const en: EmailTemplateSet = {
     'A notice about your ticket',
     'The support team sent a notice about ticket {{ticketNumber}}.',
     'Open ticket',
+  ),
+  'report.weekly_tickets': content(
+    'Weekly review of your tickets ({{ticketCount}}, {{overdueCount}} overdue)',
+    'Weekly review of your tickets ({{ticketCount}})',
+    'Your open tickets — {{weekLabel}}',
+    'Dear {{recipientName}}, these are the open tickets you take part in ({{ticketCount}}). Tickets past their SLA deadline are at the top.',
+    'Open my tickets',
   ),
   'notification.digest': content(
     'Notification digest ({{itemCount}})',

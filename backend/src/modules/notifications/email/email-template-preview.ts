@@ -1,3 +1,5 @@
+import { isoWeek } from '../preferences/weekly-ticket-report';
+import { composeWeeklyTicketReportEmail } from './compose-weekly-ticket-report-email';
 import { composeDigestEmail } from './compose-digest-email';
 import { composeTicketEmail } from './compose-ticket-email';
 import type { EmailLocale, EmailTemplateKey } from './email-template.constants';
@@ -79,6 +81,47 @@ export function renderEmailTemplatePreview(input: {
       tickets,
       maxItems: 50,
       dedupeKey: 'preview:notification.digest',
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'report.weekly_tickets') {
+    const now = new Date();
+    const day = 86_400_000;
+    const base = { ...sampleTicket, isConfidential: false, updatedAt: new Date(now.getTime() - day) };
+    const composed = composeWeeklyTicketReportEmail({
+      configuration,
+      templates: input.templates,
+      locale,
+      recipientId: 'preview',
+      recipientName: input.recipientName,
+      entries: [
+        {
+          ticket: { ...base, id: 'preview-1', title: sample.title, priority: 'HIGH', createdAt: new Date(now.getTime() - 9 * day) },
+          role: 'ASSIGNEE',
+          section: 'overdue',
+          overdue: true,
+          dueAt: new Date(now.getTime() - day),
+        },
+        {
+          ticket: { ...base, id: 'preview-2', ticketNumber: 'HD-2026-000124', status: 'IN_PROGRESS', title: sample.service, createdAt: new Date(now.getTime() - 3 * day) },
+          role: 'ASSIGNEE',
+          section: 'assigned',
+          overdue: false,
+          dueAt: new Date(now.getTime() + 2 * day),
+        },
+        {
+          ticket: { ...base, id: 'preview-3', ticketNumber: 'HD-2026-000125', status: 'WAITING_FOR_USER', title: sample.title, isConfidential: input.confidential, createdAt: new Date(now.getTime() - 5 * day) },
+          role: 'WATCHER',
+          section: 'watching',
+          overdue: false,
+          dueAt: null,
+        },
+      ],
+      maxRows: 100,
+      timeZone: 'Europe/Sarajevo',
+      week: isoWeek(now, 'Europe/Sarajevo'),
+      now,
+      dedupeKey: 'preview:report.weekly_tickets',
     });
     return { subject: composed.subject, html: composed.html, text: composed.text };
   }

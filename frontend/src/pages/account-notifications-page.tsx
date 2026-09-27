@@ -22,7 +22,9 @@ import {
   getNotificationPreferences,
   quarterHourOptions,
   resetNotificationPreferences,
+  scheduledReportCategoryKeys,
   sendTestDigest,
+  sendTestWeeklyReport,
   updateNotificationPreferences,
   type NotificationEmailMode,
   type NotificationPreferenceCategory,
@@ -49,7 +51,7 @@ export function AccountNotificationsPage() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: queryKeys.accountNotifications, queryFn: getNotificationPreferences });
   const [draft, setDraft] = useState<NotificationPreferences | null>(null);
-  const [busy, setBusy] = useState<"save" | "reset" | "test" | null>(null);
+  const [busy, setBusy] = useState<"save" | "reset" | "test" | "weekly" | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [problems, setProblems] = useState<readonly string[]>([]);
 
@@ -97,10 +99,10 @@ export function AccountNotificationsPage() {
     }
   };
 
-  const test = async () => {
-    setBusy("test");
+  const test = async (kind: "test" | "weekly") => {
+    setBusy(kind);
     try {
-      await sendTestDigest();
+      await (kind === "weekly" ? sendTestWeeklyReport() : sendTestDigest());
       toast({ tone: "success", title: t("account.notifications.testSent") });
     } catch (caught) {
       const rateLimited = caught instanceof ApiError && caught.status === 429;
@@ -195,15 +197,19 @@ export function AccountNotificationsPage() {
                         <p className="text-[11.5px] text-muted-foreground">{t(`${categoryLabel(category.key)}.hint`)}</p>
                       </td>
                       <td className="px-4 py-2.5 align-top">
-                        <div className="flex items-center gap-1.5">
-                          <Switch
-                            checked={category.inApp}
-                            disabled={!editable || category.alwaysOn || category.inAppLocked}
-                            onCheckedChange={(checked) => updateCategory(category.key, { inApp: checked })}
-                            aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnInApp")}`}
-                          />
-                          {category.alwaysOn || category.inAppLocked ? <LockHint alwaysOn={category.alwaysOn} /> : null}
-                        </div>
+                        {category.channels.inApp ? (
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              checked={category.inApp}
+                              disabled={!editable || category.alwaysOn || category.inAppLocked}
+                              onCheckedChange={(checked) => updateCategory(category.key, { inApp: checked })}
+                              aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnInApp")}`}
+                            />
+                            {category.alwaysOn || category.inAppLocked ? <LockHint alwaysOn={category.alwaysOn} /> : null}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">{t("account.notifications.emailOnly")}</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 align-top">
                         {category.channels.email ? (
@@ -218,7 +224,12 @@ export function AccountNotificationsPage() {
                               className="w-auto min-w-[9rem]"
                             >
                               {emailModes
-                                .filter((mode) => mode !== "DIGEST" || policy.digestEnabled || category.email === "DIGEST")
+                                .filter(
+                                  (mode) =>
+                                    mode !== "DIGEST" ||
+                                    (!scheduledReportCategoryKeys.includes(category.key) &&
+                                      (policy.digestEnabled || category.email === "DIGEST")),
+                                )
                                 .map((mode) => (
                                   <option key={mode} value={mode}>
                                     {t(`account.notifications.emailMode.${mode}`)}
@@ -237,6 +248,26 @@ export function AccountNotificationsPage() {
               </table>
             </div>
           </Card>
+
+          {draft.categories.some((category) => category.key === "report.weeklyTickets") ? (
+            <Card>
+              <CardHeader
+                title={t("account.notifications.weeklyTitle")}
+                subtitle={t("account.notifications.weeklySubtitle")}
+                actions={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={busy !== null || !policy.emailChannelAvailable}
+                    onClick={() => void test("weekly")}
+                  >
+                    {t("account.notifications.testWeekly")}
+                  </Button>
+                }
+              />
+            </Card>
+          ) : null}
 
           {policy.digestEnabled ? (
             <Card>
@@ -279,7 +310,7 @@ export function AccountNotificationsPage() {
                     variant="outline"
                     size="sm"
                     disabled={busy !== null || !policy.emailChannelAvailable}
-                    onClick={() => void test()}
+                    onClick={() => void test("test")}
                   >
                     {t("account.notifications.testDigest")}
                   </Button>

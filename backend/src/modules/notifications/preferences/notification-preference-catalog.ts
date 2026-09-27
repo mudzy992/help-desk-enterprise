@@ -33,6 +33,7 @@ const category = (
 
 const both = { inApp: true, email: true };
 const inAppOnly = { inApp: true, email: false };
+const emailOnly = { inApp: false, email: true };
 
 export const notificationPreferenceCategories: readonly NotificationPreferenceCategory[] = [
   category('ticket.created', [notificationTypes.ticketCreated], 1, both),
@@ -57,6 +58,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
     inAppOnly,
   ),
   category('knowledge.reviewDue', [notificationTypes.knowledgeReviewDue], 1, inAppOnly),
+  // Paket 2.2a: scheduled weekly list of the agent's open tickets (no event type).
+  category('report.weeklyTickets', [], 1, emailOnly),
   category('directory.syncAborted', [notificationTypes.directorySyncAborted], 3, inAppOnly, true),
   category(
     'account.security',

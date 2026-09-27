@@ -288,6 +288,9 @@ export function validatePreferenceUpdate(
         errors.push(`${entry.key}: invalid e-mail mode ${String(change.email)}`);
       } else if (!entry.channels.email) {
         errors.push(`${entry.key}: has no e-mail channel`);
+      } else if (change.email === 'DIGEST' && entry.types.length === 0) {
+        // Scheduled reports (2.2a) are already a summary.
+        errors.push(`${entry.key}: cannot be delivered in the digest`);
       } else if (policy.lockedEmail.has(entry.key) && change.email !== 'IMMEDIATE') {
         errors.push(`${entry.key}: e-mail is locked by the administrator`);
       } else {

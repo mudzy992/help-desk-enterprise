@@ -14,6 +14,7 @@ export const notificationPreferenceCategoryKeys = [
   "ticket.timeAutoStopped",
   "ticket.unrouted",
   "knowledge.reviewDue",
+  "report.weeklyTickets",
   "directory.syncAborted",
   "account.security",
 ] as const;
@@ -86,6 +87,13 @@ export const updateNotificationPreferences = (input: NotificationPreferencesUpda
 export const resetNotificationPreferences = (): Promise<NotificationPreferences> => apiRequest(path, json("DELETE"));
 
 export const sendTestDigest = (): Promise<{ sent: true }> => apiRequest(`${path}/test-digest`, json("POST"));
+
+/** Paket 2.2a: AGENT+ — sends the weekly ticket report now, marked [TEST]. */
+export const sendTestWeeklyReport = (): Promise<{ sent: true }> =>
+  apiRequest(`${path}/test-weekly-report`, json("POST"));
+
+/** Scheduled reports are already a summary: no "in digest" choice. */
+export const scheduledReportCategoryKeys: readonly string[] = ["report.weeklyTickets"];
 
 export const getUserNotificationPreferences = (userId: string): Promise<NotificationPreferencesSummary> =>
   apiRequest(`/users/${encodeURIComponent(userId)}/notification-preferences`);

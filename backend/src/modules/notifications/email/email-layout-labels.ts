@@ -18,6 +18,17 @@ export type EmailLayoutLabels = {
   readonly digestFooterReason: string;
   readonly digestMore: string;
   readonly digestEventCount: string;
+  readonly weekly: {
+    readonly footerReason: string;
+    readonly more: string;
+    readonly weekLabel: string;
+    readonly sections: { readonly overdue: string; readonly assigned: string; readonly watching: string };
+    readonly roles: { readonly ASSIGNEE: string; readonly WATCHER: string; readonly APPROVER: string };
+    readonly age: string;
+    readonly lastActivity: string;
+    readonly overdue: string;
+    readonly due: string;
+  };
   readonly digestCategories: Readonly<Record<string, string>>;
   readonly statuses: Readonly<Record<string, string>>;
   readonly priorities: Readonly<Record<string, string>>;
@@ -42,6 +53,17 @@ export const emailLayoutLabels: Readonly<Record<EmailLocale, EmailLayoutLabels>>
     digestFooterReason: 'Ovaj sažetak dobijate prema vašim postavkama obavještenja.',
     digestMore: 'i još {count} tiketa — otvorite listu tiketa u aplikaciji.',
     digestEventCount: 'događaja: {count}',
+    weekly: {
+      footerReason: 'Sedmični pregled otvorenih tiketa u kojima učestvujete.',
+      more: 'i još {count} tiketa — otvorite listu svojih tiketa u aplikaciji.',
+      weekLabel: 'sedmica {week}/{year}',
+      sections: { overdue: 'Prekoračen SLA rok', assigned: 'Dodijeljeni vama', watching: 'Pratite / čeka vaše odobrenje' },
+      roles: { ASSIGNEE: 'dodijeljen', WATCHER: 'gost', APPROVER: 'odobravalac' },
+      age: 'otvoren {days} d',
+      lastActivity: 'zadnja aktivnost {date}',
+      overdue: 'SLA prekoračen',
+      due: 'rok {date}',
+    },
     digestCategories: {
       'ticket.created': 'Novi tiket',
       'ticket.assigned': 'Dodijeljen vama',
@@ -83,6 +105,17 @@ export const emailLayoutLabels: Readonly<Record<EmailLocale, EmailLayoutLabels>>
     digestFooterReason: 'You receive this digest because of your notification settings.',
     digestMore: 'and {count} more tickets — open the ticket list in the application.',
     digestEventCount: 'events: {count}',
+    weekly: {
+      footerReason: 'Weekly review of the open tickets you take part in.',
+      more: 'and {count} more tickets — open your ticket list in the application.',
+      weekLabel: 'week {week}/{year}',
+      sections: { overdue: 'SLA deadline passed', assigned: 'Assigned to you', watching: 'Watching / awaiting your approval' },
+      roles: { ASSIGNEE: 'assignee', WATCHER: 'watcher', APPROVER: 'approver' },
+      age: 'open {days} d',
+      lastActivity: 'last activity {date}',
+      overdue: 'SLA overdue',
+      due: 'due {date}',
+    },
     digestCategories: {
       'ticket.created': 'New ticket',
       'ticket.assigned': 'Assigned to you',

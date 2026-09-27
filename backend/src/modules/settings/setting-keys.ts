@@ -261,6 +261,12 @@ export const settingKeys = {
   privateNotificationsQuietHoursEnabled: 'private.notifications.quietHours.enabled',
   privateNotificationsQuietHoursBypassTypesCsv:
     'private.notifications.quietHours.bypassTypesCsv',
+  privateNotificationsWeeklyReportEnabled: 'private.notifications.weeklyTicketReport.enabled',
+  privateNotificationsWeeklyReportDayOfWeek: 'private.notifications.weeklyTicketReport.dayOfWeek',
+  privateNotificationsWeeklyReportTime: 'private.notifications.weeklyTicketReport.time',
+  privateNotificationsWeeklyReportMaxRows: 'private.notifications.weeklyTicketReport.maxRows',
+  privateNotificationsWeeklyReportSendWhenEmpty:
+    'private.notifications.weeklyTicketReport.sendWhenEmpty',
   privateAddonsSla: addonSettingKey('sla'),
   privateAddonsEmail: addonSettingKey('email'),
   privateAddonsEdge: addonSettingKey('edge'),

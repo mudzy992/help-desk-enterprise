@@ -12,13 +12,16 @@ export const emailTemplateKeys = [
   'user.temporary_password',
   // Paket 2.2: daily digest / quiet-hours summary.
   'notification.digest',
+  // Paket 2.2a: weekly list of an agent's open tickets.
+  'report.weekly_tickets',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
 
 /** Keys about a ticket: rendered with the ticket card, link and threading. */
 export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplateKeys.filter(
-  (key) => key !== 'user.temporary_password' && key !== 'notification.digest',
+  (key) =>
+    key !== 'user.temporary_password' && key !== 'notification.digest' && key !== 'report.weekly_tickets',
 );
 
 export const emailLocales = ['bs', 'en'] as const;
@@ -56,6 +59,9 @@ export const emailTemplatePlaceholders = [
   'temporaryPassword',
   'loginUrl',
   'itemCount',
+  'ticketCount',
+  'overdueCount',
+  'weekLabel',
 ] as const;
 
 export type EmailTemplatePlaceholder =

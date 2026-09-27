@@ -8,12 +8,25 @@ import { settingCategoryIds } from '../setting-categories';
 /** Paket 2.2 (N7): defaults and ranges. */
 export const notificationPreferenceSettingDefaults = {
   lockedInApp: 'ticket.approval,ticket.assigned',
-  lockedEmail: 'ticket.approval,ticket.sla',
+  lockedEmail: 'ticket.approval,ticket.sla,report.weeklyTickets',
   digestTypes: '',
   digestDefaultTime: '07:30',
   digestMaxItems: { min: 10, max: 200, default: 50 },
   quietBypass: 'ticket.sla',
+  weeklyReport: {
+    dayOfWeek: 1,
+    time: '07:00',
+    maxRows: { min: 10, max: 500, default: 100 },
+  },
 } as const;
+
+function integerBetween(label: string, min: number, max: number) {
+  return (value: SettingValue): void => {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+      throw new SettingsError(`${label} must be an integer between ${min} and ${max}`);
+    }
+  };
+}
 
 const timePattern = /^([01]\d|2[0-3]):(00|15|30|45)$/;
 
@@ -129,5 +142,53 @@ export const notificationPreferenceSettings: readonly SettingDefinition[] = [
     isRequired: false,
     defaultValue: d.quietBypass,
     assertValue: categoryCsv('Quiet hours bypass categories'),
+  }),
+  // Paket 2.2a: weekly ticket report for agents.
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsWeeklyReportEnabled,
+    categoryId: category,
+    valueType: 'boolean',
+    description: 'Weekly e-mail to agents listing their open tickets (assigned, watched, awaiting approval)',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsWeeklyReportDayOfWeek,
+    categoryId: category,
+    valueType: 'number',
+    description: 'Day of the weekly ticket report (1 = Monday ... 7 = Sunday)',
+    isRequired: true,
+    defaultValue: d.weeklyReport.dayOfWeek,
+    assertValue: integerBetween('Weekly report day', 1, 7),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsWeeklyReportTime,
+    categoryId: category,
+    valueType: 'string',
+    description: 'Time of the weekly ticket report (HH:MM, 15-minute steps, installation time zone)',
+    isRequired: true,
+    defaultValue: d.weeklyReport.time,
+    assertValue: (value) => {
+      if (typeof value !== 'string' || !timePattern.test(value)) {
+        throw new SettingsError('Weekly report time must be HH:MM in 15-minute steps');
+      }
+    },
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsWeeklyReportMaxRows,
+    categoryId: category,
+    valueType: 'number',
+    description: 'Maximum tickets listed in one weekly report (10-500); the rest is shown as a count',
+    isRequired: true,
+    defaultValue: d.weeklyReport.maxRows.default,
+    assertValue: integerBetween('Weekly report max rows', d.weeklyReport.maxRows.min, d.weeklyReport.maxRows.max),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsWeeklyReportSendWhenEmpty,
+    categoryId: category,
+    valueType: 'boolean',
+    description: 'Also send the weekly report when the agent has no open tickets',
+    isRequired: true,
+    defaultValue: false,
   }),
 ];

@@ -971,7 +971,12 @@
         "private.notifications.digest.defaultTime": "Default digest send time (HH:MM, 15-minute steps) in the installation time zone.",
         "private.notifications.digest.maxItems": "Maximum items listed in one digest; the rest is shown as a count.",
         "private.notifications.quietHours.enabled": "Users can set quiet hours during which e-mails are held.",
-        "private.notifications.quietHours.bypassTypesCsv": "Categories (CSV) that are sent even during quiet hours."
+        "private.notifications.quietHours.bypassTypesCsv": "Categories (CSV) that are sent even during quiet hours.",
+        "private.notifications.weeklyTicketReport.enabled": "Weekly e-mail to agents listing the open tickets they take part in (assigned, watching, pending approval).",
+        "private.notifications.weeklyTicketReport.dayOfWeek": "Day of the weekly review (1 = Monday … 7 = Sunday).",
+        "private.notifications.weeklyTicketReport.time": "Time of the weekly review (HH:MM, 15-minute steps) in the installation time zone.",
+        "private.notifications.weeklyTicketReport.maxRows": "Maximum tickets in one review (10–500); the rest is shown as a count.",
+        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Send the review even when the agent has no open tickets."
       }
     },
     "emailTemplates": {
@@ -1050,7 +1055,8 @@
         "ticket_forwarded": "Ticket forwarded",
         "ticket_broadcast": "Notice (broadcast)",
         "user_temporary_password": "Temporary password",
-        "notification_digest": "Daily digest"
+        "notification_digest": "Daily digest",
+        "report_weekly_tickets": "Weekly ticket review"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -3559,8 +3565,16 @@
         "account_security": {
           "label": "Account security",
           "hint": "Password, two-step verification and new sign-in changes."
+        },
+        "report_weeklyTickets": {
+          "label": "Weekly ticket review",
+          "hint": "E-mail listing your open tickets, once a week."
         }
-      }
+      },
+      "emailOnly": "E-mail only",
+      "weeklyTitle": "Weekly ticket review",
+      "weeklySubtitle": "Once a week you receive the list of open tickets you take part in (assigned, watching, pending approval).",
+      "testWeekly": "Send test review"
     }
   }
 }

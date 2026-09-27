@@ -48,6 +48,7 @@ import { AuthorizationContextLoader } from '../../authorization/authorization-co
 import { assertCanManageTargetUser } from '../../users/assert-can-manage-target-user';
 import { highestRoleRank, notificationEmailModes } from './notification-preference-catalog';
 import { NotificationDigestService } from './notification-digest.service';
+import { WeeklyTicketReportService } from './weekly-ticket-report.service';
 import {
   NotificationPreferencesError,
   NotificationPreferencesService,
@@ -112,6 +113,7 @@ export class NotificationPreferencesController {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly preferencesService: NotificationPreferencesService,
     private readonly digestService: NotificationDigestService,
+    private readonly weeklyReportService: WeeklyTicketReportService,
     @Optional() @Inject(redisTokens.client) private readonly redis?: Redis,
   ) {}
 
@@ -146,13 +148,32 @@ export class NotificationPreferencesController {
   @HttpCode(202)
   async testDigest(@Req() request: AuthenticatedHttpRequest): Promise<{ sent: true }> {
     const { userId } = await this.caller(request);
-    if (!(await this.claimTestSlot(userId))) {
+    return this.runTest(userId, 'digest', () => this.digestService.sendTest(userId));
+  }
+
+  /** Paket 2.2a (W12): AGENT+ only; same 5-minute limit, separate counter. */
+  @Post('me/notification-preferences/test-weekly-report')
+  @HttpCode(202)
+  async testWeeklyReport(@Req() request: AuthenticatedHttpRequest): Promise<{ sent: true }> {
+    const { userId, rank } = await this.caller(request);
+    if (rank < 1) {
+      throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Authorization failed' });
+    }
+    return this.runTest(userId, 'weekly', () => this.weeklyReportService.sendTest(userId));
+  }
+
+  private async runTest(
+    userId: string,
+    kind: 'digest' | 'weekly',
+    send: () => Promise<{ readonly sent: boolean; readonly reason?: string }>,
+  ): Promise<{ sent: true }> {
+    if (!(await this.claimTestSlot(`${kind}:${userId}`))) {
       throw new HttpException(
-        { code: 'TEST_DIGEST_RATE_LIMITED', message: 'One test digest per 5 minutes' },
+        { code: 'TEST_DIGEST_RATE_LIMITED', message: 'One test e-mail per 5 minutes' },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    const result = await this.digestService.sendTest(userId);
+    const result = await send();
     if (!result.sent) {
       throw new ServiceUnavailableException({
         code: result.reason ?? 'EMAIL_CHANNEL_DISABLED',
@@ -229,8 +250,8 @@ export class NotificationPreferencesController {
     return actorUserId;
   }
 
-  private async claimTestSlot(userId: string): Promise<boolean> {
-    const key = `notifications:test-digest:${userId}`;
+  private async claimTestSlot(slotKey: string): Promise<boolean> {
+    const key = `notifications:test-email:${slotKey}`;
     if (this.redis !== undefined && this.redis.status === 'ready') {
       try {
         return (await this.redis.set(key, '1', 'EX', testDigestWindowSeconds, 'NX')) === 'OK';
@@ -239,9 +260,9 @@ export class NotificationPreferencesController {
       }
     }
     const now = Date.now();
-    const last = this.localTestSends.get(userId) ?? 0;
+    const last = this.localTestSends.get(slotKey) ?? 0;
     if (now - last < testDigestWindowSeconds * 1000) return false;
-    this.localTestSends.set(userId, now);
+    this.localTestSends.set(slotKey, now);
     return true;
   }
 }

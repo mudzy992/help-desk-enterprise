@@ -973,7 +973,12 @@
         "private.notifications.digest.defaultTime": "Zadano vrijeme slanja sažetka (HH:MM, korak 15 min) u vremenskoj zoni instalacije.",
         "private.notifications.digest.maxItems": "Najviše stavki prikazanih u jednom sažetku; ostatak se navodi kao broj.",
         "private.notifications.quietHours.enabled": "Korisnici mogu podesiti tihe sate u kojima se e-mailovi zadržavaju.",
-        "private.notifications.quietHours.bypassTypesCsv": "Kategorije (CSV) koje se šalju i tokom tihih sati."
+        "private.notifications.quietHours.bypassTypesCsv": "Kategorije (CSV) koje se šalju i tokom tihih sati.",
+        "private.notifications.weeklyTicketReport.enabled": "Sedmični e-mail agentima s listom otvorenih tiketa u kojima učestvuju (dodijeljeni, gost, odobrenje na čekanju).",
+        "private.notifications.weeklyTicketReport.dayOfWeek": "Dan slanja sedmičnog pregleda (1 = ponedjeljak … 7 = nedjelja).",
+        "private.notifications.weeklyTicketReport.time": "Vrijeme slanja sedmičnog pregleda (HH:MM, korak 15 min) u vremenskoj zoni instalacije.",
+        "private.notifications.weeklyTicketReport.maxRows": "Najviše tiketa u jednom pregledu (10–500); ostatak se navodi kao broj.",
+        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Šalji pregled i kad agent nema otvorenih tiketa."
       }
     },
     "emailTemplates": {
@@ -1053,7 +1058,8 @@
         "ticket_forwarded": "Tiket proslijeđen",
         "ticket_broadcast": "Obavještenje (broadcast)",
         "user_temporary_password": "Privremena lozinka",
-        "notification_digest": "Dnevni sažetak"
+        "notification_digest": "Dnevni sažetak",
+        "report_weekly_tickets": "Sedmični pregled tiketa"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -3574,8 +3580,16 @@
         "account_security": {
           "label": "Sigurnost naloga",
           "hint": "Promjene lozinke, dvostepene provjere i nove prijave."
+        },
+        "report_weeklyTickets": {
+          "label": "Sedmični pregled tiketa",
+          "hint": "E-mail s listom vaših otvorenih tiketa, jednom sedmično."
         }
-      }
+      },
+      "emailOnly": "Samo e-mail",
+      "weeklyTitle": "Sedmični pregled tiketa",
+      "weeklySubtitle": "Jednom sedmično stiže lista otvorenih tiketa u kojima učestvujete (dodijeljeni, gost, odobrenje na čekanju).",
+      "testWeekly": "Pošalji probni pregled"
     }
   }
 }

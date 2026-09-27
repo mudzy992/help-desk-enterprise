@@ -2,12 +2,16 @@ import { Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { notificationDigestQueueName } from './notification-digest.constants';
 import { NotificationDigestService } from './notification-digest.service';
+import { WeeklyTicketReportService } from './weekly-ticket-report.service';
 
 @Processor(notificationDigestQueueName)
 export class NotificationDigestProcessor extends WorkerHost {
   private readonly logger = new Logger('NotificationDigest');
 
-  constructor(private readonly digestService: NotificationDigestService) {
+  constructor(
+    private readonly digestService: NotificationDigestService,
+    private readonly weeklyReportService: WeeklyTicketReportService,
+  ) {
     super();
   }
 
@@ -19,5 +23,7 @@ export class NotificationDigestProcessor extends WorkerHost {
         `notification_digest_users=${result.usersWithItems} notification_digest_sent_total=${result.emailsSent} notification_digest_items_delivered=${result.itemsDelivered} notification_digest_items_dropped=${result.itemsDropped} notification_digest_failures=${result.failures} notification_digest_duration_ms=${Date.now() - startedAt}`,
       );
     }
+    // Paket 2.2a: the weekly report shares the 5-minute tick (slot logic inside).
+    await this.weeklyReportService.runDue();
   }
 }

@@ -16,6 +16,7 @@ import { TeamsIntegrationService } from './teams/teams-integration.service';
 import { NotificationDigestService } from './preferences/notification-digest.service';
 import { NotificationPreferencesController } from './preferences/notification-preferences.controller';
 import { NotificationPreferencesService } from './preferences/notification-preferences.service';
+import { WeeklyTicketReportService } from './preferences/weekly-ticket-report.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { NotificationPreferencesService } from './preferences/notification-prefe
     TeamsIntegrationService,
     NotificationPreferencesService,
     NotificationDigestService,
+    WeeklyTicketReportService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
   ],

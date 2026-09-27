@@ -44,12 +44,20 @@ export type EmailDigestRow = {
   readonly eventLabel: string;
   readonly eventCount: number;
   readonly url: string | null;
+  /** Paket 2.2a: section heading shown when it changes from the previous row. */
+  readonly section?: string;
+  /** Paket 2.2a: replaces the "event · status" line (already localized). */
+  readonly detail?: string;
+  /** Paket 2.2a: highlight the detail line (SLA overdue). */
+  readonly alert?: boolean;
 };
 
 export type EmailDigestList = {
   readonly rows: readonly EmailDigestRow[];
   /** "and N more …" line, already localized. */
   readonly more: string | null;
+  /** Paket 2.2a: footer line explaining why the list arrives (default: digest). */
+  readonly footerReason?: string;
 };
 
 export type RenderedEmailMessage = {
@@ -126,7 +134,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     '—',
     input.appName,
     ...(input.ticket === null ? [] : [labels.footerReason]),
-    ...(input.digest ? [labels.digestFooterReason] : []),
+    ...(input.digest ? [input.digest.footerReason ?? labels.digestFooterReason] : []),
     footerNote,
     ...(manageUrl === null ? [] : [`${labels.manageNotifications}: ${manageUrl}`]),
   ].join('\n');
@@ -149,7 +157,11 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     linkFallback: labels.linkFallback,
     footer,
     footerReason:
-      input.ticket !== null ? labels.footerReason : input.digest ? labels.digestFooterReason : null,
+      input.ticket !== null
+        ? labels.footerReason
+        : input.digest
+          ? (input.digest.footerReason ?? labels.digestFooterReason)
+          : null,
     footerNote,
     accent,
     digestHtml: digestHtml(input.digest ?? null, labels.digestEventCount),
@@ -247,11 +259,15 @@ function digestText(digest: EmailDigestList | null, countLabel: string): string[
   if (digest === null || digest.rows.length === 0) {
     return [];
   }
-  const lines = digest.rows.map((row) => {
+  let section: string | undefined;
+  const lines = digest.rows.flatMap((row) => {
     const title = row.title.trim().length > 0 ? ` ${row.title}` : '';
     const count = row.eventCount > 1 ? ` (${countLabel.replace('{count}', String(row.eventCount))})` : '';
     const url = row.url === null ? '' : `\n  ${row.url}`;
-    return `- [${row.ticketNumber}]${title} — ${row.eventLabel}, ${row.statusLabel}${count}${url}`;
+    const detail = row.detail ?? `${row.eventLabel}, ${row.statusLabel}${count}`;
+    const heading = row.section !== undefined && row.section !== section ? ['', `${row.section}:`] : [];
+    section = row.section;
+    return [...heading, `- [${row.ticketNumber}]${title} — ${detail}${url}`];
   });
   return ['', ...lines, ...(digest.more === null ? [] : ['', digest.more])];
 }
@@ -261,8 +277,13 @@ function digestHtml(digest: EmailDigestList | null, countLabel: string): string 
     return '';
   }
   const e = escapeHtml;
+  let section: string | undefined;
   const rows = digest.rows
     .map((row) => {
+      const heading = row.section !== undefined && row.section !== section
+        ? `<tr><td style="padding:16px 0 4px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#374151;">${e(row.section)}</td></tr>`
+        : '';
+      section = row.section;
       const safe = safeUrl(row.url);
       const number = safe === null
         ? e(row.ticketNumber)
@@ -271,10 +292,15 @@ function digestHtml(digest: EmailDigestList | null, countLabel: string): string 
       const title = row.title.trim().length > 0
         ? `<div style="color:#111827;font-size:13px;margin-top:2px;">${e(row.title)}</div>`
         : '';
+      const detail = row.detail === undefined
+        ? `${e(row.eventLabel)} · ${e(row.statusLabel)}${count}`
+        : e(row.detail);
+      const detailColor = row.alert === true ? '#b91c1c' : '#6b7280';
       return (
+        heading +
         `<tr><td style="padding:10px 0;border-bottom:1px solid #f3f4f6;vertical-align:top;">` +
         `<div style="font-size:13px;">${number}</div>${title}` +
-        `<div style="color:#6b7280;font-size:12px;margin-top:2px;">${e(row.eventLabel)} · ${e(row.statusLabel)}${count}</div>` +
+        `<div style="color:${detailColor};font-size:12px;margin-top:2px;">${detail}</div>` +
         `</td></tr>`
       );
     })
