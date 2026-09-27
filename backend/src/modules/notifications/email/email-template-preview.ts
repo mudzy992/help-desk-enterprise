@@ -6,6 +6,7 @@ import type { EmailLocale, EmailTemplateKey } from './email-template.constants';
 import type { EmailTemplateRegistry } from './email-template.types';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import { renderEmailMessage, type RenderedEmailMessage } from './render-email-message';
+import { composeScheduledReportPreview } from '../../reports/schedules/scheduled-report-preview';
 
 const sampleTicket = {
   id: 'preview-ticket',
@@ -124,6 +125,14 @@ export function renderEmailTemplatePreview(input: {
       dedupeKey: 'preview:report.weekly_tickets',
     });
     return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'report.scheduled') {
+    return composeScheduledReportPreview({
+      configuration,
+      templates: input.templates,
+      locale,
+      recipientName: input.recipientName,
+    });
   }
   if (input.key === 'user.temporary_password') {
     const loginUrl =

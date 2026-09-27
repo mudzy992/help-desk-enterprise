@@ -10,6 +10,14 @@ export type OutboundMailMessage = {
   readonly messageId?: string;
   /** Threading and automation headers (In-Reply-To, References, Auto-Submitted…). */
   readonly headers?: Readonly<Record<string, string>>;
+  /** Paket 2.5: text attachments (CSV of scheduled reports). */
+  readonly attachments?: readonly OutboundMailAttachment[];
+};
+
+export type OutboundMailAttachment = {
+  readonly filename: string;
+  readonly content: string;
+  readonly contentType: string;
 };
 
 export type MailTransportTarget = {

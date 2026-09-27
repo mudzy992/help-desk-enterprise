@@ -118,6 +118,13 @@ const bs: EmailTemplateSet = {
     'Poštovani/a {{recipientName}}, ovo su otvoreni tiketi u kojima učestvujete ({{ticketCount}}). Tiketi s prekoračenim SLA rokom su na vrhu.',
     'Otvori moje tikete',
   ),
+  'report.scheduled': content(
+    '{{reportName}} — {{reportPeriod}}',
+    '{{reportName}} — {{reportPeriod}}',
+    '{{reportName}}',
+    'Poštovani/a {{recipientName}}, ovo je izvještaj za period {{reportPeriod}} ({{reportScope}}). Brojevi su poređeni s prethodnim periodom iste dužine.',
+    'Otvori u aplikaciji',
+  ),
   'notification.digest': content(
     'Sažetak obavještenja ({{itemCount}})',
     'Sažetak obavještenja ({{itemCount}})',
@@ -222,6 +229,13 @@ const en: EmailTemplateSet = {
     'Your open tickets — {{weekLabel}}',
     'Dear {{recipientName}}, these are the open tickets you take part in ({{ticketCount}}). Tickets past their SLA deadline are at the top.',
     'Open my tickets',
+  ),
+  'report.scheduled': content(
+    '{{reportName}} — {{reportPeriod}}',
+    '{{reportName}} — {{reportPeriod}}',
+    '{{reportName}}',
+    'Dear {{recipientName}}, this is the report for {{reportPeriod}} ({{reportScope}}). Figures are compared with the previous period of the same length.',
+    'Open in the application',
   ),
   'notification.digest': content(
     'Notification digest ({{itemCount}})',

@@ -76,6 +76,96 @@ export const reportsSettings: readonly SettingDefinition[] = [
     defaultValue: defaultPingPongThreshold,
     assertValue: assertPingPongThreshold,
   }),
+  // Paket 2.5 (T): trend dashboard.
+  definePrivateSetting({
+    key: settingKeys.privateReportsTrendsEnabled,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'boolean',
+    description: 'Enable the trends dashboard (incoming vs. resolved, backlog, SLA, CSAT)',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsTrendsMaxMonths,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'Longest trend range in months (12-60)',
+    isRequired: true,
+    defaultValue: 36,
+    assertValue: integerIn('Trend range in months', 12, 60),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsTrendsCacheSeconds,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'How long computed trends are cached, in seconds (60-3600)',
+    isRequired: true,
+    defaultValue: 600,
+    assertValue: integerIn('Trend cache seconds', 60, 3600),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsTrendsSlaTargetPercent,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'SLA compliance target line on the trend charts, in percent (50-100)',
+    isRequired: true,
+    defaultValue: 90,
+    assertValue: integerIn('SLA target percent', 50, 100),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsTrendsCsatMinSample,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'CSAT periods with fewer ratings than this are shown as low sample (1-50)',
+    isRequired: true,
+    defaultValue: 5,
+    assertValue: integerIn('CSAT minimum sample', 1, 50),
+  }),
+  // Paket 2.5 (Z): scheduled reports by e-mail.
+  definePrivateSetting({
+    key: settingKeys.privateReportsScheduledEnabled,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'boolean',
+    description: 'Enable scheduled weekly/monthly reports by e-mail',
+    isRequired: true,
+    defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsScheduledMaxSchedules,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'Maximum number of report schedules (1-200)',
+    isRequired: true,
+    defaultValue: 50,
+    assertValue: integerIn('Maximum schedules', 1, 200),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsScheduledMaxRecipients,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'Maximum recipients per report schedule (1-100)',
+    isRequired: true,
+    defaultValue: 25,
+    assertValue: integerIn('Maximum recipients', 1, 100),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsScheduledAttachmentMaxRows,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'number',
+    description: 'Maximum rows per CSV attachment of a scheduled report (100-50000)',
+    isRequired: true,
+    defaultValue: 10000,
+    assertValue: integerIn('Attachment rows', 100, 50000),
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateReportsScheduledDefaultSendTime,
+    categoryId: settingCategoryIds.privateReports,
+    valueType: 'string',
+    description: 'Default send time of new schedules, HH:mm in the reports time zone',
+    isRequired: true,
+    defaultValue: '07:00',
+    assertValue: assertSendTime,
+  }),
   definePrivateSetting({
     key: settingKeys.privateDashboardBottlenecksEnabled,
     categoryId: settingCategoryIds.privateDashboard,
@@ -106,6 +196,23 @@ function assertIanaTimeZone(value: SettingValue): void {
     throw new SettingsError(
       `Reports time zone is not a known IANA zone: ${value}`,
     );
+  }
+}
+
+function integerIn(label: string, min: number, max: number) {
+  return (value: SettingValue): void => {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+      throw new SettingsError(`${label} must be an integer between ${min} and ${max}`);
+    }
+  };
+}
+
+/** `HH:mm`, 00:00–23:59. */
+export const reportSendTimePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function assertSendTime(value: SettingValue): void {
+  if (typeof value !== 'string' || !reportSendTimePattern.test(value)) {
+    throw new SettingsError('Send time must be HH:mm (00:00-23:59)');
   }
 }
 

@@ -15,6 +15,7 @@ model ServiceCategory {
 
 model Service {
   id                   String                  @id @default(cuid())
+  reportSchedules ReportSchedule[]
   name                 String
   slug                 String                  @unique
   categoryId           String

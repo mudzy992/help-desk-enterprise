@@ -1,6 +1,6 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
-import type { MailTransport } from './mail-transport';
+import type { MailTransport, OutboundMailAttachment } from './mail-transport';
 import {
   claimNotificationEmailDelivery,
   markNotificationEmailDeliverySent,
@@ -18,6 +18,7 @@ export type PreparedOutboundEmail = {
   readonly replyTo?: string;
   readonly messageId?: string;
   readonly headers?: Readonly<Record<string, string>>;
+  readonly attachments?: readonly OutboundMailAttachment[];
 };
 
 export async function deliverNotificationEmail(
@@ -50,6 +51,7 @@ export async function deliverNotificationEmail(
         ...(input.replyTo === undefined ? {} : { replyTo: input.replyTo }),
         ...(input.messageId === undefined ? {} : { messageId: input.messageId }),
         ...(input.headers === undefined ? {} : { headers: input.headers }),
+        ...(input.attachments === undefined ? {} : { attachments: input.attachments }),
       },
       smtp,
     );

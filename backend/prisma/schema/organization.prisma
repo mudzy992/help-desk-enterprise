@@ -1,5 +1,6 @@
 model OrganizationalUnit {
   id                 String                  @id @default(cuid())
+  reportSchedules ReportSchedule[]
   name               String
   type               OrganizationalUnitType
   distinguishedName  String                  @unique

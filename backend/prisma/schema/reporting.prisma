@@ -1,0 +1,89 @@
+/// Paket 2.5 (§5): scheduled e-mail reports. The report content is never
+/// stored — only the schedule and a run log (kept 180 days).
+enum ReportScheduleFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum ReportRunStatus {
+  RUNNING
+  SENT
+  PARTIAL
+  SKIPPED
+  FAILED
+}
+
+enum ReportRunTrigger {
+  SCHEDULED
+  MANUAL
+}
+
+model ReportSchedule {
+  id                   String                    @id @default(cuid())
+  name                 String                    @db.VarChar(120)
+  frequency            ReportScheduleFrequency
+  /// "HH:mm" in the report time zone (`private.reports.timeZone`).
+  sendTime             String                    @db.VarChar(5)
+  organizationalUnitId String
+  serviceId            String?
+  groupId              String?
+  priority             TicketPriority?
+  /// kpi | trend | topServices | overdue
+  sections             String[]
+  /// Report pack keys attached as CSV.
+  packKeys             String[]
+  enabled              Boolean                   @default(true)
+  nextRunAt            DateTime
+  lastRunAt            DateTime?
+  createdByUserId      String?
+  updatedByUserId      String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  organizationalUnit   OrganizationalUnit        @relation(fields: [organizationalUnitId], references: [id], onDelete: Cascade)
+  service              Service?                  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  group                Group?                    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy            User?                     @relation("ReportScheduleCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  recipients           ReportScheduleRecipient[]
+  runs                 ReportScheduleRun[]
+
+  @@index([enabled, nextRunAt])
+  @@index([organizationalUnitId])
+}
+
+model ReportScheduleRecipient {
+  scheduleId String
+  userId     String
+  createdAt  DateTime       @default(now())
+  schedule   ReportSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user       User           @relation("ReportScheduleRecipientUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([scheduleId, userId])
+  @@index([userId])
+}
+
+model ReportScheduleRun {
+  id                String           @id @default(cuid())
+  scheduleId        String
+  trigger           ReportRunTrigger
+  /// Scheduled runs: "<scheduleId>:<periodStart ISO>" — the idempotency key
+  /// (two workers, retries). Manual runs: null (NULLs never collide).
+  slotKey           String?          @unique
+  periodStart       DateTime
+  periodEnd         DateTime
+  status            ReportRunStatus
+  recipientCount    Int              @default(0)
+  sentCount         Int              @default(0)
+  /// [{ userId, reason }]
+  skipped           Json             @default("[]")
+  /// [{ pack, reason }] — attachments left out (row or size limit, error).
+  omittedAttachments Json            @default("[]")
+  errorCode         String?          @db.VarChar(64)
+  durationMs        Int?
+  triggeredByUserId String?
+  createdAt         DateTime         @default(now())
+  finishedAt        DateTime?
+  schedule          ReportSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, createdAt(sort: Desc)])
+  @@index([createdAt])
+}

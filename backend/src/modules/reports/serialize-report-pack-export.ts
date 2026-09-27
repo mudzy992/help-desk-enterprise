@@ -31,7 +31,7 @@ export function serializeReportPackExport(
 
 /** `ephelpdesk_<pack>_<unit>_<from>_<to>` with ASCII-safe unit code (plan §3 D6). */
 export function reportFileBaseName(
-  pack: ReportPackKey,
+  pack: ReportPackKey | 'trends',
   naming: { readonly unitCode: string | null; readonly window: ReportWindow },
 ): string {
   const unit = (naming.unitCode ?? 'unit')

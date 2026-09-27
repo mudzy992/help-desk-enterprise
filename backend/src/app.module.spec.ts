@@ -2,6 +2,9 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
 import { integrationQueueName } from './modules/integration-queue/integration-queue.constants';
+import { reportSchedulesQueueName } from './modules/reports/schedules/report-schedule.constants';
+import { ReportSchedulesProcessor } from './modules/reports/schedules/report-schedules.processor';
+import { ReportSchedulesSchedulerService } from './modules/reports/schedules/report-schedules.scheduler.service';
 import { KnowledgeBaseReviewReminderService } from './modules/knowledge-base/knowledge-base-review-reminder.service';
 import { TicketArchiveAutomationService } from './modules/tickets/archive/ticket-archive-automation.service';
 import { TicketRealtimeBridgeSubscriber } from './modules/tickets/ticket-realtime-bridge.subscriber';
@@ -20,6 +23,9 @@ async function compileAppModule() {
   process.env.DATABASE_URL = 'postgresql://user:pass@127.0.0.1:5432/ephelpdesk';
   return Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(getQueueToken(integrationQueueName))
+    .useValue(createFakeIntegrationQueue())
+    // Paket 2.5: the API only produces „send now” jobs for the worker.
+    .overrideProvider(getQueueToken(reportSchedulesQueueName))
     .useValue(createFakeIntegrationQueue())
     .compile();
 }
@@ -41,6 +47,8 @@ describe('AppModule', () => {
       TicketArchiveAutomationService,
       WaitingForUserAutomationService,
       KnowledgeBaseReviewReminderService,
+      ReportSchedulesProcessor,
+      ReportSchedulesSchedulerService,
     ]) {
       expect(() => moduleRef.get(jobClass, { strict: false })).toThrow();
     }

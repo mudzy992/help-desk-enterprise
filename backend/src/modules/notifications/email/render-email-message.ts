@@ -34,6 +34,37 @@ export type RenderEmailMessageInput = {
   readonly manageUrl?: string | null;
   /** Paket 2.2: the ticket list of a digest e-mail. */
   readonly digest?: EmailDigestList | null;
+  /** Paket 2.5: the tables of a scheduled report e-mail. */
+  readonly report?: EmailReportBlock | null;
+};
+
+export type EmailReportRow = {
+  /** Already formatted cells; the first is the label column. */
+  readonly cells: readonly string[];
+  /** 0–1: a horizontal bar after the cells (HTML only; tables, no SVG). */
+  readonly bar?: number | null;
+  /** Grey text (e.g. a CSAT value from too few ratings). */
+  readonly muted?: boolean;
+  /** Red text (e.g. SLA below target). */
+  readonly alert?: boolean;
+};
+
+export type EmailReportTable = {
+  readonly title: string;
+  readonly columns: readonly string[];
+  readonly rows: readonly EmailReportRow[];
+  /** Shown instead of the table when there are no rows. */
+  readonly empty?: string;
+  /** Small print under the table. */
+  readonly note?: string | null;
+};
+
+export type EmailReportBlock = {
+  readonly tables: readonly EmailReportTable[];
+  /** Extra lines after the tables (e.g. attachments left out). */
+  readonly notes: readonly string[];
+  /** Footer line: which schedule sent the e-mail and who owns it. */
+  readonly footerReason: string;
 };
 
 export type EmailDigestRow = {
@@ -128,6 +159,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     ...(rows.length > 0 ? ['', ...rows.map(([label, value]) => `${label}: ${value}`)] : []),
     ...(excerpt === null ? [] : ['', `${labels.message}:`, quote(excerpt)]),
     ...digestText(input.digest ?? null, labels.digestEventCount),
+    ...reportText(input.report ?? null),
     ...(ctaUrl === null ? [] : ['', `${cta}: ${ctaUrl}`]),
     ...(footer.trim().length > 0 ? ['', footer] : []),
     '',
@@ -135,6 +167,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     input.appName,
     ...(input.ticket === null ? [] : [labels.footerReason]),
     ...(input.digest ? [input.digest.footerReason ?? labels.digestFooterReason] : []),
+    ...(input.report ? [input.report.footerReason] : []),
     footerNote,
     ...(manageUrl === null ? [] : [`${labels.manageNotifications}: ${manageUrl}`]),
   ].join('\n');
@@ -161,10 +194,13 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
         ? labels.footerReason
         : input.digest
           ? (input.digest.footerReason ?? labels.digestFooterReason)
-          : null,
+          : input.report
+            ? input.report.footerReason
+            : null,
     footerNote,
     accent,
-    digestHtml: digestHtml(input.digest ?? null, labels.digestEventCount),
+    digestHtml:
+      digestHtml(input.digest ?? null, labels.digestEventCount) + reportHtml(input.report ?? null, accent.background),
     manageLabel: labels.manageNotifications,
     manageUrl,
   });
@@ -311,6 +347,91 @@ function digestHtml(digest: EmailDigestList | null, countLabel: string): string 
   return (
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;">${rows}</table>` +
     more
+  );
+}
+
+function reportText(report: EmailReportBlock | null): string[] {
+  if (report === null) {
+    return [];
+  }
+  const lines: string[] = [];
+  for (const table of report.tables) {
+    lines.push('', `${table.title}`, '-'.repeat(Math.min(60, Math.max(3, table.title.length))));
+    if (table.rows.length === 0) {
+      lines.push(table.empty ?? '—');
+    } else {
+      lines.push(table.columns.join(' | '));
+      for (const row of table.rows) {
+        lines.push(row.cells.join(' | '));
+      }
+    }
+    if (table.note) {
+      lines.push(table.note);
+    }
+  }
+  if (report.notes.length > 0) {
+    lines.push('', ...report.notes);
+  }
+  return lines;
+}
+
+/** Outlook (Word engine) safe: nested tables, inline styles, bars as cells. */
+function reportHtml(report: EmailReportBlock | null, accent: string): string {
+  if (report === null) {
+    return '';
+  }
+  const e = escapeHtml;
+  const tables = report.tables
+    .map((table) => {
+      const title = `<p style="margin:24px 0 8px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#374151;">${e(table.title)}</p>`;
+      if (table.rows.length === 0) {
+        return (
+          title +
+          `<p style="margin:0;color:#6b7280;font-size:13px;">${e(table.empty ?? '—')}</p>` +
+          (table.note ? `<p style="margin:6px 0 0;color:#6b7280;font-size:11px;">${e(table.note)}</p>` : '')
+        );
+      }
+      const hasBars = table.rows.some((row) => typeof row.bar === 'number');
+      const cell = (value: string, index: number, header: boolean, color: string) =>
+        `<td style="padding:6px 8px;border-bottom:1px solid ${header ? '#e5e7eb' : '#f3f4f6'};font-size:${header ? 11 : 13}px;${header ? 'font-weight:600;text-transform:uppercase;letter-spacing:.03em;' : ''}color:${color};text-align:${index === 0 ? 'left' : 'right'};white-space:${index === 0 ? 'normal' : 'nowrap'};">${e(value)}</td>`;
+      const head =
+        `<tr style="background:#f9fafb;">` +
+        table.columns.map((column, index) => cell(column, index, true, '#6b7280')).join('') +
+        (hasBars ? `<td style="border-bottom:1px solid #e5e7eb;"></td>` : '') +
+        `</tr>`;
+      const body = table.rows
+        .map((row) => {
+          const color = row.alert === true ? '#b91c1c' : row.muted === true ? '#9ca3af' : '#111827';
+          const bar = hasBars
+            ? `<td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;width:110px;">${barHtml(row.bar ?? null, accent)}</td>`
+            : '';
+          return `<tr>${row.cells.map((value, index) => cell(value, index, false, color)).join('')}${bar}</tr>`;
+        })
+        .join('');
+      return (
+        title +
+        `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:6px;border-collapse:separate;">${head}${body}</table>` +
+        (table.note ? `<p style="margin:6px 0 0;color:#6b7280;font-size:11px;line-height:1.5;">${e(table.note)}</p>` : '')
+      );
+    })
+    .join('');
+  const notes =
+    report.notes.length === 0
+      ? ''
+      : `<div style="margin:20px 0 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;color:#92400e;font-size:12px;line-height:1.5;">${report.notes.map((note) => e(note)).join('<br>')}</div>`;
+  return tables + notes;
+}
+
+function barHtml(fraction: number | null, accent: string): string {
+  if (fraction === null || !Number.isFinite(fraction) || fraction <= 0) {
+    return '';
+  }
+  const width = Math.max(2, Math.min(100, Math.round(fraction * 100)));
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td width="${width}%" style="background:${accent};height:8px;line-height:8px;font-size:0;border-radius:2px;">&nbsp;</td>` +
+    (width < 100 ? `<td width="${100 - width}%" style="height:8px;line-height:8px;font-size:0;">&nbsp;</td>` : '') +
+    `</tr></table>`
   );
 }
 

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   NotFoundException,
@@ -16,6 +17,7 @@ export function mapReportsError(error: unknown): HttpException {
   const body = {
     code: error.code,
     message: reportErrorMessages[error.code],
+    ...(error.details ?? {}),
   };
   if (error.code === reportErrorCodes.forbidden) {
     return new ForbiddenException(body);
@@ -23,14 +25,22 @@ export function mapReportsError(error: unknown): HttpException {
   if (error.code === reportErrorCodes.tooLarge) {
     return new PayloadTooLargeException(body);
   }
-  if (error.code === reportErrorCodes.organizationalUnitNotFound) {
+  if (
+    error.code === reportErrorCodes.organizationalUnitNotFound ||
+    error.code === reportErrorCodes.scheduleNotFound
+  ) {
     return new NotFoundException(body);
   }
   if (
     error.code === reportErrorCodes.disabled ||
-    error.code === reportErrorCodes.bottlenecksDisabled
+    error.code === reportErrorCodes.bottlenecksDisabled ||
+    error.code === reportErrorCodes.trendsDisabled ||
+    error.code === reportErrorCodes.scheduleDisabled
   ) {
     return new ServiceUnavailableException(body);
+  }
+  if (error.code === reportErrorCodes.scheduleLimit) {
+    return new ConflictException(body);
   }
   return new BadRequestException(body);
 }

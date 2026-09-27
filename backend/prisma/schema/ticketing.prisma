@@ -103,6 +103,8 @@ model Ticket {
   @@index([assignedGroupId, createdAt(sort: Desc)])
   @@index([requesterId, createdAt(sort: Desc)])
   @@index([originUnitId, createdAt(sort: Desc)])
+  /// Paket 2.5: resolved flow and backlog of the trends.
+  @@index([originUnitId, resolvedAt])
   /// Phase 1.2 (plan §1.2): the search matches with a leading-wildcard ILIKE,
   /// which only a trigram GIN index can serve. Both columns are searched
   /// separately, so each one gets its own index. The `pg_trgm` extension is

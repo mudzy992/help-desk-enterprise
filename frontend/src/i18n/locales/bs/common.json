@@ -270,7 +270,8 @@
       "edge.connect": "Edge povezivanje",
       "edge.notify.receive": "Edge obavijesti",
       "ticket.message.send": "Slanje poruka na tiketu",
-      "ticket.remote.open_quick_assist": "Quick Assist"
+      "ticket.remote.open_quick_assist": "Quick Assist",
+      "reports.schedule.manage": "Upravljanje zakazanim izvještajima"
     }
   },
   "maintenance": {
@@ -397,7 +398,8 @@
         "edge.connect": "Poveži Edge Extension klijent (bootstrap sesija).",
         "edge.notify.receive": "Primaj notifikacije Edge Extensiona i bilježi potvrde prijema.",
         "ticket.message.send": "Šalji brze chat odgovore iz Edge Extensiona.",
-        "ticket.remote.open_quick_assist": "Potvrdi i otvori Quick Assist udaljene sesije iz Edge-a."
+        "ticket.remote.open_quick_assist": "Potvrdi i otvori Quick Assist udaljene sesije iz Edge-a.",
+        "reports.schedule.manage": "Kreiraj, uređuj i šalji zakazane izvještaje e-mailom."
       }
     }
   },
@@ -1012,7 +1014,17 @@
         "private.collaboration.followers.enabled": "Prikazuje dugme „Prati” na tiketu i filter „Tiketi koje pratim”. Praćenje ne daje pristup tiketu.",
         "private.collaboration.followOnReply": "Automatski zaprati tiket kad agent na njemu napiše odgovor ili bilješku, a nije dodijeljen.",
         "private.collaboration.links.enabled": "Omogućava povezivanje srodnih tiketa („povezano s”).",
-        "private.collaboration.links.maxPerTicket": "Najveći broj veza po tiketu (1–100)."
+        "private.collaboration.links.maxPerTicket": "Najveći broj veza po tiketu (1–100).",
+        "private.reports.trends.enabled": "Uključi karticu Trendovi (dolazni/riješeni, backlog, SLA, vremena, CSAT) i njen izvoz.",
+        "private.reports.trends.maxMonths": "Najveći raspon trendova u mjesecima (12–60). Veći raspon znači sporiji upit.",
+        "private.reports.trends.cacheSeconds": "Koliko sekundi se izračunati trend čuva u kešu (60–3600).",
+        "private.reports.trends.slaTargetPercent": "Ciljna SLA usklađenost u procentima, prikazana kao ciljna linija na grafikonu (50–100).",
+        "private.reports.trends.csatMinSample": "Najmanji broj CSAT ocjena u periodu; ispod toga se vrijednost prikazuje prigušeno („malo podataka”).",
+        "private.reports.scheduled.enabled": "Uključi zakazane izvještaje koji se e-mailom šalju sedmično ili mjesečno.",
+        "private.reports.scheduled.maxSchedules": "Najveći broj rasporeda izvještaja (1–200).",
+        "private.reports.scheduled.maxRecipients": "Najveći broj primalaca po rasporedu (1–100).",
+        "private.reports.scheduled.attachmentMaxRows": "Najveći broj redova po CSV prilogu; veći paket se izostavlja uz napomenu u e-mailu (100–50 000).",
+        "private.reports.scheduled.defaultSendTime": "Zadano vrijeme slanja novog rasporeda (HH:mm, zona izvještaja)."
       }
     },
     "emailTemplates": {
@@ -1094,7 +1106,8 @@
         "ticket_broadcast": "Obavještenje (broadcast)",
         "user_temporary_password": "Privremena lozinka",
         "notification_digest": "Dnevni sažetak",
-        "report_weekly_tickets": "Sedmični pregled tiketa"
+        "report_weekly_tickets": "Sedmični pregled tiketa",
+        "report_scheduled": "Zakazani izvještaj"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",

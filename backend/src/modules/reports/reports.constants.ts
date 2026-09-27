@@ -26,6 +26,14 @@ export const reportErrorCodes = {
   organizationalUnitNotFound: 'REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND',
   tooLarge: 'REPORT_TOO_LARGE',
   forbidden: 'FORBIDDEN',
+  // Paket 2.5
+  trendsDisabled: 'REPORT_TRENDS_DISABLED',
+  scheduleDisabled: 'REPORT_SCHEDULE_DISABLED',
+  scheduleNotFound: 'REPORT_SCHEDULE_NOT_FOUND',
+  scheduleLimit: 'REPORT_SCHEDULE_LIMIT',
+  scheduleInvalid: 'REPORT_SCHEDULE_INVALID',
+  recipientInvalid: 'REPORT_RECIPIENT_INVALID',
+  recipientLimit: 'REPORT_RECIPIENT_LIMIT',
 } as const;
 
 export type ReportErrorCode =
@@ -42,6 +50,13 @@ export const reportErrorMessages: Record<ReportErrorCode, string> = {
   REPORT_TOO_LARGE:
     'The report has too many rows; choose a shorter period or a narrower unit',
   FORBIDDEN: 'Authorization failed',
+  REPORT_TRENDS_DISABLED: 'The trends dashboard is disabled',
+  REPORT_SCHEDULE_DISABLED: 'Scheduled reports are disabled',
+  REPORT_SCHEDULE_NOT_FOUND: 'The report schedule was not found',
+  REPORT_SCHEDULE_LIMIT: 'The maximum number of report schedules has been reached',
+  REPORT_SCHEDULE_INVALID: 'The report schedule is not valid',
+  REPORT_RECIPIENT_INVALID: 'A recipient may not receive this report',
+  REPORT_RECIPIENT_LIMIT: 'Too many recipients for one report schedule',
 };
 
 /** Package 1.6 limits (plan §3 D3/D5). */

@@ -49,6 +49,9 @@ jest.mock('./common/prisma/prisma.service', () => ({
  * 2. The three 15-minute sweeps are staggered inside the window, so the archive, the
  *    waiting-for-user and the knowledge-base sweep never start together.
  */
+import { reportSchedulesSchedulerId } from './modules/reports/schedules/report-schedule.constants';
+import { ReportSchedulesSchedulerService } from './modules/reports/schedules/report-schedules.scheduler.service';
+
 describe('periodic job wiring', () => {
   function createSchedulerStore() {
     const entries = new Map<string, unknown>();
@@ -70,6 +73,7 @@ describe('periodic job wiring', () => {
       new KnowledgeBaseReviewReminderSchedulerService(queue as never),
       new UnroutedSweepSchedulerService(queue as never),
       new DirectorySyncSchedulerService(queue as never),
+      new ReportSchedulesSchedulerService(queue as never),
       new IntegrationWorkerMaintenanceSchedulerService(queue as never, {
         load: () => {
           throw new Error('settings unavailable');
@@ -92,13 +96,14 @@ describe('periodic job wiring', () => {
         knowledgeBaseReviewReminderSchedulerId,
         unroutedSweepSchedulerId,
         directorySyncSchedulerId,
+        reportSchedulesSchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(14);
-    // The fourteen registrations describe seven schedules, so no job can run twice.
-    expect(store.entries.size).toBe(7);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(16);
+    // The sixteen registrations describe eight schedules, so no job can run twice.
+    expect(store.entries.size).toBe(8);
   });
 
   it('staggers the five sweeps inside the fifteen-minute window', () => {

@@ -24,6 +24,7 @@ export const permissionKeys = {
   ticketAttachmentsUpload: "ticket.attachments.upload",
   auditExport: "audit.export",
   reportsExport: "reports.export",
+  reportsScheduleManage: "reports.schedule.manage",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

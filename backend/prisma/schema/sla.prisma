@@ -90,6 +90,8 @@ model TicketSlaState {
   @@index([responseDueAt])
   @@index([resolutionDueAt])
   @@index([resolutionCompletedAt, nextDueAt])
+  /// Paket 2.5: SLA response trend.
+  @@index([respondedAt])
 }
 
 model SlaEscalationRule {

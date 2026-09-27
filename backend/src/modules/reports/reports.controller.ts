@@ -1,9 +1,12 @@
 import {
+  Body,
   Controller,
   ForbiddenException,
   Get,
   Header,
+  HttpCode,
   Param,
+  Post,
   Query,
   Req,
   StreamableFile,
@@ -29,9 +32,15 @@ import {
   ExportReportPackQueryDto,
   ReportScopeQueryDto,
 } from './dto/report-query.dto';
+import {
+  ExportReportTrendsQueryDto,
+  RecordReportPdfExportDto,
+  ReportTrendsQueryDto,
+} from './dto/report-trends-query.dto';
 import { mapReportsError } from './map-reports-error';
 import { parseReportPackSlug } from './parse-report-pack-slug';
 import { ReportsService } from './reports.service';
+import { ReportTrendsService } from './trends/report-trends.service';
 
 @Controller('reports')
 @UseGuards(SessionAuthenticationGuard, RoleGuard, OuAccessGuard)
@@ -46,7 +55,10 @@ import { ReportsService } from './reports.service';
   }),
 )
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(
+    private readonly reportsService: ReportsService,
+    private readonly trendsService: ReportTrendsService,
+  ) {}
 
   @Get('packs')
   @Header('Cache-Control', 'no-store')
@@ -125,4 +137,62 @@ export class ReportsController {
       throw mapReportsError(error);
     });
   }
+
+  /** Paket 2.5 (§4.4): every trend series in one response. */
+  @Get('trends')
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  trends(@Query() query: ReportTrendsQueryDto) {
+    return this.trendsService.trends(query).catch((error) => {
+      throw mapReportsError(error);
+    });
+  }
+
+  @Get('trends/export')
+  @Header('Cache-Control', 'no-store')
+  async exportTrends(
+    @Query() query: ExportReportTrendsQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<StreamableFile> {
+    const actorUserId = requireActor(request);
+    const { format, ...filters } = query;
+    try {
+      const exported = await this.trendsService.exportTrends(
+        filters,
+        format,
+        actorUserId,
+        readAuditRequestId(request.headers),
+      );
+      return new StreamableFile(Buffer.from(exported.content, 'utf8'), {
+        type: exported.contentType,
+        disposition: `attachment; filename="${exported.fileName}"`,
+      });
+    } catch (error) {
+      throw mapReportsError(error);
+    }
+  }
+
+  /** Design §6: „Save as PDF” happens in the browser; this only leaves the audit trace. */
+  @Post('pdf-exports')
+  @HttpCode(204)
+  @AdminReadOperation()
+  async recordPdfExport(
+    @Body() body: RecordReportPdfExportDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<void> {
+    const actorUserId = requireActor(request);
+    try {
+      await this.trendsService.recordPdfExport(body, actorUserId, readAuditRequestId(request.headers));
+    } catch (error) {
+      throw mapReportsError(error);
+    }
+  }
+}
+
+function requireActor(request: AuthenticatedHttpRequest): string {
+  const actorUserId = readSettingsActorUserId(request);
+  if (actorUserId === null) {
+    throw new ForbiddenException({ code: 'FORBIDDEN', message: 'Authorization failed' });
+  }
+  return actorUserId;
 }

@@ -148,6 +148,11 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Access and export dashboard and KPI reports.',
   },
   {
+    key: permissionKeys.reportsScheduleManage,
+    categoryId: permissionCategoryIds.reports,
+    description: 'Create, edit and send scheduled e-mail reports (package 2.5).',
+  },
+  {
     key: permissionKeys.supportBundleExport,
     categoryId: permissionCategoryIds.observability,
     description: 'Download a support diagnostics bundle for troubleshooting.',

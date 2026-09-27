@@ -56,6 +56,14 @@ export const auditLogActions = {
   directoryDryRun: 'directory.dry_run',
   directorySyncApplied: 'directory.sync_applied',
   directorySyncAborted: 'directory.sync_aborted',
+  // Paket 2.5: trends, PDF and scheduled reports.
+  reportTrendsExported: 'report.trends.exported',
+  reportPdfExported: 'report.pdf.exported',
+  reportScheduleCreated: 'report.schedule.created',
+  reportScheduleUpdated: 'report.schedule.updated',
+  reportScheduleDeleted: 'report.schedule.deleted',
+  reportScheduleSent: 'report.schedule.sent',
+  reportScheduleTestSent: 'report.schedule.test_sent',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -73,6 +81,8 @@ export const auditLogEntityTypes = {
   emailTemplate: 'email_template',
   user: 'user',
   directorySyncRun: 'directory_sync_run',
+  reportTrends: 'report_trends',
+  reportSchedule: 'report_schedule',
 } as const;
 
 export const auditLogErrorCodes = {

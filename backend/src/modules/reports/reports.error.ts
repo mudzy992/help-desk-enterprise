@@ -4,7 +4,11 @@ import {
 } from './reports.constants';
 
 export class ReportsError extends Error {
-  constructor(readonly code: ReportErrorCode) {
+  constructor(
+    readonly code: ReportErrorCode,
+    /** Paket 2.5: extra fields for the client (e.g. rejected recipient ids). */
+    readonly details?: Readonly<Record<string, unknown>>,
+  ) {
     super(code);
     this.name = 'ReportsError';
   }

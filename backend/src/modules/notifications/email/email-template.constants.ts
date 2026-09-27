@@ -16,6 +16,8 @@ export const emailTemplateKeys = [
   'notification.digest',
   // Paket 2.2a: weekly list of an agent's open tickets.
   'report.weekly_tickets',
+  // Paket 2.5: scheduled report (KPI tables, CSV attachments).
+  'report.scheduled',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -23,7 +25,10 @@ export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
 /** Keys about a ticket: rendered with the ticket card, link and threading. */
 export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplateKeys.filter(
   (key) =>
-    key !== 'user.temporary_password' && key !== 'notification.digest' && key !== 'report.weekly_tickets',
+    key !== 'user.temporary_password' &&
+    key !== 'notification.digest' &&
+    key !== 'report.weekly_tickets' &&
+    key !== 'report.scheduled',
 );
 
 export const emailLocales = ['bs', 'en'] as const;
@@ -64,6 +69,10 @@ export const emailTemplatePlaceholders = [
   'ticketCount',
   'overdueCount',
   'weekLabel',
+  // Paket 2.5
+  'reportName',
+  'reportPeriod',
+  'reportScope',
 ] as const;
 
 export type EmailTemplatePlaceholder =

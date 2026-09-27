@@ -270,7 +270,8 @@
       "edge.connect": "Edge connect",
       "edge.notify.receive": "Edge notifications",
       "ticket.message.send": "Send ticket messages",
-      "ticket.remote.open_quick_assist": "Quick Assist"
+      "ticket.remote.open_quick_assist": "Quick Assist",
+      "reports.schedule.manage": "Manage scheduled reports"
     }
   },
   "maintenance": {
@@ -397,7 +398,8 @@
         "edge.connect": "Connect the Edge Extension client (bootstrap session).",
         "edge.notify.receive": "Receive Edge Extension notifications and record receipts.",
         "ticket.message.send": "Send quick-reply chat messages from the Edge Extension.",
-        "ticket.remote.open_quick_assist": "Acknowledge and open Quick Assist remote sessions from Edge."
+        "ticket.remote.open_quick_assist": "Acknowledge and open Quick Assist remote sessions from Edge.",
+        "reports.schedule.manage": "Create, edit and send scheduled e-mail reports."
       }
     }
   },
@@ -1010,7 +1012,17 @@
         "private.collaboration.followers.enabled": "Shows the “Follow” button on tickets and the “Tickets I follow” filter. Following never grants access.",
         "private.collaboration.followOnReply": "Automatically follows a ticket when an agent who is not assigned writes a reply or note on it.",
         "private.collaboration.links.enabled": "Allows linking related tickets (“related to”).",
-        "private.collaboration.links.maxPerTicket": "Maximum number of links per ticket (1–100)."
+        "private.collaboration.links.maxPerTicket": "Maximum number of links per ticket (1–100).",
+        "private.reports.trends.enabled": "Enable the Trends tab (incoming/resolved, backlog, SLA, times, CSAT) and its export.",
+        "private.reports.trends.maxMonths": "Longest trend range in months (12–60). A longer range means a slower query.",
+        "private.reports.trends.cacheSeconds": "How many seconds a computed trend stays cached (60–3600).",
+        "private.reports.trends.slaTargetPercent": "Target SLA compliance in percent, drawn as the target line on the chart (50–100).",
+        "private.reports.trends.csatMinSample": "Minimum number of CSAT ratings in a period; below it the value is shown muted (\"little data\").",
+        "private.reports.scheduled.enabled": "Enable scheduled reports sent by e-mail weekly or monthly.",
+        "private.reports.scheduled.maxSchedules": "Maximum number of report schedules (1–200).",
+        "private.reports.scheduled.maxRecipients": "Maximum number of recipients per schedule (1–100).",
+        "private.reports.scheduled.attachmentMaxRows": "Maximum rows per CSV attachment; a larger pack is left out with a note in the e-mail (100–50,000).",
+        "private.reports.scheduled.defaultSendTime": "Default send time of a new schedule (HH:mm, report time zone)."
       }
     },
     "emailTemplates": {
@@ -1091,7 +1103,8 @@
         "ticket_broadcast": "Notice (broadcast)",
         "user_temporary_password": "Temporary password",
         "notification_digest": "Daily digest",
-        "report_weekly_tickets": "Weekly ticket review"
+        "report_weekly_tickets": "Weekly ticket review",
+        "report_scheduled": "Scheduled report"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",

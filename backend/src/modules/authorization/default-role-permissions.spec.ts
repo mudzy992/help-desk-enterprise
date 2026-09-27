@@ -50,6 +50,15 @@ describe('default role permission mapping', () => {
     );
   });
 
+  it('keeps report schedules (package 2.5) with ADMIN, never AGENT', () => {
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.admin]).toContain(
+      permissionKeys.reportsScheduleManage,
+    );
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.agent]).not.toContain(
+      permissionKeys.reportsScheduleManage,
+    );
+  });
+
   it('documents SuperAdmin as the full catalog including break-glass', () => {
     expect(defaultRolePermissionKeys[authorizationRoleKeys.superAdmin]).toEqual(
       allPermissionKeys,

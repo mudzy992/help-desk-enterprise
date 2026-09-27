@@ -118,6 +118,9 @@ model TicketCsat {
   ticket             Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   submittedBy        User     @relation(fields: [submittedByUserId], references: [id], onDelete: Restrict)
   createdAt          DateTime @default(now())
+
+  /// Paket 2.5: CSAT trend.
+  @@index([createdAt])
 }
 
 model TicketConfidentialGrant {

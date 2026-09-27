@@ -25,6 +25,15 @@ export class SmtpMailTransport implements MailTransport {
         ...(message.replyTo === undefined ? {} : { replyTo: message.replyTo }),
         ...(message.messageId === undefined ? {} : { messageId: message.messageId }),
         ...(message.headers === undefined ? {} : { headers: { ...message.headers } }),
+        ...(message.attachments === undefined || message.attachments.length === 0
+          ? {}
+          : {
+              attachments: message.attachments.map((attachment) => ({
+                filename: attachment.filename,
+                content: attachment.content,
+                contentType: attachment.contentType,
+              })),
+            }),
       });
     } finally {
       transporter.close();
