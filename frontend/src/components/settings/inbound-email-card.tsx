@@ -101,7 +101,7 @@ export function InboundEmailCard() {
                 })}
               </span>
             </p>
-            {status.enabled && state?.lastError && state.consecutiveFails > 0 ? (
+            {status.enabled && state?.lastError && state.consecutiveFails > 0 && !state.lastError.startsWith("MISCONFIGURED") ? (
               <Warning text={t("settings.inboundEmail.lastError", { error: state.lastError })} />
             ) : null}
             {status.enabled

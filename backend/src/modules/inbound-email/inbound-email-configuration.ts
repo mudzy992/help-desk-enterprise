@@ -53,9 +53,11 @@ export function inboundConfigurationProblems(configuration: InboundEmailConfigur
 }
 
 export async function loadInboundEmailConfiguration(settings: SettingsService): Promise<InboundEmailConfiguration> {
+  // Secret settings (client secret, IMAP password) must go through the internal secret reader.
+  const secretKeys = new Set<string>([settingKeys.privateInboundGraphClientSecret, settingKeys.privateInboundImapPassword]);
   const read = async (key: string): Promise<unknown> => {
     try {
-      return await settings.getSetting(key);
+      return secretKeys.has(key) ? await settings.getSecretForInternalUse(key) : await settings.getSetting(key);
     } catch {
       return undefined;
     }
