@@ -34,6 +34,8 @@ x-app-environment: &app-environment
   # Paket 2.1: AES-256 ključ za TOTP tajne (base64, 32 bajta: `openssl rand -base64 32`).
   # Bez njega MFA se ne može uključiti; promjena ključa poništava sve postavljene MFA.
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
+  # Paket 2.3: signs reply tokens in notification Message-IDs (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
+  INBOUND_EMAIL_TOKEN_SECRET: ${INBOUND_EMAIL_TOKEN_SECRET:-}
 
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga

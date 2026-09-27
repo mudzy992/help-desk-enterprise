@@ -171,3 +171,42 @@ model AppSetting {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
+
+/// Paket 2.3 (R12): one inbound e-mail seen in the support mailbox. The pair
+/// (mailboxKey, providerMessageId) is processed at most once. No body is kept
+/// here; the raw .eml lives in storage for `rawRetentionDays`.
+model InboundEmail {
+  id                String             @id @default(cuid())
+  mailboxKey        String             @db.VarChar(200)
+  providerMessageId String             @db.VarChar(500)
+  messageIdHeader   String?            @db.VarChar(500)
+  fromAddress       String?            @db.VarChar(320)
+  subject           String             @db.VarChar(200)
+  receivedAt        DateTime?
+  status            InboundEmailStatus @default(PROCESSING)
+  reason            String?            @db.VarChar(64)
+  ticketId          String?
+  ticketMessageId   String?
+  createdTicketId   String?
+  rawStorageKey     String?            @db.VarChar(300)
+  attempts          Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@unique([mailboxKey, providerMessageId])
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([fromAddress, createdAt])
+}
+
+/// Paket 2.3: connector health per mailbox (shown on the admin page).
+model InboundMailboxState {
+  mailboxKey       String    @id @db.VarChar(200)
+  lastRunAt        DateTime?
+  lastSuccessAt    DateTime?
+  lastError        String?   @db.VarChar(500)
+  lastErrorAt      DateTime?
+  consecutiveFails Int       @default(0)
+  alertedAt        DateTime?
+  updatedAt        DateTime  @updatedAt
+}

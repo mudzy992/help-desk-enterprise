@@ -108,6 +108,16 @@ export function describeMergeOrPriorityEvent(
   if (detail === null) {
     return null;
   }
+  // Paket 2.3 (R10): `inbound_attachment_rejected:<file name>|<reason code>`.
+  if (action === "inbound_attachment_rejected") {
+    const separator = detail.lastIndexOf("|");
+    const name = separator >= 0 ? detail.slice(0, separator) : detail;
+    const reason = separator >= 0 ? detail.slice(separator + 1) : "";
+    return {
+      text: ticketText(t, "tickets.activity.inboundAttachmentRejected", { name }),
+      note: reason.length > 0 ? reason : null,
+    };
+  }
   if (action === "ticket_priority_overridden") {
     const [from = "", to = "", mode = "", ...rest] = detail.split(":");
     const label = (value: string) => {

@@ -24,6 +24,8 @@ import { directorySyncQueueName } from './modules/directory-sync/ldaps/directory
 import { DirectorySyncProcessor } from './modules/directory-sync/ldaps/directory-sync.processor';
 import { WebsocketGateway } from './modules/websocket/websocket.gateway';
 import { WorkerModule } from './worker.module';
+import { inboundEmailQueueName } from './modules/inbound-email/inbound-email.constants';
+import { InboundEmailProcessor } from './modules/inbound-email/inbound-email.processor';
 import { notificationDigestQueueName } from './modules/notifications/preferences/notification-digest.constants';
 import { NotificationDigestProcessor } from './modules/notifications/preferences/notification-digest.processor';
 
@@ -44,6 +46,7 @@ const scheduledQueueNames = [
   unroutedSweepQueueName,
   directorySyncQueueName,
   notificationDigestQueueName,
+  inboundEmailQueueName,
 ] as const;
 
 const processorTypes = [
@@ -58,6 +61,7 @@ const processorTypes = [
   UnroutedSweepProcessor,
   DirectorySyncProcessor,
   NotificationDigestProcessor,
+  InboundEmailProcessor,
 ] as const;
 
 function createFakeQueue() {

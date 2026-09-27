@@ -195,4 +195,6 @@ export type TicketMutationContext = {
   readonly safeLogging?: TicketSafeLoggingConfiguration;
   readonly archive?: TicketArchiveConfiguration;
   readonly slaTimers?: TicketSlaTimersPort;
+  /** Paket 2.3: set only by the inbound e-mail worker, never from HTTP. */
+  readonly messageSource?: 'APP' | 'EMAIL';
 };

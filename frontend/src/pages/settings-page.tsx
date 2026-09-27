@@ -6,6 +6,7 @@ import { SecurityComplianceSettingsCard } from "@/components/settings/security-c
 import { SettingsRegistryPanel } from "@/components/settings/settings-registry-panel";
 import { SmtpEmailSettingsCard } from "@/components/settings/smtp-email-settings-card";
 import { EmailTemplatesCard } from "@/components/settings/email-templates-card";
+import { InboundEmailCard } from "@/components/settings/inbound-email-card";
 import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -70,6 +71,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
                 onSave={registry.save}
               />
               <EmailTemplatesCard canWrite={canWrite} />
+              <InboundEmailCard />
               <SystemSettingsCard entries={registry.entries} />
             </div>
             <div className="space-y-4">

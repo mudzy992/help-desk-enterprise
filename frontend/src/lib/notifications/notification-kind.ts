@@ -30,6 +30,10 @@ export function notificationTicketPath(
   if (type === "directory.syncAborted") {
     return "/organizational-units";
   }
+  // Paket 2.3: a failing inbound mailbox opens its status panel.
+  if (type === "inbound.mailboxFailing") {
+    return "/settings";
+  }
   // Paket 2.1: account security events open the own security page.
   if (type?.startsWith("account.")) {
     return "/account/security";
@@ -66,6 +70,7 @@ export function notificationTitleKey(
   | "notifications.items.accountRecoveryCodeUsed"
   | "notifications.items.accountPasswordChanged"
   | "notifications.items.accountNewDevice"
+  | "notifications.items.inboundMailboxFailing"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -102,6 +107,8 @@ export function notificationTitleKey(
       return "notifications.items.accountPasswordChanged";
     case "account.newDevice":
       return "notifications.items.accountNewDevice";
+    case "inbound.mailboxFailing":
+      return "notifications.items.inboundMailboxFailing";
     default:
       return "notifications.items.unknown";
   }

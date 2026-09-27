@@ -1,4 +1,4 @@
-import { MessageSquareLock } from "lucide-react";
+import { Mail, MessageSquareLock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,12 @@ export function TicketMessageBubble({
             <Badge tone="warning" className="px-1">
               <MessageSquareLock size={9} aria-hidden="true" />
               {t("tickets.detail.internalBadge")}
+            </Badge>
+          ) : null}
+          {message.source === "EMAIL" ? (
+            <Badge tone="info" className="px-1">
+              <Mail size={9} aria-hidden="true" />
+              {t("tickets.activity.viaEmail")}
             </Badge>
           ) : null}
         </div>

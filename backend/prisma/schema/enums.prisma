@@ -94,6 +94,21 @@ enum MessageType {
   APPROVAL_DECISION
 }
 
+/// Paket 2.3 (R15): where a ticket message came from.
+enum MessageSource {
+  APP
+  EMAIL
+}
+
+/// Paket 2.3: outcome of one inbound e-mail.
+enum InboundEmailStatus {
+  PROCESSING
+  PROCESSED
+  REJECTED
+  IGNORED
+  FAILED
+}
+
 enum ApprovalStatus {
   PENDING
   APPROVED

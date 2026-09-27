@@ -134,6 +134,8 @@ model TicketMessage {
   /// Package 1.4 (T4): the shared/personal template the text started from.
   responseTemplateId String?
   responseTemplate   ResponseTemplate? @relation(fields: [responseTemplateId], references: [id], onDelete: SetNull)
+  /// Paket 2.3 (R15): APP or EMAIL (reply to a notification).
+  source       MessageSource     @default(APP)
   ticket       Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author       User?             @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   attachments  TicketAttachment[]

@@ -6,6 +6,7 @@ import { RedisModule } from './common/redis/redis.module';
 import { AuthenticationModule } from './modules/authentication/authentication.module';
 import { AuthorizationModule } from './modules/authorization/authorization.module';
 import { DirectorySyncModule } from './modules/directory-sync/directory-sync.module';
+import { InboundEmailAdminModule } from './modules/inbound-email/inbound-email-admin.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { UsersModule } from './modules/users/users.module';
@@ -48,6 +49,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     AuthenticationModule,
     AuthorizationModule,
     DirectorySyncModule,
+    InboundEmailAdminModule,
     OrganizationalUnitsModule,
     GroupsModule,
     RbacModule,

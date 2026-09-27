@@ -16,6 +16,7 @@ export const notificationPreferenceCategoryKeys = [
   "knowledge.reviewDue",
   "report.weeklyTickets",
   "directory.syncAborted",
+  "inbound.mailboxFailing",
   "account.security",
 ] as const;
 export type NotificationPreferenceCategoryKey = (typeof notificationPreferenceCategoryKeys)[number];

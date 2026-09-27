@@ -1,3 +1,4 @@
+import { createReplyTokenMessageId, readReplyTokenSecret } from './reply-token';
 import { createHash } from 'node:crypto';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import { emailLayoutLabels } from './email-layout-labels';
@@ -131,7 +132,18 @@ export function composeTicketEmail(input: {
   });
   const domain = mailDomain(configuration.smtp?.fromAddress);
   const threadRoot = `<ticket-${ticket.id}@${domain}>`;
-  const messageId = `<${digest(`${input.dedupeKey}:${input.recipientId}`)}@${domain}>`;
+  // Paket 2.3 (R4): signed reply token when replies go to the shared mailbox.
+  const secret = presentation.replyMode === 'shared_mailbox' ? readReplyTokenSecret() : null;
+  const messageId =
+    (secret === null
+      ? null
+      : createReplyTokenMessageId({
+          secret,
+          ticketId: ticket.id,
+          recipientId: input.recipientId,
+          dedupeKey: input.dedupeKey,
+          domain,
+        })) ?? `<${digest(`${input.dedupeKey}:${input.recipientId}`)}@${domain}>`;
   return {
     ...rendered,
     messageId,

@@ -144,7 +144,8 @@
       "accountMfaChanged": "Two-step verification on your account was changed",
       "accountRecoveryCodeUsed": "A recovery code was used to sign in",
       "accountPasswordChanged": "Your account password was changed",
-      "accountNewDevice": "New sign-in from an unrecognised device"
+      "accountNewDevice": "New sign-in from an unrecognised device",
+      "inboundMailboxFailing": "Inbound e-mail is failing: the mailbox cannot be read"
     }
   },
   "placeholders": {
@@ -672,7 +673,8 @@
         "private.workflow": "Workflow",
         "public.branding": "Branding",
         "public.maintenance": "System maintenance",
-        "private.i18n": "Language"
+        "private.i18n": "Language",
+        "private.inbound": "Inbound e-mail"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -976,7 +978,29 @@
         "private.notifications.weeklyTicketReport.dayOfWeek": "Day of the weekly review (1 = Monday … 7 = Sunday).",
         "private.notifications.weeklyTicketReport.time": "Time of the weekly review (HH:MM, 15-minute steps) in the installation time zone.",
         "private.notifications.weeklyTicketReport.maxRows": "Maximum tickets in one review (10–500); the rest is shown as a count.",
-        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Send the review even when the agent has no open tickets."
+        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Send the review even when the agent has no open tickets.",
+        "private.inbound.enabled": "Reads the shared support mailbox and turns replies to notifications into ticket messages.",
+        "private.inbound.provider": "Mailbox connector: Microsoft Graph (Office 365) or IMAP (any server, including Gmail).",
+        "private.inbound.address": "Support mailbox address (normally the same as the Reply-To address).",
+        "private.inbound.pollSeconds": "How often the mailbox is checked, in seconds (30–600).",
+        "private.inbound.graph.tenantId": "Microsoft Entra tenant ID for the mailbox application.",
+        "private.inbound.graph.clientId": "Application (client) ID with Mail.ReadWrite limited to the support mailbox.",
+        "private.inbound.graph.clientSecret": "Client secret of the mailbox application; never shown outside the backend.",
+        "private.inbound.imap.host": "IMAP server host (e.g. outlook.office365.com, imap.gmail.com).",
+        "private.inbound.imap.port": "IMAP port (993 = implicit TLS).",
+        "private.inbound.imap.tls": "Use TLS for IMAP (recommended).",
+        "private.inbound.imap.username": "IMAP user name (usually the mailbox address).",
+        "private.inbound.imap.password": "IMAP password or app password; never shown outside the backend.",
+        "private.inbound.imap.authMethod": "IMAP sign-in: password, or OAuth2 with the Entra application above (required for Office 365).",
+        "private.inbound.processedFolder": "Folder that processed e-mails are moved to (created when missing).",
+        "private.inbound.rejectedFolder": "Folder that rejected and ignored e-mails are moved to (created when missing).",
+        "private.inbound.requireAuthPass": "Accept only e-mails that passed DMARC, or SPF and DKIM (protection against forged senders).",
+        "private.inbound.createTickets": "A new e-mail from a known user (not a reply) opens a ticket on the default service.",
+        "private.inbound.defaultServiceId": "Service for tickets opened by e-mail (e.g. \"General inquiry\"); required when ticket creation is on.",
+        "private.inbound.rawRetentionDays": "Days the original e-mail (.eml) is kept for review (0 = not kept).",
+        "private.inbound.metadataRetentionDays": "Days the inbound e-mail log (sender, subject, outcome) is kept.",
+        "private.inbound.maxPerSenderPerHour": "Maximum e-mails accepted per sender per hour; the rest is rejected (loop protection).",
+        "private.inbound.maxMessagesPerRun": "Maximum e-mails processed per mailbox check."
       }
     },
     "emailTemplates": {
@@ -1063,6 +1087,73 @@
       "accentInvalid": "Enter a colour as #rrggbb or leave it empty.",
       "backToSettings": "Back to settings",
       "loading": "Loading templates…"
+    },
+    "inboundEmail": {
+      "title": "Inbound e-mail (reply by e-mail)",
+      "subtitle": "Replies to notifications in the shared mailbox become ticket messages.",
+      "state": "State",
+      "disabled": "Off",
+      "healthy": "Working",
+      "waiting": "Waiting for the first check",
+      "failing": "Failing ({{count}} in a row)",
+      "mailbox": "Mailbox",
+      "providers": {
+        "graph": "Microsoft Graph",
+        "imap": "IMAP"
+      },
+      "lastSuccess": "Last successful check",
+      "last24h": "Last 24 h",
+      "counts": "{{processed}} processed · {{rejected}} rejected · {{ignored}} ignored",
+      "lastError": "Last error: {{error}}",
+      "problems": {
+        "ADDRESS_MISSING": "The mailbox address is not set.",
+        "ENTRA_APP_MISSING": "Entra application details are missing (tenant, client ID, secret).",
+        "IMAP_SERVER_MISSING": "The IMAP server or user name is missing.",
+        "IMAP_PASSWORD_MISSING": "The IMAP password is missing.",
+        "DEFAULT_SERVICE_MISSING": "Opening tickets by e-mail is on, but no default service is selected."
+      },
+      "replyModeWarning": "The e-mail reply mode is not \"shared mailbox\": users have nobody to reply to.",
+      "tokenWarning": "The signed reply secret is not set (INBOUND_EMAIL_TOKEN_SECRET or MFA_ENCRYPTION_KEY); only the ticket number in the subject is recognised.",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "testOk": "Connection works. Inbox: {{count}} messages (at most 10 shown).",
+      "openLog": "Log",
+      "refresh": "Refresh",
+      "logTitle": "Inbound e-mail log",
+      "logSubtitle": "Last 50 messages. Message bodies are never shown.",
+      "logEmpty": "No messages received yet.",
+      "ticket": "ticket",
+      "statuses": {
+        "PROCESSING": "Processing",
+        "PROCESSED": "Processed",
+        "REJECTED": "Rejected",
+        "IGNORED": "Ignored",
+        "FAILED": "Failed"
+      },
+      "reasons": {
+        "UNKNOWN_SENDER": "unknown sender",
+        "SENDER_INACTIVE": "inactive user",
+        "SENDER_DOMAIN_NOT_ALLOWED": "domain not allowed",
+        "AUTHENTICATION_FAILED": "DMARC/SPF/DKIM check failed",
+        "NO_TICKET_MATCH": "not a ticket reply",
+        "TICKET_NOT_FOUND": "ticket not found",
+        "FORBIDDEN": "sender has no access to the ticket",
+        "TICKET_CLOSED": "ticket is closed",
+        "EMPTY_REPLY": "empty reply",
+        "REDACTION_BLOCKED": "blocked by redaction",
+        "RATE_LIMITED": "too many messages from sender",
+        "TOO_LARGE": "message too large",
+        "CREATE_FAILED": "ticket could not be opened",
+        "PARSE_FAILED": "message cannot be read",
+        "AUTO_REPLY": "automatic reply",
+        "BOUNCE": "bounce",
+        "MAILING_LIST": "bulk message / list",
+        "OWN_MESSAGE": "our own message",
+        "DUPLICATE": "duplicate",
+        "INTERRUPTED": "processing interrupted",
+        "ATTACHMENTS_REJECTED": "some attachments rejected",
+        "OTHER": "technical error"
+      }
     }
   },
   "errors": {
@@ -2885,7 +2976,9 @@
         "assignedGroup": "group changed: {{from}} → {{to}}"
       },
       "assignedTo": "ticket automatically assigned to {{name}}",
-      "subtitlePublic": "Your ticket's progress: key changes and handling steps"
+      "subtitlePublic": "Your ticket's progress: key changes and handling steps",
+      "inboundAttachmentRejected": "Attachment \"{{name}}\" from the e-mail was not attached",
+      "viaEmail": "Via e-mail"
     },
     "errorAttachmentInfected": "The antivirus scan rejected this file.",
     "errorForwardStatus": "A ticket in this status cannot be forwarded.",
@@ -3569,6 +3662,10 @@
         "report_weeklyTickets": {
           "label": "Weekly ticket review",
           "hint": "E-mail listing your open tickets, once a week."
+        },
+        "inbound_mailboxFailing": {
+          "label": "Inbound e-mail failing",
+          "hint": "The support mailbox could not be read three times in a row."
         }
       },
       "emailOnly": "E-mail only",

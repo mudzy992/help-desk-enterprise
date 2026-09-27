@@ -144,7 +144,8 @@
       "accountMfaChanged": "Promijenjena je potvrda u dva koraka na vašem nalogu",
       "accountRecoveryCodeUsed": "Iskorišten je rezervni kod za prijavu",
       "accountPasswordChanged": "Lozinka vašeg naloga je promijenjena",
-      "accountNewDevice": "Nova prijava s nepoznatog uređaja"
+      "accountNewDevice": "Nova prijava s nepoznatog uređaja",
+      "inboundMailboxFailing": "Dolazna pošta ne radi: sandučić se ne može pročitati"
     }
   },
   "placeholders": {
@@ -674,7 +675,8 @@
         "private.workflow": "Tok rada",
         "public.branding": "Brending",
         "public.maintenance": "Održavanje sistema",
-        "private.i18n": "Jezik"
+        "private.i18n": "Jezik",
+        "private.inbound": "Dolazna pošta"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -978,7 +980,29 @@
         "private.notifications.weeklyTicketReport.dayOfWeek": "Dan slanja sedmičnog pregleda (1 = ponedjeljak … 7 = nedjelja).",
         "private.notifications.weeklyTicketReport.time": "Vrijeme slanja sedmičnog pregleda (HH:MM, korak 15 min) u vremenskoj zoni instalacije.",
         "private.notifications.weeklyTicketReport.maxRows": "Najviše tiketa u jednom pregledu (10–500); ostatak se navodi kao broj.",
-        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Šalji pregled i kad agent nema otvorenih tiketa."
+        "private.notifications.weeklyTicketReport.sendWhenEmpty": "Šalji pregled i kad agent nema otvorenih tiketa.",
+        "private.inbound.enabled": "Čita zajednički sandučić podrške i odgovore na obavijesti pretvara u poruke na tiketu.",
+        "private.inbound.provider": "Konektor sandučića: Microsoft Graph (Office 365) ili IMAP (bilo koji server, uključujući Gmail).",
+        "private.inbound.address": "Adresa sandučića podrške (obično ista kao Reply-To adresa).",
+        "private.inbound.pollSeconds": "Koliko često se sandučić provjerava, u sekundama (30–600).",
+        "private.inbound.graph.tenantId": "Microsoft Entra ID tenanta za aplikaciju sandučića.",
+        "private.inbound.graph.clientId": "Application (client) ID aplikacije s dozvolom Mail.ReadWrite ograničenom na sandučić podrške.",
+        "private.inbound.graph.clientSecret": "Tajna (client secret) aplikacije sandučića; nikad se ne prikazuje izvan backenda.",
+        "private.inbound.imap.host": "IMAP server (npr. outlook.office365.com, imap.gmail.com).",
+        "private.inbound.imap.port": "IMAP port (993 = TLS od početka konekcije).",
+        "private.inbound.imap.tls": "Koristi TLS za IMAP (preporučeno).",
+        "private.inbound.imap.username": "IMAP korisničko ime (obično adresa sandučića).",
+        "private.inbound.imap.password": "IMAP lozinka ili lozinka aplikacije (app password); nikad se ne prikazuje izvan backenda.",
+        "private.inbound.imap.authMethod": "Prijava na IMAP: lozinka ili OAuth2 preko gornje Entra aplikacije (obavezno za Office 365).",
+        "private.inbound.processedFolder": "Folder u koji se premještaju obrađeni e-mailovi (kreira se ako ne postoji).",
+        "private.inbound.rejectedFolder": "Folder u koji se premještaju odbijeni i ignorisani e-mailovi (kreira se ako ne postoji).",
+        "private.inbound.requireAuthPass": "Prihvata samo e-mailove koji su prošli DMARC, ili SPF i DKIM (zaštita od lažnih pošiljalaca).",
+        "private.inbound.createTickets": "Novi e-mail poznatog korisnika (koji nije odgovor) otvara tiket na zadanom servisu.",
+        "private.inbound.defaultServiceId": "Servis za tikete otvorene e-mailom (npr. „Opšti upit”); obavezan kad je otvaranje tiketa uključeno.",
+        "private.inbound.rawRetentionDays": "Broj dana čuvanja originalnog e-maila (.eml) radi provjere (0 = ne čuva se).",
+        "private.inbound.metadataRetentionDays": "Broj dana čuvanja dnevnika dolazne pošte (pošiljalac, naslov, ishod).",
+        "private.inbound.maxPerSenderPerHour": "Najviše prihvaćenih e-mailova po pošiljaocu na sat; višak se odbija (zaštita od petlji).",
+        "private.inbound.maxMessagesPerRun": "Najviše e-mailova obrađenih u jednoj provjeri sandučića."
       }
     },
     "emailTemplates": {
@@ -1066,6 +1090,73 @@
       "accentInvalid": "Upišite boju kao #rrggbb ili ostavite prazno.",
       "backToSettings": "Nazad na postavke",
       "loading": "Učitavam šablone…"
+    },
+    "inboundEmail": {
+      "title": "Dolazna pošta (odgovor e-mailom)",
+      "subtitle": "Odgovori na obavijesti iz zajedničkog sandučića postaju poruke na tiketu.",
+      "state": "Stanje",
+      "disabled": "Isključeno",
+      "healthy": "Radi",
+      "waiting": "Čeka prvu provjeru",
+      "failing": "Greška ({{count}} uzastopno)",
+      "mailbox": "Sandučić",
+      "providers": {
+        "graph": "Microsoft Graph",
+        "imap": "IMAP"
+      },
+      "lastSuccess": "Zadnja uspješna provjera",
+      "last24h": "Zadnja 24 h",
+      "counts": "{{processed}} obrađeno · {{rejected}} odbijeno · {{ignored}} ignorisano",
+      "lastError": "Zadnja greška: {{error}}",
+      "problems": {
+        "ADDRESS_MISSING": "Adresa sandučića nije postavljena.",
+        "ENTRA_APP_MISSING": "Nedostaju podaci Entra aplikacije (tenant, client ID, tajna).",
+        "IMAP_SERVER_MISSING": "Nedostaje IMAP server ili korisničko ime.",
+        "IMAP_PASSWORD_MISSING": "Nedostaje IMAP lozinka.",
+        "DEFAULT_SERVICE_MISSING": "Otvaranje tiketa e-mailom je uključeno, ali zadani servis nije izabran."
+      },
+      "replyModeWarning": "Način odgovora u e-mail postavkama nije „zajednički sandučić”: korisnici nemaju kome odgovoriti.",
+      "tokenWarning": "Tajna za potpisani odgovor nije postavljena (INBOUND_EMAIL_TOKEN_SECRET ili MFA_ENCRYPTION_KEY); prepoznaje se samo broj tiketa u naslovu.",
+      "test": "Testiraj konekciju",
+      "testing": "Testiram…",
+      "testOk": "Konekcija uspješna. U inboxu: {{count}} poruka (prikazano najviše 10).",
+      "openLog": "Dnevnik",
+      "refresh": "Osvježi",
+      "logTitle": "Dnevnik dolazne pošte",
+      "logSubtitle": "Zadnjih 50 poruka. Tijelo poruke se ne prikazuje.",
+      "logEmpty": "Još nema primljenih poruka.",
+      "ticket": "tiket",
+      "statuses": {
+        "PROCESSING": "U obradi",
+        "PROCESSED": "Obrađeno",
+        "REJECTED": "Odbijeno",
+        "IGNORED": "Ignorisano",
+        "FAILED": "Greška"
+      },
+      "reasons": {
+        "UNKNOWN_SENDER": "nepoznat pošiljalac",
+        "SENDER_INACTIVE": "neaktivan korisnik",
+        "SENDER_DOMAIN_NOT_ALLOWED": "domena nije dozvoljena",
+        "AUTHENTICATION_FAILED": "provjera DMARC/SPF/DKIM nije prošla",
+        "NO_TICKET_MATCH": "nije odgovor na tiket",
+        "TICKET_NOT_FOUND": "tiket ne postoji",
+        "FORBIDDEN": "pošiljalac nema pristup tiketu",
+        "TICKET_CLOSED": "tiket je zatvoren",
+        "EMPTY_REPLY": "prazan odgovor",
+        "REDACTION_BLOCKED": "blokirano redakcijom",
+        "RATE_LIMITED": "previše poruka od pošiljaoca",
+        "TOO_LARGE": "poruka je prevelika",
+        "CREATE_FAILED": "tiket nije mogao biti otvoren",
+        "PARSE_FAILED": "poruka se ne može pročitati",
+        "AUTO_REPLY": "automatski odgovor",
+        "BOUNCE": "povratna poruka (bounce)",
+        "MAILING_LIST": "masovna poruka / lista",
+        "OWN_MESSAGE": "naša vlastita poruka",
+        "DUPLICATE": "duplikat",
+        "INTERRUPTED": "obrada prekinuta",
+        "ATTACHMENTS_REJECTED": "neki prilozi odbijeni",
+        "OTHER": "tehnička greška"
+      }
     }
   },
   "errors": {
@@ -2891,7 +2982,9 @@
         "assignedGroup": "grupa promijenjena: {{from}} → {{to}}"
       },
       "assignedTo": "tiket automatski dodijeljen: {{name}}",
-      "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade"
+      "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade",
+      "inboundAttachmentRejected": "Prilog „{{name}}” iz e-maila nije priložen",
+      "viaEmail": "Putem e-maila"
     },
     "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
     "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",
@@ -3584,6 +3677,10 @@
         "report_weeklyTickets": {
           "label": "Sedmični pregled tiketa",
           "hint": "E-mail s listom vaših otvorenih tiketa, jednom sedmično."
+        },
+        "inbound_mailboxFailing": {
+          "label": "Dolazna pošta ne radi",
+          "hint": "Sandučić podrške se ne može pročitati tri puta zaredom."
         }
       },
       "emailOnly": "Samo e-mail",

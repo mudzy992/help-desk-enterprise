@@ -35,6 +35,8 @@ export type TicketMessageRecord = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: Date;
+  /** Paket 2.3: absent on records selected without the column. */
+  readonly source?: 'APP' | 'EMAIL';
 };
 
 export type TicketMessageResponse = {
@@ -44,6 +46,8 @@ export type TicketMessageResponse = {
   readonly body: string;
   readonly authorUserId: string | null;
   readonly createdAt: string;
+  /** Paket 2.3: `EMAIL` when the message arrived as an e-mail reply. */
+  readonly source?: 'APP' | 'EMAIL';
   readonly redactionWarnings?: readonly RedactionMatch[];
 };
 

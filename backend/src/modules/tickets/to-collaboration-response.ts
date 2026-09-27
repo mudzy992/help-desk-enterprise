@@ -35,6 +35,7 @@ export function toTicketMessageResponse(
     body: record.body,
     authorUserId: record.authorUserId,
     createdAt: record.createdAt.toISOString(),
+    source: record.source ?? 'APP',
     redactionWarnings,
   };
 }

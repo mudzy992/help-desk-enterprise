@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RedisModule } from './common/redis/redis.module';
+import { InboundEmailWorkerModule } from './modules/inbound-email/inbound-email-worker.module';
 import { IntegrationQueueWorkerModule } from './modules/integration-queue/integration-queue-worker.module';
 import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-base/knowledge-base-review-reminder-worker.module';
 import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
@@ -34,6 +35,8 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     TimeTrackingSweepWorkerModule,
     KnowledgeBaseReviewReminderWorkerModule,
     DirectorySyncWorkerModule,
+    // Paket 2.3: reply by e-mail.
+    InboundEmailWorkerModule,
   ],
 })
 export class WorkerModule {}

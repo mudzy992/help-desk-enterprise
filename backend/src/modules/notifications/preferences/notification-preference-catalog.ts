@@ -61,6 +61,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   // Paket 2.2a: scheduled weekly list of the agent's open tickets (no event type).
   category('report.weeklyTickets', [], 1, emailOnly),
   category('directory.syncAborted', [notificationTypes.directorySyncAborted], 3, inAppOnly, true),
+  // Paket 2.3: the inbound mailbox keeps failing (admins, always on).
+  category('inbound.mailboxFailing', [notificationTypes.inboundMailboxFailing], 3, inAppOnly, true),
   category(
     'account.security',
     [

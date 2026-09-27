@@ -21,6 +21,8 @@ export const notificationTypes = {
   accountRecoveryCodeUsed: 'account.recoveryCodeUsed',
   accountPasswordChanged: 'account.passwordChanged',
   accountNewDevice: 'account.newDevice',
+  // Paket 2.3: the inbound mailbox failed three runs in a row.
+  inboundMailboxFailing: 'inbound.mailboxFailing',
 } as const;
 
 export type NotificationType =
@@ -53,6 +55,7 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.accountPasswordChanged]:
       'notifications.items.accountPasswordChanged',
     [notificationTypes.accountNewDevice]: 'notifications.items.accountNewDevice',
+    [notificationTypes.inboundMailboxFailing]: 'notifications.items.inboundMailboxFailing',
   };
 
 export const notificationListLimits = {
