@@ -36,6 +36,10 @@ export const queryKeys = {
   ticketList: (query: unknown) => ["tickets", "list", query] as const,
   ticketCounts: (query: unknown) => ["tickets", "counts", query] as const,
   ticket: (ticketId: string) => ["tickets", "detail", ticketId] as const,
+  /** Paket 2.4 */
+  agentCollaborationConfiguration: ["tickets", "collaboration", "configuration"] as const,
+  ticketFollow: (ticketId: string) => ["tickets", "follow", ticketId] as const,
+  ticketLinks: (ticketId: string) => ["tickets", "links", ticketId] as const,
   groupInbox: ["tickets", "inbox"] as const,
   offeredServices: ["catalog", "offered-services"] as const,
   createTicketCatalog: ["catalog", "create-ticket"] as const,

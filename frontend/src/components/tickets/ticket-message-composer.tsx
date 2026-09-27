@@ -4,6 +4,10 @@ import { BookmarkPlus, FileText, MessageSquareLock, Paperclip, Send, X } from "l
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { MentionPicker } from "@/components/tickets/mention-picker";
+import { detectMentionQuery, insertMentionToken, type MentionQuery } from "@/lib/tickets/mention-tokens";
+import type { MentionCandidate } from "@/services/tickets-agent-collaboration-api";
 import { Segmented, type SegmentedItem } from "@/components/ui/segmented";
 import { errorTextClassName, textareaClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
@@ -33,6 +37,16 @@ export type ComposerTemplatesOptions = {
   readonly insertRequest?: { readonly templateId: string; readonly name: string; readonly nonce: number } | null;
 };
 
+/** Paket 2.4: presence, @mentions and the collision confirmation. */
+export type ComposerCollaborationOptions = {
+  readonly ticketId: string;
+  readonly mentionsEnabled: boolean;
+  /** Called on every edit with the channel being typed in (null = cleared). */
+  readonly onTyping: (channel: "public" | "internal" | null) => void;
+  /** A4: reason to confirm before a public send (translated), or null. */
+  readonly confirmBeforePublicSend: () => string | null;
+};
+
 interface TicketMessageComposerProperties {
   readonly access: ComposerAccess;
   readonly isSending: boolean;
@@ -45,6 +59,7 @@ interface TicketMessageComposerProperties {
   readonly publicExtra?: ReactNode;
   /** Package 1.4 (T5/T6): template picker; omitted for requesters. */
   readonly templates?: ComposerTemplatesOptions;
+  readonly collaboration?: ComposerCollaborationOptions;
 }
 
 export function TicketMessageComposer({
@@ -57,6 +72,7 @@ export function TicketMessageComposer({
   onUpload,
   publicExtra,
   templates,
+  collaboration,
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const types = messageTypesForAccess(access);
@@ -84,13 +100,56 @@ export function TicketMessageComposer({
       ]
     : [{ value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> }];
 
-  const submit = async () => {
-    if (body.trim().length === 0) {
+  const [mention, setMention] = useState<MentionQuery | null>(null);
+  const [mentionCandidates, setMentionCandidates] = useState<readonly MentionCandidate[]>([]);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [confirmReason, setConfirmReason] = useState<string | null>(null);
+  const mentionsActive = collaboration?.mentionsEnabled === true && type === "INTERNAL_NOTE";
+
+  const updateMention = (value: string, caret: number) => {
+    if (!mentionsActive) {
+      setMention(null);
       return;
     }
+    const next = detectMentionQuery(value, caret);
+    setMention(next);
+    if (next === null || next.query !== mention?.query) setMentionIndex(0);
+  };
+
+  const pickMention = (candidate: MentionCandidate) => {
+    const area = textareaReference.current;
+    if (mention === null || area === null) return;
+    const next = insertMentionToken(body, mention, area.selectionStart, candidate);
+    setBody(next.value);
+    setMention(null);
+    window.requestAnimationFrame(() => {
+      area.focus();
+      area.setSelectionRange(next.caret, next.caret);
+    });
+  };
+
+  const send = async () => {
     await onSend(type, body.trim(), usedTemplate === null ? undefined : { responseTemplateId: usedTemplate.id });
     setBody("");
     setUsedTemplate(null);
+    setMention(null);
+    collaboration?.onTyping(null);
+  };
+
+  /** Resolves false when the send waits for the collision confirmation. */
+  const submit = async (): Promise<boolean> => {
+    if (body.trim().length === 0) {
+      return true;
+    }
+    if (collaboration !== undefined && type !== "INTERNAL_NOTE") {
+      const reason = collaboration.confirmBeforePublicSend();
+      if (reason !== null) {
+        setConfirmReason(reason);
+        return false;
+      }
+    }
+    await send();
+    return true;
   };
 
   const openPicker = useCallback(() => {
@@ -164,7 +223,10 @@ export function TicketMessageComposer({
             size="sm"
             ariaLabel={t("tickets.detail.publicReply")}
             value={internal && canInternal ? "internal" : "reply"}
-            onChange={(next) => setInternal(next === "internal")}
+            onChange={(next) => {
+              setInternal(next === "internal");
+              setMention(null);
+            }}
             items={composerModes}
           />
           <span className="ml-auto text-[11px] text-muted-foreground/70">
@@ -180,6 +242,15 @@ export function TicketMessageComposer({
               onInsert={onTemplateInserted}
             />
           ) : null}
+          {collaboration !== undefined && mentionsActive && mention !== null ? (
+            <MentionPicker
+              ticketId={collaboration.ticketId}
+              query={mention.query}
+              activeIndex={mentionIndex}
+              onCandidates={setMentionCandidates}
+              onPick={pickMention}
+            />
+          ) : null}
           <textarea
             ref={textareaReference}
             value={body}
@@ -187,8 +258,34 @@ export function TicketMessageComposer({
             onChange={(event) => {
               setBody(event.target.value);
               if (event.target.value.trim().length === 0) setUsedTemplate(null);
+              updateMention(event.target.value, event.target.selectionStart);
+              collaboration?.onTyping(
+                event.target.value.trim().length === 0 ? null : type === "INTERNAL_NOTE" ? "internal" : "public",
+              );
             }}
+            onBlur={() => setMention(null)}
             onKeyDown={(event) => {
+              if (mention !== null && mentionsActive) {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setMention(null);
+                  return;
+                }
+                if (mentionCandidates.length > 0) {
+                  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                    event.preventDefault();
+                    const step = event.key === "ArrowDown" ? 1 : -1;
+                    setMentionIndex((current) => (current + step + mentionCandidates.length) % mentionCandidates.length);
+                    return;
+                  }
+                  if ((event.key === "Enter" || event.key === "Tab") && !event.ctrlKey && !event.metaKey) {
+                    event.preventDefault();
+                    const candidate = mentionCandidates[Math.min(mentionIndex, mentionCandidates.length - 1)];
+                    if (candidate !== undefined) pickMention(candidate);
+                    return;
+                  }
+                }
+              }
               if (templates) {
                 const shortcut = event.key.toLowerCase() === "t" && event.shiftKey && (event.ctrlKey || event.metaKey);
                 const slash =
@@ -312,8 +409,8 @@ export function TicketMessageComposer({
                   onClick={() => {
                     void (async () => {
                       try {
-                        if (body.trim().length > 0) {
-                          await submit();
+                        if (body.trim().length > 0 && !(await submit())) {
+                          return;
                         }
                         onWaitForUser();
                       } catch {
@@ -337,6 +434,20 @@ export function TicketMessageComposer({
           </div>
         </div>
       </form>
+      <ConfirmDialog
+        open={confirmReason !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmReason(null);
+        }}
+        title={t("tickets.collaboration.collision.title")}
+        description={confirmReason ?? ""}
+        confirmLabel={t("tickets.collaboration.collision.sendAnyway")}
+        isPending={isSending}
+        onConfirm={() => {
+          setConfirmReason(null);
+          void send().catch(() => undefined);
+        }}
+      />
       {templates && saveAsOpen ? (
         <SaveAsTemplateDialog
           body={body}

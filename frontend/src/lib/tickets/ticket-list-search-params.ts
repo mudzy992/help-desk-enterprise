@@ -22,6 +22,9 @@ export type TicketPageQuery = {
   readonly unassigned?: boolean;
   /** Package 1.6 (staff only; the API ignores it for requesters). */
   readonly forwarded?: "any" | "toMyGroups";
+  /** Paket 2.4 (staff only): personal narrowings. */
+  readonly following?: boolean;
+  readonly mentionedMe?: boolean;
   /** Package 1.2: leave merged children out. */
   readonly hideMerged?: boolean;
   /** Paket 1.7 (U3). */
@@ -62,6 +65,8 @@ const flagFilters = [
   "searchDescription",
   "hideMerged",
   "unroutedOverdue",
+  "following",
+  "mentionedMe",
 ] as const;
 
 /**
@@ -116,6 +121,8 @@ export type TicketCountsQuery = Pick<
   | "groupId"
   | "unassigned"
   | "forwarded"
+  | "following"
+  | "mentionedMe"
   | "hideMerged"
   | "createdFrom"
   | "createdTo"
@@ -150,6 +157,12 @@ export function toTicketCountsSearchParams(
   }
   if (query.hideMerged === true) {
     search.set("hideMerged", "true");
+  }
+  if (query.following === true) {
+    search.set("following", "true");
+  }
+  if (query.mentionedMe === true) {
+    search.set("mentionedMe", "true");
   }
   const term = query.q?.trim() ?? "";
   if (term.length > 0) {

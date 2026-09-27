@@ -14,6 +14,9 @@ export const ticketSocketEvents = {
   notificationUnreadCount: "notification.unread-count",
   settingsUpdated: "settings.updated",
   sessionInvalidated: "session.invalidated",
+  // Paket 2.4: presence ("viewing / typing").
+  presence: "ticket:presence",
+  presenceUpdate: "ticket:presence:update",
 } as const;
 
 export function connectTicketSocket(token: string): Socket {

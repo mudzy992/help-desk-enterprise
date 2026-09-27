@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +33,12 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { TicketPlaybookPanel } from "@/components/templates/ticket-playbook-panel";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isPlaybookGuardedTransition, useTicketPlaybook } from "@/lib/templates/use-ticket-playbook";
+import { TicketCollaborationBar } from "@/components/tickets/ticket-collaboration-bar";
+import { TicketLinksPanel } from "@/components/tickets/ticket-links-panel";
+import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
+import { useAgentCollaborationConfiguration } from "@/lib/tickets/use-agent-collaboration";
+import { useTicketPresence } from "@/lib/tickets/use-ticket-presence";
+import { collidingTypist } from "@/lib/tickets/presence-view";
 
 export function TicketDetailPage() {
   const { t } = useTranslation();
@@ -141,6 +147,29 @@ export function TicketDetailPage() {
     );
   }, [candidates]);
 
+  // Paket 2.4: presence, collision warning, @mentions, following, links.
+  const collaborationConfig = useAgentCollaborationConfiguration();
+  const presence = useTicketPresence({
+    ticketId,
+    currentUserId,
+    enabled: collaborationConfig.presenceEnabled && detail.ticket !== null,
+  });
+  const lastForeignPublicId = useMemo(() => {
+    for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
+      const message = detail.messages[index];
+      if (
+        message !== undefined &&
+        (message.type === "USER_REPLY" || message.type === "AGENT_REPLY") &&
+        message.authorUserId !== currentUserId
+      ) {
+        return message.id;
+      }
+    }
+    return null;
+  }, [detail.messages, currentUserId]);
+  /** The newest foreign public reply when this public draft started (undefined = no draft). */
+  const draftBaselineRef = useRef<string | null | undefined>(undefined);
+
   if (detail.isLoading || detail.ticket === null) {
     return (
       <TicketDetailBlockingState
@@ -198,6 +227,29 @@ export function TicketDetailPage() {
         label={t("tickets.merge.alsoToMerged", { count: mergedItems.length })}
       />
     ) : undefined;
+  const isStaffView = actions.viewActivity;
+  const composerCollaboration: ComposerCollaborationOptions = {
+    ticketId: ticket.id,
+    mentionsEnabled: isStaffView && collaborationConfig.mentionsEnabled,
+    onTyping: (channel) => {
+      presence.reportTyping(channel);
+      if (channel === "public") {
+        if (draftBaselineRef.current === undefined) draftBaselineRef.current = lastForeignPublicId;
+      } else {
+        draftBaselineRef.current = undefined;
+      }
+    },
+    confirmBeforePublicSend: () => {
+      if (!isStaffView || !collaborationConfig.collisionWarningEnabled) return null;
+      const typist = collidingTypist(presence.view);
+      if (typist !== null) return t("tickets.collaboration.collision.typing", { name: typist.name });
+      const baseline = draftBaselineRef.current;
+      if (baseline !== undefined && lastForeignPublicId !== baseline) {
+        return t("tickets.collaboration.collision.newReply");
+      }
+      return null;
+    },
+  };
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
 
@@ -250,6 +302,13 @@ export function TicketDetailPage() {
         onForward={() => setForwardOpen(true)}
         canMerge={actions.merge}
         onMerge={() => setMergeOpen(true)}
+      />
+      <TicketCollaborationBar
+        ticketId={ticket.id}
+        isStaff={isStaffView}
+        presence={presence.view}
+        presenceEnabled={collaborationConfig.presenceEnabled}
+        canFollow={isStaffView && collaborationConfig.followersEnabled}
       />
       <TicketMergedBanner
         ticket={ticket}
@@ -310,6 +369,7 @@ export function TicketDetailPage() {
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
           composerExtra={composerExtra}
+          composerCollaboration={composerCollaboration}
           composerTemplates={
             actions.viewActivity && canUseTemplates
               ? {
@@ -331,6 +391,9 @@ export function TicketDetailPage() {
           />
         ) : null}
         <TicketMergedCard items={mergedItems} />
+        {isStaffView && collaborationConfig.linksEnabled ? (
+          <TicketLinksPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
+        ) : null}
         <TicketDetailSideStack
           ticket={ticket}
           originName={originName}

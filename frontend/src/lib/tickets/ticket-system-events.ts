@@ -37,6 +37,8 @@ export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>
   ticket_reopened_new: "status",
   ticket_split: "routing",
   ticket_split_child: "routing",
+  ticket_linked: "routing",
+  ticket_unlinked: "routing",
   ticket_bulk_assign: "assign",
   ticket_bulk_status: "edit",
   ticket_bulk_priority: "edit",

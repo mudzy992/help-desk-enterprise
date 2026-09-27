@@ -1,4 +1,4 @@
-import type { ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { Avatar } from "@/components/ui/avatar";
@@ -25,6 +25,7 @@ interface TicketDetailConversationProperties {
   readonly onUpload?: (file: File) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
+  readonly composerCollaboration?: ComposerCollaborationOptions;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
@@ -74,6 +75,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           onUpload={props.onUpload}
           publicExtra={props.composerExtra}
           templates={props.composerTemplates}
+          collaboration={props.composerCollaboration}
         />
       )}
     </>

@@ -11,7 +11,7 @@ import {
   ticketStatusLabelKey,
 } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { parseForwardedFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { parseForwardedFilter, parsePersonalFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
 import type { ServiceResponse } from "@/services/service-catalog-api";
 import type { TicketStatus } from "@/services/tickets-api";
 import type { TicketCounts } from "@/services/tickets-counts-api";
@@ -152,6 +152,20 @@ export function TicketListFiltersBar({
             <option value="">{t("tickets.forwarding.filterAll")}</option>
             <option value="any">{t("tickets.forwarding.filterAny")}</option>
             <option value="toMyGroups">{t("tickets.forwarding.filterToMyGroups")}</option>
+          </select>
+          <label className="sr-only" htmlFor="ticket-list-personal">
+            {t("tickets.collaboration.filter.label")}
+          </label>
+          <select
+            id="ticket-list-personal"
+            data-testid="ticket-list-personal"
+            className={cn(selectCompactClassName, "w-auto min-w-[9rem]")}
+            value={filters.personal ?? ""}
+            onChange={(event) => onChange({ ...filters, personal: parsePersonalFilter(event.target.value) })}
+          >
+            <option value="">{t("tickets.collaboration.filter.all")}</option>
+            <option value="following">{t("tickets.collaboration.filter.following")}</option>
+            <option value="mentionedMe">{t("tickets.collaboration.filter.mentionedMe")}</option>
           </select>
           <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
             <input

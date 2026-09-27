@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { cn } from "@/lib/utils";
+import { splitMentionSegments } from "@/lib/tickets/mention-tokens";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
 interface TicketMessageBubbleProperties {
@@ -11,6 +12,8 @@ interface TicketMessageBubbleProperties {
   readonly authorName: string;
   readonly isOwn: boolean;
   readonly locale: string;
+  /** Paket 2.4: highlights mentions of the current user. */
+  readonly currentUserId?: string | null;
 }
 
 export function TicketMessageBubble({
@@ -18,11 +21,12 @@ export function TicketMessageBubble({
   authorName,
   isOwn,
   locale,
+  currentUserId = null,
 }: TicketMessageBubbleProperties) {
   const { t } = useTranslation();
   const isInternal = message.type === "INTERNAL_NOTE";
   return (
-    <div className={cn("fade-in flex gap-3", isOwn && "flex-row-reverse")}>
+    <div id={`message-${message.id}`} className={cn("fade-in flex scroll-mt-24 gap-3", isOwn && "flex-row-reverse")}>
       <Avatar name={authorName} size="md" />
       <div className={cn("min-w-0 max-w-[78%]", isOwn && "flex flex-col items-end")}>
         <div className="flex items-center gap-2">
@@ -53,7 +57,28 @@ export function TicketMessageBubble({
                 : "border-border bg-surface text-foreground/95",
           )}
         >
-          <p className="whitespace-pre-wrap">{message.body}</p>
+          <p className="whitespace-pre-wrap">
+            {isInternal
+              ? splitMentionSegments(message.body).map((segment, index) =>
+                  segment.kind === "text" ? (
+                    <span key={index}>{segment.text}</span>
+                  ) : (
+                    <span
+                      key={index}
+                      data-testid="mention-chip"
+                      className={cn(
+                        "rounded px-1 font-medium",
+                        segment.userId === currentUserId
+                          ? "bg-primary/20 text-primary"
+                          : "bg-primary/10 text-link",
+                      )}
+                    >
+                      @{segment.name}
+                    </span>
+                  ),
+                )
+              : message.body}
+          </p>
         </div>
       </div>
     </div>

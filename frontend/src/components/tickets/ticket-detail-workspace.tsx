@@ -1,4 +1,4 @@
-import type { ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
@@ -51,6 +51,7 @@ interface TicketDetailWorkspaceProperties {
   readonly onDelete: (attachmentId: string) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
+  readonly composerCollaboration?: ComposerCollaborationOptions;
 }
 
 export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
@@ -103,6 +104,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onUpload={props.canUpload ? props.onUpload : undefined}
           composerExtra={props.composerExtra}
           composerTemplates={props.composerTemplates}
+          composerCollaboration={props.composerCollaboration}
         />
       ) : null}
       {tab === "activity" ? (

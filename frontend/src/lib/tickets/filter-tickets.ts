@@ -13,6 +13,8 @@ export type TicketListFilters = {
   readonly overdue: boolean;
   /** Package 1.6, staff only. */
   readonly forwarded?: TicketForwardedFilter;
+  /** Paket 2.4, staff only: tickets I follow / where I was mentioned. */
+  readonly personal?: TicketPersonalFilter;
   /** Package 1.2 (M7): hide merged children (staff default: on). */
   readonly hideMerged?: boolean;
   /** Paket 1.7 (U3), staff only: unrouted past the cleanup deadline. */
@@ -21,6 +23,12 @@ export type TicketListFilters = {
 };
 
 export type TicketForwardedFilter = "" | "any" | "toMyGroups";
+
+export type TicketPersonalFilter = "" | "following" | "mentionedMe";
+
+export function parsePersonalFilter(value: string | null): TicketPersonalFilter {
+  return value === "following" || value === "mentionedMe" ? value : "";
+}
 
 export function parseForwardedFilter(value: string | null): TicketForwardedFilter {
   return value === "any" || value === "toMyGroups" ? value : "";
@@ -78,6 +86,7 @@ export function clearedTicketListFilters(
     createdTo: "",
     overdue: false,
     forwarded: "",
+    personal: "",
   };
 }
 

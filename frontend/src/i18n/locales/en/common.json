@@ -675,7 +675,8 @@
         "public.branding": "Branding",
         "public.maintenance": "System maintenance",
         "private.i18n": "Language",
-        "private.inbound": "Inbound e-mail"
+        "private.inbound": "Inbound e-mail",
+        "private.collaboration": "Agent collaboration"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -1001,7 +1002,15 @@
         "private.inbound.rawRetentionDays": "Days the original e-mail (.eml) is kept for review (0 = not kept).",
         "private.inbound.metadataRetentionDays": "Days the inbound e-mail log (sender, subject, outcome) is kept.",
         "private.inbound.maxPerSenderPerHour": "Maximum e-mails accepted per sender per hour; the rest is rejected (loop protection).",
-        "private.inbound.maxMessagesPerRun": "Maximum e-mails processed per mailbox check."
+        "private.inbound.maxMessagesPerRun": "Maximum e-mails processed per mailbox check.",
+        "private.collaboration.presence.enabled": "Shows which colleagues are currently viewing the ticket or typing a reply or an internal note.",
+        "private.collaboration.presence.showToRequester": "The requester sees “An agent is typing a reply…” (no name) while an agent types a public reply. Internal notes are never shown.",
+        "private.collaboration.collisionWarning.enabled": "Asks for confirmation before sending a public reply when a colleague is typing a reply or a new reply has arrived.",
+        "private.collaboration.mentions.enabled": "Allows @mentioning colleagues in internal notes; the mentioned colleague is notified.",
+        "private.collaboration.followers.enabled": "Shows the “Follow” button on tickets and the “Tickets I follow” filter. Following never grants access.",
+        "private.collaboration.followOnReply": "Automatically follows a ticket when an agent who is not assigned writes a reply or note on it.",
+        "private.collaboration.links.enabled": "Allows linking related tickets (“related to”).",
+        "private.collaboration.links.maxPerTicket": "Maximum number of links per ticket (1–100)."
       }
     },
     "emailTemplates": {
@@ -2967,7 +2976,9 @@
         "ticket_merged": "tickets merged",
         "ticket_merged_child": "ticket merged",
         "ticket_unmerged": "merge undone",
-        "ticket_merged_status_propagated": "status taken over from the target ticket"
+        "ticket_merged_status_propagated": "status taken over from the target ticket",
+        "ticket_linked": "ticket linked",
+        "ticket_unlinked": "ticket link removed"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -3134,7 +3145,76 @@
       "fallbackBadge": "No routing rule",
       "createRule": "Create a rule for this combination"
     },
-    "errorPlaybookStepsOpen": "The ticket has unfinished required playbook steps. Finish them or remove the playbook with a reason."
+    "errorPlaybookStepsOpen": "The ticket has unfinished required playbook steps. Finish them or remove the playbook with a reason.",
+    "collaboration": {
+      "collision": {
+        "title": "Send anyway?",
+        "typing": "{{name}} is typing a public reply on this ticket right now. Send your reply anyway?",
+        "newReply": "A new public reply arrived while you were typing. Review the conversation or send anyway.",
+        "sendAnyway": "Send anyway"
+      },
+      "filter": {
+        "label": "Personal filter",
+        "all": "All (personal)",
+        "following": "Tickets I follow",
+        "mentionedMe": "Mentioned me"
+      },
+      "follow": {
+        "follow": "Follow",
+        "unfollow": "Unfollow",
+        "followed": "You are following this ticket",
+        "unfollowed": "You no longer follow this ticket",
+        "failed": "Could not update following",
+        "hint": "Followers are notified about public replies and status changes, without being assigned or added as a guest."
+      },
+      "links": {
+        "title": "Related tickets",
+        "count_one": "{{count}} link",
+        "count_other": "{{count}} links",
+        "empty": "No related tickets.",
+        "addButton": "Link a ticket",
+        "add": "Link",
+        "cancel": "Cancel",
+        "numberLabel": "Ticket number",
+        "numberPlaceholder": "e.g. T-000123",
+        "noteLabel": "Note",
+        "notePlaceholder": "Note (optional)",
+        "noAccess": "no access",
+        "remove": "Remove link",
+        "removeTitle": "Remove link?",
+        "removeBody": "The link with ticket {{number}} will be removed on both tickets.",
+        "relation": {
+          "parent": "parent",
+          "child": "child",
+          "mergedInto": "merged into",
+          "mergedChild": "merged"
+        }
+      },
+      "mentions": {
+        "pickerLabel": "Mention a colleague",
+        "loading": "Loading…",
+        "empty": "No colleagues with access to this ticket.",
+        "hint": "↑↓ select · Enter confirm · Esc close"
+      },
+      "presence": {
+        "viewing": "{{name}} is viewing",
+        "typingReply": "{{name}} is typing a reply…",
+        "typingNote": "{{name}} is writing an internal note…",
+        "requesterHere": "The requester is on the ticket",
+        "more": "+{{count}}",
+        "agentTyping": "An agent is typing…"
+      }
+    },
+    "errorMentionNoAccess": "A mentioned colleague has no access to this ticket. Remove the mention or add them as a guest first.",
+    "errorCollaborationDisabled": "This collaboration feature is turned off in settings.",
+    "errorFollowNotAllowed": "You cannot follow this ticket.",
+    "errorFollowLimit": "This ticket has reached the maximum number of followers.",
+    "errorLinkTargetNotFound": "No ticket with that number exists or it is not available to you.",
+    "errorLinkSelf": "A ticket cannot be linked to itself.",
+    "errorLinkDuplicate": "These tickets are already linked.",
+    "errorLinkMerged": "A merged ticket cannot be linked — use the main ticket.",
+    "errorLinkLimit": "This ticket has reached the maximum number of links.",
+    "errorLinkNote": "The link note is too long."
   },
   "relativeTime": {
     "justNow": "just now",

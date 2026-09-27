@@ -131,6 +131,8 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   prilozi kroz iste provjere (ClamAV), anti-loop (auto-reply, bounce), redaction.
 
 ### 2.4 Saradnja agenata  · ~3 RD
+
+> **Status:** implementirano (dizajn 18a6ae8, backend 4b502ac, frontend 2026-09-27). Detalji i odstupanja: `modules/2.4-saradnja-agenata.md` §12.
 - Indikator „X gleda / X piše odgovor" na tiketu (Socket.IO prisutnost).
 - @spominjanje kolege u internoj bilješci → notifikacija, participant „watcher".
 - Posmatrači (watchers): agent ili korisnik se može pretplatiti na tiket.

@@ -51,6 +51,16 @@ export type TicketErrorKey =
   | "tickets.errorPriorityUnchanged"
   | "tickets.errorPriorityReason"
   | "tickets.errorPriorityNotOverridden"
+  | "tickets.errorMentionNoAccess"
+  | "tickets.errorCollaborationDisabled"
+  | "tickets.errorFollowNotAllowed"
+  | "tickets.errorFollowLimit"
+  | "tickets.errorLinkTargetNotFound"
+  | "tickets.errorLinkSelf"
+  | "tickets.errorLinkDuplicate"
+  | "tickets.errorLinkMerged"
+  | "tickets.errorLinkLimit"
+  | "tickets.errorLinkNote"
   | "tickets.errorGeneric";
 
 const codeKeys: Partial<Record<string, TicketErrorKey>> = {
@@ -135,7 +145,24 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   PRIORITY_UNCHANGED: "tickets.errorPriorityUnchanged",
   PRIORITY_REASON_REQUIRED: "tickets.errorPriorityReason",
   PRIORITY_NOT_OVERRIDDEN: "tickets.errorPriorityNotOverridden",
+  // Paket 2.4
+  MENTION_NO_ACCESS: "tickets.errorMentionNoAccess",
+  MENTIONS_DISABLED: "tickets.errorCollaborationDisabled",
+  FOLLOWERS_DISABLED: "tickets.errorCollaborationDisabled",
+  LINKS_DISABLED: "tickets.errorCollaborationDisabled",
+  FOLLOW_NOT_ALLOWED: "tickets.errorFollowNotAllowed",
+  FOLLOWER_LIMIT_REACHED: "tickets.errorFollowLimit",
+  LINK_NOT_FOUND: "tickets.errorNotFound",
+  LINK_TARGET_NOT_FOUND: "tickets.errorLinkTargetNotFound",
+  LINK_SELF: "tickets.errorLinkSelf",
+  LINK_DUPLICATE: "tickets.errorLinkDuplicate",
+  LINK_MERGED: "tickets.errorLinkMerged",
+  LINK_LIMIT_REACHED: "tickets.errorLinkLimit",
+  INVALID_LINK_NOTE: "tickets.errorLinkNote",
 };
+
+/** Paket 2.4: 404 codes with their own message (checked before the generic 404). */
+const specificNotFoundCodes = new Set(["LINK_TARGET_NOT_FOUND"]);
 
 export function mapTicketError(error: unknown): TicketErrorKey {
   if (!(error instanceof ApiError)) {
@@ -144,7 +171,7 @@ export function mapTicketError(error: unknown): TicketErrorKey {
   if (error.status === 401) {
     return "tickets.errorUnauthorized";
   }
-  if (error.status === 404) {
+  if (error.status === 404 && !specificNotFoundCodes.has(error.code)) {
     return "tickets.errorNotFound";
   }
   if (error.status === 429) {

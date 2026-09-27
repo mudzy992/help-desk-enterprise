@@ -26,6 +26,7 @@ import {
   Smile,
   Sparkles,
   Ticket,
+  Users,
   Wrench,
 } from "lucide-react";
 
@@ -56,6 +57,7 @@ const categoryIconsByName: Readonly<Record<string, LucideIcon>> = {
   smile: Smile,
   sparkles: Sparkles,
   ticket: Ticket,
+  users: Users,
   wrench: Wrench,
 };
 

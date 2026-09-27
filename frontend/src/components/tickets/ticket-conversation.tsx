@@ -125,6 +125,7 @@ export function TicketConversation({
             authorName={authorName}
             isOwn={isOwn}
             locale={i18n.language}
+            currentUserId={currentUserId}
           />
         );
       })}

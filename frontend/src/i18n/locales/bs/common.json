@@ -677,7 +677,8 @@
         "public.branding": "Brending",
         "public.maintenance": "Održavanje sistema",
         "private.i18n": "Jezik",
-        "private.inbound": "Dolazna pošta"
+        "private.inbound": "Dolazna pošta",
+        "private.collaboration": "Saradnja agenata"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -1003,7 +1004,15 @@
         "private.inbound.rawRetentionDays": "Broj dana čuvanja originalnog e-maila (.eml) radi provjere (0 = ne čuva se).",
         "private.inbound.metadataRetentionDays": "Broj dana čuvanja dnevnika dolazne pošte (pošiljalac, naslov, ishod).",
         "private.inbound.maxPerSenderPerHour": "Najviše prihvaćenih e-mailova po pošiljaocu na sat; višak se odbija (zaštita od petlji).",
-        "private.inbound.maxMessagesPerRun": "Najviše e-mailova obrađenih u jednoj provjeri sandučića."
+        "private.inbound.maxMessagesPerRun": "Najviše e-mailova obrađenih u jednoj provjeri sandučića.",
+        "private.collaboration.presence.enabled": "Prikazuje ko od kolega trenutno gleda tiket ili piše odgovor ili internu bilješku.",
+        "private.collaboration.presence.showToRequester": "Podnosilac vidi „Agent piše odgovor…” (bez imena) dok agent kuca javni odgovor. Interna bilješka se nikad ne prikazuje.",
+        "private.collaboration.collisionWarning.enabled": "Prije slanja javnog odgovora traži potvrdu ako kolega upravo piše odgovor ili je stigao novi odgovor.",
+        "private.collaboration.mentions.enabled": "Omogućava @spominjanje kolega u internim bilješkama; spomenuti dobija notifikaciju.",
+        "private.collaboration.followers.enabled": "Prikazuje dugme „Prati” na tiketu i filter „Tiketi koje pratim”. Praćenje ne daje pristup tiketu.",
+        "private.collaboration.followOnReply": "Automatski zaprati tiket kad agent na njemu napiše odgovor ili bilješku, a nije dodijeljen.",
+        "private.collaboration.links.enabled": "Omogućava povezivanje srodnih tiketa („povezano s”).",
+        "private.collaboration.links.maxPerTicket": "Najveći broj veza po tiketu (1–100)."
       }
     },
     "emailTemplates": {
@@ -2973,7 +2982,9 @@
         "ticket_merged": "tiketi spojeni",
         "ticket_merged_child": "tiket spojen",
         "ticket_unmerged": "spajanje poništeno",
-        "ticket_merged_status_propagated": "status preuzet sa ciljnog tiketa"
+        "ticket_merged_status_propagated": "status preuzet sa ciljnog tiketa",
+        "ticket_linked": "tiket povezan",
+        "ticket_unlinked": "veza s tiketom uklonjena"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -3141,7 +3152,77 @@
       "fallbackBadge": "Bez pravila rutiranja",
       "createRule": "Kreiraj pravilo za ovu kombinaciju"
     },
-    "errorPlaybookStepsOpen": "Tiket ima nezavršene obavezne korake playbooka. Završite ih ili uklonite playbook s razlogom."
+    "errorPlaybookStepsOpen": "Tiket ima nezavršene obavezne korake playbooka. Završite ih ili uklonite playbook s razlogom.",
+    "collaboration": {
+      "collision": {
+        "title": "Poslati ipak?",
+        "typing": "{{name}} upravo piše javni odgovor na ovaj tiket. Poslati svoj odgovor svejedno?",
+        "newReply": "Dok ste pisali, stigao je novi javni odgovor na ovaj tiket. Pregledajte razgovor ili pošaljite svejedno.",
+        "sendAnyway": "Pošalji svejedno"
+      },
+      "filter": {
+        "label": "Lični filter",
+        "all": "Svi (lično)",
+        "following": "Tiketi koje pratim",
+        "mentionedMe": "Spomenuli su me"
+      },
+      "follow": {
+        "follow": "Prati",
+        "unfollow": "Prestani pratiti",
+        "followed": "Pratite ovaj tiket",
+        "unfollowed": "Više ne pratite ovaj tiket",
+        "failed": "Praćenje nije uspjelo",
+        "hint": "Pratilac dobija obavještenja o javnim odgovorima i promjenama statusa, bez dodjele i bez uloge gosta."
+      },
+      "links": {
+        "title": "Povezani tiketi",
+        "count_one": "{{count}} veza",
+        "count_few": "{{count}} veze",
+        "count_other": "{{count}} veza",
+        "empty": "Nema povezanih tiketa.",
+        "addButton": "Poveži tiket",
+        "add": "Poveži",
+        "cancel": "Odustani",
+        "numberLabel": "Broj tiketa",
+        "numberPlaceholder": "npr. T-000123",
+        "noteLabel": "Napomena",
+        "notePlaceholder": "Napomena (opcionalno)",
+        "noAccess": "bez pristupa",
+        "remove": "Ukloni vezu",
+        "removeTitle": "Ukloniti vezu?",
+        "removeBody": "Veza s tiketom {{number}} bit će uklonjena na oba tiketa.",
+        "relation": {
+          "parent": "nadređeni",
+          "child": "podtiket",
+          "mergedInto": "spojen u",
+          "mergedChild": "spojeni"
+        }
+      },
+      "mentions": {
+        "pickerLabel": "Spomeni kolegu",
+        "loading": "Učitavanje…",
+        "empty": "Nema kolega s pristupom ovom tiketu.",
+        "hint": "↑↓ izbor · Enter potvrda · Esc zatvori"
+      },
+      "presence": {
+        "viewing": "{{name}} gleda tiket",
+        "typingReply": "{{name}} piše odgovor…",
+        "typingNote": "{{name}} piše internu bilješku…",
+        "requesterHere": "Podnosilac je trenutno na tiketu",
+        "more": "+{{count}}",
+        "agentTyping": "Agent piše odgovor…"
+      }
+    },
+    "errorMentionNoAccess": "Spomenuti kolega nema pristup ovom tiketu. Uklonite spominjanje ili ga prvo dodajte kao gosta.",
+    "errorCollaborationDisabled": "Ova mogućnost saradnje je isključena u postavkama.",
+    "errorFollowNotAllowed": "Ne možete pratiti ovaj tiket.",
+    "errorFollowLimit": "Dostignut je maksimalan broj pratilaca za ovaj tiket.",
+    "errorLinkTargetNotFound": "Tiket s tim brojem ne postoji ili vam nije dostupan.",
+    "errorLinkSelf": "Tiket se ne može povezati sam sa sobom.",
+    "errorLinkDuplicate": "Ovi tiketi su već povezani.",
+    "errorLinkMerged": "Spojeni tiket se ne može povezivati — koristite glavni tiket.",
+    "errorLinkLimit": "Dostignut je maksimalan broj veza za ovaj tiket.",
+    "errorLinkNote": "Napomena veze je predugačka."
   },
   "relativeTime": {
     "justNow": "upravo sada",
