@@ -146,10 +146,9 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   CSAT trend, top servisi.
 - Izvoz dashboarda u PDF.
 
-### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD
+### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD (stvarno ~5 RD) · ✅
 
-> **Status:** dizajn odobren (§16 u cijelosti), implementacija u toku (`modules/2.6-zastita-licnih-podataka.md`, ~5 RD).
-> Koraci: 1 temelj ✔ · 2 registar zahtjeva ✔ (backend) · 3 zadržavanje i legal hold ✔ (backend) · 4 anonimizacija · 5 izvoz · 6 evidencija, UI, E2E, runbook.
+> **Status:** ✅ završeno i verifikovano na stagingu 2026-09-28 (dizajn ada739f/2b50b9e; koraci 6aa57f0, a9a0106, 6fb40e7, 7289fb2, eab41d1, a2e8f12, d93c55f; MFA ispravke 837abe1, 90fd41e, 46060a1; E2E 20 prolazi 5/5 nakon 7d5db6c). Operativa: `ops/runbook/privatnost.md`. Detalji i odstupanja: `modules/2.6-zastita-licnih-podataka.md` §17.
 
 - Anonimizacija bivšeg zaposlenika (ime/e-mail → pseudonim u tiketima, porukama, auditu uz
   očuvan hash lanac); zahtjev za izvoz podataka korisnika.
