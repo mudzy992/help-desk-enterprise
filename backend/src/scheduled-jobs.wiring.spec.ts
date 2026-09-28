@@ -51,6 +51,8 @@ jest.mock('./common/prisma/prisma.service', () => ({
  */
 import { reportSchedulesSchedulerId } from './modules/reports/schedules/report-schedule.constants';
 import { ReportSchedulesSchedulerService } from './modules/reports/schedules/report-schedules.scheduler.service';
+import { privacyCronPattern, privacySchedulerId } from './modules/privacy/privacy.constants';
+import { PrivacySchedulerService } from './modules/privacy/privacy.scheduler.service';
 
 describe('periodic job wiring', () => {
   function createSchedulerStore() {
@@ -74,6 +76,7 @@ describe('periodic job wiring', () => {
       new UnroutedSweepSchedulerService(queue as never),
       new DirectorySyncSchedulerService(queue as never),
       new ReportSchedulesSchedulerService(queue as never),
+      new PrivacySchedulerService(queue as never),
       new IntegrationWorkerMaintenanceSchedulerService(queue as never, {
         load: () => {
           throw new Error('settings unavailable');
@@ -97,22 +100,24 @@ describe('periodic job wiring', () => {
         unroutedSweepSchedulerId,
         directorySyncSchedulerId,
         reportSchedulesSchedulerId,
+        privacySchedulerId,
         integrationWorkerHeartbeatSchedulerId,
         integrationDlqRetentionSchedulerId,
       ].sort(),
     );
-    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(16);
-    // The sixteen registrations describe eight schedules, so no job can run twice.
-    expect(store.entries.size).toBe(8);
+    expect(store.queue.upsertJobScheduler).toHaveBeenCalledTimes(18);
+    // The eighteen registrations describe nine schedules, so no job can run twice.
+    expect(store.entries.size).toBe(9);
   });
 
-  it('staggers the five sweeps inside the fifteen-minute window', () => {
+  it('staggers the six sweeps inside the fifteen-minute window', () => {
     const minuteFields = [
       ticketArchiveSchedulePattern,
       waitingForUserSchedulePattern,
       knowledgeBaseReviewReminderSchedulePattern,
       unroutedSweepSchedulePattern,
       directorySyncSchedulePattern,
+      privacyCronPattern,
     ].map((pattern) => pattern.split(' ')[1]);
 
     const minuteSets = minuteFields.map(
@@ -121,7 +126,7 @@ describe('periodic job wiring', () => {
     for (const minutes of minuteSets) {
       expect(minutes.size).toBe(4);
     }
-    expect(new Set(minuteFields).size).toBe(5);
+    expect(new Set(minuteFields).size).toBe(6);
     for (const left of minuteSets) {
       for (const right of minuteSets) {
         if (left === right) {

@@ -35,6 +35,10 @@ export function notificationTicketPath(
   if (type === "inbound.mailboxFailing") {
     return "/settings";
   }
+  // Paket 2.6: a data subject request deadline opens the privacy register.
+  if (type === "privacy.requestDue") {
+    return "/privacy";
+  }
   // Paket 2.1: account security events open the own security page.
   if (type?.startsWith("account.")) {
     return "/account/security";
@@ -73,6 +77,7 @@ export function notificationTitleKey(
   | "notifications.items.accountPasswordChanged"
   | "notifications.items.accountNewDevice"
   | "notifications.items.inboundMailboxFailing"
+  | "notifications.items.privacyRequestDue"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -113,6 +118,8 @@ export function notificationTitleKey(
       return "notifications.items.accountNewDevice";
     case "inbound.mailboxFailing":
       return "notifications.items.inboundMailboxFailing";
+    case "privacy.requestDue":
+      return "notifications.items.privacyRequestDue";
     default:
       return "notifications.items.unknown";
   }

@@ -64,6 +64,22 @@ export const auditLogActions = {
   reportScheduleDeleted: 'report.schedule.deleted',
   reportScheduleSent: 'report.schedule.sent',
   reportScheduleTestSent: 'report.schedule.test_sent',
+  // Paket 2.6: zaštita ličnih podataka.
+  privacyRequestCreated: 'privacy.request.created',
+  privacyRequestUpdated: 'privacy.request.updated',
+  privacyRequestExtended: 'privacy.request.extended',
+  privacyRequestClosed: 'privacy.request.closed',
+  privacyExportRequested: 'privacy.export.requested',
+  privacyExportDownloaded: 'privacy.export.downloaded',
+  privacyErasureRequested: 'privacy.erasure.requested',
+  privacyErasureApproved: 'privacy.erasure.approved',
+  privacyErasureCancelled: 'privacy.erasure.cancelled',
+  privacySubjectAnonymized: 'privacy.subject.anonymized',
+  privacyRetentionRun: 'privacy.retention.run',
+  privacyLegalHoldSet: 'privacy.legal_hold.set',
+  privacyLegalHoldCleared: 'privacy.legal_hold.cleared',
+  auditRedacted: 'audit.redacted',
+  auditRetentionPurged: 'audit.retention.purged',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -83,6 +99,11 @@ export const auditLogEntityTypes = {
   directorySyncRun: 'directory_sync_run',
   reportTrends: 'report_trends',
   reportSchedule: 'report_schedule',
+  // Paket 2.6
+  dataSubjectRequest: 'data_subject_request',
+  privacyExport: 'privacy_export',
+  privacyErasure: 'privacy_erasure',
+  retentionRun: 'retention_run',
 } as const;
 
 export const auditLogErrorCodes = {

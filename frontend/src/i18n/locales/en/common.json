@@ -146,7 +146,8 @@
       "accountRecoveryCodeUsed": "A recovery code was used to sign in",
       "accountPasswordChanged": "Your account password was changed",
       "accountNewDevice": "New sign-in from an unrecognised device",
-      "inboundMailboxFailing": "Inbound e-mail is failing: the mailbox cannot be read"
+      "inboundMailboxFailing": "Inbound e-mail is failing: the mailbox cannot be read",
+      "privacyRequestDue": "A data subject request deadline is approaching"
     }
   },
   "placeholders": {
@@ -271,7 +272,10 @@
       "edge.notify.receive": "Edge notifications",
       "ticket.message.send": "Send ticket messages",
       "ticket.remote.open_quick_assist": "Quick Assist",
-      "reports.schedule.manage": "Manage scheduled reports"
+      "reports.schedule.manage": "Manage scheduled reports",
+      "privacy.view": "View privacy",
+      "privacy.manage": "Manage privacy",
+      "privacy.anonymize": "Anonymize users"
     }
   },
   "maintenance": {
@@ -368,7 +372,8 @@
         "observability": "Observability",
         "confidential": "Confidential access",
         "knowledge": "Knowledge base",
-        "edge": "Edge extension"
+        "edge": "Edge extension",
+        "privacy": "Privacy"
       },
       "keys": {
         "ticket.forward.cross_ou": "Forward a ticket to another organizational unit (OU-scoped and audited).",
@@ -399,7 +404,10 @@
         "edge.notify.receive": "Receive Edge Extension notifications and record receipts.",
         "ticket.message.send": "Send quick-reply chat messages from the Edge Extension.",
         "ticket.remote.open_quick_assist": "Acknowledge and open Quick Assist remote sessions from Edge.",
-        "reports.schedule.manage": "Create, edit and send scheduled e-mail reports."
+        "reports.schedule.manage": "Create, edit and send scheduled e-mail reports.",
+        "privacy.view": "View the request register, exports, retention and the record of processing.",
+        "privacy.manage": "Handle data subject requests, data exports, retention and legal holds.",
+        "privacy.anonymize": "Irreversibly anonymize deactivated users (right to erasure)."
       }
     }
   },
@@ -678,7 +686,8 @@
         "public.maintenance": "System maintenance",
         "private.i18n": "Language",
         "private.inbound": "Inbound e-mail",
-        "private.collaboration": "Agent collaboration"
+        "private.collaboration": "Agent collaboration",
+        "private.privacy": "Privacy"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -808,7 +817,7 @@
         "private.notifications.email.replyToAddress": "Shared mailbox address used as Reply-To (required for shared_mailbox).",
         "private.notifications.templates.enabled": "Use editable email templates; when off, built-in subject/body defaults apply.",
         "private.notifications.templates.registryJson": "JSON registry of email subject/body templates with allowed placeholders.",
-        "private.observability.auditRetentionDays": "How many days to keep audit log records.",
+        "private.observability.auditRetentionDays": "How many days to keep audit log records. Deprecated: use \"Privacy → retention\".",
         "private.observability.requestLogRetentionDays": "How many days of in-process request logs the API keeps.",
         "private.observability.supportBundle.enabled": "Allow SuperAdmin to download a support bundle archive.",
         "private.observability.supportBundle.includeAuditExport": "Include the audit log export in the support bundle.",
@@ -866,7 +875,7 @@
         "private.ticket.attachments.maxFileSizeMb": "Maximum attachment size in megabytes.",
         "private.ticket.attachments.maxFilesPerMessage": "Maximum attachments on a single ticket message.",
         "private.ticket.attachments.maxFilesPerTicket": "Maximum attachments stored on one ticket.",
-        "private.ticket.attachments.retentionDays": "How many days ticket attachments are retained.",
+        "private.ticket.attachments.retentionDays": "How many days ticket attachments are retained. Deprecated: use \"Privacy → retention\".",
         "private.ticket.autoAssign.enabled": "Automatically assign routed group tickets to an eligible agent.",
         "private.ticket.autoAssign.strategy": "Global auto-assign strategy when the service strategy is NONE (least_busy or round_robin).",
         "private.ticket.bulkActions.allowCrossOuForSuperAdmin": "Allow SuperAdmin to run bulk actions across organizational units.",
@@ -1022,7 +1031,33 @@
         "private.reports.scheduled.maxSchedules": "Maximum number of report schedules (1–200).",
         "private.reports.scheduled.maxRecipients": "Maximum number of recipients per schedule (1–100).",
         "private.reports.scheduled.attachmentMaxRows": "Maximum rows per CSV attachment; a larger pack is left out with a note in the e-mail (100–50,000).",
-        "private.reports.scheduled.defaultSendTime": "Default send time of a new schedule (HH:mm, report time zone)."
+        "private.reports.scheduled.defaultSendTime": "Default send time of a new schedule (HH:mm, report time zone).",
+        "private.privacy.enabled": "Show the privacy module (requests, exports, anonymization, retention).",
+        "private.privacy.retention.attachmentsDays": "Days after a ticket is closed before its attachments are deleted (0 = off, minimum 90).",
+        "private.privacy.retention.ticketContentDays": "Days after closing before ticket and message text is removed; metrics stay (0 = off, minimum 180).",
+        "private.privacy.retention.auditDays": "Days before audit records are redacted with a chain checkpoint (0 = off, minimum 365).",
+        "private.privacy.retention.sessionDays": "Days to keep expired and revoked sessions (0 = off, minimum 30).",
+        "private.privacy.retention.emailDeliveryDays": "Days to keep the e-mail delivery log (0 = off, minimum 30).",
+        "private.privacy.retention.requestRegisterDays": "Days to keep closed data subject requests (0 = off, minimum 365).",
+        "private.privacy.retention.runAtLocalTime": "Local time of the nightly retention job (HH:MM).",
+        "private.privacy.retention.maxMinutesPerNight": "Maximum minutes per nightly run; the rest continues the next night (5-240).",
+        "private.privacy.anonymization.candidateAfterDays": "Days after deactivation before a user is listed as an anonymization candidate.",
+        "private.privacy.anonymization.requireSecondApprover": "A second SUPER_ADMIN must approve every anonymization (four eyes).",
+        "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pre-select deleting the person’s own attachments during anonymization.",
+        "private.privacy.export.includeAttachmentsDefault": "Pre-select including the person’s own attachments in a data export.",
+        "private.privacy.export.maxAttachmentMb": "Maximum total size of attachments in one data export, in MB (10-2000).",
+        "private.privacy.export.linkValidDays": "Days a finished export can be downloaded before it is deleted (1-30).",
+        "private.privacy.requests.reminderDaysCsv": "Days before the deadline to remind about a data subject request, comma separated (e.g. 7,1).",
+        "private.privacy.requests.rejectionNotice.bs": "Text about the right to complain to the Agency, added to a rejection (Bosnian).",
+        "private.privacy.requests.rejectionNotice.en": "Text about the right to complain to the Agency, added to a rejection (English).",
+        "private.privacy.controller.name": "Name of the data controller (organization) for the record of processing and the notice.",
+        "private.privacy.controller.address": "Address of the data controller.",
+        "private.privacy.controller.dpoName": "Name of the data protection officer (DPO).",
+        "private.privacy.controller.dpoEmail": "E-mail of the data protection officer.",
+        "private.privacy.controller.purpose": "Purpose of processing in the help desk (record of processing activities).",
+        "private.privacy.controller.legalBasis": "Legal basis of processing (e.g. employment, legitimate interest).",
+        "private.privacy.notice.bs": "Privacy notice shown to users (Bosnian).",
+        "private.privacy.notice.en": "Privacy notice shown to users (English)."
       }
     },
     "emailTemplates": {
@@ -3991,6 +4026,10 @@
         "inbound_mailboxFailing": {
           "label": "Inbound e-mail failing",
           "hint": "The support mailbox could not be read three times in a row."
+        },
+        "privacy_requestDue": {
+          "label": "Data subject request deadline",
+          "hint": "Reminder 7 and 1 day before the legal deadline (30/60 days)."
         }
       },
       "emailOnly": "E-mail only",

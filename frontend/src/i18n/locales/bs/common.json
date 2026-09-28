@@ -146,7 +146,8 @@
       "accountRecoveryCodeUsed": "Iskorišten je rezervni kod za prijavu",
       "accountPasswordChanged": "Lozinka vašeg naloga je promijenjena",
       "accountNewDevice": "Nova prijava s nepoznatog uređaja",
-      "inboundMailboxFailing": "Dolazna pošta ne radi: sandučić se ne može pročitati"
+      "inboundMailboxFailing": "Dolazna pošta ne radi: sandučić se ne može pročitati",
+      "privacyRequestDue": "Rok za zahtjev nosioca podataka ističe"
     }
   },
   "placeholders": {
@@ -271,7 +272,10 @@
       "edge.notify.receive": "Edge obavijesti",
       "ticket.message.send": "Slanje poruka na tiketu",
       "ticket.remote.open_quick_assist": "Quick Assist",
-      "reports.schedule.manage": "Upravljanje zakazanim izvještajima"
+      "reports.schedule.manage": "Upravljanje zakazanim izvještajima",
+      "privacy.view": "Pregled zaštite ličnih podataka",
+      "privacy.manage": "Upravljanje zaštitom ličnih podataka",
+      "privacy.anonymize": "Anonimizacija korisnika"
     }
   },
   "maintenance": {
@@ -368,7 +372,8 @@
         "observability": "Opservabilnost",
         "confidential": "Povjerljivi pristup",
         "knowledge": "Baza znanja",
-        "edge": "Edge ekstenzija"
+        "edge": "Edge ekstenzija",
+        "privacy": "Zaštita ličnih podataka"
       },
       "keys": {
         "ticket.forward.cross_ou": "Proslijedi tiket u drugu organizacionu jedinicu (s OU opsegom i auditom).",
@@ -399,7 +404,10 @@
         "edge.notify.receive": "Primaj notifikacije Edge Extensiona i bilježi potvrde prijema.",
         "ticket.message.send": "Šalji brze chat odgovore iz Edge Extensiona.",
         "ticket.remote.open_quick_assist": "Potvrdi i otvori Quick Assist udaljene sesije iz Edge-a.",
-        "reports.schedule.manage": "Kreiraj, uređuj i šalji zakazane izvještaje e-mailom."
+        "reports.schedule.manage": "Kreiraj, uređuj i šalji zakazane izvještaje e-mailom.",
+        "privacy.view": "Pregled registra zahtjeva, izvoza, zadržavanja i evidencije obrade.",
+        "privacy.manage": "Vođenje zahtjeva nosilaca podataka, izvoz podataka, zadržavanje i legal hold.",
+        "privacy.anonymize": "Nepovratna anonimizacija deaktiviranih korisnika (ZZLP pravo na brisanje)."
       }
     }
   },
@@ -680,7 +688,8 @@
         "public.maintenance": "Održavanje sistema",
         "private.i18n": "Jezik",
         "private.inbound": "Dolazna pošta",
-        "private.collaboration": "Saradnja agenata"
+        "private.collaboration": "Saradnja agenata",
+        "private.privacy": "Zaštita ličnih podataka"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -810,7 +819,7 @@
         "private.notifications.email.replyToAddress": "Adresa zajedničkog sandučića za Reply-To (obavezna za shared_mailbox).",
         "private.notifications.templates.enabled": "Koristi uređive email predloške; kad je isključeno, važe ugrađeni subject/body.",
         "private.notifications.templates.registryJson": "JSON registar email subject/body predložaka s dozvoljenim placeholderima.",
-        "private.observability.auditRetentionDays": "Koliko dana čuvati zapise revizijskog dnevnika.",
+        "private.observability.auditRetentionDays": "Koliko dana čuvati zapise revizijskog dnevnika. Zastarjelo: koristite „Zaštita ličnih podataka → zadržavanje\".",
         "private.observability.requestLogRetentionDays": "Koliko dana API čuva in-process logove zahtjeva.",
         "private.observability.supportBundle.enabled": "Dozvoli SuperAdminu preuzimanje support bundle arhive.",
         "private.observability.supportBundle.includeAuditExport": "Uključi izvoz revizijskog dnevnika u support bundle.",
@@ -868,7 +877,7 @@
         "private.ticket.attachments.maxFileSizeMb": "Maksimalna veličina privitka u megabajtima.",
         "private.ticket.attachments.maxFilesPerMessage": "Maksimalan broj privitaka na jednoj poruci tiketa.",
         "private.ticket.attachments.maxFilesPerTicket": "Maksimalan broj privitaka na jednom tiketu.",
-        "private.ticket.attachments.retentionDays": "Koliko dana se čuvaju privici tiketa.",
+        "private.ticket.attachments.retentionDays": "Koliko dana se čuvaju privici tiketa. Zastarjelo: koristite „Zaštita ličnih podataka → zadržavanje\".",
         "private.ticket.autoAssign.enabled": "Automatski dodijeli rutirane grupne tikete podobnom agentu.",
         "private.ticket.autoAssign.strategy": "Globalna strategija auto-dodjele kad je strategija usluge NONE (least_busy ili round_robin).",
         "private.ticket.bulkActions.allowCrossOuForSuperAdmin": "Dozvoli SuperAdminu masovne radnje preko više organizacijskih jedinica.",
@@ -1024,7 +1033,33 @@
         "private.reports.scheduled.maxSchedules": "Najveći broj rasporeda izvještaja (1–200).",
         "private.reports.scheduled.maxRecipients": "Najveći broj primalaca po rasporedu (1–100).",
         "private.reports.scheduled.attachmentMaxRows": "Najveći broj redova po CSV prilogu; veći paket se izostavlja uz napomenu u e-mailu (100–50 000).",
-        "private.reports.scheduled.defaultSendTime": "Zadano vrijeme slanja novog rasporeda (HH:mm, zona izvještaja)."
+        "private.reports.scheduled.defaultSendTime": "Zadano vrijeme slanja novog rasporeda (HH:mm, zona izvještaja).",
+        "private.privacy.enabled": "Prikaži modul zaštite ličnih podataka (zahtjevi, izvoz, anonimizacija, zadržavanje).",
+        "private.privacy.retention.attachmentsDays": "Nakon koliko dana od zatvaranja tiketa se brišu prilozi (0 = isključeno, najmanje 90).",
+        "private.privacy.retention.ticketContentDays": "Nakon koliko dana od zatvaranja se uklanja tekst tiketa i poruka; metrika ostaje (0 = isključeno, najmanje 180).",
+        "private.privacy.retention.auditDays": "Nakon koliko dana se revizijski zapisi redigiraju uz kontrolnu tačku lanca (0 = isključeno, najmanje 365).",
+        "private.privacy.retention.sessionDays": "Koliko dana se čuvaju istekle i opozvane sesije (0 = isključeno, najmanje 30).",
+        "private.privacy.retention.emailDeliveryDays": "Koliko dana se čuva dnevnik isporuke e-maila (0 = isključeno, najmanje 30).",
+        "private.privacy.retention.requestRegisterDays": "Koliko dana se čuvaju zatvoreni zahtjevi nosilaca podataka (0 = isključeno, najmanje 365).",
+        "private.privacy.retention.runAtLocalTime": "Lokalno vrijeme noćnog posla zadržavanja (HH:MM).",
+        "private.privacy.retention.maxMinutesPerNight": "Najduže trajanje noćnog posla u minutama; ostatak se nastavlja sljedeće noći (5-240).",
+        "private.privacy.anonymization.candidateAfterDays": "Nakon koliko dana deaktivacije se korisnik prikazuje kao kandidat za anonimizaciju.",
+        "private.privacy.anonymization.requireSecondApprover": "Anonimizaciju mora odobriti drugi SUPER_ADMIN („četiri oka\").",
+        "private.privacy.anonymization.deleteOwnAttachmentsDefault": "Pri anonimizaciji unaprijed označi brisanje priloga koje je osoba sama postavila.",
+        "private.privacy.export.includeAttachmentsDefault": "U izvoz podataka osobe unaprijed uključi njene priloge.",
+        "private.privacy.export.maxAttachmentMb": "Najveća ukupna veličina priloga u jednom izvozu, u MB (10-2000).",
+        "private.privacy.export.linkValidDays": "Koliko dana je gotov izvoz dostupan za preuzimanje prije brisanja (1-30).",
+        "private.privacy.requests.reminderDaysCsv": "Dani prije roka za podsjetnik o zahtjevu nosioca podataka, odvojeni zarezom (npr. 7,1).",
+        "private.privacy.requests.rejectionNotice.bs": "Tekst o pravu na prigovor Agenciji koji se dodaje uz odbijanje zahtjeva (bosanski).",
+        "private.privacy.requests.rejectionNotice.en": "Tekst o pravu na prigovor Agenciji koji se dodaje uz odbijanje zahtjeva (engleski).",
+        "private.privacy.controller.name": "Naziv kontrolora podataka (organizacije) za evidenciju i obavještenje.",
+        "private.privacy.controller.address": "Adresa kontrolora podataka.",
+        "private.privacy.controller.dpoName": "Ime službenika za zaštitu ličnih podataka (DPO).",
+        "private.privacy.controller.dpoEmail": "E-mail službenika za zaštitu ličnih podataka.",
+        "private.privacy.controller.purpose": "Svrha obrade podataka u help-desku (evidencija aktivnosti obrade).",
+        "private.privacy.controller.legalBasis": "Pravni osnov obrade (npr. radni odnos, legitimni interes).",
+        "private.privacy.notice.bs": "Obavještenje o obradi ličnih podataka prikazano korisnicima (bosanski).",
+        "private.privacy.notice.en": "Obavještenje o obradi ličnih podataka prikazano korisnicima (engleski)."
       }
     },
     "emailTemplates": {
@@ -4010,6 +4045,10 @@
         "inbound_mailboxFailing": {
           "label": "Dolazna pošta ne radi",
           "hint": "Sandučić podrške se ne može pročitati tri puta zaredom."
+        },
+        "privacy_requestDue": {
+          "label": "Rok zahtjeva nosioca podataka",
+          "hint": "Podsjetnik 7 i 1 dan prije zakonskog roka (ZZLP, 30/60 dana)."
         }
       },
       "emailOnly": "Samo e-mail",

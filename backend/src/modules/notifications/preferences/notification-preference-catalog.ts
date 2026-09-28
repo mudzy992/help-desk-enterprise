@@ -65,6 +65,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   category('directory.syncAborted', [notificationTypes.directorySyncAborted], 3, inAppOnly, true),
   // Paket 2.3: the inbound mailbox keeps failing (admins, always on).
   category('inbound.mailboxFailing', [notificationTypes.inboundMailboxFailing], 3, inAppOnly, true),
+  // Paket 2.6: legal deadline of a data subject request (privacy handlers, always on).
+  category('privacy.requestDue', [notificationTypes.privacyRequestDue], 3, inAppOnly, true),
   category(
     'account.security',
     [

@@ -25,6 +25,9 @@ export const permissionKeys = {
   auditExport: "audit.export",
   reportsExport: "reports.export",
   reportsScheduleManage: "reports.schedule.manage",
+  privacyView: "privacy.view",
+  privacyManage: "privacy.manage",
+  privacyAnonymize: "privacy.anonymize",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];
