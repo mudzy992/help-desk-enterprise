@@ -2739,7 +2739,8 @@
       "copied": "Copied",
       "download": "Download .txt",
       "recoverySaved": "I have saved the recovery codes",
-      "continue": "Continue"
+      "continue": "Continue",
+      "signInExpired": "The sign-in step has expired (it is valid for 5 minutes). Go back to sign in and try again."
     },
     "passwordPolicy": {
       "TOO_SHORT": "The password is too short.",

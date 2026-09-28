@@ -2748,7 +2748,8 @@
       "copied": "Kopirano",
       "download": "Preuzmi .txt",
       "recoverySaved": "Sačuvao/la sam rezervne kodove",
-      "continue": "Nastavi"
+      "continue": "Nastavi",
+      "signInExpired": "Korak prijave je istekao (vrijedi 5 minuta). Vratite se na prijavu i pokušajte ponovo."
     },
     "passwordPolicy": {
       "TOO_SHORT": "Lozinka je prekratka.",

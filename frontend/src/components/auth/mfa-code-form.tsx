@@ -25,7 +25,7 @@ export function MfaCodeForm({
   const [code, setCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<"invalid" | "rateLimited" | "expired" | "failed" | null>(null);
+  const [error, setError] = useState<"invalid" | "rateLimited" | "expired" | "signInExpired" | "failed" | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,6 +40,9 @@ export function MfaCodeForm({
           ? "rateLimited"
           : caught instanceof ApiError && caught.code === "MFA_ENROLLMENT_EXPIRED"
             ? "expired"
+            : caught instanceof ApiError && caught.code === "INVALID_CREDENTIALS"
+              ? // The 5-minute sign-in step (mfaToken) expired or was already used — not a wrong code.
+                "signInExpired"
             : caught instanceof ApiError && (caught.status === 401 || caught.status === 400)
               ? "invalid"
               : "failed",
@@ -76,6 +79,8 @@ export function MfaCodeForm({
               ? "session.errorRateLimited"
               : error === "expired"
                 ? "auth.mfa.enrollmentExpired"
+                : error === "signInExpired"
+                  ? "auth.mfa.signInExpired"
                 : error === "invalid"
                   ? "auth.mfa.invalidCode"
                   : "auth.mfa.failed",
