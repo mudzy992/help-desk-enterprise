@@ -59,6 +59,19 @@ describe('default role permission mapping', () => {
     );
   });
 
+  it('keeps privacy management and anonymization with SUPER_ADMIN (package 2.6)', () => {
+    const admin = defaultRolePermissionKeys[authorizationRoleKeys.admin];
+    expect(admin).toContain(permissionKeys.privacyView);
+    expect(admin).not.toContain(permissionKeys.privacyManage);
+    expect(admin).not.toContain(permissionKeys.privacyAnonymize);
+    for (const role of [authorizationRoleKeys.agent, authorizationRoleKeys.user]) {
+      expect(defaultRolePermissionKeys[role]).not.toContain(permissionKeys.privacyView);
+    }
+    const superAdmin = defaultRolePermissionKeys[authorizationRoleKeys.superAdmin];
+    expect(superAdmin).toContain(permissionKeys.privacyManage);
+    expect(superAdmin).toContain(permissionKeys.privacyAnonymize);
+  });
+
   it('documents SuperAdmin as the full catalog including break-glass', () => {
     expect(defaultRolePermissionKeys[authorizationRoleKeys.superAdmin]).toEqual(
       allPermissionKeys,

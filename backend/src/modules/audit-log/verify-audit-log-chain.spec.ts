@@ -21,7 +21,15 @@ describe('verifyAuditLogChain', () => {
         records: [second, first],
         hashAlgorithm: 'sha256',
       }),
-    ).toEqual({ enabled: true, valid: true, checkedCount: 2 });
+    ).toEqual({
+      enabled: true,
+      valid: true,
+      checkedCount: 2,
+      // Paket 2.6: additive details (no redaction, no retention checkpoint).
+      redactedCount: 0,
+      sealedCount: 0,
+      checkpoint: null,
+    });
     const tampered: AuditLogRecord = {
       ...second,
       metadata: { result: 'forged' },
@@ -37,6 +45,9 @@ describe('verifyAuditLogChain', () => {
       checkedCount: 2,
       firstMismatchId: 'b',
       firstMismatchIndex: 1,
+      redactedCount: 0,
+      sealedCount: 0,
+      checkpoint: null,
     });
   });
 });

@@ -153,6 +153,21 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Create, edit and send scheduled e-mail reports (package 2.5).',
   },
   {
+    key: permissionKeys.privacyView,
+    categoryId: permissionCategoryIds.privacy,
+    description: 'View data subject requests, retention reports and the record of processing (package 2.6).',
+  },
+  {
+    key: permissionKeys.privacyManage,
+    categoryId: permissionCategoryIds.privacy,
+    description: 'Handle data subject requests, personal data exports, retention and legal holds (package 2.6).',
+  },
+  {
+    key: permissionKeys.privacyAnonymize,
+    categoryId: permissionCategoryIds.privacy,
+    description: 'Anonymize a former employee (irreversible, package 2.6).',
+  },
+  {
     key: permissionKeys.supportBundleExport,
     categoryId: permissionCategoryIds.observability,
     description: 'Download a support diagnostics bundle for troubleshooting.',

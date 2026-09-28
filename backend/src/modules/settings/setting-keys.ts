@@ -481,6 +481,37 @@ export const settingKeys = {
     'private.edgeExtension.remote.requireUserClickToOpenQuickAssist',
   privateEdgeExtensionRemoteAuditAcknowledge:
     'private.edgeExtension.remote.auditAcknowledge',
+  // Paket 2.6: zaštita ličnih podataka (ZZLP BiH).
+  privatePrivacyEnabled: 'private.privacy.enabled',
+  privatePrivacyRetentionAttachmentsDays: 'private.privacy.retention.attachmentsDays',
+  privatePrivacyRetentionTicketContentDays: 'private.privacy.retention.ticketContentDays',
+  privatePrivacyRetentionAuditDays: 'private.privacy.retention.auditDays',
+  privatePrivacyRetentionSessionDays: 'private.privacy.retention.sessionDays',
+  privatePrivacyRetentionEmailDeliveryDays: 'private.privacy.retention.emailDeliveryDays',
+  privatePrivacyRetentionRequestRegisterDays: 'private.privacy.retention.requestRegisterDays',
+  privatePrivacyRetentionRunAtLocalTime: 'private.privacy.retention.runAtLocalTime',
+  privatePrivacyRetentionMaxMinutesPerNight: 'private.privacy.retention.maxMinutesPerNight',
+  privatePrivacyAnonymizationCandidateAfterDays:
+    'private.privacy.anonymization.candidateAfterDays',
+  privatePrivacyAnonymizationRequireSecondApprover:
+    'private.privacy.anonymization.requireSecondApprover',
+  privatePrivacyAnonymizationDeleteOwnAttachmentsDefault:
+    'private.privacy.anonymization.deleteOwnAttachmentsDefault',
+  privatePrivacyExportIncludeAttachmentsDefault:
+    'private.privacy.export.includeAttachmentsDefault',
+  privatePrivacyExportMaxAttachmentMb: 'private.privacy.export.maxAttachmentMb',
+  privatePrivacyExportLinkValidDays: 'private.privacy.export.linkValidDays',
+  privatePrivacyRequestsReminderDaysCsv: 'private.privacy.requests.reminderDaysCsv',
+  privatePrivacyRequestsRejectionNoticeBs: 'private.privacy.requests.rejectionNotice.bs',
+  privatePrivacyRequestsRejectionNoticeEn: 'private.privacy.requests.rejectionNotice.en',
+  privatePrivacyControllerName: 'private.privacy.controller.name',
+  privatePrivacyControllerAddress: 'private.privacy.controller.address',
+  privatePrivacyControllerDpoName: 'private.privacy.controller.dpoName',
+  privatePrivacyControllerDpoEmail: 'private.privacy.controller.dpoEmail',
+  privatePrivacyControllerPurpose: 'private.privacy.controller.purpose',
+  privatePrivacyControllerLegalBasis: 'private.privacy.controller.legalBasis',
+  privatePrivacyNoticeBs: 'private.privacy.notice.bs',
+  privatePrivacyNoticeEn: 'private.privacy.notice.en',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

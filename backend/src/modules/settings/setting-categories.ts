@@ -22,6 +22,7 @@ export type SettingCategoryId =
   | 'private.notifications'
   | 'private.observability'
   | 'private.readOnlyMode'
+  | 'private.privacy'
   | 'private.reports'
   | 'private.security'
   | 'private.services'
@@ -57,6 +58,7 @@ export const settingCategoryIds = {
   privateNotifications: 'private.notifications',
   privateObservability: 'private.observability',
   privateReadOnlyMode: 'private.readOnlyMode',
+  privatePrivacy: 'private.privacy',
   privateReports: 'private.reports',
   privateSecurity: 'private.security',
   privateServices: 'private.services',
@@ -92,6 +94,7 @@ export const settingCategoryCatalog: readonly SettingCategory[] = [
   { id: settingCategoryIds.privateAudit, icon: 'file-search', priority: 210 },
   { id: settingCategoryIds.privateObservability, icon: 'activity', priority: 220 },
   { id: settingCategoryIds.privateDataLifecycle, icon: 'archive', priority: 230 },
+  { id: settingCategoryIds.privatePrivacy, icon: 'shield-check', priority: 235 },
   { id: settingCategoryIds.privateReadOnlyMode, icon: 'lock', priority: 240 },
 ];
 

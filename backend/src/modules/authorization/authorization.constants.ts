@@ -33,6 +33,10 @@ export const permissionKeys = {
   auditExport: 'audit.export',
   reportsExport: 'reports.export',
   reportsScheduleManage: 'reports.schedule.manage',
+  // Paket 2.6 (§9): zaštita ličnih podataka.
+  privacyView: 'privacy.view',
+  privacyManage: 'privacy.manage',
+  privacyAnonymize: 'privacy.anonymize',
   supportBundleExport: 'supportBundle.export',
   confidentialBreakGlass: 'confidential.break_glass',
   knowledgeArticleWrite: 'knowledge.article.write',
@@ -85,6 +89,10 @@ const adminPermissionKeys = [
   permissionKeys.auditExport,
   permissionKeys.reportsExport,
   permissionKeys.reportsScheduleManage,
+  // Paket 2.6: ADMIN sees the register and retention reports; managing
+  // requests/exports/retention and anonymizing stay with SUPER_ADMIN (RBAC can
+  // grant `privacy.manage` to ADMIN explicitly).
+  permissionKeys.privacyView,
   permissionKeys.supportBundleExport,
   permissionKeys.knowledgeArticleReview,
   permissionKeys.knowledgeArticlePublish,

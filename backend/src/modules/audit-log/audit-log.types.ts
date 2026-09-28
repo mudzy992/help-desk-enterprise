@@ -40,6 +40,10 @@ export type AuditLogRecord = {
   readonly actorUserId: string | null;
   readonly organizationalUnitId: string | null;
   readonly createdAt: Date;
+  /** Paket 2.6: missing on legacy callers/tests = 1 (hash over metadata). */
+  readonly hashVersion?: number;
+  readonly metadataDigest?: string | null;
+  readonly redactedAt?: Date | null;
 };
 
 export type AuditLogExportRow = {
@@ -61,18 +65,33 @@ export type AuditLogVerifyResult =
       readonly enabled: false;
       readonly status: 'disabled';
     }
-  | {
+  | ({
       readonly enabled: true;
       readonly valid: true;
       readonly checkedCount: number;
-    }
-  | {
+    } & AuditLogVerifyDetails)
+  | ({
       readonly enabled: true;
       readonly valid: false;
       readonly checkedCount: number;
       readonly firstMismatchId: string;
       readonly firstMismatchIndex: number;
-    };
+    } & AuditLogVerifyDetails);
+
+/**
+ * Paket 2.6 (§6.5): redacted v2 rows are fully verified (the hash commits to
+ * the digest); redacted v1 rows are "sealed" — only the link to the neighbours
+ * is verified. A checkpoint means older rows were purged by retention.
+ */
+export type AuditLogVerifyDetails = {
+  readonly redactedCount?: number;
+  readonly sealedCount?: number;
+  readonly checkpoint?: {
+    readonly throughHash: string;
+    readonly throughCreatedAt: string;
+    readonly purgedCount: number;
+  } | null;
+};
 
 export type AuditLogExportResult = {
   readonly format: AuditExportFormat;

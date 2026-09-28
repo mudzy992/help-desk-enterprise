@@ -122,6 +122,7 @@ export class AuditLogService {
     return verifyAuditLogChain({
       records: await this.repository.listChain(),
       hashAlgorithm: configuration.hashAlgorithm,
+      start: await this.repository.findLatestCheckpoint(),
     });
   }
 }

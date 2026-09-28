@@ -28,6 +28,11 @@ model User {
   /// an admin deactivation is never undone automatically.
   directoryDeactivatedAt DateTime?
   directorySyncedAt    DateTime?
+  /// Paket 2.6 (§6): set once the account was anonymized (irreversible).
+  anonymizedAt         DateTime?
+  /// Paket 2.6 (§7.4): legal hold blocks anonymization.
+  legalHoldAt          DateTime?
+  legalHoldReason      String?                    @db.VarChar(500)
   distinguishedName    String?
   company              String?
   department           String?

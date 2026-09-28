@@ -47,6 +47,7 @@ model UserSession {
 
   @@index([userId, revokedAt, expiresAt])
   @@index([expiresAt])
+  @@index([lastSeenAt])
 }
 
 /// Paket 2.1 (M7): bcrypt hashes of previous local passwords (reuse check).

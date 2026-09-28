@@ -11,7 +11,8 @@ export type PermissionCategoryId =
   | 'observability'
   | 'confidential'
   | 'knowledge'
-  | 'edge';
+  | 'edge'
+  | 'privacy';
 
 export const permissionCategoryIds = {
   ticket: 'ticket',
@@ -27,4 +28,5 @@ export const permissionCategoryIds = {
   confidential: 'confidential',
   knowledge: 'knowledge',
   edge: 'edge',
+  privacy: 'privacy',
 } as const satisfies Record<string, PermissionCategoryId>;

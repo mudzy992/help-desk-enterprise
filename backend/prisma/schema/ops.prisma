@@ -53,6 +53,7 @@ model NotificationEmailDelivery {
 
   @@unique([userId, dedupeKey])
   @@index([status])
+  @@index([createdAt])
 }
 
 /// Paket 2.2 (N3): one row only where the user differs from the default of a
@@ -121,6 +122,12 @@ model AuditLog {
   hash                   String
   actorUserId            String?
   organizationalUnitId   String?
+  /// Paket 2.6 (§6.5): 1 = hash over metadata; 2 = hash over metadataDigest.
+  hashVersion            Int                 @default(1)
+  /// SHA-256 of canonical metadata as written (v2 only).
+  metadataDigest         String?
+  /// Metadata was redacted (anonymization); v1 rows become "sealed".
+  redactedAt             DateTime?
   actor                  User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
   organizationalUnit     OrganizationalUnit? @relation(fields: [organizationalUnitId], references: [id], onDelete: SetNull)
   createdAt              DateTime            @default(now())

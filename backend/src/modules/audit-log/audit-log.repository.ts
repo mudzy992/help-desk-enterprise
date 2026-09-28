@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditLogRecord } from './audit-log.types';
-import { compareAuditLogChainOrder } from './verify-audit-log-chain';
+import { compareAuditLogChainOrder, type AuditChainStart } from './verify-audit-log-chain';
 
 @Injectable()
 export class AuditLogRepository {
@@ -35,6 +35,15 @@ export class AuditLogRepository {
   async listChain(): Promise<readonly AuditLogRecord[]> {
     const records = await this.prisma.auditLog.findMany();
     return [...records.map(toAuditLogRecord)].sort(compareAuditLogChainOrder);
+  }
+
+  /** Paket 2.6 (§6.5): the latest retention checkpoint, if audit rows were purged. */
+  async findLatestCheckpoint(): Promise<AuditChainStart | null> {
+    const checkpoint = await this.prisma.auditChainCheckpoint.findFirst({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { throughHash: true, throughCreatedAt: true, purgedCount: true },
+    });
+    return checkpoint;
   }
 
   async listPage(input: {
@@ -80,6 +89,9 @@ function toAuditLogRecord(record: {
   readonly actorUserId: string | null;
   readonly organizationalUnitId: string | null;
   readonly createdAt: Date;
+  readonly hashVersion?: number;
+  readonly metadataDigest?: string | null;
+  readonly redactedAt?: Date | null;
 }): AuditLogRecord {
   return {
     id: record.id,
@@ -93,6 +105,9 @@ function toAuditLogRecord(record: {
     actorUserId: record.actorUserId,
     organizationalUnitId: record.organizationalUnitId,
     createdAt: record.createdAt,
+    hashVersion: record.hashVersion ?? 1,
+    metadataDigest: record.metadataDigest ?? null,
+    redactedAt: record.redactedAt ?? null,
   };
 }
 

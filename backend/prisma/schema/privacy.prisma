@@ -1,0 +1,125 @@
+/// Paket 2.6 (§4): a data subject request (ZZLP BiH čl. 14, 17–24). Rows are
+/// never deleted by the application except by the register retention; the
+/// subject is kept as a plain id so the request survives anonymization.
+model DataSubjectRequest {
+  id              String    @id @default(cuid())
+  /// ACCESS | PORTABILITY | ERASURE | RECTIFICATION | RESTRICTION | OBJECTION
+  type            String    @db.VarChar(24)
+  /// RECEIVED | IN_PROGRESS | EXTENDED | COMPLETED | REJECTED
+  status          String    @db.VarChar(16)
+  subjectUserId   String?
+  subjectLabel    String    @db.VarChar(200)
+  /// EMAIL | PAPER | PORTAL | IN_PERSON
+  channel         String    @db.VarChar(16)
+  receivedAt      DateTime
+  dueAt           DateTime
+  extendedDueAt   DateTime?
+  extensionReason String?   @db.VarChar(1000)
+  rejectionReason String?   @db.VarChar(1000)
+  handlerUserId   String?
+  notes           String?   @db.VarChar(4000)
+  resultRef       String?   @db.VarChar(300)
+  /// Reminder ladder already sent (days before the due date, e.g. {7,1}).
+  remindersSent   Int[]     @default([])
+  closedAt        DateTime?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status, dueAt])
+  @@index([subjectUserId])
+  @@index([closedAt])
+}
+
+/// Paket 2.6 (§6): one anonymization of a former employee. No mapping to the
+/// person is kept; `tombstones` hold HMACs of identifiers so directory sync
+/// never binds the anonymized row again.
+model PrivacyErasure {
+  id                   String    @id @default(cuid())
+  userId               String
+  pseudonym            String    @db.VarChar(64)
+  /// PENDING_APPROVAL | QUEUED | RUNNING | COMPLETED | FAILED | CANCELLED
+  status               String    @db.VarChar(20)
+  tombstones           String[]  @default([])
+  deleteOwnAttachments Boolean   @default(false)
+  requestId            String?
+  preview              Json?
+  report               Json?
+  error                String?   @db.VarChar(1000)
+  requestedByUserId    String?
+  approvedByUserId     String?
+  approvalDeadline     DateTime?
+  createdAt            DateTime  @default(now())
+  startedAt            DateTime?
+  completedAt          DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status, createdAt])
+  @@index([tombstones], type: Gin)
+}
+
+/// Paket 2.6 (§5): an encrypted personal data export (ZIP).
+model PrivacyExport {
+  id                String    @id @default(cuid())
+  subjectUserId     String
+  requestId         String?
+  /// QUEUED | RUNNING | READY | FAILED | EXPIRED
+  status            String    @db.VarChar(16)
+  includeAttachments   Boolean @default(true)
+  includeInternalNotes Boolean @default(false)
+  internalNotesReason  String? @db.VarChar(1000)
+  storageKey        String?   @db.VarChar(300)
+  sizeBytes         Int?
+  downloadCount     Int       @default(0)
+  error             String?   @db.VarChar(1000)
+  requestedByUserId String?
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+  completedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([subjectUserId])
+}
+
+/// Paket 2.6 (§7.3): one retention pass (dry run or execution) of a category.
+/// No personal data: counts, date range and ticket numbers only.
+model RetentionRun {
+  id                String    @id @default(cuid())
+  category          String    @db.VarChar(32)
+  /// DRY_RUN | EXECUTE
+  mode              String    @db.VarChar(8)
+  /// RUNNING | COMPLETED | PARTIAL | FAILED
+  status            String    @db.VarChar(10)
+  /// Retention period (days) the run was computed with; an execution needs a
+  /// dry run (≤ 24 h old) or an earlier execution with the same value.
+  configDays        Int?
+  itemCount         Int       @default(0)
+  bytesFreed        BigInt    @default(0)
+  oldestAt          DateTime?
+  newestAt          DateTime?
+  /// Ticket numbers (or ids) touched, capped (see privacyLimits.runRefsMax).
+  refs              String[]  @default([])
+  refsTruncated     Boolean   @default(false)
+  error             String?   @db.VarChar(1000)
+  triggeredByUserId String?
+  startedAt         DateTime  @default(now())
+  finishedAt        DateTime?
+
+  @@index([category, mode, startedAt(sort: Desc)])
+  @@index([startedAt])
+}
+
+/// Paket 2.6 (§6.5): audit rows up to `throughId` were purged; verification of
+/// the remaining chain starts from `throughHash` instead of the genesis hash.
+model AuditChainCheckpoint {
+  id               String   @id @default(cuid())
+  throughId        String
+  throughCreatedAt DateTime
+  throughHash      String
+  purgedCount      Int
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+}
