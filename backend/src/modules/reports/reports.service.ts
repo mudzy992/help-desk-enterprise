@@ -1,4 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  floorIsoToCacheGranularity,
+  floorToCacheGranularity,
+  ReportDashboardCache,
+  reportDashboardCacheKey,
+} from './dashboard/report-dashboard.cache';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { aggregateBottleneckDashboard } from './bottleneck/aggregate-bottleneck-dashboard';
 import { loadBottleneckDashboardFromSql } from './bottleneck/sql-bottleneck-dashboard-store';
@@ -38,6 +44,7 @@ export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configurationLoader: ReportsConfigurationLoader,
+    @Optional() private readonly dashboardCache?: ReportDashboardCache,
   ) {}
 
   /** Package 1.6: the packs this installation offers, in display order. */
@@ -180,13 +187,30 @@ export class ReportsService {
   ): Promise<ReportsDashboard> {
     const configuration = await this.configurationLoader.load();
     this.assertReportsEnabled(configuration);
-    return buildReportsDashboard({
-      prisma: this.prisma,
-      configuration,
-      query,
-      now,
-      unroutedLabel,
+    const cache = this.dashboardCache;
+    if (cache === undefined || !cache.enabled) {
+      return buildReportsDashboard({ prisma: this.prisma, configuration, query, now, unroutedLabel });
+    }
+    // Paket 2.5: cached per unit and minute (see ReportDashboardCache). The
+    // floored bounds are also what is computed, so key and payload agree.
+    const minute = floorToCacheGranularity(now);
+    const flooredQuery: ReportScopeQuery = {
+      ...query,
+      from: floorIsoToCacheGranularity(query.from),
+      to: floorIsoToCacheGranularity(query.to),
+    };
+    const key = reportDashboardCacheKey({
+      v: 1,
+      unit: query.organizationalUnitId,
+      from: flooredQuery.from,
+      to: flooredQuery.to,
+      now: minute.toISOString(),
+      days: configuration.defaultWindowDays,
+      label: unroutedLabel,
     });
+    return cache.getOrCompute(key, () =>
+      buildReportsDashboard({ prisma: this.prisma, configuration, query: flooredQuery, now: minute, unroutedLabel }),
+    );
   }
 
   private async requireReports(

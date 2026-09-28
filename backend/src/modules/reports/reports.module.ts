@@ -9,6 +9,7 @@ import { ReportSummaryCache } from './report-summary.cache';
 import { ReportSummaryController } from './report-summary.controller';
 import { ReportSummaryService } from './report-summary.service';
 import { ReportsController } from './reports.controller';
+import { ReportDashboardCache } from './dashboard/report-dashboard.cache';
 import { ReportsService } from './reports.service';
 import { reportTrendsProviders } from './trends/report-trends.providers';
 import { reportSchedulesQueueName } from './schedules/report-schedule.constants';
@@ -31,6 +32,7 @@ import { ReportSchedulesService } from './schedules/report-schedules.service';
     ReportSchedulesService,
     SmtpMailTransport,
     { provide: MAIL_TRANSPORT, useExisting: SmtpMailTransport },
+    ReportDashboardCache,
     ReportsService,
     ReportSummaryService,
     ReportSummaryCache,

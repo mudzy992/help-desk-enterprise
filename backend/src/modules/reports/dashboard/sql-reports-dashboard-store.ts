@@ -1,5 +1,6 @@
 import { sqltag } from '@prisma/client/runtime/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TicketStatus } from '../../../generated/prisma/enums';
 import { toUtcLiteral } from '../trends/sql-report-trend-source';
 import type { ReportWindow } from '../reports.types';
 import type { ReportDashboardAging } from './aggregate-report-dashboard-charts';
@@ -59,6 +60,15 @@ type AgingSqlRow = {
 };
 
 const dayMs = 86_400_000;
+
+/**
+ * Open = not RESOLVED / CLOSED / ARCHIVED, derived from the enum so a new
+ * status cannot silently drop out of the aging chart. Comparing the enum
+ * column itself (not `status::text`) lets PostgreSQL use the status indexes.
+ */
+const openTicketStatuses: readonly string[] = Object.values(TicketStatus).filter(
+  (status) => status !== 'RESOLVED' && status !== 'CLOSED' && status !== 'ARCHIVED',
+);
 
 /**
  * Paket 2.5 (design §2.2, sanacija): the reports dashboard used to read every
@@ -150,16 +160,21 @@ export async function loadReportsDashboardAggregates(
       WHERE ${scope}
         AND t."resolvedAt" >= ${seriesFrom}::timestamp(3) AND t."resolvedAt" < ${seriesTo}::timestamp(3)
       GROUP BY 2`,
+    // Paket 2.5 (staging EXPLAIN 2026-09-28): two parallel seq scans became an
+    // index-only count (scope) minus the archived count, and a bitmap scan over
+    // the open statuses — ~2.4× cheaper, identical numbers.
     prisma.$queryRaw<AgingSqlRow[]>`
       WITH open AS (
         SELECT t.status::text AS status,
                EXTRACT(EPOCH FROM ${nowLiteral}::timestamp(3) - t."createdAt") / 86400 AS days
         FROM "Ticket" t
-        WHERE ${scope}
-          AND t.status::text NOT IN ('RESOLVED', 'CLOSED')
+        WHERE t.status = ANY(${[...openTicketStatuses]}::"TicketStatus"[])
+          AND t."originUnitId" = ANY(${units}::text[])
           AND t."createdAt" <= ${nowLiteral}::timestamp(3)
       )
-      SELECT (SELECT count(*) FROM "Ticket" t WHERE ${scope}) AS total,
+      SELECT (SELECT count(*) FROM "Ticket" t WHERE t."originUnitId" = ANY(${units}::text[]))
+             - (SELECT count(*) FROM "Ticket" t
+                WHERE t.status = 'ARCHIVED'::"TicketStatus" AND t."originUnitId" = ANY(${units}::text[])) AS total,
              count(*) FILTER (WHERE days < 1) AS a1,
              count(*) FILTER (WHERE days >= 1 AND days < 3) AS a3,
              count(*) FILTER (WHERE days >= 3 AND days < 7) AS a7,
