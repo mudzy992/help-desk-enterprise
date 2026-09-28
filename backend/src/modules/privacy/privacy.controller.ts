@@ -45,6 +45,9 @@ import {
 } from './retention/retention.dto';
 import { RetentionQueueService } from './retention/retention-queue.service';
 import { RetentionService } from './retention/retention.service';
+import { AnonymizationIdParamDto, IdentityCodeDto, RequestAnonymizationDto } from './anonymization/anonymization.dto';
+import { AnonymizationRequestService } from './anonymization/anonymization-request.service';
+import { AnonymizationService } from './anonymization/anonymization.service';
 
 /**
  * Paket 2.6 (§4): register of data subject requests. Reading needs
@@ -60,6 +63,8 @@ export class PrivacyController {
     private readonly retentionService: RetentionService,
     private readonly retentionQueue: RetentionQueueService,
     private readonly legalHoldService: LegalHoldService,
+    private readonly anonymizationService: AnonymizationService,
+    private readonly anonymizationRequests: AnonymizationRequestService,
   ) {}
 
   @Get('requests')
@@ -193,6 +198,76 @@ export class PrivacyController {
     @Req() request: AuthenticatedHttpRequest,
   ): Promise<void> {
     await this.call(() => this.legalHoldService.clear(params.target, params.id, body.reason, privacyActorOf(request)));
+  }
+
+  // --- §6 Anonymization (SUPER_ADMIN, `privacy.anonymize`) --------------------
+
+  @Get('anonymization/candidates')
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  anonymizationCandidates() {
+    return this.call(() => this.anonymizationService.candidates());
+  }
+
+  /** Blockers and dry run (counts, three examples after replacement). Not audited — reads only. */
+  @Get('anonymization/users/:id/preview')
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  anonymizationPreview(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
+    return this.call(() => this.anonymizationService.assess(params.id, privacyActorOf(request).principal.subjectId));
+  }
+
+  @Post('anonymization/users/:id')
+  @HttpCode(202)
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  requestAnonymization(
+    @Param() params: AnonymizationIdParamDto,
+    @Body() body: RequestAnonymizationDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.call(() => this.anonymizationRequests.request(params.id, body, privacyActorOf(request)));
+  }
+
+  @Get('anonymization/erasures')
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  erasures() {
+    return this.call(() => this.anonymizationService.listErasures());
+  }
+
+  @Get('anonymization/erasures/:id')
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  erasure(@Param() params: AnonymizationIdParamDto) {
+    return this.call(() => this.anonymizationService.getErasure(params.id));
+  }
+
+  @Post('anonymization/erasures/:id/approve')
+  @HttpCode(202)
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  approveErasure(
+    @Param() params: AnonymizationIdParamDto,
+    @Body() body: IdentityCodeDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.call(() => this.anonymizationRequests.approve(params.id, body.code, privacyActorOf(request)));
+  }
+
+  @Post('anonymization/erasures/:id/cancel')
+  @RequireRoles(authorizationRoleKeys.superAdmin)
+  @RequirePermissions(permissionKeys.privacyAnonymize)
+  cancelErasure(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
+    return this.call(() => this.anonymizationRequests.cancel(params.id, privacyActorOf(request)));
   }
 
   private async call<T>(action: () => Promise<T>): Promise<T> {

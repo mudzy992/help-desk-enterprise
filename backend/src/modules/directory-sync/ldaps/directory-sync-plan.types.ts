@@ -63,7 +63,9 @@ export type DirectorySyncExceptionCode =
   | 'NO_OU_MATCH'
   | 'ROLE_WITHOUT_OU'
   | 'KEPT_INACTIVE_BY_ADMIN'
-  | 'OU_NOT_IN_DIRECTORY';
+  | 'OU_NOT_IN_DIRECTORY'
+  /** Paket 2.6 (§6.4): an anonymized person is back in AD; a new account is created. */
+  | 'RETURNING_ANONYMIZED';
 
 export type DirectorySyncException = {
   readonly code: DirectorySyncExceptionCode;

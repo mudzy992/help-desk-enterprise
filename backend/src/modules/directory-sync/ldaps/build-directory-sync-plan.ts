@@ -72,6 +72,8 @@ export type BuildDirectorySyncPlanInput = {
   readonly directoryUsers: readonly LdapsDirectoryUserEntry[];
   readonly existingUnits: readonly ExistingDirectoryUnit[];
   readonly existingUsers: readonly ExistingDirectoryUser[];
+  /** Paket 2.6 (§6.4): tombstone check; true when the identifiers belong to an anonymized person. */
+  readonly isReturningAnonymized?: (identifiers: { readonly email: string; readonly guid: string }) => boolean;
 };
 
 /**
@@ -184,6 +186,10 @@ export function buildDirectorySyncPlan(input: BuildDirectorySyncPlanInput): Dire
 
     if (existing === null) {
       create.push(fields);
+      if (input.isReturningAnonymized?.({ email, guid: entry.guid }) === true) {
+        // Informational: the new account has no link to the anonymized history.
+        exception('RETURNING_ANONYMIZED');
+      }
     } else {
       const changes = diffUser(existing, fields);
       if (!existing.isActive && existing.directoryDeactivatedAt !== null) {

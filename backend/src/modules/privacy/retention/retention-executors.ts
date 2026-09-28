@@ -37,10 +37,13 @@ export interface RetentionExecutor {
 const ticketBatch = 100;
 const auditBatch = 2000;
 
-/** Tickets whose retention period has passed: CLOSED only, no legal hold on the ticket or its requester. */
+/**
+ * Tickets whose retention period has passed: CLOSED or ARCHIVED (archiving
+ * starts from CLOSED and keeps `closedAt`), no legal hold on the ticket or its requester.
+ */
 function dueTicketWhere(cutoff: Date) {
   return {
-    status: 'CLOSED' as const,
+    status: { in: ['CLOSED' as const, 'ARCHIVED' as const] },
     closedAt: { lt: cutoff },
     legalHoldAt: null,
     requester: { legalHoldAt: null },

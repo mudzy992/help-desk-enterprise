@@ -5,6 +5,7 @@ import { privacyJobs, privacyQueueName, retentionCategories, type RetentionCateg
 import { PrivacyConfigurationLoader } from './privacy-configuration.loader';
 import { DataSubjectRequestsService } from './requests/data-subject-requests.service';
 import { RetentionService } from './retention/retention.service';
+import { AnonymizationService } from './anonymization/anonymization.service';
 
 @Processor(privacyQueueName)
 export class PrivacyProcessor extends WorkerHost {
@@ -14,11 +15,12 @@ export class PrivacyProcessor extends WorkerHost {
     private readonly requestsService: DataSubjectRequestsService,
     private readonly retentionService: RetentionService,
     private readonly configurationLoader: PrivacyConfigurationLoader,
+    private readonly anonymization: AnonymizationService,
   ) {
     super();
   }
 
-  async process(job: Job<{ category?: unknown; actorUserId?: unknown }>): Promise<void> {
+  async process(job: Job<{ category?: unknown; actorUserId?: unknown; erasureId?: unknown }>): Promise<void> {
     switch (job.name) {
       case privacyJobs.maintenance: {
         const sent = await this.requestsService.sendDueReminders().catch((error: unknown) => {
@@ -26,6 +28,9 @@ export class PrivacyProcessor extends WorkerHost {
           return 0;
         });
         if (sent > 0) this.logger.log(`privacy_request_reminders sent=${sent}`);
+        await this.anonymization.maintain().catch((error: unknown) => {
+          this.logger.warn(`privacy_erasure_maintenance_failed reason=${errorText(error)}`);
+        });
         const runs = await this.retentionService.sweepNightly();
         for (const run of runs) {
           this.logger.log(
@@ -50,6 +55,12 @@ export class PrivacyProcessor extends WorkerHost {
         this.logger.log(
           `privacy_retention_manual category=${category} mode=${run.mode} status=${run.status} items=${run.itemCount}`,
         );
+        return;
+      }
+      case privacyJobs.anonymize: {
+        if (typeof job.data.erasureId !== 'string') return;
+        const erasure = await this.anonymization.execute(job.data.erasureId);
+        if (erasure !== null) this.logger.log(`privacy_erasure erasure=${erasure.id} status=${erasure.status}`);
         return;
       }
       default:

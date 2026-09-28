@@ -185,3 +185,19 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
     expect(plan.roles).toEqual({ grant: [], revoke: [] });
   });
 });
+
+describe('buildDirectorySyncPlan — returning anonymized person (paket 2.6 §6.4)', () => {
+  it('creates a new account and warns with RETURNING_ANONYMIZED', () => {
+    const plan = buildDirectorySyncPlan(
+      input({ isReturningAnonymized: ({ email, guid }) => email === 'ana@epbih.ba' && guid === 'guid-ana' }),
+    );
+    expect(plan.users.create).toHaveLength(1);
+    expect(plan.exceptions).toEqual([expect.objectContaining({ code: 'RETURNING_ANONYMIZED', email: 'ana@epbih.ba' })]);
+  });
+
+  it('does not warn for a known account or without tombstones', () => {
+    expect(buildDirectorySyncPlan(input()).exceptions).toEqual([]);
+    const known = buildDirectorySyncPlan(input({ existingUsers: [dbUser()], isReturningAnonymized: () => true }));
+    expect(known.exceptions).toEqual([]);
+  });
+});

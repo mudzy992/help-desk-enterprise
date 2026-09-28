@@ -36,6 +36,8 @@ x-app-environment: &app-environment
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
   # Paket 2.3: signs reply tokens in notification Message-IDs (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
   INBOUND_EMAIL_TOKEN_SECRET: ${INBOUND_EMAIL_TOKEN_SECRET:-}
+  # Paket 2.6: HMAC key for anonymization tombstones (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
+  PRIVACY_TOMBSTONE_KEY: ${PRIVACY_TOMBSTONE_KEY:-}
 
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga

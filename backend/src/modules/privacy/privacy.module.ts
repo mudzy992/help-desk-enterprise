@@ -7,6 +7,7 @@ import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 import { PrivacyController } from './privacy.controller';
 import { privacyCoreProviders } from './privacy.providers';
 import { privacyQueueName } from './privacy.constants';
+import { AnonymizationRequestService } from './anonymization/anonymization-request.service';
 import { RetentionQueueService } from './retention/retention-queue.service';
 
 /** Paket 2.6: privacy module (API side). */
@@ -19,6 +20,6 @@ import { RetentionQueueService } from './retention/retention-queue.service';
     BullModule.registerQueue({ name: privacyQueueName }),
   ],
   controllers: [PrivacyController],
-  providers: [...privacyCoreProviders, PrivacyIdentityConfirmer, RetentionQueueService],
+  providers: [...privacyCoreProviders, PrivacyIdentityConfirmer, RetentionQueueService, AnonymizationRequestService],
 })
 export class PrivacyModule {}

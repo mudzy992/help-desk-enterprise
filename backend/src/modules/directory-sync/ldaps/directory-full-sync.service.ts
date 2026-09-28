@@ -24,6 +24,7 @@ import type { LdapsSyncConfiguration } from './ldaps-directory.types';
 import { LdapsSyncConfigurationLoader } from './ldaps-sync-configuration.loader';
 import { LDAP_CLIENT_FACTORY } from './ldaps-sync.tokens';
 import { loadDirectorySyncState } from './load-directory-sync-state';
+import { loadReturningAnonymizedCheck } from '../../privacy/anonymization/returning-anonymized';
 
 export const directoryFullSyncLimits = {
   /** A dry-run can be applied within this window; afterwards it is stale. */
@@ -279,6 +280,7 @@ export class DirectoryFullSyncService {
       directoryUsers: result.users,
       existingUnits: state.units,
       existingUsers: state.users,
+      isReturningAnonymized: await loadReturningAnonymizedCheck(this.prisma),
     });
     return { plan, session };
   }

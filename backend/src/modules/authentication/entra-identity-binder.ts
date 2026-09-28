@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { loadReturningAnonymizedCheck } from '../privacy/anonymization/returning-anonymized';
 import {
   auditLogActions,
   auditLogEntityTypes,
@@ -120,12 +121,23 @@ export class EntraIdentityBinder {
     }
     await this.audit(auditLogActions.userEntraJitProvisioned, userId, {
       organizationalUnit: 'pending_directory_sync',
+      ...((await this.isReturningAnonymized(identity)) ? { returningAnonymized: 'true' } : {}),
     });
     const loaded = await this.authenticationUserLoader.findById(userId);
     if (loaded === null) {
       throw new AuthenticationError('INVALID_CREDENTIALS');
     }
     return loaded;
+  }
+
+  /** Paket 2.6 (§6.4): flags a returning anonymized person in the audit (best effort). */
+  private async isReturningAnonymized(identity: NormalizedEntraIdentity): Promise<boolean> {
+    try {
+      const check = await loadReturningAnonymizedCheck(this.prisma);
+      return check({ email: identity.email, oid: identity.externalSubject });
+    } catch {
+      return false;
+    }
   }
 
   private async readJitProvisioning(): Promise<boolean> {
