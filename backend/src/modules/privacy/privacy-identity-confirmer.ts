@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { AccountSecurityError } from '../authentication/security/account-security.error';
+import { AccountSecurityError, mapAccountSecurityError } from '../authentication/security/account-security.error';
 import { MfaService } from '../authentication/security/mfa.service';
 import type { PrivacyActor } from './privacy-actor';
 import { privacyErrorCodes, privacyLimits } from './privacy.constants';
@@ -51,9 +51,13 @@ export class PrivacyIdentityConfirmer {
           now,
         );
       } catch (error) {
-        if (error instanceof AccountSecurityError) {
+        // Only a wrong or reused code is "confirmation failed". A server-side
+        // MFA problem (e.g. MFA_UNAVAILABLE after MFA_ENCRYPTION_KEY changed)
+        // must not look like a typo — it surfaces as its own 503.
+        if (error instanceof AccountSecurityError && error.code === 'MFA_INVALID_CODE') {
           throw new PrivacyError(privacyErrorCodes.identityConfirmationFailed, { method: 'mfa' });
         }
+        if (error instanceof AccountSecurityError) mapAccountSecurityError(error);
         throw error;
       }
       return 'mfa';

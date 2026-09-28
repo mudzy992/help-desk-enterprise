@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions } from '../../audit-log/audit-log.constants';
 import { notificationTypes } from '../../notifications/notifications.constants';
@@ -29,6 +29,8 @@ export type MfaStatus = {
 };
 
 /** Paket 2.1 (M1–M5): TOTP enrollment, verification, recovery and reset. */
+const mfaLogger = new Logger('MfaService');
+
 @Injectable()
 export class MfaService {
   constructor(
@@ -216,7 +218,13 @@ export class MfaService {
   private decrypt(stored: string): string {
     try {
       return decryptMfaSecret(stored, readMfaEncryptionKey());
-    } catch {
+    } catch (error) {
+      // Never log the secret; the reason tells a missing key from a changed one.
+      mfaLogger.error(
+        readMfaEncryptionKey() === null
+          ? 'MFA secret cannot be decrypted: MFA_ENCRYPTION_KEY is missing or not 32 bytes'
+          : `MFA secret cannot be decrypted (MFA_ENCRYPTION_KEY changed since enrollment?): ${(error as Error).message}`,
+      );
       throw new AccountSecurityError('MFA_UNAVAILABLE');
     }
   }
