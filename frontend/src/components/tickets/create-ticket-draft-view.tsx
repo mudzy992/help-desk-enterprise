@@ -1,5 +1,6 @@
 import { type FormEvent } from "react";
 import { CreateTicketFields } from "@/components/tickets/create-ticket-fields";
+import { ServiceIncidentBanner } from "@/components/status/service-incident-banner";
 import { CreateTicketServicePicker } from "@/components/tickets/create-ticket-service-picker";
 import { CreateTicketSidePanel } from "@/components/tickets/create-ticket-side-panel";
 import { CreateTicketStepNav } from "@/components/tickets/create-ticket-step-nav";
@@ -85,6 +86,10 @@ export function CreateTicketDraftView({
               onOriginUnitChosen={onOriginUnitChosen}
             />
           )}
+          <ServiceIncidentBanner
+            serviceId={draft.serviceId}
+            hasIncident={(selectedService?.incidentImpact ?? null) !== null}
+          />
           {displayedError ? (
             <div className="px-5">
               <TicketErrorState errorKey={displayedError} />

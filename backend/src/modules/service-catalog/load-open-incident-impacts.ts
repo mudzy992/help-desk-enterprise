@@ -4,7 +4,8 @@ import { openIncidentStatuses, worstAvailability, type IncidentImpact } from '..
 /**
  * Paket 2.7 (§8.2): the worst impact of open incidents per service. The
  * catalog shows it on top of the manual availability without rewriting the
- * stored value. A failed read (or a test double without the delegate) means
+ * stored value. Only ALL_USERS incidents count: the catalog is shown to
+ * requesters, and a STAFF_ONLY incident must not surface there. A failed read (or a test double without the delegate) means
  * "no incidents" - an incident must never break the catalog.
  */
 export async function loadOpenIncidentImpacts(
@@ -16,7 +17,7 @@ export async function loadOpenIncidentImpacts(
   if (serviceIds.length === 0 || delegate === undefined) return result;
   try {
     const rows = await delegate.findMany({
-      where: { serviceId: { in: [...serviceIds] }, incident: { status: { in: [...openIncidentStatuses] } } },
+      where: { serviceId: { in: [...serviceIds] }, incident: { status: { in: [...openIncidentStatuses] }, visibility: 'ALL_USERS' } },
       select: { serviceId: true, incident: { select: { impact: true } } },
     });
     for (const row of rows) {

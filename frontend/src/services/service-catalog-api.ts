@@ -30,6 +30,8 @@ export type ServiceRuntimeAvailability = {
   readonly showStatusInTicketCreate: boolean;
   readonly activeDowntimeWindow: ServiceDowntimeWindowSummary | null;
   readonly upcomingDowntimeWindow: ServiceDowntimeWindowSummary | null;
+  /** Stored value raised by an active downtime window or (Paket 2.7) an open incident. */
+  readonly effectiveAvailability?: "OPERATIONAL" | "DEGRADED" | "DOWN" | "MAINTENANCE";
 };
 
 export type ServiceResponse = {
@@ -44,6 +46,8 @@ export type ServiceResponse = {
   readonly classification: string;
   readonly requiresApproval: boolean;
   readonly openTicketCount: number;
+  /** Paket 2.7: worst impact of open (ALL_USERS) incidents; null = none. */
+  readonly incidentImpact?: "DEGRADED" | "DOWN" | "MAINTENANCE" | null;
 };
 
 export type CreateServiceInput = {

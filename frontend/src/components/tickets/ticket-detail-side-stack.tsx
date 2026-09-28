@@ -1,3 +1,4 @@
+import { TicketIncidentsPanel } from "@/components/status/ticket-incidents-panel";
 import { TicketSlaPanel } from "@/components/tickets/ticket-sla-panel";
 import { TicketApprovalsPanel } from "@/components/tickets/ticket-approvals-panel";
 import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
@@ -58,6 +59,11 @@ export function TicketDetailSideStack(props: TicketDetailSideStackProperties) {
         canOverridePriority={props.canOverridePriority}
         onEditPriority={props.onEditPriority}
         priorityOverrideTitle={props.priorityOverrideTitle}
+      />
+      <TicketIncidentsPanel
+        ticketId={props.ticket.id}
+        serviceId={props.ticket.serviceId}
+        versionKey={props.ticket.updatedAt}
       />
       <TicketFormDataView formData={props.ticket.formData} />
       <TicketApprovalsPanel

@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { CheckSquare, X } from "lucide-react";
+import { CheckSquare, Siren, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
+import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { isBulkCloseStatus } from "@/lib/tickets/is-bulk-close-status";
 import { mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import {
@@ -17,6 +20,9 @@ import {
   previewTicketBulk,
   type TicketBulkActionType,
 } from "@/services/tickets-bulk-api";
+
+/** Mirrors the backend limit on tickets linked at creation. */
+const incidentTicketLimit = 100;
 
 interface TicketBulkBarProperties {
   readonly selectedIds: ReadonlySet<string>;
@@ -40,6 +46,11 @@ export function TicketBulkBar({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [broadcastArmed, setBroadcastArmed] = useState(false);
+  // Paket 2.7 (§8.3): "Create incident from selected" (status.incidents.manage).
+  const [incidentOpen, setIncidentOpen] = useState(false);
+  const { session, hasPermission, hasRole } = useSessionCapabilities();
+  const canCreateIncident =
+    session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin) || hasPermission(permissionKeys.statusIncidentsManage);
   if (selectedIds.size === 0) {
     return null;
   }
@@ -104,6 +115,31 @@ export function TicketBulkBar({
         onClick={() => void runBulk()} className="ml-auto">
         {busy ? t("tickets.bulk.applying") : broadcastArmed ? t("tickets.bulk.confirmSend") : t("tickets.bulk.apply")}
       </Button>
+      {canCreateIncident ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy || selectedIds.size > incidentTicketLimit}
+          title={selectedIds.size > incidentTicketLimit ? t("status.bulk.tooMany", { max: incidentTicketLimit }) : undefined}
+          onClick={() => setIncidentOpen(true)}
+          data-testid="ticket-bulk-create-incident"
+        >
+          <Siren />
+          {t("status.bulk.create")}
+        </Button>
+      ) : null}
+      {incidentOpen ? (
+        <IncidentFormDialog
+          open
+          onOpenChange={(open) => (open ? undefined : setIncidentOpen(false))}
+          mode={{ kind: "create", ticketIds }}
+          onSaved={() => {
+            onClear();
+            onComplete();
+          }}
+        />
+      ) : null}
       <Button
         type="button"
         variant="ghost"

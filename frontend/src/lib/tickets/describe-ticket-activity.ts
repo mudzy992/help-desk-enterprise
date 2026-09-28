@@ -1,3 +1,4 @@
+import { parseIncidentEventDetail } from "@/lib/status/status-view";
 import type { TFunction } from "i18next";
 import {
   ticketPriorityLabelKey,
@@ -117,6 +118,20 @@ export function describeMergeOrPriorityEvent(
       text: ticketText(t, "tickets.activity.inboundAttachmentRejected", { name }),
       note: reason.length > 0 ? reason : null,
     };
+  }
+  // Paket 2.7: `ticket_incident_*:<incidentId>|<title>`.
+  if (action === "ticket_incident_linked" || action === "ticket_incident_unlinked" || action === "ticket_incident_resolved") {
+    const parsed = parseIncidentEventDetail(detail);
+    if (parsed === null) {
+      return null;
+    }
+    const key =
+      action === "ticket_incident_linked"
+        ? "tickets.activity.incidentLinked"
+        : action === "ticket_incident_unlinked"
+          ? "tickets.activity.incidentUnlinked"
+          : "tickets.activity.incidentResolved";
+    return { text: ticketText(t, key, { title: parsed.title }), note: null };
   }
   if (action === "ticket_priority_overridden") {
     const [from = "", to = "", mode = "", ...rest] = detail.split(":");

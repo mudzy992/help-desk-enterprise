@@ -22,7 +22,8 @@
     },
     "workflow": "Tok statusa",
     "templates": "Šabloni i playbooks",
-    "privacy": "Privatnost"
+    "privacy": "Privatnost",
+    "status": "Status servisa"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -3518,7 +3519,10 @@
         "ticket_unmerged": "spajanje poništeno",
         "ticket_merged_status_propagated": "status preuzet sa ciljnog tiketa",
         "ticket_linked": "tiket povezan",
-        "ticket_unlinked": "veza s tiketom uklonjena"
+        "ticket_unlinked": "veza s tiketom uklonjena",
+        "ticket_incident_linked": "Povezano s incidentom",
+        "ticket_incident_unlinked": "Uklonjena veza s incidentom",
+        "ticket_incident_resolved": "Povezani incident je riješen"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -3531,7 +3535,10 @@
       "assignedTo": "tiket automatski dodijeljen: {{name}}",
       "subtitlePublic": "Tok vašeg tiketa: važne promjene i koraci obrade",
       "inboundAttachmentRejected": "Prilog „{{name}}” iz e-maila nije priložen",
-      "viaEmail": "Putem e-maila"
+      "viaEmail": "Putem e-maila",
+      "incidentLinked": "Povezano s incidentom „{{title}}”",
+      "incidentUnlinked": "Uklonjena veza s incidentom „{{title}}”",
+      "incidentResolved": "Incident „{{title}}” je riješen"
     },
     "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
     "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",
@@ -4740,6 +4747,164 @@
       "followerLinks": "Praćenja tiketa",
       "attachmentsUploaded": "Postavljeni prilozi",
       "auditRowsLinked": "Povezani audit zapisi"
+    }
+  },
+  "status": {
+    "title": "Status servisa",
+    "subtitle": "Trenutno stanje servisa, poznati problemi i planirano održavanje.",
+    "loading": "Učitavanje statusa…",
+    "refresh": "Osvježi",
+    "newIncident": "Novi incident",
+    "cancel": "Odustani",
+    "saving": "Spremanje…",
+    "chipTitle": "Otvori stranicu statusa servisa",
+    "updatedAt": "Ažurirano {{time}}",
+    "disabledTitle": "Stranica statusa nije dostupna",
+    "disabledBody": "Administrator je isključio stranicu statusa.",
+    "disabledForUsers": "Stranica statusa je isključena za korisnike (Postavke → private.statusPage.enabled). Vidite je jer upravljate incidentima.",
+    "overall": {
+      "operational": "Svi servisi rade normalno",
+      "partial": "Djelimični problemi",
+      "major": "Prekid rada servisa",
+      "maintenance": "Održavanje u toku"
+    },
+    "affectedServices": "Pogođenih servisa: {{count}}",
+    "allOperational": "Nema poznatih problema.",
+    "activeIncidents": "Aktivni incidenti",
+    "planned": "Planirano održavanje",
+    "plannedHint": "Narednih 14 dana",
+    "services": "Servisi",
+    "uptimeHint": "Dostupnost za posljednjih {{days}} dana (računaju se samo prekidi).",
+    "uptime": "{{value}} %",
+    "noServices": "Nema aktivnih servisa.",
+    "uncategorized": "Bez kategorije",
+    "history": "Riješeni incidenti (posljednjih {{days}} dana)",
+    "historyEmpty": "Nema riješenih incidenata u ovom periodu.",
+    "impact": {
+      "DEGRADED": "Otežan rad",
+      "DOWN": "Prekid rada",
+      "MAINTENANCE": "Održavanje"
+    },
+    "availability": {
+      "OPERATIONAL": "Radi",
+      "DEGRADED": "Otežan rad",
+      "DOWN": "Ne radi",
+      "MAINTENANCE": "Održavanje"
+    },
+    "status": {
+      "INVESTIGATING": "Istražujemo",
+      "IDENTIFIED": "Uzrok utvrđen",
+      "MONITORING": "Pratimo",
+      "RESOLVED": "Riješeno"
+    },
+    "visibility": {
+      "ALL_USERS": "Svi korisnici",
+      "STAFF_ONLY": "Samo osoblje"
+    },
+    "visibilityHint": {
+      "ALL_USERS": "Vide ga svi prijavljeni korisnici (i javna stranica ako je uključena).",
+      "STAFF_ONLY": "Vide ga samo agenti i administratori; korisnici ne dobijaju obavijesti."
+    },
+    "duration": {
+      "minutes": "{{minutes}} min",
+      "hours": "{{hours}} h {{minutes}} min",
+      "days": "{{days}} d {{hours}} h"
+    },
+    "card": {
+      "started": "Počeo",
+      "lasted": "trajao {{duration}}",
+      "ongoing": "traje {{duration}}",
+      "linkedTickets": "Povezanih tiketa: {{count}}",
+      "subscribers": "Pretplaćenih: {{count}}",
+      "subscribe": "Obavijesti me",
+      "unsubscribe": "Ne obavještavaj me",
+      "subscribed": "Dobit ćete obavijest kada incident bude riješen.",
+      "unsubscribed": "Obavijest je otkazana.",
+      "edit": "Uredi",
+      "postUpdate": "Objavi ažuriranje",
+      "resolve": "Riješi",
+      "expand": "Prikaži tok",
+      "collapse": "Sakrij tok",
+      "showAll": "Prikaži sva ažuriranja ({{count}})",
+      "showLess": "Prikaži manje"
+    },
+    "form": {
+      "createTitle": "Novi incident",
+      "editTitle": "Uredi incident",
+      "createDescription": "Incident se odmah prikazuje na stranici statusa i u katalogu servisa.",
+      "createFromTickets": "Odabrani tiketi ({{count}}) bit će povezani s incidentom.",
+      "editDescription": "Izmjene su odmah vidljive. Za novu poruku koristite „Objavi ažuriranje”.",
+      "title": "Naslov",
+      "titleEn": "Naslov na engleskom",
+      "titleEnHint": "Neobavezno; prikazuje se korisnicima s engleskim jezikom.",
+      "impact": "Uticaj",
+      "visibility": "Vidljivost",
+      "services": "Pogođeni servisi",
+      "servicesSelected": "odabrano: {{count}}",
+      "servicesFilter": "Pretraži servise…",
+      "servicesNone": "Nema servisa koji odgovaraju pretrazi.",
+      "servicesFailed": "Lista servisa se nije mogla učitati.",
+      "message": "Prva poruka",
+      "messageHint": "Šta korisnici primjećuju i šta radimo. Vidljivo na stranici statusa.",
+      "startedAt": "Početak",
+      "startedAtHint": "Ostavite prazno za sada; unesite raniji trenutak ako je problem počeo prije prijave.",
+      "notify": "Obavijesti korisnike s otvorenim tiketima na ovim servisima",
+      "notifyHint": "Samo obavijest u aplikaciji (bez e-maila); poštuju se lične postavke obavještenja.",
+      "createSubmit": "Kreiraj incident",
+      "saveSubmit": "Spremi izmjene",
+      "created": "Incident je kreiran.",
+      "createdLinked": "Povezano tiketa: {{count}}",
+      "createdNotified": "Obaviješteno korisnika: {{count}}",
+      "saved": "Izmjene su spremljene."
+    },
+    "update": {
+      "title": "Objavi ažuriranje",
+      "resolveTitle": "Riješi incident",
+      "status": "Status",
+      "message": "Poruka",
+      "messageHint": "Nova stavka na vremenskoj liniji incidenta.",
+      "resolveMessageHint": "Opišite rješenje; ovaj tekst dobijaju i obaviješteni korisnici.",
+      "notify": "Obavijesti pretplaćene i podnosioce povezanih tiketa",
+      "preview": "Obavijest će dobiti {{recipients}} korisnika (pretplaćenih: {{subscribers}}, podnosilaca povezanih tiketa: {{requesters}}).",
+      "previewTickets": "Na povezane tikete ({{count}}) dodaje se interna bilješka o rješenju; tiketi se ne zatvaraju automatski.",
+      "previewFailed": "Broj primalaca se nije mogao izračunati.",
+      "submit": "Objavi",
+      "resolveSubmit": "Riješi incident",
+      "posted": "Ažuriranje je objavljeno.",
+      "resolved": "Incident je riješen.",
+      "notified": "Obaviješteno korisnika: {{count}}"
+    },
+    "banner": {
+      "title": "Poznat problem",
+      "hint": "Na ovom problemu se već radi. Tiket možete svejedno podnijeti.",
+      "open": "Stranica statusa"
+    },
+    "ticketPanel": {
+      "title": "Incidenti",
+      "none": "Tiket nije povezan s incidentom.",
+      "create": "Novi incident",
+      "link": "Poveži s incidentom",
+      "pick": "Odaberite otvoreni incident",
+      "linkSubmit": "Poveži",
+      "linked": "Tiket je povezan s incidentom.",
+      "unlink": "Ukloni vezu",
+      "unlinked": "Veza s incidentom je uklonjena.",
+      "noOpen": "Nema otvorenih incidenata.",
+      "requesterHint": "Obavijestit ćemo vas kada problem bude riješen."
+    },
+    "bulk": {
+      "create": "Kreiraj incident",
+      "tooMany": "Najviše {{max}} tiketa po incidentu."
+    },
+    "errors": {
+      "changed": "Incident je u međuvremenu izmijenjen. Osvježite i pokušajte ponovo.",
+      "resolved": "Incident je već riješen.",
+      "transition": "Status incidenta ne može ići unazad.",
+      "startInFuture": "Početak ne može biti u budućnosti.",
+      "serviceNotFound": "Neki od odabranih servisa više ne postoji.",
+      "ticketForbidden": "Tiket može povezati samo osoblje koje radi na njemu.",
+      "notFound": "Incident nije pronađen.",
+      "disabled": "Stranica statusa je isključena."
     }
   }
 }

@@ -23,6 +23,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.workflow": "Tok statusa",
   "navigation.templates": "Šabloni i playbooks",
   "navigation.privacy": "Privatnost",
+  "navigation.status": "Status servisa",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {

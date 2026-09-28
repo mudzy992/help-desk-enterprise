@@ -65,6 +65,10 @@ export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>
   ticket_sla_resolution_escalated: "sla",
   ticket_remote_requested: "edit",
   ticket_remote_acknowledged: "edit",
+  // Paket 2.7: `action:<incidentId>|<title>` (staff only).
+  ticket_incident_linked: "routing",
+  ticket_incident_unlinked: "routing",
+  ticket_incident_resolved: "status",
 };
 
 /** System event bodies are `action` or `action:detail`. */

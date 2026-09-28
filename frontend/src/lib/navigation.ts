@@ -17,6 +17,7 @@ export const navigationLabelKeys = {
   workflow: "navigation.workflow",
   templates: "navigation.templates",
   privacy: "navigation.privacy",
+  status: "navigation.status",
 } as const;
 
 export type NavigationLabelKey =
@@ -138,6 +139,14 @@ export const privacyNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.privacy },
 };
 
+/** Paket 2.7 (§8): service status and incidents, every signed-in user. */
+export const statusNavigationItem: NavigationItem = {
+  path: "/status",
+  labelKey: navigationLabelKeys.status,
+  end: false,
+  access: { kind: navigationAccessKinds.authenticated },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -149,7 +158,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.services,
-    items: [servicesNavigationItem, knowledgeBaseNavigationItem],
+    items: [servicesNavigationItem, statusNavigationItem, knowledgeBaseNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.administration,

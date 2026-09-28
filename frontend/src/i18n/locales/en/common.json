@@ -22,7 +22,8 @@
     },
     "workflow": "Status flow",
     "templates": "Templates & playbooks",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "status": "Service status"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -3502,7 +3503,10 @@
         "ticket_unmerged": "merge undone",
         "ticket_merged_status_propagated": "status taken over from the target ticket",
         "ticket_linked": "ticket linked",
-        "ticket_unlinked": "ticket link removed"
+        "ticket_unlinked": "ticket link removed",
+        "ticket_incident_linked": "Linked to an incident",
+        "ticket_incident_unlinked": "Unlinked from an incident",
+        "ticket_incident_resolved": "Linked incident resolved"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -3515,7 +3519,10 @@
       "assignedTo": "ticket automatically assigned to {{name}}",
       "subtitlePublic": "Your ticket's progress: key changes and handling steps",
       "inboundAttachmentRejected": "Attachment \"{{name}}\" from the e-mail was not attached",
-      "viaEmail": "Via e-mail"
+      "viaEmail": "Via e-mail",
+      "incidentLinked": "Linked to incident \"{{title}}\"",
+      "incidentUnlinked": "Unlinked from incident \"{{title}}\"",
+      "incidentResolved": "Incident \"{{title}}\" was resolved"
     },
     "errorAttachmentInfected": "The antivirus scan rejected this file.",
     "errorForwardStatus": "A ticket in this status cannot be forwarded.",
@@ -4709,6 +4716,164 @@
       "followerLinks": "Ticket follows",
       "attachmentsUploaded": "Uploaded attachments",
       "auditRowsLinked": "Linked audit entries"
+    }
+  },
+  "status": {
+    "title": "Service status",
+    "subtitle": "Current state of services, known issues and planned maintenance.",
+    "loading": "Loading status…",
+    "refresh": "Refresh",
+    "newIncident": "New incident",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "chipTitle": "Open the service status page",
+    "updatedAt": "Updated {{time}}",
+    "disabledTitle": "The status page is not available",
+    "disabledBody": "An administrator has turned the status page off.",
+    "disabledForUsers": "The status page is turned off for users (Settings → private.statusPage.enabled). You see it because you manage incidents.",
+    "overall": {
+      "operational": "All services operational",
+      "partial": "Partial issues",
+      "major": "Service outage",
+      "maintenance": "Maintenance in progress"
+    },
+    "affectedServices": "Affected services: {{count}}",
+    "allOperational": "No known issues.",
+    "activeIncidents": "Active incidents",
+    "planned": "Planned maintenance",
+    "plannedHint": "Next 14 days",
+    "services": "Services",
+    "uptimeHint": "Availability over the last {{days}} days (only outages count).",
+    "uptime": "{{value}} %",
+    "noServices": "No active services.",
+    "uncategorized": "Uncategorized",
+    "history": "Resolved incidents (last {{days}} days)",
+    "historyEmpty": "No resolved incidents in this period.",
+    "impact": {
+      "DEGRADED": "Degraded",
+      "DOWN": "Outage",
+      "MAINTENANCE": "Maintenance"
+    },
+    "availability": {
+      "OPERATIONAL": "Operational",
+      "DEGRADED": "Degraded",
+      "DOWN": "Down",
+      "MAINTENANCE": "Maintenance"
+    },
+    "status": {
+      "INVESTIGATING": "Investigating",
+      "IDENTIFIED": "Identified",
+      "MONITORING": "Monitoring",
+      "RESOLVED": "Resolved"
+    },
+    "visibility": {
+      "ALL_USERS": "All users",
+      "STAFF_ONLY": "Staff only"
+    },
+    "visibilityHint": {
+      "ALL_USERS": "Visible to every signed-in user (and the public page when enabled).",
+      "STAFF_ONLY": "Visible to agents and administrators only; users are not notified."
+    },
+    "duration": {
+      "minutes": "{{minutes}} min",
+      "hours": "{{hours}} h {{minutes}} min",
+      "days": "{{days}} d {{hours}} h"
+    },
+    "card": {
+      "started": "Started",
+      "lasted": "lasted {{duration}}",
+      "ongoing": "ongoing for {{duration}}",
+      "linkedTickets": "Linked tickets: {{count}}",
+      "subscribers": "Subscribed: {{count}}",
+      "subscribe": "Notify me",
+      "unsubscribe": "Stop notifying me",
+      "subscribed": "You will be notified when the incident is resolved.",
+      "unsubscribed": "Notification cancelled.",
+      "edit": "Edit",
+      "postUpdate": "Post update",
+      "resolve": "Resolve",
+      "expand": "Show timeline",
+      "collapse": "Hide timeline",
+      "showAll": "Show all updates ({{count}})",
+      "showLess": "Show less"
+    },
+    "form": {
+      "createTitle": "New incident",
+      "editTitle": "Edit incident",
+      "createDescription": "The incident shows immediately on the status page and in the service catalog.",
+      "createFromTickets": "The selected tickets ({{count}}) will be linked to the incident.",
+      "editDescription": "Changes are visible immediately. Use \"Post update\" for a new message.",
+      "title": "Title",
+      "titleEn": "English title",
+      "titleEnHint": "Optional; shown to users with English as their language.",
+      "impact": "Impact",
+      "visibility": "Visibility",
+      "services": "Affected services",
+      "servicesSelected": "selected: {{count}}",
+      "servicesFilter": "Search services…",
+      "servicesNone": "No services match the search.",
+      "servicesFailed": "The service list could not be loaded.",
+      "message": "First message",
+      "messageHint": "What users notice and what we are doing. Shown on the status page.",
+      "startedAt": "Start",
+      "startedAtHint": "Leave empty for now; enter an earlier time if the problem began before it was reported.",
+      "notify": "Notify users with open tickets on these services",
+      "notifyHint": "In-app notice only (no e-mail); personal notification settings apply.",
+      "createSubmit": "Create incident",
+      "saveSubmit": "Save changes",
+      "created": "Incident created.",
+      "createdLinked": "Linked tickets: {{count}}",
+      "createdNotified": "Users notified: {{count}}",
+      "saved": "Changes saved."
+    },
+    "update": {
+      "title": "Post update",
+      "resolveTitle": "Resolve incident",
+      "status": "Status",
+      "message": "Message",
+      "messageHint": "A new entry on the incident timeline.",
+      "resolveMessageHint": "Describe the resolution; notified users receive this text.",
+      "notify": "Notify subscribers and requesters of linked tickets",
+      "preview": "{{recipients}} users will be notified (subscribers: {{subscribers}}, requesters of linked tickets: {{requesters}}).",
+      "previewTickets": "An internal note about the resolution is added to the linked tickets ({{count}}); tickets are not closed automatically.",
+      "previewFailed": "The number of recipients could not be calculated.",
+      "submit": "Post",
+      "resolveSubmit": "Resolve incident",
+      "posted": "Update posted.",
+      "resolved": "Incident resolved.",
+      "notified": "Users notified: {{count}}"
+    },
+    "banner": {
+      "title": "Known issue",
+      "hint": "This problem is already being worked on. You can still submit a ticket.",
+      "open": "Status page"
+    },
+    "ticketPanel": {
+      "title": "Incidents",
+      "none": "The ticket is not linked to an incident.",
+      "create": "New incident",
+      "link": "Link to incident",
+      "pick": "Choose an open incident",
+      "linkSubmit": "Link",
+      "linked": "Ticket linked to the incident.",
+      "unlink": "Remove link",
+      "unlinked": "Link to the incident removed.",
+      "noOpen": "There are no open incidents.",
+      "requesterHint": "We will notify you when the problem is resolved."
+    },
+    "bulk": {
+      "create": "Create incident",
+      "tooMany": "At most {{max}} tickets per incident."
+    },
+    "errors": {
+      "changed": "The incident was changed meanwhile. Refresh and try again.",
+      "resolved": "The incident is already resolved.",
+      "transition": "The incident status cannot move backwards.",
+      "startInFuture": "The start cannot be in the future.",
+      "serviceNotFound": "Some of the selected services no longer exist.",
+      "ticketForbidden": "Only staff working on the ticket can link it.",
+      "notFound": "Incident not found.",
+      "disabled": "The status page is turned off."
     }
   }
 }

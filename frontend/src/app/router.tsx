@@ -59,6 +59,7 @@ const AccountNotificationsPage = lazyPage(
 const PrivacyPage = lazyPage(() => import("@/pages/privacy-page"), "PrivacyPage");
 const PrivacyNoticePage = lazyPage(() => import("@/pages/privacy-notice-page"), "PrivacyNoticePage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
+const StatusPage = lazyPage(() => import("@/pages/status-page"), "StatusPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
@@ -107,6 +108,8 @@ export function AppRouter() {
               <Route path=":ticketId" element={<TicketDetailPage />} />
             </Route>
             <Route path="services" element={<ServicesPage />} />
+            {/* Paket 2.7 (§8): every signed-in user; managing is gated server-side. */}
+            <Route path="status" element={<StatusPage />} />
             <Route path="knowledge-base">
               <Route index element={<KnowledgeBasePage />} />
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />

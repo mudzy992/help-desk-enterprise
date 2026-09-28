@@ -17,6 +17,13 @@ const availabilityTone: Record<
   MAINTENANCE: "info",
 };
 
+/** Paket 2.7: an open incident raises the shown availability (stored value unchanged). */
+function shownAvailability(service: ServiceResponse): ServiceResponse["availability"] {
+  return service.incidentImpact == null
+    ? service.availability
+    : (service.runtimeAvailability.effectiveAvailability ?? service.availability);
+}
+
 interface CreateTicketServicePickerProperties {
   readonly services: readonly ServiceResponse[];
   readonly selectedId: string;
@@ -69,11 +76,11 @@ export function CreateTicketServicePicker({
                   </span>
                 ) : (
                   <Badge
-                    tone={availabilityTone[service.availability]}
+                    tone={availabilityTone[shownAvailability(service)]}
                     dot={false}
                     className="text-[10px]"
                   >
-                    {service.availability}
+                    {shownAvailability(service)}
                   </Badge>
                 )}
               </div>

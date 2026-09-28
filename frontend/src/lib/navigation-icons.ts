@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   BookOpen,
   GitBranch,
@@ -33,6 +34,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/admin/workflow": GitFork,
   "/admin/templates": MessageSquareText,
   "/privacy": ShieldCheck,
+  "/status": Activity,
 };
 
 export function navigationIconFor(path: string): LucideIcon {
