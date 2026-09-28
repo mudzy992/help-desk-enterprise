@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query/query-keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { parseForwardedFilter, parsePersonalFilter, type TicketListFilters } from "@/lib/tickets/filter-tickets";
+import type { TicketListFilters } from "@/lib/tickets/filter-tickets";
+import { staffDeepLinkFilters } from "@/lib/tickets/staff-deep-link-filters";
 import { useActionFeedback } from "@/lib/feedback/use-action-feedback";
 import { mapClaimError, mapTicketError, type TicketErrorKey } from "@/lib/tickets/map-ticket-error";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
@@ -88,15 +89,21 @@ export function useTicketList() {
   const [hasGroupMembership, setHasGroupMembership] = useState<boolean | null>(null);
   const [filters, setFilters] = useState<TicketListFilters>(() => ({
     ...emptyFilters(view, currentUserId),
-    // Package 1.6: `/tickets?forwarded=toMyGroups` is a shareable deep link.
-    forwarded: isStaff ? parseForwardedFilter(searchParams.get("forwarded")) : "",
-    // Paket 2.4: `/tickets?personal=mentionedMe` (notification deep link).
-    personal: isStaff ? parsePersonalFilter(searchParams.get("personal")) : "",
-    // Package 1.2 (M7): staff lists hide merged children unless asked.
-    hideMerged: isStaff && searchParams.get("hideMerged") !== "false",
-    // Paket 1.7 (U3): deep link from the dashboard and the weekly digest.
-    unroutedOverdue: isStaff && searchParams.get("unroutedOverdue") === "true",
+    ...staffDeepLinkFilters(searchParams, isStaff),
   }));
+  // Capabilities load asynchronously, so on a fresh page load `isStaff` is
+  // still false during the first render and the staff deep-link filters above
+  // resolve to their empty values. Apply them once when staff status is
+  // confirmed; later URL-independent edits by the user are left alone.
+  const staffDeepLinkApplied = useRef(isStaff);
+  useEffect(() => {
+    if (!isStaff || staffDeepLinkApplied.current) {
+      return;
+    }
+    staffDeepLinkApplied.current = true;
+    setFilters((current) => ({ ...current, ...staffDeepLinkFilters(searchParams, true) }));
+    setPage(1);
+  }, [isStaff, searchParams]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
@@ -339,3 +346,4 @@ export function useTicketList() {
     onClaim,
   };
 }
+
