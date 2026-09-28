@@ -1,4 +1,5 @@
 import { readE2EEnvironment } from './environment';
+import { assertDisposableTestAccount } from './disposable-account';
 import { readMfaSecret } from './mfa';
 
 /**
@@ -14,6 +15,7 @@ export async function resetSuperAdminMfa(): Promise<void> {
     }
     return;
   }
+  assertDisposableTestAccount(env.superAdminEmail, 'delete the MFA');
   const { default: pg } = await import('pg');
   const client = new pg.Client({ connectionString: env.databaseUrl });
   await client.connect();
