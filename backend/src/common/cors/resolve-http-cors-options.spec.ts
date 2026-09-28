@@ -23,6 +23,7 @@ describe('resolveHttpCorsOptions', () => {
       'Content-Type',
       'X-Install-Token',
     ]);
+    expect(options.exposedHeaders).toEqual(['Content-Disposition']);
   });
 
   it('disables origin reflection when CORS_ORIGIN is missing', () => {
