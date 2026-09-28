@@ -50,11 +50,11 @@ const { sqltag } = require('@prisma/client/runtime/client');
   });
   await run(recorder);
   for (const [index, sql] of captured.entries()) {
-    const firstLine = sql.sql.replace(/\s+/g, ' ').trim().slice(0, 90);
+    const firstLine = sql.text.replace(/\s+/g, ' ').trim().slice(0, 90);
     const t = Date.now();
-    await prisma.$queryRawUnsafe(sql.sql, ...sql.values);
+    await prisma.$queryRawUnsafe(sql.text, ...sql.values);
     const ms = Date.now() - t;
-    const plan = await prisma.$queryRawUnsafe(`EXPLAIN (ANALYZE, BUFFERS) ${sql.sql}`, ...sql.values);
+    const plan = await prisma.$queryRawUnsafe(`EXPLAIN (ANALYZE, BUFFERS) ${sql.text}`, ...sql.values);
     console.log(`\n=== Upit ${index + 1}: ${ms} ms — ${firstLine}…`);
     console.log(plan.map((row) => row['QUERY PLAN']).join('\n'));
   }
