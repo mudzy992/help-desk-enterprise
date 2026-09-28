@@ -7,6 +7,7 @@ import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approv
 import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
 import type { ServiceAvailabilityEvaluationContext } from './service-availability.types';
 import type { ServiceResponse } from './service-catalog.types';
+import { loadOpenIncidentImpacts } from './load-open-incident-impacts';
 import { toServiceResponse } from './to-service-response';
 
 export async function getService(
@@ -16,9 +17,10 @@ export async function getService(
   approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
 ): Promise<ServiceResponse> {
   const record = await loadService(prisma, serviceId);
-  const [downtimeWindows, openTicketCounts] = await Promise.all([
+  const [downtimeWindows, openTicketCounts, incidentImpacts] = await Promise.all([
     loadServiceDowntimeWindows(prisma, record.id),
     countOpenTicketsByService(prisma, [record.id]),
+    loadOpenIncidentImpacts(prisma, [record.id]),
   ]);
   return toServiceResponse(
     record,
@@ -26,5 +28,6 @@ export async function getService(
     evaluation,
     openTicketCounts.get(record.id) ?? 0,
     approvalsConfiguration,
+    incidentImpacts.get(record.id) ?? null,
   );
 }

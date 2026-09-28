@@ -88,6 +88,13 @@ export const auditLogActions = {
   opsAlertsUnsilenced: 'ops.alerts.unsilenced',
   opsAlertTestSent: 'ops.alert.test_sent',
   opsDlqBaselineAcknowledged: 'ops.dlq.baseline_acknowledged',
+  // Paket 2.7: status page incidents (§8.3).
+  statusIncidentCreated: 'status.incident.created',
+  statusIncidentEdited: 'status.incident.edited',
+  statusIncidentUpdatePosted: 'status.incident.update_posted',
+  statusIncidentResolved: 'status.incident.resolved',
+  statusIncidentTicketLinked: 'status.incident.ticket_linked',
+  statusIncidentTicketUnlinked: 'status.incident.ticket_unlinked',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -116,6 +123,7 @@ export const auditLogEntityTypes = {
   // Paket 2.7
   opsAlert: 'ops_alert',
   opsMonitoring: 'ops_monitoring',
+  statusIncident: 'status_incident',
 } as const;
 
 export const auditLogErrorCodes = {

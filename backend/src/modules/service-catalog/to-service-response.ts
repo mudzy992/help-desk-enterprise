@@ -9,6 +9,7 @@ import { defaultTicketApprovalsConfiguration } from '../tickets/approvals/approv
 import { resolveTicketApprovalRequirement } from '../tickets/approvals/resolve-ticket-approval-requirement';
 import type { TicketApprovalsConfiguration } from '../tickets/approvals/approvals.types';
 import type { ServiceRecord, ServiceResponse } from './service-catalog.types';
+import { worstAvailability, type IncidentImpact } from '../status-page/status-page.model';
 
 export function toServiceResponse(
   record: ServiceRecord,
@@ -19,7 +20,14 @@ export function toServiceResponse(
   // service's own `requiresApproval`. Callers on the read path (list/get)
   // pass the live configuration so an admin override is reflected too.
   approvalsConfiguration: TicketApprovalsConfiguration = defaultTicketApprovalsConfiguration,
+  // Paket 2.7: worst impact of open incidents; raises effectiveAvailability only.
+  incidentImpact: IncidentImpact | null = null,
 ): ServiceResponse {
+  const runtimeAvailability = evaluateServiceRuntimeAvailability({
+    storedAvailability: record.availability,
+    downtimeWindows,
+    evaluation,
+  });
   return {
     id: record.id,
     name: record.name,
@@ -28,11 +36,14 @@ export function toServiceResponse(
     lifecycle: record.lifecycle,
     offeredToRequesters: isServiceOfferedToRequesters(record.lifecycle),
     availability: record.availability,
-    runtimeAvailability: evaluateServiceRuntimeAvailability({
-      storedAvailability: record.availability,
-      downtimeWindows,
-      evaluation,
-    }),
+    runtimeAvailability:
+      incidentImpact === null
+        ? runtimeAvailability
+        : {
+            ...runtimeAvailability,
+            effectiveAvailability: worstAvailability([runtimeAvailability.effectiveAvailability, incidentImpact]),
+          },
+    incidentImpact,
     classification: record.classification,
     requiresApproval: record.requiresApproval,
     approvalSteps: resolveTicketApprovalRequirement({

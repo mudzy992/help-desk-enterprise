@@ -32,6 +32,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { OpsHealthModule } from './modules/ops-health/ops-health.module';
+import { StatusPageModule } from './modules/status-page/status-page.module';
 import { EdgeExtensionModule } from './modules/edge-extension/edge-extension.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -73,6 +74,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ReportsModule,
     PrivacyModule,
     OpsHealthModule,
+    StatusPageModule,
     EdgeExtensionModule,
     WebsocketModule,
   ],

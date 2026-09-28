@@ -1,3 +1,4 @@
+import type { IncidentImpact } from '../status-page/status-page.model';
 import type {
   AutoAssignStrategy,
   DataClassification,
@@ -61,6 +62,8 @@ export type ServiceResponse = {
   readonly slaProfileId: string | null;
   readonly policyPackId: string | null;
   readonly openTicketCount: number;
+  /** Paket 2.7: worst impact of open incidents on the service (null = none). */
+  readonly incidentImpact: IncidentImpact | null;
   readonly warnings?: readonly string[];
   readonly createdAt: string;
   readonly updatedAt: string;

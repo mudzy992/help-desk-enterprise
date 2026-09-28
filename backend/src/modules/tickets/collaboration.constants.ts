@@ -93,6 +93,10 @@ export const ticketSystemEventActions = {
   playbookStepUnchecked: 'ticket_playbook_step_unchecked',
   playbookCompleted: 'ticket_playbook_completed',
   ticketMerged: 'ticket_merged',
+  // Paket 2.7: `action:<incidentId>|<title>` (staff only).
+  incidentLinked: 'ticket_incident_linked',
+  incidentUnlinked: 'ticket_incident_unlinked',
+  incidentResolved: 'ticket_incident_resolved',
   ticketMergedChild: 'ticket_merged_child',
   ticketUnmerged: 'ticket_unmerged',
   ticketMergedStatusPropagated: 'ticket_merged_status_propagated',

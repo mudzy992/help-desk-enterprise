@@ -61,6 +61,10 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.playbookStepChecked,
   ticketSystemEventActions.playbookStepUnchecked,
   ticketSystemEventActions.playbookCompleted,
+  // Paket 2.7: incident links are internal context for agents.
+  ticketSystemEventActions.incidentLinked,
+  ticketSystemEventActions.incidentUnlinked,
+  ticketSystemEventActions.incidentResolved,
 ]);
 
 export function mapTicketRealtimeChange(
