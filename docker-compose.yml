@@ -59,6 +59,13 @@ services:
     restart: unless-stopped
     expose:
       - "10000"
+    # Paket 2.7 §3.2: Coolify shows healthy/unhealthy; rolling deploy waits for it.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:10000/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   backend:
     build: ./backend
@@ -66,6 +73,13 @@ services:
     restart: unless-stopped
     expose:
       - "10001"
+    # Paket 2.7 §3.2: readiness = database + Redis. start_period covers `prisma migrate deploy`.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:10001/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 120s
     environment:
       <<: [*database-environment, *redis-environment, *app-environment]
     volumes:
@@ -79,6 +93,13 @@ services:
     build: ./backend
     command: node dist/src/worker.js
     restart: unless-stopped
+    # Paket 2.7 §3.2: worker heartbeat in Redis (written every 10 s) is younger than 120 s.
+    healthcheck:
+      test: ["CMD", "node", "dist/src/cli/worker-health.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+      start_period: 90s
     environment:
       <<: [*database-environment, *redis-environment, *app-environment]
       # Worker: manje konekcija (jedan proces), duži statement budžet.
