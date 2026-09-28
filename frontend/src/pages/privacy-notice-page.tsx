@@ -75,14 +75,14 @@ export function PrivacyNoticePage() {
         {state === "loading" ? (
           <PanelSkeleton className="mt-0" label={t("privacy.notice.title")} />
         ) : state === "ready" && notice !== null ? (
-          <article className="rounded-lg border border-border bg-surface p-6 shadow-card print:border-0 print:p-0 print:shadow-none">
+          <article data-testid="privacy-notice-content" className="rounded-lg border border-border bg-surface p-6 shadow-card print:border-0 print:p-0 print:shadow-none">
             {notice.fallbackLocale ? (
               <p className={`${hintClassName} mb-3`}>{t("privacy.notice.fallbackLocale")}</p>
             ) : null}
             <MarkdownView source={notice.markdown} />
           </article>
         ) : (
-          <div className="rounded-lg border border-border bg-surface p-6 text-[13px] text-foreground/90">
+          <div data-testid="privacy-notice-unavailable" data-state={state} className="rounded-lg border border-border bg-surface p-6 text-[13px] text-foreground/90">
             <h1 className="mb-2 text-[16px] font-semibold text-foreground">{t("privacy.notice.title")}</h1>
             <p>{state === "disabled" ? t("privacy.notice.unavailable") : t("privacy.notice.failed")}</p>
           </div>

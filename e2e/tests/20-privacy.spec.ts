@@ -203,7 +203,15 @@ test.describe('20 privacy (ZZLP BiH)', () => {
     await page.goto('/login');
     await page.getByTestId('login-privacy-notice').click();
     await expect(page).toHaveURL(/\/privacy-notice$/);
-    await expect(page.getByTestId('privacy-notice-page').locator('h1').first()).toBeVisible({ timeout: 20_000 });
+    // The page ends in one of two states: the notice text, or an "unavailable/failed" box.
+    // Wait for either, then require the text (the operator's markdown need not contain an h1).
+    const content = page.getByTestId('privacy-notice-content');
+    const unavailable = page.getByTestId('privacy-notice-unavailable');
+    await expect(content.or(unavailable)).toBeVisible({ timeout: 20_000 });
+    if (await unavailable.isVisible()) {
+      throw new Error(`privacy notice not served (state=${await unavailable.getAttribute('data-state')}) — is privacy enabled and GET /privacy/notice public?`);
+    }
+    await expect(content).not.toBeEmpty();
     await context.close();
 
     const user = new ApiClient();
