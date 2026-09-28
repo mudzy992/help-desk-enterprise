@@ -16,6 +16,7 @@ export const navigationLabelKeys = {
   configVersions: "navigation.configVersions",
   workflow: "navigation.workflow",
   templates: "navigation.templates",
+  privacy: "navigation.privacy",
 } as const;
 
 export type NavigationLabelKey =
@@ -129,6 +130,14 @@ export const templatesNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.staff },
 };
 
+/** Paket 2.6 (§11): data subject requests, erasure, exports, retention, holds, record. */
+export const privacyNavigationItem: NavigationItem = {
+  path: "/privacy",
+  labelKey: navigationLabelKeys.privacy,
+  end: false,
+  access: { kind: navigationAccessKinds.privacy },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -149,6 +158,7 @@ export const navigationSections: readonly NavigationSection[] = [
       slaNavigationItem,
       workflowNavigationItem,
       adminNavigationItem,
+      privacyNavigationItem,
       configVersionsNavigationItem,
     ],
   },

@@ -105,6 +105,8 @@ export async function listUsersSummary(
       policyPackKey: user.organizationalUnit?.policyPack?.key ?? null,
       openTicketCount: user._count.assignedTickets,
       mfa: null,
+      anonymizedAt: user.anonymizedAt?.toISOString() ?? null,
+      legalHold: user.legalHoldAt !== null,
     };
   });
 }

@@ -37,6 +37,7 @@ export function toTicketMessageResponse(
     createdAt: record.createdAt.toISOString(),
     source: record.source ?? 'APP',
     redactionWarnings,
+    ...(record.redactedAt ? { redacted: true } : {}),
   };
 }
 

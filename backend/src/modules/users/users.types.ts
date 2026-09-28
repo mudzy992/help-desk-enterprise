@@ -44,6 +44,10 @@ export type UserSummaryResponse = {
   readonly policyPackKey: string | null;
   readonly openTicketCount: number;
   readonly mfa: null;
+  /** Paket 2.6: set once the user was anonymized (the name is a pseudonym). */
+  readonly anonymizedAt: string | null;
+  /** Paket 2.6: legal hold — anonymization and retention skip this user. */
+  readonly legalHold: boolean;
 };
 
 export type CreateUserInput = {

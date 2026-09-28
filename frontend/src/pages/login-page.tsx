@@ -384,6 +384,11 @@ export function LoginPage() {
               {t("login.installLink")}
             </Link>
           </p>
+          <p className="mt-2 text-center text-[11.5px]">
+            <Link to="/privacy-notice" className="text-link underline-offset-4 hover:underline" data-testid="login-privacy-notice">
+              {t("privacy.notice.loginLink")}
+            </Link>
+          </p>
         </section>
       </main>
     </div>

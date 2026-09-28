@@ -40,6 +40,8 @@ export type TicketMessageResponse = {
     readonly patternId: string;
     readonly risk: "standard" | "high";
   }[];
+  /** Paket 2.6: names in the body were replaced by a pseudonym (anonymization). */
+  readonly redacted?: boolean;
 };
 
 export type TicketTimeLogResponse = {

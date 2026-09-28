@@ -21,7 +21,8 @@
       "administration": "Administration"
     },
     "workflow": "Status flow",
-    "templates": "Templates & playbooks"
+    "templates": "Templates & playbooks",
+    "privacy": "Privacy"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -4039,6 +4040,421 @@
       "weeklyTitle": "Weekly ticket review",
       "weeklySubtitle": "Once a week you receive the list of open tickets you take part in (assigned, watching, pending approval).",
       "testWeekly": "Send test review"
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "intro": "Data subject requests, anonymization, export, retention, legal holds and the record of processing (BiH data protection act, Official Gazette 12/25).",
+    "forbiddenTitle": "No access to privacy",
+    "forbiddenBody": "This page requires the privacy.view permission (ADMIN, SUPER_ADMIN or DPO).",
+    "tabs": {
+      "requests": "Requests",
+      "anonymization": "Anonymization",
+      "exports": "Exports",
+      "retention": "Retention",
+      "holds": "Legal holds",
+      "record": "Record"
+    },
+    "common": {
+      "minChars": "At least {{count}} characters."
+    },
+    "errors": {
+      "PRIVACY_DISABLED": "The privacy module is disabled in settings.",
+      "FORBIDDEN": "You are not allowed to do this.",
+      "NOT_FOUND": "Item not found (it may have changed meanwhile).",
+      "INVALID_INPUT": "The input is not valid. Check the fields.",
+      "INVALID_TRANSITION": "The action is not possible in the current state. Refresh the view.",
+      "EXTENSION_NOT_ALLOWED": "The deadline was already extended or the 30-day window for an extension has passed.",
+      "IDENTITY_CONFIRMATION_REQUIRED": "Identity confirmation with an MFA code is required.",
+      "IDENTITY_CONFIRMATION_FAILED": "The MFA code is not valid.",
+      "ANONYMIZATION_BLOCKED": "Anonymization is blocked. See the reasons in the assessment.",
+      "APPROVAL_REQUIRED": "Approval by a second SUPER_ADMIN is required.",
+      "APPROVER_MUST_DIFFER": "The approver must be someone other than the requester.",
+      "CONFIRMATION_MISMATCH": "The typed e-mail does not match the person's e-mail.",
+      "EXPORT_NOT_READY": "The export is not ready yet.",
+      "EXPORT_EXPIRED": "The export has expired. Create a new one.",
+      "RETENTION_DISABLED": "This retention category is disabled.",
+      "LEGAL_HOLD_ACTIVE": "A legal hold is active.",
+      "ALREADY_RUNNING": "The same action is already running."
+    },
+    "identity": {
+      "body": "This action reveals or permanently changes personal data. Confirm your identity with an MFA code.",
+      "confirm": "Confirm"
+    },
+    "picker": {
+      "placeholder": "Search by name or e-mail…",
+      "change": "Change",
+      "inactive": "inactive",
+      "none": "No people match the search."
+    },
+    "requests": {
+      "intro": "Register of requests (access, erasure, rectification…). The deadline is 30 days from receipt; it can be extended once by 60 days, with notice within the first 30 days (Art. 14).",
+      "create": "New request",
+      "createHint": "Record the request on the day it arrives; the deadline is computed automatically.",
+      "scopeLabel": "Show",
+      "scope": {
+        "open": "Open",
+        "closed": "Closed",
+        "all": "All"
+      },
+      "emptyTitle": "No requests",
+      "emptyBody": "When someone asks for access, export or erasure of their data, record it here.",
+      "columns": {
+        "type": "Type",
+        "subject": "Person",
+        "received": "Received",
+        "deadline": "Deadline",
+        "status": "Status",
+        "handler": "Handler"
+      },
+      "type": {
+        "ACCESS": "Access",
+        "PORTABILITY": "Portability",
+        "ERASURE": "Erasure",
+        "RECTIFICATION": "Rectification",
+        "RESTRICTION": "Restriction",
+        "OBJECTION": "Objection"
+      },
+      "channel": {
+        "EMAIL": "E-mail",
+        "PAPER": "Paper",
+        "PORTAL": "Portal",
+        "IN_PERSON": "In person"
+      },
+      "status": {
+        "RECEIVED": "Received",
+        "IN_PROGRESS": "In progress",
+        "EXTENDED": "Extended",
+        "COMPLETED": "Completed",
+        "REJECTED": "Rejected"
+      },
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left",
+      "overdue_one": "{{count}} day overdue",
+      "overdue_other": "{{count}} days overdue",
+      "form": {
+        "subjectUser": "Person in the system",
+        "subjectUserHint": "If the person has an account, pick it; export and anonymization can then be started directly.",
+        "subjectLabel": "Person label",
+        "subjectLabelHint": "For people without an account: name or reference (no unnecessary data).",
+        "channel": "Channel",
+        "receivedAt": "Received on",
+        "deadlineHint": "Deadline: 30 days from the date received.",
+        "notes": "Notes",
+        "notesHint": "Internal note; do not enter special categories of data.",
+        "save": "Record"
+      },
+      "detail": {
+        "dueAt": "Deadline",
+        "extendedDueAt": "Extended deadline",
+        "closedAt": "Closed",
+        "start": "Start handling",
+        "startedToast": "Handling started.",
+        "extend": "Extend by 60 days",
+        "extendHint": "You must inform the person of the extension and the reasons within 30 days of receipt.",
+        "extensionReason": "Reason for extension",
+        "extendedToast": "Deadline extended.",
+        "outcome": "Outcome",
+        "resultRef": "Result reference",
+        "resultRefHint": "E.g. export number, letter number or archive reference.",
+        "rejectionReason": "Reason for rejection",
+        "rejectionHint": "Inform the person of the reasons and the right to complain to the Data Protection Agency.",
+        "close": "Close request",
+        "closedToast": "Request closed.",
+        "toExport": "Prepare export",
+        "toAnonymization": "Open anonymization"
+      }
+    },
+    "anonymization": {
+      "intro": "Permanent anonymization of deactivated people. Name, e-mail and login are replaced by a pseudonym; tickets and metrics remain. This cannot be undone.",
+      "candidatesTitle": "Candidates (inactive 180+ days)",
+      "candidatesEmptyTitle": "No candidates",
+      "candidatesEmptyBody": "Nobody has been inactive for more than 180 days.",
+      "review": "Review",
+      "otherUser": "Another person",
+      "otherUserHint": "Only deactivated users not yet anonymized.",
+      "otherUserPlaceholder": "Search inactive users…",
+      "historyTitle": "Anonymization history",
+      "historyEmpty": "No anonymizations yet.",
+      "approve": "Approve",
+      "cancel": "Cancel",
+      "approvedToast": "Anonymization approved and queued.",
+      "pendingToast": "The request awaits approval by a second SUPER_ADMIN.",
+      "queuedToast": "Anonymization queued.",
+      "report": "Report",
+      "reportHint": "Changed records per type. The report contains no personal data.",
+      "nothingToChange": "Nothing to change.",
+      "blockedTitle": "Anonymization is not possible",
+      "previewTitle": "Preview of changes",
+      "examples": "Replacement examples",
+      "examplesHint": "Text excerpts where the name, e-mail or login will be replaced.",
+      "countsTitle": "Records by type",
+      "deleteOwnAttachments": "Delete attachments the person uploaded",
+      "deleteOwnAttachmentsHint": "By default attachments are kept (they may be business records).",
+      "secondApproverNote": "The four-eyes rule is on: after submitting, a second SUPER_ADMIN must approve.",
+      "confirmEmail": "Type the person's e-mail to confirm",
+      "confirmEmailHint": "Pasting is disabled; type the address.",
+      "irreversible": "This is irreversible. Afterwards the person can no longer be linked to the data.",
+      "submit": "Anonymize",
+      "submitForApproval": "Submit for approval",
+      "approveTitle": "Approve anonymization: {{name}}",
+      "approvalUntil": "awaiting approval until {{date}}",
+      "assessTitle": "Assessment: {{name}}",
+      "confirmTitle": "Anonymization: {{name}}",
+      "columns": {
+        "user": "Person",
+        "inactiveSince": "Inactive since",
+        "deactivatedBy": "Deactivated by",
+        "tickets": "Tickets",
+        "pseudonym": "Pseudonym",
+        "status": "Status",
+        "requestedBy": "Requested by",
+        "approvedBy": "Approved by",
+        "created": "Created",
+        "completed": "Completed"
+      },
+      "deactivatedBy": {
+        "directory": "Directory (AD)",
+        "admin": "Administrator"
+      },
+      "status": {
+        "PENDING_APPROVAL": "Awaiting approval",
+        "QUEUED": "Queued",
+        "RUNNING": "Running",
+        "COMPLETED": "Completed",
+        "FAILED": "Failed",
+        "CANCELLED": "Cancelled"
+      },
+      "blockers": {
+        "active": "The account is active; deactivate it first.",
+        "active_in_directory": "The person is still active in the directory (AD).",
+        "super_admin": "The person is a SUPER_ADMIN.",
+        "last_admin": "The person is the last administrator.",
+        "legal_hold": "The person is under a legal hold.",
+        "open_assigned_tickets": "The person has open assigned tickets.",
+        "export_in_progress": "A data export for the person is in progress.",
+        "already_anonymized": "The person is already anonymized.",
+        "erasure_in_progress": "An anonymization is already in progress.",
+        "self": "You cannot anonymize yourself."
+      },
+      "preview": {
+        "ticketsInScope": "Tickets in scope",
+        "ticketsOnLegalHold": "Under legal hold (skipped)",
+        "textReplacements": "Text replacements"
+      }
+    },
+    "exports": {
+      "intro": "A copy of a person's data (ZIP with JSON and attachments). Download is limited to the requester, needs MFA and is valid for 7 days.",
+      "createTitle": "New export",
+      "subject": "Person",
+      "linkedRequest": "Linked to request",
+      "includeAttachments": "Include attachments",
+      "includeInternalNotes": "Include other people's internal notes",
+      "internalNotesReason": "Reason for internal notes",
+      "internalNotesReasonHint": "Off by default; the reason is recorded in the audit log.",
+      "handoverHint": "The downloaded file is not encrypted. Hand it over through a secure channel (in person or an encrypted message) and delete the local copy.",
+      "create": "Prepare export",
+      "queuedToast": "The export is being prepared.",
+      "listTitle": "Exports",
+      "emptyTitle": "No exports",
+      "emptyBody": "Prepared exports are listed here for 7 days.",
+      "withInternalNotes": "with internal notes",
+      "download": "Download",
+      "onlyRequester": "Requester only",
+      "onlyRequesterHint": "Only the person who prepared the export can download it.",
+      "downloadTitle": "Download export: {{name}}",
+      "columns": {
+        "subject": "Person",
+        "status": "Status",
+        "size": "Size",
+        "created": "Created",
+        "expires": "Expires",
+        "downloads": "Downloads"
+      },
+      "status": {
+        "QUEUED": "Queued",
+        "RUNNING": "Preparing",
+        "READY": "Ready",
+        "FAILED": "Failed",
+        "EXPIRED": "Expired"
+      }
+    },
+    "retention": {
+      "intro": "Retention removes content after its period; metrics remain. Nightly run at {{time}} ({{zone}}), at most {{minutes}} min.",
+      "settingsLink": "Periods are changed in settings.",
+      "categories": {
+        "attachments": {
+          "name": "Attachments",
+          "hint": "Attachment files of closed tickets; the ticket and metrics remain."
+        },
+        "ticketContent": {
+          "name": "Ticket content",
+          "hint": "Description and message text of closed tickets; numbers, statuses and times remain."
+        },
+        "audit": {
+          "name": "Audit entries",
+          "hint": "Old audit entries are sealed by a checkpoint, then removed."
+        },
+        "sessions": {
+          "name": "Sessions",
+          "hint": "Expired and revoked sessions (IP, browser)."
+        },
+        "emailDeliveries": {
+          "name": "E-mail deliveries",
+          "hint": "E-mail sending records (recipient, status)."
+        },
+        "requestRegister": {
+          "name": "Request register",
+          "hint": "Closed data subject requests."
+        }
+      },
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "disabled": "Disabled",
+      "gate": {
+        "not_required": "No dry run required.",
+        "dry_run": "A dry run was done; execution is allowed.",
+        "previous_execution": "The category already ran with the same period.",
+        "disabled": "The category is disabled.",
+        "dry_run_required": "Run a dry run with the current period first."
+      },
+      "lastDryRun": "Last dry run",
+      "lastExecution": "Last execution",
+      "runSummary_one": "{{formatted}} item · {{date}}",
+      "runSummary_other": "{{formatted}} items · {{date}}",
+      "dryRun": "Dry run",
+      "runNow": "Run now",
+      "dryRunQueued": "Dry run started.",
+      "runQueued": "Retention started.",
+      "runsTitle": "Runs",
+      "filter": "Category",
+      "allCategories": "All categories",
+      "runsEmpty": "No runs yet.",
+      "execution": "Execution",
+      "refsTruncated": "The reference list is truncated.",
+      "columns": {
+        "category": "Category",
+        "mode": "Mode",
+        "range": "Period",
+        "items": "Items",
+        "freed": "Freed",
+        "started": "Started",
+        "status": "Status"
+      },
+      "runStatus": {
+        "RUNNING": "Running",
+        "COMPLETED": "Completed",
+        "PARTIAL": "Partial",
+        "FAILED": "Failed",
+        "SKIPPED": "Skipped"
+      },
+      "runNowTitle": "Run retention: {{category}}?",
+      "runNowBody_one": "Content older than {{count}} day will be permanently removed. Items under legal hold are skipped.",
+      "runNowBody_other": "Content older than {{count}} days will be permanently removed. Items under legal hold are skipped."
+    },
+    "holds": {
+      "intro": "A legal hold protects a ticket or person from retention and anonymization (e.g. a dispute or investigation). Setting and lifting need a reason and are audited.",
+      "newTitle": "New hold",
+      "target": "Type",
+      "targetTicket": "Ticket",
+      "targetUser": "Person",
+      "ticketNumber": "Ticket number",
+      "ticketNumberHint": "E.g. HD-2026-000123.",
+      "label": "Ticket / person",
+      "reason": "Reason",
+      "since": "Since",
+      "set": "Place hold",
+      "clear": "Lift hold",
+      "setBody": "While the hold is active, retention and anonymization skip this record.",
+      "clearBody": "After lifting, the record is subject to retention again.",
+      "setToast": "Legal hold placed.",
+      "clearedToast": "Legal hold lifted.",
+      "emptyTitle": "No active holds",
+      "emptyBody": "Tickets and people under a legal hold are listed here.",
+      "effectHint": "Only users with the privacy.view permission can see a hold.",
+      "setTitle": "Legal hold: {{label}}",
+      "clearTitle": "Lift hold: {{label}}?"
+    },
+    "record": {
+      "intro": "Record of processing activities generated from the current configuration. Print or save as PDF through the browser.",
+      "language": "Language",
+      "openNotice": "Privacy notice",
+      "print": "Print / PDF",
+      "missingTitle": "Record data missing",
+      "missingAction": "Complete them in settings.",
+      "generated": "Generated {{when}} · {{who}}",
+      "missingFields": {
+        "name": "controller name",
+        "address": "controller address",
+        "dpoName": "DPO name",
+        "dpoEmail": "DPO e-mail",
+        "purpose": "purpose of processing",
+        "legalBasis": "legal basis"
+      }
+    },
+    "notice": {
+      "title": "Privacy notice",
+      "menu": "Privacy notice",
+      "loginLink": "Privacy notice",
+      "fallbackLocale": "The text is not yet published in this language; the other language version is shown.",
+      "unavailable": "The notice is not published at the moment. Contact the administrator.",
+      "failed": "The notice could not be loaded. Try again.",
+      "backToApp": "Back to the app",
+      "backToLogin": "Back to sign in"
+    },
+    "markers": {
+      "redacted": "Anonymized",
+      "redactedHint": "Names in this message were replaced by a pseudonym.",
+      "legalHold": "Legal hold",
+      "legalHoldHint": "Retention and anonymization skip this ticket.",
+      "attachmentsPurged": "The attachments of this ticket were removed by retention on {{date}}."
+    },
+    "userSection": {
+      "heading": "Privacy",
+      "anonymized": "Anonymized {{date}}",
+      "none": "No privacy markers.",
+      "export": "Export data",
+      "anonymize": "Anonymize",
+      "deactivateFirst": "Anonymization is possible only after the account is deactivated."
+    },
+    "counts": {
+      "activities": "Activities",
+      "approvals": "Approvals",
+      "attachmentNames": "Attachment names",
+      "attachmentsDeleted": "Deleted attachments",
+      "changeLogs": "Change log entries",
+      "confidentialGrants": "Confidential ticket grants",
+      "csat": "CSAT ratings (comment)",
+      "digestItems": "Digest items",
+      "emailDeliveries": "E-mail deliveries",
+      "forwardReasons": "Forward reasons",
+      "groups": "Groups",
+      "inboundEmails": "Inbound e-mails",
+      "messages": "Messages",
+      "mfa": "MFA settings",
+      "notificationPreferences": "Notification preferences",
+      "notificationReceipts": "Notification receipts",
+      "notificationSchedule": "Notification schedule",
+      "notificationsDeleted": "Own notifications (deleted)",
+      "notificationsScrubbed": "Others' notifications (scrubbed)",
+      "notificationsOwn": "Own notifications",
+      "passwordHistory": "Password history",
+      "personalTemplates": "Personal templates",
+      "recoveryCodes": "Recovery codes",
+      "reportRecipients": "Report recipient entries",
+      "reportSchedulesPaused": "Paused report schedules",
+      "roles": "Roles",
+      "savedViews": "Saved views",
+      "sessions": "Sessions",
+      "textReplacements": "Text replacements",
+      "tickets": "Tickets (text)",
+      "ticketsOnLegalHoldSkipped": "Tickets under legal hold (skipped)",
+      "timeLogs": "Time logs",
+      "auditRedacted": "Redacted audit entries",
+      "auditSealed": "Sealed audit entries",
+      "followerLinks": "Ticket follows",
+      "attachmentsUploaded": "Uploaded attachments",
+      "auditRowsLinked": "Linked audit entries"
     }
   }
 }

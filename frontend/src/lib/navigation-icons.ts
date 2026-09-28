@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   GitFork,
   MessageSquareText,
+  ShieldCheck,
 } from "lucide-react";
 
 /**
@@ -31,6 +32,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/admin/config-versions": History,
   "/admin/workflow": GitFork,
   "/admin/templates": MessageSquareText,
+  "/privacy": ShieldCheck,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

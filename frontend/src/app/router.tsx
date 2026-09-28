@@ -7,6 +7,7 @@ import {
   Timer,
   GitFork,
   MessageSquareText,
+  ShieldCheck,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
@@ -18,6 +19,7 @@ import {
   canOpenAdminArea,
   canOpenConfigVersionsPage,
   canOpenEmailTemplatesPage,
+  canOpenPrivacy,
   canOpenReports,
   canOpenRouting,
   canOpenSla,
@@ -54,6 +56,8 @@ const AccountNotificationsPage = lazyPage(
   () => import("@/pages/account-notifications-page"),
   "AccountNotificationsPage",
 );
+const PrivacyPage = lazyPage(() => import("@/pages/privacy-page"), "PrivacyPage");
+const PrivacyNoticePage = lazyPage(() => import("@/pages/privacy-notice-page"), "PrivacyNoticePage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
@@ -66,6 +70,8 @@ export function AppRouter() {
         <Route path="install" element={<InstallPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="auth/callback" element={<AuthCallbackPage />} />
+        {/* Paket 2.6 (§8): public, readable before signing in. */}
+        <Route path="privacy-notice" element={<PrivacyNoticePage />} />
         <Route element={<RequireAuth />}>
           <Route element={<ApplicationShell />}>
             <Route index element={<DashboardPage />} />
@@ -79,6 +85,19 @@ export function AppRouter() {
                   icon={<BarChart3 size={18} strokeWidth={1.8} />}
                 >
                   <ReportsPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="privacy"
+              element={
+                <RequireAccess
+                  check={canOpenPrivacy}
+                  forbiddenTitleKey="privacy.forbiddenTitle"
+                  forbiddenBodyKey="privacy.forbiddenBody"
+                  icon={<ShieldCheck size={18} strokeWidth={1.8} />}
+                >
+                  <PrivacyPage />
                 </RequireAccess>
               }
             />

@@ -45,6 +45,8 @@ interface TicketDetailWorkspaceProperties {
   readonly timeTracking: TicketTimeTrackingControls;
   readonly attachments: readonly TicketAttachmentResponse[];
   readonly attachmentsVisible: boolean;
+  /** Paket 2.6: retention removed the attachments at this moment. */
+  readonly attachmentsPurgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;
   readonly onDownload: (attachment: TicketAttachmentResponse) => Promise<void>;
@@ -130,6 +132,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
         <TicketAttachmentsPanel
           items={props.attachments}
           visible={props.attachmentsVisible}
+          purgedAt={props.attachmentsPurgedAt ?? null}
           canUpload={props.canUpload}
           onUpload={props.onUpload}
           onDownload={props.onDownload}

@@ -364,6 +364,7 @@ export function TicketDetailPage() {
           timeTracking={timeTracking}
           attachments={detail.attachments}
           attachmentsVisible={detail.attachmentsVisible}
+          attachmentsPurgedAt={detail.ticket?.privacy?.attachmentsPurgedAt ?? null}
           canUpload={detail.attachmentsVisible && actions.uploadAttachments}
           onUpload={detail.upload}
           onDownload={detail.download}

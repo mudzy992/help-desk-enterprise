@@ -11,6 +11,8 @@ import type { TicketAttachmentResponse } from "@/services/tickets-attachments-ap
 interface TicketAttachmentsPanelProperties {
   readonly items: readonly TicketAttachmentResponse[];
   readonly visible: boolean;
+  /** Paket 2.6 (§6): retention removed the files; explains an empty or short list. */
+  readonly purgedAt?: string | null;
   readonly canUpload: boolean;
   readonly onUpload: (file: File) => Promise<void>;
   readonly onDownload: (attachment: TicketAttachmentResponse) => Promise<void>;
@@ -24,6 +26,7 @@ function isImage(mimeType: string): boolean {
 export function TicketAttachmentsPanel({
   items,
   visible,
+  purgedAt = null,
   canUpload,
   onUpload,
   onDownload,
@@ -70,6 +73,11 @@ export function TicketAttachmentsPanel({
           });
         }}
       />
+      {purgedAt !== null ? (
+        <p className="border-b border-border/50 bg-elevated px-4 py-2 text-[12px] text-muted-foreground" data-testid="ticket-attachments-purged">
+          {t("privacy.markers.attachmentsPurged", { date: new Date(purgedAt).toLocaleDateString(i18n.language) })}
+        </p>
+      ) : null}
       {items.length === 0 ? (
         <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
           {t("tickets.detail.noAttachments")}

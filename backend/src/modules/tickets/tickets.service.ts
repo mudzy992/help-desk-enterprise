@@ -7,6 +7,7 @@ import { unroutedCutoff } from './unrouted/build-unrouted-overdue-where';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
+import { canSeeLegalHold, ticketPrivacyMarkers } from './privacy-markers';
 import { RoutingService } from '../routing/routing.service';
 import { TicketApprovalsConfigurationLoader } from './approvals/ticket-approvals-configuration.loader';
 import { TicketAssignmentConfigurationLoader } from './assignment/ticket-assignment-configuration.loader';
@@ -303,17 +304,17 @@ export class TicketsService {
   getById(ticketId: string, context: TicketMutationContext) {
     return executeTicketOperation(async () => {
       const gated = await this.gate(context);
-      return respondLoadedTicket(
+      const record = await getTicket(
         this.prisma,
-        await getTicket(
-          this.prisma,
-          this.authorizationContextLoader,
-          ticketId,
-          gated,
-          { auditView: true },
-        ),
-        this.clientLoaders(gated.actorUserId),
+        this.authorizationContextLoader,
+        ticketId,
+        gated,
+        { auditView: true },
       );
+      const response = await respondLoadedTicket(this.prisma, record, this.clientLoaders(gated.actorUserId));
+      // Paket 2.6: principal context is cached, so this adds no query.
+      const viewer = await this.authorizationContextLoader.loadBySubjectId(gated.actorUserId);
+      return { ...response, privacy: ticketPrivacyMarkers(record, canSeeLegalHold(viewer)) };
     });
   }
 

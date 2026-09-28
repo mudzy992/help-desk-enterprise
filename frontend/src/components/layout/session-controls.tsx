@@ -1,4 +1,4 @@
-import { BellRing, ChevronDown, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
+import { BellRing, ChevronDown, FileText, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
@@ -74,6 +74,9 @@ export function SessionControls() {
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate("/settings")}>
           <Settings2 size={13} /> {t("shell.accountSettings")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate("/privacy-notice")}>
+          <FileText size={13} /> {t("privacy.notice.menu")}
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {

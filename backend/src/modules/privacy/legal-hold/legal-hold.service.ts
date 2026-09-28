@@ -81,12 +81,14 @@ export class LegalHoldService {
       let view: LegalHoldView;
       let organizationalUnitId: string | null = null;
       if (target === 'ticket') {
-        const ticket = await transaction.ticket.findUnique({
-          where: { id },
+        // The UI sends the ticket number people know ("HD-…"); the id works too.
+        const ticket = await transaction.ticket.findFirst({
+          where: { OR: [{ id }, { ticketNumber: id }] },
           select: { id: true, ticketNumber: true, legalHoldAt: true, originUnitId: true, contentRedactedAt: true },
         });
         if (ticket === null) throw new PrivacyError(privacyErrorCodes.notFound);
         if (setting === (ticket.legalHoldAt !== null)) throw new PrivacyError(privacyErrorCodes.invalidTransition);
+        id = ticket.id;
         await transaction.ticket.update({
           where: { id },
           data: setting

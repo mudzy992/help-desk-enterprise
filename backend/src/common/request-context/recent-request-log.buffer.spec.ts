@@ -13,11 +13,14 @@ function entry(timestamp: string, message: string): RecentRequestLogEntry {
 
 describe('RecentRequestLogBuffer', () => {
   it('returns only entries within the requested window', () => {
+    // Relative to now: fixed dates fall out of the default retention window.
+    const hour = 60 * 60 * 1000;
+    const now = Date.now();
     const buffer = new RecentRequestLogBuffer();
-    buffer.append(entry('2026-09-14T10:00:00.000Z', 'old'));
-    buffer.append(entry('2026-09-14T11:30:00.000Z', 'recent'));
+    buffer.append(entry(new Date(now - 2 * hour).toISOString(), 'old'));
+    buffer.append(entry(new Date(now - hour / 2).toISOString(), 'recent'));
     expect(
-      buffer.listSince(new Date('2026-09-14T11:00:00.000Z')).map((item) => item.message),
+      buffer.listSince(new Date(now - hour)).map((item) => item.message),
     ).toEqual(['recent']);
   });
 

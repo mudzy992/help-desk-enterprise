@@ -19,7 +19,9 @@ type ForbiddenMessageKey =
   | "permissions.forbiddenTitle"
   | "permissions.forbiddenBody"
   | "policyPacks.forbiddenTitle"
-  | "policyPacks.forbiddenBody";
+  | "policyPacks.forbiddenBody"
+  | "privacy.forbiddenTitle"
+  | "privacy.forbiddenBody";
 
 interface RequireAccessProperties {
   readonly check: (capabilities: SessionCapabilities) => boolean;

@@ -4,6 +4,7 @@ import { UserDetailForm } from "@/components/users/user-detail-form";
 import { UserRolesSection } from "@/components/users/user-roles-section";
 import { UserNotificationPreferencesSection } from "@/components/users/user-notification-preferences-section";
 import { UserSecuritySection } from "@/components/users/user-security-section";
+import { UserPrivacySection } from "@/components/users/user-privacy-section";
 import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
@@ -108,6 +109,7 @@ export function UserDetailDrawer({
               <UserNotificationPreferencesSection userId={user.id} />
             </section>
           ) : null}
+          {!isSelf ? <UserPrivacySection user={user} onChanged={onChanged} /> : null}
           {canManage ? (
             <section>
               <h3 className="mb-3 text-[12px] font-medium text-foreground">

@@ -21,7 +21,8 @@
       "administration": "Administracija"
     },
     "workflow": "Tok statusa",
-    "templates": "Šabloni i playbooks"
+    "templates": "Šabloni i playbooks",
+    "privacy": "Privatnost"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -4058,6 +4059,426 @@
       "weeklyTitle": "Sedmični pregled tiketa",
       "weeklySubtitle": "Jednom sedmično stiže lista otvorenih tiketa u kojima učestvujete (dodijeljeni, gost, odobrenje na čekanju).",
       "testWeekly": "Pošalji probni pregled"
+    }
+  },
+  "privacy": {
+    "title": "Zaštita ličnih podataka",
+    "intro": "Zahtjevi nosilaca podataka, anonimizacija, izvoz, retencija, pravne blokade i evidencija obrade (ZZLP BiH, Sl. glasnik BiH 12/25).",
+    "forbiddenTitle": "Nemate pristup zaštiti ličnih podataka",
+    "forbiddenBody": "Za ovu stranicu potrebno je ovlaštenje privacy.view (ADMIN, SUPER_ADMIN ili DPO).",
+    "tabs": {
+      "requests": "Zahtjevi",
+      "anonymization": "Anonimizacija",
+      "exports": "Izvoz",
+      "retention": "Retencija",
+      "holds": "Pravne blokade",
+      "record": "Evidencija"
+    },
+    "common": {
+      "minChars": "Najmanje {{count}} znakova."
+    },
+    "errors": {
+      "PRIVACY_DISABLED": "Modul zaštite ličnih podataka je isključen u postavkama.",
+      "FORBIDDEN": "Nemate ovlaštenje za ovu radnju.",
+      "NOT_FOUND": "Stavka nije pronađena (možda je u međuvremenu promijenjena).",
+      "INVALID_INPUT": "Podaci nisu ispravni. Provjerite polja.",
+      "INVALID_TRANSITION": "Radnja nije moguća u trenutnom stanju. Osvježite prikaz.",
+      "EXTENSION_NOT_ALLOWED": "Rok je već produžen ili je prošao rok od 30 dana za produženje.",
+      "IDENTITY_CONFIRMATION_REQUIRED": "Potrebna je potvrda identiteta MFA kodom.",
+      "IDENTITY_CONFIRMATION_FAILED": "MFA kod nije ispravan.",
+      "ANONYMIZATION_BLOCKED": "Anonimizacija je blokirana. Pogledajte razloge u procjeni.",
+      "APPROVAL_REQUIRED": "Potrebno je odobrenje drugog SUPER_ADMIN-a.",
+      "APPROVER_MUST_DIFFER": "Odobriti mora druga osoba, ne podnosilac.",
+      "CONFIRMATION_MISMATCH": "Upisani e-mail se ne poklapa s e-mailom osobe.",
+      "EXPORT_NOT_READY": "Izvoz još nije spreman.",
+      "EXPORT_EXPIRED": "Izvoz je istekao. Napravite novi.",
+      "RETENTION_DISABLED": "Kategorija retencije je isključena.",
+      "LEGAL_HOLD_ACTIVE": "Aktivna je pravna blokada (legal hold).",
+      "ALREADY_RUNNING": "Ista radnja je već u toku."
+    },
+    "identity": {
+      "body": "Radnja otkriva ili trajno mijenja lične podatke. Potvrdite identitet MFA kodom.",
+      "confirm": "Potvrdi"
+    },
+    "picker": {
+      "placeholder": "Pretraži po imenu ili e-mailu…",
+      "change": "Promijeni",
+      "inactive": "neaktivan",
+      "none": "Nema osoba koje odgovaraju pretrazi."
+    },
+    "requests": {
+      "intro": "Registar zahtjeva (pristup, brisanje, ispravka…). Rok je 30 dana od prijema; jednom se može produžiti za 60 dana, uz obavještenje u prvih 30 dana (čl. 14).",
+      "create": "Novi zahtjev",
+      "createHint": "Evidentirajte zahtjev na dan prijema; rok se računa automatski.",
+      "scopeLabel": "Prikaz",
+      "scope": {
+        "open": "Otvoreni",
+        "closed": "Zatvoreni",
+        "all": "Svi"
+      },
+      "emptyTitle": "Nema zahtjeva",
+      "emptyBody": "Kada osoba zatraži pristup, izvoz ili brisanje podataka, evidentirajte to ovdje.",
+      "columns": {
+        "type": "Vrsta",
+        "subject": "Osoba",
+        "received": "Primljen",
+        "deadline": "Rok",
+        "status": "Status",
+        "handler": "Obrađuje"
+      },
+      "type": {
+        "ACCESS": "Pristup",
+        "PORTABILITY": "Prenosivost",
+        "ERASURE": "Brisanje",
+        "RECTIFICATION": "Ispravka",
+        "RESTRICTION": "Ograničenje obrade",
+        "OBJECTION": "Prigovor"
+      },
+      "channel": {
+        "EMAIL": "E-mail",
+        "PAPER": "Pisani zahtjev",
+        "PORTAL": "Portal",
+        "IN_PERSON": "Lično"
+      },
+      "status": {
+        "RECEIVED": "Primljen",
+        "IN_PROGRESS": "U obradi",
+        "EXTENDED": "Produžen rok",
+        "COMPLETED": "Završen",
+        "REJECTED": "Odbijen"
+      },
+      "daysLeft_one": "još {{count}} dan",
+      "daysLeft_few": "još {{count}} dana",
+      "daysLeft_other": "još {{count}} dana",
+      "overdue_one": "kasni {{count}} dan",
+      "overdue_few": "kasni {{count}} dana",
+      "overdue_other": "kasni {{count}} dana",
+      "form": {
+        "subjectUser": "Osoba u sistemu",
+        "subjectUserHint": "Ako osoba ima račun, izaberite je; izvoz i anonimizacija se tada mogu pokrenuti direktno.",
+        "subjectLabel": "Oznaka osobe",
+        "subjectLabelHint": "Za osobe bez računa: ime ili referenca (bez nepotrebnih podataka).",
+        "channel": "Kanal prijema",
+        "receivedAt": "Datum prijema",
+        "deadlineHint": "Rok: 30 dana od datuma prijema.",
+        "notes": "Napomena",
+        "notesHint": "Interna napomena; ne upisujte posebne kategorije podataka.",
+        "save": "Evidentiraj"
+      },
+      "detail": {
+        "dueAt": "Rok",
+        "extendedDueAt": "Produženi rok",
+        "closedAt": "Zatvoren",
+        "start": "Započni obradu",
+        "startedToast": "Obrada zahtjeva je započeta.",
+        "extend": "Produži rok za 60 dana",
+        "extendHint": "Osobu morate obavijestiti o produženju i razlozima u roku od 30 dana od prijema.",
+        "extensionReason": "Razlog produženja",
+        "extendedToast": "Rok je produžen.",
+        "outcome": "Ishod",
+        "resultRef": "Referenca rezultata",
+        "resultRefHint": "Npr. broj izvoza, broj dopisa ili arhivski broj.",
+        "rejectionReason": "Razlog odbijanja",
+        "rejectionHint": "Osobu obavijestite o razlozima i pravu na prigovor Agenciji za zaštitu ličnih podataka.",
+        "close": "Zatvori zahtjev",
+        "closedToast": "Zahtjev je zatvoren.",
+        "toExport": "Pripremi izvoz",
+        "toAnonymization": "Otvori anonimizaciju"
+      }
+    },
+    "anonymization": {
+      "intro": "Trajna anonimizacija deaktiviranih osoba. Ime, e-mail i login se zamjenjuju pseudonimom; tiketi i metrika ostaju. Radnja je nepovratna.",
+      "candidatesTitle": "Kandidati (neaktivni 180+ dana)",
+      "candidatesEmptyTitle": "Nema kandidata",
+      "candidatesEmptyBody": "Nijedna osoba nije neaktivna duže od 180 dana.",
+      "review": "Procijeni",
+      "otherUser": "Druga osoba",
+      "otherUserHint": "Samo deaktivirani korisnici koji još nisu anonimizirani.",
+      "otherUserPlaceholder": "Pretraži neaktivne korisnike…",
+      "historyTitle": "Historija anonimizacija",
+      "historyEmpty": "Još nema anonimizacija.",
+      "approve": "Odobri",
+      "cancel": "Otkaži",
+      "approvedToast": "Anonimizacija je odobrena i stavljena u red.",
+      "pendingToast": "Zahtjev čeka odobrenje drugog SUPER_ADMIN-a.",
+      "queuedToast": "Anonimizacija je stavljena u red.",
+      "report": "Izvještaj",
+      "reportHint": "Broj izmijenjenih zapisa po vrsti. Izvještaj ne sadrži lične podatke.",
+      "nothingToChange": "Nema zapisa za izmjenu.",
+      "blockedTitle": "Anonimizacija nije moguća",
+      "previewTitle": "Pregled izmjena",
+      "examples": "Primjeri zamjena",
+      "examplesHint": "Isječci teksta u kojima će ime, e-mail ili login biti zamijenjeni.",
+      "countsTitle": "Zapisi po vrsti",
+      "deleteOwnAttachments": "Obriši priloge koje je osoba postavila",
+      "deleteOwnAttachmentsHint": "Zadano se prilozi zadržavaju (mogu biti poslovna dokumentacija).",
+      "secondApproverNote": "Uključeno je pravilo „četiri oka”: nakon slanja zahtjev mora odobriti drugi SUPER_ADMIN.",
+      "confirmEmail": "Upišite e-mail osobe za potvrdu",
+      "confirmEmailHint": "Lijepljenje je isključeno; upišite adresu ručno.",
+      "irreversible": "Ovo je nepovratno. Nakon izvršenja osobu više nije moguće povezati s podacima.",
+      "submit": "Anonimiziraj",
+      "submitForApproval": "Pošalji na odobrenje",
+      "approveTitle": "Odobri anonimizaciju: {{name}}",
+      "approvalUntil": "čeka odobrenje do {{date}}",
+      "assessTitle": "Procjena: {{name}}",
+      "confirmTitle": "Anonimizacija: {{name}}",
+      "columns": {
+        "user": "Osoba",
+        "inactiveSince": "Neaktivan od",
+        "deactivatedBy": "Deaktivirao",
+        "tickets": "Tiketi",
+        "pseudonym": "Pseudonim",
+        "status": "Status",
+        "requestedBy": "Pokrenuo",
+        "approvedBy": "Odobrio",
+        "created": "Kreirano",
+        "completed": "Završeno"
+      },
+      "deactivatedBy": {
+        "directory": "Direktorij (AD)",
+        "admin": "Administrator"
+      },
+      "status": {
+        "PENDING_APPROVAL": "Čeka odobrenje",
+        "QUEUED": "U redu",
+        "RUNNING": "U toku",
+        "COMPLETED": "Završeno",
+        "FAILED": "Neuspjelo",
+        "CANCELLED": "Otkazano"
+      },
+      "blockers": {
+        "active": "Račun je aktivan; prvo ga deaktivirajte.",
+        "active_in_directory": "Osoba je još aktivna u direktoriju (AD).",
+        "super_admin": "Osoba je SUPER_ADMIN.",
+        "last_admin": "Osoba je posljednji administrator.",
+        "legal_hold": "Osoba je pod pravnom blokadom.",
+        "open_assigned_tickets": "Osoba ima otvorene dodijeljene tikete.",
+        "export_in_progress": "Izvoz podataka za osobu je u toku.",
+        "already_anonymized": "Osoba je već anonimizirana.",
+        "erasure_in_progress": "Anonimizacija je već pokrenuta.",
+        "self": "Ne možete anonimizirati sebe."
+      },
+      "preview": {
+        "ticketsInScope": "Tiketi u obuhvatu",
+        "ticketsOnLegalHold": "Pod pravnom blokadom (preskaču se)",
+        "textReplacements": "Zamjene u tekstu"
+      }
+    },
+    "exports": {
+      "intro": "Kopija podataka osobe (ZIP s JSON-om i prilozima). Preuzimanje je ograničeno na podnosioca, traži MFA i vrijedi 7 dana.",
+      "createTitle": "Novi izvoz",
+      "subject": "Osoba",
+      "linkedRequest": "Povezano sa zahtjevom",
+      "includeAttachments": "Uključi priloge",
+      "includeInternalNotes": "Uključi interne bilješke drugih osoba",
+      "internalNotesReason": "Razlog za interne bilješke",
+      "internalNotesReasonHint": "Zadano isključeno; razlog se bilježi u auditu.",
+      "handoverHint": "Preuzeta datoteka nije šifrovana. Predajte je osobi sigurnim kanalom (npr. lično ili šifrovanom porukom) i obrišite lokalnu kopiju.",
+      "create": "Pripremi izvoz",
+      "queuedToast": "Izvoz je u pripremi.",
+      "listTitle": "Izvozi",
+      "emptyTitle": "Nema izvoza",
+      "emptyBody": "Pripremljeni izvozi se prikazuju ovdje 7 dana.",
+      "withInternalNotes": "s internim bilješkama",
+      "download": "Preuzmi",
+      "onlyRequester": "Samo podnosilac",
+      "onlyRequesterHint": "Preuzeti može samo osoba koja je pripremila izvoz.",
+      "downloadTitle": "Preuzimanje izvoza: {{name}}",
+      "columns": {
+        "subject": "Osoba",
+        "status": "Status",
+        "size": "Veličina",
+        "created": "Kreirano",
+        "expires": "Ističe",
+        "downloads": "Preuzimanja"
+      },
+      "status": {
+        "QUEUED": "U redu",
+        "RUNNING": "U pripremi",
+        "READY": "Spremno",
+        "FAILED": "Neuspjelo",
+        "EXPIRED": "Isteklo"
+      }
+    },
+    "retention": {
+      "intro": "Retencija uklanja sadržaj nakon isteka roka; metrika ostaje. Noćno pokretanje u {{time}} ({{zone}}), najviše {{minutes}} min.",
+      "settingsLink": "Rokovi se mijenjaju u postavkama.",
+      "categories": {
+        "attachments": {
+          "name": "Prilozi",
+          "hint": "Datoteke priloga zatvorenih tiketa; tiket i metrika ostaju."
+        },
+        "ticketContent": {
+          "name": "Sadržaj tiketa",
+          "hint": "Tekst opisa i poruka zatvorenih tiketa; brojevi, statusi i vremena ostaju."
+        },
+        "audit": {
+          "name": "Audit zapisi",
+          "hint": "Stari audit zapisi se pečate kontrolnom tačkom pa uklanjaju."
+        },
+        "sessions": {
+          "name": "Sesije",
+          "hint": "Istekle i odjavljene sesije (IP, preglednik)."
+        },
+        "emailDeliveries": {
+          "name": "Isporuke e-maila",
+          "hint": "Zapisi o slanju e-maila (primalac, status)."
+        },
+        "requestRegister": {
+          "name": "Registar zahtjeva",
+          "hint": "Zatvoreni zahtjevi nosilaca podataka."
+        }
+      },
+      "days_one": "{{count}} dan",
+      "days_few": "{{count}} dana",
+      "days_other": "{{count}} dana",
+      "disabled": "Isključeno",
+      "gate": {
+        "not_required": "Probni prolaz nije potreban.",
+        "dry_run": "Probni prolaz je urađen; izvršenje je dozvoljeno.",
+        "previous_execution": "Kategorija je već izvršavana s istim rokom.",
+        "disabled": "Kategorija je isključena.",
+        "dry_run_required": "Prvo pokrenite probni prolaz s trenutnim rokom."
+      },
+      "lastDryRun": "Posljednji probni prolaz",
+      "lastExecution": "Posljednje izvršenje",
+      "runSummary_one": "{{formatted}} stavka · {{date}}",
+      "runSummary_few": "{{formatted}} stavke · {{date}}",
+      "runSummary_other": "{{formatted}} stavki · {{date}}",
+      "dryRun": "Probni prolaz",
+      "runNow": "Pokreni sada",
+      "dryRunQueued": "Probni prolaz je pokrenut.",
+      "runQueued": "Retencija je pokrenuta.",
+      "runsTitle": "Pokretanja",
+      "filter": "Kategorija",
+      "allCategories": "Sve kategorije",
+      "runsEmpty": "Još nema pokretanja.",
+      "execution": "Izvršenje",
+      "refsTruncated": "Lista referenci je skraćena.",
+      "columns": {
+        "category": "Kategorija",
+        "mode": "Način",
+        "range": "Rok",
+        "items": "Stavke",
+        "freed": "Oslobođeno",
+        "started": "Pokrenuto",
+        "status": "Status"
+      },
+      "runStatus": {
+        "RUNNING": "U toku",
+        "COMPLETED": "Završeno",
+        "PARTIAL": "Djelimično",
+        "FAILED": "Neuspjelo",
+        "SKIPPED": "Preskočeno"
+      },
+      "runNowTitle": "Pokrenuti retenciju: {{category}}?",
+      "runNowBody_one": "Sadržaj stariji od {{count}} dana biće trajno uklonjen. Stavke pod pravnom blokadom se preskaču.",
+      "runNowBody_few": "Sadržaj stariji od {{count}} dana biće trajno uklonjen. Stavke pod pravnom blokadom se preskaču.",
+      "runNowBody_other": "Sadržaj stariji od {{count}} dana biće trajno uklonjen. Stavke pod pravnom blokadom se preskaču."
+    },
+    "holds": {
+      "intro": "Pravna blokada čuva tiket ili osobu od retencije i anonimizacije (npr. spor ili istraga). Postavljanje i uklanjanje traže razlog i bilježe se u auditu.",
+      "newTitle": "Nova blokada",
+      "target": "Vrsta",
+      "targetTicket": "Tiket",
+      "targetUser": "Osoba",
+      "ticketNumber": "Broj tiketa",
+      "ticketNumberHint": "Npr. HD-2026-000123.",
+      "label": "Tiket / osoba",
+      "reason": "Razlog",
+      "since": "Od",
+      "set": "Postavi blokadu",
+      "clear": "Ukloni blokadu",
+      "setBody": "Dok je blokada aktivna, retencija i anonimizacija preskaču ovaj zapis.",
+      "clearBody": "Nakon uklanjanja zapis ponovo podliježe retenciji.",
+      "setToast": "Pravna blokada je postavljena.",
+      "clearedToast": "Pravna blokada je uklonjena.",
+      "emptyTitle": "Nema aktivnih blokada",
+      "emptyBody": "Tiketi i osobe pod pravnom blokadom prikazuju se ovdje.",
+      "effectHint": "Blokadu vide samo korisnici s ovlaštenjem privacy.view.",
+      "setTitle": "Pravna blokada: {{label}}",
+      "clearTitle": "Ukloniti blokadu: {{label}}?"
+    },
+    "record": {
+      "intro": "Evidencija aktivnosti obrade generisana iz trenutne konfiguracije. Ispis ili PDF preko preglednika.",
+      "language": "Jezik",
+      "openNotice": "Obavještenje o obradi",
+      "print": "Ispis / PDF",
+      "missingTitle": "Nedostaju podaci za evidenciju",
+      "missingAction": "Dopunite u postavkama.",
+      "generated": "Generisano {{when}} · {{who}}",
+      "missingFields": {
+        "name": "naziv rukovaoca",
+        "address": "adresa rukovaoca",
+        "dpoName": "ime DPO",
+        "dpoEmail": "e-mail DPO",
+        "purpose": "svrha obrade",
+        "legalBasis": "pravni osnov"
+      }
+    },
+    "notice": {
+      "title": "Obavještenje o obradi ličnih podataka",
+      "menu": "Obavještenje o privatnosti",
+      "loginLink": "Obavještenje o obradi ličnih podataka",
+      "fallbackLocale": "Tekst na ovom jeziku još nije objavljen; prikazana je druga jezička verzija.",
+      "unavailable": "Obavještenje trenutno nije objavljeno. Obratite se administratoru.",
+      "failed": "Obavještenje se nije moglo učitati. Pokušajte ponovo.",
+      "backToApp": "Nazad u aplikaciju",
+      "backToLogin": "Nazad na prijavu"
+    },
+    "markers": {
+      "redacted": "Anonimizirano",
+      "redactedHint": "Imena u poruci su zamijenjena pseudonimom.",
+      "legalHold": "Pravna blokada",
+      "legalHoldHint": "Retencija i anonimizacija preskaču ovaj tiket.",
+      "attachmentsPurged": "Prilozi ovog tiketa uklonjeni su retencijom {{date}}."
+    },
+    "userSection": {
+      "heading": "Privatnost",
+      "anonymized": "Anonimiziran {{date}}",
+      "none": "Nema oznaka privatnosti.",
+      "export": "Izvoz podataka",
+      "anonymize": "Anonimizacija",
+      "deactivateFirst": "Anonimizacija je moguća tek nakon deaktivacije računa."
+    },
+    "counts": {
+      "activities": "Aktivnosti",
+      "approvals": "Odobrenja",
+      "attachmentNames": "Imena priloga",
+      "attachmentsDeleted": "Obrisani prilozi",
+      "changeLogs": "Zapisi izmjena",
+      "confidentialGrants": "Pristupi povjerljivim tiketima",
+      "csat": "CSAT ocjene (komentar)",
+      "digestItems": "Stavke dnevnog pregleda",
+      "emailDeliveries": "Isporuke e-maila",
+      "forwardReasons": "Razlozi prosljeđivanja",
+      "groups": "Grupe",
+      "inboundEmails": "Ulazni e-mailovi",
+      "messages": "Poruke",
+      "mfa": "MFA podešavanja",
+      "notificationPreferences": "Postavke obavještenja",
+      "notificationReceipts": "Potvrde čitanja obavještenja",
+      "notificationSchedule": "Raspored obavještenja",
+      "notificationsDeleted": "Vlastita obavještenja (obrisana)",
+      "notificationsScrubbed": "Obavještenja drugih (očišćena)",
+      "notificationsOwn": "Vlastita obavještenja",
+      "passwordHistory": "Historija lozinki",
+      "personalTemplates": "Lični šabloni",
+      "recoveryCodes": "Rezervni kodovi",
+      "reportRecipients": "Primalac izvještaja",
+      "reportSchedulesPaused": "Pauzirani zakazani izvještaji",
+      "roles": "Uloge",
+      "savedViews": "Sačuvani pogledi",
+      "sessions": "Sesije",
+      "textReplacements": "Zamjene u tekstu",
+      "tickets": "Tiketi (tekst)",
+      "ticketsOnLegalHoldSkipped": "Tiketi pod pravnom blokadom (preskočeni)",
+      "timeLogs": "Evidencija vremena",
+      "auditRedacted": "Redigovani audit zapisi",
+      "auditSealed": "Zapečaćeni audit zapisi",
+      "followerLinks": "Praćenja tiketa",
+      "attachmentsUploaded": "Postavljeni prilozi",
+      "auditRowsLinked": "Povezani audit zapisi"
     }
   }
 }

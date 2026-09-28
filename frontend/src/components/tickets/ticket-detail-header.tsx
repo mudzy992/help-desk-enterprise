@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TicketForwardIndicator } from "@/components/tickets/ticket-forward-indicator";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Pause } from "lucide-react";
+import { ArrowLeft, Lock, Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TicketConfidentialBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
 import { TicketConfidentialBanner } from "@/components/tickets/ticket-confidential-banner";
@@ -105,6 +105,14 @@ export function TicketDetailHeader({
                 </Badge>
               ) : null}
               {ticket.isConfidential ? <TicketConfidentialBadge /> : null}
+              {ticket.privacy?.legalHold === true ? (
+                <span title={t("privacy.markers.legalHoldHint")} data-testid="ticket-legal-hold">
+                  <Badge tone="hold">
+                    <Lock size={10} aria-hidden="true" />
+                    {t("privacy.markers.legalHold")}
+                  </Badge>
+                </span>
+              ) : null}
               <TicketForwardIndicator
                 ticket={ticket}
                 variant="chip"

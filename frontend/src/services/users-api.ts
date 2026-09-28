@@ -31,6 +31,10 @@ export type UserSummary = {
   readonly policyPackKey: string | null;
   readonly openTicketCount: number;
   readonly mfa: null;
+  /** Paket 2.6: set once the person was anonymized (the name is then a pseudonym). */
+  readonly anonymizedAt?: string | null;
+  /** Paket 2.6 (§7.4): retention and anonymization skip this person. */
+  readonly legalHold?: boolean;
 };
 
 export function listUserRoles(

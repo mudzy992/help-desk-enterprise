@@ -9,6 +9,7 @@ export const navigationAccessKinds = {
   staff: "staff",
   reports: "reports",
   configVersions: "configVersions",
+  privacy: "privacy",
 } as const;
 
 export type NavigationAccessKind =
@@ -62,6 +63,18 @@ export function canOpenReports(capabilities: SessionCapabilities): boolean {
     capabilities.hasPermission(permissionKeys.reportsExport) ||
     capabilities.hasPermission(permissionKeys.auditExport)
   );
+}
+
+/**
+ * Paket 2.6 (§11): the privacy area needs `privacy.view` (ADMIN, SUPER_ADMIN
+ * and a DPO role that holds it); the tabs inside follow manage/anonymize.
+ */
+export function canOpenPrivacy(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.privacyView);
 }
 
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
@@ -121,6 +134,8 @@ export function canAccessNavigationItem(
       return canOpenReports(capabilities);
     case navigationAccessKinds.configVersions:
       return canOpenConfigVersionsPage(capabilities);
+    case navigationAccessKinds.privacy:
+      return canOpenPrivacy(capabilities);
     default:
       return false;
   }

@@ -22,6 +22,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.configVersions": "Verzije konfiguracije",
   "navigation.workflow": "Tok statusa",
   "navigation.templates": "Šabloni i playbooks",
+  "navigation.privacy": "Privatnost",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {
@@ -98,6 +99,7 @@ describe("filterNavigationCommands", () => {
       "/routing",
       "/sla",
       "/admin/workflow",
+      "/privacy",
       "/admin/config-versions",
     ]);
   });

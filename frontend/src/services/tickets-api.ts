@@ -85,8 +85,16 @@ export type TicketResponse = {
   readonly csat?: TicketCsatDescriptor;
   readonly redactionWarnings?: readonly RedactionMatch[];
   readonly duplicateWarnings?: readonly DuplicateTicketMatch[];
+  /** Paket 2.6 (§11): only on the detail; `legalHold` only for privacy.view holders. */
+  readonly privacy?: TicketPrivacyMarkers;
   readonly createdAt: string;
   readonly updatedAt: string;
+};
+
+export type TicketPrivacyMarkers = {
+  readonly legalHold: boolean;
+  /** Retention removed the attachments of this ticket at this moment. */
+  readonly attachmentsPurgedAt: string | null;
 };
 
 export type RedactionMatch = {

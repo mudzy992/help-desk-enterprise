@@ -57,6 +57,9 @@ export type TicketRecord = {
   readonly priorityOverriddenById?: string | null;
   readonly mergedAt?: Date | null;
   readonly mergedById?: string | null;
+  /** Paket 2.6 (optional for fixtures). */
+  readonly legalHoldAt?: Date | null;
+  readonly attachmentsPurgedAt?: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
