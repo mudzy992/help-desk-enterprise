@@ -21,7 +21,8 @@ import { authorizedHeaders, login } from './lib/http-helpers.js';
  *   - dashboard: the sanitised `/reports/dashboard` (§9: p95 < 400 ms).
  *
  * Budgets can be overridden with TRENDS_COLD_P95_MS, TRENDS_WARM_P95_MS and
- * DASHBOARD_P95_MS. The session must belong to a user with `reports.view`
+ * DASHBOARD_P95_MS. With MFA enabled pass ACCESS_TOKEN (browser session)
+ * instead of REPORTS_EMAIL / REPORTS_PASSWORD. The session must belong to a user with `reports.view`
  * for the given unit (ADMIN or a scoped agent).
  */
 
@@ -77,6 +78,11 @@ export const options = {
 export function setup() {
   if (organizationalUnitId.length === 0) {
     fail('ORG_UNIT_ID is required (root organizational unit id).');
+  }
+  // Accounts with MFA cannot log in from k6: pass the session token instead
+  // (browser: localStorage `ep-helpdesk.session` → accessToken, valid ~1 h).
+  if (env.ACCESS_TOKEN) {
+    return { token: env.ACCESS_TOKEN };
   }
   const token = login(perfConfig, {
     email: env.REPORTS_EMAIL || perfConfig.credentials.agent.email,

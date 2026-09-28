@@ -127,3 +127,5 @@ k6 run -e BASE_URL=https://api.desk.ba101.top -e ORG_UNIT_ID=<id korijenske OJ> 
 ```
 
 Tri faze po `REPORT_DURATION` (zadano 1m, `REPORT_VU`=5): trend od 36 mjeseci bez keša (svaka iteracija ima jedinstven prozor), trend od 12 mjeseci iz keša i `/reports/dashboard`. Budžeti p95 se mijenjaju preko `TRENDS_COLD_P95_MS` (1000), `TRENDS_WARM_P95_MS` (150) i `DASHBOARD_P95_MS` (400). Ispravnost SQL agregacije provjerava `perf/report-trends-parity.cjs`.
+
+Nalog s MFA se ne može prijaviti iz k6. Umjesto e-maila i lozinke proslijedi `-e ACCESS_TOKEN=…` iz prijavljenog preglednika (DevTools → Console: `JSON.parse(localStorage.getItem('ep-helpdesk.session')).accessToken`). Token važi oko 1 h, a test traje oko 3 min.
