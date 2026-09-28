@@ -370,8 +370,18 @@ export function csv(header: readonly string[], rows: readonly (readonly unknown[
   return `\uFEFF${[header, ...rows].map((row) => row.map(cell).join(';')).join('\r\n')}\r\n`;
 }
 
+/** Control characters (U+0000–U+001F) → '_', without a control-character regex (no-control-regex). */
+function stripControlCharacters(value: string): string {
+  let out = '';
+  for (const char of value) out += char.charCodeAt(0) < 0x20 ? '_' : char;
+  return out;
+}
+
 export function safeName(value: string): string {
-  const cleaned = value.normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/^\.+/, '_').trim();
+  const cleaned = stripControlCharacters(value.normalize('NFC'))
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/^\.+/, '_')
+    .trim();
   return (cleaned.length === 0 ? 'file' : cleaned).slice(0, 120);
 }
 

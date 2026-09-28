@@ -202,7 +202,6 @@ describeIfDatabase('privacy export (integration)', () => {
     const started = Date.now();
     const summary = await service.execute(view.id);
     const elapsed = Date.now() - started;
-    // eslint-disable-next-line no-console
     console.log(`export perf: ${summary?.counts.tickets} tickets, ${summary?.counts.messages} messages in ${elapsed} ms`);
     expect(summary?.counts.tickets).toBe(5001);
     expect(elapsed).toBeLessThan(60_000);

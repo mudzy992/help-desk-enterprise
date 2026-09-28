@@ -9,6 +9,7 @@ import { persistInAppNotification } from '../../notifications/fan-out/persist-in
 import { PrivacyError } from '../privacy.error';
 import { DataSubjectRequestsService } from './data-subject-requests.service';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loose in-memory Prisma double
 type Row = Record<string, any>;
 const day = 86_400_000;
 const now = new Date('2026-10-10T10:00:00.000Z');

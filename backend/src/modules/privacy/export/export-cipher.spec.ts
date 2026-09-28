@@ -13,8 +13,8 @@ async function run(input: Buffer, transform: NodeJS.ReadWriteStream, chunk = 100
   const pieces: Buffer[] = [];
   for (let i = 0; i < input.length; i += chunk) pieces.push(input.subarray(i, i + chunk));
   const out: Buffer[] = [];
-  await pipeline(Readable.from(pieces), transform, async function* (source) {
-    for await (const part of source) out.push(part as Buffer);
+  await pipeline(Readable.from(pieces), transform, async (source: AsyncIterable<string | Buffer>) => {
+    for await (const part of source) out.push(Buffer.from(part));
   });
   return Buffer.concat(out);
 }
