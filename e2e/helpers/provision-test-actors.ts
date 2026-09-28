@@ -74,6 +74,15 @@ async function ensureUser(
     (user) => user.email.toLowerCase() === input.email.toLowerCase(),
   );
   if (existing !== undefined) {
+    // Tests scope their data to the first unit of the tree (`tree[0]`). When
+    // the tree changes after the actors were created (new root, AD sync,
+    // renamed units) an old home unit makes every USER ticket creation fail
+    // with FORBIDDEN (users may only open tickets in their home unit). Keep
+    // the actors aligned on every run; PATCH is idempotent.
+    await api.requestJson(`/users/${existing.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ organizationalUnitId: input.organizationalUnitId }),
+    });
     return existing.id;
   }
   const created = await api.requestJson<{ id: string }>('/users', {
