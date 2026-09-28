@@ -48,6 +48,10 @@ import { RetentionService } from './retention/retention.service';
 import { AnonymizationIdParamDto, IdentityCodeDto, RequestAnonymizationDto } from './anonymization/anonymization.dto';
 import { AnonymizationRequestService } from './anonymization/anonymization-request.service';
 import { AnonymizationService } from './anonymization/anonymization.service';
+import { CreatePrivacyExportDto } from './export/export.dto';
+import { PrivacyExportQueue } from './export/export-queue.service';
+import { PrivacyExportService } from './export/export.service';
+import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 
 /**
  * Paket 2.6 (§4): register of data subject requests. Reading needs
@@ -65,6 +69,9 @@ export class PrivacyController {
     private readonly legalHoldService: LegalHoldService,
     private readonly anonymizationService: AnonymizationService,
     private readonly anonymizationRequests: AnonymizationRequestService,
+    private readonly exportService: PrivacyExportService,
+    private readonly exportQueue: PrivacyExportQueue,
+    private readonly identityConfirmer: PrivacyIdentityConfirmer,
   ) {}
 
   @Get('requests')
@@ -268,6 +275,54 @@ export class PrivacyController {
   @RequirePermissions(permissionKeys.privacyAnonymize)
   cancelErasure(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
     return this.call(() => this.anonymizationRequests.cancel(params.id, privacyActorOf(request)));
+  }
+
+  // --- §5 Data-subject export (DPO / admin with `privacy.manage`) -------------
+
+  @Post('exports')
+  @HttpCode(202)
+  @RequirePermissions(permissionKeys.privacyManage)
+  createExport(@Body() body: CreatePrivacyExportDto, @Req() request: AuthenticatedHttpRequest) {
+    return this.call(async () => {
+      const { view } = await this.exportService.create(body, privacyActorOf(request));
+      await this.exportQueue.enqueue(view.id);
+      return view;
+    });
+  }
+
+  @Get('exports')
+  @RequirePermissions(permissionKeys.privacyManage)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  exports(@Req() request: AuthenticatedHttpRequest) {
+    return this.call(() => this.exportService.list(privacyActorOf(request).principal.subjectId));
+  }
+
+  @Get('exports/:id')
+  @RequirePermissions(permissionKeys.privacyManage)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  exportDetail(@Param() params: AnonymizationIdParamDto, @Req() request: AuthenticatedHttpRequest) {
+    return this.call(() => this.exportService.get(params.id, privacyActorOf(request).principal.subjectId));
+  }
+
+  /** POST: the body carries the MFA code; only the requester, until the link expires. */
+  @Post('exports/:id/download')
+  @HttpCode(200)
+  @RequirePermissions(permissionKeys.privacyManage)
+  @Header('Cache-Control', 'no-store')
+  downloadExport(
+    @Param() params: AnonymizationIdParamDto,
+    @Body() body: IdentityCodeDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.call(async () => {
+      const actor = privacyActorOf(request);
+      await this.exportService.assertDownloadable(params.id, actor.principal.subjectId);
+      await this.identityConfirmer.confirm(actor, body.code);
+      const { stream, filename } = await this.exportService.openDownload(params.id, actor);
+      return new StreamableFile(stream, { type: 'application/zip', disposition: `attachment; filename="${filename}"` });
+    });
   }
 
   private async call<T>(action: () => Promise<T>): Promise<T> {

@@ -6,6 +6,7 @@ import { PrivacyConfigurationLoader } from './privacy-configuration.loader';
 import { DataSubjectRequestsService } from './requests/data-subject-requests.service';
 import { RetentionService } from './retention/retention.service';
 import { AnonymizationService } from './anonymization/anonymization.service';
+import { PrivacyExportService } from './export/export.service';
 
 @Processor(privacyQueueName)
 export class PrivacyProcessor extends WorkerHost {
@@ -16,11 +17,12 @@ export class PrivacyProcessor extends WorkerHost {
     private readonly retentionService: RetentionService,
     private readonly configurationLoader: PrivacyConfigurationLoader,
     private readonly anonymization: AnonymizationService,
+    private readonly exports: PrivacyExportService,
   ) {
     super();
   }
 
-  async process(job: Job<{ category?: unknown; actorUserId?: unknown; erasureId?: unknown }>): Promise<void> {
+  async process(job: Job<{ category?: unknown; actorUserId?: unknown; erasureId?: unknown; exportId?: unknown }>): Promise<void> {
     switch (job.name) {
       case privacyJobs.maintenance: {
         const sent = await this.requestsService.sendDueReminders().catch((error: unknown) => {
@@ -31,6 +33,7 @@ export class PrivacyProcessor extends WorkerHost {
         await this.anonymization.maintain().catch((error: unknown) => {
           this.logger.warn(`privacy_erasure_maintenance_failed reason=${errorText(error)}`);
         });
+        await this.maintainExports();
         const runs = await this.retentionService.sweepNightly();
         for (const run of runs) {
           this.logger.log(
@@ -63,8 +66,26 @@ export class PrivacyProcessor extends WorkerHost {
         if (erasure !== null) this.logger.log(`privacy_erasure erasure=${erasure.id} status=${erasure.status}`);
         return;
       }
+      case privacyJobs.exportBuild: {
+        if (typeof job.data.exportId !== 'string') return;
+        const summary = await this.exports.execute(job.data.exportId);
+        if (summary !== null) {
+          this.logger.log(
+            `privacy_export_ready export=${job.data.exportId} tickets=${summary.counts.tickets ?? 0} attachments=${summary.attachmentsIncluded}`,
+          );
+        }
+        return;
+      }
       default:
         this.logger.warn(`privacy_job_unknown name=${job.name}`);
+    }
+  }
+
+  private async maintainExports(): Promise<void> {
+    try {
+      for (const id of await this.exports.maintain()) await this.exports.execute(id);
+    } catch (error) {
+      this.logger.warn(`privacy_export_maintenance_failed reason=${errorText(error)}`);
     }
   }
 }
