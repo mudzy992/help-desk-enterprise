@@ -7,6 +7,8 @@ import { DiskTicketAttachmentStorage } from '../tickets/attachments/disk-ticket-
 import { resolveUploadRoot } from '../tickets/attachments/resolve-upload-root';
 import { InboundRawStore } from '../inbound-email/inbound-raw-store';
 import { AnonymizationService, INBOUND_RAW_STORE } from './anonymization/anonymization.service';
+import { ErasureLedger, PRIVACY_ERASURE_LEDGER } from './anonymization/erasure-ledger';
+import { ProcessingRecordService } from './record/processing-record.service';
 import { defaultPrivacyExportRoot, PRIVACY_EXPORT_ROOT, PrivacyExportService } from './export/export.service';
 
 /** Services shared by the API and the worker (no controllers, no MFA). */
@@ -16,7 +18,9 @@ export const privacyCoreProviders = [
   RetentionService,
   LegalHoldService,
   AnonymizationService,
+  { provide: PRIVACY_ERASURE_LEDGER, useFactory: () => new ErasureLedger() },
   PrivacyExportService,
+  ProcessingRecordService,
   { provide: PRIVACY_EXPORT_ROOT, useFactory: defaultPrivacyExportRoot },
   { provide: INBOUND_RAW_STORE, useFactory: () => new InboundRawStore() },
   {

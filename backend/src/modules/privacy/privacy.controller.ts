@@ -52,6 +52,7 @@ import { CreatePrivacyExportDto } from './export/export.dto';
 import { PrivacyExportQueue } from './export/export-queue.service';
 import { PrivacyExportService } from './export/export.service';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
+import { ProcessingRecordService } from './record/processing-record.service';
 
 /**
  * Paket 2.6 (§4): register of data subject requests. Reading needs
@@ -72,6 +73,7 @@ export class PrivacyController {
     private readonly exportService: PrivacyExportService,
     private readonly exportQueue: PrivacyExportQueue,
     private readonly identityConfirmer: PrivacyIdentityConfirmer,
+    private readonly recordService: ProcessingRecordService,
   ) {}
 
   @Get('requests')
@@ -323,6 +325,16 @@ export class PrivacyController {
       const { stream, filename } = await this.exportService.openDownload(params.id, actor);
       return new StreamableFile(stream, { type: 'application/zip', disposition: `attachment; filename="${filename}"` });
     });
+  }
+
+  // --- §8 Record of processing (ADMIN, SUPER_ADMIN) ---------------------------
+
+  @Get('record')
+  @RequirePermissions(permissionKeys.privacyView)
+  @AdminReadOperation()
+  @Header('Cache-Control', 'no-store')
+  record(@Query('locale') locale?: string) {
+    return this.call(() => this.recordService.build(locale === 'en' ? 'en' : 'bs'));
   }
 
   private async call<T>(action: () => Promise<T>): Promise<T> {

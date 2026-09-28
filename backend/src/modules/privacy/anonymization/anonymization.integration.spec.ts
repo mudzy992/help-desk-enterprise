@@ -14,6 +14,8 @@ import { InboundRawStore } from '../../inbound-email/inbound-raw-store';
 import { DiskTicketAttachmentStorage } from '../../tickets/attachments/disk-ticket-attachment-storage';
 import { AnonymizationService } from './anonymization.service';
 import { loadReturningAnonymizedCheck } from './returning-anonymized';
+import { ErasureLedger } from './erasure-ledger';
+import { runPrivacyReplay } from '../../../cli/privacy-replay';
 
 const url = process.env.PRIVACY_IT_DATABASE_URL;
 const describeIfDatabase = url ? describe : describe.skip;
@@ -24,6 +26,7 @@ describeIfDatabase('anonymization (integration)', () => {
   let prisma: PrismaClient;
   let service: AnonymizationService;
   let rawRoot: string;
+  let ledger: ErasureLedger;
   const stamp = Date.now();
   const email = `amra.hodzic.${stamp}@epbih.ba`;
   const rawKey = `2026-01/raw${stamp}.eml.gz`;
@@ -40,6 +43,7 @@ describeIfDatabase('anonymization (integration)', () => {
       loader as never,
       new DiskTicketAttachmentStorage(uploadRoot),
       new InboundRawStore(rawRoot),
+      (ledger = new ErasureLedger(path.join(uploadRoot, 'privacy-ledger', 'erasures.jsonl'))),
     );
 
     const unit = await prisma.organizationalUnit.create({
@@ -227,5 +231,39 @@ describeIfDatabase('anonymization (integration)', () => {
     expect(result?.status).toBe('FAILED');
     expect(result?.error).toContain('blocked:active');
     expect((await prisma.user.findUniqueOrThrow({ where: { id: other.id } })).displayName).toBe('Aktivan Korisnik');
+  });
+
+  it('writes the ledger and replays an anonymization lost in a database restore (§12)', async () => {
+    const { entries } = await ledger.read();
+    const entry = entries.find((item) => item.userId === ids.subject)!;
+    expect(entry).toMatchObject({ erasureId: ids.erasure, pseudonym: 'Bivši korisnik #AB12' });
+    expect(entry.tombstones).toHaveLength(2);
+    expect(JSON.stringify(entries)).not.toMatch(/amra|hodžić|hodzic/i);
+
+    // "Restore" a backup taken before the erasure: the person is back, the erasure row is gone.
+    await prisma.privacyErasure.delete({ where: { id: ids.erasure } });
+    await prisma.user.update({
+      where: { id: ids.subject },
+      data: { displayName: 'Amra Hodžić', email, anonymizedAt: null },
+    });
+    await prisma.ticket.update({ where: { id: ids.main }, data: { title: 'Restored Amra Hodžić' } });
+
+    const lines: string[] = [];
+    expect(await runPrivacyReplay(prisma, ledger, { apply: false, exportLedger: false }, (l) => lines.push(l))).toBe(0);
+    expect(lines).toContain(`replay erasure=${ids.erasure} user=${ids.subject}`);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: ids.subject } })).anonymizedAt).toBeNull();
+
+    expect(await runPrivacyReplay(prisma, ledger, { apply: true, exportLedger: false }, (l) => lines.push(l))).toBe(0);
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: ids.subject } });
+    expect([user.displayName, user.anonymizedAt !== null]).toEqual(['Bivši korisnik #AB12', true]);
+    expect((await prisma.ticket.findUniqueOrThrow({ where: { id: ids.main } })).title).toBe('Restored Bivši korisnik #AB12');
+    expect((await prisma.privacyErasure.findUniqueOrThrow({ where: { id: ids.erasure } })).status).toBe('COMPLETED');
+
+    // Second run: nothing left; export-ledger finds nothing missing.
+    lines.length = 0;
+    expect(await runPrivacyReplay(prisma, ledger, { apply: true, exportLedger: false }, (l) => lines.push(l))).toBe(0);
+    expect(lines).toContain('to_replay=0');
+    expect(await runPrivacyReplay(prisma, ledger, { apply: false, exportLedger: true }, (l) => lines.push(l))).toBe(0);
+    expect(lines).toContain('export_ledger added=0');
   });
 });

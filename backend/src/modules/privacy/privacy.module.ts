@@ -5,6 +5,7 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 import { PrivacyController } from './privacy.controller';
+import { PrivacyNoticeController } from './record/privacy-notice.controller';
 import { privacyCoreProviders } from './privacy.providers';
 import { privacyQueueName } from './privacy.constants';
 import { AnonymizationRequestService } from './anonymization/anonymization-request.service';
@@ -20,7 +21,7 @@ import { RetentionQueueService } from './retention/retention-queue.service';
     // Producer only: the worker owns the processor.
     BullModule.registerQueue({ name: privacyQueueName }),
   ],
-  controllers: [PrivacyController],
+  controllers: [PrivacyController, PrivacyNoticeController],
   providers: [...privacyCoreProviders, PrivacyIdentityConfirmer, RetentionQueueService, AnonymizationRequestService, PrivacyExportQueue],
 })
 export class PrivacyModule {}

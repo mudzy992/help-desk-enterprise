@@ -1139,7 +1139,10 @@
         "user_temporary_password": "Temporary password",
         "notification_digest": "Daily digest",
         "report_weekly_tickets": "Weekly ticket review",
-        "report_scheduled": "Scheduled report"
+        "report_scheduled": "Scheduled report",
+        "privacy_retention_weekly": "Privacy: weekly retention report",
+        "privacy_erasure_completed": "Privacy: anonymization completed",
+        "report_schedule_paused": "Scheduled report paused"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",

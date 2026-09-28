@@ -1142,7 +1142,10 @@
         "user_temporary_password": "Privremena lozinka",
         "notification_digest": "Dnevni sažetak",
         "report_weekly_tickets": "Sedmični pregled tiketa",
-        "report_scheduled": "Zakazani izvještaj"
+        "report_scheduled": "Zakazani izvještaj",
+        "privacy_retention_weekly": "Privatnost: sedmični izvještaj zadržavanja",
+        "privacy_erasure_completed": "Privatnost: anonimizacija završena",
+        "report_schedule_paused": "Zakazani izvještaj pauziran"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",

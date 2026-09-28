@@ -60,6 +60,17 @@ Preduslov: Coolify Environment ključevi iz `.env.example` već na ciljnom stack
 3. Deploy compose (`ops/COOLIFY.md`). Backend radi `prisma migrate deploy` pa API. **Ne** pokretati install wizard na restore-anoj bazi.
 4. Ako running config nije konzistentan, a `ConfigVersion` red postoji u restore-anoj bazi: `validate` pa `activate`. Nema import API-ja za off-box JSON — fajl je fallback (inspect/diff; ručni unos u `ConfigVersion.snapshot` samo ako dump nije upotrebljiv).
 5. Health: `GET https://api.…/health`. Zatim verifikacija ispod. Cilj: stack + 4 checka unutar 4h.
+6. **Obavezno (paket 2.6, ZZLP):** ponovo primijeniti anonimizacije izvršene nakon backupa baze. Ledger
+   `uploads/privacy-ledger/erasures.jsonl` nije u bazi, pa je preživio restore:
+   ```bash
+   docker exec -i "$BACKEND" node dist/src/cli/privacy-replay.js            # pregled: "replay …" linije, to_replay=N
+   docker exec -i "$BACKEND" node dist/src/cli/privacy-replay.js --apply    # izvršava; exit 0 = sve primijenjeno
+   ```
+   Exit 2 znači da je neki unos blokiran (npr. korisnik je u backupu još aktivan). Razlog je u ispisu i na
+   stranici Privatnost → Anonimizacija. Ledger je u uploads volumenu, pa uploads arhiva mora biti **ista ili
+   novija** od trenutka incidenta. Ako je stara baza još dostupna, prije restore-a pokrenuti
+   `privacy-replay.js --export-ledger` na njoj: dopisuje u ledger završene anonimizacije koje u njemu fale.
+   Retencija se ne ponavlja ručno. Noćni posao sam ponovo briše sve što je starije od roka.
 
 ## Restore drill checklist (min. 1× mjesečno)
 

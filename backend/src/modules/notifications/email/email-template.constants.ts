@@ -18,6 +18,10 @@ export const emailTemplateKeys = [
   'report.weekly_tickets',
   // Paket 2.5: scheduled report (KPI tables, CSV attachments).
   'report.scheduled',
+  // Paket 2.6: privacy notices to administrators (no ticket card).
+  'privacy.retention_weekly',
+  'privacy.erasure_completed',
+  'report.schedule_paused',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -28,7 +32,10 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'user.temporary_password' &&
     key !== 'notification.digest' &&
     key !== 'report.weekly_tickets' &&
-    key !== 'report.scheduled',
+    key !== 'report.scheduled' &&
+    key !== 'privacy.retention_weekly' &&
+    key !== 'privacy.erasure_completed' &&
+    key !== 'report.schedule_paused',
 );
 
 export const emailLocales = ['bs', 'en'] as const;

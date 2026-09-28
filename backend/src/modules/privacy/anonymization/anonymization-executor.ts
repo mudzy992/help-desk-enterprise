@@ -15,6 +15,12 @@ export type AnonymizationSubject = {
 
 export type AnonymizationCounts = Record<string, number>;
 
+export type AnonymizationResult = {
+  readonly counts: AnonymizationCounts;
+  /** Scheduled reports left without recipients (their owners are told, §6.2). */
+  readonly pausedScheduleIds: readonly string[];
+};
+
 export type AnonymizationPreview = {
   readonly ticketsInScope: number;
   readonly ticketsOnLegalHold: number;
@@ -124,8 +130,9 @@ export class AnonymizationExecutor {
     };
   }
 
-  async execute(subject: AnonymizationSubject): Promise<AnonymizationCounts> {
+  async execute(subject: AnonymizationSubject): Promise<AnonymizationResult> {
     const counts: AnonymizationCounts = {};
+    const pausedScheduleIds: string[] = [];
     const add = (key: string, value: number) => {
       if (value > 0) counts[key] = (counts[key] ?? 0) + value;
     };
@@ -256,11 +263,18 @@ export class AnonymizationExecutor {
     if (recipientRows.length > 0) {
       await this.prisma.reportScheduleRecipient.deleteMany({ where: { userId: u } });
       add('reportRecipients', recipientRows.length);
-      const paused = await this.prisma.reportSchedule.updateMany({
+      const toPause = await this.prisma.reportSchedule.findMany({
         where: { id: { in: recipientRows.map((row) => row.scheduleId) }, enabled: true, recipients: { none: {} } },
-        data: { enabled: false },
+        select: { id: true },
       });
-      add('reportSchedulesPaused', paused.count);
+      if (toPause.length > 0) {
+        await this.prisma.reportSchedule.updateMany({
+          where: { id: { in: toPause.map((row) => row.id) } },
+          data: { enabled: false },
+        });
+        add('reportSchedulesPaused', toPause.length);
+        pausedScheduleIds.push(...toPause.map((row) => row.id));
+      }
     }
 
     // Manual directory entry of the person.
@@ -298,7 +312,7 @@ export class AnonymizationExecutor {
       });
       add('changeLogs', 1);
     }
-    return counts;
+    return { counts, pausedScheduleIds };
   }
 
   private async scrubColumn(

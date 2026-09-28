@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
 import { recordAuditEntry } from '../../audit-log/record-audit-entry';
@@ -21,6 +21,7 @@ import { redactAuditForSubject } from './audit-redaction';
 import { createPseudonym, type Pseudonym } from './pseudonym';
 import { createTextScrubber, type TextScrubber } from './text-scrubber';
 import { computeTombstones, readTombstoneKey } from './tombstones';
+import { PRIVACY_ERASURE_LEDGER, type ErasureLedger } from './erasure-ledger';
 
 export const INBOUND_RAW_STORE = Symbol('PRIVACY_INBOUND_RAW_STORE');
 
@@ -109,6 +110,7 @@ export class AnonymizationService {
     private readonly configurationLoader: PrivacyConfigurationLoader,
     @Inject(TICKET_ATTACHMENT_STORAGE) attachmentStorage: TicketAttachmentStorage,
     @Inject(INBOUND_RAW_STORE) inboundRawStore: InboundRawStore,
+    @Optional() @Inject(PRIVACY_ERASURE_LEDGER) private readonly ledger?: ErasureLedger,
   ) {
     this.executor = new AnonymizationExecutor(prisma, attachmentStorage, inboundRawStore);
   }
@@ -253,7 +255,7 @@ export class AnonymizationService {
   }
 
   /** Worker: approvals past their deadline are cancelled; forgotten or crashed jobs are resumed. */
-  async maintain(now: Date = new Date()): Promise<void> {
+  async maintain(now: Date = new Date()): Promise<ErasureView[]> {
     await this.prisma.privacyErasure.updateMany({
       where: { status: 'PENDING_APPROVAL', approvalDeadline: { lt: now } },
       data: { status: 'CANCELLED', error: 'approval_expired' },
@@ -268,11 +270,15 @@ export class AnonymizationService {
       select: { id: true },
       take: 5,
     });
+    const finished: ErasureView[] = [];
     for (const row of pending) {
-      await this.execute(row.id).catch((error: unknown) =>
-        this.logger.warn(`privacy_erasure_resume_failed erasure=${row.id} reason=${errorText(error)}`),
-      );
+      const view = await this.execute(row.id).catch((error: unknown) => {
+        this.logger.warn(`privacy_erasure_resume_failed erasure=${row.id} reason=${errorText(error)}`);
+        return null;
+      });
+      if (view !== null) finished.push(view);
     }
+    return finished;
   }
 
   /**
@@ -312,7 +318,7 @@ export class AnonymizationService {
       const subject = await this.loadSubject(erasure.userId);
       const replacement = erasure.pseudonym;
       const scrubber = subject.scrubberFor(replacement);
-      const counts = await this.executor.execute({
+      const { counts, pausedScheduleIds } = await this.executor.execute({
         userId: erasure.userId,
         email: subject.email,
         replacement,
@@ -334,7 +340,8 @@ export class AnonymizationService {
         entraObjectId: subject.entraObjectId,
       });
       const report = { ...counts, auditRedacted: audit.redacted, auditSealed: audit.sealed };
-      await this.finalizeUser(erasure, tombstones, report, now);
+      await this.finalizeUser(erasure, tombstones, report, pausedScheduleIds, now);
+      await this.appendLedger(erasure, tombstones, now);
       return this.getErasure(erasureId);
     } catch (error) {
       this.logger.warn(`privacy_erasure_failed erasure=${erasureId} reason=${errorText(error)}`);
@@ -346,6 +353,7 @@ export class AnonymizationService {
     erasure: ErasureRecord,
     tombstones: string[],
     report: Record<string, number>,
+    pausedScheduleIds: readonly string[],
     now: Date,
   ): Promise<void> {
     const tag = erasure.pseudonym.slice(erasure.pseudonym.lastIndexOf('#') + 1);
@@ -378,7 +386,13 @@ export class AnonymizationService {
           await transaction.user.updateMany({ where: { managerUserId: erasure.userId }, data: { managerUserId: null } });
           await transaction.privacyErasure.update({
             where: { id: erasure.id },
-            data: { status: 'COMPLETED', tombstones, report, completedAt: now, error: null },
+            data: {
+              status: 'COMPLETED',
+              tombstones,
+              report: { ...report, pausedScheduleIds: [...pausedScheduleIds] },
+              completedAt: now,
+              error: null,
+            },
           });
           await recordAuditEntry(transaction as never, {
             action: auditLogActions.privacySubjectAnonymized,
@@ -394,6 +408,28 @@ export class AnonymizationService {
         if (attempt >= 2 || !isUniqueViolation(error)) throw error;
       }
     }
+  }
+
+  /**
+   * After the commit: a failed append is logged loudly but does not undo the
+   * erasure (the DB row is the primary record; `privacy-replay --export-ledger`
+   * can rebuild the file from it).
+   */
+  private async appendLedger(erasure: ErasureRecord, tombstones: string[], now: Date): Promise<void> {
+    if (this.ledger === undefined) return;
+    const deleteOwnAttachments = erasure.deleteOwnAttachments;
+    await this.ledger
+      .append({
+        v: 1,
+        erasureId: erasure.id,
+        userId: erasure.userId,
+        pseudonym: erasure.pseudonym,
+        tombstones,
+        deleteOwnAttachments,
+        requestedByUserId: erasure.requestedByUserId,
+        completedAt: now.toISOString(),
+      })
+      .catch((error: unknown) => this.logger.error(`privacy_ledger_append_failed erasure=${erasure.id} reason=${errorText(error)}`));
   }
 
   private async finish(

@@ -7,6 +7,7 @@ import type { EmailTemplateRegistry } from './email-template.types';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import { renderEmailMessage, type RenderedEmailMessage } from './render-email-message';
 import { composeScheduledReportPreview } from '../../reports/schedules/scheduled-report-preview';
+import { composePrivacyEmailPreview } from '../../privacy/notices/compose-privacy-email';
 
 const sampleTicket = {
   id: 'preview-ticket',
@@ -133,6 +134,20 @@ export function renderEmailTemplatePreview(input: {
       locale,
       recipientName: input.recipientName,
     });
+  }
+  if (
+    input.key === 'privacy.retention_weekly' ||
+    input.key === 'privacy.erasure_completed' ||
+    input.key === 'report.schedule_paused'
+  ) {
+    const composed = composePrivacyEmailPreview({
+      configuration,
+      templates: input.templates,
+      key: input.key,
+      locale,
+      recipientName: input.recipientName,
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
   }
   if (input.key === 'user.temporary_password') {
     const loginUrl =
