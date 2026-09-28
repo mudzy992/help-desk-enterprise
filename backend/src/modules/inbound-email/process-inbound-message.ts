@@ -46,7 +46,8 @@ export type InboundProcessingPorts = {
 
 export type InboundProcessingOptions = {
   readonly ownAddresses: readonly string[];
-  readonly replyTokenSecret: Buffer | null;
+  /** Current secret first, then the previous one during a rotation. */
+  readonly replyTokenSecret: Buffer | readonly Buffer[] | null;
   readonly requireAuthPass: boolean;
   readonly recipientPolicy: NotificationEmailRecipientPolicy;
   readonly maxPerSenderPerHour: number;

@@ -79,6 +79,8 @@ export const auditLogActions = {
   privacyLegalHoldSet: 'privacy.legal_hold.set',
   privacyLegalHoldCleared: 'privacy.legal_hold.cleared',
   auditRedacted: 'audit.redacted',
+  // Rotacija tajni: MFA tajne ponovo šifrovane novim MFA_ENCRYPTION_KEY (CLI secrets.js).
+  securityMfaSecretsReencrypted: 'security.mfa_secrets.reencrypted',
   auditRetentionPurged: 'audit.retention.purged',
 } as const;
 
@@ -104,6 +106,7 @@ export const auditLogEntityTypes = {
   privacyExport: 'privacy_export',
   privacyErasure: 'privacy_erasure',
   retentionRun: 'retention_run',
+  securityKey: 'security_key',
 } as const;
 
 export const auditLogErrorCodes = {

@@ -1,4 +1,5 @@
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
+import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 
 /*
   Paket 2.3 (R4): the Message-ID of an outgoing ticket e-mail carries a signed
@@ -19,10 +20,13 @@ const idPattern = /^[a-z0-9]{8,40}$/i;
 const tokenPattern = /<?r\.([a-z0-9]{8,40})\.([a-z0-9]{8,40})\.([0-9a-f]{10})\.([0-9a-f]{20})@[^>\s]+>?/gi;
 
 export function readReplyTokenSecret(environment: NodeJS.Dict<string> = process.env): Buffer | null {
-  const explicit = environment.INBOUND_EMAIL_TOKEN_SECRET?.trim();
-  if (explicit !== undefined && explicit.length >= 16) {
-    return Buffer.from(explicit, 'utf8');
-  }
+  const explicit = readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET);
+  if (explicit !== null) return explicit.bytes;
+  return deriveReplyTokenSecret(environment);
+}
+
+/** The secret derived from MFA_ENCRYPTION_KEY (used when no explicit secret is set). */
+export function deriveReplyTokenSecret(environment: NodeJS.Dict<string> = process.env): Buffer | null {
   const mfa = environment.MFA_ENCRYPTION_KEY?.trim();
   if (mfa === undefined || mfa.length === 0) return null;
   const key = Buffer.from(mfa, 'base64');
@@ -49,9 +53,33 @@ export function createReplyTokenMessageId(input: {
 
 export type VerifiedReplyToken = { readonly ticketId: string; readonly recipientId: string };
 
+/**
+ * Secrets accepted when verifying an incoming reply: the current one first, then
+ * INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS during a rotation (replies to e-mails sent
+ * before the rotation keep their exact ticket and recipient match).
+ */
+export function readReplyTokenVerificationSecrets(environment: NodeJS.Dict<string> = process.env): Buffer[] {
+  const current = readReplyTokenSecret(environment);
+  const previous = readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS)?.bytes ?? null;
+  const secrets = current === null ? [] : [current];
+  if (previous !== null && (current === null || !previous.equals(current))) secrets.push(previous);
+  return secrets;
+}
+
 /** Scans header values (In-Reply-To, References) for the first valid token. */
-export function findReplyToken(headerValues: readonly string[], secret: Buffer | null): VerifiedReplyToken | null {
-  if (secret === null) return null;
+export function findReplyToken(
+  headerValues: readonly string[],
+  secretOrSecrets: Buffer | readonly Buffer[] | null,
+): VerifiedReplyToken | null {
+  const secrets = secretOrSecrets === null ? [] : Buffer.isBuffer(secretOrSecrets) ? [secretOrSecrets] : secretOrSecrets;
+  for (const secret of secrets) {
+    const found = findReplyTokenWith(headerValues, secret);
+    if (found !== null) return found;
+  }
+  return null;
+}
+
+function findReplyTokenWith(headerValues: readonly string[], secret: Buffer): VerifiedReplyToken | null {
   for (const value of headerValues) {
     for (const match of value.matchAll(tokenPattern)) {
       const [, ticketId, recipientId, nonce, signature] = match as unknown as [string, string, string, string, string];

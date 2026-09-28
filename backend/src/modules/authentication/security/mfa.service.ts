@@ -6,7 +6,13 @@ import { AccountSecurityError } from './account-security.error';
 import { AccountSecurityNotifier } from './account-security-notifier';
 import type { AccountSecurityPolicy } from './account-security-policy.loader';
 import { type MfaRequirement, resolveMfaRequirement } from './account-security-rules';
-import { decryptMfaSecret, encryptMfaSecret, MfaEncryptionKeyMissingError, readMfaEncryptionKey } from './mfa-secret-cipher';
+import {
+  decryptMfaSecretWithRotation,
+  encryptMfaSecret,
+  MfaEncryptionKeyMissingError,
+  readMfaEncryptionKey,
+  readPreviousMfaEncryptionKey,
+} from './mfa-secret-cipher';
 import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from './recovery-codes';
 import { buildOtpauthUri, generateTotpSecret, verifyTotp } from './totp';
 
@@ -239,7 +245,7 @@ export class MfaService {
 
   private decrypt(stored: string): string {
     try {
-      return decryptMfaSecret(stored, readMfaEncryptionKey());
+      return decryptMfaSecretWithRotation(stored, readMfaEncryptionKey(), readPreviousMfaEncryptionKey()).plain;
     } catch (error) {
       // Never log the secret; the reason tells a missing key from a changed one.
       mfaLogger.error(

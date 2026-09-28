@@ -27,8 +27,8 @@ koji je možda kompromitovan.
    - resetovati MFA (`ops/runbook/mfa-reset.md`).
 3. Kompromitovan server ili ključ:
    - rotirati `JWT_SECRET` (odjavljuje sve korisnike), lozinke baze i Redisa te SMTP/Graph tajne;
-   - `MFA_ENCRYPTION_KEY`, `PRIVACY_TOMBSTONE_KEY` i `PRIVACY_EXPORT_KEY` rotirati po uputama u
-     `ops/runbook/mfa-reset.md` §3 i dizajnu 2.6 §5.3/§6.6. Kod `PRIVACY_EXPORT_KEY`, izvozi šifrovani
+   - `MFA_ENCRYPTION_KEY`, `PRIVACY_TOMBSTONE_KEY` i `PRIVACY_EXPORT_KEY` rotirati po
+     `ops/runbook/rotacija-tajni.md` (faze B i C). Kod `PRIVACY_EXPORT_KEY`, izvozi šifrovani
      starim ključem postaju nečitljivi, što je ovdje poželjno.
 4. Curenje preko izvoza (izgubljen ZIP, pogrešan primalac): ZIP je šifrovan (AES-256-GCM) i preuzima se
    samo uz MFA. Provjeriti ko ga je preuzeo (upit 2.3) i je li lozinka išla istim kanalom.

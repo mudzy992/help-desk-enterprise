@@ -34,11 +34,17 @@ x-app-environment: &app-environment
   # Paket 2.1: AES-256 ključ za TOTP tajne (base64, 32 bajta: `openssl rand -base64 32`).
   # Bez njega MFA se ne može uključiti; promjena ključa poništava sve postavljene MFA.
   MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:-}
-  # Paket 2.3: signs reply tokens in notification Message-IDs (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
+  # Rotation only (ops/runbook/rotacija-tajni.md): the OLD key while secrets.js reencrypt-mfa runs; empty otherwise.
+  MFA_ENCRYPTION_KEY_PREVIOUS: ${MFA_ENCRYPTION_KEY_PREVIOUS:-}
+  # Paket 2.3: signs reply tokens in notification Message-IDs (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   INBOUND_EMAIL_TOKEN_SECRET: ${INBOUND_EMAIL_TOKEN_SECRET:-}
-  # Paket 2.6: HMAC key for anonymization tombstones (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
+  # Rotation only: the old secret, so replies to e-mails sent before the rotation still match (~30 days).
+  INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS: ${INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS:-}
+  # Paket 2.6: HMAC key for anonymization tombstones (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   PRIVACY_TOMBSTONE_KEY: ${PRIVACY_TOMBSTONE_KEY:-}
-  # Paket 2.6: master key wrapping per-export AES keys (>=16 chars; empty = derived from MFA_ENCRYPTION_KEY).
+  # Rotation only: HMACs cannot be re-keyed, so the old key stays here for as long as old erasures matter.
+  PRIVACY_TOMBSTONE_KEY_PREVIOUS: ${PRIVACY_TOMBSTONE_KEY_PREVIOUS:-}
+  # Paket 2.6: master key wrapping per-export AES keys (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   PRIVACY_EXPORT_KEY: ${PRIVACY_EXPORT_KEY:-}
 
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa

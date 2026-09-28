@@ -36,3 +36,27 @@ export function decryptMfaSecret(stored: string, key: Buffer | null): string {
   decipher.setAuthTag(Buffer.from(tag, 'base64'));
   return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
 }
+
+/**
+ * Rotation: during an MFA_ENCRYPTION_KEY rotation the old key is kept in
+ * MFA_ENCRYPTION_KEY_PREVIOUS until `secrets.js reencrypt-mfa --apply` has moved
+ * every stored secret to the current key. New secrets are always written with
+ * the current key.
+ */
+export function readPreviousMfaEncryptionKey(raw: string | undefined = process.env.MFA_ENCRYPTION_KEY_PREVIOUS): Buffer | null {
+  return readMfaEncryptionKey(raw);
+}
+
+/** Decrypts with the current key, then the previous one; reports which key worked. */
+export function decryptMfaSecretWithRotation(
+  stored: string,
+  current: Buffer | null,
+  previous: Buffer | null,
+): { readonly plain: string; readonly usedPrevious: boolean } {
+  try {
+    return { plain: decryptMfaSecret(stored, current), usedPrevious: false };
+  } catch (error) {
+    if (previous === null || (current !== null && previous.equals(current))) throw error;
+    return { plain: decryptMfaSecret(stored, previous), usedPrevious: true };
+  }
+}

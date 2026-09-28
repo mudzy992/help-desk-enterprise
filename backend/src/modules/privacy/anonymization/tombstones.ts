@@ -1,4 +1,5 @@
 import { createHash, createHmac } from 'node:crypto';
+import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 import { readMfaEncryptionKey } from '../../authentication/security/mfa-secret-cipher';
 
 /**
@@ -8,11 +9,29 @@ import { readMfaEncryptionKey } from '../../authentication/security/mfa-secret-c
  * Key: PRIVACY_TOMBSTONE_KEY, or one derived from MFA_ENCRYPTION_KEY.
  */
 export function readTombstoneKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
-  const explicit = env.PRIVACY_TOMBSTONE_KEY?.trim();
-  if (explicit !== undefined && explicit.length >= 16) return Buffer.from(explicit, 'utf8');
+  const explicit = readExplicitSecret(env.PRIVACY_TOMBSTONE_KEY);
+  if (explicit !== null) return explicit.bytes;
+  return deriveTombstoneKey(env);
+}
+
+/** The key derived from MFA_ENCRYPTION_KEY (used when no explicit key is set). */
+export function deriveTombstoneKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
   const mfaKey = readMfaEncryptionKey(env.MFA_ENCRYPTION_KEY);
   if (mfaKey === null) return null;
   return createHash('sha256').update('ephelpdesk:privacy-tombstone:v1').update(mfaKey).digest();
+}
+
+/**
+ * HMACs cannot be re-keyed, so after rotating PRIVACY_TOMBSTONE_KEY the old key
+ * stays in PRIVACY_TOMBSTONE_KEY_PREVIOUS for matching existing tombstones.
+ * New erasures always use the current key.
+ */
+export function readTombstoneMatchKeys(env: NodeJS.ProcessEnv = process.env): Buffer[] {
+  const current = readTombstoneKey(env);
+  const previous = readExplicitSecret(env.PRIVACY_TOMBSTONE_KEY_PREVIOUS)?.bytes ?? null;
+  const keys = current === null ? [] : [current];
+  if (previous !== null && (current === null || !previous.equals(current))) keys.push(previous);
+  return keys;
 }
 
 export type TombstoneIdentifiers = {

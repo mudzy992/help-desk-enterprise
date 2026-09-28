@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { computeTombstones, readTombstoneKey } from './tombstones';
+import { computeTombstones, readTombstoneMatchKeys } from './tombstones';
 
 type TombstoneReader = Pick<PrismaService, 'privacyErasure'>;
 
@@ -12,8 +12,8 @@ type TombstoneReader = Pick<PrismaService, 'privacyErasure'>;
 export async function loadReturningAnonymizedCheck(
   prisma: TombstoneReader,
 ): Promise<(identifiers: { readonly email?: string | null; readonly guid?: string | null; readonly oid?: string | null }) => boolean> {
-  const key = readTombstoneKey();
-  if (key === null) return () => false;
+  const keys = readTombstoneMatchKeys();
+  if (keys.length === 0) return () => false;
   const rows = await prisma.privacyErasure.findMany({
     where: { status: 'COMPLETED', NOT: { tombstones: { isEmpty: true } } },
     select: { tombstones: true },
@@ -21,9 +21,11 @@ export async function loadReturningAnonymizedCheck(
   const known = new Set(rows.flatMap((row) => row.tombstones));
   if (known.size === 0) return () => false;
   return (identifiers) =>
-    computeTombstones(key, {
-      email: identifiers.email,
-      directoryObjectGuid: identifiers.guid,
-      entraObjectId: identifiers.oid,
-    }).some((value) => known.has(value));
+    keys.some((key) =>
+      computeTombstones(key, {
+        email: identifiers.email,
+        directoryObjectGuid: identifiers.guid,
+        entraObjectId: identifiers.oid,
+      }).some((value) => known.has(value)),
+    );
 }

@@ -5,7 +5,7 @@ import { resolveEmailLocale } from '../notifications/email/compose-ticket-email'
 import { deliverNotificationEmail } from '../notifications/email/deliver-notification-email';
 import { loadEmailChannelConfiguration, type EmailChannelConfiguration } from '../notifications/email/load-email-channel-configuration';
 import { MAIL_TRANSPORT, type MailTransport } from '../notifications/email/mail-transport';
-import { readReplyTokenSecret } from '../notifications/email/reply-token';
+import { readReplyTokenVerificationSecrets } from '../notifications/email/reply-token';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTypes } from '../notifications/notifications.constants';
 import { SettingsService } from '../settings/settings.service';
@@ -257,7 +257,7 @@ export class InboundEmailService {
         .filter((address) => address.length > 0);
       const outcome = await processInboundMessage(message, this.ports(configuration, email, row.id), {
         ownAddresses,
-        replyTokenSecret: readReplyTokenSecret(),
+        replyTokenSecret: readReplyTokenVerificationSecrets(),
         requireAuthPass: configuration.requireAuthPass,
         recipientPolicy: email,
         maxPerSenderPerHour: configuration.maxPerSenderPerHour,

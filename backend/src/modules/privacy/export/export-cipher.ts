@@ -1,3 +1,4 @@
+import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from 'node:crypto';
 import { Transform, type TransformCallback } from 'node:stream';
 import { readMfaEncryptionKey } from '../../authentication/security/mfa-secret-cipher';
@@ -26,10 +27,17 @@ export class ExportKeyMissingError extends Error {
 }
 
 export function readExportMasterKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
-  const explicit = env.PRIVACY_EXPORT_KEY?.trim();
-  if (explicit !== undefined && explicit.length >= 16) {
-    return createHash('sha256').update(explicit, 'utf8').digest();
+  const explicit = readExplicitSecret(env.PRIVACY_EXPORT_KEY);
+  if (explicit !== null) {
+    // Pinned (base64:) keys are used as-is, so a pin reproduces the derived key exactly.
+    if (explicit.pinned && explicit.bytes.length === 32) return explicit.bytes;
+    return createHash('sha256').update(explicit.bytes).digest();
   }
+  return deriveExportMasterKey(env);
+}
+
+/** The key derived from MFA_ENCRYPTION_KEY (used when no explicit key is set). */
+export function deriveExportMasterKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
   const mfaKey = readMfaEncryptionKey(env.MFA_ENCRYPTION_KEY);
   if (mfaKey === null) return null;
   return Buffer.from(hkdfSync('sha256', mfaKey, Buffer.alloc(0), 'ephelpdesk:privacy-export:v1', 32));
