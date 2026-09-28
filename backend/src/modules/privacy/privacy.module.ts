@@ -1,15 +1,24 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { PrivacyIdentityConfirmer } from './privacy-identity-confirmer';
 import { PrivacyController } from './privacy.controller';
 import { privacyCoreProviders } from './privacy.providers';
+import { privacyQueueName } from './privacy.constants';
+import { RetentionQueueService } from './retention/retention-queue.service';
 
 /** Paket 2.6: privacy module (API side). */
 @Module({
-  imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
+  imports: [
+    AuthenticationModule,
+    AuthorizationModule,
+    SettingsModule,
+    // Producer only: the worker owns the processor.
+    BullModule.registerQueue({ name: privacyQueueName }),
+  ],
   controllers: [PrivacyController],
-  providers: [...privacyCoreProviders, PrivacyIdentityConfirmer],
+  providers: [...privacyCoreProviders, PrivacyIdentityConfirmer, RetentionQueueService],
 })
 export class PrivacyModule {}

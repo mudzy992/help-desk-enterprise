@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
 import { integrationQueueName } from './modules/integration-queue/integration-queue.constants';
 import { reportSchedulesQueueName } from './modules/reports/schedules/report-schedule.constants';
+import { privacyQueueName } from './modules/privacy/privacy.constants';
 import { ReportSchedulesProcessor } from './modules/reports/schedules/report-schedules.processor';
 import { ReportSchedulesSchedulerService } from './modules/reports/schedules/report-schedules.scheduler.service';
 import { KnowledgeBaseReviewReminderService } from './modules/knowledge-base/knowledge-base-review-reminder.service';
@@ -26,6 +27,9 @@ async function compileAppModule() {
     .useValue(createFakeIntegrationQueue())
     // Paket 2.5: the API only produces „send now” jobs for the worker.
     .overrideProvider(getQueueToken(reportSchedulesQueueName))
+    .useValue(createFakeIntegrationQueue())
+    // Paket 2.6: the API only produces retention dry-run / run-now jobs.
+    .overrideProvider(getQueueToken(privacyQueueName))
     .useValue(createFakeIntegrationQueue())
     .compile();
 }

@@ -149,7 +149,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 ### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD
 
 > **Status:** dizajn odobren (§16 u cijelosti), implementacija u toku (`modules/2.6-zastita-licnih-podataka.md`, ~5 RD).
-> Koraci: 1 temelj ✔ · 2 registar zahtjeva ✔ (backend) · 3 zadržavanje · 4 anonimizacija · 5 izvoz · 6 evidencija, UI, E2E, runbook.
+> Koraci: 1 temelj ✔ · 2 registar zahtjeva ✔ (backend) · 3 zadržavanje i legal hold ✔ (backend) · 4 anonimizacija · 5 izvoz · 6 evidencija, UI, E2E, runbook.
 
 - Anonimizacija bivšeg zaposlenika (ime/e-mail → pseudonim u tiketima, porukama, auditu uz
   očuvan hash lanac); zahtjev za izvoz podataka korisnika.
