@@ -31,6 +31,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { ObservabilityModule } from './modules/observability/observability.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
+import { OpsHealthModule } from './modules/ops-health/ops-health.module';
 import { EdgeExtensionModule } from './modules/edge-extension/edge-extension.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -71,6 +72,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     ObservabilityModule,
     ReportsModule,
     PrivacyModule,
+    OpsHealthModule,
     EdgeExtensionModule,
     WebsocketModule,
   ],

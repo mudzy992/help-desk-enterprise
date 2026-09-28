@@ -82,6 +82,12 @@ export const auditLogActions = {
   // Rotacija tajni: MFA tajne ponovo šifrovane novim MFA_ENCRYPTION_KEY (CLI secrets.js).
   securityMfaSecretsReencrypted: 'security.mfa_secrets.reencrypted',
   auditRetentionPurged: 'audit.retention.purged',
+  // Paket 2.7: alarms (acknowledge, silence, test, DLQ baseline).
+  opsAlertAcknowledged: 'ops.alert.acknowledged',
+  opsAlertsSilenced: 'ops.alerts.silenced',
+  opsAlertsUnsilenced: 'ops.alerts.unsilenced',
+  opsAlertTestSent: 'ops.alert.test_sent',
+  opsDlqBaselineAcknowledged: 'ops.dlq.baseline_acknowledged',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -107,6 +113,9 @@ export const auditLogEntityTypes = {
   privacyErasure: 'privacy_erasure',
   retentionRun: 'retention_run',
   securityKey: 'security_key',
+  // Paket 2.7
+  opsAlert: 'ops_alert',
+  opsMonitoring: 'ops_monitoring',
 } as const;
 
 export const auditLogErrorCodes = {

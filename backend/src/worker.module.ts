@@ -8,6 +8,7 @@ import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-bas
 import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
 import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
+import { OpsHealthWorkerModule } from './modules/ops-health/ops-health-worker.module';
 import { ReportSchedulesWorkerModule } from './modules/reports/schedules/report-schedules-worker.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { SlaScanWorkerModule } from './modules/sla/sla-scan-worker.module';
@@ -42,6 +43,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     // Paket 2.5: scheduled e-mail reports.
     ReportSchedulesWorkerModule,
     PrivacyWorkerModule,
+    OpsHealthWorkerModule,
   ],
 })
 export class WorkerModule {}

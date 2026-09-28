@@ -148,7 +148,10 @@
       "accountPasswordChanged": "Your account password was changed",
       "accountNewDevice": "New sign-in from an unrecognised device",
       "inboundMailboxFailing": "Inbound e-mail is failing: the mailbox cannot be read",
-      "privacyRequestDue": "A data subject request deadline is approaching"
+      "privacyRequestDue": "A data subject request deadline is approaching",
+      "opsAlert": "Operational alarm",
+      "statusIncidentStarted": "Known issue on a service",
+      "statusIncidentResolved": "Service issue resolved"
     }
   },
   "placeholders": {
@@ -276,7 +279,11 @@
       "reports.schedule.manage": "Manage scheduled reports",
       "privacy.view": "View privacy",
       "privacy.manage": "Manage privacy",
-      "privacy.anonymize": "Anonymize users"
+      "privacy.anonymize": "Anonymize users",
+      "ops.health.view": "View system health",
+      "ops.alerts.manage": "Manage alarms",
+      "ops.alerts.receive": "Receive alarms",
+      "status.incidents.manage": "Manage incidents"
     }
   },
   "maintenance": {
@@ -408,7 +415,11 @@
         "reports.schedule.manage": "Create, edit and send scheduled e-mail reports.",
         "privacy.view": "View the request register, exports, retention and the record of processing.",
         "privacy.manage": "Handle data subject requests, data exports, retention and legal holds.",
-        "privacy.anonymize": "Irreversibly anonymize deactivated users (right to erasure)."
+        "privacy.anonymize": "Irreversibly anonymize deactivated users (right to erasure).",
+        "ops.health.view": "View the System health card: components, scheduled jobs, queues and alarms.",
+        "ops.alerts.manage": "Alarm thresholds and recipients, silencing, the test alarm and acknowledging failed jobs (DLQ).",
+        "ops.alerts.receive": "Receives operational alarms by e-mail and in the application.",
+        "status.incidents.manage": "Create and update incidents on the status page."
       }
     }
   },
@@ -1058,7 +1069,23 @@
         "private.privacy.controller.purpose": "Purpose of processing in the help desk (record of processing activities).",
         "private.privacy.controller.legalBasis": "Legal basis of processing (e.g. employment, legitimate interest).",
         "private.privacy.notice.bs": "Privacy notice shown to users (Bosnian).",
-        "private.privacy.notice.en": "Privacy notice shown to users (English)."
+        "private.privacy.notice.en": "Privacy notice shown to users (English).",
+        "private.ops.alerts.enabled": "Send operational alarms (e-mail, in-app and optionally Teams). Off: checks keep running and stay visible on the System health card.",
+        "private.ops.alerts.reminderHours": "Hours between reminders while an alarm is active and not acknowledged (1–48).",
+        "private.ops.alerts.extraRecipientsCsv": "Extra e-mail addresses for alarms, comma-separated (e.g. the IT on-call mailbox). At most 20.",
+        "private.ops.alerts.teamsWebhookUrl": "Teams Workflows webhook URL for alarms (https). Empty = off. The value is secret and masked.",
+        "private.ops.alerts.historyDays": "Days the history of resolved alarms is kept (7–365).",
+        "private.ops.thresholds.diskWarnPercent": "Attachment disk usage (%) that raises a warning (50–98).",
+        "private.ops.thresholds.diskCriticalPercent": "Attachment disk usage (%) that makes the alarm critical (51–99, above the warning level).",
+        "private.ops.thresholds.http5xxMinCount": "Minimum number of server errors (5xx) in 5 minutes before alarming (1–10000).",
+        "private.ops.thresholds.http5xxMinPercent": "Minimum share of server errors (5xx) in 5 minutes before alarming, in % (1–100). Both thresholds must be met.",
+        "private.ops.thresholds.slaScanLateMinutes": "Minutes without a successful SLA scan before a critical alarm (2–60).",
+        "private.ops.thresholds.workerHeartbeatStaleSeconds": "Seconds without a worker heartbeat before a critical alarm (30–900).",
+        "private.ops.thresholds.clamavFailuresBeforeAlert": "Consecutive failed antivirus checks (one per minute) before alarming (1–30).",
+        "private.statusPage.enabled": "Show the status page (service availability, incidents, planned work).",
+        "private.statusPage.public": "Status page is available without signing in. Staff-only incidents stay hidden.",
+        "private.statusPage.historyDays": "Days of resolved incidents shown on the status page (7–365).",
+        "private.statusPage.showUptimePercent": "Show the availability percentage per service on the status page."
       }
     },
     "emailTemplates": {
@@ -1143,7 +1170,8 @@
         "report_scheduled": "Scheduled report",
         "privacy_retention_weekly": "Privacy: weekly retention report",
         "privacy_erasure_completed": "Privacy: anonymization completed",
-        "report_schedule_paused": "Scheduled report paused"
+        "report_schedule_paused": "Scheduled report paused",
+        "ops_alert": "Operational alarm"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -4035,6 +4063,14 @@
         "privacy_requestDue": {
           "label": "Data subject request deadline",
           "hint": "Reminder 7 and 1 day before the legal deadline (30/60 days)."
+        },
+        "ops_alert": {
+          "label": "Operational alarms",
+          "hint": "Problems in how the system runs (worker, disk, queues, errors). Always on for alarm receivers."
+        },
+        "status_incident": {
+          "label": "Service incidents",
+          "hint": "A known issue on a service you have an open ticket on, and a notice when it is resolved."
         }
       },
       "emailOnly": "E-mail only",

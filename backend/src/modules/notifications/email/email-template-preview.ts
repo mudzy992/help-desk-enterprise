@@ -1,3 +1,4 @@
+import { composeOpsAlertEmailPreview } from '../../ops-health/compose-ops-alert-email';
 import { isoWeek } from '../preferences/weekly-ticket-report';
 import { composeWeeklyTicketReportEmail } from './compose-weekly-ticket-report-email';
 import { composeDigestEmail } from './compose-digest-email';
@@ -144,6 +145,15 @@ export function renderEmailTemplatePreview(input: {
       configuration,
       templates: input.templates,
       key: input.key,
+      locale,
+      recipientName: input.recipientName,
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'ops.alert') {
+    const composed = composeOpsAlertEmailPreview({
+      configuration,
+      templates: input.templates,
       locale,
       recipientName: input.recipientName,
     });

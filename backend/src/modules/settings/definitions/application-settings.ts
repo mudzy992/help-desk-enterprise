@@ -16,6 +16,7 @@ import { configVersioningSettings } from './config-versioning-settings';
 import { auditLogSettings } from './audit-log-settings';
 import { reportsSettings } from './reports-settings';
 import { privacySettings } from './privacy-settings';
+import { opsSettings } from './ops-settings';
 import { observabilitySettings } from './observability-settings';
 import { ticketSlaSettings } from './ticket-sla-settings';
 import { smtpSettings } from './smtp-settings';
@@ -85,6 +86,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...auditLogSettings,
   ...reportsSettings,
   ...privacySettings,
+  ...opsSettings,
   ...observabilitySettings,
   ...knowledgeBaseSettings,
   ...smtpSettings,

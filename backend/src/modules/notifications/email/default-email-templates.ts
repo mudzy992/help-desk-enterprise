@@ -146,6 +146,13 @@ const bs: EmailTemplateSet = {
     'Poštovani/a {{recipientName}}, izvještaj „{{reportName}}” više nema primalaca jer je posljednji primalac uklonjen (anonimizacija bivšeg zaposlenika), pa je slanje pauzirano. Dodajte primaoce i ponovo ga uključite.',
     'Otvori zakazane izvještaje',
   ),
+  'ops.alert': content(
+    '[{{reportPeriod}}] {{reportName}}',
+    '[{{reportPeriod}}] {{reportName}}',
+    '{{reportName}}',
+    'Poštovani/a {{recipientName}}, nadzor sistema {{appName}} javlja: {{reportName}} ({{reportPeriod}}). Detalji i preporučeni prvi korak su u nastavku.',
+    'Otvori zdravlje sistema',
+  ),
   'notification.digest': content(
     'Sažetak obavještenja ({{itemCount}})',
     'Sažetak obavještenja ({{itemCount}})',
@@ -278,6 +285,13 @@ const en: EmailTemplateSet = {
     'Scheduled report paused',
     'Dear {{recipientName}}, the report "{{reportName}}" has no recipients left because the last one was removed (anonymization of a former employee), so it was paused. Add recipients and enable it again.',
     'Open scheduled reports',
+  ),
+  'ops.alert': content(
+    '[{{reportPeriod}}] {{reportName}}',
+    '[{{reportPeriod}}] {{reportName}}',
+    '{{reportName}}',
+    'Dear {{recipientName}}, {{appName}} monitoring reports: {{reportName}} ({{reportPeriod}}). Details and the recommended first step follow.',
+    'Open system health',
   ),
   'notification.digest': content(
     'Notification digest ({{itemCount}})',

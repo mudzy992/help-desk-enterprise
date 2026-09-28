@@ -78,4 +78,14 @@ describe('default role permission mapping', () => {
     );
     expect(allPermissionKeys).toContain(permissionKeys.confidentialBreakGlass);
   });
+  it('gives ADMIN health view, alarms and incidents but keeps alarm management with SUPER_ADMIN (package 2.7)', () => {
+    const admin = defaultRolePermissionKeys[authorizationRoleKeys.admin];
+    expect(admin).toEqual(expect.arrayContaining([permissionKeys.opsHealthView, permissionKeys.opsAlertsReceive, permissionKeys.statusIncidentsManage]));
+    expect(admin).not.toContain(permissionKeys.opsAlertsManage);
+    for (const role of [authorizationRoleKeys.user, authorizationRoleKeys.agent]) {
+      expect(defaultRolePermissionKeys[role]).not.toContain(permissionKeys.opsHealthView);
+      expect(defaultRolePermissionKeys[role]).not.toContain(permissionKeys.statusIncidentsManage);
+    }
+    expect(defaultRolePermissionKeys[authorizationRoleKeys.superAdmin]).toContain(permissionKeys.opsAlertsManage);
+  });
 });

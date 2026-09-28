@@ -28,6 +28,10 @@ export const permissionKeys = {
   privacyView: "privacy.view",
   privacyManage: "privacy.manage",
   privacyAnonymize: "privacy.anonymize",
+  opsHealthView: "ops.health.view",
+  opsAlertsManage: "ops.alerts.manage",
+  opsAlertsReceive: "ops.alerts.receive",
+  statusIncidentsManage: "status.incidents.manage",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

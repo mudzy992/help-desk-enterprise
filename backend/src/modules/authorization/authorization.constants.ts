@@ -38,6 +38,11 @@ export const permissionKeys = {
   privacyManage: 'privacy.manage',
   privacyAnonymize: 'privacy.anonymize',
   supportBundleExport: 'supportBundle.export',
+  // Paket 2.7 (§9): pouzdanost i monitoring.
+  opsHealthView: 'ops.health.view',
+  opsAlertsManage: 'ops.alerts.manage',
+  opsAlertsReceive: 'ops.alerts.receive',
+  statusIncidentsManage: 'status.incidents.manage',
   confidentialBreakGlass: 'confidential.break_glass',
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',
@@ -93,6 +98,11 @@ const adminPermissionKeys = [
   // requests/exports/retention and anonymizing stay with SUPER_ADMIN (RBAC can
   // grant `privacy.manage` to ADMIN explicitly).
   permissionKeys.privacyView,
+  // Paket 2.7: ADMIN watches system health, receives alarms and runs incidents;
+  // thresholds, recipients, silencing and the DLQ baseline stay with SUPER_ADMIN.
+  permissionKeys.opsHealthView,
+  permissionKeys.opsAlertsReceive,
+  permissionKeys.statusIncidentsManage,
   permissionKeys.supportBundleExport,
   permissionKeys.knowledgeArticleReview,
   permissionKeys.knowledgeArticlePublish,

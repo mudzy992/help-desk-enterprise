@@ -44,6 +44,8 @@ model Service {
   userRoles            UserRole[]
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
+  /// Paket 2.7: incidents on the status page.
+  incidents            ServiceIncidentService[]
 
   @@index([categoryId])
   @@index([lifecycle])

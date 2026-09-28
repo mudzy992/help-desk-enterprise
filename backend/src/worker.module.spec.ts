@@ -31,6 +31,8 @@ import { NotificationDigestProcessor } from './modules/notifications/preferences
 import { reportSchedulesQueueName } from './modules/reports/schedules/report-schedule.constants';
 import { ReportSchedulesProcessor } from './modules/reports/schedules/report-schedules.processor';
 import { privacyQueueName } from './modules/privacy/privacy.constants';
+import { opsHealthQueueName } from './modules/ops-health/ops-health.constants';
+import { OpsHealthProcessor } from './modules/ops-health/ops-health.processor';
 import { PrivacyProcessor } from './modules/privacy/privacy.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
@@ -53,6 +55,7 @@ const scheduledQueueNames = [
   inboundEmailQueueName,
   reportSchedulesQueueName,
   privacyQueueName,
+  opsHealthQueueName,
 ] as const;
 
 const processorTypes = [
@@ -70,6 +73,7 @@ const processorTypes = [
   InboundEmailProcessor,
   ReportSchedulesProcessor,
   PrivacyProcessor,
+  OpsHealthProcessor,
 ] as const;
 
 function createFakeQueue() {

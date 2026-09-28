@@ -46,6 +46,14 @@ x-app-environment: &app-environment
   PRIVACY_TOMBSTONE_KEY_PREVIOUS: ${PRIVACY_TOMBSTONE_KEY_PREVIOUS:-}
   # Paket 2.6: master key wrapping per-export AES keys (>=16 chars or base64:<pin>; empty = derived from MFA_ENCRYPTION_KEY).
   PRIVACY_EXPORT_KEY: ${PRIVACY_EXPORT_KEY:-}
+  # Paket 2.7: fallback alarm channel used only when Postgres or Redis is down
+  # (the normal channel reads recipients and SMTP from the database).
+  OPS_ALERT_SMTP_URL: ${OPS_ALERT_SMTP_URL:-}
+  OPS_ALERT_EMAIL_TO: ${OPS_ALERT_EMAIL_TO:-}
+  OPS_ALERT_EMAIL_FROM: ${OPS_ALERT_EMAIL_FROM:-}
+  OPS_ALERT_TEAMS_WEBHOOK_URL: ${OPS_ALERT_TEAMS_WEBHOOK_URL:-}
+  # Paket 2.7: Uptime Kuma push monitor URL, pinged every minute by the worker.
+  OPS_UPTIME_PUSH_URL: ${OPS_UPTIME_PUSH_URL:-}
 
 # Faza 3.1: WebSocket sloj koristi Socket.IO Redis adapter, pa LB ispred servisa
 # MORA imati sticky sesije (cookie), inače handshake padne pri prelasku s pollinga

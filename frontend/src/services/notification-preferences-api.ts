@@ -19,6 +19,8 @@ export const notificationPreferenceCategoryKeys = [
   "directory.syncAborted",
   "inbound.mailboxFailing",
   "privacy.requestDue",
+  "ops.alert",
+  "status.incident",
   "account.security",
 ] as const;
 export type NotificationPreferenceCategoryKey = (typeof notificationPreferenceCategoryKeys)[number];

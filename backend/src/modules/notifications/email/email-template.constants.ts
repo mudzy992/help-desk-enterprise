@@ -22,6 +22,8 @@ export const emailTemplateKeys = [
   'privacy.retention_weekly',
   'privacy.erasure_completed',
   'report.schedule_paused',
+  // Paket 2.7: operational alarm (no ticket card).
+  'ops.alert',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -35,7 +37,8 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'report.scheduled' &&
     key !== 'privacy.retention_weekly' &&
     key !== 'privacy.erasure_completed' &&
-    key !== 'report.schedule_paused',
+    key !== 'report.schedule_paused' &&
+    key !== 'ops.alert',
 );
 
 export const emailLocales = ['bs', 'en'] as const;

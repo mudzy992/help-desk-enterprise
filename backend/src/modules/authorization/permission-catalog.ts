@@ -168,6 +168,26 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Anonymize a former employee (irreversible, package 2.6).',
   },
   {
+    key: permissionKeys.opsHealthView,
+    categoryId: permissionCategoryIds.observability,
+    description: 'View system health: components, scheduled jobs, queues and alarms (package 2.7).',
+  },
+  {
+    key: permissionKeys.opsAlertsManage,
+    categoryId: permissionCategoryIds.observability,
+    description: 'Configure alarm thresholds and recipients, silence alarms and acknowledge the DLQ baseline (package 2.7).',
+  },
+  {
+    key: permissionKeys.opsAlertsReceive,
+    categoryId: permissionCategoryIds.observability,
+    description: 'Receive operational alarms by e-mail and in the application (package 2.7).',
+  },
+  {
+    key: permissionKeys.statusIncidentsManage,
+    categoryId: permissionCategoryIds.service,
+    description: 'Create and update incidents on the status page (package 2.7).',
+  },
+  {
     key: permissionKeys.supportBundleExport,
     categoryId: permissionCategoryIds.observability,
     description: 'Download a support diagnostics bundle for troubleshooting.',

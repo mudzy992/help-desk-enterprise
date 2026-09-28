@@ -512,6 +512,23 @@ export const settingKeys = {
   privatePrivacyControllerLegalBasis: 'private.privacy.controller.legalBasis',
   privatePrivacyNoticeBs: 'private.privacy.notice.bs',
   privatePrivacyNoticeEn: 'private.privacy.notice.en',
+  // Paket 2.7: pouzdanost i monitoring.
+  privateOpsAlertsEnabled: 'private.ops.alerts.enabled',
+  privateOpsAlertsReminderHours: 'private.ops.alerts.reminderHours',
+  privateOpsAlertsExtraRecipientsCsv: 'private.ops.alerts.extraRecipientsCsv',
+  privateOpsAlertsTeamsWebhookUrl: 'private.ops.alerts.teamsWebhookUrl',
+  privateOpsAlertsHistoryDays: 'private.ops.alerts.historyDays',
+  privateOpsThresholdsDiskWarnPercent: 'private.ops.thresholds.diskWarnPercent',
+  privateOpsThresholdsDiskCriticalPercent: 'private.ops.thresholds.diskCriticalPercent',
+  privateOpsThresholdsHttp5xxMinCount: 'private.ops.thresholds.http5xxMinCount',
+  privateOpsThresholdsHttp5xxMinPercent: 'private.ops.thresholds.http5xxMinPercent',
+  privateOpsThresholdsSlaScanLateMinutes: 'private.ops.thresholds.slaScanLateMinutes',
+  privateOpsThresholdsWorkerHeartbeatStaleSeconds: 'private.ops.thresholds.workerHeartbeatStaleSeconds',
+  privateOpsThresholdsClamavFailuresBeforeAlert: 'private.ops.thresholds.clamavFailuresBeforeAlert',
+  privateStatusPageEnabled: 'private.statusPage.enabled',
+  privateStatusPagePublic: 'private.statusPage.public',
+  privateStatusPageHistoryDays: 'private.statusPage.historyDays',
+  privateStatusPageShowUptimePercent: 'private.statusPage.showUptimePercent',
 } as const;
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys];

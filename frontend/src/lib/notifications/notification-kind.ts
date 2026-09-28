@@ -39,6 +39,13 @@ export function notificationTicketPath(
   if (type === "privacy.requestDue") {
     return "/privacy";
   }
+  // Paket 2.7: an operational alarm opens System health; incidents the status page.
+  if (type === "ops.alert") {
+    return "/admin?tab=ops";
+  }
+  if (type === "status.incidentStarted" || type === "status.incidentResolved") {
+    return "/status";
+  }
   // Paket 2.1: account security events open the own security page.
   if (type?.startsWith("account.")) {
     return "/account/security";
@@ -78,6 +85,9 @@ export function notificationTitleKey(
   | "notifications.items.accountNewDevice"
   | "notifications.items.inboundMailboxFailing"
   | "notifications.items.privacyRequestDue"
+  | "notifications.items.opsAlert"
+  | "notifications.items.statusIncidentStarted"
+  | "notifications.items.statusIncidentResolved"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -120,6 +130,12 @@ export function notificationTitleKey(
       return "notifications.items.inboundMailboxFailing";
     case "privacy.requestDue":
       return "notifications.items.privacyRequestDue";
+    case "ops.alert":
+      return "notifications.items.opsAlert";
+    case "status.incidentStarted":
+      return "notifications.items.statusIncidentStarted";
+    case "status.incidentResolved":
+      return "notifications.items.statusIncidentResolved";
     default:
       return "notifications.items.unknown";
   }

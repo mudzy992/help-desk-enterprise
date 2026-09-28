@@ -67,6 +67,10 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   category('inbound.mailboxFailing', [notificationTypes.inboundMailboxFailing], 3, inAppOnly, true),
   // Paket 2.6: legal deadline of a data subject request (privacy handlers, always on).
   category('privacy.requestDue', [notificationTypes.privacyRequestDue], 3, inAppOnly, true),
+  // Paket 2.7: operational alarms (receivers of ops.alerts.receive, always on).
+  category('ops.alert', [notificationTypes.opsAlert], 2, inAppOnly, true),
+  // Paket 2.7: incidents on services the user has an open ticket on / subscribed to.
+  category('status.incident', [notificationTypes.statusIncidentStarted, notificationTypes.statusIncidentResolved], 0, inAppOnly),
   category(
     'account.security',
     [

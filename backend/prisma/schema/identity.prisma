@@ -82,6 +82,8 @@ model User {
   slaEscalationTargets SlaEscalationRule[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
+  /// Paket 2.7: status page subscriptions.
+  incidentSubscriptions ServiceIncidentSubscription[]
 
   @@index([organizationalUnitId])
   @@index([managerUserId])

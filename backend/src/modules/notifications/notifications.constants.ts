@@ -27,6 +27,10 @@ export const notificationTypes = {
   ticketMentioned: 'ticket.mentioned',
   // Paket 2.6: a data subject request is close to (or past) its legal deadline.
   privacyRequestDue: 'privacy.requestDue',
+  // Paket 2.7: operational alarm; incident on a service the user reported / follows.
+  opsAlert: 'ops.alert',
+  statusIncidentStarted: 'status.incidentStarted',
+  statusIncidentResolved: 'status.incidentResolved',
 } as const;
 
 export type NotificationType =
@@ -62,6 +66,9 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.inboundMailboxFailing]: 'notifications.items.inboundMailboxFailing',
     [notificationTypes.ticketMentioned]: 'notifications.items.ticketMentioned',
     [notificationTypes.privacyRequestDue]: 'notifications.items.privacyRequestDue',
+    [notificationTypes.opsAlert]: 'notifications.items.opsAlert',
+    [notificationTypes.statusIncidentStarted]: 'notifications.items.statusIncidentStarted',
+    [notificationTypes.statusIncidentResolved]: 'notifications.items.statusIncidentResolved',
   };
 
 export const notificationListLimits = {

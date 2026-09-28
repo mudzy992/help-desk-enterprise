@@ -86,6 +86,8 @@ model Ticket {
   mentions             TicketMessageMention[]
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
+  /// Paket 2.7: known incident this ticket was reported under.
+  incidentLinks        TicketIncidentLink[]
 
   @@index([status])
   @@index([originUnitId])

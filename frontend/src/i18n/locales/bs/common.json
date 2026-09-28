@@ -148,7 +148,10 @@
       "accountPasswordChanged": "Lozinka vašeg naloga je promijenjena",
       "accountNewDevice": "Nova prijava s nepoznatog uređaja",
       "inboundMailboxFailing": "Dolazna pošta ne radi: sandučić se ne može pročitati",
-      "privacyRequestDue": "Rok za zahtjev nosioca podataka ističe"
+      "privacyRequestDue": "Rok za zahtjev nosioca podataka ističe",
+      "opsAlert": "Operativni alarm",
+      "statusIncidentStarted": "Poznat problem na servisu",
+      "statusIncidentResolved": "Problem na servisu je riješen"
     }
   },
   "placeholders": {
@@ -276,7 +279,11 @@
       "reports.schedule.manage": "Upravljanje zakazanim izvještajima",
       "privacy.view": "Pregled zaštite ličnih podataka",
       "privacy.manage": "Upravljanje zaštitom ličnih podataka",
-      "privacy.anonymize": "Anonimizacija korisnika"
+      "privacy.anonymize": "Anonimizacija korisnika",
+      "ops.health.view": "Pregled zdravlja sistema",
+      "ops.alerts.manage": "Upravljanje alarmima",
+      "ops.alerts.receive": "Primanje alarma",
+      "status.incidents.manage": "Upravljanje incidentima"
     }
   },
   "maintenance": {
@@ -408,7 +415,11 @@
         "reports.schedule.manage": "Kreiraj, uređuj i šalji zakazane izvještaje e-mailom.",
         "privacy.view": "Pregled registra zahtjeva, izvoza, zadržavanja i evidencije obrade.",
         "privacy.manage": "Vođenje zahtjeva nosilaca podataka, izvoz podataka, zadržavanje i legal hold.",
-        "privacy.anonymize": "Nepovratna anonimizacija deaktiviranih korisnika (ZZLP pravo na brisanje)."
+        "privacy.anonymize": "Nepovratna anonimizacija deaktiviranih korisnika (ZZLP pravo na brisanje).",
+        "ops.health.view": "Pregled kartice Zdravlje sistema: komponente, zakazani poslovi, redovi i alarmi.",
+        "ops.alerts.manage": "Pragovi i primaoci alarma, utišavanje, testni alarm i potvrda neuspjelih poslova (DLQ).",
+        "ops.alerts.receive": "Prima operativne alarme e-mailom i u aplikaciji.",
+        "status.incidents.manage": "Kreiranje i ažuriranje incidenata na statusnoj stranici."
       }
     }
   },
@@ -1060,7 +1071,23 @@
         "private.privacy.controller.purpose": "Svrha obrade podataka u help-desku (evidencija aktivnosti obrade).",
         "private.privacy.controller.legalBasis": "Pravni osnov obrade (npr. radni odnos, legitimni interes).",
         "private.privacy.notice.bs": "Obavještenje o obradi ličnih podataka prikazano korisnicima (bosanski).",
-        "private.privacy.notice.en": "Obavještenje o obradi ličnih podataka prikazano korisnicima (engleski)."
+        "private.privacy.notice.en": "Obavještenje o obradi ličnih podataka prikazano korisnicima (engleski).",
+        "private.ops.alerts.enabled": "Šalji operativne alarme (e-mail, u aplikaciji i opciono Teams). Isključeno: provjere i dalje rade i vide se u kartici Zdravlje sistema.",
+        "private.ops.alerts.reminderHours": "Na koliko sati se šalje podsjetnik dok alarm traje i nije preuzet (1–48).",
+        "private.ops.alerts.extraRecipientsCsv": "Dodatne e-mail adrese za alarme, odvojene zarezom (npr. dežurni sandučić IT-a). Najviše 20.",
+        "private.ops.alerts.teamsWebhookUrl": "URL Teams Workflows webhooka za alarme (https). Prazno = isključeno. Vrijednost je tajna i maskirana.",
+        "private.ops.alerts.historyDays": "Koliko dana se čuva historija riješenih alarma (7–365).",
+        "private.ops.thresholds.diskWarnPercent": "Zauzeće diska za priloge (%) od kojeg ide upozorenje (50–98).",
+        "private.ops.thresholds.diskCriticalPercent": "Zauzeće diska za priloge (%) od kojeg je alarm kritičan (51–99, iznad praga upozorenja).",
+        "private.ops.thresholds.http5xxMinCount": "Najmanji broj grešaka servera (5xx) u 5 minuta za alarm (1–10000).",
+        "private.ops.thresholds.http5xxMinPercent": "Najmanji udio grešaka servera (5xx) u 5 minuta za alarm, u % (1–100). Moraju biti ispunjena oba praga.",
+        "private.ops.thresholds.slaScanLateMinutes": "Nakon koliko minuta bez uspješne SLA provjere ide kritičan alarm (2–60).",
+        "private.ops.thresholds.workerHeartbeatStaleSeconds": "Nakon koliko sekundi bez signala workera ide kritičan alarm (30–900).",
+        "private.ops.thresholds.clamavFailuresBeforeAlert": "Broj uzastopnih neuspjelih provjera antivirusa (jedna u minuti) prije alarma (1–30).",
+        "private.statusPage.enabled": "Prikaži statusnu stranicu (dostupnost servisa, incidenti, planirani radovi).",
+        "private.statusPage.public": "Statusna stranica dostupna i bez prijave. Incidenti označeni samo za osoblje ostaju skriveni.",
+        "private.statusPage.historyDays": "Koliko dana riješenih incidenata prikazuje statusna stranica (7–365).",
+        "private.statusPage.showUptimePercent": "Prikaži procenat dostupnosti po servisu na statusnoj stranici."
       }
     },
     "emailTemplates": {
@@ -1146,7 +1173,8 @@
         "report_scheduled": "Zakazani izvještaj",
         "privacy_retention_weekly": "Privatnost: sedmični izvještaj zadržavanja",
         "privacy_erasure_completed": "Privatnost: anonimizacija završena",
-        "report_schedule_paused": "Zakazani izvještaj pauziran"
+        "report_schedule_paused": "Zakazani izvještaj pauziran",
+        "ops_alert": "Operativni alarm"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -4054,6 +4082,14 @@
         "privacy_requestDue": {
           "label": "Rok zahtjeva nosioca podataka",
           "hint": "Podsjetnik 7 i 1 dan prije zakonskog roka (ZZLP, 30/60 dana)."
+        },
+        "ops_alert": {
+          "label": "Operativni alarmi",
+          "hint": "Problemi u radu sistema (worker, disk, redovi, greške). Uvijek uključeno za primaoce alarma."
+        },
+        "status_incident": {
+          "label": "Incidenti na servisima",
+          "hint": "Poznat problem na servisu na kojem imate otvoren tiket i obavijest kad je riješen."
         }
       },
       "emailOnly": "Samo e-mail",

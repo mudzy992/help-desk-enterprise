@@ -9,6 +9,7 @@ import { RequestContextLogger } from './common/request-context/request-context.l
 import { RequestIdMiddleware } from './common/request-context/request-id.middleware';
 import { RequestMetricsMiddleware } from './common/request-context/request-metrics.middleware';
 import { startEventLoopLagMonitor } from './modules/observability/metrics/event-loop-lag.monitor';
+import { createHttpMetricsMiddleware, HttpMetricsService } from './modules/ops-health/http-metrics.service';
 
 async function bootstrap(): Promise<void> {
   const application = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -67,6 +68,8 @@ async function bootstrap(): Promise<void> {
       requestMetricsMiddleware.use(request, response, next);
     },
   );
+  // Paket 2.7 (§4.3): per-minute request/5xx counters for alarms and the health card.
+  application.use(createHttpMetricsMiddleware(application.get(HttpMetricsService)));
   const stopEventLoopLagMonitor = startEventLoopLagMonitor(
     requestContextLogger,
   );
