@@ -10,7 +10,7 @@ Opšti postupak:
 1. **Preuzmi** alarm u kartici Zdravlje sistema. Podsjetnici tada prestaju, a ostali znaju da neko radi na tome.
 2. Riješi uzrok po odjeljku ispod.
 3. Alarm se zatvara sam kad provjera prođe. Svi primaoci dobiju poruku „riješeno nakon X min“.
-4. Kod planiranih radova koristi **Utišaj** (najviše 24 h, uz razlog). Provjere i historija
+4. Kod planiranih radova koristi **Utišaj** (15 min do 8 h, uz razlog). Provjere i historija
    rade i dalje, samo se ne šalju poruke.
 
 Primaoci: korisnici s permisijom `ops.alerts.receive` (zadano ADMIN i SUPER_ADMIN) i adrese iz

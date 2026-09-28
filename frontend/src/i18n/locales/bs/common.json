@@ -201,7 +201,225 @@
       "errorGeneric": "Operacija nije uspjela."
     },
     "forbiddenTitle": "Nema pristupa administraciji",
-    "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima."
+    "forbiddenBody": "Organizacione jedinice, korisnici i sistemske postavke dostupni su administratorima.",
+    "opsHealth": {
+      "title": "Zdravlje sistema",
+      "subtitle": "Stanje komponenti, zakazanih poslova, redova i alarma.",
+      "loading": "Učitavanje stanja sistema…",
+      "refresh": "Osvježi",
+      "noSnapshot": "Worker još nije napravio prvo mjerenje (do 1 min nakon pokretanja).",
+      "snapshotAge": "Posljednje mjerenje workera prije {{age}} · osvježava se svakih 30 s",
+      "alertsDisabled": "Slanje alarma je isključeno u postavkama (private.ops.alerts.enabled). Provjere i dalje rade i vide se ovdje.",
+      "overall": {
+        "ok": "Sve radi",
+        "degraded": "Upozorenje",
+        "down": "Kritično"
+      },
+      "state": {
+        "ok": "Radi",
+        "warning": "Upozorenje",
+        "fail": "Ne radi",
+        "unknown": "Nepoznato",
+        "off": "Isključeno"
+      },
+      "severity": {
+        "WARNING": "Upozorenje",
+        "CRITICAL": "Kritično"
+      },
+      "channels": {
+        "email": "E-mail",
+        "inApp": "U aplikaciji",
+        "teams": "Teams"
+      },
+      "components": {
+        "title": "Komponente",
+        "api": "API",
+        "database": "Baza podataka",
+        "redis": "Redis",
+        "worker": "Worker",
+        "disk": "Disk za priloge",
+        "clamav": "Antivirus (ClamAV)",
+        "email": "Slanje e-maila",
+        "ldapsCa": "LDAPS CA certifikat",
+        "inbound": "Sandučić {{mailbox}}",
+        "eventLoop": "Event-loop lag {{ms}} ms",
+        "heartbeat": "Signal prije {{age}}",
+        "noHeartbeat": "Nema signala",
+        "unknown": "Nema podatka",
+        "diskUsage": "{{percent}} % zauzeto · slobodno {{free}} od {{total}}",
+        "clamavFailOpen": "Prilozi prolaze neskenirani (fail-open)",
+        "clamavBlocking": "Prilozi se odbijaju dok antivirus ne proradi",
+        "notConfigured": "Nije podešeno",
+        "noEmailYet": "Još nije poslan nijedan e-mail",
+        "lastSent": "Posljednji poslan",
+        "daysLeft_one": "Ističe za {{count}} dan",
+        "daysLeft_few": "Ističe za {{count}} dana",
+        "daysLeft_other": "Ističe za {{count}} dana",
+        "neverRead": "Još nije uspješno pročitan",
+        "lastRead": "Posljednje čitanje",
+        "fails_one": "{{count}} neuspjeh zaredom",
+        "fails_few": "{{count}} neuspjeha zaredom",
+        "fails_other": "{{count}} neuspjeha zaredom"
+      },
+      "alerts": {
+        "title": "Aktivni alarmi",
+        "emptyTitle": "Nema aktivnih alarma",
+        "emptyBody": "Sve provjere su prošle u posljednjem mjerenju.",
+        "activeFor": "Aktivno {{duration}}",
+        "notified_one": "{{count}} obavještenje",
+        "notified_few": "{{count}} obavještenja",
+        "notified_other": "{{count}} obavještenja",
+        "acknowledge": "Preuzimam",
+        "acknowledged": "Alarm je preuzet. Podsjetnici su zaustavljeni.",
+        "acknowledgedBy": "Preuzeo/la {{name}} · {{at}}",
+        "runbook": "Uputstvo:"
+      },
+      "test": {
+        "action": "Pošalji testni alarm",
+        "sent": "Testni alarm je poslan",
+        "nothingSent": "Testni alarm nije isporučen nijednim kanalom",
+        "channel": "{{channel}}: {{status}} ({{delivered}})",
+        "status": {
+          "sent": "poslano",
+          "partial": "djelimično",
+          "failed": "greška",
+          "skipped": "preskočeno"
+        }
+      },
+      "silence": {
+        "action": "Utišaj alarme",
+        "title": "Utišaj alarme",
+        "description": "Za vrijeme planiranih radova. Provjere i historija rade i dalje, samo se ne šalju poruke. Akcija se bilježi u audit.",
+        "duration": "Trajanje",
+        "minutes_one": "{{count}} minuta",
+        "minutes_few": "{{count}} minute",
+        "minutes_other": "{{count}} minuta",
+        "hours_one": "{{count}} sat",
+        "hours_few": "{{count}} sata",
+        "hours_other": "{{count}} sati",
+        "reason": "Razlog",
+        "reasonPlaceholder": "npr. Planirano održavanje servera",
+        "reasonHint": "Od {{min}} do {{max}} znakova.",
+        "done": "Alarmi su utišani",
+        "active": "Alarmi su utišani do {{until}} ({{by}}): {{reason}}",
+        "clear": "Ukini utišavanje",
+        "cleared": "Utišavanje je ukinuto"
+      },
+      "http": {
+        "title": "Greške servera (5xx), posljednjih 60 min",
+        "summary": "{{errors}} grešaka od {{requests}} zahtjeva",
+        "empty": "Još nema podataka o zahtjevima.",
+        "bar": "{{time}}: {{errors}} grešaka / {{total}} zahtjeva",
+        "scale": "Najviše {{max}} u minuti"
+      },
+      "schedulers": {
+        "title": "Zakazani poslovi",
+        "empty": "Nema podataka o zakazanim poslovima (čeka se mjerenje workera).",
+        "job": "Posao",
+        "interval": "Interval",
+        "lastSuccess": "Posljednji uspjeh",
+        "next": "Sljedeće",
+        "state": "Stanje",
+        "every": "svakih {{interval}}",
+        "lastFailure": "Greška",
+        "states": {
+          "on_time": "U roku",
+          "late": "Kasni"
+        }
+      },
+      "queues": {
+        "title": "Redovi poslova",
+        "dlq_one": "DLQ integracija: {{count}} · novih neuspjeha od posljednje potvrde: {{growth}}",
+        "dlq_few": "DLQ integracija: {{count}} · novih neuspjeha od posljednje potvrde: {{growth}}",
+        "dlq_other": "DLQ integracija: {{count}} · novih neuspjeha od posljednje potvrde: {{growth}}",
+        "acknowledge": "Potvrdi stanje",
+        "confirmTitle": "Potvrditi trenutno stanje neuspjelih poslova?",
+        "confirmBody": "{{growth}} novih neuspjeha postaje nova osnovica. Alarm se zatvara i ponovo se otvara samo za nove neuspjehe. Sami poslovi se ne brišu.",
+        "acknowledged": "Stanje redova je potvrđeno",
+        "empty": "Nema podataka o redovima.",
+        "queue": "Red",
+        "waiting": "Čeka",
+        "active": "Aktivno",
+        "delayed": "Odgođeno",
+        "failed": "Neuspjelo"
+      },
+      "channelsSummary": {
+        "title": "Kanali za alarme",
+        "hint": "Primaoci su korisnici s ovlaštenjem ops.alerts.receive. Podsjetnik svakih {{hours}} h dok alarm nije preuzet. Postavke su u Postavke → Operativa.",
+        "extraRecipients": "Dodatne adrese",
+        "extraRecipientsValue_one": "{{count}} adresa",
+        "extraRecipientsValue_few": "{{count}} adrese",
+        "extraRecipientsValue_other": "{{count}} adresa",
+        "fallback": "Rezervni kanal (env)",
+        "fallbackMissing": "Nije podešen: ako padne baza ili Redis, alarm se samo logira (OPS_ALERT_SMTP_URL, OPS_ALERT_EMAIL_TO).",
+        "uptime": "Uptime Kuma push",
+        "configured": "Podešeno",
+        "notConfigured": "Nije podešeno"
+      },
+      "history": {
+        "title": "Historija riješenih alarma ({{days}} dana)",
+        "empty": "Nema riješenih alarma u periodu čuvanja.",
+        "alert": "Alarm",
+        "severity": "Težina",
+        "started": "Početak",
+        "duration": "Trajanje",
+        "acknowledgedBy": "Preuzeo/la"
+      },
+      "alertKeys": {
+        "worker_down": {
+          "title": "Worker ne radi",
+          "action": "Provjerite kontejner workera (logovi, restart). Dok ne radi, SLA, e-mail i zakazani poslovi stoje."
+        },
+        "sla_scan_late": {
+          "title": "SLA provjera kasni",
+          "action": "SLA upozorenja i eskalacije se ne šalju. Provjerite worker i red sla-scan."
+        },
+        "scheduler_late": {
+          "title": "Zakazani posao kasni",
+          "action": "Jedan ili više zakazanih poslova nije odrađen na vrijeme. Pogledajte tabelu zakazanih poslova ispod."
+        },
+        "disk_usage": {
+          "title": "Disk za priloge se puni",
+          "action": "Oslobodite prostor ili proširite volumen. Kad se disk napuni, upload priloga i e-mail ulaz prestaju raditi."
+        },
+        "clamav_unavailable": {
+          "title": "Antivirus (ClamAV) nije dostupan",
+          "action": "Prilozi čekaju skeniranje ili se odbijaju. Provjerite kontejner clamav."
+        },
+        "queue_dlq": {
+          "title": "Neuspjeli poslovi u redu (DLQ)",
+          "action": "Pregledajte neuspjele poslove u kartici Integracije, ponovite ih ili potvrdite trenutno stanje."
+        },
+        "http_5xx": {
+          "title": "Povećan broj grešaka servera (5xx)",
+          "action": "API vraća greške. Pogledajte logove backenda za posljednjih 5 minuta."
+        },
+        "database_unavailable": {
+          "title": "Baza podataka nije dostupna",
+          "action": "Aplikacija ne radi. Provjerite Postgres kontejner i disk baze."
+        },
+        "redis_unavailable": {
+          "title": "Redis nije dostupan",
+          "action": "Redovi, sesije i keš ne rade. Provjerite Redis kontejner."
+        },
+        "api_eventloop_lag": {
+          "title": "API je preopterećen (event-loop lag)",
+          "action": "API sporo odgovara. Provjerite CPU servera i logove backenda za spore zahtjeve."
+        },
+        "tls_ldapsCa_expiry": {
+          "title": "Certifikat LDAPS CA uskoro ističe",
+          "action": "Pribavite novi CA certifikat i zamijenite AD_LDAPS_CA_CERT_BASE64 prije isteka, inače sinhronizacija s AD-om staje."
+        },
+        "ops_monitor_stale": {
+          "title": "Nadzor sistema ne radi",
+          "action": "Worker radi, ali provjera zdravlja se ne izvršava, pa ostali alarmi ne stižu. Provjerite red ops-health i logove workera."
+        },
+        "ops_test": {
+          "title": "Testni alarm",
+          "action": "Provjera kanala za alarme. Nije potrebna nikakva radnja."
+        }
+      }
+    }
   },
   "policyPacks": {
     "cardTitle": "{{name}}",

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AdminAuditExportCard } from "@/components/admin/admin-audit-export-card";
 import { AdminAuditLogCard } from "@/components/admin/admin-audit-log-card";
 import { AdminSupportBundleCard } from "@/components/admin/admin-support-bundle-card";
+import { OpsHealthCard } from "@/components/admin/ops-health-card";
 import { IntegrationQueueCard } from "@/components/queue/integration-queue-card";
 import { errorTextClassName, selectCompactClassName } from "@/components/ui/control";
 import { mapAdminOpsError, type AdminOpsMessageKey } from "@/lib/admin/map-admin-ops-error";
@@ -32,6 +33,11 @@ export function AdminOpsPanel() {
   const canExportAudit =
     session?.isSuperAdmin === true ||
     hasPermission(permissionKeys.auditExport);
+  // Paket 2.7: System health; SUPER_ADMIN holds every permission anyway.
+  const canViewHealth =
+    session?.isSuperAdmin === true || hasPermission(permissionKeys.opsHealthView);
+  const canManageAlerts =
+    session?.isSuperAdmin === true || hasPermission(permissionKeys.opsAlertsManage);
   const canSupportBundle =
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [unitId, setUnitId] = useState("");
@@ -102,6 +108,7 @@ export function AdminOpsPanel() {
 
   return (
     <div className="fade-in space-y-4">
+      {canViewHealth ? <OpsHealthCard canManage={canManageAlerts} /> : null}
       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
       {canExportAudit ? (
         <>

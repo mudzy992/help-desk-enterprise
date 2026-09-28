@@ -201,7 +201,218 @@
       "errorGeneric": "The operation failed."
     },
     "forbiddenTitle": "No access to administration",
-    "forbiddenBody": "Organizational units, users, and system settings are available to administrators."
+    "forbiddenBody": "Organizational units, users, and system settings are available to administrators.",
+    "opsHealth": {
+      "title": "System health",
+      "subtitle": "State of components, scheduled jobs, queues and alarms.",
+      "loading": "Loading system state…",
+      "refresh": "Refresh",
+      "noSnapshot": "The worker has not made its first measurement yet (up to 1 min after start).",
+      "snapshotAge": "Last worker measurement {{age}} ago · refreshes every 30 s",
+      "alertsDisabled": "Sending alarms is turned off in settings (private.ops.alerts.enabled). Checks keep running and are shown here.",
+      "overall": {
+        "ok": "All systems normal",
+        "degraded": "Degraded",
+        "down": "Critical"
+      },
+      "state": {
+        "ok": "OK",
+        "warning": "Warning",
+        "fail": "Failing",
+        "unknown": "Unknown",
+        "off": "Off"
+      },
+      "severity": {
+        "WARNING": "Warning",
+        "CRITICAL": "Critical"
+      },
+      "channels": {
+        "email": "E-mail",
+        "inApp": "In-app",
+        "teams": "Teams"
+      },
+      "components": {
+        "title": "Components",
+        "api": "API",
+        "database": "Database",
+        "redis": "Redis",
+        "worker": "Worker",
+        "disk": "Attachment disk",
+        "clamav": "Antivirus (ClamAV)",
+        "email": "Outgoing e-mail",
+        "ldapsCa": "LDAPS CA certificate",
+        "inbound": "Mailbox {{mailbox}}",
+        "eventLoop": "Event-loop lag {{ms}} ms",
+        "heartbeat": "Heartbeat {{age}} ago",
+        "noHeartbeat": "No heartbeat",
+        "unknown": "No data",
+        "diskUsage": "{{percent}} % used · {{free}} free of {{total}}",
+        "clamavFailOpen": "Attachments pass unscanned (fail-open)",
+        "clamavBlocking": "Attachments are rejected until the antivirus is back",
+        "notConfigured": "Not configured",
+        "noEmailYet": "No e-mail sent yet",
+        "lastSent": "Last sent",
+        "daysLeft_one": "Expires in {{count}} day",
+        "daysLeft_other": "Expires in {{count}} days",
+        "neverRead": "Not read successfully yet",
+        "lastRead": "Last read",
+        "fails_one": "{{count}} failure in a row",
+        "fails_other": "{{count}} failures in a row"
+      },
+      "alerts": {
+        "title": "Active alarms",
+        "emptyTitle": "No active alarms",
+        "emptyBody": "All checks passed in the last measurement.",
+        "activeFor": "Active for {{duration}}",
+        "notified_one": "{{count}} notification",
+        "notified_other": "{{count}} notifications",
+        "acknowledge": "Acknowledge",
+        "acknowledged": "Alarm acknowledged. Reminders stopped.",
+        "acknowledgedBy": "Acknowledged by {{name}} · {{at}}",
+        "runbook": "Runbook:"
+      },
+      "test": {
+        "action": "Send test alarm",
+        "sent": "Test alarm sent",
+        "nothingSent": "Test alarm was not delivered on any channel",
+        "channel": "{{channel}}: {{status}} ({{delivered}})",
+        "status": {
+          "sent": "sent",
+          "partial": "partial",
+          "failed": "failed",
+          "skipped": "skipped"
+        }
+      },
+      "silence": {
+        "action": "Silence alarms",
+        "title": "Silence alarms",
+        "description": "For planned work. Checks and history keep running; only messages stop. The action is audited.",
+        "duration": "Duration",
+        "minutes_one": "{{count}} minute",
+        "minutes_other": "{{count}} minutes",
+        "hours_one": "{{count}} hour",
+        "hours_other": "{{count}} hours",
+        "reason": "Reason",
+        "reasonPlaceholder": "e.g. Planned server maintenance",
+        "reasonHint": "{{min}} to {{max}} characters.",
+        "done": "Alarms silenced",
+        "active": "Alarms are silenced until {{until}} ({{by}}): {{reason}}",
+        "clear": "End silence",
+        "cleared": "Silence ended"
+      },
+      "http": {
+        "title": "Server errors (5xx), last 60 min",
+        "summary": "{{errors}} errors out of {{requests}} requests",
+        "empty": "No request data yet.",
+        "bar": "{{time}}: {{errors}} errors / {{total}} requests",
+        "scale": "Peak {{max}} per minute"
+      },
+      "schedulers": {
+        "title": "Scheduled jobs",
+        "empty": "No scheduled job data (waiting for a worker measurement).",
+        "job": "Job",
+        "interval": "Interval",
+        "lastSuccess": "Last success",
+        "next": "Next run",
+        "state": "State",
+        "every": "every {{interval}}",
+        "lastFailure": "Failed",
+        "states": {
+          "on_time": "On time",
+          "late": "Late"
+        }
+      },
+      "queues": {
+        "title": "Job queues",
+        "dlq_one": "Integration DLQ: {{count}} · new failures since last acknowledgement: {{growth}}",
+        "dlq_other": "Integration DLQ: {{count}} · new failures since last acknowledgement: {{growth}}",
+        "acknowledge": "Acknowledge state",
+        "confirmTitle": "Acknowledge the current failed jobs?",
+        "confirmBody": "{{growth}} new failures become the new baseline. The alarm closes and reopens only for new failures. The jobs themselves are not deleted.",
+        "acknowledged": "Queue state acknowledged",
+        "empty": "No queue data.",
+        "queue": "Queue",
+        "waiting": "Waiting",
+        "active": "Active",
+        "delayed": "Delayed",
+        "failed": "Failed"
+      },
+      "channelsSummary": {
+        "title": "Alarm channels",
+        "hint": "Recipients are users with ops.alerts.receive. Reminder every {{hours}} h until acknowledged. Settings are under Settings → Operations.",
+        "extraRecipients": "Extra addresses",
+        "extraRecipientsValue_one": "{{count}} address",
+        "extraRecipientsValue_other": "{{count}} addresses",
+        "fallback": "Fallback channel (env)",
+        "fallbackMissing": "Not configured: if the database or Redis fails the alarm is only logged (OPS_ALERT_SMTP_URL, OPS_ALERT_EMAIL_TO).",
+        "uptime": "Uptime Kuma push",
+        "configured": "Configured",
+        "notConfigured": "Not configured"
+      },
+      "history": {
+        "title": "Resolved alarm history ({{days}} days)",
+        "empty": "No resolved alarms in the retention period.",
+        "alert": "Alarm",
+        "severity": "Severity",
+        "started": "Started",
+        "duration": "Duration",
+        "acknowledgedBy": "Acknowledged by"
+      },
+      "alertKeys": {
+        "worker_down": {
+          "title": "Worker is down",
+          "action": "Check the worker container (logs, restart). While it is down SLA, e-mail and scheduled jobs stop."
+        },
+        "sla_scan_late": {
+          "title": "SLA scan is late",
+          "action": "SLA warnings and escalations are not sent. Check the worker and the sla-scan queue."
+        },
+        "scheduler_late": {
+          "title": "Scheduled job is late",
+          "action": "One or more scheduled jobs did not run on time. See the scheduled jobs table below."
+        },
+        "disk_usage": {
+          "title": "Attachment disk is filling up",
+          "action": "Free space or grow the volume. When the disk is full uploads and inbound e-mail stop working."
+        },
+        "clamav_unavailable": {
+          "title": "Antivirus (ClamAV) is unavailable",
+          "action": "Attachments wait for scanning or are rejected. Check the clamav container."
+        },
+        "queue_dlq": {
+          "title": "Failed jobs in the queue (DLQ)",
+          "action": "Review the failed jobs on the Integrations card, retry them or acknowledge the current state."
+        },
+        "http_5xx": {
+          "title": "Elevated server errors (5xx)",
+          "action": "The API is returning errors. Check the backend logs for the last 5 minutes."
+        },
+        "database_unavailable": {
+          "title": "Database is unavailable",
+          "action": "The application is down. Check the Postgres container and its disk."
+        },
+        "redis_unavailable": {
+          "title": "Redis is unavailable",
+          "action": "Queues, sessions and cache are down. Check the Redis container."
+        },
+        "api_eventloop_lag": {
+          "title": "API is overloaded (event-loop lag)",
+          "action": "The API responds slowly. Check the server CPU and the backend logs for slow requests."
+        },
+        "tls_ldapsCa_expiry": {
+          "title": "LDAPS CA certificate expires soon",
+          "action": "Obtain the new CA certificate and replace AD_LDAPS_CA_CERT_BASE64 before it expires, otherwise AD sync stops."
+        },
+        "ops_monitor_stale": {
+          "title": "System monitoring is not running",
+          "action": "The worker is alive but the health check does not run, so other alarms cannot fire. Check the ops-health queue and worker logs."
+        },
+        "ops_test": {
+          "title": "Test alarm",
+          "action": "A check of the alarm channels. No action needed."
+        }
+      }
+    }
   },
   "policyPacks": {
     "cardTitle": "{{name}}",
