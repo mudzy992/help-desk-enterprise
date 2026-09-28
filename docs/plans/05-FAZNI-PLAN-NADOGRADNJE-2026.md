@@ -155,6 +155,8 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Politike zadržavanja: poruke, prilozi, audit (settings), s izvještajem šta je obrisano.
 
 ### 2.7 Pouzdanost i monitoring  · ~2 RD
+
+> **Status:** dizajn čeka odobrenje (`modules/2.7-pouzdanost-i-monitoring.md`, ~4,5 RD, pitanja u §15).
 - Eksterni uptime monitoring (`/health`, frontend) — upute i konfiguracija (npr. Uptime Kuma).
 - Alarmi: DLQ > 0, worker heartbeat izgubljen, SLA skener kasni, disk za priloge > 80 %,
   ClamAV nedostupan, greške 5xx > prag → e-mail/Teams administratorima.
