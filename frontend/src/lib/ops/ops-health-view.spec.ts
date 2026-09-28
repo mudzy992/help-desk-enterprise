@@ -107,7 +107,7 @@ describe("ops health view", () => {
     expect(clamavState({ configured: true, ok: false, failOpen: false })).toBe("fail");
     expect(eventLoopState(600)).toBe("warning");
     expect(eventLoopState(2500)).toBe("fail");
-    expect(inboundState({ mailboxKey: "m", lastRunAt: null, lastSuccessAt: null, consecutiveFails: 3 })).toBe("fail");
+    expect(inboundState({ mailboxKey: "m", lastRunAt: null, lastSuccessAt: null, lastError: "x", lastErrorAt: null, consecutiveFails: 3 })).toBe("fail");
   });
 
   it("counts LDAPS CA days with the backend 30/7 limits", () => {

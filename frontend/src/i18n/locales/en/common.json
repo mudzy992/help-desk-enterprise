@@ -257,7 +257,8 @@
         "neverRead": "Not read successfully yet",
         "lastRead": "Last read",
         "fails_one": "{{count}} failure in a row",
-        "fails_other": "{{count}} failures in a row"
+        "fails_other": "{{count}} failures in a row",
+        "lastError": "Error: {{error}}"
       },
       "alerts": {
         "title": "Active alarms",
@@ -281,6 +282,11 @@
           "partial": "partial",
           "failed": "failed",
           "skipped": "skipped"
+        },
+        "reasons": {
+          "no_recipients": "no recipients (ops.alerts.receive permission or extra addresses)",
+          "not_configured": "not configured",
+          "email_channel_disabled": "the e-mail channel is disabled in settings"
         }
       },
       "silence": {

@@ -44,6 +44,15 @@ import {
   type OpsOverview,
 } from "@/services/ops-health-api";
 
+const knownTestReasons = ["no_recipients", "not_configured", "email_channel_disabled"] as const;
+
+type KnownTestReason = (typeof knownTestReasons)[number];
+
+/** Known skip reasons are translated by the caller; anything else is shown as the technical text. */
+function knownTestReason(reason: string): KnownTestReason | null {
+  return knownTestReasons.find((item) => item === reason) ?? null;
+}
+
 /** The worker measures once a minute; refreshing faster only adds load. */
 const refreshEveryMs = 30_000;
 
@@ -102,6 +111,11 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
     }
   };
 
+  const reasonLabel = (reason: string): string => {
+    const known = knownTestReason(reason);
+    return known === null ? reason : t(`admin.opsHealth.test.reasons.${known}`);
+  };
+
   const runTest = async () => {
     setPending("test");
     try {
@@ -112,7 +126,7 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
             channel: t(`admin.opsHealth.channels.${channel.channel}`),
             status: t(`admin.opsHealth.test.status.${channel.status}`),
             delivered: channel.delivered,
-          }),
+          }) + (channel.reason ? ` – ${reasonLabel(channel.reason)}` : ""),
         )
         .join(" · ");
       const anyDelivered = channels.some((channel) => channel.delivered > 0);
@@ -390,6 +404,11 @@ function ComponentGrid({ overview, nowMs }: { readonly overview: OpsOverview; re
                   : null}
               </>
             )}
+            {mailbox.consecutiveFails > 0 && mailbox.lastError ? (
+              <span className="mt-0.5 block break-words text-danger" title={mailbox.lastError}>
+                {t("admin.opsHealth.components.lastError", { error: mailbox.lastError.slice(0, 160) })}
+              </span>
+            ) : null}
           </ComponentTile>
         ))}
       </div>

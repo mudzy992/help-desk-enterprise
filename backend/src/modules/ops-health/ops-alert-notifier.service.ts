@@ -1,3 +1,4 @@
+import { authenticationConstants } from '../authentication/authentication.constants';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -82,7 +83,17 @@ export class OpsAlertNotifier {
       where: {
         isActive: true,
         anonymizedAt: null,
-        userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.opsAlertsReceive } } } } } },
+        // SUPER_ADMIN holds every permission implicitly (no RolePermission rows).
+        userRoles: {
+          some: {
+            role: {
+              OR: [
+                { key: authenticationConstants.superAdminRoleKey },
+                { rolePermissions: { some: { permission: { key: permissionKeys.opsAlertsReceive } } } },
+              ],
+            },
+          },
+        },
       },
       select: { id: true, email: true, displayName: true, preferredLocale: true },
       orderBy: { id: 'asc' },

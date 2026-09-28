@@ -15,6 +15,8 @@ import type { OpsSnapshot } from './ops-health.runner';
 import { isFallbackConfigured, readFallbackConfiguration } from './ops-fallback-notifier';
 import { OpsStateStore, type OpsSilence } from './ops-state.store';
 import { schedulerGraceMs } from './evaluate-ops-signals';
+import { SettingsService } from '../settings/settings.service';
+import { inboundMailboxKey, loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
 
 export type OpsAlertView = {
   readonly id: string;
@@ -75,6 +77,7 @@ export class OpsHealthService {
     private readonly redis: RedisService,
     private readonly configurationLoader: OpsConfigurationLoader,
     private readonly engine: OpsAlertEngine,
+    private readonly settings: SettingsService,
   ) {
     this.store = new OpsStateStore(redis.getClient());
   }
@@ -95,9 +98,7 @@ export class OpsHealthService {
       this.prisma.notificationEmailDelivery
         .findFirst({ where: { status: emailDeliveryStatuses.sent }, orderBy: { createdAt: 'desc' }, select: { updatedAt: true } })
         .catch(() => null),
-      this.prisma.inboundMailboxState
-        .findMany({ select: { mailboxKey: true, lastRunAt: true, lastSuccessAt: true, consecutiveFails: true } })
-        .catch(() => []),
+      this.currentInboundState(),
     ]);
     const worker = evaluateWorkerHeartbeat({
       lastHeartbeatAt: heartbeat,
@@ -114,18 +115,17 @@ export class OpsHealthService {
         api: 'ok' as const,
         database,
         redis: redisState,
-        worker: { status: worker.status, heartbeatAgeSeconds: worker.heartbeatAgeSeconds },
+        // The card speaks the integration-queue vocabulary (active/stale/unknown).
+        worker: {
+          status: worker.heartbeatAgeSeconds === null ? ('unknown' as const) : worker.status === 'ok' ? ('active' as const) : ('stale' as const),
+          heartbeatAgeSeconds: worker.heartbeatAgeSeconds,
+        },
         clamav: signals === null ? null : signals.clamav,
         disk: signals?.disk ?? null,
         eventLoopLagMs: signals?.eventLoopLagMs ?? null,
         ldapsCaExpiresAt: signals?.ldapsCaExpiresAtMs == null ? null : new Date(signals.ldapsCaExpiresAtMs).toISOString(),
         email: { lastSentAt: emailLast?.updatedAt.toISOString() ?? null },
-        inbound: inbound.map((mailbox) => ({
-          mailboxKey: mailbox.mailboxKey,
-          lastRunAt: mailbox.lastRunAt?.toISOString() ?? null,
-          lastSuccessAt: mailbox.lastSuccessAt?.toISOString() ?? null,
-          consecutiveFails: mailbox.consecutiveFails,
-        })),
+        inbound,
       },
       schedulers: (signals?.schedulers ?? []).map((scheduler) => ({
         queue: scheduler.queue,
@@ -279,6 +279,35 @@ export class OpsHealthService {
   private async silenceView(silence: OpsSilence) {
     const users = await this.userNames([silence.byUserId]);
     return { until: silence.until, reason: silence.reason, by: users.get(silence.byUserId) ?? null };
+  }
+
+  /**
+   * Only the mailbox that is configured now, and only while inbound e-mail is
+   * enabled - rows of a replaced or disabled mailbox stay in the table (2.3)
+   * but must not colour the card. Same rule as the inbound status panel.
+   */
+  private async currentInboundState(): Promise<
+    Array<{ mailboxKey: string; lastRunAt: string | null; lastSuccessAt: string | null; lastError: string | null; lastErrorAt: string | null; consecutiveFails: number }>
+  > {
+    try {
+      const configuration = await loadInboundEmailConfiguration(this.settings);
+      if (!configuration.enabled) return [];
+      const mailboxKey = inboundMailboxKey(configuration);
+      const state = await this.prisma.inboundMailboxState.findUnique({ where: { mailboxKey } });
+      return [
+        {
+          mailboxKey,
+          lastRunAt: state?.lastRunAt?.toISOString() ?? null,
+          lastSuccessAt: state?.lastSuccessAt?.toISOString() ?? null,
+          lastError: state?.lastError ?? null,
+          lastErrorAt: state?.lastErrorAt?.toISOString() ?? null,
+          consecutiveFails: state?.consecutiveFails ?? 0,
+        },
+      ];
+    } catch (error) {
+      this.logger.warn(`ops_inbound_state_failed reason=${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
   }
 
   private async userNames(ids: ReadonlyArray<string | null>): Promise<Map<string, string>> {

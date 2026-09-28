@@ -259,7 +259,8 @@
         "lastRead": "Posljednje čitanje",
         "fails_one": "{{count}} neuspjeh zaredom",
         "fails_few": "{{count}} neuspjeha zaredom",
-        "fails_other": "{{count}} neuspjeha zaredom"
+        "fails_other": "{{count}} neuspjeha zaredom",
+        "lastError": "Greška: {{error}}"
       },
       "alerts": {
         "title": "Aktivni alarmi",
@@ -284,6 +285,11 @@
           "partial": "djelimično",
           "failed": "greška",
           "skipped": "preskočeno"
+        },
+        "reasons": {
+          "no_recipients": "nema primalaca (ovlaštenje ops.alerts.receive ili dodatne adrese)",
+          "not_configured": "nije podešeno",
+          "email_channel_disabled": "e-mail kanal je isključen u postavkama"
         }
       },
       "silence": {

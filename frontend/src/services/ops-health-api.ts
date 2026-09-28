@@ -84,6 +84,9 @@ export type OpsOverview = {
       readonly mailboxKey: string;
       readonly lastRunAt: string | null;
       readonly lastSuccessAt: string | null;
+      /** Technical IMAP/Graph error of the last failed read (same text as the inbound panel). */
+      readonly lastError: string | null;
+      readonly lastErrorAt: string | null;
       readonly consecutiveFails: number;
     }>;
   };

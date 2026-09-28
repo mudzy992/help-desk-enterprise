@@ -1,3 +1,4 @@
+import { authenticationConstants } from '../../authentication/authentication.constants';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
@@ -370,9 +371,15 @@ export class DataSubjectRequestsService {
   private managerWhere() {
     return {
       isActive: true,
+      // SUPER_ADMIN holds every permission implicitly (no RolePermission rows).
       userRoles: {
         some: {
-          role: { rolePermissions: { some: { permission: { key: permissionKeys.privacyManage } } } },
+          role: {
+            OR: [
+              { key: authenticationConstants.superAdminRoleKey },
+              { rolePermissions: { some: { permission: { key: permissionKeys.privacyManage } } } },
+            ],
+          },
         },
       },
     };

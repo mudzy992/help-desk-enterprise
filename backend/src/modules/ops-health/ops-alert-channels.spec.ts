@@ -193,6 +193,7 @@ describe('OpsAlertNotifier', () => {
     ]);
     const where = (prisma.user.findMany.mock.calls[0] as unknown as [{ where: unknown }])[0].where;
     expect(JSON.stringify(where)).toContain('ops.alerts.receive');
+    expect(JSON.stringify(where)).toContain('SUPER_ADMIN');
     expect((deliverNotificationEmail as jest.Mock).mock.calls.map((call) => call[3].templateKey)).toEqual(['ops.alert', 'ops.alert']);
     expect(transport.send).toHaveBeenCalledTimes(1);
     expect((transport.send.mock.calls[0] as unknown as [{ to: string }])[0].to).toBe('dezurni@epbih.ba');

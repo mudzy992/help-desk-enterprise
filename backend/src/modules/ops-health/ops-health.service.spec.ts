@@ -1,9 +1,16 @@
 jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class PrismaService {} }));
+jest.mock('../settings/settings.service', () => ({ SettingsService: class SettingsService {} }));
+jest.mock('../inbound-email/inbound-email-configuration', () => ({
+  loadInboundEmailConfiguration: jest.fn(async () => ({ enabled: true })),
+  inboundMailboxKey: jest.fn(() => 'imap:helpdesk@epbih.ba'),
+}));
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn(async () => undefined) }));
 
 import { NotFoundException } from '@nestjs/common';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { OpsHealthService } from './ops-health.service';
+import { loadInboundEmailConfiguration } from '../inbound-email/inbound-email-configuration';
+import { workerHeartbeatRedisKey } from '../integration-queue/integration-queue.constants';
 import { fallbackOpsConfiguration } from './ops-configuration.loader';
 
 const now = new Date('2026-11-20T10:00:00.000Z');
@@ -43,10 +50,16 @@ function setup() {
     $transaction: jest.fn(async (work: (tx: unknown) => unknown) => work(transaction)),
     user: { findMany: jest.fn(async () => [{ id: 'admin-1', displayName: 'Admin' }]) },
     integrationJob: { count: jest.fn(async () => 3) },
+    $queryRaw: jest.fn(async () => [{ '?column?': 1 }]),
+    opsAlert: { findMany: jest.fn(async () => []) },
+    notificationEmailDelivery: { findFirst: jest.fn(async () => null) },
+    inboundMailboxState: {
+      findUnique: jest.fn(async () => ({ lastRunAt: now, lastSuccessAt: null, lastError: 'AUTHENTICATIONFAILED', lastErrorAt: now, consecutiveFails: 4 })),
+    },
   };
   const engine = { sendTest: jest.fn(async () => [{ channel: 'email', status: 'sent', delivered: 2, failed: 0, reason: null }]) };
   const loader = { load: jest.fn(async () => fallbackOpsConfiguration) };
-  const service = new OpsHealthService(prisma as never, { getClient: () => redis } as never, loader as never, engine as never);
+  const service = new OpsHealthService(prisma as never, { getClient: () => redis } as never, loader as never, engine as never, {} as never);
   return { redis, prisma, transaction, engine, service };
 }
 
@@ -65,6 +78,32 @@ describe('OpsHealthService', () => {
     transaction.opsAlert.updateMany.mockResolvedValueOnce({ count: 0 });
     await service.acknowledge('a1', actor, now);
     expect(recordAuditEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the worker in the card vocabulary (active / stale / unknown)', async () => {
+    const { service, redis } = setup();
+    expect((await service.overview(now)).components.worker).toEqual({ status: 'unknown', heartbeatAgeSeconds: null });
+    redis.values.set(workerHeartbeatRedisKey, new Date(now.getTime() - 10_000).toISOString());
+    expect((await service.overview(now)).components.worker).toEqual({ status: 'active', heartbeatAgeSeconds: 10 });
+    redis.values.set(workerHeartbeatRedisKey, new Date(now.getTime() - 600_000).toISOString());
+    expect((await service.overview(now)).components.worker.status).toBe('stale');
+  });
+
+  it('shows only the configured inbound mailbox, with its last error, and nothing while inbound is off', async () => {
+    const { service, prisma } = setup();
+    expect((await service.overview(now)).components.inbound).toEqual([
+      {
+        mailboxKey: 'imap:helpdesk@epbih.ba',
+        lastRunAt: now.toISOString(),
+        lastSuccessAt: null,
+        lastError: 'AUTHENTICATIONFAILED',
+        lastErrorAt: now.toISOString(),
+        consecutiveFails: 4,
+      },
+    ]);
+    expect(prisma.inboundMailboxState.findUnique).toHaveBeenCalledWith({ where: { mailboxKey: 'imap:helpdesk@epbih.ba' } });
+    (loadInboundEmailConfiguration as jest.Mock).mockResolvedValueOnce({ enabled: false });
+    expect((await service.overview(now)).components.inbound).toEqual([]);
   });
 
   it('rejects an unknown alarm', async () => {
