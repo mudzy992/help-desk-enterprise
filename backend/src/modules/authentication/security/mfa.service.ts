@@ -11,6 +11,8 @@ import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from '
 import { buildOtpauthUri, generateTotpSecret, verifyTotp } from './totp';
 
 const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
+/** A reused pending secret keeps at least this long to be confirmed. */
+const ENROLLMENT_REUSE_MARGIN_MS = 2 * 60 * 1000;
 
 export type MfaSubject = {
   readonly id: string;
@@ -71,13 +73,33 @@ export class MfaService {
     if (await this.isEnabled(subject.id)) {
       throw new AccountSecurityError('MFA_ALREADY_ENABLED');
     }
-    const secret = generateTotpSecret();
-    const pendingSecretEncrypted = this.encrypt(secret);
-    await this.prisma.userMfa.upsert({
-      where: { userId: subject.id },
-      create: { userId: subject.id, pendingSecretEncrypted, pendingCreatedAt: new Date() },
-      update: { pendingSecretEncrypted, pendingCreatedAt: new Date() },
+    // Idempotent and race-free while a pending secret is valid: a second
+    // start (React StrictMode double mount, reload, second tab) must not
+    // replace a secret the user may already have scanned. Before this, the QR
+    // on screen and the stored secret could differ, so no code ever matched.
+    // Only the first writer stores a secret; everyone returns what is stored.
+    const now = new Date();
+    const reusableSince = new Date(now.getTime() - (ENROLLMENT_TTL_MS - ENROLLMENT_REUSE_MARGIN_MS));
+    const pendingSecretEncrypted = this.encrypt(generateTotpSecret());
+    const written = await this.prisma.userMfa.updateMany({
+      where: {
+        userId: subject.id,
+        enabledAt: null,
+        OR: [{ pendingSecretEncrypted: null }, { pendingCreatedAt: null }, { pendingCreatedAt: { lt: reusableSince } }],
+      },
+      data: { pendingSecretEncrypted, pendingCreatedAt: now },
     });
+    if (written.count === 0) {
+      try {
+        await this.prisma.userMfa.create({ data: { userId: subject.id, pendingSecretEncrypted, pendingCreatedAt: now } });
+      } catch (error) {
+        // P2002: a parallel start created the row first — use its secret.
+        if ((error as { code?: string }).code !== 'P2002') throw error;
+      }
+    }
+    const stored = await this.prisma.userMfa.findUnique({ where: { userId: subject.id } });
+    if (!stored?.pendingSecretEncrypted) throw new AccountSecurityError('MFA_ENROLLMENT_EXPIRED');
+    const secret = this.decrypt(stored.pendingSecretEncrypted);
     return {
       secret,
       otpauthUri: buildOtpauthUri({ issuer: policy.mfaIssuerName, accountName: subject.email, base32Secret: secret }),
