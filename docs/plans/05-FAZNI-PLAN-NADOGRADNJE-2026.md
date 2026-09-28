@@ -147,6 +147,9 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Izvoz dashboarda u PDF.
 
 ### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD
+
+> **Status:** dizajn čeka odobrenje (`modules/2.6-zastita-licnih-podataka.md`, procjena revidirana na ~5 RD).
+
 - Anonimizacija bivšeg zaposlenika (ime/e-mail → pseudonim u tiketima, porukama, auditu uz
   očuvan hash lanac); zahtjev za izvoz podataka korisnika.
 - Politike zadržavanja: poruke, prilozi, audit (settings), s izvještajem šta je obrisano.
