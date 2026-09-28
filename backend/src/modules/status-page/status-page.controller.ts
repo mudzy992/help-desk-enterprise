@@ -17,7 +17,8 @@ import { statusViewerOf } from './status-viewer';
  * access to that ticket (checked in the service, like any ticket write).
  */
 @Controller('status')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+// RoleGuard denies routes without a requirement, so it guards the manage routes only.
+@UseGuards(SessionAuthenticationGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class StatusPageController {
   constructor(
@@ -55,6 +56,7 @@ export class StatusPageController {
   }
 
   @Post('incidents')
+  @UseGuards(RoleGuard)
   @RequirePermissions(permissionKeys.statusIncidentsManage)
   create(@Req() request: AuthenticatedHttpRequest, @Body() body: CreateIncidentDto) {
     return this.incidents.create(body, privacyActorOf(request));
@@ -62,6 +64,7 @@ export class StatusPageController {
 
   @Patch('incidents/:id')
   @HttpCode(204)
+  @UseGuards(RoleGuard)
   @RequirePermissions(permissionKeys.statusIncidentsManage)
   async edit(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: UpdateIncidentDto) {
     await this.incidents.edit(id, body, privacyActorOf(request));
@@ -69,6 +72,7 @@ export class StatusPageController {
 
   @Post('incidents/:id/updates')
   @HttpCode(200)
+  @UseGuards(RoleGuard)
   @RequirePermissions(permissionKeys.statusIncidentsManage)
   addUpdate(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: AddIncidentUpdateDto) {
     return this.incidents.addUpdate(id, body, privacyActorOf(request));
@@ -76,6 +80,7 @@ export class StatusPageController {
 
   @Get('incidents/:id/resolve-preview')
   @Header('Cache-Control', 'no-store')
+  @UseGuards(RoleGuard)
   @RequirePermissions(permissionKeys.statusIncidentsManage)
   resolvePreview(@Param('id') id: string) {
     return this.incidents.resolvePreview(id);
