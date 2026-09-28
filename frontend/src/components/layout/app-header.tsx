@@ -20,7 +20,7 @@ export function AppHeader({
   const { t } = useTranslation();
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/70 bg-surface px-4 lg:px-6">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border/70 bg-surface px-4 lg:px-6 print:hidden">
       <Button
         type="button"
         variant="ghost"

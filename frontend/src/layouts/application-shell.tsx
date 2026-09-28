@@ -73,17 +73,17 @@ export function ApplicationShell() {
   }
 
   return (
-    <div className="flex h-full min-h-0 bg-background">
+    <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
       <HelpdeskSocketHost />
       {session.isSuperAdmin ||
       session.roleKeys.includes(roleKeys.agent) ||
       session.roleKeys.includes(roleKeys.admin) ? (
         <ActiveTimerHost accessToken={storedSession.accessToken} />
       ) : null}
-      <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block">
+      <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block print:hidden">
         <AppSidebar />
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col print:block">
         <AppHeader
           onOpenNavigation={() => setIsMobileNavigationOpen(true)}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
@@ -101,13 +101,15 @@ export function ApplicationShell() {
           open={isCommandPaletteOpen}
           onOpenChange={setIsCommandPaletteOpen}
         />
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
           <div
             key={location.pathname}
-            className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8"
+            className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8 print:max-w-none print:p-0"
           >
-            <MaintenanceBanner maintenance={maintenance} />
-            <PasswordExpiryBanner />
+            <div className="print:hidden">
+              <MaintenanceBanner maintenance={maintenance} />
+              <PasswordExpiryBanner />
+            </div>
             <Outlet />
           </div>
         </main>

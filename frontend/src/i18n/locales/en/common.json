@@ -1320,7 +1320,9 @@
     "unroutedGroup": "Unrouted",
     "tabs": {
       "overview": "Overview",
-      "packs": "Report packs"
+      "packs": "Report packs",
+      "trends": "Trends",
+      "schedules": "Scheduled"
     },
     "packs": {
       "title": "Report packs",
@@ -1391,6 +1393,230 @@
         "agent_service": "Agent × service",
         "agent_total": "Agent total",
         "total": "Total"
+      }
+    },
+    "errors": {
+      "REPORT_WINDOW_INVALID": "The range is not allowed for the selected granularity (daily up to 92 days, weekly up to 104 weeks, monthly up to the configured maximum).",
+      "REPORT_GRANULARITY_INVALID": "The granularity is not supported.",
+      "REPORT_TRENDS_DISABLED": "Trends are disabled in the report settings.",
+      "REPORTS_DISABLED": "Reports are disabled in the settings.",
+      "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND": "The organizational unit was not found or is outside your scope.",
+      "REPORT_FORMAT_NOT_ALLOWED": "This export format is not allowed.",
+      "REPORT_SCHEDULE_DISABLED": "Scheduled reports are disabled in the settings.",
+      "REPORT_SCHEDULE_NOT_FOUND": "The schedule was not found.",
+      "REPORT_SCHEDULE_LIMIT": "The maximum number of schedules has been reached.",
+      "REPORT_SCHEDULE_INVALID": "The schedule is not valid. Check the form fields.",
+      "REPORT_RECIPIENT_INVALID": "A recipient may not receive this report (no access to reports or to the unit scope).",
+      "REPORT_RECIPIENT_LIMIT": "Too many recipients for one schedule."
+    },
+    "print": {
+      "action": "Export PDF",
+      "scope": "Scope",
+      "period": "Period",
+      "generated": "Generated {{when}} · {{who}}"
+    },
+    "trends": {
+      "title": "Trends",
+      "presets": {
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "6m": "6 months",
+        "12m": "12 months",
+        "24m": "24 months",
+        "36m": "36 months",
+        "custom": "Custom"
+      },
+      "granularity": {
+        "auto": "Automatic ({{value}})",
+        "day": "Daily",
+        "week": "Weekly",
+        "month": "Monthly"
+      },
+      "priority": {
+        "LOW": "Low",
+        "MEDIUM": "Medium",
+        "HIGH": "High",
+        "CRITICAL": "Critical"
+      },
+      "filters": {
+        "range": "Range",
+        "granularity": "Granularity",
+        "service": "Service",
+        "group": "Group",
+        "priority": "Priority",
+        "all": "All"
+      },
+      "scheduleThis": "Schedule this report",
+      "emptyTitle": "No tickets in the selected range",
+      "emptyBody": "Try a longer range, another organizational unit or remove the filters.",
+      "series": {
+        "created": "Incoming",
+        "resolved": "Resolved",
+        "net": "Net change",
+        "backlog": "Open (backlog)",
+        "slaResponse": "SLA response",
+        "slaResolution": "SLA resolution",
+        "resolutionMedian": "Resolution – median",
+        "resolutionP90": "Resolution – p90",
+        "firstResponseMedian": "First response – median",
+        "csatAverage": "CSAT average (1–{{max}})",
+        "csatSatisfied": "Satisfied"
+      },
+      "backlogEnd": "Open at end",
+      "backlogStart": "at start {{value}}",
+      "csatTile": "CSAT (1–{{max}})",
+      "ratings_one": "{{count}} rating",
+      "ratings_other": "{{count}} ratings",
+      "cards": {
+        "flow": {
+          "title": "Incoming and resolved",
+          "subtitle": "Per period, with net change",
+          "how": "Incoming = tickets created in the period. Resolved = tickets whose resolution (or closure, when there is no resolution) falls in the period. Net = incoming − resolved. Merged tickets are not counted."
+        },
+        "backlog": {
+          "title": "Open over time",
+          "subtitle": "State at the end of each period",
+          "how": "Open at the start of the range + the sum of (incoming − resolved) up to the end of the period. A reopened ticket counts as resolved from its last resolution, so this approximates the historical state."
+        },
+        "sla": {
+          "title": "SLA compliance",
+          "subtitle": "Response and resolution, target {{target}} %",
+          "how": "Share of tickets that met the SLA: response by the moment of response, resolution by the moment resolution completed in the period. Tickets without an SLA profile are not in the percentage."
+        },
+        "duration": {
+          "title": "Handling times",
+          "subtitle": "Median and p90, calendar time",
+          "how": "Resolution: from creation to resolution, for tickets resolved in the period. First response: from creation to the first reply, for tickets created in the period. Median = half of the tickets were faster; p90 = 90 % were faster."
+        },
+        "csat": {
+          "title": "Satisfaction (CSAT)",
+          "subtitle": "Satisfied = rating ≥ {{min}}; muted below {{sample}} ratings",
+          "how": "Average of the ratings given in the period (by rating date). Periods with fewer than {{sample}} ratings are drawn hollow because they are not reliable."
+        },
+        "services": {
+          "title": "Top services",
+          "subtitle": "Incoming in the range and change against the previous period of the same length",
+          "empty": "No tickets in the range.",
+          "service": "Service",
+          "current": "Tickets",
+          "change": "Change",
+          "other": "Other services"
+        }
+      },
+      "how": "How is it calculated?",
+      "showTable": "Table",
+      "showChart": "Chart",
+      "period": "Period",
+      "partial": "current period",
+      "lowSample": "few ratings (< {{sample}})",
+      "target": "Target {{value}} %",
+      "new": "new",
+      "withoutSla_one": "{{count}} resolved ticket without an SLA profile is not included in the percentage.",
+      "withoutSla_other": "{{count}} resolved tickets without an SLA profile are not included in the percentage.",
+      "meta": "Periods in the {{zone}} zone · generated {{generated}} · data is cached for up to 10 minutes"
+    },
+    "schedules": {
+      "title": "Scheduled reports",
+      "intro": "Reports are e-mailed to recipients with access to reports: weekly on Monday, monthly on the 1st (zone {{zone}}). Schedules: {{used}} / {{max}}.",
+      "create": "New schedule",
+      "emptyTitle": "No schedules",
+      "emptyBody": "Create a schedule, or click “Schedule this report” on the Trends tab.",
+      "columns": {
+        "name": "Name",
+        "when": "Frequency",
+        "scope": "Scope",
+        "recipients": "Recipients",
+        "lastRun": "Last run",
+        "next": "Next send",
+        "enabled": "Enabled"
+      },
+      "frequency": {
+        "WEEKLY": "Weekly (Mon)",
+        "MONTHLY": "Monthly (1st)"
+      },
+      "status": {
+        "RUNNING": "Running",
+        "SENT": "Sent",
+        "PARTIAL": "Partial",
+        "FAILED": "Failed",
+        "SKIPPED": "Skipped"
+      },
+      "sections": {
+        "kpi": "Summary (KPI)",
+        "trend": "Trend (last 12 periods)",
+        "topServices": "Top services",
+        "overdue": "Overdue by service"
+      },
+      "actions": "Actions",
+      "edit": "Edit",
+      "sendTest": "Send test to me",
+      "runNow": "Send now",
+      "history": "Run history",
+      "delete": "Delete",
+      "testSent": "The test report was sent to your address.",
+      "testNotSent": "The test report was not sent.",
+      "runQueued": "Sending has started. The result will appear in the run history.",
+      "runNotQueued": "Sending did not start (the worker is not available).",
+      "runNowTitle": "Send the report now?",
+      "runNowBody_one": "“{{name}}” will be sent now to {{count}} recipient for the last completed period.",
+      "runNowBody_other": "“{{name}}” will be sent now to {{count}} recipients for the last completed period.",
+      "deleteTitle": "Delete the schedule?",
+      "deleteBody": "The schedule “{{name}}” and its run history will be deleted.",
+      "saved": "The schedule was saved.",
+      "historyTitle": "Run history",
+      "historyEmpty": "The schedule has not run yet.",
+      "runPeriod": "Period {{from}} – {{to}}",
+      "runCounts": "Sent {{sent}} of {{total}}",
+      "manual": "started manually by {{name}}",
+      "skip": {
+        "inactive": "user is not active",
+        "no_access": "no access to reports or to the unit scope",
+        "email_not_allowed": "address is not allowed for sending",
+        "delivery_failed": "delivery failed"
+      },
+      "omit": {
+        "too_many_rows": "too many rows for an attachment",
+        "too_large": "attachments exceed 10 MB",
+        "pack_disabled": "the pack is disabled",
+        "failed": "build error"
+      },
+      "runError": {
+        "missed": "slot missed (the worker was not running)",
+        "email_disabled": "the e-mail channel is disabled",
+        "scheduled_disabled": "scheduled reports are disabled",
+        "reports_disabled": "reports are disabled",
+        "no_recipients": "no recipient has access",
+        "build_failed": "the report could not be built"
+      },
+      "form": {
+        "createTitle": "New schedule",
+        "editTitle": "Edit schedule",
+        "description": "The send time is in the {{zone}} zone. The report covers the last completed week or month.",
+        "name": "Name",
+        "frequency": "Frequency",
+        "sendTime": "Send time",
+        "next": "Next send: {{value}}",
+        "nextUnknown": "Enter a valid time (HH:mm).",
+        "sections": "E-mail sections",
+        "attachments": "Attachments (CSV)",
+        "attachmentsHint": "A pack with more than {{rows}} rows is not attached; the e-mail says so.",
+        "recipients": "Recipients",
+        "recipientsHint": "Only internal users with access to reports and to the unit scope, at most {{max}}.",
+        "searchRecipients": "Search by name or e-mail",
+        "noCandidates": "No candidates to show.",
+        "removeRecipient": "Remove {{name}}",
+        "inactive": "inactive",
+        "enabled": "Schedule enabled",
+        "cancel": "Cancel",
+        "save": "Save",
+        "errors": {
+          "name": "Enter a name (up to 120 characters).",
+          "sendTime": "The time must be in the HH:mm format.",
+          "unit": "Choose an organizational unit.",
+          "sections": "Choose at least one section.",
+          "recipients": "Add at least one recipient.",
+          "recipientLimit": "At most {{max}} recipients."
+        }
       }
     }
   },

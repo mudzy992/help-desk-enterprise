@@ -139,6 +139,8 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Povezani tiketi (related) pored parent/child.
 
 ### 2.5 Izvještavanje i analitika  · ~3 RD
+
+> **Status:** implementirano (dizajn d23d849, backend 04ab8f6, sanacija 68b6d26, frontend 2026-09-28). Detalji i odstupanja: `modules/2.5-izvjestavanje-i-analitika.md` §13.
 - Zakazani izvještaji e-mailom (sedmično/mjesečno, primaoci, OU scope).
 - Dashboard trendova: dolazni vs. riješeni, backlog kroz vrijeme, SLA usklađenost po mjesecu,
   CSAT trend, top servisi.

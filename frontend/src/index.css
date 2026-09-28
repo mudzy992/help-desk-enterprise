@@ -593,3 +593,38 @@ select.appearance-none {
     animation: none;
   }
 }
+
+/* Paket 2.5 (design §6): print layout for „Izvezi PDF” (reports). The light
+   palette is switched on by `useLightPrintTheme`; navigation and actions carry
+   `print:hidden`. A4, page numbers in the bottom margin, charts not split. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm 16mm;
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-size: 9pt;
+    }
+  }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-avoid-break,
+  svg {
+    break-inside: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+  .page-in,
+  .fade-in {
+    animation: none !important;
+  }
+}

@@ -1324,7 +1324,9 @@
     "unroutedGroup": "Neusmjereni",
     "tabs": {
       "overview": "Pregled",
-      "packs": "Paketi izvještaja"
+      "packs": "Paketi izvještaja",
+      "trends": "Trendovi",
+      "schedules": "Zakazani"
     },
     "packs": {
       "title": "Paketi izvještaja",
@@ -1396,6 +1398,233 @@
         "agent_service": "Agent × servis",
         "agent_total": "Zbir agenta",
         "total": "Ukupno"
+      }
+    },
+    "errors": {
+      "REPORT_WINDOW_INVALID": "Raspon nije dozvoljen za izabranu granularnost (dnevno do 92 dana, sedmično do 104 sedmice, mjesečno do postavljenog maksimuma).",
+      "REPORT_GRANULARITY_INVALID": "Granularnost nije podržana.",
+      "REPORT_TRENDS_DISABLED": "Trendovi su isključeni u postavkama izvještaja.",
+      "REPORTS_DISABLED": "Izvještaji su isključeni u postavkama.",
+      "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND": "Organizaciona jedinica nije pronađena ili nije u vašem opsegu.",
+      "REPORT_FORMAT_NOT_ALLOWED": "Ovaj format izvoza nije dozvoljen.",
+      "REPORT_SCHEDULE_DISABLED": "Zakazani izvještaji su isključeni u postavkama.",
+      "REPORT_SCHEDULE_NOT_FOUND": "Raspored nije pronađen.",
+      "REPORT_SCHEDULE_LIMIT": "Dostignut je maksimalan broj rasporeda.",
+      "REPORT_SCHEDULE_INVALID": "Raspored nije ispravan. Provjerite polja forme.",
+      "REPORT_RECIPIENT_INVALID": "Neki primalac ne smije primati ovaj izvještaj (nema pristup izvještajima ili opsegu OJ).",
+      "REPORT_RECIPIENT_LIMIT": "Previše primalaca za jedan raspored."
+    },
+    "print": {
+      "action": "Izvezi PDF",
+      "scope": "Opseg",
+      "period": "Period",
+      "generated": "Generisano {{when}} · {{who}}"
+    },
+    "trends": {
+      "title": "Trendovi",
+      "presets": {
+        "30d": "Zadnjih 30 dana",
+        "90d": "Zadnjih 90 dana",
+        "6m": "6 mjeseci",
+        "12m": "12 mjeseci",
+        "24m": "24 mjeseca",
+        "36m": "36 mjeseci",
+        "custom": "Prilagođeno"
+      },
+      "granularity": {
+        "auto": "Automatski ({{value}})",
+        "day": "Dnevno",
+        "week": "Sedmično",
+        "month": "Mjesečno"
+      },
+      "priority": {
+        "LOW": "Nizak",
+        "MEDIUM": "Srednji",
+        "HIGH": "Visok",
+        "CRITICAL": "Kritičan"
+      },
+      "filters": {
+        "range": "Raspon",
+        "granularity": "Granularnost",
+        "service": "Servis",
+        "group": "Grupa",
+        "priority": "Prioritet",
+        "all": "Sve"
+      },
+      "scheduleThis": "Zakaži ovaj izvještaj",
+      "emptyTitle": "Nema tiketa u izabranom rasponu",
+      "emptyBody": "Probajte duži raspon, drugu organizacionu jedinicu ili uklonite filtere.",
+      "series": {
+        "created": "Dolazni",
+        "resolved": "Riješeni",
+        "net": "Neto promjena",
+        "backlog": "Otvoreni (backlog)",
+        "slaResponse": "SLA odziv",
+        "slaResolution": "SLA rješavanje",
+        "resolutionMedian": "Rješavanje – medijana",
+        "resolutionP90": "Rješavanje – p90",
+        "firstResponseMedian": "Prvi odziv – medijana",
+        "csatAverage": "CSAT prosjek (1–{{max}})",
+        "csatSatisfied": "Zadovoljni"
+      },
+      "backlogEnd": "Otvoreni na kraju",
+      "backlogStart": "na početku {{value}}",
+      "csatTile": "CSAT (1–{{max}})",
+      "ratings_one": "{{count}} ocjena",
+      "ratings_few": "{{count}} ocjene",
+      "ratings_other": "{{count}} ocjena",
+      "cards": {
+        "flow": {
+          "title": "Dolazni i riješeni",
+          "subtitle": "Po periodu, sa neto promjenom",
+          "how": "Dolazni = tiketi kreirani u periodu. Riješeni = tiketi čije je rješenje (ili zatvaranje, ako rješenja nema) u periodu. Neto = dolazni − riješeni. Spojeni tiketi se ne broje."
+        },
+        "backlog": {
+          "title": "Otvoreni kroz vrijeme",
+          "subtitle": "Stanje na kraju svakog perioda",
+          "how": "Otvoreni na početku raspona + zbir (dolazni − riješeni) do kraja perioda. Ponovno otvoreni tiket se broji kao riješen od zadnjeg rješenja, pa je ovo aproksimacija historijskog stanja."
+        },
+        "sla": {
+          "title": "SLA usklađenost",
+          "subtitle": "Odziv i rješavanje, cilj {{target}} %",
+          "how": "Udio tiketa koji su ispunili SLA: odziv prema trenutku odziva, rješavanje prema trenutku završetka rješavanja u periodu. Tiketi bez SLA profila nisu u procentu."
+        },
+        "duration": {
+          "title": "Vremena obrade",
+          "subtitle": "Medijana i p90, kalendarsko vrijeme",
+          "how": "Rješavanje: od kreiranja do rješenja, za tikete riješene u periodu. Prvi odziv: od kreiranja do prvog odgovora, za tikete kreirane u periodu. Medijana = polovina tiketa brža; p90 = 90 % tiketa brže."
+        },
+        "csat": {
+          "title": "Zadovoljstvo (CSAT)",
+          "subtitle": "Zadovoljan = ocjena ≥ {{min}}; prigušeno ispod {{sample}} ocjena",
+          "how": "Prosjek ocjena datih u periodu (po datumu ocjene). Periodi s manje od {{sample}} ocjena su prikazani šuplje jer nisu pouzdani."
+        },
+        "services": {
+          "title": "Najčešći servisi",
+          "subtitle": "Dolazni u rasponu i promjena prema prethodnom periodu iste dužine",
+          "empty": "Nema tiketa u rasponu.",
+          "service": "Servis",
+          "current": "Tiketi",
+          "change": "Promjena",
+          "other": "Ostali servisi"
+        }
+      },
+      "how": "Kako se računa?",
+      "showTable": "Tabela",
+      "showChart": "Grafikon",
+      "period": "Period",
+      "partial": "tekući period",
+      "lowSample": "malo ocjena (< {{sample}})",
+      "target": "Cilj {{value}} %",
+      "new": "novo",
+      "withoutSla_one": "{{count}} riješen tiket bez SLA profila nije uključen u procenat.",
+      "withoutSla_few": "{{count}} riješena tiketa bez SLA profila nisu uključena u procenat.",
+      "withoutSla_other": "{{count}} riješenih tiketa bez SLA profila nije uključeno u procenat.",
+      "meta": "Periodi po zoni {{zone}} · generisano {{generated}} · podaci se keširaju do 10 minuta"
+    },
+    "schedules": {
+      "title": "Zakazani izvještaji",
+      "intro": "Izvještaji se šalju e-mailom primaocima s pristupom izvještajima: sedmično ponedjeljkom, mjesečno 1. u mjesecu (zona {{zone}}). Rasporeda: {{used}} / {{max}}.",
+      "create": "Novi raspored",
+      "emptyTitle": "Nema rasporeda",
+      "emptyBody": "Napravite raspored ili na kartici Trendovi kliknite „Zakaži ovaj izvještaj”.",
+      "columns": {
+        "name": "Naziv",
+        "when": "Učestalost",
+        "scope": "Opseg",
+        "recipients": "Primaoci",
+        "lastRun": "Zadnje izvršenje",
+        "next": "Sljedeće slanje",
+        "enabled": "Uključen"
+      },
+      "frequency": {
+        "WEEKLY": "Sedmično (pon)",
+        "MONTHLY": "Mjesečno (1.)"
+      },
+      "status": {
+        "RUNNING": "U toku",
+        "SENT": "Poslano",
+        "PARTIAL": "Djelimično",
+        "FAILED": "Neuspješno",
+        "SKIPPED": "Preskočeno"
+      },
+      "sections": {
+        "kpi": "Sažetak (KPI)",
+        "trend": "Trend (zadnjih 12 perioda)",
+        "topServices": "Najčešći servisi",
+        "overdue": "Prekoračeni po servisu"
+      },
+      "actions": "Akcije",
+      "edit": "Uredi",
+      "sendTest": "Pošalji test meni",
+      "runNow": "Pošalji sada",
+      "history": "Historija izvršenja",
+      "delete": "Obriši",
+      "testSent": "Test izvještaj je poslan na vašu adresu.",
+      "testNotSent": "Test izvještaj nije poslan.",
+      "runQueued": "Slanje je pokrenuto. Rezultat će biti u historiji izvršenja.",
+      "runNotQueued": "Slanje nije pokrenuto (worker nije dostupan).",
+      "runNowTitle": "Poslati izvještaj sada?",
+      "runNowBody_one": "„{{name}}” će odmah biti poslan {{count}} primaocu za zadnji završeni period.",
+      "runNowBody_few": "„{{name}}” će odmah biti poslan {{count}} primaoca za zadnji završeni period.",
+      "runNowBody_other": "„{{name}}” će odmah biti poslan {{count}} primalaca za zadnji završeni period.",
+      "deleteTitle": "Obrisati raspored?",
+      "deleteBody": "Raspored „{{name}}” i njegova historija izvršenja bit će obrisani.",
+      "saved": "Raspored je sačuvan.",
+      "historyTitle": "Historija izvršenja",
+      "historyEmpty": "Raspored još nije izvršen.",
+      "runPeriod": "Period {{from}} – {{to}}",
+      "runCounts": "Poslano {{sent}} od {{total}}",
+      "manual": "ručno pokrenuo/la {{name}}",
+      "skip": {
+        "inactive": "korisnik nije aktivan",
+        "no_access": "nema pristup izvještajima ili opsegu OJ",
+        "email_not_allowed": "adresa nije dozvoljena za slanje",
+        "delivery_failed": "slanje nije uspjelo"
+      },
+      "omit": {
+        "too_many_rows": "previše redova za prilog",
+        "too_large": "prilozi premašuju 10 MB",
+        "pack_disabled": "paket je isključen",
+        "failed": "greška pri izradi"
+      },
+      "runError": {
+        "missed": "termin propušten (worker nije radio)",
+        "email_disabled": "e-mail kanal je isključen",
+        "scheduled_disabled": "zakazani izvještaji su isključeni",
+        "reports_disabled": "izvještaji su isključeni",
+        "no_recipients": "nijedan primalac nema pristup",
+        "build_failed": "greška pri izradi izvještaja"
+      },
+      "form": {
+        "createTitle": "Novi raspored",
+        "editTitle": "Uredi raspored",
+        "description": "Vrijeme slanja je u zoni {{zone}}. Izvještaj pokriva zadnju završenu sedmicu ili mjesec.",
+        "name": "Naziv",
+        "frequency": "Učestalost",
+        "sendTime": "Vrijeme slanja",
+        "next": "Sljedeće slanje: {{value}}",
+        "nextUnknown": "Unesite ispravno vrijeme (HH:mm).",
+        "sections": "Sekcije e-maila",
+        "attachments": "Prilozi (CSV)",
+        "attachmentsHint": "Paket s više od {{rows}} redova se ne prilaže; e-mail to navodi.",
+        "recipients": "Primaoci",
+        "recipientsHint": "Samo interni korisnici s pristupom izvještajima i opsegu OJ, najviše {{max}}.",
+        "searchRecipients": "Traži po imenu ili e-mailu",
+        "noCandidates": "Nema kandidata za prikaz.",
+        "removeRecipient": "Ukloni {{name}}",
+        "inactive": "neaktivan",
+        "enabled": "Raspored uključen",
+        "cancel": "Odustani",
+        "save": "Sačuvaj",
+        "errors": {
+          "name": "Unesite naziv (do 120 znakova).",
+          "sendTime": "Vrijeme mora biti u formatu HH:mm.",
+          "unit": "Izaberite organizacionu jedinicu.",
+          "sections": "Izaberite bar jednu sekciju.",
+          "recipients": "Dodajte bar jednog primaoca.",
+          "recipientLimit": "Najviše {{max}} primalaca."
+        }
       }
     }
   },
