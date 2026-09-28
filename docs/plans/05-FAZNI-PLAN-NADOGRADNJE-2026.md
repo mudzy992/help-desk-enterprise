@@ -140,7 +140,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ### 2.5 Izvještavanje i analitika  · ~3 RD
 
-> **Status:** implementirano (dizajn d23d849, backend 04ab8f6, sanacija 68b6d26, frontend 2026-09-28). Detalji i odstupanja: `modules/2.5-izvjestavanje-i-analitika.md` §13.
+> **Status:** završeno i verifikovano na stagingu 2026-09-28 (dizajn d23d849, backend 04ab8f6, sanacija 68b6d26 + 768ef71, frontend 2fdf5af; k6 budžeti ispunjeni; E2E 12, 17, 18 i 19 prolaze nakon ispravki 42070fb i ed912bd). Detalji i odstupanja: `modules/2.5-izvjestavanje-i-analitika.md` §13.
 - Zakazani izvještaji e-mailom (sedmično/mjesečno, primaoci, OU scope).
 - Dashboard trendova: dolazni vs. riješeni, backlog kroz vrijeme, SLA usklađenost po mjesecu,
   CSAT trend, top servisi.
