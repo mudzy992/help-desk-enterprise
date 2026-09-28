@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { check, fail, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
+import exec from 'k6/execution';
 import { perfConfig } from './config.js';
 import { authorizedHeaders, login } from './lib/http-helpers.js';
 
@@ -14,11 +15,12 @@ import { authorizedHeaders, login } from './lib/http-helpers.js';
  *          -e REPORT_LABEL=reports-trends perf/reports-trends.js
  *
  * Scenarios (sequential, low VU — reports are an analyst workload, not traffic):
- *   - trends_cold: 36 months, every iteration shifts `from` by one day so the
- *     10-minute cache never hits (worst case, acceptance §11.1: < 1 s);
  *   - trends_warm: one fixed 12-month query, served from the cache (< 50 ms
  *     server side; the budget here includes the network);
- *   - dashboard: the sanitised `/reports/dashboard` (§9: p95 < 400 ms).
+ *   - dashboard: the sanitised `/reports/dashboard` (§9: p95 < 400 ms);
+ *   - trends_cold: COLD_ITERATIONS (≤ 120) distinct 36-month windows × priority
+ *     filters, each a real cache miss (acceptance §11.1: < 1 s). Run it at most
+ *     once per 10 minutes, otherwise the previous run warmed the same keys.
  *
  * Budgets can be overridden with TRENDS_COLD_P95_MS, TRENDS_WARM_P95_MS and
  * DASHBOARD_P95_MS. With MFA enabled pass ACCESS_TOKEN (browser session)
@@ -30,6 +32,8 @@ const env = __ENV;
 const organizationalUnitId = env.ORG_UNIT_ID || '';
 const vus = Number(env.REPORT_VU || 5);
 const duration = env.REPORT_DURATION || '1m';
+// 24 month shifts × 5 priority filters = 120 distinct cache keys (see trendsCold).
+const coldIterations = Math.min(Number(env.COLD_ITERATIONS || 100), 120);
 const budgets = {
   trendsCold: Number(env.TRENDS_COLD_P95_MS || 1000),
   trendsWarm: Number(env.TRENDS_WARM_P95_MS || 150),
@@ -43,19 +47,11 @@ const dashboardDuration = new Trend('report_dashboard_duration', true);
 export const options = {
   discardResponseBodies: false,
   scenarios: {
-    trends_cold: {
-      executor: 'constant-vus',
-      exec: 'trendsCold',
-      vus,
-      duration,
-      tags: { behaviour: 'report_trends_cold' },
-    },
     trends_warm: {
       executor: 'constant-vus',
       exec: 'trendsWarm',
       vus,
       duration,
-      startTime: duration,
       tags: { behaviour: 'report_trends_warm' },
     },
     dashboard: {
@@ -63,8 +59,18 @@ export const options = {
       exec: 'dashboard',
       vus,
       duration,
-      startTime: `${2 * parseSeconds(duration)}s`,
+      startTime: duration,
       tags: { behaviour: 'report_dashboard' },
+    },
+    // Last, and iteration-bound: every request must be a real cache miss.
+    trends_cold: {
+      executor: 'shared-iterations',
+      exec: 'trendsCold',
+      vus,
+      iterations: coldIterations,
+      maxDuration: '5m',
+      startTime: `${2 * parseSeconds(duration)}s`,
+      tags: { behaviour: 'report_trends_cold' },
     },
   },
   thresholds: {
@@ -95,17 +101,25 @@ export function setup() {
 }
 
 export function trendsCold(data) {
-  // Unique window per VU+iteration (28 × 28 = 784 keys): shifting both ends
-  // by whole days avoids the 10-minute cache without unknown query params,
-  // which the API validation rejects.
-  const slot = ((__VU - 1) * 997 + __ITER) % 784;
+  // The cache key is built from the *bucket* keys (whole months), so shifting
+  // `from`/`to` by days would hit the cache. Instead every iteration gets its
+  // own 36-month window (shifted by whole months) × priority filter, a real
+  // miss within the 10-minute TTL as long as iterations ≤ 120 per run.
+  const slot = scenarioIteration();
+  const shift = slot % 24;
+  const priority = ['', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'][Math.floor(slot / 24) % 5];
   const today = new Date();
-  const to = new Date(today.getFullYear(), today.getMonth(), today.getDate() - Math.floor(slot / 28));
-  const from = new Date(to.getFullYear(), to.getMonth() - 35, 1 + (slot % 28));
-  const query = `organizationalUnitId=${organizationalUnitId}&from=${day(from)}&to=${day(to)}&granularity=month`;
+  const to = shift === 0 ? today : new Date(today.getFullYear(), today.getMonth() - shift + 1, 0);
+  const from = new Date(to.getFullYear(), to.getMonth() - 35, 1);
+  const query =
+    `organizationalUnitId=${organizationalUnitId}&from=${day(from)}&to=${day(to)}&granularity=month` +
+    (priority ? `&priority=${priority}` : '');
   const response = get(`/reports/trends?${query}`, data.token, 'reports.trends.cold');
   trendsColdDuration.add(response.timings.duration);
-  sleep(1);
+}
+
+function scenarioIteration() {
+  return exec.scenario.iterationInTest;
 }
 
 export function trendsWarm(data) {
@@ -160,6 +174,10 @@ export function handleSummary(data) {
     const ms = (number) => `${Math.round(number)} ms`;
     lines.push(`| ${description} | ${ms(values.med)} | ${ms(values['p(95)'])} | ${ms(values.max)} | ${budget} ms |`);
   }
+  const rate = (name) => (data.metrics[name] ? data.metrics[name].values.rate : undefined);
+  const percent = (value) => (value === undefined ? 'n/a' : `${(value * 100).toFixed(2)} %`);
+  lines.push('');
+  lines.push(`http_req_failed: ${percent(rate('http_req_failed'))} · checks (200): ${percent(rate('checks'))}`);
   const markdown = `${lines.join('\n')}\n`;
   return {
     [`perf/results/${label}.json`]: JSON.stringify(data, null, 2),
