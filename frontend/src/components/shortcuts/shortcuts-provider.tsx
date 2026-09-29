@@ -13,8 +13,17 @@ interface ShortcutsProviderProperties {
   readonly children: ReactNode;
 }
 
+/**
+ * A dialog that is animating out keeps its node (Radix marks it
+ * `data-state="closed"`) for ~150 ms; it must not swallow the next key,
+ * e.g. `?`, Esc, then G T in quick succession.
+ */
 function isDialogOpen(): boolean {
-  return document.querySelector("[role='dialog'], [role='alertdialog']") !== null;
+  return (
+    document.querySelector(
+      "[role='dialog']:not([data-state='closed']), [role='alertdialog']:not([data-state='closed'])",
+    ) !== null
+  );
 }
 
 /**

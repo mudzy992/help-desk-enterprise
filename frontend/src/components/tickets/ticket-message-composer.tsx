@@ -365,6 +365,8 @@ export function TicketMessageComposer({
               <>
                 <input
                   ref={fileInputReference}
+                  aria-label={t("tickets.detail.attach")}
+                  tabIndex={-1}
                   className="sr-only"
                   type="file"
                   onChange={(event) => {

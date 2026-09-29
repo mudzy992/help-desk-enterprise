@@ -59,6 +59,8 @@ export function TicketAttachmentsPanel({
       />
       <input
         ref={inputReference}
+        aria-label={t("tickets.detail.upload")}
+        tabIndex={-1}
         className="sr-only"
         type="file"
         onChange={(event) => {

@@ -130,6 +130,7 @@ const pairs = [
   { fg: "muted", bg: "surface", label: "sekundarni tekst na kartici" },
   { fg: "muted", bg: "elevated", label: "sekundarni tekst na elevated" },
   { fg: "muted", bg: "background", label: "sekundarni tekst na canvasu" },
+  { fg: "muted", bg: "surface-hover", label: "sekundarni tekst na segmentiranoj kontroli" },
 ];
 
 // Paket 2.8 (axe na stagingu): tonski bedževi `bg-<ton>/10 text-<ton>` —
@@ -181,6 +182,14 @@ for (const palette of palettes) {
       failures.push(
         `tokens: ${palette.name} — prsten fokusa (primary na ${bg}) = ${ratio.toFixed(2)}:1 < ${focusRingThreshold}:1 (WCAG 1.4.11)`,
       );
+    }
+  }
+  // Istaknuti paneli `bg-primary/8` (izabrana opcija, preporuka) sa sekundarnim tekstom.
+  if (palette.tokens.muted && palette.tokens.primary && palette.tokens.surface) {
+    const ratio = contrast(palette.tokens.muted, blend(palette.tokens.primary, palette.tokens.surface, 0.08));
+    if (ratio < worst.ratio) worst = { ratio, where: `${palette.name} · muted na bg-primary/8` };
+    if (ratio < textThreshold) {
+      failures.push(`tokens: ${palette.name} — muted na bg-primary/8 = ${ratio.toFixed(2)}:1 < ${textThreshold}:1`);
     }
   }
   for (const tone of tones) {
@@ -325,5 +334,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✔ ${palettes.length} paleta × ${pairs.length + 3 + tones.length * 2} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
+  `✔ ${palettes.length} paleta × ${pairs.length + 4 + tones.length * 2} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
 );
