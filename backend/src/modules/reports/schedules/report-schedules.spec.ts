@@ -100,7 +100,8 @@ describe('recipient eligibility mirrors the reports page (design §5.2)', () => 
 
 const channel = {
   deliveryEnabled: true,
-  internalOnly: false,
+  internalOnly: true,
+  internalDomains: ['epbih.ba'],
   allowedExternalDomains: [],
   allowedExternalEmails: [],
   smtp: { host: 'smtp', port: 587, tls: true, username: '', password: '', fromAddress: 'helpdesk@epbih.ba' },
@@ -298,6 +299,7 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
   const settings = {
     getSetting: async (key: string) => {
       const values: Record<string, unknown> = {
+        'private.notifications.email.internalDomainsCsv': 'epbih.ba',
         'private.notifications.email.enabled': true,
         'private.smtp.enabled': true,
         'private.smtp.provider': 'smtp',

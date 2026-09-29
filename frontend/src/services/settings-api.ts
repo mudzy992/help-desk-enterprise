@@ -7,6 +7,7 @@ export type EmailChannelSettings = {
   readonly deliveryEnabled: boolean;
   readonly templatesEnabled: boolean;
   readonly internalOnly: boolean;
+  readonly internalDomainsCsv: string;
   readonly allowedExternalDomainsCsv: string;
   readonly allowedExternalEmailsCsv: string;
   readonly templatesJson: string;
@@ -60,6 +61,7 @@ export const emailChannelSettingKeys = {
   channelEnabled: "private.notifications.email.enabled",
   templatesEnabled: "private.notifications.templates.enabled",
   internalOnly: "private.notifications.email.internalOnly",
+  internalDomainsCsv: "private.notifications.email.internalDomainsCsv",
   allowedExternalDomainsCsv:
     "private.notifications.email.allowedExternalDomainsCsv",
   allowedExternalEmailsCsv:

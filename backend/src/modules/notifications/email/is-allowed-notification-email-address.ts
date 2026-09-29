@@ -1,7 +1,12 @@
-import { internalNotificationEmailDomain } from './email-template.constants';
-
+/**
+ * Who may receive notification e-mail (and, for inbound mail, who may send).
+ * `internalOnly` on: the internal domains plus the extra allowed domains and
+ * addresses. Off: any syntactically valid address. The internal domains come
+ * from `private.notifications.email.internalDomainsCsv`; nothing is hardcoded.
+ */
 export type NotificationEmailRecipientPolicy = {
   readonly internalOnly: boolean;
+  readonly internalDomains: readonly string[];
   readonly allowedExternalDomains: readonly string[];
   readonly allowedExternalEmails: readonly string[];
 };
@@ -14,24 +19,15 @@ export function isAllowedNotificationEmailAddress(
   if (normalized === null) {
     return false;
   }
-  if (isInternalNotificationEmailAddress(normalized)) {
+  if (!policy.internalOnly) {
     return true;
   }
-  if (policy.internalOnly) {
-    return false;
-  }
+  const domain = readEmailDomain(normalized);
   return (
+    policy.internalDomains.includes(domain) ||
     policy.allowedExternalEmails.includes(normalized) ||
-    policy.allowedExternalDomains.includes(readEmailDomain(normalized))
+    policy.allowedExternalDomains.includes(domain)
   );
-}
-
-export function isInternalNotificationEmailAddress(address: string): boolean {
-  const normalized = normalizeEmailAddress(address);
-  if (normalized === null) {
-    return false;
-  }
-  return readEmailDomain(normalized) === internalNotificationEmailDomain;
 }
 
 export function normalizeEmailAddress(address: string): string | null {
@@ -45,7 +41,7 @@ export function normalizeEmailAddress(address: string): string | null {
   if (local.length === 0 || domain.length === 0 || domain.includes(' ')) {
     return null;
   }
-  if (!/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(domain) && domain !== 'epbih.ba') {
+  if (!/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(domain)) {
     return null;
   }
   if (!domain.includes('.')) {

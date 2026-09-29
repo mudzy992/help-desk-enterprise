@@ -61,6 +61,14 @@ export function SmtpEmailSettingsCard({
     emailChannelSettingKeys.internalOnly,
     true,
   );
+  // Restricted delivery with nothing on any list reaches nobody: say so.
+  const restrictedToNobody =
+    internalOnly &&
+    [
+      emailChannelSettingKeys.internalDomainsCsv,
+      emailChannelSettingKeys.allowedExternalDomainsCsv,
+      emailChannelSettingKeys.allowedExternalEmailsCsv,
+    ].every((key) => readStringSetting(entries, key, "").trim().length === 0);
   const drawerEntries = useMemo(() => {
     const smtp = filterSettingsByPrefix(entries, "private.smtp.");
     // The template registry JSON is edited in the "E-mail templates" card.
@@ -127,6 +135,11 @@ export function SmtpEmailSettingsCard({
               </Badge>
             )}
           </p>
+          {restrictedToNobody ? (
+            <p className="text-[11px] text-warning" data-testid="email-no-recipients-warning">
+              {t("settings.email.noRecipientsWarning")}
+            </p>
+          ) : null}
           <Button
             type="button"
             size="xs"

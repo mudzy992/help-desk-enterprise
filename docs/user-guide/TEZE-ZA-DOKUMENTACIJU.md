@@ -137,3 +137,51 @@ To je kriterij kompletnosti.
 - **Izvori:** `ops/monitoring/uptime-kuma.md`, `ops/runbook/ALERTS.md`, dizajn 2.7 §7 i §8.6
 - **Status:** Važi
 - **Wiki stranica:** Operativa → Monitoring (Uptime Kuma); Administrator → Zdravlje sistema i alarmi
+
+### T4 — SMTP, dodatak E-mail i „E-mail obavijesti“ nisu isti prekidač
+
+- **Modul / paket:** E-mail obavijesti · 1.5
+- **Publika:** Administrator
+- **Tip:** Razlika
+- **Teza:** E-mail o tiketu se šalje samo kad su uključena **sva tri**: SMTP (`private.smtp.enabled`,
+  veza prema mail serveru), dodatak E-mail (`private.addons.email`) i **E-mail obavijesti**
+  (`private.notifications.email.enabled`, glavni prekidač za obavijesti o tiketima). SMTP i dodatak
+  samo omogućavaju slanje; obavijesti pali tek treći prekidač.
+- **Zašto:** SMTP koriste i druge funkcije (reset lozinke, test veze), pa se može uključiti bez
+  masovnih obavijesti o tiketima.
+- **Primjer:** na stagingu su SMTP i dodatak bili uključeni, a `…email.enabled = false`, pa novi
+  tiket nije poslao e-mail agentu, a u tabeli isporuka nije bilo nijednog pokušaja.
+- **Postavke / permisije:** `private.notifications.email.enabled` (zadano isključeno).
+- **Ekran:** **Postavke → Notifikacije → E-mail**
+- **Izvori:** `backend/src/modules/notifications/email/resolve-email-channel-enabled.ts`
+- **Status:** Važi
+- **Wiki stranica:** Administrator → E-mail (sandučići i šabloni); Referenca → Česta pitanja
+
+### T5 — Kome ide e-mail: interne domene, ograničena dostava i liste izuzetaka
+
+- **Modul / paket:** E-mail obavijesti · ispravka 2026-09
+- **Publika:** Administrator, Operativa
+- **Tip:** Pravilo
+- **Teza:**
+
+  | `internalOnly` („Ograničena isporuka“) | Ko dobija e-mail |
+  |---|---|
+  | uključeno (zadano) | adrese na **internim domenama** + **dodatne domene** + **pojedinačne adrese** |
+  | isključeno | svaka ispravna adresa; liste se ne koriste |
+
+  Interne domene (`internalDomainsCsv`) su postavka, nisu upisane u kod. Dodatna domena otvara
+  **svaku** adresu na toj domeni; pojedinačna adresa otvara samo nju. Ista pravila važe za
+  provjeru **pošiljaoca dolaznog e-maila** (zajednički sandučić).
+- **Zašto:** aplikacija nije vezana za jednog klijenta; ograničenje je zadano uključeno da e-mail
+  (koji napušta sistem) ne ode na neplanirane adrese.
+- **Primjer:** interna `epbih.ba`, pojedinačne `test.user@gmail.com, test.agent@gmail.com` →
+  ti testni nalozi dobijaju e-mail, ostale gmail adrese ne.
+- **Zamka:** ograničena dostava s praznim listama (i bez interne domene) ne šalje **nikome**. Kartica
+  SMTP u postavkama tada prikazuje upozorenje.
+- **Postavke / permisije:** `private.notifications.email.internalOnly` (zadano uključeno),
+  `…internalDomainsCsv` (instalacija upisuje domenu super admina; postojeće instalacije dobijaju
+  `epbih.ba` migracijom), `…allowedExternalDomainsCsv`, `…allowedExternalEmailsCsv` (zadano prazno).
+- **Izvori:** `is-allowed-notification-email-address.ts`, migracija `20261201090000_email_internal_domains`,
+  `seed-install-internal-email-domain.ts`
+- **Status:** Važi
+- **Wiki stranica:** Administrator → E-mail (sandučići i šabloni); Referenca → Sve postavke

@@ -17,6 +17,7 @@ export function createEmailChannelTestConfiguration(
     slaEscalationEmailEnabled: true,
     templatesEnabled: true,
     internalOnly: true,
+    internalDomains: ['epbih.ba'],
     allowedExternalDomains: [],
     allowedExternalEmails: [],
     templates: defaultEmailTemplates,

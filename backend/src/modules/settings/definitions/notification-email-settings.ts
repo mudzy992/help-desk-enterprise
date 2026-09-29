@@ -43,16 +43,25 @@ export const notificationEmailSettings: readonly SettingDefinition[] = [
     categoryId: settingCategoryIds.privateNotifications,
     valueType: 'boolean',
     description:
-      'Restrict email delivery to internal @epbih.ba addresses; external allow-lists are ignored while on',
+      'On: e-mail goes only to the internal domains plus the allowed domains and addresses below. Off: any valid address',
     isRequired: true,
     defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateNotificationsEmailInternalDomainsCsv,
+    categoryId: settingCategoryIds.privateNotifications,
+    valueType: 'string',
+    description:
+      "Comma-separated internal e-mail domains of the organisation (e.g. epbih.ba); always allowed, also as inbound senders",
+    isRequired: false,
+    defaultValue: '',
   }),
   definePrivateSetting({
     key: settingKeys.privateNotificationsEmailAllowedExternalDomainsCsv,
     categoryId: settingCategoryIds.privateNotifications,
     valueType: 'string',
     description:
-      'Comma-separated domains allowed when internal-only delivery is off',
+      'Comma-separated extra (external) domains allowed while delivery is restricted',
     isRequired: false,
     defaultValue: '',
   }),
@@ -61,7 +70,7 @@ export const notificationEmailSettings: readonly SettingDefinition[] = [
     categoryId: settingCategoryIds.privateNotifications,
     valueType: 'string',
     description:
-      'Comma-separated email addresses allowed when internal-only delivery is off',
+      'Comma-separated individual external addresses allowed while delivery is restricted',
     isRequired: false,
     defaultValue: '',
   }),

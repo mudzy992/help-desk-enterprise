@@ -56,6 +56,7 @@ export async function sendBroadcastEmails(
       person === undefined ||
       !isAllowedNotificationEmailAddress(person.email, {
         internalOnly: configuration.internalOnly,
+        internalDomains: configuration.internalDomains,
         allowedExternalDomains: configuration.allowedExternalDomains,
         allowedExternalEmails: configuration.allowedExternalEmails,
       })

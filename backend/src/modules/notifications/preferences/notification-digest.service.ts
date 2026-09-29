@@ -150,6 +150,7 @@ export class NotificationDigestService {
     if (
       !isAllowedNotificationEmailAddress(user.email, {
         internalOnly: configuration.internalOnly,
+        internalDomains: configuration.internalDomains,
         allowedExternalDomains: configuration.allowedExternalDomains,
         allowedExternalEmails: configuration.allowedExternalEmails,
       })

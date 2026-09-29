@@ -11,6 +11,7 @@ export type EmailChannelSettingsResponse = {
   readonly deliveryEnabled: boolean;
   readonly templatesEnabled: boolean;
   readonly internalOnly: boolean;
+  readonly internalDomainsCsv: string;
   readonly allowedExternalDomainsCsv: string;
   readonly allowedExternalEmailsCsv: string;
   readonly templatesJson: string;
@@ -28,6 +29,9 @@ export async function readEmailChannelSettings(
     deliveryEnabled: configuration.deliveryEnabled,
     templatesEnabled: configuration.templatesEnabled,
     internalOnly: configuration.internalOnly,
+    internalDomainsCsv: asCsv(
+      await settingsService.getSetting(settingKeys.privateNotificationsEmailInternalDomainsCsv),
+    ),
     allowedExternalDomainsCsv: asCsv(
       await settingsService.getSetting(
         settingKeys.privateNotificationsEmailAllowedExternalDomainsCsv,

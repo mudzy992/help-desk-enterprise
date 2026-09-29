@@ -104,6 +104,7 @@ export async function fanOutEmailNotifications(
       person === undefined ||
       !isAllowedNotificationEmailAddress(toAddress, {
         internalOnly: configuration.internalOnly,
+        internalDomains: configuration.internalDomains,
         allowedExternalDomains: configuration.allowedExternalDomains,
         allowedExternalEmails: configuration.allowedExternalEmails,
       })

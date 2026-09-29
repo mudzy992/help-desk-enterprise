@@ -243,6 +243,8 @@ export const settingKeys = {
     'private.notifications.templates.enabled',
   privateNotificationsEmailInternalOnly:
     'private.notifications.email.internalOnly',
+  privateNotificationsEmailInternalDomainsCsv:
+    'private.notifications.email.internalDomainsCsv',
   privateNotificationsEmailAllowedExternalDomainsCsv:
     'private.notifications.email.allowedExternalDomainsCsv',
   privateNotificationsEmailAllowedExternalEmailsCsv:

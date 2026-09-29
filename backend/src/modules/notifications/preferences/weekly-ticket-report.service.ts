@@ -229,6 +229,7 @@ export class WeeklyTicketReportService {
     if (
       !isAllowedNotificationEmailAddress(user.email, {
         internalOnly: channel.internalOnly,
+        internalDomains: channel.internalDomains,
         allowedExternalDomains: channel.allowedExternalDomains,
         allowedExternalEmails: channel.allowedExternalEmails,
       })

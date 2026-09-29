@@ -547,6 +547,7 @@ export function slotKeyOf(scheduleId: string, period: ReportPeriod): string {
 function emailPolicy(channel: EmailChannelConfiguration) {
   return {
     internalOnly: channel.internalOnly,
+    internalDomains: channel.internalDomains,
     allowedExternalDomains: channel.allowedExternalDomains,
     allowedExternalEmails: channel.allowedExternalEmails,
   };

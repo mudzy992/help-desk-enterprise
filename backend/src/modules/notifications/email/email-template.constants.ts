@@ -88,7 +88,6 @@ export const emailTemplatePlaceholders = [
 export type EmailTemplatePlaceholder =
   (typeof emailTemplatePlaceholders)[number];
 
-export const internalNotificationEmailDomain = 'epbih.ba';
 
 export const emailDeliveryStatuses = {
   claimed: 'CLAIMED',

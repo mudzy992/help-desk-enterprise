@@ -49,6 +49,7 @@ export type EmailChannelConfiguration = {
   readonly slaEscalationEmailEnabled: boolean;
   readonly templatesEnabled: boolean;
   readonly internalOnly: boolean;
+  readonly internalDomains: readonly string[];
   readonly allowedExternalDomains: readonly string[];
   readonly allowedExternalEmails: readonly string[];
   readonly templates: EmailTemplateRegistry;
@@ -96,6 +97,9 @@ export async function loadEmailChannelConfiguration(
     slaEscalationEmailEnabled,
     templatesEnabled,
     internalOnly,
+    internalDomains: parseSettingsCsv(
+      await settingsService.getSetting(settingKeys.privateNotificationsEmailInternalDomainsCsv),
+    ),
     allowedExternalDomains: parseSettingsCsv(
       await settingsService.getSetting(
         settingKeys.privateNotificationsEmailAllowedExternalDomainsCsv,

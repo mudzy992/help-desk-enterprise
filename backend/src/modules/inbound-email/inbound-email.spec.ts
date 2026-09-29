@@ -66,7 +66,7 @@ const options: InboundProcessingOptions = {
   ownAddresses: ['helpdesk@epbih.ba'],
   replyTokenSecret: secret,
   requireAuthPass: true,
-  recipientPolicy: { internalOnly: true, allowedExternalDomains: [], allowedExternalEmails: [] },
+  recipientPolicy: { internalOnly: true, internalDomains: ['epbih.ba'], allowedExternalDomains: [], allowedExternalEmails: [] },
   maxPerSenderPerHour: 20,
   createTickets: false,
   maxBodyLength: 8000,
