@@ -169,7 +169,10 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   tokovima (kreiranje tiketa, razgovor, lista); automatski axe test u CI-ju.
 - Prečice na tastaturi za agente (sljedeći tiket, odgovori, preuzmi).
 
-### 2.9 Dodatne nadogradnje (prijedlog, po odluci)  · ~4 RD
+### 2.9 Dodatne nadogradnje (prijedlog, po odluci)  · ~4 RD (dizajn: ~7 RD)
+
+> **Status:** dizajn `modules/2.9-dodatne-nadogradnje.md`, čeka odobrenje (§12). Obim (odluka 2026-09-29): sve četiri stavke; kod najava samo najave s potvrdom čitanja, bez anketa.
+
 - **Portal znanja za korisnike**: kategorije, „najčešća pitanja", ocjene, članci iz riješenih
   tiketa („pretvori odgovor u članak").
 - **Ankete / najave** za korisnike (planirani radovi, nova usluga) uz potvrdu čitanja.
