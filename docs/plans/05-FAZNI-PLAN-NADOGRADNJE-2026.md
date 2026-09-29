@@ -146,7 +146,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   CSAT trend, top servisi.
 - Izvoz dashboarda u PDF.
 
-### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD (stvarno ~5 RD) · ✅
+### 2.6 Zaštita ličnih podataka (ZZLP BiH)  · ~2 RD (stvarno ~5 RD) · ✅ (otvoreno samo: odgovori DPO-a, `docs/privacy/DPO-UPITNIK.md`)
 
 > **Status:** ✅ završeno i verifikovano na stagingu 2026-09-28 (dizajn ada739f/2b50b9e; koraci 6aa57f0, a9a0106, 6fb40e7, 7289fb2, eab41d1, a2e8f12, d93c55f; MFA ispravke 837abe1, 90fd41e, 46060a1; E2E 20 prolazi 5/5 nakon 7d5db6c). Operativa: `ops/runbook/privatnost.md`. Detalji i odstupanja: `modules/2.6-zastita-licnih-podataka.md` §17.
 
@@ -156,13 +156,15 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ### 2.7 Pouzdanost i monitoring  · ~2 RD
 
-> **Status:** u implementaciji. §15 odobren; koraci 679cf88 (health i healthcheckovi), 06cd86b (alarmi), korak 3 admin kartica „Zdravlje sistema“. Slijede `/status` i incidenti, Uptime Kuma, E2E i docs. Runbook: `ops/runbook/ALERTS.md`.
+> **Status:** ✅ implementirano (dizajn `modules/2.7-pouzdanost-i-monitoring.md`, §8.5–8.6). Runbook: `ops/runbook/ALERTS.md`, eksterni nadzor: `ops/monitoring/uptime-kuma.md`.
 - Eksterni uptime monitoring (`/health`, frontend) — upute i konfiguracija (npr. Uptime Kuma).
 - Alarmi: DLQ > 0, worker heartbeat izgubljen, SLA skener kasni, disk za priloge > 80 %,
   ClamAV nedostupan, greške 5xx > prag → e-mail/Teams administratorima.
 - Status stranica za korisnike (dostupnost servisa već postoji — javni prikaz + historija incidenata).
 
-### 2.8 Pristupačnost i UX kvalitet  · ~3 RD
+### 2.8 Pristupačnost i UX kvalitet  · ~3 RD (dizajn: ~4,5 RD)
+
+> **Status:** dizajn `modules/2.8-pristupacnost-i-ux.md`, čeka odobrenje (§12).
 - WCAG 2.1 AA: navigacija tastaturom, focus stanja, ARIA oznake, screen reader na ključnim
   tokovima (kreiranje tiketa, razgovor, lista); automatski axe test u CI-ju.
 - Prečice na tastaturi za agente (sljedeći tiket, odgovori, preuzmi).
