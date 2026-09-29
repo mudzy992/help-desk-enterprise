@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
-import { mapAnnouncementError, severityTone, statusTone } from "@/lib/announcements/announcement-view";
+import { announcementDateTimeFormatter, mapAnnouncementError, severityTone, statusTone } from "@/lib/announcements/announcement-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   announcementQueryKeys,
@@ -123,7 +123,7 @@ function AnnouncementArchive() {
       element.querySelector("summary")?.focus({ preventScroll: true });
     }
   }, [openId, data]);
-  const formatter = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
+  const formatter = announcementDateTimeFormatter(i18n.language);
   if (isLoading) return <PanelSkeleton label={t("ui.loading")} />;
   if (error) {
     return (
@@ -244,7 +244,7 @@ function ManageAnnouncements() {
     }
   };
 
-  const formatter = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
+  const formatter = announcementDateTimeFormatter(i18n.language);
 
   if (loadError) {
     return (

@@ -17,7 +17,7 @@ export function TicketMergedCard({ items }: TicketMergedCardProperties) {
   if (items.length === 0) {
     return null;
   }
-  const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" });
+  const dateFormat = new Intl.DateTimeFormat(i18n.language === "en" ? "en-GB" : "bs-BA", { day: "2-digit", month: "2-digit", year: "numeric" });
   return (
     <Card className="fade-in" data-testid="ticket-merged-card">
       <CardHeader title={ticketText(t, "tickets.merge.cardTitle", { count: items.length })} />

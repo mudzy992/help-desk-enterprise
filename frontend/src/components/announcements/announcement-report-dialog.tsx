@@ -7,7 +7,7 @@ import { Modal, ModalContent, ModalFooter, ModalHeader } from "@/components/ui/m
 import { Progress } from "@/components/ui/progress";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { acknowledgementPercent, mapAnnouncementError } from "@/lib/announcements/announcement-view";
+import { acknowledgementPercent, announcementDateTimeFormatter, mapAnnouncementError } from "@/lib/announcements/announcement-view";
 import { triggerBlobDownload } from "@/lib/download/trigger-blob-download";
 import { mapApiError } from "@/lib/map-api-error";
 import {
@@ -75,7 +75,7 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
     }
   };
 
-  const formatter = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
+  const formatter = announcementDateTimeFormatter(i18n.language);
   const percent = report === null ? 0 : acknowledgementPercent(report.acknowledgedCount, report.audienceSizeAtPublish);
 
   return (

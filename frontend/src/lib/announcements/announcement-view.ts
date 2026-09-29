@@ -111,3 +111,18 @@ export function acknowledgementPercent(acknowledged: number, audience: number): 
   if (audience <= 0) return 0;
   return Math.min(100, Math.round((acknowledged / audience) * 100));
 }
+
+/**
+ * Date + time with explicit fields: `dateStyle` in "bs" renders as
+ * "2026 M09 29" in browsers without Bosnian CLDR data.
+ */
+export function announcementDateTimeFormatter(language: string): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "bs-BA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+}
