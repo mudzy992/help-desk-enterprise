@@ -15,6 +15,9 @@ import type { TicketMessageResponse } from "@/services/tickets-collaboration-api
 
 type ConversationViewport = "flow" | "fixed";
 
+/** Focus target for "leave editor" (Esc) — 2.8 §4.1. */
+export const TICKET_CONVERSATION_ID = "ticket-conversation";
+
 /*
   `fixed` gives the thread its own scroll area with a stable height, so the
   composer and the side panels never move when a long ticket gets another
@@ -115,7 +118,13 @@ export function TicketConversation({
   }
   return (
     <div
-      className={cn("fade-in", VIEWPORT_CLASS[viewport])}
+      className={cn(
+        "fade-in rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+        VIEWPORT_CLASS[viewport],
+      )}
+      id={TICKET_CONVERSATION_ID}
+      // A scrollable thread must be reachable by keyboard (arrow keys scroll it).
+      tabIndex={viewport === "fixed" ? 0 : -1}
       role="log"
       aria-live="off"
       aria-label={t("tickets.detail.conversation")}

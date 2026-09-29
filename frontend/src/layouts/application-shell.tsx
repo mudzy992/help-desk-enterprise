@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -16,20 +16,13 @@ import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { AnnouncerRegions } from "@/components/a11y/announcer-regions";
 import { RouteFocusManager, mainContentId } from "@/components/a11y/route-focus-manager";
 import { SkipToContentLink } from "@/components/a11y/skip-to-content-link";
+import { GlobalShortcuts } from "@/components/shortcuts/global-shortcuts";
+import { ShortcutsProvider } from "@/components/shortcuts/shortcuts-provider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-
-/** True when the keystroke is typing, so shortcuts must stay out of the way. */
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-  return target.closest("input, textarea, select, [contenteditable='true']") !== null;
-}
 
 export function ApplicationShell() {
   const { t } = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
   const { session: storedSession } = useSession();
   const { session, isLoading } = useSessionCapabilities();
   const { maintenance } = usePublicMaintenance();
@@ -40,33 +33,6 @@ export function ApplicationShell() {
     setIsMobileNavigationOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setIsCommandPaletteOpen((current) => !current);
-        return;
-      }
-
-      if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) {
-        return;
-      }
-
-      if (event.key === "/") {
-        event.preventDefault();
-        setIsCommandPaletteOpen(true);
-        return;
-      }
-
-      if (event.key === "n" || event.key === "N") {
-        event.preventDefault();
-        navigate("/tickets/new");
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate]);
-
   const closeMobileNavigation = () => {
     setIsMobileNavigationOpen(false);
   };
@@ -75,15 +41,23 @@ export function ApplicationShell() {
     return <InstallGateSkeleton />;
   }
 
+  const isStaff =
+    session.isSuperAdmin ||
+    session.roleKeys.includes(roleKeys.agent) ||
+    session.roleKeys.includes(roleKeys.admin);
+
   return (
+    <ShortcutsProvider defaultEnabled={isStaff}>
+    <GlobalShortcuts
+      onTogglePalette={() => setIsCommandPaletteOpen((current) => !current)}
+      onOpenPalette={() => setIsCommandPaletteOpen(true)}
+    />
     <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
       <SkipToContentLink targetId={mainContentId} />
       <AnnouncerRegions />
       <RouteFocusManager />
       <HelpdeskSocketHost />
-      {session.isSuperAdmin ||
-      session.roleKeys.includes(roleKeys.agent) ||
-      session.roleKeys.includes(roleKeys.admin) ? (
+      {isStaff ? (
         <ActiveTimerHost accessToken={storedSession.accessToken} />
       ) : null}
       <aside className="hidden w-[258px] shrink-0 border-r border-border lg:block print:hidden">
@@ -126,5 +100,6 @@ export function ApplicationShell() {
         </main>
       </div>
     </div>
+    </ShortcutsProvider>
   );
 }

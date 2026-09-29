@@ -1,4 +1,4 @@
-import { BellRing, ChevronDown, FileText, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
+import { BellRing, ChevronDown, FileText, Keyboard, Languages, LogOut, Palette, Settings2, ShieldCheck, Ticket } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { SessionSignInControls } from "@/components/layout/session-sign-in-controls";
@@ -15,6 +15,7 @@ import { useLocale } from "@/i18n/use-locale";
 import { sessionRoleLabelKey } from "@/lib/session/session-role-label";
 import { useSession } from "@/lib/session/use-session";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { useShortcutsRegistry } from "@/lib/shortcuts/shortcuts-context";
 
 export function SessionControls() {
   const { t } = useTranslation();
@@ -22,6 +23,7 @@ export function SessionControls() {
   const { locale, changeLocale } = useLocale();
   const { session, signOut } = useSession();
   const capabilities = useSessionCapabilities();
+  const shortcuts = useShortcutsRegistry();
 
   if (session === null) {
     return <SessionSignInControls />;
@@ -75,6 +77,11 @@ export function SessionControls() {
         <DropdownMenuItem onSelect={() => navigate("/settings")}>
           <Settings2 size={13} /> {t("shell.accountSettings")}
         </DropdownMenuItem>
+        {shortcuts !== null ? (
+          <DropdownMenuItem onSelect={() => shortcuts.openHelp()} data-testid="menu-keyboard-shortcuts">
+            <Keyboard size={13} /> {t("a11y.shortcuts.menu")}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => navigate("/privacy-notice")}>
           <FileText size={13} /> {t("privacy.notice.menu")}
         </DropdownMenuItem>

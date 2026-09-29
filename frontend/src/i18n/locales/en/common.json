@@ -4914,6 +4914,66 @@
       "showTable": "Show as table",
       "hideTable": "Hide table",
       "period": "Period"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "menu": "Keyboard shortcuts",
+      "descriptionOn": "These shortcuts work on this screen. They are inactive while you type in a field or a dialog is open.",
+      "descriptionOff": "Single-key shortcuts are off; only shortcuts with Ctrl work.",
+      "settingsLink": "Settings",
+      "then": "then",
+      "contexts": {
+        "global": "Everywhere",
+        "list": "Ticket list",
+        "detail": "Ticket detail",
+        "editor": "Message editor"
+      },
+      "actions": {
+        "palette": "Command palette",
+        "paletteSlash": "Command palette",
+        "newTicket": "New ticket",
+        "help": "List of shortcuts",
+        "goTickets": "Go to tickets",
+        "goDashboard": "Go to dashboard",
+        "goKnowledge": "Go to knowledge base",
+        "goStatus": "Go to service status",
+        "listNext": "Next row",
+        "listPrevious": "Previous row",
+        "listOpen": "Open the focused ticket",
+        "listOpenAlt": "Open the focused ticket",
+        "listToggle": "Select or deselect the row",
+        "reply": "Write a public reply",
+        "internalNote": "Write an internal note",
+        "claim": "Claim the ticket",
+        "forward": "Forward the ticket",
+        "status": "Change status",
+        "nextTicket": "Next ticket from the list",
+        "previousTicket": "Previous ticket from the list",
+        "backToList": "Back to the list",
+        "send": "Send the message",
+        "leaveEditor": "Leave the editor (text is kept)"
+      },
+      "unavailable": {
+        "claim": "Claiming is not available for this ticket right now.",
+        "status": "Changing the status is not available right now."
+      },
+      "endOfList": "End of the list page.",
+      "startOfList": "Start of the list page.",
+      "noListContext": "No list to move through. Open a ticket from a list."
+    },
+    "preferences": {
+      "heading": "Accessibility",
+      "hint": "Settings that apply to your account on every computer.",
+      "shortcutsLabel": "Single-key shortcuts",
+      "shortcutsHint": "When off, only shortcuts with Ctrl work (e.g. Ctrl+K and Ctrl+Enter). Turn them off if you use speech input or accidental key presses bother you.",
+      "defaultOn": "Default (on)",
+      "defaultOff": "Default (off)",
+      "on": "On",
+      "off": "Off",
+      "savedOn": "Shortcuts are on.",
+      "savedOff": "Shortcuts are off.",
+      "saveError": "The setting was not saved. Please try again.",
+      "showShortcuts": "Show all shortcuts"
     }
   }
 }

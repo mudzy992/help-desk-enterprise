@@ -1,5 +1,6 @@
 import { Check, Moon, RotateCcw, Sun, SunMoon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { AccessibilityPreferencesCard } from "@/components/shortcuts/accessibility-preferences-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -328,6 +329,7 @@ export function AppearancePage() {
             ) : null}
           </div>
         </Card>
+        <AccessibilityPreferencesCard />
         <Card>
           <CardHeader
             title={t("appearance.modeHeading")}

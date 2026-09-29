@@ -4948,6 +4948,66 @@
       "showTable": "Prikaži kao tabelu",
       "hideTable": "Sakrij tabelu",
       "period": "Period"
+    },
+    "shortcuts": {
+      "title": "Prečice na tastaturi",
+      "menu": "Prečice na tastaturi",
+      "descriptionOn": "Prikazane su prečice koje važe na ovom ekranu. Ne rade dok pišete u polju ili dok je otvoren dijalog.",
+      "descriptionOff": "Prečice od jednog slova su isključene; rade samo prečice s tipkom Ctrl.",
+      "settingsLink": "Podešavanje",
+      "then": "pa",
+      "contexts": {
+        "global": "Svuda",
+        "list": "Lista tiketa",
+        "detail": "Detalj tiketa",
+        "editor": "Editor poruke"
+      },
+      "actions": {
+        "palette": "Paleta komandi",
+        "paletteSlash": "Paleta komandi",
+        "newTicket": "Novi tiket",
+        "help": "Lista prečica",
+        "goTickets": "Idi na tikete",
+        "goDashboard": "Idi na kontrolnu tablu",
+        "goKnowledge": "Idi na bazu znanja",
+        "goStatus": "Idi na status servisa",
+        "listNext": "Sljedeći red",
+        "listPrevious": "Prethodni red",
+        "listOpen": "Otvori fokusirani tiket",
+        "listOpenAlt": "Otvori fokusirani tiket",
+        "listToggle": "Označi ili odznači red",
+        "reply": "Piši javni odgovor",
+        "internalNote": "Piši internu napomenu",
+        "claim": "Preuzmi tiket",
+        "forward": "Proslijedi tiket",
+        "status": "Promijeni status",
+        "nextTicket": "Sljedeći tiket s liste",
+        "previousTicket": "Prethodni tiket s liste",
+        "backToList": "Nazad na listu",
+        "send": "Pošalji poruku",
+        "leaveEditor": "Izađi iz editora (tekst ostaje)"
+      },
+      "unavailable": {
+        "claim": "Preuzimanje trenutno nije dostupno za ovaj tiket.",
+        "status": "Promjena statusa trenutno nije dostupna."
+      },
+      "endOfList": "Kraj stranice liste.",
+      "startOfList": "Početak stranice liste.",
+      "noListContext": "Nema liste za kretanje. Otvorite tiket iz liste."
+    },
+    "preferences": {
+      "heading": "Pristupačnost",
+      "hint": "Postavke koje vrijede za vaš nalog na svakom računaru.",
+      "shortcutsLabel": "Prečice od jednog slova",
+      "shortcutsHint": "Kad su isključene, rade samo prečice s tipkom Ctrl (npr. Ctrl+K i Ctrl+Enter). Isključite ih ako koristite govorni unos ili ako vam slučajan pritisak tipke smeta.",
+      "defaultOn": "Zadano (uključeno)",
+      "defaultOff": "Zadano (isključeno)",
+      "on": "Uključeno",
+      "off": "Isključeno",
+      "savedOn": "Prečice su uključene.",
+      "savedOff": "Prečice su isključene.",
+      "saveError": "Postavka nije sačuvana. Pokušajte ponovo.",
+      "showShortcuts": "Prikaži sve prečice"
     }
   }
 }

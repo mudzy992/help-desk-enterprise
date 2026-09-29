@@ -34,6 +34,7 @@ import { TicketPlaybookPanel } from "@/components/templates/ticket-playbook-pane
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { isPlaybookGuardedTransition, useTicketPlaybook } from "@/lib/templates/use-ticket-playbook";
 import { TicketCollaborationBar } from "@/components/tickets/ticket-collaboration-bar";
+import { TicketNavigationShortcuts } from "@/components/shortcuts/ticket-navigation-shortcuts";
 import { TicketLinksPanel } from "@/components/tickets/ticket-links-panel";
 import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
 import { useAgentCollaborationConfiguration } from "@/lib/tickets/use-agent-collaboration";
@@ -255,6 +256,7 @@ export function TicketDetailPage() {
 
   return (
     <section>
+      <TicketNavigationShortcuts ticketId={ticket.id} isStaff={isStaffView} />
       <TicketDetailHeader
         ticket={ticket}
         serviceName={serviceName}

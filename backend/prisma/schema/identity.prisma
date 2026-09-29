@@ -6,6 +6,8 @@ model User {
   displayName          String
   /// Paket 1.5: UI and e-mail language (bs, en). Null → private.i18n.defaultLocale.
   preferredLocale      String?                    @db.VarChar(8)
+  /// Paket 2.8 §4.3: single-key shortcuts; null = default by role (on for AGENT+, off for USER).
+  keyboardShortcuts    Boolean?
   /// SuperAdmin identities must always be true. External providers cannot bind here.
   isLocalOnly          Boolean                    @default(false)
   isActive             Boolean                    @default(true)

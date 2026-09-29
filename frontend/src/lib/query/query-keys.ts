@@ -15,6 +15,8 @@ export const queryKeys = {
   /** Paket 2.1: own account security (profile page and the expiry banner). */
   accountSecurity: ["account", "security"] as const,
   accountNotifications: ["account", "notifications"] as const,
+  /** Paket 2.8: own preferences (keyboard shortcuts; the language is synced separately). */
+  userPreferences: ["account", "preferences"] as const,
   routingCatalog: ["catalog", "routing"] as const,
   routingRules: ["catalog", "routing-rules"] as const,
   organizationalUnits: ["catalog", "organizational-units"] as const,

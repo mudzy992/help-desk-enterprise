@@ -1,5 +1,9 @@
 import { ChevronDown, Forward, GitMerge, Pencil, Split, UserCheck } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { announce } from "@/lib/a11y/announcer";
+import { ariaKeyShortcuts, shortcutHint } from "@/lib/shortcuts/catalog";
+import { useShortcut, useShortcutsRegistry } from "@/lib/shortcuts/shortcuts-context";
 import { Button } from "@/components/ui/button";
 import { TicketRequestRemoteButton } from "@/components/tickets/ticket-request-remote-button";
 import {
@@ -55,10 +59,52 @@ export function TicketDetailHeaderActions({
 }: TicketDetailHeaderActionsProperties) {
   const { t } = useTranslation();
   const nextStatuses = nextTicketStatuses(ticket.status);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const shortcuts = useShortcutsRegistry();
+  const showsShortcut = shortcuts?.singleKeysEnabled === true;
+  const withHint = (label: string, id: Parameters<typeof shortcutHint>[0]) =>
+    showsShortcut ? `${label} (${shortcutHint(id)})` : undefined;
+  const claimVisible = canShowClaimAction(ticket, canClaim);
+  const statusVisible = canChangeStatus && nextStatuses.length > 0;
+
+  // 2.8 §4.1: the shortcuts call the very same handlers as the buttons and are
+  // bound only when the user holds the permission; a state that blocks the
+  // action (closed ticket, already claimed) is announced instead of ignored.
+  useShortcut(
+    "claim",
+    () => {
+      if (!claimVisible) {
+        announce(t("a11y.shortcuts.unavailable.claim"));
+        return;
+      }
+      if (!claiming) onClaim();
+    },
+    canClaim,
+  );
+  useShortcut("forward", onForward, canForward);
+  useShortcut(
+    "status",
+    () => {
+      if (!statusVisible || savingStatus) {
+        announce(t("a11y.shortcuts.unavailable.status"));
+        return;
+      }
+      setStatusMenuOpen(true);
+    },
+    canChangeStatus,
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       {canShowClaimAction(ticket, canClaim) ? (
-        <Button type="button" size="sm" disabled={claiming} onClick={onClaim}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={claiming}
+          onClick={onClaim}
+          aria-keyshortcuts={showsShortcut ? ariaKeyShortcuts("claim") : undefined}
+          title={withHint(t("tickets.claim"), "claim")}
+        >
           <UserCheck size={14} />
           {claiming ? t("tickets.claiming") : t("tickets.claim")}
         </Button>
@@ -73,7 +119,15 @@ export function TicketDetailHeaderActions({
         </Button>
       ) : null}
       {canForward ? (
-        <Button type="button" variant="outline" size="sm" onClick={onForward} data-testid="ticket-forward">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onForward}
+          data-testid="ticket-forward"
+          aria-keyshortcuts={showsShortcut ? ariaKeyShortcuts("forward") : undefined}
+          title={withHint(t("tickets.forward.action"), "forward")}
+        >
           <Forward size={14} /> {t("tickets.forward.action")}
         </Button>
       ) : null}
@@ -88,10 +142,17 @@ export function TicketDetailHeaderActions({
         </Button>
       ) : null}
       {canRequestRemote ? <TicketRequestRemoteButton ticket={ticket} /> : null}
-      {canChangeStatus && nextStatuses.length > 0 ? (
-        <DropdownMenu>
+      {statusVisible ? (
+        <DropdownMenu open={statusMenuOpen} onOpenChange={setStatusMenuOpen}>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="sm" disabled={savingStatus}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={savingStatus}
+              aria-keyshortcuts={showsShortcut ? ariaKeyShortcuts("status") : undefined}
+              title={withHint(t("tickets.detail.changeStatus"), "status")}
+            >
               <Pencil size={14} />
               {savingStatus ? t("tickets.detail.saving") : t("tickets.detail.changeStatus")}
               <ChevronDown size={14} aria-hidden="true" className="opacity-70" />

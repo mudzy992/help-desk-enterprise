@@ -372,6 +372,7 @@ export class AnonymizationService {
               mustChangePassword: false,
               passwordChangedAt: null,
               preferredLocale: null,
+              keyboardShortcuts: null,
               entraObjectId: null,
               directoryObjectGuid: null,
               distinguishedName: null,

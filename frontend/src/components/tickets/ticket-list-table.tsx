@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import { announce } from "@/lib/a11y/announcer";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useShortcut } from "@/lib/shortcuts/shortcuts-context";
+import { saveTicketListContext } from "@/lib/shortcuts/ticket-list-context";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ShieldAlert } from "lucide-react";
 import { TicketAtRiskBadge, TicketOverdueBadge, TicketPriorityBadge, TicketStatusBadge } from "@/components/tickets/ticket-badges";
@@ -229,6 +231,40 @@ export function TicketListTable({
         key: `${tickets[row.index]?.id ?? row.index}-${index}`,
       }))
     : tickets.map((ticket, index) => ({ ticket, virtualIndex: undefined, rowIndex: index, key: ticket.id }));
+  const location = useLocation();
+  const ticketIdsKey = tickets.map((ticket) => ticket.id).join(",");
+  // 2.8 §4.1: remember the order for "next / previous ticket" on the detail page.
+  useEffect(() => {
+    saveTicketListContext({
+      ids: ticketIdsKey.length === 0 ? [] : ticketIdsKey.split(","),
+      listUrl: `${location.pathname}${location.search}`,
+    });
+  }, [ticketIdsKey, location.pathname, location.search]);
+
+  const rowLinks = () =>
+    Array.from(scrollRef.current?.querySelectorAll<HTMLAnchorElement>("a[data-ticket-row-link]") ?? []);
+  const focusedRowLink = () => {
+    const active = document.activeElement;
+    return active instanceof HTMLAnchorElement && active.dataset.ticketRowLink !== undefined ? active : null;
+  };
+  const moveRowFocus = (direction: 1 | -1) => {
+    const links = rowLinks();
+    if (links.length === 0) return;
+    const current = focusedRowLink();
+    const index = current === null ? (direction === 1 ? -1 : links.length) : links.indexOf(current);
+    const next = links[Math.min(Math.max(index + direction, 0), links.length - 1)];
+    next?.focus();
+    next?.scrollIntoView({ block: "nearest" });
+  };
+  useShortcut("listNext", () => moveRowFocus(1));
+  useShortcut("listPrevious", () => moveRowFocus(-1));
+  useShortcut("listOpen", null);
+  useShortcut("listOpenAlt", () => focusedRowLink()?.click());
+  useShortcut("listToggle", () => {
+    const id = focusedRowLink()?.dataset.ticketRowLink;
+    if (id !== undefined) onToggleSelected(id);
+  });
+
   const selectedCount = selectedIds.size;
   const previousSelectedCount = useRef(selectedCount);
   // 2.8 §3.3: bulk selection changes are announced (polite, coalesced).

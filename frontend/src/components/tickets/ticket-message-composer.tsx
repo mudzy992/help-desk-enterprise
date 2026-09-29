@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BookmarkPlus, FileText, MessageSquareLock, Paperclip, Send, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useShortcut } from "@/lib/shortcuts/shortcuts-context";
+import { TICKET_CONVERSATION_ID } from "@/components/tickets/ticket-conversation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -99,6 +101,17 @@ export function TicketMessageComposer({
         },
       ]
     : [{ value: "reply", label: t("tickets.detail.publicReply"), icon: <Send size={12.5} /> }];
+
+  // 2.8 §4.1: R / I put the caret into the editor in the chosen mode.
+  const focusEditor = (asInternal: boolean) => {
+    setInternal(asInternal && canInternal);
+    setMention(null);
+    window.requestAnimationFrame(() => textareaReference.current?.focus());
+  };
+  useShortcut("reply", () => focusEditor(false));
+  useShortcut("internalNote", () => focusEditor(true), canInternal);
+  useShortcut("send", null);
+  useShortcut("leaveEditor", null);
 
   const [mention, setMention] = useState<MentionQuery | null>(null);
   const [mentionCandidates, setMentionCandidates] = useState<readonly MentionCandidate[]>([]);
@@ -255,6 +268,7 @@ export function TicketMessageComposer({
             ref={textareaReference}
             value={body}
             data-testid="ticket-composer-body"
+            aria-label={internal && canInternal ? t("tickets.detail.internalNote") : t("tickets.detail.publicReply")}
             onChange={(event) => {
               setBody(event.target.value);
               if (event.target.value.trim().length === 0) setUsedTemplate(null);
@@ -303,6 +317,14 @@ export function TicketMessageComposer({
               if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
                 event.preventDefault();
                 void submit().catch(() => undefined);
+                return;
+              }
+              // 2.8 §4.1: Esc leaves the editor (the text stays) and returns to the conversation.
+              if (event.key === "Escape" && !pickerOpen) {
+                event.preventDefault();
+                const log = document.getElementById(TICKET_CONVERSATION_ID);
+                if (log !== null) log.focus();
+                else event.currentTarget.blur();
               }
             }}
             placeholder={
