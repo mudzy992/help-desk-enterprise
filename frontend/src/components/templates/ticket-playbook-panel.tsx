@@ -173,7 +173,7 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
                     </div>
                   ) : null}
                   {step.checked && step.checkedBy && step.checkedAt ? (
-                    <p className="mt-1 pl-6 text-[10.5px] text-muted-foreground/80">
+                    <p className="mt-1 pl-6 text-[10.5px] text-muted-foreground">
                       {t("templates.checklist.checkedBy", {
                         name: step.checkedBy.displayName,
                         time: formatRelativeTime(step.checkedAt, t, locale),

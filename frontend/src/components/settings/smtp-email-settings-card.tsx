@@ -120,7 +120,7 @@ export function SmtpEmailSettingsCard({
             <span className="text-muted-foreground">{t("settings.smtp.password")}</span>
             <span className="flex items-center gap-1.5 tnum text-foreground/90">
               {passwordSet ? "••••••••••" : "—"}
-              <EyeOff size={12} className="text-muted-foreground/60" />
+              <EyeOff size={12} className="text-muted-foreground" />
             </span>
           </p>
           <p className="flex items-center justify-between">

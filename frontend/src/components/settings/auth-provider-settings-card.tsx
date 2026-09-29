@@ -93,7 +93,7 @@ export function AuthProviderSettingsCard({
               </Button>
             </div>
           ) : null}
-          <p className="text-[11px] leading-[15px] text-muted-foreground/70">
+          <p className="text-[11px] leading-[15px] text-muted-foreground">
             {t("settings.auth.breakGlass")}
           </p>
           {draftMode !== null && draftMode !== mode ? (

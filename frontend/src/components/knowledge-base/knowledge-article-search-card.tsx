@@ -36,20 +36,20 @@ export function KnowledgeArticleSearchCard({
         <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
         {/* a11y-focus: the focus ring is drawn by the parent (focus-within). */}
         <input
-          className="h-8 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+          className="h-8 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground focus:outline-none"
           type="search"
           value={search}
           placeholder={t("knowledgeBase.searchWidePlaceholder")}
           aria-label={t("knowledgeBase.searchPlaceholder")}
           onChange={(event) => onSearchChange(event.target.value)}
         />
-        <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground/70 md:flex">
+        <span className="hidden items-center gap-1.5 text-[11px] text-muted-foreground md:flex">
           <ArrowDownUp size={12} aria-hidden="true" />
           {t("knowledgeBase.rankedByFullText")}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-1.5 border-t border-border/70 px-4 py-2.5">
-        <Filter size={12.5} className="text-muted-foreground/70" aria-hidden="true" />
+        <Filter size={12.5} className="text-muted-foreground" aria-hidden="true" />
         <Chip active={status === ""} onClick={() => onStatusChange("")}>
           {t("knowledgeBase.filterAll")}
         </Chip>

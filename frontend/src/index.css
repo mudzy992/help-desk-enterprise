@@ -115,11 +115,11 @@
     --link: 79 79 199;
 
     --accent: 15 118 110;
-    --danger: 220 38 38;
+    --danger: 185 28 28;
     --on-danger: 255 255 255; /* tekst na danger pozadini (bedž), ≥ 4.5:1 */
-    --ok: 21 128 61;
-    --success: 21 128 61;
-    --warning: 180 83 9;
+    --ok: 21 110 52;
+    --success: 21 110 52;
+    --warning: 154 70 6;
     --info: 3 105 161;
     --hold: 126 34 206;
 

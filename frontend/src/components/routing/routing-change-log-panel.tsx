@@ -47,7 +47,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
             <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
               <table className="w-full">
                 <thead>
-                  <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                  <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
                     <th className="px-3 py-1.5 font-medium">
                       {t("routing.changeField")}
                     </th>
@@ -72,7 +72,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
                         <td className="px-3 py-1.5 text-[11.5px] text-muted-foreground">
                           {change.path}
                         </td>
-                        <td className="px-3 py-1.5 text-[11.5px] text-danger/85 line-through decoration-danger/40 tnum">
+                        <td className="px-3 py-1.5 text-[11.5px] text-danger line-through decoration-danger/40 tnum">
                           {stringifyChange(change.before)}
                         </td>
                         <td className="px-3 py-1.5 text-[11.5px] text-ok tnum">

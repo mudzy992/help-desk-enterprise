@@ -160,7 +160,7 @@ export function HeaderSearchResultsPanel({
         offset += section.hits.length;
         return (
           <section key={section.label}>
-            <h2 className="px-3.5 pb-1 pt-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground/70">
+            <h2 className="px-3.5 pb-1 pt-2.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
               {section.label}
             </h2>
             {section.hits.map((hit, index) => (

@@ -120,7 +120,7 @@ function ActivityRow({
             {item.note}
           </p>
         ) : null}
-        <p className="tnum mt-1 text-[11px] text-muted-foreground/70">
+        <p className="tnum mt-1 text-[11px] text-muted-foreground">
           {formatTicketTimestamp(item.at, locale)}
         </p>
       </div>

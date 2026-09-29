@@ -92,7 +92,7 @@ export function RoutingCoverageTable({
         >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground/70">
+              <th className="sticky left-0 z-10 min-w-[190px] bg-surface px-2 py-1 text-left text-[10.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
                 {t("routing.matrixAxis")}
               </th>
               {matrix.originUnits.map((origin) => (
@@ -102,12 +102,12 @@ export function RoutingCoverageTable({
                       "block text-[10.5px] font-medium",
                       hover?.originUnitId === origin.originUnitId
                         ? "text-foreground"
-                        : "text-muted-foreground/80",
+                        : "text-muted-foreground",
                     )}
                   >
                     {origin.originUnitShortName}
                   </span>
-                  <span className="block truncate text-[8.5px] font-normal text-muted-foreground/40">
+                  <span className="block truncate text-[8.5px] font-normal text-muted-foreground">
                     {origin.originUnitPath}
                   </span>
                 </th>

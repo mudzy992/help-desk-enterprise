@@ -63,7 +63,7 @@ export function CreateTicketReviewView({
             ) : null}
             <div className="mt-4 space-y-2.5 text-[12.5px]">
               <div className="rounded-md border border-border bg-background/40 px-4 py-3">
-                <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                   {t("tickets.createReviewTitleLabel")}
                 </p>
                 <p className="mt-0.5 text-[13px] font-medium text-foreground">{draft.title || "—"}</p>
@@ -75,7 +75,7 @@ export function CreateTicketReviewView({
               </div>
               <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                 <div className="rounded-md border border-border bg-background/40 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                  <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                     {t("tickets.calculatedPriority")}
                   </p>
                   <p className="mt-1 flex flex-wrap items-center gap-2">
@@ -88,7 +88,7 @@ export function CreateTicketReviewView({
                   </p>
                 </div>
                 <div className="rounded-md border border-border bg-background/40 px-4 py-3">
-                  <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                  <p className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                     {t("tickets.createReviewApprovals")}
                   </p>
                   <p className="mt-1 text-[12.5px] text-foreground/90">
@@ -99,7 +99,7 @@ export function CreateTicketReviewView({
                 </div>
               </div>
               <div className="rounded-md border border-border bg-background/40 px-4 py-3">
-                <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/70">
+                <p className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                   <GitBranch size={11} /> {t("tickets.createReviewRoutingTitle")}
                 </p>
                 <p className="mt-1.5 text-[12.5px] text-muted-foreground">
@@ -113,7 +113,7 @@ export function CreateTicketReviewView({
               <ArrowLeft size={14} /> {t("tickets.stepBack")}
             </Button>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-muted-foreground/70 tnum">
+              <span className="text-[11px] text-muted-foreground tnum">
                 {ticketText(t, "tickets.stepCount", { current: 4, total: CREATE_TICKET_STEP_TOTAL })}
               </span>
               <Button type="button" variant="primary" size="sm" disabled={isSubmitting} onClick={onSubmit}>

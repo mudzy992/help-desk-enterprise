@@ -96,7 +96,7 @@ export function CreateTicketServicePicker({
                 </p>
               ) : null}
               {service.requiresApproval ? (
-                <p className="mt-2 text-[10.5px] text-warning/90">
+                <p className="mt-2 text-[10.5px] text-warning">
                   {ticketText(t, "tickets.approvalsNeeded", { count: 1 })}
                 </p>
               ) : null}

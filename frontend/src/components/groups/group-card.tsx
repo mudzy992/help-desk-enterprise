@@ -67,7 +67,7 @@ export function GroupCard({
               ? t("groups.fallbackForUnit", { unit: group.organizationalUnitPath })
               : group.organizationalUnitPath}
           </p>
-          <p className="mt-1 text-[11px] text-muted-foreground/80">
+          <p className="mt-1 text-[11px] text-muted-foreground">
             {t("groups.routingRuleCount", { count: routingRuleCount })}
           </p>
         </div>

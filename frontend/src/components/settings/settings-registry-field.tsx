@@ -69,7 +69,7 @@ export function SettingsRegistryField({
               {t(`settings.registry.visibility.${entry.visibility}`)}
             </Badge>
             {isSecret && entry.isSet ? (
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                 •••••••••• <EyeOff size={12} />
               </span>
             ) : null}

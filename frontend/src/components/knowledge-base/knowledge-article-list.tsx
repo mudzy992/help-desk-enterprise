@@ -113,7 +113,7 @@ export function KnowledgeArticleList({
               <div className="px-4 pt-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="tnum text-[10.5px] font-medium text-muted-foreground/60">
+                    <p className="tnum text-[10.5px] font-medium text-muted-foreground">
                       {item.slug} · {serviceName}
                     </p>
                     <Link
@@ -183,7 +183,7 @@ export function KnowledgeArticleList({
                   </div>
                 ) : null}
               </div>
-              <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground/60">
+              <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground">
                 <span className="tnum">
                   {t("knowledgeBase.updatedAt")}{" "}
                   <RelativeTime value={item.updatedAt} locale={i18n.language} />

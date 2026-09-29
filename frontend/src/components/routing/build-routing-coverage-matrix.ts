@@ -8,7 +8,7 @@ export const ROUTING_COVERAGE_CELL_STYLE: Record<
 > = {
   exact: "border-success/35 bg-success/15 text-ok",
   inherited: "border-info/25 bg-info/10 text-info",
-  unrouted: "border-danger/30 bg-danger/8 text-danger/90",
+  unrouted: "border-danger/30 bg-danger/8 text-danger",
 };
 
 export type RoutingCoverageOriginColumn = {

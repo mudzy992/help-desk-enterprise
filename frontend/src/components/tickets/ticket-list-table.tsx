@@ -97,7 +97,7 @@ function assignmentCell(
       <span className="truncate text-[12px] text-foreground/80">{groupName}</span>
       {assigneeName !== null ? (
         <>
-          <span className="text-muted-foreground/40">·</span>
+          <span className="text-muted-foreground">·</span>
           <Avatar name={assigneeName} size="xs" />
         </>
       ) : (

@@ -84,7 +84,7 @@ export function MentionPicker({ ticketId, query, activeIndex, onCandidates, onPi
           </button>
         ))
       )}
-      <div className="border-t border-border/60 px-3 py-1 text-[10.5px] text-muted-foreground/80">
+      <div className="border-t border-border/60 px-3 py-1 text-[10.5px] text-muted-foreground">
         {t("tickets.collaboration.mentions.hint")}
       </div>
     </div>

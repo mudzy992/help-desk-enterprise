@@ -41,11 +41,11 @@ export function MaintenanceBanner({
         <p className="font-medium">{t("maintenance.title")}</p>
         <p className="mt-0.5 text-muted-foreground">{message}</p>
         {period ? (
-          <p className="tnum mt-1 text-[11.5px] text-muted-foreground/90">
+          <p className="tnum mt-1 text-[11.5px] text-muted-foreground">
             {period}
           </p>
         ) : null}
-        <p className="mt-1 text-[11px] text-muted-foreground/80">
+        <p className="mt-1 text-[11px] text-muted-foreground">
           {t("maintenance.nonBlockingHint")}
         </p>
       </div>

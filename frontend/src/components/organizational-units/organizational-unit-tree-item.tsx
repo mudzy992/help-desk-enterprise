@@ -83,7 +83,7 @@ export function OrganizationalUnitTreeItem({
           size={14}
           className={cn(
             "shrink-0",
-            depth === 0 ? "text-link" : "text-muted-foreground/70",
+            depth === 0 ? "text-link" : "text-muted-foreground",
           )}
           aria-label={
             node.type
@@ -109,7 +109,7 @@ export function OrganizationalUnitTreeItem({
         <span className="tnum rounded border border-border bg-elevated/60 px-1.5 py-0 text-[10px] text-muted-foreground">
           {t("directory.memberCountShort", { count: memberCount })}
         </span>
-        <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground/50 group-hover:text-muted-foreground/80 lg:block">
+        <span className="tnum hidden max-w-[46ch] flex-1 truncate text-right font-mono text-[10.5px] text-muted-foreground group-hover:text-muted-foreground lg:block">
           {node.ouPath}
         </span>
         {canManage ? (

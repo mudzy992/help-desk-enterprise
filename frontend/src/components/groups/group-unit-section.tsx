@@ -42,7 +42,7 @@ export function GroupUnitSection({
         <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
           {organizationalUnitPath}
         </h4>
-        <span className="text-[11px] text-muted-foreground/80">
+        <span className="text-[11px] text-muted-foreground">
           {t("groups.unitGroupCount", { count: groups.length })}
         </span>
       </header>

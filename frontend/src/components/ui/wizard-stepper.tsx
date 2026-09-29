@@ -53,7 +53,7 @@ export function WizardStepper({ steps, activeIndex }: WizardStepperProperties) {
                     ? "text-foreground"
                     : isComplete
                       ? "text-foreground/80"
-                      : "text-muted-foreground/70",
+                      : "text-muted-foreground",
                 )}
               >
                 {step.label}

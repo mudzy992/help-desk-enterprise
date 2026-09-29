@@ -242,7 +242,7 @@ export function TicketMessageComposer({
             }}
             items={composerModes}
           />
-          <span className="ml-auto text-[11px] text-muted-foreground/70">
+          <span className="ml-auto text-[11px] text-muted-foreground">
             {internal ? t("tickets.detail.internalHint") : t("tickets.detail.publicHint")}
           </span>
         </div>
@@ -418,7 +418,7 @@ export function TicketMessageComposer({
                 ) : null}
               </>
             ) : null}
-            <span className="text-[11px] text-muted-foreground/60">
+            <span className="text-[11px] text-muted-foreground">
               {t("tickets.detail.attachHint")}
             </span>
             <div className="ml-auto flex flex-wrap items-center gap-2">

@@ -54,7 +54,7 @@ export function UsersSummaryRow({
                 <ShieldCheck size={12} className="text-danger" />
               ) : null}
             </p>
-            <p className="text-[11px] text-muted-foreground/70">{user.email}</p>
+            <p className="text-[11px] text-muted-foreground">{user.email}</p>
           </div>
         </div>
       </td>
@@ -71,7 +71,7 @@ export function UsersSummaryRow({
       <td className="px-4 py-2.5 text-[12px] text-muted-foreground">
         {user.organizationalUnitName ?? "—"}
         {user.groupName ? (
-          <span className="block text-[10.5px] text-muted-foreground/60">
+          <span className="block text-[10.5px] text-muted-foreground">
             {user.groupName}
           </span>
         ) : null}
@@ -84,14 +84,14 @@ export function UsersSummaryRow({
             })}
           </Badge>
         ) : (
-          <span className="text-muted-foreground/50">—</span>
+          <span className="text-muted-foreground">—</span>
         )}
       </td>
       <td className="px-4 py-2.5 text-[11px] text-muted-foreground">
         {permissionScope}
       </td>
       <td className="px-4 py-2.5 text-center">
-        <span className="text-muted-foreground/50">—</span>
+        <span className="text-muted-foreground">—</span>
       </td>
       <td className="px-4 py-2.5 text-right">
         {user.openTicketCount > 0 ? (
@@ -104,7 +104,7 @@ export function UsersSummaryRow({
             {t("users.openLoad", { count: user.openTicketCount })}
           </span>
         ) : (
-          <span className="block text-muted-foreground/50">—</span>
+          <span className="block text-muted-foreground">—</span>
         )}
         {canManageUsers ? (
           <Button

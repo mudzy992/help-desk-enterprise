@@ -72,7 +72,7 @@ export function OrganizationalUnitCatalogForm({
     <div className="flex h-full flex-col">
       <div className="space-y-3 px-5 py-4">
         <label className="block space-y-1">
-          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground/70">
+          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground">
             {t("directory.ouNamePlaceholder")}
           </span>
           <input
@@ -83,7 +83,7 @@ export function OrganizationalUnitCatalogForm({
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground/70">
+          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground">
             {t("directory.ouParentPlaceholder")}
           </span>
           <select
@@ -106,7 +106,7 @@ export function OrganizationalUnitCatalogForm({
           </select>
         </label>
         <label className="block space-y-1">
-          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground/70">
+          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground">
             {t("directory.ouTypePlaceholder")}
           </span>
           <select
@@ -125,7 +125,7 @@ export function OrganizationalUnitCatalogForm({
           </select>
         </label>
         <label className="block space-y-1">
-          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground/70">
+          <span className="text-[10.5px] uppercase tracking-[0.06em] text-muted-foreground">
             {t("directory.ouDnPlaceholder")}
           </span>
           <input

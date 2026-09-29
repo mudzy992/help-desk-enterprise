@@ -113,7 +113,7 @@ export function Donut({
             <span className="tnum text-[12.5px] font-semibold text-foreground">
               {datum.value}
             </span>
-            <span className="tnum w-9 text-right text-[11px] text-muted-foreground/70">
+            <span className="tnum w-9 text-right text-[11px] text-muted-foreground">
               {total ? Math.round((datum.value / total) * 100) : 0}%
             </span>
           </li>

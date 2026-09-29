@@ -65,7 +65,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
             {ticketText(t, `tickets.detail.sla.unavailable.${context.unavailableReason}`)}
           </p>
           {canConfigure ? (
-            <p className="text-[11px] text-muted-foreground/70">
+            <p className="text-[11px] text-muted-foreground">
               {ticketText(t, "tickets.detail.sla.unavailableAdminHint")}
             </p>
           ) : null}
@@ -109,7 +109,7 @@ export function TicketSlaPanel({ ticket, context, canConfigure }: TicketSlaPanel
             }}
           />
           {view.dueAt === null ? null : (
-            <span className="text-[10.5px] text-muted-foreground/70">
+            <span className="text-[10.5px] text-muted-foreground">
               {ticketText(t, "tickets.detail.sla.due")}{" "}
               <span className="tnum">
                 {formatTicketTimestamp(view.dueAt, i18n.language)}
@@ -154,7 +154,7 @@ function SlaTimerBlock({
       </div>
       <Progress value={timer.usedPercent} tone={timer.tone} />
       {hint === undefined ? null : (
-        <p className="mt-1 text-[10.5px] text-muted-foreground/70">
+        <p className="mt-1 text-[10.5px] text-muted-foreground">
           {hint}
         </p>
       )}

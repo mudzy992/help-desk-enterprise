@@ -96,7 +96,7 @@ export function SecurityComplianceSettingsCard({
             >
               <row.icon
                 size={14}
-                className={row.enabled ? "text-ok" : "text-muted-foreground/60"}
+                className={row.enabled ? "text-ok" : "text-muted-foreground"}
               />
               <span className="flex-1 text-[12px] text-foreground/90">
                 {t(row.labelKey)}

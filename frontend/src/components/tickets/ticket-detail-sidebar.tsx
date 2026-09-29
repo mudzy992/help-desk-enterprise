@@ -144,7 +144,7 @@ export function TicketDetailSidebar({
             <dd className="text-right text-foreground/90">
               {row.value}
               {row.hint ? (
-                <p className="text-[10.5px] text-muted-foreground/60">{row.hint}</p>
+                <p className="text-[10.5px] text-muted-foreground">{row.hint}</p>
               ) : null}
             </dd>
           </div>

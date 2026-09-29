@@ -29,13 +29,13 @@ export function OrganizationalUnitDetailsCard({
       />
       <dl className="space-y-3 px-4 py-4 text-[12px]">
         <div>
-          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsNameLabel")}
           </dt>
           <dd className="mt-0.5 text-foreground/90">{node.name}</dd>
         </div>
         <div>
-          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsTypeLabel")}
           </dt>
           <dd className="mt-0.5 flex items-center gap-1.5 text-foreground/90">
@@ -44,7 +44,7 @@ export function OrganizationalUnitDetailsCard({
           </dd>
         </div>
         <div>
-          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsPathLabel")}
           </dt>
           <dd className="tnum mt-0.5 font-mono text-[11px] text-foreground/90">
@@ -52,7 +52,7 @@ export function OrganizationalUnitDetailsCard({
           </dd>
         </div>
         <div>
-          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+          <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsDnLabel")}
           </dt>
           <dd className="tnum mt-0.5 break-all font-mono text-[10.5px] leading-[15px] text-muted-foreground">

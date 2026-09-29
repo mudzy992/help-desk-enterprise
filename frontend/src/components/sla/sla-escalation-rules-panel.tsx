@@ -114,7 +114,7 @@ export function SlaEscalationRulesPanel({
   if (embedded) {
     return (
       <div className="space-y-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
           {t("sla.escalationsHeading")}
         </p>
         {table}

@@ -172,7 +172,7 @@ export function DualAreaChart({
           ))}
         </svg>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-[3%] text-[10.5px] font-medium text-muted-foreground/70">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between px-[3%] text-[10.5px] font-medium text-muted-foreground">
           {data.map((point, index) => (
             <span
               key={`${point.label}-${index}`}

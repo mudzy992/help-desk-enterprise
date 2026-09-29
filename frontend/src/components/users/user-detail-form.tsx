@@ -81,7 +81,7 @@ export function UserDetailForm({
           onChange={(event) => setEmail(event.target.value)}
         />
         {!user.isLocalOnly ? (
-          <span className="text-[11px] text-muted-foreground/80">
+          <span className="text-[11px] text-muted-foreground">
             {t("users.emailDirectoryLocked")}
           </span>
         ) : null}

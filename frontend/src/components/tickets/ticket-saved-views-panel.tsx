@@ -57,7 +57,7 @@ export function TicketSavedViewsPanel({
 
   return (
     <aside className="space-y-1.5">
-      <p className="flex items-center gap-1.5 px-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">
+      <p className="flex items-center gap-1.5 px-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         <Bookmark size={11} aria-hidden="true" /> {t("tickets.savedViews.title")}
       </p>
       {views.map((view) => (

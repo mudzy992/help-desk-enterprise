@@ -92,14 +92,14 @@ export function RoutingCoverageTooltip({
           <span className="tnum text-[10.5px] text-foreground/85">→ {groupName}</span>
         ) : null}
       </div>
-      <p className="mt-1 tnum text-[10px] text-muted-foreground/70">
+      <p className="mt-1 tnum text-[10px] text-muted-foreground">
         {fallbackPath || item.originUnitPath}
       </p>
-      <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+      <p className="mt-0.5 text-[10px] text-muted-foreground">
         {t("routing.fallbackDepth", { depth: item.resolution.fallbackDepth })}
       </p>
       {kind === "unrouted" ? (
-        <p className="mt-1 text-[10px] text-danger/80">
+        <p className="mt-1 text-[10px] text-danger">
           {t("routing.tooltipUnrouted")}
         </p>
       ) : null}

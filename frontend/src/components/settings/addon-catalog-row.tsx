@@ -38,7 +38,7 @@ export function AddonCatalogRow({
             "flex size-8 shrink-0 items-center justify-center rounded-lg border",
             effectiveEnabled
               ? "border-primary/35 bg-primary/10 text-link"
-              : "border-border bg-elevated/50 text-muted-foreground/60",
+              : "border-border bg-elevated/50 text-muted-foreground",
           )}
         >
           <Boxes size={14} />
@@ -49,7 +49,7 @@ export function AddonCatalogRow({
             <p className="text-[11px] text-muted-foreground">{description}</p>
           ) : null}
         </div>
-        <span className="tnum hidden font-mono text-[10px] text-muted-foreground/50 md:block">
+        <span className="tnum hidden font-mono text-[10px] text-muted-foreground md:block">
           {item.key}
         </span>
         <Switch

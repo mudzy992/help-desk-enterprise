@@ -179,7 +179,7 @@ export function TicketListPage() {
                 />
               )}
               {list.totalPages > 1 ? (
-                <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground/70">
+                <div className="mt-3 flex items-center justify-between text-[11.5px] text-muted-foreground">
                   <Button type="button" variant="outline" size="sm" disabled={list.page === 1} onClick={() => list.setPage(list.page - 1)}>
                     {t("tickets.previous")}
                   </Button>
@@ -189,12 +189,12 @@ export function TicketListPage() {
                   </Button>
                 </div>
               ) : (
-                <p className="mt-3 text-[11.5px] text-muted-foreground/70">
+                <p className="mt-3 text-[11.5px] text-muted-foreground">
                   {ticketText(t, list.totalIsCapped ? "tickets.listShownCapped" : "tickets.listShown", { shown: list.pageItems.length, total: list.total })}
                 </p>
               )}
               {canExport ? (
-                <p className="mt-1 text-[11.5px] text-muted-foreground/70">
+                <p className="mt-1 text-[11.5px] text-muted-foreground">
                   {t("tickets.exportAuditedHint")}
                 </p>
               ) : null}

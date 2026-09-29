@@ -43,7 +43,7 @@ export function TicketMessageBubble({
       <div className={cn("min-w-0 max-w-[78%]", isOwn && "flex flex-col items-end")}>
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-medium text-foreground">{shownName}</span>
-          <span className="text-[10.5px] text-muted-foreground/70">
+          <span className="text-[10.5px] text-muted-foreground">
             <RelativeTime value={message.createdAt} locale={locale} />
           </span>
           {isInternal ? (

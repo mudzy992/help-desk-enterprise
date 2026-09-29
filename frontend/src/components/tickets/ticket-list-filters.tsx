@@ -103,7 +103,7 @@ export function TicketListFiltersBar({
       <div className="relative w-64 max-w-full">
         <Search
           size={13.5}
-          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+          className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
         />
         <label className="sr-only" htmlFor="ticket-list-search">
@@ -118,7 +118,7 @@ export function TicketListFiltersBar({
         />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
-        <Filter size={13} className="text-muted-foreground/70" aria-hidden="true" />
+        <Filter size={13} className="text-muted-foreground" aria-hidden="true" />
         <Chip
           active={filters.priority === ""}
           onClick={() => onChange({ ...filters, priority: "" })}

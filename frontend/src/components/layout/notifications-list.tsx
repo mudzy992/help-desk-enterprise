@@ -85,7 +85,7 @@ export function NotificationsList({
                   <RelativeTime
                     value={notification.createdAt}
                     locale={locale}
-                    className="shrink-0 text-[10.5px] text-muted-foreground/70"
+                    className="shrink-0 text-[10.5px] text-muted-foreground"
                   />
                 </span>
                 {notification.body ? (

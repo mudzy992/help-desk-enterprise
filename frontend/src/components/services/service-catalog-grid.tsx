@@ -72,7 +72,7 @@ export function ServiceCatalogGrid({
         <div className="relative ml-auto w-60 max-w-full">
           <Search
             size={13.5}
-            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input

@@ -49,7 +49,7 @@ export function CreateTicketInterceptView({
             <Button type="button" variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft size={14} /> {t("tickets.stepBack")}
             </Button>
-            <span className="text-[11px] text-muted-foreground/70 tnum">
+            <span className="text-[11px] text-muted-foreground tnum">
               {ticketText(t, "tickets.stepCount", { current: 3, total: CREATE_TICKET_STEP_TOTAL })}
             </span>
           </div>

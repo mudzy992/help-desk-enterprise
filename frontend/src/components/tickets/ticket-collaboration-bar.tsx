@@ -46,7 +46,7 @@ export function TicketCollaborationBar(props: TicketCollaborationBarProperties) 
           <RequesterPresence typing={props.presence.agentTyping} />
         )
       ) : (
-        <span className="text-[11.5px] text-muted-foreground/70" />
+        <span className="text-[11.5px] text-muted-foreground" />
       )}
       {props.canFollow ? <FollowButton ticketId={props.ticketId} /> : null}
     </div>

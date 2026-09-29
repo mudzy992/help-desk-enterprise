@@ -190,7 +190,7 @@ export function KnowledgeBasePage() {
             }}
             onFeedback={loadArticles}
           />
-          <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground/70">
+          <p className="mt-4 text-[11.5px] leading-5 text-muted-foreground">
             {t("knowledgeBase.interceptRankingHint")}
           </p>
         </>

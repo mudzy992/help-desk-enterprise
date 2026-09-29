@@ -103,7 +103,7 @@ function ResolutionBody({
       ) : null}
       <FallbackPath resolution={resolution} />
       <div className="mt-4 rounded-lg border border-border bg-elevated/70 p-3.5">
-        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground/60">
+        <p className="mb-2 flex items-center gap-1.5 text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
           <GitBranch size={11} /> {t("routing.engineResponse")}
         </p>
         <pre className="overflow-x-auto text-[11.5px] leading-5 text-foreground/85 tnum">
@@ -114,7 +114,7 @@ function ResolutionBody({
         <Info size={12.5} className="mt-0.5 shrink-0" />
         {t("routing.testerNote")}
       </p>
-      <p className="mt-1 text-[11px] text-muted-foreground/60">
+      <p className="mt-1 text-[11px] text-muted-foreground">
         {t("routing.testerInputSummary", {
           origin: originLabel,
           service: serviceLabel,
@@ -128,7 +128,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
   const { t } = useTranslation();
   return (
     <div className="mt-4">
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
         {t("routing.fallbackPathHeading")}
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -155,7 +155,7 @@ function FallbackPath({ resolution }: { readonly resolution: RoutingResolution }
                 {isMatch ? <span className="ml-1">✓</span> : null}
               </span>
               {index < resolution.fallbackPath.length - 1 ? (
-                <span className="text-muted-foreground/50">→</span>
+                <span className="text-muted-foreground">→</span>
               ) : null}
             </span>
           );

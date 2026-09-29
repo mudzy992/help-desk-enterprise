@@ -85,7 +85,7 @@ export function DashboardActivityFeed() {
                     <RelativeTime
                       value={notification.createdAt}
                       locale={i18n.language}
-                      className="mt-0.5 block text-[10.5px] text-muted-foreground/70"
+                      className="mt-0.5 block text-[10.5px] text-muted-foreground"
                     />
                   </span>
                 </button>

@@ -322,7 +322,7 @@ export function TrendChart({
         ) : null}
       </div>
 
-      <div className="mt-1 flex text-[10.5px] font-medium text-muted-foreground/80">
+      <div className="mt-1 flex text-[10.5px] font-medium text-muted-foreground">
         {labels.map((label, index) => (
           <span
             key={`${label}-${index}`}

@@ -128,7 +128,14 @@ const pairs = [
   { fg: "foreground", bg: "background", label: "glavni tekst na canvasu" },
   { fg: "foreground", bg: "surface", label: "glavni tekst na kartici" },
   { fg: "muted", bg: "surface", label: "sekundarni tekst na kartici" },
+  { fg: "muted", bg: "elevated", label: "sekundarni tekst na elevated" },
+  { fg: "muted", bg: "background", label: "sekundarni tekst na canvasu" },
 ];
+
+// Paket 2.8 (axe na stagingu): tonski bedževi `bg-<ton>/10 text-<ton>` —
+// tekst tona na vlastitoj 10 % podlozi preko kartice i elevated površine.
+const tintAlpha = 0.1;
+const tones = ["danger", "ok", "warning", "info", "hold"];
 
 // ── Check A: tokens ─────────────────────────────────────────────────────────
 console.log(`A. Kontrast tokena — prag ${textThreshold}:1 za tekst`);
@@ -174,6 +181,20 @@ for (const palette of palettes) {
       failures.push(
         `tokens: ${palette.name} — prsten fokusa (primary na ${bg}) = ${ratio.toFixed(2)}:1 < ${focusRingThreshold}:1 (WCAG 1.4.11)`,
       );
+    }
+  }
+  for (const tone of tones) {
+    for (const bg of ["surface", "elevated"]) {
+      const t = palette.tokens[tone];
+      const b = palette.tokens[bg];
+      if (!t || !b) continue;
+      const ratio = contrast(t, blend(t, b, tintAlpha));
+      if (ratio < worst.ratio) worst = { ratio, where: `${palette.name} · ${tone} bedž na ${bg}` };
+      if (ratio < textThreshold) {
+        failures.push(
+          `tokens: ${palette.name} — bedž text-${tone} na bg-${tone}/10 preko ${bg} = ${ratio.toFixed(2)}:1 < ${textThreshold}:1`,
+        );
+      }
     }
   }
   console.log(`  ${pad(palette.name, 18)} ${rows.join("   ")}`);
@@ -279,6 +300,23 @@ for (const file of walk("frontend/src")) {
 console.log(`  pregledano ${walk("frontend/src").length} fajlova, ${usages} upotreba \`text-primary\`, ${flagged} na neutralnoj površini`);
 console.log("");
 
+// ── Check C: usage — prozirnost na sekundarnom i tonskom tekstu ─────────
+// Paket 2.8 (axe na stagingu): `text-muted-foreground/70` i slično spušta
+// token koji je tek iznad 4.5:1 ispod praga. `/0` (skriveno do hovera) je dozvoljeno.
+console.log("C. Upotreba — bez prozirnosti na text-muted-foreground i tonovima");
+const opacityPattern = /(?<![\w-])text-(muted-foreground|danger|ok|success|warning|info|hold)\/(?!0(?!\d))\d+/g;
+let opacityHits = 0;
+for (const file of walk("frontend/src")) {
+  const source = stripCommentsKeepingStrings(readFileSync(join(root, file), "utf8"));
+  for (const match of source.matchAll(opacityPattern)) {
+    opacityHits += 1;
+    const line = source.slice(0, match.index).split("\n").length;
+    failures.push(`usage: ${relative(root, file)}:${line} — \`${match[0]}\` pada ispod 4.5:1; koristi token bez prozirnosti`);
+  }
+}
+console.log(`  ${opacityHits} upotreba prozirnosti na tekstu`);
+console.log("");
+
 // ── Verdict ─────────────────────────────────────────────────────────────────
 if (failures.length > 0) {
   for (const failure of failures) console.error(`✖ ${failure}`);
@@ -287,5 +325,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✔ ${palettes.length} paleta × ${pairs.length + 3} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
+  `✔ ${palettes.length} paleta × ${pairs.length + 3 + tones.length * 2} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
 );

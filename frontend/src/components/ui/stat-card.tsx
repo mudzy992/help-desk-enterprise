@@ -39,7 +39,7 @@ export function StatCard({
         <span className="text-[11.5px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
           {label}
         </span>
-        {icon ? <span className="text-muted-foreground/60">{icon}</span> : null}
+        {icon ? <span className="text-muted-foreground">{icon}</span> : null}
       </div>
       <div className="mt-1.5 flex items-baseline gap-2">
         <span
@@ -57,7 +57,7 @@ export function StatCard({
         ) : null}
       </div>
       {hint ? (
-        <p className="mt-0.5 text-[11.5px] leading-4 text-muted-foreground/80">{hint}</p>
+        <p className="mt-0.5 text-[11.5px] leading-4 text-muted-foreground">{hint}</p>
       ) : null}
     </Card>
   );

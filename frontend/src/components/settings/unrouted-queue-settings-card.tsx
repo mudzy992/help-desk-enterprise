@@ -139,7 +139,7 @@ export function UnroutedQueueSettingsCard({
               {cleanupHours > 0 && weeklyDigest ? ` · ${t("settings.unrouted.digestOn")}` : ""}
             </Badge>
           </p>
-          <p className="flex items-start gap-1.5 border-t border-border/70 pt-3 text-[11px] leading-[15px] text-muted-foreground/70">
+          <p className="flex items-start gap-1.5 border-t border-border/70 pt-3 text-[11px] leading-[15px] text-muted-foreground">
             <Mail size={11.5} className="mt-0.5 shrink-0" />
             {t("settings.unrouted.hint")}
           </p>

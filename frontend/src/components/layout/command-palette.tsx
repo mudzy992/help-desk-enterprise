@@ -265,7 +265,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
               aria-expanded
               aria-controls="command-palette-results"
               aria-activedescendant={rows.length > 0 ? `palette-row-${activeIndex}` : undefined}
-              className="h-[52px] min-w-0 flex-1 bg-transparent text-[14.5px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+              className="h-[52px] min-w-0 flex-1 bg-transparent text-[14.5px] text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
             <Kbd>ESC</Kbd>
           </div>

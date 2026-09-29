@@ -12,17 +12,17 @@
 */
 
 export const controlClassName =
-  "h-9 w-full rounded-md border border-border bg-surface px-3 text-[13px] text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+  "h-9 w-full rounded-md border border-border bg-surface px-3 text-[13px] text-foreground placeholder:text-muted-foreground transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
 
 export const controlCompactClassName =
-  "h-8 w-full rounded-md border border-border bg-surface px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+  "h-8 w-full rounded-md border border-border bg-surface px-2.5 text-[12.5px] text-foreground placeholder:text-muted-foreground transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
 
 export const selectClassName = `${controlClassName} cursor-pointer appearance-none pr-8`;
 
 export const selectCompactClassName = `${controlCompactClassName} cursor-pointer appearance-none pr-7`;
 
 export const textareaClassName =
-  "min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/70 transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
+  "min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground transition-colors duration-150 hover:border-line-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-45";
 
 export const labelClassName =
   "grid gap-1.5 text-[12.5px] font-medium text-foreground";

@@ -19,7 +19,7 @@ export function PageHeader({
         <nav className="mb-1.5 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
           {crumbs.map((crumb, index) => (
             <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
-              {index > 0 ? <span className="text-muted-foreground/50">/</span> : null}
+              {index > 0 ? <span className="text-muted-foreground">/</span> : null}
               <span className={index === crumbs.length - 1 ? "text-muted-foreground" : ""}>
                 {crumb}
               </span>

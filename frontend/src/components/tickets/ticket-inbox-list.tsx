@@ -77,7 +77,7 @@ export function TicketInboxList({
           </ul>
         )}
       </Card>
-      <p className="mt-3 flex items-center gap-2 text-[11.5px] text-muted-foreground/70">
+      <p className="mt-3 flex items-center gap-2 text-[11.5px] text-muted-foreground">
         <Bell size={12} aria-hidden="true" />
         {t("tickets.inboxClaimHint")}
       </p>

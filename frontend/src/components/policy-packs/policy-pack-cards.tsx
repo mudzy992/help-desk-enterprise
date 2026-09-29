@@ -35,7 +35,7 @@ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
                 <p className="mt-0.5 text-[11.5px] leading-[15px] text-muted-foreground">
                   {description}
                 </p>
-                <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground/80">
+                <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
                   {pack.grants.map((grant) => (
                     <li key={`${pack.key}-${grant.roleKey}`}>
                       {t("policyPacks.grantRoleLine", {
@@ -47,7 +47,7 @@ export function PolicyPackCards({ packs }: PolicyPackCardsProperties) {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1.5 text-[11px] text-muted-foreground/70">
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
                   {t("policyPacks.permissionCount", {
                     count: countPolicyPackPermissions(pack.grants),
                   })}

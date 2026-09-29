@@ -61,7 +61,7 @@ export function KnowledgeArticleDetailPanel({
     <Card className="fade-in">
       <div className="px-4 pt-4">
         <div className="flex items-start justify-between gap-3">
-          <p className="tnum text-[10.5px] font-medium text-muted-foreground/60">
+          <p className="tnum text-[10.5px] font-medium text-muted-foreground">
             {article.slug} · {serviceName}
           </p>
           <span className="flex shrink-0 items-center gap-1.5">
@@ -136,7 +136,7 @@ export function KnowledgeArticleDetailPanel({
           </div>
         ) : null}
       </div>
-      <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground/60">
+      <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground">
         <span className="tnum">
           {t("knowledgeBase.updatedAt")}{" "}
           <RelativeTime value={article.updatedAt} locale={i18n.language} />

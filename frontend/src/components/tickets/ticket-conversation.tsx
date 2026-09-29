@@ -143,7 +143,7 @@ export function TicketConversation({
                 className={
                   isApproval
                     ? "mt-0.5 shrink-0 text-ok"
-                    : "mt-0.5 shrink-0 text-muted-foreground/60"
+                    : "mt-0.5 shrink-0 text-muted-foreground"
                 }
                 aria-hidden="true"
               />
@@ -153,7 +153,7 @@ export function TicketConversation({
                   {activity.note === null ? "" : ` — ${activity.note}`}
                 </p>
                 <p
-                  className="text-[10.5px] text-muted-foreground/60 tnum"
+                  className="text-[10.5px] text-muted-foreground tnum"
                   title={formatTicketTimestamp(message.createdAt, i18n.language)}
                 >
                   {formatTicketTimestamp(message.createdAt, i18n.language)}

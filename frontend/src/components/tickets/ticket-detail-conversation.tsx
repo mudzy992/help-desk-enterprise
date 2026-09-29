@@ -39,7 +39,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
             <span className="text-[12px] font-medium text-foreground">
               {props.requesterName}
             </span>
-            <span className="text-[10.5px] text-muted-foreground/70">
+            <span className="text-[10.5px] text-muted-foreground">
               {t("tickets.detail.description")}
             </span>
           </div>
