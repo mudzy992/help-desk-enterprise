@@ -18,7 +18,6 @@ import {
 type HeaderResponse = { setHeader(name: string, value: string): void };
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
-import { RoleGuard } from '../authorization/role.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { announcementViewerOf, type AnnouncementViewer } from './announcement-viewer';
 import { AnnouncementAudienceDto, AnnouncementReasonDto, SaveAnnouncementDto } from './announcements.dto';
@@ -32,7 +31,8 @@ import { runAnnouncement } from './map-announcement-error';
  * own unit when private.announcements.agentsMayPublish is on).
  */
 @Controller('announcements')
-@UseGuards(SessionAuthenticationGuard, RoleGuard)
+// RoleGuard denies routes without a permission requirement; every check here is in the service.
+@UseGuards(SessionAuthenticationGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
 export class AnnouncementsController {
   constructor(private readonly announcements: AnnouncementsService) {}
