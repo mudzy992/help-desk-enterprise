@@ -3,8 +3,19 @@ export type InMemoryKnowledgeFeedback = {
   readonly articleId: string;
   readonly userId: string;
   readonly isHelpful: boolean;
+  readonly rating?: number | null;
+  readonly comment?: string | null;
+  readonly commentResolvedAt?: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+};
+
+type FeedbackData = {
+  articleId: string;
+  userId: string;
+  isHelpful: boolean;
+  rating?: number | null;
+  comment?: string | null;
 };
 
 type FeedbackWhere = {
@@ -21,6 +32,29 @@ export function createInMemoryKnowledgeFeedbackDelegate(
     [...feedbacks.values()].filter((item) => matchesFeedback(item, where));
 
   return {
+    findUnique: async ({
+      where,
+    }: {
+      where: { articleId_userId: { articleId: string; userId: string } };
+    }) =>
+      matching({
+        articleId: where.articleId_userId.articleId,
+        userId: where.articleId_userId.userId,
+      })[0] ?? null,
+    aggregate: async ({ where }: { where: { articleId: string } }) => {
+      const rated = matching({ articleId: where.articleId }).filter(
+        (item) => typeof item.rating === 'number',
+      );
+      return {
+        _count: { rating: rated.length },
+        _sum: {
+          rating:
+            rated.length === 0
+              ? null
+              : rated.reduce((sum, item) => sum + (item.rating ?? 0), 0),
+        },
+      };
+    },
     findMany: async ({
       where,
       select,
@@ -31,7 +65,7 @@ export function createInMemoryKnowledgeFeedbackDelegate(
     create: async ({
       data,
     }: {
-      data: { articleId: string; userId: string; isHelpful: boolean };
+      data: FeedbackData;
     }) => {
       const duplicate = matching({
         articleId: data.articleId,
@@ -55,8 +89,8 @@ export function createInMemoryKnowledgeFeedbackDelegate(
       update,
     }: {
       where: { articleId_userId: { articleId: string; userId: string } };
-      create: { articleId: string; userId: string; isHelpful: boolean };
-      update: { isHelpful: boolean };
+      create: FeedbackData;
+      update: Omit<FeedbackData, 'articleId' | 'userId'>;
     }) => {
       const existing = matching({
         articleId: where.articleId_userId.articleId,
@@ -74,7 +108,7 @@ export function createInMemoryKnowledgeFeedbackDelegate(
       }
       const next: InMemoryKnowledgeFeedback = {
         ...existing,
-        isHelpful: update.isHelpful,
+        ...update,
         updatedAt: now(),
       };
       feedbacks.set(existing.id, next);

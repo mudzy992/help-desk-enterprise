@@ -514,7 +514,8 @@
       "oncall.read": "View on-call",
       "oncall.manage": "Manage on-call",
       "announcement.manage": "Manage announcements",
-      "announcement.report.read": "Announcement acknowledgement report"
+      "announcement.report.read": "Announcement acknowledgement report",
+      "knowledge.category.manage": "Manage knowledge categories"
     }
   },
   "maintenance": {
@@ -655,7 +656,8 @@
         "oncall.read": "See on-call schedules, who is on call now, and request shift swaps (package 2.9).",
         "oncall.manage": "Manage on-call schedules: rotation, members and overrides (package 2.9).",
         "announcement.manage": "Create, publish, edit and withdraw announcements (package 2.9).",
-        "announcement.report.read": "See who acknowledged an announcement and remind the rest (package 2.9)."
+        "announcement.report.read": "See who acknowledged an announcement and remind the rest (package 2.9).",
+        "knowledge.category.manage": "Knowledge portal categories: create, edit, order and archive (package 2.9)."
       }
     }
   },
@@ -1333,7 +1335,8 @@
         "private.announcements.agentsMayPublish": "Agents may publish announcements for their own organizational unit and sub-units.",
         "private.announcements.receiptRetentionDays": "Days after an announcement ends before acknowledgements and dismissals are deleted (0 = keep; 30–3650).",
         "private.announcements.teamsEnabled": "Offer \"Also post to the Teams channel\" on announcements. Needs a Teams webhook (here or in the alarm settings); off by default.",
-        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) for announcements. Empty = the operational alarm webhook is used."
+        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) for announcements. Empty = the operational alarm webhook is used.",
+        "private.knowledgeBase.portal.faqMaxItems": "Number of frequently asked questions (FAQ) at the top of the knowledge portal (1–20)."
       }
     },
     "emailTemplates": {

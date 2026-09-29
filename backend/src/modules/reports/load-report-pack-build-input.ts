@@ -120,11 +120,12 @@ async function loadFeedback(
   }
   const votes = await prisma.knowledgeFeedback.findMany({
     where: { articleId: { in: [...articleIds] } },
-    select: { articleId: true, isHelpful: true, createdAt: true },
+    select: { articleId: true, isHelpful: true, rating: true, createdAt: true },
   });
   return votes.map((vote) => ({
     articleId: vote.articleId,
     isHelpful: vote.isHelpful,
+    rating: vote.rating ?? null,
     createdAt: vote.createdAt,
   }));
 }

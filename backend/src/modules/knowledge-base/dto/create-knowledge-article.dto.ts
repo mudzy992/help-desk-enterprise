@@ -47,4 +47,9 @@ export class CreateKnowledgeArticleDto {
   @MinLength(1)
   @MaxLength(512)
   reason!: string;
+
+  /** Paket 2.9 (K1): portal category (optional). */
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
 }

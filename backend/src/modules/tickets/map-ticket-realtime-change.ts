@@ -65,6 +65,8 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.incidentLinked,
   ticketSystemEventActions.incidentUnlinked,
   ticketSystemEventActions.incidentResolved,
+  // Paket 2.9 (K1c): an article draft was made from a reply.
+  ticketSystemEventActions.knowledgeDraftCreated,
 ]);
 
 export function mapTicketRealtimeChange(

@@ -6,6 +6,7 @@ import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-remi
 import { KnowledgeBaseReviewReminderProcessor } from './knowledge-base-review-reminder.processor';
 import { KnowledgeBaseReviewReminderSchedulerService } from './knowledge-base-review-reminder.scheduler.service';
 import { knowledgeBaseReviewReminderQueueName } from './knowledge-base-review-reminder.job.constants';
+import { KnowledgeViewFlushService } from './portal/knowledge-view-flush.service';
 
 /**
  * Phase 4.1 (plan §4.1): the review-reminder sweep, worker-only.
@@ -25,6 +26,8 @@ import { knowledgeBaseReviewReminderQueueName } from './knowledge-base-review-re
     KnowledgeBaseReviewReminderService,
     KnowledgeBaseReviewReminderProcessor,
     KnowledgeBaseReviewReminderSchedulerService,
+    // Paket 2.9 (K1b): view counters are flushed in the same run.
+    KnowledgeViewFlushService,
   ],
 })
 export class KnowledgeBaseReviewReminderWorkerModule {}

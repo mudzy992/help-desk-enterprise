@@ -115,6 +115,12 @@ export const auditLogActions = {
   announcementDeleted: 'announcement.deleted',
   announcementReminded: 'announcement.reminded',
   announcementReportExported: 'announcement.report.exported',
+  // Paket 2.9 (K1): knowledge portal.
+  knowledgeCategoryCreated: 'knowledge.category.created',
+  knowledgeCategoryUpdated: 'knowledge.category.updated',
+  knowledgeCategoryArchived: 'knowledge.category.archived',
+  knowledgeCategoryRestored: 'knowledge.category.restored',
+  knowledgeArticleDraftedFromReply: 'knowledge.article.drafted_from_reply',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -147,6 +153,8 @@ export const auditLogEntityTypes = {
   // Paket 2.9
   onCallSchedule: 'on_call_schedule',
   announcement: 'announcement',
+  knowledgeCategory: 'knowledge_category',
+  knowledgeArticle: 'knowledge_article',
 } as const;
 
 export const auditLogErrorCodes = {

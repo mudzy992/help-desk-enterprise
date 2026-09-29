@@ -97,6 +97,8 @@ export const ticketSystemEventActions = {
   incidentLinked: 'ticket_incident_linked',
   incidentUnlinked: 'ticket_incident_unlinked',
   incidentResolved: 'ticket_incident_resolved',
+  // Paket 2.9 (K1c): `action:<articleId>|<title>` (staff only).
+  knowledgeDraftCreated: 'ticket_knowledge_draft_created',
   ticketMergedChild: 'ticket_merged_child',
   ticketUnmerged: 'ticket_unmerged',
   ticketMergedStatusPropagated: 'ticket_merged_status_propagated',

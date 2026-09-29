@@ -34,6 +34,14 @@ export function toArticleRecord(record: {
   readonly organizationalUnitId: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly categoryId?: string | null;
+  readonly isFaq?: boolean;
+  readonly faqOrder?: number | null;
+  readonly ratingCount?: number;
+  readonly ratingSum?: number;
+  readonly viewCount?: number;
+  readonly sourceTicketId?: string | null;
+  readonly sourceMessageId?: string | null;
 }): KnowledgeArticleRecord {
   return {
     id: record.id,
@@ -54,5 +62,13 @@ export function toArticleRecord(record: {
     organizationalUnitId: record.organizationalUnitId,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+    categoryId: record.categoryId ?? null,
+    isFaq: record.isFaq ?? false,
+    faqOrder: record.faqOrder ?? null,
+    ratingCount: record.ratingCount ?? 0,
+    ratingSum: record.ratingSum ?? 0,
+    viewCount: record.viewCount ?? 0,
+    sourceTicketId: record.sourceTicketId ?? null,
+    sourceMessageId: record.sourceMessageId ?? null,
   };
 }

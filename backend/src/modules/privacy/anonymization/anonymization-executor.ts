@@ -277,6 +277,16 @@ export class AnonymizationExecutor {
     );
     add('onCallCalendarTokens', (await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: u } })).count);
     await this.prisma.onCallSchedule.updateMany({ where: { ownerUserId: u }, data: { ownerUserId: null } });
+    // Paket 2.9 (K1): free-text article comments go; the 1-5 rating stays (aggregate).
+    add(
+      'knowledgeComments',
+      (
+        await this.prisma.knowledgeFeedback.updateMany({
+          where: { userId: u, comment: { not: null } },
+          data: { comment: null },
+        })
+      ).count,
+    );
 
     // Paket 2.9 (K2, §7): acknowledgements are deleted; the report keeps counting them.
     const acknowledgedAnnouncements = await this.prisma.announcementAcknowledgement.findMany({

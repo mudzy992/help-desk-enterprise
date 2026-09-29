@@ -18,6 +18,9 @@ const notFoundCodes: readonly KnowledgeBaseErrorCode[] = [
   'OWNER_USER_NOT_FOUND',
   'OWNER_GROUP_NOT_FOUND',
   'REVIEWER_NOT_FOUND',
+  'CATEGORY_NOT_FOUND',
+  'SOURCE_TICKET_NOT_FOUND',
+  'SOURCE_MESSAGE_NOT_FOUND',
 ];
 
 const forbiddenCodes: readonly KnowledgeBaseErrorCode[] = [
@@ -48,6 +51,14 @@ const messages: Record<KnowledgeBaseErrorCode, string> = {
   INTERCEPT_SERVICE_REQUIRED: 'Service is required for knowledge intercept',
   REASON_REQUIRED: 'A change reason is required',
   SLUG_TAKEN: 'Knowledge article slug is already used',
+  INVALID_RATING: 'Rating must be an integer 1-5; a comment needs a rating of 2 or less',
+  CATEGORY_NOT_FOUND: 'Knowledge category was not found',
+  CATEGORY_KEY_TAKEN: 'Knowledge category key is already used',
+  INVALID_CATEGORY: 'Knowledge category is invalid',
+  CATEGORY_NOT_EMPTY: 'Knowledge category still has active subcategories',
+  SOURCE_TICKET_NOT_FOUND: 'Source ticket was not found',
+  SOURCE_MESSAGE_NOT_FOUND: 'Source message was not found',
+  SOURCE_MESSAGE_NOT_PUBLIC: 'Only a public agent reply can become an article',
 };
 
 export function mapKnowledgeBaseError(error: unknown): HttpException {

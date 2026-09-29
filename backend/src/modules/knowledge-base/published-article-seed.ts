@@ -29,5 +29,13 @@ export function publishedArticleSeed(
       overrides.organizationalUnitId ?? knowledgeBaseTestIds.ouIt,
     createdAt: overrides.createdAt ?? timestamp,
     updatedAt: overrides.updatedAt ?? timestamp,
+    categoryId: overrides.categoryId ?? null,
+    isFaq: overrides.isFaq ?? false,
+    faqOrder: overrides.faqOrder ?? null,
+    ratingCount: overrides.ratingCount ?? 0,
+    ratingSum: overrides.ratingSum ?? 0,
+    viewCount: overrides.viewCount ?? 0,
+    sourceTicketId: overrides.sourceTicketId ?? null,
+    sourceMessageId: overrides.sourceMessageId ?? null,
   };
 }

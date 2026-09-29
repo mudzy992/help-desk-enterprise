@@ -37,6 +37,8 @@ export type ReportTicketSnapshot = TicketRecord & {
 export type KnowledgeFeedbackVote = {
   readonly articleId: string;
   readonly isHelpful: boolean;
+  /** Paket 2.9 (K1): 1-5, null/absent for a legacy thumbs vote. */
+  readonly rating?: number | null;
   readonly createdAt: Date;
 };
 

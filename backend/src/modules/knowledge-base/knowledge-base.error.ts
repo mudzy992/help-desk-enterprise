@@ -19,7 +19,16 @@ export type KnowledgeBaseErrorCode =
   | 'FEEDBACK_DISABLED'
   | 'INTERCEPT_SERVICE_REQUIRED'
   | 'REASON_REQUIRED'
-  | 'SLUG_TAKEN';
+  | 'SLUG_TAKEN'
+  // Paket 2.9 (K1).
+  | 'INVALID_RATING'
+  | 'CATEGORY_NOT_FOUND'
+  | 'CATEGORY_KEY_TAKEN'
+  | 'INVALID_CATEGORY'
+  | 'CATEGORY_NOT_EMPTY'
+  | 'SOURCE_TICKET_NOT_FOUND'
+  | 'SOURCE_MESSAGE_NOT_FOUND'
+  | 'SOURCE_MESSAGE_NOT_PUBLIC';
 
 export class KnowledgeBaseError extends Error {
   constructor(

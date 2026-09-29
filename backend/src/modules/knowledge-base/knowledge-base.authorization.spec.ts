@@ -63,7 +63,7 @@ describe('KnowledgeBaseService authorization', () => {
 
   it('hides restricted articles from agents and foreign OU admins', async () => {
     const { articles, memory } = createKnowledgeBaseServiceHarness();
-    memory.seedArticle({
+    memory.seedArticle(publishedArticleSeed({
       id: 'restricted-vpn',
       slug: 'restricted-vpn',
       title: 'Privileged VPN',
@@ -82,7 +82,7 @@ describe('KnowledgeBaseService authorization', () => {
       organizationalUnitId: knowledgeBaseTestIds.ouIt,
       createdAt: new Date('2026-09-11T12:00:00.000Z'),
       updatedAt: new Date('2026-09-11T12:00:00.000Z'),
-    });
+    }));
     await expect(
       articles.getById('restricted-vpn', {
         actorUserId: knowledgeBaseTestIds.agentIt,

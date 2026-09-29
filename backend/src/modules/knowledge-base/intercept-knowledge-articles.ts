@@ -86,10 +86,14 @@ async function loadFeedbackTallies(
 ): Promise<ReadonlyMap<string, KnowledgeFeedbackTally>> {
   const votes = await prisma.knowledgeFeedback.findMany({
     where: { articleId: { in: [...articleIds] } },
-    select: { articleId: true, isHelpful: true },
+    select: { articleId: true, isHelpful: true, rating: true },
   });
   const tallies = new Map<string, KnowledgeFeedbackTally>();
   for (const vote of votes) {
+    // Paket 2.9 (K1): rated votes count through the Bayesian bonus instead.
+    if (typeof vote.rating === "number") {
+      continue;
+    }
     const current = tallies.get(vote.articleId) ?? {
       helpfulCount: 0,
       notHelpfulCount: 0,

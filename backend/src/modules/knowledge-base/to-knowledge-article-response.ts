@@ -24,6 +24,17 @@ export function toKnowledgeArticleResponse(
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     viewerFeedback,
+    categoryId: record.categoryId,
+    isFaq: record.isFaq,
+    faqOrder: record.faqOrder,
+    ratingCount: record.ratingCount,
+    averageRating:
+      record.ratingCount > 0
+        ? Math.round((record.ratingSum / record.ratingCount) * 10) / 10
+        : null,
+    viewCount: record.viewCount,
+    sourceTicketId: record.sourceTicketId,
+    sourceMessageId: record.sourceMessageId,
   };
 }
 
@@ -43,6 +54,9 @@ export function toKnowledgeArticleSnapshot(record: KnowledgeArticleRecord) {
     reviewerUserId: record.reviewerUserId,
     serviceId: record.serviceId,
     organizationalUnitId: record.organizationalUnitId,
+    categoryId: record.categoryId,
+    isFaq: record.isFaq,
+    faqOrder: record.faqOrder,
     reviewDueAt: toIso(record.reviewDueAt),
     publishedAt: toIso(record.publishedAt),
     lastReviewedAt: toIso(record.lastReviewedAt),

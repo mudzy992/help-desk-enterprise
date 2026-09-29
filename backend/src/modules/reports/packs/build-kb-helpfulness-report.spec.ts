@@ -23,21 +23,27 @@ describe('buildKbHelpfulnessReport', () => {
       feedback: [
         { articleId: 'kb-vpn', isHelpful: true, createdAt: new Date('2026-09-05T00:00:00.000Z') },
         { articleId: 'kb-vpn', isHelpful: true, createdAt: new Date('2026-09-06T00:00:00.000Z') },
-        { articleId: 'kb-vpn', isHelpful: false, createdAt: new Date('2026-09-07T00:00:00.000Z') },
+        { articleId: 'kb-vpn', isHelpful: false, rating: 2, createdAt: new Date('2026-09-07T00:00:00.000Z') },
+        { articleId: 'kb-vpn', isHelpful: true, rating: 5, createdAt: new Date('2026-09-08T00:00:00.000Z') },
         { articleId: 'kb-pay', isHelpful: true, createdAt: new Date('2026-08-01T00:00:00.000Z') },
       ],
     });
     expect(rows[0]).toMatchObject({
       articleId: 'kb-vpn',
-      helpfulCount: 2,
+      helpfulCount: 3,
       notHelpfulCount: 1,
-      netScore: 1,
+      netScore: 2,
+      ratingCount: 2,
+      averageRating: 3.5,
+      viewCount: 0,
     });
     expect(rows[1]).toMatchObject({
       articleId: 'kb-pay',
       helpfulCount: 0,
       notHelpfulCount: 0,
       netScore: 0,
+      ratingCount: 0,
+      averageRating: null,
     });
   });
 });

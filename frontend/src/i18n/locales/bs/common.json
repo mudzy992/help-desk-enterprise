@@ -521,7 +521,8 @@
       "oncall.read": "Pregled dežurstava",
       "oncall.manage": "Upravljanje dežurstvima",
       "announcement.manage": "Upravljanje najavama",
-      "announcement.report.read": "Izvještaj o potvrdama najava"
+      "announcement.report.read": "Izvještaj o potvrdama najava",
+      "knowledge.category.manage": "Upravljanje kategorijama znanja"
     }
   },
   "maintenance": {
@@ -662,7 +663,8 @@
         "oncall.read": "Pregled rasporeda dežurstava, ko je sada dežuran i zahtjevi za zamjenu smjene (paket 2.9).",
         "oncall.manage": "Upravljanje rasporedima dežurstava: rotacija, članovi i zamjene (paket 2.9).",
         "announcement.manage": "Kreiranje, objava, izmjena i povlačenje najava (paket 2.9).",
-        "announcement.report.read": "Pregled ko je potvrdio najavu i podsjetnik ostalima (paket 2.9)."
+        "announcement.report.read": "Pregled ko je potvrdio najavu i podsjetnik ostalima (paket 2.9).",
+        "knowledge.category.manage": "Kategorije portala znanja: kreiranje, izmjena, redoslijed i arhiviranje (paket 2.9)."
       }
     }
   },
@@ -1342,7 +1344,8 @@
         "private.announcements.agentsMayPublish": "Agenti smiju objavljivati najave za svoju organizacionu jedinicu i podjedinice.",
         "private.announcements.receiptRetentionDays": "Koliko dana nakon kraja najave se čuvaju potvrde čitanja i zatvaranja (0 = trajno; 30–3650).",
         "private.announcements.teamsEnabled": "Nudi opciju „Objavi i u Teams kanal“ na najavama. Potreban je Teams webhook (ovdje ili u postavkama alarma); zadano isključeno.",
-        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) za najave. Prazno = koristi se webhook operativnih alarma."
+        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) za najave. Prazno = koristi se webhook operativnih alarma.",
+        "private.knowledgeBase.portal.faqMaxItems": "Broj najčešćih pitanja (FAQ) na vrhu portala znanja (1–20)."
       }
     },
     "emailTemplates": {

@@ -55,6 +55,8 @@ export const permissionKeys = {
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',
   knowledgeArticlePublish: 'knowledge.article.publish',
+  // Paket 2.9 (K1): portal categories.
+  knowledgeCategoryManage: 'knowledge.category.manage',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
   ticketMessageSend: 'ticket.message.send',
@@ -115,6 +117,7 @@ const adminPermissionKeys = [
   permissionKeys.supportBundleExport,
   permissionKeys.knowledgeArticleReview,
   permissionKeys.knowledgeArticlePublish,
+  permissionKeys.knowledgeCategoryManage,
   permissionKeys.onCallManage,
   permissionKeys.announcementManage,
   permissionKeys.announcementReportRead,

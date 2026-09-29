@@ -33,6 +33,15 @@ export type KnowledgeArticleRecord = {
   readonly organizationalUnitId: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  // Paket 2.9 (K1).
+  readonly categoryId: string | null;
+  readonly isFaq: boolean;
+  readonly faqOrder: number | null;
+  readonly ratingCount: number;
+  readonly ratingSum: number;
+  readonly viewCount: number;
+  readonly sourceTicketId: string | null;
+  readonly sourceMessageId: string | null;
 };
 
 export type KnowledgeArticleResponse = {
@@ -58,6 +67,17 @@ export type KnowledgeArticleResponse = {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly viewerFeedback: boolean | null;
+  // Paket 2.9 (K1).
+  readonly categoryId: string | null;
+  readonly isFaq: boolean;
+  readonly faqOrder: number | null;
+  readonly ratingCount: number;
+  /** Plain average (1 decimal) or null when there are no ratings. */
+  readonly averageRating: number | null;
+  readonly viewCount: number;
+  readonly sourceTicketId: string | null;
+  readonly sourceMessageId: string | null;
+  readonly viewerRating?: number | null;
 };
 
 export type KnowledgeArticleMutationContext = {
@@ -74,6 +94,10 @@ export type CreateKnowledgeArticleInput = {
   readonly reviewerUserId?: string;
   readonly classification?: DataClassification;
   readonly reason: string;
+  // Paket 2.9 (K1).
+  readonly categoryId?: string;
+  readonly sourceTicketId?: string;
+  readonly sourceMessageId?: string;
 };
 
 export type UpdateKnowledgeArticleInput = {
@@ -91,7 +115,12 @@ export type KnowledgeLifecycleInput = {
 };
 
 export type KnowledgeFeedbackInput = {
-  readonly isHelpful: boolean;
+  /** Legacy thumbs; derived from rating (>= 4) when a rating is sent. */
+  readonly isHelpful?: boolean;
+  /** Paket 2.9 (K1): 1-5. */
+  readonly rating?: number;
+  /** Only accepted with rating <= 2. */
+  readonly comment?: string;
 };
 
 export type KnowledgeInterceptInput = {

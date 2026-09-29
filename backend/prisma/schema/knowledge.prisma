@@ -16,6 +16,21 @@ model KnowledgeArticle {
   serviceId            String
   organizationalUnitId String
   searchVector         Unsupported("tsvector")?
+  /// Paket 2.9 (K1): portal navigation (the service stays mandatory for scope).
+  categoryId           String?
+  isFaq                Boolean                        @default(false)
+  faqOrder             Int?
+  /// K1: running totals of 1-5 ratings (Bayesian rank bonus without a join).
+  ratingCount          Int                            @default(0)
+  ratingSum            Int                            @default(0)
+  /// K1: views flushed from the daily Redis counters.
+  viewCount            Int                            @default(0)
+  lastViewedAt         DateTime?
+  /// K1: draft made from a public agent reply (traceability, agents only).
+  sourceTicketId       String?
+  sourceMessageId      String?
+  category             KnowledgeCategory?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  dailyViews           KnowledgeArticleView[]
   ownerUser            User?                          @relation("KnowledgeArticleOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   ownerGroup           Group?                         @relation(fields: [ownerGroupId], references: [id], onDelete: SetNull)
   reviewerUser         User?                          @relation("KnowledgeArticleReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
@@ -28,6 +43,8 @@ model KnowledgeArticle {
   updatedAt            DateTime                       @updatedAt
 
   @@index([ownerUserId])
+  @@index([categoryId])
+  @@index([isFaq])
   @@index([reviewerUserId])
   @@index([serviceId])
   @@index([organizationalUnitId])
@@ -44,6 +61,12 @@ model KnowledgeFeedback {
   articleId String
   userId    String
   isHelpful Boolean
+  /// K1: 1-5 (null = legacy thumbs vote); isHelpful = rating >= 4.
+  rating    Int?             @db.SmallInt
+  /// K1: "What is missing?" (only with rating <= 2; personal data).
+  comment   String?          @db.VarChar(500)
+  /// K1: the owner marked the comment as handled ("Za doradu" list).
+  commentResolvedAt DateTime?
   article   KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime         @default(now())
@@ -71,4 +94,36 @@ model KnowledgeInterceptResolution {
   @@index([userId])
   @@index([serviceId])
   @@index([primaryArticleId])
+}
+
+/// Paket 2.9 (K1): portal categories (one level below the root).
+model KnowledgeCategory {
+  id         String              @id @default(cuid())
+  key        String              @unique @db.VarChar(64)
+  nameBs     String              @db.VarChar(80)
+  nameEn     String              @db.VarChar(80)
+  /// lucide icon name from the allowed list.
+  icon       String              @db.VarChar(40)
+  sortOrder  Int                 @default(0)
+  parentId   String?
+  isArchived Boolean             @default(false)
+  parent     KnowledgeCategory?  @relation("KnowledgeCategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children   KnowledgeCategory[] @relation("KnowledgeCategoryTree")
+  articles   KnowledgeArticle[]
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([parentId])
+}
+
+/// Paket 2.9 (K1): daily view aggregate (no row per view).
+model KnowledgeArticleView {
+  articleId     String
+  day           DateTime         @db.Date
+  views         Int              @default(0)
+  uniqueViewers Int              @default(0)
+  article       KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, day])
+  @@index([day])
 }

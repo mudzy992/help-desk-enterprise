@@ -1,7 +1,8 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { formatJobMetrics } from '../../common/scheduled-jobs/format-job-metrics';
 import { KnowledgeBaseReviewReminderService } from './knowledge-base-review-reminder.service';
+import { KnowledgeViewFlushService } from './portal/knowledge-view-flush.service';
 import {
   knowledgeBaseReviewReminderJobLogContext,
   knowledgeBaseReviewReminderJobName,
@@ -23,7 +24,10 @@ import {
 export class KnowledgeBaseReviewReminderProcessor extends WorkerHost {
   private readonly logger = new Logger(knowledgeBaseReviewReminderJobLogContext);
 
-  constructor(private readonly automation: KnowledgeBaseReviewReminderService) {
+  constructor(
+    private readonly automation: KnowledgeBaseReviewReminderService,
+    @Optional() private readonly viewFlush?: KnowledgeViewFlushService,
+  ) {
     super();
   }
 
@@ -33,6 +37,16 @@ export class KnowledgeBaseReviewReminderProcessor extends WorkerHost {
       // This sweep reports a plain count (notifications actually sent), unlike the
       // ticket sweeps which return the rows they touched.
       const processed = await this.automation.processDue();
+      // Paket 2.9 (K1b): a failing flush must not fail the reminders; the
+      // counters stay in Redis (8-day TTL) and the next run retries.
+      try {
+        const flushed = (await this.viewFlush?.flush()) ?? 0;
+        if (flushed > 0) {
+          this.logger.log(`knowledge views flushed: ${flushed}`);
+        }
+      } catch (error) {
+        this.logger.warn(`knowledge view flush failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
       this.logger.log(
         formatJobMetrics({
           job: knowledgeBaseReviewReminderJobName,

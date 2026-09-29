@@ -13,6 +13,7 @@ export const permissionKeys = {
   knowledgeArticleWrite: "knowledge.article.write",
   knowledgeArticleReview: "knowledge.article.review",
   knowledgeArticlePublish: "knowledge.article.publish",
+  knowledgeCategoryManage: "knowledge.category.manage",
   confidentialBreakGlass: "confidential.break_glass",
   ticketBulkAssign: "ticket.bulk.assign",
   ticketMerge: "ticket.merge",

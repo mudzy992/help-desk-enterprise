@@ -48,7 +48,7 @@ export function createInMemoryKnowledgeArticleDelegate(
       data,
     }: {
       where: { id: string };
-      data: Partial<InMemoryKnowledgeArticle>;
+      data: Record<string, unknown>;
     }) => {
       const current = articles.get(where.id);
       if (current === undefined) {
@@ -56,7 +56,7 @@ export function createInMemoryKnowledgeArticleDelegate(
       }
       const updated: InMemoryKnowledgeArticle = {
         ...current,
-        ...data,
+        ...applyIncrements(current, data),
         updatedAt: now(),
       };
       articles.set(updated.id, updated);
@@ -71,6 +71,30 @@ export function createInMemoryKnowledgeArticleDelegate(
       return current;
     },
   };
+}
+
+/** Supports Prisma's `{ increment: n }` for the K1 counters. */
+function applyIncrements(
+  current: InMemoryKnowledgeArticle,
+  data: Record<string, unknown>,
+): Partial<InMemoryKnowledgeArticle> {
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !(value instanceof Date) &&
+      'increment' in value
+    ) {
+      const base = (current as Record<string, unknown>)[key];
+      next[key] =
+        (typeof base === 'number' ? base : 0) +
+        Number((value as { increment: number }).increment);
+    } else {
+      next[key] = value;
+    }
+  }
+  return next as Partial<InMemoryKnowledgeArticle>;
 }
 
 function matchesArticle(
@@ -163,5 +187,13 @@ function createArticleRecord(
     organizationalUnitId: data.organizationalUnitId ?? '',
     createdAt: timestamp,
     updatedAt: timestamp,
+    categoryId: data.categoryId ?? null,
+    isFaq: data.isFaq ?? false,
+    faqOrder: data.faqOrder ?? null,
+    ratingCount: data.ratingCount ?? 0,
+    ratingSum: data.ratingSum ?? 0,
+    viewCount: data.viewCount ?? 0,
+    sourceTicketId: data.sourceTicketId ?? null,
+    sourceMessageId: data.sourceMessageId ?? null,
   };
 }

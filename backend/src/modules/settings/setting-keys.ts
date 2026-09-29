@@ -329,6 +329,8 @@ export const settingKeys = {
     'private.knowledgeBase.feedback.oneVotePerUserPerArticle',
   privateKnowledgeBaseRankingUseFeedbackWeight:
     'private.knowledgeBase.ranking.useFeedbackWeight',
+  // Paket 2.9 (K1): portal FAQ size.
+  privateKnowledgeBasePortalFaqMaxItems: 'private.knowledgeBase.portal.faqMaxItems',
   privateTicketCloseCodesEnabled: 'private.ticket.closeCodes.enabled',
   privateTicketCloseCodesAllowedCodesCsv:
     'private.ticket.closeCodes.allowedCodesCsv',

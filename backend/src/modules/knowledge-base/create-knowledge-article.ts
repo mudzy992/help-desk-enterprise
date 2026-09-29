@@ -11,6 +11,7 @@ import {
 import { loadKnowledgeActorContext } from './load-knowledge-actor-context';
 import { loadKnowledgeArticleScope } from './load-knowledge-article-scope';
 import { toArticleRecord } from './load-knowledge-article';
+import { assertKnowledgeCategoryAssignable } from './portal/knowledge-categories';
 import { allocateKnowledgeArticleSlug } from './normalize-knowledge-article-slug';
 import {
   normalizeKnowledgeArticleBody,
@@ -56,6 +57,10 @@ export async function createKnowledgeArticle(
     input.reviewerUserId?.trim() || null,
     'REVIEWER_NOT_FOUND',
   );
+  const categoryId = await assertKnowledgeCategoryAssignable(
+    prisma,
+    input.categoryId,
+  );
   const title = normalizeKnowledgeArticleTitle(input.title);
   const body = normalizeKnowledgeArticleBody(input.body);
   const scope = await loadKnowledgeArticleScope(prisma, {
@@ -84,6 +89,10 @@ export async function createKnowledgeArticle(
         reviewerUserId,
         serviceId,
         organizationalUnitId,
+        categoryId,
+        // Set only by the portal "article from reply" flow (validated there).
+        sourceTicketId: input.sourceTicketId ?? null,
+        sourceMessageId: input.sourceMessageId ?? null,
       },
     });
     const record = toArticleRecord(article);

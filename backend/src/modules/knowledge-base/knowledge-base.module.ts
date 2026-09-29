@@ -8,6 +8,8 @@ import { KnowledgeBaseDiscoveryService } from './knowledge-base-discovery.servic
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { KnowledgeBaseWorkflowController } from './knowledge-base-workflow.controller';
 import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service';
+import { KnowledgePortalController } from './portal/knowledge-portal.controller';
+import { KnowledgePortalService } from './portal/knowledge-portal.service';
 
 @Module({
   imports: [
@@ -15,17 +17,23 @@ import { KnowledgeBaseWorkflowService } from './knowledge-base-workflow.service'
     AuthorizationModule,
     SettingsModule,
   ],
-  controllers: [KnowledgeBaseController, KnowledgeBaseWorkflowController],
+  controllers: [
+    KnowledgeBaseController,
+    KnowledgeBaseWorkflowController,
+    KnowledgePortalController,
+  ],
   providers: [
     KnowledgeBaseConfigurationLoader,
     KnowledgeBaseService,
     KnowledgeBaseWorkflowService,
     KnowledgeBaseDiscoveryService,
+    KnowledgePortalService,
   ],
   exports: [
     KnowledgeBaseService,
     KnowledgeBaseWorkflowService,
     KnowledgeBaseDiscoveryService,
+    KnowledgePortalService,
   ],
 })
 export class KnowledgeBaseModule {}

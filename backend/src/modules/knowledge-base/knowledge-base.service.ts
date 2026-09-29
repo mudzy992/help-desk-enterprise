@@ -19,7 +19,7 @@ import {
   searchKnowledgeArticleTitles,
   type KnowledgeArticleTitleMatch,
 } from './search-knowledge-article-titles';
-import { loadViewerKnowledgeFeedbackVotes } from './load-viewer-knowledge-feedback-votes';
+import { loadViewerKnowledgeVotes } from './load-viewer-knowledge-feedback-votes';
 import { loadKnowledgeArticleLabels } from './load-knowledge-article-labels';
 import { toKnowledgeArticleResponse } from './to-knowledge-article-response';
 import { updateKnowledgeArticle } from './update-knowledge-article';
@@ -69,14 +69,18 @@ export class KnowledgeBaseService {
         .filter(
           (record) => query.staleOnly !== true || record.isStale === true,
         );
-      const votes = await loadViewerKnowledgeFeedbackVotes(
+      const votes = await loadViewerKnowledgeVotes(
         this.prisma,
         context.actorUserId,
         fresh.map((record) => record.id),
       );
       const labels = await loadKnowledgeArticleLabels(this.prisma, fresh);
       return fresh.map((record) => ({
-        ...toKnowledgeArticleResponse(record, votes.get(record.id) ?? null),
+        ...toKnowledgeArticleResponse(
+          record,
+          votes.get(record.id)?.isHelpful ?? null,
+        ),
+        viewerRating: votes.get(record.id)?.rating ?? null,
         ...labels.get(record.id),
       }));
     });
@@ -123,14 +127,18 @@ export class KnowledgeBaseService {
         configuration,
         new Date(),
       );
-      const votes = await loadViewerKnowledgeFeedbackVotes(
+      const votes = await loadViewerKnowledgeVotes(
         this.prisma,
         context.actorUserId,
         [fresh.id],
       );
       const labels = await loadKnowledgeArticleLabels(this.prisma, [fresh]);
       return {
-        ...toKnowledgeArticleResponse(fresh, votes.get(fresh.id) ?? null),
+        ...toKnowledgeArticleResponse(
+          fresh,
+          votes.get(fresh.id)?.isHelpful ?? null,
+        ),
+        viewerRating: votes.get(fresh.id)?.rating ?? null,
         ...labels.get(fresh.id),
       };
     });

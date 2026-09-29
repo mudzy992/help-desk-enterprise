@@ -1,5 +1,6 @@
 import { definePrivateSetting } from '../registry/define-setting';
 import { settingKeys } from '../setting-keys';
+import { SettingsError } from '../settings.error';
 import type { SettingDefinition } from '../settings.types';
 import { settingCategoryIds } from '../setting-categories';
 
@@ -59,5 +60,18 @@ export const knowledgeBaseSettings: readonly SettingDefinition[] = [
     description: 'Include feedback net score in knowledge intercept ranking',
     isRequired: true,
     defaultValue: true,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateKnowledgeBasePortalFaqMaxItems,
+    categoryId: settingCategoryIds.privateKnowledgeBase,
+    valueType: 'number',
+    description: 'Most frequently asked questions shown at the top of the knowledge portal (1-20)',
+    isRequired: true,
+    defaultValue: 8,
+    assertValue: (value) => {
+      if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 20) {
+        throw new SettingsError('FAQ size must be 1-20');
+      }
+    },
   }),
 ];

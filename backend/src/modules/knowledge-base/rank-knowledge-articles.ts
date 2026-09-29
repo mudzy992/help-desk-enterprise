@@ -3,7 +3,28 @@ export type RankableKnowledgeArticle = {
   readonly title: string;
   readonly body: string;
   readonly publishedAt: Date | null;
+  /** Paket 2.9 (K1): 1-5 rating totals. */
+  readonly ratingCount?: number;
+  readonly ratingSum?: number;
 };
+
+/**
+ * Paket 2.9 (K1): Bayesian average pulled towards the prior with a weight of
+ * `m` votes, so one 5-star vote cannot beat 40 votes averaging 4.6.
+ */
+export const knowledgeRatingPrior = { mean: 3.5, weight: 5, scale: 8 } as const;
+
+export function knowledgeRatingBonus(
+  ratingCount = 0,
+  ratingSum = 0,
+): number {
+  if (ratingCount <= 0) {
+    return 0;
+  }
+  const { mean, weight, scale } = knowledgeRatingPrior;
+  const bayes = (mean * weight + ratingSum) / (weight + ratingCount);
+  return Math.round((bayes - mean) * scale * 100) / 100;
+}
 
 export type KnowledgeFeedbackTally = {
   readonly helpfulCount: number;
@@ -29,7 +50,11 @@ export function rankKnowledgeArticles<T extends RankableKnowledgeArticle>(input:
     };
     const feedbackNet = tally.helpfulCount - tally.notHelpfulCount;
     const score =
-      textScore * 100 + (input.useFeedbackWeight ? feedbackNet * 10 : 0);
+      textScore * 100 +
+      (input.useFeedbackWeight
+        ? feedbackNet * 10 +
+          knowledgeRatingBonus(article.ratingCount, article.ratingSum)
+        : 0);
     return { ...article, score };
   });
   return [...ranked].sort((left, right) => compareRanked(left, right));
