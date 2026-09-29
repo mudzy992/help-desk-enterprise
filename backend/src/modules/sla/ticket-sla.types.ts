@@ -21,6 +21,7 @@ export type SlaEscalationRuleRecord = {
   readonly targetGroupId: string | null;
   readonly targetRole: string | null;
   readonly targetUserId: string | null;
+  readonly targetOnCall?: boolean;
 };
 
 export type TicketSlaTicketRef = {

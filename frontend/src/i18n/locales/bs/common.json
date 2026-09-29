@@ -152,7 +152,11 @@
       "privacyRequestDue": "Rok za zahtjev nosioca podataka ističe",
       "opsAlert": "Operativni alarm",
       "statusIncidentStarted": "Poznat problem na servisu",
-      "statusIncidentResolved": "Problem na servisu je riješen"
+      "statusIncidentResolved": "Problem na servisu je riješen",
+      "onCallReminder": "Podsjetnik na dežurstvo",
+      "onCallShiftStarted": "Počela je tvoja dežurna smjena",
+      "onCallSwap": "Zahtjev za zamjenu dežurstva",
+      "onCallGap": "Dežurna smjena bez dežurnog"
     }
   },
   "placeholders": {
@@ -509,7 +513,9 @@
       "ops.alerts.manage": "Upravljanje alarmima",
       "ops.alerts.receive": "Primanje alarma",
       "status.incidents.manage": "Upravljanje incidentima",
-      "config.version.import": "Uvoz paketa konfiguracije"
+      "config.version.import": "Uvoz paketa konfiguracije",
+      "oncall.read": "Pregled dežurstava",
+      "oncall.manage": "Upravljanje dežurstvima"
     }
   },
   "maintenance": {
@@ -646,7 +652,9 @@
         "ops.alerts.manage": "Pragovi i primaoci alarma, utišavanje, testni alarm i potvrda neuspjelih poslova (DLQ).",
         "ops.alerts.receive": "Prima operativne alarme e-mailom i u aplikaciji.",
         "status.incidents.manage": "Kreiranje i ažuriranje incidenata na statusnoj stranici.",
-        "config.version.import": "Uvezi paket konfiguracije iz drugog okruženja kao novu nacrt verziju (paket 2.9)."
+        "config.version.import": "Uvezi paket konfiguracije iz drugog okruženja kao novu nacrt verziju (paket 2.9).",
+        "oncall.read": "Pregled rasporeda dežurstava, ko je sada dežuran i zahtjevi za zamjenu smjene (paket 2.9).",
+        "oncall.manage": "Upravljanje rasporedima dežurstava: rotacija, članovi i zamjene (paket 2.9)."
       }
     }
   },
@@ -1317,7 +1325,10 @@
         "private.statusPage.public": "Statusna stranica dostupna i bez prijave. Incidenti označeni samo za osoblje ostaju skriveni.",
         "private.statusPage.historyDays": "Koliko dana riješenih incidenata prikazuje statusna stranica (7–365).",
         "private.statusPage.showUptimePercent": "Prikaži procenat dostupnosti po servisu na statusnoj stranici.",
-        "private.configVersioning.environmentName": "Naziv ove instalacije (npr. staging, produkcija) koji se upisuje u izvezeni paket konfiguracije."
+        "private.configVersioning.environmentName": "Naziv ove instalacije (npr. staging, produkcija) koji se upisuje u izvezeni paket konfiguracije.",
+        "private.onCall.enabled": "Uključi dežurstva (rotacija, zamjene, eskalacija dežurnom).",
+        "private.onCall.reminderTime": "Vrijeme podsjetnika dan prije smjene (HH:MM, koraci od 15 min, vremenska zona rasporeda).",
+        "private.onCall.historyRetentionDays": "Koliko dana se čuvaju prošle zamjene i zahtjevi za zamjenu (0 = trajno; 90–3650)."
       }
     },
     "emailTemplates": {
@@ -4398,6 +4409,14 @@
         "status_incident": {
           "label": "Incidenti na servisima",
           "hint": "Poznat problem na servisu na kojem imate otvoren tiket i obavijest kad je riješen."
+        },
+        "oncall_shift": {
+          "label": "Dežurstva",
+          "hint": "Podsjetnik dan prije smjene, početak smjene i zahtjevi za zamjenu."
+        },
+        "oncall_gap": {
+          "label": "Smjena bez dežurnog",
+          "hint": "Upozorenje vlasniku rasporeda kad smjena nema dežurnog. Uvijek uključeno."
         }
       },
       "emailOnly": "Samo e-mail",

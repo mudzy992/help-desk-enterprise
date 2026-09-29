@@ -95,6 +95,18 @@ export const auditLogActions = {
   statusIncidentResolved: 'status.incident.resolved',
   statusIncidentTicketLinked: 'status.incident.ticket_linked',
   statusIncidentTicketUnlinked: 'status.incident.ticket_unlinked',
+  // Paket 2.9 (K3): on-call.
+  onCallScheduleSaved: 'oncall.schedule.saved',
+  onCallScheduleDeleted: 'oncall.schedule.deleted',
+  onCallOverrideCreated: 'oncall.override.created',
+  onCallOverrideDeleted: 'oncall.override.deleted',
+  onCallSwapRequested: 'oncall.swap.requested',
+  onCallSwapAccepted: 'oncall.swap.accepted',
+  onCallSwapDeclined: 'oncall.swap.declined',
+  onCallSwapCancelled: 'oncall.swap.cancelled',
+  onCallCalendarTokenRotated: 'oncall.calendar_token.rotated',
+  onCallCalendarTokenRevoked: 'oncall.calendar_token.revoked',
+  onCallEscalationNotified: 'oncall.escalation.notified',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -124,6 +136,8 @@ export const auditLogEntityTypes = {
   opsAlert: 'ops_alert',
   opsMonitoring: 'ops_monitoring',
   statusIncident: 'status_incident',
+  // Paket 2.9
+  onCallSchedule: 'on_call_schedule',
 } as const;
 
 export const auditLogErrorCodes = {

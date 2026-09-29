@@ -529,6 +529,10 @@ export const settingKeys = {
   privateOpsThresholdsSlaScanLateMinutes: 'private.ops.thresholds.slaScanLateMinutes',
   privateOpsThresholdsWorkerHeartbeatStaleSeconds: 'private.ops.thresholds.workerHeartbeatStaleSeconds',
   privateOpsThresholdsClamavFailuresBeforeAlert: 'private.ops.thresholds.clamavFailuresBeforeAlert',
+  // Paket 2.9 (K3): on-call.
+  privateOnCallEnabled: 'private.onCall.enabled',
+  privateOnCallReminderTime: 'private.onCall.reminderTime',
+  privateOnCallHistoryRetentionDays: 'private.onCall.historyRetentionDays',
   privateStatusPageEnabled: 'private.statusPage.enabled',
   privateStatusPagePublic: 'private.statusPage.public',
   privateStatusPageHistoryDays: 'private.statusPage.historyDays',

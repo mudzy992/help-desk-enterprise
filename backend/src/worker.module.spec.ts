@@ -34,6 +34,8 @@ import { privacyQueueName } from './modules/privacy/privacy.constants';
 import { opsHealthQueueName } from './modules/ops-health/ops-health.constants';
 import { OpsHealthProcessor } from './modules/ops-health/ops-health.processor';
 import { PrivacyProcessor } from './modules/privacy/privacy.processor';
+import { onCallSweepQueueName } from './modules/on-call/on-call-sweep.job.constants';
+import { OnCallSweepProcessor } from './modules/on-call/on-call-sweep.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -55,6 +57,7 @@ const scheduledQueueNames = [
   inboundEmailQueueName,
   reportSchedulesQueueName,
   privacyQueueName,
+  onCallSweepQueueName,
   opsHealthQueueName,
 ] as const;
 
@@ -73,6 +76,7 @@ const processorTypes = [
   InboundEmailProcessor,
   ReportSchedulesProcessor,
   PrivacyProcessor,
+  OnCallSweepProcessor,
   OpsHealthProcessor,
 ] as const;
 

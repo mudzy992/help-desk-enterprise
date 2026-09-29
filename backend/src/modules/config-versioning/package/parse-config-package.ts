@@ -101,6 +101,7 @@ function parseContent(value: unknown): PortableConfig {
         profile: str(e.profile, `${p}.profile`),
         triggerOffsetMinutes: int(e.triggerOffsetMinutes, `${p}.triggerOffsetMinutes`),
         targetGroup: nstr(e.targetGroup, `${p}.targetGroup`),
+        ...(e.targetOnCall !== undefined && bool(e.targetOnCall, `${p}.targetOnCall`) ? { targetOnCall: true } : {}),
       })),
       priorityMatrix: list(sla.priorityMatrix, 'content.sla.priorityMatrix', (e, p) => ({
         impact: str(e.impact, `${p}.impact`),

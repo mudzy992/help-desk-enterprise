@@ -278,6 +278,46 @@ export class ExportBuilder {
     counts.notifications = notifications.length;
     zip.file('notifications.json', json(notifications));
 
+    // Paket 2.9 (K3): on-call rotations, overrides and swap requests of the person.
+    const [onCallRotations, onCallOverrides, onCallSwaps] = await Promise.all([
+      this.prisma.onCallRotationMember.findMany({
+        where: { userId: u },
+        select: { position: true, schedule: { select: { group: { select: { name: true } } } } },
+      }),
+      this.prisma.onCallOverride.findMany({
+        where: { userId: u },
+        orderBy: { startsAt: 'asc' },
+        select: { startsAt: true, endsAt: true, reason: true, createdAt: true, schedule: { select: { group: { select: { name: true } } } } },
+      }),
+      this.prisma.onCallSwapRequest.findMany({
+        where: { OR: [{ requesterId: u }, { colleagueId: u }] },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          requesterId: true,
+          startsAt: true,
+          endsAt: true,
+          reason: true,
+          status: true,
+          decidedAt: true,
+          createdAt: true,
+          schedule: { select: { group: { select: { name: true } } } },
+        },
+      }),
+    ]);
+    counts.onCall = onCallRotations.length + onCallOverrides.length + onCallSwaps.length;
+    zip.file(
+      'on-call.json',
+      json({
+        rotations: onCallRotations.map(({ schedule, ...row }) => ({ group: schedule.group.name, ...row })),
+        overrides: onCallOverrides.map(({ schedule, ...row }) => ({ group: schedule.group.name, ...row })),
+        swapRequests: onCallSwaps.map(({ schedule, requesterId, ...row }) => ({
+          group: schedule.group.name,
+          role: requesterId === u ? 'requester' : 'colleague',
+          ...row,
+        })),
+      }),
+    );
+
     const audit: unknown[] = [];
     await paginate(
       (cursor) =>

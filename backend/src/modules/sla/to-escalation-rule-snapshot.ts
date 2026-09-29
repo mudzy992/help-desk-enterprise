@@ -11,5 +11,6 @@ export function toEscalationRuleSnapshot(
     targetGroupId: rule.targetGroupId,
     targetRole: rule.targetRole,
     targetUserId: rule.targetUserId,
+    ...(rule.targetOnCall === true ? { targetOnCall: true } : {}),
   };
 }

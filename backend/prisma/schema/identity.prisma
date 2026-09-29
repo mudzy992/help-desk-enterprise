@@ -86,6 +86,13 @@ model User {
   updatedAt            DateTime                   @updatedAt
   /// Paket 2.7: status page subscriptions.
   incidentSubscriptions ServiceIncidentSubscription[]
+  /// Paket 2.9 (K3): on-call.
+  onCallSchedulesOwned  OnCallSchedule[]       @relation("OnCallScheduleOwner")
+  onCallMemberships     OnCallRotationMember[] @relation("OnCallRotationMemberUser")
+  onCallOverrides       OnCallOverride[]       @relation("OnCallOverrideUser")
+  onCallSwapsRequested  OnCallSwapRequest[]    @relation("OnCallSwapRequester")
+  onCallSwapsReceived   OnCallSwapRequest[]    @relation("OnCallSwapColleague")
+  onCallCalendarToken   OnCallCalendarToken?   @relation("OnCallCalendarTokenUser")
 
   @@index([organizationalUnitId])
   @@index([managerUserId])
@@ -157,6 +164,8 @@ model Group {
   escalationRules      SlaEscalationRule[]
   confidentialGrants   TicketConfidentialGrant[]
   responseTemplates    ResponseTemplateGroup[]
+  /// Paket 2.9 (K3)
+  onCallSchedule       OnCallSchedule?
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
 

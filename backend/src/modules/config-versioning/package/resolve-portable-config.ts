@@ -281,6 +281,7 @@ export function resolvePortableConfig(input: {
       slaProfileId,
       triggerOffsetMinutes: rule.triggerOffsetMinutes,
       targetGroupId,
+      ...(rule.targetOnCall === true && targetGroupId !== null ? { targetOnCall: true } : {}),
     });
   });
 

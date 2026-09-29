@@ -32,6 +32,11 @@ export async function updateSlaEscalationRule(
       input.targetUserId !== undefined
         ? input.targetUserId
         : existing.targetUserId,
+    targetOnCall:
+      input.targetOnCall !== undefined
+        ? input.targetOnCall
+        : (input.targetGroupId === undefined || input.targetGroupId === existing.targetGroupId) &&
+          existing.targetOnCall === true,
   });
   await assertEscalationTargetExists(prisma, target);
   const triggerOffsetMinutes =
@@ -49,6 +54,7 @@ export async function updateSlaEscalationRule(
         targetGroupId: target.targetGroupId,
         targetRole: target.targetRole,
         targetUserId: target.targetUserId,
+        targetOnCall: target.targetOnCall,
       },
     })) as SlaEscalationRuleRecord;
     await recordSlaChange(transaction as PrismaService, {

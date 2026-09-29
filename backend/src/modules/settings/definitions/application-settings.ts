@@ -13,6 +13,7 @@ import { serviceLifecycleSettings } from './service-lifecycle-settings';
 import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { configVersioningSettings } from './config-versioning-settings';
+import { onCallSettings } from './on-call-settings';
 import { auditLogSettings } from './audit-log-settings';
 import { reportsSettings } from './reports-settings';
 import { privacySettings } from './privacy-settings';
@@ -83,6 +84,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...dataLifecycleSettings,
   ...changeLogSettings,
   ...configVersioningSettings,
+  ...onCallSettings,
   ...auditLogSettings,
   ...reportsSettings,
   ...privacySettings,

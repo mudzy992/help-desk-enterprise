@@ -88,11 +88,12 @@ export async function applySlaSnapshot(
   for (const rule of snapshot.sla.escalations) {
     await transaction.slaEscalationRule.upsert({
       where: { id: rule.id },
-      create: { ...rule },
+      create: { ...rule, targetOnCall: rule.targetOnCall === true && rule.targetGroupId !== null },
       update: {
         slaProfileId: rule.slaProfileId,
         triggerOffsetMinutes: rule.triggerOffsetMinutes,
         targetGroupId: rule.targetGroupId,
+        targetOnCall: rule.targetOnCall === true && rule.targetGroupId !== null,
       },
     });
   }

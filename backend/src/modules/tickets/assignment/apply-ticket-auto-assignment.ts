@@ -23,6 +23,7 @@ import { syncAssigneeParticipant } from '../sync-assignee-participant';
 import { insertSystemTicketEvent } from '../insert-system-ticket-event';
 import { ticketSystemEventActions } from '../collaboration.constants';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
+import { resolveOutsideHoursOnCallAssignee } from '../../on-call/resolve-outside-hours-on-call';
 
 export async function applyTicketAutoAssignment(
   prisma: PrismaService,
@@ -38,6 +39,19 @@ export async function applyTicketAutoAssignment(
     ticket.assignedUserId !== null
   ) {
     return ticket;
+  }
+  // Paket 2.9 (K3, §4.3): outside business hours a group may hand new tickets
+  // to its on-call agent. Checked before the assignment configuration; if the
+  // on-call agent cannot see the ticket, the normal strategy applies.
+  const onCallUserId = await resolveOutsideHoursOnCallAssignee(prisma, {
+    groupId: ticket.assignedGroupId,
+    serviceId: ticket.serviceId,
+  }).catch(() => null);
+  if (onCallUserId !== null) {
+    const eligible = await listEligibleForTicket(prisma, authorizationContextLoader, ticket, ticket.assignedGroupId);
+    if (eligible.includes(onCallUserId)) {
+      return assignTicket(prisma, ticket, onCallUserId, actorUserId, messages);
+    }
   }
   let configuration: Awaited<
     ReturnType<TicketAssignmentConfigurationLoader['load']>
@@ -68,23 +82,15 @@ export async function applyTicketAutoAssignment(
   if (strategy === 'NONE') {
     return ticket;
   }
-  const originUnitPath = await loadOrganizationalUnitPath(
-    prisma,
-    ticket.originUnitId,
-  );
-  if (originUnitPath === null) {
-    return ticket;
-  }
-  const eligibleUserIds = await listEligibleAssignmentAgents(
+  const eligibleUserIds = await listEligibleForTicket(
     prisma,
     authorizationContextLoader,
-    {
-      groupId: ticket.assignedGroupId,
-      originUnitId: ticket.originUnitId,
-      originUnitPath,
-      serviceId: ticket.serviceId,
-    },
+    ticket,
+    ticket.assignedGroupId,
   );
+  if (eligibleUserIds.length === 0) {
+    return ticket;
+  }
   const assignedUserId = await selectAssignedUserId(
     prisma,
     strategy,
@@ -94,6 +100,37 @@ export async function applyTicketAutoAssignment(
   if (assignedUserId === null) {
     return ticket;
   }
+  return assignTicket(prisma, ticket, assignedUserId, actorUserId, messages);
+}
+
+async function listEligibleForTicket(
+  prisma: PrismaService,
+  authorizationContextLoader: AuthorizationContextLoader,
+  ticket: TicketRecord,
+  groupId: string,
+): Promise<readonly string[]> {
+  const originUnitPath = await loadOrganizationalUnitPath(
+    prisma,
+    ticket.originUnitId,
+  );
+  if (originUnitPath === null) {
+    return [];
+  }
+  return listEligibleAssignmentAgents(prisma, authorizationContextLoader, {
+    groupId,
+    originUnitId: ticket.originUnitId,
+    originUnitPath,
+    serviceId: ticket.serviceId,
+  });
+}
+
+async function assignTicket(
+  prisma: PrismaService,
+  ticket: TicketRecord,
+  assignedUserId: string,
+  actorUserId: string,
+  messages: TicketPersistedMessageSink,
+): Promise<TicketRecord> {
   const nextStatus = ticket.status === 'PENDING' ? 'ASSIGNED' : ticket.status;
   assertTicketStatusTransition(ticket.status, nextStatus);
   return prisma.$transaction(async (transaction) => {

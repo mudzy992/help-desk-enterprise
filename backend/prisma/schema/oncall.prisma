@@ -1,0 +1,103 @@
+/// Paket 2.9 (K3): on-call rotation of one group. The rotation is computed
+/// (resolveOnCall), never materialized: shift n starts at
+/// rotationStartDate + n × rotation length, at handoffMinute, in `timezone`.
+model OnCallSchedule {
+  id                     String                 @id @default(cuid())
+  groupId                String                 @unique
+  timezone               String                 @db.VarChar(64)
+  /// Minutes after local midnight (480 = 08:00).
+  handoffMinute          Int                    @default(480)
+  rotationLength         OnCallRotationLength   @default(WEEK)
+  /// Civil date (YYYY-MM-DD) of the first shift, in `timezone`.
+  rotationStartDate      String                 @db.VarChar(10)
+  isActive               Boolean                @default(true)
+  /// P8: tickets arriving outside the SLA calendar's business hours go to the on-call agent.
+  autoAssignOutsideHours Boolean                @default(false)
+  /// Receives the "nobody on call" warning (§4.2).
+  ownerUserId            String?
+  group                  Group                  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  owner                  User?                  @relation("OnCallScheduleOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  members                OnCallRotationMember[]
+  overrides              OnCallOverride[]
+  swapRequests           OnCallSwapRequest[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([ownerUserId])
+}
+
+model OnCallRotationMember {
+  id         String         @id @default(cuid())
+  scheduleId String
+  userId     String
+  position   Int
+  schedule   OnCallSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user       User           @relation("OnCallRotationMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, userId])
+  @@unique([scheduleId, position])
+  @@index([userId])
+}
+
+/// A replacement that wins over the rotation. Overrides of one schedule never overlap.
+model OnCallOverride {
+  id            String         @id @default(cuid())
+  scheduleId    String
+  userId        String
+  startsAt      DateTime
+  endsAt        DateTime
+  reason        String         @db.VarChar(500)
+  createdById   String?
+  /// Set when the override came from an accepted swap request.
+  swapRequestId String?        @unique
+  schedule      OnCallSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user          User           @relation("OnCallOverrideUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+
+  @@index([scheduleId, startsAt, endsAt])
+  @@index([userId])
+  @@index([endsAt])
+}
+
+/// Two-sided swap: the requester asks a colleague from the same rotation to
+/// take a period; the override exists only after the colleague accepts.
+model OnCallSwapRequest {
+  id          String           @id @default(cuid())
+  scheduleId  String
+  requesterId String
+  colleagueId String
+  startsAt    DateTime
+  endsAt      DateTime
+  reason      String           @db.VarChar(500)
+  status      OnCallSwapStatus @default(PENDING)
+  decidedAt   DateTime?
+  schedule    OnCallSchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  requester   User             @relation("OnCallSwapRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  colleague   User             @relation("OnCallSwapColleague", fields: [colleagueId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+
+  @@index([scheduleId, status])
+  @@index([colleagueId, status])
+  @@index([requesterId, status])
+  @@index([endsAt])
+}
+
+/// Personal iCal subscription token (§4.6); only the SHA-256 hash is stored.
+model OnCallCalendarToken {
+  userId    String   @id
+  tokenHash String   @unique @db.VarChar(64)
+  user      User     @relation("OnCallCalendarTokenUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+enum OnCallRotationLength {
+  DAY
+  WEEK
+}
+
+enum OnCallSwapStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}

@@ -20,7 +20,13 @@ describe('SLA escalation constraints', () => {
       targetGroupId: null,
       targetRole: null,
       targetUserId: 'u1',
+      targetOnCall: false,
     });
+    // Paket 2.9 (K3): the on-call target needs a group.
+    expect(() => normalizeEscalationTarget({ targetUserId: 'u1', targetOnCall: true })).toThrow(
+      new SlaError('INVALID_ESCALATION_TARGET'),
+    );
+    expect(normalizeEscalationTarget({ targetGroupId: 'g1', targetOnCall: true }).targetOnCall).toBe(true);
   });
 
   it('blocks levels above maxEscalationLevels', async () => {

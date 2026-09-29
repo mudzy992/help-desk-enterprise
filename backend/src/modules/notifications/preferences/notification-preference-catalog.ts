@@ -71,6 +71,15 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   category('ops.alert', [notificationTypes.opsAlert], 2, inAppOnly, true),
   // Paket 2.7: incidents on services the user has an open ticket on / subscribed to.
   category('status.incident', [notificationTypes.statusIncidentStarted, notificationTypes.statusIncidentResolved], 0, inAppOnly),
+  // Paket 2.9 (K3): reminders, shift start and swap requests for rotation members;
+  // an uncovered shift warns the schedule owner (always on).
+  category(
+    'oncall.shift',
+    [notificationTypes.onCallReminder, notificationTypes.onCallShiftStarted, notificationTypes.onCallSwap],
+    1,
+    inAppOnly,
+  ),
+  category('oncall.gap', [notificationTypes.onCallGap], 1, inAppOnly, true),
   category(
     'account.security',
     [

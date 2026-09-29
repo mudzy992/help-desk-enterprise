@@ -45,6 +45,9 @@ export const permissionKeys = {
   statusIncidentsManage: 'status.incidents.manage',
   // Paket 2.9 (K4): importing a config package from another environment.
   configVersionImport: 'config.version.import',
+  // Paket 2.9 (K3): on-call schedules.
+  onCallRead: 'oncall.read',
+  onCallManage: 'oncall.manage',
   confidentialBreakGlass: 'confidential.break_glass',
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',
@@ -77,6 +80,7 @@ const agentPermissionKeys = [
   permissionKeys.ticketTemplatesUse,
   permissionKeys.ticketTemplatesPersonal,
   permissionKeys.ticketLinkManage,
+  permissionKeys.onCallRead,
 ] as const;
 
 const adminPermissionKeys = [
@@ -108,6 +112,7 @@ const adminPermissionKeys = [
   permissionKeys.supportBundleExport,
   permissionKeys.knowledgeArticleReview,
   permissionKeys.knowledgeArticlePublish,
+  permissionKeys.onCallManage,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =

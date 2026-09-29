@@ -6,6 +6,7 @@ export type EscalationRuleCreateData = {
   targetGroupId?: string | null;
   targetRole?: string | null;
   targetUserId?: string | null;
+  targetOnCall?: boolean;
 };
 
 export function createInMemorySlaEscalationRuleDelegate(
@@ -62,6 +63,7 @@ export function createInMemorySlaEscalationRuleDelegate(
         targetGroupId: data.targetGroupId ?? null,
         targetRole: data.targetRole ?? null,
         targetUserId: data.targetUserId ?? null,
+        targetOnCall: data.targetOnCall ?? false,
       };
       rules.set(created.id, created);
       return { ...created, createdAt: new Date(), updatedAt: new Date() };
@@ -93,6 +95,7 @@ export function createInMemorySlaEscalationRuleDelegate(
           data.targetUserId === undefined
             ? existing.targetUserId
             : (data.targetUserId ?? null),
+        targetOnCall: data.targetOnCall ?? existing.targetOnCall ?? false,
       };
       rules.set(where.id, updated);
       return { ...updated, createdAt: new Date(), updatedAt: new Date() };

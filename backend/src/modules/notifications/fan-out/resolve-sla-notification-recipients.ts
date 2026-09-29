@@ -1,6 +1,10 @@
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TicketRecord } from '../../tickets/tickets.types';
 import { ticketSystemEventActions } from '../../tickets/collaboration.constants';
+import { recordAuditEntry } from '../../audit-log/record-audit-entry';
+import { auditLogActions, auditLogEntityTypes } from '../../audit-log/audit-log.constants';
+import type { AuditLogTransactionalClient } from '../../audit-log/audit-log.types';
+import { findOnCallUserId } from '../../on-call/on-call-data';
 
 const escalationActions = new Set<string>([
   ticketSystemEventActions.slaResponseEscalated,
@@ -20,7 +24,7 @@ export async function resolveSlaNotificationRecipients(
     if (ruleId === null) {
       return [];
     }
-    return resolveEscalationTargetRecipients(prisma, ruleId);
+    return resolveEscalationTargetRecipients(prisma, ruleId, input.ticket.id);
   }
   return [
     ...(input.ticket.assignedUserId === null
@@ -44,6 +48,7 @@ function parseEscalationRuleId(messageBody: string | undefined): string | null {
 async function resolveEscalationTargetRecipients(
   prisma: PrismaService,
   ruleId: string,
+  ticketId: string,
 ): Promise<readonly string[]> {
   const rule = await prisma.slaEscalationRule.findUnique({
     where: { id: ruleId },
@@ -51,6 +56,7 @@ async function resolveEscalationTargetRecipients(
       targetGroupId: true,
       targetRole: true,
       targetUserId: true,
+      targetOnCall: true,
     },
   });
   if (rule === null) {
@@ -65,6 +71,21 @@ async function resolveEscalationTargetRecipients(
       select: { userId: true },
     });
     return assignments.map((assignment) => assignment.userId);
+  }
+  if (rule.targetOnCall && rule.targetGroupId !== null) {
+    // Paket 2.9 (K3, §4.3): the concrete on-call agent at the moment of the
+    // escalation; nobody on call → the whole group (never a silent gap).
+    const onCallUserId = await findOnCallUserId(prisma, rule.targetGroupId);
+    if (onCallUserId !== null) {
+      await recordAuditEntry(prisma as unknown as AuditLogTransactionalClient, {
+        action: auditLogActions.onCallEscalationNotified,
+        entityType: auditLogEntityTypes.ticket,
+        entityId: ticketId,
+        metadata: { ruleId, groupId: rule.targetGroupId, userId: onCallUserId },
+        actorUserId: null,
+      }).catch(() => undefined);
+      return [onCallUserId];
+    }
   }
   return groupMemberUserIds(prisma, rule.targetGroupId);
 }

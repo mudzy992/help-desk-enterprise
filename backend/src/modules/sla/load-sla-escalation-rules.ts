@@ -19,5 +19,6 @@ export async function loadSlaEscalationRules(
     targetGroupId: row.targetGroupId,
     targetRole: row.targetRole,
     targetUserId: row.targetUserId,
+    targetOnCall: row.targetOnCall,
   }));
 }

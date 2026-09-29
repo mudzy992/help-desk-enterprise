@@ -152,7 +152,11 @@
       "privacyRequestDue": "A data subject request deadline is approaching",
       "opsAlert": "Operational alarm",
       "statusIncidentStarted": "Known issue on a service",
-      "statusIncidentResolved": "Service issue resolved"
+      "statusIncidentResolved": "Service issue resolved",
+      "onCallReminder": "On-call reminder",
+      "onCallShiftStarted": "Your on-call shift has started",
+      "onCallSwap": "On-call swap request",
+      "onCallGap": "On-call shift without anyone on call"
     }
   },
   "placeholders": {
@@ -502,7 +506,9 @@
       "ops.alerts.manage": "Manage alarms",
       "ops.alerts.receive": "Receive alarms",
       "status.incidents.manage": "Manage incidents",
-      "config.version.import": "Import config package"
+      "config.version.import": "Import config package",
+      "oncall.read": "View on-call",
+      "oncall.manage": "Manage on-call"
     }
   },
   "maintenance": {
@@ -639,7 +645,9 @@
         "ops.alerts.manage": "Alarm thresholds and recipients, silencing, the test alarm and acknowledging failed jobs (DLQ).",
         "ops.alerts.receive": "Receives operational alarms by e-mail and in the application.",
         "status.incidents.manage": "Create and update incidents on the status page.",
-        "config.version.import": "Import a configuration package from another environment as a new draft version (package 2.9)."
+        "config.version.import": "Import a configuration package from another environment as a new draft version (package 2.9).",
+        "oncall.read": "See on-call schedules, who is on call now, and request shift swaps (package 2.9).",
+        "oncall.manage": "Manage on-call schedules: rotation, members and overrides (package 2.9)."
       }
     }
   },
@@ -1308,7 +1316,10 @@
         "private.statusPage.public": "Status page is available without signing in. Staff-only incidents stay hidden.",
         "private.statusPage.historyDays": "Days of resolved incidents shown on the status page (7–365).",
         "private.statusPage.showUptimePercent": "Show the availability percentage per service on the status page.",
-        "private.configVersioning.environmentName": "Name of this installation (e.g. staging, production) written into exported configuration packages."
+        "private.configVersioning.environmentName": "Name of this installation (e.g. staging, production) written into exported configuration packages.",
+        "private.onCall.enabled": "Enable on-call schedules (rotation, overrides, escalation to the on-call agent).",
+        "private.onCall.reminderTime": "Time of the reminder the day before a shift (HH:MM, 15-minute steps, schedule time zone).",
+        "private.onCall.historyRetentionDays": "Days to keep past overrides and swap requests (0 = keep; 90–3650)."
       }
     },
     "emailTemplates": {
@@ -4372,6 +4383,14 @@
         "status_incident": {
           "label": "Service incidents",
           "hint": "A known issue on a service you have an open ticket on, and a notice when it is resolved."
+        },
+        "oncall_shift": {
+          "label": "On-call",
+          "hint": "Reminder the day before a shift, shift start and swap requests."
+        },
+        "oncall_gap": {
+          "label": "Uncovered on-call shift",
+          "hint": "Warns the schedule owner when a shift has nobody on call. Always on."
         }
       },
       "emailOnly": "E-mail only",

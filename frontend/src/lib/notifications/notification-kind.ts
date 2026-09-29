@@ -46,6 +46,10 @@ export function notificationTicketPath(
   if (type === "status.incidentStarted" || type === "status.incidentResolved") {
     return "/status";
   }
+  // Paket 2.9 (K3): every on-call notification opens the on-call page.
+  if (type?.startsWith("oncall.")) {
+    return "/on-call";
+  }
   // Paket 2.1: account security events open the own security page.
   if (type?.startsWith("account.")) {
     return "/account/security";
@@ -88,6 +92,10 @@ export function notificationTitleKey(
   | "notifications.items.opsAlert"
   | "notifications.items.statusIncidentStarted"
   | "notifications.items.statusIncidentResolved"
+  | "notifications.items.onCallReminder"
+  | "notifications.items.onCallShiftStarted"
+  | "notifications.items.onCallSwap"
+  | "notifications.items.onCallGap"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -136,6 +144,14 @@ export function notificationTitleKey(
       return "notifications.items.statusIncidentStarted";
     case "status.incidentResolved":
       return "notifications.items.statusIncidentResolved";
+    case "oncall.reminder":
+      return "notifications.items.onCallReminder";
+    case "oncall.shiftStarted":
+      return "notifications.items.onCallShiftStarted";
+    case "oncall.swap":
+      return "notifications.items.onCallSwap";
+    case "oncall.gap":
+      return "notifications.items.onCallGap";
     default:
       return "notifications.items.unknown";
   }

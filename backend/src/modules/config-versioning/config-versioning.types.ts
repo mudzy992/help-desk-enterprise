@@ -91,6 +91,8 @@ export type ConfigSlaEscalationSnapshot = {
   readonly slaProfileId: string;
   readonly triggerOffsetMinutes: number;
   readonly targetGroupId: string | null;
+  /** Paket 2.9 (K3): present (true) only for on-call targets; older snapshots omit it. */
+  readonly targetOnCall?: boolean;
 };
 
 export type ConfigPriorityMatrixSnapshot = {

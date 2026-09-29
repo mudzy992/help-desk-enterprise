@@ -6,6 +6,8 @@ export type EscalationTargetInput = {
   readonly targetGroupId?: string | null;
   readonly targetRole?: string | null;
   readonly targetUserId?: string | null;
+  /** Paket 2.9 (K3): notify the on-call agent of targetGroupId instead of the whole group. */
+  readonly targetOnCall?: boolean;
 };
 
 export function normalizeEscalationTarget(
@@ -14,6 +16,7 @@ export function normalizeEscalationTarget(
   readonly targetGroupId: string | null;
   readonly targetRole: string | null;
   readonly targetUserId: string | null;
+  readonly targetOnCall: boolean;
 } {
   const targetGroupId = emptyToNull(input.targetGroupId);
   const targetRole = emptyToNull(input.targetRole);
@@ -24,7 +27,11 @@ export function normalizeEscalationTarget(
   if (setCount !== 1) {
     throw new SlaError('INVALID_ESCALATION_TARGET');
   }
-  return { targetGroupId, targetRole, targetUserId };
+  const targetOnCall = input.targetOnCall === true;
+  if (targetOnCall && targetGroupId === null) {
+    throw new SlaError('INVALID_ESCALATION_TARGET');
+  }
+  return { targetGroupId, targetRole, targetUserId, targetOnCall };
 }
 
 export async function assertEscalationTargetExists(

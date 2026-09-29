@@ -258,6 +258,26 @@ export class AnonymizationExecutor {
     );
     add('confidentialGrants', (await this.prisma.ticketConfidentialGrant.deleteMany({ where: { userId: u } })).count);
 
+    // Paket 2.9 (K3, §7): out of every rotation; future overrides and pending
+    // swaps go, past overrides stay (they point at the pseudonymised user).
+    const onCallNow = new Date();
+    add('onCallRotations', (await this.prisma.onCallRotationMember.deleteMany({ where: { userId: u } })).count);
+    add(
+      'onCallOverrides',
+      (await this.prisma.onCallOverride.deleteMany({ where: { userId: u, endsAt: { gt: onCallNow } } })).count,
+    );
+    add(
+      'onCallSwaps',
+      (
+        await this.prisma.onCallSwapRequest.updateMany({
+          where: { status: 'PENDING', OR: [{ requesterId: u }, { colleagueId: u }] },
+          data: { status: 'CANCELLED', decidedAt: onCallNow },
+        })
+      ).count,
+    );
+    add('onCallCalendarTokens', (await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: u } })).count);
+    await this.prisma.onCallSchedule.updateMany({ where: { ownerUserId: u }, data: { ownerUserId: null } });
+
     // Scheduled reports: remove the recipient, pause schedules left without one.
     const recipientRows = await this.prisma.reportScheduleRecipient.findMany({ where: { userId: u }, select: { scheduleId: true } });
     if (recipientRows.length > 0) {

@@ -134,6 +134,7 @@ export type EscalationRuleWriteInput = {
   readonly targetGroupId?: string | null;
   readonly targetRole?: string | null;
   readonly targetUserId?: string | null;
+  readonly targetOnCall?: boolean;
   readonly reason: string;
 };
 
@@ -142,6 +143,7 @@ export type UpdateEscalationRuleInput = {
   readonly targetGroupId?: string | null;
   readonly targetRole?: string | null;
   readonly targetUserId?: string | null;
+  readonly targetOnCall?: boolean;
   readonly reason: string;
 };
 
@@ -153,6 +155,7 @@ export type SlaEscalationRuleResponse = {
   readonly targetGroupId: string | null;
   readonly targetRole: string | null;
   readonly targetUserId: string | null;
+  readonly targetOnCall: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };

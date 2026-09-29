@@ -85,6 +85,7 @@ export function buildPortableConfig(
         profile: profile(rule.slaProfileId),
         triggerOffsetMinutes: rule.triggerOffsetMinutes,
         targetGroup: optional(group)(rule.targetGroupId),
+        ...(rule.targetOnCall === true ? { targetOnCall: true } : {}),
       })),
       priorityMatrix: snapshot.sla.priorityMatrix.map(({ impact, urgency, priority }) => ({ impact, urgency, priority })),
     },

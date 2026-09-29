@@ -7,6 +7,7 @@ import {
   type StoredPreference,
 } from './notification-preference-policy';
 import type { QuietHoursWindow } from './notification-schedule-time';
+import { listUsersOnCallAt } from '../../on-call/on-call-data';
 
 type PreferenceClient = {
   readonly userNotificationPreference?: {
@@ -65,6 +66,15 @@ export async function resolveDeliveryDecisions(
     schedules = new Map(scheduleRows.map((row) => [row.userId, row]));
   } catch {
     // Preferences must never stop a notification.
+  }
+  if (schedules.size > 0) {
+    // Paket 2.9 (K3, §4.3): quiet hours do not apply to whoever is on call right
+    // now. Only asked when someone actually has quiet hours (one extra read).
+    try {
+      for (const userId of await listUsersOnCallAt(prisma, [...schedules.keys()], now)) schedules.delete(userId);
+    } catch {
+      // Without the on-call answer quiet hours apply as before.
+    }
   }
   for (const userId of userIds) {
     decisions.set(

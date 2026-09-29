@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -38,6 +39,11 @@ export class CreateSlaEscalationRuleDto {
   @MinLength(1)
   targetUserId?: string | null;
 
+  /** Paket 2.9 (K3): the on-call agent of targetGroupId. */
+  @IsOptional()
+  @IsBoolean()
+  targetOnCall?: boolean;
+
   @IsString()
   @MinLength(1)
   @MaxLength(maximumChangeReasonLength)
@@ -68,6 +74,11 @@ export class UpdateSlaEscalationRuleDto {
   @IsString()
   @MinLength(1)
   targetUserId?: string | null;
+
+  /** Paket 2.9 (K3): the on-call agent of targetGroupId. */
+  @IsOptional()
+  @IsBoolean()
+  targetOnCall?: boolean;
 
   @IsString()
   @MinLength(1)

@@ -101,6 +101,9 @@ model SlaEscalationRule {
   targetGroupId        String?
   targetRole           String?
   targetUserId         String?
+  /// Paket 2.9 (K3): notify the current on-call agent of targetGroupId
+  /// (falls back to the group members when nobody is on call).
+  targetOnCall         Boolean  @default(false)
   slaProfile           SlaProfile @relation(fields: [slaProfileId], references: [id], onDelete: Cascade)
   targetGroup          Group?     @relation(fields: [targetGroupId], references: [id], onDelete: SetNull)
   targetUser           User?      @relation(fields: [targetUserId], references: [id], onDelete: SetNull)

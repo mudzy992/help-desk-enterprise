@@ -47,6 +47,8 @@ export type PortableConfig = {
       readonly profile: string;
       readonly triggerOffsetMinutes: number;
       readonly targetGroup: string | null;
+      /** Paket 2.9 (K3): omitted unless true. */
+      readonly targetOnCall?: boolean;
     }[];
     readonly priorityMatrix: readonly {
       readonly impact: string;

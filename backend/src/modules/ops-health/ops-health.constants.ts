@@ -6,6 +6,7 @@ import { knowledgeBaseReviewReminderQueueName } from '../knowledge-base/knowledg
 import { notificationRetentionQueueName } from '../notifications/notification-retention.constants';
 import { notificationDigestQueueName } from '../notifications/preferences/notification-digest.constants';
 import { privacyQueueName } from '../privacy/privacy.constants';
+import { onCallSweepQueueName } from '../on-call/on-call-sweep.job.constants';
 import { reportSchedulesQueueName } from '../reports/schedules/report-schedule.constants';
 import { slaScanQueueName } from '../sla/sla-scan.constants';
 import { ticketArchiveQueueName } from '../tickets/archive/ticket-archive.job.constants';
@@ -41,6 +42,7 @@ export const opsMonitoredQueueNames = [
   inboundEmailQueueName,
   reportSchedulesQueueName,
   privacyQueueName,
+  onCallSweepQueueName,
 ] as const;
 
 export const opsProbeTimeouts = {

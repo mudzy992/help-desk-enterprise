@@ -28,6 +28,7 @@ export function toSlaEscalationRuleResponses(
     targetGroupId: rule.targetGroupId,
     targetRole: rule.targetRole,
     targetUserId: rule.targetUserId,
+    targetOnCall: rule.targetOnCall === true,
     createdAt: rule.createdAt.toISOString(),
     updatedAt: rule.updatedAt.toISOString(),
   }));

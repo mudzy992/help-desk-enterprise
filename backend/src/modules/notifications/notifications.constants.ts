@@ -31,6 +31,11 @@ export const notificationTypes = {
   opsAlert: 'ops.alert',
   statusIncidentStarted: 'status.incidentStarted',
   statusIncidentResolved: 'status.incidentResolved',
+  // Paket 2.9 (K3): on-call reminders, shift start, swap requests, uncovered shift.
+  onCallReminder: 'oncall.reminder',
+  onCallShiftStarted: 'oncall.shiftStarted',
+  onCallSwap: 'oncall.swap',
+  onCallGap: 'oncall.gap',
 } as const;
 
 export type NotificationType =
@@ -69,6 +74,10 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.opsAlert]: 'notifications.items.opsAlert',
     [notificationTypes.statusIncidentStarted]: 'notifications.items.statusIncidentStarted',
     [notificationTypes.statusIncidentResolved]: 'notifications.items.statusIncidentResolved',
+    [notificationTypes.onCallReminder]: 'notifications.items.onCallReminder',
+    [notificationTypes.onCallShiftStarted]: 'notifications.items.onCallShiftStarted',
+    [notificationTypes.onCallSwap]: 'notifications.items.onCallSwap',
+    [notificationTypes.onCallGap]: 'notifications.items.onCallGap',
   };
 
 export const notificationListLimits = {

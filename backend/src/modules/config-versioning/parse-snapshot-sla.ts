@@ -151,7 +151,16 @@ function parseEscalation(value: unknown) {
   ) {
     throw invalid();
   }
-  return { id, slaProfileId, triggerOffsetMinutes, targetGroupId };
+  if (value.targetOnCall !== undefined && typeof value.targetOnCall !== 'boolean') {
+    throw invalid();
+  }
+  return {
+    id,
+    slaProfileId,
+    triggerOffsetMinutes,
+    targetGroupId,
+    ...(value.targetOnCall === true ? { targetOnCall: true } : {}),
+  };
 }
 
 function parseMatrix(value: unknown) {

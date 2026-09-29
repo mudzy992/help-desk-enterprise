@@ -115,6 +115,7 @@ export async function collectConfigSnapshot(
         slaProfileId: rule.slaProfileId,
         triggerOffsetMinutes: rule.triggerOffsetMinutes,
         targetGroupId: rule.targetGroupId,
+        ...(rule.targetOnCall ? { targetOnCall: true } : {}),
       })),
       priorityMatrix: matrix.map((rule) => ({
         id: rule.id,

@@ -7,6 +7,7 @@ import { IntegrationQueueWorkerModule } from './modules/integration-queue/integr
 import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-base/knowledge-base-review-reminder-worker.module';
 import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
 import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
+import { OnCallWorkerModule } from './modules/on-call/on-call-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
 import { OpsHealthWorkerModule } from './modules/ops-health/ops-health-worker.module';
 import { ReportSchedulesWorkerModule } from './modules/reports/schedules/report-schedules-worker.module';
@@ -43,6 +44,8 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     // Paket 2.5: scheduled e-mail reports.
     ReportSchedulesWorkerModule,
     PrivacyWorkerModule,
+    // Paket 2.9 (K3): on-call reminders and uncovered shifts.
+    OnCallWorkerModule,
     OpsHealthWorkerModule,
   ],
 })

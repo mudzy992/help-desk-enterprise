@@ -45,6 +45,7 @@ export async function createSlaEscalationRule(
         targetGroupId: target.targetGroupId,
         targetRole: target.targetRole,
         targetUserId: target.targetUserId,
+        targetOnCall: target.targetOnCall,
       },
     })) as SlaEscalationRuleRecord;
     await recordSlaChange(transaction as PrismaService, {

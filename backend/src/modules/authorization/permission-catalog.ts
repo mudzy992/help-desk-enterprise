@@ -133,6 +133,16 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Change system settings, policy packs, and config versions.',
   },
   {
+    key: permissionKeys.onCallRead,
+    categoryId: permissionCategoryIds.settings,
+    description: 'See on-call schedules, who is on call now, and request shift swaps (package 2.9).',
+  },
+  {
+    key: permissionKeys.onCallManage,
+    categoryId: permissionCategoryIds.settings,
+    description: 'Manage on-call schedules: rotation, members and overrides (package 2.9).',
+  },
+  {
     key: permissionKeys.configVersionImport,
     categoryId: permissionCategoryIds.settings,
     description:
