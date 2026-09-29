@@ -27,7 +27,7 @@ function renderInline(nodes: readonly InlineNode[]): ReactNode {
         );
       case "link":
         return (
-          <a key={index} href={node.href} className="text-link underline-offset-2 hover:underline" rel="noopener noreferrer" target="_blank">
+          <a key={index} href={node.href} className="text-link underline underline-offset-2 hover:decoration-2" rel="noopener noreferrer" target="_blank">
             {renderInline(node.children)}
           </a>
         );

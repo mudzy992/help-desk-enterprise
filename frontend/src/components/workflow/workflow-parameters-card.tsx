@@ -84,7 +84,7 @@ export function WorkflowParametersCard({
       </dl>
       <p className="border-t border-border/40 px-4 py-3 text-[11.5px] text-muted-foreground">
         {t("workflow.paramsHint")}{" "}
-        <Link className="text-link underline-offset-2 hover:underline" to="/admin?tab=settings">
+        <Link className="text-link underline underline-offset-2 hover:decoration-2" to="/admin?tab=settings">
           {t("workflow.paramsLink")}
         </Link>
       </p>

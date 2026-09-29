@@ -72,7 +72,7 @@ export function AccessibilityPreferencesCard() {
           <div>
             <button
               type="button"
-              className="rounded-sm text-[12.5px] font-medium text-link underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="rounded-sm text-[12.5px] font-medium text-link underline underline-offset-2 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={() => registry.openHelp()}
             >
               {t("a11y.preferences.showShortcuts")}

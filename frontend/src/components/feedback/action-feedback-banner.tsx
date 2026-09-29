@@ -53,7 +53,7 @@ export function ActionFeedbackBanner({ feedback, onDismiss }: ActionFeedbackBann
         <button
           type="button"
           onClick={feedback.action.onClick}
-          className="shrink-0 rounded font-medium underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
+          className="shrink-0 rounded font-medium underline underline-offset-2 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70"
         >
           {feedback.action.label}
         </button>

@@ -33,7 +33,7 @@ export function ShortcutsHelpDialog({ open, onOpenChange, registeredIds, singleK
         </ModalTitle>
         <ModalDescription className="mt-1 text-[12.5px] leading-5 text-muted-foreground">
           {singleKeysEnabled ? t("a11y.shortcuts.descriptionOn") : t("a11y.shortcuts.descriptionOff")}{" "}
-          <Link to="/appearance#accessibility" className="text-link underline-offset-2 hover:underline" onClick={() => onOpenChange(false)}>
+          <Link to="/appearance#accessibility" className="text-link underline underline-offset-2 hover:decoration-2" onClick={() => onOpenChange(false)}>
             {t("a11y.shortcuts.settingsLink")}
           </Link>
         </ModalDescription>

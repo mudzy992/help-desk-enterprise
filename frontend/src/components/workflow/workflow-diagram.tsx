@@ -35,7 +35,7 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="min-w-[720px] w-full"
-          role="img"
+          role="group"
           aria-label={t("workflow.diagramAria")}
         >
           <defs>

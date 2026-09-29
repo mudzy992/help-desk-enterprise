@@ -47,7 +47,7 @@ export function ErrorSummary({ items, focusKey }: ErrorSummaryProperties) {
           <li key={item.fieldId}>
             <a
               href={`#${item.fieldId}`}
-              className="text-link underline-offset-2 hover:underline"
+              className="text-link underline underline-offset-2 hover:decoration-2"
               onClick={(event) => {
                 const field = document.getElementById(item.fieldId);
                 if (field !== null) {
