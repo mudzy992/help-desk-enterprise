@@ -265,4 +265,39 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description:
       'Acknowledge and open Quick Assist remote sessions from Edge.',
   },
+  {
+    key: permissionKeys.assetRead,
+    categoryId: permissionCategoryIds.assets,
+    description: 'View assets in the own organizational-unit scope (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetManage,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Create and edit assets: assignment, status, relations and ticket links (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetImport,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Import and export assets from Excel/CSV (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetLicenseManage,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Manage software licences and reveal licence keys (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetContractManage,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Manage warranties and contracts (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetTypeManage,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Manage asset types, attributes and locations (package 3.2).',
+  },
+  {
+    key: permissionKeys.assetReportRead,
+    categoryId: permissionCategoryIds.assets,
+    description: 'Read asset reports (package 3.2).',
+  },
 ];

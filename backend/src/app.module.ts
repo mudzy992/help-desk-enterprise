@@ -35,6 +35,7 @@ import { OpsHealthModule } from './modules/ops-health/ops-health.module';
 import { StatusPageModule } from './modules/status-page/status-page.module';
 import { OnCallModule } from './modules/on-call/on-call.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
+import { AssetsModule } from './modules/assets/assets.module';
 import { EdgeExtensionModule } from './modules/edge-extension/edge-extension.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -79,6 +80,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     StatusPageModule,
     OnCallModule,
     AnnouncementsModule,
+    AssetsModule,
     EdgeExtensionModule,
     WebsocketModule,
   ],

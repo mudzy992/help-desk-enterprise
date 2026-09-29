@@ -1,0 +1,325 @@
+/// Paket 3.2: CMDB (assets and configuration items). The whole module sits
+/// behind the `private.addons.cmdb` addon (off by default).
+
+enum AssetCategory {
+  HARDWARE
+  SOFTWARE
+  NETWORK
+  INFRASTRUCTURE
+  OTHER
+}
+
+enum AssetAttributeDataType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+enum AssetStatus {
+  ORDERED
+  IN_STOCK
+  IN_USE
+  IN_REPAIR
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum AssetSource {
+  MANUAL
+  IMPORT
+  DIRECTORY
+}
+
+enum AssetRelationKind {
+  DEPENDS_ON
+  INSTALLED_ON
+  CONNECTED_TO
+  RUNS_ON
+  PART_OF
+}
+
+enum AssetContractKind {
+  WARRANTY
+  SUPPORT
+  LEASE
+  MAINTENANCE
+}
+
+enum SoftwareLicenseKind {
+  PER_DEVICE
+  PER_USER
+  SITE
+  SUBSCRIPTION
+}
+
+enum AssetImportStatus {
+  PREVIEW
+  APPLIED
+  FAILED
+  EXPIRED
+}
+
+enum AssetImportMode {
+  CREATE_ONLY
+  UPSERT
+}
+
+model AssetType {
+  id               String           @id @default(cuid())
+  /// Lowercase slug, never changes after creation (used by import and K4 packages).
+  key              String           @unique @db.VarChar(48)
+  nameBs           String           @db.VarChar(80)
+  nameEn           String           @db.VarChar(80)
+  /// One of a fixed icon set (frontend maps the name to an icon).
+  icon             String           @default("box") @db.VarChar(32)
+  category         AssetCategory    @default(HARDWARE)
+  /// A USER may pick own assets of this type when creating a ticket.
+  isUserSelectable Boolean          @default(true)
+  sortOrder        Int              @default(0)
+  archivedAt       DateTime?
+  attributes       AssetAttribute[]
+  assets           Asset[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([archivedAt, sortOrder])
+}
+
+model AssetAttribute {
+  id         String                 @id @default(cuid())
+  typeId     String
+  /// Key inside Asset.attributes; unique per type, never changes.
+  key        String                 @db.VarChar(48)
+  labelBs    String                 @db.VarChar(80)
+  labelEn    String                 @db.VarChar(80)
+  dataType   AssetAttributeDataType @default(TEXT)
+  /// SELECT: allowed values (array of strings).
+  options    Json?
+  isRequired Boolean                @default(false)
+  /// Value unique among assets of the type (checked by the service).
+  isUnique   Boolean                @default(false)
+  sortOrder  Int                    @default(0)
+  archivedAt DateTime?
+  type       AssetType              @relation(fields: [typeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  @@unique([typeId, key])
+  @@index([typeId, sortOrder])
+}
+
+model AssetLocation {
+  id         String          @id @default(cuid())
+  /// Two levels: building (parentId null) -> room.
+  parentId   String?
+  name       String          @db.VarChar(120)
+  code       String?         @unique @db.VarChar(32)
+  sortOrder  Int             @default(0)
+  archivedAt DateTime?
+  parent     AssetLocation?  @relation("AssetLocationTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children   AssetLocation[] @relation("AssetLocationTree")
+  assets     Asset[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([parentId])
+}
+
+model Asset {
+  id                   String              @id @default(cuid())
+  /// Inventory number, unique.
+  assetTag             String              @unique @db.VarChar(64)
+  typeId               String
+  name                 String              @db.VarChar(160)
+  status               AssetStatus         @default(IN_STOCK)
+  serialNumber         String?             @db.VarChar(120)
+  manufacturer         String?             @db.VarChar(120)
+  model                String?             @db.VarChar(120)
+  assignedUserId       String?
+  assignedAt           DateTime?
+  organizationalUnitId String
+  locationId           String?
+  serviceId            String?
+  purchaseDate         DateTime?
+  purchaseCost         Decimal?            @db.Decimal(12, 2)
+  currency             String?             @db.VarChar(3)
+  supplier             String?             @db.VarChar(160)
+  warrantyEndsAt       DateTime?
+  /// Warranty reminder thresholds already sent (days before), e.g. [60, 30].
+  warrantyRemindersSent Int[]              @default([])
+  notes                String?             @db.VarChar(4000)
+  /// Values keyed by AssetAttribute.key.
+  attributes           Json                @default("{}")
+  source               AssetSource         @default(MANUAL)
+  /// AD objectGUID for DIRECTORY assets.
+  externalId           String?             @unique @db.VarChar(64)
+  /// AD lastLogonTimestamp.
+  lastSeenAt           DateTime?
+  /// Set when the directory no longer returns the computer (never auto-retired).
+  missingFromDirectoryAt DateTime?
+  /// DIRECTORY: the user link was suggested by the sync (a manual assignment wins).
+  assignmentSuggested  Boolean             @default(false)
+  retiredAt            DateTime?
+  /// Optimistic concurrency for edits.
+  version              Int                 @default(1)
+  type                 AssetType           @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  assignedUser         User?               @relation("AssetAssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  organizationalUnit   OrganizationalUnit  @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  location             AssetLocation?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  service              Service?            @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  relationsFrom        AssetRelation[]     @relation("AssetRelationFrom")
+  relationsTo          AssetRelation[]     @relation("AssetRelationTo")
+  tickets              TicketAsset[]
+  contractItems        AssetContractItem[]
+  licenseAssignments   LicenseAssignment[]
+  events               AssetEvent[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([organizationalUnitId, status])
+  @@index([assignedUserId])
+  @@index([typeId, status])
+  @@index([warrantyEndsAt])
+  @@index([locationId])
+  @@index([serviceId])
+  @@index([serialNumber])
+}
+
+model AssetRelation {
+  id              String            @id @default(cuid())
+  fromAssetId     String
+  toAssetId       String
+  kind            AssetRelationKind
+  createdByUserId String?
+  from            Asset             @relation("AssetRelationFrom", fields: [fromAssetId], references: [id], onDelete: Cascade)
+  to              Asset             @relation("AssetRelationTo", fields: [toAssetId], references: [id], onDelete: Cascade)
+  createdAt       DateTime          @default(now())
+
+  @@unique([fromAssetId, toAssetId, kind])
+  @@index([toAssetId])
+}
+
+model TicketAsset {
+  ticketId       String
+  assetId        String
+  isPrimary      Boolean  @default(false)
+  linkedByUserId String?
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  linkedAt       DateTime @default(now())
+
+  @@id([ticketId, assetId])
+  @@index([assetId, linkedAt])
+}
+
+model AssetContract {
+  id                  String              @id @default(cuid())
+  kind                AssetContractKind   @default(WARRANTY)
+  supplier            String              @db.VarChar(160)
+  reference           String?             @db.VarChar(120)
+  startsAt            DateTime?
+  endsAt              DateTime
+  cost                Decimal?            @db.Decimal(12, 2)
+  notes               String?             @db.VarChar(4000)
+  organizationalUnitId String
+  /// Reminder thresholds already sent (days before).
+  remindersSent       Int[]               @default([])
+  organizationalUnit  OrganizationalUnit  @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  items               AssetContractItem[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([endsAt])
+  @@index([organizationalUnitId])
+}
+
+model AssetContractItem {
+  contractId String
+  assetId    String
+  contract   AssetContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  asset      Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([contractId, assetId])
+  @@index([assetId])
+}
+
+model SoftwareLicense {
+  id                   String              @id @default(cuid())
+  productName          String              @db.VarChar(160)
+  vendor               String?             @db.VarChar(120)
+  kind                 SoftwareLicenseKind @default(PER_DEVICE)
+  /// Null for SITE licences (not counted).
+  seats                Int?
+  validUntil           DateTime?
+  cost                 Decimal?            @db.Decimal(12, 2)
+  notes                String?             @db.VarChar(4000)
+  /// AES-256-GCM (iv:tag:ciphertext, base64); never exported.
+  keyEncrypted         String?
+  organizationalUnitId String
+  remindersSent        Int[]               @default([])
+  organizationalUnit   OrganizationalUnit  @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  assignments          LicenseAssignment[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([validUntil])
+  @@index([organizationalUnitId])
+}
+
+model LicenseAssignment {
+  id               String          @id @default(cuid())
+  licenseId        String
+  /// Exactly one of assetId / userId (CHECK constraint in SQL).
+  assetId          String?
+  userId           String?
+  assignedByUserId String?
+  license          SoftwareLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  asset            Asset?          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user             User?           @relation("LicenseAssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt       DateTime        @default(now())
+
+  @@unique([licenseId, assetId])
+  @@unique([licenseId, userId])
+  @@index([assetId])
+  @@index([userId])
+}
+
+model AssetEvent {
+  id          String   @id @default(cuid())
+  assetId     String
+  /// created | updated | status | assigned | unassigned | relation_added | relation_removed |
+  /// ticket_linked | ticket_unlinked | license_assigned | license_released | contract_linked |
+  /// imported | directory_sync | anonymized
+  action      String   @db.VarChar(40)
+  actorUserId String?
+  detail      Json     @default("{}")
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([assetId, createdAt(sort: Desc)])
+  @@index([actorUserId])
+}
+
+model AssetImportJob {
+  id              String            @id @default(cuid())
+  typeId          String
+  fileName        String            @db.VarChar(255)
+  fileSha256      String            @db.VarChar(64)
+  status          AssetImportStatus @default(PREVIEW)
+  mode            AssetImportMode   @default(CREATE_ONLY)
+  allOrNothing    Boolean           @default(false)
+  /// Parsed, validated rows waiting for confirmation (cleared after apply/expiry).
+  rows            Json?
+  totals          Json              @default("{}")
+  errors          Json              @default("[]")
+  createdByUserId String?
+  createdAt       DateTime          @default(now())
+  appliedAt       DateTime?
+  expiresAt       DateTime
+
+  @@index([createdByUserId, createdAt])
+  @@index([fileSha256])
+}

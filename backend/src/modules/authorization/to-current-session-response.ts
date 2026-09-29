@@ -10,6 +10,7 @@ export function toCurrentSessionResponse(
     readonly id: string;
     readonly name: string;
   } | null = null,
+  modules: CurrentSessionResponse['modules'] = { cmdb: false },
 ): CurrentSessionResponse {
   const isSuperAdmin = context?.isSuperAdmin ?? false;
   return {
@@ -34,6 +35,7 @@ export function toCurrentSessionResponse(
         ),
     organizationalUnitId: homeOrganizationalUnit?.id ?? null,
     organizationalUnitName: homeOrganizationalUnit?.name ?? null,
+    modules,
   };
 }
 

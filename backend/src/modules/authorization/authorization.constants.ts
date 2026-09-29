@@ -5,6 +5,8 @@ export const authorizationRoleKeys = {
   agent: 'AGENT',
   admin: 'ADMIN',
   superAdmin: authenticationConstants.superAdminRoleKey,
+  /** Paket 3.2: manages assets (added next to USER, e.g. procurement). */
+  assetManager: 'ASSET_MANAGER',
 } as const;
 
 export const permissionKeys = {
@@ -57,6 +59,14 @@ export const permissionKeys = {
   knowledgeArticlePublish: 'knowledge.article.publish',
   // Paket 2.9 (K1): portal categories.
   knowledgeCategoryManage: 'knowledge.category.manage',
+  // Paket 3.2: CMDB.
+  assetRead: 'asset.read',
+  assetManage: 'asset.manage',
+  assetImport: 'asset.import',
+  assetLicenseManage: 'asset.license.manage',
+  assetContractManage: 'asset.contract.manage',
+  assetTypeManage: 'asset.type.manage',
+  assetReportRead: 'asset.report.read',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
   ticketMessageSend: 'ticket.message.send',
@@ -86,6 +96,17 @@ const agentPermissionKeys = [
   permissionKeys.ticketTemplatesPersonal,
   permissionKeys.ticketLinkManage,
   permissionKeys.onCallRead,
+  permissionKeys.assetRead,
+  permissionKeys.assetManage,
+] as const;
+
+const assetManagerPermissionKeys = [
+  permissionKeys.assetRead,
+  permissionKeys.assetManage,
+  permissionKeys.assetImport,
+  permissionKeys.assetLicenseManage,
+  permissionKeys.assetContractManage,
+  permissionKeys.assetReportRead,
 ] as const;
 
 const adminPermissionKeys = [
@@ -121,6 +142,11 @@ const adminPermissionKeys = [
   permissionKeys.onCallManage,
   permissionKeys.announcementManage,
   permissionKeys.announcementReportRead,
+  permissionKeys.assetImport,
+  permissionKeys.assetLicenseManage,
+  permissionKeys.assetContractManage,
+  permissionKeys.assetTypeManage,
+  permissionKeys.assetReportRead,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =
@@ -128,6 +154,7 @@ export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[
     [authorizationRoleKeys.user]: edgeClientPermissionKeys,
     [authorizationRoleKeys.agent]: agentPermissionKeys,
     [authorizationRoleKeys.admin]: adminPermissionKeys,
+    [authorizationRoleKeys.assetManager]: assetManagerPermissionKeys,
     [authorizationRoleKeys.superAdmin]: [
       ...allPermissionKeys,
     ],

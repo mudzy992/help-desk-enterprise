@@ -7,6 +7,7 @@ const systemRoleNames: Readonly<Record<string, string>> = {
   [authorizationRoleKeys.agent]: 'Agent',
   [authorizationRoleKeys.admin]: 'Admin',
   [authorizationRoleKeys.superAdmin]: 'SuperAdmin',
+  [authorizationRoleKeys.assetManager]: 'AssetManager',
 };
 
 export async function ensureSystemRole(

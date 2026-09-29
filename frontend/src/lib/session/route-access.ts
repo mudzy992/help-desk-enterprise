@@ -11,6 +11,8 @@ export const navigationAccessKinds = {
   configVersions: "configVersions",
   privacy: "privacy",
   onCall: "onCall",
+  assets: "assets",
+  myAssets: "myAssets",
 } as const;
 
 export type NavigationAccessKind =
@@ -87,6 +89,20 @@ export function canOpenOnCall(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.onCallRead);
 }
 
+/** Paket 3.2 (§17): the CMDB module is on and the viewer holds `asset.read`. */
+export function canOpenAssets(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null || session.modules?.cmdb !== true) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.assetRead);
+}
+
+/** Paket 3.2 (§17): "My equipment" for every signed-in user while the module is on. */
+export function canOpenMyAssets(capabilities: SessionCapabilities): boolean {
+  return capabilities.session?.modules?.cmdb === true;
+}
+
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
@@ -148,6 +164,10 @@ export function canAccessNavigationItem(
       return canOpenPrivacy(capabilities);
     case navigationAccessKinds.onCall:
       return canOpenOnCall(capabilities);
+    case navigationAccessKinds.assets:
+      return canOpenAssets(capabilities);
+    case navigationAccessKinds.myAssets:
+      return canOpenMyAssets(capabilities);
     default:
       return false;
   }

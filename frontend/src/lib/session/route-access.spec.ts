@@ -9,7 +9,9 @@ import {
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
+  canOpenAssets,
   canOpenEmailTemplatesPage,
+  canOpenMyAssets,
   canAccessNavigationItem,
   canOpenAdminArea,
   canOpenReports,
@@ -20,6 +22,7 @@ function buildCapabilities(input: {
   readonly roleKeys?: readonly string[];
   readonly permissionKeys?: readonly string[];
   readonly isSuperAdmin?: boolean;
+  readonly cmdb?: boolean;
 }): SessionCapabilities {
   return {
     session: {
@@ -28,6 +31,7 @@ function buildCapabilities(input: {
       permissionKeys: input.permissionKeys ?? [],
       organizationalUnitId: null,
       organizationalUnitName: null,
+      modules: { cmdb: input.cmdb ?? false },
       principal: {
         subjectId: "user-1",
         displayName: "Test User",
@@ -72,11 +76,24 @@ describe("route access", () => {
   });
 
   it("allows superadmin into all navigation entries", () => {
-    const capabilities = buildCapabilities({ isSuperAdmin: true });
+    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true });
     const visible = filterNavigationSections(navigationSections, capabilities);
     expect(visible.flatMap((section) => section.items)).toHaveLength(
       navigationSections.flatMap((section) => section.items).length,
     );
+  });
+});
+
+describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
+  it("needs the module switched on", () => {
+    expect(canOpenAssets(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+    expect(canOpenMyAssets(buildCapabilities({ roleKeys: [roleKeys.user] }))).toBe(false);
+  });
+
+  it("opens the register for asset.read and my equipment for everyone", () => {
+    expect(canOpenAssets(buildCapabilities({ cmdb: true, permissionKeys: [permissionKeys.assetRead] }))).toBe(true);
+    expect(canOpenAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(false);
+    expect(canOpenMyAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(true);
   });
 });
 

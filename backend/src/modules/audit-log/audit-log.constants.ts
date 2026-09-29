@@ -115,6 +115,17 @@ export const auditLogActions = {
   announcementDeleted: 'announcement.deleted',
   announcementReminded: 'announcement.reminded',
   announcementReportExported: 'announcement.report.exported',
+  // Paket 3.2: CMDB (sensitive actions; the full history is AssetEvent).
+  assetTypeSaved: 'asset.type.saved',
+  assetLocationSaved: 'asset.location.saved',
+  assetRetired: 'asset.retired',
+  assetDisposed: 'asset.disposed',
+  assetDeleted: 'asset.deleted',
+  assetImportApplied: 'asset.import.applied',
+  assetExported: 'asset.exported',
+  assetLicenseKeyRevealed: 'asset.license.key_revealed',
+  assetLicenseSaved: 'asset.license.saved',
+  assetContractSaved: 'asset.contract.saved',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',
@@ -155,6 +166,13 @@ export const auditLogEntityTypes = {
   announcement: 'announcement',
   knowledgeCategory: 'knowledge_category',
   knowledgeArticle: 'knowledge_article',
+  // Paket 3.2
+  asset: 'asset',
+  assetType: 'asset_type',
+  assetLocation: 'asset_location',
+  softwareLicense: 'software_license',
+  assetContract: 'asset_contract',
+  assetImport: 'asset_import',
 } as const;
 
 export const auditLogErrorCodes = {

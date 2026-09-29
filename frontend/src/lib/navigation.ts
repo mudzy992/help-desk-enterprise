@@ -20,6 +20,8 @@ export const navigationLabelKeys = {
   status: "navigation.status",
   onCall: "navigation.onCall",
   announcements: "navigation.announcements",
+  assets: "navigation.assets",
+  myAssets: "navigation.myAssets",
 } as const;
 
 export type NavigationLabelKey =
@@ -165,6 +167,22 @@ export const onCallNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.onCall },
 };
 
+/** Paket 3.2 (§17): asset register (module on + asset.read). */
+export const assetsNavigationItem: NavigationItem = {
+  path: "/assets",
+  labelKey: navigationLabelKeys.assets,
+  end: false,
+  access: { kind: navigationAccessKinds.assets },
+};
+
+/** Paket 3.2 (§17): the user's own equipment (module on). */
+export const myAssetsNavigationItem: NavigationItem = {
+  path: "/my-assets",
+  labelKey: navigationLabelKeys.myAssets,
+  end: false,
+  access: { kind: navigationAccessKinds.myAssets },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -176,7 +194,14 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.services,
-    items: [servicesNavigationItem, statusNavigationItem, announcementsNavigationItem, knowledgeBaseNavigationItem],
+    items: [
+      servicesNavigationItem,
+      statusNavigationItem,
+      announcementsNavigationItem,
+      knowledgeBaseNavigationItem,
+      myAssetsNavigationItem,
+      assetsNavigationItem,
+    ],
   },
   {
     labelKey: navigationSectionKeys.administration,

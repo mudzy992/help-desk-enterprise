@@ -1,4 +1,5 @@
 model Ticket {
+  assets TicketAsset[]
   id                   String                     @id @default(cuid())
   ticketNumber         String                     @unique
   title                String

@@ -64,6 +64,9 @@ const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const StatusPage = lazyPage(() => import("@/pages/status-page"), "StatusPage");
 const OnCallPage = lazyPage(() => import("@/pages/on-call-page"), "OnCallPage");
 const AnnouncementsPage = lazyPage(() => import("@/pages/announcements-page"), "AnnouncementsPage");
+const AssetsPage = lazyPage(() => import("@/pages/assets-page"), "AssetsPage");
+const AssetDetailPage = lazyPage(() => import("@/pages/asset-detail-page"), "AssetDetailPage");
+const MyAssetsPage = lazyPage(() => import("@/pages/my-assets-page"), "MyAssetsPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
@@ -130,6 +133,12 @@ export function AppRouter() {
                 </RequireAccess>
               }
             />
+            {/* Paket 3.2: CMDB; the pages handle "module off" and the server enforces scope. */}
+            <Route path="assets">
+              <Route index element={<AssetsPage />} />
+              <Route path=":assetId" element={<AssetDetailPage />} />
+            </Route>
+            <Route path="my-assets" element={<MyAssetsPage />} />
             <Route path="knowledge-base">
               <Route index element={<KnowledgeBasePage />} />
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />

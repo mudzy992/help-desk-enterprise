@@ -1,4 +1,6 @@
 model User {
+  assetsAssigned Asset[] @relation("AssetAssignedUser")
+  licenseAssignments LicenseAssignment[] @relation("LicenseAssignedUser")
   id                   String                     @id @default(cuid())
   reportSchedulesCreated ReportSchedule[] @relation("ReportScheduleCreatedBy")
   reportScheduleRecipients ReportScheduleRecipient[] @relation("ReportScheduleRecipientUser")

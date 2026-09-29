@@ -8,6 +8,8 @@ export type CurrentSessionResponse = {
   readonly permissionKeys: readonly string[];
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitName: string | null;
+  /** Paket 3.2: optional modules that are switched on (menus only). */
+  readonly modules?: { readonly cmdb: boolean };
 };
 
 export function getCurrentSession(): Promise<CurrentSessionResponse> {

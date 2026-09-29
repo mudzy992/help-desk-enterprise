@@ -25,7 +25,9 @@
     "privacy": "Privacy",
     "status": "Service status",
     "onCall": "On-call",
-    "announcements": "Announcements"
+    "announcements": "Announcements",
+    "assets": "Assets",
+    "myAssets": "My equipment"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -52,7 +54,8 @@
       "superAdmin": "SuperAdmin",
       "admin": "Admin",
       "agent": "Agent",
-      "user": "User"
+      "user": "User",
+      "assetManager": "Asset manager"
     },
     "searchTrigger": "Search…"
   },
@@ -457,7 +460,8 @@
       "USER": "User",
       "AGENT": "Agent",
       "ADMIN": "Administrator",
-      "SUPER_ADMIN": "SuperAdmin"
+      "SUPER_ADMIN": "SuperAdmin",
+      "ASSET_MANAGER": "Asset manager"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -515,7 +519,14 @@
       "oncall.manage": "Manage on-call",
       "announcement.manage": "Manage announcements",
       "announcement.report.read": "Announcement acknowledgement report",
-      "knowledge.category.manage": "Manage knowledge categories"
+      "knowledge.category.manage": "Manage knowledge categories",
+      "asset.read": "View assets",
+      "asset.manage": "Manage assets",
+      "asset.import": "Import assets",
+      "asset.license.manage": "Manage licences",
+      "asset.contract.manage": "Manage contracts",
+      "asset.type.manage": "Manage asset types",
+      "asset.report.read": "Asset reports"
     }
   },
   "maintenance": {
@@ -613,7 +624,8 @@
         "confidential": "Confidential access",
         "knowledge": "Knowledge base",
         "edge": "Edge extension",
-        "privacy": "Privacy"
+        "privacy": "Privacy",
+        "assets": "Assets (CMDB)"
       },
       "keys": {
         "ticket.forward.cross_ou": "Forward a ticket to another organizational unit (OU-scoped and audited).",
@@ -657,7 +669,14 @@
         "oncall.manage": "Manage on-call schedules: rotation, members and overrides (package 2.9).",
         "announcement.manage": "Create, publish, edit and withdraw announcements (package 2.9).",
         "announcement.report.read": "See who acknowledged an announcement and remind the rest (package 2.9).",
-        "knowledge.category.manage": "Knowledge portal categories: create, edit, order and archive (package 2.9)."
+        "knowledge.category.manage": "Knowledge portal categories: create, edit, order and archive (package 2.9).",
+        "asset.read": "View the asset register, details, history and relations within the unit scope (package 3.2).",
+        "asset.manage": "Create, edit, assign, return and link assets within the unit scope (package 3.2).",
+        "asset.import": "Import assets from Excel/CSV and export the register (package 3.2).",
+        "asset.license.manage": "Manage software licences, seats and licence keys (package 3.2).",
+        "asset.contract.manage": "Manage warranty, maintenance and lease contracts (package 3.2).",
+        "asset.type.manage": "Manage asset types, their attributes and locations (package 3.2).",
+        "asset.report.read": "See asset reports: expiries, costs and frequent failures (package 3.2)."
       }
     }
   },
@@ -938,7 +957,8 @@
         "private.i18n": "Language",
         "private.inbound": "Inbound e-mail",
         "private.collaboration": "Agent collaboration",
-        "private.privacy": "Privacy"
+        "private.privacy": "Privacy",
+        "private.assets": "Assets (CMDB)"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -1336,7 +1356,31 @@
         "private.announcements.receiptRetentionDays": "Days after an announcement ends before acknowledgements and dismissals are deleted (0 = keep; 30–3650).",
         "private.announcements.teamsEnabled": "Offer \"Also post to the Teams channel\" on announcements. Needs a Teams webhook (here or in the alarm settings); off by default.",
         "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) for announcements. Empty = the operational alarm webhook is used.",
-        "private.knowledgeBase.portal.faqMaxItems": "Number of frequently asked questions (FAQ) at the top of the knowledge portal (1–20)."
+        "private.knowledgeBase.portal.faqMaxItems": "Number of frequently asked questions (FAQ) at the top of the knowledge portal (1–20).",
+        "private.addons.cmdb": "Turns the CMDB (assets) module on or off: register, ticket links, licences, contracts and import. Off by default.",
+        "private.assets.ticketPicker.enabled": "Users may pick their own equipment when creating a ticket.",
+        "private.assets.tag.autoGenerate": "Generate the inventory number when it is left empty ({prefix}{year}-{number}).",
+        "private.assets.tag.prefix": "Prefix of generated inventory numbers (letters, digits, - or /; at most 12).",
+        "private.assets.currency": "Currency of purchase prices (ISO 4217 code, e.g. BAM or EUR).",
+        "private.assets.frequentFailure.count": "\"Frequent failures\" warning: number of tickets on one item (2–50).",
+        "private.assets.frequentFailure.days": "\"Frequent failures\" warning: counted within this many days (7–365).",
+        "private.assets.reminders.enabled": "Remind before warranties, contracts and licences expire.",
+        "private.assets.reminders.daysBefore": "Reminder thresholds in days before expiry, comma separated (1–365, at most 6).",
+        "private.assets.reminders.recipients": "Extra internal e-mail recipients of expiry reminders, comma separated.",
+        "private.assets.import.maxRows": "Largest number of rows in one import file (100–20000).",
+        "private.assets.import.maxFileMb": "Largest import file in MB (1–20).",
+        "private.assets.handover.enabled": "Offer a handover record (PDF) when equipment is assigned or returned.",
+        "private.assets.handover.header": "Header text of the handover record (e.g. organization name and address).",
+        "private.assets.handover.footer": "Footer note of the handover record (e.g. user obligations).",
+        "private.assets.directorySync.enabled": "Synchronize computers from Active Directory (needs a working AD connection).",
+        "private.assets.directorySync.intervalHours": "Hours between computer synchronizations (1–24).",
+        "private.assets.directorySync.baseDn": "Base DN searched for computers (empty = the directory base DN). Environment-bound.",
+        "private.assets.directorySync.includeDisabled": "Also import disabled computer accounts.",
+        "private.assets.directorySync.typeKey": "Asset type key used for computers from the directory.",
+        "private.assets.directorySync.serverTypeKey": "Asset type key for directory computers whose operating system is a server.",
+        "private.assets.directorySync.userMatch": "Order of linking a computer to a user: managedBy, namePattern, description (comma separated).",
+        "private.assets.directorySync.namePattern": "Regular expression on the computer name with a named group \"login\", e.g. ^PC-(?<login>[a-z.]+)$.",
+        "private.assets.directorySync.defaultOrganizationalUnitId": "Organizational unit id for directory computers whose OU is not mapped (empty = skip them)."
       }
     },
     "emailTemplates": {
@@ -2511,6 +2555,10 @@
         "serviceDowntime": {
           "label": "Service downtime",
           "description": "Scheduled downtime windows for services."
+        },
+        "cmdb": {
+          "label": "CMDB (assets)",
+          "description": "Equipment register, ticket links, licences, contracts and Excel import."
         }
       }
     },
@@ -5564,6 +5612,346 @@
       "dates": "Enter a valid start and end.",
       "order": "The end must be after the start.",
       "duration": "An announcement can last at most {{days}} days."
+    }
+  },
+  "assets": {
+    "title": "Assets",
+    "subtitle": "Equipment, software and infrastructure register with assignments, relations and history.",
+    "disabledTitle": "The assets module is off",
+    "disabledBody": "An administrator can switch it on under Settings → Add-ons (CMDB).",
+    "forbiddenTitle": "No access to the asset register",
+    "forbiddenBody": "You need the asset read permission. Your own equipment is under My equipment.",
+    "tabs": {
+      "register": "Register",
+      "catalog": "Types and locations"
+    },
+    "status": {
+      "ORDERED": "Ordered",
+      "IN_STOCK": "In stock",
+      "IN_USE": "In use",
+      "IN_REPAIR": "In repair",
+      "LOST": "Lost",
+      "RETIRED": "Retired",
+      "DISPOSED": "Disposed"
+    },
+    "source": {
+      "MANUAL": "Manual",
+      "IMPORT": "Import",
+      "DIRECTORY": "Active Directory"
+    },
+    "categories": {
+      "HARDWARE": "Hardware",
+      "SOFTWARE": "Software",
+      "NETWORK": "Network",
+      "INFRASTRUCTURE": "Infrastructure",
+      "OTHER": "Other"
+    },
+    "dataTypes": {
+      "TEXT": "Text",
+      "NUMBER": "Number",
+      "DATE": "Date",
+      "BOOLEAN": "Yes/no",
+      "SELECT": "Selection"
+    },
+    "warranty": {
+      "expired": "Warranty expired",
+      "expiring": "Warranty expiring"
+    },
+    "fields": {
+      "assetTag": "Inventory number",
+      "name": "Name",
+      "type": "Type",
+      "status": "Status",
+      "serialNumber": "Serial number",
+      "manufacturer": "Manufacturer",
+      "model": "Model",
+      "organizationalUnit": "Organizational unit",
+      "location": "Location",
+      "service": "Service",
+      "assignedUser": "User",
+      "assignedAt": "Assigned",
+      "purchaseDate": "Purchase date",
+      "purchaseCost": "Purchase price",
+      "supplier": "Supplier",
+      "warrantyEndsAt": "Warranty until",
+      "notes": "Notes",
+      "source": "Source",
+      "externalId": "Directory ID",
+      "lastSeenAt": "Last seen in directory"
+    },
+    "list": {
+      "filtersLabel": "Asset filters",
+      "searchPlaceholder": "Inventory or serial number, name, user…",
+      "searchLabel": "Search assets",
+      "allTypes": "All types",
+      "allStatuses": "All statuses",
+      "allUnits": "All units",
+      "allLocations": "All locations",
+      "allSources": "All sources",
+      "warrantyExpiring": "Warranty expires in 30 days",
+      "unassigned": "Unassigned",
+      "resetFilters": "Reset filters",
+      "create": "New asset",
+      "count_one": "{{count}} asset (showing {{shown}})",
+      "count_other": "{{count}} assets (showing {{shown}})",
+      "emptyTitle": "No assets yet",
+      "emptyBody": "Add the first item or import a table (import arrives in the next step).",
+      "noMatchesTitle": "Nothing matches",
+      "noMatchesBody": "Change or reset the filters.",
+      "caption": "Asset register",
+      "openTickets": "Open tickets",
+      "loadMore": "Load more",
+      "missingFromDirectory": "Not in AD"
+    },
+    "form": {
+      "createTitle": "New asset",
+      "editTitle": "Edit asset",
+      "duplicateTitle": "Duplicate asset",
+      "description": "Fields marked * are required. Attributes follow the selected type.",
+      "tagHint": "Leave empty to generate the next number.",
+      "directoryNameHint": "The name comes from Active Directory and cannot be changed here.",
+      "none": "— none —",
+      "serviceHint": "Link the item to a service from the catalog (e.g. a server behind an application).",
+      "purchaseSection": "Purchase and warranty",
+      "attributesSection": "Type attributes",
+      "invalidCost": "Enter the price as a number, e.g. 1250.50.",
+      "noUnits": "No organizational unit is in your scope.",
+      "save": "Save",
+      "saved": "Asset saved"
+    },
+    "actions": {
+      "edit": "Edit",
+      "duplicate": "Duplicate",
+      "changeStatus": "Change status",
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "unassign": "Return",
+      "delete": "Delete"
+    },
+    "statusSheet": {
+      "current": "Current status: {{status}}",
+      "final": "Disposed is the final status; it cannot be changed.",
+      "newStatus": "New status",
+      "reason": "Reason",
+      "releaseHint": "The user is unassigned and the item's licence seats are released.",
+      "disposedHint": "Disposal is final. The item stays in the register for the record.",
+      "submit": "Change status"
+    },
+    "assignSheet": {
+      "description": "Find the user by name or e-mail.",
+      "currentUser": "Currently assigned to {{name}}. Assigning again returns it from them first.",
+      "search": "User",
+      "searchHint": "At least 2 characters.",
+      "results": "Users found",
+      "noUsers": "No active user matches.",
+      "note": "Note",
+      "submit": "Assign"
+    },
+    "unassignSheet": {
+      "description": "Return the item from {{name}}.",
+      "nextStatus": "Next status",
+      "submit": "Return"
+    },
+    "detail": {
+      "back": "Register",
+      "notFoundTitle": "Asset not available",
+      "tabs": {
+        "overview": "Overview",
+        "tickets": "Tickets",
+        "relations": "Relations",
+        "history": "History"
+      },
+      "basics": "Basic data",
+      "assignment": "Assignment",
+      "purchase": "Purchase and warranty",
+      "attributes": "Attributes",
+      "noAttributes": "This type has no attributes.",
+      "yes": "Yes",
+      "no": "No",
+      "assignmentSuggested": "Suggested by the directory — confirm",
+      "frequentFailure": "Frequent failures: {{count}} linked tickets in the last {{days}} days.",
+      "missingFromDirectory": "The computer has not been found in Active Directory since {{date}}.",
+      "ticketsTitle": "Linked tickets",
+      "ticketsSubtitle": "{{total}} in total, {{open}} open",
+      "noTicketsTitle": "No linked tickets",
+      "noTicketsBody": "Tickets linked to this item appear here.",
+      "primaryLink": "Primary",
+      "deleteTitle": "Delete asset?",
+      "deleteBody": "{{name}} and its history will be deleted permanently. Prefer retiring it — the record stays.",
+      "deleted": "Asset deleted"
+    },
+    "relations": {
+      "title": "Relations",
+      "subtitle": "What this item depends on and what depends on it.",
+      "add": "Add relation",
+      "addDescription": "From: {{name}}",
+      "addSubmit": "Add",
+      "kind": "Relation",
+      "target": "Item",
+      "targetHint": "Search by inventory or serial number or name (at least 2 characters).",
+      "results": "Items found",
+      "noResults": "No item matches.",
+      "emptyTitle": "No relations",
+      "emptyBody": "Link servers, applications, network devices and components.",
+      "remove": "Remove relation with {{name}}",
+      "removeTitle": "Remove relation?",
+      "removeBody": "The relation with {{name}} will be removed.",
+      "removeConfirm": "Remove",
+      "kinds": {
+        "DEPENDS_ON": {
+          "out": "Depends on",
+          "in": "Needed by"
+        },
+        "INSTALLED_ON": {
+          "out": "Installed on",
+          "in": "Has installed"
+        },
+        "CONNECTED_TO": {
+          "out": "Connected to",
+          "in": "Connected to"
+        },
+        "RUNS_ON": {
+          "out": "Runs on",
+          "in": "Hosts"
+        },
+        "PART_OF": {
+          "out": "Part of",
+          "in": "Contains"
+        }
+      }
+    },
+    "impact": {
+      "title": "Impact analysis",
+      "subtitle": "Up to three levels deep.",
+      "dependents": "Affected if this item fails",
+      "dependencies": "This item depends on",
+      "noDependents": "Nothing depends on this item.",
+      "noDependencies": "This item depends on nothing.",
+      "depth": "Level {{depth}}",
+      "hidden_one": "{{count}} more item outside your scope",
+      "hidden_other": "{{count}} more items outside your scope"
+    },
+    "history": {
+      "title": "History",
+      "system": "System",
+      "unknownUser": "Unknown user",
+      "text": {
+        "status": "Status changed: {{from}} → {{to}}",
+        "assigned": "Assigned to {{name}}",
+        "unassigned": "Returned from {{name}}",
+        "updated": "Changed: {{fields}}"
+      },
+      "actions": {
+        "created": "Created",
+        "updated": "Changed",
+        "status": "Status changed",
+        "assigned": "Assigned",
+        "unassigned": "Returned",
+        "relation_added": "Relation added",
+        "relation_removed": "Relation removed",
+        "ticket_linked": "Linked to a ticket",
+        "ticket_unlinked": "Unlinked from a ticket",
+        "license_assigned": "Licence assigned",
+        "license_released": "Licence released",
+        "contract_linked": "Contract linked",
+        "contract_unlinked": "Contract unlinked",
+        "imported": "Imported",
+        "directory_synced": "Synchronized from AD"
+      }
+    },
+    "mine": {
+      "title": "My equipment",
+      "subtitle": "Equipment assigned to you and your tickets about it.",
+      "emptyTitle": "No equipment assigned",
+      "emptyBody": "When IT assigns you a device, it appears here.",
+      "listLabel": "My equipment",
+      "tickets": "My tickets",
+      "noTickets": "No tickets for this item."
+    },
+    "catalog": {
+      "showArchived": "Show archived",
+      "typesTitle": "Asset types",
+      "typesSubtitle": "Types define icons, categories and extra attributes.",
+      "addType": "Add type",
+      "editType": "Edit type {{name}}",
+      "editTypeTitle": "Edit type",
+      "typeDescription": "The key cannot be changed later; names are shown per language.",
+      "archive": "Archive {{name}}",
+      "restore": "Restore {{name}}",
+      "archived": "Archived",
+      "userSelectable": "Users can pick",
+      "assetCount_one": "{{count}} item",
+      "assetCount_other": "{{count}} items",
+      "noAttributes": "No attributes.",
+      "addAttribute": "Add attribute",
+      "editAttribute": "Edit attribute {{name}}",
+      "editAttributeTitle": "Edit attribute",
+      "attributeDescription": "Attribute of type {{type}}.",
+      "key": "Key",
+      "keyHint": "Lowercase letters, digits and hyphens; starts with a letter.",
+      "attributeKeyHint": "Letters and digits (camelCase), starts with a lowercase letter.",
+      "keyInvalid": "The key does not match the required format.",
+      "nameBs": "Name (Bosnian)",
+      "nameEn": "Name (English)",
+      "labelBs": "Label (Bosnian)",
+      "labelEn": "Label (English)",
+      "category": "Category",
+      "icon": "Icon",
+      "sortOrder": "Order",
+      "userSelectableLabel": "Users can pick items of this type on a ticket",
+      "userSelectableHint": "E.g. laptops yes, network switches no.",
+      "dataType": "Data type",
+      "dataTypeHint": "The data type cannot be changed while items hold values.",
+      "options": "Options",
+      "optionsHint": "One option per line.",
+      "required": "Required",
+      "unique": "Unique",
+      "requiredLabel": "Required",
+      "uniqueLabel": "Unique within the type (e.g. MAC address)",
+      "locationsTitle": "Locations",
+      "locationsSubtitle": "Two levels: building and room/floor.",
+      "addLocation": "Add location",
+      "editLocation": "Edit location {{name}}",
+      "editLocationTitle": "Edit location",
+      "locationDescription": "A location can be a top level (building) or inside one (room).",
+      "parentLocation": "Inside",
+      "parentLockedHint": "A location with sub-locations stays at the top level.",
+      "topLevel": "— top level —",
+      "locationName": "Name",
+      "locationCode": "Code",
+      "locationCodeHint": "Optional, unique (e.g. B1-204).",
+      "noLocationsTitle": "No locations",
+      "noLocationsBody": "Add buildings and rooms.",
+      "actionFailed": "The change was not saved"
+    },
+    "errors": {
+      "disabled": "The assets module is off.",
+      "notFound": "The asset does not exist or is outside your scope.",
+      "forbidden": "You do not have permission for this action.",
+      "outOfScope": "The organizational unit is outside your scope.",
+      "invalid": "Some data is not valid.",
+      "tagTaken": "This inventory number is already used.",
+      "statusTransition": "This status change is not allowed.",
+      "reasonRequired": "Enter a reason.",
+      "versionConflict": "Someone changed the item in the meantime. Reload and try again.",
+      "readOnly": "This field is managed by the directory synchronization.",
+      "attributeInvalid": "An attribute value is not valid.",
+      "attributeNotUnique": "An attribute value is already used by another item.",
+      "typeNotFound": "The type does not exist.",
+      "typeKeyTaken": "This type key is already used.",
+      "typeArchived": "The type is archived.",
+      "attributeKeyTaken": "This attribute key is already used in the type.",
+      "attributeHasValues": "The data type cannot change while items hold values.",
+      "locationNotFound": "The location does not exist.",
+      "locationCodeTaken": "This location code is already used.",
+      "locationInUse": "The location still has items or sub-locations.",
+      "unitNotFound": "The organizational unit does not exist.",
+      "userNotFound": "The user does not exist or is inactive.",
+      "serviceNotFound": "The service does not exist.",
+      "relationExists": "This relation already exists.",
+      "relationCycle": "The relation would create a cycle.",
+      "relationSelf": "An item cannot be linked to itself.",
+      "hasDependents": "Other items still depend on this one."
     }
   }
 }

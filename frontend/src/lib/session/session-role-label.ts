@@ -5,6 +5,7 @@ export function sessionRoleLabelKey(
   | "shell.roles.superAdmin"
   | "shell.roles.admin"
   | "shell.roles.agent"
+  | "shell.roles.assetManager"
   | "shell.roles.user" {
   if (isSuperAdmin || roleKeys.includes("SUPER_ADMIN")) {
     return "shell.roles.superAdmin";
@@ -14,6 +15,9 @@ export function sessionRoleLabelKey(
   }
   if (roleKeys.includes("AGENT")) {
     return "shell.roles.agent";
+  }
+  if (roleKeys.includes("ASSET_MANAGER")) {
+    return "shell.roles.assetManager";
   }
   return "shell.roles.user";
 }

@@ -25,7 +25,9 @@
     "privacy": "Privatnost",
     "status": "Status servisa",
     "onCall": "Dežurstva",
-    "announcements": "Najave"
+    "announcements": "Najave",
+    "assets": "Imovina",
+    "myAssets": "Moja oprema"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -52,7 +54,8 @@
       "superAdmin": "SuperAdmin",
       "admin": "Admin",
       "agent": "Agent",
-      "user": "Korisnik"
+      "user": "Korisnik",
+      "assetManager": "Upravitelj imovine"
     },
     "searchTrigger": "Pretraži…"
   },
@@ -464,7 +467,8 @@
       "USER": "Korisnik",
       "AGENT": "Agent",
       "ADMIN": "Administrator",
-      "SUPER_ADMIN": "SuperAdmin"
+      "SUPER_ADMIN": "SuperAdmin",
+      "ASSET_MANAGER": "Upravitelj imovine"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -522,7 +526,14 @@
       "oncall.manage": "Upravljanje dežurstvima",
       "announcement.manage": "Upravljanje najavama",
       "announcement.report.read": "Izvještaj o potvrdama najava",
-      "knowledge.category.manage": "Upravljanje kategorijama znanja"
+      "knowledge.category.manage": "Upravljanje kategorijama znanja",
+      "asset.read": "Pregled imovine",
+      "asset.manage": "Upravljanje imovinom",
+      "asset.import": "Uvoz imovine",
+      "asset.license.manage": "Upravljanje licencama",
+      "asset.contract.manage": "Upravljanje ugovorima",
+      "asset.type.manage": "Upravljanje tipovima imovine",
+      "asset.report.read": "Izvještaji o imovini"
     }
   },
   "maintenance": {
@@ -620,7 +631,8 @@
         "confidential": "Povjerljivi pristup",
         "knowledge": "Baza znanja",
         "edge": "Edge ekstenzija",
-        "privacy": "Zaštita ličnih podataka"
+        "privacy": "Zaštita ličnih podataka",
+        "assets": "Imovina (CMDB)"
       },
       "keys": {
         "ticket.forward.cross_ou": "Proslijedi tiket u drugu organizacionu jedinicu (s OU opsegom i auditom).",
@@ -664,7 +676,14 @@
         "oncall.manage": "Upravljanje rasporedima dežurstava: rotacija, članovi i zamjene (paket 2.9).",
         "announcement.manage": "Kreiranje, objava, izmjena i povlačenje najava (paket 2.9).",
         "announcement.report.read": "Pregled ko je potvrdio najavu i podsjetnik ostalima (paket 2.9).",
-        "knowledge.category.manage": "Kategorije portala znanja: kreiranje, izmjena, redoslijed i arhiviranje (paket 2.9)."
+        "knowledge.category.manage": "Kategorije portala znanja: kreiranje, izmjena, redoslijed i arhiviranje (paket 2.9).",
+        "asset.read": "Pregled registra imovine, detalja, historije i veza u okviru opsega jedinica (paket 3.2).",
+        "asset.manage": "Kreiranje, izmjena, zaduženje, razduženje i povezivanje imovine u okviru opsega jedinica (paket 3.2).",
+        "asset.import": "Uvoz imovine iz Excel/CSV fajlova i izvoz registra (paket 3.2).",
+        "asset.license.manage": "Upravljanje softverskim licencama, mjestima i licencnim ključevima (paket 3.2).",
+        "asset.contract.manage": "Upravljanje ugovorima o garanciji, održavanju i najmu (paket 3.2).",
+        "asset.type.manage": "Upravljanje tipovima imovine, njihovim atributima i lokacijama (paket 3.2).",
+        "asset.report.read": "Pregled izvještaja o imovini: istekci, troškovi i česti kvarovi (paket 3.2)."
       }
     }
   },
@@ -947,7 +966,8 @@
         "private.i18n": "Jezik",
         "private.inbound": "Dolazna pošta",
         "private.collaboration": "Saradnja agenata",
-        "private.privacy": "Zaštita ličnih podataka"
+        "private.privacy": "Zaštita ličnih podataka",
+        "private.assets": "Imovina (CMDB)"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -1345,7 +1365,31 @@
         "private.announcements.receiptRetentionDays": "Koliko dana nakon kraja najave se čuvaju potvrde čitanja i zatvaranja (0 = trajno; 30–3650).",
         "private.announcements.teamsEnabled": "Nudi opciju „Objavi i u Teams kanal“ na najavama. Potreban je Teams webhook (ovdje ili u postavkama alarma); zadano isključeno.",
         "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) za najave. Prazno = koristi se webhook operativnih alarma.",
-        "private.knowledgeBase.portal.faqMaxItems": "Broj najčešćih pitanja (FAQ) na vrhu portala znanja (1–20)."
+        "private.knowledgeBase.portal.faqMaxItems": "Broj najčešćih pitanja (FAQ) na vrhu portala znanja (1–20).",
+        "private.addons.cmdb": "Uključuje ili isključuje CMDB modul (imovina): registar, veze s tiketima, licence, ugovori i uvoz. Zadano isključeno.",
+        "private.assets.ticketPicker.enabled": "Korisnici pri kreiranju tiketa mogu izabrati svoju opremu.",
+        "private.assets.tag.autoGenerate": "Generiši inventarni broj kad je polje prazno ({prefiks}{godina}-{broj}).",
+        "private.assets.tag.prefix": "Prefiks generisanih inventarnih brojeva (slova, cifre, - ili /; najviše 12).",
+        "private.assets.currency": "Valuta nabavnih cijena (ISO 4217 kod, npr. BAM ili EUR).",
+        "private.assets.frequentFailure.count": "Upozorenje „česti kvarovi“: broj tiketa na jednoj stavci (2–50).",
+        "private.assets.frequentFailure.days": "Upozorenje „česti kvarovi“: broji se unutar ovoliko dana (7–365).",
+        "private.assets.reminders.enabled": "Podsjeti prije isteka garancija, ugovora i licenci.",
+        "private.assets.reminders.daysBefore": "Pragovi podsjetnika u danima prije isteka, odvojeni zarezom (1–365, najviše 6).",
+        "private.assets.reminders.recipients": "Dodatni interni e-mail primaoci podsjetnika o isteku, odvojeni zarezom.",
+        "private.assets.import.maxRows": "Najveći broj redova u jednom fajlu za uvoz (100–20000).",
+        "private.assets.import.maxFileMb": "Najveća veličina fajla za uvoz u MB (1–20).",
+        "private.assets.handover.enabled": "Ponudi zapisnik o primopredaji (PDF) pri zaduženju ili razduženju opreme.",
+        "private.assets.handover.header": "Tekst zaglavlja zapisnika (npr. naziv i adresa organizacije).",
+        "private.assets.handover.footer": "Napomena u podnožju zapisnika (npr. obaveze korisnika).",
+        "private.assets.directorySync.enabled": "Sinhronizuj računare iz Active Directoryja (potrebna ispravna AD veza).",
+        "private.assets.directorySync.intervalHours": "Broj sati između sinhronizacija računara (1–24).",
+        "private.assets.directorySync.baseDn": "Base DN u kojem se traže računari (prazno = base DN direktorija). Vezano za okruženje.",
+        "private.assets.directorySync.includeDisabled": "Uvezi i onemogućene računarske naloge.",
+        "private.assets.directorySync.typeKey": "Ključ tipa imovine za računare iz direktorija.",
+        "private.assets.directorySync.serverTypeKey": "Ključ tipa imovine za računare iz direktorija čiji je operativni sistem serverski.",
+        "private.assets.directorySync.userMatch": "Redoslijed povezivanja računara s korisnikom: managedBy, namePattern, description (odvojeno zarezom).",
+        "private.assets.directorySync.namePattern": "Regularni izraz nad imenom računara s imenovanom grupom „login“, npr. ^PC-(?<login>[a-z.]+)$.",
+        "private.assets.directorySync.defaultOrganizationalUnitId": "ID organizacione jedinice za računare iz direktorija čija OU nije mapirana (prazno = preskoči ih)."
       }
     },
     "emailTemplates": {
@@ -2527,6 +2571,10 @@
         "serviceDowntime": {
           "label": "Nedostupnost servisa",
           "description": "Zakazivanje downtime prozora na servisima."
+        },
+        "cmdb": {
+          "label": "CMDB (imovina)",
+          "description": "Registar opreme, veze s tiketima, licence, ugovori i uvoz iz Excela."
         }
       }
     },
@@ -5608,6 +5656,349 @@
       "dates": "Unesite ispravan početak i kraj.",
       "order": "Kraj mora biti nakon početka.",
       "duration": "Najava može trajati najviše {{days}} dana."
+    }
+  },
+  "assets": {
+    "title": "Imovina",
+    "subtitle": "Registar opreme, softvera i infrastrukture sa zaduženjima, vezama i historijom.",
+    "disabledTitle": "Modul imovine je isključen",
+    "disabledBody": "Administrator ga može uključiti u Postavke → Dodaci (CMDB).",
+    "forbiddenTitle": "Nemate pristup registru imovine",
+    "forbiddenBody": "Potrebna je dozvola za pregled imovine. Vaša oprema je pod Moja oprema.",
+    "tabs": {
+      "register": "Registar",
+      "catalog": "Tipovi i lokacije"
+    },
+    "status": {
+      "ORDERED": "Naručeno",
+      "IN_STOCK": "Na zalihi",
+      "IN_USE": "U upotrebi",
+      "IN_REPAIR": "Na servisu",
+      "LOST": "Izgubljeno",
+      "RETIRED": "Povučeno iz upotrebe",
+      "DISPOSED": "Otpisano"
+    },
+    "source": {
+      "MANUAL": "Ručno",
+      "IMPORT": "Uvoz",
+      "DIRECTORY": "Active Directory"
+    },
+    "categories": {
+      "HARDWARE": "Hardver",
+      "SOFTWARE": "Softver",
+      "NETWORK": "Mreža",
+      "INFRASTRUCTURE": "Infrastruktura",
+      "OTHER": "Ostalo"
+    },
+    "dataTypes": {
+      "TEXT": "Tekst",
+      "NUMBER": "Broj",
+      "DATE": "Datum",
+      "BOOLEAN": "Da/ne",
+      "SELECT": "Izbor"
+    },
+    "warranty": {
+      "expired": "Garancija istekla",
+      "expiring": "Garancija ističe"
+    },
+    "fields": {
+      "assetTag": "Inventarni broj",
+      "name": "Naziv",
+      "type": "Tip",
+      "status": "Status",
+      "serialNumber": "Serijski broj",
+      "manufacturer": "Proizvođač",
+      "model": "Model",
+      "organizationalUnit": "Organizaciona jedinica",
+      "location": "Lokacija",
+      "service": "Servis",
+      "assignedUser": "Korisnik",
+      "assignedAt": "Zaduženo",
+      "purchaseDate": "Datum nabavke",
+      "purchaseCost": "Nabavna cijena",
+      "supplier": "Dobavljač",
+      "warrantyEndsAt": "Garancija do",
+      "notes": "Napomene",
+      "source": "Izvor",
+      "externalId": "ID u direktoriju",
+      "lastSeenAt": "Zadnje viđen u direktoriju"
+    },
+    "list": {
+      "filtersLabel": "Filteri imovine",
+      "searchPlaceholder": "Inventarni ili serijski broj, naziv, korisnik…",
+      "searchLabel": "Pretraga imovine",
+      "allTypes": "Svi tipovi",
+      "allStatuses": "Svi statusi",
+      "allUnits": "Sve jedinice",
+      "allLocations": "Sve lokacije",
+      "allSources": "Svi izvori",
+      "warrantyExpiring": "Garancija ističe za 30 dana",
+      "unassigned": "Nezaduženo",
+      "resetFilters": "Poništi filtere",
+      "create": "Nova stavka",
+      "count_one": "{{count}} stavka (prikazano {{shown}})",
+      "count_few": "{{count}} stavke (prikazano {{shown}})",
+      "count_other": "{{count}} stavki (prikazano {{shown}})",
+      "emptyTitle": "Još nema imovine",
+      "emptyBody": "Dodajte prvu stavku ili uvezite tabelu (uvoz dolazi u sljedećem koraku).",
+      "noMatchesTitle": "Ništa ne odgovara",
+      "noMatchesBody": "Promijenite ili poništite filtere.",
+      "caption": "Registar imovine",
+      "openTickets": "Otvoreni tiketi",
+      "loadMore": "Učitaj još",
+      "missingFromDirectory": "Nije u AD-u"
+    },
+    "form": {
+      "createTitle": "Nova stavka",
+      "editTitle": "Uredi stavku",
+      "duplicateTitle": "Dupliciraj stavku",
+      "description": "Polja sa * su obavezna. Atributi zavise od izabranog tipa.",
+      "tagHint": "Ostavite prazno za sljedeći generisani broj.",
+      "directoryNameHint": "Naziv dolazi iz Active Directoryja i ovdje se ne mijenja.",
+      "none": "— nema —",
+      "serviceHint": "Povežite stavku sa servisom iz kataloga (npr. server iza aplikacije).",
+      "purchaseSection": "Nabavka i garancija",
+      "attributesSection": "Atributi tipa",
+      "invalidCost": "Unesite cijenu kao broj, npr. 1250,50.",
+      "noUnits": "Nijedna organizaciona jedinica nije u vašem opsegu.",
+      "save": "Sačuvaj",
+      "saved": "Stavka je sačuvana"
+    },
+    "actions": {
+      "edit": "Uredi",
+      "duplicate": "Dupliciraj",
+      "changeStatus": "Promijeni status",
+      "assign": "Zaduži",
+      "reassign": "Prezaduži",
+      "unassign": "Razduži",
+      "delete": "Obriši"
+    },
+    "statusSheet": {
+      "current": "Trenutni status: {{status}}",
+      "final": "Otpisano je konačan status i ne može se mijenjati.",
+      "newStatus": "Novi status",
+      "reason": "Razlog",
+      "releaseHint": "Korisnik se razdužuje, a licence stavke se oslobađaju.",
+      "disposedHint": "Otpis je konačan. Stavka ostaje u registru radi evidencije.",
+      "submit": "Promijeni status"
+    },
+    "assignSheet": {
+      "description": "Pronađite korisnika po imenu ili e-mailu.",
+      "currentUser": "Trenutno zadužen: {{name}}. Novo zaduženje ga prvo razdužuje.",
+      "search": "Korisnik",
+      "searchHint": "Najmanje 2 znaka.",
+      "results": "Pronađeni korisnici",
+      "noUsers": "Nijedan aktivan korisnik ne odgovara.",
+      "note": "Napomena",
+      "submit": "Zaduži"
+    },
+    "unassignSheet": {
+      "description": "Razduživanje korisnika {{name}}.",
+      "nextStatus": "Sljedeći status",
+      "submit": "Razduži"
+    },
+    "detail": {
+      "back": "Registar",
+      "notFoundTitle": "Stavka nije dostupna",
+      "tabs": {
+        "overview": "Pregled",
+        "tickets": "Tiketi",
+        "relations": "Veze",
+        "history": "Historija"
+      },
+      "basics": "Osnovni podaci",
+      "assignment": "Zaduženje",
+      "purchase": "Nabavka i garancija",
+      "attributes": "Atributi",
+      "noAttributes": "Ovaj tip nema atribute.",
+      "yes": "Da",
+      "no": "Ne",
+      "assignmentSuggested": "Prijedlog iz direktorija — potvrdite",
+      "frequentFailure": "Česti kvarovi: {{count}} povezanih tiketa u zadnjih {{days}} dana.",
+      "missingFromDirectory": "Računar nije pronađen u Active Directoryju od {{date}}.",
+      "ticketsTitle": "Povezani tiketi",
+      "ticketsSubtitle": "Ukupno {{total}}, otvoreno {{open}}",
+      "noTicketsTitle": "Nema povezanih tiketa",
+      "noTicketsBody": "Ovdje se pojavljuju tiketi povezani sa stavkom.",
+      "primaryLink": "Primarna",
+      "deleteTitle": "Obrisati stavku?",
+      "deleteBody": "{{name}} i njena historija bit će trajno obrisani. Bolje je povući je iz upotrebe — evidencija ostaje.",
+      "deleted": "Stavka je obrisana"
+    },
+    "relations": {
+      "title": "Veze",
+      "subtitle": "Od čega stavka zavisi i šta zavisi od nje.",
+      "add": "Dodaj vezu",
+      "addDescription": "Od: {{name}}",
+      "addSubmit": "Dodaj",
+      "kind": "Veza",
+      "target": "Stavka",
+      "targetHint": "Tražite po inventarnom ili serijskom broju ili nazivu (najmanje 2 znaka).",
+      "results": "Pronađene stavke",
+      "noResults": "Nijedna stavka ne odgovara.",
+      "emptyTitle": "Nema veza",
+      "emptyBody": "Povežite servere, aplikacije, mrežne uređaje i komponente.",
+      "remove": "Ukloni vezu sa {{name}}",
+      "removeTitle": "Ukloniti vezu?",
+      "removeBody": "Veza sa {{name}} bit će uklonjena.",
+      "removeConfirm": "Ukloni",
+      "kinds": {
+        "DEPENDS_ON": {
+          "out": "Zavisi od",
+          "in": "Potreban za"
+        },
+        "INSTALLED_ON": {
+          "out": "Instalirano na",
+          "in": "Ima instalirano"
+        },
+        "CONNECTED_TO": {
+          "out": "Povezano sa",
+          "in": "Povezano sa"
+        },
+        "RUNS_ON": {
+          "out": "Radi na",
+          "in": "Hostuje"
+        },
+        "PART_OF": {
+          "out": "Dio je",
+          "in": "Sadrži"
+        }
+      }
+    },
+    "impact": {
+      "title": "Analiza uticaja",
+      "subtitle": "Do tri nivoa dubine.",
+      "dependents": "Pogođeno ako stavka otkaže",
+      "dependencies": "Stavka zavisi od",
+      "noDependents": "Ništa ne zavisi od ove stavke.",
+      "noDependencies": "Stavka ne zavisi ni od čega.",
+      "depth": "Nivo {{depth}}",
+      "hidden_one": "Još {{count}} stavka izvan vašeg opsega",
+      "hidden_few": "Još {{count}} stavke izvan vašeg opsega",
+      "hidden_other": "Još {{count}} stavki izvan vašeg opsega"
+    },
+    "history": {
+      "title": "Historija",
+      "system": "Sistem",
+      "unknownUser": "Nepoznat korisnik",
+      "text": {
+        "status": "Promjena statusa: {{from}} → {{to}}",
+        "assigned": "Zaduženo: {{name}}",
+        "unassigned": "Razduženo: {{name}}",
+        "updated": "Izmijenjeno: {{fields}}"
+      },
+      "actions": {
+        "created": "Kreirano",
+        "updated": "Izmijenjeno",
+        "status": "Promjena statusa",
+        "assigned": "Zaduženo",
+        "unassigned": "Razduženo",
+        "relation_added": "Dodana veza",
+        "relation_removed": "Uklonjena veza",
+        "ticket_linked": "Povezano s tiketom",
+        "ticket_unlinked": "Uklonjeno s tiketa",
+        "license_assigned": "Dodijeljena licenca",
+        "license_released": "Oslobođena licenca",
+        "contract_linked": "Povezan ugovor",
+        "contract_unlinked": "Uklonjen ugovor",
+        "imported": "Uvezeno",
+        "directory_synced": "Sinhronizovano iz AD-a"
+      }
+    },
+    "mine": {
+      "title": "Moja oprema",
+      "subtitle": "Oprema zadužena na vas i vaši tiketi u vezi s njom.",
+      "emptyTitle": "Nemate zaduženu opremu",
+      "emptyBody": "Kad vam IT zaduži uređaj, pojavit će se ovdje.",
+      "listLabel": "Moja oprema",
+      "tickets": "Moji tiketi",
+      "noTickets": "Nema tiketa za ovu stavku."
+    },
+    "catalog": {
+      "showArchived": "Prikaži arhivirane",
+      "typesTitle": "Tipovi imovine",
+      "typesSubtitle": "Tipovi određuju ikone, kategorije i dodatne atribute.",
+      "addType": "Dodaj tip",
+      "editType": "Uredi tip {{name}}",
+      "editTypeTitle": "Uredi tip",
+      "typeDescription": "Ključ se kasnije ne može mijenjati; nazivi se prikazuju po jeziku.",
+      "archive": "Arhiviraj {{name}}",
+      "restore": "Vrati {{name}}",
+      "archived": "Arhivirano",
+      "userSelectable": "Korisnici biraju",
+      "assetCount_one": "{{count}} stavka",
+      "assetCount_few": "{{count}} stavke",
+      "assetCount_other": "{{count}} stavki",
+      "noAttributes": "Nema atributa.",
+      "addAttribute": "Dodaj atribut",
+      "editAttribute": "Uredi atribut {{name}}",
+      "editAttributeTitle": "Uredi atribut",
+      "attributeDescription": "Atribut tipa {{type}}.",
+      "key": "Ključ",
+      "keyHint": "Mala slova, cifre i crtice; počinje slovom.",
+      "attributeKeyHint": "Slova i cifre (camelCase), počinje malim slovom.",
+      "keyInvalid": "Ključ nije u traženom formatu.",
+      "nameBs": "Naziv (bosanski)",
+      "nameEn": "Naziv (engleski)",
+      "labelBs": "Oznaka (bosanski)",
+      "labelEn": "Oznaka (engleski)",
+      "category": "Kategorija",
+      "icon": "Ikona",
+      "sortOrder": "Redoslijed",
+      "userSelectableLabel": "Korisnici mogu izabrati stavke ovog tipa na tiketu",
+      "userSelectableHint": "Npr. laptopi da, mrežni svičevi ne.",
+      "dataType": "Tip podatka",
+      "dataTypeHint": "Tip podatka se ne može mijenjati dok stavke imaju vrijednosti.",
+      "options": "Opcije",
+      "optionsHint": "Jedna opcija po redu.",
+      "required": "Obavezno",
+      "unique": "Jedinstveno",
+      "requiredLabel": "Obavezno",
+      "uniqueLabel": "Jedinstveno unutar tipa (npr. MAC adresa)",
+      "locationsTitle": "Lokacije",
+      "locationsSubtitle": "Dva nivoa: zgrada i prostorija/sprat.",
+      "addLocation": "Dodaj lokaciju",
+      "editLocation": "Uredi lokaciju {{name}}",
+      "editLocationTitle": "Uredi lokaciju",
+      "locationDescription": "Lokacija može biti na vrhu (zgrada) ili unutar druge (prostorija).",
+      "parentLocation": "Unutar",
+      "parentLockedHint": "Lokacija s podlokacijama ostaje na vrhu.",
+      "topLevel": "— vrh —",
+      "locationName": "Naziv",
+      "locationCode": "Šifra",
+      "locationCodeHint": "Opcionalno, jedinstveno (npr. B1-204).",
+      "noLocationsTitle": "Nema lokacija",
+      "noLocationsBody": "Dodajte zgrade i prostorije.",
+      "actionFailed": "Izmjena nije sačuvana"
+    },
+    "errors": {
+      "disabled": "Modul imovine je isključen.",
+      "notFound": "Stavka ne postoji ili je izvan vašeg opsega.",
+      "forbidden": "Nemate dozvolu za ovu radnju.",
+      "outOfScope": "Organizaciona jedinica je izvan vašeg opsega.",
+      "invalid": "Neki podaci nisu ispravni.",
+      "tagTaken": "Ovaj inventarni broj je već zauzet.",
+      "statusTransition": "Ova promjena statusa nije dozvoljena.",
+      "reasonRequired": "Unesite razlog.",
+      "versionConflict": "Neko je u međuvremenu izmijenio stavku. Osvježite i pokušajte ponovo.",
+      "readOnly": "Ovo polje održava sinhronizacija s direktorijem.",
+      "attributeInvalid": "Vrijednost atributa nije ispravna.",
+      "attributeNotUnique": "Vrijednost atributa već koristi druga stavka.",
+      "typeNotFound": "Tip ne postoji.",
+      "typeKeyTaken": "Ovaj ključ tipa je već zauzet.",
+      "typeArchived": "Tip je arhiviran.",
+      "attributeKeyTaken": "Ovaj ključ atributa već postoji u tipu.",
+      "attributeHasValues": "Tip podatka se ne može mijenjati dok stavke imaju vrijednosti.",
+      "locationNotFound": "Lokacija ne postoji.",
+      "locationCodeTaken": "Ova šifra lokacije je već zauzeta.",
+      "locationInUse": "Lokacija još ima stavke ili podlokacije.",
+      "unitNotFound": "Organizaciona jedinica ne postoji.",
+      "userNotFound": "Korisnik ne postoji ili nije aktivan.",
+      "serviceNotFound": "Servis ne postoji.",
+      "relationExists": "Ova veza već postoji.",
+      "relationCycle": "Veza bi napravila krug.",
+      "relationSelf": "Stavka se ne može povezati sama sa sobom.",
+      "hasDependents": "Druge stavke još zavise od ove."
     }
   }
 }

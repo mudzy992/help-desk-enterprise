@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   CalendarClock,
   Megaphone,
+  Boxes,
+  Laptop,
 } from "lucide-react";
 
 /**
@@ -39,6 +41,8 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/status": Activity,
   "/on-call": CalendarClock,
   "/announcements": Megaphone,
+  "/assets": Boxes,
+  "/my-assets": Laptop,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

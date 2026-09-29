@@ -1,4 +1,7 @@
 model OrganizationalUnit {
+  assets Asset[]
+  assetContracts AssetContract[]
+  softwareLicenses SoftwareLicense[]
   id                 String                  @id @default(cuid())
   reportSchedules ReportSchedule[]
   name               String

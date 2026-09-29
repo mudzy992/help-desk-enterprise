@@ -36,6 +36,13 @@ export const permissionKeys = {
   statusIncidentsManage: "status.incidents.manage",
   onCallRead: "oncall.read",
   onCallManage: "oncall.manage",
+  assetRead: "asset.read",
+  assetManage: "asset.manage",
+  assetImport: "asset.import",
+  assetLicenseManage: "asset.license.manage",
+  assetContractManage: "asset.contract.manage",
+  assetTypeManage: "asset.type.manage",
+  assetReportRead: "asset.report.read",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];
@@ -43,6 +50,7 @@ export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys]
 export const roleKeys = {
   user: "USER",
   agent: "AGENT",
+  assetManager: "ASSET_MANAGER",
   admin: "ADMIN",
   superAdmin: "SUPER_ADMIN",
 } as const;

@@ -76,6 +76,12 @@ export const installAddonCatalog = [
     defaultEnabled: true,
     description: 'Service downtime addon flag from the install wizard catalog',
   },
+  {
+    // Paket 3.2: the whole CMDB module (off until the right moment).
+    key: 'cmdb',
+    defaultEnabled: false,
+    description: 'CMDB (assets) addon: asset register, ticket links, licences, contracts, import',
+  },
 ] as const;
 
 export type InstallAddonKey = (typeof installAddonCatalog)[number]['key'];

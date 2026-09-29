@@ -2,6 +2,8 @@ import { Controller, ForbiddenException, Get, Req, UseGuards } from '@nestjs/com
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { readAuthenticatedPrincipal } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
+import { settingKeys } from '../settings/setting-keys';
+import { SettingsService } from '../settings/settings.service';
 import { AuthorizationContextLoader } from './authorization-context.loader';
 import type { CurrentSessionResponse } from './current-session.types';
 import { toCurrentSessionResponse } from './to-current-session-response';
@@ -13,7 +15,16 @@ import { toCurrentSessionResponse } from './to-current-session-response';
 export class CurrentSessionController {
   constructor(
     private readonly authorizationContextLoader: AuthorizationContextLoader,
+    private readonly settings: SettingsService,
   ) {}
+
+  private async isEnabled(key: string): Promise<boolean> {
+    try {
+      return (await this.settings.getSetting(key)) === true;
+    } catch {
+      return false;
+    }
+  }
 
   @Get('session')
   async getCurrentSession(
@@ -33,6 +44,7 @@ export class CurrentSessionController {
       await this.authorizationContextLoader.loadHomeOrganizationalUnit(
         principal.subjectId,
       );
-    return toCurrentSessionResponse(principal, context, homeOrganizationalUnit);
+    const cmdb = await this.isEnabled(settingKeys.privateAddonsCmdb);
+    return toCurrentSessionResponse(principal, context, homeOrganizationalUnit, { cmdb });
   }
 }

@@ -59,6 +59,10 @@ export const installAddonCopyKeys = {
     label: "install.addons.catalog.serviceDowntime.label",
     description: "install.addons.catalog.serviceDowntime.description",
   },
+  cmdb: {
+    label: "install.addons.catalog.cmdb.label",
+    description: "install.addons.catalog.cmdb.description",
+  },
 } as const;
 
 export type InstallAddonCopyKey = keyof typeof installAddonCopyKeys;
