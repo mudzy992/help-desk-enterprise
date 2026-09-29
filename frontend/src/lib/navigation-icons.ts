@@ -14,6 +14,7 @@ import {
   GitFork,
   MessageSquareText,
   ShieldCheck,
+  CalendarClock,
 } from "lucide-react";
 
 /**
@@ -35,6 +36,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/admin/templates": MessageSquareText,
   "/privacy": ShieldCheck,
   "/status": Activity,
+  "/on-call": CalendarClock,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

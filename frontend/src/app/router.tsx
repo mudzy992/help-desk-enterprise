@@ -8,6 +8,7 @@ import {
   GitFork,
   MessageSquareText,
   ShieldCheck,
+  CalendarClock,
 } from "lucide-react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { InstallSetupLayout } from "@/app/install-setup-layout";
@@ -20,6 +21,7 @@ import {
   canOpenConfigVersionsPage,
   canOpenEmailTemplatesPage,
   canOpenPrivacy,
+  canOpenOnCall,
   canOpenReports,
   canOpenRouting,
   canOpenSla,
@@ -60,6 +62,7 @@ const PrivacyPage = lazyPage(() => import("@/pages/privacy-page"), "PrivacyPage"
 const PrivacyNoticePage = lazyPage(() => import("@/pages/privacy-notice-page"), "PrivacyNoticePage");
 const SlaPage = lazyPage(() => import("@/pages/sla-page"), "SlaPage");
 const StatusPage = lazyPage(() => import("@/pages/status-page"), "StatusPage");
+const OnCallPage = lazyPage(() => import("@/pages/on-call-page"), "OnCallPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
@@ -110,6 +113,20 @@ export function AppRouter() {
             <Route path="services" element={<ServicesPage />} />
             {/* Paket 2.7 (§8): every signed-in user; managing is gated server-side. */}
             <Route path="status" element={<StatusPage />} />
+            {/* Paket 2.9 (K3): on-call calendar, holders of oncall.read. */}
+            <Route
+              path="on-call"
+              element={
+                <RequireAccess
+                  check={canOpenOnCall}
+                  forbiddenTitleKey="onCall.forbiddenTitle"
+                  forbiddenBodyKey="onCall.forbiddenBody"
+                  icon={<CalendarClock size={18} strokeWidth={1.8} />}
+                >
+                  <OnCallPage />
+                </RequireAccess>
+              }
+            />
             <Route path="knowledge-base">
               <Route index element={<KnowledgeBasePage />} />
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />

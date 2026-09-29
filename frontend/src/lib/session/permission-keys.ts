@@ -33,6 +33,8 @@ export const permissionKeys = {
   opsAlertsManage: "ops.alerts.manage",
   opsAlertsReceive: "ops.alerts.receive",
   statusIncidentsManage: "status.incidents.manage",
+  onCallRead: "oncall.read",
+  onCallManage: "oncall.manage",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

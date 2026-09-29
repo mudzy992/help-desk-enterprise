@@ -102,6 +102,8 @@ export type SlaEscalationRule = {
   readonly targetGroupId: string | null;
   readonly targetRole: string | null;
   readonly targetUserId: string | null;
+  /** Paket 2.9 (K3): notify the current on-call agent of the target group. */
+  readonly targetOnCall?: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -112,6 +114,7 @@ export type EscalationRuleWriteInput = {
   readonly targetGroupId: string;
   readonly targetRole: string;
   readonly targetUserId: string;
+  readonly targetOnCall?: boolean;
   readonly reason: string;
 };
 

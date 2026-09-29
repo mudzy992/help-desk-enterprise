@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { controlClassName, errorTextClassName, labelClassName } from "@/components/ui/control";
+import { Checkbox } from "@/components/ui/checkbox";
+import { controlClassName, errorTextClassName, hintClassName, labelClassName } from "@/components/ui/control";
 import type { SlaErrorKey } from "@/lib/sla/map-sla-error";
 import { listGroups, type GroupListItemResponse } from "@/services/groups-api";
 import { listRoles, type RoleSummaryResponse } from "@/services/rbac-api";
@@ -29,6 +30,7 @@ export function SlaEscalationRuleForm(props: SlaEscalationRuleFormProperties) {
   const [targetGroupId, setTargetGroupId] = useState(props.rule?.targetGroupId ?? "");
   const [targetRole, setTargetRole] = useState(props.rule?.targetRole ?? "");
   const [targetUserId, setTargetUserId] = useState(props.rule?.targetUserId ?? "");
+  const [targetOnCall, setTargetOnCall] = useState(props.rule?.targetOnCall === true);
   const [reason, setReason] = useState("");
   const [groups, setGroups] = useState<GroupListItemResponse[]>([]);
   const [roles, setRoles] = useState<RoleSummaryResponse[]>([]);
@@ -59,6 +61,7 @@ export function SlaEscalationRuleForm(props: SlaEscalationRuleFormProperties) {
       targetGroupId: targetKind === "group" ? targetGroupId : "",
       targetRole: targetKind === "role" ? targetRole : "",
       targetUserId: targetKind === "user" ? targetUserId : "",
+      targetOnCall: targetKind === "group" && targetOnCall,
       reason,
     });
     setReason("");
@@ -90,6 +93,16 @@ export function SlaEscalationRuleForm(props: SlaEscalationRuleFormProperties) {
         onTargetRoleChange={setTargetRole}
         onTargetUserIdChange={setTargetUserId}
       />
+      {targetKind === "group" ? (
+        <div className="grid gap-1">
+          <Checkbox
+            checked={targetOnCall}
+            onChange={(event) => setTargetOnCall(event.target.checked)}
+            label={<span className="text-[12.5px] font-medium text-foreground">{t("sla.escalationTargetOnCall")}</span>}
+          />
+          <span className={`pl-6 ${hintClassName}`}>{t("sla.escalationTargetOnCallHint")}</span>
+        </div>
+      ) : null}
       <label className={labelClassName}>
         {t("sla.reason")}
         <input

@@ -24,6 +24,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.templates": "Šabloni i playbooks",
   "navigation.privacy": "Privatnost",
   "navigation.status": "Status servisa",
+  "navigation.onCall": "Dežurstva",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {

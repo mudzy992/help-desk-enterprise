@@ -32,6 +32,9 @@ import {
   type NotificationPreferences,
 } from "@/services/notification-preferences-api";
 import { ScrollRegion } from "@/components/ui/scroll-region";
+import { OnCallCalendarFeedCard } from "@/components/on-call/on-call-calendar-feed-card";
+import { permissionKeys } from "@/lib/session/permission-keys";
+import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 
 type CategoryLabelKey = `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
 type Replace<S extends string> = S extends `${infer Head}.${infer Tail}` ? `${Head}_${Replace<Tail>}` : S;
@@ -46,6 +49,11 @@ const emailModes: readonly NotificationEmailMode[] = ["IMMEDIATE", "DIGEST", "OF
  * locally and saved in one PUT with only the changed values.
  */
 export function AccountNotificationsPage() {
+  const capabilities = useSessionCapabilities();
+  // Paket 2.9 (K3): personal on-call calendar feed for holders of oncall.read.
+  const canUseOnCall =
+    capabilities.session !== null &&
+    (capabilities.session.isSuperAdmin || capabilities.hasPermission(permissionKeys.onCallRead));
   const { t } = useTranslation();
   const { locale } = useLocale();
   const { toast } = useToast();
@@ -373,6 +381,7 @@ export function AccountNotificationsPage() {
               </div>
             </Card>
           ) : null}
+          {canUseOnCall ? <OnCallCalendarFeedCard /> : null}
         </div>
       ) : null}
       <ConfirmDialog

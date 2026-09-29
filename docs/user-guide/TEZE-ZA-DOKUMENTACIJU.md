@@ -234,3 +234,29 @@ To je kriterij kompletnosti.
 - **Izvori:** `frontend/src/lib/shortcuts/ticket-list-context.ts`
 - **Status:** Važi
 - **Wiki stranica:** Agent → Rad na tiketima
+
+### T9 — Rupa u rasporedu dežurstva nema vlasnika dok je neko ne popuni
+
+- **Modul / paket:** Dežurstva · 2.9 (K3)
+- **Publika:** Admin, Agent
+- **Tip:** Ponašanje
+- **Teza:** kad dežurni odustane od smjene bez zamjene, nastaje rupa (gap) i grupa dobija upozorenje.
+  Ko rupu popuni (preuzme smjenu), postaje njen vlasnik — nema automatske dodjele.
+- **Zašto:** ne smije se desiti da sistem tiho „izabere“ nekoga ko nije dostupan.
+- **Zamka:** dok je rupa otvorena, eskalacija „na dežurnog grupe“ pada na samu grupu.
+- **Izvori:** `backend/src/modules/on-call/`
+- **Status:** Važi
+- **Wiki stranica:** Agent → Dežurstva
+
+### T10 — Ograničenja raspona kod zamjene i pregleda dežurstava
+
+- **Modul / paket:** Dežurstva · 2.9 (K3)
+- **Publika:** Admin, Agent
+- **Tip:** Ograničenje
+- **Teza:** zamjena (swap) ili odsustvo se može unijeti za najviše 31 dan odjednom; pregled
+  kalendara i računanje rotacije idu najviše 366 dana unaprijed.
+- **Zašto:** rotacija se računa, a ne čuva; velike raspone treba razbiti da greška ne pregazi
+  mjesecima unaprijed.
+- **Izvori:** `docs/plans/modules/2.9-dodatne-nadogradnje.md` §4
+- **Status:** Važi
+- **Wiki stranica:** Agent → Dežurstva

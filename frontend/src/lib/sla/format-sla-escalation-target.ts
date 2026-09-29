@@ -6,7 +6,7 @@ type Translate = (key: string, options?: Record<string, string>) => string;
 export function formatSlaEscalationTarget(
   rule: Pick<
     SlaEscalationRule,
-    "targetRole" | "targetGroupId" | "targetUserId"
+    "targetRole" | "targetGroupId" | "targetUserId" | "targetOnCall"
   >,
   translate: Translate,
 ): string {
@@ -15,6 +15,11 @@ export function formatSlaEscalationTarget(
     const roleLabel = translate(roleKey);
     const role = roleLabel === roleKey ? rule.targetRole : roleLabel;
     return translate("sla.escalationTargetRoleValue", { role });
+  }
+  if (rule.targetGroupId && rule.targetOnCall) {
+    return translate("sla.escalationTargetOnCallValue", {
+      id: rule.targetGroupId,
+    });
   }
   if (rule.targetGroupId) {
     return translate("sla.escalationTargetGroupValue", {

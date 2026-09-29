@@ -23,7 +23,8 @@
     "workflow": "Status flow",
     "templates": "Templates & playbooks",
     "privacy": "Privacy",
-    "status": "Service status"
+    "status": "Service status",
+    "onCall": "On-call"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -2754,7 +2755,10 @@
     "errorOverlap": "Working intervals overlap or are invalid.",
     "errorInUse": "The record is still in use and cannot be deleted.",
     "errorMaxEscalationLevels": "Maximum escalation levels for this profile are exceeded.",
-    "errorGeneric": "SLA configuration is currently unavailable."
+    "errorGeneric": "SLA configuration is currently unavailable.",
+    "escalationTargetOnCall": "Group on-call agent",
+    "escalationTargetOnCallHint": "The escalation goes only to whoever is on call at that moment (quiet hours do not apply). If nobody is on call, it goes to the whole group.",
+    "escalationTargetOnCallValue": "On-call of group: {{id}}"
   },
   "integrationQueue": {
     "heading": "Durable integration queue",
@@ -5070,5 +5074,181 @@
       "showShortcuts": "Show all shortcuts"
     },
     "scrollRegion": "Scrollable content (use arrow keys)"
+  },
+  "onCall": {
+    "title": "On-call",
+    "subtitle": "Who is on call per group, rotation schedules, overrides and shift swap requests.",
+    "loading": "Loading on-call…",
+    "refresh": "Refresh",
+    "disabledTitle": "On-call is not enabled",
+    "disabledBody": "An administrator enables it in Settings (On-call → Enabled).",
+    "forbiddenTitle": "You do not have access to on-call",
+    "forbiddenBody": "This page needs the oncall.read permission (AGENT, ADMIN or SUPER_ADMIN).",
+    "nobody": "Nobody on call",
+    "gap": "Gap",
+    "unavailable": "unavailable",
+    "until": "until {{time}}",
+    "from": "From",
+    "to": "To",
+    "reason": "Reason",
+    "reasonHint": "Written to the audit log (at least 3 characters).",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "source": {
+      "override": "override"
+    },
+    "header": {
+      "short": "On call until {{time}}",
+      "label": "You are on call for {{group}} until {{time}}. Open on-call."
+    },
+    "mine": {
+      "title": "My shifts",
+      "subtitle": "Current and next shift in the coming 14 days.",
+      "none": "You have no shift in the coming 14 days.",
+      "now": "Now",
+      "next": "Next"
+    },
+    "swaps": {
+      "title": "Swap requests",
+      "subtitle": "A rotation colleague confirms the swap; only then does the schedule change.",
+      "none": "No open requests.",
+      "incoming": "{{name}} asks you to take the on-call shift ({{group}}).",
+      "outgoing": "Waiting for {{name}} ({{group}}).",
+      "accept": "Accept",
+      "decline": "Decline",
+      "cancel": "Withdraw request",
+      "accepted": "Swap accepted and added to the schedule.",
+      "declined": "Swap declined.",
+      "cancelled": "Request withdrawn.",
+      "history": "Earlier ({{count}})",
+      "groupPending": "Pending requests in this group",
+      "status": {
+        "PENDING": "pending",
+        "ACCEPTED": "accepted",
+        "DECLINED": "declined",
+        "CANCELLED": "withdrawn"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "subtitle": "Pick a group for its calendar and details.",
+      "none": "No group has an on-call schedule yet.",
+      "noneManager": "No groups.",
+      "noSchedule": "No schedule",
+      "inactive": "Schedule paused",
+      "current": "{{name}} until {{time}}"
+    },
+    "detail": {
+      "noSchedule": "This group has no on-call schedule",
+      "noScheduleManager": "Create a schedule: member order, shift length and handoff time.",
+      "noScheduleReader": "An administrator creates the schedule.",
+      "summary": "Shift: {{length}}, handoff at {{time}} ({{zone}})",
+      "current": "{{name}} is on call now, until {{time}}.",
+      "gap": "Nobody is on call right now. Escalations go to the whole group and the schedule owner has been told.",
+      "owner": "Schedule owner: {{name}}",
+      "autoAssignOn": "outside business hours new tickets go to the on-call agent"
+    },
+    "calendar": {
+      "label": "On-call calendar, four weeks",
+      "previous": "Previous four weeks",
+      "next": "Next four weeks",
+      "today": "Today",
+      "legend": "Times are shown in the schedule zone ({{zone}}). Blue = override, dashed = nobody on call."
+    },
+    "schedule": {
+      "create": "Create schedule",
+      "edit": "Edit schedule",
+      "createTitle": "New on-call schedule",
+      "editTitle": "Edit on-call schedule",
+      "rotationLength": "Shift length",
+      "week": "week",
+      "day": "day",
+      "handoffTime": "Handoff time",
+      "handoffHint": "The shift changes at this time (15-minute steps).",
+      "startDate": "Rotation start",
+      "startDateHint": "The first member takes over on this day at the handoff time.",
+      "timezone": "Time zone",
+      "timezoneHint": "IANA name, e.g. Europe/Sarajevo. Daylight saving time is taken into account.",
+      "owner": "Schedule owner",
+      "ownerHint": "Gets a warning when a shift has nobody on call.",
+      "ownerMe": "Me (if nobody is picked)",
+      "members": "Rotation order",
+      "membersHint": "Only active group members with the AGENT role or higher. Change the order with the arrows.",
+      "noMembers": "The rotation has no members — nobody is on call.",
+      "addMember": "Add member",
+      "pick": "Choose…",
+      "noCandidates": "No other candidates in the group",
+      "add": "Add",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
+      "remove": "Remove {{name}} from the rotation",
+      "active": "Schedule is active",
+      "autoAssign": "Outside business hours assign new tickets to the on-call agent",
+      "autoAssignHint": "Business hours come from the service's SLA calendar. Within business hours the usual assignment strategy applies.",
+      "save": "Save schedule",
+      "saved": "Schedule saved.",
+      "delete": "Delete schedule",
+      "deleteTitle": "Delete the on-call schedule?",
+      "deleteBody": "The rotation, overrides and swap requests of this group are deleted. Escalations to the on-call agent fall back to the whole group.",
+      "deleted": "Schedule deleted."
+    },
+    "override": {
+      "open": "Add override",
+      "title": "Schedule override",
+      "person": "On call in this period",
+      "save": "Save override",
+      "saved": "Override added.",
+      "list": "Overrides",
+      "none": "No overrides.",
+      "fromSwap": "from request",
+      "delete": "Delete override",
+      "deleteTitle": "Delete the override?",
+      "deleteBody": "The rotation applies again for this period.",
+      "deleted": "Override deleted."
+    },
+    "swap": {
+      "open": "Request swap",
+      "title": "Shift swap request",
+      "description": "A rotation colleague of {{group}} takes the period you choose once they confirm.",
+      "colleague": "Colleague",
+      "reasonHint": "Your colleague sees the reason in the request.",
+      "send": "Send request",
+      "requested": "Request sent to your colleague."
+    },
+    "feed": {
+      "title": "On-call calendar (iCal)",
+      "subtitle": "Subscribe to your own shifts from Outlook or another calendar, 90 days ahead.",
+      "create": "Create address",
+      "rotate": "New address",
+      "revoke": "Revoke",
+      "url": "Calendar address",
+      "copy": "Copy address",
+      "copied": "Address copied.",
+      "copyFailed": "Copy failed; select and copy it manually.",
+      "onceWarning": "The address is shown only now. Keep it like a password — anyone with it sees your shifts.",
+      "active": "The address has been active since {{time}}.",
+      "none": "No address yet.",
+      "hint": "In Outlook: Add calendar → Subscribe from web. The calendar refreshes roughly every hour.",
+      "rotateTitle": "Create a new address?",
+      "rotateBody": "The old address stops working immediately; the subscription must be renewed.",
+      "revokeTitle": "Revoke the calendar address?",
+      "revokeBody": "Subscribed calendars stop receiving shifts.",
+      "revoked": "Address revoked."
+    },
+    "errors": {
+      "disabled": "On-call is not enabled.",
+      "groupNotFound": "The group does not exist.",
+      "scheduleNotFound": "The group has no on-call schedule.",
+      "invalidSchedule": "The schedule settings are invalid (zone, time or date).",
+      "invalidMember": "The person is not an active group member with the AGENT role or higher.",
+      "invalidRange": "Invalid period: it must end in the future, last at most 31 days and be within a year.",
+      "overlap": "The period overlaps an existing override.",
+      "overrideNotFound": "The override no longer exists.",
+      "swapNotFound": "The request no longer exists.",
+      "swapNotAllowed": "You can only ask a colleague from the same rotation; only that colleague can answer.",
+      "swapNotPending": "The request has already been handled.",
+      "forbidden": "This action needs the oncall.manage permission.",
+      "order": "The end must be after the start."
+    }
   }
 }

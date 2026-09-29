@@ -23,7 +23,8 @@
     "workflow": "Tok statusa",
     "templates": "Šabloni i playbooks",
     "privacy": "Privatnost",
-    "status": "Status servisa"
+    "status": "Status servisa",
+    "onCall": "Dežurstva"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -2770,7 +2771,10 @@
     "errorOverlap": "Radni intervali se preklapaju ili nisu ispravni.",
     "errorInUse": "Zapis se još koristi i ne može se obrisati.",
     "errorMaxEscalationLevels": "Dosegnut je maksimalni broj nivoa eskalacije za ovaj profil.",
-    "errorGeneric": "SLA konfiguracija trenutno nije dostupna."
+    "errorGeneric": "SLA konfiguracija trenutno nije dostupna.",
+    "escalationTargetOnCall": "Dežurni grupe",
+    "escalationTargetOnCallHint": "Eskalacija ide samo osobi koja je dežurna u trenutku eskalacije (tihi sati ne vrijede). Ako niko nije dežuran, ide cijeloj grupi.",
+    "escalationTargetOnCallValue": "Dežurni grupe: {{id}}"
   },
   "integrationQueue": {
     "heading": "Trajni integracioni red",
@@ -5104,5 +5108,181 @@
       "showShortcuts": "Prikaži sve prečice"
     },
     "scrollRegion": "Pomični sadržaj (strelice za pomicanje)"
+  },
+  "onCall": {
+    "title": "Dežurstva",
+    "subtitle": "Ko je dežuran po grupama, raspored rotacije, zamjene i zahtjevi za zamjenu smjene.",
+    "loading": "Učitavanje dežurstava…",
+    "refresh": "Osvježi",
+    "disabledTitle": "Dežurstva nisu uključena",
+    "disabledBody": "Administrator ih uključuje u Postavkama (Dežurstva → Uključeno).",
+    "forbiddenTitle": "Nemate pristup dežurstvima",
+    "forbiddenBody": "Za ovu stranicu potrebno je ovlaštenje oncall.read (AGENT, ADMIN ili SUPER_ADMIN).",
+    "nobody": "Nema dežurnog",
+    "gap": "Rupa",
+    "unavailable": "nedostupan/na",
+    "until": "do {{time}}",
+    "from": "Od",
+    "to": "Do",
+    "reason": "Razlog",
+    "reasonHint": "Upisuje se u audit (najmanje 3 znaka).",
+    "saving": "Spremanje…",
+    "delete": "Obriši",
+    "source": {
+      "override": "zamjena"
+    },
+    "header": {
+      "short": "Dežurni do {{time}}",
+      "label": "Dežurni ste za grupu {{group}} do {{time}}. Otvori dežurstva."
+    },
+    "mine": {
+      "title": "Moje smjene",
+      "subtitle": "Trenutna i sljedeća smjena u narednih 14 dana.",
+      "none": "Nemate smjenu u narednih 14 dana.",
+      "now": "Sada",
+      "next": "Sljedeća"
+    },
+    "swaps": {
+      "title": "Zahtjevi za zamjenu",
+      "subtitle": "Kolega iz rotacije potvrđuje zamjenu; tek tada se mijenja raspored.",
+      "none": "Nema otvorenih zahtjeva.",
+      "incoming": "{{name}} traži da preuzmete dežurstvo ({{group}}).",
+      "outgoing": "Čeka se odgovor: {{name}} ({{group}}).",
+      "accept": "Prihvati",
+      "decline": "Odbij",
+      "cancel": "Povuci zahtjev",
+      "accepted": "Zamjena je prihvaćena i upisana u raspored.",
+      "declined": "Zamjena je odbijena.",
+      "cancelled": "Zahtjev je povučen.",
+      "history": "Ranije ({{count}})",
+      "groupPending": "Zahtjevi na čekanju u ovoj grupi",
+      "status": {
+        "PENDING": "na čekanju",
+        "ACCEPTED": "prihvaćeno",
+        "DECLINED": "odbijeno",
+        "CANCELLED": "povučeno"
+      }
+    },
+    "groups": {
+      "title": "Grupe",
+      "subtitle": "Odaberite grupu za kalendar i detalje.",
+      "none": "Nijedna grupa još nema raspored dežurstva.",
+      "noneManager": "Nema grupa.",
+      "noSchedule": "Bez rasporeda",
+      "inactive": "Raspored je pauziran",
+      "current": "{{name}} do {{time}}"
+    },
+    "detail": {
+      "noSchedule": "Grupa nema raspored dežurstva",
+      "noScheduleManager": "Kreirajte raspored: redoslijed članova, dužinu smjene i vrijeme primopredaje.",
+      "noScheduleReader": "Raspored kreira administrator.",
+      "summary": "Smjena: {{length}}, primopredaja u {{time}} ({{zone}})",
+      "current": "Sada je dežuran/na {{name}}, do {{time}}.",
+      "gap": "Trenutno nema dežurnog. Eskalacije idu cijeloj grupi, a vlasnik rasporeda je obaviješten.",
+      "owner": "Vlasnik rasporeda: {{name}}",
+      "autoAssignOn": "van radnog vremena novi tiketi idu dežurnom"
+    },
+    "calendar": {
+      "label": "Kalendar dežurstava, četiri sedmice",
+      "previous": "Prethodne četiri sedmice",
+      "next": "Sljedeće četiri sedmice",
+      "today": "Danas",
+      "legend": "Vrijeme je prikazano u zoni rasporeda ({{zone}}). Plavo = zamjena, isprekidano = nema dežurnog."
+    },
+    "schedule": {
+      "create": "Kreiraj raspored",
+      "edit": "Uredi raspored",
+      "createTitle": "Novi raspored dežurstva",
+      "editTitle": "Uredi raspored dežurstva",
+      "rotationLength": "Dužina smjene",
+      "week": "sedmica",
+      "day": "dan",
+      "handoffTime": "Vrijeme primopredaje",
+      "handoffHint": "Smjena se mijenja u ovo vrijeme (koraci od 15 minuta).",
+      "startDate": "Početak rotacije",
+      "startDateHint": "Prvi član preuzima smjenu ovog dana u vrijeme primopredaje.",
+      "timezone": "Vremenska zona",
+      "timezoneHint": "IANA naziv, npr. Europe/Sarajevo. Ljetno računanje vremena se uzima u obzir.",
+      "owner": "Vlasnik rasporeda",
+      "ownerHint": "Dobija upozorenje kad smjena nema dežurnog.",
+      "ownerMe": "Ja (ako nije odabran niko)",
+      "members": "Redoslijed rotacije",
+      "membersHint": "Samo aktivni članovi grupe s ulogom AGENT ili višom. Redoslijed mijenjate strelicama.",
+      "noMembers": "Rotacija nema članova — nema dežurnog.",
+      "addMember": "Dodaj člana",
+      "pick": "Odaberite…",
+      "noCandidates": "Nema drugih kandidata u grupi",
+      "add": "Dodaj",
+      "moveUp": "Pomjeri {{name}} gore",
+      "moveDown": "Pomjeri {{name}} dolje",
+      "remove": "Ukloni {{name}} iz rotacije",
+      "active": "Raspored je aktivan",
+      "autoAssign": "Van radnog vremena dodijeli nove tikete dežurnom",
+      "autoAssignHint": "Radno vrijeme se uzima iz SLA kalendara usluge. U radnom vremenu vrijedi uobičajena strategija dodjele.",
+      "save": "Spremi raspored",
+      "saved": "Raspored je spremljen.",
+      "delete": "Obriši raspored",
+      "deleteTitle": "Obrisati raspored dežurstva?",
+      "deleteBody": "Brišu se rotacija, zamjene i zahtjevi za zamjenu ove grupe. Eskalacije dežurnom padaju na cijelu grupu.",
+      "deleted": "Raspored je obrisan."
+    },
+    "override": {
+      "open": "Dodaj zamjenu",
+      "title": "Zamjena u rasporedu",
+      "person": "Dežurni u tom periodu",
+      "save": "Spremi zamjenu",
+      "saved": "Zamjena je upisana.",
+      "list": "Zamjene",
+      "none": "Nema zamjena.",
+      "fromSwap": "iz zahtjeva",
+      "delete": "Obriši zamjenu",
+      "deleteTitle": "Obrisati zamjenu?",
+      "deleteBody": "U tom periodu ponovo vrijedi rotacija.",
+      "deleted": "Zamjena je obrisana."
+    },
+    "swap": {
+      "open": "Zatraži zamjenu",
+      "title": "Zahtjev za zamjenu smjene",
+      "description": "Kolega iz rotacije grupe {{group}} preuzima period koji odaberete, kad potvrdi.",
+      "colleague": "Kolega",
+      "reasonHint": "Kolega vidi razlog u zahtjevu.",
+      "send": "Pošalji zahtjev",
+      "requested": "Zahtjev je poslan kolegi."
+    },
+    "feed": {
+      "title": "Kalendar dežurstava (iCal)",
+      "subtitle": "Pretplata na vlastite smjene iz Outlooka ili drugog kalendara, 90 dana unaprijed.",
+      "create": "Kreiraj adresu",
+      "rotate": "Nova adresa",
+      "revoke": "Poništi",
+      "url": "Adresa kalendara",
+      "copy": "Kopiraj adresu",
+      "copied": "Adresa je kopirana.",
+      "copyFailed": "Kopiranje nije uspjelo; označite i kopirajte ručno.",
+      "onceWarning": "Adresa se prikazuje samo sada. Čuvajte je kao lozinku — ko je ima, vidi vaše smjene.",
+      "active": "Adresa je aktivna od {{time}}.",
+      "none": "Adresa još nije kreirana.",
+      "hint": "U Outlooku: Dodaj kalendar → Pretplati se s weba. Kalendar se osvježava otprilike svaki sat.",
+      "rotateTitle": "Kreirati novu adresu?",
+      "rotateBody": "Stara adresa odmah prestaje raditi; pretplatu treba obnoviti.",
+      "revokeTitle": "Poništiti adresu kalendara?",
+      "revokeBody": "Pretplaćeni kalendari više neće dobijati smjene.",
+      "revoked": "Adresa je poništena."
+    },
+    "errors": {
+      "disabled": "Dežurstva nisu uključena.",
+      "groupNotFound": "Grupa ne postoji.",
+      "scheduleNotFound": "Grupa nema raspored dežurstva.",
+      "invalidSchedule": "Postavke rasporeda nisu ispravne (zona, vrijeme ili datum).",
+      "invalidMember": "Osoba nije aktivan član grupe s ulogom AGENT ili višom.",
+      "invalidRange": "Period nije ispravan: mora završiti u budućnosti, trajati najviše 31 dan i biti unutar godine dana.",
+      "overlap": "Period se preklapa s postojećom zamjenom.",
+      "overrideNotFound": "Zamjena više ne postoji.",
+      "swapNotFound": "Zahtjev više ne postoji.",
+      "swapNotAllowed": "Zamjenu možete tražiti samo od kolege iz iste rotacije; odgovara samo kolega kojem je upućena.",
+      "swapNotPending": "Zahtjev je već riješen.",
+      "forbidden": "Za ovu radnju potrebno je ovlaštenje oncall.manage.",
+      "order": "Kraj mora biti nakon početka."
+    }
   }
 }

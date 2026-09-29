@@ -208,6 +208,7 @@ function toEscalationPayload(input: EscalationRuleWriteInput) {
     targetGroupId: targetGroupId.length === 0 ? null : targetGroupId,
     targetRole: targetRole.length === 0 ? null : targetRole,
     targetUserId: targetUserId.length === 0 ? null : targetUserId,
+    targetOnCall: targetGroupId.length > 0 && input.targetOnCall === true,
     reason: input.reason,
   };
 }

@@ -18,6 +18,7 @@ export const navigationLabelKeys = {
   templates: "navigation.templates",
   privacy: "navigation.privacy",
   status: "navigation.status",
+  onCall: "navigation.onCall",
 } as const;
 
 export type NavigationLabelKey =
@@ -147,6 +148,14 @@ export const statusNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.authenticated },
 };
 
+/** Paket 2.9 (K3): on-call calendar, holders of oncall.read. */
+export const onCallNavigationItem: NavigationItem = {
+  path: "/on-call",
+  labelKey: navigationLabelKeys.onCall,
+  end: false,
+  access: { kind: navigationAccessKinds.onCall },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -154,7 +163,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem, inboxNavigationItem, templatesNavigationItem],
+    items: [ticketsNavigationItem, inboxNavigationItem, templatesNavigationItem, onCallNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.services,

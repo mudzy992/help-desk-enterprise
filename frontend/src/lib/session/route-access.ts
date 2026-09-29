@@ -10,6 +10,7 @@ export const navigationAccessKinds = {
   reports: "reports",
   configVersions: "configVersions",
   privacy: "privacy",
+  onCall: "onCall",
 } as const;
 
 export type NavigationAccessKind =
@@ -77,6 +78,15 @@ export function canOpenPrivacy(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.privacyView);
 }
 
+/** Paket 2.9 (K3): the on-call calendar needs `oncall.read` (AGENT, ADMIN, SUPER_ADMIN). */
+export function canOpenOnCall(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.onCallRead);
+}
+
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
@@ -136,6 +146,8 @@ export function canAccessNavigationItem(
       return canOpenConfigVersionsPage(capabilities);
     case navigationAccessKinds.privacy:
       return canOpenPrivacy(capabilities);
+    case navigationAccessKinds.onCall:
+      return canOpenOnCall(capabilities);
     default:
       return false;
   }

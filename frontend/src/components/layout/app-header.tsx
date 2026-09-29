@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ActiveTimerIndicator } from "@/components/layout/active-timer-indicator";
 import { HeaderSearchTrigger } from "@/components/layout/header-search-trigger";
 import { NotificationsBell } from "@/components/layout/notifications-bell";
+import { OnCallHeaderIndicator } from "@/components/on-call/on-call-header-indicator";
 import { SessionControls } from "@/components/layout/session-controls";
 import { SystemStatusChip } from "@/components/layout/system-status-chip";
 import { ThemeSwitcher } from "@/components/layout/theme-switcher";
@@ -34,6 +35,7 @@ export function AppHeader({
       <HeaderSearchTrigger onOpen={onOpenCommandPalette} />
       <div className="ml-auto flex min-w-0 items-center gap-1.5">
         <ActiveTimerIndicator />
+        <OnCallHeaderIndicator />
         <SystemStatusChip />
         <ThemeSwitcher />
         <NotificationsBell />
