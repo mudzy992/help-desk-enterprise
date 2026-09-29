@@ -34,6 +34,7 @@ import {
 } from "@/services/privacy-api";
 import type { UserSummary } from "@/services/users-api";
 import { PanelIntro, PersonPicker, useDateFormat, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const statusTones: Record<DataSubjectRequestStatus, BadgeTone> = {
   RECEIVED: "info",
@@ -125,7 +126,7 @@ export function PrivacyRequestsPanel({ canManage, canAnonymize, onFollowUp }: Pr
           body={t("privacy.requests.emptyBody")}
         />
       ) : (
-        <div className={tableWrapClassName}>
+        <ScrollRegion className={tableWrapClassName}>
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -181,7 +182,7 @@ export function PrivacyRequestsPanel({ canManage, canAnonymize, onFollowUp }: Pr
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
 
       <CreateRequestSheet

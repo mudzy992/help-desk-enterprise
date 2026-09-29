@@ -26,6 +26,7 @@ import {
   type DirectoryTestConnectionResult,
   type LdapsSyncStatus,
 } from "@/services/directory-sync-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 /*
   Paket 1.8 (A3/A4): LDAPS sync console for SUPER_ADMIN.
@@ -299,7 +300,7 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
           {runs.length === 0 ? (
             <p className="text-muted-foreground">{t("directory.ldaps.historyEmpty")}</p>
           ) : (
-            <div className={tableWrapClassName}>
+            <ScrollRegion className={tableWrapClassName}>
               <table className="w-full min-w-[720px] text-left text-[12.5px]">
                 <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
                   <tr>
@@ -347,7 +348,7 @@ export function LdapsDirectorySyncPanel({ status, onChanged }: LdapsDirectorySyn
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           )}
         </section>
       </div>

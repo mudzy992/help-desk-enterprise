@@ -42,6 +42,7 @@ import {
   usePrivacyFailure,
   useUserDirectory,
 } from "./privacy-shared";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const statusTones: Record<ErasureStatus, BadgeTone> = {
   PENDING_APPROVAL: "warning",
@@ -157,7 +158,7 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
             body={t("privacy.anonymization.candidatesEmptyBody")}
           />
         ) : (
-          <div className={tableWrapClassName}>
+          <ScrollRegion className={tableWrapClassName}>
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -194,7 +195,7 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
         <div className="mt-3 flex max-w-xl flex-wrap items-end gap-2">
           <div className="min-w-[260px] flex-1">
@@ -225,7 +226,7 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
         {erasures.length === 0 ? (
           <p className={hintClassName}>{t("privacy.anonymization.historyEmpty")}</p>
         ) : (
-          <div className={tableWrapClassName}>
+          <ScrollRegion className={tableWrapClassName}>
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -284,7 +285,7 @@ export function PrivacyAnonymizationPanel({ initialUserId, requestId, onPrefillC
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </section>
 

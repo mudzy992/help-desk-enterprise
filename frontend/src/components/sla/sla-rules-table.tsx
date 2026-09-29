@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/control";
 import { slaPriorityLabelKey } from "@/lib/sla/sla-form-defaults";
 import type { SlaRule } from "@/services/sla-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface SlaRulesTableProperties {
   readonly rules: readonly SlaRule[];
@@ -23,7 +24,7 @@ export function SlaRulesTable({
 }: SlaRulesTableProperties) {
   const { t } = useTranslation();
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[720px] text-left">
         <thead>
           <tr className="border-b border-border/70">
@@ -70,6 +71,6 @@ export function SlaRulesTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

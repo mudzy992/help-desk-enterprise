@@ -27,6 +27,7 @@ import {
   type ReportPackList,
   type ReportPackPreview,
 } from "@/services/report-packs-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface ReportPacksPanelProperties {
   readonly organizationalUnitId: string | null;
@@ -214,7 +215,7 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                   <span>{t("reports.packs.truncated", { shown: preview.rows.length })}</span>
                 ) : null}
               </div>
-              <div className={tableWrapClassName}>
+              <ScrollRegion className={tableWrapClassName}>
                 <table className="w-full text-[12.5px]" data-testid="report-pack-table">
                   <thead className="border-b border-border/70 bg-surface-hover/60">
                     <tr>
@@ -270,7 +271,7 @@ export function ReportPacksPanel({ organizationalUnitId, from, to }: ReportPacks
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </ScrollRegion>
             </>
           )}
         </div>

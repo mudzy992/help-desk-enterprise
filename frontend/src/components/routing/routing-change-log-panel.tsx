@@ -8,6 +8,7 @@ import {
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Card, CardHeader } from "@/components/ui/card";
 import type { RoutingChangeLogEntry } from "@/services/routing-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface RoutingChangeLogPanelProperties {
   readonly entries: readonly RoutingChangeLogEntry[];
@@ -44,7 +45,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
             <p className="mt-1.5 text-[12.5px] italic text-foreground/85">
               “{entry.reason}”
             </p>
-            <div className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
+            <ScrollRegion className={`${tableWrapClassName} mt-2 overflow-hidden rounded-lg border border-border`}>
               <table className="w-full">
                 <thead>
                   <tr className="bg-elevated/60 text-left text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
@@ -83,7 +84,7 @@ export function RoutingChangeLogPanel({ entries }: RoutingChangeLogPanelProperti
                   )}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </li>
         ))}
       </ul>

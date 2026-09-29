@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { UsersSummaryRow } from "@/components/users/users-summary-row";
 import { tableHeadClassName } from "@/components/ui/control";
 import type { UserSummary } from "@/services/users-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface UsersTableProperties {
   readonly visible: readonly UserSummary[];
@@ -16,7 +17,7 @@ export function UsersTable({
 }: UsersTableProperties) {
   const { t } = useTranslation();
   return (
-    <div className="fade-in overflow-x-auto">
+    <ScrollRegion className="fade-in overflow-x-auto">
       <table className="w-full min-w-[860px] text-left">
         <thead>
           <tr
@@ -42,6 +43,6 @@ export function UsersTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

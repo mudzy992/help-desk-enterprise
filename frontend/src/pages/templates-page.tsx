@@ -35,6 +35,7 @@ import {
   type ResponseTemplate,
   type TemplateListState,
 } from "@/services/templates-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 type TabKey = "shared" | "playbooks" | "mine";
 
@@ -296,7 +297,7 @@ function TemplateTable({
 }) {
   const { t } = useTranslation();
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full text-left text-[12.5px]" data-testid="templates-table">
         <thead className={tableHeadClassName}>
           <tr className="border-b border-border/70 [&>th]:px-3 [&>th]:py-2">
@@ -351,7 +352,7 @@ function TemplateTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 
@@ -366,7 +367,7 @@ function PlaybookTable({
 }) {
   const { t } = useTranslation();
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full text-left text-[12.5px]" data-testid="playbooks-table">
         <thead className={tableHeadClassName}>
           <tr className="border-b border-border/70 [&>th]:px-3 [&>th]:py-2">
@@ -427,7 +428,7 @@ function PlaybookTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

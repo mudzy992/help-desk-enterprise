@@ -6,6 +6,7 @@ import {
   tableWrapClassName,
 } from "@/components/ui/control";
 import type { ConfigValidationIssue } from "@/services/config-versions-types";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface ConfigValidationErrorsProperties {
   readonly issues: readonly ConfigValidationIssue[];
@@ -22,7 +23,7 @@ export function ConfigValidationErrors({ issues }: ConfigValidationErrorsPropert
     );
   }
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[480px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -41,6 +42,6 @@ export function ConfigValidationErrors({ issues }: ConfigValidationErrorsPropert
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

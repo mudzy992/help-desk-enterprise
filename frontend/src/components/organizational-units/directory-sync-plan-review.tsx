@@ -11,6 +11,7 @@ import {
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { downloadDirectoryPlanCsv } from "@/lib/directory/directory-sync-plan-csv";
 import type { DirectorySyncPlan } from "@/services/directory-sync-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 /*
   Paket 1.8 (A4): read-only review of a dry-run plan. Large plans render the
@@ -173,7 +174,7 @@ export function DirectorySyncPlanReview({ runId, plan, footer }: DirectorySyncPl
       {rows.length === 0 ? (
         <p className="px-1 py-3 text-[12px] text-muted-foreground">{t("directory.ldaps.plan.emptyTab")}</p>
       ) : (
-        <div className={tableWrapClassName}>
+        <ScrollRegion className={tableWrapClassName}>
           <table className="w-full min-w-[680px] text-left text-[12.5px]">
             <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
               <tr>
@@ -210,7 +211,7 @@ export function DirectorySyncPlanReview({ runId, plan, footer }: DirectorySyncPl
               {t("directory.ldaps.plan.truncated", { shown: ROW_LIMIT, total: rows.length })}
             </p>
           ) : null}
-        </div>
+        </ScrollRegion>
       )}
       {footer}
     </div>

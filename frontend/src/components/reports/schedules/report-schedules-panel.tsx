@@ -33,6 +33,7 @@ import {
   type ReportScheduleRunStatus,
 } from "@/services/report-schedules-api";
 import { ReportScheduleSheet, type ReportScheduleDraft } from "./report-schedule-sheet";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface ReportSchedulesPanelProperties {
   readonly units: readonly TrendsFilterOption[];
@@ -226,7 +227,7 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
           body={t("reports.schedules.emptyBody")}
         />
       ) : (
-        <div className={tableWrapClassName}>
+        <ScrollRegion className={tableWrapClassName}>
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -307,7 +308,7 @@ export function ReportSchedulesPanel({ units, services, groups, draft, onDraftCo
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
 
       <ReportScheduleSheet

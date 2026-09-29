@@ -6,6 +6,7 @@ import { describeWorkflowGuard } from "@/lib/workflow/describe-workflow-guard";
 import { ticketStatusLabelKey } from "@/lib/tickets/ticket-constants";
 import type { TicketStatus } from "@/services/tickets-api";
 import type { TicketWorkflowResponse, WorkflowTransition } from "@/services/workflow-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface WorkflowTransitionsTableProperties {
   readonly transitions: readonly WorkflowTransition[];
@@ -41,7 +42,7 @@ export function WorkflowTransitionsTable({
           ))}
         </select>
       </label>
-      <div className={tableWrapClassName}>
+      <ScrollRegion className={tableWrapClassName}>
         <table className="w-full text-left text-[12px]" data-testid="workflow-transitions-table">
           <thead className="text-[11px] uppercase tracking-wide text-muted-foreground">
             <tr>
@@ -91,7 +92,7 @@ export function WorkflowTransitionsTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

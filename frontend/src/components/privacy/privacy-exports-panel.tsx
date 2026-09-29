@@ -29,6 +29,7 @@ import {
   type PrivacyExport,
 } from "@/services/privacy-api";
 import { PanelIntro, PersonPicker, useDateFormat, useIdentityGuard, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const statusTones: Record<ExportStatus, BadgeTone> = {
   QUEUED: "info",
@@ -194,7 +195,7 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
             body={t("privacy.exports.emptyBody")}
           />
         ) : (
-          <div className={tableWrapClassName}>
+          <ScrollRegion className={tableWrapClassName}>
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -255,7 +256,7 @@ export function PrivacyExportsPanel({ initialSubjectId, requestId, onPrefillCons
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </section>
       {dialog}

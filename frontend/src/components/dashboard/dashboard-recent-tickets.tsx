@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { TicketResponse } from "@/services/tickets-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface DashboardRecentTicketsProperties {
   readonly items: readonly TicketResponse[];
@@ -32,7 +33,7 @@ export function DashboardRecentTickets({
   }
 
   return (
-    <div className="fade-in overflow-x-auto">
+    <ScrollRegion className="fade-in overflow-x-auto">
       <table className="w-full min-w-[720px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -72,6 +73,6 @@ export function DashboardRecentTickets({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

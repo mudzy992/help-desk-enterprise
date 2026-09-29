@@ -3,6 +3,7 @@ import { RelativeTime } from "@/components/ui/relative-time";
 import { EmptyState } from "@/components/ui/empty-state";
 import { tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import type { SlaChangeLogEntry } from "@/services/sla-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface SlaChangeLogPanelProperties {
   readonly entries: readonly SlaChangeLogEntry[];
@@ -19,7 +20,7 @@ export function SlaChangeLogPanel({ entries }: SlaChangeLogPanelProperties) {
     );
   }
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[640px] text-left">
         <thead>
           <tr className="border-b border-border/70">
@@ -53,7 +54,7 @@ export function SlaChangeLogPanel({ entries }: SlaChangeLogPanelProperties) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 

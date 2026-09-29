@@ -9,6 +9,7 @@ import { formatHours, formatMinutes } from "@/lib/reports/report-format";
 import { TICKET_PRIORITY_META } from "@/lib/theme/semantic-meta";
 import type { SlaRule } from "@/services/sla-types";
 import type { TicketPriority } from "@/services/tickets-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface SlaPriorityTargetsTableProperties {
   readonly rules: readonly SlaRule[];
@@ -42,7 +43,7 @@ export function SlaPriorityTargetsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <ScrollRegion className="overflow-x-auto">
       <table className="w-full min-w-[560px]">
         <thead>
           <tr className="border-b border-border/70 text-left">
@@ -101,6 +102,6 @@ export function SlaPriorityTargetsTable({
           })}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

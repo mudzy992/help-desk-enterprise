@@ -9,6 +9,7 @@ import {
   type PriorityMatrixCell,
 } from "@/services/priority-matrix-api";
 import type { TicketImpact, TicketPriority, TicketUrgency } from "@/services/tickets-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const levels: readonly TicketImpact[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const priorities: readonly TicketPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
@@ -77,7 +78,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
           {t(errorKey)}
         </p>
       ) : null}
-      <div className="overflow-x-auto">
+      <ScrollRegion className="overflow-x-auto">
         <table className="w-full min-w-[520px] border-collapse text-[12px]">
           <thead>
             <tr>
@@ -127,7 +128,7 @@ export function PriorityMatrixPanel({ canWrite }: PriorityMatrixPanelProperties)
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
       {canWrite ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <label className={`flex-1 space-y-1 ${labelClassName}`}>

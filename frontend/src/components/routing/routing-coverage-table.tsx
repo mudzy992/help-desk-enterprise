@@ -10,6 +10,7 @@ import {
   type RoutingCoverageCellKind,
 } from "./build-routing-coverage-matrix";
 import { RoutingCoverageCell } from "./routing-coverage-cell";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface RoutingCoverageTableProperties {
   readonly items: readonly RoutingCoverageItem[];
@@ -85,7 +86,7 @@ export function RoutingCoverageTable({
           ))}
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <ScrollRegion className="overflow-x-auto">
         <table
           className="w-full min-w-[980px] border-separate"
           style={{ borderSpacing: 3 }}
@@ -164,7 +165,7 @@ export function RoutingCoverageTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollRegion>
     </div>
   );
 }

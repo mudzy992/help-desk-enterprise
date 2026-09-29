@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { configVersionBadgeTone } from "@/lib/config-versions/config-version-display";
 import type { ConfigVersion } from "@/services/config-versions-types";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface ConfigVersionListProperties {
   readonly versions: readonly ConfigVersion[];
@@ -25,7 +26,7 @@ export function ConfigVersionList({
   const { t, i18n } = useTranslation();
 
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[720px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -83,6 +84,6 @@ export function ConfigVersionList({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

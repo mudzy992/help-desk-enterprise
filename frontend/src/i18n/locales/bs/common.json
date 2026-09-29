@@ -5008,6 +5008,7 @@
       "savedOff": "Prečice su isključene.",
       "saveError": "Postavka nije sačuvana. Pokušajte ponovo.",
       "showShortcuts": "Prikaži sve prečice"
-    }
+    },
+    "scrollRegion": "Pomični sadržaj (strelice za pomicanje)"
   }
 }

@@ -7,6 +7,7 @@ import type {
   RoutingHandlerGroup,
   RoutingRuleResponse,
 } from "@/services/routing-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface RoutingRulesTableProperties {
   readonly rules: readonly RoutingRuleResponse[];
@@ -31,7 +32,7 @@ export function RoutingRulesTable({
     );
   }
   return (
-    <div className="overflow-x-auto">
+    <ScrollRegion className="overflow-x-auto">
       <table className="w-full min-w-[720px]">
         <thead>
           <tr className="border-b border-border/70 text-left">
@@ -85,6 +86,6 @@ export function RoutingRulesTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

@@ -11,6 +11,7 @@ import { canRetryIntegrationJob } from "@/lib/queue/can-retry-integration-job";
 import { integrationJobBadgeTone } from "@/lib/queue/integration-job-badge-tone";
 import { truncateQueueError } from "@/lib/queue/truncate-queue-error";
 import type { IntegrationJob } from "@/services/integration-queue-types";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface IntegrationQueueTableProperties {
   readonly jobs: readonly IntegrationJob[];
@@ -28,7 +29,7 @@ export function IntegrationQueueTable({
   const { t, i18n } = useTranslation();
 
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[720px] text-left text-[13px]">
         <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
           <tr>
@@ -77,6 +78,6 @@ export function IntegrationQueueTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

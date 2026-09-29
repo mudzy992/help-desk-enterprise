@@ -43,6 +43,7 @@ import {
   type OpsAlert,
   type OpsOverview,
 } from "@/services/ops-health-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const knownTestReasons = ["no_recipients", "not_configured", "email_channel_disabled"] as const;
 
@@ -537,7 +538,7 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
       {schedulers.length === 0 ? (
         <p className={hintClassName}>{t("admin.opsHealth.schedulers.empty")}</p>
       ) : (
-        <div className={tableWrapClassName}>
+        <ScrollRegion className={tableWrapClassName}>
           <table className="w-full text-left text-[12.5px]">
             <thead className={tableHeadClassName}>
               <tr className="border-b border-border">
@@ -590,7 +591,7 @@ function SchedulerTable({ overview }: { readonly overview: OpsOverview }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
     </section>
   );
@@ -601,7 +602,7 @@ function QueueTable({ overview }: { readonly overview: OpsOverview }) {
   const growth = overview.dlq.growth?.failedByQueue ?? {};
   if (overview.queues.length === 0) return <p className={hintClassName}>{t("admin.opsHealth.queues.empty")}</p>;
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full text-left text-[12.5px]">
         <thead className={tableHeadClassName}>
           <tr className="border-b border-border">
@@ -629,7 +630,7 @@ function QueueTable({ overview }: { readonly overview: OpsOverview }) {
             ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }
 
@@ -718,7 +719,7 @@ function AlertHistory({ nowMs, historyDays }: { readonly nowMs: number; readonly
         ) : items.length === 0 ? (
           <p className={hintClassName}>{t("admin.opsHealth.history.empty")}</p>
         ) : (
-          <div className={tableWrapClassName}>
+          <ScrollRegion className={tableWrapClassName}>
             <table className="w-full text-left text-[12.5px]">
               <thead className={tableHeadClassName}>
                 <tr className="border-b border-border">
@@ -747,7 +748,7 @@ function AlertHistory({ nowMs, historyDays }: { readonly nowMs: number; readonly
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )
       ) : null}
     </section>

@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { isTicketOverdue } from "@/lib/tickets/filter-tickets";
 import { pickName } from "@/lib/tickets/ticket-names";
 import type { TicketResponse } from "@/services/tickets-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface DashboardAttentionTableProperties {
   readonly items: readonly TicketResponse[];
@@ -83,7 +84,7 @@ export function DashboardAttentionTable({
           }
         />
       ) : (
-        <div className="overflow-x-auto">
+        <ScrollRegion className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">
             <thead>
               <tr className={`border-b border-border/70 ${tableHeadClassName}`}>
@@ -169,7 +170,7 @@ export function DashboardAttentionTable({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
     </Card>
   );

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/control";
 import { formatSlaEscalationTarget } from "@/lib/sla/format-sla-escalation-target";
 import type { SlaEscalationRule } from "@/services/sla-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface SlaEscalationRulesTableProperties {
   readonly rules: readonly SlaEscalationRule[];
@@ -23,7 +24,7 @@ export function SlaEscalationRulesTable({
 }: SlaEscalationRulesTableProperties) {
   const { t } = useTranslation();
   return (
-    <div className={tableWrapClassName}>
+    <ScrollRegion className={tableWrapClassName}>
       <table className="w-full min-w-[640px] text-left">
         <thead>
           <tr className="border-b border-border/70">
@@ -61,6 +62,6 @@ export function SlaEscalationRulesTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollRegion>
   );
 }

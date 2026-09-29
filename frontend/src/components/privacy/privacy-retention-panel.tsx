@@ -34,6 +34,7 @@ import {
   type RetentionRunStatus,
 } from "@/services/privacy-api";
 import { PanelIntro, useDateFormat, usePrivacyFailure } from "./privacy-shared";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const runTones: Record<RetentionRunStatus, BadgeTone> = {
   RUNNING: "info",
@@ -236,7 +237,7 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
         {runs.length === 0 ? (
           <p className={hintClassName}>{t("privacy.retention.runsEmpty")}</p>
         ) : (
-          <div className={tableWrapClassName}>
+          <ScrollRegion className={tableWrapClassName}>
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -288,7 +289,7 @@ export function PrivacyRetentionPanel({ canManage }: { readonly canManage: boole
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollRegion>
         )}
       </section>
 

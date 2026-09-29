@@ -4974,6 +4974,7 @@
       "savedOff": "Shortcuts are off.",
       "saveError": "The setting was not saved. Please try again.",
       "showShortcuts": "Show all shortcuts"
-    }
+    },
+    "scrollRegion": "Scrollable content (use arrow keys)"
   }
 }

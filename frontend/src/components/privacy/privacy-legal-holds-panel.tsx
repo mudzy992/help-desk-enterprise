@@ -27,6 +27,7 @@ import {
   type LegalHoldTarget,
 } from "@/services/privacy-api";
 import { PanelIntro, PersonPicker, useDateFormat, usePrivacyFailure, useUserDirectory } from "./privacy-shared";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface LegalHoldDialogProperties {
   readonly open: boolean;
@@ -198,7 +199,7 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
           body={t("privacy.holds.emptyBody")}
         />
       ) : (
-        <div className={tableWrapClassName}>
+        <ScrollRegion className={tableWrapClassName}>
           <table className="w-full text-[12.5px]">
             <thead>
               <tr className={`${tableHeadClassName} border-b border-border/70`}>
@@ -243,7 +244,7 @@ export function PrivacyLegalHoldsPanel({ canChange }: { readonly canChange: bool
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollRegion>
       )}
       <p className={hintClassName}>{t("privacy.holds.effectHint")}</p>
 

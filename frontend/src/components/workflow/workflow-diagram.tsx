@@ -10,6 +10,7 @@ import {
 } from "@/lib/workflow/layout-workflow-diagram";
 import type { TicketStatus } from "@/services/tickets-api";
 import type { WorkflowPhase, WorkflowTransition } from "@/services/workflow-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 interface WorkflowDiagramProperties {
   readonly statuses: readonly { readonly status: TicketStatus; readonly phase: WorkflowPhase }[];
@@ -30,7 +31,7 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
 
   return (
     <div className="px-3 pb-3">
-      <div className="overflow-x-auto">
+      <ScrollRegion className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="min-w-[720px] w-full"
@@ -160,7 +161,7 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
             );
           })}
         </svg>
-      </div>
+      </ScrollRegion>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-[11.5px] text-muted-foreground">
         {workflowActors.map((actor) => (
           <li key={actor} className="flex items-center gap-1.5">

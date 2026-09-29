@@ -31,6 +31,7 @@ import {
   type NotificationPreferenceCategoryKey,
   type NotificationPreferences,
 } from "@/services/notification-preferences-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 type CategoryLabelKey = `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
 type Replace<S extends string> = S extends `${infer Head}.${infer Tail}` ? `${Head}_${Replace<Tail>}` : S;
@@ -180,7 +181,7 @@ export function AccountNotificationsPage() {
 
           <Card>
             <CardHeader title={t("account.notifications.eventsTitle")} subtitle={t("account.notifications.eventsSubtitle")} />
-            <div className="overflow-x-auto">
+            <ScrollRegion className="overflow-x-auto">
               <table className="w-full text-[12.5px]" data-testid="notification-preferences-table">
                 <thead>
                   <tr className="border-b border-border/70 text-left text-[11.5px] text-muted-foreground">
@@ -246,7 +247,7 @@ export function AccountNotificationsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
           </Card>
 
           {draft.categories.some((category) => category.key === "report.weeklyTickets") ? (

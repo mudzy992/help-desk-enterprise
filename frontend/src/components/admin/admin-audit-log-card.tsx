@@ -21,6 +21,7 @@ import {
   listAuditLogs,
   type AuditLogListRow,
 } from "@/services/audit-log-api";
+import { ScrollRegion } from "@/components/ui/scroll-region";
 
 const auditLogPageTake = 50;
 
@@ -134,7 +135,7 @@ export function AdminAuditLogCard({
           />
         ) : (
           <>
-            <div className={tableWrapClassName}>
+            <ScrollRegion className={tableWrapClassName}>
               <table className="w-full min-w-[760px] text-left text-[13px]">
                 <thead className={`border-b border-border/70 ${tableHeadClassName}`}>
                   <tr>
@@ -180,7 +181,7 @@ export function AdminAuditLogCard({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollRegion>
             {nextCursor !== null ? (
               <div className="mt-3 flex justify-center">
                 <Button
