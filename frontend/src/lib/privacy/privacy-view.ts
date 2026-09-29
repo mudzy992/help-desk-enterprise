@@ -99,10 +99,15 @@ export function todayInputValue(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** A date input (local calendar day) → ISO at local noon, so the day never shifts by time zone. */
-export function dateInputToIso(value: string): string {
+/**
+ * A date input (local calendar day) → ISO at local noon, so the day never
+ * shifts by time zone. Never later than `now`: before noon, "today" would be
+ * in the future and the API rejects future dates (found by E2E 20 in a morning run).
+ */
+export function dateInputToIso(value: string, now: Date = new Date()): string {
   const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day, 12, 0, 0).toISOString();
+  const noon = new Date(year, month - 1, day, 12, 0, 0);
+  return new Date(Math.min(noon.getTime(), now.getTime())).toISOString();
 }
 
 export function matchesPersonQuery(

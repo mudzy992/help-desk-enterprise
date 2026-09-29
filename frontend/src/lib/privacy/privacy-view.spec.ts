@@ -83,6 +83,14 @@ describe("formatting helpers", () => {
     expect(todayInputValue(new Date(2026, 0, 5, 23, 30))).toBe("2026-01-05");
   });
 
+  it("never returns a future instant: today before noon is sent as now", () => {
+    const morning = new Date(2026, 8, 29, 7, 15, 0);
+    expect(dateInputToIso("2026-09-29", morning)).toBe(morning.toISOString());
+    const afternoon = new Date(2026, 8, 29, 15, 0, 0);
+    expect(dateInputToIso("2026-09-29", afternoon)).toBe(new Date(2026, 8, 29, 12, 0, 0).toISOString());
+    expect(dateInputToIso("2026-09-20", morning)).toBe(new Date(2026, 8, 20, 12, 0, 0).toISOString());
+  });
+
   it("matches people by name or e-mail, case-insensitively", () => {
     const person = { displayName: "Šefik Šehić", email: "sefik@example.ba" };
     expect(matchesPersonQuery(person, "")).toBe(true);
