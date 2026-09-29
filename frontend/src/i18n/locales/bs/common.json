@@ -5115,7 +5115,7 @@
     "loading": "Učitavanje dežurstava…",
     "refresh": "Osvježi",
     "disabledTitle": "Dežurstva nisu uključena",
-    "disabledBody": "Administrator ih uključuje u Postavkama (Dežurstva → Uključeno).",
+    "disabledBody": "Administrator ih uključuje u Postavkama → Tok rada → „Uključi dežurstva“ (private.onCall.enabled).",
     "forbiddenTitle": "Nemate pristup dežurstvima",
     "forbiddenBody": "Za ovu stranicu potrebno je ovlaštenje oncall.read (AGENT, ADMIN ili SUPER_ADMIN).",
     "nobody": "Nema dežurnog",

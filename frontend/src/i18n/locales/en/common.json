@@ -5081,7 +5081,7 @@
     "loading": "Loading on-call…",
     "refresh": "Refresh",
     "disabledTitle": "On-call is not enabled",
-    "disabledBody": "An administrator enables it in Settings (On-call → Enabled).",
+    "disabledBody": "An administrator enables it in Settings → Workflow → “Enable on-call schedules” (private.onCall.enabled).",
     "forbiddenTitle": "You do not have access to on-call",
     "forbiddenBody": "This page needs the oncall.read permission (AGENT, ADMIN or SUPER_ADMIN).",
     "nobody": "Nobody on call",
