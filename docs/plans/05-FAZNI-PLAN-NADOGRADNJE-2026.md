@@ -169,9 +169,9 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   tokovima (kreiranje tiketa, razgovor, lista); automatski axe test u CI-ju.
 - Prečice na tastaturi za agente (sljedeći tiket, odgovori, preuzmi).
 
-### 2.9 Dodatne nadogradnje (prijedlog, po odluci)  · ~4 RD (dizajn: ~7 RD)
+### 2.9 Dodatne nadogradnje (prijedlog, po odluci)  · ~4 RD (dizajn: ~7 RD) · ✅ implementirano
 
-> **Status:** dizajn `modules/2.9-dodatne-nadogradnje.md` odobren 2026-09-29 (P1–P11). Implementacija: K4 izvoz/uvoz konfiguracije ✅; slijede K3, K2, K1. Obim (odluka 2026-09-29): sve četiri stavke; kod najava samo najave s potvrdom čitanja, bez anketa.
+> **Status:** dizajn `modules/2.9-dodatne-nadogradnje.md` odobren 2026-09-29 (P1–P11). Implementacija: ✅ sve završeno i potvrđeno na stagingu 2026-09-29 — K4 izvoz/uvoz konfiguracije, K3 dežurstva, K2/K2b najave (e-mail, Teams pripremljen), K1 portal znanja (ocjene 1–5, uvidi, kategorije/FAQ, članak iz odgovora). Obim (odluka 2026-09-29): sve četiri stavke; kod najava samo najave s potvrdom čitanja, bez anketa.
 
 - **Portal znanja za korisnike**: kategorije, „najčešća pitanja", ocjene, članci iz riješenih
   tiketa („pretvori odgovor u članak").
