@@ -6,6 +6,9 @@
 
 ## 0. Prije puštanja u produkciju (obavezno)
 
+> Za DPO-a je pripremljen upitnik s prijedlozima i obrascem za odgovore:
+> [`docs/privacy/DPO-UPITNIK.md`](../../docs/privacy/DPO-UPITNIK.md). Njegov §6 povezuje svaki odgovor s ključem postavke.
+
 1. **DPO pregleda i potvrdi nacrte tekstova.** Tekstovi se uređuju u *Postavke → Privatnost*:
    - obavještenje o obradi (`private.privacy.notice.bs` / `.en`);
    - podaci o rukovaocu (`private.privacy.controller.*`);
