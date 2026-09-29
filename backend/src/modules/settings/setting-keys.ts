@@ -538,6 +538,9 @@ export const settingKeys = {
   privateAnnouncementsMaxDurationDays: 'private.announcements.maxDurationDays',
   privateAnnouncementsAgentsMayPublish: 'private.announcements.agentsMayPublish',
   privateAnnouncementsReceiptRetentionDays: 'private.announcements.receiptRetentionDays',
+  // Paket 2.9 (K2b): Teams channel for announcements (prepared, off by default).
+  privateAnnouncementsTeamsEnabled: 'private.announcements.teamsEnabled',
+  privateAnnouncementsTeamsWebhookUrl: 'private.announcements.teamsWebhookUrl',
   privateStatusPageEnabled: 'private.statusPage.enabled',
   privateStatusPagePublic: 'private.statusPage.public',
   privateStatusPageHistoryDays: 'private.statusPage.historyDays',

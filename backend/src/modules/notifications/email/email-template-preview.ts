@@ -1,3 +1,4 @@
+import { composeAnnouncementEmailPreview } from '../../announcements/compose-announcement-email';
 import { composeOpsAlertEmailPreview } from '../../ops-health/compose-ops-alert-email';
 import { isoWeek } from '../preferences/weekly-ticket-report';
 import { composeWeeklyTicketReportEmail } from './compose-weekly-ticket-report-email';
@@ -147,6 +148,16 @@ export function renderEmailTemplatePreview(input: {
       key: input.key,
       locale,
       recipientName: input.recipientName,
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'announcement.published' || input.key === 'announcement.reminder') {
+    const composed = composeAnnouncementEmailPreview({
+      configuration,
+      templates: input.templates,
+      locale,
+      recipientName: input.recipientName,
+      kind: input.key === 'announcement.published' ? 'PUBLISHED' : 'REMINDER',
     });
     return { subject: composed.subject, html: composed.html, text: composed.text };
   }

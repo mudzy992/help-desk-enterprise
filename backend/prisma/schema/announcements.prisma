@@ -49,12 +49,20 @@ model Announcement {
   anonymizedAcknowledgements   Int                           @default(0)
   audienceNotifiedAt           DateTime?
   lastReminderAt               DateTime?
+  /// K2b: also e-mail the audience (only together with notifyAudience).
+  sendEmail                    Boolean                       @default(false)
+  /// K2b: post an Adaptive Card to the Teams channel when it starts (Teams must be enabled).
+  postToTeams                  Boolean                       @default(false)
+  teamsPostedAt                DateTime?
+  /// Last Teams result: SENT | FAILED | SKIPPED_DISABLED (null = not attempted).
+  teamsResult                  String?                       @db.VarChar(24)
   createdBy                    User?                         @relation("AnnouncementCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   publishedBy                  User?                         @relation("AnnouncementPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
   service                      Service?                      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   acknowledgements             AnnouncementAcknowledgement[]
   dismissals                   AnnouncementDismissal[]
   revisions                    AnnouncementRevision[]
+  emailRuns                    AnnouncementEmailRun[]
   createdAt                    DateTime                      @default(now())
   updatedAt                    DateTime                      @updatedAt
 
@@ -100,4 +108,31 @@ model AnnouncementRevision {
   announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
 
   @@unique([announcementId, version])
+}
+
+enum AnnouncementEmailKind {
+  PUBLISHED
+  REMINDER
+}
+
+/// K2b: one e-mail pass over the audience (start or reminder). The worker walks
+/// the audience in user-id order in batches; `cursor` is the last user handled,
+/// so a restart continues where it stopped and the delivery ledger
+/// (NotificationEmailDelivery, dedupe per run) keeps it exactly-once.
+model AnnouncementEmailRun {
+  id             String                @id @default(cuid())
+  announcementId String
+  kind           AnnouncementEmailKind
+  cursor         String?
+  sentCount      Int                   @default(0)
+  skippedCount   Int                   @default(0)
+  failedCount    Int                   @default(0)
+  /// Why the run ended early (EMAIL_CHANNEL_DISABLED, NOT_ACTIVE) or null.
+  endReason      String?               @db.VarChar(40)
+  createdAt      DateTime              @default(now())
+  completedAt    DateTime?
+  announcement   Announcement          @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([completedAt, createdAt])
+  @@index([announcementId])
 }

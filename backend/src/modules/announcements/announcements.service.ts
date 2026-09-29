@@ -5,11 +5,13 @@ import { appendAuditLog } from '../audit-log/append-audit-log';
 import type { AuditLogTransactionalClient, AuditLogWriteClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import type { JsonValue } from '../change-log/change-log.types';
+import { loadEmailChannelConfiguration } from '../notifications/email/load-email-channel-configuration';
 import { persistInAppNotification } from '../notifications/fan-out/persist-in-app-notification';
 import { notificationTitleKeys, notificationTypes, type NotificationType } from '../notifications/notifications.constants';
 import { loadNotificationPreferencePolicy } from '../notifications/preferences/notification-preference-policy';
 import { announcementDefaults } from '../settings/definitions/announcement-settings';
 import { settingKeys } from '../settings/setting-keys';
+import { resolveAnnouncementTeamsUrl } from './announcement-teams-url';
 import { SettingsService } from '../settings/settings.service';
 import {
   csvCell,
@@ -31,6 +33,10 @@ export type SaveAnnouncementInput = {
   readonly displayMode: 'BANNER' | 'MODAL';
   readonly requiresAcknowledgement: boolean;
   readonly notifyAudience: boolean;
+  /** K2b: also by e-mail (only with notifyAudience). */
+  readonly sendEmail?: boolean;
+  /** K2b: Adaptive Card to the Teams channel (only when Teams is enabled). */
+  readonly postToTeams?: boolean;
   readonly startsAt: string;
   readonly endsAt: string;
   readonly serviceId?: string | null;
@@ -62,6 +68,10 @@ type AnnouncementRow = {
   readonly anonymizedAcknowledgements: number;
   readonly audienceNotifiedAt: Date | null;
   readonly lastReminderAt: Date | null;
+  readonly sendEmail: boolean;
+  readonly postToTeams: boolean;
+  readonly teamsPostedAt: Date | null;
+  readonly teamsResult: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
@@ -279,11 +289,12 @@ export class AnnouncementsService {
   /** Editor options: roles, units, groups and services (agents: own unit only). */
   async options(viewer: AnnouncementViewer) {
     const capabilities = await this.requireManage(viewer);
-    const [units, groups, services, maxDurationDays] = await Promise.all([
+    const [units, groups, services, maxDurationDays, channels] = await Promise.all([
       this.loadUnits(),
       this.prisma.group.findMany({ select: { id: true, name: true, organizationalUnitId: true }, orderBy: { name: 'asc' } }),
       this.prisma.service.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
       this.maxDurationDays(),
+      this.channelAvailability(),
     ]);
     let visibleUnits = units;
     let visibleGroups = groups;
@@ -295,12 +306,26 @@ export class AnnouncementsService {
     }
     return {
       ...capabilities,
+      ...channels,
       maxDurationDays,
       organizationalUnits: visibleUnits
         .sort((a, b) => a.ouPath.localeCompare(b.ouPath))
         .map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
       groups: visibleGroups.map((group) => ({ id: group.id, name: group.name })),
       services,
+    };
+  }
+
+  /** K2b: which extra channels the editor may offer right now. */
+  async channelAvailability(): Promise<{ emailAvailable: boolean; teamsAvailable: boolean }> {
+    const [channel, teamsEnabled] = await Promise.all([
+      loadEmailChannelConfiguration(this.settings).catch(() => null),
+      this.readSetting<unknown>(settingKeys.privateAnnouncementsTeamsEnabled, announcementDefaults.teamsEnabled),
+    ]);
+    const teamsUrl = teamsEnabled === true ? await resolveAnnouncementTeamsUrl(this.settings) : null;
+    return {
+      emailAvailable: channel !== null && channel.deliveryEnabled && channel.smtp !== null,
+      teamsAvailable: teamsUrl !== null,
     };
   }
 
@@ -359,6 +384,10 @@ export class AnnouncementsService {
       displayMode: row.displayMode,
       requiresAcknowledgement: row.requiresAcknowledgement,
       notifyAudience: row.notifyAudience,
+      sendEmail: row.sendEmail,
+      postToTeams: row.postToTeams,
+      teamsPostedAt: row.teamsPostedAt?.toISOString() ?? null,
+      teamsResult: row.teamsResult,
       startsAt: row.startsAt.toISOString(),
       endsAt: row.endsAt.toISOString(),
       roles: row.audienceRoles,
@@ -419,6 +448,8 @@ export class AnnouncementsService {
         throw new AnnouncementError(announcementErrorCodes.invalidAudience, 'ownUnit');
       }
     }
+    // K2b: e-mail rides on the audience notification; Teams only when offered.
+    const postToTeams = input.postToTeams === true && (await this.channelAvailability()).teamsAvailable;
     return {
       title,
       body,
@@ -426,6 +457,8 @@ export class AnnouncementsService {
       displayMode: input.displayMode,
       requiresAcknowledgement: input.requiresAcknowledgement,
       notifyAudience: input.notifyAudience,
+      sendEmail: input.notifyAudience && input.sendEmail === true,
+      postToTeams,
       startsAt,
       endsAt,
       audienceRoles: roles,
@@ -490,6 +523,9 @@ export class AnnouncementsService {
             severity: data.severity,
             displayMode: data.displayMode,
             notifyAudience: data.notifyAudience,
+            sendEmail: data.sendEmail,
+            // Already posted stays posted; before the post the choice can change.
+            ...(row.teamsPostedAt === null ? { postToTeams: data.postToTeams } : {}),
             startsAt: data.startsAt,
             endsAt: data.endsAt,
             serviceId: data.serviceId,
@@ -572,11 +608,17 @@ export class AnnouncementsService {
     return { count: await this.countAudience(normalized) };
   }
 
+  /** Prisma `where` for the active, non-anonymized members of an audience (also used by the worker). */
+  async audienceWhereFor(audience: AnnouncementAudience) {
+    return this.audienceWhere(audience);
+  }
+
   private async audienceWhere(audience: AnnouncementAudience) {
     const unitIds =
       audience.organizationalUnitIds.length === 0 ? null : expandAudienceUnits(audience.organizationalUnitIds, await this.loadUnits());
     return {
       isActive: true,
+      anonymizedAt: null,
       ...(audience.roles.length > 0 ? { userRoles: { some: { role: { key: { in: [...audience.roles] } } } } } : {}),
       ...(unitIds === null ? {} : { organizationalUnitId: { in: unitIds } }),
       ...(audience.groupIds.length > 0 ? { groupMembers: { some: { groupId: { in: [...audience.groupIds] } } } } : {}),
@@ -641,6 +683,18 @@ export class AnnouncementsService {
       pendingCount: pending.length,
       lastReminderAt: row.lastReminderAt?.toISOString() ?? null,
       canRemind: this.canRemind(row, new Date()),
+      sendEmail: row.sendEmail,
+      postToTeams: row.postToTeams,
+      teamsPostedAt: row.teamsPostedAt?.toISOString() ?? null,
+      teamsResult: row.teamsResult,
+      emailRuns: (
+        await this.prisma.announcementEmailRun.findMany({
+          where: { announcementId: row.id },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: { kind: true, sentCount: true, skippedCount: true, failedCount: true, endReason: true, createdAt: true, completedAt: true },
+        })
+      ).map((run) => ({ ...run, createdAt: run.createdAt.toISOString(), completedAt: run.completedAt?.toISOString() ?? null })),
       byUnit: [...byUnit.values()].sort((a, b) => a.unit.localeCompare(b.unit)),
       pending: pending.slice(0, announcementLimits.reportPendingListed).map((member) => ({
         id: member.id,
@@ -682,7 +736,7 @@ export class AnnouncementsService {
   }
 
   /** §3.3: one notification to everyone who has not acknowledged, at most once in 24 h. */
-  async remind(id: string, viewer: AnnouncementViewer, now: Date = new Date()): Promise<{ notified: number }> {
+  async remind(id: string, viewer: AnnouncementViewer, now: Date = new Date()): Promise<{ notified: number; emailQueued: boolean }> {
     const row = await this.requireReport(id, viewer);
     if (!row.requiresAcknowledgement || effectiveAnnouncementStatus(row, now) !== 'PUBLISHED') {
       throw new AnnouncementError(announcementErrorCodes.notActive);
@@ -704,14 +758,15 @@ export class AnnouncementsService {
       row,
       `announcement-reminder:${id}:${now.toISOString().slice(0, 10)}`,
     );
+    const emailQueued = row.sendEmail ? await this.queueEmailRun(id, 'REMINDER') : false;
     await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
       action: auditLogActions.announcementReminded,
       entityType: auditLogEntityTypes.announcement,
       entityId: id,
-      metadata: { notified },
+      metadata: { notified, emailQueued },
       actorUserId: viewer.userId,
     });
-    return { notified };
+    return { notified, emailQueued };
   }
 
   // ------------------------------------------------------------ sweep
@@ -725,6 +780,7 @@ export class AnnouncementsService {
     if (claimed.count !== 1) return 0;
     const row = (await this.prisma.announcement.findUnique({ where: { id } })) as AnnouncementRow | null;
     if (row === null) return 0;
+    if (row.sendEmail) await this.queueEmailRun(id, 'PUBLISHED');
     const members = await this.prisma.user.findMany({
       where: await this.audienceWhere(audienceOf(row)),
       select: { id: true },
@@ -775,6 +831,17 @@ export class AnnouncementsService {
   }
 
   // ------------------------------------------------------------ helpers
+
+  /** K2b: the worker mails the audience in batches (see AnnouncementDeliveryService). */
+  private async queueEmailRun(announcementId: string, kind: 'PUBLISHED' | 'REMINDER'): Promise<boolean> {
+    try {
+      await this.prisma.announcementEmailRun.create({ data: { announcementId, kind } });
+      return true;
+    } catch (error) {
+      this.logger.warn(`announcement_email_queue_failed id=${announcementId} reason=${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  }
 
   private async fanOut(userIds: readonly string[], type: NotificationType, row: AnnouncementRow, dedupePrefix: string): Promise<number> {
     if (userIds.length === 0) return 0;

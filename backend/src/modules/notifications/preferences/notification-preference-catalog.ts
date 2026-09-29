@@ -81,7 +81,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   ),
   category('oncall.gap', [notificationTypes.onCallGap], 1, inAppOnly, true),
   // Paket 2.9 (K2): the author chose to notify; the banner itself is not a notification.
-  category('announcement', [notificationTypes.announcementPublished, notificationTypes.announcementReminder], 0, inAppOnly),
+  // K2b: e-mail when the author also chose it (DIGEST/quiet: CRITICAL only, see the delivery service).
+  category('announcement', [notificationTypes.announcementPublished, notificationTypes.announcementReminder], 0, both),
   category(
     'account.security',
     [

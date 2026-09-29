@@ -62,7 +62,11 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
     setBusy("remind");
     try {
       const result = await remindAnnouncement(announcementId);
-      toast({ tone: "success", title: t("announcements.report.reminded", { count: result.notified }) });
+      toast({
+        tone: "success",
+        title: t("announcements.report.reminded", { count: result.notified }),
+        ...(result.emailQueued ? { description: t("announcements.report.remindedEmail") } : {}),
+      });
       await load(announcementId);
     } catch (caught) {
       toast({ tone: "danger", title: t(mapAnnouncementError(caught) ?? mapApiError(caught)) });
@@ -150,6 +154,7 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
                 ) : null}
               </div>
             ) : null}
+            <AnnouncementDeliverySummary report={report} formatter={formatter} />
           </div>
         )}
         <ModalFooter>
@@ -166,5 +171,66 @@ export function AnnouncementReportDialog({ announcementId, onOpenChange }: Annou
         </ModalFooter>
       </ModalContent>
     </Modal>
+  );
+}
+
+const runKindKeys = {
+  PUBLISHED: "announcements.report.delivery.kind.PUBLISHED",
+  REMINDER: "announcements.report.delivery.kind.REMINDER",
+} as const;
+
+const endReasonKeys = {
+  EMAIL_CHANNEL_DISABLED: "announcements.report.delivery.endReason.EMAIL_CHANNEL_DISABLED",
+  NOT_ACTIVE: "announcements.report.delivery.endReason.NOT_ACTIVE",
+  EMAIL_OFF: "announcements.report.delivery.endReason.EMAIL_OFF",
+  NO_ACKNOWLEDGEMENT: "announcements.report.delivery.endReason.NO_ACKNOWLEDGEMENT",
+} as const;
+
+const teamsResultKeys = {
+  SENT: "announcements.report.delivery.teams.SENT",
+  FAILED: "announcements.report.delivery.teams.FAILED",
+  SKIPPED_DISABLED: "announcements.report.delivery.teams.SKIPPED_DISABLED",
+} as const;
+
+/** K2b: what went out by e-mail (per run) and to Teams. */
+function AnnouncementDeliverySummary({ report, formatter }: { readonly report: AnnouncementReport; readonly formatter: Intl.DateTimeFormat }) {
+  const { t } = useTranslation();
+  if (!report.sendEmail && !report.postToTeams) return null;
+  return (
+    <div className="grid gap-1.5">
+      <h3 className="text-[12.5px] font-semibold text-foreground">{t("announcements.report.delivery.title")}</h3>
+      {report.sendEmail ? (
+        report.emailRuns.length === 0 ? (
+          <p className={hintClassName}>{t("announcements.report.delivery.emailWaiting")}</p>
+        ) : (
+          <ul className="grid gap-1 text-[12.5px]">
+            {report.emailRuns.map((run) => (
+              <li key={`${run.kind}-${run.createdAt}`}>
+                <span className="font-medium">{t(runKindKeys[run.kind])}</span>
+                <span className="text-muted-foreground"> · {formatter.format(new Date(run.createdAt))} · </span>
+                {t("announcements.report.delivery.counts", { sent: run.sentCount, skipped: run.skippedCount, failed: run.failedCount })}
+                <span className="text-muted-foreground">
+                  {" · "}
+                  {run.endReason !== null
+                    ? t(endReasonKeys[run.endReason])
+                    : run.completedAt !== null
+                      ? t("announcements.report.delivery.done")
+                      : t("announcements.report.delivery.running")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : null}
+      {report.postToTeams ? (
+        <p className="text-[12.5px]">
+          {report.teamsResult === null
+            ? t("announcements.report.delivery.teams.waiting")
+            : t(teamsResultKeys[report.teamsResult], {
+                at: report.teamsPostedAt === null ? "" : formatter.format(new Date(report.teamsPostedAt)),
+              })}
+        </p>
+      ) : null}
+    </div>
   );
 }

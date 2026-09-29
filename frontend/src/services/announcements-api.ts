@@ -62,9 +62,24 @@ export type AnnouncementWriteInput = AnnouncementAudienceInput & {
   readonly displayMode: AnnouncementDisplayMode;
   readonly requiresAcknowledgement: boolean;
   readonly notifyAudience: boolean;
+  readonly sendEmail: boolean;
+  readonly postToTeams: boolean;
   readonly startsAt: string;
   readonly endsAt: string;
   readonly serviceId: string | null;
+};
+
+/** K2b: outcome of the Teams post. */
+export type AnnouncementTeamsResult = "SENT" | "FAILED" | "SKIPPED_DISABLED";
+
+export type AnnouncementEmailRunSummary = {
+  readonly kind: "PUBLISHED" | "REMINDER";
+  readonly sentCount: number;
+  readonly skippedCount: number;
+  readonly failedCount: number;
+  readonly endReason: "EMAIL_CHANNEL_DISABLED" | "NOT_ACTIVE" | "EMAIL_OFF" | "NO_ACKNOWLEDGEMENT" | null;
+  readonly createdAt: string;
+  readonly completedAt: string | null;
 };
 
 export type ManagedAnnouncement = AnnouncementAudienceInput & {
@@ -75,6 +90,10 @@ export type ManagedAnnouncement = AnnouncementAudienceInput & {
   readonly displayMode: AnnouncementDisplayMode;
   readonly requiresAcknowledgement: boolean;
   readonly notifyAudience: boolean;
+  readonly sendEmail: boolean;
+  readonly postToTeams: boolean;
+  readonly teamsPostedAt: string | null;
+  readonly teamsResult: AnnouncementTeamsResult | null;
   readonly startsAt: string;
   readonly endsAt: string;
   readonly serviceId: string | null;
@@ -100,6 +119,10 @@ export type AnnouncementList = Omit<AnnouncementCapabilities, "enabled"> & {
 
 export type AnnouncementOptions = Omit<AnnouncementCapabilities, "enabled"> & {
   readonly maxDurationDays: number;
+  /** K2b: SMTP delivery is on, so "also by e-mail" can work. */
+  readonly emailAvailable: boolean;
+  /** K2b: Teams is enabled and a webhook is configured. */
+  readonly teamsAvailable: boolean;
   readonly organizationalUnits: ReadonlyArray<{ readonly id: string; readonly name: string; readonly path: string }>;
   readonly groups: ReadonlyArray<{ readonly id: string; readonly name: string }>;
   readonly services: ReadonlyArray<{ readonly id: string; readonly name: string }>;
@@ -115,6 +138,11 @@ export type AnnouncementReport = {
   readonly pendingCount: number;
   readonly lastReminderAt: string | null;
   readonly canRemind: boolean;
+  readonly sendEmail: boolean;
+  readonly postToTeams: boolean;
+  readonly teamsPostedAt: string | null;
+  readonly teamsResult: AnnouncementTeamsResult | null;
+  readonly emailRuns: readonly AnnouncementEmailRunSummary[];
   readonly byUnit: ReadonlyArray<{ readonly unit: string; readonly audience: number; readonly acknowledged: number }>;
   readonly pending: ReadonlyArray<{ readonly id: string; readonly displayName: string; readonly unit: string }>;
 };
@@ -196,6 +224,6 @@ export async function downloadAnnouncementReport(id: string): Promise<{ readonly
   return { blob: downloaded.blob, fileName: downloaded.fileName ?? `announcement-${id}.csv` };
 }
 
-export function remindAnnouncement(id: string): Promise<{ readonly notified: number }> {
-  return apiRequest<{ readonly notified: number }>(`/announcements/manage/${encodeURIComponent(id)}/remind`, { method: "POST" });
+export function remindAnnouncement(id: string): Promise<{ readonly notified: number; readonly emailQueued: boolean }> {
+  return apiRequest<{ readonly notified: number; readonly emailQueued: boolean }>(`/announcements/manage/${encodeURIComponent(id)}/remind`, { method: "POST" });
 }

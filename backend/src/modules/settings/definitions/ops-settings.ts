@@ -120,7 +120,7 @@ function assertEmailCsv(value: SettingValue): void {
   if (invalid !== undefined) throw new SettingsError(`Invalid e-mail address: ${invalid}`);
 }
 
-function assertHttpsUrlOrEmpty(value: SettingValue): void {
+export function assertHttpsUrlOrEmpty(value: SettingValue): void {
   if (typeof value !== 'string') throw new SettingsError('Value must be text');
   if (value.trim() === '') return;
   let url: URL;

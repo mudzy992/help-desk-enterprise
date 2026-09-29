@@ -1340,7 +1340,9 @@
         "private.announcements.enabled": "Uključi najave (traka/prozor s opcionalnom potvrdom čitanja).",
         "private.announcements.maxDurationDays": "Najduže trajanje jedne najave u danima (1–365).",
         "private.announcements.agentsMayPublish": "Agenti smiju objavljivati najave za svoju organizacionu jedinicu i podjedinice.",
-        "private.announcements.receiptRetentionDays": "Koliko dana nakon kraja najave se čuvaju potvrde čitanja i zatvaranja (0 = trajno; 30–3650)."
+        "private.announcements.receiptRetentionDays": "Koliko dana nakon kraja najave se čuvaju potvrde čitanja i zatvaranja (0 = trajno; 30–3650).",
+        "private.announcements.teamsEnabled": "Nudi opciju „Objavi i u Teams kanal“ na najavama. Potreban je Teams webhook (ovdje ili u postavkama alarma); zadano isključeno.",
+        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) za najave. Prazno = koristi se webhook operativnih alarma."
       }
     },
     "emailTemplates": {
@@ -1427,7 +1429,9 @@
         "privacy_retention_weekly": "Privatnost: sedmični izvještaj zadržavanja",
         "privacy_erasure_completed": "Privatnost: anonimizacija završena",
         "report_schedule_paused": "Zakazani izvještaj pauziran",
-        "ops_alert": "Operativni alarm"
+        "ops_alert": "Operativni alarm",
+        "announcement_published": "Najava",
+        "announcement_reminder": "Najava: podsjetnik na potvrdu"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -4435,7 +4439,7 @@
         },
         "announcement": {
           "label": "Najave",
-          "hint": "Obavijest kad počne najava za koju je autor tražio obavještavanje i podsjetnik na potvrdu čitanja."
+          "hint": "Obavijest (u aplikaciji i, ako je autor odabrao, e-mailom) kad počne najava i podsjetnik na potvrdu čitanja. Kritične najave e-mailom stižu odmah i uz sažetak ili tihe sate."
         }
       },
       "emailOnly": "Samo e-mail",
@@ -5391,7 +5395,13 @@
       "audiencePending": "Procjena publike: odaberite publiku.",
       "audienceUnknown": "Procjena publike trenutno nije dostupna.",
       "saveDraft": "Spremi nacrt",
-      "save": "Spremi izmjene"
+      "save": "Spremi izmjene",
+      "sendEmail": "Pošalji i e-mailom",
+      "sendEmailHint": "E-mail ide publici kad najava počne (poštuje lične postavke obavještenja; kritične najave idu odmah i onima sa sažetkom ili tihim satima).",
+      "sendEmailUnavailable": "E-mail kanal nije uključen u postavkama, pa se najava ne može poslati e-mailom.",
+      "postToTeams": "Objavi i u Teams kanal",
+      "postToTeamsHint": "Kartica se objavljuje u Teams kanal kad najava počne. Kanal vide svi njegovi članovi, bez obzira na publiku najave.",
+      "postToTeamsDone": "Najava je već objavljena u Teams kanal."
     },
     "manage": {
       "title": "Upravljanje najavama",
@@ -5454,7 +5464,31 @@
       "remind": "Podsjeti one koji nisu potvrdili",
       "reminded_one": "Podsjetnik je poslan {{count}} korisniku.",
       "reminded_few": "Podsjetnik je poslan {{count}} korisnika.",
-      "reminded_other": "Podsjetnik je poslan {{count}} korisnika."
+      "reminded_other": "Podsjetnik je poslan {{count}} korisnika.",
+      "remindedEmail": "Podsjetnik e-mailom šalje se u pozadini u narednih nekoliko minuta.",
+      "delivery": {
+        "title": "Isporuka",
+        "emailWaiting": "E-mail se šalje kad najava počne (provjera svakih 5 minuta).",
+        "counts": "poslano {{sent}}, preskočeno {{skipped}}, neuspjelo {{failed}}",
+        "done": "završeno",
+        "running": "u toku",
+        "kind": {
+          "PUBLISHED": "E-mail pri početku",
+          "REMINDER": "Podsjetnik e-mailom"
+        },
+        "endReason": {
+          "EMAIL_CHANNEL_DISABLED": "prekinuto: e-mail kanal isključen",
+          "NOT_ACTIVE": "prekinuto: najava više nije aktivna",
+          "EMAIL_OFF": "prekinuto: slanje e-mailom isključeno",
+          "NO_ACKNOWLEDGEMENT": "prekinuto: najava ne traži potvrdu"
+        },
+        "teams": {
+          "waiting": "Teams: objava kad najava počne.",
+          "SENT": "Teams: objavljeno {{at}}.",
+          "FAILED": "Teams: objava nije uspjela ({{at}}); provjerite webhook.",
+          "SKIPPED_DISABLED": "Teams: preskočeno jer je Teams kanal isključen ({{at}})."
+        }
+      }
     },
     "errors": {
       "disabled": "Najave nisu uključene.",

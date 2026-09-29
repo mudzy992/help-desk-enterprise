@@ -1331,7 +1331,9 @@
         "private.announcements.enabled": "Enable announcements (bar/dialog with optional read acknowledgement).",
         "private.announcements.maxDurationDays": "Longest time one announcement may stay active, in days (1–365).",
         "private.announcements.agentsMayPublish": "Agents may publish announcements for their own organizational unit and sub-units.",
-        "private.announcements.receiptRetentionDays": "Days after an announcement ends before acknowledgements and dismissals are deleted (0 = keep; 30–3650)."
+        "private.announcements.receiptRetentionDays": "Days after an announcement ends before acknowledgements and dismissals are deleted (0 = keep; 30–3650).",
+        "private.announcements.teamsEnabled": "Offer \"Also post to the Teams channel\" on announcements. Needs a Teams webhook (here or in the alarm settings); off by default.",
+        "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) for announcements. Empty = the operational alarm webhook is used."
       }
     },
     "emailTemplates": {
@@ -1417,7 +1419,9 @@
         "privacy_retention_weekly": "Privacy: weekly retention report",
         "privacy_erasure_completed": "Privacy: anonymization completed",
         "report_schedule_paused": "Scheduled report paused",
-        "ops_alert": "Operational alarm"
+        "ops_alert": "Operational alarm",
+        "announcement_published": "Announcement",
+        "announcement_reminder": "Announcement: acknowledgement reminder"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -4409,7 +4413,7 @@
         },
         "announcement": {
           "label": "Announcements",
-          "hint": "A notification when an announcement starts (if the author asked for it) and the acknowledgement reminder."
+          "hint": "A notification (in the app and, if the author chose it, by e-mail) when an announcement starts, and the acknowledgement reminder. Critical announcements arrive by e-mail at once, even with a digest or quiet hours."
         }
       },
       "emailOnly": "E-mail only",
@@ -5356,7 +5360,13 @@
       "audiencePending": "Estimated audience: choose the audience.",
       "audienceUnknown": "The audience estimate is not available right now.",
       "saveDraft": "Save draft",
-      "save": "Save changes"
+      "save": "Save changes",
+      "sendEmail": "Also send by e-mail",
+      "sendEmailHint": "The e-mail goes to the audience when the announcement starts (personal notification settings apply; critical announcements go at once, also to people with a digest or quiet hours).",
+      "sendEmailUnavailable": "The e-mail channel is not enabled in the settings, so the announcement cannot be e-mailed.",
+      "postToTeams": "Also post to the Teams channel",
+      "postToTeamsHint": "A card is posted to the Teams channel when the announcement starts. Every channel member sees it, regardless of the announcement audience.",
+      "postToTeamsDone": "The announcement has already been posted to Teams."
     },
     "manage": {
       "title": "Manage announcements",
@@ -5415,7 +5425,31 @@
       "csv": "Download CSV",
       "remind": "Remind those who have not acknowledged",
       "reminded_one": "Reminder sent to {{count}} user.",
-      "reminded_other": "Reminder sent to {{count}} users."
+      "reminded_other": "Reminder sent to {{count}} users.",
+      "remindedEmail": "The e-mail reminder is sent in the background within a few minutes.",
+      "delivery": {
+        "title": "Delivery",
+        "emailWaiting": "The e-mail is sent when the announcement starts (checked every 5 minutes).",
+        "counts": "sent {{sent}}, skipped {{skipped}}, failed {{failed}}",
+        "done": "finished",
+        "running": "in progress",
+        "kind": {
+          "PUBLISHED": "E-mail at start",
+          "REMINDER": "E-mail reminder"
+        },
+        "endReason": {
+          "EMAIL_CHANNEL_DISABLED": "stopped: e-mail channel off",
+          "NOT_ACTIVE": "stopped: announcement no longer active",
+          "EMAIL_OFF": "stopped: e-mail was switched off",
+          "NO_ACKNOWLEDGEMENT": "stopped: no acknowledgement required"
+        },
+        "teams": {
+          "waiting": "Teams: posted when the announcement starts.",
+          "SENT": "Teams: posted {{at}}.",
+          "FAILED": "Teams: the post failed ({{at}}); check the webhook.",
+          "SKIPPED_DISABLED": "Teams: skipped because the Teams channel is off ({{at}})."
+        }
+      }
     },
     "errors": {
       "disabled": "Announcements are not enabled.",

@@ -32,6 +32,8 @@ export class SaveAnnouncementDto extends AnnouncementAudienceDto {
   @IsIn(['BANNER', 'MODAL']) displayMode!: 'BANNER' | 'MODAL';
   @IsBoolean() requiresAcknowledgement!: boolean;
   @IsBoolean() notifyAudience!: boolean;
+  @IsOptional() @IsBoolean() sendEmail?: boolean;
+  @IsOptional() @IsBoolean() postToTeams?: boolean;
   @IsISO8601() @MaxLength(40) startsAt!: string;
   @IsISO8601() @MaxLength(40) endsAt!: string;
   @IsOptional() @IsString() @MaxLength(64) serviceId?: string | null;

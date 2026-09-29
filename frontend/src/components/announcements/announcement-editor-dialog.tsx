@@ -45,6 +45,8 @@ type Draft = {
   displayMode: AnnouncementDisplayMode;
   requiresAcknowledgement: boolean;
   notifyAudience: boolean;
+  sendEmail: boolean;
+  postToTeams: boolean;
   startsAt: string;
   endsAt: string;
   serviceId: string;
@@ -62,6 +64,8 @@ function emptyDraft(): Draft {
     displayMode: "BANNER",
     requiresAcknowledgement: false,
     notifyAudience: false,
+    sendEmail: false,
+    postToTeams: false,
     startsAt: toLocalInputValue(start),
     endsAt: toLocalInputValue(new Date(start.getTime() + 7 * 24 * hourMs)),
     serviceId: "",
@@ -79,6 +83,8 @@ function draftOf(announcement: ManagedAnnouncement): Draft {
     displayMode: announcement.displayMode,
     requiresAcknowledgement: announcement.requiresAcknowledgement,
     notifyAudience: announcement.notifyAudience,
+    sendEmail: announcement.sendEmail,
+    postToTeams: announcement.postToTeams,
     startsAt: toLocalInputValue(announcement.startsAt),
     endsAt: toLocalInputValue(announcement.endsAt),
     serviceId: announcement.serviceId ?? "",
@@ -181,6 +187,8 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
       displayMode: draft.requiresAcknowledgement ? draft.displayMode : "BANNER",
       requiresAcknowledgement: draft.requiresAcknowledgement,
       notifyAudience: draft.notifyAudience,
+      sendEmail: draft.notifyAudience && draft.sendEmail && options.emailAvailable,
+      postToTeams: draft.postToTeams && options.teamsAvailable,
       startsAt,
       endsAt,
       serviceId: draft.serviceId.length === 0 ? null : draft.serviceId,
@@ -324,6 +332,32 @@ export function AnnouncementEditorDialog({ open, onOpenChange, options, announce
               checked={draft.notifyAudience}
               onChange={(event) => update("notifyAudience", event.target.checked)}
             />
+            <div className="grid gap-1 pl-6">
+              <Checkbox
+                label={t("announcements.editor.sendEmail")}
+                checked={draft.notifyAudience && draft.sendEmail && options.emailAvailable}
+                disabled={!draft.notifyAudience || !options.emailAvailable}
+                onChange={(event) => update("sendEmail", event.target.checked)}
+              />
+              <p className={hintClassName}>
+                {options.emailAvailable ? t("announcements.editor.sendEmailHint") : t("announcements.editor.sendEmailUnavailable")}
+              </p>
+            </div>
+            {options.teamsAvailable ? (
+              <div className="grid gap-1">
+                <Checkbox
+                  label={t("announcements.editor.postToTeams")}
+                  checked={draft.postToTeams}
+                  disabled={announcement !== null && announcement.teamsPostedAt !== null}
+                  onChange={(event) => update("postToTeams", event.target.checked)}
+                />
+                <p className={hintClassName}>
+                  {announcement !== null && announcement.teamsPostedAt !== null
+                    ? t("announcements.editor.postToTeamsDone")
+                    : t("announcements.editor.postToTeamsHint")}
+                </p>
+              </div>
+            ) : null}
           </fieldset>
 
           <fieldset className="grid gap-3" disabled={isPublished}>

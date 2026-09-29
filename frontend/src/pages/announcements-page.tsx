@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router-dom";
 import { BarChart3, Megaphone, Pencil, Plus, Send, Trash2, Undo2 } from "lucide-react";
 import { AnnouncementEditorDialog } from "@/components/announcements/announcement-editor-dialog";
 import { AnnouncementReportDialog } from "@/components/announcements/announcement-report-dialog";
@@ -110,6 +111,18 @@ function AnnouncementArchive() {
     queryFn: getAnnouncementArchive,
     retry: false,
   });
+  const [searchParams] = useSearchParams();
+  const openId = searchParams.get("open");
+  // K2b: e-mail/Teams links (?open=<id>) expand and scroll to the announcement.
+  useEffect(() => {
+    if (openId === null || data === undefined) return;
+    const element = document.getElementById(`announcement-${openId}`);
+    if (element instanceof HTMLDetailsElement) {
+      element.open = true;
+      element.scrollIntoView({ block: "start" });
+      element.querySelector("summary")?.focus({ preventScroll: true });
+    }
+  }, [openId, data]);
   const formatter = new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" });
   if (isLoading) return <PanelSkeleton label={t("ui.loading")} />;
   if (error) {
@@ -127,7 +140,7 @@ function AnnouncementArchive() {
       {data.map((item) => (
         <li key={item.id}>
           <Card>
-            <details className="group">
+            <details className="group" id={`announcement-${item.id}`}>
               <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70">
                 <Badge tone={severityTone(item.severity)}>{t(severityKeys[item.severity])}</Badge>
                 <span className="min-w-0 flex-1 text-[13px] font-semibold text-foreground">{item.title}</span>

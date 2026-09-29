@@ -1,6 +1,7 @@
-import { definePrivateSetting } from '../registry/define-setting';
+import { definePrivateSetting, defineSecretSetting } from '../registry/define-setting';
 import { settingCategoryIds } from '../setting-categories';
 import { settingKeys } from '../setting-keys';
+import { assertHttpsUrlOrEmpty } from './ops-settings';
 import { SettingsError } from '../settings.error';
 import type { SettingDefinition } from '../settings.types';
 
@@ -10,6 +11,7 @@ export const announcementDefaults = {
   maxDurationDays: 90,
   agentsMayPublish: false,
   receiptRetentionDays: 365,
+  teamsEnabled: false,
 } as const;
 
 export const announcementSettings: readonly SettingDefinition[] = [
@@ -54,5 +56,21 @@ export const announcementSettings: readonly SettingDefinition[] = [
         throw new SettingsError('Retention must be 0 or 30-3650 days');
       }
     },
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateAnnouncementsTeamsEnabled,
+    categoryId: settingCategoryIds.privateWorkflow,
+    valueType: 'boolean',
+    description: 'Offer "Post to Teams" on announcements (needs a Teams webhook URL here or in the alarm settings)',
+    isRequired: true,
+    defaultValue: announcementDefaults.teamsEnabled,
+  }),
+  defineSecretSetting({
+    key: settingKeys.privateAnnouncementsTeamsWebhookUrl,
+    categoryId: settingCategoryIds.privateWorkflow,
+    valueType: 'string',
+    description: 'Teams Workflows webhook URL for announcements (empty = use the alarm webhook)',
+    isRequired: false,
+    assertValue: assertHttpsUrlOrEmpty,
   }),
 ];

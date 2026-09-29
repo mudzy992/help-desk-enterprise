@@ -153,6 +153,20 @@ const bs: EmailTemplateSet = {
     'Poštovani/a {{recipientName}}, nadzor sistema {{appName}} javlja: {{reportName}} ({{reportPeriod}}). Detalji i preporučeni prvi korak su u nastavku.',
     'Otvori zdravlje sistema',
   ),
+  'announcement.published': content(
+    'Najava: {{announcementTitle}}',
+    'Najava: {{announcementTitle}}',
+    '{{announcementTitle}}',
+    'Poštovani/a {{recipientName}},\n\n{{announcementBody}}\n\nVrijedi: {{announcementPeriod}}.',
+    'Otvori najavu',
+  ),
+  'announcement.reminder': content(
+    'Podsjetnik: potvrdite najavu „{{announcementTitle}}”',
+    'Podsjetnik: potvrdite najavu „{{announcementTitle}}”',
+    'Potvrdite da ste pročitali najavu',
+    'Poštovani/a {{recipientName}}, najava „{{announcementTitle}}” traži potvrdu čitanja, a vaša potvrda još nije zabilježena.\n\n{{announcementBody}}\n\nVrijedi: {{announcementPeriod}}. Potvrdu dajete u aplikaciji {{appName}}.',
+    'Otvori i potvrdi',
+  ),
   'notification.digest': content(
     'Sažetak obavještenja ({{itemCount}})',
     'Sažetak obavještenja ({{itemCount}})',
@@ -292,6 +306,20 @@ const en: EmailTemplateSet = {
     '{{reportName}}',
     'Dear {{recipientName}}, {{appName}} monitoring reports: {{reportName}} ({{reportPeriod}}). Details and the recommended first step follow.',
     'Open system health',
+  ),
+  'announcement.published': content(
+    'Announcement: {{announcementTitle}}',
+    'Announcement: {{announcementTitle}}',
+    '{{announcementTitle}}',
+    'Dear {{recipientName}},\n\n{{announcementBody}}\n\nValid: {{announcementPeriod}}.',
+    'Open announcement',
+  ),
+  'announcement.reminder': content(
+    'Reminder: please acknowledge "{{announcementTitle}}"',
+    'Reminder: please acknowledge "{{announcementTitle}}"',
+    'Please confirm you have read the announcement',
+    'Dear {{recipientName}}, the announcement "{{announcementTitle}}" asks for a read acknowledgement and yours has not been recorded yet.\n\n{{announcementBody}}\n\nValid: {{announcementPeriod}}. You acknowledge it in {{appName}}.',
+    'Open and acknowledge',
   ),
   'notification.digest': content(
     'Notification digest ({{itemCount}})',

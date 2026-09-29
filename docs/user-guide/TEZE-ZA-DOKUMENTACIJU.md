@@ -286,3 +286,31 @@ To je kriterij kompletnosti.
 - **Izvori:** `frontend/src/lib/announcements/announcement-view.ts`
 - **Status:** Važi
 - **Wiki stranica:** Korisnik → Najave
+
+### T13 — E-mail najave poštuje lične postavke, osim za kritične
+
+- **Modul / paket:** Najave · 2.9 (K2b)
+- **Publika:** Svi / Administratori
+- **Tip:** Ponašanje
+- **Teza:** najava ide e-mailom samo ako je autor odabrao „Pošalji i e-mailom“. Korisnik koji je e-mail za
+  „Najave“ isključio ga ne dobija nikad. Ko ima sažetak ili tihe sate dobija e-mailom samo **kritične** najave
+  (odmah); ostale vidi u aplikaciji. Ako je e-mail kanal isključen kad slanje krene, slanje se prekida i ne
+  nastavlja se kasnije.
+- **Zašto:** sažetak prikazuje samo tikete; kritična najava (npr. ispad) mora stići odmah. Korisnik je
+  tražio da e-mail za najave bude urađen u potpunosti (2026-09-29).
+- **Izvori:** `backend/src/modules/announcements/announcement-delivery.service.ts`
+- **Status:** Važi
+- **Wiki stranica:** Korisnik → Najave; Admin → Najave
+
+### T14 — Teams za najave je pripremljen, a uključuje se postavkom
+
+- **Modul / paket:** Najave · 2.9 (K2b)
+- **Publika:** Administratori
+- **Tip:** Konfiguracija
+- **Teza:** opcija „Objavi i u Teams kanal“ pojavljuje se tek kad je `private.announcements.teamsEnabled`
+  uključen i postoji webhook (vlastiti ili onaj od alarma). Kartica ide jednom, kad najava počne; kanal je vide
+  svi njegovi članovi, bez obzira na publiku najave.
+- **Zašto:** korisnik je tražio da Teams bude spreman za aktivaciju kad Teams bude aktivan (2026-09-29).
+- **Izvori:** `backend/src/modules/announcements/announcement-teams-card.ts`, `announcement-teams-url.ts`
+- **Status:** Važi
+- **Wiki stranica:** Admin → Najave

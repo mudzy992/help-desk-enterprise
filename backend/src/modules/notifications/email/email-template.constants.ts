@@ -24,6 +24,9 @@ export const emailTemplateKeys = [
   'report.schedule_paused',
   // Paket 2.7: operational alarm (no ticket card).
   'ops.alert',
+  // Paket 2.9 (K2b): announcement to its audience, and the acknowledgement reminder.
+  'announcement.published',
+  'announcement.reminder',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -38,7 +41,9 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'privacy.retention_weekly' &&
     key !== 'privacy.erasure_completed' &&
     key !== 'report.schedule_paused' &&
-    key !== 'ops.alert',
+    key !== 'ops.alert' &&
+    key !== 'announcement.published' &&
+    key !== 'announcement.reminder',
 );
 
 export const emailLocales = ['bs', 'en'] as const;
@@ -83,6 +88,11 @@ export const emailTemplatePlaceholders = [
   'reportName',
   'reportPeriod',
   'reportScope',
+  // Paket 2.9 (K2b)
+  'announcementTitle',
+  'announcementBody',
+  'announcementSeverity',
+  'announcementPeriod',
 ] as const;
 
 export type EmailTemplatePlaceholder =
