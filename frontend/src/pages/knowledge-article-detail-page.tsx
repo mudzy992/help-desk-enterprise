@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { KnowledgeArticleDetailPanel } from "@/components/knowledge-base/knowledge-article-detail-panel";
@@ -12,6 +12,7 @@ import { useKnowledgeArticle } from "@/lib/knowledge-base/use-knowledge-article"
 import { resolveKnowledgeCapabilities } from "@/lib/knowledge-base/knowledge-capabilities";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
 import { pickName } from "@/lib/tickets/ticket-names";
+import { recordKnowledgeArticleView } from "@/services/knowledge-portal-api";
 
 export function KnowledgeArticleDetailPage() {
   const { t } = useTranslation();
@@ -26,6 +27,14 @@ export function KnowledgeArticleDetailPage() {
     [directory.users],
   );
   const articleTitle = detail.article?.title ?? t("knowledgeBase.title");
+  // Paket 2.9 (K1b): one view per opened published article (best effort).
+  const viewedRef = useRef<string | null>(null);
+  const viewable = detail.article?.status === "PUBLISHED" ? detail.article.id : null;
+  useEffect(() => {
+    if (viewable === null || viewedRef.current === viewable) return;
+    viewedRef.current = viewable;
+    void recordKnowledgeArticleView(viewable).catch(() => undefined);
+  }, [viewable]);
 
   return (
     <section>

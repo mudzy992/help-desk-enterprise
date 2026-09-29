@@ -1,6 +1,10 @@
 import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
+import { ArticleFromReplySheet } from "@/components/knowledge-base/portal/article-from-reply-sheet";
+import { Button } from "@/components/ui/button";
+import { BookPlus } from "lucide-react";
+import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import type { ComposerAccess } from "@/lib/tickets/message-composer-access";
 import type { TicketErrorKey } from "@/lib/tickets/map-ticket-error";
@@ -26,12 +30,27 @@ interface TicketDetailConversationProperties {
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
   readonly composerCollaboration?: ComposerCollaborationOptions;
+  /** Paket 2.9 (K1c): the viewer may write knowledge articles. */
+  readonly canWriteKnowledge?: boolean;
 }
 
 export function TicketDetailConversation(props: TicketDetailConversationProperties) {
   const { t } = useTranslation();
+  // Paket 2.9 (K1c): public agent replies can become an article draft
+  // (knowledge writers only; never from confidential tickets).
+  const canDraftArticle = props.canWriteKnowledge === true && !props.ticket.isConfidential;
+  const [articleSource, setArticleSource] = useState<{ ticketId: string; messageId: string } | null>(null);
   return (
     <>
+      {canDraftArticle ? (
+        <ArticleFromReplySheet
+          source={articleSource}
+          currentUserId={props.currentUserId}
+          onOpenChange={(open) => {
+            if (!open) setArticleSource(null);
+          }}
+        />
+      ) : null}
       <div className="fade-in flex gap-3">
         <Avatar name={props.requesterName} size="md" />
         <div className="min-w-0 max-w-[78%]">
@@ -54,6 +73,22 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           currentUserId={props.currentUserId}
           authorNames={props.authorNames}
           viewport="fixed"
+          renderMessageActions={
+            canDraftArticle
+              ? (message) =>
+                  message.type === "AGENT_REPLY" ? (
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      data-testid="message-to-article"
+                      onClick={() => setArticleSource({ ticketId: props.ticket.id, messageId: message.id })}
+                    >
+                      <BookPlus size={12} aria-hidden="true" /> {t("knowledgeBase.portal.fromReply.action")}
+                    </Button>
+                  ) : null
+              : undefined
+          }
         />
       </div>
       {props.ticket.status === "ARCHIVED" ? null : props.ticket.mergedIntoTicketId ? (

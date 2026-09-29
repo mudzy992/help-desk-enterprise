@@ -372,6 +372,7 @@ export function TicketDetailPage() {
           onDownload={detail.download}
           onDelete={detail.removeAttachment}
           composerExtra={composerExtra}
+          canWriteKnowledge={actions.viewActivity && hasPermission(permissionKeys.knowledgeArticleWrite)}
           composerCollaboration={composerCollaboration}
           composerTemplates={
             actions.viewActivity && canUseTemplates

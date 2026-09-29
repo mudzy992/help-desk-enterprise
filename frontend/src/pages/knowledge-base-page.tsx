@@ -5,6 +5,9 @@ import { useTranslation } from "react-i18next";
 import { CreateKnowledgeArticleSheet } from "@/components/knowledge-base/create-knowledge-article-sheet";
 import { KnowledgeArticleList } from "@/components/knowledge-base/knowledge-article-list";
 import { KnowledgeArticleSearchCard } from "@/components/knowledge-base/knowledge-article-search-card";
+import { KnowledgeInsightsPanel } from "@/components/knowledge-base/portal/knowledge-insights-panel";
+import { KnowledgePortalHome } from "@/components/knowledge-base/portal/knowledge-portal-home";
+import { UnderlineTabs } from "@/components/ui/tabs";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -30,7 +33,23 @@ export function KnowledgeBasePage() {
   const capabilities = useSessionCapabilities();
   const { isSuperAdmin, canWrite, canManageLifecycle } =
     resolveKnowledgeCapabilities(capabilities);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Paket 2.9 (K1): portal (default) | all articles | insights (curators).
+  const canSeeInsights = canWrite || canManageLifecycle;
+  const requestedView = searchParams.get("view");
+  const view =
+    requestedView === "articles" || searchParams.has("q")
+      ? "articles"
+      : requestedView === "insights" && canSeeInsights
+        ? "insights"
+        : "portal";
+  const setView = (next: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("q");
+    if (next === "portal") params.delete("view");
+    else params.set("view", next);
+    setSearchParams(params, { replace: true });
+  };
   const [items, setItems] = useState<readonly KnowledgeArticleResponse[]>([]);
   const [services, setServices] = useState<readonly ServiceResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -149,6 +168,20 @@ export function KnowledgeBasePage() {
         }}
         onCreated={loadArticles}
       />
+      <UnderlineTabs
+        className="mb-4"
+        active={view}
+        onChange={setView}
+        items={[
+          { key: "portal", label: t("knowledgeBase.portal.tabPortal") },
+          { key: "articles", label: t("knowledgeBase.portal.tabArticles") },
+          ...(canSeeInsights ? [{ key: "insights", label: t("knowledgeBase.portal.tabInsights") }] : []),
+        ]}
+      />
+      {view === "portal" ? <KnowledgePortalHome /> : null}
+      {view === "insights" ? <KnowledgeInsightsPanel /> : null}
+      {view === "articles" ? (
+      <>
       <KnowledgeArticleSearchCard
         search={search}
         status={status}
@@ -195,6 +228,8 @@ export function KnowledgeBasePage() {
           </p>
         </>
       )}
+      </>
+      ) : null}
     </section>
   );
 }

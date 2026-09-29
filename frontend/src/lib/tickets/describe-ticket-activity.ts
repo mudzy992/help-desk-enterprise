@@ -133,6 +133,17 @@ export function describeMergeOrPriorityEvent(
           : "tickets.activity.incidentResolved";
     return { text: ticketText(t, key, { title: parsed.title }), note: null };
   }
+  // Paket 2.9 (K1c): `ticket_knowledge_draft_created:<articleId>|<title>` (staff only).
+  if (action === "ticket_knowledge_draft_created") {
+    const parsed = parseIncidentEventDetail(detail);
+    if (parsed === null) {
+      return null;
+    }
+    return {
+      text: ticketText(t, "tickets.activity.knowledgeDraftCreated", { title: parsed.title }),
+      note: null,
+    };
+  }
   if (action === "ticket_priority_overridden") {
     const [from = "", to = "", mode = "", ...rest] = detail.split(":");
     const label = (value: string) => {

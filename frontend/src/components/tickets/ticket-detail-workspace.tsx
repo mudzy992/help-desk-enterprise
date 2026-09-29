@@ -54,6 +54,8 @@ interface TicketDetailWorkspaceProperties {
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
   readonly composerCollaboration?: ComposerCollaborationOptions;
+  /** Paket 2.9 (K1c): enables "make an article" on public agent replies. */
+  readonly canWriteKnowledge?: boolean;
 }
 
 export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
@@ -107,6 +109,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           composerExtra={props.composerExtra}
           composerTemplates={props.composerTemplates}
           composerCollaboration={props.composerCollaboration}
+          canWriteKnowledge={props.canWriteKnowledge}
         />
       ) : null}
       {tab === "activity" ? (

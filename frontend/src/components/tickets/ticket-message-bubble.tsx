@@ -1,4 +1,5 @@
 import { EyeOff, Mail, MessageSquareLock } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,8 @@ interface TicketMessageBubbleProperties {
   readonly locale: string;
   /** Paket 2.4: highlights mentions of the current user. */
   readonly currentUserId?: string | null;
+  /** Paket 2.9 (K1c): optional actions under the bubble (e.g. "Make an article"). */
+  readonly actions?: ReactNode;
 }
 
 export function TicketMessageBubble({
@@ -24,6 +27,7 @@ export function TicketMessageBubble({
   isOwn,
   locale,
   currentUserId = null,
+  actions = null,
 }: TicketMessageBubbleProperties) {
   const { t } = useTranslation();
   const isInternal = message.type === "INTERNAL_NOTE";
@@ -100,6 +104,7 @@ export function TicketMessageBubble({
               : message.body}
           </p>
         </div>
+        {actions !== null ? <div className="mt-1 flex gap-1">{actions}</div> : null}
       </div>
     </article>
   );

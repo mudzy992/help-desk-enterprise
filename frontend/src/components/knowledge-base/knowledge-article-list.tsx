@@ -1,4 +1,4 @@
-import { Lightbulb, ShieldQuestion, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Eye, Lightbulb, ShieldQuestion, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { KnowledgeLifecycleActions } from "@/components/knowledge-base/knowledge-lifecycle-actions";
@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { formatAverageRating } from "@/lib/knowledge-base/knowledge-portal";
 import { pickName } from "@/lib/tickets/ticket-names";
 import { cn } from "@/lib/utils";
 import type {
   KnowledgeArticleResponse,
   KnowledgeArticleStatus,
 } from "@/services/knowledge-base-api";
-import { submitKnowledgeFeedback } from "@/services/knowledge-base-api";
 
 interface KnowledgeArticleListProperties {
   readonly items: readonly KnowledgeArticleResponse[];
@@ -27,6 +27,7 @@ interface KnowledgeArticleListProperties {
   readonly onCreate: () => void;
   readonly onCreateForQuery: () => void;
   readonly onClearFilters: () => void;
+  /** Refresh after a lifecycle change (rating moved to the article page, Paket 2.9 K1b). */
   readonly onFeedback: () => Promise<void>;
 }
 
@@ -149,38 +150,25 @@ export function KnowledgeArticleList({
                   <span>{t("knowledgeBase.owner")}: —</span>
                 )}
                 {item.status === "PUBLISHED" ? (
-                  <div className="ml-auto flex items-center gap-0.5">
-                    <button
-                      type="button"
-                      aria-label={t("knowledgeBase.helpful")}
-                      className={cn(
-                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-                        item.viewerFeedback === true
-                          ? "border-success/45 bg-success/15 text-ok"
-                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-                      )}
-                      onClick={() => {
-                        void submitKnowledgeFeedback(item.id, true).then(onFeedback);
-                      }}
-                    >
-                      <ThumbsUp size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t("knowledgeBase.notHelpful")}
-                      className={cn(
-                        "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-                        item.viewerFeedback === false
-                          ? "border-danger/45 bg-danger/15 text-danger"
-                          : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-                      )}
-                      onClick={() => {
-                        void submitKnowledgeFeedback(item.id, false).then(onFeedback);
-                      }}
-                    >
-                      <ThumbsDown size={12} />
-                    </button>
-                  </div>
+                  <span className="tnum ml-auto flex items-center gap-2">
+                    {item.averageRating !== null && item.averageRating !== undefined ? (
+                      <span className="flex items-center gap-0.5">
+                        <Star size={11} aria-hidden="true" className="fill-warning text-warning" />
+                        <span aria-hidden="true">{formatAverageRating(item.averageRating, i18n.language)}</span>
+                        <span className="sr-only">
+                          {t("knowledgeBase.portal.rating.summary", {
+                            average: formatAverageRating(item.averageRating, i18n.language),
+                            count: item.ratingCount ?? 0,
+                          })}
+                        </span>
+                      </span>
+                    ) : null}
+                    <span className="flex items-center gap-0.5">
+                      <Eye size={11} aria-hidden="true" />
+                      <span aria-hidden="true">{item.viewCount ?? 0}</span>
+                      <span className="sr-only">{t("knowledgeBase.portal.views", { count: item.viewCount ?? 0 })}</span>
+                    </span>
+                  </span>
                 ) : null}
               </div>
               <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground">

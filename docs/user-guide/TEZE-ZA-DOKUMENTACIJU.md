@@ -314,3 +314,12 @@ To je kriterij kompletnosti.
 - **Izvori:** `backend/src/modules/announcements/announcement-teams-card.ts`, `announcement-teams-url.ts`
 - **Status:** Važi
 - **Wiki stranica:** Admin → Najave
+
+## Paket 2.9 – K1 portal znanja (implementirano)
+
+- Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
+- Ocjena članka je 1–5 zvjezdica; komentar „šta nedostaje“ moguć je samo uz ocjenu 1 ili 2 i vide ga samo urednici (Uvidi → Otvoreni komentari).
+- Pregled se broji jednom po otvaranju objavljenog članka (Redis, uz rezervni upis u bazu).
+- „Napravi članak“ postoji samo na javnim odgovorima agenta, samo za korisnike s pravom pisanja članaka i nikad na povjerljivom tiketu (server vraća FORBIDDEN). Lični podaci (e-mail, imena/loginovi osoba s tiketa, IP, telefon) zamjenjuju se oznakama prije prikaza; rezultat je uvijek DRAFT, a na tiketu ostaje interni događaj.
+- Kategorije uređuje permisija `knowledge.category.manage`; broj FAQ stavki je postavka `private.knowledgeBase.portal.faqMaxItems`.
+- Staging: Redis ACL korisnika aplikacije treba (aditivno) `+pfadd +pfcount +sadd +smembers +srem +incr +expire +multi +exec`.

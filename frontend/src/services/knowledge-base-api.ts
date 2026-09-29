@@ -28,6 +28,16 @@ export type KnowledgeArticleResponse = {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly viewerFeedback?: boolean | null;
+  // Paket 2.9 (K1): portal fields.
+  readonly categoryId?: string | null;
+  readonly isFaq?: boolean;
+  readonly faqOrder?: number | null;
+  readonly ratingCount?: number;
+  readonly averageRating?: number | null;
+  readonly viewCount?: number;
+  readonly sourceTicketId?: string | null;
+  readonly sourceMessageId?: string | null;
+  readonly viewerRating?: number | null;
 };
 
 export type KnowledgeInterceptSuggestion = {
@@ -50,6 +60,7 @@ export type CreateKnowledgeArticleInput = {
   readonly reviewerUserId?: string;
   readonly classification?: string;
   readonly reason: string;
+  readonly categoryId?: string;
 };
 
 export type UpdateKnowledgeArticleInput = {

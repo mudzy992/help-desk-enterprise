@@ -1,4 +1,7 @@
-import { Lightbulb, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Eye, Lightbulb, Link2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { KnowledgePlacementCard } from "@/components/knowledge-base/portal/knowledge-placement-card";
+import { KnowledgeStarRating } from "@/components/knowledge-base/portal/knowledge-star-rating";
 import { useTranslation } from "react-i18next";
 import { KnowledgeArticleDeletePanel } from "@/components/knowledge-base/knowledge-article-delete-panel";
 import { KnowledgeArticleEditForm } from "@/components/knowledge-base/knowledge-article-edit-form";
@@ -14,7 +17,6 @@ import type {
   KnowledgeArticleResponse,
   KnowledgeArticleStatus,
 } from "@/services/knowledge-base-api";
-import { submitKnowledgeFeedback } from "@/services/knowledge-base-api";
 
 interface KnowledgeArticleDetailPanelProperties {
   readonly article: KnowledgeArticleResponse;
@@ -101,41 +103,33 @@ export function KnowledgeArticleDetailPanel({
         ) : (
           <span>{t("knowledgeBase.owner")}: —</span>
         )}
-        {article.status === "PUBLISHED" ? (
-          <div className="ml-auto flex items-center gap-0.5">
-            <button
-              type="button"
-              aria-label={t("knowledgeBase.helpful")}
-              className={cn(
-                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-                article.viewerFeedback === true
-                  ? "border-success/45 bg-success/15 text-ok"
-                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-              )}
-              onClick={() => {
-                void submitKnowledgeFeedback(article.id, true).then(onChanged);
-              }}
-            >
-              <ThumbsUp size={12} />
-            </button>
-            <button
-              type="button"
-              aria-label={t("knowledgeBase.notHelpful")}
-              className={cn(
-                "rounded-lg border p-1.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/70",
-                article.viewerFeedback === false
-                  ? "border-danger/45 bg-danger/15 text-danger"
-                  : "border-border text-muted-foreground hover:bg-surface-hover hover:text-foreground",
-              )}
-              onClick={() => {
-                void submitKnowledgeFeedback(article.id, false).then(onChanged);
-              }}
-            >
-              <ThumbsDown size={12} />
-            </button>
-          </div>
+        {typeof article.viewCount === "number" ? (
+          <span className="tnum ml-auto flex items-center gap-1">
+            <Eye size={11} aria-hidden="true" />
+            {t("knowledgeBase.portal.views", { count: article.viewCount })}
+          </span>
         ) : null}
       </div>
+      {article.status === "PUBLISHED" ? (
+        <div className="border-t border-border/70 px-4 py-2.5">
+          <KnowledgeStarRating
+            articleId={article.id}
+            viewerRating={article.viewerRating ?? null}
+            averageRating={article.averageRating ?? null}
+            ratingCount={article.ratingCount ?? 0}
+            onRated={onChanged}
+          />
+        </div>
+      ) : null}
+      {(canWrite || canManageLifecycle) && article.sourceTicketId ? (
+        <p className="flex items-center gap-1 px-4 pb-2 text-[11px] text-muted-foreground">
+          <Link2 size={11} aria-hidden="true" />
+          {t("knowledgeBase.portal.fromReply.sourceLabel")}{" "}
+          <Link to={`/tickets/${article.sourceTicketId}`} className="font-medium text-link hover:underline">
+            {t("knowledgeBase.portal.fromReply.openTicket")}
+          </Link>
+        </p>
+      ) : null}
       <div className="flex items-center justify-between px-4 pb-3 text-[10.5px] text-muted-foreground">
         <span className="tnum">
           {t("knowledgeBase.updatedAt")}{" "}
@@ -162,6 +156,9 @@ export function KnowledgeArticleDetailPanel({
           onChanged={onChanged}
         />
       </div>
+      {(canWrite || canManageLifecycle) && article.status !== "ARCHIVED" ? (
+        <KnowledgePlacementCard key={`${article.id}-${article.updatedAt}`} article={article} onChanged={onChanged} />
+      ) : null}
       {isSuperAdmin ? (
         <KnowledgeArticleDeletePanel
           articleId={article.id}

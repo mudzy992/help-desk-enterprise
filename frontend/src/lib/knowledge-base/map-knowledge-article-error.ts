@@ -5,7 +5,11 @@ export type KnowledgeArticleErrorKey =
   | "knowledgeBase.errorForbidden"
   | "knowledgeBase.errorNotFound"
   | "knowledgeBase.errorValidation"
-  | "knowledgeBase.errorGeneric";
+  | "knowledgeBase.errorGeneric"
+  // Paket 2.9 (K1).
+  | "knowledgeBase.errorCategory"
+  | "knowledgeBase.errorSourceMessage"
+  | "knowledgeBase.errorRating";
 
 const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   INVALID_CREDENTIALS: "knowledgeBase.errorUnauthorized",
@@ -22,6 +26,14 @@ const codeKeys: Partial<Record<string, KnowledgeArticleErrorKey>> = {
   INVALID_TITLE: "knowledgeBase.errorValidation",
   INVALID_BODY: "knowledgeBase.errorValidation",
   INVALID_SLUG: "knowledgeBase.errorValidation",
+  INVALID_CATEGORY: "knowledgeBase.errorCategory",
+  CATEGORY_KEY_TAKEN: "knowledgeBase.errorCategory",
+  CATEGORY_NOT_EMPTY: "knowledgeBase.errorCategory",
+  CATEGORY_NOT_FOUND: "knowledgeBase.errorNotFound",
+  SOURCE_TICKET_NOT_FOUND: "knowledgeBase.errorNotFound",
+  SOURCE_MESSAGE_NOT_FOUND: "knowledgeBase.errorNotFound",
+  SOURCE_MESSAGE_NOT_PUBLIC: "knowledgeBase.errorSourceMessage",
+  INVALID_RATING: "knowledgeBase.errorRating",
 };
 
 export function mapKnowledgeArticleError(

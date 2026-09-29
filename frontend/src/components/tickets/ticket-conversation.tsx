@@ -1,5 +1,5 @@
 import { CheckCheck, GitBranch } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketMessageBubble } from "@/components/tickets/ticket-message-bubble";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -34,6 +34,8 @@ interface TicketConversationProperties {
   readonly authorNames: ReadonlyMap<string, string>;
   readonly systemOnly?: boolean;
   readonly viewport?: ConversationViewport;
+  /** Paket 2.9 (K1c): per-message actions (rendered under the bubble). */
+  readonly renderMessageActions?: (message: TicketMessageResponse) => ReactNode;
 }
 
 export function TicketConversation({
@@ -42,6 +44,7 @@ export function TicketConversation({
   authorNames,
   systemOnly = false,
   viewport = "flow",
+  renderMessageActions,
 }: TicketConversationProperties) {
   const { t, i18n } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -180,6 +183,7 @@ export function TicketConversation({
             isOwn={isOwn}
             locale={i18n.language}
             currentUserId={currentUserId}
+            actions={renderMessageActions?.(message) ?? null}
           />
         );
       })}
