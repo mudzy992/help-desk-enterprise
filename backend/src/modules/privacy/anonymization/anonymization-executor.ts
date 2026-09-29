@@ -278,6 +278,20 @@ export class AnonymizationExecutor {
     add('onCallCalendarTokens', (await this.prisma.onCallCalendarToken.deleteMany({ where: { userId: u } })).count);
     await this.prisma.onCallSchedule.updateMany({ where: { ownerUserId: u }, data: { ownerUserId: null } });
 
+    // Paket 2.9 (K2, §7): acknowledgements are deleted; the report keeps counting them.
+    const acknowledgedAnnouncements = await this.prisma.announcementAcknowledgement.findMany({
+      where: { userId: u },
+      select: { announcementId: true },
+    });
+    for (const { announcementId } of acknowledgedAnnouncements) {
+      await this.prisma.announcement.update({
+        where: { id: announcementId },
+        data: { anonymizedAcknowledgements: { increment: 1 } },
+      });
+    }
+    add('announcementAcknowledgements', (await this.prisma.announcementAcknowledgement.deleteMany({ where: { userId: u } })).count);
+    add('announcementDismissals', (await this.prisma.announcementDismissal.deleteMany({ where: { userId: u } })).count);
+
     // Scheduled reports: remove the recipient, pause schedules left without one.
     const recipientRows = await this.prisma.reportScheduleRecipient.findMany({ where: { userId: u }, select: { scheduleId: true } });
     if (recipientRows.length > 0) {

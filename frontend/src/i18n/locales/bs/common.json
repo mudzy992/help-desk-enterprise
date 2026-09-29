@@ -24,7 +24,8 @@
     "templates": "Šabloni i playbooks",
     "privacy": "Privatnost",
     "status": "Status servisa",
-    "onCall": "Dežurstva"
+    "onCall": "Dežurstva",
+    "announcements": "Najave"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -157,7 +158,9 @@
       "onCallReminder": "Podsjetnik na dežurstvo",
       "onCallShiftStarted": "Počela je tvoja dežurna smjena",
       "onCallSwap": "Zahtjev za zamjenu dežurstva",
-      "onCallGap": "Dežurna smjena bez dežurnog"
+      "onCallGap": "Dežurna smjena bez dežurnog",
+      "announcementPublished": "Nova najava",
+      "announcementReminder": "Podsjetnik: potvrdite najavu"
     }
   },
   "placeholders": {
@@ -516,7 +519,9 @@
       "status.incidents.manage": "Upravljanje incidentima",
       "config.version.import": "Uvoz paketa konfiguracije",
       "oncall.read": "Pregled dežurstava",
-      "oncall.manage": "Upravljanje dežurstvima"
+      "oncall.manage": "Upravljanje dežurstvima",
+      "announcement.manage": "Upravljanje najavama",
+      "announcement.report.read": "Izvještaj o potvrdama najava"
     }
   },
   "maintenance": {
@@ -655,7 +660,9 @@
         "status.incidents.manage": "Kreiranje i ažuriranje incidenata na statusnoj stranici.",
         "config.version.import": "Uvezi paket konfiguracije iz drugog okruženja kao novu nacrt verziju (paket 2.9).",
         "oncall.read": "Pregled rasporeda dežurstava, ko je sada dežuran i zahtjevi za zamjenu smjene (paket 2.9).",
-        "oncall.manage": "Upravljanje rasporedima dežurstava: rotacija, članovi i zamjene (paket 2.9)."
+        "oncall.manage": "Upravljanje rasporedima dežurstava: rotacija, članovi i zamjene (paket 2.9).",
+        "announcement.manage": "Kreiranje, objava, izmjena i povlačenje najava (paket 2.9).",
+        "announcement.report.read": "Pregled ko je potvrdio najavu i podsjetnik ostalima (paket 2.9)."
       }
     }
   },
@@ -1329,7 +1336,11 @@
         "private.configVersioning.environmentName": "Naziv ove instalacije (npr. staging, produkcija) koji se upisuje u izvezeni paket konfiguracije.",
         "private.onCall.enabled": "Uključi dežurstva (rotacija, zamjene, eskalacija dežurnom).",
         "private.onCall.reminderTime": "Vrijeme podsjetnika dan prije smjene (HH:MM, koraci od 15 min, vremenska zona rasporeda).",
-        "private.onCall.historyRetentionDays": "Koliko dana se čuvaju prošle zamjene i zahtjevi za zamjenu (0 = trajno; 90–3650)."
+        "private.onCall.historyRetentionDays": "Koliko dana se čuvaju prošle zamjene i zahtjevi za zamjenu (0 = trajno; 90–3650).",
+        "private.announcements.enabled": "Uključi najave (traka/prozor s opcionalnom potvrdom čitanja).",
+        "private.announcements.maxDurationDays": "Najduže trajanje jedne najave u danima (1–365).",
+        "private.announcements.agentsMayPublish": "Agenti smiju objavljivati najave za svoju organizacionu jedinicu i podjedinice.",
+        "private.announcements.receiptRetentionDays": "Koliko dana nakon kraja najave se čuvaju potvrde čitanja i zatvaranja (0 = trajno; 30–3650)."
       }
     },
     "emailTemplates": {
@@ -4421,6 +4432,10 @@
         "oncall_gap": {
           "label": "Smjena bez dežurnog",
           "hint": "Upozorenje vlasniku rasporeda kad smjena nema dežurnog. Uvijek uključeno."
+        },
+        "announcement": {
+          "label": "Najave",
+          "hint": "Obavijest kad počne najava za koju je autor tražio obavještavanje i podsjetnik na potvrdu čitanja."
         }
       },
       "emailOnly": "Samo e-mail",
@@ -5283,6 +5298,176 @@
       "swapNotPending": "Zahtjev je već riješen.",
       "forbidden": "Za ovu radnju potrebno je ovlaštenje oncall.manage.",
       "order": "Kraj mora biti nakon početka."
+    }
+  },
+  "announcements": {
+    "title": "Najave",
+    "subtitle": "Obavještenja organizacije: planirani radovi, promjene i važne informacije. Ovdje su najave iz zadnjih 90 dana.",
+    "disabledTitle": "Najave nisu uključene",
+    "disabledBody": "Administrator ih uključuje u Postavkama → Tok rada → „Uključi najave“ (private.announcements.enabled).",
+    "tabs": {
+      "mine": "Moje najave",
+      "manage": "Upravljanje"
+    },
+    "severity": {
+      "INFO": "Informacija",
+      "WARNING": "Upozorenje",
+      "CRITICAL": "Kritično"
+    },
+    "displayMode": {
+      "BANNER": "Traka iznad sadržaja",
+      "MODAL": "Prozor (modal) uz traku"
+    },
+    "status": {
+      "DRAFT": "Nacrt",
+      "SCHEDULED": "Zakazana",
+      "PUBLISHED": "Aktivna",
+      "ENDED": "Završena",
+      "WITHDRAWN": "Povučena"
+    },
+    "roles": {
+      "USER": "Korisnici",
+      "AGENT": "Agenti",
+      "ADMIN": "Administratori",
+      "SUPER_ADMIN": "Super administratori"
+    },
+    "banner": {
+      "region": "Najave",
+      "acknowledge": "Pročitao/la sam",
+      "acknowledged": "Potvrđeno. Hvala!",
+      "dismiss": "Zatvori",
+      "more": "Prikaži detalje",
+      "less": "Sakrij detalje",
+      "all": "Sve najave",
+      "previous": "Prethodna najava",
+      "next": "Sljedeća najava",
+      "counter": "{{current}} od {{total}}",
+      "service": "Usluga: {{name}}"
+    },
+    "modal": {
+      "later": "Kasnije"
+    },
+    "archive": {
+      "label": "Najave iz zadnjih 90 dana",
+      "emptyTitle": "Nema najava",
+      "emptyBody": "U zadnjih 90 dana nije bilo najava za vas.",
+      "acknowledgedAt": "Potvrđeno {{at}}",
+      "notAcknowledged": "Nije potvrđeno"
+    },
+    "editor": {
+      "createTitle": "Nova najava",
+      "editTitle": "Uredi najavu",
+      "description": "Najava se sprema kao nacrt; korisnici je vide tek nakon objave, od početka do kraja prikaza.",
+      "publishedHint": "Najava je objavljena: publika i potvrda čitanja se više ne mijenjaju. Izmjena teksta čuva prethodnu verziju.",
+      "title": "Naslov",
+      "body": "Tekst",
+      "bodyHint": "Podržano: **podebljano**, *kurziv*, `kod`, [link](https://…), liste s „- “ i naslovi s „## “. HTML se ne prikazuje.",
+      "preview": "Pregled",
+      "edit": "Uređivanje",
+      "severity": "Težina",
+      "service": "Usluga (opcionalno)",
+      "serviceHint": "Npr. planirani radovi na usluzi.",
+      "noService": "Bez usluge",
+      "startsAt": "Početak prikaza",
+      "endsAt": "Kraj prikaza",
+      "maxDuration": "Najduže {{days}} dana od početka.",
+      "behaviour": "Ponašanje",
+      "requiresAcknowledgement": "Traži potvrdu čitanja („Pročitao/la sam“)",
+      "displayMode": "Način prikaza",
+      "displayModeHint": "Prozor je moguć samo uz potvrdu čitanja; zatvara se tipkom Esc i vraća se najviše 3 puta po prijavi.",
+      "notifyAudience": "Pošalji obavijest u aplikaciji publici kad najava počne",
+      "audience": "Publika",
+      "audienceHint": "Bez odabira najava ide svima. Kad je odabrano više filtera, korisnik mora zadovoljiti svaki (uloga i jedinica i grupa).",
+      "audienceScopedHint": "Kao agent objavljujete samo za svoju organizacionu jedinicu i njene podjedinice — odaberite barem jednu.",
+      "roles": "Uloge",
+      "units": "Organizacione jedinice",
+      "unitsHint": "Uključuje i sve podjedinice.",
+      "unitFilter": "Filtriraj jedinice",
+      "noUnits": "Nema jedinica za prikaz.",
+      "groups": "Grupe",
+      "audienceCount_one": "Procjena publike: ≈ {{count}} korisnik.",
+      "audienceCount_few": "Procjena publike: ≈ {{count}} korisnika.",
+      "audienceCount_other": "Procjena publike: ≈ {{count}} korisnika.",
+      "audiencePending": "Procjena publike: odaberite publiku.",
+      "audienceUnknown": "Procjena publike trenutno nije dostupna.",
+      "saveDraft": "Spremi nacrt",
+      "save": "Spremi izmjene"
+    },
+    "manage": {
+      "title": "Upravljanje najavama",
+      "subtitle": "Nacrti, zakazane, aktivne i završene najave.",
+      "scopedSubtitle": "Najave za vašu organizacionu jedinicu.",
+      "new": "Nova najava",
+      "emptyTitle": "Još nema najava",
+      "emptyBody": "Napravite prvu najavu; ostaje nacrt dok je ne objavite.",
+      "columns": {
+        "title": "Najava",
+        "status": "Status",
+        "period": "Prikaz",
+        "acknowledged": "Potvrdilo",
+        "actions": "Radnje"
+      },
+      "modeBanner": "Traka, bez potvrde",
+      "modeAcknowledge": "Traka s potvrdom čitanja",
+      "modeModal": "Prozor s potvrdom čitanja",
+      "version": "verzija {{version}}",
+      "edit": "Uredi",
+      "publish": "Objavi",
+      "delete": "Obriši",
+      "report": "Izvještaj",
+      "withdraw": "Povuci",
+      "saved": "Najava je spremljena.",
+      "published": "Najava je objavljena.",
+      "withdrawn": "Najava je povučena.",
+      "deleted": "Nacrt je obrisan.",
+      "publishTitle": "Objaviti najavu?",
+      "publishBody_one": "Najavu će vidjeti ≈ {{count}} korisnik od početka prikaza. Publika se nakon objave ne mijenja.",
+      "publishBody_few": "Najavu će vidjeti ≈ {{count}} korisnika od početka prikaza. Publika se nakon objave ne mijenja.",
+      "publishBody_other": "Najavu će vidjeti ≈ {{count}} korisnika od početka prikaza. Publika se nakon objave ne mijenja.",
+      "publishBodyUnknown": "Najava će biti vidljiva publici od početka prikaza. Publika se nakon objave ne mijenja.",
+      "withdrawTitle": "Povući najavu?",
+      "withdrawBody": "Najava odmah nestaje kod svih korisnika. Radnja se bilježi u auditu.",
+      "deleteTitle": "Obrisati nacrt?",
+      "deleteBody": "Nacrt se trajno briše.",
+      "reason": "Razlog",
+      "reasonHint": "Najmanje 3 znaka; bilježi se u auditu."
+    },
+    "report": {
+      "title": "Izvještaj o potvrdama",
+      "summary": "Potvrdilo {{acknowledged}} od {{audience}} ({{percent}} %)",
+      "audienceNote": "Broj „od“ je publika u trenutku objave; sada publika ima {{current}} korisnika.",
+      "noAcknowledgement": "Ova najava ne traži potvrdu čitanja; prikazana je samo publika.",
+      "byUnit": "Potvrde po organizacionoj jedinici",
+      "unit": "Jedinica",
+      "acknowledgedColumn": "Potvrdilo",
+      "audienceColumn": "Publika",
+      "noUnit": "Bez jedinice",
+      "pending_one": "Nije potvrdio/la: {{count}} korisnik",
+      "pending_few": "Nije potvrdilo: {{count}} korisnika",
+      "pending_other": "Nije potvrdilo: {{count}} korisnika",
+      "nonePending": "Svi iz publike su potvrdili.",
+      "pendingMore_one": "… i još {{count}} (vidi CSV).",
+      "pendingMore_few": "… i još {{count}} (vidi CSV).",
+      "pendingMore_other": "… i još {{count}} (vidi CSV).",
+      "lastReminder": "Zadnji podsjetnik: {{at}}",
+      "csv": "Preuzmi CSV",
+      "remind": "Podsjeti one koji nisu potvrdili",
+      "reminded_one": "Podsjetnik je poslan {{count}} korisniku.",
+      "reminded_few": "Podsjetnik je poslan {{count}} korisnika.",
+      "reminded_other": "Podsjetnik je poslan {{count}} korisnika."
+    },
+    "errors": {
+      "disabled": "Najave nisu uključene.",
+      "notFound": "Najava nije pronađena.",
+      "invalid": "Podaci najave nisu ispravni.",
+      "invalidAudience": "Publika nije ispravna (nepostojeća jedinica ili grupa, ili jedinica van vaše).",
+      "invalidState": "Radnja nije moguća u trenutnom statusu najave (objavljena najava ne mijenja publiku ni potvrdu čitanja).",
+      "notActive": "Najava trenutno nije aktivna.",
+      "reminderTooSoon": "Podsjetnik je moguć najviše jednom u 24 sata.",
+      "forbidden": "Nemate ovlaštenje za upravljanje najavama.",
+      "dates": "Unesite ispravan početak i kraj.",
+      "order": "Kraj mora biti nakon početka.",
+      "duration": "Najava može trajati najviše {{days}} dana."
     }
   }
 }

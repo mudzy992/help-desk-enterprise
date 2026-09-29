@@ -318,6 +318,28 @@ export class ExportBuilder {
       }),
     );
 
+    // Paket 2.9 (K2): announcements the person acknowledged or closed.
+    const [announcementAcks, announcementDismissals] = await Promise.all([
+      this.prisma.announcementAcknowledgement.findMany({
+        where: { userId: u },
+        orderBy: { acknowledgedAt: 'asc' },
+        select: { acknowledgedAt: true, announcement: { select: { title: true, startsAt: true, endsAt: true } } },
+      }),
+      this.prisma.announcementDismissal.findMany({
+        where: { userId: u },
+        orderBy: { dismissedAt: 'asc' },
+        select: { dismissedAt: true, announcement: { select: { title: true, startsAt: true, endsAt: true } } },
+      }),
+    ]);
+    counts.announcements = announcementAcks.length + announcementDismissals.length;
+    zip.file(
+      'announcements.json',
+      json({
+        acknowledgements: announcementAcks.map(({ announcement, ...row }) => ({ ...announcement, ...row })),
+        dismissals: announcementDismissals.map(({ announcement, ...row }) => ({ ...announcement, ...row })),
+      }),
+    );
+
     const audit: unknown[] = [];
     await paginate(
       (cursor) =>

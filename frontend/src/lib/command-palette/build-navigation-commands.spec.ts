@@ -25,6 +25,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.privacy": "Privatnost",
   "navigation.status": "Status servisa",
   "navigation.onCall": "Dežurstva",
+  "navigation.announcements": "Najave",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {
@@ -90,14 +91,14 @@ describe("filterNavigationCommands", () => {
   });
 
   it("sorts by rank first, then by sidebar order inside a rank", () => {
-    // "ja" is contained in "Baza znanja" and "Administracija" (rank 2), and
+    // "ja" is contained in "Najave", "Baza znanja" and "Administracija" (rank 2), and
     // names the section "Administracija" (rank 3) for the remaining admin rows.
     const paths = filter("ja").map((command) => command.path);
 
-    // rank 2 — both contain the query; ties keep sidebar order.
-    expect(paths.slice(0, 2)).toEqual(["/knowledge-base", "/admin"]);
+    // rank 2 — all contain the query; ties keep sidebar order.
+    expect(paths.slice(0, 3)).toEqual(["/announcements", "/knowledge-base", "/admin"]);
     // rank 3 — matched only through their section, still in sidebar order.
-    expect(paths.slice(2)).toEqual([
+    expect(paths.slice(3)).toEqual([
       "/routing",
       "/sla",
       "/admin/workflow",

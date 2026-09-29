@@ -260,3 +260,29 @@ To je kriterij kompletnosti.
 - **Izvori:** `docs/plans/modules/2.9-dodatne-nadogradnje.md` §4
 - **Status:** Važi
 - **Wiki stranica:** Agent → Dežurstva
+
+### T11 — Objavljena najava ne mijenja publiku
+
+- **Modul / paket:** Najave · 2.9 (K2)
+- **Publika:** Admin
+- **Tip:** Ograničenje
+- **Teza:** nakon objave publika, potvrda čitanja i (kad je najava već počela) početak se ne mijenjaju.
+  Tekst, težina, prikaz, kraj i usluga se mogu mijenjati; izmjena teksta čuva prethodnu verziju.
+- **Zašto:** izvještaj „potvrdilo X od Y“ računa Y u trenutku objave; promjena publike bi ga učinila netačnim.
+  Za drugu publiku napravite novu najavu (i po potrebi povucite staru).
+- **Izvori:** `backend/src/modules/announcements/announcements.service.ts` (`update`)
+- **Status:** Važi
+- **Wiki stranica:** Admin → Najave
+
+### T12 — Modal najave se vraća najviše 3 puta
+
+- **Modul / paket:** Najave · 2.9 (K2)
+- **Publika:** Svi
+- **Tip:** Ponašanje
+- **Teza:** prozor najave koja traži potvrdu može se zatvoriti (Esc/„Kasnije“) i vraća se pri sljedećoj
+  navigaciji najviše 3 puta u istoj sesiji preglednika; zatim ostaje samo traka. Izmijenjen tekst (nova
+  verzija) ponovo pokreće brojanje.
+- **Zašto:** WCAG — prozor ne smije zarobiti korisnika niti blokirati prijavu tiketa (odluka P4).
+- **Izvori:** `frontend/src/lib/announcements/announcement-view.ts`
+- **Status:** Važi
+- **Wiki stranica:** Korisnik → Najave

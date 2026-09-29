@@ -14,6 +14,7 @@ import { serviceOnboardingSettings } from './service-onboarding-settings';
 import { changeLogSettings } from './change-log-settings';
 import { configVersioningSettings } from './config-versioning-settings';
 import { onCallSettings } from './on-call-settings';
+import { announcementSettings } from './announcement-settings';
 import { auditLogSettings } from './audit-log-settings';
 import { reportsSettings } from './reports-settings';
 import { privacySettings } from './privacy-settings';
@@ -85,6 +86,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...changeLogSettings,
   ...configVersioningSettings,
   ...onCallSettings,
+  ...announcementSettings,
   ...auditLogSettings,
   ...reportsSettings,
   ...privacySettings,

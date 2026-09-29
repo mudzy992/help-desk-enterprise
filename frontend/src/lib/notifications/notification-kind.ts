@@ -46,6 +46,10 @@ export function notificationTicketPath(
   if (type === "status.incidentStarted" || type === "status.incidentResolved") {
     return "/status";
   }
+  // Paket 2.9 (K2): announcement notifications open the announcement archive.
+  if (type?.startsWith("announcement.")) {
+    return "/announcements";
+  }
   // Paket 2.9 (K3): every on-call notification opens the on-call page.
   if (type?.startsWith("oncall.")) {
     return "/on-call";
@@ -96,6 +100,8 @@ export function notificationTitleKey(
   | "notifications.items.onCallShiftStarted"
   | "notifications.items.onCallSwap"
   | "notifications.items.onCallGap"
+  | "notifications.items.announcementPublished"
+  | "notifications.items.announcementReminder"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -152,6 +158,10 @@ export function notificationTitleKey(
       return "notifications.items.onCallSwap";
     case "oncall.gap":
       return "notifications.items.onCallGap";
+    case "announcement.published":
+      return "notifications.items.announcementPublished";
+    case "announcement.reminder":
+      return "notifications.items.announcementReminder";
     default:
       return "notifications.items.unknown";
   }

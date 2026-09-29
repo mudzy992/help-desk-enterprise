@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 import { InstallGateSkeleton } from "@/components/install/install-gate-skeleton";
 import { AppHeader } from "@/components/layout/app-header";
+import { AnnouncementsHost } from "@/components/announcements/announcements-host";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { MaintenanceBanner } from "@/components/maintenance/maintenance-banner";
@@ -94,6 +95,7 @@ export function ApplicationShell() {
             <div className="print:hidden">
               <MaintenanceBanner maintenance={maintenance} />
               <PasswordExpiryBanner />
+              <AnnouncementsHost />
             </div>
             <Outlet />
           </div>

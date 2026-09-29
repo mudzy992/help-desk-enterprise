@@ -7,6 +7,7 @@ import { notificationRetentionQueueName } from '../notifications/notification-re
 import { notificationDigestQueueName } from '../notifications/preferences/notification-digest.constants';
 import { privacyQueueName } from '../privacy/privacy.constants';
 import { onCallSweepQueueName } from '../on-call/on-call-sweep.job.constants';
+import { announcementSweepQueueName } from '../announcements/announcement-sweep.job.constants';
 import { reportSchedulesQueueName } from '../reports/schedules/report-schedule.constants';
 import { slaScanQueueName } from '../sla/sla-scan.constants';
 import { ticketArchiveQueueName } from '../tickets/archive/ticket-archive.job.constants';
@@ -43,6 +44,7 @@ export const opsMonitoredQueueNames = [
   reportSchedulesQueueName,
   privacyQueueName,
   onCallSweepQueueName,
+  announcementSweepQueueName,
 ] as const;
 
 export const opsProbeTimeouts = {

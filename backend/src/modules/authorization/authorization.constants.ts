@@ -48,6 +48,9 @@ export const permissionKeys = {
   // Paket 2.9 (K3): on-call schedules.
   onCallRead: 'oncall.read',
   onCallManage: 'oncall.manage',
+  // Paket 2.9 (K2): announcements.
+  announcementManage: 'announcement.manage',
+  announcementReportRead: 'announcement.report.read',
   confidentialBreakGlass: 'confidential.break_glass',
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',
@@ -113,6 +116,8 @@ const adminPermissionKeys = [
   permissionKeys.knowledgeArticleReview,
   permissionKeys.knowledgeArticlePublish,
   permissionKeys.onCallManage,
+  permissionKeys.announcementManage,
+  permissionKeys.announcementReportRead,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =

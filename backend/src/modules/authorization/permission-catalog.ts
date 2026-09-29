@@ -143,6 +143,16 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Manage on-call schedules: rotation, members and overrides (package 2.9).',
   },
   {
+    key: permissionKeys.announcementManage,
+    categoryId: permissionCategoryIds.settings,
+    description: 'Create, publish, edit and withdraw announcements (package 2.9).',
+  },
+  {
+    key: permissionKeys.announcementReportRead,
+    categoryId: permissionCategoryIds.settings,
+    description: 'See who acknowledged an announcement and remind the rest (package 2.9).',
+  },
+  {
     key: permissionKeys.configVersionImport,
     categoryId: permissionCategoryIds.settings,
     description:

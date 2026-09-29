@@ -24,7 +24,8 @@
     "templates": "Templates & playbooks",
     "privacy": "Privacy",
     "status": "Service status",
-    "onCall": "On-call"
+    "onCall": "On-call",
+    "announcements": "Announcements"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -157,7 +158,9 @@
       "onCallReminder": "On-call reminder",
       "onCallShiftStarted": "Your on-call shift has started",
       "onCallSwap": "On-call swap request",
-      "onCallGap": "On-call shift without anyone on call"
+      "onCallGap": "On-call shift without anyone on call",
+      "announcementPublished": "New announcement",
+      "announcementReminder": "Reminder: please acknowledge the announcement"
     }
   },
   "placeholders": {
@@ -509,7 +512,9 @@
       "status.incidents.manage": "Manage incidents",
       "config.version.import": "Import config package",
       "oncall.read": "View on-call",
-      "oncall.manage": "Manage on-call"
+      "oncall.manage": "Manage on-call",
+      "announcement.manage": "Manage announcements",
+      "announcement.report.read": "Announcement acknowledgement report"
     }
   },
   "maintenance": {
@@ -648,7 +653,9 @@
         "status.incidents.manage": "Create and update incidents on the status page.",
         "config.version.import": "Import a configuration package from another environment as a new draft version (package 2.9).",
         "oncall.read": "See on-call schedules, who is on call now, and request shift swaps (package 2.9).",
-        "oncall.manage": "Manage on-call schedules: rotation, members and overrides (package 2.9)."
+        "oncall.manage": "Manage on-call schedules: rotation, members and overrides (package 2.9).",
+        "announcement.manage": "Create, publish, edit and withdraw announcements (package 2.9).",
+        "announcement.report.read": "See who acknowledged an announcement and remind the rest (package 2.9)."
       }
     }
   },
@@ -1320,7 +1327,11 @@
         "private.configVersioning.environmentName": "Name of this installation (e.g. staging, production) written into exported configuration packages.",
         "private.onCall.enabled": "Enable on-call schedules (rotation, overrides, escalation to the on-call agent).",
         "private.onCall.reminderTime": "Time of the reminder the day before a shift (HH:MM, 15-minute steps, schedule time zone).",
-        "private.onCall.historyRetentionDays": "Days to keep past overrides and swap requests (0 = keep; 90–3650)."
+        "private.onCall.historyRetentionDays": "Days to keep past overrides and swap requests (0 = keep; 90–3650).",
+        "private.announcements.enabled": "Enable announcements (bar/dialog with optional read acknowledgement).",
+        "private.announcements.maxDurationDays": "Longest time one announcement may stay active, in days (1–365).",
+        "private.announcements.agentsMayPublish": "Agents may publish announcements for their own organizational unit and sub-units.",
+        "private.announcements.receiptRetentionDays": "Days after an announcement ends before acknowledgements and dismissals are deleted (0 = keep; 30–3650)."
       }
     },
     "emailTemplates": {
@@ -4395,6 +4406,10 @@
         "oncall_gap": {
           "label": "Uncovered on-call shift",
           "hint": "Warns the schedule owner when a shift has nobody on call. Always on."
+        },
+        "announcement": {
+          "label": "Announcements",
+          "hint": "A notification when an announcement starts (if the author asked for it) and the acknowledgement reminder."
         }
       },
       "emailOnly": "E-mail only",
@@ -5249,6 +5264,171 @@
       "swapNotPending": "The request has already been handled.",
       "forbidden": "This action needs the oncall.manage permission.",
       "order": "The end must be after the start."
+    }
+  },
+  "announcements": {
+    "title": "Announcements",
+    "subtitle": "Organisation notices: planned work, changes and important information. Announcements from the last 90 days.",
+    "disabledTitle": "Announcements are not enabled",
+    "disabledBody": "An administrator enables them in Settings → Workflow → “Enable announcements” (private.announcements.enabled).",
+    "tabs": {
+      "mine": "My announcements",
+      "manage": "Manage"
+    },
+    "severity": {
+      "INFO": "Information",
+      "WARNING": "Warning",
+      "CRITICAL": "Critical"
+    },
+    "displayMode": {
+      "BANNER": "Bar above the content",
+      "MODAL": "Dialog (modal) with the bar"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "PUBLISHED": "Active",
+      "ENDED": "Ended",
+      "WITHDRAWN": "Withdrawn"
+    },
+    "roles": {
+      "USER": "Users",
+      "AGENT": "Agents",
+      "ADMIN": "Administrators",
+      "SUPER_ADMIN": "Super administrators"
+    },
+    "banner": {
+      "region": "Announcements",
+      "acknowledge": "I have read this",
+      "acknowledged": "Acknowledged. Thank you!",
+      "dismiss": "Close",
+      "more": "Show details",
+      "less": "Hide details",
+      "all": "All announcements",
+      "previous": "Previous announcement",
+      "next": "Next announcement",
+      "counter": "{{current}} of {{total}}",
+      "service": "Service: {{name}}"
+    },
+    "modal": {
+      "later": "Later"
+    },
+    "archive": {
+      "label": "Announcements from the last 90 days",
+      "emptyTitle": "No announcements",
+      "emptyBody": "There were no announcements for you in the last 90 days.",
+      "acknowledgedAt": "Acknowledged {{at}}",
+      "notAcknowledged": "Not acknowledged"
+    },
+    "editor": {
+      "createTitle": "New announcement",
+      "editTitle": "Edit announcement",
+      "description": "The announcement is saved as a draft; users see it only after publication, from start to end.",
+      "publishedHint": "The announcement is published: audience and read acknowledgement no longer change. Editing the text keeps the previous version.",
+      "title": "Title",
+      "body": "Text",
+      "bodyHint": "Supported: **bold**, *italic*, `code`, [link](https://…), lists with “- ” and headings with “## ”. HTML is not rendered.",
+      "preview": "Preview",
+      "edit": "Edit",
+      "severity": "Severity",
+      "service": "Service (optional)",
+      "serviceHint": "E.g. planned work on a service.",
+      "noService": "No service",
+      "startsAt": "Show from",
+      "endsAt": "Show until",
+      "maxDuration": "At most {{days}} days from the start.",
+      "behaviour": "Behaviour",
+      "requiresAcknowledgement": "Require read acknowledgement (“I have read this”)",
+      "displayMode": "Display",
+      "displayModeHint": "The dialog needs read acknowledgement; it closes with Esc and returns at most 3 times per sign-in.",
+      "notifyAudience": "Send an in-app notification to the audience when the announcement starts",
+      "audience": "Audience",
+      "audienceHint": "Without a selection the announcement goes to everyone. With several filters a user must match each (role and unit and group).",
+      "audienceScopedHint": "As an agent you publish only for your organizational unit and its sub-units — choose at least one.",
+      "roles": "Roles",
+      "units": "Organizational units",
+      "unitsHint": "Includes all sub-units.",
+      "unitFilter": "Filter units",
+      "noUnits": "No units to show.",
+      "groups": "Groups",
+      "audienceCount_one": "Estimated audience: ≈ {{count}} user.",
+      "audienceCount_other": "Estimated audience: ≈ {{count}} users.",
+      "audiencePending": "Estimated audience: choose the audience.",
+      "audienceUnknown": "The audience estimate is not available right now.",
+      "saveDraft": "Save draft",
+      "save": "Save changes"
+    },
+    "manage": {
+      "title": "Manage announcements",
+      "subtitle": "Drafts, scheduled, active and ended announcements.",
+      "scopedSubtitle": "Announcements for your organizational unit.",
+      "new": "New announcement",
+      "emptyTitle": "No announcements yet",
+      "emptyBody": "Create the first one; it stays a draft until you publish it.",
+      "columns": {
+        "title": "Announcement",
+        "status": "Status",
+        "period": "Shown",
+        "acknowledged": "Acknowledged",
+        "actions": "Actions"
+      },
+      "modeBanner": "Bar, no acknowledgement",
+      "modeAcknowledge": "Bar with read acknowledgement",
+      "modeModal": "Dialog with read acknowledgement",
+      "version": "version {{version}}",
+      "edit": "Edit",
+      "publish": "Publish",
+      "delete": "Delete",
+      "report": "Report",
+      "withdraw": "Withdraw",
+      "saved": "Announcement saved.",
+      "published": "Announcement published.",
+      "withdrawn": "Announcement withdrawn.",
+      "deleted": "Draft deleted.",
+      "publishTitle": "Publish the announcement?",
+      "publishBody_one": "≈ {{count}} user will see it from the start time. The audience does not change after publication.",
+      "publishBody_other": "≈ {{count}} users will see it from the start time. The audience does not change after publication.",
+      "publishBodyUnknown": "The audience will see it from the start time. The audience does not change after publication.",
+      "withdrawTitle": "Withdraw the announcement?",
+      "withdrawBody": "It disappears for every user right away. The action is audited.",
+      "deleteTitle": "Delete the draft?",
+      "deleteBody": "The draft is deleted permanently.",
+      "reason": "Reason",
+      "reasonHint": "At least 3 characters; recorded in the audit log."
+    },
+    "report": {
+      "title": "Acknowledgement report",
+      "summary": "{{acknowledged}} of {{audience}} acknowledged ({{percent}}%)",
+      "audienceNote": "“Of” is the audience at publication; the audience now has {{current}} users.",
+      "noAcknowledgement": "This announcement does not ask for acknowledgement; only the audience is shown.",
+      "byUnit": "Acknowledgements per organizational unit",
+      "unit": "Unit",
+      "acknowledgedColumn": "Acknowledged",
+      "audienceColumn": "Audience",
+      "noUnit": "No unit",
+      "pending_one": "Not acknowledged: {{count}} user",
+      "pending_other": "Not acknowledged: {{count}} users",
+      "nonePending": "Everyone in the audience has acknowledged.",
+      "pendingMore_one": "… and {{count}} more (see the CSV).",
+      "pendingMore_other": "… and {{count}} more (see the CSV).",
+      "lastReminder": "Last reminder: {{at}}",
+      "csv": "Download CSV",
+      "remind": "Remind those who have not acknowledged",
+      "reminded_one": "Reminder sent to {{count}} user.",
+      "reminded_other": "Reminder sent to {{count}} users."
+    },
+    "errors": {
+      "disabled": "Announcements are not enabled.",
+      "notFound": "Announcement not found.",
+      "invalid": "The announcement data is not valid.",
+      "invalidAudience": "The audience is not valid (unknown unit or group, or a unit outside yours).",
+      "invalidState": "Not possible in the current status (a published announcement keeps its audience and acknowledgement mode).",
+      "notActive": "The announcement is not active right now.",
+      "reminderTooSoon": "A reminder is possible at most once in 24 hours.",
+      "forbidden": "You are not allowed to manage announcements.",
+      "dates": "Enter a valid start and end.",
+      "order": "The end must be after the start.",
+      "duration": "An announcement can last at most {{days}} days."
     }
   }
 }

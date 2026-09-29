@@ -107,6 +107,14 @@ export const auditLogActions = {
   onCallCalendarTokenRotated: 'oncall.calendar_token.rotated',
   onCallCalendarTokenRevoked: 'oncall.calendar_token.revoked',
   onCallEscalationNotified: 'oncall.escalation.notified',
+  // Paket 2.9 (K2): announcements.
+  announcementCreated: 'announcement.created',
+  announcementUpdated: 'announcement.updated',
+  announcementPublished: 'announcement.published',
+  announcementWithdrawn: 'announcement.withdrawn',
+  announcementDeleted: 'announcement.deleted',
+  announcementReminded: 'announcement.reminded',
+  announcementReportExported: 'announcement.report.exported',
 } as const;
 
 export const auditLogEntityTypes = {
@@ -138,6 +146,7 @@ export const auditLogEntityTypes = {
   statusIncident: 'status_incident',
   // Paket 2.9
   onCallSchedule: 'on_call_schedule',
+  announcement: 'announcement',
 } as const;
 
 export const auditLogErrorCodes = {

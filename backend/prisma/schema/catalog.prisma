@@ -46,6 +46,8 @@ model Service {
   updatedAt            DateTime                @updatedAt
   /// Paket 2.7: incidents on the status page.
   incidents            ServiceIncidentService[]
+  /// Paket 2.9 (K2)
+  announcements        Announcement[]
 
   @@index([categoryId])
   @@index([lifecycle])

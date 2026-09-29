@@ -80,6 +80,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
     inAppOnly,
   ),
   category('oncall.gap', [notificationTypes.onCallGap], 1, inAppOnly, true),
+  // Paket 2.9 (K2): the author chose to notify; the banner itself is not a notification.
+  category('announcement', [notificationTypes.announcementPublished, notificationTypes.announcementReminder], 0, inAppOnly),
   category(
     'account.security',
     [

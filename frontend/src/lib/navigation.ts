@@ -19,6 +19,7 @@ export const navigationLabelKeys = {
   privacy: "navigation.privacy",
   status: "navigation.status",
   onCall: "navigation.onCall",
+  announcements: "navigation.announcements",
 } as const;
 
 export type NavigationLabelKey =
@@ -148,6 +149,14 @@ export const statusNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.authenticated },
 };
 
+/** Paket 2.9 (K2): announcement archive for everyone; managing is gated server-side. */
+export const announcementsNavigationItem: NavigationItem = {
+  path: "/announcements",
+  labelKey: navigationLabelKeys.announcements,
+  end: false,
+  access: { kind: navigationAccessKinds.authenticated },
+};
+
 /** Paket 2.9 (K3): on-call calendar, holders of oncall.read. */
 export const onCallNavigationItem: NavigationItem = {
   path: "/on-call",
@@ -167,7 +176,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.services,
-    items: [servicesNavigationItem, statusNavigationItem, knowledgeBaseNavigationItem],
+    items: [servicesNavigationItem, statusNavigationItem, announcementsNavigationItem, knowledgeBaseNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.administration,

@@ -36,6 +36,9 @@ export const notificationTypes = {
   onCallShiftStarted: 'oncall.shiftStarted',
   onCallSwap: 'oncall.swap',
   onCallGap: 'oncall.gap',
+  // Paket 2.9 (K2): announcement started (audience) and acknowledgement reminder.
+  announcementPublished: 'announcement.published',
+  announcementReminder: 'announcement.reminder',
 } as const;
 
 export type NotificationType =
@@ -78,6 +81,8 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.onCallShiftStarted]: 'notifications.items.onCallShiftStarted',
     [notificationTypes.onCallSwap]: 'notifications.items.onCallSwap',
     [notificationTypes.onCallGap]: 'notifications.items.onCallGap',
+    [notificationTypes.announcementPublished]: 'notifications.items.announcementPublished',
+    [notificationTypes.announcementReminder]: 'notifications.items.announcementReminder',
   };
 
 export const notificationListLimits = {

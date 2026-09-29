@@ -533,6 +533,11 @@ export const settingKeys = {
   privateOnCallEnabled: 'private.onCall.enabled',
   privateOnCallReminderTime: 'private.onCall.reminderTime',
   privateOnCallHistoryRetentionDays: 'private.onCall.historyRetentionDays',
+  // Paket 2.9 (K2): announcements.
+  privateAnnouncementsEnabled: 'private.announcements.enabled',
+  privateAnnouncementsMaxDurationDays: 'private.announcements.maxDurationDays',
+  privateAnnouncementsAgentsMayPublish: 'private.announcements.agentsMayPublish',
+  privateAnnouncementsReceiptRetentionDays: 'private.announcements.receiptRetentionDays',
   privateStatusPageEnabled: 'private.statusPage.enabled',
   privateStatusPagePublic: 'private.statusPage.public',
   privateStatusPageHistoryDays: 'private.statusPage.historyDays',

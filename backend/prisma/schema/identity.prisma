@@ -93,6 +93,11 @@ model User {
   onCallSwapsRequested  OnCallSwapRequest[]    @relation("OnCallSwapRequester")
   onCallSwapsReceived   OnCallSwapRequest[]    @relation("OnCallSwapColleague")
   onCallCalendarToken   OnCallCalendarToken?   @relation("OnCallCalendarTokenUser")
+  /// Paket 2.9 (K2): announcements.
+  announcementsCreated         Announcement[]                @relation("AnnouncementCreatedBy")
+  announcementsPublished       Announcement[]                @relation("AnnouncementPublishedBy")
+  announcementAcknowledgements AnnouncementAcknowledgement[] @relation("AnnouncementAcknowledgementUser")
+  announcementDismissals       AnnouncementDismissal[]       @relation("AnnouncementDismissalUser")
 
   @@index([organizationalUnitId])
   @@index([managerUserId])
