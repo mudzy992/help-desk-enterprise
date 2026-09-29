@@ -133,6 +133,12 @@ export function KnowledgeStarRating({
             : t("knowledgeBase.portal.rating.summary", { average, count: ratingCount })}
         </span>
       </div>
+      <p className="text-[11px] text-muted-foreground">
+        {viewerRating !== null && pending === null
+          ? t("knowledgeBase.portal.rating.yours", { count: viewerRating }) + " "
+          : ""}
+        {t("knowledgeBase.portal.rating.commentHint")}
+      </p>
       {pending !== null ? (
         <div className="grid gap-2 rounded-md border border-border bg-elevated/40 p-3">
           <label className="text-[12px] font-medium text-foreground" htmlFor={`${labelId}-comment`}>

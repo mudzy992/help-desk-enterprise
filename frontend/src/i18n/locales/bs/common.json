@@ -3075,7 +3075,11 @@
         "failed": "Ocjena nije sačuvana.",
         "missingQuestion": "Šta nedostaje u članku?",
         "missingHint": "Neobavezno. Komentar vide samo urednici baze znanja.",
-        "send": "Pošalji"
+        "send": "Pošalji",
+        "yours_one": "Vaša ocjena: {{count}} zvjezdica.",
+        "yours_few": "Vaša ocjena: {{count}} zvjezdice.",
+        "yours_other": "Vaša ocjena: {{count}} zvjezdica.",
+        "commentHint": "Uz ocjenu 1 ili 2 možete napisati šta nedostaje u članku; ocjenu možete promijeniti bilo kada."
       },
       "categories": {
         "title": "Kategorije baze znanja",
@@ -3970,7 +3974,9 @@
     "errorLinkDuplicate": "Ovi tiketi su već povezani.",
     "errorLinkMerged": "Spojeni tiket se ne može povezivati — koristite glavni tiket.",
     "errorLinkLimit": "Dostignut je maksimalan broj veza za ovaj tiket.",
-    "errorLinkNote": "Napomena veze je predugačka."
+    "errorLinkNote": "Napomena veze je predugačka.",
+    "interceptVoteHelpful": "Hvala, zabilježeno je da vam je članak pomogao. Ako je problem riješen, odaberite „Članak je riješio moj problem“ ispod.",
+    "interceptVoteNotHelpful": "Hvala, zabilježeno je da članak nije pomogao. Možete nastaviti sa slanjem zahtjeva."
   },
   "relativeTime": {
     "justNow": "upravo sada",

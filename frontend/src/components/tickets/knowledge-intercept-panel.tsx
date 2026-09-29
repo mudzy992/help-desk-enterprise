@@ -41,6 +41,22 @@ export function KnowledgeInterceptPanel({
   const [article, setArticle] = useState<KnowledgeArticleResponse | null>(null);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | null>(null);
   const [isLoadingArticle, setIsLoadingArticle] = useState(false);
+  // Paket 2.9 (K1): visible confirmation of the per-article thumbs vote.
+  const [votes, setVotes] = useState<Readonly<Record<string, boolean>>>({});
+  const [votingId, setVotingId] = useState<string | null>(null);
+
+  const vote = async (articleId: string, isHelpful: boolean) => {
+    setVotingId(articleId);
+    setErrorKey(null);
+    try {
+      await submitKnowledgeFeedback(articleId, isHelpful);
+      setVotes((previous) => ({ ...previous, [articleId]: isHelpful }));
+    } catch (error) {
+      setErrorKey(mapTicketError(error));
+    } finally {
+      setVotingId(null);
+    }
+  };
 
   const openArticle = async (articleId: string) => {
     setIsLoadingArticle(true);
@@ -104,25 +120,34 @@ export function KnowledgeInterceptPanel({
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant={votes[item.id] === true ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => {
-                    void submitKnowledgeFeedback(item.id, true);
-                  }}
+                  aria-pressed={votes[item.id] === true}
+                  disabled={votingId === item.id}
+                  className={cn(votes[item.id] === true && "text-ok")}
+                  onClick={() => void vote(item.id, true)}
                 >
-                  <ThumbsUp size={13} /> {t("knowledgeBase.helpful")}
+                  <ThumbsUp size={13} className={cn(votes[item.id] === true && "fill-current")} />{" "}
+                  {t("knowledgeBase.helpful")}
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant={votes[item.id] === false ? "secondary" : "ghost"}
                   size="sm"
-                  onClick={() => {
-                    void submitKnowledgeFeedback(item.id, false);
-                  }}
+                  aria-pressed={votes[item.id] === false}
+                  disabled={votingId === item.id}
+                  className={cn(votes[item.id] === false && "text-danger")}
+                  onClick={() => void vote(item.id, false)}
                 >
-                  <ThumbsDown size={13} /> {t("knowledgeBase.notHelpful")}
+                  <ThumbsDown size={13} className={cn(votes[item.id] === false && "fill-current")} />{" "}
+                  {t("knowledgeBase.notHelpful")}
                 </Button>
               </div>
+              {votes[item.id] !== undefined ? (
+                <p role="status" className="text-[11.5px] text-muted-foreground">
+                  {votes[item.id] ? t("tickets.interceptVoteHelpful") : t("tickets.interceptVoteNotHelpful")}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>

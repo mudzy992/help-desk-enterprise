@@ -3055,7 +3055,10 @@
         "failed": "The rating was not saved.",
         "missingQuestion": "What is missing from the article?",
         "missingHint": "Optional. Only knowledge base editors see the comment.",
-        "send": "Send"
+        "send": "Send",
+        "yours_one": "Your rating: {{count}} star.",
+        "yours_other": "Your rating: {{count}} stars.",
+        "commentHint": "With a rating of 1 or 2 you can say what is missing from the article; you can change your rating at any time."
       },
       "categories": {
         "title": "Knowledge base categories",
@@ -3948,7 +3951,9 @@
     "errorLinkDuplicate": "These tickets are already linked.",
     "errorLinkMerged": "A merged ticket cannot be linked — use the main ticket.",
     "errorLinkLimit": "This ticket has reached the maximum number of links.",
-    "errorLinkNote": "The link note is too long."
+    "errorLinkNote": "The link note is too long.",
+    "interceptVoteHelpful": "Thanks, we noted that the article helped. If the problem is solved, choose “The article solved my problem” below.",
+    "interceptVoteNotHelpful": "Thanks, we noted that the article did not help. You can continue sending the request."
   },
   "relativeTime": {
     "justNow": "just now",
