@@ -43,6 +43,8 @@ export const permissionKeys = {
   opsAlertsManage: 'ops.alerts.manage',
   opsAlertsReceive: 'ops.alerts.receive',
   statusIncidentsManage: 'status.incidents.manage',
+  // Paket 2.9 (K4): importing a config package from another environment.
+  configVersionImport: 'config.version.import',
   confidentialBreakGlass: 'confidential.break_glass',
   knowledgeArticleWrite: 'knowledge.article.write',
   knowledgeArticleReview: 'knowledge.article.review',

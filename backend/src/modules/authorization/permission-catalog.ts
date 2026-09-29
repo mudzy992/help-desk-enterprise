@@ -133,6 +133,12 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     description: 'Change system settings, policy packs, and config versions.',
   },
   {
+    key: permissionKeys.configVersionImport,
+    categoryId: permissionCategoryIds.settings,
+    description:
+      'Import a configuration package from another environment as a new draft version (package 2.9).',
+  },
+  {
     key: permissionKeys.integrationsQueueManage,
     categoryId: permissionCategoryIds.integrations,
     description: 'View and manage the integration job queue (retry, inspect).',

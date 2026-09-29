@@ -508,7 +508,8 @@
       "ops.health.view": "Pregled zdravlja sistema",
       "ops.alerts.manage": "Upravljanje alarmima",
       "ops.alerts.receive": "Primanje alarma",
-      "status.incidents.manage": "Upravljanje incidentima"
+      "status.incidents.manage": "Upravljanje incidentima",
+      "config.version.import": "Uvoz paketa konfiguracije"
     }
   },
   "maintenance": {
@@ -644,7 +645,8 @@
         "ops.health.view": "Pregled kartice Zdravlje sistema: komponente, zakazani poslovi, redovi i alarmi.",
         "ops.alerts.manage": "Pragovi i primaoci alarma, utišavanje, testni alarm i potvrda neuspjelih poslova (DLQ).",
         "ops.alerts.receive": "Prima operativne alarme e-mailom i u aplikaciji.",
-        "status.incidents.manage": "Kreiranje i ažuriranje incidenata na statusnoj stranici."
+        "status.incidents.manage": "Kreiranje i ažuriranje incidenata na statusnoj stranici.",
+        "config.version.import": "Uvezi paket konfiguracije iz drugog okruženja kao novu nacrt verziju (paket 2.9)."
       }
     }
   },
@@ -1314,7 +1316,8 @@
         "private.statusPage.enabled": "Prikaži statusnu stranicu (dostupnost servisa, incidenti, planirani radovi).",
         "private.statusPage.public": "Statusna stranica dostupna i bez prijave. Incidenti označeni samo za osoblje ostaju skriveni.",
         "private.statusPage.historyDays": "Koliko dana riješenih incidenata prikazuje statusna stranica (7–365).",
-        "private.statusPage.showUptimePercent": "Prikaži procenat dostupnosti po servisu na statusnoj stranici."
+        "private.statusPage.showUptimePercent": "Prikaži procenat dostupnosti po servisu na statusnoj stranici.",
+        "private.configVersioning.environmentName": "Naziv ove instalacije (npr. staging, produkcija) koji se upisuje u izvezeni paket konfiguracije."
       }
     },
     "emailTemplates": {
@@ -2863,7 +2866,79 @@
     "errorAlreadyActive": "Ova verzija je već aktivna.",
     "errorNoPrevious": "Nema prethodne verzije za rollback.",
     "errorValidation": "Validacija verzije nije uspjela. Pregledajte listu grešaka.",
-    "errorGeneric": "Verzije konfiguracije trenutno nisu dostupne."
+    "errorGeneric": "Verzije konfiguracije trenutno nisu dostupne.",
+    "errorPackageInvalid": "Datoteka nije ispravan paket konfiguracije.",
+    "errorPackageTooLarge": "Paket je veći od 5 MB.",
+    "errorPackageChecksum": "Paket je izmijenjen nakon izvoza (kontrolni zbir se ne slaže). Uvoz odbijen.",
+    "errorPackageSignature": "Potpis paketa nije ispravan. Uvoz odbijen.",
+    "errorPackageUnsigned": "Paket nije potpisan. Potvrdite uvoz nepotpisanog paketa.",
+    "errorPackageUnresolved": "Paket upućuje na stavke koje ne postoje u ovom okruženju. Mapirajte ih ili ih prvo kreirajte.",
+    "errorPackageSource": "Izvorna verzija upućuje na obrisane stavke i ne može se izvesti. Kreirajte novu verziju pa izvezite nju.",
+    "package": {
+      "exportHeading": "Izvoz paketa",
+      "exportHint": "Preuzima ovu verziju kao paket za drugo okruženje (staging → produkcija). Tajne se nikad ne izvoze; ID-jevi se zamjenjuju prirodnim ključevima.",
+      "includeEnvironmentBound": "Uključi postavke vezane za okruženje (SMTP, autentifikacija, integracije…)",
+      "export": "Izvezi paket",
+      "importHeading": "Uvoz paketa konfiguracije",
+      "importHint": "Učitajte paket iz drugog okruženja. Pregled prikazuje šta će se mapirati; uvoz kreira NACRT verziju koju zatim validirate i aktivirate.",
+      "file": "Datoteka paketa (.json, max 5 MB)",
+      "preview": "Pregledaj uvoz",
+      "source": "Izvor",
+      "sourceValue": "{{environment}}, verzija {{version}}, izvezeno {{date}}",
+      "signature": "Potpis",
+      "signatureStates": {
+        "valid": "Potpis ispravan",
+        "invalid": "Potpis neispravan",
+        "unsigned": "Nepotpisan",
+        "no_key": "Potpisan, ključ nije postavljen ovdje"
+      },
+      "settings": "Postavke",
+      "settingsValue": "{{applied}} za primjenu · {{environmentBound}} vezanih za okruženje preskočeno · {{unknown}} nepoznatih preskočeno",
+      "created": "Biće kreirano",
+      "skipped": "Preskočeno ({{kind}})",
+      "skippedKinds": {
+        "services": "usluge",
+        "formVersions": "verzije formi",
+        "responseTemplates": "šabloni odgovora",
+        "playbooks": "playbookovi"
+      },
+      "referencesCaption": "Reference koje nisu automatski pronađene",
+      "columnKind": "Vrsta",
+      "columnKey": "Ključ u paketu",
+      "columnStatus": "Stanje",
+      "columnMapping": "Mapiranje u ovom okruženju",
+      "statusBlocking": "Blokira uvoz",
+      "statuses": {
+        "resolved": "Pronađeno",
+        "mapped": "Mapirano",
+        "missing": "Ne postoji",
+        "ambiguous": "Višeznačno"
+      },
+      "mapTo": "Mapiraj „{{key}}“ na",
+      "noMapping": "— bez mapiranja —",
+      "notMappable": "Preskače se",
+      "notMappableBlocking": "Kreirajte stavku u ovom okruženju pa ponovite pregled",
+      "allResolved": "Sve reference su pronađene u ovom okruženju.",
+      "applyEnvironmentBound": "Primijeni i postavke vezane za okruženje iz paketa",
+      "confirmUnsigned": "Razumijem da paket nije potpisan i potvrđujem da potiče iz pouzdanog izvora",
+      "releaseNotes": "Napomena uz verziju (opcionalno)",
+      "draftHint": "Uvoz ništa ne aktivira: nastaje nacrt verzija koju provjerite validacijom, razlikama i shadow načinom prije aktivacije.",
+      "import": "Uvezi kao nacrt",
+      "cancel": "Odustani",
+      "importedFrom": "Uvezeno iz okruženja {{environment}}, verzija {{version}} ({{signature}}).",
+      "kinds": {
+        "organizationalUnit": "Organizaciona jedinica",
+        "group": "Grupa",
+        "service": "Usluga",
+        "serviceCategory": "Kategorija usluge",
+        "policyPack": "Paket politika",
+        "formVersion": "Verzija forme",
+        "responseTemplate": "Šablon odgovora",
+        "playbook": "Playbook",
+        "slaProfile": "SLA profil",
+        "calendar": "Kalendar radnog vremena"
+      }
+    }
   },
   "knowledgeBase": {
     "title": "Baza znanja",

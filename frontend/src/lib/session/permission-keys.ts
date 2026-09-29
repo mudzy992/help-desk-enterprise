@@ -8,6 +8,7 @@ export const permissionKeys = {
   groupManage: "group.manage",
   slaWrite: "sla.write",
   settingsWrite: "settings.write",
+  configVersionImport: "config.version.import",
   integrationsQueueManage: "integrations.queue.manage",
   knowledgeArticleWrite: "knowledge.article.write",
   knowledgeArticleReview: "knowledge.article.review",

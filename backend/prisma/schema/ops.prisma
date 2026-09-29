@@ -161,6 +161,10 @@ model ConfigVersion {
   releaseNotes    String?
   createdByUserId String?
   activatedAt     DateTime?
+  /// Paket 2.9 (K4): provenance of a version created by importing a config
+  /// package (source environment and version, checksum, signature state,
+  /// manual mappings). Null for locally captured versions.
+  importMeta      Json?
   createdBy       User?               @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt

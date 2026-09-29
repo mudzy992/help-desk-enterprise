@@ -6,6 +6,7 @@ import { ConfigVersioningConfigurationLoader } from './config-versioning-configu
 import { ConfigVersioningController } from './config-versioning.controller';
 import { ConfigVersioningRepository } from './config-versioning.repository';
 import { ConfigVersioningService } from './config-versioning.service';
+import { ConfigPackageService } from './package/config-package.service';
 
 @Module({
   imports: [AuthenticationModule, AuthorizationModule, SettingsModule],
@@ -14,6 +15,7 @@ import { ConfigVersioningService } from './config-versioning.service';
     ConfigVersioningConfigurationLoader,
     ConfigVersioningRepository,
     ConfigVersioningService,
+    ConfigPackageService,
   ],
   exports: [ConfigVersioningService],
 })

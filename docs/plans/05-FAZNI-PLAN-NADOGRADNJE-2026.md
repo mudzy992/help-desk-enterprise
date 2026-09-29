@@ -171,7 +171,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ### 2.9 Dodatne nadogradnje (prijedlog, po odluci)  · ~4 RD (dizajn: ~7 RD)
 
-> **Status:** dizajn `modules/2.9-dodatne-nadogradnje.md`, čeka odobrenje (§12). Obim (odluka 2026-09-29): sve četiri stavke; kod najava samo najave s potvrdom čitanja, bez anketa.
+> **Status:** dizajn `modules/2.9-dodatne-nadogradnje.md` odobren 2026-09-29 (P1–P11). Implementacija: K4 izvoz/uvoz konfiguracije ✅; slijede K3, K2, K1. Obim (odluka 2026-09-29): sve četiri stavke; kod najava samo najave s potvrdom čitanja, bez anketa.
 
 - **Portal znanja za korisnike**: kategorije, „najčešća pitanja", ocjene, članci iz riješenih
   tiketa („pretvori odgovor u članak").

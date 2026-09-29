@@ -57,4 +57,13 @@ export const configVersioningSettings: readonly SettingDefinition[] = [
     isRequired: true,
     defaultValue: defaultConfigVersioningScopesCsv,
   }),
+  definePrivateSetting({
+    key: settingKeys.privateConfigVersioningEnvironmentName,
+    categoryId: settingCategoryIds.privateConfigVersioning,
+    valueType: 'string',
+    description:
+      'Name of this installation (e.g. staging, production) written into exported configuration packages',
+    isRequired: false,
+    defaultValue: '',
+  }),
 ];

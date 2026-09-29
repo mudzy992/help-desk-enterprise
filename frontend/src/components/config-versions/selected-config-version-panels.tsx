@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { ConfigPackageExport } from "@/components/config-versions/config-package-export";
 import { ConfigValidationErrors } from "@/components/config-versions/config-validation-errors";
 import { ConfigVersionActions } from "@/components/config-versions/config-version-actions";
 import { ConfigVersionDiffPanel } from "@/components/config-versions/config-version-diff-panel";
@@ -26,6 +27,7 @@ interface SelectedConfigVersionPanelsProperties {
   readonly onShadow: () => void;
   readonly onActivate: (reason: string) => void;
   readonly onRollback: (reason: string) => void;
+  readonly onExportError: (error: unknown) => void;
 }
 
 export function SelectedConfigVersionPanels({
@@ -43,6 +45,7 @@ export function SelectedConfigVersionPanels({
   onShadow,
   onActivate,
   onRollback,
+  onExportError,
 }: SelectedConfigVersionPanelsProperties) {
   const { t } = useTranslation();
 
@@ -63,6 +66,20 @@ export function SelectedConfigVersionPanels({
             onRollback={onRollback}
           />
           {validation ? <ConfigValidationErrors issues={validation.errors} /> : null}
+          {selected.importedFrom ? (
+            <p className="text-[12.5px] text-muted-foreground">
+              {t("configVersions.package.importedFrom", {
+                environment: selected.importedFrom.sourceEnvironment || "?",
+                version: selected.importedFrom.sourceVersion,
+                signature: t(`configVersions.package.signatureStates.${selected.importedFrom.signature}`, {
+                  defaultValue: selected.importedFrom.signature,
+                }),
+              })}
+            </p>
+          ) : null}
+          {canWrite ? (
+            <ConfigPackageExport version={selected} isBusy={isBusy} onError={onExportError} />
+          ) : null}
         </div>
       </Card>
       <Card className="fade-in">

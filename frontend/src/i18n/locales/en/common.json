@@ -501,7 +501,8 @@
       "ops.health.view": "View system health",
       "ops.alerts.manage": "Manage alarms",
       "ops.alerts.receive": "Receive alarms",
-      "status.incidents.manage": "Manage incidents"
+      "status.incidents.manage": "Manage incidents",
+      "config.version.import": "Import config package"
     }
   },
   "maintenance": {
@@ -637,7 +638,8 @@
         "ops.health.view": "View the System health card: components, scheduled jobs, queues and alarms.",
         "ops.alerts.manage": "Alarm thresholds and recipients, silencing, the test alarm and acknowledging failed jobs (DLQ).",
         "ops.alerts.receive": "Receives operational alarms by e-mail and in the application.",
-        "status.incidents.manage": "Create and update incidents on the status page."
+        "status.incidents.manage": "Create and update incidents on the status page.",
+        "config.version.import": "Import a configuration package from another environment as a new draft version (package 2.9)."
       }
     }
   },
@@ -1305,7 +1307,8 @@
         "private.statusPage.enabled": "Show the status page (service availability, incidents, planned work).",
         "private.statusPage.public": "Status page is available without signing in. Staff-only incidents stay hidden.",
         "private.statusPage.historyDays": "Days of resolved incidents shown on the status page (7–365).",
-        "private.statusPage.showUptimePercent": "Show the availability percentage per service on the status page."
+        "private.statusPage.showUptimePercent": "Show the availability percentage per service on the status page.",
+        "private.configVersioning.environmentName": "Name of this installation (e.g. staging, production) written into exported configuration packages."
       }
     },
     "emailTemplates": {
@@ -2847,7 +2850,79 @@
     "errorAlreadyActive": "This config version is already active.",
     "errorNoPrevious": "There is no previous version to restore.",
     "errorValidation": "Config version validation failed. Review the error list.",
-    "errorGeneric": "Config versions are currently unavailable."
+    "errorGeneric": "Config versions are currently unavailable.",
+    "errorPackageInvalid": "The file is not a valid configuration package.",
+    "errorPackageTooLarge": "The package is larger than 5 MB.",
+    "errorPackageChecksum": "The package was modified after export (checksum mismatch). Import rejected.",
+    "errorPackageSignature": "The package signature is invalid. Import rejected.",
+    "errorPackageUnsigned": "The package is not signed. Confirm importing an unsigned package.",
+    "errorPackageUnresolved": "The package references items that do not exist in this environment. Map them or create them first.",
+    "errorPackageSource": "The source version references deleted items and cannot be exported. Create a new version and export that one.",
+    "package": {
+      "exportHeading": "Export package",
+      "exportHint": "Downloads this version as a package for another environment (staging → production). Secrets are never exported; IDs are replaced by natural keys.",
+      "includeEnvironmentBound": "Include environment-bound settings (SMTP, authentication, integrations…)",
+      "export": "Export package",
+      "importHeading": "Import configuration package",
+      "importHint": "Upload a package from another environment. The preview shows what will be mapped; import creates a DRAFT version that you then validate and activate.",
+      "file": "Package file (.json, max 5 MB)",
+      "preview": "Preview import",
+      "source": "Source",
+      "sourceValue": "{{environment}}, version {{version}}, exported {{date}}",
+      "signature": "Signature",
+      "signatureStates": {
+        "valid": "Signature valid",
+        "invalid": "Signature invalid",
+        "unsigned": "Unsigned",
+        "no_key": "Signed, key not configured here"
+      },
+      "settings": "Settings",
+      "settingsValue": "{{applied}} to apply · {{environmentBound}} environment-bound skipped · {{unknown}} unknown skipped",
+      "created": "Will be created",
+      "skipped": "Skipped ({{kind}})",
+      "skippedKinds": {
+        "services": "services",
+        "formVersions": "form versions",
+        "responseTemplates": "response templates",
+        "playbooks": "playbooks"
+      },
+      "referencesCaption": "References not found automatically",
+      "columnKind": "Kind",
+      "columnKey": "Key in package",
+      "columnStatus": "State",
+      "columnMapping": "Mapping in this environment",
+      "statusBlocking": "Blocks import",
+      "statuses": {
+        "resolved": "Found",
+        "mapped": "Mapped",
+        "missing": "Missing",
+        "ambiguous": "Ambiguous"
+      },
+      "mapTo": "Map “{{key}}” to",
+      "noMapping": "— no mapping —",
+      "notMappable": "Skipped",
+      "notMappableBlocking": "Create the item in this environment and preview again",
+      "allResolved": "All references were found in this environment.",
+      "applyEnvironmentBound": "Also apply environment-bound settings from the package",
+      "confirmUnsigned": "I understand the package is unsigned and confirm it comes from a trusted source",
+      "releaseNotes": "Release notes (optional)",
+      "draftHint": "Import activates nothing: it creates a draft version to check with validation, diff and shadow mode before activation.",
+      "import": "Import as draft",
+      "cancel": "Cancel",
+      "importedFrom": "Imported from environment {{environment}}, version {{version}} ({{signature}}).",
+      "kinds": {
+        "organizationalUnit": "Organizational unit",
+        "group": "Group",
+        "service": "Service",
+        "serviceCategory": "Service category",
+        "policyPack": "Policy pack",
+        "formVersion": "Form version",
+        "responseTemplate": "Response template",
+        "playbook": "Playbook",
+        "slaProfile": "SLA profile",
+        "calendar": "Business hours calendar"
+      }
+    }
   },
   "knowledgeBase": {
     "title": "Knowledge Base",

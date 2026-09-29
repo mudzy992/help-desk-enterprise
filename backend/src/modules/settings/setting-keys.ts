@@ -414,6 +414,8 @@ export const settingKeys = {
   privateConfigVersioningShadowModeEnabled:
     'private.configVersioning.shadowMode.enabled',
   privateConfigVersioningScopesCsv: 'private.configVersioning.scopesCsv',
+  // Paket 2.9 (K4): name of this installation in exported config packages.
+  privateConfigVersioningEnvironmentName: 'private.configVersioning.environmentName',
   privateReportsEnabled: 'private.reports.enabled',
   privateReportsPacksJson: 'private.reports.packsJson',
   privateReportsExportFormatsCsv: 'private.reports.exportFormatsCsv',

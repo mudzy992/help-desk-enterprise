@@ -7,10 +7,14 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { AdminReadOperation } from '../authorization/admin-read-operation.decorator';
@@ -27,8 +31,17 @@ import {
   ConfigVersionReasonDto,
   CreateConfigVersionDto,
   DiffConfigVersionQueryDto,
+  ExportConfigPackageQueryDto,
+  ImportConfigPackageDto,
   RollbackConfigVersionDto,
 } from './dto/config-version.dto';
+import { configPackageMaxBytes } from './package/config-package.constants';
+import { ConfigPackageService } from './package/config-package.service';
+import {
+  parseConfigPackageFile,
+  parseConfigPackageMappings,
+  readFlag,
+} from './package/parse-import-options';
 import { mapConfigVersioningError } from './map-config-versioning-error';
 
 @Controller('config-versions')
@@ -42,7 +55,72 @@ import { mapConfigVersioningError } from './map-config-versioning-error';
   }),
 )
 export class ConfigVersioningController {
-  constructor(private readonly configVersioningService: ConfigVersioningService) {}
+  constructor(
+    private readonly configVersioningService: ConfigVersioningService,
+    private readonly configPackageService: ConfigPackageService,
+  ) {}
+
+  /** Paket 2.9 (K4): dry run of an import — resolution report, nothing written. */
+  @Post('import/preview')
+  @AdminReadOperation()
+  @RequirePermissions(permissionKeys.configVersionImport)
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: configPackageMaxBytes } }))
+  previewImport(
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @Body() body: ImportConfigPackageDto,
+  ) {
+    return this.execute(async () =>
+      this.configPackageService.previewImport(parseConfigPackageFile(file), {
+        mappings: parseConfigPackageMappings(body.mappings),
+        applyEnvironmentBound: readFlag(body.applyEnvironmentBound),
+        confirmUnsigned: readFlag(body.confirmUnsigned),
+      }),
+    );
+  }
+
+  /** Paket 2.9 (K4): creates a DRAFT version from the package; never activates. */
+  @Post('import')
+  @RequirePermissions(permissionKeys.configVersionImport)
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: configPackageMaxBytes } }))
+  importPackage(
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @Body() body: ImportConfigPackageDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return this.execute(async () =>
+      this.configPackageService.importPackage(
+        parseConfigPackageFile(file),
+        {
+          mappings: parseConfigPackageMappings(body.mappings),
+          applyEnvironmentBound: readFlag(body.applyEnvironmentBound),
+          confirmUnsigned: readFlag(body.confirmUnsigned),
+          releaseNotes: body.releaseNotes,
+        },
+        readSettingsActorUserId(request),
+      ),
+    );
+  }
+
+  /** Paket 2.9 (K4): environment-neutral package of one version (download). */
+  @Get(':id/export')
+  @RequirePermissions(permissionKeys.settingsWrite)
+  exportPackage(
+    @Param('id') id: string,
+    @Query() query: ExportConfigPackageQueryDto,
+    @Req() request: AuthenticatedHttpRequest,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
+  ) {
+    return this.execute(async () => {
+      const result = await this.configPackageService.exportPackage(
+        id,
+        { includeEnvironmentBound: readFlag(query.includeEnvironmentBound) },
+        readSettingsActorUserId(request),
+      );
+      response.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+      response.setHeader('Cache-Control', 'no-store');
+      return result.body;
+    });
+  }
 
   @Post()
   @RequirePermissions(permissionKeys.settingsWrite)

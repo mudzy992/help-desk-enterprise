@@ -176,6 +176,13 @@ export type ConfigVersionResponse = {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly rollbackOfVersion: number | null;
+  /** Paket 2.9 (K4): set when the version was created from an imported package. */
+  readonly importedFrom: {
+    readonly sourceEnvironment: string;
+    readonly sourceVersion: number;
+    readonly exportedAt: string;
+    readonly signature: string;
+  } | null;
 };
 
 export type ConfigVersionDetailResponse = ConfigVersionResponse & {

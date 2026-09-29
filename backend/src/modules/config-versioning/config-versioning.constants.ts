@@ -30,6 +30,13 @@ export const configVersioningErrorCodes = {
   noPreviousVersion: 'NO_PREVIOUS_CONFIG_VERSION',
   reasonRequired: 'REASON_REQUIRED',
   applyFailed: 'CONFIG_APPLY_FAILED',
+  // Paket 2.9 (K4): config packages.
+  packageInvalid: 'CONFIG_PACKAGE_INVALID',
+  packageChecksumMismatch: 'CONFIG_PACKAGE_CHECKSUM_MISMATCH',
+  packageSignatureInvalid: 'CONFIG_PACKAGE_SIGNATURE_INVALID',
+  packageUnsignedNotConfirmed: 'CONFIG_PACKAGE_UNSIGNED_NOT_CONFIRMED',
+  packageBlocked: 'CONFIG_PACKAGE_UNRESOLVED_REFERENCES',
+  packageSourceInconsistent: 'CONFIG_PACKAGE_SOURCE_INCONSISTENT',
 } as const;
 
 export type ConfigVersioningErrorCode =
@@ -51,4 +58,10 @@ export const configVersioningErrorMessages: Record<
   NO_PREVIOUS_CONFIG_VERSION: 'No previous config version is available to restore',
   REASON_REQUIRED: 'A reason is required for this config version change',
   CONFIG_APPLY_FAILED: 'Config version could not be applied to live state',
+  CONFIG_PACKAGE_INVALID: 'The file is not a valid configuration package',
+  CONFIG_PACKAGE_CHECKSUM_MISMATCH: 'The configuration package was modified after export (checksum mismatch)',
+  CONFIG_PACKAGE_SIGNATURE_INVALID: 'The configuration package signature is invalid',
+  CONFIG_PACKAGE_UNSIGNED_NOT_CONFIRMED: 'The configuration package is not signed; confirm the import explicitly',
+  CONFIG_PACKAGE_UNRESOLVED_REFERENCES: 'The configuration package references entities that do not exist here',
+  CONFIG_PACKAGE_SOURCE_INCONSISTENT: 'The source configuration references entities without a natural key',
 };

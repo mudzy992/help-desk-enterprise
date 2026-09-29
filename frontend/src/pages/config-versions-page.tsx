@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
+  canImportConfigPackage,
   canOpenConfigVersions,
   canWriteConfigVersions,
 } from "@/lib/config-versions/can-access-config-versions";
@@ -26,6 +27,13 @@ export function ConfigVersionsPage() {
       permissionKeys: session.permissionKeys,
     });
 
+  const canImport =
+    session !== null &&
+    canImportConfigPackage({
+      isSuperAdmin: session.isSuperAdmin,
+      permissionKeys: session.permissionKeys,
+    });
+
   return (
     <section>
       <PageHeader
@@ -41,7 +49,7 @@ export function ConfigVersionsPage() {
           body={t("configVersions.forbiddenBody")}
         />
       ) : null}
-      {!isLoading && canOpen ? <ConfigVersionsWorkspace canWrite={canWrite} /> : null}
+      {!isLoading && canOpen ? <ConfigVersionsWorkspace canWrite={canWrite} canImport={canImport} /> : null}
     </section>
   );
 }

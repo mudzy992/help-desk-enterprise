@@ -1,6 +1,7 @@
 import { History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ConfigPackageImport } from "@/components/config-versions/config-package-import";
 import { ConfigVersionAdminError } from "@/components/config-versions/config-version-admin-error";
 import { ConfigVersionList } from "@/components/config-versions/config-version-list";
 import { ConfigVersionStatusTabs } from "@/components/config-versions/config-version-status-tabs";
@@ -26,9 +27,10 @@ import type { ConfigVersionStatus } from "@/services/config-versions-types";
 
 interface ConfigVersionsWorkspaceProperties {
   readonly canWrite: boolean;
+  readonly canImport: boolean;
 }
 
-export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspaceProperties) {
+export function ConfigVersionsWorkspace({ canWrite, canImport }: ConfigVersionsWorkspaceProperties) {
   const { t } = useTranslation();
   const admin = useConfigVersions(true);
   const shadow = useConfigVersionShadow();
@@ -85,6 +87,26 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
                   shadow.clear();
                 })
               }
+            />
+          </div>
+        </Card>
+      ) : null}
+      {canImport ? (
+        <Card>
+          <CardHeader
+            title={t("configVersions.package.importHeading")}
+            subtitle={t("configVersions.package.importHint")}
+          />
+          <div className="px-4 py-3.5">
+            <ConfigPackageImport
+              isBusy={isBusy}
+              runAction={runAction}
+              onImported={(version) => {
+                setStatusFilter("ALL");
+                setSelectedId(version.id);
+                setValidation(null);
+                shadow.clear();
+              }}
             />
           </div>
         </Card>
@@ -154,6 +176,10 @@ export function ConfigVersionsWorkspace({ canWrite }: ConfigVersionsWorkspacePro
               shadow.clear();
             })
           }
+          onExportError={(error) => {
+            admin.setErrorKey(mapConfigVersionError(error));
+            admin.setRequestId(readApiRequestId(error));
+          }}
           onRollback={(reason) =>
             void runAction(async () => {
               await rollbackConfigVersion(selected.id, reason);

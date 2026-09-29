@@ -15,7 +15,19 @@ export type ConfigVersionRecord = {
   readonly activatedAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly importMeta?: unknown;
 };
+
+function readImportedFrom(value: unknown): ConfigVersionResponse['importedFrom'] {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const meta = value as Record<string, unknown>;
+  return {
+    sourceEnvironment: typeof meta.sourceEnvironment === 'string' ? meta.sourceEnvironment : '',
+    sourceVersion: typeof meta.sourceVersion === 'number' ? meta.sourceVersion : 0,
+    exportedAt: typeof meta.exportedAt === 'string' ? meta.exportedAt : '',
+    signature: typeof meta.signature === 'string' ? meta.signature : 'unsigned',
+  };
+}
 
 export function toConfigVersionResponse(
   record: ConfigVersionRecord,
@@ -31,6 +43,7 @@ export function toConfigVersionResponse(
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     rollbackOfVersion: snapshot.rollbackOfVersion,
+    importedFrom: readImportedFrom(record.importMeta),
   };
 }
 
