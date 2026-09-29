@@ -179,6 +179,33 @@ kao zaseban patch (migracija + payload ugovor + testovi), ne u istom koraku.
 
 ---
 
+## 5. Paket 2.7: alarmi, zdravlje i status *(~1 h)*
+
+Preduslov: Redeploy s migracijom `20261120090000_ops_monitoring`. Komande se pokreću na serveru,
+jedna po jedna:
+
+```bash
+BACKEND=$(docker ps --format '{{.Names}}' | grep '^backend-' | head -1)
+WORKER=$(docker ps --format '{{.Names}}' | grep '^worker-' | head -1)
+```
+
+| # | Korak | Očekivano |
+|---|---|---|
+| 5.1 | Admin → **Zdravlje sistema** → **Pošalji testni alarm** | in-app stiže; e-mail/Teams `sent` ako su podešeni, inače `skipped` s razlogom |
+| 5.2 | `curl -s -o /dev/null -w '%{http_code}\n' https://api.desk.ba101.top/health/worker` | `200` |
+| 5.3 | `docker stop "$WORKER"`, pa nakon 3 min ponoviti 5.2 | `503`; na **Zdravlje sistema** alarm `worker-down` (≤ 3 min, otvara ga watchdog u API-ju); Uptime Kuma crvena ako je postavljena |
+| 5.4 | Coolify → worker → **Start** (ili Redeploy); sačekati healthy | 5.2 = `200`; alarm se sam zatvara, stiže poruka „riješeno nakon X min“ |
+| 5.5 | ClamAV: `docker stop $(docker ps --format '{{.Names}}' \| grep '^clamav-' \| head -1)`, sačekati 4 min | alarm `clamav-unavailable` (3 uzastopna neuspjeha); zatim Start i zatvaranje nakon učitavanja potpisa (1–3 min) |
+| 5.6 | Prag diska: `docker exec "$BACKEND" df -h /usr/app/uploads`; privremeno spustiti prag ispod trenutne zauzetosti: `echo '{"private.ops.thresholds.diskWarnPercent": 50, "private.ops.thresholds.diskCriticalPercent": 51}' \| docker exec -i "$BACKEND" node dist/src/cli/apply-settings.js --reason "2.7 test praga diska"` | ako je zauzetost ≥ 50 %, za ~2 min alarm `disk-usage`; ako je manja, test nije izvodiv (zabilježiti %) |
+| 5.7 | Vratiti pragove: isto s `80` i `90` | alarm se zatvara |
+| 5.8 | `/status` kao SUPER_ADMIN i kao USER; incident s vidljivošću „Svi korisnici“ na testnoj usluzi | oba vide; USER vidi baner u **Novi tiket**; USER ne vidi **Novi incident** |
+| 5.9 | E2E: `cd e2e && npx playwright test tests/21-status-monitoring.spec.ts --reporter=list` | 3 testa prolaze |
+| 5.10 | Uptime Kuma prema `ops/monitoring/uptime-kuma.md` §6 | push monitor zelen; nakon `docker stop "$WORKER"` crven za ≤ 3 min |
+
+Rezultat (tabela ✔/✗ i ispisi za ✗) šalješ meni; nalaze upisujem u dizajn 2.7 §8.5.
+
+---
+
 ## Šta ide kome
 
 | Korak | Ko pokreće | Šta vraća |

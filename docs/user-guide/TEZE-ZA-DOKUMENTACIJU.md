@@ -1,10 +1,139 @@
 # Teze za dokumentaciju
 
-Stalna lista pojašnjenja koja moraju ući u korisničku i administratorsku dokumentaciju kada je budemo
-pisali. Svaka teza ima kratku tvrdnju i link na detalje. Nova pitanja korisnika tipa „nije li to ista
-opcija?“ dopisuju se ovdje.
+Ovaj dokument je **sirovina za buduću kompletnu dokumentaciju aplikacije**: wiki za korisnike,
+agente i administratore, sa svim modulima, funkcionalnostima i uputama. Dok taj wiki ne napišemo,
+ovdje bilježimo sve što se ne vidi iz samog ekrana, a mora biti objašnjeno. Tu spadaju razlike
+između sličnih opcija, pravila koja sistem provodi, zamke i odgovori na pitanja koja su se već
+pojavila.
 
-| # | Tema | Teza | Detalji |
-|---|---|---|---|
-| T1 | Status servisa | **„Zakaži prekid“ ≠ „Incident“.** Zakazani prekid je planiran, s poznatim početkom i krajem, bez toka i bez obavijesti, i ne umanjuje dostupnost. Incident je neplaniran, ima tok (Istražujemo → Riješeno), povezuje tikete, šalje obavijesti i umanjuje dostupnost. Incident s uticajem „Održavanje“ koristi se samo za hitno, nenajavljeno održavanje. | [status-incidenti-i-planirani-prekidi.md](status-incidenti-i-planirani-prekidi.md), dizajn [2.7 §8.5](../plans/modules/2.7-pouzdanost-i-monitoring.md) |
-| T2 | Nova verzija aplikacije | Nakon ažuriranja servera, otvoren tab se pri prvom prelasku na stranicu sam osvježi jednom. Ako i to ne uspije, prikaže poruku „Dostupna je nova verzija aplikacije“ s dugmetom za osvježavanje. Podaci se ne gube, jer je sve spremljeno na serveru. | `frontend/src/lib/app/chunk-reload.ts`, `frontend/nginx.conf` |
+Kad budemo pisali wiki, svaka teza postaje dio jedne ili više stranica. Tezu je zato važnije
+napisati tačno nego lijepo.
+
+---
+
+## 1. Kada se dodaje teza
+
+Tezu dodajemo kada se desi jedno od ovoga:
+
+1. Korisnik ili tester postavi pitanje tipa „nije li to ista opcija?“ ili „zašto ovo ne radi kako
+   očekujem?“.
+2. Sistem provodi pravilo koje korisnik ne vidi, npr. „status ide samo naprijed“ ili „razlog vide
+   samo agenti“.
+3. Implementacija odstupa od dizajna ili od uobičajenog ponašanja sličnih aplikacija.
+4. Postoji zamka, nešto što se lako pogrešno uradi, uz posljedicu.
+5. Ponašanje zavisi od postavke, permisije ili uloge, pa različiti ljudi vide različito.
+6. Operativna situacija utiče na korisnika, npr. šta se desi nakon redeploya.
+
+Teza se piše **u istom commitu** u kojem nastaje funkcionalnost ili ispravka, a ne naknadno.
+
+## 2. Kako se teza piše
+
+Svaka teza je jedan odjeljak u §4, sa sljedećim poljima. Obavezna polja su označena sa \*.
+
+```markdown
+### T<n> — <kratak naslov u obliku pitanja ili tvrdnje> *
+
+- **Modul / paket:** <npr. Status servisa · 2.7> *
+- **Publika:** Korisnik | Agent | Administrator | Operativa (jedna ili više) *
+- **Tip:** Razlika | Pravilo | Zamka | Postavka | Operativa | Odstupanje *
+- **Teza:** <1–3 rečenice: šta je istina, bez „možda“> *
+- **Zašto:** <razlog odluke; korisnik lakše prihvati pravilo kad zna razlog>
+- **Primjer:** <konkretna situacija, po mogućnosti iz EPBiH prakse>
+- **Postavke / permisije:** <ključ postavke (`private.…`) ili permisija (`status.incidents.manage`) i zadana vrijednost>
+- **Ekran:** <putanja u meniju, npr. Usluge → (usluga) → Zakaži prekid>
+- **Izvori:** <dizajn §, fajl u kodu, commit> *
+- **Status:** Važi | Zamijenjena s T<m> | Planirano *
+- **Wiki stranica:** <buduća stranica ili stranice; vidi §3>
+```
+
+Pravila pisanja:
+
+- **Jezik:** bosanski. Nazivi dugmadi i menija pišu se **tačno kao na ekranu**, podebljano. Ključevi
+  postavki i permisija idu u `code`.
+- **Jedna teza = jedna tvrdnja.** Ako se tvrdnja grana, pravimo dvije teze i povežemo ih.
+- **Bez privremenih detalja:** nema brojeva commita u samoj tezi (oni idu u *Izvori*), nema imena
+  test naloga, lozinki ni URL-ova stagingu.
+- **Tabela umjesto proze** kada se porede dvije ili više opcija.
+- **Zadane vrijednosti se navode uvijek**, jer ih wiki mora prikazati.
+- Ako se ponašanje promijeni, teza se **ne briše**. Staroj tezi se stavi `Status: Zamijenjena s T<m>`
+  i dopiše nova, pa historija ostaje vidljiva.
+- Duži objašnjenja idu u zaseban fajl u `docs/user-guide/`, a teza u *Izvori* upućuje na njega.
+- Numeracija je trajna (T1, T2, …) i nikad se ne ponavlja.
+
+## 3. Buduća struktura wikija (cilj)
+
+Teze se raspoređuju u ovu strukturu. Polje *Wiki stranica* koristi ove nazive.
+
+| Dio | Publika | Primjeri stranica |
+|---|---|---|
+| **1. Početak** | svi | Prijava i MFA, jezik i tema, obavještenja, lična podešavanja |
+| **2. Korisnik** | Korisnik | Novi tiket, praćenje tiketa, odgovor i prilozi, ocjena (CSAT), Status servisa, Baza znanja, zaštita podataka (moja prava) |
+| **3. Agent** | Agent | Inbox i liste, preuzimanje i prosljeđivanje, mjerenje vremena, šabloni i playbooks, interne bilješke, spajanje i razdvajanje, grupne akcije, incidenti na tiketu |
+| **4. Administrator** | Administrator | Korisnici, uloge i permisije, OJ i grupe, katalog usluga i prekidi, SLA i tok statusa, e-mail (sandučići i šabloni), izvještaji, zaštita podataka (zahtjevi, retencija, anonimizacija), Zdravlje sistema i alarmi, Status servisa i incidenti, postavke |
+| **5. Operativa** | Operativa | Instalacija i Coolify, backup i DR, monitoring (Uptime Kuma), runbook alarma, ažuriranje verzije, tajne i rotacija |
+| **6. Referenca** | svi | Pojmovnik, sve postavke, sve permisije, statusi tiketa, česta pitanja |
+
+Kad wiki bude pisan, **svaka teza sa statusom „Važi“ mora biti pokrivena** barem na jednoj stranici.
+To je kriterij kompletnosti.
+
+## 4. Teze
+
+### T1 — „Zakaži prekid“ i „Incident“ nisu ista opcija
+
+- **Modul / paket:** Status servisa, katalog usluga · 2.7
+- **Publika:** Administrator, Agent
+- **Tip:** Razlika
+- **Teza:** Zakazani prekid je **planiran**: ima poznat početak i kraj, nema toka ni obavijesti i ne
+  umanjuje dostupnost. Incident je **neplaniran**: ima tok (Istražujemo → Uzrok utvrđen → Pratimo →
+  Riješeno), povezuje tikete, šalje obavijesti i, ako mu je uticaj „Prekid rada“, umanjuje dostupnost.
+  Incident s uticajem „Održavanje“ koristi se samo za hitno, nenajavljeno održavanje.
+- **Zašto:** korisnici trebaju unaprijed vidjeti najavljene radove, a za kvar im treba tok i obavijest
+  o rješenju. Kad bi se to miješalo, historija incidenata i procenat dostupnosti bili bi netačni.
+- **Primjer:** obnova certifikata u subotu 22–24 h se unosi kroz **Zakaži prekid**. VPN koji je
+  iznenada pao ide kroz **Novi incident**.
+- **Postavke / permisije:** incidenti traže `status.incidents.manage` (zadano ADMIN, SUPER_ADMIN);
+  prekidi traže pravo na katalog usluga; `private.statusPage.enabled` (zadano uključeno).
+- **Ekran:** **Usluge → (usluga) → Zakaži prekid**; **Status servisa → Novi incident**.
+- **Izvori:** [status-incidenti-i-planirani-prekidi.md](status-incidenti-i-planirani-prekidi.md),
+  dizajn [2.7 §8.5](../plans/modules/2.7-pouzdanost-i-monitoring.md)
+- **Status:** Važi
+- **Wiki stranica:** Administrator → Status servisa i incidenti; Administrator → Katalog usluga i
+  prekidi; Korisnik → Status servisa
+
+### T2 — Nakon ažuriranja aplikacije otvoren tab se sam osvježi
+
+- **Modul / paket:** Aplikacija (frontend) · ispravka uz 2.7
+- **Publika:** Korisnik, Agent, Administrator, Operativa
+- **Tip:** Operativa
+- **Teza:** Nakon ažuriranja servera, tab koji je bio otvoren se pri prvom prelasku na drugu stranicu
+  **jednom sam osvježi** i učita novu verziju. Ako to ne pomogne (npr. server je nedostupan), prikaže
+  se poruka „Dostupna je nova verzija aplikacije“ ili „Stranica se nije mogla učitati“, s dugmetom
+  **Osvježi stranicu**. Podaci se ne gube, jer je sve spremljeno na serveru. Izuzetak je tekst koji je
+  bio upisan, a nije poslan.
+- **Zašto:** svako izdanje ima nove nazive fajlova, a stari se brišu. Bez ovoga je korisnik vidio bijeli
+  ekran.
+- **Postavke / permisije:** nema. Osigurač: ako se greška ponovi u roku od 30 s, stranica se ne
+  osvježava ponovo sama.
+- **Izvori:** `frontend/src/lib/app/chunk-reload.ts`, `frontend/nginx.conf` (keširanje
+  `index.html` i `/assets/`)
+- **Status:** Važi
+- **Wiki stranica:** Početak → Česta pitanja; Operativa → Ažuriranje verzije
+
+### T3 — „Zdravlje sistema“ i Uptime Kuma nisu duplikat
+
+- **Modul / paket:** Zdravlje sistema, eksterni monitoring · 2.7
+- **Publika:** Administrator, Operativa
+- **Tip:** Razlika
+- **Teza:** **Zdravlje sistema** je nadzor iznutra. Aplikacija sama provjerava worker, redove, disk,
+  ClamAV, 5xx greške i LDAPS, pa javlja alarme e-mailom, u Teams i in-app. **Uptime Kuma** je nadzor
+  izvana, na drugom serveru. Javlja kad aplikacija ne može ništa javiti: ugašen server, pao Redis ili
+  mreža, istekao certifikat. Potrebna su oba nadzora.
+- **Zašto:** alarm ne može poslati sistem koji je ugašen. Kuma na istom serveru pala bi zajedno s njim.
+- **Primjer:** nestane struje u server sali. Zdravlje sistema ne javi ništa, a Kuma za 2 min javi da
+  su Frontend, API i Worker push nedostupni.
+- **Postavke / permisije:** `ops.alerts.receive` (zadano ADMIN, SUPER_ADMIN); env
+  `OPS_UPTIME_PUSH_URL` na workeru (zadano prazno, push isključen).
+- **Ekran:** **Administracija → Zdravlje sistema**; Uptime Kuma (zaseban URL).
+- **Izvori:** `ops/monitoring/uptime-kuma.md`, `ops/runbook/ALERTS.md`, dizajn 2.7 §7 i §8.6
+- **Status:** Važi
+- **Wiki stranica:** Operativa → Monitoring (Uptime Kuma); Administrator → Zdravlje sistema i alarmi

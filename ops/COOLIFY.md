@@ -29,7 +29,26 @@ Repo ne sadrži `.env`. Sve ključeve iz `.env.example` zalijepi u Coolify → E
 3. FQDN: frontend → `desk.ba101.top` (prod kasnije `desk.epbih.ba`); backend → `api.desk.ba101.top`. Worker **bez** FQDN.
 4. Socket.IO: na API FQDN uključi WebSocket upgrade.
 5. Persistent storage: mount na `/usr/app/uploads` za backend **i** worker (isti volume).
-6. Healthcheck URL: `https://api.…/health` (implementacija u Fazi 0).
+6. Healthcheck: definisan u `docker-compose.yml`, Coolify ga preuzima. Ne upisujte poseban
+   healthcheck u Coolify UI, jer bi pregazio ovaj.
+
+   | Servis | Provjera | Znači |
+   |---|---|---|
+   | frontend | `wget http://127.0.0.1:10000/` svakih 30 s | nginx servira SPA |
+   | backend | `GET /health/ready` svakih 15 s, start 120 s | baza i Redis dostupni (503 = nisu) |
+   | worker | `node dist/src/cli/worker-health.js` svakih 30 s | heartbeat u Redisu mlađi od 120 s |
+
+   Endpointi (javni, bez prijave):
+   - `/health`: liveness (proces živ), uvijek 200;
+   - `/health/ready`: readiness (baza i Redis); 503 s tijelom koje pokazuje koji check pada;
+   - `/health/worker`: 200 ako je worker javio heartbeat u zadnjih 120 s, inače 503.
+
+   Gdje se vidi *healthy*: Coolify → projekat → servis (zelena oznaka `running (healthy)`) ili
+   `docker ps` (kolona STATUS). **Traefik ne rutira na kontejner koji nije healthy.** Zato kod
+   neispravne baze API vraća 502/404, a ne 500. Stanje aplikacije u cjelini je u Admin →
+   **Zdravlje sistema**. Eksterni nadzor opisuje [`monitoring/uptime-kuma.md`](monitoring/uptime-kuma.md).
+7. Worker env `OPS_UPTIME_PUSH_URL` (opciono): dead man's switch prema Uptime Kumi, vidi
+   `monitoring/uptime-kuma.md` §4.
 
 ## Build
 

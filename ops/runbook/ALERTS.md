@@ -162,5 +162,7 @@ Restart workera ponovo registruje ponavljajući posao.
 - Rezervni kanal (env, ne postavke) koristi se samo kad baza ili Redis nisu dostupni.
   Bez `OPS_ALERT_SMTP_URL` i Teams URL-a alarm se samo logira (`ops_fallback_*`).
 - `OPS_UPTIME_PUSH_URL`: Uptime Kuma „Push“ monitor. Worker ga pinguje nakon svake završene
-  provjere, pa izostanak pinga znači da je stao cijeli server ili worker. Postavka Kume: interval 60 s, retry 2.
+  provjere, pa izostanak pinga znači da je stao cijeli server ili worker. Worker pinguje svakih 60 s, a Kuma
+  monitor ima interval 120 s (javlja nakon 2 propuštena pinga). Instalacija i ostali monitori:
+  [`ops/monitoring/uptime-kuma.md`](../monitoring/uptime-kuma.md).
 - `OPS_WATCHDOG_DISABLED=true` gasi watchdog u API-ju. Koristi se samo za dijagnostiku.

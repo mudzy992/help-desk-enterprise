@@ -162,7 +162,7 @@ export function OpsHealthCard({ canManage }: { readonly canManage: boolean }) {
   const growth = dlqGrowthTotal(overview.dlq);
 
   return (
-    <Card className="fade-in">
+    <Card className="fade-in" data-testid="ops-health-card">
       <CardHeader
         title={t("admin.opsHealth.title")}
         subtitle={
