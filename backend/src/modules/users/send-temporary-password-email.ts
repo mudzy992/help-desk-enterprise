@@ -1,6 +1,7 @@
 import type { SettingsService } from '../settings/settings.service';
 import { readEmailAddonEnabled } from '../settings/read-email-addon-enabled';
 import { loadEmailChannelConfiguration } from '../notifications/email/load-email-channel-configuration';
+import { isAllowedNotificationEmailAddress } from '../notifications/email/is-allowed-notification-email-address';
 import type { MailTransport } from '../notifications/email/mail-transport';
 import { renderEmailMessage } from '../notifications/email/render-email-message';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
@@ -21,6 +22,11 @@ export async function sendTemporaryPasswordEmail(input: {
     input.settingsService,
   );
   if (configuration.smtp === null) {
+    return false;
+  }
+  // Restricted delivery applies to account e-mail too: a password must not go
+  // to an address outside the policy. Returning false shows it in the UI once.
+  if (!isAllowedNotificationEmailAddress(input.toAddress, configuration)) {
     return false;
   }
   const presentation = configuration.presentation;

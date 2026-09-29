@@ -17,12 +17,12 @@ export function readE2EEnvironment(): E2EEnvironment {
     baseUrl: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
     apiUrl: process.env.E2E_API_URL ?? 'http://localhost:10001',
     superAdminEmail:
-      process.env.E2E_SUPERADMIN_EMAIL ?? 'e2e.superadmin@epbih.ba',
+      process.env.E2E_SUPERADMIN_EMAIL ?? 'e2e.superadmin@example.com',
     superAdminPassword:
       process.env.E2E_SUPERADMIN_PASSWORD ?? 'ChangeMeE2eSuperAdmin1!',
-    userEmail: process.env.E2E_USER_EMAIL ?? 'e2e.user@epbih.ba',
+    userEmail: process.env.E2E_USER_EMAIL ?? 'e2e.user@example.com',
     userPassword: process.env.E2E_USER_PASSWORD ?? 'ChangeMeE2eUser1!',
-    agentEmail: process.env.E2E_AGENT_EMAIL ?? 'e2e.agent@epbih.ba',
+    agentEmail: process.env.E2E_AGENT_EMAIL ?? 'e2e.agent@example.com',
     agentPassword: process.env.E2E_AGENT_PASSWORD ?? 'ChangeMeE2eAgent1!',
     smtpHost: process.env.E2E_SMTP_HOST ?? '127.0.0.1',
     smtpPort: process.env.E2E_SMTP_PORT ?? '25',

@@ -28,13 +28,20 @@ Unit gate is `.github/workflows/ci.yml` (backend + frontend). E2E is a **separat
 
 ## Test accounts (important)
 
-`global-setup` rewrites the configured accounts directly in Postgres:
+`global-setup` changes the configured accounts:
 
-- it **deletes the MFA** of `E2E_SUPERADMIN_EMAIL`. The new TOTP secret then exists only in `.auth/mfa.json`;
-- it **overwrites the password** of `E2E_USER_EMAIL` and `E2E_AGENT_EMAIL` and marks them local-only.
+- it **overwrites the password** of `E2E_USER_EMAIL` and `E2E_AGENT_EMAIL` through the API (admin
+  reset → temporary password → forced change), only when the configured password does not work;
+- with `DATABASE_URL` set, it **deletes the MFA** of `E2E_SUPERADMIN_EMAIL`, so the next login
+  re-enrols it. The TOTP secrets exist only in `.auth/mfa.json`.
+
+Use the reserved domain **`example.com`** (RFC 2606) for all three, e.g. `e2e.user@example.com`. No
+real mailbox exists and the e-mail policy does not deliver there, so no mail leaves the system and the
+temporary password is returned to the harness instead of being e-mailed. Do not add `example.com` to
+the allowed e-mail domains.
 
 So these must be disposable test accounts. The harness refuses any address whose local part does not start
-with `e2e.` (for example `e2e.superadmin@epbih.ba`), unless that address is listed on purpose in
+with `e2e.` (for example `e2e.superadmin@example.com`), unless that address is listed on purpose in
 `E2E_ALLOW_REAL_ACCOUNTS` (comma-separated).
 
 On an already installed environment, create the super admin once in the UI: *Korisnici → Novi*, role

@@ -1,4 +1,3 @@
-import { hash } from 'bcrypt';
 import { ApiClient } from './api-client';
 import { assertDisposableTestAccount } from './disposable-account';
 import { readE2EEnvironment } from './environment';
@@ -9,8 +8,8 @@ type OrganizationalUnitNode = {
 };
 
 /**
- * Decision A: create USER/AGENT via admin Users API, then set local password hashes
- * through Postgres (no production password endpoint).
+ * Creates USER/AGENT via the admin Users API and sets their passwords through
+ * the same API (temporary password + forced change). No database access.
  */
 export async function provisionTestActors(api: ApiClient): Promise<void> {
   const env = readE2EEnvironment();
@@ -36,28 +35,55 @@ export async function provisionTestActors(api: ApiClient): Promise<void> {
     roleKey: 'AGENT',
     organizationalUnitId,
   });
-  if (env.databaseUrl === null) {
-    console.warn(
-      '[e2e] DATABASE_URL missing — actors created without local passwords',
+  await ensurePassword(api, agentId, env.agentEmail, env.agentPassword);
+  await ensurePassword(api, userId, env.userEmail, env.userPassword);
+}
+
+/**
+ * Sets the local password through the public API only (no database access):
+ * if the configured password already works, nothing happens. Otherwise the
+ * admin issues a temporary password (`POST /users/:id/reset-password`) and the
+ * harness completes the forced change to the configured one. The temporary
+ * password is returned only when it was NOT e-mailed, so test accounts must use
+ * an address the e-mail policy does not deliver to (the reserved `example.com`).
+ */
+async function ensurePassword(admin: ApiClient, userId: string, email: string, password: string): Promise<void> {
+  if (await canSignIn(email, password)) return;
+  const reset = await admin.requestJson<{ temporaryPassword: string | null; temporaryPasswordDelivery: string }>(
+    `/users/${userId}/reset-password`,
+    { method: 'POST' },
+  );
+  if (reset.temporaryPassword === null) {
+    throw new Error(
+      `[e2e] the temporary password for ${email} was e-mailed (delivery=${reset.temporaryPasswordDelivery}), so the harness cannot read it. ` +
+        'Use a reserved address such as e2e.user@example.com that the e-mail policy does not deliver to.',
     );
-    return;
   }
-  const { default: pg } = await import('pg');
-  const client = new pg.Client({ connectionString: env.databaseUrl });
-  await client.connect();
+  const anonymous = new ApiClient();
+  const login = await anonymous.requestJson<{ status?: string; passwordChangeToken?: string }>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password: reset.temporaryPassword }),
+  });
+  if (login.status !== 'MUST_CHANGE_PASSWORD' || login.passwordChangeToken === undefined) {
+    throw new Error(`[e2e] expected MUST_CHANGE_PASSWORD for ${email}, got ${JSON.stringify(login.status)}`);
+  }
+  const change = new ApiClient();
+  change.setBearerToken(login.passwordChangeToken);
+  await change.requestJson('/auth/change-password', { method: 'POST', body: JSON.stringify({ newPassword: password }) });
+  if (!(await canSignIn(email, password))) {
+    throw new Error(`[e2e] ${email}: password change did not take effect`);
+  }
+}
+
+/** A full sign-in (MFA verify or enrolment included); false only for bad credentials. */
+async function canSignIn(email: string, password: string): Promise<boolean> {
   try {
-    const userHash = await hash(env.userPassword, 10);
-    const agentHash = await hash(env.agentPassword, 10);
-    await client.query(
-      `UPDATE "User" SET "localPasswordHash" = $1, "isLocalOnly" = true, "isActive" = true WHERE id = $2`,
-      [userHash, userId],
-    );
-    await client.query(
-      `UPDATE "User" SET "localPasswordHash" = $1, "isLocalOnly" = true, "isActive" = true WHERE id = $2`,
-      [agentHash, agentId],
-    );
-  } finally {
-    await client.end();
+    await new ApiClient().login(email, password);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/INVALID_CREDENTIALS|MUST_CHANGE_PASSWORD/.test(message)) return false;
+    throw error;
   }
 }
 

@@ -185,3 +185,18 @@ To je kriterij kompletnosti.
   `seed-install-internal-email-domain.ts`
 - **Status:** Važi
 - **Wiki stranica:** Administrator → E-mail (sandučići i šabloni); Referenca → Sve postavke
+
+### T6 — Gdje stiže privremena lozinka novog korisnika
+
+- **Modul / paket:** Korisnici · 2.1 (ispravka 2026-09)
+- **Publika:** Administrator
+- **Tip:** Pravilo
+- **Teza:** Privremena lozinka se šalje e-mailom samo kada je SMTP podešen **i** adresa prolazi
+  pravila o primaocima (T5). U suprotnom se **jednom** prikaže administratoru u UI-ju, da je preda
+  korisniku. Pri prvoj prijavi korisnik mora postaviti svoju lozinku.
+- **Zašto:** lozinka ne smije otići na adresu izvan dozvoljenih; ranije je išla na bilo koju adresu.
+- **Zamka:** kod korisnika s nepostojećom adresom na dozvoljenoj domeni lozinka ode u prazno i ne
+  prikaže se. Rješenje je **Resetuj lozinku** nakon ispravke adrese.
+- **Izvori:** `backend/src/modules/users/send-temporary-password-email.ts`
+- **Status:** Važi
+- **Wiki stranica:** Administrator → Korisnici, uloge i permisije
