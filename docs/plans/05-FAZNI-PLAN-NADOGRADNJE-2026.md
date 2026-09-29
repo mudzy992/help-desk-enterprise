@@ -191,7 +191,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Postojeći stub i durable queue su osnova; SSO preko istog Entra tenanta.
 - Zavisi od: registracija aplikacije u EPBiH tenantu (IT EPBiH).
 
-### 3.2 CMDB — imovina i konfiguracione stavke  · ~8 RD
+### 3.2 CMDB — imovina i konfiguracione stavke  · ~8 RD (dizajn: ~12 RD, pun obim) · dizajn: `modules/3.2-cmdb.md` · čeka odobrenje
 - Model: tipovi stavki (računar, štampač, server, aplikacija, licenca…), atributi po tipu,
   vlasnik/korisnik, lokacija/OU, status životnog ciklusa, veze između stavki (zavisi od, instaliran na).
 - Veza tiketa sa stavkom (na kreiranju: „moj računar"), historija incidenata po stavci.
