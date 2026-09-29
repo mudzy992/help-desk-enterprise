@@ -39,6 +39,7 @@ export function CreateTicketForm() {
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);
   const [helped, setHelped] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ReadonlyMap<string, string>>(new Map());
+  const [failedSubmitCount, setFailedSubmitCount] = useState(0);
   const [errorKey, setErrorKey] = useState<TicketErrorKey | "tickets.errorCatalog" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasChosenOriginUnit, setHasChosenOriginUnit] = useState(false);
@@ -106,6 +107,7 @@ export function CreateTicketForm() {
     const schemaErrors = validateServiceFormData(activeForm?.schema ?? null, draft.formData);
     if (schemaErrors.length > 0) {
       setFieldErrors(new Map(schemaErrors.map((item) => [item.fieldId, ticketText(t, item.messageKey)])));
+      setFailedSubmitCount((count) => count + 1);
       return;
     }
     setFieldErrors(new Map());
@@ -181,6 +183,7 @@ export function CreateTicketForm() {
       selectedService={selectedService}
       activeForm={activeForm}
       fieldErrors={fieldErrors}
+      failedSubmitCount={failedSubmitCount}
       suggestedPriority={suggestedPriority}
       displayedError={displayedError}
       canNextService={draft.serviceId.length > 0 && isServiceReady}

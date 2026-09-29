@@ -63,6 +63,8 @@ export function MfaCodeForm({
           type="text"
           inputMode={useRecovery ? "text" : "numeric"}
           autoComplete="one-time-code"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           pattern={useRecovery ? "[A-Za-z0-9 -]{10,13}" : "[0-9 ]{6,7}"}
           maxLength={useRecovery ? 13 : 7}
           placeholder={useRecovery ? "xxxxx-xxxxx" : "123456"}
@@ -73,7 +75,7 @@ export function MfaCodeForm({
         />
       </label>
       {error ? (
-        <p className={errorTextClassName} role="alert">
+        <p id={`${inputId}-error`} className={errorTextClassName} role="alert">
           {t(
             error === "rateLimited"
               ? "session.errorRateLimited"

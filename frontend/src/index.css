@@ -628,3 +628,33 @@ select.appearance-none {
     animation: none !important;
   }
 }
+
+/* Paket 2.8 §3.6: a focused control is never hidden under the sticky header
+   or the bulk-action bar (WCAG 2.4.11). */
+.app-main {
+  scroll-padding-top: 4.5rem;
+  scroll-padding-bottom: 5rem;
+}
+
+/* Paket 2.8 §3.6: Windows high contrast / forced colors (WCAG 1.4.11). The
+   system strips backgrounds and box-shadows, so focus rings and status
+   badges get real system-colour outlines to stay visible. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+  [data-slot="badge"],
+  [data-status-dot] {
+    border: 1px solid CanvasText;
+    forced-color-adjust: none;
+    background: Canvas;
+    color: CanvasText;
+  }
+  [data-status-dot] {
+    background: CanvasText;
+  }
+  .sr-only:focus {
+    outline: 2px solid Highlight;
+  }
+}

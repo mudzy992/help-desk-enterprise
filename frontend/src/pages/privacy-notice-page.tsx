@@ -2,6 +2,7 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { setDocumentTitle } from "@/lib/a11y/document-title";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { MarkdownView } from "@/components/privacy/markdown-view";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ export function PrivacyNoticePage() {
   }, [locale]);
 
   useEffect(() => {
-    document.title = `${t("privacy.notice.title")} · EP-HelpDesk`;
+    setDocumentTitle(t("privacy.notice.title"));
   }, [t]);
 
   return (

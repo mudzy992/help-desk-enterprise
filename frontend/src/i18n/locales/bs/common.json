@@ -4917,5 +4917,14 @@
       "errorBody": "Provjerite vezu i pokušajte ponovo.",
       "reload": "Osvježi stranicu"
     }
+  },
+  "a11y": {
+    "skipToContent": "Preskoči na glavni sadržaj",
+    "requiredField": "(obavezno)",
+    "errorSummary": {
+      "title_one": "Forma ima {{count}} grešku:",
+      "title_few": "Forma ima {{count}} greške:",
+      "title_other": "Forma ima {{count}} grešaka:"
+    }
   }
 }

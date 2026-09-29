@@ -24,6 +24,8 @@ interface CardHeaderProperties {
   readonly subtitle?: ReactNode;
   readonly actions?: ReactNode;
   readonly className?: string;
+  /** Heading level (2.8 §3.1): h2 under the page h1, h3 for nested cards. */
+  readonly as?: "h2" | "h3" | "h4";
 }
 
 export function CardHeader({
@@ -31,6 +33,7 @@ export function CardHeader({
   subtitle,
   actions,
   className,
+  as: Heading = "h2",
 }: CardHeaderProperties) {
   return (
     <div
@@ -40,7 +43,7 @@ export function CardHeader({
       )}
     >
       <div className="min-w-0">
-        <h3 className="text-[13.5px] font-semibold leading-5 text-foreground">{title}</h3>
+        <Heading className="text-[13.5px] font-semibold leading-5 text-foreground">{title}</Heading>
         {subtitle ? (
           <p className="mt-0.5 text-[12px] leading-4 text-muted-foreground">{subtitle}</p>
         ) : null}

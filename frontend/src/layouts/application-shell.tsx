@@ -13,6 +13,9 @@ import { useSession } from "@/lib/session/use-session";
 import { roleKeys } from "@/lib/session/permission-keys";
 import { ActiveTimerHost } from "@/lib/time-tracking/active-timer-host";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { AnnouncerRegions } from "@/components/a11y/announcer-regions";
+import { RouteFocusManager, mainContentId } from "@/components/a11y/route-focus-manager";
+import { SkipToContentLink } from "@/components/a11y/skip-to-content-link";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 
 /** True when the keystroke is typing, so shortcuts must stay out of the way. */
@@ -74,6 +77,9 @@ export function ApplicationShell() {
 
   return (
     <div className="flex h-full min-h-0 bg-background print:block print:h-auto">
+      <SkipToContentLink targetId={mainContentId} />
+      <AnnouncerRegions />
+      <RouteFocusManager />
       <HelpdeskSocketHost />
       {session.isSuperAdmin ||
       session.roleKeys.includes(roleKeys.agent) ||
@@ -101,7 +107,11 @@ export function ApplicationShell() {
           open={isCommandPaletteOpen}
           onOpenChange={setIsCommandPaletteOpen}
         />
-        <main className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">
+        <main
+          id={mainContentId}
+          tabIndex={-1}
+          className="app-main min-h-0 flex-1 overflow-y-auto focus:outline-none print:overflow-visible"
+        >
           <div
             key={location.pathname}
             className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8 print:max-w-none print:p-0"

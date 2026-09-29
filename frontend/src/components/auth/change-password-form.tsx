@@ -82,6 +82,8 @@ export function ChangePasswordForm({
           autoComplete="new-password"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
+          aria-invalid={policyKeys ? true : undefined}
+          aria-describedby={policyKeys ? "change-password-policy" : undefined}
           required
           minLength={minimumPasswordLength}
         />
@@ -103,19 +105,21 @@ export function ChangePasswordForm({
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
+          aria-invalid={errorMessage ? true : undefined}
+          aria-describedby={errorMessage ? "change-password-error" : undefined}
           required
           minLength={minimumPasswordLength}
         />
       </div>
       {policyKeys ? (
-        <ul className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
+        <ul id="change-password-policy" className={`${errorTextClassName} list-disc space-y-0.5 pl-4`} role="alert">
           {policyKeys.map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
         </ul>
       ) : null}
       {errorMessage ? (
-        <p className={errorTextClassName} role="alert">
+        <p id="change-password-error" className={errorTextClassName} role="alert">
           {errorMessage}
         </p>
       ) : null}

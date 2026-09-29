@@ -1,4 +1,6 @@
 import { type FormEvent } from "react";
+import { ErrorSummary } from "@/components/a11y/error-summary";
+import { serviceFieldDomId } from "@/components/tickets/service-form-fields";
 import { CreateTicketFields } from "@/components/tickets/create-ticket-fields";
 import { ServiceIncidentBanner } from "@/components/status/service-incident-banner";
 import { CreateTicketServicePicker } from "@/components/tickets/create-ticket-service-picker";
@@ -23,6 +25,8 @@ interface CreateTicketDraftViewProperties {
   readonly selectedService: ServiceResponse | null;
   readonly activeForm: FormVersionResponse | null;
   readonly fieldErrors: ReadonlyMap<string, string>;
+  /** Incremented on each failed client validation; moves focus to the error summary. */
+  readonly failedSubmitCount?: number;
   readonly suggestedPriority: TicketPriority;
   readonly displayedError: TicketErrorKey | "tickets.errorCatalog" | null;
   readonly canNextService: boolean;
@@ -44,6 +48,7 @@ export function CreateTicketDraftView({
   selectedService,
   activeForm,
   fieldErrors,
+  failedSubmitCount = 0,
   suggestedPriority,
   displayedError,
   canNextService,
@@ -90,6 +95,19 @@ export function CreateTicketDraftView({
             serviceId={draft.serviceId}
             hasIncident={(selectedService?.incidentImpact ?? null) !== null}
           />
+          {step === 1 && fieldErrors.size > 0 ? (
+            <div className="px-5 pb-3">
+              <ErrorSummary
+                focusKey={failedSubmitCount}
+                items={(activeForm?.schema.fields ?? [])
+                  .filter((field) => fieldErrors.has(field.id))
+                  .map((field) => ({
+                    fieldId: serviceFieldDomId(field.id),
+                    message: `${field.label}: ${fieldErrors.get(field.id) ?? ""}`,
+                  }))}
+              />
+            </div>
+          ) : null}
           {displayedError ? (
             <div className="px-5">
               <TicketErrorState errorKey={displayedError} />

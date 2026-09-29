@@ -343,6 +343,8 @@ export function LoginPage() {
                       className={controlClassName}
                       type="email"
                       autoComplete="username"
+                      aria-invalid={hasError ? true : undefined}
+                      aria-describedby={hasError ? "login-error" : undefined}
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       required
@@ -355,13 +357,15 @@ export function LoginPage() {
                       className={controlClassName}
                       type="password"
                       autoComplete="current-password"
+                      aria-invalid={hasError ? true : undefined}
+                      aria-describedby={hasError ? "login-error" : undefined}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       required
                     />
                   </label>
                   {hasError ? (
-                    <p className={errorTextClassName} role="alert">
+                    <p id="login-error" className={errorTextClassName} role="alert">
                       {t(isRateLimited ? "session.errorRateLimited" : "session.error")}
                     </p>
                   ) : null}

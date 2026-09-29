@@ -4886,5 +4886,13 @@
       "errorBody": "Check your connection and try again.",
       "reload": "Reload page"
     }
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content",
+    "requiredField": "(required)",
+    "errorSummary": {
+      "title_one": "The form has {{count}} error:",
+      "title_other": "The form has {{count}} errors:"
+    }
   }
 }
