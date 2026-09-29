@@ -6,7 +6,10 @@ ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package*.json ./
-RUN npm ci || npm install
+# Build tools (vite / nest / prisma CLI) are devDependencies. Coolify passes every env var as a
+# build arg, so NODE_ENV=production would make `npm ci` skip them; --include=dev keeps the build
+# independent of NODE_ENV.
+RUN npm ci --include=dev || npm install --include=dev
 
 COPY . .
 
