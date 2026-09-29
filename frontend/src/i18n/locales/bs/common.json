@@ -4906,5 +4906,14 @@
       "notFound": "Incident nije pronađen.",
       "disabled": "Stranica statusa je isključena."
     }
+  },
+  "app": {
+    "pageLoad": {
+      "staleTitle": "Dostupna je nova verzija aplikacije",
+      "staleBody": "Aplikacija je u međuvremenu ažurirana. Osvježite stranicu da učitate novu verziju.",
+      "errorTitle": "Stranica se nije mogla učitati",
+      "errorBody": "Provjerite vezu i pokušajte ponovo.",
+      "reload": "Osvježi stranicu"
+    }
   }
 }

@@ -4875,5 +4875,14 @@
       "notFound": "Incident not found.",
       "disabled": "The status page is turned off."
     }
+  },
+  "app": {
+    "pageLoad": {
+      "staleTitle": "A new version of the application is available",
+      "staleBody": "The application was updated meanwhile. Reload the page to load the new version.",
+      "errorTitle": "The page could not be loaded",
+      "errorBody": "Check your connection and try again.",
+      "reload": "Reload page"
+    }
   }
 }

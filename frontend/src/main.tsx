@@ -5,7 +5,13 @@ import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import { App } from "@/app/app";
 import { initializeI18n } from "@/i18n/config";
+import { reloadForChunkError } from "@/lib/app/chunk-reload";
 import "@/index.css";
+
+// Vite reports a failed modulepreload (stale build after a redeploy) here.
+window.addEventListener("vite:preloadError", (event) => {
+  if (reloadForChunkError((event as Event & { payload?: unknown }).payload)) event.preventDefault();
+});
 
 const rootElement = document.getElementById("root");
 
