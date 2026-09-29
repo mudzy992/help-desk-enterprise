@@ -164,7 +164,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ### 2.8 Pristupačnost i UX kvalitet  · ~3 RD (dizajn: ~4,5 RD)
 
-> **Status:** dizajn `modules/2.8-pristupacnost-i-ux.md`, čeka odobrenje (§12).
+> **Status:** ✅ implementirano 2026-09-29 (dizajn c2e8956; koraci e1b644b, 032df93, a308c0a + korak 4). Čeka prvi prolaz E2E 22 i ručni NVDA prolaz na stagingu. Uputstvo: `docs/user-guide/precice-i-pristupacnost.md`; odstupanja: `modules/2.8-pristupacnost-i-ux.md` §11.2.
 - WCAG 2.1 AA: navigacija tastaturom, focus stanja, ARIA oznake, screen reader na ključnim
   tokovima (kreiranje tiketa, razgovor, lista); automatski axe test u CI-ju.
 - Prečice na tastaturi za agente (sljedeći tiket, odgovori, preuzmi).

@@ -1,0 +1,4 @@
+{
+  "$comment": "Paket 2.8 §5.1: known axe findings accepted with a reason. Every entry needs rule, selector, reason and reviewed (YYYY-MM-DD); an entry without a reason fails test 22. Target: no exceptions on T1-T6.",
+  "exceptions": []
+}

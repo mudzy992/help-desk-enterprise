@@ -8,6 +8,7 @@
     "test:ui": "playwright test --ui"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.55.0",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.10.2",

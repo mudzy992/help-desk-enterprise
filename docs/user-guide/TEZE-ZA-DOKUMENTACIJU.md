@@ -200,3 +200,37 @@ To je kriterij kompletnosti.
 - **Izvori:** `backend/src/modules/users/send-temporary-password-email.ts`
 - **Status:** Važi
 - **Wiki stranica:** Administrator → Korisnici, uloge i permisije
+
+### T7 — Prečice od jednog slova i ko ih ima zadano
+
+- **Modul / paket:** Pristupačnost · 2.8
+- **Publika:** Krajnji korisnik, Agent, Administrator
+- **Tip:** Pravilo
+- **Teza:** Prečice od jednog slova (`N`, `J`, `R`, `G` pa `T`…) su zadano **uključene za agente i
+  administratore**, a **isključene za krajnje korisnike**. Svako ih može promijeniti u **Izgled →
+  Pristupačnost**; izbor je vezan za nalog. Prečice s `Ctrl` rade uvijek.
+- **Zašto:** WCAG 2.1.4 traži da se jednoslovne prečice mogu isključiti (govorni unos, slučajni
+  pritisci). Krajnji korisnik ih rijetko treba, a `N` usred rada ga zbuni.
+- **Zamka:** prečice ne rade dok je fokus u polju ili je otvoren dijalog. To je namjerno: inače bi
+  tipkanje pokretalo radnje.
+- **Postavke / permisije:** kolona `User.keyboardShortcuts` (`null` = zadano po ulozi),
+  `GET/PATCH /users/me/preferences`. Nije postavka administratora.
+- **Izvori:** `frontend/src/lib/shortcuts/catalog.ts`, `backend/src/modules/users/resolve-keyboard-shortcuts.ts`
+- **Status:** Važi
+- **Wiki stranica:** Korisnik → Prečice i pristupačnost
+
+### T8 — „Sljedeći tiket“ radi unutar stranice liste
+
+- **Modul / paket:** Pristupačnost · 2.8
+- **Publika:** Agent
+- **Tip:** Ponašanje
+- **Teza:** `]` / `[` na detalju tiketa prelaze na susjedni tiket sa **stranice liste koju je agent
+  zadnju otvorio** (pamti se samo redoslijed ID-eva u sesiji preglednika). Na kraju stranice
+  aplikacija najavi „Kraj stranice liste“; sljedeća stranica se otvara na listi.
+- **Zašto:** filteri i stranica liste nisu u adresi (URL), pa detalj ne može sam učitati sljedeću
+  stranicu s istim filterima. Automatski prelazak na sljedeći tiket nakon rješavanja nije uveden,
+  jer lako preskoči tiket (odluka P7).
+- **Zamka:** tiket otvoren direktnim linkom (e-mail, obavijest) nema listu za kretanje.
+- **Izvori:** `frontend/src/lib/shortcuts/ticket-list-context.ts`
+- **Status:** Važi
+- **Wiki stranica:** Agent → Rad na tiketima
