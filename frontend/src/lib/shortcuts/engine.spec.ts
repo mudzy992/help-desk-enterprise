@@ -113,4 +113,12 @@ describe("shouldIgnoreTarget", () => {
     expect(shouldIgnoreTarget(null, true)).toBe(true);
     expect(shouldIgnoreTarget(target([]), false)).toBe(false);
   });
+
+  it("does not treat a dialog animating out as open (Esc, then G T)", () => {
+    const selectors: string[] = [];
+    shouldIgnoreTarget({ closest: (selector: string) => { selectors.push(selector); return null; } }, false);
+    const dialogSelector = selectors.find((selector) => selector.includes("role='dialog'")) ?? "";
+    expect(dialogSelector).toContain("[role='dialog']:not([data-state='closed'])");
+    expect(dialogSelector).toContain("[role='menu']:not([data-state='closed'])");
+  });
 });

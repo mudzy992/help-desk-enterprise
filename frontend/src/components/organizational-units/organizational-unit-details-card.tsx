@@ -27,7 +27,7 @@ export function OrganizationalUnitDetailsCard({
         title={t("directory.detailsTitle", { name: node.name })}
         subtitle={node.ouPath}
       />
-      <dl className="space-y-3 px-4 py-4 text-[12px]">
+      <dl className="space-y-3 px-4 pb-3 pt-4 text-[12px]">
         <div>
           <dt className="text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">
             {t("directory.detailsNameLabel")}
@@ -59,12 +59,13 @@ export function OrganizationalUnitDetailsCard({
             {distinguishedName}
           </dd>
         </div>
-        <div className="flex gap-1.5 border-t border-border/70 pt-3">
-          <Badge tone="primary" dot={false}>
-            {t("directory.detailsMapped", { count: memberCount })}
-          </Badge>
-        </div>
       </dl>
+      {/* Outside the <dl>: a group without <dt>/<dd> is invalid there (axe definition-list). */}
+      <div className="mx-4 flex gap-1.5 border-t border-border/70 pb-4 pt-3">
+        <Badge tone="primary" dot={false}>
+          {t("directory.detailsMapped", { count: memberCount })}
+        </Badge>
+      </div>
     </Card>
   );
 }

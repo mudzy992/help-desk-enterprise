@@ -105,7 +105,13 @@ export interface TargetLike {
 }
 
 const TYPING_SELECTOR = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
-const DIALOG_SELECTOR = "[role='dialog'], [role='alertdialog'], [role='menu'], [role='listbox']";
+/**
+ * A dialog/menu animating out (Radix `data-state="closed"`) still holds focus
+ * until it unmounts; it must not swallow the next key (Esc, then G T).
+ */
+const DIALOG_SELECTOR = ["dialog", "alertdialog", "menu", "listbox"]
+  .map((role) => `[role='${role}']:not([data-state='closed'])`)
+  .join(", ");
 
 /** Single-key shortcuts never fire while typing or inside a dialog/menu. */
 export function shouldIgnoreTarget(target: TargetLike | null, dialogOpen: boolean): boolean {
