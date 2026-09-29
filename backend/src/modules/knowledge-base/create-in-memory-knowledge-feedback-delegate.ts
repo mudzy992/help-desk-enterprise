@@ -90,7 +90,7 @@ export function createInMemoryKnowledgeFeedbackDelegate(
     }: {
       where: { articleId_userId: { articleId: string; userId: string } };
       create: FeedbackData;
-      update: Omit<FeedbackData, 'articleId' | 'userId'>;
+      update: Partial<Omit<FeedbackData, 'articleId' | 'userId'>>;
     }) => {
       const existing = matching({
         articleId: where.articleId_userId.articleId,

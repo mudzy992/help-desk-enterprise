@@ -27,6 +27,19 @@ describe('Knowledge feedback', () => {
     expect(memory.feedbacks.size).toBe(1);
   });
 
+  it('keeps an earlier 1-5 rating and its comment when a thumbs vote follows', async () => {
+    const { discovery, memory } = createKnowledgeBaseServiceHarness();
+    memory.seedArticle(publishedArticleSeed({ id: 'vpn-reset' }));
+    const actor = { actorUserId: knowledgeBaseTestIds.requester };
+    await discovery.submitFeedback('vpn-reset', { rating: 2, comment: 'Nedostaje korak za macOS' }, actor);
+    const thumbs = await discovery.submitFeedback('vpn-reset', { isHelpful: true }, actor);
+    expect(thumbs.isHelpful).toBe(true);
+    expect(thumbs.rating).toBe(2);
+    const [stored] = [...memory.feedbacks.values()];
+    expect(stored).toMatchObject({ rating: 2, comment: 'Nedostaje korak za macOS', isHelpful: true });
+    expect(memory.feedbacks.size).toBe(1);
+  });
+
   it('rejects feedback on unauthorized articles and when feedback is disabled', async () => {
     const { discovery, memory, configuration } =
       createKnowledgeBaseServiceHarness();

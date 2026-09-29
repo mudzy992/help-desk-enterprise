@@ -323,3 +323,4 @@ To je kriterij kompletnosti.
 - „Napravi članak“ postoji samo na javnim odgovorima agenta, samo za korisnike s pravom pisanja članaka i nikad na povjerljivom tiketu (server vraća FORBIDDEN). Lični podaci (e-mail, imena/loginovi osoba s tiketa, IP, telefon) zamjenjuju se oznakama prije prikaza; rezultat je uvijek DRAFT, a na tiketu ostaje interni događaj.
 - Kategorije uređuje permisija `knowledge.category.manage`; broj FAQ stavki je postavka `private.knowledgeBase.portal.faqMaxItems`.
 - Staging: Redis ACL korisnika aplikacije treba (aditivno) `+pfadd +pfcount +sadd +smembers +srem +incr +expire +multi +exec`.
+- „Pomoglo / Nije pomoglo“ u panelu pri kreiranju tiketa mijenja samo taj podatak (da li je članak riješio problem); ranija ocjena 1–5 i komentar ostaju, prosjek se ne mijenja. Ocjena 4–5 zvjezdica automatski se računa i kao „Pomoglo“, 1–3 kao „Nije pomoglo“.

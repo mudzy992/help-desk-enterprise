@@ -58,12 +58,18 @@ export async function submitKnowledgeFeedback(
           articleId_userId: { articleId, userId: context.actorUserId },
         },
         create: { articleId, userId: context.actorUserId, ...vote },
-        update: { ...vote, commentResolvedAt: null },
+        // A thumbs-only vote (ticket-create intercept) records whether the
+        // article solved the problem; it must not erase an earlier 1-5
+        // rating or its "what is missing?" comment.
+        update:
+          vote.rating === null
+            ? { isHelpful: vote.isHelpful }
+            : { ...vote, commentResolvedAt: null },
       })
     : await prisma.knowledgeFeedback.create({
         data: { articleId, userId: context.actorUserId, ...vote },
       });
-  if (vote.rating !== null || configuration.oneVotePerUserPerArticle) {
+  if (vote.rating !== null) {
     await refreshKnowledgeArticleRating(prisma, articleId);
   }
   return {
