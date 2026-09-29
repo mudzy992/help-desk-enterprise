@@ -1,4 +1,7 @@
 import { useId, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ChartDataTable } from "@/components/charts/chart-data-table";
+import { describeChart } from "@/lib/charts/chart-summary";
 import { floatingPanelClassName } from "@/components/ui/control";
 import {
   buildAreaPath,
@@ -54,6 +57,7 @@ export function DualAreaChart({
 }: DualAreaChartProperties) {
   // SVG ids must not contain the colons React's useId emits.
   const uid = useId().replace(/:/g, "");
+  const { t } = useTranslation();
   const [hover, setHover] = useState<number | null>(null);
 
   if (data.length === 0) {
@@ -91,6 +95,15 @@ export function DualAreaChart({
           viewBox={`0 0 ${SIZE.width} ${SIZE.height}`}
           className="h-full w-full"
           preserveAspectRatio="none"
+          role="img"
+          aria-label={describeChart(
+            t,
+            [
+              { label: aLabel, values: series("a") },
+              { label: bLabel, values: series("b") },
+            ],
+            data.map((point) => point.label),
+          )}
         >
           <defs>
             <linearGradient id={`da-${uid}`} x1="0" y1="0" x2="0" y2="1">
@@ -196,6 +209,14 @@ export function DualAreaChart({
           </div>
         ) : null}
       </div>
+      <ChartDataTable
+        caption={`${aLabel}, ${bLabel}`}
+        bucketLabels={data.map((point) => point.label)}
+        columns={[
+          { key: "a", label: aLabel, values: series("a") },
+          { key: "b", label: bLabel, values: series("b") },
+        ]}
+      />
     </div>
   );
 }

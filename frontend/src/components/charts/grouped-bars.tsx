@@ -1,5 +1,8 @@
 import { useId, useState } from "react";
 import { floatingPanelClassName } from "@/components/ui/control";
+import { useTranslation } from "react-i18next";
+import { ChartDataTable } from "@/components/charts/chart-data-table";
+import { describeChart } from "@/lib/charts/chart-summary";
 import { cn } from "@/lib/utils";
 
 /*
@@ -41,10 +44,26 @@ export function GroupedBars({
   );
   const [hover, setHover] = useState<number | null>(null);
   const groupId = useId();
+  const { t } = useTranslation();
+  const bucketLabels = data.map((item) => item.d);
+  const created = data.map((item) => item.created);
+  const resolved = data.map((item) => item.resolved);
 
   return (
     <div className={className}>
-      <div className="relative flex items-end gap-[5px]" style={{ height }}>
+      <div
+        className="relative flex items-end gap-[5px]"
+        style={{ height }}
+        role="img"
+        aria-label={describeChart(
+          t,
+          [
+            { label: aLabel, values: created },
+            { label: bLabel, values: resolved },
+          ],
+          bucketLabels,
+        )}
+      >
         {data.map((item, index) => (
           <div
             key={groupId + index}
@@ -105,6 +124,14 @@ export function GroupedBars({
         </div>
         <span className="tnum">{data[data.length - 1]?.d}</span>
       </div>
+      <ChartDataTable
+        caption={`${aLabel}, ${bLabel}`}
+        bucketLabels={bucketLabels}
+        columns={[
+          { key: "a", label: aLabel, values: created },
+          { key: "b", label: bLabel, values: resolved },
+        ]}
+      />
     </div>
   );
 }

@@ -4893,6 +4893,27 @@
     "errorSummary": {
       "title_one": "The form has {{count}} error:",
       "title_other": "The form has {{count}} errors:"
+    },
+    "conversation": {
+      "messageLabel": "{{author}}, {{time}}, {{kind}}",
+      "newMessage": "New message from {{name}}",
+      "newInternalNote": "New internal note from {{name}}",
+      "composerMode": "Message type"
+    },
+    "list": {
+      "caption_one": "Ticket list, {{count}} row",
+      "caption_other": "Ticket list, {{count}} rows",
+      "selected_one": "{{count}} ticket selected",
+      "selected_other": "{{count}} tickets selected"
+    },
+    "chart": {
+      "range": "Period from {{from}} to {{to}}.",
+      "series": "{{series}}: highest {{max}} ({{maxAt}}), lowest {{min}} ({{minAt}}), latest {{last}} ({{lastAt}}).",
+      "seriesEmpty": "{{series}}: no data.",
+      "empty": "The chart has no data.",
+      "showTable": "Show as table",
+      "hideTable": "Hide table",
+      "period": "Period"
     }
   }
 }

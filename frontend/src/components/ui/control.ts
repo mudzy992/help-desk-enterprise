@@ -62,3 +62,7 @@ export const floatingShadowClassName = "shadow-pop";
 
 export const floatingPanelClassName =
   `pop-in overflow-hidden rounded-lg border border-border bg-popover ${floatingShadowClassName}`;
+
+/** 2.8 §3.3: the keyboard/screen-reader entry of a clickable table row (the row click stays a mouse shortcut). */
+export const rowActionButtonClassName =
+  "rounded-sm text-left underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";

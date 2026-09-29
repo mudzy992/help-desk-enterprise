@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { announce } from "@/lib/a11y/announcer";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -14,6 +16,7 @@ import {
 } from "@/services/tickets-agent-collaboration-api";
 
 const visibleAvatars = 3;
+const TYPING_ANNOUNCE_MS = 15_000;
 
 interface TicketCollaborationBarProperties {
   readonly ticketId: string;
@@ -63,8 +66,15 @@ function StaffPresence({ people }: { readonly people: readonly PresencePerson[] 
           : t("tickets.collaboration.presence.typingReply", { name: person.name })
         : t("tickets.collaboration.presence.viewing", { name: person.name });
   const typist = people.find((person) => person.state === "typing");
+  const typingMessage = typist === undefined ? null : describe(typist);
+  // 2.8 §3.5: at most one "is typing" announcement per person per 15 s.
+  useEffect(() => {
+    if (typist !== undefined && typingMessage !== null) {
+      announce(typingMessage, { dedupeKey: `typing:${typist.userId}`, throttleMs: TYPING_ANNOUNCE_MS });
+    }
+  }, [typist, typingMessage]);
   return (
-    <div className="flex min-w-0 items-center gap-2" data-testid="ticket-presence" aria-live="polite">
+    <div className="flex min-w-0 items-center gap-2" data-testid="ticket-presence">
       <div className="flex -space-x-1.5">
         {shown.map((person) => (
           <span key={person.userId} className="relative" title={describe(person)}>
@@ -92,9 +102,17 @@ function StaffPresence({ people }: { readonly people: readonly PresencePerson[] 
 
 function RequesterPresence({ typing }: { readonly typing: boolean }) {
   const { t } = useTranslation();
+  useEffect(() => {
+    if (typing) {
+      announce(t("tickets.collaboration.presence.agentTyping"), {
+        dedupeKey: "typing:agent",
+        throttleMs: TYPING_ANNOUNCE_MS,
+      });
+    }
+  }, [typing, t]);
   if (!typing) return null;
   return (
-    <span className="text-[11.5px] text-muted-foreground" data-testid="ticket-presence-requester" aria-live="polite">
+    <span className="text-[11.5px] text-muted-foreground" data-testid="ticket-presence-requester">
       <TypingDots />
       {t("tickets.collaboration.presence.agentTyping")}
     </span>

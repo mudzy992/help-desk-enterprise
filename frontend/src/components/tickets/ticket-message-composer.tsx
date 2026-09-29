@@ -221,7 +221,7 @@ export function TicketMessageComposer({
         <div className="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
           <Segmented<ComposerMode>
             size="sm"
-            ariaLabel={t("tickets.detail.publicReply")}
+            ariaLabel={t("a11y.conversation.composerMode")}
             value={internal && canInternal ? "internal" : "reply"}
             onChange={(next) => {
               setInternal(next === "internal");

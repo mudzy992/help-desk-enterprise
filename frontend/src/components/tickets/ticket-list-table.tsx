@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import { announce } from "@/lib/a11y/announcer";
 import { Link, useNavigate } from "react-router-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ShieldAlert } from "lucide-react";
@@ -113,6 +114,8 @@ type TicketListRowProperties = {
   readonly onToggleSelected: (ticketId: string) => void;
   /** Set only in the virtualized body, where the row must be measured. */
   readonly virtualIndex?: number;
+  /** 0-based position in the full list (2.8 §3.3, aria-rowindex). */
+  readonly rowIndex: number;
   /** The virtualizer measures the real row height through this ref. */
   readonly measureRef?: (element: Element | null) => void;
 };
@@ -125,6 +128,7 @@ function TicketListRow({
   selectedIds,
   onToggleSelected,
   virtualIndex,
+  rowIndex,
   measureRef,
 }: TicketListRowProperties) {
   const { t, i18n } = useTicketText();
@@ -138,7 +142,10 @@ function TicketListRow({
         isSelected && "bg-primary/6 hover:bg-primary/8",
       )}
       data-index={virtualIndex}
+      aria-rowindex={rowIndex + 2}
       ref={measureRef}
+      /* a11y-row-link: the click is a mouse shortcut; keyboard and screen
+         readers use the ticket-number Link in the row. */
       onClick={() => navigate(`/tickets/${ticket.id}`)}
     >
       <td className="px-4 py-2.5" onClick={(event) => event.stopPropagation()}>
@@ -153,7 +160,7 @@ function TicketListRow({
           {ticket.isConfidential ? (
             <ShieldAlert size={13} className="shrink-0 text-warning" aria-hidden="true" />
           ) : null}
-          <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+          <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName} data-ticket-row-link={ticket.id}>
             {ticket.ticketNumber}
           </Link>
           <TicketForwardIndicator ticket={ticket} />
@@ -218,9 +225,23 @@ export function TicketListTable({
     ? virtualRows.map((row, index) => ({
         ticket: tickets[row.index],
         virtualIndex: row.index,
+        rowIndex: row.index,
         key: `${tickets[row.index]?.id ?? row.index}-${index}`,
       }))
-    : tickets.map((ticket) => ({ ticket, virtualIndex: undefined, key: ticket.id }));
+    : tickets.map((ticket, index) => ({ ticket, virtualIndex: undefined, rowIndex: index, key: ticket.id }));
+  const selectedCount = selectedIds.size;
+  const previousSelectedCount = useRef(selectedCount);
+  // 2.8 §3.3: bulk selection changes are announced (polite, coalesced).
+  useEffect(() => {
+    if (previousSelectedCount.current === selectedCount) {
+      return;
+    }
+    previousSelectedCount.current = selectedCount;
+    announce(t("a11y.list.selected", { count: selectedCount }), {
+      dedupeKey: "ticket-list-selection",
+      throttleMs: 0,
+    });
+  }, [selectedCount, t]);
   const measureRow = (element: Element | null) => {
     virtualizer.measureElement(element);
   };
@@ -240,9 +261,10 @@ export function TicketListTable({
         isVirtualized && "max-h-[70vh] overflow-y-auto",
       )}
     >
-      <table className="w-full min-w-[900px] text-left">
+      <table className="w-full min-w-[900px] text-left" aria-rowcount={tickets.length + 1}>
+        <caption className="sr-only">{t("a11y.list.caption", { count: tickets.length })}</caption>
         <thead className={isVirtualized ? "sticky top-0 z-10 bg-surface" : undefined}>
-          <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)}>
+          <tr className={cn("border-b border-border/70 bg-elevated/60", tableHeadClassName)} aria-rowindex={1}>
             <th className="w-10 px-4 py-2.5">
               <Checkbox
                 checked={allSelected}
@@ -251,25 +273,26 @@ export function TicketListTable({
                 aria-label={t("tickets.bulk.select")}
               />
             </th>
-            <th className="px-2 py-2.5 font-medium">{t("tickets.columns.ticket")}</th>
-            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.service")}</th>
-            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.unit")}</th>
-            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.status")}</th>
-            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.priority")}</th>
-            <th className="px-4 py-2.5 font-medium">{t("tickets.columns.assignment")}</th>
-            <th className="px-4 py-2.5 text-right font-medium">{t("tickets.columns.updated")}</th>
+            <th scope="col" className="px-2 py-2.5 font-medium">{t("tickets.columns.ticket")}</th>
+            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.service")}</th>
+            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.unit")}</th>
+            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.status")}</th>
+            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.priority")}</th>
+            <th scope="col" className="px-4 py-2.5 font-medium">{t("tickets.columns.assignment")}</th>
+            <th scope="col" className="px-4 py-2.5 text-right font-medium">{t("tickets.columns.updated")}</th>
           </tr>
         </thead>
         <tbody>
           {isVirtualized ? (
             <tr aria-hidden="true" style={{ height: virtualRows[0]?.start ?? 0 }} />
           ) : null}
-          {renderedTickets.map(({ ticket, virtualIndex, key }) =>
+          {renderedTickets.map(({ ticket, virtualIndex, rowIndex, key }) =>
             ticket === undefined ? null : (
               <TicketListRow
                 key={key}
                 ticket={ticket}
                 virtualIndex={virtualIndex}
+                rowIndex={rowIndex}
                 measureRef={virtualIndex === undefined ? undefined : measureRow}
                 {...rowProperties}
               />

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { hintClassName, rowActionButtonClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Segmented } from "@/components/ui/segmented";
@@ -142,10 +142,22 @@ export function PrivacyRequestsPanel({ canManage, canAnonymize, onFollowUp }: Pr
                 <tr
                   key={request.id}
                   className={`${tableRowClassName} cursor-pointer`}
+                  /* a11y-row-link: the button in the first cell is the keyboard entry. */
                   onClick={() => setSelected(request)}
                   data-testid="privacy-request-row"
                 >
-                  <td className="px-3 font-medium text-foreground">{t(requestTypeKey(request.type))}</td>
+                  <td className="px-3 font-medium text-foreground">
+                    <button
+                      type="button"
+                      className={rowActionButtonClassName}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelected(request);
+                      }}
+                    >
+                      {t(requestTypeKey(request.type))}
+                    </button>
+                  </td>
                   <td className="max-w-[240px] truncate px-3">
                     {request.subjectUser === null
                       ? request.subjectLabel

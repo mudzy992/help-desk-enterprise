@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/ui/relative-time";
+import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
 import { localizePersonName } from "@/lib/privacy/privacy-view";
 import { cn } from "@/lib/utils";
 import { splitMentionSegments } from "@/lib/tickets/mention-tokens";
@@ -29,7 +30,15 @@ export function TicketMessageBubble({
   // Paket 2.6: an anonymized author reads "Former user #…" in English.
   const shownName = localizePersonName(authorName, locale);
   return (
-    <div id={`message-${message.id}`} className={cn("fade-in flex scroll-mt-24 gap-3", isOwn && "flex-row-reverse")}>
+    <article
+      id={`message-${message.id}`}
+      aria-label={t("a11y.conversation.messageLabel", {
+        author: shownName,
+        time: formatTicketTimestamp(message.createdAt, locale),
+        kind: isInternal ? t("tickets.detail.internalNote") : t("tickets.detail.publicReply"),
+      })}
+      className={cn("fade-in flex scroll-mt-24 gap-3", isOwn && "flex-row-reverse")}
+    >
       <Avatar name={shownName} size="md" />
       <div className={cn("min-w-0 max-w-[78%]", isOwn && "flex flex-col items-end")}>
         <div className="flex items-center gap-2">
@@ -92,6 +101,6 @@ export function TicketMessageBubble({
           </p>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

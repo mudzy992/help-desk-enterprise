@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ChartDataTable } from "@/components/charts/chart-data-table";
+import { describeChart } from "@/lib/charts/chart-summary";
 import { floatingPanelClassName } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +78,7 @@ export function TrendChart({
   className,
   testId,
 }: TrendChartProperties) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState<number | null>(null);
   const count = labels.length;
   if (count === 0) return null;
@@ -107,6 +111,9 @@ export function TrendChart({
     }
     return path.trim();
   };
+
+  const bucketLabels = tooltipLabels.length === count ? tooltipLabels : labels;
+  const summary = describeChart(t, series, bucketLabels);
 
   const solidEnd = partialLast && count > 1 ? count - 2 : count - 1;
 
@@ -143,7 +150,7 @@ export function TrendChart({
       </div>
 
       <div className="relative" style={{ height }}>
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="none" role="img">
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="none" role="img" aria-label={summary}>
           {GRID.map((ratio) => (
             <line
               key={ratio}
@@ -326,6 +333,11 @@ export function TrendChart({
           </span>
         ))}
       </div>
+      <ChartDataTable
+        caption={series.map((item) => item.label).join(", ")}
+        bucketLabels={bucketLabels}
+        columns={series.map((item) => ({ key: item.key, label: item.label, values: item.values, format: item.format }))}
+      />
     </div>
   );
 }

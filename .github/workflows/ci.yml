@@ -56,6 +56,8 @@ jobs:
         run: node ../scripts/check-pulse-design-system.mjs
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)
         run: node ../scripts/check-theme-contrast.mjs
+      - name: Check static accessibility rules (Paket 2.8 §5.2)
+        run: node ../scripts/check-a11y-static.mjs
       - run: npm test
       - run: npm run build
 

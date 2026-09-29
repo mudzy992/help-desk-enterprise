@@ -115,6 +115,7 @@ export function DashboardAttentionTable({
                 <tr
                   key={ticket.id}
                   className={`${tableRowClassName} cursor-pointer`}
+                  /* a11y-row-link: the ticket-number Link in the row is the keyboard entry. */
                   onClick={() => navigate(`/tickets/${ticket.id}`)}
                 >
                   <td className="px-4 py-2.5">

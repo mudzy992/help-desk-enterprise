@@ -4925,6 +4925,29 @@
       "title_one": "Forma ima {{count}} grešku:",
       "title_few": "Forma ima {{count}} greške:",
       "title_other": "Forma ima {{count}} grešaka:"
+    },
+    "conversation": {
+      "messageLabel": "{{author}}, {{time}}, {{kind}}",
+      "newMessage": "Nova poruka od {{name}}",
+      "newInternalNote": "Nova interna napomena od {{name}}",
+      "composerMode": "Vrsta poruke"
+    },
+    "list": {
+      "caption_one": "Lista tiketa, {{count}} red",
+      "caption_few": "Lista tiketa, {{count}} reda",
+      "caption_other": "Lista tiketa, {{count}} redova",
+      "selected_one": "Odabran {{count}} tiket",
+      "selected_few": "Odabrana {{count}} tiketa",
+      "selected_other": "Odabrano {{count}} tiketa"
+    },
+    "chart": {
+      "range": "Period od {{from}} do {{to}}.",
+      "series": "{{series}}: najviše {{max}} ({{maxAt}}), najmanje {{min}} ({{minAt}}), zadnje {{last}} ({{lastAt}}).",
+      "seriesEmpty": "{{series}}: nema podataka.",
+      "empty": "Grafikon nema podataka.",
+      "showTable": "Prikaži kao tabelu",
+      "hideTable": "Sakrij tabelu",
+      "period": "Period"
     }
   }
 }

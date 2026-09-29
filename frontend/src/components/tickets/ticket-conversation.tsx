@@ -8,6 +8,8 @@ import {
   resolveActivityActor,
 } from "@/lib/tickets/describe-ticket-activity";
 import { formatTicketTimestamp } from "@/lib/tickets/ticket-display";
+import { announce } from "@/lib/a11y/announcer";
+import { localizePersonName } from "@/lib/privacy/privacy-view";
 import { cn } from "@/lib/utils";
 import type { TicketMessageResponse } from "@/services/tickets-collaboration-api";
 
@@ -41,9 +43,51 @@ export function TicketConversation({
   const { t, i18n } = useTranslation();
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const seenIdsRef = useRef<Set<string> | null>(null);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
+
+  /*
+    2.8 §3.5: the log itself is aria-live="off" (a long body would be read in
+    full); a new message from someone else is announced briefly instead. The
+    first render only records what is already there.
+  */
+  useEffect(() => {
+    if (systemOnly) {
+      return;
+    }
+    const seen = seenIdsRef.current;
+    if (seen === null) {
+      seenIdsRef.current = new Set(messages.map((message) => message.id));
+      return;
+    }
+    for (const message of messages) {
+      if (seen.has(message.id)) {
+        continue;
+      }
+      seen.add(message.id);
+      const isSystem = message.type === "SYSTEM_EVENT" || message.type === "APPROVAL_DECISION";
+      const isOwn = currentUserId !== null && message.authorUserId === currentUserId;
+      if (isSystem || isOwn) {
+        continue;
+      }
+      const name = localizePersonName(
+        resolveActivityActor(message.authorUserId, authorNames, t),
+        i18n.language,
+      );
+      announce(
+        t(
+          message.type === "INTERNAL_NOTE"
+            ? "a11y.conversation.newInternalNote"
+            : "a11y.conversation.newMessage",
+          { name },
+        ),
+        { dedupeKey: `message:${message.id}` },
+      );
+    }
+  }, [messages, currentUserId, authorNames, systemOnly, t, i18n.language]);
   const visible = systemOnly
     ? messages.filter(
         (message) =>
@@ -73,6 +117,7 @@ export function TicketConversation({
     <div
       className={cn("fade-in", VIEWPORT_CLASS[viewport])}
       role="log"
+      aria-live="off"
       aria-label={t("tickets.detail.conversation")}
     >
       {visible.map((message) => {

@@ -5,6 +5,7 @@ import {
   tableHeadClassName,
   tableRowClassName,
   tableWrapClassName,
+  rowActionButtonClassName,
 } from "@/components/ui/control";
 import { cn } from "@/lib/utils";
 import { configVersionBadgeTone } from "@/lib/config-versions/config-version-display";
@@ -44,9 +45,22 @@ export function ConfigVersionList({
                 "cursor-pointer",
                 selectedId === version.id ? "bg-primary/10 hover:bg-primary/10" : "",
               )}
+              /* a11y-row-link: the button in the first cell is the keyboard entry. */
               onClick={() => onSelect(version.id)}
             >
-              <td className="tnum px-3">v{version.version}</td>
+              <td className="tnum px-3">
+                <button
+                  type="button"
+                  className={rowActionButtonClassName}
+                  aria-current={selectedId === version.id ? "true" : undefined}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSelect(version.id);
+                  }}
+                >
+                  v{version.version}
+                </button>
+              </td>
               <td className="px-3">
                 <Badge tone={configVersionBadgeTone(version.status)}>
                   {t(`configVersions.statuses.${version.status}`)}

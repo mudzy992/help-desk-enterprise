@@ -253,8 +253,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProperties)
             {t("palette.scope")}
           </DialogPrimitive.Description>
 
-          <div className="flex items-center gap-3 border-b border-border px-4">
+          <div className="flex items-center gap-3 border-b border-border px-4 focus-within:border-primary focus-within:shadow-[inset_0_-1px_0_rgb(var(--primary))]">
             <Search size={17} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+            {/* a11y-focus: the focused input is marked by the parent's primary underline (focus-within). */}
             <input
               ref={inputReference}
               value={query}

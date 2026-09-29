@@ -104,7 +104,9 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
                 aria-pressed={active}
                 aria-label={t(ticketStatusLabelKey[node.status])}
                 data-testid={`workflow-node-${node.status}`}
-                className="cursor-pointer outline-none"
+                /* a11y-focus: SVG groups do not paint outlines reliably; the
+                   focus ring is the rect below (group-focus-visible). */
+                className="group cursor-pointer outline-none"
                 opacity={dimmed ? 0.35 : 1}
                 onClick={() => onSelect(active ? null : node.status)}
                 onKeyDown={(event) => {
@@ -123,6 +125,16 @@ export function WorkflowDiagram({ statuses, transitions, counts, selected, onSel
                     stroke: active ? "rgb(var(--primary))" : "rgb(var(--line-strong))",
                     strokeWidth: active ? 2 : 1,
                   }}
+                />
+                <rect
+                  x={-4}
+                  y={-4}
+                  width={nodeWidth + 8}
+                  height={nodeHeight + 8}
+                  rx={13}
+                  aria-hidden="true"
+                  className="opacity-0 group-focus-visible:opacity-100"
+                  style={{ fill: "none", stroke: "rgb(var(--primary))", strokeWidth: 2 }}
                 />
                 <circle cx={16} cy={nodeHeight / 2} r={4.5} fill={TICKET_STATUS_META[node.status].dot} />
                 <text

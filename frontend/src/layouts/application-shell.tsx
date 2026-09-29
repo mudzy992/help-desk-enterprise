@@ -107,6 +107,7 @@ export function ApplicationShell() {
           open={isCommandPaletteOpen}
           onOpenChange={setIsCommandPaletteOpen}
         />
+        {/* a11y-focus: main only receives programmatic focus (skip link); a ring around the whole page would be noise. */}
         <main
           id={mainContentId}
           tabIndex={-1}

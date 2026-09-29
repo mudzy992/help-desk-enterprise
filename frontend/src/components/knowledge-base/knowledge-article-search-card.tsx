@@ -32,8 +32,9 @@ export function KnowledgeArticleSearchCard({
   const { t } = useTranslation();
   return (
     <Card className="fade-in mb-4">
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 rounded-lg px-4 py-3 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-primary">
         <Search size={16} className="shrink-0 text-muted-foreground" aria-hidden="true" />
+        {/* a11y-focus: the focus ring is drawn by the parent (focus-within). */}
         <input
           className="h-8 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           type="search"

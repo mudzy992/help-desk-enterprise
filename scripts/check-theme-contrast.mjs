@@ -35,6 +35,8 @@ const failures = [];
 
 /** WCAG 2.1 AA for normal-size text. Large text (≥24px, or ≥18.66px bold) is 3:1. */
 const textThreshold = 4.5;
+/** WCAG 2.1 1.4.11 for non-text UI indicators (focus ring). */
+const focusRingThreshold = 3;
 
 // ── WCAG math ───────────────────────────────────────────────────────────────
 const channel = (value) => {
@@ -162,6 +164,18 @@ for (const palette of palettes) {
       );
     }
   }
+  // Paket 2.8 §3.6: the focus ring (outline-primary) is a non-text UI
+  // indicator — WCAG 1.4.11 asks ≥ 3:1 against what it is drawn on.
+  for (const bg of ["background", "surface"]) {
+    if (!palette.tokens.primary || !palette.tokens[bg]) continue;
+    const ratio = contrast(palette.tokens.primary, palette.tokens[bg]);
+    rows.push(`${pad("focus ring primary/" + bg, 34)} ${ratio.toFixed(2).padStart(6)}:1`);
+    if (ratio < focusRingThreshold) {
+      failures.push(
+        `tokens: ${palette.name} — prsten fokusa (primary na ${bg}) = ${ratio.toFixed(2)}:1 < ${focusRingThreshold}:1 (WCAG 1.4.11)`,
+      );
+    }
+  }
   console.log(`  ${pad(palette.name, 18)} ${rows.join("   ")}`);
 }
 console.log("");
@@ -273,5 +287,5 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log(
-  `✔ ${palettes.length} paleta × ${pairs.length + 1} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
+  `✔ ${palettes.length} paleta × ${pairs.length + 3} parova i ${usages} upotreba \`text-primary\` — sve unutar praga`,
 );
