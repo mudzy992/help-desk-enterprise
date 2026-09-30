@@ -23,6 +23,19 @@ import {
   buildTimeTrackingReport,
   timeTrackingColumns,
 } from './packs/build-time-tracking-report';
+import {
+  assetExpiringColumns,
+  assetInactiveHoldersColumns,
+  assetInventoryColumns,
+  assetLicenseComplianceColumns,
+  assetTopTicketsColumns,
+  buildAssetExpiringReport,
+  buildAssetInactiveHoldersReport,
+  buildAssetInventoryReport,
+  buildAssetLicenseComplianceReport,
+  buildAssetTopTicketsReport,
+  emptyAssetReportData,
+} from './packs/build-asset-reports';
 import type { ReportExportRow, ReportPackBuildInput } from './reports.types';
 
 export function buildReportPackRows(
@@ -55,6 +68,22 @@ export function buildReportPackRows(
   }
   if (pack === reportPackKeys.timeTracking) {
     return { columns: timeTrackingColumns, rows: buildTimeTrackingReport(input) };
+  }
+  const assets = input.assets ?? emptyAssetReportData;
+  if (pack === reportPackKeys.assetInventory) {
+    return { columns: assetInventoryColumns, rows: buildAssetInventoryReport(assets) };
+  }
+  if (pack === reportPackKeys.assetExpiring) {
+    return { columns: assetExpiringColumns, rows: buildAssetExpiringReport(assets) };
+  }
+  if (pack === reportPackKeys.assetLicenseCompliance) {
+    return { columns: assetLicenseComplianceColumns, rows: buildAssetLicenseComplianceReport(assets) };
+  }
+  if (pack === reportPackKeys.assetTopTickets) {
+    return { columns: assetTopTicketsColumns, rows: buildAssetTopTicketsReport(assets) };
+  }
+  if (pack === reportPackKeys.assetInactiveHolders) {
+    return { columns: assetInactiveHoldersColumns, rows: buildAssetInactiveHoldersReport(assets) };
   }
   return {
     columns: kbHelpfulnessColumns,

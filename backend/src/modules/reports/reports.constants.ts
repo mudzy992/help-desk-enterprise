@@ -7,9 +7,31 @@ export const reportPackKeys = {
   kbHelpfulness: 'kb_helpfulness',
   forwardPingPong: 'forward_ping_pong',
   timeTracking: 'time_tracking',
-} as const satisfies Record<string, (typeof defaultReportPackKeys)[number]>;
+  // Paket 3.2 C9b: offered only while the CMDB addon is on (never in the setting).
+  assetInventory: 'asset_inventory',
+  assetExpiring: 'asset_expiring',
+  assetLicenseCompliance: 'asset_license_compliance',
+  assetTopTickets: 'asset_top_tickets',
+  assetInactiveHolders: 'asset_inactive_holders',
+} as const;
 
 export const reportPackKeyList = Object.values(reportPackKeys);
+
+/** Packs an administrator switches in `private.reports.packsJson`. */
+export const settingReportPackKeyList: readonly (typeof defaultReportPackKeys)[number][] = [...defaultReportPackKeys];
+
+/** Paket 3.2 C9b: CMDB packs, added to the enabled packs while `addons.cmdb` is on. */
+export const assetReportPackKeyList = [
+  reportPackKeys.assetInventory,
+  reportPackKeys.assetExpiring,
+  reportPackKeys.assetLicenseCompliance,
+  reportPackKeys.assetTopTickets,
+  reportPackKeys.assetInactiveHolders,
+] as const;
+
+export function isAssetReportPack(pack: string): pack is (typeof assetReportPackKeyList)[number] {
+  return (assetReportPackKeyList as readonly string[]).includes(pack);
+}
 
 export type ReportPackKey = (typeof reportPackKeyList)[number];
 
@@ -74,6 +96,11 @@ export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {
   kb_helpfulness: 'kb-helpfulness',
   forward_ping_pong: 'forward-ping-pong',
   time_tracking: 'time-tracking',
+  asset_inventory: 'asset-inventory',
+  asset_expiring: 'asset-expiring',
+  asset_license_compliance: 'asset-license-compliance',
+  asset_top_tickets: 'asset-top-tickets',
+  asset_inactive_holders: 'asset-inactive-holders',
 };
 
 export const bottleneckStatusKeys = [

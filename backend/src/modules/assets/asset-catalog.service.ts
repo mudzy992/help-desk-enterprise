@@ -24,6 +24,7 @@ export type SaveAssetTypeInput = {
   readonly icon: string;
   readonly category: 'HARDWARE' | 'SOFTWARE' | 'NETWORK' | 'INFRASTRUCTURE' | 'OTHER';
   readonly isUserSelectable: boolean;
+  readonly routingGroupId?: string | null;
   readonly sortOrder: number;
 };
 
@@ -76,7 +77,8 @@ export class AssetCatalogService {
   async catalog(includeArchived: boolean, viewer: AssetViewer) {
     await this.access.requireEnabled();
     const canSeeArchived = includeArchived && (await this.canManageTypes(viewer));
-    const [types, locations] = await Promise.all([
+    const canManageTypes = await this.canManageTypes(viewer);
+    const [types, locations, groups] = await Promise.all([
       this.prisma.assetType.findMany({
         where: canSeeArchived ? {} : { archivedAt: null },
         orderBy: [{ sortOrder: 'asc' }, { nameBs: 'asc' }],
@@ -93,6 +95,10 @@ export class AssetCatalogService {
         orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
         include: { _count: { select: { assets: true } } },
       }),
+      // C9b: handler groups for "tickets about this type" (type managers only).
+      canManageTypes
+        ? this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 500 })
+        : Promise.resolve([] as { id: string; name: string }[]),
     ]);
     return {
       types: types.map((type) => ({
@@ -103,6 +109,7 @@ export class AssetCatalogService {
         icon: type.icon,
         category: type.category,
         isUserSelectable: type.isUserSelectable,
+        routingGroupId: type.routingGroupId,
         sortOrder: type.sortOrder,
         archivedAt: type.archivedAt?.toISOString() ?? null,
         assetCount: type._count.assets,
@@ -119,6 +126,7 @@ export class AssetCatalogService {
           archivedAt: attribute.archivedAt?.toISOString() ?? null,
         })),
       })),
+      groups,
       locations: locations.map((location) => ({
         id: location.id,
         parentId: location.parentId,
@@ -151,7 +159,11 @@ export class AssetCatalogService {
     });
   }
 
-  private validateType(input: SaveAssetTypeInput) {
+  private async validateType(input: SaveAssetTypeInput) {
+    const routingGroupId = input.routingGroupId?.trim() || null;
+    if (routingGroupId !== null && (await this.prisma.group.findUnique({ where: { id: routingGroupId }, select: { id: true } })) === null) {
+      throw new AssetError(assetErrorCodes.invalid, 'routingGroupId');
+    }
     if (!(assetTypeIconNames as readonly string[]).includes(input.icon)) throw new AssetError(assetErrorCodes.invalid, 'icon');
     if (!Number.isInteger(input.sortOrder) || input.sortOrder < 0 || input.sortOrder > 9999) {
       throw new AssetError(assetErrorCodes.invalid, 'sortOrder');
@@ -162,6 +174,7 @@ export class AssetCatalogService {
       icon: input.icon,
       category: input.category,
       isUserSelectable: input.isUserSelectable,
+      routingGroupId,
       sortOrder: input.sortOrder,
     };
   }
@@ -170,7 +183,7 @@ export class AssetCatalogService {
     await this.access.require(viewer, permissionKeys.assetTypeManage);
     const key = (input.key ?? '').trim();
     if (!assetKeyPattern.test(key)) throw new AssetError(assetErrorCodes.invalid, 'key');
-    const data = this.validateType(input);
+    const data = await this.validateType(input);
     if ((await this.prisma.assetType.findUnique({ where: { key }, select: { id: true } })) !== null) {
       throw new AssetError(assetErrorCodes.typeKeyTaken);
     }
@@ -183,8 +196,8 @@ export class AssetCatalogService {
     await this.access.require(viewer, permissionKeys.assetTypeManage);
     const existing = await this.prisma.assetType.findUnique({ where: { id }, select: { id: true, key: true } });
     if (existing === null) throw new AssetError(assetErrorCodes.typeNotFound);
-    await this.prisma.assetType.update({ where: { id }, data: this.validateType(input) });
-    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, id, viewer, { key: existing.key });
+    await this.prisma.assetType.update({ where: { id }, data: await this.validateType(input) });
+    await this.audit(auditLogActions.assetTypeSaved, auditLogEntityTypes.assetType, id, viewer, { key: existing.key, routingGroupId: input.routingGroupId ?? null });
     return { id };
   }
 

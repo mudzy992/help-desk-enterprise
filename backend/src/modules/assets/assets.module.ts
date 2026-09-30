@@ -1,3 +1,4 @@
+import { AssetOverviewService } from './asset-overview.service';
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
@@ -23,7 +24,7 @@ import { LdapsSyncConfigurationLoader } from '../directory-sync/ldaps/ldaps-sync
   // Transfers first: its static "/assets/transfers…" routes must win over "/assets/:id".
   controllers: [AssetTransfersController, AssetsController],
   providers: [AssetAccessService, AssetCatalogService, AssetsService, AssetTicketsService, AssetLicensesService, AssetContractsService, AssetImportService,
-    LdapsSyncConfigurationLoader, DirectoryBackoff, AssetDirectorySyncService, AssetTransfersService],
+    LdapsSyncConfigurationLoader, DirectoryBackoff, AssetDirectorySyncService, AssetTransfersService, AssetOverviewService],
   exports: [AssetAccessService, AssetsService, AssetImportService, AssetTransfersService],
 })
 export class AssetsModule {}

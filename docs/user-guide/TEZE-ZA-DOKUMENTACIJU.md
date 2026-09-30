@@ -367,6 +367,13 @@ To je kriterij kompletnosti.
 - Lokacije (zgrada, sprat, prostorija) su opcionalne i zadano isključene; kad su isključene, kao mjesto opreme prikazuje se puna putanja organizacione jedinice.
 - Isključivanjem lokacija ništa se ne briše: ranije unesene lokacije ostaju sačuvane i ponovo se prikazuju kad se lokacije uključe.
 
+## CMDB — pregled, izvještaji, rutiranje i masovno kretanje (C9b, 30.9.2026)
+
+- Upravitelj imovine s pravom izvještaja vidi tab „Pregled“: opremu po statusu, šta ističe u 30 dana, prekoračene licence, pet stavki s najviše tiketa u 90 dana, stanje AD računara i opremu kod neaktivnih ili premještenih korisnika — samo za svoje organizacione jedinice.
+- Dok je modul Imovina uključen, u Izvještajima postoji pet dodatnih paketa (stanje, ističe u 90 dana, usklađenost licenci, oprema s najviše tiketa, oprema kod neaktivnih korisnika); mogu se i zakazati. Samo paket „oprema s najviše tiketa“ koristi odabrani period, ostali prikazuju stanje u trenutku generisanja.
+- Tip opreme može imati „Grupu za rješavanje“: kad korisnik u tiketu izabere opremu tog tipa (npr. štampač), tiket ide toj grupi umjesto grupi iz pravila rutiranja.
+- U registru se može odabrati više stavki i zadužiti ih, prezadužiti ili razdužiti odjednom, s jednom prenosnicom; zajedno idu samo stavke sa skladišta ili stavke istog korisnika, najviše 50.
+
 ## CMDB — licence, ugovori i podsjetnici (C6, 30.9.2026)
 
 - Licence imaju četiri vrste: po uređaju, po korisniku, za lokaciju (bez dodjela) i pretplatu (obavezan datum isteka).

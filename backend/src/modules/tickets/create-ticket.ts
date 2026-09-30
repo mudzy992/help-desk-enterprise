@@ -48,7 +48,7 @@ import type {
   DuplicateTicketMatch,
   TicketGuardrailsConfiguration,
 } from './guardrails/guardrails.types';
-import { linkCreatedTicketAsset, resolveCreateTicketAsset } from './assets/resolve-create-ticket-asset';
+import { applyAssetTypeRouting, linkCreatedTicketAsset, resolveCreateTicketAsset } from './assets/resolve-create-ticket-asset';
 import { writeCreatedTicketFollowUp } from './write-created-ticket-follow-up';
 import type {
   CreateTicketInput,
@@ -112,10 +112,13 @@ export async function createTicket(
     serviceId,
     formVersionRef: input.formVersionRef,
   });
-  const routed = await applyCreateTicketRouting(routingService, {
+  const linkedAsset = await resolveCreateTicketAsset(prisma, input.assetId, requester.id);
+  const ruleRouted = await applyCreateTicketRouting(routingService, {
     originUnitId,
     serviceId,
   }).catch(mapCreateDependencyError);
+  // Paket 3.2 C9b: equipment of a type with a handler group goes to that group.
+  const routed = applyAssetTypeRouting(ruleRouted, linkedAsset);
   const routing = await resolveCreateTicketHandlerGroup(
     prisma,
     routed,
@@ -134,7 +137,6 @@ export async function createTicket(
       serviceRequiresApproval: service.requiresApproval,
     }),
   });
-  const linkedAsset = await resolveCreateTicketAsset(prisma, input.assetId, requester.id);
   const title = normalizeTicketTitle(input.title);
   const description = normalizeTicketDescription(input.description);
   const scan = scanTicketContent({

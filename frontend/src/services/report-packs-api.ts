@@ -7,7 +7,13 @@ export type ReportPackKey =
   | "top_close_codes"
   | "kb_helpfulness"
   | "forward_ping_pong"
-  | "time_tracking";
+  | "time_tracking"
+  // Paket 3.2 C9b: only while the CMDB module is on.
+  | "asset_inventory"
+  | "asset_expiring"
+  | "asset_license_compliance"
+  | "asset_top_tickets"
+  | "asset_inactive_holders";
 
 export type ReportExportFormat = "csv" | "json";
 

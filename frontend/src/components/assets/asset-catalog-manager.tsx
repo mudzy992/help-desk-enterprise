@@ -125,6 +125,11 @@ export function AssetCatalogManager() {
                     <code className="text-[11.5px] text-muted-foreground">{type.key}</code>
                     <Badge tone="neutral">{t(`assets.categories.${type.category}` as const)}</Badge>
                     {type.isUserSelectable ? <Badge tone="info">{t("assets.catalog.userSelectable")}</Badge> : null}
+                    {type.routingGroupId ? (
+                      <Badge tone="neutral">
+                        {t("assets.catalog.routingGroupBadge", { group: catalog.groups?.find((group) => group.id === type.routingGroupId)?.name ?? "—" })}
+                      </Badge>
+                    ) : null}
                     {archived ? <Badge tone="warning">{t("assets.catalog.archived")}</Badge> : null}
                     <span className={hintClassName}>{t("assets.catalog.assetCount", { count: type.assetCount })}</span>
                   </span>
@@ -242,6 +247,7 @@ export function AssetCatalogManager() {
         open={editor?.kind === "type"}
         type={editor?.kind === "type" ? editor.type : null}
         iconNames={catalog.iconNames}
+        groups={catalog.groups ?? []}
         onOpenChange={(open) => (open ? undefined : setEditor(null))}
         onSaved={refresh}
       />
@@ -329,12 +335,14 @@ function TypeEditor({
   open,
   type,
   iconNames,
+  groups,
   onOpenChange,
   onSaved,
 }: {
   readonly open: boolean;
   readonly type: AssetType | null;
   readonly iconNames: readonly string[];
+  readonly groups: readonly { readonly id: string; readonly name: string }[];
   readonly onOpenChange: (open: boolean) => void;
   readonly onSaved: () => void;
 }) {
@@ -346,6 +354,7 @@ function TypeEditor({
   const [icon, setIcon] = useState("box");
   const [category, setCategory] = useState<AssetCategory>("HARDWARE");
   const [isUserSelectable, setIsUserSelectable] = useState(true);
+  const [routingGroupId, setRoutingGroupId] = useState("");
   const [sortOrder, setSortOrder] = useState("100");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -358,6 +367,7 @@ function TypeEditor({
     setIcon(type?.icon ?? "box");
     setCategory(type?.category ?? "HARDWARE");
     setIsUserSelectable(type?.isUserSelectable ?? true);
+    setRoutingGroupId(type?.routingGroupId ?? "");
     setSortOrder(String(type?.sortOrder ?? 100));
     setError(null);
   }, [open, type]);
@@ -368,7 +378,7 @@ function TypeEditor({
     event.preventDefault();
     setPending(true);
     setError(null);
-    const input = { nameBs: nameBs.trim(), nameEn: nameEn.trim(), icon, category, isUserSelectable, sortOrder: Number.parseInt(sortOrder, 10) || 0 };
+    const input = { nameBs: nameBs.trim(), nameEn: nameEn.trim(), icon, category, isUserSelectable, routingGroupId: routingGroupId || null, sortOrder: Number.parseInt(sortOrder, 10) || 0 };
     try {
       if (type === null) await createAssetType({ ...input, key });
       else await updateAssetType(type.id, input);
@@ -427,6 +437,18 @@ function TypeEditor({
           </Field>
           <Checkbox label={t("assets.catalog.userSelectableLabel")} checked={isUserSelectable} onChange={(event) => setIsUserSelectable(event.target.checked)} />
           <p className={hintClassName}>{t("assets.catalog.userSelectableHint")}</p>
+          <Field label={t("assets.catalog.routingGroup")} hint={t("assets.catalog.routingGroupHint")}>
+            {(control) => (
+              <Select {...control} value={routingGroupId} onChange={(event) => setRoutingGroupId(event.target.value)}>
+                <option value="">{t("assets.catalog.routingGroupNone")}</option>
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           {error ? (
             <p role="alert" className={errorTextClassName}>
               {error}

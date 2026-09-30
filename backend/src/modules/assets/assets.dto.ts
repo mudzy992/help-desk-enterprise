@@ -71,6 +71,8 @@ export class SaveAssetTypeDto {
   @IsString() @MaxLength(32) icon!: string;
   @IsIn(assetCategories) category!: (typeof assetCategories)[number];
   @IsBoolean() isUserSelectable!: boolean;
+  /** C9b: handler group for tickets about this type (null = routing rules). */
+  @IsOptional() @IsString() @MaxLength(64) routingGroupId?: string | null;
   @IsInt() @Min(0) @Max(9999) sortOrder!: number;
 }
 

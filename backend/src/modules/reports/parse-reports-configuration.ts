@@ -1,7 +1,8 @@
 import {
   allowedReportExportFormats,
   reportErrorCodes,
-  reportPackKeyList,
+  assetReportPackKeyList,
+  settingReportPackKeyList,
   type ReportExportFormat,
   type ReportPackKey,
 } from './reports.constants';
@@ -23,6 +24,8 @@ export function parseReportsConfiguration(input: {
   readonly bottlenecksEnabled: unknown;
   readonly defaultWindowDays: unknown;
   readonly pingPongThreshold?: unknown;
+  /** Paket 3.2 C9b: `private.addons.cmdb`; true adds the CMDB packs. */
+  readonly cmdbEnabled?: unknown;
 }): ReportsConfiguration {
   if (
     typeof input.reportsEnabled !== 'boolean' ||
@@ -34,9 +37,10 @@ export function parseReportsConfiguration(input: {
   return {
     reportsEnabled: input.reportsEnabled,
     addonEnabled: input.addonEnabled,
-    enabledPacks: parsePacks(
-      typeof input.packsJson === 'string' ? input.packsJson : '',
-    ),
+    enabledPacks: [
+      ...parsePacks(typeof input.packsJson === 'string' ? input.packsJson : ''),
+      ...(input.cmdbEnabled === true ? assetReportPackKeyList : []),
+    ],
     allowedFormats: parseFormats(
       typeof input.allowedFormatsCsv === 'string'
         ? input.allowedFormatsCsv
@@ -68,7 +72,7 @@ function parsePacks(value: string): readonly ReportPackKey[] {
   if (!Array.isArray(parsed)) {
     throw new ReportsError(reportErrorCodes.packNotEnabled);
   }
-  const allowed = new Set<string>(reportPackKeyList);
+  const allowed = new Set<string>(settingReportPackKeyList);
   const packs = [
     ...new Set(
       parsed.filter((item): item is string => typeof item === 'string'),

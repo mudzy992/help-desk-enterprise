@@ -1,6 +1,6 @@
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { TicketsError } from '../tickets.error';
-import { resolveCreateTicketAsset } from './resolve-create-ticket-asset';
+import { applyAssetTypeRouting, resolveCreateTicketAsset } from './resolve-create-ticket-asset';
 import { copyTicketAssets } from './transfer-ticket-assets';
 
 function settingsPrisma(settings: Record<string, unknown>, asset: unknown) {
@@ -38,8 +38,8 @@ describe('resolveCreateTicketAsset (paket 3.2 §8)', () => {
   });
 
   it("accepts only the requester's own selectable equipment", async () => {
-    const { prisma, findFirst } = settingsPrisma({ 'private.addons.cmdb': true }, { id: 'a1', assetTag: 'IT-1' });
-    await expect(resolveCreateTicketAsset(prisma, 'a1', 'u1')).resolves.toEqual({ id: 'a1', assetTag: 'IT-1' });
+    const { prisma, findFirst } = settingsPrisma({ 'private.addons.cmdb': true }, { id: 'a1', assetTag: 'IT-1', type: { routingGroupId: 'g-print' } });
+    await expect(resolveCreateTicketAsset(prisma, 'a1', 'u1')).resolves.toEqual({ id: 'a1', assetTag: 'IT-1', routingGroupId: 'g-print' });
     expect(findFirst.mock.calls[0][0].where).toMatchObject({
       id: 'a1',
       assignedUserId: 'u1',
@@ -90,5 +90,20 @@ describe('copyTicketAssets (merge/split)', () => {
     const { prisma, created } = linkPrisma({ parent: [{ assetId: 'a1', isPrimary: true }] });
     await copyTicketAssets(prisma, 'parent', 'split', null);
     expect(created).toEqual([{ ticketId: 'split', assetId: 'a1', isPrimary: true, linkedByUserId: null }]);
+  });
+});
+
+describe('applyAssetTypeRouting (paket 3.2 C9b)', () => {
+  const rule = { status: 'UNROUTED' as const, assignedGroupId: null, routedByUnroutedFallback: false };
+  it('keeps the rule result without equipment or without a type group', () => {
+    expect(applyAssetTypeRouting(rule, null)).toBe(rule);
+    expect(applyAssetTypeRouting(rule, { id: 'a1', assetTag: 'IT-1', routingGroupId: null })).toBe(rule);
+  });
+  it('sends the ticket to the handler group of the asset type', () => {
+    expect(applyAssetTypeRouting(rule, { id: 'a1', assetTag: 'IT-1', routingGroupId: 'g-print' })).toEqual({
+      status: 'PENDING',
+      assignedGroupId: 'g-print',
+      routedByUnroutedFallback: false,
+    });
   });
 });

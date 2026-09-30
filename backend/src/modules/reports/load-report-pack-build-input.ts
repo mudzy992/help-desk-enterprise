@@ -5,7 +5,23 @@ import type { KnowledgeArticleRecord } from '../knowledge-base/knowledge-base.ty
 import { loadForwardPingPongTickets } from './load-forward-ping-pong-tickets';
 import { loadTimeTrackingEntries } from './load-time-tracking-entries';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
-import { reportPackKeys, type ReportPackKey } from './reports.constants';
+import { assetReportHorizonDays } from './packs/build-asset-reports';
+import { loadAssetReportData, type AssetReportPart } from './packs/load-asset-report-data';
+import { isAssetReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
+import { settingKeys } from '../settings/setting-keys';
+
+const assetPackParts: Readonly<Record<string, AssetReportPart>> = {
+  [reportPackKeys.assetInventory]: 'inventory',
+  [reportPackKeys.assetExpiring]: 'expiring',
+  [reportPackKeys.assetLicenseCompliance]: 'licenses',
+  [reportPackKeys.assetTopTickets]: 'ticketLinks',
+  [reportPackKeys.assetInactiveHolders]: 'holders',
+};
+
+async function readReportLocale(prisma: PrismaService): Promise<'bs' | 'en'> {
+  const row = await prisma.appSetting.findUnique({ where: { key: settingKeys.privateI18nDefaultLocale }, select: { value: true } });
+  return typeof row?.value === 'string' && row.value.toLowerCase().startsWith('en') ? 'en' : 'bs';
+}
 import type {
   CloseCodeLookup,
   KnowledgeFeedbackVote,
@@ -25,6 +41,25 @@ export async function loadReportPackBuildInput(
   pack: ReportPackKey,
   pingPongThreshold: number,
 ): Promise<ReportPackBuildInput> {
+  if (isAssetReportPack(pack)) {
+    const assets = await loadAssetReportData(prisma, {
+      unitIds: organizationalUnitIds,
+      parts: new Set([assetPackParts[pack]]),
+      window,
+      now: new Date(),
+      locale: await readReportLocale(prisma),
+      horizonDays: assetReportHorizonDays,
+    });
+    return {
+      window,
+      tickets: [],
+      csatByTicketId: new Map(),
+      closeCodesById: new Map(),
+      articles: [],
+      feedback: [],
+      assets,
+    };
+  }
   const needsTickets =
     pack !== reportPackKeys.kbHelpfulness &&
     pack !== reportPackKeys.forwardPingPong &&

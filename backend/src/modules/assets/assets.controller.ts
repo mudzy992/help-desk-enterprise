@@ -1,3 +1,4 @@
+import { AssetOverviewService } from './asset-overview.service';
 import {
   Body,
   Controller,
@@ -144,6 +145,7 @@ export class AssetsController {
     private readonly importer: AssetImportService,
     private readonly prisma: PrismaService,
     private readonly directorySync: AssetDirectorySyncService,
+    private readonly overviewService: AssetOverviewService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -416,6 +418,13 @@ export class AssetsController {
   @Delete('contracts/:contractId/items/:assetId')
   removeContractItem(@Param('contractId') contractId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.contracts.removeItem(contractId, assetId, this.viewer(request)));
+  }
+
+  /** C9b: asset manager overview (asset.report.read, unit scope). */
+  @Get('overview')
+  @Header('Cache-Control', 'no-store')
+  overview(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.overviewService.overview(this.viewer(request)));
   }
 
   @Get('options')

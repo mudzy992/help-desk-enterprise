@@ -57,6 +57,8 @@ export type AssetAttribute = {
 export type AssetType = AssetTypeSummary & {
   readonly category: AssetCategory;
   readonly isUserSelectable: boolean;
+  /** C9b: handler group for tickets about this type. */
+  readonly routingGroupId: string | null;
   readonly sortOrder: number;
   readonly archivedAt: string | null;
   readonly assetCount: number;
@@ -76,6 +78,8 @@ export type AssetLocation = {
 export type AssetCatalog = {
   readonly types: readonly AssetType[];
   readonly locations: readonly AssetLocation[];
+  /** C9b: handler groups (only for asset.type.manage). */
+  readonly groups?: readonly { readonly id: string; readonly name: string }[];
   readonly iconNames: readonly string[];
 };
 
@@ -258,6 +262,7 @@ export type AssetTypeInput = {
   readonly icon: string;
   readonly category: AssetCategory;
   readonly isUserSelectable: boolean;
+  readonly routingGroupId: string | null;
   readonly sortOrder: number;
 };
 
@@ -289,6 +294,7 @@ export const assetQueryKeys = {
   history: (id: string) => ["assets", "history", id] as const,
   impact: (id: string) => ["assets", "impact", id] as const,
   mine: ["assets", "mine"] as const,
+  overview: ["assets", "overview"] as const,
 };
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
@@ -333,6 +339,55 @@ export function listAssets(filters: AssetListFilters): Promise<AssetList> {
 export function lookupAssets(search: string, excludeId?: string): Promise<{ readonly items: readonly AssetListItem[] }> {
   const exclude = excludeId ? `&excludeId=${encodeURIComponent(excludeId)}` : "";
   return apiRequest(`/assets/lookup?search=${encodeURIComponent(search)}${exclude}`);
+}
+
+/** C9b: asset manager overview (asset.report.read, unit scope). */
+export type AssetOverview = {
+  readonly generatedAt: string;
+  readonly byStatus: readonly { readonly status: AssetStatus; readonly count: number }[];
+  readonly expiring: {
+    readonly days: number;
+    readonly total: number;
+    readonly items: readonly {
+      readonly kind: "warranty" | "contract" | "license";
+      readonly name: string;
+      readonly reference: string | null;
+      readonly unitName: string;
+      readonly endsAt: string;
+    }[];
+  };
+  readonly overAllocatedLicenses: {
+    readonly total: number;
+    readonly items: readonly { readonly productName: string; readonly unitName: string; readonly seats: number | null; readonly used: number }[];
+  };
+  readonly topAssets: {
+    readonly days: number;
+    readonly items: readonly {
+      readonly assetId: string;
+      readonly assetTag: string;
+      readonly assetName: string;
+      readonly typeName: string;
+      readonly unitName: string;
+      readonly tickets: number;
+      readonly openTickets: number;
+    }[];
+  };
+  readonly directory: { readonly suggested: number; readonly missing: number };
+  readonly holders: {
+    readonly total: number;
+    readonly items: readonly {
+      readonly assetTag: string;
+      readonly assetName: string;
+      readonly holderName: string;
+      readonly reason: "inactive" | "other_unit";
+      readonly holderUnitName: string | null;
+      readonly assetUnitName: string;
+    }[];
+  };
+};
+
+export function getAssetOverview(): Promise<AssetOverview> {
+  return apiRequest("/assets/overview");
 }
 
 export function getMyAssets(): Promise<{ readonly items: readonly MyAsset[] }> {

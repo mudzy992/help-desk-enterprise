@@ -1716,7 +1716,12 @@
         "top_close_codes": "Top close codes",
         "kb_helpfulness": "Knowledge base helpfulness",
         "forward_ping_pong": "Forward ping-pong",
-        "time_tracking": "Logged time"
+        "time_tracking": "Logged time",
+        "asset_inventory": "Assets: stock by unit and type",
+        "asset_expiring": "Assets: expiring in 90 days",
+        "asset_license_compliance": "Assets: licence compliance",
+        "asset_top_tickets": "Assets: equipment with most tickets",
+        "asset_inactive_holders": "Assets: equipment held by inactive or moved users"
       },
       "descriptions": {
         "monthly_kpi": "Created, resolved and closed tickets, SLA breaches, CSAT and average response and resolution times.",
@@ -1724,7 +1729,12 @@
         "top_close_codes": "Close codes of resolved and closed tickets, most frequent first.",
         "kb_helpfulness": "“Helpful / not helpful” votes per knowledge article.",
         "forward_ping_pong": "Tickets forwarded between groups at least {{threshold}} times in the period, with their path.",
-        "time_tracking": "Time per agent and service: entries, hours, tickets, share of manual and auto-stopped entries, number of corrections. A high share is a signal for a conversation, not a penalty."
+        "time_tracking": "Time per agent and service: entries, hours, tickets, share of manual and auto-stopped entries, number of corrections. A high share is a signal for a conversation, not a penalty.",
+        "asset_inventory": "Number of assets per organizational unit, type and status at generation time (disposed excluded). The period does not apply.",
+        "asset_expiring": "Warranties, contracts and licences ending in the next 90 days from generation, soonest first. The period does not apply.",
+        "asset_license_compliance": "Licences with seats, used, free and over-allocated seats; over-allocated first. Site licences are not counted.",
+        "asset_top_tickets": "Up to 50 assets with the most tickets created in the selected period, with the number still open.",
+        "asset_inactive_holders": "Equipment assigned to a deactivated user or to a user in a unit outside the equipment unit. The period does not apply."
       },
       "columns": {
         "createdCount": "Created",
@@ -1757,7 +1767,29 @@
         "manualShare": "Manual entries (%)",
         "autoIdleShare": "Idle pauses (%)",
         "autoMaxDurationShare": "Maximum exceeded (%)",
-        "corrections": "Corrections"
+        "corrections": "Corrections",
+        "organizationalUnit": "Organizational unit",
+        "assetType": "Asset type",
+        "count": "Count",
+        "kind": "Kind",
+        "name": "Name",
+        "reference": "Reference",
+        "endsAt": "Ends",
+        "daysLeft": "Days left",
+        "product": "Product",
+        "vendor": "Vendor",
+        "seats": "Seats",
+        "used": "Used",
+        "free": "Free",
+        "over": "Over",
+        "validUntil": "Valid until",
+        "assetTag": "Asset tag",
+        "assetName": "Asset",
+        "openTickets": "Open tickets",
+        "holder": "Holder",
+        "reason": "Reason",
+        "holderUnit": "Holder unit",
+        "assetUnit": "Asset unit"
       },
       "rowTypes": {
         "agent_service": "Agent × service",
@@ -5640,7 +5672,8 @@
       "licenses": "Licences",
       "contracts": "Contracts",
       "import": "Import",
-      "transfers": "Transfer records"
+      "transfers": "Transfer records",
+      "overview": "Overview"
     },
     "status": {
       "ORDERED": "Ordered",
@@ -5947,7 +5980,11 @@
       "actionFailed": "The change was not saved",
       "locationLevel": "Level {{level}}",
       "addChildLocation": "Add a location inside {{name}}",
-      "parentHint": "Any location can hold sub-locations, up to {{max}} levels."
+      "parentHint": "Any location can hold sub-locations, up to {{max}} levels.",
+      "routingGroup": "Handler group",
+      "routingGroupHint": "A ticket where the user picks equipment of this type goes to this group instead of the routing-rule group.",
+      "routingGroupNone": "By routing rules",
+      "routingGroupBadge": "Tickets → {{group}}"
     },
     "errors": {
       "disabled": "The assets module is off.",
@@ -6443,6 +6480,59 @@
         "active": "active",
         "downloadVersion": "Download version {{version}}"
       }
+    },
+    "overview": {
+      "generatedAt": "As of {{when}}. Only equipment in your organizational unit scope is shown.",
+      "total_one": "{{count}} in total",
+      "total_other": "{{count}} in total",
+      "statusTitle": "Equipment by status",
+      "statusEmpty": "No equipment yet.",
+      "expiringTitle": "Ending in the next {{days}} days",
+      "expiringEmpty": "Nothing ends in this period.",
+      "licensesTitle": "Over-allocated licences",
+      "licensesEmpty": "No licence is over-allocated.",
+      "topTitle": "Equipment with most tickets ({{days}} days)",
+      "topEmpty": "No tickets linked to equipment in this period.",
+      "directoryTitle": "Computers from Active Directory",
+      "directorySubtitle": "Details are in the Catalog tab",
+      "directorySuggested": "Suggested user links",
+      "directoryMissing": "Missing from AD",
+      "holdersTitle": "Equipment held by inactive or moved users",
+      "holdersEmpty": "No such equipment.",
+      "kinds": {
+        "warranty": "Warranty",
+        "contract": "Contract",
+        "license": "Licence"
+      },
+      "reasons": {
+        "inactive": "User is deactivated",
+        "other_unit": "User is in another unit"
+      },
+      "columns": {
+        "kind": "Kind",
+        "name": "Name",
+        "unit": "Unit",
+        "endsAt": "Ends",
+        "product": "Product",
+        "usedOfSeats": "Used / seats",
+        "asset": "Equipment",
+        "tickets": "Tickets",
+        "open": "Open",
+        "holder": "Holder",
+        "reason": "Reason",
+        "status": "Status",
+        "count": "Count"
+      }
+    },
+    "bulk": {
+      "region": "Selected equipment",
+      "selectedCount_one": "{{count}} item selected",
+      "selectedCount_other": "{{count}} items selected",
+      "mixed": "One transfer record covers equipment from stock or equipment of one user; change the selection.",
+      "tooMany": "At most {{max}} items per transfer record.",
+      "clear": "Clear selection",
+      "selectPage": "Select all shown",
+      "select": "Select {{name}}"
     }
   }
 }

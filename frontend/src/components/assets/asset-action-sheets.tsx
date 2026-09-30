@@ -12,7 +12,7 @@ import {
   mapAssetError,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { changeAssetStatus, searchAssetUsers, type AssetDetail, type AssetStatus } from "@/services/assets-api";
+import { changeAssetStatus, searchAssetUsers, type AssetDetail, type AssetStatus, type AssetUserSummary } from "@/services/assets-api";
 import { AssetTransferIssued, AssetTransferSection, useTransferPreview } from "@/components/assets/asset-transfer-section";
 import { moveAssets, type AssetMovementResult } from "@/services/asset-transfers-api";
 
@@ -21,6 +21,27 @@ interface ActionSheetProperties {
   readonly onOpenChange: (open: boolean) => void;
   readonly asset: AssetDetail;
   readonly onDone: () => void;
+}
+
+/**
+ * C9b: assign/unassign work on one asset (card) or on several selected in the
+ * register with the same holder (one transfer record for all).
+ */
+export type AssetMoveSubject = {
+  readonly id: string;
+  readonly assignedUser: AssetUserSummary | null;
+  readonly assetIds?: readonly string[];
+};
+
+interface MoveSheetProperties {
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly asset: AssetMoveSubject;
+  readonly onDone: () => void;
+}
+
+function subjectIds(asset: AssetMoveSubject): string[] {
+  return asset.assetIds && asset.assetIds.length > 0 ? [...asset.assetIds] : [asset.id];
 }
 
 function useActionState(open: boolean) {
@@ -123,7 +144,8 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
  * so the move and its transfer record are one step; with records off the
  * move is only written to the history.
  */
-export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSheetProperties) {
+export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: MoveSheetProperties) {
+  const ids = subjectIds(asset);
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
@@ -161,7 +183,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
   const users = usersQuery.data?.items ?? [];
   const preview = useTransferPreview(open && userId !== "" && result === null, {
     scenario,
-    assetIds: [asset.id],
+    assetIds: ids,
     toUserId: userId,
     fromLabel: fromLabel.trim() || undefined,
   });
@@ -174,7 +196,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
     try {
       const moved = await moveAssets({
         scenario,
-        assetIds: [asset.id],
+        assetIds: ids,
         toUserId: userId,
         fromLabel: scenario === "WAREHOUSE_TO_USER" ? fromLabel.trim() || undefined : undefined,
         note: note.trim() || undefined,
@@ -198,6 +220,7 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
           {asset.assignedUser
             ? t("assets.assignSheet.currentUser", { name: asset.assignedUser.displayName })
             : t("assets.assignSheet.description")}
+          {ids.length > 1 ? <span className="mt-1 block">{t("assets.bulk.selectedCount", { count: ids.length })}</span> : null}
         </SheetDescription>
         {result ? (
           <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />
@@ -257,7 +280,8 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
 }
 
 /** Paket 3.2 (§7, C9 §7a): return equipment to stock or send it to repair. */
-export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: ActionSheetProperties) {
+export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: MoveSheetProperties) {
+  const ids = subjectIds(asset);
   const { t } = useTranslation();
   const [status, setStatus] = useState<"IN_STOCK" | "IN_REPAIR">("IN_STOCK");
   const [note, setNote] = useState("");
@@ -278,7 +302,7 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: Action
 
   const preview = useTransferPreview(open && asset.assignedUser !== null && result === null, {
     scenario: "USER_TO_WAREHOUSE",
-    assetIds: [asset.id],
+    assetIds: ids,
     returnStatus: status,
     toLabel: toLabel.trim() || undefined,
   });
@@ -290,7 +314,7 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: Action
     try {
       const moved = await moveAssets({
         scenario: "USER_TO_WAREHOUSE",
-        assetIds: [asset.id],
+        assetIds: ids,
         returnStatus: status,
         toLabel: toLabel.trim() || undefined,
         note: note.trim() || undefined,
@@ -312,6 +336,7 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: Action
         <SheetTitle>{t("assets.actions.unassign")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("assets.unassignSheet.description", { name: asset.assignedUser?.displayName ?? "—" })}
+          {ids.length > 1 ? <span className="mt-1 block">{t("assets.bulk.selectedCount", { count: ids.length })}</span> : null}
         </SheetDescription>
         {result ? (
           <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />

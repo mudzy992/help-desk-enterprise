@@ -1728,7 +1728,12 @@
         "top_close_codes": "Najčešći kodovi zatvaranja",
         "kb_helpfulness": "Korisnost baze znanja",
         "forward_ping_pong": "Ping-pong prosljeđivanja",
-        "time_tracking": "Evidentirano vrijeme"
+        "time_tracking": "Evidentirano vrijeme",
+        "asset_inventory": "Imovina: stanje po OJ i tipu",
+        "asset_expiring": "Imovina: ističe u 90 dana",
+        "asset_license_compliance": "Imovina: usklađenost licenci",
+        "asset_top_tickets": "Imovina: oprema s najviše tiketa",
+        "asset_inactive_holders": "Imovina: oprema kod neaktivnih ili premještenih korisnika"
       },
       "descriptions": {
         "monthly_kpi": "Kreirani, riješeni i zatvoreni tiketi, SLA prekoračenja, CSAT i prosječna vremena odziva i rješavanja.",
@@ -1736,7 +1741,12 @@
         "top_close_codes": "Kodovi zatvaranja riješenih i zatvorenih tiketa, od najčešćeg.",
         "kb_helpfulness": "Glasovi „pomoglo / nije pomoglo“ po članku baze znanja.",
         "forward_ping_pong": "Tiketi proslijeđeni između grupa najmanje {{threshold}} puta u periodu, s putanjom kroz grupe.",
-        "time_tracking": "Vrijeme po agentu i servisu: unosi, sati, tiketi, udio ručnih i automatski zaustavljenih unosa, broj ispravki. Visok udio je signal za razgovor, ne kazna."
+        "time_tracking": "Vrijeme po agentu i servisu: unosi, sati, tiketi, udio ručnih i automatski zaustavljenih unosa, broj ispravki. Visok udio je signal za razgovor, ne kazna.",
+        "asset_inventory": "Broj stavki opreme po organizacionoj jedinici, tipu i statusu, u trenutku generisanja (bez otpisane opreme). Period se ne primjenjuje.",
+        "asset_expiring": "Garancije, ugovori i licence koje ističu u narednih 90 dana od generisanja, najbliži prvi. Period se ne primjenjuje.",
+        "asset_license_compliance": "Licence s brojem mjesta, iskorištenim, slobodnim i prekoračenim mjestima; prekoračene su na vrhu. Licence za lokaciju se ne broje.",
+        "asset_top_tickets": "Do 50 stavki opreme s najviše tiketa kreiranih u odabranom periodu, s brojem još otvorenih.",
+        "asset_inactive_holders": "Oprema zadužena na korisnika koji je deaktiviran ili je u OJ izvan OJ opreme. Period se ne primjenjuje."
       },
       "columns": {
         "createdCount": "Kreirano",
@@ -1769,7 +1779,29 @@
         "manualShare": "Ručni unosi (%)",
         "autoIdleShare": "Pauza neaktivnost (%)",
         "autoMaxDurationShare": "Prekoračen maksimum (%)",
-        "corrections": "Ispravki"
+        "corrections": "Ispravki",
+        "organizationalUnit": "Organizaciona jedinica",
+        "assetType": "Tip opreme",
+        "count": "Broj",
+        "kind": "Vrsta",
+        "name": "Naziv",
+        "reference": "Referenca",
+        "endsAt": "Ističe",
+        "daysLeft": "Preostalo dana",
+        "product": "Proizvod",
+        "vendor": "Proizvođač",
+        "seats": "Mjesta",
+        "used": "Iskorišteno",
+        "free": "Slobodno",
+        "over": "Prekoračeno",
+        "validUntil": "Važi do",
+        "assetTag": "Inventarni broj",
+        "assetName": "Oprema",
+        "openTickets": "Otvoreni tiketi",
+        "holder": "Zadužen",
+        "reason": "Razlog",
+        "holderUnit": "OJ korisnika",
+        "assetUnit": "OJ opreme"
       },
       "rowTypes": {
         "agent_service": "Agent × servis",
@@ -5684,7 +5716,8 @@
       "licenses": "Licence",
       "contracts": "Ugovori",
       "import": "Uvoz",
-      "transfers": "Prenosnice"
+      "transfers": "Prenosnice",
+      "overview": "Pregled"
     },
     "status": {
       "ORDERED": "Naručeno",
@@ -5994,7 +6027,11 @@
       "actionFailed": "Izmjena nije sačuvana",
       "locationLevel": "Nivo {{level}}",
       "addChildLocation": "Dodaj lokaciju unutar {{name}}",
-      "parentHint": "Svaka lokacija može imati podlokacije, najviše {{max}} nivoa."
+      "parentHint": "Svaka lokacija može imati podlokacije, najviše {{max}} nivoa.",
+      "routingGroup": "Grupa za rješavanje",
+      "routingGroupHint": "Tiket u kojem korisnik izabere opremu ovog tipa ide ovoj grupi umjesto grupi iz pravila rutiranja.",
+      "routingGroupNone": "Po pravilima rutiranja",
+      "routingGroupBadge": "Tiketi → {{group}}"
     },
     "errors": {
       "disabled": "Modul imovine je isključen.",
@@ -6497,6 +6534,61 @@
         "active": "aktivan",
         "downloadVersion": "Preuzmi verziju {{version}}"
       }
+    },
+    "overview": {
+      "generatedAt": "Stanje u {{when}}. Prikazuje se samo oprema u vašem opsegu organizacionih jedinica.",
+      "total_one": "Ukupno {{count}}",
+      "total_few": "Ukupno {{count}}",
+      "total_other": "Ukupno {{count}}",
+      "statusTitle": "Oprema po statusu",
+      "statusEmpty": "Još nema opreme.",
+      "expiringTitle": "Ističe u narednih {{days}} dana",
+      "expiringEmpty": "Ništa ne ističe u tom periodu.",
+      "licensesTitle": "Prekoračene licence",
+      "licensesEmpty": "Nijedna licenca nije prekoračena.",
+      "topTitle": "Oprema s najviše tiketa ({{days}} dana)",
+      "topEmpty": "U tom periodu nema tiketa vezanih za opremu.",
+      "directoryTitle": "Računari iz Active Directoryja",
+      "directorySubtitle": "Detalji su u tabu Katalog",
+      "directorySuggested": "Predložene veze s korisnikom",
+      "directoryMissing": "Nestali iz AD-a",
+      "holdersTitle": "Oprema kod neaktivnih ili premještenih korisnika",
+      "holdersEmpty": "Nema takve opreme.",
+      "kinds": {
+        "warranty": "Garancija",
+        "contract": "Ugovor",
+        "license": "Licenca"
+      },
+      "reasons": {
+        "inactive": "Korisnik je deaktiviran",
+        "other_unit": "Korisnik je u drugoj OJ"
+      },
+      "columns": {
+        "kind": "Vrsta",
+        "name": "Naziv",
+        "unit": "OJ",
+        "endsAt": "Ističe",
+        "product": "Proizvod",
+        "usedOfSeats": "Iskorišteno / mjesta",
+        "asset": "Oprema",
+        "tickets": "Tiketi",
+        "open": "Otvoreni",
+        "holder": "Zadužen",
+        "reason": "Razlog",
+        "status": "Status",
+        "count": "Broj"
+      }
+    },
+    "bulk": {
+      "region": "Odabrana oprema",
+      "selectedCount_one": "Odabrana {{count}} stavka",
+      "selectedCount_few": "Odabrane {{count}} stavke",
+      "selectedCount_other": "Odabrano {{count}} stavki",
+      "mixed": "Jedna prenosnica obuhvata opremu sa skladišta ili opremu jednog korisnika; izmijenite odabir.",
+      "tooMany": "Najviše {{max}} stavki po prenosnici.",
+      "clear": "Poništi odabir",
+      "selectPage": "Odaberi sve prikazane",
+      "select": "Odaberi {{name}}"
     }
   }
 }

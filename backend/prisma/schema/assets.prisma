@@ -78,6 +78,10 @@ model AssetType {
   category         AssetCategory    @default(HARDWARE)
   /// A USER may pick own assets of this type when creating a ticket.
   isUserSelectable Boolean          @default(true)
+  /// C9b: a ticket created with an asset of this type goes to this group
+  /// instead of the routing-rule group (no explicit group given).
+  routingGroupId   String?
+  routingGroup     Group?           @relation("AssetTypeRoutingGroup", fields: [routingGroupId], references: [id], onDelete: SetNull)
   sortOrder        Int              @default(0)
   archivedAt       DateTime?
   attributes       AssetAttribute[]

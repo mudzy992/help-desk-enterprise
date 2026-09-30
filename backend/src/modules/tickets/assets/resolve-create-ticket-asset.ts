@@ -2,7 +2,12 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { settingKeys } from '../../settings/setting-keys';
 import { TicketsError } from '../tickets.error';
 
-export type CreateTicketAsset = { readonly id: string; readonly assetTag: string };
+export type CreateTicketAsset = {
+  readonly id: string;
+  readonly assetTag: string;
+  /** C9b: handler group of the asset type (null = routing rules decide). */
+  readonly routingGroupId: string | null;
+};
 
 const selectableStatuses = ['IN_USE', 'IN_REPAIR'] as const;
 
@@ -35,10 +40,23 @@ export async function resolveCreateTicketAsset(
       status: { in: [...selectableStatuses] },
       type: { isUserSelectable: true },
     },
-    select: { id: true, assetTag: true },
+    select: { id: true, assetTag: true, type: { select: { routingGroupId: true } } },
   });
   if (asset === null) throw new TicketsError('ASSET_NOT_SELECTABLE');
-  return asset;
+  return { id: asset.id, assetTag: asset.assetTag, routingGroupId: asset.type.routingGroupId };
+}
+
+/**
+ * Paket 3.2 C9b: a ticket about equipment whose type names a handler group
+ * goes to that group instead of the routing-rule result (also rescues an
+ * otherwise unrouted ticket). Without such an asset the rule result stands.
+ */
+export function applyAssetTypeRouting<T extends { readonly status: string; readonly assignedGroupId: string | null; readonly routedByUnroutedFallback: boolean }>(
+  ruleRouted: T,
+  asset: CreateTicketAsset | null,
+): T | { readonly status: 'PENDING'; readonly assignedGroupId: string; readonly routedByUnroutedFallback: false } {
+  if (asset === null || asset.routingGroupId === null) return ruleRouted;
+  return { status: 'PENDING', assignedGroupId: asset.routingGroupId, routedByUnroutedFallback: false };
 }
 
 /** Inside the create transaction: the link, the asset history row and the ticket event. */

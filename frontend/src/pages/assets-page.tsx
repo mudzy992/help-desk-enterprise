@@ -6,7 +6,10 @@ import { Boxes, Download, Plus, Search } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
 import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
+import { AssetAssignSheet, AssetUnassignSheet } from "@/components/assets/asset-action-sheets";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
+import { assetBulkMoveMax, planBulkMove } from "@/lib/assets/asset-bulk-move";
+import { AssetOverviewPanel } from "@/components/assets/asset-overview-panel";
 import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
 import { AssetLicensesPanel } from "@/components/assets/asset-licenses-panel";
 import { AssetTransfersPanel } from "@/components/assets/asset-transfers-panel";
@@ -50,13 +53,14 @@ import {
   getAssetOptions,
   listAssets,
   type AssetListFilters,
+  type AssetListItem,
   type AssetSource,
   type AssetStatus,
   exportAssets,
 } from "@/services/assets-api";
 
 const pageSize = 50;
-const assetsTabs = ["register", "transfers", "licenses", "contracts", "import", "catalog"] as const;
+const assetsTabs = ["register", "overview", "transfers", "licenses", "contracts", "import", "catalog"] as const;
 type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
@@ -107,16 +111,19 @@ export function AssetsPage() {
       <UnderlineTabs
         items={[
           { key: "register", label: t("assets.tabs.register") },
+          ...(capabilities.canReadReports ? [{ key: "overview", label: t("assets.tabs.overview") }] : []),
           { key: "transfers", label: t("assets.tabs.transfers") },
           { key: "licenses", label: t("assets.tabs.licenses") },
           { key: "contracts", label: t("assets.tabs.contracts") },
           ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
           ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
         ]}
-        active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) ? "register" : tab}
+        active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) || (tab === "overview" && !capabilities.canReadReports) ? "register" : tab}
         onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
       />
-      {tab === "transfers" ? (
+      {tab === "overview" && capabilities.canReadReports ? (
+        <AssetOverviewPanel />
+      ) : tab === "transfers" ? (
         <AssetTransfersPanel mode={{ kind: "all" }} canManage={capabilities.canManage} />
       ) : tab === "licenses" ? (
         <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
@@ -153,6 +160,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const [unassigned, setUnassigned] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [exporting, setExporting] = useState<"xlsx" | "csv" | null>(null);
+  // C9b: register selection for one transfer record over several items.
+  const [selected, setSelected] = useState<ReadonlyMap<string, AssetListItem>>(new Map());
+  const [bulkSheet, setBulkSheet] = useState<"assign" | "unassign" | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -189,6 +199,32 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
   const locationRows = flattenLocationTree(catalogQuery.data?.locations ?? []).filter((row) => row.location.archivedAt === null);
+  const bulkPlan = planBulkMove([...selected.values()]);
+  const pageSelected = items.length > 0 && items.every((item) => selected.has(item.id));
+
+  function toggleSelected(item: AssetListItem) {
+    setSelected((current) => {
+      const next = new Map(current);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.set(item.id, item);
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setSelected((current) => {
+      const next = new Map(current);
+      if (pageSelected) for (const item of items) next.delete(item.id);
+      else for (const item of items) next.set(item.id, item);
+      return next;
+    });
+  }
+
+  function bulkDone() {
+    setSelected(new Map());
+    void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
+  }
+
   const hasFilters = Boolean(search || typeId || status || organizationalUnitId || locationId || source || warrantyExpiring || unassigned);
 
   function resetFilters() {
@@ -328,6 +364,32 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         </p>
       ) : null}
 
+      {canManage && selected.size > 0 ? (
+        <div role="region" aria-label={t("assets.bulk.region")} className="flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-[12.5px]">
+          <span className="font-medium text-foreground">{t("assets.bulk.selectedCount", { count: selected.size })}</span>
+          {bulkPlan.kind === "warehouse" ? (
+            <Button size="sm" variant="primary" onClick={() => setBulkSheet("assign")}>
+              {t("assets.actions.assign")}
+            </Button>
+          ) : null}
+          {bulkPlan.kind === "holder" ? (
+            <>
+              <Button size="sm" variant="primary" onClick={() => setBulkSheet("assign")}>
+                {t("assets.actions.reassign")}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setBulkSheet("unassign")}>
+                {t("assets.actions.unassign")}
+              </Button>
+            </>
+          ) : null}
+          {bulkPlan.kind === "mixed" ? <span className={hintClassName}>{t("assets.bulk.mixed")}</span> : null}
+          {bulkPlan.kind === "too_many" ? <span className={hintClassName}>{t("assets.bulk.tooMany", { max: assetBulkMoveMax })}</span> : null}
+          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Map())}>
+            {t("assets.bulk.clear")}
+          </Button>
+        </div>
+      ) : null}
+
       {listQuery.isLoading ? (
         <PanelSkeleton label={t("ui.loading")} />
       ) : items.length === 0 ? (
@@ -343,6 +405,11 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
               <caption className="sr-only">{t("assets.list.caption")}</caption>
               <thead>
                 <tr className={tableHeadClassName}>
+                  {canManage ? (
+                    <th scope="col" className="w-8 px-3 py-2 text-left">
+                      <input type="checkbox" checked={pageSelected} onChange={togglePage} aria-label={t("assets.bulk.selectPage")} />
+                    </th>
+                  ) : null}
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.assetTag")}</th>
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.name")}</th>
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.status")}</th>
@@ -359,6 +426,16 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                   const warranty = warrantyState(item.warrantyEndsAt);
                   return (
                     <tr key={item.id} className={tableRowClassName}>
+                      {canManage ? (
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(item.id)}
+                            onChange={() => toggleSelected(item)}
+                            aria-label={t("assets.bulk.select", { name: `${item.assetTag} ${item.name}` })}
+                          />
+                        </td>
+                      ) : null}
                       <td className="px-3 py-2">
                         <Link to={`/assets/${item.id}`} className={ticketIdClassName}>
                           {item.assetTag}
@@ -412,6 +489,25 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             {listQuery.isFetchingNextPage ? t("ui.loading") : t("assets.list.loadMore")}
           </Button>
         </div>
+      ) : null}
+
+      {canManage && (bulkPlan.kind === "warehouse" || bulkPlan.kind === "holder") ? (
+        <>
+          <AssetAssignSheet
+            open={bulkSheet === "assign"}
+            onOpenChange={(open) => (open ? undefined : setBulkSheet(null))}
+            asset={{ id: bulkPlan.ids[0], assignedUser: bulkPlan.kind === "holder" ? bulkPlan.holder : null, assetIds: bulkPlan.ids }}
+            onDone={bulkDone}
+          />
+          {bulkPlan.kind === "holder" ? (
+            <AssetUnassignSheet
+              open={bulkSheet === "unassign"}
+              onOpenChange={(open) => (open ? undefined : setBulkSheet(null))}
+              asset={{ id: bulkPlan.ids[0], assignedUser: bulkPlan.holder, assetIds: bulkPlan.ids }}
+              onDone={bulkDone}
+            />
+          ) : null}
+        </>
       ) : null}
 
       {canManage && catalogQuery.data && optionsQuery.data ? (

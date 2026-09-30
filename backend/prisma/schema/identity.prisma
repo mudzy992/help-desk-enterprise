@@ -172,6 +172,7 @@ model Group {
   assignedTickets      Ticket[]               @relation("TicketAssignedGroup")
   participants         TicketParticipant[]
   routingRules         RoutingRule[]
+  assetTypeRoutes      AssetType[]            @relation("AssetTypeRoutingGroup")
   ownedArticles        KnowledgeArticle[]
   escalationRules      SlaEscalationRule[]
   confidentialGrants   TicketConfidentialGrant[]

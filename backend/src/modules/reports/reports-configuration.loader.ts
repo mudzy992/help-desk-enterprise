@@ -34,6 +34,9 @@ export class ReportsConfigurationLoader {
         pingPongThreshold: await this.settingsService
           .getSetting(settingKeys.privateReportsPingPongThreshold)
           .catch(() => undefined),
+        cmdbEnabled: await this.settingsService
+          .getSetting(settingKeys.privateAddonsCmdb)
+          .catch(() => false),
       });
     } catch (error) {
       if (error instanceof ReportsError) {
