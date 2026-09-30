@@ -374,6 +374,12 @@ To je kriterij kompletnosti.
 - Tip opreme može imati „Grupu za rješavanje“: kad korisnik u tiketu izabere opremu tog tipa (npr. štampač), tiket ide toj grupi umjesto grupi iz pravila rutiranja.
 - U registru se može odabrati više stavki i zadužiti ih, prezadužiti ili razdužiti odjednom, s jednom prenosnicom; zajedno idu samo stavke sa skladišta ili stavke istog korisnika, najviše 50.
 
+## CMDB — aktivacija i provjere (C10, 30.9.2026)
+
+- Modul se uključuje jednom postavkom; isključivanje ne briše podatke, a paketi izvještaja o imovini tada nestaju iz liste.
+- Redoslijed aktivacije: postavke i potpisnici, šablon prenosnice, početni uvoz ili demo podaci (samo staging), probni prolaz AD računara, pa tek onda automatska sinhronizacija.
+- Vodič za korisnike i upravitelje je u `docs/user-guide/imovina.md`, a koraci za administratora servera u `ops/runbook/cmdb-aktivacija.md`.
+
 ## CMDB — licence, ugovori i podsjetnici (C6, 30.9.2026)
 
 - Licence imaju četiri vrste: po uređaju, po korisniku, za lokaciju (bez dodjela) i pretplatu (obavezan datum isteka).

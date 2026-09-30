@@ -129,3 +129,15 @@ k6 run -e BASE_URL=https://api.desk.ba101.top -e ORG_UNIT_ID=<id korijenske OJ> 
 Tri faze (`REPORT_VU`=5): trend od 12 mjeseci iz keša i `/reports/dashboard`, svaki po `REPORT_DURATION` (zadano 1m), zatim trend od 36 mjeseci bez keša: `COLD_ITERATIONS` (zadano 100, najviše 120) zahtjeva, svaki s jedinstvenim ključem keša (prozor pomjeren za cijele mjesece × filter prioriteta). Ključ keša se gradi iz mjesečnih bucket-a, pa pomak od nekoliko dana ne zaobilazi keš. Između dva pokretanja sačekaj najmanje 10 min (TTL keša). Dijagnostika dashboarda: `docker exec -i <backend> node - < perf/report-dashboard-explain.cjs`. Budžeti p95 se mijenjaju preko `TRENDS_COLD_P95_MS` (1000), `TRENDS_WARM_P95_MS` (150) i `DASHBOARD_P95_MS` (400). Ispravnost SQL agregacije provjerava `perf/report-trends-parity.cjs`.
 
 Na serveru (SSH) prijava s MFA: `source perf/session-login.sh`. Skripta pita e-mail, lozinku i MFA kod (skriveno), pa postavi `ACCESS_TOKEN`, `ORG_UNIT_ID` (krovna OJ) i `BASE_URL`. Nalog s MFA se ne može prijaviti iz k6. Umjesto e-maila i lozinke proslijedi `-e ACCESS_TOKEN=…` iz prijavljenog preglednika (DevTools → Console: `JSON.parse(localStorage.getItem('ep-helpdesk.session')).accessToken`). Token važi oko 1 h, a test traje oko 3 min.
+
+## Imovina / CMDB (paket 3.2)
+
+Zaseban, ručni scenarij (modul je zadano isključen, pa nije u `full.js`/`smoke.js`):
+
+```bash
+k6 run -e BASE_URL=https://api.desk.ba101.top \
+       -e ASSETS_EMAIL=… -e ASSETS_PASSWORD=… \
+       -e REPORT_LABEL=assets-list perf/assets-list.js
+```
+
+Traži uključen addon `private.addons.cmdb` i korisnika s `asset.read` (ADMIN ili upravitelj imovine); s MFA proslijedi `-e ACCESS_TOKEN=…` (vidi gore). `ASSETS_VU` (zadano 10) korisnika po `ASSETS_DURATION` (zadano 1m) čita prvu i drugu stranicu registra (50, kursor) i pretragu sa statusom; petina korisnika čita `/assets/overview` ako ima `asset.report.read`. Budžeti p95: `ASSETS_LIST_P95_MS` (200), `ASSETS_SEARCH_P95_MS` (200), `ASSETS_OVERVIEW_P95_MS` (400). Za smislen rezultat pokreni ga nad demo podacima (`assets-seed-demo.js`) ili stvarnim inventarom.
