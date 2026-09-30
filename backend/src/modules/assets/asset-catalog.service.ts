@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { checkLocationParent } from './asset-locations';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
@@ -286,13 +287,11 @@ export class AssetCatalogService {
     const parentId = input.parentId ?? null;
     if (parentId !== null) {
       if (parentId === selfId) throw new AssetError(assetErrorCodes.invalid, 'parentId');
-      const parent = await this.prisma.assetLocation.findUnique({ where: { id: parentId }, select: { parentId: true } });
-      if (parent === null) throw new AssetError(assetErrorCodes.locationNotFound);
-      // §7: two levels only (building -> room).
-      if (parent.parentId !== null) throw new AssetError(assetErrorCodes.invalid, 'parentId');
-      if (selfId !== null && (await this.prisma.assetLocation.count({ where: { parentId: selfId } })) > 0) {
-        throw new AssetError(assetErrorCodes.invalid, 'parentId');
-      }
+      const nodes = await this.prisma.assetLocation.findMany({ select: { id: true, name: true, parentId: true } });
+      if (!nodes.some((node) => node.id === parentId)) throw new AssetError(assetErrorCodes.locationNotFound);
+      // §7: a tree up to locationDepthMax levels, never a cycle.
+      const problem = checkLocationParent(nodes, selfId, parentId, assetLimits.locationDepthMax);
+      if (problem !== null) throw new AssetError(assetErrorCodes.invalid, problem === 'depth' ? 'parentId:depth' : 'parentId');
     }
     if (code !== null) {
       const taken = await this.prisma.assetLocation.findUnique({ where: { code }, select: { id: true } });

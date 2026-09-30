@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { buildLocationPaths, locationSubtreeIds } from './asset-locations';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -65,7 +66,7 @@ const listInclude = {
   type: { select: { id: true, key: true, nameBs: true, nameEn: true, icon: true } },
   assignedUser: { select: { id: true, displayName: true, email: true, isActive: true } },
   organizationalUnit: { select: { id: true, name: true, ouPath: true } },
-  location: { select: { id: true, name: true, parent: { select: { name: true } } } },
+  location: { select: { id: true, name: true } },
 } as const;
 
 type ListRow = Prisma.AssetGetPayload<{ include: typeof listInclude }>;
@@ -89,9 +90,9 @@ function dateOnly(value: Date | null): string | null {
   return value === null ? null : value.toISOString().slice(0, 10);
 }
 
-function locationLabel(location: ListRow['location']): string | null {
+function locationLabel(location: ListRow['location'], paths: ReadonlyMap<string, string>): string | null {
   if (location === null) return null;
-  return location.parent === null ? location.name : `${location.parent.name} › ${location.name}`;
+  return paths.get(location.id) ?? location.name;
 }
 
 function attributeIssueDetail(issues: readonly AttributeIssue[]): string {
@@ -112,7 +113,16 @@ export class AssetsService {
 
   // ------------------------------------------------------------ helpers
 
-  private toListItem(row: ListRow, openTicketCount: number) {
+  /** §7: full "A › B › C" labels; the location table is small. */
+  private async locationNodes() {
+    return this.prisma.assetLocation.findMany({ select: { id: true, name: true, parentId: true } });
+  }
+
+  private async locationPaths(): Promise<Map<string, string>> {
+    return buildLocationPaths(await this.locationNodes());
+  }
+
+  private toListItem(row: ListRow, openTicketCount: number, paths: ReadonlyMap<string, string>) {
     return {
       id: row.id,
       assetTag: row.assetTag,
@@ -124,7 +134,7 @@ export class AssetsService {
       model: row.model,
       assignedUser: row.assignedUser,
       organizationalUnit: { id: row.organizationalUnit.id, name: row.organizationalUnit.name },
-      location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location) },
+      location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location, paths) },
       warrantyEndsAt: dateOnly(row.warrantyEndsAt),
       source: row.source,
       missingFromDirectoryAt: row.missingFromDirectoryAt?.toISOString() ?? null,
@@ -298,7 +308,7 @@ export class AssetsService {
           : { organizationalUnit: { OR: [{ ouPath: unit.ouPath }, { ouPath: { startsWith: `${unit.ouPath}/` } }] } },
       );
     }
-    if (query.locationId) and.push({ OR: [{ locationId: query.locationId }, { location: { parentId: query.locationId } }] });
+    if (query.locationId) and.push({ locationId: { in: locationSubtreeIds(await this.locationNodes(), query.locationId) } });
     if (query.assignedUserId) and.push({ assignedUserId: query.assignedUserId });
     if (query.unassigned === true) and.push({ assignedUserId: null });
     if (query.source) and.push({ source: query.source });
@@ -319,9 +329,9 @@ export class AssetsService {
       this.prisma.asset.count({ where }),
     ]);
     const page = rows.slice(0, limit);
-    const counts = await this.openTicketCounts(page.map((row) => row.id));
+    const [counts, paths] = await Promise.all([this.openTicketCounts(page.map((row) => row.id)), this.locationPaths()]);
     return {
-      items: page.map((row) => this.toListItem(row, counts.get(row.id) ?? 0)),
+      items: page.map((row) => this.toListItem(row, counts.get(row.id) ?? 0, paths)),
       nextCursor: rows.length > limit ? (page[page.length - 1]?.id ?? null) : null,
       total,
     };
@@ -351,7 +361,8 @@ export class AssetsService {
       orderBy: [{ assetTag: 'asc' }],
       take: 20,
     });
-    return { items: rows.map((row) => this.toListItem(row, 0)) };
+    const paths = await this.locationPaths();
+    return { items: rows.map((row) => this.toListItem(row, 0, paths)) };
   }
 
   async detail(id: string, viewer: AssetViewer) {
@@ -385,7 +396,7 @@ export class AssetsService {
     const canManage =
       viewerHasPermission(viewer, permissionKeys.assetManage) && isPathInScope(manageScope, asset.organizationalUnit.ouPath);
     return {
-      ...this.toListItem(asset, ticketStats.open),
+      ...this.toListItem(asset, ticketStats.open, await this.locationPaths()),
       version: asset.version,
       organizationalUnit: { id: asset.organizationalUnit.id, name: asset.organizationalUnit.name, path: asset.organizationalUnit.ouPath },
       service: asset.service,
@@ -516,6 +527,7 @@ export class AssetsService {
       orderBy: [{ assignedAt: 'desc' }, { assetTag: 'asc' }],
       take: 200,
     });
+    const paths = await this.locationPaths();
     const links = await this.prisma.ticketAsset.findMany({
       where: { assetId: { in: rows.map((row) => row.id) }, ticket: { requesterId: viewer.userId } },
       orderBy: { linkedAt: 'desc' },
@@ -530,7 +542,7 @@ export class AssetsService {
         type: row.type,
         manufacturer: row.manufacturer,
         model: row.model,
-        location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location) },
+        location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location, paths) },
         assignedAt: row.assignedAt?.toISOString() ?? null,
         warrantyEndsAt: dateOnly(row.warrantyEndsAt),
         tickets: links

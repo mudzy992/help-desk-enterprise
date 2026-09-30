@@ -12,7 +12,17 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { assetErrorDetail, localizedLabel, localizedName, mapAssetError, resolveAssetIcon } from "@/lib/assets/asset-view";
+import {
+  assetErrorDetail,
+  assetLocationDepthMax,
+  flattenLocationTree,
+  localizedLabel,
+  localizedName,
+  locationHeight,
+  locationSubtree,
+  mapAssetError,
+  resolveAssetIcon,
+} from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   assetAttributeDataTypes,
@@ -39,7 +49,7 @@ import {
 type Editor =
   | { readonly kind: "type"; readonly type: AssetType | null }
   | { readonly kind: "attribute"; readonly type: AssetType; readonly attribute: AssetAttribute | null }
-  | { readonly kind: "location"; readonly location: AssetLocation | null }
+  | { readonly kind: "location"; readonly location: AssetLocation | null; readonly parentId?: string }
   | null;
 
 function useErrorText() {
@@ -81,8 +91,7 @@ export function AssetCatalogManager() {
     );
   }
   const catalog = catalogQuery.data;
-  const parents = catalog.locations.filter((location) => location.parentId === null);
-  const childrenOf = (id: string) => catalog.locations.filter((location) => location.parentId === id);
+  const locationRows = flattenLocationTree(catalog.locations);
 
   return (
     <div className="grid gap-4">
@@ -200,24 +209,25 @@ export function AssetCatalogManager() {
             </Button>
           }
         />
-        {parents.length === 0 ? (
+        {locationRows.length === 0 ? (
           <div className="p-4">
             <EmptyState icon={<MapPin size={18} />} title={t("assets.catalog.noLocationsTitle")} body={t("assets.catalog.noLocationsBody")} />
           </div>
         ) : (
-          <ul className="divide-y divide-border/60">
-            {parents.map((parent) => (
-              <li key={parent.id} className="px-4 py-2">
-                <LocationRow location={parent} onEdit={() => setEditor({ kind: "location", location: parent })} onToggle={toggleArchived} />
-                {childrenOf(parent.id).length > 0 ? (
-                  <ul className="mt-1 grid gap-1 pl-6">
-                    {childrenOf(parent.id).map((child) => (
-                      <li key={child.id}>
-                        <LocationRow location={child} onEdit={() => setEditor({ kind: "location", location: child })} onToggle={toggleArchived} />
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+          <ul className="divide-y divide-border/60" aria-label={t("assets.catalog.locationsTitle")}>
+            {locationRows.map((row) => (
+              <li key={row.location.id} className="py-2 pr-4" style={{ paddingLeft: `${16 + (row.depth - 1) * 20}px` }}>
+                <span className="sr-only">{t("assets.catalog.locationLevel", { level: row.depth })}</span>
+                <LocationRow
+                  location={row.location}
+                  onEdit={() => setEditor({ kind: "location", location: row.location })}
+                  onAddChild={
+                    row.depth < assetLocationDepthMax && row.location.archivedAt === null
+                      ? () => setEditor({ kind: "location", location: null, parentId: row.location.id })
+                      : undefined
+                  }
+                  onToggle={toggleArchived}
+                />
               </li>
             ))}
           </ul>
@@ -241,6 +251,7 @@ export function AssetCatalogManager() {
       <LocationEditor
         open={editor?.kind === "location"}
         location={editor?.kind === "location" ? editor.location : null}
+        initialParentId={editor?.kind === "location" ? (editor.parentId ?? null) : null}
         catalog={catalog}
         onOpenChange={(open) => (open ? undefined : setEditor(null))}
         onSaved={refresh}
@@ -252,10 +263,12 @@ export function AssetCatalogManager() {
 function LocationRow({
   location,
   onEdit,
+  onAddChild,
   onToggle,
 }: {
   readonly location: AssetLocation;
   readonly onEdit: () => void;
+  readonly onAddChild?: () => void;
   readonly onToggle: (action: () => Promise<unknown>) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -269,6 +282,11 @@ function LocationRow({
         <span className={hintClassName}>{t("assets.catalog.assetCount", { count: location.assetCount })}</span>
       </span>
       <span className="flex items-center gap-1">
+        {onAddChild ? (
+          <button type="button" className={rowActionButtonClassName} aria-label={t("assets.catalog.addChildLocation", { name: location.name })} onClick={onAddChild}>
+            <Plus size={14} aria-hidden="true" />
+          </button>
+        ) : null}
         <button type="button" className={rowActionButtonClassName} aria-label={t("assets.catalog.editLocation", { name: location.name })} onClick={onEdit}>
           <Pencil size={14} aria-hidden="true" />
         </button>
@@ -548,12 +566,14 @@ function AttributeEditor({
 function LocationEditor({
   open,
   location,
+  initialParentId,
   catalog,
   onOpenChange,
   onSaved,
 }: {
   readonly open: boolean;
   readonly location: AssetLocation | null;
+  readonly initialParentId: string | null;
   readonly catalog: AssetCatalog;
   readonly onOpenChange: (open: boolean) => void;
   readonly onSaved: () => void;
@@ -569,15 +589,24 @@ function LocationEditor({
 
   useEffect(() => {
     if (!open) return;
-    setParentId(location?.parentId ?? "");
+    setParentId(location?.parentId ?? initialParentId ?? "");
     setName(location?.name ?? "");
     setCode(location?.code ?? "");
     setSortOrder(String(location?.sortOrder ?? 100));
     setError(null);
-  }, [open, location]);
+  }, [open, location, initialParentId]);
 
-  const hasChildren = location !== null && catalog.locations.some((item) => item.parentId === location.id);
-  const parentOptions = catalog.locations.filter((item) => item.parentId === null && item.id !== location?.id && item.archivedAt === null);
+  // §7: any location may be a parent, except the location itself, its own
+  // sub-locations (no cycles) and parents that would exceed the depth limit.
+  const rows = flattenLocationTree(catalog.locations);
+  const excluded = location === null ? new Set<string>() : locationSubtree(catalog.locations, location.id);
+  const ownHeight = location === null ? 0 : locationHeight(catalog.locations, location.id);
+  const parentOptions = rows.filter(
+    (row) =>
+      !excluded.has(row.location.id) &&
+      (row.location.archivedAt === null || row.location.id === parentId) &&
+      row.depth + 1 + ownHeight <= assetLocationDepthMax,
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -602,13 +631,13 @@ function LocationEditor({
         <SheetTitle>{location === null ? t("assets.catalog.addLocation") : t("assets.catalog.editLocationTitle")}</SheetTitle>
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.catalog.locationDescription")}</SheetDescription>
         <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.catalog.parentLocation")} hint={hasChildren ? t("assets.catalog.parentLockedHint") : undefined}>
+          <Field label={t("assets.catalog.parentLocation")} hint={t("assets.catalog.parentHint", { max: assetLocationDepthMax })}>
             {(control) => (
-              <Select {...control} value={parentId} disabled={hasChildren} onChange={(event) => setParentId(event.target.value)}>
+              <Select {...control} value={parentId} onChange={(event) => setParentId(event.target.value)}>
                 <option value="">{t("assets.catalog.topLevel")}</option>
-                {parentOptions.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
+                {parentOptions.map((row) => (
+                  <option key={row.location.id} value={row.location.id}>
+                    {row.path}
                   </option>
                 ))}
               </Select>

@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { errorTextClassName, hintClassName, sectionTitleClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { assetErrorDetail, localizedLabel, localizedName, mapAssetError } from "@/lib/assets/asset-view";
+import { assetErrorDetail, flattenLocationTree, localizedLabel, localizedName, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import {
   createAsset,
@@ -96,15 +96,7 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
     () => (selectedType?.attributes ?? []).filter((attribute) => attribute.archivedAt === null),
     [selectedType],
   );
-  const locationLabel = useMemo(() => {
-    const byId = new Map(catalog.locations.map((location) => [location.id, location]));
-    return (id: string) => {
-      const location = byId.get(id);
-      if (!location) return id;
-      const parent = location.parentId ? byId.get(location.parentId) : undefined;
-      return parent ? `${parent.name} › ${location.name}` : location.name;
-    };
-  }, [catalog.locations]);
+  const locationRows = useMemo(() => flattenLocationTree(catalog.locations), [catalog.locations]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setState((current) => ({ ...current, [key]: value }));
   const setAttribute = (key: string, value: string | boolean) =>
@@ -230,11 +222,11 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
               {(control) => (
                 <Select {...control} value={state.locationId} onChange={(event) => set("locationId", event.target.value)}>
                   <option value="">{t("assets.form.none")}</option>
-                  {catalog.locations
-                    .filter((location) => location.archivedAt === null || location.id === state.locationId)
-                    .map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {locationLabel(location.id)}
+                  {locationRows
+                    .filter((row) => row.location.archivedAt === null || row.location.id === state.locationId)
+                    .map((row) => (
+                      <option key={row.location.id} value={row.location.id}>
+                        {row.path}
                       </option>
                     ))}
                 </Select>

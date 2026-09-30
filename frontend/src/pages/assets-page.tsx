@@ -26,6 +26,7 @@ import { UnderlineTabs } from "@/components/ui/tabs";
 import {
   assetStatusKeys,
   assetStatusTone,
+  flattenLocationTree,
   formatAssetDate,
   localizedName,
   mapAssetError,
@@ -154,7 +155,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const topLocations = (catalogQuery.data?.locations ?? []).filter((location) => location.archivedAt === null);
+  const locationRows = flattenLocationTree(catalogQuery.data?.locations ?? []).filter((row) => row.location.archivedAt === null);
   const hasFilters = Boolean(search || typeId || status || organizationalUnitId || locationId || source || warrantyExpiring || unassigned);
 
   function resetFilters() {
@@ -219,9 +220,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         </select>
         <select className={selectCompactClassName} aria-label={t("assets.fields.location")} value={locationId} onChange={(event) => setLocationId(event.target.value)}>
           <option value="">{t("assets.list.allLocations")}</option>
-          {topLocations.map((location) => (
-            <option key={location.id} value={location.id}>
-              {location.parentId ? `— ${location.name}` : location.name}
+          {locationRows.map((row) => (
+            <option key={row.location.id} value={row.location.id}>
+              {row.path}
             </option>
           ))}
         </select>

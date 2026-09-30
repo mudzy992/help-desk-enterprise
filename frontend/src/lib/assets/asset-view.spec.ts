@@ -34,3 +34,23 @@ describe("asset view helpers (paket 3.2)", () => {
     );
   });
 });
+
+import { flattenLocationTree, locationHeight, locationSubtree } from "@/lib/assets/asset-view";
+
+describe("location tree (paket 3.2 §7)", () => {
+  const locations = [
+    { id: "hq", name: "Direkcija", parentId: null },
+    { id: "vi", name: "Visoko", parentId: "ze" },
+    { id: "ze", name: "ED Zenica", parentId: "hq" },
+  ];
+
+  it("orders parents before children with full paths", () => {
+    expect(flattenLocationTree(locations).map((row) => [row.location.id, row.depth, row.path])).toEqual([
+      ["hq", 1, "Direkcija"],
+      ["ze", 2, "Direkcija › ED Zenica"],
+      ["vi", 3, "Direkcija › ED Zenica › Visoko"],
+    ]);
+    expect([...locationSubtree(locations, "ze")].sort()).toEqual(["vi", "ze"]);
+    expect(locationHeight(locations, "hq")).toBe(2);
+  });
+});

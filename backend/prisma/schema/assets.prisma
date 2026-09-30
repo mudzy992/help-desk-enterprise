@@ -113,7 +113,7 @@ model AssetAttribute {
 
 model AssetLocation {
   id         String          @id @default(cuid())
-  /// Two levels: building (parentId null) -> room.
+  /// Tree up to assetLimits.locationDepthMax levels (parentId null = top).
   parentId   String?
   name       String          @db.VarChar(120)
   code       String?         @unique @db.VarChar(32)

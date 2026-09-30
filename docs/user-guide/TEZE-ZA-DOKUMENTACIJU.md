@@ -333,3 +333,12 @@ To je kriterij kompletnosti.
 - Imovinom upravljaju agenti IT-a, ali i drugi (npr. nabavka).
 - Korisnik (USER) vidi svoju opremu i bira je pri kreiranju tiketa.
 - Prva verzija obuhvata sve: stavke, veze, tikete, licence, garancije/ugovore, uvoz, AD.
+
+## CMDB — lokacije i prenosnice (30.9.2026)
+
+- Lokacije su stablo, npr. Direkcija → ED Zenica → Zenica, Visoko, Kakanj.
+- Pri svakom kretanju opreme generiše se prenosnica po DOCX šablonu organizacije.
+- Scenariji kretanja: skladište → korisnik, korisnik → korisnik i korisnik → skladište.
+- Polja na prenosnici su: ko predaje, ko preuzima, naziv opreme, inventarni broj i potpisnik.
+- Za svaku stavku opreme definiše se ko je potpisnik.
+- Broj prenosnice ima oblik dan-mjesec-broj-godina, npr. 30-09-0007-2026.
