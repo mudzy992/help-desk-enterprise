@@ -68,6 +68,19 @@ export const assetErrorKeys = {
   ASSET_DIRECTORY_SYNC_DISABLED: "assets.errors.directorySyncDisabled",
   ASSET_DIRECTORY_NOT_CONFIGURED: "assets.errors.directoryNotConfigured",
   ASSET_DIRECTORY_UNAVAILABLE: "assets.errors.directoryUnavailable",
+  ASSET_TRANSFER_REQUIRED: "assets.errors.transferRequired",
+  ASSET_TRANSFER_DISABLED: "assets.errors.transferDisabled",
+  ASSET_TRANSFER_INVALID: "assets.errors.transferInvalid",
+  ASSET_TRANSFER_NOT_FOUND: "assets.errors.transferNotFound",
+  ASSET_TRANSFER_NOT_ISSUED: "assets.errors.transferNotIssued",
+  ASSET_TRANSFER_NO_SIGNED_COPY: "assets.errors.transferNoSignedCopy",
+  ASSET_TRANSFER_FILE_INVALID: "assets.errors.transferFileInvalid",
+  ASSET_TRANSFER_FILE_TOO_LARGE: "assets.errors.transferFileTooLarge",
+  ASSET_TRANSFER_FILE_INFECTED: "assets.errors.transferFileInfected",
+  ASSET_TRANSFER_SCAN_UNAVAILABLE: "assets.errors.transferScanUnavailable",
+  ASSET_TRANSFER_TEMPLATE_INVALID: "assets.errors.transferTemplateInvalid",
+  ASSET_TRANSFER_TEMPLATE_NOT_FOUND: "assets.errors.transferTemplateNotFound",
+  ASSET_TRANSFER_RENDER_FAILED: "assets.errors.transferRenderFailed",
 } as const;
 
 export type AssetErrorKey = (typeof assetErrorKeys)[keyof typeof assetErrorKeys];

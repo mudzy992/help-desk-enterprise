@@ -12,14 +12,9 @@ import {
   mapAssetError,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import {
-  assignAsset,
-  changeAssetStatus,
-  searchAssetUsers,
-  unassignAsset,
-  type AssetDetail,
-  type AssetStatus,
-} from "@/services/assets-api";
+import { changeAssetStatus, searchAssetUsers, type AssetDetail, type AssetStatus } from "@/services/assets-api";
+import { AssetTransferIssued, AssetTransferSection, useTransferPreview } from "@/components/assets/asset-transfer-section";
+import { moveAssets, type AssetMovementResult } from "@/services/asset-transfers-api";
 
 interface ActionSheetProperties {
   readonly open: boolean;
@@ -123,14 +118,22 @@ export function AssetStatusSheet({ open, onOpenChange, asset, onDone }: ActionSh
   );
 }
 
-/** Paket 3.2 (§7): assign to a user (search by name or e-mail). */
+/**
+ * Paket 3.2 (§7, C9 §7a): assign / reassign. Goes through `/assets/movements`
+ * so the move and its transfer record are one step; with records off the
+ * move is only written to the history.
+ */
 export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSheetProperties) {
   const { t } = useTranslation();
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
   const [userId, setUserId] = useState("");
   const [note, setNote] = useState("");
+  const [fromLabel, setFromLabel] = useState("");
+  const [issueDocument, setIssueDocument] = useState(true);
+  const [result, setResult] = useState<AssetMovementResult | null>(null);
   const { pending, setPending, error, setError } = useActionState(open);
+  const scenario = asset.assignedUser ? "USER_TO_USER" : "WAREHOUSE_TO_USER";
 
   useEffect(() => {
     if (open) {
@@ -138,6 +141,9 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
       setSearch("");
       setUserId("");
       setNote("");
+      setFromLabel("");
+      setIssueDocument(true);
+      setResult(null);
     }
   }, [open]);
 
@@ -153,6 +159,12 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
     retry: false,
   });
   const users = usersQuery.data?.items ?? [];
+  const preview = useTransferPreview(open && userId !== "" && result === null, {
+    scenario,
+    assetIds: [asset.id],
+    toUserId: userId,
+    fromLabel: fromLabel.trim() || undefined,
+  });
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -160,9 +172,17 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
     setPending(true);
     setError(null);
     try {
-      await assignAsset(asset.id, userId, note.trim());
+      const moved = await moveAssets({
+        scenario,
+        assetIds: [asset.id],
+        toUserId: userId,
+        fromLabel: scenario === "WAREHOUSE_TO_USER" ? fromLabel.trim() || undefined : undefined,
+        note: note.trim() || undefined,
+        issueDocument,
+      });
       onDone();
-      onOpenChange(false);
+      if (moved.transferId) setResult(moved);
+      else onOpenChange(false);
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));
     } finally {
@@ -179,75 +199,106 @@ export function AssetAssignSheet({ open, onOpenChange, asset, onDone }: ActionSh
             ? t("assets.assignSheet.currentUser", { name: asset.assignedUser.displayName })
             : t("assets.assignSheet.description")}
         </SheetDescription>
-        <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.assignSheet.search")} hint={t("assets.assignSheet.searchHint")}>
-            {(control) => (
-              <Input {...control} type="search" value={searchText} autoComplete="off" onChange={(event) => setSearchText(event.target.value)} />
-            )}
-          </Field>
-          {search.length >= 2 ? (
-            <fieldset className="grid gap-1">
-              <legend className="sr-only">{t("assets.assignSheet.results")}</legend>
-              {usersQuery.isLoading ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
-              {!usersQuery.isLoading && users.length === 0 ? <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p> : null}
-              {users.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                >
-                  <input type="radio" name="asset-assign-user" value={user.id} checked={userId === user.id} onChange={() => setUserId(user.id)} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-foreground">{user.displayName}</span>
-                    <span className="block truncate text-[11.5px] text-muted-foreground">{user.email}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ) : null}
-          <Field label={t("assets.assignSheet.note")}>
-            {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
-          </Field>
-          {error ? (
-            <p role="alert" className={errorTextClassName}>
-              {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {t("ui.cancel")}
-            </Button>
-            <Button type="submit" variant="primary" disabled={pending || userId === ""}>
-              {pending ? t("ui.loading") : t("assets.assignSheet.submit")}
-            </Button>
-          </div>
-        </form>
+        {result ? (
+          <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />
+        ) : (
+          <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
+            <Field label={t("assets.assignSheet.search")} hint={t("assets.assignSheet.searchHint")}>
+              {(control) => (
+                <Input {...control} type="search" value={searchText} autoComplete="off" onChange={(event) => setSearchText(event.target.value)} />
+              )}
+            </Field>
+            {search.length >= 2 ? (
+              <fieldset className="grid gap-1">
+                <legend className="sr-only">{t("assets.assignSheet.results")}</legend>
+                {usersQuery.isLoading ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
+                {!usersQuery.isLoading && users.length === 0 ? <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p> : null}
+                {users.map((user) => (
+                  <label
+                    key={user.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <input type="radio" name="asset-assign-user" value={user.id} checked={userId === user.id} onChange={() => setUserId(user.id)} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-foreground">{user.displayName}</span>
+                      <span className="block truncate text-[11.5px] text-muted-foreground">{user.email}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
+            {scenario === "WAREHOUSE_TO_USER" && preview.configuration?.enabled ? (
+              <Field label={t("assets.transfers.fromLabel")} hint={t("assets.transfers.fromLabelHint")}>
+                {(control) => <Input {...control} maxLength={200} value={fromLabel} onChange={(event) => setFromLabel(event.target.value)} />}
+              </Field>
+            ) : null}
+            <Field label={t("assets.assignSheet.note")}>
+              {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
+            </Field>
+            <AssetTransferSection preview={preview} issueDocument={issueDocument} onIssueDocumentChange={setIssueDocument} />
+            {error ? (
+              <p role="alert" className={errorTextClassName}>
+                {error}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                {t("ui.cancel")}
+              </Button>
+              <Button type="submit" variant="primary" disabled={pending || userId === ""}>
+                {pending ? t("ui.loading") : t("assets.assignSheet.submit")}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   );
 }
 
-/** Paket 3.2 (§7): return equipment to stock or send it to repair. */
+/** Paket 3.2 (§7, C9 §7a): return equipment to stock or send it to repair. */
 export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: ActionSheetProperties) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<"IN_STOCK" | "IN_REPAIR">("IN_STOCK");
   const [note, setNote] = useState("");
+  const [toLabel, setToLabel] = useState("");
+  const [issueDocument, setIssueDocument] = useState(true);
+  const [result, setResult] = useState<AssetMovementResult | null>(null);
   const { pending, setPending, error, setError } = useActionState(open);
 
   useEffect(() => {
     if (open) {
       setStatus("IN_STOCK");
       setNote("");
+      setToLabel("");
+      setIssueDocument(true);
+      setResult(null);
     }
   }, [open]);
+
+  const preview = useTransferPreview(open && asset.assignedUser !== null && result === null, {
+    scenario: "USER_TO_WAREHOUSE",
+    assetIds: [asset.id],
+    returnStatus: status,
+    toLabel: toLabel.trim() || undefined,
+  });
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPending(true);
     setError(null);
     try {
-      await unassignAsset(asset.id, status, note.trim());
+      const moved = await moveAssets({
+        scenario: "USER_TO_WAREHOUSE",
+        assetIds: [asset.id],
+        returnStatus: status,
+        toLabel: toLabel.trim() || undefined,
+        note: note.trim() || undefined,
+        issueDocument,
+      });
       onDone();
-      onOpenChange(false);
+      if (moved.transferId) setResult(moved);
+      else onOpenChange(false);
     } catch (caught) {
       setError(t(mapAssetError(caught) ?? mapApiError(caught)));
     } finally {
@@ -262,32 +313,42 @@ export function AssetUnassignSheet({ open, onOpenChange, asset, onDone }: Action
         <SheetDescription className="mt-1 text-[12px] text-muted-foreground">
           {t("assets.unassignSheet.description", { name: asset.assignedUser?.displayName ?? "—" })}
         </SheetDescription>
-        <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          <Field label={t("assets.unassignSheet.nextStatus")}>
-            {(control) => (
-              <Select {...control} value={status} onChange={(event) => setStatus(event.target.value === "IN_REPAIR" ? "IN_REPAIR" : "IN_STOCK")}>
-                <option value="IN_STOCK">{t(assetStatusKeys.IN_STOCK)}</option>
-                <option value="IN_REPAIR">{t(assetStatusKeys.IN_REPAIR)}</option>
-              </Select>
-            )}
-          </Field>
-          <Field label={t("assets.assignSheet.note")}>
-            {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
-          </Field>
-          {error ? (
-            <p role="alert" className={errorTextClassName}>
-              {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {t("ui.cancel")}
-            </Button>
-            <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? t("ui.loading") : t("assets.unassignSheet.submit")}
-            </Button>
-          </div>
-        </form>
+        {result ? (
+          <AssetTransferIssued result={result} onClose={() => onOpenChange(false)} />
+        ) : (
+          <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
+            <Field label={t("assets.unassignSheet.nextStatus")}>
+              {(control) => (
+                <Select {...control} value={status} onChange={(event) => setStatus(event.target.value === "IN_REPAIR" ? "IN_REPAIR" : "IN_STOCK")}>
+                  <option value="IN_STOCK">{t(assetStatusKeys.IN_STOCK)}</option>
+                  <option value="IN_REPAIR">{t(assetStatusKeys.IN_REPAIR)}</option>
+                </Select>
+              )}
+            </Field>
+            {preview.configuration?.enabled ? (
+              <Field label={t("assets.transfers.toLabel")} hint={t("assets.transfers.toLabelHint")}>
+                {(control) => <Input {...control} maxLength={200} value={toLabel} onChange={(event) => setToLabel(event.target.value)} />}
+              </Field>
+            ) : null}
+            <Field label={t("assets.assignSheet.note")}>
+              {(control) => <Textarea {...control} rows={2} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} />}
+            </Field>
+            <AssetTransferSection preview={preview} issueDocument={issueDocument} onIssueDocumentChange={setIssueDocument} />
+            {error ? (
+              <p role="alert" className={errorTextClassName}>
+                {error}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                {t("ui.cancel")}
+              </Button>
+              <Button type="submit" variant="primary" disabled={pending}>
+                {pending ? t("ui.loading") : t("assets.unassignSheet.submit")}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   );

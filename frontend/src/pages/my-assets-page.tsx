@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { errorTextClassName, hintClassName, ticketIdClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { AssetTransfersPanel } from "@/components/assets/asset-transfers-panel";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   assetStatusKeys,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { assetQueryKeys, getMyAssets } from "@/services/assets-api";
+import { assetTransferQueryKeys, listMyAssetTransfers } from "@/services/asset-transfers-api";
 
 /** Paket 3.2 (§17.9): equipment assigned to the signed-in user, with own tickets. */
 export function MyAssetsPage() {
@@ -55,6 +57,7 @@ export function MyAssetsPage() {
       <div>
         {header}
         <EmptyState icon={<Laptop size={18} />} title={t("assets.mine.emptyTitle")} body={t("assets.mine.emptyBody")} />
+        <MyTransfers />
       </div>
     );
   }
@@ -122,6 +125,22 @@ export function MyAssetsPage() {
           );
         })}
       </ul>
+      <MyTransfers />
     </div>
+  );
+}
+
+/** C9 (§7a.7): the user's own transfer records (download only). */
+function MyTransfers() {
+  const { t } = useTranslation();
+  const { data } = useQuery({ queryKey: assetTransferQueryKeys.mine, queryFn: listMyAssetTransfers, retry: false });
+  if (!data || data.length === 0) return null;
+  return (
+    <section className="mt-2 grid gap-2" aria-labelledby="my-transfers-heading">
+      <h2 id="my-transfers-heading" className="text-[14px] font-semibold text-foreground">
+        {t("assets.transfers.mineTitle")}
+      </h2>
+      <AssetTransfersPanel mode={{ kind: "mine" }} canManage={false} />
+    </section>
   );
 }

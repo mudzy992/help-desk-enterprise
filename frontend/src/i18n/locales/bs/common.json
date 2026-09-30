@@ -5682,7 +5682,8 @@
       "catalog": "Tipovi i lokacije",
       "licenses": "Licence",
       "contracts": "Ugovori",
-      "import": "Uvoz"
+      "import": "Uvoz",
+      "transfers": "Prenosnice"
     },
     "status": {
       "ORDERED": "Naručeno",
@@ -5820,7 +5821,8 @@
         "tickets": "Tiketi",
         "relations": "Veze",
         "history": "Historija",
-        "coverage": "Licence i ugovori"
+        "coverage": "Licence i ugovori",
+        "transfers": "Prenosnice"
       },
       "basics": "Osnovni podaci",
       "assignment": "Zaduženje",
@@ -5919,7 +5921,8 @@
         "contract_unlinked": "Uklonjen ugovor",
         "imported": "Uvezeno",
         "directory_synced": "Sinhronizovano iz AD-a"
-      }
+      },
+      "transfer": "Prenosnica {{number}}"
     },
     "mine": {
       "title": "Moja oprema",
@@ -6036,7 +6039,20 @@
       "exportTooLarge": "Previše zapisa za izvoz — suzite filtere.",
       "directorySyncDisabled": "Sinhronizacija računara iz AD-a je isključena (postavka private.assets.directorySync.enabled).",
       "directoryNotConfigured": "AD (LDAPS) veza nije podešena ili nije uključena.",
-      "directoryUnavailable": "AD trenutno nije dostupan ili sinhronizacija već radi."
+      "directoryUnavailable": "AD trenutno nije dostupan ili sinhronizacija već radi.",
+      "transferRequired": "Oprema se može zadužiti ili razdužiti samo uz prenosnicu.",
+      "transferDisabled": "Prenosnice su isključene.",
+      "transferInvalid": "Kretanje opreme nije ispravno.",
+      "transferNotFound": "Prenosnica nije pronađena.",
+      "transferNotIssued": "Ova akcija je moguća samo za izdatu prenosnicu.",
+      "transferNoSignedCopy": "Potpisana kopija nije priložena.",
+      "transferFileInvalid": "Dozvoljeni su samo PDF, JPG i PNG.",
+      "transferFileTooLarge": "Datoteka je prevelika.",
+      "transferFileInfected": "Datoteka je odbijena antivirusnom provjerom.",
+      "transferScanUnavailable": "Antivirusna provjera trenutno nije dostupna.",
+      "transferTemplateInvalid": "Šablon nije ispravan DOCX.",
+      "transferTemplateNotFound": "Verzija šablona nije pronađena.",
+      "transferRenderFailed": "Prenosnicu nije moguće generisati iz šablona."
     },
     "ticket": {
       "pickerLabel": "Na koju opremu se odnosi?",
@@ -6364,6 +6380,114 @@
         "adopt": "povezivanje",
         "restore": "vraćen u AD",
         "missing": "nije u AD-u"
+      }
+    },
+    "transfers": {
+      "sectionLabel": "Prenosnica",
+      "issueDocument": "Izdaj prenosnicu (DOCX)",
+      "requiredHint": "Uz ovo kretanje obavezno se izdaje prenosnica.",
+      "from": "Predaje",
+      "to": "Preuzima",
+      "signatory": "Potpisnik",
+      "noSignatory": "nije određen",
+      "fromLabel": "Ko predaje (slobodan unos)",
+      "fromLabelHint": "Npr. dobavljač ili druga služba. Prazno = „Skladište“.",
+      "toLabel": "Ko preuzima (slobodan unos)",
+      "toLabelHint": "Prazno = „Skladište“.",
+      "issued": "Prenosnica {{number}} je izdata.",
+      "issuedHint": "Preuzmite DOCX, odštampajte ga i potpišite. Potpisanu kopiju (PDF, JPG ili PNG) priložite u registru prenosnica.",
+      "close": "Zatvori",
+      "downloadDocx": "Preuzmi DOCX",
+      "downloadFailed": "Preuzimanje nije uspjelo",
+      "actionFailed": "Akcija nije uspjela",
+      "scenario": {
+        "WAREHOUSE_TO_USER": "Zaduženje",
+        "USER_TO_USER": "Prezaduženje",
+        "USER_TO_WAREHOUSE": "Razduženje"
+      },
+      "status": {
+        "ISSUED": "Izdata",
+        "SIGNED": "Potpisana",
+        "CANCELLED": "Stornirana"
+      },
+      "problems": {
+        "not_in_stock": "{{assetTag}}: oprema nije na skladištu u statusu koji dozvoljava zaduženje.",
+        "already_assigned": "{{assetTag}}: oprema je već zadužena.",
+        "not_assigned": "{{assetTag}}: oprema nije zadužena.",
+        "different_holders": "Odabrana oprema nije zadužena na istu osobu.",
+        "same_user": "Primalac je već zadužen ovom opremom.",
+        "receiver_required": "Odaberite ko preuzima opremu.",
+        "return_status": "Nakon razduženja oprema može biti samo na skladištu ili na servisu."
+      },
+      "search": "Pretraga",
+      "searchPlaceholder": "Broj, osoba ili inventurni broj",
+      "statusFilter": "Status",
+      "scenarioFilter": "Vrsta",
+      "any": "Sve",
+      "emptyTitle": "Nema prenosnica",
+      "emptyBody": "Prenosnice se izdaju pri zaduženju, prezaduženju i razduženju opreme.",
+      "emptyMine": "Nemate prenosnica.",
+      "listLabel": "Prenosnice",
+      "loadMore": "Učitaj još",
+      "itemCount_one": "{{count}} stavka",
+      "itemCount_few": "{{count}} stavke",
+      "itemCount_other": "{{count}} stavki",
+      "cancelledBecause": "Stornirana: {{reason}}",
+      "downloadDocxFor": "Preuzmi DOCX prenosnice {{number}}",
+      "downloadSignedFor": "Preuzmi potpisanu kopiju prenosnice {{number}}",
+      "signedCopy": "Potpisana kopija",
+      "uploadSigned": "Priloži potpisanu",
+      "replaceSigned": "Zamijeni potpisanu",
+      "uploadSignedFor": "Priloži potpisanu kopiju prenosnice {{number}}",
+      "replaceSignedFor": "Zamijeni potpisanu kopiju prenosnice {{number}}",
+      "signedUploaded": "Potpisana kopija prenosnice {{number}} je priložena.",
+      "cancel": "Storniraj",
+      "cancelFor": "Storniraj prenosnicu {{number}}",
+      "cancelTitle": "Storniranje prenosnice {{number}}",
+      "cancelDescription": "Stornirana prenosnica ostaje u registru s razlogom; broj se ne koristi ponovo.",
+      "cancelReason": "Razlog",
+      "cancelReasonHint": "Najmanje 5 znakova.",
+      "cancelNoRollback": "Storniranje ne vraća opremu. Ako je kretanje bilo pogrešno, napravite novo kretanje (nova prenosnica).",
+      "cancelSubmit": "Storniraj prenosnicu",
+      "cancelled": "Prenosnica {{number}} je stornirana.",
+      "mineTitle": "Moje prenosnice",
+      "signatories": {
+        "title": "Potpisnici prenosnica",
+        "subtitle": "Potpisnik se definiše po organizacionoj jedinici i nasljeđuje se na sve pod-jedinice (najbliži predak).",
+        "defaultIs": "Zadani potpisnik (kad ga nijedna jedinica nema): {{name}}.",
+        "noDefault": "Zadani potpisnik nije postavljen (postavka private.assets.transfer.defaultSignatoryUserId).",
+        "unit": "Organizaciona jedinica",
+        "own": "Vlastiti potpisnik",
+        "effective": "Važi",
+        "actions": "Akcije",
+        "inactive": "neaktivan",
+        "inheritedFrom": "naslijeđeno od: {{unit}}",
+        "fromDefault": "zadani",
+        "editFor": "Uredi potpisnika za {{unit}}",
+        "removeFor": "Ukloni potpisnika za {{unit}}",
+        "removed": "Potpisnik za {{unit}} je uklonjen.",
+        "sheetTitle": "Potpisnik: {{unit}}",
+        "sheetDescription": "Važi za ovu jedinicu i sve pod-jedinice koje nemaju svog potpisnika.",
+        "current": "Trenutno: {{name}}",
+        "titleLabel": "Funkcija potpisnika",
+        "titleHint": "Štampa se ispod imena, npr. „Rukovodilac službe“.",
+        "save": "Sačuvaj"
+      },
+      "templates": {
+        "title": "Šablon prenosnice (DOCX)",
+        "subtitle": "Dokument se oblikuje u Wordu (zaglavlje, logo, fontovi); aplikacija samo popunjava polja.",
+        "sample": "Probni dokument",
+        "placeholdersHint": "Polja: {broj}, {datum}, {mjesto}, {scenarij}, {predaje_ime}, {predaje_oj}, {preuzima_ime}, {preuzima_oj}, {potpisnik_ime}, {potpisnik_funkcija}, {napomena}, {izdao_ime}; tabela opreme {#stavke}{rb} {naziv} {inventarni_broj} {serijski_broj}{/stavke}; uslovni blokovi {#jeZaduzenje}…{/jeZaduzenje}, {#jePrezaduzenje}, {#jeRazduzenje}. Počnite od zadanog šablona.",
+        "defaultBs": "Zadani šablon (bs)",
+        "defaultEn": "Zadani šablon (en)",
+        "notes": "Napomena uz verziju",
+        "upload": "Učitaj novu verziju",
+        "uploaded": "Šablon v{{version}} je aktivan.",
+        "unknownTags": "Nepoznata polja (ostaće prazna): {{tags}}",
+        "invalidDetail": "Šablon nije ispravan: {{detail}}",
+        "usingDefault": "Nije učitan nijedan šablon — koristi se ugrađeni zadani.",
+        "active": "aktivan",
+        "downloadVersion": "Preuzmi verziju {{version}}"
       }
     }
   }

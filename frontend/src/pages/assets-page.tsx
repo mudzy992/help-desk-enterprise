@@ -9,6 +9,8 @@ import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
 import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
 import { AssetLicensesPanel } from "@/components/assets/asset-licenses-panel";
+import { AssetTransfersPanel } from "@/components/assets/asset-transfers-panel";
+import { AssetTransferSettingsCard } from "@/components/assets/asset-transfer-settings-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,7 +55,7 @@ import {
 } from "@/services/assets-api";
 
 const pageSize = 50;
-const assetsTabs = ["register", "licenses", "contracts", "import", "catalog"] as const;
+const assetsTabs = ["register", "transfers", "licenses", "contracts", "import", "catalog"] as const;
 type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
@@ -104,6 +106,7 @@ export function AssetsPage() {
       <UnderlineTabs
         items={[
           { key: "register", label: t("assets.tabs.register") },
+          { key: "transfers", label: t("assets.tabs.transfers") },
           { key: "licenses", label: t("assets.tabs.licenses") },
           { key: "contracts", label: t("assets.tabs.contracts") },
           ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
@@ -112,7 +115,9 @@ export function AssetsPage() {
         active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) ? "register" : tab}
         onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
       />
-      {tab === "licenses" ? (
+      {tab === "transfers" ? (
+        <AssetTransfersPanel mode={{ kind: "all" }} canManage={capabilities.canManage} />
+      ) : tab === "licenses" ? (
         <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
       ) : tab === "contracts" ? (
         <AssetContractsPanel canManage={capabilities.canManageContracts} />
@@ -121,6 +126,7 @@ export function AssetsPage() {
       ) : capabilities.canManageTypes && tab === "catalog" ? (
         <div className="grid gap-4">
           <AssetCatalogManager />
+          <AssetTransferSettingsCard />
           <AssetDirectorySyncCard />
         </div>
       ) : (

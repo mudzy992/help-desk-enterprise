@@ -5638,7 +5638,8 @@
       "catalog": "Types and locations",
       "licenses": "Licences",
       "contracts": "Contracts",
-      "import": "Import"
+      "import": "Import",
+      "transfers": "Transfer records"
     },
     "status": {
       "ORDERED": "Ordered",
@@ -5775,7 +5776,8 @@
         "tickets": "Tickets",
         "relations": "Relations",
         "history": "History",
-        "coverage": "Licences and contracts"
+        "coverage": "Licences and contracts",
+        "transfers": "Transfer records"
       },
       "basics": "Basic data",
       "assignment": "Assignment",
@@ -5873,7 +5875,8 @@
         "contract_unlinked": "Contract unlinked",
         "imported": "Imported",
         "directory_synced": "Synchronized from AD"
-      }
+      },
+      "transfer": "Transfer record {{number}}"
     },
     "mine": {
       "title": "My equipment",
@@ -5989,7 +5992,20 @@
       "exportTooLarge": "Too many records to export — narrow the filters.",
       "directorySyncDisabled": "Computer sync from AD is switched off (setting private.assets.directorySync.enabled).",
       "directoryNotConfigured": "The AD (LDAPS) connection is not configured or not enabled.",
-      "directoryUnavailable": "AD is currently unavailable or a sync is already running."
+      "directoryUnavailable": "AD is currently unavailable or a sync is already running.",
+      "transferRequired": "Equipment can only be assigned or returned with a transfer record.",
+      "transferDisabled": "Transfer records are turned off.",
+      "transferInvalid": "The equipment move is invalid.",
+      "transferNotFound": "Transfer record not found.",
+      "transferNotIssued": "This action is only possible for an issued record.",
+      "transferNoSignedCopy": "No signed copy is attached.",
+      "transferFileInvalid": "Only PDF, JPG and PNG are allowed.",
+      "transferFileTooLarge": "The file is too large.",
+      "transferFileInfected": "The file was rejected by the antivirus check.",
+      "transferScanUnavailable": "The antivirus check is currently unavailable.",
+      "transferTemplateInvalid": "The template is not a valid DOCX.",
+      "transferTemplateNotFound": "Template version not found.",
+      "transferRenderFailed": "The record cannot be generated from the template."
     },
     "ticket": {
       "pickerLabel": "Which equipment is this about?",
@@ -6311,6 +6327,113 @@
         "adopt": "link",
         "restore": "back in AD",
         "missing": "not in AD"
+      }
+    },
+    "transfers": {
+      "sectionLabel": "Transfer record",
+      "issueDocument": "Issue a transfer record (DOCX)",
+      "requiredHint": "A transfer record is always issued with this move.",
+      "from": "Handed over by",
+      "to": "Received by",
+      "signatory": "Signatory",
+      "noSignatory": "not defined",
+      "fromLabel": "Handed over by (free text)",
+      "fromLabelHint": "E.g. a supplier or another department. Empty = “Warehouse”.",
+      "toLabel": "Received by (free text)",
+      "toLabelHint": "Empty = “Warehouse”.",
+      "issued": "Transfer record {{number}} was issued.",
+      "issuedHint": "Download the DOCX, print and sign it. Attach the signed copy (PDF, JPG or PNG) in the transfer register.",
+      "close": "Close",
+      "downloadDocx": "Download DOCX",
+      "downloadFailed": "Download failed",
+      "actionFailed": "Action failed",
+      "scenario": {
+        "WAREHOUSE_TO_USER": "Assignment",
+        "USER_TO_USER": "Reassignment",
+        "USER_TO_WAREHOUSE": "Return"
+      },
+      "status": {
+        "ISSUED": "Issued",
+        "SIGNED": "Signed",
+        "CANCELLED": "Cancelled"
+      },
+      "problems": {
+        "not_in_stock": "{{assetTag}}: the item is not in stock in a status that allows assignment.",
+        "already_assigned": "{{assetTag}}: the item is already assigned.",
+        "not_assigned": "{{assetTag}}: the item is not assigned.",
+        "different_holders": "The selected items are not assigned to the same person.",
+        "same_user": "The receiver already holds this equipment.",
+        "receiver_required": "Choose who receives the equipment.",
+        "return_status": "After a return the item can only be in stock or in repair."
+      },
+      "search": "Search",
+      "searchPlaceholder": "Number, person or asset tag",
+      "statusFilter": "Status",
+      "scenarioFilter": "Type",
+      "any": "All",
+      "emptyTitle": "No transfer records",
+      "emptyBody": "Transfer records are issued when equipment is assigned, reassigned or returned.",
+      "emptyMine": "You have no transfer records.",
+      "listLabel": "Transfer records",
+      "loadMore": "Load more",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items",
+      "cancelledBecause": "Cancelled: {{reason}}",
+      "downloadDocxFor": "Download DOCX of transfer record {{number}}",
+      "downloadSignedFor": "Download signed copy of transfer record {{number}}",
+      "signedCopy": "Signed copy",
+      "uploadSigned": "Attach signed copy",
+      "replaceSigned": "Replace signed copy",
+      "uploadSignedFor": "Attach signed copy of transfer record {{number}}",
+      "replaceSignedFor": "Replace signed copy of transfer record {{number}}",
+      "signedUploaded": "Signed copy of transfer record {{number}} attached.",
+      "cancel": "Cancel",
+      "cancelFor": "Cancel transfer record {{number}}",
+      "cancelTitle": "Cancel transfer record {{number}}",
+      "cancelDescription": "A cancelled record stays in the register with its reason; the number is never reused.",
+      "cancelReason": "Reason",
+      "cancelReasonHint": "At least 5 characters.",
+      "cancelNoRollback": "Cancelling does not move the equipment back. If the move was wrong, make a new move (a new record).",
+      "cancelSubmit": "Cancel record",
+      "cancelled": "Transfer record {{number}} was cancelled.",
+      "mineTitle": "My transfer records",
+      "signatories": {
+        "title": "Transfer record signatories",
+        "subtitle": "The signatory is defined per organizational unit and inherited by all sub-units (nearest ancestor).",
+        "defaultIs": "Default signatory (when no unit defines one): {{name}}.",
+        "noDefault": "No default signatory (setting private.assets.transfer.defaultSignatoryUserId).",
+        "unit": "Organizational unit",
+        "own": "Own signatory",
+        "effective": "Effective",
+        "actions": "Actions",
+        "inactive": "inactive",
+        "inheritedFrom": "inherited from: {{unit}}",
+        "fromDefault": "default",
+        "editFor": "Edit signatory for {{unit}}",
+        "removeFor": "Remove signatory for {{unit}}",
+        "removed": "Signatory for {{unit}} removed.",
+        "sheetTitle": "Signatory: {{unit}}",
+        "sheetDescription": "Applies to this unit and every sub-unit without its own signatory.",
+        "current": "Current: {{name}}",
+        "titleLabel": "Signatory function",
+        "titleHint": "Printed below the name, e.g. “Head of department”.",
+        "save": "Save"
+      },
+      "templates": {
+        "title": "Transfer record template (DOCX)",
+        "subtitle": "Design the document in Word (header, logo, fonts); the application only fills the fields.",
+        "sample": "Test document",
+        "placeholdersHint": "Fields: {broj}, {datum}, {mjesto}, {scenarij}, {predaje_ime}, {predaje_oj}, {preuzima_ime}, {preuzima_oj}, {potpisnik_ime}, {potpisnik_funkcija}, {napomena}, {izdao_ime}; equipment table {#stavke}{rb} {naziv} {inventarni_broj} {serijski_broj}{/stavke}; conditional blocks {#jeZaduzenje}…{/jeZaduzenje}, {#jePrezaduzenje}, {#jeRazduzenje}. Start from the default template.",
+        "defaultBs": "Default template (bs)",
+        "defaultEn": "Default template (en)",
+        "notes": "Version note",
+        "upload": "Upload new version",
+        "uploaded": "Template v{{version}} is active.",
+        "unknownTags": "Unknown fields (will stay empty): {{tags}}",
+        "invalidDetail": "The template is invalid: {{detail}}",
+        "usingDefault": "No template uploaded — the built-in default is used.",
+        "active": "active",
+        "downloadVersion": "Download version {{version}}"
       }
     }
   }

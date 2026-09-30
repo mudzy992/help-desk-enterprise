@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
+import { AssetTransfersPanel } from "@/components/assets/asset-transfers-panel";
 import { useToast } from "@/components/ui/toast";
 import {
   assetAssignableStatuses,
@@ -43,7 +44,7 @@ import {
   type AssetHistoryItem,
 } from "@/services/assets-api";
 
-type Tab = "overview" | "tickets" | "relations" | "coverage" | "history";
+type Tab = "overview" | "tickets" | "relations" | "coverage" | "transfers" | "history";
 type Sheet = "edit" | "duplicate" | "status" | "assign" | "unassign" | null;
 
 /** Paket 3.2 (§17.3): asset card with overview, tickets, relations and history. */
@@ -210,6 +211,7 @@ export function AssetDetailPage() {
           { key: "tickets", label: t("assets.detail.tabs.tickets"), count: asset.tickets.total },
           { key: "relations", label: t("assets.detail.tabs.relations"), count: asset.relations.length },
           { key: "coverage", label: t("assets.detail.tabs.coverage"), count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0) },
+          { key: "transfers", label: t("assets.detail.tabs.transfers") },
           { key: "history", label: t("assets.detail.tabs.history") },
         ]}
         active={tab}
@@ -220,6 +222,7 @@ export function AssetDetailPage() {
       {tab === "tickets" ? <AssetTickets asset={asset} /> : null}
       {tab === "relations" ? <AssetRelationsPanel asset={asset} onChanged={refresh} /> : null}
       {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
+      {tab === "transfers" ? <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} /> : null}
       {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
 
       {canManage && catalogQuery.data && optionsQuery.data ? (
@@ -454,6 +457,9 @@ function AssetHistoryPanel({ assetId }: { readonly assetId: string }) {
             <li key={item.id} className="grid gap-0.5 px-4 py-2 text-[12.5px]">
               <span className="text-foreground">{historyText(item, users, translate)}</span>
               {reason ? <span className="text-muted-foreground">„{reason}“</span> : null}
+              {typeof item.detail.transferNumber === "string" ? (
+                <span className="text-muted-foreground">{t("assets.history.transfer", { number: item.detail.transferNumber })}</span>
+              ) : null}
               <span className="text-[11.5px] text-muted-foreground">
                 {formatAssetDateTime(item.createdAt, i18n.language)} ·{" "}
                 {item.actorUserId ? (users[item.actorUserId] ?? t("assets.history.unknownUser")) : t("assets.history.system")}

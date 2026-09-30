@@ -340,12 +340,25 @@ To je kriterij kompletnosti.
 - Pri svakom kretanju opreme generiše se prenosnica po DOCX šablonu organizacije.
 - Scenariji kretanja: skladište → korisnik, korisnik → korisnik i korisnik → skladište.
 - Polja na prenosnici su: ko predaje, ko preuzima, naziv opreme, inventarni broj i potpisnik.
-- Za svaku stavku opreme definiše se ko je potpisnik.
-- Broj prenosnice ima oblik dan-mjesec-broj-godina, npr. 30-09-0007-2026.
 - Potpisnik se definiše po organizacionoj jedinici i nasljeđuje se na sve jedinice ispod nje, dok niža jedinica ne definiše svog (Direkcija → ED Zenica → Snabdijevanje).
 - Broj prenosnice je mjesec-broj-godina (01-0001-2026); brojač kreće od 1 svakog mjeseca.
 - Prenosnica se izdaje kao DOCX, a potpisana kopija se prilaže kao PDF ili JPG.
 - Kod prvog zaduženja upisuje se ko predaje; ako se ne upiše, na prenosnici piše „Skladište“.
+
+## CMDB — prenosnice (C9, 30.9.2026)
+
+- Oprema se kreće kroz „Zaduži“, „Prezaduži“ i „Razduži“ na kartici opreme; uz kretanje se odmah izdaje prenosnica i nudi preuzimanje DOCX-a.
+- Prenosnica se može preskočiti za pojedino kretanje; ako je uključeno „Prenosnica obavezna“, stari način zaduživanja bez prenosnice je blokiran.
+- Broj se dodjeljuje u trenutku izdavanja i nikad se ne ponavlja: brojač kreće od 1 prvog dana svakog mjeseca po vremenskoj zoni instalacije; zadani oblik je MM-NNNN-GGGG (npr. 09-0007-2026), a oblik se može promijeniti u postavkama.
+- Potpisnik se određuje po organizacionoj jedinici onoga ko preuzima (kod razduženja — onoga ko vraća); ako ga jedinica nema, uzima se najbliža nadređena, zatim zadani potpisnik iz postavki.
+- Potpisnik ima funkciju (npr. „Rukovodilac službe“) koja se štampa ispod imena; korisnici u sistemu nemaju polje funkcije, pa je polje funkcije za onoga ko predaje/preuzima prazno.
+- Prenosnica „pamti“ stanje u trenutku izdavanja (imena, OJ, oprema); kasnije promjene korisnika ili opreme ne mijenjaju već izdat dokument, a ponovno preuzimanje daje isti sadržaj.
+- Organizacija oblikuje šablon u Wordu (zaglavlje, logo, fontovi) i učitava ga u Katalogu; svaka nova verzija odmah postaje aktivna, a već izdate prenosnice ostaju na verziji s kojom su izdate. Bez učitanog šablona koristi se ugrađeni zadani, koji se može preuzeti kao polazna tačka.
+- Šablon s greškom ili makroima se odbija; nepoznata polja se samo upozore i ostaju prazna.
+- Potpisana kopija (PDF, JPG ili PNG, do 10 MB) prilaže se u registru i prolazi antivirusnu provjeru; prenosnica tada dobija status „Potpisana“, a kopija se može zamijeniti.
+- Pogrešna prenosnica se stornira uz razlog; storniranje ne vraća opremu — ispravka je novo kretanje s novom prenosnicom.
+- Registar prenosnica je tab „Prenosnice“ na stranici Oprema; kartica opreme ima svoj tab, a korisnik na „Mojoj opremi“ vidi i preuzima svoje prenosnice.
+- Pri anonimizaciji korisnika njegovo ime u izdatim prenosnicama zamjenjuje se pseudonimom, a e-mail, funkcija i OJ se brišu; broj i oprema ostaju.
 
 ## CMDB — licence, ugovori i podsjetnici (C6, 30.9.2026)
 
