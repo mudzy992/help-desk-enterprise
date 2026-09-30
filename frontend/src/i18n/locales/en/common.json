@@ -1370,9 +1370,6 @@
         "private.assets.reminders.recipients": "Extra internal e-mail recipients of expiry reminders, comma separated.",
         "private.assets.import.maxRows": "Largest number of rows in one import file (100–20000).",
         "private.assets.import.maxFileMb": "Largest import file in MB (1–20).",
-        "private.assets.handover.enabled": "Offer a handover record (PDF) when equipment is assigned or returned.",
-        "private.assets.handover.header": "Header text of the handover record (e.g. organization name and address).",
-        "private.assets.handover.footer": "Footer note of the handover record (e.g. user obligations).",
         "private.assets.directorySync.enabled": "Synchronize computers from Active Directory (needs a working AD connection).",
         "private.assets.directorySync.intervalHours": "Hours between computer synchronizations (1–24).",
         "private.assets.directorySync.baseDn": "Base DN searched for computers (empty = the directory base DN). Environment-bound.",
@@ -1381,7 +1378,13 @@
         "private.assets.directorySync.serverTypeKey": "Asset type key for directory computers whose operating system is a server.",
         "private.assets.directorySync.userMatch": "Order of linking a computer to a user: managedBy, namePattern, description (comma separated).",
         "private.assets.directorySync.namePattern": "Regular expression on the computer name with a named group \"login\", e.g. ^PC-(?<login>[a-z.]+)$.",
-        "private.assets.directorySync.defaultOrganizationalUnitId": "Organizational unit id for directory computers whose OU is not mapped (empty = skip them)."
+        "private.assets.directorySync.defaultOrganizationalUnitId": "Organizational unit id for directory computers whose OU is not mapped (empty = skip them).",
+        "private.assets.transfer.enabled": "Issue a transfer record (DOCX) when equipment moves; off = the move is only recorded in the history.",
+        "private.assets.transfer.required": "Equipment can only be assigned or returned with a transfer record.",
+        "private.assets.transfer.numberFormat": "Transfer number format: {MM}, {YYYY} and {NNNN} (3–6 N) required, {DD} optional; the counter restarts every month.",
+        "private.assets.transfer.warehouseLabel": "Text printed when the warehouse hands over or receives (empty = “Warehouse”).",
+        "private.assets.transfer.place": "Place of issue printed on the transfer record (e.g. the city).",
+        "private.assets.transfer.defaultSignatoryUserId": "Signatory when no organizational unit in the chain defines one (user id; empty = none)."
       }
     },
     "emailTemplates": {

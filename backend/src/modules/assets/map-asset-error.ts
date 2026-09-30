@@ -24,6 +24,9 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.licenseNotFound:
     case assetErrorCodes.contractNotFound:
     case assetErrorCodes.importNotFound:
+    case assetErrorCodes.transferNotFound:
+    case assetErrorCodes.transferNoSignedCopy:
+    case assetErrorCodes.transferTemplateNotFound:
       return new NotFoundException(body);
     case assetErrorCodes.forbidden:
     case assetErrorCodes.outOfScope:
@@ -50,11 +53,17 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.importHasErrors:
     case assetErrorCodes.directorySyncDisabled:
     case assetErrorCodes.directoryNotConfigured:
+    case assetErrorCodes.transferRequired:
+    case assetErrorCodes.transferDisabled:
+    case assetErrorCodes.transferNotIssued:
+    case assetErrorCodes.transferRenderFailed:
       return new ConflictException(body);
     case assetErrorCodes.importFileTooLarge:
     case assetErrorCodes.exportTooLarge:
+    case assetErrorCodes.transferFileTooLarge:
       return new PayloadTooLargeException(body);
     case assetErrorCodes.directoryUnavailable:
+    case assetErrorCodes.transferScanUnavailable:
       return new ServiceUnavailableException(body);
     default:
       return new BadRequestException(body);

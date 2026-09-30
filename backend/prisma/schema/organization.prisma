@@ -1,5 +1,6 @@
 model OrganizationalUnit {
   assets Asset[]
+  assetSignatory AssetSignatory?
   assetContracts AssetContract[]
   softwareLicenses SoftwareLicense[]
   id                 String                  @id @default(cuid())

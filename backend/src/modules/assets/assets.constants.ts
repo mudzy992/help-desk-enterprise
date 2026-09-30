@@ -46,6 +46,20 @@ export const assetErrorCodes = {
   directorySyncDisabled: 'ASSET_DIRECTORY_SYNC_DISABLED',
   directoryNotConfigured: 'ASSET_DIRECTORY_NOT_CONFIGURED',
   directoryUnavailable: 'ASSET_DIRECTORY_UNAVAILABLE',
+  // C9 transfer records (§7a)
+  transferRequired: 'ASSET_TRANSFER_REQUIRED',
+  transferDisabled: 'ASSET_TRANSFER_DISABLED',
+  transferInvalid: 'ASSET_TRANSFER_INVALID',
+  transferNotFound: 'ASSET_TRANSFER_NOT_FOUND',
+  transferNotIssued: 'ASSET_TRANSFER_NOT_ISSUED',
+  transferNoSignedCopy: 'ASSET_TRANSFER_NO_SIGNED_COPY',
+  transferFileInvalid: 'ASSET_TRANSFER_FILE_INVALID',
+  transferFileTooLarge: 'ASSET_TRANSFER_FILE_TOO_LARGE',
+  transferFileInfected: 'ASSET_TRANSFER_FILE_INFECTED',
+  transferScanUnavailable: 'ASSET_TRANSFER_SCAN_UNAVAILABLE',
+  transferTemplateInvalid: 'ASSET_TRANSFER_TEMPLATE_INVALID',
+  transferTemplateNotFound: 'ASSET_TRANSFER_TEMPLATE_NOT_FOUND',
+  transferRenderFailed: 'ASSET_TRANSFER_RENDER_FAILED',
 } as const;
 
 export type AssetErrorCode = (typeof assetErrorCodes)[keyof typeof assetErrorCodes];

@@ -128,6 +128,11 @@ export const auditLogActions = {
   assetContractSaved: 'asset.contract.saved',
   assetDirectorySyncDryRun: 'asset.directory_sync.dry_run',
   assetDirectorySyncApplied: 'asset.directory_sync.applied',
+  assetTransferIssued: 'asset.transfer.issued',
+  assetTransferCancelled: 'asset.transfer.cancelled',
+  assetTransferSigned: 'asset.transfer.signed',
+  assetTransferTemplateUploaded: 'asset.transfer.template_uploaded',
+  assetSignatorySaved: 'asset.signatory.saved',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',
@@ -175,6 +180,8 @@ export const auditLogEntityTypes = {
   softwareLicense: 'software_license',
   assetContract: 'asset_contract',
   assetImport: 'asset_import',
+  assetTransfer: 'asset_transfer',
+  assetSignatory: 'asset_signatory',
 } as const;
 
 export const auditLogErrorCodes = {

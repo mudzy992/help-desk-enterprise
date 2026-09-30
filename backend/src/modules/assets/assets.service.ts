@@ -10,6 +10,7 @@ import { assetDefaults } from '../settings/definitions/asset-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { terminalTicketStatuses } from '../tickets/merge/merge.constants';
 import { AssetAccessService } from './asset-access.service';
+import { AssetTransfersService } from './transfers/asset-transfers.service';
 import { dateOnly, optionalDate, optionalText } from './asset-fields';
 import { validateAssetAttributes, type AssetAttributeDefinition, type AttributeIssue } from './asset-attributes';
 import { collectRelationImpact, isDirectedRelation, wouldCreateRelationCycle, type RelationEdge } from './asset-relations';
@@ -91,6 +92,7 @@ export class AssetsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AssetAccessService,
+    private readonly transfers: AssetTransfersService,
   ) {}
 
   // ------------------------------------------------------------ helpers
@@ -716,6 +718,7 @@ export class AssetsService {
 
   async assign(id: string, input: { userId: string; organizationalUnitId?: string; note?: string }, viewer: AssetViewer) {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
+    await this.transfers.assertDirectMoveAllowed();
     const current = await this.loadInScope(id, scope);
     if (!assetAssignableStatuses.includes(current.status)) throw new AssetError(assetErrorCodes.statusTransition);
     const user = await this.prisma.user.findUnique({
@@ -756,6 +759,7 @@ export class AssetsService {
     const scope = await this.access.require(viewer, permissionKeys.assetManage);
     const current = await this.loadInScope(id, scope);
     if (current.assignedUserId === null) return { id };
+    await this.transfers.assertDirectMoveAllowed();
     const nextStatus: AssetStatusValue = input.status ?? (current.status === 'IN_USE' ? 'IN_STOCK' : current.status);
     if (!canTransitionAssetStatus(current.status, nextStatus) || !['IN_STOCK', 'IN_REPAIR', 'IN_USE'].includes(nextStatus)) {
       throw new AssetError(assetErrorCodes.statusTransition);

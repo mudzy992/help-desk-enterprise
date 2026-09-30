@@ -27,6 +27,10 @@ export const environmentBoundSettingPrefixes: readonly string[] = [
   'private.statusPage.',
   'private.configVersioning.',
   'public.maintenance.',
+  // Paket 3.2: ids / DNs that only exist in one environment (exact keys).
+  'private.assets.directorySync.baseDn',
+  'private.assets.directorySync.defaultOrganizationalUnitId',
+  'private.assets.transfer.defaultSignatoryUserId',
 ];
 
 export function isEnvironmentBoundSetting(key: string): boolean {

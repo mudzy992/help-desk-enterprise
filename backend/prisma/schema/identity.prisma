@@ -1,5 +1,10 @@
 model User {
   assetsAssigned Asset[] @relation("AssetAssignedUser")
+  assetSignatories AssetSignatory[] @relation("AssetSignatoryUser")
+  assetTransfersFrom AssetTransfer[] @relation("AssetTransferFrom")
+  assetTransfersTo AssetTransfer[] @relation("AssetTransferTo")
+  assetTransfersSigned AssetTransfer[] @relation("AssetTransferSignatory")
+  assetTransfersIssued AssetTransfer[] @relation("AssetTransferIssuedBy")
   licenseAssignments LicenseAssignment[] @relation("LicenseAssignedUser")
   id                   String                     @id @default(cuid())
   reportSchedulesCreated ReportSchedule[] @relation("ReportScheduleCreatedBy")

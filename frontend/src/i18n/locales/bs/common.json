@@ -1379,9 +1379,6 @@
         "private.assets.reminders.recipients": "Dodatni interni e-mail primaoci podsjetnika o isteku, odvojeni zarezom.",
         "private.assets.import.maxRows": "Najveći broj redova u jednom fajlu za uvoz (100–20000).",
         "private.assets.import.maxFileMb": "Najveća veličina fajla za uvoz u MB (1–20).",
-        "private.assets.handover.enabled": "Ponudi zapisnik o primopredaji (PDF) pri zaduženju ili razduženju opreme.",
-        "private.assets.handover.header": "Tekst zaglavlja zapisnika (npr. naziv i adresa organizacije).",
-        "private.assets.handover.footer": "Napomena u podnožju zapisnika (npr. obaveze korisnika).",
         "private.assets.directorySync.enabled": "Sinhronizuj računare iz Active Directoryja (potrebna ispravna AD veza).",
         "private.assets.directorySync.intervalHours": "Broj sati između sinhronizacija računara (1–24).",
         "private.assets.directorySync.baseDn": "Base DN u kojem se traže računari (prazno = base DN direktorija). Vezano za okruženje.",
@@ -1390,7 +1387,13 @@
         "private.assets.directorySync.serverTypeKey": "Ključ tipa imovine za računare iz direktorija čiji je operativni sistem serverski.",
         "private.assets.directorySync.userMatch": "Redoslijed povezivanja računara s korisnikom: managedBy, namePattern, description (odvojeno zarezom).",
         "private.assets.directorySync.namePattern": "Regularni izraz nad imenom računara s imenovanom grupom „login“, npr. ^PC-(?<login>[a-z.]+)$.",
-        "private.assets.directorySync.defaultOrganizationalUnitId": "ID organizacione jedinice za računare iz direktorija čija OU nije mapirana (prazno = preskoči ih)."
+        "private.assets.directorySync.defaultOrganizationalUnitId": "ID organizacione jedinice za računare iz direktorija čija OU nije mapirana (prazno = preskoči ih).",
+        "private.assets.transfer.enabled": "Izdaj prenosnicu (DOCX) pri kretanju opreme; isključeno = kretanje se samo bilježi u historiji.",
+        "private.assets.transfer.required": "Oprema se može zadužiti ili razdužiti samo uz prenosnicu.",
+        "private.assets.transfer.numberFormat": "Format broja prenosnice: obavezni {MM}, {YYYY} i {NNNN} (3–6 N), opciono {DD}; brojač kreće od 1 svakog mjeseca.",
+        "private.assets.transfer.warehouseLabel": "Tekst kad predaje ili preuzima skladište (prazno = „Skladište“).",
+        "private.assets.transfer.place": "Mjesto izdavanja na prenosnici (npr. grad).",
+        "private.assets.transfer.defaultSignatoryUserId": "Potpisnik kad ga nijedna organizaciona jedinica u lancu nema (ID korisnika; prazno = nema)."
       }
     },
     "emailTemplates": {

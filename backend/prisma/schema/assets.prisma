@@ -173,6 +173,7 @@ model Asset {
   relationsFrom        AssetRelation[]     @relation("AssetRelationFrom")
   relationsTo          AssetRelation[]     @relation("AssetRelationTo")
   tickets              TicketAsset[]
+  transferItems        AssetTransferItem[]
   contractItems        AssetContractItem[]
   licenseAssignments   LicenseAssignment[]
   events               AssetEvent[]
@@ -322,4 +323,114 @@ model AssetImportJob {
 
   @@index([createdByUserId, createdAt])
   @@index([fileSha256])
+}
+
+// ------------------------------------------------------------ Paket 3.2 C9: prenosnice (§7a)
+
+enum AssetTransferScenario {
+  WAREHOUSE_TO_USER
+  USER_TO_USER
+  USER_TO_WAREHOUSE
+}
+
+enum AssetTransferStatus {
+  ISSUED
+  SIGNED
+  CANCELLED
+}
+
+/// Signatory of transfer records for an OU and (inherited) everything below it.
+model AssetSignatory {
+  id                   String             @id @default(cuid())
+  organizationalUnitId String             @unique
+  userId               String
+  /// Printed function of the signatory, e.g. "Rukovodilac službe".
+  title                String?            @db.VarChar(160)
+  organizationalUnit   OrganizationalUnit @relation(fields: [organizationalUnitId], references: [id], onDelete: Cascade)
+  user                 User               @relation("AssetSignatoryUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([userId])
+}
+
+/// Monthly counter of transfer numbers (reset each month, installation time zone).
+model AssetTransferSequence {
+  year       Int
+  month      Int
+  lastNumber Int @default(0)
+
+  @@id([year, month])
+}
+
+/// Uploaded DOCX templates; the highest version is the active one.
+model AssetTransferTemplate {
+  id               String          @id @default(cuid())
+  version          Int             @unique
+  fileName         String          @db.VarChar(200)
+  content          Bytes
+  sizeBytes        Int
+  sha256           String          @db.VarChar(64)
+  /// Placeholders found in the template (for the admin overview).
+  tags             String[]        @default([])
+  notes            String?         @db.VarChar(500)
+  uploadedByUserId String?
+  transfers        AssetTransfer[]
+  createdAt        DateTime        @default(now())
+}
+
+model AssetTransfer {
+  id                String                 @id @default(cuid())
+  number            String                 @unique @db.VarChar(40)
+  year              Int
+  month             Int
+  sequence          Int
+  scenario          AssetTransferScenario
+  status            AssetTransferStatus    @default(ISSUED)
+  fromUserId        String?
+  /// Free text / warehouse label when nobody (a person) hands over.
+  fromLabel         String?                @db.VarChar(200)
+  toUserId          String?
+  toLabel           String?                @db.VarChar(200)
+  signatoryUserId   String?
+  issuedByUserId    String?
+  note              String?                @db.VarChar(1000)
+  /// Null = the built-in default template.
+  templateId        String?
+  /// Everything printed on the document, frozen at issue time.
+  snapshot          Json
+  issuedAt          DateTime               @default(now())
+  cancelledAt       DateTime?
+  cancelledByUserId String?
+  cancelReason      String?                @db.VarChar(500)
+  signedAt          DateTime?
+  signedByUserId    String?
+  signedStoragePath String?                @unique
+  signedFileName    String?                @db.VarChar(200)
+  signedMimeType    String?                @db.VarChar(80)
+  signedSizeBytes   Int?
+  fromUser          User?                  @relation("AssetTransferFrom", fields: [fromUserId], references: [id], onDelete: SetNull)
+  toUser            User?                  @relation("AssetTransferTo", fields: [toUserId], references: [id], onDelete: SetNull)
+  signatory         User?                  @relation("AssetTransferSignatory", fields: [signatoryUserId], references: [id], onDelete: SetNull)
+  issuedBy          User?                  @relation("AssetTransferIssuedBy", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  template          AssetTransferTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  items             AssetTransferItem[]
+
+  @@unique([year, month, sequence])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([issuedAt(sort: Desc)])
+  @@index([status])
+}
+
+model AssetTransferItem {
+  id         String        @id @default(cuid())
+  transferId String
+  assetId    String?
+  position   Int
+  transfer   AssetTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  asset      Asset?        @relation(fields: [assetId], references: [id], onDelete: SetNull)
+
+  @@unique([transferId, position])
+  @@index([assetId])
 }

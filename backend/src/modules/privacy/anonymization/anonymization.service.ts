@@ -19,6 +19,7 @@ import { evaluateAnonymizationBlockers } from './anonymization-blockers';
 import { AnonymizationExecutor, type AnonymizationPreview } from './anonymization-executor';
 import { redactAuditForSubject } from './audit-redaction';
 import { createPseudonym, type Pseudonym } from './pseudonym';
+import { scrubAssetTransferSnapshots } from '../../assets/transfers/asset-transfers.service';
 import { createTextScrubber, type TextScrubber } from './text-scrubber';
 import { computeTombstones, readTombstoneKey } from './tombstones';
 import { PRIVACY_ERASURE_LEDGER, type ErasureLedger } from './erasure-ledger';
@@ -385,12 +386,15 @@ export class AnonymizationService {
           });
           // Nobody reports to an anonymized person any more.
           await transaction.user.updateMany({ where: { managerUserId: erasure.userId }, data: { managerUserId: null } });
+          // Paket 3.2 C9: frozen transfer records print the pseudonym; the person is no signatory any more.
+          const assetTransfers = await scrubAssetTransferSnapshots(transaction, erasure.userId, erasure.pseudonym);
+          await transaction.assetSignatory.deleteMany({ where: { userId: erasure.userId } });
           await transaction.privacyErasure.update({
             where: { id: erasure.id },
             data: {
               status: 'COMPLETED',
               tombstones,
-              report: { ...report, pausedScheduleIds: [...pausedScheduleIds] },
+              report: { ...report, assetTransfers, pausedScheduleIds: [...pausedScheduleIds] },
               completedAt: now,
               error: null,
             },
