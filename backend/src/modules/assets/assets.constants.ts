@@ -28,6 +28,12 @@ export const assetErrorCodes = {
   relationCycle: 'ASSET_RELATION_CYCLE',
   relationSelf: 'ASSET_RELATION_SELF',
   hasDependents: 'ASSET_HAS_DEPENDENTS',
+  licenseNotFound: 'ASSET_LICENSE_NOT_FOUND',
+  licenseKeyUnavailable: 'ASSET_LICENSE_KEY_UNAVAILABLE',
+  licenseAssignmentInvalid: 'ASSET_LICENSE_ASSIGNMENT_INVALID',
+  licenseAssignmentExists: 'ASSET_LICENSE_ASSIGNMENT_EXISTS',
+  contractNotFound: 'ASSET_CONTRACT_NOT_FOUND',
+  contractItemExists: 'ASSET_CONTRACT_ITEM_EXISTS',
 } as const;
 
 export type AssetErrorCode = (typeof assetErrorCodes)[keyof typeof assetErrorCodes];
@@ -140,3 +146,18 @@ export const assetEventActions = {
 export const assetKeyPattern = /^[a-z][a-z0-9-]{1,47}$/;
 /** Attribute keys are camelCase identifiers (used as JSON keys and import columns). */
 export const assetAttributeKeyPattern = /^[a-z][A-Za-z0-9]{0,47}$/;
+
+/** §9 */
+export const softwareLicenseKinds = ['PER_DEVICE', 'PER_USER', 'SITE', 'SUBSCRIPTION'] as const;
+export type SoftwareLicenseKindValue = (typeof softwareLicenseKinds)[number];
+
+/** §10 */
+export const assetContractKinds = ['WARRANTY', 'SUPPORT', 'LEASE', 'MAINTENANCE'] as const;
+export type AssetContractKindValue = (typeof assetContractKinds)[number];
+
+export const assetContractLimits = {
+  listMax: 200,
+  itemsPerContract: 500,
+  assignmentsPerLicense: 5000,
+  keyMax: 500,
+} as const;

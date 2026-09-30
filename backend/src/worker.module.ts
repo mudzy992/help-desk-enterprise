@@ -8,6 +8,7 @@ import { KnowledgeBaseReviewReminderWorkerModule } from './modules/knowledge-bas
 import { NotificationRetentionWorkerModule } from './modules/notifications/notification-retention-worker.module';
 import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
 import { OnCallWorkerModule } from './modules/on-call/on-call-worker.module';
+import { AssetRemindersWorkerModule } from './modules/assets/reminders/asset-reminders-worker.module';
 import { AnnouncementWorkerModule } from './modules/announcements/announcement-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
 import { OpsHealthWorkerModule } from './modules/ops-health/ops-health-worker.module';
@@ -50,6 +51,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     // Paket 2.9 (K2): announcement notifications and receipt retention.
     AnnouncementWorkerModule,
     OpsHealthWorkerModule,
+    AssetRemindersWorkerModule,
   ],
 })
 export class WorkerModule {}

@@ -1,4 +1,5 @@
 import { composeAnnouncementEmailPreview } from '../../announcements/compose-announcement-email';
+import { composeAssetReminderEmailPreview } from '../../assets/reminders/compose-asset-reminder-email';
 import { composeOpsAlertEmailPreview } from '../../ops-health/compose-ops-alert-email';
 import { isoWeek } from '../preferences/weekly-ticket-report';
 import { composeWeeklyTicketReportEmail } from './compose-weekly-ticket-report-email';
@@ -158,6 +159,15 @@ export function renderEmailTemplatePreview(input: {
       locale,
       recipientName: input.recipientName,
       kind: input.key === 'announcement.published' ? 'PUBLISHED' : 'REMINDER',
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'asset.expiring') {
+    const composed = composeAssetReminderEmailPreview({
+      configuration,
+      templates: input.templates,
+      locale,
+      recipientName: input.recipientName,
     });
     return { subject: composed.subject, html: composed.html, text: composed.text };
   }

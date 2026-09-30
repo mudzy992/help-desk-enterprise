@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { AssetCoveragePanel } from "@/components/assets/asset-coverage-panel";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -42,7 +43,7 @@ import {
   type AssetHistoryItem,
 } from "@/services/assets-api";
 
-type Tab = "overview" | "tickets" | "relations" | "history";
+type Tab = "overview" | "tickets" | "relations" | "coverage" | "history";
 type Sheet = "edit" | "duplicate" | "status" | "assign" | "unassign" | null;
 
 /** Paket 3.2 (§17.3): asset card with overview, tickets, relations and history. */
@@ -208,6 +209,7 @@ export function AssetDetailPage() {
           { key: "overview", label: t("assets.detail.tabs.overview") },
           { key: "tickets", label: t("assets.detail.tabs.tickets"), count: asset.tickets.total },
           { key: "relations", label: t("assets.detail.tabs.relations"), count: asset.relations.length },
+          { key: "coverage", label: t("assets.detail.tabs.coverage"), count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0) },
           { key: "history", label: t("assets.detail.tabs.history") },
         ]}
         active={tab}
@@ -217,6 +219,7 @@ export function AssetDetailPage() {
       {tab === "overview" ? <AssetOverview asset={asset} /> : null}
       {tab === "tickets" ? <AssetTickets asset={asset} /> : null}
       {tab === "relations" ? <AssetRelationsPanel asset={asset} onChanged={refresh} /> : null}
+      {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
       {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
 
       {canManage && catalogQuery.data && optionsQuery.data ? (

@@ -160,6 +160,14 @@ const bs: EmailTemplateSet = {
     'Poštovani/a {{recipientName}},\n\n{{announcementBody}}\n\nVrijedi: {{announcementPeriod}}.',
     'Otvori najavu',
   ),
+  'asset.expiring': content(
+    'Ističe uskoro: {{reportName}}',
+    'Ističe uskoro: {{reportName}}',
+    'Garancije, ugovori i licence pred istek',
+    'Poštovani/a {{recipientName}}, u nastavku su stavke iz vašeg obima kojima uskoro ističe garancija, ugovor ili licenca ({{reportPeriod}}). Produžite ih ili zabilježite novi datum isteka, pa podsjetnik za njih prestaje.',
+    'Otvori imovinu',
+    amber,
+  ),
   'announcement.reminder': content(
     'Podsjetnik: potvrdite najavu „{{announcementTitle}}”',
     'Podsjetnik: potvrdite najavu „{{announcementTitle}}”',
@@ -313,6 +321,14 @@ const en: EmailTemplateSet = {
     '{{announcementTitle}}',
     'Dear {{recipientName}},\n\n{{announcementBody}}\n\nValid: {{announcementPeriod}}.',
     'Open announcement',
+  ),
+  'asset.expiring': content(
+    'Expiring soon: {{reportName}}',
+    'Expiring soon: {{reportName}}',
+    'Warranties, contracts and licences about to expire',
+    'Dear {{recipientName}}, the items below in your scope have a warranty, contract or licence that expires soon ({{reportPeriod}}). Renew them or record the new expiry date and the reminder stops.',
+    'Open assets',
+    amber,
   ),
   'announcement.reminder': content(
     'Reminder: please acknowledge "{{announcementTitle}}"',

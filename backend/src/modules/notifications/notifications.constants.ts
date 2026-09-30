@@ -39,6 +39,8 @@ export const notificationTypes = {
   // Paket 2.9 (K2): announcement started (audience) and acknowledgement reminder.
   announcementPublished: 'announcement.published',
   announcementReminder: 'announcement.reminder',
+  // Paket 3.2 (§10): expiring warranties, contracts and licences.
+  assetExpiring: 'asset.expiring',
 } as const;
 
 export type NotificationType =
@@ -83,6 +85,7 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.onCallGap]: 'notifications.items.onCallGap',
     [notificationTypes.announcementPublished]: 'notifications.items.announcementPublished',
     [notificationTypes.announcementReminder]: 'notifications.items.announcementReminder',
+    [notificationTypes.assetExpiring]: 'notifications.items.assetExpiring',
   };
 
 export const notificationListLimits = {

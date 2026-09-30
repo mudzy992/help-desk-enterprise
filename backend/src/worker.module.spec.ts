@@ -38,6 +38,8 @@ import { onCallSweepQueueName } from './modules/on-call/on-call-sweep.job.consta
 import { OnCallSweepProcessor } from './modules/on-call/on-call-sweep.processor';
 import { announcementSweepQueueName } from './modules/announcements/announcement-sweep.job.constants';
 import { AnnouncementSweepProcessor } from './modules/announcements/announcement-sweep.processor';
+import { assetRemindersQueueName } from './modules/assets/reminders/asset-reminders.constants';
+import { AssetRemindersProcessor } from './modules/assets/reminders/asset-reminders.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -62,6 +64,7 @@ const scheduledQueueNames = [
   onCallSweepQueueName,
   announcementSweepQueueName,
   opsHealthQueueName,
+  assetRemindersQueueName,
 ] as const;
 
 const processorTypes = [
@@ -82,6 +85,7 @@ const processorTypes = [
   OnCallSweepProcessor,
   AnnouncementSweepProcessor,
   OpsHealthProcessor,
+  AssetRemindersProcessor,
 ] as const;
 
 function createFakeQueue() {

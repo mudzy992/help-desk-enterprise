@@ -27,6 +27,10 @@ export function notificationTicketPath(
   if (type === "ticket.unroutedDigest") {
     return "/tickets?view=all&unroutedOverdue=true";
   }
+  // Paket 3.2 (§10): expiry reminders open the asset register.
+  if (type === "asset.expiring") {
+    return "/assets";
+  }
   // Paket 1.8 (A3): the aborted directory sync points at the sync panel.
   if (type === "directory.syncAborted") {
     return "/organizational-units";
@@ -102,6 +106,7 @@ export function notificationTitleKey(
   | "notifications.items.onCallGap"
   | "notifications.items.announcementPublished"
   | "notifications.items.announcementReminder"
+  | "notifications.items.assetExpiring"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -162,6 +167,8 @@ export function notificationTitleKey(
       return "notifications.items.announcementPublished";
     case "announcement.reminder":
       return "notifications.items.announcementReminder";
+    case "asset.expiring":
+      return "notifications.items.assetExpiring";
     default:
       return "notifications.items.unknown";
   }

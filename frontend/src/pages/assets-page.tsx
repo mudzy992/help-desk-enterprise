@@ -5,6 +5,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Plus, Search } from "lucide-react";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
+import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
+import { AssetLicensesPanel } from "@/components/assets/asset-licenses-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,6 +49,8 @@ import {
 } from "@/services/assets-api";
 
 const pageSize = 50;
+const assetsTabs = ["register", "licenses", "contracts", "catalog"] as const;
+type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
 /**
@@ -61,7 +65,8 @@ export function AssetsPage() {
     retry: false,
   });
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("tab") === "catalog" ? "catalog" : "register";
+  const requestedTab = searchParams.get("tab");
+  const tab: AssetsTab = assetsTabs.includes(requestedTab as AssetsTab) ? (requestedTab as AssetsTab) : "register";
 
   const header = <PageHeader crumbs={[t("navigation.sections.services")]} title={t("assets.title")} subtitle={t("assets.subtitle")} />;
 
@@ -92,17 +97,25 @@ export function AssetsPage() {
   return (
     <div className="grid gap-4">
       {header}
-      {capabilities.canManageTypes ? (
-        <UnderlineTabs
-          items={[
-            { key: "register", label: t("assets.tabs.register") },
-            { key: "catalog", label: t("assets.tabs.catalog") },
-          ]}
-          active={tab}
-          onChange={(key) => setSearchParams(key === "catalog" ? { tab: "catalog" } : {}, { replace: true })}
-        />
-      ) : null}
-      {capabilities.canManageTypes && tab === "catalog" ? <AssetCatalogManager /> : <AssetRegister canManage={capabilities.canManage} />}
+      <UnderlineTabs
+        items={[
+          { key: "register", label: t("assets.tabs.register") },
+          { key: "licenses", label: t("assets.tabs.licenses") },
+          { key: "contracts", label: t("assets.tabs.contracts") },
+          ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
+        ]}
+        active={tab === "catalog" && !capabilities.canManageTypes ? "register" : tab}
+        onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
+      />
+      {tab === "licenses" ? (
+        <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
+      ) : tab === "contracts" ? (
+        <AssetContractsPanel canManage={capabilities.canManageContracts} />
+      ) : capabilities.canManageTypes && tab === "catalog" ? (
+        <AssetCatalogManager />
+      ) : (
+        <AssetRegister canManage={capabilities.canManage} />
+      )}
     </div>
   );
 }

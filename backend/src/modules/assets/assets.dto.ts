@@ -12,7 +12,16 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { assetAttributeDataTypes, assetCategories, assetLimits, assetRelationKinds, assetStatuses } from './assets.constants';
+import {
+  assetAttributeDataTypes,
+  assetCategories,
+  assetContractKinds,
+  assetContractLimits,
+  assetLimits,
+  assetRelationKinds,
+  assetStatuses,
+  softwareLicenseKinds,
+} from './assets.constants';
 
 export class SaveAssetDto {
   @IsOptional() @IsString() @MaxLength(64) assetTag?: string | null;
@@ -95,4 +104,36 @@ export class ArchiveDto {
 export class LinkTicketAssetDto {
   @IsString() @MaxLength(64) assetId!: string;
   @IsOptional() @IsBoolean() isPrimary?: boolean;
+}
+
+export class SaveLicenseDto {
+  @IsString() @MaxLength(160) productName!: string;
+  @IsOptional() @IsString() @MaxLength(120) vendor?: string | null;
+  @IsIn(softwareLicenseKinds) kind!: (typeof softwareLicenseKinds)[number];
+  @IsOptional() @IsInt() @Min(0) @Max(1_000_000) seats?: number | null;
+  @IsOptional() @IsString() @MaxLength(32) validUntil?: string | null;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) cost?: number | null;
+  @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
+  @IsString() @MaxLength(64) organizationalUnitId!: string;
+  @IsOptional() @IsString() @MaxLength(assetContractLimits.keyMax) licenseKey?: string | null;
+}
+
+export class AssignLicenseDto {
+  @IsOptional() @IsString() @MaxLength(64) assetId?: string;
+  @IsOptional() @IsString() @MaxLength(64) userId?: string;
+}
+
+export class SaveContractDto {
+  @IsIn(assetContractKinds) kind!: (typeof assetContractKinds)[number];
+  @IsString() @MaxLength(160) supplier!: string;
+  @IsOptional() @IsString() @MaxLength(120) reference?: string | null;
+  @IsOptional() @IsString() @MaxLength(32) startsAt?: string | null;
+  @IsString() @MaxLength(32) endsAt!: string;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) cost?: number | null;
+  @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
+  @IsString() @MaxLength(64) organizationalUnitId!: string;
+}
+
+export class ContractItemDto {
+  @IsString() @MaxLength(64) assetId!: string;
 }

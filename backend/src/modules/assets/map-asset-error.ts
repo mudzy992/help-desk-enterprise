@@ -19,6 +19,8 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.unitNotFound:
     case assetErrorCodes.userNotFound:
     case assetErrorCodes.serviceNotFound:
+    case assetErrorCodes.licenseNotFound:
+    case assetErrorCodes.contractNotFound:
       return new NotFoundException(body);
     case assetErrorCodes.forbidden:
     case assetErrorCodes.outOfScope:
@@ -37,6 +39,9 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.relationExists:
     case assetErrorCodes.relationCycle:
     case assetErrorCodes.hasDependents:
+    case assetErrorCodes.licenseAssignmentExists:
+    case assetErrorCodes.contractItemExists:
+    case assetErrorCodes.licenseKeyUnavailable:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

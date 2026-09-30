@@ -83,6 +83,8 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   // Paket 2.9 (K2): the author chose to notify; the banner itself is not a notification.
   // K2b: e-mail when the author also chose it (DIGEST/quiet: CRITICAL only, see the delivery service).
   category('announcement', [notificationTypes.announcementPublished, notificationTypes.announcementReminder], 0, both),
+  // Paket 3.2 (§10): asset managers, daily expiry reminders (in-app and e-mail).
+  category('asset.expiring', [notificationTypes.assetExpiring], 1, both),
   category(
     'account.security',
     [

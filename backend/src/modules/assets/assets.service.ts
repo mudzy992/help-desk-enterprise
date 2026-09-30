@@ -10,6 +10,7 @@ import { assetDefaults } from '../settings/definitions/asset-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { terminalTicketStatuses } from '../tickets/merge/merge.constants';
 import { AssetAccessService } from './asset-access.service';
+import { dateOnly, optionalDate, optionalText } from './asset-fields';
 import { validateAssetAttributes, type AssetAttributeDefinition, type AttributeIssue } from './asset-attributes';
 import { collectRelationImpact, isDirectedRelation, wouldCreateRelationCycle, type RelationEdge } from './asset-relations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from './asset-viewer';
@@ -70,25 +71,6 @@ const listInclude = {
 } as const;
 
 type ListRow = Prisma.AssetGetPayload<{ include: typeof listInclude }>;
-
-function optionalText(value: string | null | undefined, max: number, field: string): string | null {
-  if (value === undefined || value === null) return null;
-  const text = value.trim();
-  if (text.length === 0) return null;
-  if (text.length > max) throw new AssetError(assetErrorCodes.invalid, field);
-  return text;
-}
-
-function optionalDate(value: string | null | undefined, field: string): Date | null {
-  if (value === undefined || value === null || value.trim() === '') return null;
-  const date = new Date(value.length === 10 ? `${value}T00:00:00Z` : value);
-  if (Number.isNaN(date.getTime())) throw new AssetError(assetErrorCodes.invalid, field);
-  return date;
-}
-
-function dateOnly(value: Date | null): string | null {
-  return value === null ? null : value.toISOString().slice(0, 10);
-}
 
 function locationLabel(location: ListRow['location'], paths: ReadonlyMap<string, string>): string | null {
   if (location === null) return null;

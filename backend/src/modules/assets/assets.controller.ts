@@ -20,12 +20,18 @@ import { privacyActorOf } from '../privacy/privacy-actor';
 import { AssetAccessService } from './asset-access.service';
 import { AssetCatalogService } from './asset-catalog.service';
 import { AssetTicketsService } from './asset-tickets.service';
+import { AssetContractsService } from './asset-contracts.service';
+import { AssetLicensesService } from './asset-licenses.service';
 import { assetViewerOf, type AssetViewer } from './asset-viewer';
 import {
   AddAssetRelationDto,
   ArchiveDto,
   AssetStatusDto,
   AssignAssetDto,
+  AssignLicenseDto,
+  ContractItemDto,
+  SaveContractDto,
+  SaveLicenseDto,
   LinkTicketAssetDto,
   SaveAssetAttributeDto,
   SaveAssetDto,
@@ -33,7 +39,7 @@ import {
   SaveAssetTypeDto,
   UnassignAssetDto,
 } from './assets.dto';
-import { assetStatuses, type AssetStatusValue } from './assets.constants';
+import { assetContractKinds, assetStatuses, softwareLicenseKinds, type AssetStatusValue } from './assets.constants';
 import { AssetsService, type AssetListQuery } from './assets.service';
 import { runAsset } from './map-asset-error';
 
@@ -63,6 +69,12 @@ function parseListQuery(raw: RawListQuery): AssetListQuery {
   };
 }
 
+function parseDays(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const days = Number(raw);
+  return Number.isInteger(days) && days >= 0 && days <= 3650 ? days : undefined;
+}
+
 /**
  * Paket 3.2 (§14): CMDB API. RoleGuard denies routes without a permission
  * requirement, so every check (module switch, permission, unit scope) is in
@@ -77,6 +89,8 @@ export class AssetsController {
     private readonly catalogService: AssetCatalogService,
     private readonly assets: AssetsService,
     private readonly tickets: AssetTicketsService,
+    private readonly licenses: AssetLicensesService,
+    private readonly contracts: AssetContractsService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -123,6 +137,119 @@ export class AssetsController {
   @HttpCode(200)
   setPrimaryTicketAsset(@Param('ticketId') ticketId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.tickets.setPrimary(ticketId, assetId, this.viewer(request)));
+  }
+
+  // ------------------------------------------------------------ licences (§9)
+
+  @Get('licenses')
+  @Header('Cache-Control', 'no-store')
+  listLicenses(@Query() raw: RawListQuery, @Req() request: AuthenticatedHttpRequest) {
+    const kind = (softwareLicenseKinds as readonly string[]).includes(raw.kind ?? '') ? (raw.kind as (typeof softwareLicenseKinds)[number]) : undefined;
+    return runAsset(() =>
+      this.licenses.list(
+        {
+          search: raw.search?.slice(0, 120),
+          kind,
+          expiringWithinDays: parseDays(raw.expiringWithinDays),
+          overAllocated: raw.overAllocated === 'true',
+        },
+        this.viewer(request),
+      ),
+    );
+  }
+
+  @Post('licenses')
+  createLicense(@Body() body: SaveLicenseDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.create(body, this.viewer(request)));
+  }
+
+  @Get('licenses/:licenseId')
+  @Header('Cache-Control', 'no-store')
+  license(@Param('licenseId') licenseId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.detail(licenseId, this.viewer(request)));
+  }
+
+  @Put('licenses/:licenseId')
+  updateLicense(@Param('licenseId') licenseId: string, @Body() body: SaveLicenseDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.update(licenseId, body, this.viewer(request)));
+  }
+
+  @Delete('licenses/:licenseId')
+  removeLicense(@Param('licenseId') licenseId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.remove(licenseId, this.viewer(request)));
+  }
+
+  @Post('licenses/:licenseId/key')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  revealLicenseKey(@Param('licenseId') licenseId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.revealKey(licenseId, this.viewer(request)));
+  }
+
+  @Post('licenses/:licenseId/assignments')
+  @HttpCode(200)
+  assignLicense(@Param('licenseId') licenseId: string, @Body() body: AssignLicenseDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.licenses.assign(licenseId, body, this.viewer(request)));
+  }
+
+  @Delete('licenses/:licenseId/assignments/:assignmentId')
+  releaseLicense(
+    @Param('licenseId') licenseId: string,
+    @Param('assignmentId') assignmentId: string,
+    @Req() request: AuthenticatedHttpRequest,
+  ) {
+    return runAsset(() => this.licenses.release(licenseId, assignmentId, this.viewer(request)));
+  }
+
+  // ------------------------------------------------------------ contracts (§10)
+
+  @Get('contracts')
+  @Header('Cache-Control', 'no-store')
+  listContracts(@Query() raw: RawListQuery, @Req() request: AuthenticatedHttpRequest) {
+    const kind = (assetContractKinds as readonly string[]).includes(raw.kind ?? '') ? (raw.kind as (typeof assetContractKinds)[number]) : undefined;
+    return runAsset(() =>
+      this.contracts.list(
+        {
+          search: raw.search?.slice(0, 120),
+          kind,
+          expiringWithinDays: parseDays(raw.expiringWithinDays),
+          includeExpired: raw.includeExpired === 'true',
+        },
+        this.viewer(request),
+      ),
+    );
+  }
+
+  @Post('contracts')
+  createContract(@Body() body: SaveContractDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.create(body, this.viewer(request)));
+  }
+
+  @Get('contracts/:contractId')
+  @Header('Cache-Control', 'no-store')
+  contract(@Param('contractId') contractId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.detail(contractId, this.viewer(request)));
+  }
+
+  @Put('contracts/:contractId')
+  updateContract(@Param('contractId') contractId: string, @Body() body: SaveContractDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.update(contractId, body, this.viewer(request)));
+  }
+
+  @Delete('contracts/:contractId')
+  removeContract(@Param('contractId') contractId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.remove(contractId, this.viewer(request)));
+  }
+
+  @Post('contracts/:contractId/items')
+  @HttpCode(200)
+  addContractItem(@Param('contractId') contractId: string, @Body() body: ContractItemDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.addItem(contractId, body.assetId, this.viewer(request)));
+  }
+
+  @Delete('contracts/:contractId/items/:assetId')
+  removeContractItem(@Param('contractId') contractId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.contracts.removeItem(contractId, assetId, this.viewer(request)));
   }
 
   @Get('options')
@@ -215,7 +342,14 @@ export class AssetsController {
   @Get(':id')
   @Header('Cache-Control', 'no-store')
   detail(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
-    return runAsset(() => this.assets.detail(id, this.viewer(request)));
+    return runAsset(async () => {
+      const asset = await this.assets.detail(id, this.viewer(request));
+      const [licenses, contracts] = await Promise.all([
+        this.licenses.forAsset(asset.id, asset.assignedUser?.id ?? null),
+        this.contracts.forAsset(asset.id),
+      ]);
+      return { ...asset, licenses, contracts };
+    });
   }
 
   @Put(':id')

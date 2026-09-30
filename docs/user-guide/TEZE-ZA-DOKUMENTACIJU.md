@@ -346,3 +346,12 @@ To je kriterij kompletnosti.
 - Broj prenosnice je mjesec-broj-godina (01-0001-2026); brojač kreće od 1 svakog mjeseca.
 - Prenosnica se izdaje kao DOCX, a potpisana kopija se prilaže kao PDF ili JPG.
 - Kod prvog zaduženja upisuje se ko predaje; ako se ne upiše, na prenosnici piše „Skladište“.
+
+## CMDB — licence, ugovori i podsjetnici (C6, 30.9.2026)
+
+- Licence imaju četiri vrste: po uređaju, po korisniku, za lokaciju (bez dodjela) i pretplatu (obavezan datum isteka).
+- Iskorištenost se prikazuje kao „dodijeljeno / broj mjesta“; prekoračenje je označeno, ali dodjela nije blokirana, da se stvarno stanje može evidentirati.
+- Ključ licence se čuva šifrovan i prikazuje samo na klik „Prikaži ključ“; svako otkrivanje se bilježi u audit.
+- Ugovori (garancija, podrška, lizing, održavanje) pokrivaju jednu ili više stavki opreme; istekli ugovori su skriveni dok se ne uključi „Prikaži istekle“.
+- Podsjetnik o isteku stiže jednom dnevno (od 06:00) onima koji upravljaju tom vrstom stavke u svojoj OJ, adminima i dodatnim internim adresama iz postavki; svaki prag (zadano 60, 30 i 7 dana) šalje se samo jednom.
+- Korisnik u „Mojim notifikacijama“ može isključiti e-mail ili in-app kanal za kategoriju „Istek licenci, garancija i ugovora“.

@@ -183,6 +183,8 @@ export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   readonly tickets: { readonly total: number; readonly open: number; readonly recent: readonly AssetTicketLink[] };
   readonly frequentFailure: { readonly flagged: boolean; readonly count: number; readonly threshold: number; readonly days: number };
   readonly canManage: boolean;
+  readonly licenses?: readonly AssetLicenseLink[];
+  readonly contracts?: readonly AssetContractLink[];
 };
 
 export type AssetWriteInput = {
@@ -469,4 +471,192 @@ export function unlinkTicketAsset(ticketId: string, assetId: string): Promise<Ti
 
 export function setPrimaryTicketAsset(ticketId: string, assetId: string): Promise<TicketAssetsView> {
   return apiRequest(`/assets/tickets/${encodeURIComponent(ticketId)}/links/${encodeURIComponent(assetId)}/primary`, { method: "POST" });
+}
+
+// ------------------------------------------------------------ licences and contracts (§9, §10)
+
+export const softwareLicenseKinds = ["PER_DEVICE", "PER_USER", "SITE", "SUBSCRIPTION"] as const;
+export type SoftwareLicenseKind = (typeof softwareLicenseKinds)[number];
+export const assetContractKinds = ["WARRANTY", "SUPPORT", "LEASE", "MAINTENANCE"] as const;
+export type AssetContractKind = (typeof assetContractKinds)[number];
+
+export type AssetLicenseLink = {
+  readonly assignmentId: string;
+  readonly via: "asset" | "user";
+  readonly license: {
+    readonly id: string;
+    readonly productName: string;
+    readonly vendor: string | null;
+    readonly kind: SoftwareLicenseKind;
+    readonly validUntil: string | null;
+  };
+};
+
+export type AssetContractLink = {
+  readonly id: string;
+  readonly kind: AssetContractKind;
+  readonly supplier: string;
+  readonly reference: string | null;
+  readonly endsAt: string;
+  readonly daysLeft: number;
+};
+
+export type SoftwareLicenseItem = {
+  readonly id: string;
+  readonly productName: string;
+  readonly vendor: string | null;
+  readonly kind: SoftwareLicenseKind;
+  readonly validUntil: string | null;
+  readonly daysLeft: number | null;
+  readonly cost: string | null;
+  readonly notes: string | null;
+  readonly hasKey: boolean;
+  readonly organizationalUnit: { readonly id: string; readonly name: string };
+  readonly used: number;
+  readonly seats: number | null;
+  readonly available: number | null;
+  readonly overAllocated: boolean;
+  readonly updatedAt: string;
+};
+
+export type SoftwareLicenseDetail = SoftwareLicenseItem & {
+  readonly assignmentTarget: "asset" | "user" | "either" | "none";
+  readonly assignments: readonly {
+    readonly id: string;
+    readonly assignedAt: string;
+    readonly asset: { readonly id: string; readonly assetTag: string; readonly name: string } | null;
+    readonly user: { readonly id: string; readonly displayName: string; readonly email: string; readonly isActive: boolean } | null;
+  }[];
+};
+
+export type SoftwareLicenseInput = {
+  readonly productName: string;
+  readonly vendor: string | null;
+  readonly kind: SoftwareLicenseKind;
+  readonly seats: number | null;
+  readonly validUntil: string | null;
+  readonly cost: number | null;
+  readonly notes: string | null;
+  readonly organizationalUnitId: string;
+  /** Omitted = unchanged; "" = remove the stored key. */
+  readonly licenseKey?: string;
+};
+
+export type AssetContractItem = {
+  readonly id: string;
+  readonly kind: AssetContractKind;
+  readonly supplier: string;
+  readonly reference: string | null;
+  readonly startsAt: string | null;
+  readonly endsAt: string;
+  readonly daysLeft: number;
+  readonly cost: string | null;
+  readonly notes: string | null;
+  readonly organizationalUnit: { readonly id: string; readonly name: string };
+  readonly itemCount: number;
+  readonly updatedAt: string;
+};
+
+export type AssetContractDetail = AssetContractItem & {
+  readonly items: readonly {
+    readonly id: string;
+    readonly assetTag: string;
+    readonly name: string;
+    readonly status: AssetStatus;
+    readonly canOpen: boolean;
+  }[];
+};
+
+export type AssetContractInput = {
+  readonly kind: AssetContractKind;
+  readonly supplier: string;
+  readonly reference: string | null;
+  readonly startsAt: string | null;
+  readonly endsAt: string;
+  readonly cost: number | null;
+  readonly notes: string | null;
+  readonly organizationalUnitId: string;
+};
+
+export type LicenseListFilters = { readonly search?: string; readonly kind?: SoftwareLicenseKind; readonly expiringWithinDays?: number; readonly overAllocated?: boolean };
+export type ContractListFilters = { readonly search?: string; readonly kind?: AssetContractKind; readonly expiringWithinDays?: number; readonly includeExpired?: boolean };
+
+export const assetContractQueryKeys = {
+  licenses: (filters: LicenseListFilters) => ["assets", "licenses", filters] as const,
+  license: (id: string) => ["assets", "license", id] as const,
+  contracts: (filters: ContractListFilters) => ["assets", "contracts", filters] as const,
+  contract: (id: string) => ["assets", "contract", id] as const,
+};
+
+function listQuery(filters: Readonly<Record<string, string | number | boolean | undefined>>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === "" || value === false) continue;
+    params.set(key, String(value));
+  }
+  const query = params.toString();
+  return query.length > 0 ? `?${query}` : "";
+}
+
+const licensePath = (id: string) => `/assets/licenses/${encodeURIComponent(id)}`;
+const contractPath = (id: string) => `/assets/contracts/${encodeURIComponent(id)}`;
+
+export function listLicenses(filters: LicenseListFilters): Promise<{ readonly items: readonly SoftwareLicenseItem[] }> {
+  return apiRequest(`/assets/licenses${listQuery(filters)}`);
+}
+
+export function getLicense(id: string): Promise<SoftwareLicenseDetail> {
+  return apiRequest(licensePath(id));
+}
+
+export function createLicense(input: SoftwareLicenseInput): Promise<{ readonly id: string }> {
+  return apiRequest("/assets/licenses", { method: "POST", ...json(input) });
+}
+
+export function updateLicense(id: string, input: SoftwareLicenseInput): Promise<unknown> {
+  return apiRequest(licensePath(id), { method: "PUT", ...json(input) });
+}
+
+export function deleteLicense(id: string): Promise<unknown> {
+  return apiRequest(licensePath(id), { method: "DELETE" });
+}
+
+export function revealLicenseKey(id: string): Promise<{ readonly licenseKey: string }> {
+  return apiRequest(`${licensePath(id)}/key`, { method: "POST" });
+}
+
+export function assignLicense(id: string, target: { readonly assetId?: string; readonly userId?: string }): Promise<unknown> {
+  return apiRequest(`${licensePath(id)}/assignments`, { method: "POST", ...json(target) });
+}
+
+export function releaseLicense(id: string, assignmentId: string): Promise<unknown> {
+  return apiRequest(`${licensePath(id)}/assignments/${encodeURIComponent(assignmentId)}`, { method: "DELETE" });
+}
+
+export function listContracts(filters: ContractListFilters): Promise<{ readonly items: readonly AssetContractItem[] }> {
+  return apiRequest(`/assets/contracts${listQuery(filters)}`);
+}
+
+export function getContract(id: string): Promise<AssetContractDetail> {
+  return apiRequest(contractPath(id));
+}
+
+export function createContract(input: AssetContractInput): Promise<{ readonly id: string }> {
+  return apiRequest("/assets/contracts", { method: "POST", ...json(input) });
+}
+
+export function updateContract(id: string, input: AssetContractInput): Promise<unknown> {
+  return apiRequest(contractPath(id), { method: "PUT", ...json(input) });
+}
+
+export function deleteContract(id: string): Promise<unknown> {
+  return apiRequest(contractPath(id), { method: "DELETE" });
+}
+
+export function addContractItem(id: string, assetId: string): Promise<unknown> {
+  return apiRequest(`${contractPath(id)}/items`, { method: "POST", ...json({ assetId }) });
+}
+
+export function removeContractItem(id: string, assetId: string): Promise<unknown> {
+  return apiRequest(`${contractPath(id)}/items/${encodeURIComponent(assetId)}`, { method: "DELETE" });
 }

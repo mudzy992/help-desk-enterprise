@@ -163,7 +163,8 @@
       "onCallSwap": "Zahtjev za zamjenu dežurstva",
       "onCallGap": "Dežurna smjena bez dežurnog",
       "announcementPublished": "Nova najava",
-      "announcementReminder": "Podsjetnik: potvrdite najavu"
+      "announcementReminder": "Podsjetnik: potvrdite najavu",
+      "assetExpiring": "Ističu licence, garancije ili ugovori"
     }
   },
   "placeholders": {
@@ -1478,7 +1479,8 @@
         "report_schedule_paused": "Zakazani izvještaj pauziran",
         "ops_alert": "Operativni alarm",
         "announcement_published": "Najava",
-        "announcement_reminder": "Najava: podsjetnik na potvrdu"
+        "announcement_reminder": "Najava: podsjetnik na potvrdu",
+        "asset_expiring": "Oprema: podsjetnik o isteku"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -4597,6 +4599,10 @@
         "announcement": {
           "label": "Najave",
           "hint": "Obavijest (u aplikaciji i, ako je autor odabrao, e-mailom) kad počne najava i podsjetnik na potvrdu čitanja. Kritične najave e-mailom stižu odmah i uz sažetak ili tihe sate."
+        },
+        "asset_expiring": {
+          "label": "Istek licenci, garancija i ugovora",
+          "hint": "Dnevni podsjetnik za opremu u vašem opsegu kojoj ističe garancija, ugovor ili licenca (pragovi iz postavki)."
         }
       },
       "emailOnly": "Samo e-mail",
@@ -5670,7 +5676,9 @@
     "forbiddenBody": "Potrebna je dozvola za pregled imovine. Vaša oprema je pod Moja oprema.",
     "tabs": {
       "register": "Registar",
-      "catalog": "Tipovi i lokacije"
+      "catalog": "Tipovi i lokacije",
+      "licenses": "Licence",
+      "contracts": "Ugovori"
     },
     "status": {
       "ORDERED": "Naručeno",
@@ -5807,7 +5815,8 @@
         "overview": "Pregled",
         "tickets": "Tiketi",
         "relations": "Veze",
-        "history": "Historija"
+        "history": "Historija",
+        "coverage": "Licence i ugovori"
       },
       "basics": "Osnovni podaci",
       "assignment": "Zaduženje",
@@ -6005,7 +6014,13 @@
       "relationExists": "Ova veza već postoji.",
       "relationCycle": "Veza bi napravila krug.",
       "relationSelf": "Stavka se ne može povezati sama sa sobom.",
-      "hasDependents": "Druge stavke još zavise od ove."
+      "hasDependents": "Druge stavke još zavise od ove.",
+      "licenseNotFound": "Licenca nije pronađena.",
+      "licenseKeyUnavailable": "Ključ licence nije dostupan (nedostaje ključ za šifrovanje na serveru).",
+      "licenseAssignmentInvalid": "Ova vrsta licence se ne može dodijeliti na ovaj način.",
+      "licenseAssignmentExists": "Licenca je već dodijeljena ovoj stavci.",
+      "contractNotFound": "Ugovor nije pronađen.",
+      "contractItemExists": "Oprema je već pokrivena ovim ugovorom."
     },
     "ticket": {
       "pickerLabel": "Na koju opremu se odnosi?",
@@ -6028,6 +6043,143 @@
       "removeTitle": "Ukloniti opremu s tiketa?",
       "removeBody": "{{name}} više neće biti vezana uz ovaj tiket. Historija ostaje zabilježena.",
       "removeConfirm": "Ukloni"
+    },
+    "expiry": {
+      "expired": "Isteklo",
+      "today": "Ističe danas",
+      "days_one": "još {{count}} dan",
+      "days_few": "još {{count}} dana",
+      "days_other": "još {{count}} dana"
+    },
+    "licenses": {
+      "filtersLabel": "Filteri licenci",
+      "searchLabel": "Pretraga licenci",
+      "searchPlaceholder": "Proizvod ili proizvođač",
+      "allKinds": "Sve vrste",
+      "expiringFilter": "Ističe za 60 dana",
+      "overAllocatedFilter": "Prekoračene",
+      "create": "Nova licenca",
+      "edit": "Uredi licencu",
+      "save": "Sačuvaj",
+      "saved": "Licenca je sačuvana.",
+      "deleted": "Licenca je obrisana.",
+      "delete": "Obriši",
+      "confirmDelete": "Obrisati licencu i sve njene dodjele?",
+      "emptyTitle": "Nema licenci",
+      "emptyBody": "Evidentirajte licence da biste pratili iskorištenost i istek.",
+      "caption": "Licence",
+      "detailTitle": "Licenca",
+      "formDescription": "Ključ licence se čuva šifrovan i prikazuje samo na zahtjev, uz zapis u audit.",
+      "unitHint": "Licencom upravljaju nosioci dozvole u ovoj OJ i nadređenim.",
+      "keyHint": "Neobavezno. Čuva se šifrovano.",
+      "keyStoredHint": "Ključ je sačuvan. Unesite novi da ga zamijenite.",
+      "removeKey": "Ukloni sačuvani ključ",
+      "keyHidden": "Sakriveno",
+      "reveal": "Prikaži ključ",
+      "usage": "{{used}} / {{seats}}",
+      "usageUnlimited": "{{used}} (bez ograničenja)",
+      "overAllocated": "Prekoračeno",
+      "assignmentsTitle": "Dodjele",
+      "noAssignments": "Licenca još nije dodijeljena.",
+      "siteHint": "Licenca za lokaciju pokriva sve i ne dodjeljuje se pojedinačno.",
+      "inactiveUser": "neaktivan",
+      "release": "Oslobodi licencu",
+      "released": "Licenca je oslobođena.",
+      "assign": "Dodijeli",
+      "assigned": "Licenca je dodijeljena.",
+      "assignTarget": "Dodijeli na",
+      "targetAsset": "Opremu",
+      "targetUser": "Korisnika",
+      "searchAsset": "Pretraži opremu (oznaka, naziv)",
+      "searchUser": "Pretraži korisnike",
+      "noCandidates": "Nema rezultata.",
+      "fields": {
+        "productName": "Proizvod",
+        "vendor": "Proizvođač",
+        "kind": "Vrsta",
+        "seats": "Broj mjesta",
+        "validUntil": "Važi do",
+        "cost": "Cijena",
+        "licenseKey": "Ključ licence",
+        "notes": "Napomene",
+        "usage": "Iskorištenost"
+      },
+      "kinds": {
+        "PER_DEVICE": "Po uređaju",
+        "PER_USER": "Po korisniku",
+        "SITE": "Za lokaciju",
+        "SUBSCRIPTION": "Pretplata"
+      },
+      "kindHints": {
+        "PER_DEVICE": "Svaka dodjela na opremu troši jedno mjesto.",
+        "PER_USER": "Svaka dodjela korisniku troši jedno mjesto.",
+        "SITE": "Neograničeno unutar organizacije, bez dodjela.",
+        "SUBSCRIPTION": "Dodjela na opremu ili korisnika; datum isteka je obavezan."
+      },
+      "errors": {
+        "required": "Popunite proizvod i organizacionu jedinicu.",
+        "seats": "Unesite broj mjesta (cijeli broj, 0 ili više).",
+        "validUntil": "Pretplata mora imati datum isteka.",
+        "cost": "Cijena mora biti broj s najviše dvije decimale."
+      }
+    },
+    "contracts": {
+      "filtersLabel": "Filteri ugovora",
+      "searchLabel": "Pretraga ugovora",
+      "searchPlaceholder": "Dobavljač ili broj ugovora",
+      "allKinds": "Sve vrste",
+      "expiringFilter": "Ističe za 60 dana",
+      "includeExpired": "Prikaži istekle",
+      "create": "Novi ugovor",
+      "edit": "Uredi ugovor",
+      "save": "Sačuvaj",
+      "saved": "Ugovor je sačuvan.",
+      "deleted": "Ugovor je obrisan.",
+      "delete": "Obriši",
+      "confirmDelete": "Obrisati ugovor? Oprema ostaje, samo se uklanja pokrivenost.",
+      "emptyTitle": "Nema ugovora",
+      "emptyBody": "Evidentirajte garancije, podršku, lizing i održavanje da biste dobili podsjetnike prije isteka.",
+      "caption": "Ugovori",
+      "detailTitle": "Ugovor",
+      "formDescription": "Podsjetnici stižu prema pragovima iz postavki modula.",
+      "unitHint": "Ugovorom upravljaju nosioci dozvole u ovoj OJ i nadređenim.",
+      "itemsTitle_one": "Pokrivena oprema ({{count}})",
+      "itemsTitle_few": "Pokrivena oprema ({{count}})",
+      "itemsTitle_other": "Pokrivena oprema ({{count}})",
+      "noItems": "Ugovor još ne pokriva nijednu opremu.",
+      "removeItem": "Ukloni opremu s ugovora",
+      "itemRemoved": "Oprema je uklonjena s ugovora.",
+      "itemAdded": "Oprema je dodana na ugovor.",
+      "addItem": "Dodaj",
+      "searchAsset": "Pretraži opremu (oznaka, naziv)",
+      "fields": {
+        "kind": "Vrsta",
+        "supplier": "Dobavljač",
+        "reference": "Broj ugovora",
+        "startsAt": "Početak",
+        "endsAt": "Kraj",
+        "cost": "Vrijednost",
+        "notes": "Napomene",
+        "items": "Oprema"
+      },
+      "kinds": {
+        "WARRANTY": "Garancija",
+        "SUPPORT": "Podrška",
+        "LEASE": "Lizing / najam",
+        "MAINTENANCE": "Održavanje"
+      },
+      "errors": {
+        "required": "Popunite dobavljača, datum kraja i organizacionu jedinicu.",
+        "dates": "Početak ne može biti poslije kraja."
+      }
+    },
+    "coverage": {
+      "licensesTitle": "Licence",
+      "contractsTitle": "Ugovori",
+      "noLicenses": "Nema dodijeljenih licenci.",
+      "noContracts": "Oprema nije pokrivena ugovorom.",
+      "viaAsset": "na uređaju",
+      "viaUser": "preko korisnika"
     }
   }
 }

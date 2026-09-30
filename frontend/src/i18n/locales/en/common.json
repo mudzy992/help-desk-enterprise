@@ -163,7 +163,8 @@
       "onCallSwap": "On-call swap request",
       "onCallGap": "On-call shift without anyone on call",
       "announcementPublished": "New announcement",
-      "announcementReminder": "Reminder: please acknowledge the announcement"
+      "announcementReminder": "Reminder: please acknowledge the announcement",
+      "assetExpiring": "Licences, warranties or contracts are expiring"
     }
   },
   "placeholders": {
@@ -1468,7 +1469,8 @@
         "report_schedule_paused": "Scheduled report paused",
         "ops_alert": "Operational alarm",
         "announcement_published": "Announcement",
-        "announcement_reminder": "Announcement: acknowledgement reminder"
+        "announcement_reminder": "Announcement: acknowledgement reminder",
+        "asset_expiring": "Assets: expiry reminder"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -4566,6 +4568,10 @@
         "announcement": {
           "label": "Announcements",
           "hint": "A notification (in the app and, if the author chose it, by e-mail) when an announcement starts, and the acknowledgement reminder. Critical announcements arrive by e-mail at once, even with a digest or quiet hours."
+        },
+        "asset_expiring": {
+          "label": "Licence, warranty and contract expiry",
+          "hint": "Daily reminder for assets in your scope whose warranty, contract or licence is about to end (thresholds from settings)."
         }
       },
       "emailOnly": "E-mail only",
@@ -5626,7 +5632,9 @@
     "forbiddenBody": "You need the asset read permission. Your own equipment is under My equipment.",
     "tabs": {
       "register": "Register",
-      "catalog": "Types and locations"
+      "catalog": "Types and locations",
+      "licenses": "Licences",
+      "contracts": "Contracts"
     },
     "status": {
       "ORDERED": "Ordered",
@@ -5762,7 +5770,8 @@
         "overview": "Overview",
         "tickets": "Tickets",
         "relations": "Relations",
-        "history": "History"
+        "history": "History",
+        "coverage": "Licences and contracts"
       },
       "basics": "Basic data",
       "assignment": "Assignment",
@@ -5958,7 +5967,13 @@
       "relationExists": "This relation already exists.",
       "relationCycle": "The relation would create a cycle.",
       "relationSelf": "An item cannot be linked to itself.",
-      "hasDependents": "Other items still depend on this one."
+      "hasDependents": "Other items still depend on this one.",
+      "licenseNotFound": "Licence not found.",
+      "licenseKeyUnavailable": "The licence key is unavailable (the server has no encryption key).",
+      "licenseAssignmentInvalid": "This licence kind cannot be assigned this way.",
+      "licenseAssignmentExists": "The licence is already assigned to this item.",
+      "contractNotFound": "Contract not found.",
+      "contractItemExists": "The asset is already covered by this contract."
     },
     "ticket": {
       "pickerLabel": "Which equipment is this about?",
@@ -5980,6 +5995,141 @@
       "removeTitle": "Remove equipment from the ticket?",
       "removeBody": "{{name}} will no longer be linked to this ticket. The history is kept.",
       "removeConfirm": "Remove"
+    },
+    "expiry": {
+      "expired": "Expired",
+      "today": "Ends today",
+      "days_one": "{{count}} day left",
+      "days_other": "{{count}} days left"
+    },
+    "licenses": {
+      "filtersLabel": "Licence filters",
+      "searchLabel": "Search licences",
+      "searchPlaceholder": "Product or vendor",
+      "allKinds": "All kinds",
+      "expiringFilter": "Ends within 60 days",
+      "overAllocatedFilter": "Over-allocated",
+      "create": "New licence",
+      "edit": "Edit licence",
+      "save": "Save",
+      "saved": "Licence saved.",
+      "deleted": "Licence deleted.",
+      "delete": "Delete",
+      "confirmDelete": "Delete the licence and all its assignments?",
+      "emptyTitle": "No licences",
+      "emptyBody": "Record licences to track usage and expiry.",
+      "caption": "Licences",
+      "detailTitle": "Licence",
+      "formDescription": "The licence key is stored encrypted and shown only on request, with an audit entry.",
+      "unitHint": "Managed by permission holders in this unit and its parents.",
+      "keyHint": "Optional. Stored encrypted.",
+      "keyStoredHint": "A key is stored. Enter a new one to replace it.",
+      "removeKey": "Remove the stored key",
+      "keyHidden": "Hidden",
+      "reveal": "Reveal key",
+      "usage": "{{used}} / {{seats}}",
+      "usageUnlimited": "{{used}} (unlimited)",
+      "overAllocated": "Over-allocated",
+      "assignmentsTitle": "Assignments",
+      "noAssignments": "The licence is not assigned yet.",
+      "siteHint": "A site licence covers everyone and is not assigned individually.",
+      "inactiveUser": "inactive",
+      "release": "Release licence",
+      "released": "Licence released.",
+      "assign": "Assign",
+      "assigned": "Licence assigned.",
+      "assignTarget": "Assign to",
+      "targetAsset": "Asset",
+      "targetUser": "User",
+      "searchAsset": "Search assets (tag, name)",
+      "searchUser": "Search users",
+      "noCandidates": "No results.",
+      "fields": {
+        "productName": "Product",
+        "vendor": "Vendor",
+        "kind": "Kind",
+        "seats": "Seats",
+        "validUntil": "Valid until",
+        "cost": "Cost",
+        "licenseKey": "Licence key",
+        "notes": "Notes",
+        "usage": "Usage"
+      },
+      "kinds": {
+        "PER_DEVICE": "Per device",
+        "PER_USER": "Per user",
+        "SITE": "Site",
+        "SUBSCRIPTION": "Subscription"
+      },
+      "kindHints": {
+        "PER_DEVICE": "Each assignment to an asset uses one seat.",
+        "PER_USER": "Each assignment to a user uses one seat.",
+        "SITE": "Unlimited within the organisation, no assignments.",
+        "SUBSCRIPTION": "Assigned to an asset or a user; an end date is required."
+      },
+      "errors": {
+        "required": "Fill in the product and the organisational unit.",
+        "seats": "Enter the number of seats (a whole number, 0 or more).",
+        "validUntil": "A subscription needs an end date.",
+        "cost": "Cost must be a number with at most two decimals."
+      }
+    },
+    "contracts": {
+      "filtersLabel": "Contract filters",
+      "searchLabel": "Search contracts",
+      "searchPlaceholder": "Supplier or contract number",
+      "allKinds": "All kinds",
+      "expiringFilter": "Ends within 60 days",
+      "includeExpired": "Show expired",
+      "create": "New contract",
+      "edit": "Edit contract",
+      "save": "Save",
+      "saved": "Contract saved.",
+      "deleted": "Contract deleted.",
+      "delete": "Delete",
+      "confirmDelete": "Delete the contract? Assets stay, only the coverage is removed.",
+      "emptyTitle": "No contracts",
+      "emptyBody": "Record warranties, support, leases and maintenance to get reminders before they end.",
+      "caption": "Contracts",
+      "detailTitle": "Contract",
+      "formDescription": "Reminders follow the thresholds in the module settings.",
+      "unitHint": "Managed by permission holders in this unit and its parents.",
+      "itemsTitle_one": "Covered assets ({{count}})",
+      "itemsTitle_other": "Covered assets ({{count}})",
+      "noItems": "The contract does not cover any asset yet.",
+      "removeItem": "Remove asset from contract",
+      "itemRemoved": "Asset removed from the contract.",
+      "itemAdded": "Asset added to the contract.",
+      "addItem": "Add",
+      "searchAsset": "Search assets (tag, name)",
+      "fields": {
+        "kind": "Kind",
+        "supplier": "Supplier",
+        "reference": "Contract number",
+        "startsAt": "Start",
+        "endsAt": "End",
+        "cost": "Value",
+        "notes": "Notes",
+        "items": "Assets"
+      },
+      "kinds": {
+        "WARRANTY": "Warranty",
+        "SUPPORT": "Support",
+        "LEASE": "Lease / rental",
+        "MAINTENANCE": "Maintenance"
+      },
+      "errors": {
+        "required": "Fill in the supplier, end date and organisational unit.",
+        "dates": "The start cannot be after the end."
+      }
+    },
+    "coverage": {
+      "licensesTitle": "Licences",
+      "contractsTitle": "Contracts",
+      "noLicenses": "No licences assigned.",
+      "noContracts": "The asset is not covered by a contract.",
+      "viaAsset": "on device",
+      "viaUser": "via user"
     }
   }
 }

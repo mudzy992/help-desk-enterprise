@@ -50,6 +50,12 @@ export const assetErrorKeys = {
   ASSET_RELATION_CYCLE: "assets.errors.relationCycle",
   ASSET_RELATION_SELF: "assets.errors.relationSelf",
   ASSET_HAS_DEPENDENTS: "assets.errors.hasDependents",
+  ASSET_LICENSE_NOT_FOUND: "assets.errors.licenseNotFound",
+  ASSET_LICENSE_KEY_UNAVAILABLE: "assets.errors.licenseKeyUnavailable",
+  ASSET_LICENSE_ASSIGNMENT_INVALID: "assets.errors.licenseAssignmentInvalid",
+  ASSET_LICENSE_ASSIGNMENT_EXISTS: "assets.errors.licenseAssignmentExists",
+  ASSET_CONTRACT_NOT_FOUND: "assets.errors.contractNotFound",
+  ASSET_CONTRACT_ITEM_EXISTS: "assets.errors.contractItemExists",
 } as const;
 
 export type AssetErrorKey = (typeof assetErrorKeys)[keyof typeof assetErrorKeys];

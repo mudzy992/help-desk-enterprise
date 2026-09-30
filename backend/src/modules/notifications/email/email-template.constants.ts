@@ -27,6 +27,8 @@ export const emailTemplateKeys = [
   // Paket 2.9 (K2b): announcement to its audience, and the acknowledgement reminder.
   'announcement.published',
   'announcement.reminder',
+  // Paket 3.2 (§10): daily list of expiring warranties, contracts and licences.
+  'asset.expiring',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -43,7 +45,8 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'report.schedule_paused' &&
     key !== 'ops.alert' &&
     key !== 'announcement.published' &&
-    key !== 'announcement.reminder',
+    key !== 'announcement.reminder' &&
+    key !== 'asset.expiring',
 );
 
 export const emailLocales = ['bs', 'en'] as const;
