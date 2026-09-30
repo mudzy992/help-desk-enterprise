@@ -342,3 +342,7 @@ To je kriterij kompletnosti.
 - Polja na prenosnici su: ko predaje, ko preuzima, naziv opreme, inventarni broj i potpisnik.
 - Za svaku stavku opreme definiše se ko je potpisnik.
 - Broj prenosnice ima oblik dan-mjesec-broj-godina, npr. 30-09-0007-2026.
+- Potpisnik se definiše po organizacionoj jedinici i nasljeđuje se na sve jedinice ispod nje, dok niža jedinica ne definiše svog (Direkcija → ED Zenica → Snabdijevanje).
+- Broj prenosnice je mjesec-broj-godina (01-0001-2026); brojač kreće od 1 svakog mjeseca.
+- Prenosnica se izdaje kao DOCX, a potpisana kopija se prilaže kao PDF ili JPG.
+- Kod prvog zaduženja upisuje se ko predaje; ako se ne upiše, na prenosnici piše „Skladište“.
