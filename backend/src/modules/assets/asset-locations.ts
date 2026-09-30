@@ -90,3 +90,9 @@ export function checkLocationParent(
   const height = selfId === null ? 0 : locationHeight(nodes, selfId);
   return locationDepth(nodes, parentId) + 1 + height > maxDepth ? 'depth' : null;
 }
+
+/** C9c: "/Firma/IT/Servis" → "Firma › IT › Servis" (the place when locations are off). */
+export function formatUnitPath(ouPath: string): string {
+  const parts = ouPath.split('/').map((part) => part.trim()).filter((part) => part.length > 0);
+  return parts.length === 0 ? ouPath : parts.join(' › ');
+}

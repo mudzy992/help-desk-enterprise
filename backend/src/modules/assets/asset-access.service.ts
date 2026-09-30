@@ -23,6 +23,8 @@ export type AssetCapabilities = {
   readonly canReadReports: boolean;
   readonly canDelete: boolean;
   readonly ticketPickerEnabled: boolean;
+  /** C9c: `private.assets.locations.enabled`. */
+  readonly locationsEnabled: boolean;
   /** The viewer has equipment assigned ("My equipment" in the menu). */
   readonly hasOwnAssets: boolean;
 };
@@ -50,6 +52,11 @@ export class AssetAccessService {
 
   async isEnabled(): Promise<boolean> {
     return (await this.readSetting<unknown>(settingKeys.privateAddonsCmdb, false)) === true;
+  }
+
+  /** C9c: locations are optional; stored values are kept while switched off. */
+  async locationsEnabled(): Promise<boolean> {
+    return (await this.readSetting<unknown>(settingKeys.privateAssetsLocationsEnabled, false)) === true;
   }
 
   async requireEnabled(): Promise<void> {
@@ -95,6 +102,7 @@ export class AssetAccessService {
       (await this.prisma.asset.count({ where: { assignedUserId: viewer.userId, status: { in: ['IN_USE', 'IN_REPAIR'] } } })) > 0;
     const ticketPickerEnabled =
       enabled && (await this.readSetting<unknown>(settingKeys.privateAssetsTicketPickerEnabled, true)) === true;
+    const locationsEnabled = enabled && (await this.locationsEnabled());
     return {
       enabled,
       canRead: has(permissionKeys.assetRead),
@@ -106,6 +114,7 @@ export class AssetAccessService {
       canReadReports: has(permissionKeys.assetReportRead),
       canDelete: enabled && viewer.isSuperAdmin,
       ticketPickerEnabled,
+      locationsEnabled,
       hasOwnAssets,
     };
   }

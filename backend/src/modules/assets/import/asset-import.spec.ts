@@ -174,6 +174,20 @@ describe('planAssetImport', () => {
     });
   });
 
+  it('C9c: resolves the location column only while locations are enabled', () => {
+    const input = (locationsEnabled: boolean) =>
+      planAssetImport({
+        mapping: ['assetTag', 'name', 'organizationalUnit', 'location'],
+        rows: [['L-9', 'Laptop 9', 'Sarajevo', 'nepoznato']],
+        rowNumbers: [2],
+        context: context({ locationsEnabled }),
+      });
+    expect(input(true).errors.map((error) => error.column)).toEqual(['location']);
+    const off = input(false);
+    expect(off.errors).toEqual([]);
+    expect(off.planned[0].data.locationId).toBeNull();
+  });
+
   it('reports clear row errors for bad references, values and duplicates', () => {
     const plan = planAssetImport({
       mapping: [...mapping],

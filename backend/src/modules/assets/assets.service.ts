@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { buildLocationPaths, locationSubtreeIds } from './asset-locations';
+import { buildLocationPaths, formatUnitPath, locationSubtreeIds } from './asset-locations';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -117,7 +117,7 @@ export class AssetsService {
       manufacturer: row.manufacturer,
       model: row.model,
       assignedUser: row.assignedUser,
-      organizationalUnit: { id: row.organizationalUnit.id, name: row.organizationalUnit.name },
+      organizationalUnit: { id: row.organizationalUnit.id, name: row.organizationalUnit.name, path: formatUnitPath(row.organizationalUnit.ouPath) },
       location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location, paths) },
       warrantyEndsAt: dateOnly(row.warrantyEndsAt),
       source: row.source,
@@ -225,7 +225,7 @@ export class AssetsService {
   private async validateReferences(input: SaveAssetInput) {
     const type = await this.prisma.assetType.findUnique({ where: { id: input.typeId }, select: { id: true, archivedAt: true } });
     if (type === null) throw new AssetError(assetErrorCodes.typeNotFound);
-    if (input.locationId) {
+    if (input.locationId && (await this.access.locationsEnabled())) {
       const location = await this.prisma.assetLocation.findUnique({ where: { id: input.locationId }, select: { id: true } });
       if (location === null) throw new AssetError(assetErrorCodes.locationNotFound);
     }
@@ -388,7 +388,7 @@ export class AssetsService {
     return {
       ...this.toListItem(asset, ticketStats.open, await this.locationPaths()),
       version: asset.version,
-      organizationalUnit: { id: asset.organizationalUnit.id, name: asset.organizationalUnit.name, path: asset.organizationalUnit.ouPath },
+      organizationalUnit: { id: asset.organizationalUnit.id, name: asset.organizationalUnit.name, path: asset.organizationalUnit.ouPath, pathLabel: formatUnitPath(asset.organizationalUnit.ouPath) },
       service: asset.service,
       assignedAt: asset.assignedAt?.toISOString() ?? null,
       purchaseDate: dateOnly(asset.purchaseDate),
@@ -532,6 +532,7 @@ export class AssetsService {
         type: row.type,
         manufacturer: row.manufacturer,
         model: row.model,
+        organizationalUnit: { id: row.organizationalUnit.id, name: row.organizationalUnit.name, path: formatUnitPath(row.organizationalUnit.ouPath) },
         location: row.location === null ? null : { id: row.location.id, label: locationLabel(row.location, paths) },
         assignedAt: row.assignedAt?.toISOString() ?? null,
         warrantyEndsAt: dateOnly(row.warrantyEndsAt),
@@ -559,6 +560,7 @@ export class AssetsService {
     const status = input.status ?? 'IN_STOCK';
     if (status === 'DISPOSED' || status === 'RETIRED' || status === 'LOST') throw new AssetError(assetErrorCodes.invalid, 'status');
     const data = this.baseData(input);
+    if (!(await this.access.locationsEnabled())) data.locationId = null;
     const definitions = await this.attributeDefinitions(input.typeId);
     const validated = validateAssetAttributes({ definitions, values: input.attributes ?? {} });
     if (validated.issues.length > 0) {
@@ -611,6 +613,8 @@ export class AssetsService {
     }
     await this.validateReferences(input);
     const data = this.baseData(input);
+    // C9c: with locations switched off the stored location is kept untouched.
+    if (!(await this.access.locationsEnabled())) data.locationId = current.locationId;
     if (current.source === 'DIRECTORY') {
       // §12: the directory owns the name; everything else stays editable.
       (data as { name: string }).name = current.name;

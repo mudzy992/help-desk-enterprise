@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { FileDown, FileUp, FlaskConical, Pencil, X } from "lucide-react";
+import { FileDown, FileUp, FlaskConical } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
 import { Field, Input } from "@/components/ui/field";
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
@@ -17,12 +17,8 @@ import {
   downloadTransferTemplate,
   getAssetSignatories,
   listTransferTemplates,
-  removeAssetSignatory,
-  saveAssetSignatory,
   uploadTransferTemplate,
-  type AssetSignatoryUnit,
 } from "@/services/asset-transfers-api";
-import { searchAssetUsers } from "@/services/assets-api";
 
 /**
  * Paket 3.2 C9 (§7a.2, §7a.4): catalog settings of transfer records —
@@ -40,26 +36,21 @@ export function AssetTransferSettingsCard() {
 
 function SignatoriesCard() {
   const { t } = useTranslation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<AssetSignatoryUnit | null>(null);
   const query = useQuery({ queryKey: assetTransferQueryKeys.signatories, queryFn: getAssetSignatories, retry: false });
   const units = query.data?.units ?? [];
   const names = new Map(units.map((unit) => [unit.id, unit.name]));
 
-  async function remove(unit: AssetSignatoryUnit) {
-    try {
-      await removeAssetSignatory(unit.id);
-      await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.signatories });
-      toast({ tone: "success", title: t("assets.transfers.signatories.removed", { unit: unit.name }) });
-    } catch (caught) {
-      toast({ tone: "danger", title: t("assets.transfers.actionFailed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
-    }
-  }
-
   return (
     <Card>
-      <CardHeader title={t("assets.transfers.signatories.title")} subtitle={t("assets.transfers.signatories.subtitle")} />
+      <CardHeader
+        title={t("assets.transfers.signatories.title")}
+        subtitle={t("assets.transfers.signatories.subtitleOverview")}
+        actions={
+          <Button asChild size="sm" variant="outline">
+            <Link to="/organizational-units">{t("assets.transfers.signatories.editInOrganization")}</Link>
+          </Button>
+        }
+      />
       <div className="grid gap-2 p-4">
         {query.data?.defaultSignatory ? (
           <p className={hintClassName}>{t("assets.transfers.signatories.defaultIs", { name: query.data.defaultSignatory.displayName })}</p>
@@ -80,9 +71,6 @@ function SignatoriesCard() {
                   <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.unit")}</th>
                   <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.own")}</th>
                   <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.effective")}</th>
-                  <th scope="col" className={tableHeadClassName}>
-                    <span className="sr-only">{t("assets.transfers.signatories.actions")}</span>
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -114,18 +102,6 @@ function SignatoriesCard() {
                           ? ` (${t("assets.transfers.signatories.fromDefault")})`
                           : ""}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button type="button" size="xs" variant="ghost" onClick={() => setEditing(unit)} aria-label={t("assets.transfers.signatories.editFor", { unit: unit.name })}>
-                          <Pencil size={13} aria-hidden="true" />
-                        </Button>
-                        {unit.own ? (
-                          <Button type="button" size="xs" variant="ghost" onClick={() => void remove(unit)} aria-label={t("assets.transfers.signatories.removeFor", { unit: unit.name })}>
-                            <X size={13} aria-hidden="true" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -133,107 +109,7 @@ function SignatoriesCard() {
           </div>
         ) : null}
       </div>
-      <SignatorySheet unit={editing} onOpenChange={(open) => (open ? undefined : setEditing(null))} />
     </Card>
-  );
-}
-
-function SignatorySheet({ unit, onOpenChange }: { readonly unit: AssetSignatoryUnit | null; readonly onOpenChange: (open: boolean) => void }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [searchText, setSearchText] = useState("");
-  const [search, setSearch] = useState("");
-  const [userId, setUserId] = useState("");
-  const [title, setTitle] = useState("");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (unit) {
-      setSearchText("");
-      setSearch("");
-      setUserId(unit.own?.userId ?? "");
-      setTitle(unit.own?.title ?? "");
-      setError(null);
-    }
-  }, [unit]);
-
-  useEffect(() => {
-    const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchText]);
-
-  const usersQuery = useQuery({
-    queryKey: ["assets", "users", search],
-    queryFn: () => searchAssetUsers(search),
-    enabled: unit !== null && search.length >= 2,
-    retry: false,
-  });
-  const users = usersQuery.data?.items ?? [];
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (!unit || userId === "") return;
-    setPending(true);
-    setError(null);
-    try {
-      await saveAssetSignatory(unit.id, userId, title.trim());
-      await queryClient.invalidateQueries({ queryKey: assetTransferQueryKeys.signatories });
-      onOpenChange(false);
-    } catch (caught) {
-      setError(t(mapAssetError(caught) ?? mapApiError(caught)));
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <Sheet open={unit !== null} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="flex w-full max-w-md flex-col overflow-y-auto p-5">
-        <SheetTitle>{t("assets.transfers.signatories.sheetTitle", { unit: unit?.name ?? "" })}</SheetTitle>
-        <SheetDescription className="mt-1 text-[12px] text-muted-foreground">{t("assets.transfers.signatories.sheetDescription")}</SheetDescription>
-        <form className="mt-4 grid gap-3" onSubmit={(event) => void submit(event)} noValidate>
-          {unit?.own ? <p className={hintClassName}>{t("assets.transfers.signatories.current", { name: unit.own.displayName })}</p> : null}
-          <Field label={t("assets.assignSheet.search")} hint={t("assets.assignSheet.searchHint")}>
-            {(control) => <Input {...control} type="search" value={searchText} autoComplete="off" onChange={(event) => setSearchText(event.target.value)} />}
-          </Field>
-          {search.length >= 2 ? (
-            <fieldset className="grid gap-1">
-              <legend className="sr-only">{t("assets.assignSheet.results")}</legend>
-              {!usersQuery.isLoading && users.length === 0 ? <p className={hintClassName}>{t("assets.assignSheet.noUsers")}</p> : null}
-              {users.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12.5px] has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                >
-                  <input type="radio" name="asset-signatory-user" value={user.id} checked={userId === user.id} onChange={() => setUserId(user.id)} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-foreground">{user.displayName}</span>
-                    <span className="block truncate text-[11.5px] text-muted-foreground">{user.email}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ) : null}
-          <Field label={t("assets.transfers.signatories.titleLabel")} hint={t("assets.transfers.signatories.titleHint")}>
-            {(control) => <Input {...control} maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} />}
-          </Field>
-          {error ? (
-            <p role="alert" className={errorTextClassName}>
-              {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              {t("ui.cancel")}
-            </Button>
-            <Button type="submit" variant="primary" disabled={pending || userId === ""}>
-              {pending ? t("ui.loading") : t("assets.transfers.signatories.save")}
-            </Button>
-          </div>
-        </form>
-      </SheetContent>
-    </Sheet>
   );
 }
 

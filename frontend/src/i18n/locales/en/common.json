@@ -1384,7 +1384,8 @@
         "private.assets.transfer.numberFormat": "Transfer number format: {MM}, {YYYY} and {NNNN} (3–6 N) required, {DD} optional; the counter restarts every month.",
         "private.assets.transfer.warehouseLabel": "Text printed when the warehouse hands over or receives (empty = “Warehouse”).",
         "private.assets.transfer.place": "Place of issue printed on the transfer record (e.g. the city).",
-        "private.assets.transfer.defaultSignatoryUserId": "Signatory when no organizational unit in the chain defines one (user id; empty = none)."
+        "private.assets.transfer.defaultSignatoryUserId": "Signatory when no organizational unit in the chain defines one (user id; empty = none).",
+        "private.assets.locations.enabled": "Track physical locations (building, floor, room). Off: the full organizational unit path is shown as the place and stored locations are kept."
       }
     },
     "emailTemplates": {
@@ -5693,7 +5694,8 @@
       "notes": "Notes",
       "source": "Source",
       "externalId": "Directory ID",
-      "lastSeenAt": "Last seen in directory"
+      "lastSeenAt": "Last seen in directory",
+      "place": "Place"
     },
     "list": {
       "filtersLabel": "Asset filters",
@@ -6417,7 +6419,13 @@
         "current": "Current: {{name}}",
         "titleLabel": "Signatory function",
         "titleHint": "Printed below the name, e.g. “Head of department”.",
-        "save": "Save"
+        "save": "Save",
+        "subtitleOverview": "Overview by organizational unit tree. The signatory is set in Administration → Organization, on the selected unit.",
+        "editInOrganization": "Edit in Organization",
+        "cardTitle": "Transfer record signatory",
+        "cardSubtitle": "Assets module",
+        "change": "Change",
+        "set": "Set"
       },
       "templates": {
         "title": "Transfer record template (DOCX)",

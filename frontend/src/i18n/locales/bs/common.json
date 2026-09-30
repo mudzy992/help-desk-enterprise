@@ -1393,7 +1393,8 @@
         "private.assets.transfer.numberFormat": "Format broja prenosnice: obavezni {MM}, {YYYY} i {NNNN} (3–6 N), opciono {DD}; brojač kreće od 1 svakog mjeseca.",
         "private.assets.transfer.warehouseLabel": "Tekst kad predaje ili preuzima skladište (prazno = „Skladište“).",
         "private.assets.transfer.place": "Mjesto izdavanja na prenosnici (npr. grad).",
-        "private.assets.transfer.defaultSignatoryUserId": "Potpisnik kad ga nijedna organizaciona jedinica u lancu nema (ID korisnika; prazno = nema)."
+        "private.assets.transfer.defaultSignatoryUserId": "Potpisnik kad ga nijedna organizaciona jedinica u lancu nema (ID korisnika; prazno = nema).",
+        "private.assets.locations.enabled": "Vodi fizičke lokacije (zgrada, sprat, prostorija). Isključeno: kao mjesto se prikazuje puna putanja organizacione jedinice, a već unesene lokacije ostaju sačuvane."
       }
     },
     "emailTemplates": {
@@ -5737,7 +5738,8 @@
       "notes": "Napomene",
       "source": "Izvor",
       "externalId": "ID u direktoriju",
-      "lastSeenAt": "Zadnje viđen u direktoriju"
+      "lastSeenAt": "Zadnje viđen u direktoriju",
+      "place": "Mjesto"
     },
     "list": {
       "filtersLabel": "Filteri imovine",
@@ -6471,7 +6473,13 @@
         "current": "Trenutno: {{name}}",
         "titleLabel": "Funkcija potpisnika",
         "titleHint": "Štampa se ispod imena, npr. „Rukovodilac službe“.",
-        "save": "Sačuvaj"
+        "save": "Sačuvaj",
+        "subtitleOverview": "Pregled po stablu organizacionih jedinica. Potpisnik se postavlja u Administracija → Organizacija, na odabranoj jedinici.",
+        "editInOrganization": "Uredi u Organizaciji",
+        "cardTitle": "Potpisnik prenosnica",
+        "cardSubtitle": "Modul Imovina",
+        "change": "Promijeni",
+        "set": "Postavi"
       },
       "templates": {
         "title": "Šablon prenosnice (DOCX)",

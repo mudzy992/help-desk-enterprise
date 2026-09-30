@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { assetErrorDetail, flattenLocationTree, localizedLabel, localizedName, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   createAsset,
   updateAsset,
@@ -96,6 +97,7 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
     () => (selectedType?.attributes ?? []).filter((attribute) => attribute.archivedAt === null),
     [selectedType],
   );
+  const locationsEnabled = useAssetLocationsEnabled();
   const locationRows = useMemo(() => flattenLocationTree(catalog.locations), [catalog.locations]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setState((current) => ({ ...current, [key]: value }));
@@ -218,6 +220,7 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
                 </Select>
               )}
             </Field>
+            {locationsEnabled ? (
             <Field label={t("assets.fields.location")}>
               {(control) => (
                 <Select {...control} value={state.locationId} onChange={(event) => set("locationId", event.target.value)}>
@@ -232,6 +235,7 @@ export function AssetFormSheet({ open, onOpenChange, catalog, options, asset, du
                 </Select>
               )}
             </Field>
+            ) : null}
           </div>
           <Field label={t("assets.fields.service")} hint={t("assets.form.serviceHint")}>
             {(control) => (

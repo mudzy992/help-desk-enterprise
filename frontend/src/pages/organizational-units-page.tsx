@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { DirectorySyncCard } from "@/components/organizational-units/directory-sync-card";
 import { LdapsDirectorySyncPanel } from "@/components/organizational-units/ldaps-directory-sync-panel";
 import { OrganizationalUnitDetailsCard } from "@/components/organizational-units/organizational-unit-details-card";
+import { OrganizationalUnitSignatoryCard } from "@/components/organizational-units/organizational-unit-signatory-card";
 import { OrganizationalUnitFormDrawer } from "@/components/organizational-units/organizational-unit-form-drawer";
 import { OrganizationalUnitTree } from "@/components/organizational-units/organizational-unit-tree";
 import { ApiErrorText } from "@/components/ui/api-error-text";
@@ -144,6 +145,9 @@ export function OrganizationalUnitsPage({
                   selectedNode.id,
                 )}
               />
+            ) : null}
+            {selectedNode ? (
+              <OrganizationalUnitSignatoryCard unitId={selectedNode.id} enabled={session?.modules?.cmdb === true} />
             ) : null}
             <DirectorySyncCard
               canManage={canManage}

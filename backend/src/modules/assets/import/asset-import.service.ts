@@ -155,7 +155,8 @@ export class AssetImportService {
     const type = await this.loadType(typeId);
     if (type.archivedAt !== null) throw new AssetError(assetErrorCodes.typeArchived);
     const attributes = type.attributes.filter((attribute) => attribute.archivedAt === null);
-    const columns = this.columnsFor(attributes, locale, true);
+    const locationsEnabled = await this.access.locationsEnabled();
+    const columns = this.columnsFor(attributes, locale, true, locationsEnabled);
     const [units, locations, services] = await Promise.all([this.loadUnits(actor.scope), this.loadLocations(), this.loadServices()]);
     const bs = locale === 'bs';
     const help: HelpSection[] = [
@@ -184,7 +185,9 @@ export class AssetImportService {
         lines: (['ORDERED', 'IN_STOCK', 'IN_USE', 'IN_REPAIR'] as const).map((status) => `${assetStatusLabels[status][locale]} (${status})`),
       },
       { title: bs ? 'Organizacione jedinice (vaš opseg)' : 'Organisational units (your scope)', lines: units.filter((unit) => unit.inScope).slice(0, 2000).map((unit) => unit.name === unit.ouPath ? unit.name : `${unit.name} — ${unit.ouPath}`) },
-      { title: bs ? 'Lokacije (šifra ili puna putanja)' : 'Locations (code or full path)', lines: locations.slice(0, 2000).map((location) => (location.code ? `${location.code} — ${location.path}` : location.path)) },
+      ...(locationsEnabled
+        ? [{ title: bs ? 'Lokacije (šifra ili puna putanja)' : 'Locations (code or full path)', lines: locations.slice(0, 2000).map((location) => (location.code ? `${location.code} — ${location.path}` : location.path)) }]
+        : []),
       { title: bs ? 'Servisi' : 'Services', lines: services.slice(0, 1000).map((service) => `${service.name} (${service.slug})`) },
       ...attributes
         .filter((attribute) => attribute.dataType === 'SELECT')
@@ -201,8 +204,9 @@ export class AssetImportService {
     attributes: readonly { key: string; labelBs: string; labelEn: string; dataType: string; isRequired: boolean }[],
     locale: ImportLocale,
     forImport: boolean,
+    locationsEnabled: boolean,
   ): SheetColumn[] {
-    const fixed = assetFixedColumnKeys.filter((key) => !(forImport && key === 'type'));
+    const fixed = assetFixedColumnKeys.filter((key) => !(forImport && key === 'type') && (locationsEnabled || key !== 'location'));
     return [
       ...fixed.map((key) => ({ key, header: assetColumnLabels[key][locale], note: key })),
       ...attributes.map((attribute) => ({
@@ -249,6 +253,7 @@ export class AssetImportService {
       return index === -1 ? [] : [...new Set(sheet.rows.map((row) => row[index]?.trim() ?? '').filter((value) => value !== ''))];
     };
     const definitions: AssetAttributeDefinition[] = type.attributes;
+    const locationsEnabled = await this.access.locationsEnabled();
     const [units, locations, services, users, existing, uniqueValues] = await Promise.all([
       this.loadUnits(actor.scope),
       this.loadLocations(),
@@ -270,6 +275,7 @@ export class AssetImportService {
         units,
         users,
         locations,
+        locationsEnabled,
         services,
         existingByTag: existing.byTag,
         existingBySerial: existing.bySerial,
@@ -316,7 +322,7 @@ export class AssetImportService {
       mapping,
       suggestedMapping: suggested,
       columns: [
-        ...assetFixedColumnKeys.map((key) => ({ key, labelBs: assetColumnLabels[key].bs, labelEn: assetColumnLabels[key].en })),
+        ...assetFixedColumnKeys.filter((key) => locationsEnabled || key !== 'location').map((key) => ({ key, labelBs: assetColumnLabels[key].bs, labelEn: assetColumnLabels[key].en })),
         ...attributeColumns.map((attribute) => ({ key: `${attributeColumnPrefix}${attribute.key}`, labelBs: attribute.labelBs, labelEn: attribute.labelEn })),
       ],
       totals,
@@ -764,7 +770,7 @@ export class AssetImportService {
     const locationLabel = new Map(locations.map((location) => [location.id, location.code ?? location.path]));
     const serviceLabel = new Map(services.map((service) => [service.id, (serviceNames.get(service.name.toLowerCase()) ?? 0) > 1 ? service.slug : service.name]));
     const attributes = type?.attributes.filter((attribute) => attribute.archivedAt === null) ?? [];
-    const columns = this.columnsFor(attributes, locale, false);
+    const columns = this.columnsFor(attributes, locale, false, await this.access.locationsEnabled());
     const data = rows.map((row) => {
       const values: Record<string, string> = {
         assetTag: row.assetTag,

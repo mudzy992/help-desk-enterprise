@@ -60,6 +60,8 @@ export type ImportContext = {
   /** Users referenced in the file (by e-mail or login), prefetched. */
   readonly users: readonly ImportUser[];
   readonly locations: readonly ImportLocation[];
+  /** C9c: false = the location column is ignored (stored values are kept). */
+  readonly locationsEnabled?: boolean;
   readonly services: readonly ImportService[];
   /** Existing assets matched by tag (any type) or serial (this type). */
   readonly existingByTag: ReadonlyMap<string, ExistingAsset>;
@@ -325,7 +327,7 @@ export function planAssetImport(input: {
       else next.assignedUserId = match.item.id;
     }
 
-    const locationCell = readCell(values, 'location');
+    const locationCell = context.locationsEnabled === false ? ({ kind: 'absent' } as Cell) : readCell(values, 'location');
     if (locationCell.kind === 'clear') next.locationId = null;
     else if (locationCell.kind === 'value') {
       const match = matchLocation(context.locations, locationCell.text);

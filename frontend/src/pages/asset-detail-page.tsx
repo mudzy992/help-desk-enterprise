@@ -32,6 +32,7 @@ import {
   warrantyState,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   assetQueryKeys,
   deleteAsset,
@@ -278,6 +279,7 @@ function DefinitionRow({ label, children }: { readonly label: string; readonly c
 
 function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
   const { t, i18n } = useTranslation();
+  const locationsEnabled = useAssetLocationsEnabled();
   const language = i18n.language;
   const warranty = warrantyState(asset.warrantyEndsAt);
   const money =
@@ -334,7 +336,11 @@ function AssetOverview({ asset }: { readonly asset: AssetDetail }) {
             {asset.organizationalUnit.name}
             <span className="block text-[11.5px] text-muted-foreground">{asset.organizationalUnit.path}</span>
           </DefinitionRow>
-          <DefinitionRow label={t("assets.fields.location")}>{asset.location?.label ?? "—"}</DefinitionRow>
+          {locationsEnabled ? (
+            <DefinitionRow label={t("assets.fields.location")}>{asset.location?.label ?? "—"}</DefinitionRow>
+          ) : (
+            <DefinitionRow label={t("assets.fields.place")}>{asset.organizationalUnit.pathLabel}</DefinitionRow>
+          )}
         </dl>
       </Card>
 

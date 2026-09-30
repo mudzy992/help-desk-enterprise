@@ -360,6 +360,13 @@ To je kriterij kompletnosti.
 - Registar prenosnica je tab „Prenosnice“ na stranici Oprema; kartica opreme ima svoj tab, a korisnik na „Mojoj opremi“ vidi i preuzima svoje prenosnice.
 - Pri anonimizaciji korisnika njegovo ime u izdatim prenosnicama zamjenjuje se pseudonimom, a e-mail, funkcija i OJ se brišu; broj i oprema ostaju.
 
+## CMDB — potpisnik i lokacije (C9c, 30.9.2026)
+
+- Potpisnik prenosnica se postavlja u Administracija → Organizacija, na odabranoj organizacionoj jedinici (kartica „Potpisnik prenosnica“); kartica postoji samo dok je modul Imovina uključen.
+- Katalog imovine prikazuje stablo potpisnika samo za pregled i vodi na Organizaciju za izmjenu.
+- Lokacije (zgrada, sprat, prostorija) su opcionalne i zadano isključene; kad su isključene, kao mjesto opreme prikazuje se puna putanja organizacione jedinice.
+- Isključivanjem lokacija ništa se ne briše: ranije unesene lokacije ostaju sačuvane i ponovo se prikazuju kad se lokacije uključe.
+
 ## CMDB — licence, ugovori i podsjetnici (C6, 30.9.2026)
 
 - Licence imaju četiri vrste: po uređaju, po korisniku, za lokaciju (bez dodjela) i pretplatu (obavezan datum isteka).

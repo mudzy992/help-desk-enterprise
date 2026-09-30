@@ -17,7 +17,7 @@ import { resolveContainedStoragePath, resolveUploadRoot } from '../../tickets/at
 import { scanAttachmentWithClamav } from '../../tickets/attachments/scan-attachment-with-clamav';
 import { TicketsError } from '../../tickets/tickets.error';
 import { AssetAccessService } from '../asset-access.service';
-import { buildLocationPaths } from '../asset-locations';
+import { buildLocationPaths, formatUnitPath } from '../asset-locations';
 import { isPathInScope, unitScopeWhere, viewerHasPermission, type AssetScope, type AssetViewer } from '../asset-viewer';
 import { AssetError, assetErrorCodes, assetEventActions, canTransitionAssetStatus, type AssetStatusValue } from '../assets.constants';
 import {
@@ -231,11 +231,12 @@ export class AssetTransfersService {
     const fromUser = validation.fromUserId ? await this.prisma.user.findUnique({ where: { id: validation.fromUserId }, select: userSelect }) : null;
     let unit: { id: string; ouPath: string; name: string } | null = null;
     if (input.organizationalUnitId) unit = await this.access.requireUnitInScope(scope, input.organizationalUnitId);
-    if (input.locationId) {
+    const locationsEnabled = await this.access.locationsEnabled();
+    if (input.locationId && locationsEnabled) {
       const location = await this.prisma.assetLocation.findUnique({ where: { id: input.locationId }, select: { id: true, archivedAt: true } });
       if (location === null || location.archivedAt !== null) throw new AssetError(assetErrorCodes.locationNotFound);
     }
-    return { scope, assets: loaded, toUser: input.scenario === 'USER_TO_WAREHOUSE' ? null : toUser, fromUser, unit, problems: validation.problems };
+    return { scope, assets: loaded, toUser: input.scenario === 'USER_TO_WAREHOUSE' ? null : toUser, fromUser, unit, problems: validation.problems, locationsEnabled };
   }
 
   private nextStatus(scenario: AssetTransferScenarioValue, current: AssetStatusValue, returnStatus: 'IN_STOCK' | 'IN_REPAIR' | null | undefined): AssetStatusValue {
@@ -339,7 +340,12 @@ export class AssetTransfersService {
           type: locale === 'en' ? asset.type.nameEn : asset.type.nameBs,
           manufacturer: asset.manufacturer ?? '',
           model: asset.model ?? '',
-          location: asset.location ? (locationPaths.get(asset.location.id) ?? asset.location.name) : '',
+          // C9c: without locations the place is the full unit path after the move.
+          location: loaded.locationsEnabled
+            ? asset.location
+              ? (locationPaths.get(asset.location.id) ?? asset.location.name)
+              : ''
+            : formatUnitPath(loaded.unit?.ouPath ?? asset.organizationalUnit.ouPath),
           note: '',
         }));
         const snapshot: TransferSnapshot = {
@@ -389,7 +395,7 @@ export class AssetTransfersService {
             assignmentSuggested: false,
             status: next,
             ...(loaded.unit ? { organizationalUnitId: loaded.unit.id } : {}),
-            ...(input.locationId ? { locationId: input.locationId } : {}),
+            ...(input.locationId && loaded.locationsEnabled ? { locationId: input.locationId } : {}),
             version: { increment: 1 },
           },
         });

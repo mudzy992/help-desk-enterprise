@@ -534,6 +534,7 @@ export const settingKeys = {
   privateOpsThresholdsClamavFailuresBeforeAlert: 'private.ops.thresholds.clamavFailuresBeforeAlert',
   // Paket 2.9 (K3): on-call.
   privateAssetsTicketPickerEnabled: 'private.assets.ticketPicker.enabled',
+  privateAssetsLocationsEnabled: 'private.assets.locations.enabled',
   privateAssetsTagAutoGenerate: 'private.assets.tag.autoGenerate',
   privateAssetsTagPrefix: 'private.assets.tag.prefix',
   privateAssetsCurrency: 'private.assets.currency',

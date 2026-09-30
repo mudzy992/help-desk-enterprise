@@ -24,6 +24,7 @@ import {
   resolveAssetIcon,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   assetAttributeDataTypes,
   assetCategories,
@@ -64,6 +65,7 @@ function useErrorText() {
 /** Paket 3.2 (§4, §7, §17.7): types with attributes, and locations (asset.type.manage). */
 export function AssetCatalogManager() {
   const { t, i18n } = useTranslation();
+  const locationsEnabled = useAssetLocationsEnabled();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const errorText = useErrorText();
@@ -198,6 +200,7 @@ export function AssetCatalogManager() {
         </ul>
       </Card>
 
+      {locationsEnabled ? (
       <Card className="p-0">
         <CardHeader
           title={t("assets.catalog.locationsTitle")}
@@ -233,6 +236,7 @@ export function AssetCatalogManager() {
           </ul>
         )}
       </Card>
+      ) : null}
 
       <TypeEditor
         open={editor?.kind === "type"}

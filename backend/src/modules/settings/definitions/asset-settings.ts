@@ -11,6 +11,8 @@ import type { SettingDefinition } from '../settings.types';
  */
 export const assetDefaults = {
   ticketPickerEnabled: true,
+  /** C9c: physical locations are optional; off = the unit path is the place. */
+  locationsEnabled: false,
   tagAutoGenerate: true,
   tagPrefix: 'INV-',
   currency: 'BAM',
@@ -100,6 +102,14 @@ export const assetSettings: readonly SettingDefinition[] = [
     description: 'Users may pick their own equipment when creating a ticket',
     isRequired: true,
     defaultValue: assetDefaults.ticketPickerEnabled,
+  }),
+  definePrivateSetting({
+    key: settingKeys.privateAssetsLocationsEnabled,
+    categoryId: category,
+    valueType: 'boolean',
+    description: 'Track physical locations (building, floor, room); off = the organizational unit path is shown as the place and stored locations are kept',
+    isRequired: true,
+    defaultValue: assetDefaults.locationsEnabled,
   }),
   definePrivateSetting({
     key: settingKeys.privateAssetsTagAutoGenerate,

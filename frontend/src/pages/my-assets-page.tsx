@@ -20,11 +20,13 @@ import {
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
 import { assetQueryKeys, getMyAssets } from "@/services/assets-api";
+import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import { assetTransferQueryKeys, listMyAssetTransfers } from "@/services/asset-transfers-api";
 
 /** Paket 3.2 (§17.9): equipment assigned to the signed-in user, with own tickets. */
 export function MyAssetsPage() {
   const { t, i18n } = useTranslation();
+  const locationsEnabled = useAssetLocationsEnabled();
   const { data, error, isLoading } = useQuery({ queryKey: assetQueryKeys.mine, queryFn: getMyAssets, retry: false });
   const header = <PageHeader crumbs={[t("navigation.sections.services")]} title={t("assets.mine.title")} subtitle={t("assets.mine.subtitle")} />;
 
@@ -85,8 +87,8 @@ export function MyAssetsPage() {
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
                   <dt className="text-muted-foreground">{t("assets.fields.model")}</dt>
                   <dd className="truncate text-foreground">{[item.manufacturer, item.model].filter(Boolean).join(" ") || "—"}</dd>
-                  <dt className="text-muted-foreground">{t("assets.fields.location")}</dt>
-                  <dd className="truncate text-foreground">{item.location?.label ?? "—"}</dd>
+                  <dt className="text-muted-foreground">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</dt>
+                  <dd className="truncate text-foreground">{locationsEnabled ? (item.location?.label ?? "—") : item.organizationalUnit.path}</dd>
                   <dt className="text-muted-foreground">{t("assets.fields.assignedAt")}</dt>
                   <dd className="text-foreground">{formatAssetDate(item.assignedAt, i18n.language)}</dd>
                   <dt className="text-muted-foreground">{t("assets.fields.warrantyEndsAt")}</dt>

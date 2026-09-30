@@ -28,6 +28,8 @@ export type AssetCapabilities = {
   readonly canReadReports: boolean;
   readonly canDelete: boolean;
   readonly ticketPickerEnabled: boolean;
+  /** C9c: `private.assets.locations.enabled`. */
+  readonly locationsEnabled: boolean;
   readonly hasOwnAssets: boolean;
 };
 
@@ -99,7 +101,7 @@ export type AssetListItem = {
   readonly manufacturer: string | null;
   readonly model: string | null;
   readonly assignedUser: AssetUserSummary | null;
-  readonly organizationalUnit: { readonly id: string; readonly name: string };
+  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string };
   readonly location: { readonly id: string; readonly label: string | null } | null;
   readonly warrantyEndsAt: string | null;
   readonly source: AssetSource;
@@ -165,7 +167,7 @@ export type AssetAttributeDefinition = {
 
 export type AssetDetail = Omit<AssetListItem, "organizationalUnit"> & {
   readonly version: number;
-  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string };
+  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string; readonly pathLabel: string };
   readonly service: { readonly id: string; readonly name: string } | null;
   readonly assignedAt: string | null;
   readonly purchaseDate: string | null;
@@ -242,6 +244,7 @@ export type MyAsset = {
   readonly type: AssetTypeSummary;
   readonly manufacturer: string | null;
   readonly model: string | null;
+  readonly organizationalUnit: { readonly id: string; readonly name: string; readonly path: string };
   readonly location: { readonly id: string; readonly label: string | null } | null;
   readonly assignedAt: string | null;
   readonly warrantyEndsAt: string | null;

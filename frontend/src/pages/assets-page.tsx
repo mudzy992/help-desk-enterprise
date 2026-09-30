@@ -41,6 +41,7 @@ import {
   warrantyState,
 } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
+import { useAssetLocationsEnabled } from "@/lib/assets/use-asset-locations-enabled";
 import {
   assetQueryKeys,
   assetStatuses,
@@ -138,6 +139,7 @@ export function AssetsPage() {
 
 function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const { t, i18n } = useTranslation();
+  const locationsEnabled = useAssetLocationsEnabled();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
@@ -260,6 +262,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             </option>
           ))}
         </select>
+        {locationsEnabled ? (
         <select className={selectCompactClassName} aria-label={t("assets.fields.location")} value={locationId} onChange={(event) => setLocationId(event.target.value)}>
           <option value="">{t("assets.list.allLocations")}</option>
           {locationRows.map((row) => (
@@ -268,6 +271,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             </option>
           ))}
         </select>
+        ) : null}
         <select
           className={selectCompactClassName}
           aria-label={t("assets.fields.source")}
@@ -344,7 +348,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.status")}</th>
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.assignedUser")}</th>
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.organizationalUnit")}</th>
-                  <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.location")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</th>
                   <th scope="col" className="px-3 py-2 text-left">{t("assets.fields.warrantyEndsAt")}</th>
                   <th scope="col" className="px-3 py-2 text-right">{t("assets.list.openTickets")}</th>
                 </tr>
@@ -382,7 +386,9 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
                       </td>
                       <td className="px-3 py-2">{item.assignedUser?.displayName ?? <span className="text-muted-foreground">—</span>}</td>
                       <td className="px-3 py-2">{item.organizationalUnit.name}</td>
-                      <td className="px-3 py-2">{item.location?.label ?? <span className="text-muted-foreground">—</span>}</td>
+                      <td className="px-3 py-2">
+                        {locationsEnabled ? (item.location?.label ?? <span className="text-muted-foreground">—</span>) : item.organizationalUnit.path}
+                      </td>
                       <td className="px-3 py-2">
                         <span className={warranty === "expired" ? "text-danger" : warranty === "expiring" ? "text-warning" : undefined}>
                           {formatAssetDate(item.warrantyEndsAt, i18n.language)}

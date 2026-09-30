@@ -72,6 +72,7 @@ function setup(options: { settings?: Record<string, unknown>; assets?: ReturnTyp
     readSetting: jest.fn((key: string, fallback: unknown) => Promise.resolve(key in settings ? settings[key] : fallback)),
     require: jest.fn().mockResolvedValue({ all: true }),
     requireEnabled: jest.fn(),
+    locationsEnabled: jest.fn(() => Promise.resolve(settings['private.assets.locations.enabled'] === true)),
     requireUnitInScope: jest.fn().mockResolvedValue(unit),
     scope: jest.fn().mockResolvedValue({ all: true }),
   };
@@ -99,6 +100,16 @@ describe('AssetTransfersService.move (3.2 C9)', () => {
     });
     expect(transaction.assetEvent.create).toHaveBeenCalledTimes(1);
     expect(transaction.assetEvent.create.mock.calls[0][0].data).toMatchObject({ action: 'assigned', detail: { transferId: 'tr1' } });
+  });
+
+  it('C9c: without locations the item place is the unit path; with them the location path', async () => {
+    const off = setup({ assets: [asset('a1', { location: { id: 'l1', name: 'Soba 12' } })] });
+    await off.service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1', locationId: 'l1' }, viewer);
+    expect(off.transaction.assetTransfer.create.mock.calls[0][0].data.snapshot.items[0].location).toBe('root › it');
+    expect(off.transaction.asset.updateMany.mock.calls[0][0].data).not.toHaveProperty('locationId');
+    const on = setup({ settings: { 'private.assets.locations.enabled': true }, assets: [asset('a1', { location: { id: 'l1', name: 'Soba 12' } })] });
+    await on.service.move({ scenario: 'WAREHOUSE_TO_USER', assetIds: ['a1'], toUserId: 'u1' }, viewer);
+    expect(on.transaction.assetTransfer.create.mock.calls[0][0].data.snapshot.items[0].location).toBe('Soba 12');
   });
 
   it('first issue with free text prints who handed over', async () => {
