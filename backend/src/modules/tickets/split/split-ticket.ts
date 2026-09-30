@@ -17,6 +17,7 @@ import { createSplitChildTicket } from './create-split-child-ticket';
 import { normalizeSplitReason } from './normalize-split-reason';
 import type { SplitTicketInput, TicketSplitConfiguration } from './split.types';
 import { transferSplitAttachments } from './transfer-split-attachments';
+import { copyTicketAssets } from '../assets/transfer-ticket-assets';
 
 export async function splitTicket(input: {
   readonly prisma: PrismaService;
@@ -78,6 +79,7 @@ export async function splitTicket(input: {
       request: childInput,
       configuration: input.configuration,
     });
+    await copyTicketAssets(input.prisma, loaded.ticket.id, child.id, input.context.actorUserId);
     children.push(child);
   }
   const numbers = children.map((child) => child.ticketNumber).join(',');

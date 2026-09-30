@@ -6,6 +6,7 @@ export const ticketErrorMessages: Record<TicketsErrorCode, string> = {
   ORIGIN_UNIT_REQUIRED: 'Origin organizational unit is required',
   SERVICE_NOT_FOUND: 'Service was not found',
   SERVICE_REQUIRED: 'Service is required',
+  ASSET_NOT_SELECTABLE: 'The selected equipment cannot be used for this ticket',
   SERVICE_NOT_OFFERED: 'Service is not offered for new tickets',
   FORM_VERSION_REQUIRED: 'Ticket formVersionRef is required',
   FORM_VERSION_NOT_FOUND: 'Form version was not found',

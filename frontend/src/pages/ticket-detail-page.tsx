@@ -36,6 +36,7 @@ import { isPlaybookGuardedTransition, useTicketPlaybook } from "@/lib/templates/
 import { TicketCollaborationBar } from "@/components/tickets/ticket-collaboration-bar";
 import { TicketNavigationShortcuts } from "@/components/shortcuts/ticket-navigation-shortcuts";
 import { TicketLinksPanel } from "@/components/tickets/ticket-links-panel";
+import { TicketAssetsPanel } from "@/components/assets/ticket-assets-panel";
 import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
 import { useAgentCollaborationConfiguration } from "@/lib/tickets/use-agent-collaboration";
 import { useTicketPresence } from "@/lib/tickets/use-ticket-presence";
@@ -395,6 +396,7 @@ export function TicketDetailPage() {
           />
         ) : null}
         <TicketMergedCard items={mergedItems} />
+        {session?.modules?.cmdb === true ? <TicketAssetsPanel ticketId={ticket.id} versionKey={ticket.updatedAt} /> : null}
         {isStaffView && collaborationConfig.linksEnabled ? (
           <TicketLinksPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
         ) : null}

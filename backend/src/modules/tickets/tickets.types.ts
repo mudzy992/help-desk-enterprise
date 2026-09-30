@@ -156,6 +156,8 @@ export type CreateTicketInput = {
   readonly classification?: DataClassification;
   readonly isConfidential?: boolean;
   readonly acknowledgeDuplicate?: boolean;
+  /** Paket 3.2 (§8): requester's own equipment. */
+  readonly assetId?: string;
 };
 
 export type UpdateTicketInput = {

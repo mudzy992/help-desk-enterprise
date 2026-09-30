@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { CreateTicketDraftView } from "@/components/tickets/create-ticket-draft-view";
 import { CreateTicketFollowUpViews } from "@/components/tickets/create-ticket-follow-up-views";
@@ -33,7 +33,12 @@ export function CreateTicketForm() {
   const catalog = useCreateTicketCatalog();
   const capabilities = useSessionCapabilities();
   const matrixCells = usePriorityMatrix();
-  const [draft, setDraft] = useState<CreateTicketDraft>(emptyCreateTicketDraft);
+  const [searchParams] = useSearchParams();
+  // Paket 3.2 (§8): "Report a problem" on My equipment opens the form with the asset.
+  const [draft, setDraft] = useState<CreateTicketDraft>(() => ({
+    ...emptyCreateTicketDraft,
+    assetId: (searchParams.get("assetId") ?? "").slice(0, 64),
+  }));
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
   const [step, setStep] = useState(0);
   const [suggestions, setSuggestions] = useState<readonly KnowledgeInterceptSuggestion[]>([]);

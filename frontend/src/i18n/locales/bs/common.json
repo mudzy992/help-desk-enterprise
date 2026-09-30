@@ -3780,7 +3780,9 @@
         "ticket_unlinked": "veza s tiketom uklonjena",
         "ticket_incident_linked": "Povezano s incidentom",
         "ticket_incident_unlinked": "Uklonjena veza s incidentom",
-        "ticket_incident_resolved": "Povezani incident je riješen"
+        "ticket_incident_resolved": "Povezani incident je riješen",
+        "ticket_asset_linked": "oprema vezana uz tiket",
+        "ticket_asset_unlinked": "oprema uklonjena s tiketa"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -4024,7 +4026,8 @@
     "errorLinkLimit": "Dostignut je maksimalan broj veza za ovaj tiket.",
     "errorLinkNote": "Napomena veze je predugačka.",
     "interceptVoteHelpful": "Hvala, zabilježeno je da vam je članak pomogao. Ako je problem riješen, odaberite „Članak je riješio moj problem“ ispod.",
-    "interceptVoteNotHelpful": "Hvala, zabilježeno je da članak nije pomogao. Možete nastaviti sa slanjem zahtjeva."
+    "interceptVoteNotHelpful": "Hvala, zabilježeno je da članak nije pomogao. Možete nastaviti sa slanjem zahtjeva.",
+    "errorAssetNotSelectable": "Izabrana oprema se ne može koristiti za ovaj tiket. Osvježite stranicu i pokušajte ponovo."
   },
   "relativeTime": {
     "justNow": "upravo sada",
@@ -5912,7 +5915,9 @@
       "emptyBody": "Kad vam IT zaduži uređaj, pojavit će se ovdje.",
       "listLabel": "Moja oprema",
       "tickets": "Moji tiketi",
-      "noTickets": "Nema tiketa za ovu stavku."
+      "noTickets": "Nema tiketa za ovu stavku.",
+      "reportProblem": "Prijavi problem",
+      "reportProblemFor": "Prijavi problem za {{name}}"
     },
     "catalog": {
       "showArchived": "Prikaži arhivirane",
@@ -6001,6 +6006,28 @@
       "relationCycle": "Veza bi napravila krug.",
       "relationSelf": "Stavka se ne može povezati sama sa sobom.",
       "hasDependents": "Druge stavke još zavise od ove."
+    },
+    "ticket": {
+      "pickerLabel": "Na koju opremu se odnosi?",
+      "pickerNone": "Nije na listi / ne znam",
+      "pickerHint": "Opcionalno. Prikazana je samo oprema zadužena na vas.",
+      "panelTitle": "Oprema",
+      "count_one": "{{count}} stavka",
+      "count_few": "{{count}} stavke",
+      "count_other": "{{count}} stavki",
+      "empty": "Na tiket nije vezana oprema.",
+      "primary": "Primarna",
+      "makePrimary": "Označi {{name}} kao primarnu",
+      "remove": "Ukloni {{name}} s tiketa",
+      "add": "Dodaj opremu",
+      "searchLabel": "Pretraga opreme",
+      "searchPlaceholder": "Inventarni broj, naziv ili serijski broj",
+      "searchHint": "Upišite najmanje 2 znaka.",
+      "resultsLabel": "Rezultati pretrage opreme",
+      "noResults": "Nema opreme u vašem obimu za ovu pretragu.",
+      "removeTitle": "Ukloniti opremu s tiketa?",
+      "removeBody": "{{name}} više neće biti vezana uz ovaj tiket. Historija ostaje zabilježena.",
+      "removeConfirm": "Ukloni"
     }
   }
 }

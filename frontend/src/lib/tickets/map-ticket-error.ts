@@ -32,6 +32,7 @@ export type TicketErrorKey =
   | "tickets.errorRemoteDisabled"
   | "tickets.errorRemoteRateLimited"
   | "tickets.errorFormVersionMissing"
+  | "tickets.errorAssetNotSelectable"
   | "tickets.errorExportTooLarge"
   | "tickets.errorClaimForbidden"
   | "tickets.errorForwardStatus"
@@ -103,6 +104,7 @@ const codeKeys: Partial<Record<string, TicketErrorKey>> = {
   SERVICE_NOT_OFFERED: "tickets.errorValidation",
   FORM_VERSION_REQUIRED: "tickets.errorFormVersionMissing",
   FORM_VERSION_NOT_ACTIVE: "tickets.errorFormVersionMissing",
+  ASSET_NOT_SELECTABLE: "tickets.errorAssetNotSelectable",
   FORM_VERSION_NOT_FOUND: "tickets.errorFormVersionMissing",
   INVALID_MESSAGE_BODY: "tickets.errorValidation",
   INVALID_MESSAGE_TYPE: "tickets.errorValidation",

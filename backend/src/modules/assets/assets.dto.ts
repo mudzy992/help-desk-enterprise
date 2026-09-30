@@ -91,3 +91,8 @@ export class SaveAssetLocationDto {
 export class ArchiveDto {
   @IsBoolean() archived!: boolean;
 }
+
+export class LinkTicketAssetDto {
+  @IsString() @MaxLength(64) assetId!: string;
+  @IsOptional() @IsBoolean() isPrimary?: boolean;
+}

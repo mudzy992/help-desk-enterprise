@@ -48,6 +48,7 @@ import type {
   DuplicateTicketMatch,
   TicketGuardrailsConfiguration,
 } from './guardrails/guardrails.types';
+import { linkCreatedTicketAsset, resolveCreateTicketAsset } from './assets/resolve-create-ticket-asset';
 import { writeCreatedTicketFollowUp } from './write-created-ticket-follow-up';
 import type {
   CreateTicketInput,
@@ -133,6 +134,7 @@ export async function createTicket(
       serviceRequiresApproval: service.requiresApproval,
     }),
   });
+  const linkedAsset = await resolveCreateTicketAsset(prisma, input.assetId, requester.id);
   const title = normalizeTicketTitle(input.title);
   const description = normalizeTicketDescription(input.description);
   const scan = scanTicketContent({
@@ -201,6 +203,14 @@ export async function createTicket(
             reopenedFromTicketId: input.reopenedFromTicketId ?? null,
           },
         })) as TicketRecord;
+        if (linkedAsset !== null) {
+          await linkCreatedTicketAsset(transaction as PrismaService, {
+            ticketId: record.id,
+            ticketNumber: record.ticketNumber,
+            asset: linkedAsset,
+            actorUserId: context.actorUserId,
+          });
+        }
         await writeCreatedTicketFollowUp(
           transaction as PrismaService,
           record,

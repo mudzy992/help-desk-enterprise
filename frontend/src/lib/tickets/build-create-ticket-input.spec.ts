@@ -15,6 +15,7 @@ const draft = {
   originUnitId: " ou-it ",
   formVersionRef: "form-1",
   formData: { hostname: "pc-1" },
+  assetId: "",
 };
 
 describe("buildCreateTicketInput", () => {
@@ -78,5 +79,12 @@ describe("isServiceReadyForTicketCreation", () => {
     expect(
       isServiceReadyForTicketCreation({ ...draft, serviceId: "" }, false),
     ).toBe(true);
+  });
+});
+
+describe("buildCreateTicketInput asset (paket 3.2 §8)", () => {
+  it("sends the chosen own equipment only when set", () => {
+    expect(buildCreateTicketInput({ ...draft, assetId: "asset-1" }).assetId).toBe("asset-1");
+    expect("assetId" in buildCreateTicketInput(draft)).toBe(false);
   });
 });

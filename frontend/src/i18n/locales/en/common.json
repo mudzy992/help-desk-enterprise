@@ -3759,7 +3759,9 @@
         "ticket_unlinked": "ticket link removed",
         "ticket_incident_linked": "Linked to an incident",
         "ticket_incident_unlinked": "Unlinked from an incident",
-        "ticket_incident_resolved": "Linked incident resolved"
+        "ticket_incident_resolved": "Linked incident resolved",
+        "ticket_asset_linked": "equipment linked to the ticket",
+        "ticket_asset_unlinked": "equipment removed from the ticket"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -4001,7 +4003,8 @@
     "errorLinkLimit": "This ticket has reached the maximum number of links.",
     "errorLinkNote": "The link note is too long.",
     "interceptVoteHelpful": "Thanks, we noted that the article helped. If the problem is solved, choose “The article solved my problem” below.",
-    "interceptVoteNotHelpful": "Thanks, we noted that the article did not help. You can continue sending the request."
+    "interceptVoteNotHelpful": "Thanks, we noted that the article did not help. You can continue sending the request.",
+    "errorAssetNotSelectable": "The selected equipment cannot be used for this ticket. Refresh the page and try again."
   },
   "relativeTime": {
     "justNow": "just now",
@@ -5866,7 +5869,9 @@
       "emptyBody": "When IT assigns you a device, it appears here.",
       "listLabel": "My equipment",
       "tickets": "My tickets",
-      "noTickets": "No tickets for this item."
+      "noTickets": "No tickets for this item.",
+      "reportProblem": "Report a problem",
+      "reportProblemFor": "Report a problem with {{name}}"
     },
     "catalog": {
       "showArchived": "Show archived",
@@ -5954,6 +5959,27 @@
       "relationCycle": "The relation would create a cycle.",
       "relationSelf": "An item cannot be linked to itself.",
       "hasDependents": "Other items still depend on this one."
+    },
+    "ticket": {
+      "pickerLabel": "Which equipment is this about?",
+      "pickerNone": "Not listed / I don't know",
+      "pickerHint": "Optional. Only equipment assigned to you is listed.",
+      "panelTitle": "Equipment",
+      "count_one": "{{count}} item",
+      "count_other": "{{count}} items",
+      "empty": "No equipment is linked to this ticket.",
+      "primary": "Primary",
+      "makePrimary": "Mark {{name}} as primary",
+      "remove": "Remove {{name}} from the ticket",
+      "add": "Add equipment",
+      "searchLabel": "Search equipment",
+      "searchPlaceholder": "Inventory number, name or serial number",
+      "searchHint": "Type at least 2 characters.",
+      "resultsLabel": "Equipment search results",
+      "noResults": "No equipment in your scope matches this search.",
+      "removeTitle": "Remove equipment from the ticket?",
+      "removeBody": "{{name}} will no longer be linked to this ticket. The history is kept.",
+      "removeConfirm": "Remove"
     }
   }
 }

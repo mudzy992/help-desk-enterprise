@@ -150,6 +150,7 @@ export type CreateTicketInput = {
   readonly formVersionRef?: string;
   readonly formData?: Record<string, unknown>;
   readonly acknowledgeDuplicate?: boolean;
+  readonly assetId?: string;
 };
 
 export type UpdateTicketInput = {

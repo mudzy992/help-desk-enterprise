@@ -9,6 +9,8 @@ export type CreateTicketDraft = {
   readonly originUnitId: string;
   readonly formVersionRef: string | null;
   readonly formData: Record<string, unknown>;
+  /** Paket 3.2 (§8): own equipment, "" = none. */
+  readonly assetId: string;
 };
 
 export const emptyCreateTicketDraft: CreateTicketDraft = {
@@ -20,6 +22,7 @@ export const emptyCreateTicketDraft: CreateTicketDraft = {
   originUnitId: "",
   formVersionRef: null,
   formData: {},
+  assetId: "",
 };
 
 export function isCreateTicketDraftReady(
@@ -63,6 +66,7 @@ export function buildCreateTicketInput(
       ? {}
       : { formVersionRef: draft.formVersionRef }),
     ...(Object.keys(draft.formData).length === 0 ? {} : { formData: draft.formData }),
+    ...(draft.assetId.length > 0 ? { assetId: draft.assetId } : {}),
     ...(options.acknowledgeDuplicate === true ? { acknowledgeDuplicate: true } : {}),
   };
 }

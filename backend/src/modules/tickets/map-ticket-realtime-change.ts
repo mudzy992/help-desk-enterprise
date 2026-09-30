@@ -63,6 +63,8 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.playbookCompleted,
   // Paket 2.7: incident links are internal context for agents.
   ticketSystemEventActions.incidentLinked,
+  ticketSystemEventActions.assetLinked,
+  ticketSystemEventActions.assetUnlinked,
   ticketSystemEventActions.incidentUnlinked,
   ticketSystemEventActions.incidentResolved,
   // Paket 2.9 (K1c): an article draft was made from a reply.

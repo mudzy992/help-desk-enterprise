@@ -19,12 +19,14 @@ import { SessionAuthenticationGuard } from '../authentication/session-authentica
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { AssetAccessService } from './asset-access.service';
 import { AssetCatalogService } from './asset-catalog.service';
+import { AssetTicketsService } from './asset-tickets.service';
 import { assetViewerOf, type AssetViewer } from './asset-viewer';
 import {
   AddAssetRelationDto,
   ArchiveDto,
   AssetStatusDto,
   AssignAssetDto,
+  LinkTicketAssetDto,
   SaveAssetAttributeDto,
   SaveAssetDto,
   SaveAssetLocationDto,
@@ -74,6 +76,7 @@ export class AssetsController {
     private readonly access: AssetAccessService,
     private readonly catalogService: AssetCatalogService,
     private readonly assets: AssetsService,
+    private readonly tickets: AssetTicketsService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -90,6 +93,36 @@ export class AssetsController {
   @Header('Cache-Control', 'no-store')
   mine(@Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.assets.mine(this.viewer(request)));
+  }
+
+  /** §8: the requester's own equipment for the create form. */
+  @Get('ticket-picker')
+  @Header('Cache-Control', 'no-store')
+  ticketPicker(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.tickets.picker(this.viewer(request)));
+  }
+
+  @Get('tickets/:ticketId')
+  @Header('Cache-Control', 'no-store')
+  ticketAssets(@Param('ticketId') ticketId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.tickets.list(ticketId, this.viewer(request)));
+  }
+
+  @Post('tickets/:ticketId/links')
+  @HttpCode(200)
+  linkTicketAsset(@Param('ticketId') ticketId: string, @Body() body: LinkTicketAssetDto, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.tickets.link(ticketId, body, this.viewer(request)));
+  }
+
+  @Delete('tickets/:ticketId/links/:assetId')
+  unlinkTicketAsset(@Param('ticketId') ticketId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.tickets.unlink(ticketId, assetId, this.viewer(request)));
+  }
+
+  @Post('tickets/:ticketId/links/:assetId/primary')
+  @HttpCode(200)
+  setPrimaryTicketAsset(@Param('ticketId') ticketId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
+    return runAsset(() => this.tickets.setPrimary(ticketId, assetId, this.viewer(request)));
   }
 
   @Get('options')

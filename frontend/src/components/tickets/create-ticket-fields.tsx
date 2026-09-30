@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { CreateTicketAssetPicker } from "@/components/tickets/create-ticket-asset-picker";
 import { CreateTicketSeverityFields } from "@/components/tickets/create-ticket-severity-fields";
 import { ServiceFormFields } from "@/components/tickets/service-form-fields";
 import {
@@ -92,6 +93,7 @@ export function CreateTicketFields({
             })}
           </p>
         )}
+        <CreateTicketAssetPicker value={draft.assetId} onChange={(assetId) => onChange({ ...draft, assetId })} />
         <label className={`${labelClassName} md:col-span-2`}>
           <span>
             {t("tickets.descriptionField")}

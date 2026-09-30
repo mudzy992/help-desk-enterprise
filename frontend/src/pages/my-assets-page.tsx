@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Laptop } from "lucide-react";
+import { Laptop, MessageSquareWarning } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { errorTextClassName, hintClassName, ticketIdClassName } from "@/components/ui/control";
@@ -88,6 +89,17 @@ export function MyAssetsPage() {
                   <dt className="text-muted-foreground">{t("assets.fields.warrantyEndsAt")}</dt>
                   <dd className="text-foreground">{formatAssetDate(item.warrantyEndsAt, i18n.language)}</dd>
                 </dl>
+                {item.status === "IN_USE" || item.status === "IN_REPAIR" ? (
+                  <Button asChild variant="outline" size="sm" className="justify-self-start">
+                    <Link
+                      to={`/tickets/new?assetId=${encodeURIComponent(item.id)}`}
+                      aria-label={t("assets.mine.reportProblemFor", { name: item.name })}
+                    >
+                      <MessageSquareWarning size={14} aria-hidden="true" />
+                      {t("assets.mine.reportProblem")}
+                    </Link>
+                  </Button>
+                ) : null}
                 <section>
                   <h3 className="mb-1 text-[12px] font-semibold text-foreground">{t("assets.mine.tickets")}</h3>
                   {item.tickets.length === 0 ? (

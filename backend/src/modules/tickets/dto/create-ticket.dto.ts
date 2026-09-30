@@ -55,4 +55,10 @@ export class CreateTicketDto {
   @IsOptional()
   @IsBoolean()
   acknowledgeDuplicate?: boolean;
+
+  /** Paket 3.2 (§8): the requester's own equipment the ticket is about. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  assetId?: string;
 }
