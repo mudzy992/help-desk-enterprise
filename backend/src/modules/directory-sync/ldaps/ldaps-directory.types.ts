@@ -93,3 +93,37 @@ export const ldapsDefaults = {
 
 /** Prefix of directory external ids that come from AD (objectGUID). */
 export const ldapsExternalIdPrefix = 'ad:';
+
+/** Paket 3.2 (§12): an AD computer account (only the attributes we read). */
+export type LdapsDirectoryComputerEntry = {
+  readonly guid: string;
+  readonly distinguishedName: string;
+  readonly name: string;
+  readonly dnsHostName: string | null;
+  readonly operatingSystem: string | null;
+  readonly operatingSystemVersion: string | null;
+  readonly lastLogonAt: Date | null;
+  readonly managedBy: string | null;
+  readonly description: string | null;
+  readonly disabled: boolean;
+};
+
+export const ldapsComputerAttributes = [
+  'objectGUID',
+  'distinguishedName',
+  'cn',
+  'dNSHostName',
+  'operatingSystem',
+  'operatingSystemVersion',
+  'lastLogonTimestamp',
+  'managedBy',
+  'description',
+  'userAccountControl',
+] as const;
+
+/** Enabled computers only unless `includeDisabled` (UF_ACCOUNTDISABLE bit test). */
+export function buildComputerFilter(includeDisabled: boolean): string {
+  return includeDisabled
+    ? '(objectCategory=computer)'
+    : '(&(objectCategory=computer)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';
+}

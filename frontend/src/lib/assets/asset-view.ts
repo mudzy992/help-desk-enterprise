@@ -65,6 +65,9 @@ export const assetErrorKeys = {
   ASSET_IMPORT_NOT_PENDING: "assets.errors.importNotPending",
   ASSET_IMPORT_HAS_ERRORS: "assets.errors.importHasErrors",
   ASSET_EXPORT_TOO_LARGE: "assets.errors.exportTooLarge",
+  ASSET_DIRECTORY_SYNC_DISABLED: "assets.errors.directorySyncDisabled",
+  ASSET_DIRECTORY_NOT_CONFIGURED: "assets.errors.directoryNotConfigured",
+  ASSET_DIRECTORY_UNAVAILABLE: "assets.errors.directoryUnavailable",
 } as const;
 
 export type AssetErrorKey = (typeof assetErrorKeys)[keyof typeof assetErrorKeys];

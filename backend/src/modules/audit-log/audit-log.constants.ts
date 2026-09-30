@@ -126,6 +126,8 @@ export const auditLogActions = {
   assetLicenseKeyRevealed: 'asset.license.key_revealed',
   assetLicenseSaved: 'asset.license.saved',
   assetContractSaved: 'asset.contract.saved',
+  assetDirectorySyncDryRun: 'asset.directory_sync.dry_run',
+  assetDirectorySyncApplied: 'asset.directory_sync.applied',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',

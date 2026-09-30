@@ -5,7 +5,10 @@ import { PrismaClient } from '../generated/prisma/client';
 import type { PrismaService } from '../common/prisma/prisma.service';
 import { auditLogEntityTypes } from '../modules/audit-log/audit-log.constants';
 import { recordAuditEntry } from '../modules/audit-log/record-audit-entry';
-import type { AssetAccessService } from '../modules/assets/asset-access.service';
+import { AssetAccessService } from '../modules/assets/asset-access.service';
+import { applicationSettings } from '../modules/settings/definitions/application-settings';
+import { createSettingsRegistry } from '../modules/settings/registry/create-settings-registry';
+import { SettingsService } from '../modules/settings/settings.service';
 import { AssetError } from '../modules/assets/assets.constants';
 import type { AssetsService } from '../modules/assets/assets.service';
 import { AssetImportService } from '../modules/assets/import/asset-import.service';
@@ -71,13 +74,9 @@ async function main(): Promise<number> {
       console.error(`Unknown asset type "${typeKey}". Known: ${(await prisma.assetType.findMany({ select: { key: true } })).map((row) => row.key).join(', ')}`);
       return 1;
     }
-    // Settings straight from the database (no Redis needed on the command line).
-    const access = {
-      readSetting: async <T>(key: string, fallback: T): Promise<T> => {
-        const row = await prisma.appSetting.findUnique({ where: { key }, select: { value: true } });
-        return row === null || row.value === null ? fallback : (row.value as T);
-      },
-    } as unknown as AssetAccessService;
+    // Same settings resolution as the API (registry defaults + stored values).
+    const settings = new SettingsService(createSettingsRegistry(applicationSettings), prisma as unknown as PrismaService);
+    const access = new AssetAccessService(prisma as unknown as PrismaService, settings);
     const service = new AssetImportService(prisma as unknown as PrismaService, access, {} as AssetsService);
     const actor = { userId: null, scope: { all: true as const } };
     const buffer = await readInput(file);

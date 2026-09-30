@@ -24,6 +24,7 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AssetImportService } from './import/asset-import.service';
+import { AssetDirectorySyncService } from './directory/asset-directory-sync.service';
 import type { ImportLocale } from './import/asset-import-columns';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
@@ -142,6 +143,7 @@ export class AssetsController {
     private readonly contracts: AssetContractsService,
     private readonly importer: AssetImportService,
     private readonly prisma: PrismaService,
+    private readonly directorySync: AssetDirectorySyncService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -223,6 +225,43 @@ export class AssetsController {
         { typeId: body.typeId, mode: body.mode, allOrNothing: body.allOrNothing === 'true', mapping: parseMapping(body.mapping) },
         actor,
       );
+    });
+  }
+
+  // ------------------------------------------------------------ AD computers (§12)
+
+  /** Admins only (asset.type.manage, whole installation). */
+  private async requireDirectoryAdmin(request: AuthenticatedHttpRequest) {
+    await this.access.requireEnabled();
+    const viewer = this.viewer(request);
+    const scope = await this.access.require(viewer, permissionKeys.assetTypeManage);
+    if (!scope.all) throw new AssetError(assetErrorCodes.forbidden);
+    return viewer;
+  }
+
+  @Get('directory-sync')
+  directorySyncStatus(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(async () => {
+      await this.requireDirectoryAdmin(request);
+      return this.directorySync.status();
+    });
+  }
+
+  @Post('directory-sync/dry-run')
+  @HttpCode(200)
+  directorySyncDryRun(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(async () => {
+      const viewer = await this.requireDirectoryAdmin(request);
+      return this.directorySync.run({ dryRun: true, actorUserId: viewer.userId, trigger: 'manual' });
+    });
+  }
+
+  @Post('directory-sync/run')
+  @HttpCode(200)
+  directorySyncRun(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(async () => {
+      const viewer = await this.requireDirectoryAdmin(request);
+      return this.directorySync.run({ dryRun: false, actorUserId: viewer.userId, trigger: 'manual' });
     });
   }
 

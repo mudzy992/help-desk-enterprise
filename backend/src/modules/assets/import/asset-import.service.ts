@@ -25,6 +25,7 @@ import {
   type ImportAttributeColumn,
   type ImportLocale,
 } from './asset-import-columns';
+import { allocateAssetTags } from '../asset-tags';
 import { buildCsv, buildWorkbook, type HelpSection, type SheetColumn } from './asset-spreadsheet';
 import {
   planAssetImport,
@@ -712,24 +713,11 @@ export class AssetImportService {
     return result;
   }
 
-  /**
-   * Tags for new rows: the given one, or `{prefix}{year}-{00001}` continuing
-   * the highest number. A transaction-scoped advisory lock serialises imports
-   * against each other; a manual create racing us hits the unique index and
-   * the batch is reported as failed (and can simply be imported again).
-   */
+  /** Tags for new rows: the given one, or the next free `{prefix}{year}-{00001}`. */
   private async assignTags(transaction: Prisma.TransactionClient, creates: readonly PlannedRow[], prefix: string): Promise<string[]> {
-    const missing = creates.filter((entry) => entry.data.assetTag === null).length;
-    if (missing === 0) return creates.map((entry) => entry.data.assetTag as string);
-    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('asset-tag-sequence'))`;
-    const base = `${prefix}${new Date().getUTCFullYear()}-`;
-    const rows = await transaction.$queryRaw<{ max: number | null }[]>`
-      SELECT MAX(CAST(substring("assetTag" FROM ${base.length + 1}) AS INTEGER)) AS "max"
-      FROM "Asset"
-      WHERE "assetTag" LIKE ${`${base.replace(/[%_\\]/g, '\\$&')}%`}
-        AND substring("assetTag" FROM ${base.length + 1}) ~ '^[0-9]{1,9}$'`;
-    let next = (rows[0]?.max ?? 0) + 1;
-    return creates.map((entry) => entry.data.assetTag ?? `${base}${String(next++).padStart(5, '0')}`);
+    const generated = await allocateAssetTags(transaction, creates.filter((entry) => entry.data.assetTag === null).length, prefix);
+    let next = 0;
+    return creates.map((entry) => entry.data.assetTag ?? generated[next++]);
   }
 
   // ------------------------------------------------------------ export (§13)

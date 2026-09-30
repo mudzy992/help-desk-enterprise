@@ -5983,7 +5983,10 @@
       "importExpired": "The preview expired — upload the file again.",
       "importNotPending": "This import was already applied or discarded.",
       "importHasErrors": "The all-or-nothing import has errors and was not applied.",
-      "exportTooLarge": "Too many records to export — narrow the filters."
+      "exportTooLarge": "Too many records to export — narrow the filters.",
+      "directorySyncDisabled": "Computer sync from AD is switched off (setting private.assets.directorySync.enabled).",
+      "directoryNotConfigured": "The AD (LDAPS) connection is not configured or not enabled.",
+      "directoryUnavailable": "AD is currently unavailable or a sync is already running."
     },
     "ticket": {
       "pickerLabel": "Which equipment is this about?",
@@ -6251,6 +6254,60 @@
         "attribute_not_unique": "Value “{{value}}” is already used by another asset.",
         "changed_since_preview": "The asset changed after the preview — run the import again.",
         "batch_failed": "The batch was not written due to a database error."
+      }
+    },
+    "directory": {
+      "title": "Computers from Active Directory",
+      "subtitle": "AD computers are added to the register and linked to users. A manual assignment always wins; nothing is deleted.",
+      "enabled": "On · every {{hours}} h",
+      "disabled": "Off",
+      "summary": "From AD: {{assets}} items, {{missing}} no longer in AD.",
+      "lastApplied": "Last sync: {{time}}.",
+      "neverApplied": "No sync has run yet.",
+      "notConfigured": "The AD (LDAPS) connection is not set up — configure it first under Settings → Directory.",
+      "dryRun": "Dry run",
+      "runNow": "Sync now",
+      "enableHint": "Review a dry run, then turn on private.assets.directorySync.enabled.",
+      "appliedTitle": "Sync finished",
+      "appliedBody": "Created: {{created}}, updated: {{updated}}, failed: {{failed}}.",
+      "dryRunResult": "Dry run — nothing written",
+      "runResult": "Sync result",
+      "lastRun": "Last run ({{kind}}): {{time}}",
+      "kindDry": "dry run",
+      "kindApplied": "applied",
+      "totals": {
+        "seen": "In AD",
+        "create": "New",
+        "update": "Updates",
+        "adopt": "Linked to existing",
+        "missing": "Gone from AD",
+        "conflicts": "Conflicts"
+      },
+      "guardTripped": "The guard held back flagging: {{count}} computers would be marked “not in AD”. Check the base DN and filter.",
+      "conflictsTitle_one": "AD conflict: {{count}} computer",
+      "conflictsTitle_other": "AD conflicts: {{count}} computers",
+      "asset": "Asset",
+      "assigned": "Assigned (manually)",
+      "suggested": "AD suggestion",
+      "matchedBy": {
+        "managedBy": "managedBy",
+        "namePattern": "computer name",
+        "description": "description"
+      },
+      "skippedTitle_one": "{{count}} computer skipped",
+      "skippedTitle_other": "{{count}} computers skipped",
+      "skipReasons": {
+        "no_unit": "OU not mapped to a unit (set a fallback unit)",
+        "no_type": "the asset type for AD computers is missing or archived",
+        "hostname_ambiguous": "several existing items share the hostname"
+      },
+      "previewTitle": "Changes ({{count}})",
+      "actions": {
+        "create": "new",
+        "update": "update",
+        "adopt": "link",
+        "restore": "back in AD",
+        "missing": "not in AD"
       }
     }
   }

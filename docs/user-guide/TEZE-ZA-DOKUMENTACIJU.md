@@ -366,3 +366,14 @@ To je kriterij kompletnosti.
 - Uvoz ne izdaje prenosnice — služi za početno stanje; prenosnica se izdaje pri svakom pojedinačnom kretanju opreme.
 - Izvoz (Excel ili CSV) prati filtere popisa, do 10 000 redova, bilježi se u audit i nikad ne sadrži ključeve licenci.
 - Administrator može uvoziti i s komandne linije (`assets-import.js`), uključujući probni prolaz bez upisa; demo inventar se dodaje i uklanja s `assets-seed-demo.js`.
+
+## CMDB — računari iz Active Directoryja (C8, 30.9.2026)
+
+- Radi tek kad je AD (LDAPS) veza podešena i uključena postavka „Sinhronizacija računara iz AD-a“; do tada je moguć samo probni prolaz.
+- Prvi korak aktivacije je uvijek probni prolaz (u Katalogu ili komandom `assets-directory-sync.js --dry-run`) — pokazuje šta bi se dodalo, izmijenilo i gdje ima neslaganja, bez upisa.
+- Računar iz AD-a se veže uz korisnika po polju managedBy, po pravilu imena računara (npr. PC-ime.prezime) ili po opisu; to je prijedlog, označen na kartici opreme.
+- Ako je agent ručno zadužio računar drugom korisniku, ručna dodjela ostaje, a razlika se prikazuje u listi „AD neslaganja“.
+- Ako već postoji ručno unesena ili uvezena stavka s istim nazivom računara, sinhronizacija je poveže umjesto da napravi duplikat; njeni podaci (inventarni broj, nabavka, garancija, lokacija) ostaju.
+- Računar koji nestane iz AD-a ili bude onemogućen se ne briše; dobija oznaku „nije u AD-u od …“, a otpis radi čovjek.
+- Zaštita: ako bi odjednom „nestalo“ previše računara (npr. pogrešan Base DN), ništa se ne označava i izvještaj upozorava.
+- Računari koji se ne mogu smjestiti u organizacionu jedinicu preskaču se dok se ne podesi rezervna jedinica.

@@ -7,6 +7,7 @@ import { formatObjectGuid } from './format-object-guid';
 import type { LdapEntry } from './ldap-directory-client';
 import {
   ldapsDefaults,
+  type LdapsDirectoryComputerEntry,
   type LdapsDirectoryGroupEntry,
   type LdapsDirectoryOrganizationalUnitEntry,
   type LdapsDirectoryUserEntry,
@@ -75,5 +76,35 @@ export function mapLdapsGroupEntry(entry: LdapEntry): LdapsDirectoryGroupEntry |
       readLdapString(entry, 'name') ??
       parseDistinguishedName(distinguishedName)[0]?.value ??
       distinguishedName,
+  };
+}
+
+/** Windows FILETIME (100 ns since 1601-01-01) → Date; 0 / "never" → null. */
+export function fileTimeToDate(value: string | null): Date | null {
+  if (value === null || !/^\d{1,20}$/.test(value)) return null;
+  const ticks = BigInt(value);
+  if (ticks === 0n || ticks >= 0x7fffffffffffffffn) return null;
+  const milliseconds = Number(ticks / 10_000n) - 11_644_473_600_000;
+  return milliseconds > 0 ? new Date(milliseconds) : null;
+}
+
+export function mapLdapsComputerEntry(entry: LdapEntry): LdapsDirectoryComputerEntry | null {
+  const distinguishedName = readLdapString(entry, 'distinguishedName') ?? readLdapString(entry, 'dn');
+  const guid = formatObjectGuid(readLdapBuffer(entry, 'objectGUID'));
+  if (distinguishedName === null || guid === null) {
+    return null;
+  }
+  const userAccountControl = Number.parseInt(readLdapString(entry, 'userAccountControl') ?? '0', 10);
+  return {
+    guid,
+    distinguishedName,
+    name: readLdapString(entry, 'cn') ?? parseDistinguishedName(distinguishedName)[0]?.value ?? distinguishedName,
+    dnsHostName: readLdapString(entry, 'dNSHostName'),
+    operatingSystem: readLdapString(entry, 'operatingSystem'),
+    operatingSystemVersion: readLdapString(entry, 'operatingSystemVersion'),
+    lastLogonAt: fileTimeToDate(readLdapString(entry, 'lastLogonTimestamp')),
+    managedBy: readLdapString(entry, 'managedBy'),
+    description: readLdapString(entry, 'description'),
+    disabled: Number.isFinite(userAccountControl) && (userAccountControl & ldapsDefaults.accountDisabledFlag) !== 0,
   };
 }

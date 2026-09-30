@@ -6030,7 +6030,10 @@
       "importExpired": "Pregled je istekao — pošaljite fajl ponovo.",
       "importNotPending": "Ovaj uvoz je već primijenjen ili odbačen.",
       "importHasErrors": "Uvoz „sve ili ništa“ ima greške i nije primijenjen.",
-      "exportTooLarge": "Previše zapisa za izvoz — suzite filtere."
+      "exportTooLarge": "Previše zapisa za izvoz — suzite filtere.",
+      "directorySyncDisabled": "Sinhronizacija računara iz AD-a je isključena (postavka private.assets.directorySync.enabled).",
+      "directoryNotConfigured": "AD (LDAPS) veza nije podešena ili nije uključena.",
+      "directoryUnavailable": "AD trenutno nije dostupan ili sinhronizacija već radi."
     },
     "ticket": {
       "pickerLabel": "Na koju opremu se odnosi?",
@@ -6302,6 +6305,62 @@
         "attribute_not_unique": "Vrijednost „{{value}}“ već koristi druga oprema.",
         "changed_since_preview": "Oprema je izmijenjena nakon pregleda — ponovite uvoz.",
         "batch_failed": "Grupa redova nije upisana zbog greške u bazi."
+      }
+    },
+    "directory": {
+      "title": "Računari iz Active Directoryja",
+      "subtitle": "Računari iz AD-a se dodaju u popis i vezuju uz korisnike. Ručna dodjela uvijek ima prednost; ništa se ne briše.",
+      "enabled": "Uključeno · svakih {{hours}} h",
+      "disabled": "Isključeno",
+      "summary": "Iz AD-a: {{assets}} stavki, od toga {{missing}} više nije u AD-u.",
+      "lastApplied": "Zadnja sinhronizacija: {{time}}.",
+      "neverApplied": "Sinhronizacija još nije rađena.",
+      "notConfigured": "AD (LDAPS) veza nije podešena — prvo je podesite u Postavkama → Direktorij.",
+      "dryRun": "Probni prolaz",
+      "runNow": "Sinhronizuj sada",
+      "enableHint": "Pregledajte probni prolaz, pa uključite postavku private.assets.directorySync.enabled.",
+      "appliedTitle": "Sinhronizacija završena",
+      "appliedBody": "Kreirano: {{created}}, izmijenjeno: {{updated}}, neuspješno: {{failed}}.",
+      "dryRunResult": "Probni prolaz — ništa nije upisano",
+      "runResult": "Rezultat sinhronizacije",
+      "lastRun": "Zadnji prolaz ({{kind}}): {{time}}",
+      "kindDry": "probni",
+      "kindApplied": "upisan",
+      "totals": {
+        "seen": "U AD-u",
+        "create": "Novo",
+        "update": "Izmjene",
+        "adopt": "Povezano s postojećim",
+        "missing": "Nestalo iz AD-a",
+        "conflicts": "Neslaganja"
+      },
+      "guardTripped": "Zaštita je zaustavila označavanje: {{count}} računara bi bilo označeno kao „nije u AD-u“. Provjerite Base DN i filter.",
+      "conflictsTitle_one": "AD neslaganje: {{count}} računar",
+      "conflictsTitle_few": "AD neslaganja: {{count}} računara",
+      "conflictsTitle_other": "AD neslaganja: {{count}} računara",
+      "asset": "Oprema",
+      "assigned": "Zadužen (ručno)",
+      "suggested": "Prijedlog iz AD-a",
+      "matchedBy": {
+        "managedBy": "managedBy",
+        "namePattern": "naziv računara",
+        "description": "opis"
+      },
+      "skippedTitle_one": "Preskočen {{count}} računar",
+      "skippedTitle_few": "Preskočena {{count}} računara",
+      "skippedTitle_other": "Preskočeno {{count}} računara",
+      "skipReasons": {
+        "no_unit": "OU nije mapiran na organizacionu jedinicu (postavite rezervnu OJ)",
+        "no_type": "tip opreme za AD računare ne postoji ili je arhiviran",
+        "hostname_ambiguous": "više postojećih stavki ima isti naziv računara"
+      },
+      "previewTitle": "Promjene ({{count}})",
+      "actions": {
+        "create": "novo",
+        "update": "izmjena",
+        "adopt": "povezivanje",
+        "restore": "vraćen u AD",
+        "missing": "nije u AD-u"
       }
     }
   }

@@ -43,6 +43,9 @@ export const assetErrorCodes = {
   importNotPending: 'ASSET_IMPORT_NOT_PENDING',
   importHasErrors: 'ASSET_IMPORT_HAS_ERRORS',
   exportTooLarge: 'ASSET_EXPORT_TOO_LARGE',
+  directorySyncDisabled: 'ASSET_DIRECTORY_SYNC_DISABLED',
+  directoryNotConfigured: 'ASSET_DIRECTORY_NOT_CONFIGURED',
+  directoryUnavailable: 'ASSET_DIRECTORY_UNAVAILABLE',
 } as const;
 
 export type AssetErrorCode = (typeof assetErrorCodes)[keyof typeof assetErrorCodes];

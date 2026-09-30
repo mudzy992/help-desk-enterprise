@@ -5,6 +5,7 @@ import {
   HttpException,
   NotFoundException,
   PayloadTooLargeException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { AssetError, assetErrorCodes } from './assets.constants';
 
@@ -47,10 +48,14 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.importExpired:
     case assetErrorCodes.importNotPending:
     case assetErrorCodes.importHasErrors:
+    case assetErrorCodes.directorySyncDisabled:
+    case assetErrorCodes.directoryNotConfigured:
       return new ConflictException(body);
     case assetErrorCodes.importFileTooLarge:
     case assetErrorCodes.exportTooLarge:
       return new PayloadTooLargeException(body);
+    case assetErrorCodes.directoryUnavailable:
+      return new ServiceUnavailableException(body);
     default:
       return new BadRequestException(body);
   }

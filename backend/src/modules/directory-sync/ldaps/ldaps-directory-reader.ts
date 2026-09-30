@@ -9,10 +9,13 @@ import {
   type LdapDirectoryClient,
 } from './ldap-directory-client';
 import {
+  buildComputerFilter,
+  ldapsComputerAttributes,
   ldapsDefaults,
   ldapsGroupAttributes,
   ldapsOrganizationalUnitAttributes,
   ldapsUserAttributes,
+  type LdapsDirectoryComputerEntry,
   type LdapsDirectoryGroupEntry,
   type LdapsDirectoryOrganizationalUnitEntry,
   type LdapsDirectoryUserEntry,
@@ -20,6 +23,7 @@ import {
 } from './ldaps-directory.types';
 import { assertLdapsConfigured } from './ldaps-sync-configuration.loader';
 import {
+  mapLdapsComputerEntry,
   mapLdapsGroupEntry,
   mapLdapsOrganizationalUnitEntry,
   mapLdapsUserEntry,
@@ -119,6 +123,16 @@ export class LdapsDirectoryReader {
       .map(mapLdapsGroupEntry)
       .filter((entry): entry is LdapsDirectoryGroupEntry => entry !== null)
       .filter((entry) => isDistinguishedNameWithin(entry.distinguishedName, this.configuration.groupsBaseDn));
+  }
+
+  /** Paket 3.2 (§12): computer accounts under `baseDn` (empty = the users base). */
+  async readComputers(baseDn: string, includeDisabled: boolean): Promise<LdapsDirectoryComputerEntry[]> {
+    const base = baseDn.trim() === '' ? this.configuration.usersBaseDn : baseDn.trim();
+    const entries = await this.search(base, buildComputerFilter(includeDisabled), ldapsComputerAttributes);
+    return entries
+      .map(mapLdapsComputerEntry)
+      .filter((entry): entry is LdapsDirectoryComputerEntry => entry !== null)
+      .filter((entry) => isDistinguishedNameWithin(entry.distinguishedName, base));
   }
 
   /** Test connection: the base exists and one entry can be read. */

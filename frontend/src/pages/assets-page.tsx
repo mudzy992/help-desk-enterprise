@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Boxes, Download, Plus, Search } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
+import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
 import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
 import { AssetLicensesPanel } from "@/components/assets/asset-licenses-panel";
@@ -118,7 +119,10 @@ export function AssetsPage() {
       ) : capabilities.canImport && tab === "import" ? (
         <AssetImportPanel />
       ) : capabilities.canManageTypes && tab === "catalog" ? (
-        <AssetCatalogManager />
+        <div className="grid gap-4">
+          <AssetCatalogManager />
+          <AssetDirectorySyncCard />
+        </div>
       ) : (
         <AssetRegister canManage={capabilities.canManage} />
       )}

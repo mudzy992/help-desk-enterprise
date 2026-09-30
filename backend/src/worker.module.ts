@@ -9,6 +9,7 @@ import { NotificationRetentionWorkerModule } from './modules/notifications/notif
 import { NotificationDigestWorkerModule } from './modules/notifications/preferences/notification-digest-worker.module';
 import { OnCallWorkerModule } from './modules/on-call/on-call-worker.module';
 import { AssetRemindersWorkerModule } from './modules/assets/reminders/asset-reminders-worker.module';
+import { AssetDirectorySyncWorkerModule } from './modules/assets/directory/asset-directory-sync-worker.module';
 import { AnnouncementWorkerModule } from './modules/announcements/announcement-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
 import { OpsHealthWorkerModule } from './modules/ops-health/ops-health-worker.module';
@@ -52,6 +53,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     AnnouncementWorkerModule,
     OpsHealthWorkerModule,
     AssetRemindersWorkerModule,
+    AssetDirectorySyncWorkerModule,
   ],
 })
 export class WorkerModule {}
