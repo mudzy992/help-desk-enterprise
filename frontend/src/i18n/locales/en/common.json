@@ -5634,7 +5634,8 @@
       "register": "Register",
       "catalog": "Types and locations",
       "licenses": "Licences",
-      "contracts": "Contracts"
+      "contracts": "Contracts",
+      "import": "Import"
     },
     "status": {
       "ORDERED": "Ordered",
@@ -5973,7 +5974,16 @@
       "licenseAssignmentInvalid": "This licence kind cannot be assigned this way.",
       "licenseAssignmentExists": "The licence is already assigned to this item.",
       "contractNotFound": "Contract not found.",
-      "contractItemExists": "The asset is already covered by this contract."
+      "contractItemExists": "The asset is already covered by this contract.",
+      "importFileInvalid": "The file is not a valid .xlsx or .csv (macro files are not allowed).",
+      "importTooManyRows": "The file has too many rows for one import.",
+      "importFileTooLarge": "The file is too large.",
+      "importMappingInvalid": "The column mapping is invalid.",
+      "importNotFound": "Import not found.",
+      "importExpired": "The preview expired — upload the file again.",
+      "importNotPending": "This import was already applied or discarded.",
+      "importHasErrors": "The all-or-nothing import has errors and was not applied.",
+      "exportTooLarge": "Too many records to export — narrow the filters."
     },
     "ticket": {
       "pickerLabel": "Which equipment is this about?",
@@ -6130,6 +6140,118 @@
       "noContracts": "The asset is not covered by a contract.",
       "viaAsset": "on device",
       "viaUser": "via user"
+    },
+    "export": {
+      "label": "Export the register as {{format}}",
+      "failed": "Export failed"
+    },
+    "import": {
+      "steps": {
+        "template": "Template",
+        "file": "File",
+        "mapping": "Mapping",
+        "confirm": "Review and confirm"
+      },
+      "setupTitle": "Import from an Excel/CSV sheet",
+      "setupSubtitle": "Download the template for an asset type, fill it in and upload it. Nothing is written before you confirm.",
+      "typeHint": "One import = one asset type.",
+      "downloadTemplate": "Download template (.xlsx)",
+      "file": "File",
+      "fileHint": ".xlsx or .csv (UTF-8, ; or ,), up to 20 MB.",
+      "mode": "Mode",
+      "modes": {
+        "CREATE_ONLY": "New assets only",
+        "UPSERT": "Create and update existing"
+      },
+      "modeHints": {
+        "CREATE_ONLY": "Existing asset tags are skipped.",
+        "UPSERT": "Existing assets change only in filled cells; #EMPTY clears a value."
+      },
+      "allOrNothing": "All or nothing (write nothing if there are errors)",
+      "previewAction": "Preview",
+      "startOver": "Start over",
+      "mappingTitle": "Column mapping",
+      "mappingSubtitle": "Columns were recognised automatically; adjust if needed and preview again.",
+      "emptyHeader": "Column {{index}}",
+      "ignoreColumn": "— ignore —",
+      "repreview": "Preview again with the new mapping",
+      "summaryTitle": "Preview: {{file}}",
+      "totals": {
+        "create": "New",
+        "update": "Updates",
+        "unchanged": "Unchanged",
+        "skipped": "Skipped",
+        "errors": "Errors"
+      },
+      "duplicateFile": "The same file was imported before — make sure you are not duplicating data.",
+      "expires": "The preview is valid until {{time}}.",
+      "errorsTitle_one": "{{count}} error",
+      "errorsTitle_other": "{{count}} errors",
+      "downloadErrors": "Download error file",
+      "errorsCaption": "Errors by row",
+      "row": "Row",
+      "column": "Column",
+      "problem": "Problem",
+      "moreErrors": "{{count}} more in the error file.",
+      "apply": "Apply ({{count}})",
+      "discard": "Discard",
+      "allOrNothingBlocked": "Fix the errors or turn off “all or nothing”.",
+      "appliedTitle": "Import applied",
+      "failedTitle": "Import not applied",
+      "appliedBody": "Created: {{created}}, updated: {{updated}}, failed: {{failed}}.",
+      "failureLine": "Row {{row}}: {{problem}}",
+      "another": "New import",
+      "historyTitle": "Recent imports",
+      "historyEmpty": "No imports yet.",
+      "historyFile": "File",
+      "historyStatus": "Status",
+      "historyResult": "Result",
+      "historyWhen": "When",
+      "statuses": {
+        "PREVIEW": "Awaiting confirmation",
+        "APPLIED": "Applied",
+        "FAILED": "Failed",
+        "EXPIRED": "Expired"
+      },
+      "previewResult": "New {{create}}, updates {{update}}, errors {{errors}}",
+      "errorCodes": {
+        "required": "Required field is empty.",
+        "too_long": "Value is too long.",
+        "cannot_clear": "This field cannot be cleared (#EMPTY).",
+        "directory_owned": "Directory-owned name cannot be changed by import.",
+        "invalid_date": "Invalid date “{{value}}” (expected DD.MM.YYYY or YYYY-MM-DD).",
+        "invalid_number": "Invalid amount “{{value}}”.",
+        "invalid_status": "Unknown status “{{value}}”.",
+        "status_not_allowed": "Status “{{value}}” cannot be set by import.",
+        "status_transition": "Transition to status “{{value}}” is not allowed.",
+        "unit_not_found": "Organizational unit “{{value}}” not found.",
+        "unit_ambiguous": "Several units match “{{value}}” — use the path or DN.",
+        "unit_out_of_scope": "Unit “{{value}}” is outside your scope.",
+        "user_not_found": "User “{{value}}” not found.",
+        "user_ambiguous": "Several users match “{{value}}” — use the full e-mail address.",
+        "user_inactive": "User “{{value}}” is inactive.",
+        "user_required_in_use": "Status “In use” requires an assigned user.",
+        "assigned_requires_in_use": "Assigned equipment must be “In use”.",
+        "location_not_found": "Location “{{value}}” not found.",
+        "location_ambiguous": "Several locations match “{{value}}” — use the code or path.",
+        "service_not_found": "Service “{{value}}” not found.",
+        "service_ambiguous": "Several services match “{{value}}”.",
+        "type_mismatch": "Type does not match the selected import type ({{value}}).",
+        "tag_invalid": "Invalid asset tag “{{value}}”.",
+        "tag_required": "Asset tag is required (automatic numbering is off).",
+        "duplicate_in_file": "Duplicated in the file (first in row {{value}}).",
+        "asset_out_of_scope": "Asset {{value}} is outside your scope.",
+        "read_only": "Asset {{value}} is disposed and read-only.",
+        "attribute_required": "Required attribute is empty.",
+        "attribute_number": "A number is expected (“{{value}}”).",
+        "attribute_date": "A date is expected (“{{value}}”).",
+        "attribute_boolean": "Yes/No expected (“{{value}}”).",
+        "attribute_option": "“{{value}}” is not an allowed option.",
+        "attribute_text_too_long": "Attribute text is too long.",
+        "attribute_not_unique": "Value “{{value}}” is already used by another asset.",
+        "changed_since_preview": "The asset changed after the preview — run the import again.",
+        "batch_failed": "The batch was not written due to a database error."
+      }
     }
   }
 }

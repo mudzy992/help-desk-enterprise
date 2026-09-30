@@ -56,6 +56,15 @@ export const assetErrorKeys = {
   ASSET_LICENSE_ASSIGNMENT_EXISTS: "assets.errors.licenseAssignmentExists",
   ASSET_CONTRACT_NOT_FOUND: "assets.errors.contractNotFound",
   ASSET_CONTRACT_ITEM_EXISTS: "assets.errors.contractItemExists",
+  ASSET_IMPORT_FILE_INVALID: "assets.errors.importFileInvalid",
+  ASSET_IMPORT_TOO_MANY_ROWS: "assets.errors.importTooManyRows",
+  ASSET_IMPORT_FILE_TOO_LARGE: "assets.errors.importFileTooLarge",
+  ASSET_IMPORT_MAPPING_INVALID: "assets.errors.importMappingInvalid",
+  ASSET_IMPORT_NOT_FOUND: "assets.errors.importNotFound",
+  ASSET_IMPORT_EXPIRED: "assets.errors.importExpired",
+  ASSET_IMPORT_NOT_PENDING: "assets.errors.importNotPending",
+  ASSET_IMPORT_HAS_ERRORS: "assets.errors.importHasErrors",
+  ASSET_EXPORT_TOO_LARGE: "assets.errors.exportTooLarge",
 } as const;
 
 export type AssetErrorKey = (typeof assetErrorKeys)[keyof typeof assetErrorKeys];

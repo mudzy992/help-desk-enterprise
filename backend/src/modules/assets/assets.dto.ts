@@ -137,3 +137,12 @@ export class SaveContractDto {
 export class ContractItemDto {
   @IsString() @MaxLength(64) assetId!: string;
 }
+
+/** Paket 3.2 (§11): multipart fields of the import preview (strings in multipart). */
+export class ImportPreviewDto {
+  @IsString() @MaxLength(64) typeId!: string;
+  @IsIn(['CREATE_ONLY', 'UPSERT']) mode!: 'CREATE_ONLY' | 'UPSERT';
+  @IsOptional() @IsIn(['true', 'false']) allOrNothing?: string;
+  /** JSON array, one entry per header: a column key or null. */
+  @IsOptional() @IsString() @MaxLength(20_000) mapping?: string;
+}

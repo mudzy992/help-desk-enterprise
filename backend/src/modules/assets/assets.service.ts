@@ -258,9 +258,8 @@ export class AssetsService {
 
   // ------------------------------------------------------------ list / detail
 
-  async list(query: AssetListQuery, viewer: AssetViewer) {
-    const scope = await this.access.require(viewer, permissionKeys.assetRead);
-    const limit = Math.min(Math.max(query.limit ?? assetLimits.listPageDefault, 1), assetLimits.listPageMax);
+  /** Filter of the register (§17.2); shared with the export (§13). */
+  async listWhere(query: AssetListQuery, scope: AssetScope): Promise<Prisma.AssetWhereInput> {
     const where: Prisma.AssetWhereInput = {};
     const and: Prisma.AssetWhereInput[] = [];
     const unitWhere = unitScopeWhere(scope);
@@ -300,6 +299,13 @@ export class AssetsService {
       and.push({ warrantyEndsAt: { gte: now, lte: new Date(now.getTime() + query.warrantyWithinDays * 86_400_000) } });
     }
     if (and.length > 0) where.AND = and;
+    return where;
+  }
+
+  async list(query: AssetListQuery, viewer: AssetViewer) {
+    const scope = await this.access.require(viewer, permissionKeys.assetRead);
+    const limit = Math.min(Math.max(query.limit ?? assetLimits.listPageDefault, 1), assetLimits.listPageMax);
+    const where = await this.listWhere(query, scope);
     const [rows, total] = await Promise.all([
       this.prisma.asset.findMany({
         where,

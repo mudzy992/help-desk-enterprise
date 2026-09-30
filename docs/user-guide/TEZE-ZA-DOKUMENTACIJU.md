@@ -355,3 +355,14 @@ To je kriterij kompletnosti.
 - Ugovori (garancija, podrška, lizing, održavanje) pokrivaju jednu ili više stavki opreme; istekli ugovori su skriveni dok se ne uključi „Prikaži istekle“.
 - Podsjetnik o isteku stiže jednom dnevno (od 06:00) onima koji upravljaju tom vrstom stavke u svojoj OJ, adminima i dodatnim internim adresama iz postavki; svaki prag (zadano 60, 30 i 7 dana) šalje se samo jednom.
 - Korisnik u „Mojim notifikacijama“ može isključiti e-mail ili in-app kanal za kategoriju „Istek licenci, garancija i ugovora“.
+
+## CMDB — uvoz i izvoz (C7, 30.9.2026)
+
+- Uvoz se radi po tipu opreme: preuzme se šablon, popuni u Excelu i pošalje; ništa se ne upisuje dok se ne potvrdi pregled.
+- Kolone se prepoznaju po nazivu; pogrešno prepoznata kolona se ispravi u mapiranju i pregled se ponovi.
+- „Samo nova oprema“ preskače postojeće inventarne brojeve; „Nova i izmjena postojeće“ mijenja samo popunjene ćelije, a `#PRAZNO` briše vrijednost.
+- „Sve ili ništa“ ne upisuje ništa ako i jedan red ima grešku; inače se upisuju ispravni redovi, a greške se preuzimaju kao Excel fajl za ispravku.
+- Pregled vrijedi 24 sata; ako se oprema u međuvremenu promijeni, taj red se ne upisuje.
+- Uvoz ne izdaje prenosnice — služi za početno stanje; prenosnica se izdaje pri svakom pojedinačnom kretanju opreme.
+- Izvoz (Excel ili CSV) prati filtere popisa, do 10 000 redova, bilježi se u audit i nikad ne sadrži ključeve licenci.
+- Administrator može uvoziti i s komandne linije (`assets-import.js`), uključujući probni prolaz bez upisa; demo inventar se dodaje i uklanja s `assets-seed-demo.js`.

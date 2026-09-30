@@ -34,6 +34,15 @@ export const assetErrorCodes = {
   licenseAssignmentExists: 'ASSET_LICENSE_ASSIGNMENT_EXISTS',
   contractNotFound: 'ASSET_CONTRACT_NOT_FOUND',
   contractItemExists: 'ASSET_CONTRACT_ITEM_EXISTS',
+  importFileInvalid: 'ASSET_IMPORT_FILE_INVALID',
+  importTooManyRows: 'ASSET_IMPORT_TOO_MANY_ROWS',
+  importFileTooLarge: 'ASSET_IMPORT_FILE_TOO_LARGE',
+  importMappingInvalid: 'ASSET_IMPORT_MAPPING_INVALID',
+  importNotFound: 'ASSET_IMPORT_NOT_FOUND',
+  importExpired: 'ASSET_IMPORT_EXPIRED',
+  importNotPending: 'ASSET_IMPORT_NOT_PENDING',
+  importHasErrors: 'ASSET_IMPORT_HAS_ERRORS',
+  exportTooLarge: 'ASSET_EXPORT_TOO_LARGE',
 } as const;
 
 export type AssetErrorCode = (typeof assetErrorCodes)[keyof typeof assetErrorCodes];

@@ -10,10 +10,21 @@ import {
   Put,
   Query,
   Req,
+  StreamableFile,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { recordAuditEntry } from '../audit-log/record-audit-entry';
+import { auditLogEntityTypes } from '../audit-log/audit-log.constants';
+import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
+import { permissionKeys } from '../authorization/authorization.constants';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AssetImportService } from './import/asset-import.service';
+import type { ImportLocale } from './import/asset-import-columns';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
@@ -30,6 +41,7 @@ import {
   AssignAssetDto,
   AssignLicenseDto,
   ContractItemDto,
+  ImportPreviewDto,
   SaveContractDto,
   SaveLicenseDto,
   LinkTicketAssetDto,
@@ -39,11 +51,48 @@ import {
   SaveAssetTypeDto,
   UnassignAssetDto,
 } from './assets.dto';
-import { assetContractKinds, assetStatuses, softwareLicenseKinds, type AssetStatusValue } from './assets.constants';
+import { AssetError, assetContractKinds, assetErrorCodes, assetStatuses, softwareLicenseKinds, type AssetStatusValue } from './assets.constants';
 import { AssetsService, type AssetListQuery } from './assets.service';
 import { runAsset } from './map-asset-error';
 
 type RawListQuery = Record<string, string | undefined>;
+
+const xlsxType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+/** Hard upload ceiling; the configurable limit (1–20 MB) is checked in the service. */
+const importUploadMaxBytes = 20 * 1024 * 1024;
+
+function readLocale(value: string | undefined): ImportLocale {
+  return value?.toLowerCase().startsWith('en') ? 'en' : 'bs';
+}
+
+function fileResponse(file: { fileName: string; buffer: Buffer }, type: string): StreamableFile {
+  const ascii = file.fileName.replace(/[^\w.-]/g, '_');
+  return new StreamableFile(file.buffer, {
+    type,
+    disposition: `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    length: file.buffer.length,
+  });
+}
+
+/** Multer hands the name over as latin1; browsers send UTF-8. */
+function decodeFileName(name: string): string {
+  const decoded = Buffer.from(name, 'latin1').toString('utf8');
+  return (decoded.includes('\uFFFD') ? name : decoded).slice(0, 255);
+}
+
+function parseMapping(raw: string | undefined): (string | null)[] | undefined {
+  if (raw === undefined || raw.trim() === '') return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new AssetError(assetErrorCodes.importMappingInvalid, 'json');
+  }
+  if (!Array.isArray(parsed) || parsed.length > 200 || !parsed.every((entry) => entry === null || (typeof entry === 'string' && entry.length <= 120))) {
+    throw new AssetError(assetErrorCodes.importMappingInvalid, 'shape');
+  }
+  return parsed as (string | null)[];
+}
 
 function parseListQuery(raw: RawListQuery): AssetListQuery {
   const status = (raw.status ?? '')
@@ -91,6 +140,8 @@ export class AssetsController {
     private readonly tickets: AssetTicketsService,
     private readonly licenses: AssetLicensesService,
     private readonly contracts: AssetContractsService,
+    private readonly importer: AssetImportService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): AssetViewer {
@@ -137,6 +188,82 @@ export class AssetsController {
   @HttpCode(200)
   setPrimaryTicketAsset(@Param('ticketId') ticketId: string, @Param('assetId') assetId: string, @Req() request: AuthenticatedHttpRequest) {
     return runAsset(() => this.tickets.setPrimary(ticketId, assetId, this.viewer(request)));
+  }
+
+  // ------------------------------------------------------------ import / export (§11, §13)
+
+  @Get('import/template')
+  @Header('Cache-Control', 'no-store')
+  importTemplate(@Req() request: AuthenticatedHttpRequest, @Query('typeId') typeId = '', @Query('locale') locale?: string) {
+    return runAsset(async () => {
+      const actor = await this.importer.actorFor(this.viewer(request));
+      return fileResponse(await this.importer.template(typeId, readLocale(locale), actor), xlsxType);
+    });
+  }
+
+  @Get('import')
+  @Header('Cache-Control', 'no-store')
+  importJobs(@Req() request: AuthenticatedHttpRequest) {
+    return runAsset(async () => this.importer.list(await this.importer.actorFor(this.viewer(request))));
+  }
+
+  @Post('import/preview')
+  @HttpCode(200)
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: importUploadMaxBytes } }))
+  importPreview(
+    @Req() request: AuthenticatedHttpRequest,
+    @UploadedFile() file: { originalname?: string; buffer?: Buffer } | undefined,
+    @Body() body: ImportPreviewDto,
+  ) {
+    return runAsset(async () => {
+      const actor = await this.importer.actorFor(this.viewer(request));
+      if (!file?.buffer || file.buffer.length === 0) throw new AssetError(assetErrorCodes.importFileInvalid, 'missing');
+      return this.importer.preview(
+        { fileName: decodeFileName(file.originalname ?? 'import'), buffer: file.buffer },
+        { typeId: body.typeId, mode: body.mode, allOrNothing: body.allOrNothing === 'true', mapping: parseMapping(body.mapping) },
+        actor,
+      );
+    });
+  }
+
+  @Post('import/:jobId/apply')
+  @HttpCode(200)
+  importApply(@Req() request: AuthenticatedHttpRequest, @Param('jobId') jobId: string) {
+    return runAsset(async () => this.importer.apply(jobId, await this.importer.actorFor(this.viewer(request))));
+  }
+
+  @Delete('import/:jobId')
+  importDiscard(@Req() request: AuthenticatedHttpRequest, @Param('jobId') jobId: string) {
+    return runAsset(async () => this.importer.discard(jobId, await this.importer.actorFor(this.viewer(request))));
+  }
+
+  @Get('import/:jobId/errors')
+  @Header('Cache-Control', 'no-store')
+  importErrors(@Req() request: AuthenticatedHttpRequest, @Param('jobId') jobId: string, @Query('locale') locale?: string) {
+    return runAsset(async () => {
+      const actor = await this.importer.actorFor(this.viewer(request));
+      return fileResponse(await this.importer.errorWorkbook(jobId, readLocale(locale), actor), xlsxType);
+    });
+  }
+
+  /** §13: current filter as .xlsx/.csv (≤ 10 000 rows); licence keys are never exported. */
+  @Get('export')
+  @Header('Cache-Control', 'no-store')
+  exportAssets(@Req() request: AuthenticatedHttpRequest, @Query() raw: RawListQuery) {
+    return runAsset(async () => {
+      const viewer = this.viewer(request);
+      const actor = await this.importer.actorFor(viewer, permissionKeys.assetRead);
+      const format = raw.format === 'csv' ? 'csv' : 'xlsx';
+      const exported = await this.importer.export(parseListQuery(raw), format, readLocale(raw.locale), actor);
+      await recordAuditEntry(this.prisma as unknown as AuditLogTransactionalClient, {
+        action: 'asset.export',
+        entityType: auditLogEntityTypes.asset,
+        entityId: 'export',
+        metadata: { format, fileName: exported.fileName } as never,
+        actorUserId: viewer.userId,
+      }).catch(() => undefined);
+      return fileResponse(exported, exported.contentType);
+    });
   }
 
   // ------------------------------------------------------------ licences (§9)

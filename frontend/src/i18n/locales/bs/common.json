@@ -5678,7 +5678,8 @@
       "register": "Registar",
       "catalog": "Tipovi i lokacije",
       "licenses": "Licence",
-      "contracts": "Ugovori"
+      "contracts": "Ugovori",
+      "import": "Uvoz"
     },
     "status": {
       "ORDERED": "Naručeno",
@@ -6020,7 +6021,16 @@
       "licenseAssignmentInvalid": "Ova vrsta licence se ne može dodijeliti na ovaj način.",
       "licenseAssignmentExists": "Licenca je već dodijeljena ovoj stavci.",
       "contractNotFound": "Ugovor nije pronađen.",
-      "contractItemExists": "Oprema je već pokrivena ovim ugovorom."
+      "contractItemExists": "Oprema je već pokrivena ovim ugovorom.",
+      "importFileInvalid": "Fajl nije ispravan .xlsx ili .csv (makro-fajlovi nisu dozvoljeni).",
+      "importTooManyRows": "Fajl ima previše redova za jedan uvoz.",
+      "importFileTooLarge": "Fajl je prevelik.",
+      "importMappingInvalid": "Mapiranje kolona nije ispravno.",
+      "importNotFound": "Uvoz nije pronađen.",
+      "importExpired": "Pregled je istekao — pošaljite fajl ponovo.",
+      "importNotPending": "Ovaj uvoz je već primijenjen ili odbačen.",
+      "importHasErrors": "Uvoz „sve ili ništa“ ima greške i nije primijenjen.",
+      "exportTooLarge": "Previše zapisa za izvoz — suzite filtere."
     },
     "ticket": {
       "pickerLabel": "Na koju opremu se odnosi?",
@@ -6180,6 +6190,119 @@
       "noContracts": "Oprema nije pokrivena ugovorom.",
       "viaAsset": "na uređaju",
       "viaUser": "preko korisnika"
+    },
+    "export": {
+      "label": "Izvezi popis kao {{format}}",
+      "failed": "Izvoz nije uspio"
+    },
+    "import": {
+      "steps": {
+        "template": "Šablon",
+        "file": "Fajl",
+        "mapping": "Mapiranje",
+        "confirm": "Pregled i potvrda"
+      },
+      "setupTitle": "Uvoz iz Excel/CSV tabele",
+      "setupSubtitle": "Preuzmite šablon za tip opreme, popunite ga i pošaljite. Ništa se ne upisuje prije potvrde.",
+      "typeHint": "Jedan uvoz = jedan tip opreme.",
+      "downloadTemplate": "Preuzmi šablon (.xlsx)",
+      "file": "Fajl",
+      "fileHint": ".xlsx ili .csv (UTF-8, ; ili ,), do 20 MB.",
+      "mode": "Način",
+      "modes": {
+        "CREATE_ONLY": "Samo nova oprema",
+        "UPSERT": "Nova i izmjena postojeće"
+      },
+      "modeHints": {
+        "CREATE_ONLY": "Postojeći inventarni brojevi se preskaču.",
+        "UPSERT": "Postojeća oprema se mijenja samo u popunjenim ćelijama; #PRAZNO briše vrijednost."
+      },
+      "allOrNothing": "Sve ili ništa (ne upisuj ništa ako ima grešaka)",
+      "previewAction": "Pregledaj",
+      "startOver": "Počni ispočetka",
+      "mappingTitle": "Mapiranje kolona",
+      "mappingSubtitle": "Kolone su prepoznate automatski; ispravite po potrebi i ponovite pregled.",
+      "emptyHeader": "Kolona {{index}}",
+      "ignoreColumn": "— zanemari —",
+      "repreview": "Ponovi pregled s novim mapiranjem",
+      "summaryTitle": "Pregled: {{file}}",
+      "totals": {
+        "create": "Novo",
+        "update": "Izmjene",
+        "unchanged": "Bez promjena",
+        "skipped": "Preskočeno",
+        "errors": "Greške"
+      },
+      "duplicateFile": "Isti fajl je već uvezen ranije — provjerite da ne duplirate unos.",
+      "expires": "Pregled vrijedi do {{time}}.",
+      "errorsTitle_one": "{{count}} greška",
+      "errorsTitle_few": "{{count}} greške",
+      "errorsTitle_other": "{{count}} grešaka",
+      "downloadErrors": "Preuzmi fajl s greškama",
+      "errorsCaption": "Greške po redovima",
+      "row": "Red",
+      "column": "Kolona",
+      "problem": "Problem",
+      "moreErrors": "Još {{count}} u fajlu s greškama.",
+      "apply": "Primijeni ({{count}})",
+      "discard": "Odbaci",
+      "allOrNothingBlocked": "Ispravite greške ili isključite „sve ili ništa“.",
+      "appliedTitle": "Uvoz je primijenjen",
+      "failedTitle": "Uvoz nije primijenjen",
+      "appliedBody": "Kreirano: {{created}}, izmijenjeno: {{updated}}, neuspješno: {{failed}}.",
+      "failureLine": "Red {{row}}: {{problem}}",
+      "another": "Novi uvoz",
+      "historyTitle": "Nedavni uvozi",
+      "historyEmpty": "Još nema uvoza.",
+      "historyFile": "Fajl",
+      "historyStatus": "Status",
+      "historyResult": "Rezultat",
+      "historyWhen": "Vrijeme",
+      "statuses": {
+        "PREVIEW": "Čeka potvrdu",
+        "APPLIED": "Primijenjen",
+        "FAILED": "Neuspješan",
+        "EXPIRED": "Istekao"
+      },
+      "previewResult": "Novo {{create}}, izmjene {{update}}, greške {{errors}}",
+      "errorCodes": {
+        "required": "Obavezno polje je prazno.",
+        "too_long": "Vrijednost je preduga.",
+        "cannot_clear": "Ovo polje se ne može obrisati (#PRAZNO).",
+        "directory_owned": "Naziv opreme iz imenika se ne mijenja uvozom.",
+        "invalid_date": "Neispravan datum „{{value}}“ (očekuje se DD.MM.GGGG ili GGGG-MM-DD).",
+        "invalid_number": "Neispravan iznos „{{value}}“.",
+        "invalid_status": "Nepoznat status „{{value}}“.",
+        "status_not_allowed": "Status „{{value}}“ se ne može postaviti uvozom.",
+        "status_transition": "Prelaz u status „{{value}}“ nije dozvoljen.",
+        "unit_not_found": "Organizaciona jedinica „{{value}}“ nije pronađena.",
+        "unit_ambiguous": "Više jedinica odgovara nazivu „{{value}}“ — upišite putanju ili DN.",
+        "unit_out_of_scope": "Jedinica „{{value}}“ je izvan vašeg opsega.",
+        "user_not_found": "Korisnik „{{value}}“ nije pronađen.",
+        "user_ambiguous": "Više korisnika odgovara „{{value}}“ — upišite punu e-mail adresu.",
+        "user_inactive": "Korisnik „{{value}}“ nije aktivan.",
+        "user_required_in_use": "Status „U upotrebi“ traži zaduženog korisnika.",
+        "assigned_requires_in_use": "Zadužena oprema mora biti u statusu „U upotrebi“.",
+        "location_not_found": "Lokacija „{{value}}“ nije pronađena.",
+        "location_ambiguous": "Više lokacija odgovara „{{value}}“ — upišite šifru ili putanju.",
+        "service_not_found": "Usluga „{{value}}“ nije pronađena.",
+        "service_ambiguous": "Više usluga odgovara „{{value}}“.",
+        "type_mismatch": "Tip ne odgovara odabranom tipu uvoza ({{value}}).",
+        "tag_invalid": "Neispravan inventarni broj „{{value}}“.",
+        "tag_required": "Inventarni broj je obavezan (automatsko numerisanje je isključeno).",
+        "duplicate_in_file": "Ponavlja se u fajlu (prvi put u redu {{value}}).",
+        "asset_out_of_scope": "Oprema {{value}} je izvan vašeg opsega.",
+        "read_only": "Oprema {{value}} je zbrinuta i ne mijenja se.",
+        "attribute_required": "Obavezni atribut je prazan.",
+        "attribute_number": "Očekuje se broj („{{value}}“).",
+        "attribute_date": "Očekuje se datum („{{value}}“).",
+        "attribute_boolean": "Očekuje se Da/Ne („{{value}}“).",
+        "attribute_option": "„{{value}}“ nije među ponuđenim vrijednostima.",
+        "attribute_text_too_long": "Tekst atributa je predug.",
+        "attribute_not_unique": "Vrijednost „{{value}}“ već koristi druga oprema.",
+        "changed_since_preview": "Oprema je izmijenjena nakon pregleda — ponovite uvoz.",
+        "batch_failed": "Grupa redova nije upisana zbog greške u bazi."
+      }
     }
   }
 }

@@ -10,12 +10,13 @@ import { AssetAccessService } from './asset-access.service';
 import { AssetCatalogService } from './asset-catalog.service';
 import { AssetsController } from './assets.controller';
 import { AssetsService } from './assets.service';
+import { AssetImportService } from './import/asset-import.service';
 
 /** Paket 3.2: CMDB (behind the private.addons.cmdb addon). */
 @Module({
   imports: [SettingsModule, AuthenticationModule, AuthorizationModule, TicketsModule],
   controllers: [AssetsController],
-  providers: [AssetAccessService, AssetCatalogService, AssetsService, AssetTicketsService, AssetLicensesService, AssetContractsService],
-  exports: [AssetAccessService, AssetsService],
+  providers: [AssetAccessService, AssetCatalogService, AssetsService, AssetTicketsService, AssetLicensesService, AssetContractsService, AssetImportService],
+  exports: [AssetAccessService, AssetsService, AssetImportService],
 })
 export class AssetsModule {}

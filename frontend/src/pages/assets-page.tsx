@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Boxes, Plus, Search } from "lucide-react";
+import { Boxes, Download, Plus, Search } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
 import { AssetContractsPanel } from "@/components/assets/asset-contracts-panel";
@@ -20,6 +21,7 @@ import {
   tableWrapClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
+import { AssetImportPanel } from "@/components/assets/asset-import-panel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
@@ -46,10 +48,11 @@ import {
   type AssetListFilters,
   type AssetSource,
   type AssetStatus,
+  exportAssets,
 } from "@/services/assets-api";
 
 const pageSize = 50;
-const assetsTabs = ["register", "licenses", "contracts", "catalog"] as const;
+const assetsTabs = ["register", "licenses", "contracts", "import", "catalog"] as const;
 type AssetsTab = (typeof assetsTabs)[number];
 const searchDelayMs = 300;
 
@@ -102,15 +105,18 @@ export function AssetsPage() {
           { key: "register", label: t("assets.tabs.register") },
           { key: "licenses", label: t("assets.tabs.licenses") },
           { key: "contracts", label: t("assets.tabs.contracts") },
+          ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
           ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
         ]}
-        active={tab === "catalog" && !capabilities.canManageTypes ? "register" : tab}
+        active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) ? "register" : tab}
         onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
       />
       {tab === "licenses" ? (
         <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
       ) : tab === "contracts" ? (
         <AssetContractsPanel canManage={capabilities.canManageContracts} />
+      ) : capabilities.canImport && tab === "import" ? (
+        <AssetImportPanel />
       ) : capabilities.canManageTypes && tab === "catalog" ? (
         <AssetCatalogManager />
       ) : (
@@ -134,6 +140,8 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
   const [warrantyExpiring, setWarrantyExpiring] = useState(false);
   const [unassigned, setUnassigned] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [exporting, setExporting] = useState<"xlsx" | "csv" | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const handle = window.setTimeout(() => setSearch(searchText.trim().length >= 2 ? searchText.trim() : ""), searchDelayMs);
@@ -181,6 +189,17 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     setSource("");
     setWarrantyExpiring(false);
     setUnassigned(false);
+  }
+
+  async function runExport(format: "xlsx" | "csv") {
+    setExporting(format);
+    try {
+      await exportAssets(filters, format, i18n.language.startsWith("en") ? "en" : "bs");
+    } catch (caught) {
+      toast({ tone: "danger", title: t("assets.export.failed"), description: t(mapAssetError(caught) ?? mapApiError(caught)) });
+    } finally {
+      setExporting(null);
+    }
   }
 
   return (
@@ -257,11 +276,25 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
             {t("assets.list.resetFilters")}
           </Button>
         ) : null}
+        <div className="ml-auto flex items-center gap-1">
+          {(["xlsx", "csv"] as const).map((format) => (
+            <Button
+              key={format}
+              variant="outline"
+              size="sm"
+              disabled={exporting !== null || total === 0}
+              onClick={() => void runExport(format)}
+              aria-label={t("assets.export.label", { format: format.toUpperCase() })}
+            >
+              <Download size={14} aria-hidden="true" />
+              {exporting === format ? t("ui.loading") : format.toUpperCase()}
+            </Button>
+          ))}
+        </div>
         {canManage ? (
           <Button
             variant="primary"
             size="sm"
-            className="ml-auto"
             onClick={() => setCreateOpen(true)}
             disabled={catalogQuery.data === undefined || optionsQuery.data === undefined}
           >

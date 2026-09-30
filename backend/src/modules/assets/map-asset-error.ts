@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   HttpException,
   NotFoundException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { AssetError, assetErrorCodes } from './assets.constants';
 
@@ -21,6 +22,7 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.serviceNotFound:
     case assetErrorCodes.licenseNotFound:
     case assetErrorCodes.contractNotFound:
+    case assetErrorCodes.importNotFound:
       return new NotFoundException(body);
     case assetErrorCodes.forbidden:
     case assetErrorCodes.outOfScope:
@@ -42,7 +44,13 @@ export function mapAssetError(error: unknown): unknown {
     case assetErrorCodes.licenseAssignmentExists:
     case assetErrorCodes.contractItemExists:
     case assetErrorCodes.licenseKeyUnavailable:
+    case assetErrorCodes.importExpired:
+    case assetErrorCodes.importNotPending:
+    case assetErrorCodes.importHasErrors:
       return new ConflictException(body);
+    case assetErrorCodes.importFileTooLarge:
+    case assetErrorCodes.exportTooLarge:
+      return new PayloadTooLargeException(body);
     default:
       return new BadRequestException(body);
   }
