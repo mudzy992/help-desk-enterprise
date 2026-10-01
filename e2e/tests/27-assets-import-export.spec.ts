@@ -173,7 +173,7 @@ test.describe('27 assets import, export and bulk', () => {
         const bar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/ });
         await expect(bar).toContainText(/2/);
         // Export buttons re-enable once the filtered list loads; axe must not catch them mid-fade.
-        for (const button of await page.getByRole('button', { name: /Izvezi popis kao|Export list as/ }).all()) await expect(button).toBeEnabled();
+        for (const button of await page.getByRole('button', { name: /Izvezi popis kao|Export the register as/ }).all()) await expect(button).toBeEnabled();
         await expectNoSeriousA11yViolations(page, 'assets-bulk-selection', testInfo);
         await bar.getByRole('button', { name: /^(Zaduži|Assign)$/ }).click();
 
