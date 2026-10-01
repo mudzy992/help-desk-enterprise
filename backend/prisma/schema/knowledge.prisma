@@ -1,4 +1,5 @@
 model KnowledgeArticle {
+  problems Problem[]
   id                   String                         @id @default(cuid())
   slug                 String                         @unique
   title                String

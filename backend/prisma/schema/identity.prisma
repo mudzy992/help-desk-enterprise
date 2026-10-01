@@ -1,4 +1,6 @@
 model User {
+  problemsOwned Problem[] @relation("ProblemOwner")
+  problemsCreated Problem[] @relation("ProblemCreatedBy")
   assetsAssigned Asset[] @relation("AssetAssignedUser")
   assetSignatories AssetSignatory[] @relation("AssetSignatoryUser")
   assetTransfersFrom AssetTransfer[] @relation("AssetTransferFrom")
@@ -156,6 +158,7 @@ model UserRole {
 }
 
 model Group {
+  problems Problem[]
   id                   String                 @id @default(cuid())
   reportSchedules ReportSchedule[]
   name                 String

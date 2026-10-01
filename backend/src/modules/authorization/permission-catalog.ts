@@ -300,4 +300,19 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     categoryId: permissionCategoryIds.assets,
     description: 'Read asset reports (package 3.2).',
   },
+  {
+    key: permissionKeys.problemRead,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'View problems and the known-error register in the own organizational-unit scope (package 3.3).',
+  },
+  {
+    key: permissionKeys.problemManage,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Create and edit problems: analysis, workaround, status and linked tickets (package 3.3).',
+  },
+  {
+    key: permissionKeys.problemClose,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3).',
+  },
 ];

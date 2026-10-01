@@ -133,6 +133,12 @@ export const auditLogActions = {
   assetTransferSigned: 'asset.transfer.signed',
   assetTransferTemplateUploaded: 'asset.transfer.template_uploaded',
   assetSignatorySaved: 'asset.signatory.saved',
+  // Paket 3.3: problem management.
+  problemCreated: 'problem.created',
+  problemStatusChanged: 'problem.status_changed',
+  problemClosed: 'problem.closed',
+  problemCancelled: 'problem.cancelled',
+  problemReopened: 'problem.reopened',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',
@@ -182,6 +188,8 @@ export const auditLogEntityTypes = {
   assetImport: 'asset_import',
   assetTransfer: 'asset_transfer',
   assetSignatory: 'asset_signatory',
+  // Paket 3.3
+  problem: 'problem',
 } as const;
 
 export const auditLogErrorCodes = {

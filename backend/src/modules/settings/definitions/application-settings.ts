@@ -16,6 +16,7 @@ import { configVersioningSettings } from './config-versioning-settings';
 import { onCallSettings } from './on-call-settings';
 import { announcementSettings } from './announcement-settings';
 import { assetSettings } from './asset-settings';
+import { problemSettings } from './problem-settings';
 import { auditLogSettings } from './audit-log-settings';
 import { reportsSettings } from './reports-settings';
 import { privacySettings } from './privacy-settings';
@@ -89,6 +90,7 @@ export const applicationSettings: readonly SettingDefinition[] = [
   ...onCallSettings,
   ...announcementSettings,
   ...assetSettings,
+  ...problemSettings,
   ...auditLogSettings,
   ...reportsSettings,
   ...privacySettings,

@@ -317,6 +317,7 @@ export const settingKeys = {
   privateAddonsReports: addonSettingKey('reports'),
   privateAddonsServiceDowntime: addonSettingKey('serviceDowntime'),
   privateAddonsCmdb: addonSettingKey('cmdb'),
+  privateAddonsProblems: addonSettingKey('problems'),
   privateKnowledgeBaseReviewCycleEnabled:
     'private.knowledgeBase.reviewCycle.enabled',
   privateKnowledgeBaseReviewCycleDefaultReviewDays:
@@ -533,6 +534,17 @@ export const settingKeys = {
   privateOpsThresholdsWorkerHeartbeatStaleSeconds: 'private.ops.thresholds.workerHeartbeatStaleSeconds',
   privateOpsThresholdsClamavFailuresBeforeAlert: 'private.ops.thresholds.clamavFailuresBeforeAlert',
   // Paket 2.9 (K3): on-call.
+  privateProblemsNumberPrefix: 'private.problems.numberPrefix',
+  privateProblemsRootCauseCategories: 'private.problems.rootCauseCategories',
+  privateProblemsRequireWorkaroundForKnownError: 'private.problems.requireWorkaroundForKnownError',
+  privateProblemsBulkResolveMax: 'private.problems.bulkResolveMax',
+  privateProblemsTargetCalendarId: 'private.problems.target.calendarId',
+  privateProblemsAutoCloseDays: 'private.problems.autoCloseDays',
+  privateProblemsTargetEnabled: 'private.problems.target.enabled',
+  privateProblemsTargetCriticalWorkingDays: 'private.problems.target.criticalWorkingDays',
+  privateProblemsTargetHighWorkingDays: 'private.problems.target.highWorkingDays',
+  privateProblemsTargetMediumWorkingDays: 'private.problems.target.mediumWorkingDays',
+  privateProblemsTargetLowWorkingDays: 'private.problems.target.lowWorkingDays',
   privateAssetsTicketPickerEnabled: 'private.assets.ticketPicker.enabled',
   privateAssetsLocationsEnabled: 'private.assets.locations.enabled',
   privateAssetsTagAutoGenerate: 'private.assets.tag.autoGenerate',

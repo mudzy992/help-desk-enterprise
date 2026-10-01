@@ -14,6 +14,8 @@ model ServiceCategory {
 }
 
 model Service {
+  problemsMain Problem[] @relation("ProblemMainService")
+  problemServices ProblemService[]
   assets Asset[]
   id                   String                  @id @default(cuid())
   reportSchedules ReportSchedule[]

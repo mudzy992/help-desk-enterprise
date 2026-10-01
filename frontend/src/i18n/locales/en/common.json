@@ -527,7 +527,10 @@
       "asset.license.manage": "Manage licences",
       "asset.contract.manage": "Manage contracts",
       "asset.type.manage": "Manage asset types",
-      "asset.report.read": "Asset reports"
+      "asset.report.read": "Asset reports",
+      "problem.read": "Problems",
+      "problem.manage": "Manage problems",
+      "problem.close": "Close problems"
     }
   },
   "maintenance": {
@@ -677,7 +680,10 @@
         "asset.license.manage": "Manage software licences, seats and licence keys (package 3.2).",
         "asset.contract.manage": "Manage warranty, maintenance and lease contracts (package 3.2).",
         "asset.type.manage": "Manage asset types, their attributes and locations (package 3.2).",
-        "asset.report.read": "See asset reports: expiries, costs and frequent failures (package 3.2)."
+        "asset.report.read": "See asset reports: expiries, costs and frequent failures (package 3.2).",
+        "problem.read": "View problems and the known-error register in the own unit scope (package 3.3).",
+        "problem.manage": "Create and edit problems: analysis, workaround, status and linked tickets (package 3.3).",
+        "problem.close": "Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3)."
       }
     }
   },
@@ -959,7 +965,8 @@
         "private.inbound": "Inbound e-mail",
         "private.collaboration": "Agent collaboration",
         "private.privacy": "Privacy",
-        "private.assets": "Assets (CMDB)"
+        "private.assets": "Assets (CMDB)",
+        "private.problems": "Problems"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -1359,6 +1366,18 @@
         "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) for announcements. Empty = the operational alarm webhook is used.",
         "private.knowledgeBase.portal.faqMaxItems": "Number of frequently asked questions (FAQ) at the top of the knowledge portal (1–20).",
         "private.addons.cmdb": "Turns the CMDB (assets) module on or off: register, ticket links, licences, contracts and import. Off by default.",
+        "private.addons.problems": "Turns the problem management module on or off: problems, root cause analysis, known errors. Off by default.",
+        "private.problems.numberPrefix": "Prefix of problem numbers (letters, digits or -; at most 8), e.g. P-000042.",
+        "private.problems.rootCauseCategories": "Root cause categories as comma-separated keys (lowercase letters, digits, -; at most 30).",
+        "private.problems.autoCloseDays": "Days after which a resolved problem is closed automatically (0 = never).",
+        "private.problems.requireWorkaroundForKnownError": "A workaround is required to move a problem to Known error. Off by default.",
+        "private.problems.bulkResolveMax": "Maximum number of linked tickets resolved by one bulk action (1–1000).",
+        "private.problems.target.calendarId": "Business-hours calendar for problem targets (empty = the default calendar).",
+        "private.problems.target.enabled": "Sets a target resolution date by priority and reminds the owner. Off by default.",
+        "private.problems.target.criticalWorkingDays": "Target time in working days for critical problems (only when deadlines are on).",
+        "private.problems.target.highWorkingDays": "Target time in working days for high-priority problems.",
+        "private.problems.target.mediumWorkingDays": "Target time in working days for medium-priority problems.",
+        "private.problems.target.lowWorkingDays": "Target time in working days for low-priority problems.",
         "private.assets.ticketPicker.enabled": "Users may pick their own equipment when creating a ticket.",
         "private.assets.tag.autoGenerate": "Generate the inventory number when it is left empty ({prefix}{year}-{number}).",
         "private.assets.tag.prefix": "Prefix of generated inventory numbers (letters, digits, - or /; at most 12).",
@@ -2597,6 +2616,10 @@
         "cmdb": {
           "label": "CMDB (assets)",
           "description": "Equipment register, ticket links, licences, contracts and Excel import."
+        },
+        "problems": {
+          "label": "Problem management",
+          "description": "Problems, root cause analysis and the known-error register."
         }
       }
     },

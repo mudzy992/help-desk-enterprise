@@ -43,6 +43,9 @@ export const permissionKeys = {
   assetContractManage: "asset.contract.manage",
   assetTypeManage: "asset.type.manage",
   assetReportRead: "asset.report.read",
+  problemRead: "problem.read",
+  problemManage: "problem.manage",
+  problemClose: "problem.close",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

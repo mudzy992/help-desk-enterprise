@@ -1,0 +1,131 @@
+/// Paket 3.3: problem management (ITIL). The module sits behind the
+/// `private.addons.problems` addon (off by default).
+
+enum ProblemStatus {
+  NEW
+  INVESTIGATING
+  KNOWN_ERROR
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+/// The number shown is `{prefix}{sequence padded to 6}`; the prefix is a
+/// setting, so only the sequence is stored.
+model Problem {
+  id                   String             @id @default(cuid())
+  sequence             Int                @unique
+  title                String             @db.VarChar(200)
+  description          String             @db.VarChar(8000)
+  status               ProblemStatus      @default(NEW)
+  priority             TicketPriority     @default(MEDIUM)
+  impact               TicketImpact       @default(MEDIUM)
+  urgency              TicketUrgency      @default(MEDIUM)
+  ownerUserId          String?
+  groupId              String?
+  organizationalUnitId String
+  serviceId            String?
+  rootCauseCategory    String?            @db.VarChar(32)
+  rootCause            String?            @db.VarChar(8000)
+  /// Up to five "why" steps: [{ "question": string, "answer": string }].
+  rcaWhys              Json?
+  workaround           String?            @db.VarChar(8000)
+  workaroundAt         DateTime?
+  resolution           String?            @db.VarChar(8000)
+  knowledgeArticleId   String?
+  targetAt             DateTime?
+  targetRemindersSent  Json               @default("[]")
+  identifiedAt         DateTime?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  cancelledAt          DateTime?
+  cancelReason         String?            @db.VarChar(1000)
+  createdByUserId      String?
+  version              Int                @default(1)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  owner                User?              @relation("ProblemOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy            User?              @relation("ProblemCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  group                Group?             @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  organizationalUnit   OrganizationalUnit @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  service              Service?           @relation("ProblemMainService", fields: [serviceId], references: [id], onDelete: SetNull)
+  knowledgeArticle     KnowledgeArticle?  @relation(fields: [knowledgeArticleId], references: [id], onDelete: SetNull)
+  tickets              ProblemTicket[]
+  assets               ProblemAsset[]
+  services             ProblemService[]
+  incidents            ProblemIncident[]
+  events               ProblemEvent[]
+
+  @@index([status])
+  @@index([ownerUserId])
+  @@index([groupId])
+  @@index([organizationalUnitId])
+  @@index([serviceId])
+  @@index([createdAt])
+  @@index([targetAt])
+}
+
+/// A ticket belongs to at most one problem (unique ticketId).
+model ProblemTicket {
+  problemId      String
+  ticketId       String  @unique
+  linkedByUserId String?
+  linkedAt       DateTime @default(now())
+  problem        Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, ticketId])
+  @@index([problemId, linkedAt])
+}
+
+model ProblemAsset {
+  problemId String
+  assetId   String
+  linkedAt  DateTime @default(now())
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, assetId])
+  @@index([assetId])
+}
+
+/// Additional affected services (the main one is Problem.serviceId).
+model ProblemService {
+  problemId String
+  serviceId String
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, serviceId])
+  @@index([serviceId])
+}
+
+/// Optional link to a status-page incident (Paket 2.7).
+model ProblemIncident {
+  problemId  String
+  incidentId String
+  linkedAt   DateTime        @default(now())
+  problem    Problem         @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  incident   ServiceIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, incidentId])
+  @@index([incidentId])
+}
+
+model ProblemEvent {
+  id          String   @id @default(cuid())
+  problemId   String
+  action      String   @db.VarChar(40)
+  actorUserId String?
+  detail      Json?
+  createdAt   DateTime @default(now())
+  problem     Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId, createdAt])
+}
+
+/// Single-row counter (id = 1) for problem numbers.
+model ProblemSequence {
+  id         Int @id
+  lastNumber Int @default(0)
+}

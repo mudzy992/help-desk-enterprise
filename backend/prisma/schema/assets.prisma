@@ -133,6 +133,7 @@ model AssetLocation {
 }
 
 model Asset {
+  problems ProblemAsset[]
   id                   String              @id @default(cuid())
   /// Inventory number, unique.
   assetTag             String              @unique @db.VarChar(64)

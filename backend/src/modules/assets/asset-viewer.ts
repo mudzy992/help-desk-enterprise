@@ -23,7 +23,11 @@ export type AssetScope = { readonly all: true } | { readonly all: false; readonl
 
 const globalRoles = new Set<string>([authorizationRoleKeys.admin, authorizationRoleKeys.superAdmin]);
 
-export function assetViewerFromContext(context: PrincipalContext | null, userId: string): AssetViewer {
+/**
+ * Builds the viewer from the principal context. `permissionPrefix` selects the
+ * grants kept (3.3 reuses the same unit-scope model for `problem.*`).
+ */
+export function assetViewerFromContext(context: PrincipalContext | null, userId: string, permissionPrefix = 'asset.'): AssetViewer {
   if (context === null) return { userId, isSuperAdmin: false, homeOrganizationalUnitId: null, grants: [] };
   const isSuperAdmin =
     context.roleKeys.includes(authorizationRoleKeys.superAdmin) ||
@@ -31,7 +35,7 @@ export function assetViewerFromContext(context: PrincipalContext | null, userId:
   const grants: AssetGrant[] = [];
   for (const assignment of context.assignments) {
     for (const permission of assignment.permissionKeys) {
-      if (!permission.startsWith('asset.')) continue;
+      if (!permission.startsWith(permissionPrefix)) continue;
       grants.push({
         permission,
         global: globalRoles.has(assignment.roleKey),

@@ -67,6 +67,10 @@ export const permissionKeys = {
   assetContractManage: 'asset.contract.manage',
   assetTypeManage: 'asset.type.manage',
   assetReportRead: 'asset.report.read',
+  // Paket 3.3
+  problemRead: 'problem.read',
+  problemManage: 'problem.manage',
+  problemClose: 'problem.close',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
   ticketMessageSend: 'ticket.message.send',
@@ -108,6 +112,10 @@ const agentPermissionKeys = [
   permissionKeys.onCallRead,
   permissionKeys.assetRead,
   permissionKeys.assetManage,
+  // Paket 3.3 (decision 2026-10-01): agents run problems end to end.
+  permissionKeys.problemRead,
+  permissionKeys.problemManage,
+  permissionKeys.problemClose,
 ] as const;
 
 const assetManagerPermissionKeys = [

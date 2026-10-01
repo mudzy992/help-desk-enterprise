@@ -534,7 +534,10 @@
       "asset.license.manage": "Upravljanje licencama",
       "asset.contract.manage": "Upravljanje ugovorima",
       "asset.type.manage": "Upravljanje tipovima imovine",
-      "asset.report.read": "Izvještaji o imovini"
+      "asset.report.read": "Izvještaji o imovini",
+      "problem.read": "Problemi",
+      "problem.manage": "Upravljanje problemima",
+      "problem.close": "Zatvaranje problema"
     }
   },
   "maintenance": {
@@ -684,7 +687,10 @@
         "asset.license.manage": "Upravljanje softverskim licencama, mjestima i licencnim ključevima (paket 3.2).",
         "asset.contract.manage": "Upravljanje ugovorima o garanciji, održavanju i najmu (paket 3.2).",
         "asset.type.manage": "Upravljanje tipovima imovine, njihovim atributima i lokacijama (paket 3.2).",
-        "asset.report.read": "Pregled izvještaja o imovini: istekci, troškovi i česti kvarovi (paket 3.2)."
+        "asset.report.read": "Pregled izvještaja o imovini: istekci, troškovi i česti kvarovi (paket 3.2).",
+        "problem.read": "Pregled problema i registra poznatih grešaka u svom opsegu OJ (paket 3.3).",
+        "problem.manage": "Kreiranje i uređivanje problema: analiza, workaround, status i povezani tiketi (paket 3.3).",
+        "problem.close": "Zatvaranje, otkazivanje i ponovno otvaranje problema te grupno rješavanje povezanih tiketa (paket 3.3)."
       }
     }
   },
@@ -968,7 +974,8 @@
         "private.inbound": "Dolazna pošta",
         "private.collaboration": "Saradnja agenata",
         "private.privacy": "Zaštita ličnih podataka",
-        "private.assets": "Imovina (CMDB)"
+        "private.assets": "Imovina (CMDB)",
+        "private.problems": "Problemi"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -1368,6 +1375,18 @@
         "private.announcements.teamsWebhookUrl": "Teams Workflows webhook (https://) za najave. Prazno = koristi se webhook operativnih alarma.",
         "private.knowledgeBase.portal.faqMaxItems": "Broj najčešćih pitanja (FAQ) na vrhu portala znanja (1–20).",
         "private.addons.cmdb": "Uključuje ili isključuje CMDB modul (imovina): registar, veze s tiketima, licence, ugovori i uvoz. Zadano isključeno.",
+        "private.addons.problems": "Uključuje ili isključuje modul upravljanja problemima: problemi, analiza uzroka, poznate greške. Zadano isključeno.",
+        "private.problems.numberPrefix": "Prefiks broja problema (slova, cifre ili -; najviše 8), npr. P-000042.",
+        "private.problems.rootCauseCategories": "Kategorije uzroka kao ključevi odvojeni zarezom (mala slova, cifre, -; najviše 30).",
+        "private.problems.autoCloseDays": "Broj dana nakon kojih se riješen problem automatski zatvara (0 = nikad).",
+        "private.problems.requireWorkaroundForKnownError": "Workaround je obavezan za prelazak u status Poznata greška. Zadano isključeno.",
+        "private.problems.bulkResolveMax": "Najveći broj povezanih tiketa koji se rješavaju jednom grupnom akcijom (1–1000).",
+        "private.problems.target.calendarId": "Kalendar radnog vremena za rokove problema (prazno = zadani kalendar).",
+        "private.problems.target.enabled": "Postavlja ciljni rok rješavanja po prioritetu i podsjeća vlasnika. Zadano isključeno.",
+        "private.problems.target.criticalWorkingDays": "Ciljni rok u radnim danima za kritične probleme (samo kad su rokovi uključeni).",
+        "private.problems.target.highWorkingDays": "Ciljni rok u radnim danima za probleme visokog prioriteta.",
+        "private.problems.target.mediumWorkingDays": "Ciljni rok u radnim danima za probleme srednjeg prioriteta.",
+        "private.problems.target.lowWorkingDays": "Ciljni rok u radnim danima za probleme niskog prioriteta.",
         "private.assets.ticketPicker.enabled": "Korisnici pri kreiranju tiketa mogu izabrati svoju opremu.",
         "private.assets.tag.autoGenerate": "Generiši inventarni broj kad je polje prazno ({prefiks}{godina}-{broj}).",
         "private.assets.tag.prefix": "Prefiks generisanih inventarnih brojeva (slova, cifre, - ili /; najviše 12).",
@@ -2613,6 +2632,10 @@
         "cmdb": {
           "label": "CMDB (imovina)",
           "description": "Registar opreme, veze s tiketima, licence, ugovori i uvoz iz Excela."
+        },
+        "problems": {
+          "label": "Upravljanje problemima",
+          "description": "Problemi, analiza uzroka i registar poznatih grešaka."
         }
       }
     },

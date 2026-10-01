@@ -29,6 +29,7 @@ model OpsAlert {
 /// linked service shows the worst impact of its open incidents; the manual
 /// `Service.availability` is the baseline and is never overwritten.
 model ServiceIncident {
+  problems ProblemIncident[]
   id              String                        @id @default(cuid())
   title           String                        @db.VarChar(200)
   titleEn         String?                       @db.VarChar(200)

@@ -82,6 +82,12 @@ export const installAddonCatalog = [
     defaultEnabled: false,
     description: 'CMDB (assets) addon: asset register, ticket links, licences, contracts, import',
   },
+  {
+    // Paket 3.3: problem management (off until the organisation is ready).
+    key: 'problems',
+    defaultEnabled: false,
+    description: 'Problem management addon: problems, root cause analysis, known-error register',
+  },
 ] as const;
 
 export type InstallAddonKey = (typeof installAddonCatalog)[number]['key'];

@@ -1,4 +1,5 @@
 model OrganizationalUnit {
+  problems Problem[]
   assets Asset[]
   assetSignatory AssetSignatory?
   assetContracts AssetContract[]

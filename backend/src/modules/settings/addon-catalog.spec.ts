@@ -26,6 +26,7 @@ describe('installAddonCatalog', () => {
       ['reports', true],
       ['serviceDowntime', true],
       ['cmdb', false],
+      ['problems', false],
     ]);
   });
 

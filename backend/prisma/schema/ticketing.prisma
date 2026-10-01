@@ -1,4 +1,5 @@
 model Ticket {
+  problemLink ProblemTicket?
   assets TicketAsset[]
   id                   String                     @id @default(cuid())
   ticketNumber         String                     @unique
