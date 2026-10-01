@@ -92,6 +92,8 @@ test.describe('23 assets (CMDB)', () => {
       await expectNoSeriousA11yViolations(page, 'assets-overview', testInfo);
       await page.goto('/assets');
       await expect(page.getByRole('link', { name: `E2E-${stamp}` })).toBeVisible({ timeout: 15_000 });
+      // "New asset" stays disabled until the catalog and options load; wait for it before axe.
+      await expect(page.getByRole("button", { name: /Nova stavka|New asset/ })).toBeEnabled({ timeout: 15_000 });
       await expectNoSeriousA11yViolations(page, 'assets-register', testInfo);
       await page.goto(`/assets/${created.id}`);
       await expect(page.getByText(`E2E laptop ${stamp}`).first()).toBeVisible();

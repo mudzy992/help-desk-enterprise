@@ -60,6 +60,14 @@ export async function expectNoSeriousA11yViolations(
   const exceptions = loadA11yExceptions();
   let builder = new AxeBuilder({ page }).withTags(TAGS);
   for (const selector of options.exclude ?? []) builder = builder.exclude(selector);
+  // Let running CSS transitions/animations settle first: a button that has just
+  // become enabled fades from opacity 0.45 to 1 (transition-all 150 ms), and axe
+  // measuring mid-fade reports a colour-contrast failure that no user sees.
+  await page.evaluate(async () => {
+    // Only finite ones: skeleton pulses and spinners never finish.
+    const finite = document.getAnimations().filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime)));
+    await Promise.all(finite.map((animation) => animation.finished.catch(() => undefined)));
+  });
   const results = await builder.analyze();
 
   const blocking: string[] = [];
