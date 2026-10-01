@@ -163,7 +163,9 @@ test.describe('30 problem lifecycle', () => {
       await test.step('UI: register, detail tabs and the ticket panel pass axe', async () => {
         await signIn(page, env.superAdminEmail, env.superAdminPassword);
         await page.goto('/problems');
-        await expect(page.getByRole('link', { name: new RegExp(`E2E problem ${stamp}`) }).first()).toBeVisible({ timeout: 15_000 });
+        // The register links the number; the title is plain text in the next cell.
+        await expect(page.getByRole('link', { name: problem!.number, exact: true })).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByText(`E2E problem ${stamp}`, { exact: true })).toBeVisible();
         await expectNoSeriousA11yViolations(page, 'problems-register', testInfo);
 
         await page.goto(`/problems/${problem!.id}`);
