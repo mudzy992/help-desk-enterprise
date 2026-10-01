@@ -83,7 +83,8 @@ export class ApiClient {
 
   async request(path: string, init: RequestInit = {}): Promise<Response> {
     const headers = new Headers(init.headers);
-    if (!headers.has('Content-Type') && init.body !== undefined) {
+    // FormData (uploads) sets its own multipart boundary.
+    if (!headers.has('Content-Type') && init.body !== undefined && !(init.body instanceof FormData)) {
       headers.set('Content-Type', 'application/json');
     }
     const installToken = process.env.E2E_INSTALL_TOKEN;
