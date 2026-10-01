@@ -6653,7 +6653,8 @@
       "unlink": "Ukloni vezu",
       "unlinkTitle": "Ukloniti vezu s problemom?",
       "unlinkBody": "Tiket više neće biti povezan s problemom {{number}}. Promjena se bilježi u historiji tiketa i problema.",
-      "unlinkConfirm": "Ukloni vezu"
+      "unlinkConfirm": "Ukloni vezu",
+      "insertWorkaround": "Ubaci u odgovor"
     },
     "link": {
       "bulkButton": "Problem",
@@ -6719,7 +6720,9 @@
         "rootCauseCategory": "Prvo odaberite kategoriju uzroka (kartica Analiza).",
         "workaround": "Prvo upišite zaobilazno rješenje (kartica Analiza).",
         "resolution": "Prvo upišite trajno rješenje (kartica Analiza)."
-      }
+      },
+      "articleExists": "Problem već ima povezan članak.",
+      "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu."
     },
     "title": "Problemi",
     "subtitle": "Uzroci iza ponovljenih incidenata: analiza, zaobilazna rješenja i poznate greške.",
@@ -6856,7 +6859,9 @@
       "emptyBody": "Promjene na problemu pojavit će se ovdje.",
       "title": "Historija",
       "system": "Sistem",
-      "reason": "Razlog: {{reason}}"
+      "reason": "Razlog: {{reason}}",
+      "knowledgeArticle": "Kreiran nacrt članka „{{title}}”",
+      "ticketsResolved": "Grupno rješavanje tiketa: riješeno {{resolved}}, preskočeno {{skipped}}, neuspješno {{failed}}"
     },
     "detail": {
       "back": "Svi problemi",
@@ -6882,6 +6887,46 @@
       "closedAt": "Zatvoren",
       "cancelledAt": "Otkazan",
       "cancelReason": "Razlog otkazivanja"
+    },
+    "article": {
+      "action": "Napravi članak",
+      "title": "Članak iz poznate greške",
+      "hint": "Opis, uzrok i workaround postaju nacrt članka u bazi znanja. Lični podaci su zamijenjeni oznakama; pregledajte tekst prije spremanja. Objava ide uobičajenim tokom baze znanja.",
+      "serviceHint": "Problem nema servis; izaberite servis kojem članak pripada.",
+      "pickService": "Izaberite servis",
+      "currentUnit": "Organizaciona jedinica problema",
+      "submit": "Sačuvaj nacrt",
+      "created": "Nacrt članka je kreiran i povezan s problemom."
+    },
+    "resolveTickets": {
+      "loading": "Učitavanje povezanih tiketa…",
+      "none": "Problem nema otvorenih povezanih tiketa.",
+      "toggle_one": "Riješi i {{count}} povezani otvoreni tiket",
+      "toggle_few": "Riješi i {{count}} povezana otvorena tiketa",
+      "toggle_other": "Riješi i {{count}} povezanih otvorenih tiketa",
+      "hint": "Otvorenih povezanih tiketa: {{open}}. Ništa se ne rješava bez ove kvačice; podnosioci dobijaju poruku ispod kao javni odgovor.",
+      "listLabel": "Povezani otvoreni tiketi",
+      "willResolve": "Bit će riješen",
+      "skippedHint_one": "{{count}} tiket se preskače i ostaje otvoren.",
+      "skippedHint_few": "{{count}} tiketa se preskaču i ostaju otvorena.",
+      "skippedHint_other": "{{count}} tiketa se preskače i ostaje otvoreno.",
+      "message": "Poruka podnosiocima",
+      "messageHint": "Šalje se kao javni odgovor na svaki riješeni tiket (najmanje {{min}} znakova).",
+      "defaultMessage": "Poštovani,\n\nuzrok zbog kojeg ste prijavili ovaj zahtjev je otklonjen ({{number}}), pa tiket označavamo riješenim. Ako se problem ponovi, odgovorite na ovu poruku.\n\nHvala na strpljenju.",
+      "closeCode": "Kod zatvaranja",
+      "closeCodeNone": "Bez koda",
+      "outcome": "Problem je riješen. Tiketi: riješeno {{resolved}}, preskočeno {{skipped}}, neuspješno {{failed}}.",
+      "withoutMessage": "Riješeno, ali poruka nije poslana: {{tickets}}.",
+      "failedTitle": "Nisu riješeni",
+      "failedHint": "Ove tikete riješite pojedinačno; razlog je kod greške pored broja.",
+      "close": "Zatvori",
+      "skip": {
+        "waiting_for_user": "Čeka korisnika",
+        "pending_approval": "Čeka odobrenje",
+        "merged": "Spojen",
+        "no_access": "Bez pristupa",
+        "limit": "Preko limita"
+      }
     }
   }
 }

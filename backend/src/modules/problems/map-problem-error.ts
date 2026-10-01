@@ -24,6 +24,7 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.versionConflict:
     case problemErrorCodes.ticketInOtherProblem:
     case problemErrorCodes.problemNotOpen:
+    case problemErrorCodes.articleExists:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

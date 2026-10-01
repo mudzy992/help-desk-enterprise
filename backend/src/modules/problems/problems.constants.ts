@@ -22,6 +22,9 @@ export const problemLimits = {
   searchMax: 120,
   /** Tickets linked in one request (list bulk action, §8.1). */
   linkBatchMax: 50,
+  /** Knowledge article body (KB maximum). */
+  articleBodyMax: 20000,
+  messageMax: 8000,
 } as const;
 
 export const problemEventActions = {
@@ -31,6 +34,8 @@ export const problemEventActions = {
   owner: 'owner',
   ticketLinked: 'ticket_linked',
   ticketUnlinked: 'ticket_unlinked',
+  knowledgeArticle: 'knowledge_article',
+  ticketsResolved: 'tickets_resolved',
 } as const;
 
 export const problemErrorCodes = {
@@ -53,6 +58,8 @@ export const problemErrorCodes = {
   ticketInOtherProblem: 'PROBLEM_TICKET_IN_OTHER_PROBLEM',
   ticketNotLinked: 'PROBLEM_TICKET_NOT_LINKED',
   problemNotOpen: 'PROBLEM_NOT_OPEN',
+  articleExists: 'PROBLEM_ARTICLE_EXISTS',
+  articleInvalid: 'PROBLEM_ARTICLE_INVALID',
 } as const;
 
 export type ProblemErrorCode = (typeof problemErrorCodes)[keyof typeof problemErrorCodes];

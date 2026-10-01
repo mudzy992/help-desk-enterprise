@@ -1,4 +1,4 @@
-import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerInsertText, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TicketActivityList } from "@/components/tickets/ticket-activity-list";
@@ -53,6 +53,8 @@ interface TicketDetailWorkspaceProperties {
   readonly onDelete: (attachmentId: string) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
+  /** Paket 3.3 (P4): text to insert into the public reply ("insert workaround"). */
+  readonly composerInsertText?: ComposerInsertText | null;
   readonly composerCollaboration?: ComposerCollaborationOptions;
   /** Paket 2.9 (K1c): enables "make an article" on public agent replies. */
   readonly canWriteKnowledge?: boolean;
@@ -108,6 +110,7 @@ export function TicketDetailWorkspace(props: TicketDetailWorkspaceProperties) {
           onUpload={props.canUpload ? props.onUpload : undefined}
           composerExtra={props.composerExtra}
           composerTemplates={props.composerTemplates}
+          composerInsertText={props.composerInsertText}
           composerCollaboration={props.composerCollaboration}
           canWriteKnowledge={props.canWriteKnowledge}
         />

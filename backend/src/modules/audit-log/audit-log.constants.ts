@@ -139,6 +139,8 @@ export const auditLogActions = {
   problemClosed: 'problem.closed',
   problemCancelled: 'problem.cancelled',
   problemReopened: 'problem.reopened',
+  problemKnowledgeArticleCreated: 'problem.knowledge_article_created',
+  problemTicketsResolved: 'problem.tickets_resolved',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',

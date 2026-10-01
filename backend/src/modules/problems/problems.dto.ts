@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { problemLimits, problemSeverities, problemStatuses } from './problems.constants';
 
 export class ProblemWhyDto {
@@ -49,4 +49,15 @@ export class ProblemStatusDto {
   @IsInt() @Min(1) version!: number;
   @IsIn(problemStatuses) status!: (typeof problemStatuses)[number];
   @IsOptional() @IsString() @MaxLength(problemLimits.reasonMax) reason?: string;
+  /** §8.4: with status RESOLVED, also resolve the open linked tickets (explicit, previewed). */
+  @IsOptional() @IsBoolean() resolveTickets?: boolean;
+  @IsOptional() @IsString() @MaxLength(problemLimits.messageMax) message?: string;
+  @IsOptional() @IsString() @MaxLength(64) closeCode?: string;
+}
+
+export class CreateProblemArticleDto {
+  @IsString() @MinLength(3) @MaxLength(problemLimits.titleMax) title!: string;
+  @IsString() @MinLength(1) @MaxLength(problemLimits.articleBodyMax) body!: string;
+  @IsString() @MinLength(1) @MaxLength(64) serviceId!: string;
+  @IsString() @MinLength(1) @MaxLength(64) organizationalUnitId!: string;
 }

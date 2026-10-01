@@ -78,6 +78,8 @@ export function TicketDetailPage() {
     readonly name: string;
     readonly nonce: number;
   } | null>(null);
+  // Paket 3.3 (P4): "insert workaround" from the problem panel into the public reply.
+  const [workaroundInsert, setWorkaroundInsert] = useState<{ readonly text: string; readonly nonce: number } | null>(null);
   const [playbookWarning, setPlaybookWarning] = useState<{
     readonly status: Parameters<typeof detail.changeStatus>[0];
     readonly extras: Parameters<typeof detail.changeStatus>[1];
@@ -376,6 +378,7 @@ export function TicketDetailPage() {
           composerExtra={composerExtra}
           canWriteKnowledge={actions.viewActivity && hasPermission(permissionKeys.knowledgeArticleWrite)}
           composerCollaboration={composerCollaboration}
+          composerInsertText={workaroundInsert}
           composerTemplates={
             actions.viewActivity && canUseTemplates
               ? {
@@ -402,6 +405,11 @@ export function TicketDetailPage() {
           <TicketProblemPanel
             ticket={{ id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority }}
             versionKey={ticket.updatedAt}
+            onInsertWorkaround={
+              access !== "requester" && !ticket.mergedIntoTicketId
+                ? (text) => setWorkaroundInsert((current) => ({ text, nonce: (current?.nonce ?? 0) + 1 }))
+                : undefined
+            }
           />
         ) : null}
         {isStaffView && collaborationConfig.linksEnabled ? (

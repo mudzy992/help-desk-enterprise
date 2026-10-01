@@ -237,6 +237,8 @@ export const problemDetailKeys = {
   detail: (id: string) => ["problems", "detail", id] as const,
   events: (id: string) => ["problems", "detail", id, "events"] as const,
   owners: (search: string) => ["problems", "owners", search] as const,
+  resolvePreview: (id: string) => ["problems", "detail", id, "resolve-preview"] as const,
+  articleDraft: (id: string) => ["problems", "detail", id, "article-draft"] as const,
 };
 
 export function getProblemCapabilities(): Promise<ProblemCapabilities> {
@@ -277,10 +279,69 @@ export function updateProblem(id: string, input: UpdateProblemInput): Promise<Pr
   return apiRequest(`/problems/${encodeURIComponent(id)}`, { method: "PATCH", ...json(input) });
 }
 
+export type ProblemTicketResolveSkip = "waiting_for_user" | "pending_approval" | "merged" | "no_access" | "limit";
+
+export type ProblemTicketResolveOutcome = {
+  readonly resolved: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly messageSent: boolean }[];
+  readonly skipped: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly reason: ProblemTicketResolveSkip }[];
+  readonly failed: readonly { readonly ticketId: string; readonly ticketNumber: string; readonly code: string }[];
+};
+
+export type ProblemResolvePreview = {
+  readonly max: number;
+  readonly resolvable: number;
+  readonly items: readonly {
+    readonly id: string;
+    readonly ticketNumber: string;
+    readonly title: string | null;
+    readonly status: string;
+    readonly resolvable: boolean;
+    readonly reason: ProblemTicketResolveSkip | null;
+  }[];
+  readonly closeCodes: {
+    readonly enabled: boolean;
+    readonly required: boolean;
+    readonly codes: readonly { readonly key: string; readonly name: string }[];
+  };
+};
+
+export type ProblemArticleDraft = {
+  readonly title: string;
+  readonly body: string;
+  readonly serviceId: string | null;
+  readonly organizationalUnitId: string;
+  readonly replacements: { readonly email: number; readonly person: number; readonly ip: number; readonly phone: number };
+};
+
+export type ProblemStatusInput = {
+  readonly version: number;
+  readonly status: ProblemStatus;
+  readonly reason?: string;
+  /** P4 (§8.4): with RESOLVED, also resolve the open linked tickets. */
+  readonly resolveTickets?: boolean;
+  readonly message?: string;
+  readonly closeCode?: string;
+};
+
+export function getProblemResolvePreview(id: string): Promise<ProblemResolvePreview> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/resolve-preview`);
+}
+
+export function getProblemArticleDraft(id: string): Promise<ProblemArticleDraft> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/knowledge-article/draft`);
+}
+
+export function createProblemArticle(
+  id: string,
+  input: { readonly title: string; readonly body: string; readonly serviceId: string; readonly organizationalUnitId: string },
+): Promise<{ readonly id: string; readonly title: string; readonly status: string }> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/knowledge-article`, { method: "POST", ...json(input) });
+}
+
 export function changeProblemStatus(
   id: string,
-  input: { readonly version: number; readonly status: ProblemStatus; readonly reason?: string },
-): Promise<ProblemDetail> {
+  input: ProblemStatusInput,
+): Promise<ProblemDetail & { readonly ticketResolution: ProblemTicketResolveOutcome | null }> {
   return apiRequest(`/problems/${encodeURIComponent(id)}/status`, { method: "POST", ...json(input) });
 }
 

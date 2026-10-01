@@ -39,6 +39,9 @@ export type ComposerTemplatesOptions = {
   readonly insertRequest?: { readonly templateId: string; readonly name: string; readonly nonce: number } | null;
 };
 
+/** Paket 3.3 (P4): plain text to insert into the public reply; `nonce` makes repeats fire. */
+export type ComposerInsertText = { readonly text: string; readonly nonce: number };
+
 /** Paket 2.4: presence, @mentions and the collision confirmation. */
 export type ComposerCollaborationOptions = {
   readonly ticketId: string;
@@ -62,6 +65,7 @@ interface TicketMessageComposerProperties {
   /** Package 1.4 (T5/T6): template picker; omitted for requesters. */
   readonly templates?: ComposerTemplatesOptions;
   readonly collaboration?: ComposerCollaborationOptions;
+  readonly insertText?: ComposerInsertText | null;
 }
 
 export function TicketMessageComposer({
@@ -75,6 +79,7 @@ export function TicketMessageComposer({
   publicExtra,
   templates,
   collaboration,
+  insertText = null,
 }: TicketMessageComposerProperties) {
   const { t } = useTranslation();
   const types = messageTypesForAccess(access);
@@ -203,6 +208,27 @@ export function TicketMessageComposer({
     // Fires once per request (nonce), not on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [insertNonce]);
+
+  // Paket 3.3 (P4): "insert workaround" puts the text at the cursor of a public reply.
+  const insertTextNonce = insertText?.nonce;
+  useEffect(() => {
+    if (insertText === null) return;
+    const area = textareaReference.current;
+    const start = area === null ? body.length : area.selectionStart;
+    const end = area === null ? body.length : area.selectionEnd;
+    const next = insertAtCursor(body, start, end, insertText.text);
+    setBody(next.value);
+    setInternal(false);
+    window.requestAnimationFrame(() => {
+      const target = textareaReference.current;
+      if (target !== null) {
+        target.focus();
+        target.setSelectionRange(next.caret, next.caret);
+      }
+    });
+    // Fires once per request (nonce), not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insertTextNonce]);
 
   const onTemplateInserted = (inserted: InsertedTemplate) => {
     const { start, end } = selectionReference.current;

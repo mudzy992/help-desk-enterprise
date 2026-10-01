@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, Pencil, Puzzle, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookPlus, Pencil, Puzzle, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
+import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemStatusSheet } from "@/components/problems/problem-status-sheet";
@@ -34,6 +35,7 @@ export function ProblemDetailPage() {
   const { toast } = useToast();
   const [tab, setTab] = useState<Tab>("overview");
   const [editOpen, setEditOpen] = useState(false);
+  const [articleOpen, setArticleOpen] = useState(false);
   const [statusTarget, setStatusTarget] = useState<ProblemStatus | null | "pick">(null);
 
   const problemQuery = useQuery({ queryKey: problemDetailKeys.detail(problemId), queryFn: () => getProblem(problemId), retry: false, enabled: problemId !== "" });
@@ -74,6 +76,10 @@ export function ProblemDetailPage() {
   // The natural next step is the primary action; the rest sit in the status sheet.
   const nextStep = problem.allowedTransitions.find((to) => to !== "CANCELLED" && !(to === "INVESTIGATING" && problem.status !== "NEW"));
 
+  // P4 (§7): a known error (or resolved problem) without an article offers one.
+  const canCreateArticle =
+    canManage && (problem.status === "KNOWN_ERROR" || problem.status === "RESOLVED") && problem.knowledgeArticle === null;
+
   const actions = (
     <div className="flex flex-wrap gap-2">
       {back}
@@ -81,6 +87,12 @@ export function ProblemDetailPage() {
         <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} disabled={optionsQuery.data === undefined} data-testid="problem-edit">
           <Pencil size={14} aria-hidden="true" />
           {t("problems.detail.edit")}
+        </Button>
+      ) : null}
+      {canCreateArticle ? (
+        <Button variant="outline" size="sm" onClick={() => setArticleOpen(true)} data-testid="problem-create-article">
+          <BookPlus size={14} aria-hidden="true" />
+          {t("problems.article.action")}
         </Button>
       ) : null}
       {problem.allowedTransitions.length > 0 ? (
@@ -155,6 +167,18 @@ export function ProblemDetailPage() {
           problem={problem}
           onSaved={() => {
             toast({ tone: "success", title: t("problems.form.saved") });
+            refresh();
+          }}
+        />
+      ) : null}
+      {canCreateArticle ? (
+        <ProblemArticleSheet
+          open={articleOpen}
+          onOpenChange={setArticleOpen}
+          problemId={problem.id}
+          options={optionsQuery.data}
+          onCreated={(article) => {
+            toast({ tone: "success", title: t("problems.article.created"), description: article.title });
             refresh();
           }}
         />

@@ -1,4 +1,4 @@
-import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
+import type { ComposerCollaborationOptions, ComposerSendOptions, ComposerInsertText, ComposerTemplatesOptions } from "@/components/tickets/ticket-message-composer";
 import { TicketConversation } from "@/components/tickets/ticket-conversation";
 import { TicketMessageComposer } from "@/components/tickets/ticket-message-composer";
 import { ArticleFromReplySheet } from "@/components/knowledge-base/portal/article-from-reply-sheet";
@@ -29,6 +29,7 @@ interface TicketDetailConversationProperties {
   readonly onUpload?: (file: File) => Promise<void>;
   readonly composerExtra?: ReactNode;
   readonly composerTemplates?: ComposerTemplatesOptions;
+  readonly composerInsertText?: ComposerInsertText | null;
   readonly composerCollaboration?: ComposerCollaborationOptions;
   /** Paket 2.9 (K1c): the viewer may write knowledge articles. */
   readonly canWriteKnowledge?: boolean;
@@ -110,6 +111,7 @@ export function TicketDetailConversation(props: TicketDetailConversationProperti
           onUpload={props.onUpload}
           publicExtra={props.composerExtra}
           templates={props.composerTemplates}
+          insertText={props.composerInsertText}
           collaboration={props.composerCollaboration}
         />
       )}

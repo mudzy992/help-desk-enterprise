@@ -66,5 +66,9 @@ describe("problem-view", () => {
       'problems.history.updated:{"fields":"problems.fields.title, problems.fields.rootCause"}',
     );
     expect(problemHistoryText(t, "ticket_linked", { ticketNumber: "T-000001" })).toBe('problems.history.ticketLinked:{"ticket":"T-000001"}');
+    expect(problemHistoryText(t, "knowledge_article", { title: "Printer" })).toBe('problems.history.knowledgeArticle:{"title":"Printer"}');
+    expect(problemHistoryText(t, "tickets_resolved", { resolved: 3, skipped: 1, failed: 0 })).toBe(
+      'problems.history.ticketsResolved:{"resolved":3,"skipped":1,"failed":0}',
+    );
   });
 });

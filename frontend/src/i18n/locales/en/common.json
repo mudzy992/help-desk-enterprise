@@ -6597,7 +6597,8 @@
       "unlink": "Remove link",
       "unlinkTitle": "Remove the problem link?",
       "unlinkBody": "The ticket will no longer be linked to problem {{number}}. The change is recorded in the ticket and problem history.",
-      "unlinkConfirm": "Remove link"
+      "unlinkConfirm": "Remove link",
+      "insertWorkaround": "Insert into reply"
     },
     "link": {
       "bulkButton": "Problem",
@@ -6659,7 +6660,9 @@
         "rootCauseCategory": "Choose the root cause category first (Analysis tab).",
         "workaround": "Enter the workaround first (Analysis tab).",
         "resolution": "Enter the permanent fix first (Analysis tab)."
-      }
+      },
+      "articleExists": "The problem already has a linked article.",
+      "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit."
     },
     "title": "Problems",
     "subtitle": "Causes behind recurring incidents: analysis, workarounds and known errors.",
@@ -6795,7 +6798,9 @@
       "emptyBody": "Changes to the problem will appear here.",
       "title": "History",
       "system": "System",
-      "reason": "Reason: {{reason}}"
+      "reason": "Reason: {{reason}}",
+      "knowledgeArticle": "Article draft “{{title}}” created",
+      "ticketsResolved": "Group ticket resolution: {{resolved}} resolved, {{skipped}} skipped, {{failed}} failed"
     },
     "detail": {
       "back": "All problems",
@@ -6821,6 +6826,44 @@
       "closedAt": "Closed",
       "cancelledAt": "Cancelled",
       "cancelReason": "Cancellation reason"
+    },
+    "article": {
+      "action": "Create article",
+      "title": "Article from known error",
+      "hint": "The description, cause and workaround become a knowledge base draft. Personal data is replaced with labels; review the text before saving. Publishing follows the usual knowledge base workflow.",
+      "serviceHint": "The problem has no service; pick the service the article belongs to.",
+      "pickService": "Pick a service",
+      "currentUnit": "Problem's organizational unit",
+      "submit": "Save draft",
+      "created": "The article draft was created and linked to the problem."
+    },
+    "resolveTickets": {
+      "loading": "Loading linked tickets…",
+      "none": "The problem has no open linked tickets.",
+      "toggle_one": "Also resolve {{count}} open linked ticket",
+      "toggle_other": "Also resolve {{count}} open linked tickets",
+      "hint": "Open linked tickets: {{open}}. Nothing is resolved without this checkbox; requesters receive the message below as a public reply.",
+      "listLabel": "Open linked tickets",
+      "willResolve": "Will be resolved",
+      "skippedHint_one": "{{count}} ticket is skipped and stays open.",
+      "skippedHint_other": "{{count}} tickets are skipped and stay open.",
+      "message": "Message to requesters",
+      "messageHint": "Sent as a public reply on every resolved ticket (at least {{min}} characters).",
+      "defaultMessage": "Hello,\n\nthe cause of the issue you reported has been fixed ({{number}}), so we are marking this ticket as resolved. If the issue comes back, reply to this message.\n\nThank you for your patience.",
+      "closeCode": "Close code",
+      "closeCodeNone": "No code",
+      "outcome": "The problem is resolved. Tickets: {{resolved}} resolved, {{skipped}} skipped, {{failed}} failed.",
+      "withoutMessage": "Resolved, but the message was not sent: {{tickets}}.",
+      "failedTitle": "Not resolved",
+      "failedHint": "Resolve these tickets one by one; the error code is next to the number.",
+      "close": "Close",
+      "skip": {
+        "waiting_for_user": "Waiting for user",
+        "pending_approval": "Pending approval",
+        "merged": "Merged",
+        "no_access": "No access",
+        "limit": "Over the limit"
+      }
     }
   }
 }

@@ -4,7 +4,8 @@ import { SessionAuthenticationGuard } from '../authentication/session-authentica
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { runProblem } from './map-problem-error';
 import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './problem-access.service';
-import { CreateProblemDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { CreateProblemArticleDto, CreateProblemDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { problemSeverities, problemStatuses, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
 import { ProblemsService, type ProblemListQuery } from './problems.service';
@@ -52,6 +53,7 @@ export class ProblemsController {
     private readonly access: ProblemAccessService,
     private readonly problems: ProblemsService,
     private readonly problemTickets: ProblemTicketsService,
+    private readonly resolution: ProblemResolutionService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -113,9 +115,39 @@ export class ProblemsController {
     return runProblem(() => this.problems.update(this.viewer(request), id, body));
   }
 
+  /**
+   * §8.4: RESOLVED may carry `resolveTickets` + `message` (+ `closeCode`). The
+   * options are validated first; the tickets are resolved after the status.
+   */
   @Post(':id/status')
   changeStatus(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ProblemStatusDto) {
-    return runProblem(() => this.problems.changeStatus(this.viewer(request), id, body));
+    return runProblem(async () => {
+      const viewer = this.viewer(request);
+      const { resolveTickets, message, closeCode, ...status } = body;
+      const groupResolve = resolveTickets === true && status.status === 'RESOLVED';
+      if (groupResolve) await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
+      const problem = await this.problems.changeStatus(viewer, id, status);
+      if (!groupResolve) return { ...problem, ticketResolution: null };
+      const ticketResolution = await this.resolution.resolveTickets(id, viewer, { message: message ?? '', closeCode });
+      return { ...(await this.problems.get(viewer, id)), ticketResolution };
+    });
+  }
+
+  @Get(':id/resolve-preview')
+  @Header('Cache-Control', 'no-store')
+  resolvePreview(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.resolution.resolvePreview(id, this.viewer(request)));
+  }
+
+  @Get(':id/knowledge-article/draft')
+  @Header('Cache-Control', 'no-store')
+  articleDraft(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.resolution.articleDraft(id, this.viewer(request)));
+  }
+
+  @Post(':id/knowledge-article')
+  createArticle(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: CreateProblemArticleDto) {
+    return runProblem(() => this.resolution.createArticle(id, body, this.viewer(request)));
   }
 
   @Get(':id/events')

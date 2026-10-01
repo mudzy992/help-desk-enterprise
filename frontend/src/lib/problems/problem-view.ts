@@ -1,6 +1,6 @@
 import type { BadgeTone } from "@/components/ui/badge";
 import { ApiError } from "@/services/api";
-import type { ProblemSeverity, ProblemStatus, ProblemTicketSkipReason } from "@/services/problems-api";
+import type { ProblemSeverity, ProblemStatus, ProblemTicketResolveSkip, ProblemTicketSkipReason } from "@/services/problems-api";
 
 /** Paket 3.3: labels, tones and error keys shared by the problem screens. */
 
@@ -36,6 +36,14 @@ export const problemSkipReasonKeys: Readonly<Record<ProblemTicketSkipReason, `pr
   read_only: "problems.link.skip.read_only",
 };
 
+export const problemResolveSkipKeys: Readonly<Record<ProblemTicketResolveSkip, `problems.resolveTickets.skip.${ProblemTicketResolveSkip}`>> = {
+  waiting_for_user: "problems.resolveTickets.skip.waiting_for_user",
+  pending_approval: "problems.resolveTickets.skip.pending_approval",
+  merged: "problems.resolveTickets.skip.merged",
+  no_access: "problems.resolveTickets.skip.no_access",
+  limit: "problems.resolveTickets.skip.limit",
+};
+
 const problemErrorKeys = {
   PROBLEM_MODULE_DISABLED: "problems.errors.disabled",
   PROBLEM_NOT_FOUND: "problems.errors.notFound",
@@ -56,6 +64,8 @@ const problemErrorKeys = {
   PROBLEM_REASON_REQUIRED: "problems.errors.reasonRequired",
   PROBLEM_FINAL_STATUS: "problems.errors.finalStatus",
   PROBLEM_REQUIREMENT_MISSING: "problems.errors.requirementMissing",
+  PROBLEM_ARTICLE_EXISTS: "problems.errors.articleExists",
+  PROBLEM_ARTICLE_INVALID: "problems.errors.articleInvalid",
 } as const;
 
 export type ProblemErrorKey = (typeof problemErrorKeys)[keyof typeof problemErrorKeys];
@@ -156,6 +166,12 @@ export function problemHistoryText(t: Translate, action: string, detail: Record<
       const texts = detail !== null && Array.isArray(detail.textChanged) ? (detail.textChanged as unknown[]).filter((item): item is string => typeof item === "string") : [];
       const fields = [...changes, ...texts].map((field) => (historyFieldKeys[field] ? t(historyFieldKeys[field]) : field));
       return t(action === "owner" ? "problems.history.owner" : "problems.history.updated", { fields: fields.join(", ") || "—" });
+    }
+    case "knowledge_article":
+      return t("problems.history.knowledgeArticle", { title: value("title") ?? "—" });
+    case "tickets_resolved": {
+      const count = (key: string) => (detail !== null && typeof detail[key] === "number" ? (detail[key] as number) : 0);
+      return t("problems.history.ticketsResolved", { resolved: count("resolved"), skipped: count("skipped"), failed: count("failed") });
     }
     default:
       return action;

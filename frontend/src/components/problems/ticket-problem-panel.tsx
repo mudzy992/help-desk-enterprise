@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link2, Plus, Unlink } from "lucide-react";
+import { CornerDownLeft, Link2, Plus, Unlink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ProblemLinkDialog, type ProblemLinkTicket } from "@/components/problems/problem-link-dialog";
@@ -17,7 +17,16 @@ import { getTicketProblem, problemQueryKeys, unlinkProblemTicket } from "@/servi
  * Paket 3.3 (§8.3): the problem behind a ticket. Staff with `problem.read`
  * see it; requesters never get the panel (the server returns visible=false).
  */
-export function TicketProblemPanel({ ticket, versionKey }: { readonly ticket: ProblemLinkTicket; readonly versionKey: string }) {
+export function TicketProblemPanel({
+  ticket,
+  versionKey,
+  onInsertWorkaround,
+}: {
+  readonly ticket: ProblemLinkTicket;
+  readonly versionKey: string;
+  /** P4: puts the workaround into the public reply (absent when the viewer cannot reply). */
+  readonly onInsertWorkaround?: (text: string) => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const key = [...problemQueryKeys.ticketPanel(ticket.id), versionKey];
@@ -83,6 +92,19 @@ export function TicketProblemPanel({ ticket, versionKey }: { readonly ticket: Pr
               <div className="rounded-md border border-warning/30 bg-warning/6 px-3 py-2">
                 <p className="text-[11.5px] font-medium text-foreground">{t("problems.ticket.workaround")}</p>
                 <p className="mt-0.5 whitespace-pre-wrap text-[12.5px] text-foreground">{problem.workaround}</p>
+                {onInsertWorkaround !== undefined ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="mt-2"
+                    onClick={() => onInsertWorkaround(problem.workaround ?? "")}
+                    data-testid="ticket-problem-insert-workaround"
+                  >
+                    <CornerDownLeft size={12} aria-hidden="true" />
+                    {t("problems.ticket.insertWorkaround")}
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             {data.canUnlink ? (
