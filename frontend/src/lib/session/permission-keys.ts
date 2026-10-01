@@ -44,6 +44,7 @@ export const permissionKeys = {
   assetTypeManage: "asset.type.manage",
   assetReportRead: "asset.report.read",
   problemRead: "problem.read",
+  problemReport: "problem.report",
   problemManage: "problem.manage",
   problemClose: "problem.close",
 } as const;

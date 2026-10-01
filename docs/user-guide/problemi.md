@@ -1,0 +1,32 @@
+# Problemi (problem management)
+
+Problem okuplja više tiketa s istim uzrokom. Modul je zadano isključen.
+
+## Podešavanje (administrator)
+1. Uključite modul problema u postavkama.
+2. U **Grupe** uredite grupu (npr. „Radne stanice“) i označite **Problem-grupa**.
+3. U grupu dodajte korisnike s ulogom **Upravitelj problema**.
+
+Dok ne postoji bar jedna problem-grupa, stranica Problemi prikazuje poruku da modul čeka podešavanje.
+
+## Ko šta radi
+| Radnja | Agent | Upravitelj problema (član grupe) | Administrator |
+|---|---|---|---|
+| Pregled problema | ✓ (svoja OJ) | ✓ (sve OJ) | ✓ |
+| Prijava problema, povezivanje tiketa | ✓ | ✓ | ✓ |
+| Preuzimanje, analiza uzroka, workaround, status | – | ✓ | ✓ |
+| Zatvaranje, otkazivanje, grupno rješavanje tiketa | – | ✓ | ✓ |
+
+## Prijava
+Iz tiketa ili masovno iz liste: **Kreiraj problem**, upišite naslov i opis i izaberite **problem-grupu**. Upravitelji problema iz grupe dobiju obavijest.
+
+## Preuzimanje i rješavanje
+Upravitelj problema otvara problem i klikne **Preuzmi** – postaje vlasnik. Vodi analizu, postavlja poznatu grešku i rješava problem. Nakon rješenja može grupno riješiti povezane tikete (uz pregled i potvrdu); nepreuzeti tiketi se automatski dodjeljuju njemu, a korisnici dobijaju poruku.
+
+## Obavijesti
+- novi problem bez vlasnika → upravitelji grupe;
+- rok (ako su rokovi uključeni) → vlasnik, inače grupa;
+- ponavljanje riješenog problema → vlasnik i grupa.
+
+## Poznato ograničenje
+Agent u „Dodaj u problem“ vidi samo probleme svoje organizacione jedinice.

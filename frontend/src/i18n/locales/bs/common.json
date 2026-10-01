@@ -171,7 +171,8 @@
       "problemKnownError": "Problem povezan s vašim tiketom je poznata greška",
       "problemResolved": "Problem povezan s vašim tiketom je riješen",
       "problemTargetDue": "Rok problema se približava ili je prošao",
-      "problemRecurrence": "Riješeni problem se ponovio"
+      "problemRecurrence": "Riješeni problem se ponovio",
+      "problemGroupAssigned": "Novi problem čeka preuzimanje u vašoj grupi"
     }
   },
   "placeholders": {
@@ -544,6 +545,7 @@
       "asset.type.manage": "Upravljanje tipovima imovine",
       "asset.report.read": "Izvještaji o imovini",
       "problem.read": "Problemi",
+      "problem.report": "Prijava problema",
       "problem.manage": "Upravljanje problemima",
       "problem.close": "Zatvaranje problema"
     }
@@ -587,7 +589,9 @@
       "create": "Kreiraj grupu",
       "save": "Sačuvaj izmjene",
       "saving": "Snimanje…",
-      "cancel": "Odustani"
+      "cancel": "Odustani",
+      "problemGroup": "Problem-grupa",
+      "problemGroupHint": "Agenti ovoj grupi predaju probleme; upravitelji problema u njoj ih preuzimaju i rješavaju. Modul problema je aktivan tek kad postoji bar jedna problem-grupa."
     },
     "members": {
       "heading": "Članovi",
@@ -606,7 +610,8 @@
     "errorActiveTickets": "Grupa još ima aktivne tikete i ne može se obrisati.",
     "errorMemberExists": "Korisnik je već član ove grupe.",
     "errorMemberMissing": "Korisnik nije član ove grupe.",
-    "errorGeneric": "Operacija nad grupom nije uspjela."
+    "errorGeneric": "Operacija nad grupom nije uspjela.",
+    "problemGroupBadge": "Problem-grupa"
   },
   "permissions": {
     "title": "Permisije uloga",
@@ -697,7 +702,8 @@
         "asset.type.manage": "Upravljanje tipovima imovine, njihovim atributima i lokacijama (paket 3.2).",
         "asset.report.read": "Pregled izvještaja o imovini: istekci, troškovi i česti kvarovi (paket 3.2).",
         "problem.read": "Pregled problema i registra poznatih grešaka u svom opsegu OJ (paket 3.3).",
-        "problem.manage": "Kreiranje i uređivanje problema: analiza, workaround, status i povezani tiketi (paket 3.3).",
+        "problem.report": "Kreiranje problema predajom problem-grupi te povezivanje i odvajanje tiketa (paket 3.3).",
+        "problem.manage": "Analiza, workaround, status i vlasništvo problema u problem-grupama čiji ste član (paket 3.3).",
         "problem.close": "Zatvaranje, otkazivanje i ponovno otvaranje problema te grupno rješavanje povezanih tiketa (paket 3.3)."
       }
     }
@@ -6742,7 +6748,9 @@
       },
       "articleExists": "Problem već ima povezan članak.",
       "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu.",
-      "validationUnit": "Problem nema organizacionu jedinicu: vaš nalog nema matičnu OJ, a OJ tiketa nije u vašem opsegu. Obratite se administratoru."
+      "validationUnit": "Problem nema organizacionu jedinicu: vaš nalog nema matičnu OJ, a OJ tiketa nije u vašem opsegu. Obratite se administratoru.",
+      "notProblemGroup": "Izabrana grupa nije problem-grupa.",
+      "ownerNotInGroup": "Vlasnik mora biti upravitelj problema i član izabrane grupe."
     },
     "title": "Problemi",
     "subtitle": "Uzroci iza ponovljenih incidenata: analiza, zaobilazna rješenja i poznate greške.",
@@ -6815,7 +6823,11 @@
       "save": "Spremi",
       "create": "Kreiraj problem",
       "created": "Problem je kreiran.",
-      "saved": "Promjene su spremljene."
+      "saved": "Promjene su spremljene.",
+      "groupHint": "Problem preuzima upravitelj problema iz izabrane grupe.",
+      "groupPlaceholder": "Izaberite problem-grupu",
+      "ownerPickGroup": "Prvo izaberite grupu; vlasnik može biti samo upravitelj problema iz nje.",
+      "ownerByGroup": "Vlasnika određuje problem-grupa: upravitelj problema iz grupe preuzima problem."
     },
     "statusSheet": {
       "title": "Promjena statusa",
@@ -6912,7 +6924,9 @@
       "closedAt": "Zatvoren",
       "cancelledAt": "Otkazan",
       "cancelReason": "Razlog otkazivanja",
-      "targetAt": "Ciljni rok"
+      "targetAt": "Ciljni rok",
+      "claim": "Preuzmi",
+      "claimed": "Problem je preuzet"
     },
     "article": {
       "action": "Napravi članak",
@@ -6953,6 +6967,8 @@
         "no_access": "Bez pristupa",
         "limit": "Preko limita"
       }
-    }
+    },
+    "setupTitle": "Modul problema čeka podešavanje",
+    "setupBody": "Administrator treba bar jednu grupu označiti kao problem-grupu (Grupe → uredi → Problem-grupa) i u nju dodati upravitelje problema."
   }
 }

@@ -7,6 +7,7 @@ const groupSelect = {
   key: true,
   organizationalUnitId: true,
   isFallback: true,
+  isProblemGroup: true,
   createdAt: true,
   updatedAt: true,
   organizationalUnit: { select: { ouPath: true } },
@@ -28,6 +29,7 @@ export type LoadedGroupRecord = {
   readonly key: string;
   readonly organizationalUnitId: string;
   readonly isFallback: boolean;
+  readonly isProblemGroup: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly organizationalUnit: { readonly ouPath: string };

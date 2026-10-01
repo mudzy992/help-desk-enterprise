@@ -152,7 +152,7 @@ export class ProblemTicketsService {
     const ticket = await this.staffTicket(ticketId, viewer, false);
     if (ticket === null) return hidden(true);
     const merged = (ticket as { mergedIntoTicketId?: string | null }).mergedIntoTicketId != null;
-    const canWrite = this.access.hasPermission(viewer, permissionKeys.problemManage) && !merged && !readOnlyTicketStatuses.has(ticket.status);
+    const canWrite = this.access.hasPermission(viewer, permissionKeys.problemReport) && !merged && !readOnlyTicketStatuses.has(ticket.status);
     const link = await this.prisma.problemTicket.findUnique({
       where: { ticketId: ticket.id },
       select: {
@@ -194,7 +194,7 @@ export class ProblemTicketsService {
     viewer: ProblemViewer,
     options: { readonly singleAsError?: boolean } = {},
   ): Promise<ProblemTicketLinkResult> {
-    const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemManage);
+    const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport);
     if (!problemLinkableStatuses.includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
     const unique = [...new Set(ticketIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, problemLimits.linkBatchMax);
     if (unique.length === 0) throw new ProblemError(problemErrorCodes.validation, 'ticketIds');
@@ -268,7 +268,7 @@ export class ProblemTicketsService {
   }
 
   async unlink(problemId: string, ticketId: string, viewer: ProblemViewer): Promise<void> {
-    const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemManage);
+    const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemReport);
     if (!(problemOpenStatuses as readonly string[]).includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
     const link = await this.prisma.problemTicket.findUnique({ where: { ticketId }, select: { problemId: true } });
     if (link === null || link.problemId !== problem.id) throw new ProblemError(problemErrorCodes.ticketNotLinked);

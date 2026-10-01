@@ -14,5 +14,12 @@ export function linkedTicketWorkWhere(userId: string): Prisma.TicketWhereInput {
 export function problemVisibilityWhere(scope: ProblemScope, userId: string): Prisma.ProblemWhereInput | null {
   const unitWhere = unitScopeWhere(scope);
   if (unitWhere === null) return null;
-  return { OR: [{ organizationalUnit: unitWhere }, { tickets: { some: { ticket: linkedTicketWorkWhere(userId) } } }] };
+  return {
+    OR: [
+      { organizationalUnit: unitWhere },
+      { tickets: { some: { ticket: linkedTicketWorkWhere(userId) } } },
+      // Paket 3.3: the reporter keeps sight of the problem they reported.
+      { createdByUserId: userId },
+    ],
+  };
 }

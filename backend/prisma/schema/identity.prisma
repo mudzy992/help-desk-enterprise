@@ -165,6 +165,8 @@ model Group {
   key                  String                 @unique
   organizationalUnitId String
   isFallback           Boolean                @default(false)
+  /// Paket 3.3: problem-management group (problem managers own its problems).
+  isProblemGroup       Boolean                @default(false)
   /// Overrides the service's and the global auto-assign strategy for tickets
   /// this group handles. NONE defers to the service, then the global setting
   /// (see resolveEffectiveAutoAssignStrategy). Decision D2.

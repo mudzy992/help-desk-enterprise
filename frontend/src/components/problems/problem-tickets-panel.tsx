@@ -25,7 +25,7 @@ export function ProblemTicketsPanel({ problem, onChanged }: { readonly problem: 
   const [error, setError] = useState<string | null>(null);
   const key = [...problemQueryKeys.tickets(problem.id), problem.version];
   const query = useQuery({ queryKey: key, queryFn: () => getProblemTickets(problem.id), retry: false });
-  const canUnlink = problem.permissions.canManage && problemOpenStatuses.includes(problem.status);
+  const canUnlink = problem.permissions.canLink && problemOpenStatuses.includes(problem.status);
   const unlink = useMutation({
     mutationFn: (ticketId: string) => unlinkProblemTicket(problem.id, ticketId),
     onSuccess: () => {

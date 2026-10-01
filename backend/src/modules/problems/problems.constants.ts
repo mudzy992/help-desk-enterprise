@@ -48,6 +48,10 @@ export const problemErrorCodes = {
   unitNotFound: 'PROBLEM_UNIT_NOT_FOUND',
   userNotFound: 'PROBLEM_USER_NOT_FOUND',
   groupNotFound: 'PROBLEM_GROUP_NOT_FOUND',
+  /** Paket 3.3: the group is not marked as a problem group. */
+  notProblemGroup: 'PROBLEM_NOT_PROBLEM_GROUP',
+  /** Paket 3.3: the owner must be a problem manager of the problem group. */
+  ownerNotInGroup: 'PROBLEM_OWNER_NOT_IN_GROUP',
   serviceNotFound: 'PROBLEM_SERVICE_NOT_FOUND',
   rootCauseCategoryInvalid: 'PROBLEM_ROOT_CAUSE_CATEGORY_INVALID',
   statusTransition: 'PROBLEM_STATUS_TRANSITION',

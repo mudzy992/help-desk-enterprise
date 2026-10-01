@@ -1,3 +1,4 @@
+import { permissionKeys } from '../authorization/authorization.constants';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { resolveEmailLocale } from '../notifications/email/compose-ticket-email';
@@ -90,6 +91,19 @@ export class ProblemNotifier {
     });
   }
 
+  /** Decision 2026-10-01: a new (or handed-over) problem without an owner, to the problem managers of its group. */
+  async groupAssigned(problemId: string, actorUserId: string | null): Promise<number> {
+    const facts = await this.facts(problemId);
+    if (facts === null || facts.groupId === null) return 0;
+    return this.send(facts, actorUserId, {
+      type: notificationTypes.problemGroupAssigned,
+      emailKey: null,
+      recipientIds: await this.groupManagers(facts.groupId),
+      occurrence: `${facts.groupId}:${Date.now()}`,
+      detail: (locale) => problemStatusLabel(locale, facts.status),
+    });
+  }
+
   /** §11: KNOWN_ERROR (workaround available) or RESOLVED, to agents of the still-open linked tickets. */
   async statusChanged(problemId: string, status: string, actorUserId: string | null): Promise<number> {
     if (status !== 'KNOWN_ERROR' && status !== 'RESOLVED') return 0;
@@ -115,11 +129,13 @@ export class ProblemNotifier {
   async recurrence(problemId: string, ticketNumbers: readonly string[], actorUserId: string | null): Promise<number> {
     if (ticketNumbers.length === 0) return 0;
     const facts = await this.facts(problemId);
-    if (facts === null || facts.ownerUserId === null || (facts.status !== 'RESOLVED' && facts.status !== 'CLOSED')) return 0;
+    if (facts === null || (facts.status !== 'RESOLVED' && facts.status !== 'CLOSED')) return 0;
+    // Decision 2026-10-01: the owner and the problem managers of the group.
+    const recipientIds = [...(facts.ownerUserId === null ? [] : [facts.ownerUserId]), ...(facts.groupId === null ? [] : await this.groupManagers(facts.groupId))];
     return this.send(facts, actorUserId, {
       type: notificationTypes.problemRecurrence,
       emailKey: null,
-      recipientIds: [facts.ownerUserId],
+      recipientIds,
       occurrence: ticketNumbers.join(','),
       suffix: ticketNumbers.slice(0, 5).join(', '),
       detail: (locale) => problemStatusLabel(locale, facts.status),
@@ -131,10 +147,7 @@ export class ProblemNotifier {
     const facts = await this.facts(problemId);
     if (facts === null || facts.targetAt === null) return 0;
     let recipientIds: string[] = facts.ownerUserId === null ? [] : [facts.ownerUserId];
-    if (recipientIds.length === 0 && facts.groupId !== null) {
-      const members = await this.prisma.groupMember.findMany({ where: { groupId: facts.groupId }, select: { userId: true }, take: problemNoticeMaxRecipients });
-      recipientIds = members.map((member) => member.userId);
-    }
+    if (recipientIds.length === 0 && facts.groupId !== null) recipientIds = await this.groupManagers(facts.groupId);
     const targetAt = facts.targetAt;
     return this.send(facts, null, {
       type: notificationTypes.problemTargetDue,
@@ -143,6 +156,21 @@ export class ProblemNotifier {
       occurrence: `${stage}:${targetAt.toISOString()}`,
       detail: (_locale, format) => format(targetAt),
     });
+  }
+
+  /** Problem managers of a problem group (members holding problem.manage through a role). */
+  private async groupManagers(groupId: string): Promise<string[]> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        anonymizedAt: null,
+        groupMembers: { some: { groupId } },
+        userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
+      },
+      select: { id: true },
+      take: problemNoticeMaxRecipients,
+    });
+    return users.map((user) => user.id);
   }
 
   private async facts(problemId: string): Promise<Facts | null> {

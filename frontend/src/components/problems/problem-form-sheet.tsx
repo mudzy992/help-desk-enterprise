@@ -29,6 +29,8 @@ interface ProblemFormSheetProperties {
   /** Editing when set; creating otherwise. */
   readonly problem?: ProblemDetail;
   readonly onSaved: (problemId: string) => void;
+  /** Only problem managers (and admins) pick an owner; agents leave it to the group. */
+  readonly canAssignOwner: boolean;
 }
 
 /**
@@ -36,7 +38,7 @@ interface ProblemFormSheetProperties {
  * description, impact/urgency, unit, owner, group, service). The analysis
  * fields are edited on the Analysis tab.
  */
-export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved }: ProblemFormSheetProperties) {
+export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved, canAssignOwner }: ProblemFormSheetProperties) {
   const { t } = useTranslation();
   const editing = problem !== undefined;
   const [title, setTitle] = useState("");
@@ -72,9 +74,10 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
   }, [ownerSearch]);
 
   const owners = useQuery({
-    queryKey: problemDetailKeys.owners(ownerDebounced),
-    queryFn: () => searchProblemOwners(ownerDebounced),
-    enabled: open && ownerDebounced.length >= 2,
+    queryKey: problemDetailKeys.owners(ownerDebounced, groupId),
+    queryFn: () => searchProblemOwners(ownerDebounced, groupId),
+    // Owners are the problem managers of the chosen group (decision 2026-10-01).
+    enabled: open && canAssignOwner && groupId !== "",
     retry: false,
   });
 
@@ -84,7 +87,14 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
       ? [{ id: problem.organizationalUnit.id, name: problem.organizationalUnit.name, path: problem.organizationalUnit.ouPath }, ...options.units]
       : options.units;
 
-  const canSubmit = !saving && title.trim().length >= 3 && description.trim().length > 0 && unitId !== "";
+  const canSubmit = !saving && title.trim().length >= 3 && description.trim().length > 0 && unitId !== "" && groupId !== "";
+
+  const changeGroup = (next: string) => {
+    setGroupId(next);
+    // The owner must be a member of the problem group.
+    setOwner(null);
+    setOwnerSearch("");
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -98,9 +108,9 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
         impact,
         urgency,
         organizationalUnitId: unitId,
-        ownerUserId: owner?.id ?? null,
-        groupId: groupId || null,
         serviceId: serviceId || null,
+        groupId,
+        ...(canAssignOwner ? { ownerUserId: owner?.id ?? null } : {}),
       };
       const saved = editing ? await updateProblem(problem.id, { version: problem.version, ...base }) : await createProblemFull(base);
       onOpenChange(false);
@@ -160,6 +170,22 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
               </Select>
             )}
           </Field>
+          <Field label={t("problems.fields.group")} hint={t("problems.form.groupHint")} required>
+            {(control) => (
+              <Select {...control} value={groupId} onChange={(event) => changeGroup(event.target.value)}>
+                <option value="">{t("problems.form.groupPlaceholder")}</option>
+                {problem?.group && !options.groups.some((group) => group.id === problem.group?.id) ? (
+                  <option value={problem.group.id}>{problem.group.name}</option>
+                ) : null}
+                {options.groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+          {canAssignOwner ? (
           <div className="grid gap-1.5">
             <span className="text-[12.5px] font-medium text-foreground">{t("problems.fields.owner")}</span>
             {owner !== null ? (
@@ -181,7 +207,7 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
                   placeholder={t("problems.form.ownerSearch")}
                   aria-label={t("problems.form.ownerSearch")}
                 />
-                {ownerDebounced.length >= 2 ? (
+                {groupId !== "" ? (
                   <ul className="grid max-h-40 gap-0.5 overflow-y-auto rounded-md border border-border p-1" aria-label={t("problems.form.ownerResults")}>
                     {(owners.data?.items ?? []).length === 0 ? (
                       <li className={`px-2 py-1 ${hintClassName}`}>{owners.isFetching ? t("ui.loading") : t("problems.form.ownerNone")}</li>
@@ -204,24 +230,15 @@ export function ProblemFormSheet({ open, onOpenChange, options, problem, onSaved
                     )}
                   </ul>
                 ) : (
-                  <p className={hintClassName}>{t("problems.form.ownerHint")}</p>
+                  <p className={hintClassName}>{t("problems.form.ownerPickGroup")}</p>
                 )}
               </>
             )}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label={t("problems.fields.group")}>
-              {(control) => (
-                <Select {...control} value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-                  <option value="">{t("problems.form.none")}</option>
-                  {options.groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
+          ) : (
+            <p className={hintClassName}>{t("problems.form.ownerByGroup")}</p>
+          )}
+          <div className="grid gap-3">
             <Field label={t("problems.fields.service")}>
               {(control) => (
                 <Select {...control} value={serviceId} onChange={(event) => setServiceId(event.target.value)}>

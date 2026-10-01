@@ -20,6 +20,8 @@ import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/tick
 import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   createProblem,
+  getProblemOptions,
+  problemDetailKeys,
   linkProblemTickets,
   listProblems,
   problemLinkableStatuses,
@@ -61,6 +63,7 @@ export function ProblemLinkDialog({ open, onOpenChange, tickets, initialMode = "
   const [title, setTitle] = useState(draft.title);
   const [description, setDescription] = useState(draft.description);
   const [severity, setSeverity] = useState<ProblemSeverity>(() => highestSeverity(tickets.map((ticket) => ticket.priority)));
+  const [groupId, setGroupId] = useState("");
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
@@ -80,10 +83,18 @@ export function ProblemLinkDialog({ open, onOpenChange, tickets, initialMode = "
     retry: false,
   });
 
+  // Decision 2026-10-01: a new problem is handed to a problem group.
+  const groupOptions = useQuery({
+    queryKey: problemDetailKeys.options,
+    queryFn: getProblemOptions,
+    enabled: open && mode === "create",
+    retry: false,
+  });
+
   const ticketIds = tickets.map((ticket) => ticket.id);
   const canSubmit =
     !saving &&
-    (mode === "create" ? title.trim().length >= 3 && description.trim().length > 0 : selectedProblemId !== null);
+    (mode === "create" ? title.trim().length >= 3 && description.trim().length > 0 && groupId !== "" : selectedProblemId !== null);
 
   const finish = (problemId: string, number: string, result: ProblemTicketLinkResult | null) => {
     if (result !== null && result.skipped.length > 0) {
@@ -108,6 +119,7 @@ export function ProblemLinkDialog({ open, onOpenChange, tickets, initialMode = "
           impact: severity,
           urgency: severity,
           ticketIds,
+          groupId,
         });
         finish(created.id, created.number, created.ticketLinks);
       } else if (selectedProblemId !== null) {
@@ -178,6 +190,16 @@ export function ProblemLinkDialog({ open, onOpenChange, tickets, initialMode = "
                 </Field>
                 <Field label={t("problems.fields.description")} required>
                   <Textarea rows={5} value={description} maxLength={descriptionMax} onChange={(event) => setDescription(event.target.value)} />
+                </Field>
+                <Field label={t("problems.fields.group")} hint={t("problems.form.groupHint")} required>
+                  <Select value={groupId} onChange={(event) => setGroupId(event.target.value)} data-testid="problem-link-group">
+                    <option value="">{groupOptions.data === undefined ? t("ui.loading") : t("problems.form.groupPlaceholder")}</option>
+                    {(groupOptions.data?.groups ?? []).map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </Select>
                 </Field>
                 <Field label={t("problems.fields.priority")} hint={t("problems.link.priorityHint")}>
                   <Select value={severity} onChange={(event) => setSeverity(event.target.value as ProblemSeverity)}>

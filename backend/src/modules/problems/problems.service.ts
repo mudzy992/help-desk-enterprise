@@ -241,14 +241,22 @@ export class ProblemsService {
   }
 
   async create(viewer: ProblemViewer, input: CreateProblemDto) {
-    const scope = await this.access.require(viewer, permissionKeys.problemManage);
+    const scope = await this.access.require(viewer, permissionKeys.problemReport);
     const configuration = await this.access.configuration();
     const unitId = await this.defaultUnit(viewer, scope, optionalId(input.organizationalUnitId) ?? null, input.ticketIds ?? []);
     await this.access.requireUnitInScope(scope, unitId);
-    const ownerUserId = optionalId(input.ownerUserId) ?? null;
+    // Decision 2026-10-01: every problem belongs to a problem group; an owner
+    // is optional and only a problem manager of that group can be one.
     const groupId = optionalId(input.groupId) ?? null;
+    if (groupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
+    await this.assertProblemGroup(groupId);
+    const ownerUserId = optionalId(input.ownerUserId) ?? null;
+    if (ownerUserId !== null) {
+      await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, groupId);
+      await this.assertOwnerInGroup(ownerUserId, groupId);
+    }
     const serviceId = optionalId(input.serviceId) ?? null;
-    await this.assertReferences({ ownerUserId, groupId, serviceId });
+    await this.assertReferences({ serviceId });
     const impact = input.impact ?? 'MEDIUM';
     const urgency = input.urgency ?? 'MEDIUM';
     const priority = await resolveTicketPriority(this.prisma, impact, urgency);
@@ -299,6 +307,32 @@ export class ProblemsService {
       return created.id;
     });
     if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
+    else this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId));
+    return this.get(viewer, id);
+  }
+
+  /** Decision 2026-10-01: a problem manager of the problem group takes the problem over. */
+  async claim(viewer: ProblemViewer, id: string) {
+    const scope = await this.access.require(viewer, permissionKeys.problemManage);
+    const current = await this.loadInScope(id, scope, viewer);
+    if ((problemFinalStatuses as readonly string[]).includes(current.status)) throw new ProblemError(problemErrorCodes.finalStatus);
+    await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, current.groupId);
+    if (current.ownerUserId === viewer.userId) return this.get(viewer, id);
+    await this.prisma.$transaction(async (transaction) => {
+      const result = await transaction.problem.updateMany({
+        where: { id, version: current.version },
+        data: { ownerUserId: viewer.userId, version: { increment: 1 } },
+      });
+      if (result.count === 0) throw new ProblemError(problemErrorCodes.versionConflict);
+      await transaction.problemEvent.create({
+        data: {
+          problemId: id,
+          action: problemEventActions.owner,
+          actorUserId: viewer.userId,
+          detail: { changes: { ownerUserId: { from: current.ownerUserId, to: viewer.userId } }, claimed: true } as never,
+        },
+      });
+    });
     return this.get(viewer, id);
   }
 
@@ -308,6 +342,7 @@ export class ProblemsService {
     const current = await this.loadInScope(id, scope, viewer);
     if ((problemFinalStatuses as readonly string[]).includes(current.status)) throw new ProblemError(problemErrorCodes.finalStatus);
     if (input.version !== current.version) throw new ProblemError(problemErrorCodes.versionConflict);
+    await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, current.groupId);
 
     const data: Prisma.ProblemUncheckedUpdateManyInput = {};
     if (input.title !== undefined) {
@@ -325,12 +360,21 @@ export class ProblemsService {
       await this.access.requireUnitInScope(scope, unitId);
       data.organizationalUnitId = unitId;
     }
-    const ownerUserId = optionalId(input.ownerUserId);
+    let ownerUserId = optionalId(input.ownerUserId);
     const groupId = optionalId(input.groupId);
     const serviceId = optionalId(input.serviceId);
+    if (groupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
+    if (groupId !== undefined && groupId !== current.groupId) await this.assertProblemGroup(groupId);
+    const targetGroupId = groupId ?? current.groupId;
+    if (ownerUserId !== undefined && ownerUserId !== null && ownerUserId !== current.ownerUserId) {
+      if (targetGroupId === null) throw new ProblemError(problemErrorCodes.validation, 'groupId');
+      await this.assertOwnerInGroup(ownerUserId, targetGroupId);
+    }
+    // A group change hands the problem over: the old owner stays only if they belong to the new group.
+    if (groupId !== undefined && groupId !== current.groupId && ownerUserId === undefined && current.ownerUserId !== null) {
+      if (!(await this.isOwnerInGroup(current.ownerUserId, groupId))) ownerUserId = null;
+    }
     await this.assertReferences({
-      ownerUserId: ownerUserId !== current.ownerUserId ? ownerUserId : undefined,
-      groupId: groupId !== current.groupId ? groupId : undefined,
       serviceId: serviceId !== current.serviceId ? serviceId : undefined,
     });
     if (ownerUserId !== undefined) {
@@ -414,6 +458,7 @@ export class ProblemsService {
       });
     });
     if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
+    else if (changes.groupId) this.notify('group', (notifier) => notifier.groupAssigned(id, viewer.userId));
     return this.get(viewer, id);
   }
 
@@ -422,6 +467,7 @@ export class ProblemsService {
     const configuration = await this.access.configuration();
     const current = await this.loadInScope(id, scope, viewer);
     if (input.version !== current.version) throw new ProblemError(problemErrorCodes.versionConflict);
+    await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, current.groupId);
     const from = current.status;
     const to = input.status;
     if (transitionNeedsClosePermission(from, to) && !this.access.hasPermission(viewer, permissionKeys.problemClose)) {
@@ -492,7 +538,8 @@ export class ProblemsService {
         orderBy: { name: 'asc' },
         take: 2000,
       }),
-      this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 2000 }),
+      // Only problem groups can own a problem (decision 2026-10-01).
+      this.prisma.group.findMany({ where: { isProblemGroup: true }, select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 2000 }),
       this.access.configuration(),
     ]);
     return {
@@ -504,17 +551,18 @@ export class ProblemsService {
     };
   }
 
-  /** Owner picker: active users holding `problem.manage` through a role (§12). */
-  async searchOwners(viewer: ProblemViewer, search: string) {
+  /**
+   * Owner picker: active problem managers (problem.manage through a role) who
+   * are members of the given problem group (decision 2026-10-01).
+   */
+  async searchOwners(viewer: ProblemViewer, search: string, groupId: string | null) {
     await this.access.require(viewer, permissionKeys.problemManage);
+    if (groupId === null) return { items: [] };
     const text = search.trim().slice(0, problemLimits.searchMax);
-    if (text.length < 2) return { items: [] };
     const items = await this.prisma.user.findMany({
       where: {
-        isActive: true,
-        anonymizedAt: null,
-        userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
-        OR: [{ displayName: { contains: text, mode: 'insensitive' } }, { email: { contains: text, mode: 'insensitive' } }],
+        ...this.ownerWhere(groupId),
+        ...(text.length > 0 ? { OR: [{ displayName: { contains: text, mode: 'insensitive' as const } }, { email: { contains: text, mode: 'insensitive' as const } }] } : {}),
       },
       select: userSelect,
       orderBy: { displayName: 'asc' },
@@ -535,6 +583,29 @@ export class ProblemsService {
     });
     if (row === null) throw new ProblemError(problemErrorCodes.notFound);
     return row;
+  }
+
+  private ownerWhere(groupId: string): Prisma.UserWhereInput {
+    return {
+      isActive: true,
+      anonymizedAt: null,
+      groupMembers: { some: { groupId } },
+      userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
+    };
+  }
+
+  private async isOwnerInGroup(userId: string, groupId: string): Promise<boolean> {
+    return (await this.prisma.user.count({ where: { id: userId, ...this.ownerWhere(groupId) } })) > 0;
+  }
+
+  private async assertOwnerInGroup(userId: string, groupId: string): Promise<void> {
+    if (!(await this.isOwnerInGroup(userId, groupId))) throw new ProblemError(problemErrorCodes.ownerNotInGroup);
+  }
+
+  private async assertProblemGroup(groupId: string): Promise<void> {
+    const group = await this.prisma.group.findUnique({ where: { id: groupId }, select: { isProblemGroup: true } });
+    if (group === null) throw new ProblemError(problemErrorCodes.groupNotFound);
+    if (!group.isProblemGroup) throw new ProblemError(problemErrorCodes.notProblemGroup);
   }
 
   private async assertReferences(input: {
@@ -580,8 +651,11 @@ export class ProblemsService {
       worksOnLinked ??= (await this.prisma.problemTicket.count({ where: { problemId: row.id, ticket: linkedTicketWorkWhere(viewer.userId) } })) > 0;
       return worksOnLinked;
     };
-    const canManage = await inScope(permissionKeys.problemManage);
+    // Decision 2026-10-01: the problem group runs the problem (admins always).
+    const canManage = (await inScope(permissionKeys.problemManage)) && (await this.access.hasGroupAuthority(viewer, permissionKeys.problemManage, row.groupId));
     const canClose = canManage && (await inScope(permissionKeys.problemClose));
+    const canClaim = canManage && row.ownerUserId !== viewer.userId && !(problemFinalStatuses as readonly string[]).includes(row.status);
+    const canLink = await inScope(permissionKeys.problemReport);
     const transitions = canManage
       ? allowedProblemTransitions(row.status).filter((to) => canClose || !transitionNeedsClosePermission(row.status, to))
       : [];
@@ -604,7 +678,7 @@ export class ProblemsService {
       createdBy: row.createdBy,
       version: row.version,
       allowedTransitions: transitions,
-      permissions: { canManage, canClose },
+      permissions: { canManage, canClose, canClaim, canLink },
     };
   }
 }

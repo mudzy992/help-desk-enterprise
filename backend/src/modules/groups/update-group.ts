@@ -25,7 +25,7 @@ export async function updateGroup(
     }
     await transaction.group.update({
       where: { id: groupId },
-      data: { name, isFallback },
+      data: { name, isFallback, ...(input.isProblemGroup === undefined ? {} : { isProblemGroup: input.isProblemGroup }) },
     });
   });
   return toGroupResponse(await loadGroupRecord(prisma, groupId));

@@ -72,6 +72,8 @@ export const permissionKeys = {
   // Paket 3.3
   problemRead: 'problem.read',
   problemManage: 'problem.manage',
+  /** Paket 3.3: report a problem (pick its problem group) and link tickets. */
+  problemReport: 'problem.report',
   problemClose: 'problem.close',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
@@ -114,14 +116,15 @@ const agentPermissionKeys = [
   permissionKeys.onCallRead,
   permissionKeys.assetRead,
   permissionKeys.assetManage,
-  // Paket 3.3: agents report problems, link tickets and run the analysis;
-  // resolving, closing and cancelling (problem.close) is PROBLEM_MANAGER/ADMIN.
+  // Paket 3.3 (decision 2026-10-01): agents report problems and link tickets;
+  // the problem group (PROBLEM_MANAGER) runs the analysis and resolves.
   permissionKeys.problemRead,
-  permissionKeys.problemManage,
+  permissionKeys.problemReport,
 ] as const;
 
 const problemManagerPermissionKeys = [
   permissionKeys.problemRead,
+  permissionKeys.problemReport,
   permissionKeys.problemManage,
   permissionKeys.problemClose,
 ] as const;
@@ -173,6 +176,7 @@ const adminPermissionKeys = [
   permissionKeys.assetContractManage,
   permissionKeys.assetTypeManage,
   permissionKeys.assetReportRead,
+  permissionKeys.problemManage,
   permissionKeys.problemClose,
 ] as const;
 

@@ -103,6 +103,8 @@ export type CreateProblemInput = {
   readonly impact?: ProblemSeverity;
   readonly urgency?: ProblemSeverity;
   readonly ticketIds?: readonly string[];
+  /** Decision 2026-10-01: every problem belongs to a problem group. */
+  readonly groupId: string;
 };
 
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
@@ -147,7 +149,10 @@ export function getProblemTickets(problemId: string): Promise<ProblemTicketsResp
 
 export type ProblemCapabilities = {
   readonly enabled: boolean;
+  /** The addon is on but no group is marked as a problem group yet. */
+  readonly setupRequired: boolean;
   readonly canRead: boolean;
+  readonly canReport: boolean;
   readonly canManage: boolean;
   readonly canClose: boolean;
   readonly configuration: {
@@ -180,7 +185,7 @@ export type ProblemDetail = ProblemListItem & {
   readonly createdBy: UserRef | null;
   readonly version: number;
   readonly allowedTransitions: readonly ProblemStatus[];
-  readonly permissions: { readonly canManage: boolean; readonly canClose: boolean };
+  readonly permissions: { readonly canManage: boolean; readonly canClose: boolean; readonly canClaim: boolean; readonly canLink: boolean };
 };
 
 export type ProblemOptions = {
@@ -232,7 +237,6 @@ export type UpdateProblemInput = {
 export type CreateProblemFullInput = CreateProblemInput & {
   readonly organizationalUnitId?: string;
   readonly ownerUserId?: string | null;
-  readonly groupId?: string | null;
   readonly serviceId?: string | null;
 };
 
@@ -242,7 +246,7 @@ export const problemDetailKeys = {
   list: (filters: ProblemListFilters) => ["problems", "list", filters] as const,
   detail: (id: string) => ["problems", "detail", id] as const,
   events: (id: string) => ["problems", "detail", id, "events"] as const,
-  owners: (search: string) => ["problems", "owners", search] as const,
+  owners: (search: string, groupId: string) => ["problems", "owners", groupId, search] as const,
   resolvePreview: (id: string) => ["problems", "detail", id, "resolve-preview"] as const,
   articleDraft: (id: string) => ["problems", "detail", id, "article-draft"] as const,
 };
@@ -255,8 +259,13 @@ export function getProblemOptions(): Promise<ProblemOptions> {
   return apiRequest("/problems/options");
 }
 
-export function searchProblemOwners(search: string): Promise<{ readonly items: readonly UserRef[] }> {
-  return apiRequest(`/problems/owners?search=${encodeURIComponent(search)}`);
+export function searchProblemOwners(search: string, groupId: string): Promise<{ readonly items: readonly UserRef[] }> {
+  const params = new URLSearchParams({ search, groupId });
+  return apiRequest(`/problems/owners?${params.toString()}`);
+}
+
+export function claimProblem(id: string): Promise<ProblemDetail> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/claim`, { method: "POST" });
 }
 
 export function listProblemsPage(filters: ProblemListFilters, cursor?: string, limit = 25): Promise<ProblemListResponse> {

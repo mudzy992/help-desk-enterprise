@@ -43,6 +43,7 @@ export const notificationTypes = {
   assetExpiring: 'asset.expiring',
   // Paket 3.3 (P5, §11): problem owner, linked-ticket agents, target, recurrence.
   problemAssigned: 'problem.assigned',
+  problemGroupAssigned: 'problem.groupAssigned',
   problemKnownError: 'problem.knownError',
   problemResolved: 'problem.resolved',
   problemTargetDue: 'problem.targetDue',
@@ -93,6 +94,7 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.announcementReminder]: 'notifications.items.announcementReminder',
     [notificationTypes.assetExpiring]: 'notifications.items.assetExpiring',
     [notificationTypes.problemAssigned]: 'notifications.items.problemAssigned',
+    [notificationTypes.problemGroupAssigned]: 'notifications.items.problemGroupAssigned',
     [notificationTypes.problemKnownError]: 'notifications.items.problemKnownError',
     [notificationTypes.problemResolved]: 'notifications.items.problemResolved',
     [notificationTypes.problemTargetDue]: 'notifications.items.problemTargetDue',

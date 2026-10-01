@@ -118,6 +118,7 @@ export function notificationTitleKey(
   | "notifications.items.problemResolved"
   | "notifications.items.problemTargetDue"
   | "notifications.items.problemRecurrence"
+  | "notifications.items.problemGroupAssigned"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -190,6 +191,8 @@ export function notificationTitleKey(
       return "notifications.items.problemTargetDue";
     case "problem.recurrence":
       return "notifications.items.problemRecurrence";
+    case "problem.groupAssigned":
+      return "notifications.items.problemGroupAssigned";
     default:
       return "notifications.items.unknown";
   }

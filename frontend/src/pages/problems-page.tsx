@@ -120,7 +120,7 @@ export function ProblemsPage() {
       title={t("problems.title")}
       subtitle={t("problems.subtitle")}
       actions={
-        capabilities?.canManage === true ? (
+        capabilities?.canReport === true && capabilities.enabled ? (
           <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)} disabled={optionsQuery.data === undefined} data-testid="problems-create">
             <Plus size={14} aria-hidden="true" />
             {t("problems.list.create")}
@@ -135,6 +135,14 @@ export function ProblemsPage() {
       <section>
         {header}
         <PanelSkeleton label={t("ui.loading")} />
+      </section>
+    );
+  }
+  if (capabilities?.setupRequired === true) {
+    return (
+      <section>
+        {header}
+        <EmptyState icon={<Puzzle size={18} />} title={t("problems.setupTitle")} body={t("problems.setupBody")} />
       </section>
     );
   }
@@ -320,6 +328,7 @@ export function ProblemsPage() {
           open={createOpen}
           onOpenChange={setCreateOpen}
           options={optionsQuery.data}
+          canAssignOwner={capabilities?.canManage === true}
           onSaved={(id) => {
             toast({ tone: "success", title: t("problems.form.created") });
             navigate(`/problems/${id}`);

@@ -93,9 +93,11 @@ export class ProblemResolutionService {
         ownerUserId: true,
         createdByUserId: true,
         knowledgeArticleId: true,
+        groupId: true,
       },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
+    await this.access.requireGroupAuthority(viewer, permissionKeys.problemManage, problem.groupId);
     if (problem.status !== 'KNOWN_ERROR' && problem.status !== 'RESOLVED') {
       throw new ProblemError(problemErrorCodes.statusTransition, 'knowledgeArticle.status');
     }
@@ -259,9 +261,10 @@ export class ProblemResolutionService {
     const visible = problemVisibilityWhere(scope, viewer.userId);
     const problem = await this.prisma.problem.findFirst({
       where: { id: problemId, ...(visible === null ? {} : visible) },
-      select: { id: true, sequence: true, status: true, resolution: true, title: true },
+      select: { id: true, sequence: true, status: true, resolution: true, title: true, groupId: true },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
+    await this.access.requireGroupAuthority(viewer, permissionKeys.problemClose, problem.groupId);
     return problem;
   }
 

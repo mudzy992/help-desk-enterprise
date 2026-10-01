@@ -64,6 +64,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
     require: jest.fn(async () => ({ all: true, paths: [] })),
     hasPermission: jest.fn((_viewer: unknown, key: string) => key !== 'problem.close' || options.canClose !== false),
     configuration: jest.fn(async () => ({ numberPrefix: 'P-', bulkResolveMax: options.max ?? 200 })),
+    requireGroupAuthority: jest.fn(async () => undefined),
   };
   const ticketsService = { takeOverForProblem: jest.fn(async (_id: string, _input: unknown) => ({})), update: jest.fn(async (id: string) => { if (id === 'fail') throw new ConflictException({ code: 'INVALID_STATUS_TRANSITION' }); }) };
   const collaboration = { createMessage: jest.fn(async () => ({})) };

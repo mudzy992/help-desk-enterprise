@@ -28,6 +28,7 @@ export async function createGroup(
         key,
         organizationalUnitId: input.organizationalUnitId,
         isFallback,
+        isProblemGroup: input.isProblemGroup ?? false,
       },
     });
     return group.id;

@@ -432,3 +432,8 @@ To je kriterij kompletnosti.
 - Uloga „Upravitelj problema“ (PROBLEM_MANAGER) dodaje se odabranim ljudima, obično vođi tima ili servisa. Samo oni i administratori rješavaju, zatvaraju i otkazuju probleme te grupno rješavaju povezane tikete iz svih organizacionih jedinica.
 - Agenti i dalje prijavljuju probleme, povezuju tikete i vode analizu uzroka, workaround i poznatu grešku.
 - Ako povezani tiket još niko nije preuzeo, grupno rješavanje ga automatski dodjeljuje onome ko rješava problem pa ga rješava; to se vidi u historiji tiketa.
+- **Ažurirano (problem-grupe):** probleme vode upravitelji problema kroz problem-grupe (npr. „Radne stanice“). Admin grupu označi kao problem-grupu i u nju doda upravitelje problema; dok takve grupe nema, modul čeka podešavanje.
+- Agent prijavljuje problem tako što izabere problem-grupu; povezuje i odvaja tikete, ali ne uređuje analizu uzroka (uzrok, 5 zašto, workaround) i ne mijenja status.
+- Vlasnik problema može biti samo upravitelj problema iz te grupe. Ako vlasnik nije određen, upravitelji grupe dobiju obavijest, a bilo ko od njih problem preuzima dugmetom „Preuzmi“ i rješava ga ili zatvara.
+- Podsjetnik za rok ide vlasniku, a ako ga nema – grupi. Obavijest o ponavljanju ide i vlasniku i grupi. Grupa problema se može promijeniti; vlasnik koji nije u novoj grupi se uklanja.
+- Ko je prijavio problem, uvijek ga vidi.

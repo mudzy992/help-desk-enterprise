@@ -13,6 +13,7 @@ interface GroupMutationFormProperties {
     readonly name: string;
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
+    readonly isProblemGroup: boolean;
   }) => void;
   readonly onCancel: () => void;
 }
@@ -31,8 +32,10 @@ export function GroupMutationForm({
   );
   const [isFallback, setIsFallback] = useState(initial?.isFallback ?? false);
 
+  const [isProblemGroup, setIsProblemGroup] = useState(initial?.isProblemGroup ?? false);
+
   const handleSubmit = () => {
-    onSubmit({ name, organizationalUnitId, isFallback });
+    onSubmit({ name, organizationalUnitId, isFallback, isProblemGroup });
   };
 
   return (
@@ -73,6 +76,17 @@ export function GroupMutationForm({
           onChange={(event) => setIsFallback(event.target.checked)}
         />
         {t("groups.form.fallback")}
+      </label>
+      <label className="grid gap-0.5 text-[12px]">
+        <span className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={isProblemGroup}
+            onChange={(event) => setIsProblemGroup(event.target.checked)}
+          />
+          {t("groups.form.problemGroup")}
+        </span>
+        <span className="pl-5 text-[11px] text-muted-foreground">{t("groups.form.problemGroupHint")}</span>
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={pending} onClick={handleSubmit}>

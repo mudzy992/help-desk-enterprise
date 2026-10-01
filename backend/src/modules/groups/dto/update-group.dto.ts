@@ -17,4 +17,9 @@ export class UpdateGroupDto {
   @IsOptional()
   @IsBoolean()
   isFallback?: boolean;
+
+  /** Paket 3.3: marks the group as a problem-management group. */
+  @IsOptional()
+  @IsBoolean()
+  isProblemGroup?: boolean;
 }

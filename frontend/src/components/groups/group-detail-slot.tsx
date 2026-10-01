@@ -20,6 +20,7 @@ interface GroupDetailSlotProperties {
     readonly name: string;
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
+    readonly isProblemGroup: boolean;
   }) => void;
   readonly onCancelEdit: () => void;
   readonly onMembersChanged: (group: GroupResponse) => void;

@@ -15,6 +15,7 @@ export type GroupListItemResponse = {
   readonly organizationalUnitId: string;
   readonly organizationalUnitPath: string;
   readonly isFallback: boolean;
+  readonly isProblemGroup: boolean;
   readonly memberCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -44,11 +45,13 @@ export type CreateGroupInput = {
   readonly name: string;
   readonly organizationalUnitId: string;
   readonly isFallback?: boolean;
+  readonly isProblemGroup?: boolean;
 };
 
 export type UpdateGroupInput = {
   readonly name?: string;
   readonly isFallback?: boolean;
+  readonly isProblemGroup?: boolean;
 };
 
 export function listGroups(

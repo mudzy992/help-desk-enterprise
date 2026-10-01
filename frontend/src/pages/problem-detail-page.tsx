@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeft, BookPlus, Pencil, Puzzle, RefreshCw } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, ArrowLeft, BookPlus, Pencil, Puzzle, RefreshCw, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
@@ -22,7 +22,7 @@ import { mapApiError } from "@/lib/map-api-error";
 import { mapProblemError, problemStatusKeys, problemStatusTone, rootCauseLabel, transitionLabelKey } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
-import { getProblem, getProblemOptions, problemDetailKeys, problemQueryKeys, type ProblemDetail, type ProblemStatus } from "@/services/problems-api";
+import { claimProblem, getProblem, getProblemOptions, problemDetailKeys, problemQueryKeys, type ProblemDetail, type ProblemStatus } from "@/services/problems-api";
 
 type Tab = "overview" | "analysis" | "tickets" | "history";
 
@@ -43,6 +43,15 @@ export function ProblemDetailPage() {
   const optionsQuery = useQuery({ queryKey: problemDetailKeys.options, queryFn: getProblemOptions, retry: false, enabled: problemQuery.data !== undefined });
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
+  const claimMutation = useMutation({
+    mutationFn: () => claimProblem(problemId),
+    onSuccess: (next) => {
+      queryClient.setQueryData(problemDetailKeys.detail(problemId), next);
+      toast({ tone: "success", title: t("problems.detail.claimed") });
+      refresh();
+    },
+    onError: (caught) => toast({ tone: "danger", title: t(mapProblemError(caught) ?? mapApiError(caught)) }),
+  });
   const crumbs = [t("navigation.sections.tickets"), t("problems.title")];
   const back = (
     <Button variant="ghost" size="sm" onClick={() => navigate("/problems")}>
@@ -87,6 +96,12 @@ export function ProblemDetailPage() {
         <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} disabled={optionsQuery.data === undefined} data-testid="problem-edit">
           <Pencil size={14} aria-hidden="true" />
           {t("problems.detail.edit")}
+        </Button>
+      ) : null}
+      {problem.permissions.canClaim ? (
+        <Button variant="outline" size="sm" onClick={() => claimMutation.mutate()} disabled={claimMutation.isPending} data-testid="problem-claim">
+          <UserCheck size={14} aria-hidden="true" />
+          {t("problems.detail.claim")}
         </Button>
       ) : null}
       {canCreateArticle ? (
@@ -165,6 +180,7 @@ export function ProblemDetailPage() {
           onOpenChange={setEditOpen}
           options={optionsQuery.data}
           problem={problem}
+          canAssignOwner
           onSaved={() => {
             toast({ tone: "success", title: t("problems.form.saved") });
             refresh();

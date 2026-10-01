@@ -20,4 +20,8 @@ export class CreateGroupDto {
   @IsOptional()
   @IsBoolean()
   isFallback?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isProblemGroup?: boolean;
 }

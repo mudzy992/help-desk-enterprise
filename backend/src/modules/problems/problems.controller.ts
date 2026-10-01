@@ -71,8 +71,9 @@ export class ProblemsController {
 
   @Get('owners')
   @Header('Cache-Control', 'no-store')
-  owners(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
-    return runProblem(() => this.problems.searchOwners(this.viewer(request), search ?? ''));
+  owners(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined, @Query('groupId') groupId: string | undefined) {
+    const group = typeof groupId === 'string' && groupId.trim().length > 0 && groupId.length <= 64 ? groupId.trim() : null;
+    return runProblem(() => this.problems.searchOwners(this.viewer(request), search ?? '', group));
   }
 
   @Get('capabilities')
@@ -122,6 +123,12 @@ export class ProblemsController {
    * §8.4: RESOLVED may carry `resolveTickets` + `message` (+ `closeCode`). The
    * options are validated first; the tickets are resolved after the status.
    */
+  /** Decision 2026-10-01: a problem manager of the group takes the problem over. */
+  @Post(':id/claim')
+  claim(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.problems.claim(this.viewer(request), id));
+  }
+
   @Post(':id/status')
   changeStatus(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ProblemStatusDto) {
     return runProblem(async () => {

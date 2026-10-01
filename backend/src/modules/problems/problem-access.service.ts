@@ -38,7 +38,12 @@ export type ProblemConfiguration = {
 
 export type ProblemCapabilities = {
   readonly enabled: boolean;
+  /** Addon on but no problem group yet: the module stays inactive (admins see a setup hint). */
+  readonly setupRequired: boolean;
   readonly canRead: boolean;
+  /** Report a problem and link tickets (agents and up). */
+  readonly canReport: boolean;
+  /** Holds problem.manage (runs problems of the own problem groups). */
   readonly canManage: boolean;
   readonly canClose: boolean;
   readonly configuration: ProblemConfiguration | null;
@@ -65,8 +70,32 @@ export class ProblemAccessService {
     }
   }
 
-  async isEnabled(): Promise<boolean> {
+  async isAddonEnabled(): Promise<boolean> {
     return (await this.readSetting<unknown>(settingKeys.privateAddonsProblems, false)) === true;
+  }
+
+  async hasProblemGroup(): Promise<boolean> {
+    return (await this.prisma.group.count({ where: { isProblemGroup: true } })) > 0;
+  }
+
+  /** Decision 2026-10-01: the module is active only with the addon on and at least one problem group. */
+  async isEnabled(): Promise<boolean> {
+    return (await this.isAddonEnabled()) && (await this.hasProblemGroup());
+  }
+
+  /**
+   * Authority over one problem (§12, decision 2026-10-01): ADMIN/SUPER_ADMIN
+   * always; otherwise the permission plus membership in the problem's group.
+   */
+  async hasGroupAuthority(viewer: ProblemViewer, permission: string, groupId: string | null): Promise<boolean> {
+    if (!viewerHasPermission(viewer, permission)) return false;
+    if (viewer.isSuperAdmin || viewer.isAdmin === true) return true;
+    if (groupId === null) return false;
+    return (await this.prisma.groupMember.count({ where: { groupId, userId: viewer.userId } })) > 0;
+  }
+
+  async requireGroupAuthority(viewer: ProblemViewer, permission: string, groupId: string | null): Promise<void> {
+    if (!(await this.hasGroupAuthority(viewer, permission, groupId))) throw new ProblemError(problemErrorCodes.forbidden, 'problem_group');
   }
 
   async configuration(): Promise<ProblemConfiguration> {
@@ -141,12 +170,15 @@ export class ProblemAccessService {
   }
 
   async capabilities(viewer: ProblemViewer): Promise<ProblemCapabilities> {
-    const enabled = await this.isEnabled();
+    const addon = await this.isAddonEnabled();
+    const enabled = addon && (await this.hasProblemGroup());
     const has = (permission: string) => enabled && viewerHasPermission(viewer, permission);
     const canRead = has(permissionKeys.problemRead);
     return {
       enabled,
+      setupRequired: addon && !enabled,
       canRead,
+      canReport: canRead && has(permissionKeys.problemReport),
       canManage: canRead && has(permissionKeys.problemManage),
       canClose: canRead && has(permissionKeys.problemClose),
       configuration: canRead ? await this.configuration() : null,

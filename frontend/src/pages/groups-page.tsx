@@ -94,6 +94,7 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
     readonly name: string;
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
+    readonly isProblemGroup: boolean;
   }) => {
     setCreatePending(true);
     setErrorKey(null);

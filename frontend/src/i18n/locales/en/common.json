@@ -171,7 +171,8 @@
       "problemKnownError": "A problem linked to your ticket is a known error",
       "problemResolved": "A problem linked to your ticket was resolved",
       "problemTargetDue": "A problem target is near or passed",
-      "problemRecurrence": "A resolved problem recurred"
+      "problemRecurrence": "A resolved problem recurred",
+      "problemGroupAssigned": "A new problem is waiting in your group"
     }
   },
   "placeholders": {
@@ -537,6 +538,7 @@
       "asset.type.manage": "Manage asset types",
       "asset.report.read": "Asset reports",
       "problem.read": "Problems",
+      "problem.report": "Report problems",
       "problem.manage": "Manage problems",
       "problem.close": "Close problems"
     }
@@ -580,7 +582,9 @@
       "create": "Create group",
       "save": "Save changes",
       "saving": "Saving…",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "problemGroup": "Problem group",
+      "problemGroupHint": "Agents hand problems to this group; its problem managers take them over and resolve them. The problem module becomes active once at least one problem group exists."
     },
     "members": {
       "heading": "Members",
@@ -599,7 +603,8 @@
     "errorActiveTickets": "The group still has active tickets assigned and cannot be deleted.",
     "errorMemberExists": "This user is already a member of the group.",
     "errorMemberMissing": "This user is not a member of the group.",
-    "errorGeneric": "Group operation failed."
+    "errorGeneric": "Group operation failed.",
+    "problemGroupBadge": "Problem group"
   },
   "permissions": {
     "title": "Role permissions",
@@ -690,7 +695,8 @@
         "asset.type.manage": "Manage asset types, their attributes and locations (package 3.2).",
         "asset.report.read": "See asset reports: expiries, costs and frequent failures (package 3.2).",
         "problem.read": "View problems and the known-error register in the own unit scope (package 3.3).",
-        "problem.manage": "Create and edit problems: analysis, workaround, status and linked tickets (package 3.3).",
+        "problem.report": "Create problems by handing them to a problem group, and link or unlink tickets (package 3.3).",
+        "problem.manage": "Analysis, workaround, status and ownership of problems in the problem groups you belong to (package 3.3).",
         "problem.close": "Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3)."
       }
     }
@@ -6682,7 +6688,9 @@
       },
       "articleExists": "The problem already has a linked article.",
       "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit.",
-      "validationUnit": "The problem has no organizational unit: your account has no home unit and the ticket's unit is outside your scope. Contact an administrator."
+      "validationUnit": "The problem has no organizational unit: your account has no home unit and the ticket's unit is outside your scope. Contact an administrator.",
+      "notProblemGroup": "The chosen group is not a problem group.",
+      "ownerNotInGroup": "The owner must be a problem manager and a member of the chosen group."
     },
     "title": "Problems",
     "subtitle": "Causes behind recurring incidents: analysis, workarounds and known errors.",
@@ -6754,7 +6762,11 @@
       "save": "Save",
       "create": "Create problem",
       "created": "The problem was created.",
-      "saved": "Changes saved."
+      "saved": "Changes saved.",
+      "groupHint": "A problem manager from the chosen group takes the problem over.",
+      "groupPlaceholder": "Choose a problem group",
+      "ownerPickGroup": "Choose a group first; the owner must be one of its problem managers.",
+      "ownerByGroup": "The problem group decides the owner: a problem manager from the group takes it over."
     },
     "statusSheet": {
       "title": "Change status",
@@ -6851,7 +6863,9 @@
       "closedAt": "Closed",
       "cancelledAt": "Cancelled",
       "cancelReason": "Cancellation reason",
-      "targetAt": "Target date"
+      "targetAt": "Target date",
+      "claim": "Take over",
+      "claimed": "Problem taken over"
     },
     "article": {
       "action": "Create article",
@@ -6890,6 +6904,8 @@
         "no_access": "No access",
         "limit": "Over the limit"
       }
-    }
+    },
+    "setupTitle": "The problem module needs setting up",
+    "setupBody": "An administrator needs to mark at least one group as a problem group (Groups → edit → Problem group) and add problem managers to it."
   }
 }

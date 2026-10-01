@@ -27,6 +27,7 @@ interface GroupsPanelProperties {
     readonly name: string;
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
+    readonly isProblemGroup: boolean;
   }) => Promise<void>;
   readonly createPending: boolean;
 }

@@ -66,6 +66,8 @@ const problemErrorKeys = {
   PROBLEM_REQUIREMENT_MISSING: "problems.errors.requirementMissing",
   PROBLEM_ARTICLE_EXISTS: "problems.errors.articleExists",
   PROBLEM_ARTICLE_INVALID: "problems.errors.articleInvalid",
+  PROBLEM_NOT_PROBLEM_GROUP: "problems.errors.notProblemGroup",
+  PROBLEM_OWNER_NOT_IN_GROUP: "problems.errors.ownerNotInGroup",
 } as const;
 
 export type ProblemErrorKey = (typeof problemErrorKeys)[keyof typeof problemErrorKeys];

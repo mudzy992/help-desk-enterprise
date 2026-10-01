@@ -15,6 +15,8 @@ export type GroupResponse = {
   readonly organizationalUnitId: string;
   readonly organizationalUnitPath: string;
   readonly isFallback: boolean;
+  /** Paket 3.3: problem-management group. */
+  readonly isProblemGroup: boolean;
   readonly memberCount: number;
   readonly members: readonly GroupMemberResponse[];
   readonly createdAt: string;
@@ -42,6 +44,8 @@ export type GroupListItemResponse = {
   readonly organizationalUnitId: string;
   readonly organizationalUnitPath: string;
   readonly isFallback: boolean;
+  /** Paket 3.3: problem-management group. */
+  readonly isProblemGroup: boolean;
   readonly memberCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -51,11 +55,13 @@ export type CreateGroupInput = {
   readonly name: string;
   readonly organizationalUnitId: string;
   readonly isFallback?: boolean;
+  readonly isProblemGroup?: boolean;
 };
 
 export type UpdateGroupInput = {
   readonly name?: string;
   readonly isFallback?: boolean;
+  readonly isProblemGroup?: boolean;
 };
 
 export type ListGroupsQuery = {

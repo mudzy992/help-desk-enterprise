@@ -308,7 +308,12 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
   {
     key: permissionKeys.problemManage,
     categoryId: permissionCategoryIds.ticket,
-    description: 'Create and edit problems: analysis, workaround, status and linked tickets (package 3.3).',
+    description: 'Run problems of the own problem group: owner, analysis, workaround, known error, status (package 3.3).',
+  },
+  {
+    key: permissionKeys.problemReport,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Report a problem for a problem group and link or unlink tickets (package 3.3).',
   },
   {
     key: permissionKeys.problemClose,

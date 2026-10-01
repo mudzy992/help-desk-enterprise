@@ -16,6 +16,8 @@ export type AssetViewer = {
   readonly isSuperAdmin: boolean;
   readonly homeOrganizationalUnitId: string | null;
   readonly grants: readonly AssetGrant[];
+  /** True for ADMIN (and SUPER_ADMIN) assignments: 3.3 bypasses problem-group membership. */
+  readonly isAdmin?: boolean;
 };
 
 /** Unit scope for a permission: every unit, a set of paths (with sub-units), or nothing. */
@@ -33,17 +35,21 @@ export function assetViewerFromContext(context: PrincipalContext | null, userId:
     context.roleKeys.includes(authorizationRoleKeys.superAdmin) ||
     context.assignments.some((assignment) => assignment.roleKey === authorizationRoleKeys.superAdmin);
   const grants: AssetGrant[] = [];
+  // Paket 3.3: problem managers work across units (their problem group decides).
+  const global = (roleKey: string) =>
+    globalRoles.has(roleKey) || (permissionPrefix === 'problem.' && roleKey === authorizationRoleKeys.problemManager);
   for (const assignment of context.assignments) {
     for (const permission of assignment.permissionKeys) {
       if (!permission.startsWith(permissionPrefix)) continue;
       grants.push({
         permission,
-        global: globalRoles.has(assignment.roleKey),
+        global: global(assignment.roleKey),
         unitPath: assignment.organizationalUnitPath,
       });
     }
   }
-  return { userId, isSuperAdmin, homeOrganizationalUnitId: context.homeOrganizationalUnitId, grants };
+  const isAdmin = isSuperAdmin || context.assignments.some((assignment) => assignment.roleKey === authorizationRoleKeys.admin);
+  return { userId, isSuperAdmin, homeOrganizationalUnitId: context.homeOrganizationalUnitId, grants, isAdmin };
 }
 
 export function assetViewerOf(request: AuthenticatedHttpRequest, userId: string): AssetViewer {
