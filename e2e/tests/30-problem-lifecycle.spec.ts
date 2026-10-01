@@ -17,6 +17,7 @@ type Problem = {
   readonly ticketCount: number;
   readonly rootCause: string | null;
   readonly owner: { id: string } | null;
+  readonly organizationalUnit: { id: string };
   readonly allowedTransitions: readonly string[];
 };
 type Resolution = { readonly resolved: readonly unknown[]; readonly skipped: readonly unknown[]; readonly failed: readonly unknown[] };
@@ -102,9 +103,10 @@ test.describe('30 problem lifecycle', () => {
       await test.step('a ticket belongs to one problem only', async () => {
         const other = await admin.request('/problems', {
           method: 'POST',
-          body: JSON.stringify({ title: `E2E duplicate ${stamp}`, description: 'x', groupId: group.id }),
+          // No tickets here, so the unit is explicit (the E2E admin has no home unit).
+          body: JSON.stringify({ title: `E2E duplicate ${stamp}`, description: 'x', groupId: group.id, organizationalUnitId: problem!.organizationalUnit.id }),
         });
-        expect(other.status).toBe(201);
+        expect(other.status, await other.clone().text()).toBe(201);
         const duplicate = (await other.json()) as Problem;
         const link = await admin.request(`/problems/${duplicate.id}/tickets`, { method: 'POST', body: JSON.stringify({ ticketIds: [first.id] }) });
         expect(await errorCode(link)).toBe('PROBLEM_TICKET_IN_OTHER_PROBLEM');
