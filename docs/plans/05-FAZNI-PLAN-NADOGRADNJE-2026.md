@@ -191,20 +191,20 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Postojeći stub i durable queue su osnova; SSO preko istog Entra tenanta.
 - Zavisi od: registracija aplikacije u EPBiH tenantu (IT EPBiH).
 
-### 3.2 CMDB — imovina i konfiguracione stavke  · ~8 RD (dizajn: ~12 RD, pun obim) · dizajn: `modules/3.2-cmdb.md` · čeka odobrenje
+### 3.2 CMDB — imovina i konfiguracione stavke  · ~8 RD (dizajn: ~12 RD, pun obim) · dizajn: `modules/3.2-cmdb.md` · ✅ implementirano (E2E 23–28, k6 `assets-list.js`)
 - Model: tipovi stavki (računar, štampač, server, aplikacija, licenca…), atributi po tipu,
   vlasnik/korisnik, lokacija/OU, status životnog ciklusa, veze između stavki (zavisi od, instaliran na).
 - Veza tiketa sa stavkom (na kreiranju: „moj računar"), historija incidenata po stavci.
 - Import (CSV; kasnije sync iz AD računara / Intune ako postoji).
 - Permisije i OU scope isto kao za tikete.
 
-### 3.3 Problem management (ITIL)  · ~5 RD
+### 3.3 Problem management (ITIL)  · ~5 RD · dizajn: `modules/3.3-problem-management.md` · ✅ implementirano (E2E 29–30, k6 `problems-list.js`)
 - Problem zapis: povezani incidenti (tiketi), analiza uzroka, workaround, poznata greška
   (Known Error) → KB članak, status i vlasnik, SLA po želji.
 - Iz liste tiketa: „kreiraj problem od odabranih".
 - Izvještaji: najčešći problemi, vrijeme do rješenja uzroka.
 
-### 3.4 Change management (ITIL)  · ~7 RD
+### 3.4 Change management (ITIL)  · ~7 RD · dizajn: `modules/3.4-change-management.md` · odobreno (preporuke prihvaćene), implementacija C1–C6
 - Zahtjev za promjenu: tip (standardna / normalna / hitna), rizik i uticaj, plan implementacije i
   povrata, zahvaćene CMDB stavke i servisi, termin.
 - Odobravanje (CAB) — koristi postojeći approvals mehanizam s više odobravalaca.
