@@ -29,7 +29,7 @@ type Ticket = { readonly id: string; readonly status: string };
 
 /**
  * 30 (paket 3.3): the full problem lifecycle across roles.
- *  - USER has no access to the module (403 on the API, no problem panel).
+ *  - USER has no access to the module (403 on the API, hidden problem panel).
  *  - AGENT can read and report but cannot edit the analysis.
  *  - SUPER_ADMIN creates a problem from tickets, claims it, goes through
  *    INVESTIGATING → KNOWN_ERROR → RESOLVED with group resolution of the linked
@@ -74,7 +74,10 @@ test.describe('30 problem lifecycle', () => {
     try {
       await test.step('USER has no access to the module', async () => {
         expect((await user.request('/problems')).status).toBe(403);
-        expect((await user.request(`/problems/tickets/${first.id}`)).status).toBe(403);
+        // The ticket page asks every viewer; without problem.read the panel is hidden (200, visible=false), never leaking data.
+        const panel = await user.request(`/problems/tickets/${first.id}`);
+        expect(panel.status).toBe(200);
+        expect(await panel.json()).toMatchObject({ visible: false, canLink: false, problem: null });
       });
 
       await test.step('create the problem from two tickets', async () => {
