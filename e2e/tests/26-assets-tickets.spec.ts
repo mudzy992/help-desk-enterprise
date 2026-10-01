@@ -41,7 +41,7 @@ function linkedIds(list: TicketAssets): string[] {
  * the ticket on the asset card.
  */
 test.describe('26 assets on tickets', () => {
-  test('user reports a problem on own equipment; the type routes the ticket; agent sees it', async ({ page }, testInfo) => {
+  test('user reports a problem on own equipment; the type routes the ticket; agent sees it', async ({ page, browser, baseURL }, testInfo) => {
     const env = readE2EEnvironment();
     const admin = new ApiClient();
     await admin.login(env.superAdminEmail, env.superAdminPassword);
@@ -124,16 +124,22 @@ test.describe('26 assets on tickets', () => {
         expect([403, 404]).toContain(userLink.status);
 
         // Agent UI: panel on the ticket, ticket on the asset card.
-        await page.context().clearCookies();
-        await signIn(page, env.superAdminEmail, env.superAdminPassword);
-        await page.goto(`/tickets/${ticket.id}`);
-        const panel = page.getByTestId('ticket-assets-panel');
-        await expect(panel).toBeVisible({ timeout: 15_000 });
-        await expect(panel.getByText(mine.assetTag)).toBeVisible();
-        await expectNoSeriousA11yViolations(page, 'ticket-assets-panel', testInfo);
-        await page.goto(`/assets/${mine.id}`);
-        await page.getByRole('tab', { name: /Tiketi|Tickets/ }).click();
-        await expect(page.getByRole('link', { name: new RegExp(`E2E equipment ${stamp}`) }).or(page.getByText(`E2E equipment ${stamp}`)).first()).toBeVisible({ timeout: 15_000 });
+        // A fresh context: the requester's session must not leak into the agent view.
+        const agentContext = await browser.newContext({ baseURL });
+        const agentPage = await agentContext.newPage();
+        try {
+          await signIn(agentPage, env.superAdminEmail, env.superAdminPassword);
+          await agentPage.goto(`/tickets/${ticket.id}`);
+          const panel = agentPage.getByTestId('ticket-assets-panel');
+          await expect(panel).toBeVisible({ timeout: 15_000 });
+          await expect(panel.getByText(mine.assetTag)).toBeVisible();
+          await expectNoSeriousA11yViolations(agentPage, 'ticket-assets-panel', testInfo);
+          await agentPage.goto(`/assets/${mine.id}`);
+          await agentPage.getByRole('tab', { name: /Tiketi|Tickets/ }).click();
+          await expect(agentPage.getByRole('link', { name: new RegExp(`E2E equipment ${stamp}`) }).or(agentPage.getByText(`E2E equipment ${stamp}`)).first()).toBeVisible({ timeout: 15_000 });
+        } finally {
+          await agentContext.close();
+        }
       } finally {
         await retireAssets(admin, created, 'E2E 26 cleanup');
         if (typeId !== null) {
