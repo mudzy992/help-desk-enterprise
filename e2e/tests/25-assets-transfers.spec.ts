@@ -83,7 +83,7 @@ test.describe('25 assets transfer records', () => {
         await sheet.getByRole('button', { name: /Preuzmi DOCX|Download DOCX/ }).click();
         const download = await downloadPromise;
         expect(download.suggestedFilename()).toMatch(/\.docx$/);
-        await sheet.getByRole('button', { name: /^(Zatvori|Close)$/ }).click();
+        await issued.getByRole('button', { name: /^(Zatvori|Close)$/ }).click();
 
         // The record is on the card's "Transfer records" tab and carries the free text.
         await page.getByRole('tab', { name: /Prenosnice|Transfer records/ }).click();

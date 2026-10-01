@@ -56,7 +56,7 @@ test.describe('26 assets on tickets', () => {
         const type = await admin.requestJson<{ id: string }>('/assets/catalog/types', {
           method: 'POST',
           body: JSON.stringify({
-            key: `e2e_routed_${stamp}`.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 48),
+            key: `e2e-routed-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 48),
             nameBs: `E2E rutirani tip ${stamp}`,
             nameEn: `E2E routed type ${stamp}`,
             icon: 'monitor',
