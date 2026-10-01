@@ -48,6 +48,12 @@ export const notificationTypes = {
   problemResolved: 'problem.resolved',
   problemTargetDue: 'problem.targetDue',
   problemRecurrence: 'problem.recurrence',
+  // Paket 3.4 (§14): CAB vote requested, decision, start reminder, overrun, failed change on a problem.
+  changeApprovalRequested: 'change.approvalRequested',
+  changeDecided: 'change.decided',
+  changeStartingSoon: 'change.startingSoon',
+  changeOverdue: 'change.overdue',
+  changeFailed: 'change.failed',
 } as const;
 
 export type NotificationType =
@@ -99,6 +105,11 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.problemResolved]: 'notifications.items.problemResolved',
     [notificationTypes.problemTargetDue]: 'notifications.items.problemTargetDue',
     [notificationTypes.problemRecurrence]: 'notifications.items.problemRecurrence',
+    [notificationTypes.changeApprovalRequested]: 'notifications.items.changeApprovalRequested',
+    [notificationTypes.changeDecided]: 'notifications.items.changeDecided',
+    [notificationTypes.changeStartingSoon]: 'notifications.items.changeStartingSoon',
+    [notificationTypes.changeOverdue]: 'notifications.items.changeOverdue',
+    [notificationTypes.changeFailed]: 'notifications.items.changeFailed',
   };
 
 export const notificationListLimits = {

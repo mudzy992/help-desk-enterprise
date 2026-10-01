@@ -3,8 +3,10 @@ import type { AuthenticatedHttpRequest } from '../authentication/authenticated-r
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { ChangeAccessService, changeViewerOf, type ChangeViewer } from './change-access.service';
+import { ChangeApprovalsService } from './change-approvals.service';
+import { ChangeScheduleService } from './change-schedule.service';
 import { ChangeTemplatesService } from './change-templates.service';
-import { ChangeActionDto, ChangeTemplateDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
+import { ChangeActionDto, ChangeConflictPreviewDto, ChangeTemplateDto, ChangeVoteDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
 import { changeRisks, changeStatuses, changeTypes, type ChangeRiskValue, type ChangeStatusValue, type ChangeTypeValue } from './changes.constants';
 import { ChangesService, type ChangeListQuery } from './changes.service';
 import { runChange } from './map-change-error';
@@ -36,6 +38,8 @@ export function parseChangeListQuery(raw: RawListQuery): ChangeListQuery {
     organizationalUnitId: idOf(raw.organizationalUnitId),
     mine: raw.mine === 'true',
     awaitingMyVote: raw.awaitingMyVote === 'true',
+    problemId: idOf(raw.problemId),
+    assetId: idOf(raw.assetId),
     cursor: idOf(raw.cursor),
     limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
   };
@@ -54,6 +58,8 @@ export class ChangesController {
     private readonly access: ChangeAccessService,
     private readonly changes: ChangesService,
     private readonly templates: ChangeTemplatesService,
+    private readonly approvals: ChangeApprovalsService,
+    private readonly schedule: ChangeScheduleService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ChangeViewer {
@@ -76,6 +82,19 @@ export class ChangesController {
   @Header('Cache-Control', 'no-store')
   owners(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
     return runChange(() => this.changes.searchOwners(this.viewer(request), search ?? ''));
+  }
+
+  /** §17: changes, downtime windows and freezes in a period. */
+  @Get('calendar')
+  @Header('Cache-Control', 'no-store')
+  calendar(@Req() request: AuthenticatedHttpRequest, @Query('from') from: string | undefined, @Query('to') to: string | undefined) {
+    return runChange(() => this.schedule.calendar(this.viewer(request), from, to));
+  }
+
+  /** §9: conflicts of an unsaved window (form). */
+  @Post('conflicts/preview')
+  previewConflicts(@Req() request: AuthenticatedHttpRequest, @Body() body: ChangeConflictPreviewDto) {
+    return runChange(() => this.schedule.preview(this.viewer(request), body));
   }
 
   @Get('templates')
@@ -126,6 +145,23 @@ export class ChangesController {
   @Patch(':id')
   update(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: UpdateChangeDto) {
     return runChange(() => this.changes.update(this.viewer(request), id, body));
+  }
+
+  @Get(':id/conflicts')
+  @Header('Cache-Control', 'no-store')
+  conflicts(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runChange(() => this.changes.conflicts(this.viewer(request), id));
+  }
+
+  @Get(':id/approvals')
+  @Header('Cache-Control', 'no-store')
+  approvalOverview(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runChange(() => this.approvals.overview(this.viewer(request), id));
+  }
+
+  @Post(':id/approvals')
+  vote(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: ChangeVoteDto) {
+    return runChange(() => this.approvals.vote(this.viewer(request), id, body));
   }
 
   @Post(':id/claim')

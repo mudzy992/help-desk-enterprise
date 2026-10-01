@@ -1,6 +1,7 @@
 import { composeAnnouncementEmailPreview } from '../../announcements/compose-announcement-email';
 import { composeAssetReminderEmailPreview } from '../../assets/reminders/compose-asset-reminder-email';
 import { composeProblemEmailPreview } from '../../problems/compose-problem-email';
+import { composeChangeEmailPreview } from '../../changes/compose-change-email';
 import { composeOpsAlertEmailPreview } from '../../ops-health/compose-ops-alert-email';
 import { isoWeek } from '../preferences/weekly-ticket-report';
 import { composeWeeklyTicketReportEmail } from './compose-weekly-ticket-report-email';
@@ -165,6 +166,16 @@ export function renderEmailTemplatePreview(input: {
   }
   if (input.key === 'problem.assigned' || input.key === 'problem.resolved' || input.key === 'problem.target_due') {
     const composed = composeProblemEmailPreview({
+      configuration,
+      templates: input.templates,
+      key: input.key,
+      locale,
+      recipientName: input.recipientName,
+    });
+    return { subject: composed.subject, html: composed.html, text: composed.text };
+  }
+  if (input.key === 'change.approval_requested' || input.key === 'change.decided' || input.key === 'change.starting_soon' || input.key === 'change.overdue') {
+    const composed = composeChangeEmailPreview({
       configuration,
       templates: input.templates,
       key: input.key,

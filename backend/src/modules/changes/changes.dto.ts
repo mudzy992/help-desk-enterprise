@@ -84,3 +84,12 @@ export class ChangeTemplateDto {
   @IsOptional() @IsBoolean() isActive?: boolean;
   @applyAll(idList()) serviceIds?: string[];
 }
+
+export class ChangeConflictPreviewDto {
+  @IsIn(changeTypes) type!: (typeof changeTypes)[number];
+  @IsISO8601() plannedStart!: string;
+  @IsISO8601() plannedEnd!: string;
+  @applyAll(idList()) serviceIds?: string[];
+  @applyAll(idList()) assetIds?: string[];
+  @IsOptional() @IsString() @MaxLength(64) changeId?: string;
+}

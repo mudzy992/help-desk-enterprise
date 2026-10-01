@@ -89,6 +89,14 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   // agents of open linked tickets (known error / workaround, resolved).
   category('problem.owner', [notificationTypes.problemAssigned, notificationTypes.problemGroupAssigned, notificationTypes.problemTargetDue, notificationTypes.problemRecurrence], 1, both),
   category('problem.linked', [notificationTypes.problemKnownError, notificationTypes.problemResolved], 1, both),
+  // Paket 3.4 (§14): CAB members (vote requested) and the change owner / requester.
+  category('change.approval', [notificationTypes.changeApprovalRequested], 1, both),
+  category(
+    'change.owner',
+    [notificationTypes.changeDecided, notificationTypes.changeStartingSoon, notificationTypes.changeOverdue, notificationTypes.changeFailed],
+    1,
+    both,
+  ),
   category(
     'account.security',
     [

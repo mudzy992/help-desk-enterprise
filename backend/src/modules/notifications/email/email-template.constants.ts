@@ -33,6 +33,11 @@ export const emailTemplateKeys = [
   'problem.assigned',
   'problem.resolved',
   'problem.target_due',
+  // Paket 3.4 (§14): change notices (no ticket card).
+  'change.approval_requested',
+  'change.decided',
+  'change.starting_soon',
+  'change.overdue',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -51,7 +56,8 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'announcement.published' &&
     key !== 'announcement.reminder' &&
     key !== 'asset.expiring' &&
-    !key.startsWith('problem.'),
+    !key.startsWith('problem.') &&
+    !key.startsWith('change.'),
 );
 
 export const emailLocales = ['bs', 'en'] as const;

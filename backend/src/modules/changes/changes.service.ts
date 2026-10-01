@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -22,7 +22,11 @@ import {
   parseChangeNumberSearch,
   type ChangeFacts,
 } from './change-rules';
+import { hasWarnings } from './change-conflicts';
+import { ChangeNotifier } from './change-notifier';
+import { ChangeScheduleService } from './change-schedule.service';
 import { changeVisibilityWhere } from './change-visibility';
+import { loadCabVoterIds } from './load-cab-voters';
 import type { ChangeActionDto, CreateChangeDto, UpdateChangeDto } from './changes.dto';
 import {
   ChangeError,
@@ -51,6 +55,9 @@ export type ChangeListQuery = {
   readonly mine?: boolean;
   /** Changes waiting for the viewer's CAB vote. */
   readonly awaitingMyVote?: boolean;
+  /** Reverse links (§11): changes of a problem / touching an asset. */
+  readonly problemId?: string;
+  readonly assetId?: string;
   readonly cursor?: string;
   readonly limit?: number;
 };
@@ -194,7 +201,14 @@ export class ChangesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ChangeAccessService,
+    private readonly schedule: ChangeScheduleService,
+    @Optional() private readonly notifier?: ChangeNotifier,
   ) {}
+
+  private notify(label: string, operation: (notifier: ChangeNotifier) => Promise<unknown>): void {
+    const notifier = this.notifier;
+    if (notifier !== undefined) notifier.run(label, () => operation(notifier));
+  }
 
   async list(viewer: ChangeViewer, query: ChangeListQuery) {
     const scope = await this.access.require(viewer, permissionKeys.changeRead);
@@ -211,6 +225,8 @@ export class ChangesService {
     if (query.organizationalUnitId) and.push({ organizationalUnitId: query.organizationalUnitId });
     if (query.serviceId) and.push({ services: { some: { serviceId: query.serviceId } } });
     if (query.mine) and.push({ requesterUserId: viewer.userId });
+    if (query.problemId) and.push({ problemId: query.problemId });
+    if (query.assetId) and.push({ assets: { some: { assetId: query.assetId } } });
     if (query.awaitingMyVote) {
       and.push({
         status: 'AUTHORIZATION',
@@ -524,6 +540,15 @@ export class ChangesService {
       cabGroupId: data.cabGroupId as string | null | undefined,
     });
 
+    // §6: a scheduled change moved outside its approved window goes back to the CAB.
+    const windowMoved = current.status === 'SCHEDULED' && (plannedStart !== undefined || plannedEnd !== undefined);
+    const reauthorize =
+      windowMoved &&
+      current.type !== 'STANDARD' &&
+      current.plannedStart !== null &&
+      current.plannedEnd !== null &&
+      ((nextStart as Date).getTime() < current.plannedStart.getTime() || (nextEnd as Date).getTime() > current.plannedEnd.getTime());
+
     const changes: Record<string, { from: unknown; to: unknown }> = {};
     for (const field of trackedValueFields) {
       const next = data[field];
@@ -549,6 +574,7 @@ export class ChangesService {
           ...data,
           // A moved window must be acknowledged again (§9).
           ...(changes.plannedStart || changes.plannedEnd ? { conflictsAcknowledgedAt: null, reminderSentAt: null, overdueNotifiedAt: null } : {}),
+          ...(reauthorize ? { status: 'AUTHORIZATION' as const, approvalRound: { increment: 1 }, authorizedAt: null } : {}),
           version: { increment: 1 },
         },
       });
@@ -566,7 +592,23 @@ export class ChangesService {
           detail: { changes, textChanged, addedServices, removedServices, addedAssets, removedAssets } as never,
         },
       });
+      if (reauthorize) {
+        await transaction.changeEvent.create({
+          data: {
+            changeId: id,
+            action: changeEventActions.status,
+            actorUserId: viewer.userId,
+            detail: { from: 'SCHEDULED', to: 'AUTHORIZATION', action: 'reschedule' } as never,
+          },
+        });
+      }
     });
+    if (reauthorize) {
+      await this.schedule.release(id, viewer.userId, 'reschedule');
+      this.notify('approval', (notifier) => notifier.approvalRequested(id, current.approvalRound + 1, viewer.userId));
+    } else if (windowMoved && (changes.plannedStart || changes.plannedEnd)) {
+      await this.schedule.syncDowntime(id, viewer.userId);
+    }
     return this.get(viewer, id);
   }
 
@@ -579,6 +621,29 @@ export class ChangesService {
     await this.assertActionAllowed(viewer, current, input.action);
     const now = new Date();
     const target = assertChangeAction(changeFactsOf(current), input.action, input, configuration, now);
+    if (target === 'AUTHORIZATION') {
+      // §8: someone other than the requester must be able to vote.
+      const voters = current.cabGroupId === null ? [] : await loadCabVoterIds(this.prisma, current.cabGroupId);
+      if (voters.filter((voterId) => voterId !== current.requesterUserId).length === 0) throw new ChangeError(changeErrorCodes.noApprovers);
+    }
+    let acknowledge = false;
+    if (target === 'AUTHORIZATION' || input.action === 'schedule') {
+      // §9: conflicts are warnings that must be acknowledged once per window.
+      const conflicts = await this.schedule.conflictsFor(
+        {
+          changeId: current.id,
+          type: current.type,
+          window: { start: current.plannedStart as Date, end: current.plannedEnd as Date },
+          serviceIds: current.services.map((link) => link.service.id),
+          assetIds: current.assets.map((link) => link.asset.id),
+        },
+        configuration,
+      );
+      if (hasWarnings(conflicts) && current.conflictsAcknowledgedAt === null) {
+        if (input.acknowledgeConflicts !== true) throw new ChangeError(changeErrorCodes.conflictsNotAcknowledged);
+        acknowledge = true;
+      }
+    }
     const reason = input.reason?.trim() || null;
     const reviewNotes = input.action === 'close' ? assertReviewNotes(current.outcome, input.reviewNotes ?? current.reviewNotes) : undefined;
     const from = current.status;
@@ -594,10 +659,28 @@ export class ChangesService {
           ...(reviewNotes !== undefined ? { reviewNotes } : {}),
           // §4: a withdrawal opens a new voting round; earlier votes stay in the history.
           ...(input.action === 'withdraw' ? { approvalRound: { increment: 1 }, authorizedAt: null } : {}),
+          ...(acknowledge ? { conflictsAcknowledgedAt: now } : {}),
           version: { increment: 1 },
         },
       });
       if (result.count === 0) throw new ChangeError(changeErrorCodes.versionConflict);
+      if (acknowledge) {
+        await transaction.changeEvent.create({
+          data: { changeId: id, action: changeEventActions.conflictsAcknowledged, actorUserId: viewer.userId, detail: { action: input.action } },
+        });
+      }
+      const failed = input.action === 'finish' && (input.outcome === 'FAILED' || input.outcome === 'ROLLED_BACK');
+      if (failed && current.problemId !== null) {
+        // §12: the problem keeps a trace so it is not closed on a failed fix.
+        await transaction.problemEvent.create({
+          data: {
+            problemId: current.problemId,
+            action: 'change_failed',
+            actorUserId: viewer.userId,
+            detail: { changeId: id, number: formatChangeNumber(configuration.numberPrefix, current.sequence), outcome: input.outcome } as never,
+          },
+        });
+      }
       await transaction.changeEvent.create({
         data: {
           changeId: id,
@@ -614,7 +697,44 @@ export class ChangesService {
         actorUserId: viewer.userId,
       });
     });
+    await this.afterAction(viewer, current, input, target);
     return this.get(viewer, id);
+  }
+
+  /** Side effects after a committed action: downtime windows (§10) and notices (§12, §14). */
+  private async afterAction(viewer: ChangeViewer, current: ChangeDetailRow, input: ChangeActionDto, target: ChangeStatusValue): Promise<void> {
+    if (target === 'AUTHORIZATION') {
+      this.notify('approval', (notifier) => notifier.approvalRequested(current.id, current.approvalRound, viewer.userId));
+    }
+    if (target === 'SCHEDULED') await this.schedule.syncDowntime(current.id, viewer.userId);
+    if (input.action === 'cancel' || input.action === 'finish') await this.schedule.release(current.id, viewer.userId, input.action);
+    const failed = input.action === 'finish' && (input.outcome === 'FAILED' || input.outcome === 'ROLLED_BACK');
+    if (failed && current.problemId !== null) {
+      const problem = await this.prisma.problem.findUnique({ where: { id: current.problemId }, select: { ownerUserId: true } });
+      const ownerId = problem?.ownerUserId ?? null;
+      if (ownerId !== null) this.notify('failed', (notifier) => notifier.failedOnProblem(current.id, ownerId, viewer.userId));
+    }
+  }
+
+  /** §9: conflicts of the change's current window (empty without a window). */
+  async conflicts(viewer: ChangeViewer, id: string) {
+    const scope = await this.access.require(viewer, permissionKeys.changeRead);
+    const current = await this.loadInScope(id, scope, viewer);
+    const configuration = await this.access.configuration();
+    if (current.plannedStart === null || current.plannedEnd === null || current.plannedStart >= current.plannedEnd) {
+      return { changes: [], downtime: [], freeze: null, freezeBlocks: false, hasWarnings: false, acknowledgedAt: null };
+    }
+    const conflicts = await this.schedule.conflictsFor(
+      {
+        changeId: current.id,
+        type: current.type,
+        window: { start: current.plannedStart, end: current.plannedEnd },
+        serviceIds: current.services.map((link) => link.service.id),
+        assetIds: current.assets.map((link) => link.asset.id),
+      },
+      configuration,
+    );
+    return { ...(await this.schedule.describe(conflicts, configuration)), acknowledgedAt: current.conflictsAcknowledgedAt?.toISOString() ?? null };
   }
 
   /**

@@ -10,6 +10,7 @@ import { NotificationDigestWorkerModule } from './modules/notifications/preferen
 import { OnCallWorkerModule } from './modules/on-call/on-call-worker.module';
 import { AssetRemindersWorkerModule } from './modules/assets/reminders/asset-reminders-worker.module';
 import { ProblemSweepWorkerModule } from './modules/problems/sweep/problem-sweep-worker.module';
+import { ChangeSweepWorkerModule } from './modules/changes/sweep/change-sweep-worker.module';
 import { AssetDirectorySyncWorkerModule } from './modules/assets/directory/asset-directory-sync-worker.module';
 import { AnnouncementWorkerModule } from './modules/announcements/announcement-worker.module';
 import { PrivacyWorkerModule } from './modules/privacy/privacy-worker.module';
@@ -56,6 +57,7 @@ import { WaitingForUserWorkerModule } from './modules/tickets/waiting-for-user/w
     AssetRemindersWorkerModule,
     AssetDirectorySyncWorkerModule,
     ProblemSweepWorkerModule,
+    ChangeSweepWorkerModule,
   ],
 })
 export class WorkerModule {}
