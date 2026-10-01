@@ -320,4 +320,24 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     categoryId: permissionCategoryIds.ticket,
     description: 'Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3).',
   },
+  {
+    key: permissionKeys.changeRead,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'View changes and the change calendar in the own organizational-unit scope (package 3.4).',
+  },
+  {
+    key: permissionKeys.changeRequest,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Request changes: create, edit own drafts and submit them (package 3.4).',
+  },
+  {
+    key: permissionKeys.changeManage,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Assess, schedule, implement, review, close and cancel changes; manage standard templates (package 3.4).',
+  },
+  {
+    key: permissionKeys.changeApprove,
+    categoryId: permissionCategoryIds.ticket,
+    description: 'Vote on changes as a member of their change advisory board (package 3.4).',
+  },
 ];

@@ -1,4 +1,5 @@
 model OrganizationalUnit {
+  changes ChangeRequest[]
   problems Problem[]
   assets Asset[]
   assetSignatory AssetSignatory?

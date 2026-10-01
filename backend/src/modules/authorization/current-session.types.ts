@@ -11,5 +11,5 @@ export type CurrentSessionResponse = {
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitName: string | null;
   /** Optional modules that are switched on (menus follow them; APIs still check). */
-  readonly modules: { readonly cmdb: boolean; readonly problems: boolean };
+  readonly modules: { readonly cmdb: boolean; readonly problems: boolean; readonly changes: boolean };
 };

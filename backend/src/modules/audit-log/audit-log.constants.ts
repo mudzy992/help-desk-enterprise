@@ -141,6 +141,11 @@ export const auditLogActions = {
   problemReopened: 'problem.reopened',
   problemKnowledgeArticleCreated: 'problem.knowledge_article_created',
   problemTicketsResolved: 'problem.tickets_resolved',
+  // Paket 3.4: change management.
+  changeCreated: 'change.created',
+  changeStatusChanged: 'change.status_changed',
+  changeApprovalRecorded: 'change.approval_recorded',
+  changeTemplateSaved: 'change.template_saved',
   // Paket 2.9 (K1): knowledge portal.
   knowledgeCategoryCreated: 'knowledge.category.created',
   knowledgeCategoryUpdated: 'knowledge.category.updated',
@@ -192,6 +197,8 @@ export const auditLogEntityTypes = {
   assetSignatory: 'asset_signatory',
   // Paket 3.3
   problem: 'problem',
+  change: 'change',
+  changeTemplate: 'change_template',
 } as const;
 
 export const auditLogErrorCodes = {

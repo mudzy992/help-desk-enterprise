@@ -12,6 +12,7 @@ type GroupListRecord = {
   readonly organizationalUnitId: string;
   readonly isFallback: boolean;
   readonly isProblemGroup: boolean;
+  readonly isCabGroup: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
   readonly organizationalUnit: { readonly ouPath: string };
@@ -29,6 +30,7 @@ export function toGroupListItemResponse(
     organizationalUnitPath: group.organizationalUnit.ouPath,
     isFallback: group.isFallback,
     isProblemGroup: group.isProblemGroup,
+    isCabGroup: group.isCabGroup,
     memberCount: group._count.members,
     createdAt: group.createdAt.toISOString(),
     updatedAt: group.updatedAt.toISOString(),

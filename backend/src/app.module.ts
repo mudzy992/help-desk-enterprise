@@ -37,6 +37,7 @@ import { OnCallModule } from './modules/on-call/on-call.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProblemsModule } from './modules/problems/problems.module';
+import { ChangesModule } from './modules/changes/changes.module';
 import { EdgeExtensionModule } from './modules/edge-extension/edge-extension.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -83,6 +84,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     AnnouncementsModule,
     AssetsModule,
     ProblemsModule,
+    ChangesModule,
     EdgeExtensionModule,
     WebsocketModule,
   ],

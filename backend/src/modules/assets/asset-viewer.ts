@@ -37,7 +37,9 @@ export function assetViewerFromContext(context: PrincipalContext | null, userId:
   const grants: AssetGrant[] = [];
   // Paket 3.3: problem managers work across units (their problem group decides).
   const global = (roleKey: string) =>
-    globalRoles.has(roleKey) || (permissionPrefix === 'problem.' && roleKey === authorizationRoleKeys.problemManager);
+    globalRoles.has(roleKey) || (permissionPrefix === 'problem.' && roleKey === authorizationRoleKeys.problemManager) ||
+    // Paket 3.4: change managers work across units (the CAB decides).
+    (permissionPrefix === 'change.' && roleKey === authorizationRoleKeys.changeManager);
   for (const assignment of context.assignments) {
     for (const permission of assignment.permissionKeys) {
       if (!permission.startsWith(permissionPrefix)) continue;

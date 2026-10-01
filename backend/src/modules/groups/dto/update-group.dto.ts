@@ -22,4 +22,9 @@ export class UpdateGroupDto {
   @IsOptional()
   @IsBoolean()
   isProblemGroup?: boolean;
+
+  /** Paket 3.4: change advisory board group. */
+  @IsOptional()
+  @IsBoolean()
+  isCabGroup?: boolean;
 }

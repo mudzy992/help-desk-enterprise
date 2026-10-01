@@ -9,6 +9,7 @@ const listSelect = {
   organizationalUnitId: true,
   isFallback: true,
   isProblemGroup: true,
+  isCabGroup: true,
   createdAt: true,
   updatedAt: true,
   organizationalUnit: { select: { ouPath: true } },

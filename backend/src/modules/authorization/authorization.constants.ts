@@ -9,6 +9,8 @@ export const authorizationRoleKeys = {
   assetManager: 'ASSET_MANAGER',
   /** Paket 3.3: resolves, closes and cancels problems across units (usually added to an agent). */
   problemManager: 'PROBLEM_MANAGER',
+  /** Paket 3.4: runs changes across units and votes in its CAB groups (usually added to an agent). */
+  changeManager: 'CHANGE_MANAGER',
 } as const;
 
 export const permissionKeys = {
@@ -75,6 +77,11 @@ export const permissionKeys = {
   /** Paket 3.3: report a problem (pick its problem group) and link tickets. */
   problemReport: 'problem.report',
   problemClose: 'problem.close',
+  /** Paket 3.4: change management. */
+  changeRead: 'change.read',
+  changeRequest: 'change.request',
+  changeManage: 'change.manage',
+  changeApprove: 'change.approve',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
   ticketMessageSend: 'ticket.message.send',
@@ -120,6 +127,16 @@ const agentPermissionKeys = [
   // the problem group (PROBLEM_MANAGER) runs the analysis and resolves.
   permissionKeys.problemRead,
   permissionKeys.problemReport,
+  // Paket 3.4: agents read and request changes; CHANGE_MANAGER runs them.
+  permissionKeys.changeRead,
+  permissionKeys.changeRequest,
+] as const;
+
+const changeManagerPermissionKeys = [
+  permissionKeys.changeRead,
+  permissionKeys.changeRequest,
+  permissionKeys.changeManage,
+  permissionKeys.changeApprove,
 ] as const;
 
 const problemManagerPermissionKeys = [
@@ -178,6 +195,8 @@ const adminPermissionKeys = [
   permissionKeys.assetReportRead,
   permissionKeys.problemManage,
   permissionKeys.problemClose,
+  permissionKeys.changeManage,
+  permissionKeys.changeApprove,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =
@@ -187,6 +206,7 @@ export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[
     [authorizationRoleKeys.admin]: adminPermissionKeys,
     [authorizationRoleKeys.assetManager]: assetManagerPermissionKeys,
     [authorizationRoleKeys.problemManager]: problemManagerPermissionKeys,
+    [authorizationRoleKeys.changeManager]: changeManagerPermissionKeys,
     [authorizationRoleKeys.superAdmin]: [
       ...allPermissionKeys,
     ],

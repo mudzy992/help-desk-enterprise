@@ -1,0 +1,192 @@
+/// Paket 3.4: change management (ITIL). The module sits behind the
+/// `private.addons.changes` addon (off by default) and needs a CAB group.
+
+enum ChangeType {
+  STANDARD
+  NORMAL
+  EMERGENCY
+}
+
+enum ChangeStatus {
+  DRAFT
+  ASSESSMENT
+  AUTHORIZATION
+  SCHEDULED
+  IMPLEMENTING
+  REVIEW
+  CLOSED
+  REJECTED
+  CANCELLED
+}
+
+/// Impact and likelihood of a change (risk = impact x likelihood).
+enum ChangeLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ChangeRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ChangeOutcome {
+  SUCCESSFUL
+  PARTIAL
+  FAILED
+  ROLLED_BACK
+}
+
+/// The number shown is `{prefix}{sequence padded to 6}`; the prefix is a setting.
+model ChangeRequest {
+  id                      String             @id @default(cuid())
+  sequence                Int                @unique
+  title                   String             @db.VarChar(200)
+  description             String             @db.VarChar(8000)
+  reason                  String             @db.VarChar(4000)
+  type                    ChangeType         @default(NORMAL)
+  status                  ChangeStatus       @default(DRAFT)
+  impact                  ChangeLevel        @default(MEDIUM)
+  likelihood              ChangeLevel        @default(MEDIUM)
+  risk                    ChangeRisk         @default(MEDIUM)
+  implementationPlan      String?            @db.VarChar(8000)
+  backoutPlan             String?            @db.VarChar(8000)
+  testPlan                String?            @db.VarChar(8000)
+  communicationPlan       String?            @db.VarChar(8000)
+  causesDowntime          Boolean            @default(false)
+  plannedStart            DateTime?
+  plannedEnd              DateTime?
+  actualStart             DateTime?
+  actualEnd               DateTime?
+  outcome                 ChangeOutcome?
+  reviewNotes             String?            @db.VarChar(8000)
+  cabGroupId              String?
+  ownerUserId             String?
+  requesterUserId         String?
+  organizationalUnitId    String
+  templateId              String?
+  problemId               String?
+  /// Current CAB voting round; a withdrawal back to assessment starts a new one.
+  approvalRound           Int                @default(1)
+  conflictsAcknowledgedAt DateTime?
+  submittedAt             DateTime?
+  authorizedAt            DateTime?
+  closedAt                DateTime?
+  cancelledAt             DateTime?
+  cancelReason            String?            @db.VarChar(1000)
+  reminderSentAt          DateTime?
+  overdueNotifiedAt       DateTime?
+  version                 Int                @default(1)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  cabGroup                Group?             @relation("ChangeCabGroup", fields: [cabGroupId], references: [id], onDelete: SetNull)
+  owner                   User?              @relation("ChangeOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  requester               User?              @relation("ChangeRequester", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  organizationalUnit      OrganizationalUnit @relation(fields: [organizationalUnitId], references: [id], onDelete: Restrict)
+  template                ChangeTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  problem                 Problem?           @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  services                ChangeRequestService[]
+  assets                  ChangeRequestAsset[]
+  approvals               ChangeApproval[]
+  events                  ChangeEvent[]
+  downtimeWindows         ServiceDowntimeWindow[]
+
+  @@index([status])
+  @@index([type])
+  @@index([plannedStart])
+  @@index([plannedEnd])
+  @@index([ownerUserId])
+  @@index([requesterUserId])
+  @@index([cabGroupId])
+  @@index([organizationalUnitId])
+  @@index([problemId])
+  @@index([createdAt])
+}
+
+model ChangeRequestService {
+  changeId  String
+  serviceId String
+  change    ChangeRequest @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  service   Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([changeId, serviceId])
+  @@index([serviceId])
+}
+
+model ChangeRequestAsset {
+  changeId String
+  assetId  String
+  change   ChangeRequest @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  asset    Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([changeId, assetId])
+  @@index([assetId])
+}
+
+/// One CAB vote per approver and round (same statuses as ticket approvals).
+model ChangeApproval {
+  id             String         @id @default(cuid())
+  changeId       String
+  round          Int
+  approverUserId String?
+  decision       ApprovalStatus
+  comment        String?        @db.VarChar(2000)
+  decidedAt      DateTime       @default(now())
+  change         ChangeRequest  @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  approver       User?          @relation("ChangeApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@unique([changeId, round, approverUserId])
+  @@index([changeId, round])
+  @@index([approverUserId])
+}
+
+model ChangeEvent {
+  id          String        @id @default(cuid())
+  changeId    String
+  action      String        @db.VarChar(40)
+  actorUserId String?
+  detail      Json?
+  createdAt   DateTime      @default(now())
+  change      ChangeRequest @relation(fields: [changeId], references: [id], onDelete: Cascade)
+
+  @@index([changeId, createdAt])
+  @@index([actorUserId])
+}
+
+/// Standard change models: pre-approved, low or medium risk.
+model ChangeTemplate {
+  id                 String                  @id @default(cuid())
+  name               String                  @db.VarChar(200)
+  description        String                  @db.VarChar(4000)
+  implementationPlan String                  @db.VarChar(8000)
+  backoutPlan        String                  @db.VarChar(8000)
+  testPlan           String?                 @db.VarChar(8000)
+  impact             ChangeLevel             @default(LOW)
+  likelihood         ChangeLevel             @default(LOW)
+  causesDowntime     Boolean                 @default(false)
+  isActive           Boolean                 @default(true)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  services           ChangeTemplateService[]
+  changes            ChangeRequest[]
+
+  @@index([isActive])
+}
+
+model ChangeTemplateService {
+  templateId String
+  serviceId  String
+  template   ChangeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  service    Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, serviceId])
+  @@index([serviceId])
+}
+
+model ChangeSequence {
+  id         Int @id
+  lastNumber Int @default(0)
+}

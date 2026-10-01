@@ -133,6 +133,7 @@ model AssetLocation {
 }
 
 model Asset {
+  changes ChangeRequestAsset[]
   problems ProblemAsset[]
   id                   String              @id @default(cuid())
   /// Inventory number, unique.

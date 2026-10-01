@@ -44,10 +44,11 @@ export class CurrentSessionController {
       await this.authorizationContextLoader.loadHomeOrganizationalUnit(
         principal.subjectId,
       );
-    const [cmdb, problems] = await Promise.all([
+    const [cmdb, problems, changes] = await Promise.all([
       this.isEnabled(settingKeys.privateAddonsCmdb),
       this.isEnabled(settingKeys.privateAddonsProblems),
+      this.isEnabled(settingKeys.privateAddonsChanges),
     ]);
-    return toCurrentSessionResponse(principal, context, homeOrganizationalUnit, { cmdb, problems });
+    return toCurrentSessionResponse(principal, context, homeOrganizationalUnit, { cmdb, problems, changes });
   }
 }

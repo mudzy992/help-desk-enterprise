@@ -88,6 +88,12 @@ export const installAddonCatalog = [
     defaultEnabled: false,
     description: 'Problem management addon: problems, root cause analysis, known-error register',
   },
+  {
+    // Paket 3.4: change management (off until the organisation is ready).
+    key: 'changes',
+    defaultEnabled: false,
+    description: 'Change management addon: change requests, CAB approval, change calendar, reviews',
+  },
 ] as const;
 
 export type InstallAddonKey = (typeof installAddonCatalog)[number]['key'];

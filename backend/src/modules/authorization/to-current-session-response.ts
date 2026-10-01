@@ -10,7 +10,7 @@ export function toCurrentSessionResponse(
     readonly id: string;
     readonly name: string;
   } | null = null,
-  modules: CurrentSessionResponse['modules'] = { cmdb: false, problems: false },
+  modules: CurrentSessionResponse['modules'] = { cmdb: false, problems: false, changes: false },
 ): CurrentSessionResponse {
   const isSuperAdmin = context?.isSuperAdmin ?? false;
   return {

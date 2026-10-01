@@ -318,6 +318,7 @@ export const settingKeys = {
   privateAddonsServiceDowntime: addonSettingKey('serviceDowntime'),
   privateAddonsCmdb: addonSettingKey('cmdb'),
   privateAddonsProblems: addonSettingKey('problems'),
+  privateAddonsChanges: addonSettingKey('changes'),
   privateKnowledgeBaseReviewCycleEnabled:
     'private.knowledgeBase.reviewCycle.enabled',
   privateKnowledgeBaseReviewCycleDefaultReviewDays:
@@ -545,6 +546,14 @@ export const settingKeys = {
   privateProblemsTargetHighWorkingDays: 'private.problems.target.highWorkingDays',
   privateProblemsTargetMediumWorkingDays: 'private.problems.target.mediumWorkingDays',
   privateProblemsTargetLowWorkingDays: 'private.problems.target.lowWorkingDays',
+  // Paket 3.4: change management.
+  privateChangesNumberPrefix: 'private.changes.numberPrefix',
+  privateChangesNormalQuorum: 'private.changes.normalQuorum',
+  privateChangesEmergencyQuorum: 'private.changes.emergencyQuorum',
+  privateChangesMinLeadTimeHours: 'private.changes.minLeadTimeHours',
+  privateChangesRequireTestPlan: 'private.changes.requireTestPlan',
+  privateChangesFreezePeriods: 'private.changes.freezePeriods',
+  privateChangesReminderHoursBeforeStart: 'private.changes.reminderHoursBeforeStart',
   privateAssetsTicketPickerEnabled: 'private.assets.ticketPicker.enabled',
   privateAssetsLocationsEnabled: 'private.assets.locations.enabled',
   privateAssetsTagAutoGenerate: 'private.assets.tag.autoGenerate',

@@ -55,6 +55,7 @@ model Problem {
   services             ProblemService[]
   incidents            ProblemIncident[]
   events               ProblemEvent[]
+  changes              ChangeRequest[]
 
   @@index([status])
   @@index([ownerUserId])

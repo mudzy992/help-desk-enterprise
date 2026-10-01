@@ -30,7 +30,8 @@ export type SettingCategoryId =
   | 'private.ticket'
   | 'private.workflow'
   | 'private.assets'
-  | 'private.problems';
+  | 'private.problems'
+  | 'private.changes';
 
 export type SettingCategory = {
   readonly id: SettingCategoryId;
@@ -69,6 +70,7 @@ export const settingCategoryIds = {
   privateWorkflow: 'private.workflow',
   privateAssets: 'private.assets',
   privateProblems: 'private.problems',
+  privateChanges: 'private.changes',
 } as const satisfies Record<string, SettingCategoryId>;
 
 export const settingCategoryCatalog: readonly SettingCategory[] = [
@@ -88,6 +90,7 @@ export const settingCategoryCatalog: readonly SettingCategory[] = [
   { id: settingCategoryIds.privateKnowledgeBase, icon: 'book-open', priority: 110 },
   { id: settingCategoryIds.privateAssets, icon: 'boxes', priority: 115 },
   { id: settingCategoryIds.privateProblems, icon: 'bug', priority: 116 },
+  { id: settingCategoryIds.privateChanges, icon: 'git-pull-request-arrow', priority: 117 },
   { id: settingCategoryIds.privateSecurity, icon: 'shield', priority: 120 },
   { id: settingCategoryIds.privateGuardrails, icon: 'shield-alert', priority: 130 },
   { id: settingCategoryIds.privateCsat, icon: 'smile', priority: 140 },
