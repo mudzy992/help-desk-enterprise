@@ -88,7 +88,7 @@ export function AssetOverviewPanel() {
               caption={t("assets.overview.topTitle", { days: data.topAssets.days })}
               headers={[t("assets.overview.columns.asset"), t("assets.overview.columns.unit"), t("assets.overview.columns.tickets"), t("assets.overview.columns.open")]}
               rows={data.topAssets.items.map((item) => [
-                <Link key="asset" to={`/assets/${encodeURIComponent(item.assetId)}`} className="text-primary underline-offset-2 hover:underline">
+                <Link key="asset" to={`/assets/${encodeURIComponent(item.assetId)}`} className="text-link underline-offset-2 hover:underline">
                   {item.assetName}
                   <span className="block text-[11.5px] text-muted-foreground">
                     {item.typeName} · {item.assetTag}
