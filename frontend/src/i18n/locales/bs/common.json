@@ -3843,7 +3843,9 @@
         "ticket_incident_unlinked": "Uklonjena veza s incidentom",
         "ticket_incident_resolved": "Povezani incident je riješen",
         "ticket_asset_linked": "oprema vezana uz tiket",
-        "ticket_asset_unlinked": "oprema uklonjena s tiketa"
+        "ticket_asset_unlinked": "oprema uklonjena s tiketa",
+        "ticket_problem_linked": "tiket povezan s problemom",
+        "ticket_problem_unlinked": "veza s problemom uklonjena"
       },
       "history": {
         "status": "status promijenjen: {{from}} → {{to}}",
@@ -3860,7 +3862,9 @@
       "incidentLinked": "Povezano s incidentom „{{title}}”",
       "incidentUnlinked": "Uklonjena veza s incidentom „{{title}}”",
       "incidentResolved": "Incident „{{title}}” je riješen",
-      "knowledgeDraftCreated": "Iz odgovora je napravljen nacrt članka „{{title}}“"
+      "knowledgeDraftCreated": "Iz odgovora je napravljen nacrt članka „{{title}}“",
+      "problemLinked": "Povezano s problemom {{problem}}",
+      "problemUnlinked": "Uklonjena veza s problemom {{problem}}"
     },
     "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
     "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",
@@ -6612,6 +6616,82 @@
       "clear": "Poništi odabir",
       "selectPage": "Odaberi sve prikazane",
       "select": "Odaberi {{name}}"
+    }
+  },
+  "problems": {
+    "status": {
+      "NEW": "Novi",
+      "INVESTIGATING": "U analizi",
+      "KNOWN_ERROR": "Poznata greška",
+      "RESOLVED": "Riješen",
+      "CLOSED": "Zatvoren",
+      "CANCELLED": "Otkazan"
+    },
+    "fields": {
+      "title": "Naslov",
+      "description": "Opis",
+      "priority": "Prioritet"
+    },
+    "ticket": {
+      "panelTitle": "Problem",
+      "empty": "Tiket nije povezan s problemom.",
+      "attach": "Poveži s problemom",
+      "create": "Kreiraj problem",
+      "workaround": "Zaobilazno rješenje",
+      "unlink": "Ukloni vezu",
+      "unlinkTitle": "Ukloniti vezu s problemom?",
+      "unlinkBody": "Tiket više neće biti povezan s problemom {{number}}. Promjena se bilježi u historiji tiketa i problema.",
+      "unlinkConfirm": "Ukloni vezu"
+    },
+    "link": {
+      "bulkButton": "Problem",
+      "tooMany": "Najviše {{max}} tiketa odjednom.",
+      "createTitle": "Kreiraj problem",
+      "attachTitle": "Dodaj u postojeći problem",
+      "description_one": "Odabran je {{count}} tiket.",
+      "description_few": "Odabrana su {{count}} tiketa.",
+      "description_other": "Odabrano je {{count}} tiketa.",
+      "modeLabel": "Način povezivanja",
+      "modeCreate": "Novi problem",
+      "modeAttach": "Postojeći problem",
+      "descriptionIntro": "Povezani tiketi:",
+      "priorityHint": "Predloženo prema najvišem prioritetu odabranih tiketa.",
+      "searchLabel": "Pretraga otvorenih problema",
+      "searchHint": "Broj (npr. P-000012) ili dio naslova.",
+      "resultsLabel": "Otvoreni problemi",
+      "noResults": "Nema otvorenih problema za ovu pretragu.",
+      "saving": "Spremanje…",
+      "createSubmit": "Kreiraj problem",
+      "attachSubmit": "Poveži tikete",
+      "resultSummary_one": "Povezan je {{count}} tiket s problemom {{number}}.",
+      "resultSummary_few": "Povezana su {{count}} tiketa s problemom {{number}}.",
+      "resultSummary_other": "Povezano je {{count}} tiketa s problemom {{number}}.",
+      "skippedTitle_one": "Preskočen je {{count}} tiket:",
+      "skippedTitle_few": "Preskočena su {{count}} tiketa:",
+      "skippedTitle_other": "Preskočeno je {{count}} tiketa:",
+      "unknownTicket": "Nepoznat tiket",
+      "doneToast_one": "Problem {{number}}: povezan {{count}} tiket.",
+      "doneToast_few": "Problem {{number}}: povezana {{count}} tiketa.",
+      "doneToast_other": "Problem {{number}}: povezano {{count}} tiketa.",
+      "skip": {
+        "not_found": "nije dostupan ili nemate pristup",
+        "merged": "spojen je u drugi tiket; povežite ciljni tiket",
+        "already_linked": "već je u ovom problemu",
+        "other_problem": "već je u drugom problemu",
+        "read_only": "arhiviran je"
+      }
+    },
+    "errors": {
+      "disabled": "Modul problema nije uključen.",
+      "notFound": "Problem nije pronađen.",
+      "forbidden": "Nemate dozvolu za ovu radnju.",
+      "outOfScope": "Organizaciona jedinica je izvan vašeg opsega.",
+      "validation": "Provjerite unesene podatke.",
+      "versionConflict": "Problem je u međuvremenu izmijenjen. Osvježite stranicu.",
+      "ticketNotFound": "Tiket nije dostupan.",
+      "ticketInOtherProblem": "Tiket je već povezan s drugim problemom. Prvo uklonite postojeću vezu.",
+      "ticketNotLinked": "Tiket nije povezan s ovim problemom.",
+      "problemNotOpen": "Tikete je moguće povezivati samo s otvorenim problemom."
     }
   }
 }

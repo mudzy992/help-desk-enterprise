@@ -133,6 +133,15 @@ export function describeMergeOrPriorityEvent(
           : "tickets.activity.incidentResolved";
     return { text: ticketText(t, key, { title: parsed.title }), note: null };
   }
+  // Paket 3.3: `ticket_problem_*:<problemId>|<number> <title>` (staff only).
+  if (action === "ticket_problem_linked" || action === "ticket_problem_unlinked") {
+    const parsed = parseIncidentEventDetail(detail);
+    if (parsed === null) {
+      return null;
+    }
+    const key = action === "ticket_problem_linked" ? "tickets.activity.problemLinked" : "tickets.activity.problemUnlinked";
+    return { text: ticketText(t, key, { problem: parsed.title }), note: null };
+  }
   // Paket 2.9 (K1c): `ticket_knowledge_draft_created:<articleId>|<title>` (staff only).
   if (action === "ticket_knowledge_draft_created") {
     const parsed = parseIncidentEventDetail(detail);

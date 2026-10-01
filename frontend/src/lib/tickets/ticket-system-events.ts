@@ -72,6 +72,9 @@ export const ticketSystemEventKinds: Readonly<Record<string, TicketActivityKind>
   // Paket 3.2: `action:<assetId>|<tag name>` (staff only).
   ticket_asset_linked: "routing",
   ticket_asset_unlinked: "routing",
+  // Paket 3.3: `action:<problemId>|<number> <title>` (staff only).
+  ticket_problem_linked: "routing",
+  ticket_problem_unlinked: "routing",
 };
 
 /** System event bodies are `action` or `action:detail`. */

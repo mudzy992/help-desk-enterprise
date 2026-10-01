@@ -37,6 +37,7 @@ import { TicketCollaborationBar } from "@/components/tickets/ticket-collaboratio
 import { TicketNavigationShortcuts } from "@/components/shortcuts/ticket-navigation-shortcuts";
 import { TicketLinksPanel } from "@/components/tickets/ticket-links-panel";
 import { TicketAssetsPanel } from "@/components/assets/ticket-assets-panel";
+import { TicketProblemPanel } from "@/components/problems/ticket-problem-panel";
 import type { ComposerCollaborationOptions } from "@/components/tickets/ticket-message-composer";
 import { useAgentCollaborationConfiguration } from "@/lib/tickets/use-agent-collaboration";
 import { useTicketPresence } from "@/lib/tickets/use-ticket-presence";
@@ -397,6 +398,12 @@ export function TicketDetailPage() {
         ) : null}
         <TicketMergedCard items={mergedItems} />
         {session?.modules?.cmdb === true ? <TicketAssetsPanel ticketId={ticket.id} versionKey={ticket.updatedAt} /> : null}
+        {isStaffView && session?.modules?.problems === true ? (
+          <TicketProblemPanel
+            ticket={{ id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority }}
+            versionKey={ticket.updatedAt}
+          />
+        ) : null}
         {isStaffView && collaborationConfig.linksEnabled ? (
           <TicketLinksPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
         ) : null}

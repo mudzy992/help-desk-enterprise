@@ -3822,7 +3822,9 @@
         "ticket_incident_unlinked": "Unlinked from an incident",
         "ticket_incident_resolved": "Linked incident resolved",
         "ticket_asset_linked": "equipment linked to the ticket",
-        "ticket_asset_unlinked": "equipment removed from the ticket"
+        "ticket_asset_unlinked": "equipment removed from the ticket",
+        "ticket_problem_linked": "ticket linked to a problem",
+        "ticket_problem_unlinked": "problem link removed"
       },
       "history": {
         "status": "status changed: {{from}} → {{to}}",
@@ -3839,7 +3841,9 @@
       "incidentLinked": "Linked to incident \"{{title}}\"",
       "incidentUnlinked": "Unlinked from incident \"{{title}}\"",
       "incidentResolved": "Incident \"{{title}}\" was resolved",
-      "knowledgeDraftCreated": "An article draft “{{title}}” was made from a reply"
+      "knowledgeDraftCreated": "An article draft “{{title}}” was made from a reply",
+      "problemLinked": "Linked to problem {{problem}}",
+      "problemUnlinked": "Removed the link to problem {{problem}}"
     },
     "errorAttachmentInfected": "The antivirus scan rejected this file.",
     "errorForwardStatus": "A ticket in this status cannot be forwarded.",
@@ -6556,6 +6560,78 @@
       "clear": "Clear selection",
       "selectPage": "Select all shown",
       "select": "Select {{name}}"
+    }
+  },
+  "problems": {
+    "status": {
+      "NEW": "New",
+      "INVESTIGATING": "Investigating",
+      "KNOWN_ERROR": "Known error",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed",
+      "CANCELLED": "Cancelled"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "priority": "Priority"
+    },
+    "ticket": {
+      "panelTitle": "Problem",
+      "empty": "This ticket is not linked to a problem.",
+      "attach": "Link to a problem",
+      "create": "Create problem",
+      "workaround": "Workaround",
+      "unlink": "Remove link",
+      "unlinkTitle": "Remove the problem link?",
+      "unlinkBody": "The ticket will no longer be linked to problem {{number}}. The change is recorded in the ticket and problem history.",
+      "unlinkConfirm": "Remove link"
+    },
+    "link": {
+      "bulkButton": "Problem",
+      "tooMany": "At most {{max}} tickets at once.",
+      "createTitle": "Create problem",
+      "attachTitle": "Add to an existing problem",
+      "description_one": "{{count}} ticket selected.",
+      "description_other": "{{count}} tickets selected.",
+      "modeLabel": "Link mode",
+      "modeCreate": "New problem",
+      "modeAttach": "Existing problem",
+      "descriptionIntro": "Linked tickets:",
+      "priorityHint": "Suggested from the highest priority of the selected tickets.",
+      "searchLabel": "Search open problems",
+      "searchHint": "Number (e.g. P-000012) or part of the title.",
+      "resultsLabel": "Open problems",
+      "noResults": "No open problems match this search.",
+      "saving": "Saving…",
+      "createSubmit": "Create problem",
+      "attachSubmit": "Link tickets",
+      "resultSummary_one": "{{count}} ticket linked to problem {{number}}.",
+      "resultSummary_other": "{{count}} tickets linked to problem {{number}}.",
+      "skippedTitle_one": "{{count}} ticket skipped:",
+      "skippedTitle_other": "{{count}} tickets skipped:",
+      "unknownTicket": "Unknown ticket",
+      "doneToast_one": "Problem {{number}}: {{count}} ticket linked.",
+      "doneToast_other": "Problem {{number}}: {{count}} tickets linked.",
+      "skip": {
+        "not_found": "not available or no access",
+        "merged": "merged into another ticket; link the target ticket",
+        "already_linked": "already in this problem",
+        "other_problem": "already in another problem",
+        "read_only": "archived"
+      }
+    },
+    "errors": {
+      "disabled": "The problem module is not enabled.",
+      "notFound": "Problem not found.",
+      "forbidden": "You do not have permission for this action.",
+      "outOfScope": "The organizational unit is outside your scope.",
+      "validation": "Check the entered data.",
+      "versionConflict": "The problem was changed in the meantime. Refresh the page.",
+      "ticketNotFound": "The ticket is not available.",
+      "ticketInOtherProblem": "The ticket is already linked to another problem. Remove the existing link first.",
+      "ticketNotLinked": "The ticket is not linked to this problem.",
+      "problemNotOpen": "Tickets can only be linked to an open problem."
     }
   }
 }

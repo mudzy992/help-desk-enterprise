@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { CheckSquare, Siren, X } from "lucide-react";
+import { CheckSquare, Puzzle, Siren, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ProblemLinkDialog, type ProblemLinkTicket } from "@/components/problems/problem-link-dialog";
 import { IncidentFormDialog } from "@/components/status/incident-form-dialog";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { controlCompactClassName, selectCompactClassName } from "@/components/ui/control";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
@@ -23,6 +25,8 @@ import {
 
 /** Mirrors the backend limit on tickets linked at creation. */
 const incidentTicketLimit = 100;
+/** Mirrors the backend limit on tickets linked to a problem in one request. */
+const problemTicketLimit = 50;
 
 interface TicketBulkBarProperties {
   readonly selectedIds: ReadonlySet<string>;
@@ -31,6 +35,8 @@ interface TicketBulkBarProperties {
   readonly onComplete: () => void;
   /** Package 1.2: ticket numbers of the selection, to pick the merge parent. */
   readonly ticketNumbers?: ReadonlyMap<string, string>;
+  /** Paket 3.3: number, title and priority of the selection ("Create problem"). */
+  readonly ticketSummaries?: ReadonlyMap<string, ProblemLinkTicket>;
 }
 
 export function TicketBulkBar({
@@ -39,6 +45,7 @@ export function TicketBulkBar({
   onError,
   onComplete,
   ticketNumbers,
+  ticketSummaries,
 }: TicketBulkBarProperties) {
   const { t } = useTranslation();
   const [actionType, setActionType] = useState<TicketBulkActionType>("assign_group");
@@ -48,7 +55,13 @@ export function TicketBulkBar({
   const [broadcastArmed, setBroadcastArmed] = useState(false);
   // Paket 2.7 (§8.3): "Create incident from selected" (status.incidents.manage).
   const [incidentOpen, setIncidentOpen] = useState(false);
+  // Paket 3.3 (§8.1): "Create problem" / "Add to problem" (problem.manage).
+  const [problemOpen, setProblemOpen] = useState(false);
+  const { toast } = useToast();
   const { session, hasPermission, hasRole } = useSessionCapabilities();
+  const canLinkProblem =
+    session?.modules?.problems === true &&
+    (session.isSuperAdmin === true || hasRole(roleKeys.superAdmin) || hasPermission(permissionKeys.problemManage));
   const canCreateIncident =
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin) || hasPermission(permissionKeys.statusIncidentsManage);
   if (selectedIds.size === 0) {
@@ -128,6 +141,34 @@ export function TicketBulkBar({
           <Siren />
           {t("status.bulk.create")}
         </Button>
+      ) : null}
+      {canLinkProblem ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={busy || selectedIds.size > problemTicketLimit}
+          title={selectedIds.size > problemTicketLimit ? t("problems.link.tooMany", { max: problemTicketLimit }) : undefined}
+          onClick={() => setProblemOpen(true)}
+          data-testid="ticket-bulk-problem"
+        >
+          <Puzzle />
+          {t("problems.link.bulkButton")}
+        </Button>
+      ) : null}
+      {problemOpen ? (
+        <ProblemLinkDialog
+          open
+          onOpenChange={(open) => (open ? undefined : setProblemOpen(false))}
+          tickets={ticketIds.map(
+            (id) => ticketSummaries?.get(id) ?? { id, ticketNumber: ticketNumbers?.get(id) ?? id, title: "", priority: "MEDIUM" as const },
+          )}
+          onDone={({ number, result }) => {
+            toast({ tone: "success", title: t("problems.link.doneToast", { number, count: result?.linked.length ?? 0 }) });
+            onClear();
+            onComplete();
+          }}
+        />
       ) : null}
       {incidentOpen ? (
         <IncidentFormDialog
