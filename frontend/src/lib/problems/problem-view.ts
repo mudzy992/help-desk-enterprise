@@ -73,12 +73,14 @@ export type ProblemErrorKey = (typeof problemErrorKeys)[keyof typeof problemErro
 const requirementFields = ["owner", "rootCause", "rootCauseCategory", "workaround", "resolution"] as const;
 export type ProblemRequirementField = (typeof requirementFields)[number];
 
-export function mapProblemError(error: unknown): ProblemErrorKey | `problems.errors.requirement.${ProblemRequirementField}` | null {
+export function mapProblemError(error: unknown): ProblemErrorKey | "problems.errors.validationUnit" | `problems.errors.requirement.${ProblemRequirementField}` | null {
   if (!(error instanceof ApiError)) return null;
   if (error.code === "PROBLEM_REQUIREMENT_MISSING") {
     const field = requirementFields.find((candidate) => candidate === error.message);
     if (field !== undefined) return `problems.errors.requirement.${field}`;
   }
+  // A validation error names its field; the most common one gets its own text.
+  if (error.code === "PROBLEM_VALIDATION" && error.message === "organizationalUnitId") return "problems.errors.validationUnit";
   return (problemErrorKeys as Readonly<Record<string, ProblemErrorKey>>)[error.code] ?? null;
 }
 

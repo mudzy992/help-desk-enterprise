@@ -6738,7 +6738,8 @@
         "resolution": "Prvo upišite trajno rješenje (kartica Analiza)."
       },
       "articleExists": "Problem već ima povezan članak.",
-      "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu."
+      "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu.",
+      "validationUnit": "Problem nema organizacionu jedinicu: vaš nalog nema matičnu OJ, a OJ tiketa nije u vašem opsegu. Obratite se administratoru."
     },
     "title": "Problemi",
     "subtitle": "Uzroci iza ponovljenih incidenata: analiza, zaobilazna rješenja i poznate greške.",

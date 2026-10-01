@@ -6678,7 +6678,8 @@
         "resolution": "Enter the permanent fix first (Analysis tab)."
       },
       "articleExists": "The problem already has a linked article.",
-      "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit."
+      "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit.",
+      "validationUnit": "The problem has no organizational unit: your account has no home unit and the ticket's unit is outside your scope. Contact an administrator."
     },
     "title": "Problems",
     "subtitle": "Causes behind recurring incidents: analysis, workarounds and known errors.",

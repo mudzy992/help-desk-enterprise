@@ -212,11 +212,38 @@ export class ProblemsService {
     };
   }
 
+  /**
+   * Explicit unit first; otherwise the viewer's home unit when it is in scope,
+   * then the origin unit of the first selected ticket in scope. Agents without
+   * a home unit (or scoped to another unit) can still create a problem from a
+   * ticket they work on.
+   */
+  private async defaultUnit(viewer: ProblemViewer, scope: ProblemScope, explicit: string | null, ticketIds: readonly string[]): Promise<string> {
+    if (explicit) return explicit;
+    const candidates: string[] = [];
+    if (viewer.homeOrganizationalUnitId) candidates.push(viewer.homeOrganizationalUnitId);
+    if (ticketIds.length > 0) {
+      const tickets = await this.prisma.ticket.findMany({ where: { id: { in: [...ticketIds].slice(0, 50) } }, select: { id: true, originUnitId: true } });
+      const byId = new Map(tickets.map((ticket) => [ticket.id, ticket.originUnitId]));
+      for (const id of ticketIds) {
+        const unit = byId.get(id);
+        if (unit) candidates.push(unit);
+      }
+    }
+    if (candidates.length === 0) throw new ProblemError(problemErrorCodes.validation, 'organizationalUnitId');
+    const units = await this.prisma.organizationalUnit.findMany({ where: { id: { in: candidates } }, select: { id: true, ouPath: true } });
+    const pathById = new Map(units.map((unit) => [unit.id, unit.ouPath]));
+    for (const id of candidates) {
+      const path = pathById.get(id);
+      if (path !== undefined && isPathInScope(scope, path)) return id;
+    }
+    return candidates[0]!;
+  }
+
   async create(viewer: ProblemViewer, input: CreateProblemDto) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
     const configuration = await this.access.configuration();
-    const unitId = optionalId(input.organizationalUnitId) ?? viewer.homeOrganizationalUnitId;
-    if (!unitId) throw new ProblemError(problemErrorCodes.validation, 'organizationalUnitId');
+    const unitId = await this.defaultUnit(viewer, scope, optionalId(input.organizationalUnitId) ?? null, input.ticketIds ?? []);
     await this.access.requireUnitInScope(scope, unitId);
     const ownerUserId = optionalId(input.ownerUserId) ?? null;
     const groupId = optionalId(input.groupId) ?? null;
