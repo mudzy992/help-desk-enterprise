@@ -7,7 +7,8 @@ import { loadTimeTrackingEntries } from './load-time-tracking-entries';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { assetReportHorizonDays } from './packs/build-asset-reports';
 import { loadAssetReportData, type AssetReportPart } from './packs/load-asset-report-data';
-import { isAssetReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
+import { loadProblemReportData, type ProblemReportPart } from './packs/load-problem-report-data';
+import { isAssetReportPack, isProblemReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
 import { settingKeys } from '../settings/setting-keys';
 
 const assetPackParts: Readonly<Record<string, AssetReportPart>> = {
@@ -16,6 +17,14 @@ const assetPackParts: Readonly<Record<string, AssetReportPart>> = {
   [reportPackKeys.assetLicenseCompliance]: 'licenses',
   [reportPackKeys.assetTopTickets]: 'ticketLinks',
   [reportPackKeys.assetInactiveHolders]: 'holders',
+};
+
+const problemPackParts: Readonly<Record<string, ProblemReportPart>> = {
+  [reportPackKeys.problemTop]: 'top',
+  [reportPackKeys.problemTimeToKnownError]: 'knownError',
+  [reportPackKeys.problemTimeToResolution]: 'resolution',
+  [reportPackKeys.problemBacklog]: 'backlog',
+  [reportPackKeys.problemRecurrence]: 'recurrence',
 };
 
 async function readReportLocale(prisma: PrismaService): Promise<'bs' | 'en'> {
@@ -41,6 +50,10 @@ export async function loadReportPackBuildInput(
   pack: ReportPackKey,
   pingPongThreshold: number,
 ): Promise<ReportPackBuildInput> {
+  if (isProblemReportPack(pack)) {
+    const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date() });
+    return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems };
+  }
   if (isAssetReportPack(pack)) {
     const assets = await loadAssetReportData(prisma, {
       unitIds: organizationalUnitIds,

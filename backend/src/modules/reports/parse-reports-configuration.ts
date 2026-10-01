@@ -2,6 +2,7 @@ import {
   allowedReportExportFormats,
   reportErrorCodes,
   assetReportPackKeyList,
+  problemReportPackKeyList,
   settingReportPackKeyList,
   type ReportExportFormat,
   type ReportPackKey,
@@ -26,6 +27,8 @@ export function parseReportsConfiguration(input: {
   readonly pingPongThreshold?: unknown;
   /** Paket 3.2 C9b: `private.addons.cmdb`; true adds the CMDB packs. */
   readonly cmdbEnabled?: unknown;
+  /** Paket 3.3 P6: `private.addons.problems`; true adds the problem packs. */
+  readonly problemsEnabled?: unknown;
 }): ReportsConfiguration {
   if (
     typeof input.reportsEnabled !== 'boolean' ||
@@ -40,6 +43,7 @@ export function parseReportsConfiguration(input: {
     enabledPacks: [
       ...parsePacks(typeof input.packsJson === 'string' ? input.packsJson : ''),
       ...(input.cmdbEnabled === true ? assetReportPackKeyList : []),
+      ...(input.problemsEnabled === true ? problemReportPackKeyList : []),
     ],
     allowedFormats: parseFormats(
       typeof input.allowedFormatsCsv === 'string'

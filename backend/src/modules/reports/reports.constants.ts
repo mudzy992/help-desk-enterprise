@@ -13,6 +13,12 @@ export const reportPackKeys = {
   assetLicenseCompliance: 'asset_license_compliance',
   assetTopTickets: 'asset_top_tickets',
   assetInactiveHolders: 'asset_inactive_holders',
+  // Paket 3.3 P6: offered only while the problem module is on (never in the setting).
+  problemTop: 'problem_top',
+  problemTimeToKnownError: 'problem_time_to_known_error',
+  problemTimeToResolution: 'problem_time_to_resolution',
+  problemBacklog: 'problem_backlog',
+  problemRecurrence: 'problem_recurrence',
 } as const;
 
 export const reportPackKeyList = Object.values(reportPackKeys);
@@ -31,6 +37,19 @@ export const assetReportPackKeyList = [
 
 export function isAssetReportPack(pack: string): pack is (typeof assetReportPackKeyList)[number] {
   return (assetReportPackKeyList as readonly string[]).includes(pack);
+}
+
+/** Paket 3.3 P6: problem packs, added to the enabled packs while `addons.problems` is on. */
+export const problemReportPackKeyList = [
+  reportPackKeys.problemTop,
+  reportPackKeys.problemTimeToKnownError,
+  reportPackKeys.problemTimeToResolution,
+  reportPackKeys.problemBacklog,
+  reportPackKeys.problemRecurrence,
+] as const;
+
+export function isProblemReportPack(pack: string): pack is (typeof problemReportPackKeyList)[number] {
+  return (problemReportPackKeyList as readonly string[]).includes(pack);
 }
 
 export type ReportPackKey = (typeof reportPackKeyList)[number];
@@ -101,6 +120,11 @@ export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {
   asset_license_compliance: 'asset-license-compliance',
   asset_top_tickets: 'asset-top-tickets',
   asset_inactive_holders: 'asset-inactive-holders',
+  problem_top: 'problem-top',
+  problem_time_to_known_error: 'problem-time-to-known-error',
+  problem_time_to_resolution: 'problem-time-to-resolution',
+  problem_backlog: 'problem-backlog',
+  problem_recurrence: 'problem-recurrence',
 };
 
 export const bottleneckStatusKeys = [

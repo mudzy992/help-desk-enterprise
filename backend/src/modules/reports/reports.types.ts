@@ -1,4 +1,5 @@
 import type { AssetReportData } from './packs/build-asset-reports';
+import type { ProblemReportData } from './packs/build-problem-reports';
 import type { TicketCsatRecord } from '../tickets/csat/csat.types';
 import type { TicketRecord } from '../tickets/tickets.types';
 import type { KnowledgeArticleRecord } from '../knowledge-base/knowledge-base.types';
@@ -64,6 +65,7 @@ export type ReportPackBuildInput = {
   readonly timeEntries?: readonly TimeTrackingReportEntry[];
   /** Paket 3.2 C9b: CMDB packs. */
   readonly assets?: AssetReportData;
+  readonly problems?: ProblemReportData;
 };
 
 export type TimeTrackingReportEntry = {

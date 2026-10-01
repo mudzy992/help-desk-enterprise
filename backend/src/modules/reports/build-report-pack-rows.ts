@@ -36,6 +36,18 @@ import {
   buildAssetTopTicketsReport,
   emptyAssetReportData,
 } from './packs/build-asset-reports';
+import {
+  buildProblemBacklogReport,
+  buildProblemRecurrenceReport,
+  buildProblemTimeToKnownErrorReport,
+  buildProblemTimeToResolutionReport,
+  buildProblemTopReport,
+  emptyProblemReportData,
+  problemBacklogColumns,
+  problemRecurrenceColumns,
+  problemTimingColumns,
+  problemTopColumns,
+} from './packs/build-problem-reports';
 import type { ReportExportRow, ReportPackBuildInput } from './reports.types';
 
 export function buildReportPackRows(
@@ -69,6 +81,12 @@ export function buildReportPackRows(
   if (pack === reportPackKeys.timeTracking) {
     return { columns: timeTrackingColumns, rows: buildTimeTrackingReport(input) };
   }
+  const problems = input.problems ?? emptyProblemReportData;
+  if (pack === reportPackKeys.problemTop) return { columns: problemTopColumns, rows: buildProblemTopReport(problems) };
+  if (pack === reportPackKeys.problemTimeToKnownError) return { columns: problemTimingColumns, rows: buildProblemTimeToKnownErrorReport(problems) };
+  if (pack === reportPackKeys.problemTimeToResolution) return { columns: problemTimingColumns, rows: buildProblemTimeToResolutionReport(problems) };
+  if (pack === reportPackKeys.problemBacklog) return { columns: problemBacklogColumns, rows: buildProblemBacklogReport(problems) };
+  if (pack === reportPackKeys.problemRecurrence) return { columns: problemRecurrenceColumns, rows: buildProblemRecurrenceReport(problems) };
   const assets = input.assets ?? emptyAssetReportData;
   if (pack === reportPackKeys.assetInventory) {
     return { columns: assetInventoryColumns, rows: buildAssetInventoryReport(assets) };

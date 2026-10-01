@@ -37,6 +37,9 @@ export class ReportsConfigurationLoader {
         cmdbEnabled: await this.settingsService
           .getSetting(settingKeys.privateAddonsCmdb)
           .catch(() => false),
+        problemsEnabled: await this.settingsService
+          .getSetting(settingKeys.privateAddonsProblems)
+          .catch(() => false),
       });
     } catch (error) {
       if (error instanceof ReportsError) {
