@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ChangeConflictsList } from "@/components/changes/change-conflicts-list";
+import { ChangeAssetPicker, ChangeProblemPicker } from "@/components/changes/change-link-pickers";
 import { ChangeServicePicker } from "@/components/changes/change-service-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +15,21 @@ import { changeLevelKeys, changeRiskKeys, changeRiskTone, changeTypeKeys, comput
 import { mapApiError } from "@/lib/map-api-error";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/on-call/on-call-view";
 import {
+  changeExtraKeys,
   changeLevels,
   changeQueryKeys,
   changeTypes,
   createChange,
+  previewChangeConflicts,
   searchChangeOwners,
   updateChange,
+  type ChangeAssetOption,
   type ChangeCapabilities,
+  type ChangeConflictPreviewInput,
   type ChangeDetail,
   type ChangeLevel,
   type ChangeOptions,
+  type ChangeProblemOption,
   type ChangeType,
 } from "@/services/changes-api";
 
@@ -33,7 +40,8 @@ export type ChangeFormPrefill = {
   readonly title?: string;
   readonly description?: string;
   readonly serviceIds?: readonly string[];
-  readonly problemId?: string;
+  readonly problem?: ChangeProblemOption;
+  readonly assets?: readonly ChangeAssetOption[];
 };
 
 interface ChangeFormSheetProperties {
@@ -76,6 +84,8 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
   const [backoutPlan, setBackoutPlan] = useState("");
   const [testPlan, setTestPlan] = useState("");
   const [communicationPlan, setCommunicationPlan] = useState("");
+  const [assets, setAssets] = useState<ChangeAssetOption[]>([]);
+  const [problem, setProblem] = useState<ChangeProblemOption | null>(null);
   const [owner, setOwner] = useState<Owner | null>(null);
   const [ownerSearch, setOwnerSearch] = useState("");
   const [ownerDebounced, setOwnerDebounced] = useState("");
@@ -101,6 +111,8 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
     setBackoutPlan(change?.backoutPlan ?? "");
     setTestPlan(change?.testPlan ?? "");
     setCommunicationPlan(change?.communicationPlan ?? "");
+    setAssets(change ? [...change.assets] : [...(prefill?.assets ?? [])]);
+    setProblem(change ? change.problem : (prefill?.problem ?? null));
     setOwner(change?.owner ?? null);
     setOwnerSearch("");
     setError(null);
@@ -137,6 +149,24 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
   const windowInvalid = (start !== "" && startIso === null) || (end !== "" && endIso === null) || (startIso !== null && endIso !== null && startIso >= endIso);
   const windowHalf = (startIso === null) !== (endIso === null);
 
+  // §9 / §17: live conflicts while the window is chosen (debounced).
+  const previewInput: ChangeConflictPreviewInput | null =
+    open && startIso !== null && endIso !== null && !windowInvalid
+      ? { type, plannedStart: startIso, plannedEnd: endIso, serviceIds, assetIds: assets.map((asset) => asset.id), ...(change ? { changeId: change.id } : {}) }
+      : null;
+  const [debouncedPreview, setDebouncedPreview] = useState<ChangeConflictPreviewInput | null>(null);
+  const previewKey = previewInput === null ? "" : JSON.stringify(previewInput);
+  useEffect(() => {
+    const handle = window.setTimeout(() => setDebouncedPreview(previewKey === "" ? null : (JSON.parse(previewKey) as ChangeConflictPreviewInput)), 400);
+    return () => window.clearTimeout(handle);
+  }, [previewKey]);
+  const conflictsPreview = useQuery({
+    queryKey: changeExtraKeys.preview(debouncedPreview ?? { type, plannedStart: "", plannedEnd: "" }),
+    queryFn: () => previewChangeConflicts(debouncedPreview as ChangeConflictPreviewInput),
+    enabled: debouncedPreview !== null,
+    retry: false,
+  });
+
   const units =
     change !== undefined && !options.units.some((unit) => unit.id === change.organizationalUnit.id)
       ? [{ id: change.organizationalUnit.id, name: change.organizationalUnit.name, path: change.organizationalUnit.ouPath }, ...options.units]
@@ -169,6 +199,8 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
           reason: reason.trim(),
           organizationalUnitId: unitId,
           serviceIds,
+          ...(capabilities.cmdbEnabled ? { assetIds: assets.map((asset) => asset.id) } : {}),
+          ...(capabilities.problemsEnabled ? { problemId: problem?.id ?? null } : {}),
           causesDowntime,
           ...windowPart,
           ...ownerPart,
@@ -186,7 +218,7 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
         };
         saved = editing
           ? await updateChange(change.id, { version: change.version, ...body })
-          : await createChange({ type, ...body, ...(standard ? { templateId } : {}), ...(prefill?.problemId ? { problemId: prefill.problemId } : {}) });
+          : await createChange({ type, ...body, ...(standard ? { templateId } : {}) });
       }
       onOpenChange(false);
       onSaved(saved.id);
@@ -289,6 +321,8 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
             disabled={locked}
             hint={standard ? t("changes.form.servicesStandardHint") : t("changes.form.servicesHint")}
           />
+          {capabilities.cmdbEnabled ? <ChangeAssetPicker value={assets} onChange={setAssets} disabled={locked} /> : null}
+          {capabilities.problemsEnabled ? <ChangeProblemPicker value={problem} onChange={setProblem} disabled={locked} /> : null}
           {!standard ? (
             <Field label={t("changes.fields.cabGroup")} hint={t("changes.form.cabGroupHint")}>
               {(control) => (
@@ -328,6 +362,12 @@ export function ChangeFormSheet({ open, onOpenChange, options, capabilities, cha
                   : t("changes.form.windowHint")}
               </p>
             )}
+            {debouncedPreview !== null && conflictsPreview.data ? (
+              <div className="grid gap-1.5 rounded-md border border-border/70 px-3 py-2" aria-live="polite" data-testid="change-form-conflicts">
+                <p className="text-[12px] font-medium text-foreground">{t("changes.conflicts.title")}</p>
+                <ChangeConflictsList conflicts={conflictsPreview.data} />
+              </div>
+            ) : null}
             <Checkbox label={t("changes.fields.causesDowntime")} checked={causesDowntime} disabled={locked} onChange={(event) => setCausesDowntime(event.target.checked)} />
             <p className={hintClassName}>{t("changes.form.causesDowntimeHint")}</p>
           </fieldset>

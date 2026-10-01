@@ -8,6 +8,7 @@ import { AssetAssignSheet, AssetStatusSheet, AssetUnassignSheet } from "@/compon
 import { AssetFormSheet } from "@/components/assets/asset-form-sheet";
 import { AssetRelationsPanel } from "@/components/assets/asset-relations-panel";
 import { AssetProblemsPanel, useAssetProblems } from "@/components/problems/problem-reference-list";
+import { RelatedChangesPanel, useChangeModuleAccess } from "@/components/changes/related-changes-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -46,7 +47,7 @@ import {
   type AssetHistoryItem,
 } from "@/services/assets-api";
 
-type Tab = "overview" | "tickets" | "relations" | "coverage" | "transfers" | "problems" | "history";
+type Tab = "overview" | "tickets" | "relations" | "coverage" | "transfers" | "problems" | "changes" | "history";
 type Sheet = "edit" | "duplicate" | "status" | "assign" | "unassign" | null;
 
 /** Paket 3.2 (§17.3): asset card with overview, tickets, relations and history. */
@@ -64,6 +65,7 @@ export function AssetDetailPage() {
 
   const capabilitiesQuery = useQuery({ queryKey: assetQueryKeys.capabilities, queryFn: getAssetCapabilities, retry: false });
   const assetQuery = useQuery({ queryKey: assetQueryKeys.detail(assetId), queryFn: () => getAsset(assetId), retry: false, enabled: assetId !== "" });
+  const changeAccess = useChangeModuleAccess();
   const problemItems = useAssetProblems(assetId).data?.items ?? [];
   const canManage = assetQuery.data?.canManage === true;
   const catalogQuery = useQuery({ queryKey: assetQueryKeys.catalog(false), queryFn: () => getAssetCatalog(false), enabled: canManage, retry: false });
@@ -218,6 +220,7 @@ export function AssetDetailPage() {
             { key: "transfers", label: t("assets.detail.tabs.transfers") },
             // P5b: only when the asset is affected by problems the viewer may see.
             ...(problemItems.length > 0 ? [{ key: "problems", label: t("problems.links.assetProblemsTab"), count: problemItems.length }] : []),
+            ...(changeAccess.visible ? [{ key: "changes", label: t("changes.related.tab") }] : []),
             { key: "history", label: t("assets.detail.tabs.history") },
           ]}
           active={tab}
@@ -230,6 +233,9 @@ export function AssetDetailPage() {
         {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
         {tab === "transfers" ? <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} /> : null}
         {tab === "problems" && problemItems.length > 0 ? <AssetProblemsPanel items={problemItems} /> : null}
+        {tab === "changes" && changeAccess.visible ? (
+          <RelatedChangesPanel target={{ kind: "asset", assetId: asset.id }} prefill={{ assets: [{ id: asset.id, assetTag: asset.assetTag, name: asset.name }] }} />
+        ) : null}
         {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
 
         {canManage && catalogQuery.data && optionsQuery.data ? (

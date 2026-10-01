@@ -10,6 +10,7 @@ import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemStatusSheet } from "@/components/problems/problem-status-sheet";
 import { ProblemTicketsPanel } from "@/components/problems/problem-tickets-panel";
+import { RelatedChangesPanel, useChangeModuleAccess } from "@/components/changes/related-changes-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -25,7 +26,7 @@ import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ti
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { claimProblem, getProblem, getProblemOptions, problemDetailKeys, problemQueryKeys, type ProblemDetail, type ProblemStatus } from "@/services/problems-api";
 
-type Tab = "overview" | "analysis" | "tickets" | "links" | "history";
+type Tab = "overview" | "analysis" | "tickets" | "links" | "changes" | "history";
 
 /** Paket 3.3 (§14): problem record with overview, analysis, tickets and history. */
 export function ProblemDetailPage() {
@@ -41,6 +42,7 @@ export function ProblemDetailPage() {
 
   const problemQuery = useQuery({ queryKey: problemDetailKeys.detail(problemId), queryFn: () => getProblem(problemId), retry: false, enabled: problemId !== "" });
   const canManage = problemQuery.data?.permissions.canManage === true;
+  const changeAccess = useChangeModuleAccess();
   const optionsQuery = useQuery({ queryKey: problemDetailKeys.options, queryFn: getProblemOptions, retry: false, enabled: problemQuery.data !== undefined });
 
   const refresh = () => void queryClient.invalidateQueries({ queryKey: problemQueryKeys.all });
@@ -157,6 +159,7 @@ export function ProblemDetailPage() {
             { key: "analysis", label: t("problems.detail.tabs.analysis") },
             { key: "tickets", label: t("problems.detail.tabs.tickets"), count: problem.ticketCount },
             { key: "links", label: t("problems.links.tab") },
+            ...(changeAccess.visible ? [{ key: "changes", label: t("changes.related.tab") }] : []),
             { key: "history", label: t("problems.detail.tabs.history") },
           ]}
           active={tab}
@@ -175,6 +178,12 @@ export function ProblemDetailPage() {
         ) : null}
         {tab === "tickets" ? <ProblemTicketsPanel problem={problem} onChanged={refresh} /> : null}
         {tab === "links" ? <ProblemLinksPanel problem={problem} options={optionsQuery.data} /> : null}
+        {tab === "changes" && changeAccess.visible ? (
+          <RelatedChangesPanel
+            target={{ kind: "problem", problemId: problem.id }}
+            prefill={{ title: problem.title, problem: { id: problem.id, number: problem.number, title: problem.title, status: problem.status } }}
+          />
+        ) : null}
         {tab === "history" ? <ProblemHistoryPanel problemId={problem.id} versionKey={problem.version} /> : null}
       </div>
       {optionsQuery.data && canManage ? (

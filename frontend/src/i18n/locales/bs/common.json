@@ -7253,7 +7253,17 @@
       "save": "Spremi",
       "create": "Kreiraj",
       "created": "Promjena je kreirana",
-      "saved": "Promjena je spremljena"
+      "saved": "Promjena je spremljena",
+      "removeAsset": "Ukloni opremu {{tag}}",
+      "assetSearch": "Traži opremu po oznaci ili nazivu",
+      "assetResults": "Rezultati pretrage opreme",
+      "assetNone": "Nema pronađene opreme.",
+      "assetHint": "Upišite najmanje 2 znaka.",
+      "clearProblem": "Ukloni vezu s problemom",
+      "problemSearch": "Traži problem po broju ili naslovu",
+      "problemResults": "Rezultati pretrage problema",
+      "problemNone": "Nema pronađenih otvorenih problema.",
+      "problemHint": "Promjena može rješavati najviše jedan problem."
     },
     "detail": {
       "back": "Promjene",
@@ -7424,6 +7434,58 @@
         "outcome": "Izaberite ishod realizacije.",
         "reviewNotes": "Upišite bilješke pregleda (za neuspješne ili vraćene promjene najmanje 20 znakova)."
       }
+    },
+    "tabs": {
+      "register": "Registar",
+      "calendar": "Kalendar",
+      "templates": "Šabloni"
+    },
+    "calendar": {
+      "previous": "Prethodni mjesec",
+      "next": "Sljedeći mjesec",
+      "today": "Danas",
+      "truncated": "U periodu ima više od 500 stavki; prikaz nije potpun. Suzite period ili koristite registar.",
+      "legend": "Prikazane su zakazane i aktivne promjene, prekidi servisa koji nisu nastali iz promjene i periodi zamrzavanja (ikona pahulje).",
+      "caption": "Kalendar promjena za {{month}}",
+      "cellChanges_one": "{{count}} promjena",
+      "cellChanges_few": "{{count}} promjene",
+      "cellChanges_other": "{{count}} promjena",
+      "cellDowntime_one": "{{count}} prekid servisa",
+      "cellDowntime_few": "{{count}} prekida servisa",
+      "cellDowntime_other": "{{count}} prekida servisa",
+      "cellFreeze": "zamrzavanje: {{label}}",
+      "downtimeItem": "Prekid: {{service}}",
+      "more_one": "+{{count}} još",
+      "more_few": "+{{count}} još",
+      "more_other": "+{{count}} još",
+      "emptyTitle": "Nema stavki u ovom mjesecu",
+      "emptyBody": "U odabranom mjesecu nema promjena, prekida servisa ni zamrzavanja."
+    },
+    "templates": {
+      "includeInactive": "Prikaži i neaktivne",
+      "create": "Novi šablon",
+      "emptyTitle": "Nema šablona",
+      "emptyBody": "Šabloni omogućavaju standardne promjene bez CAB odobrenja. Dodajte prvi šablon.",
+      "caption": "Šabloni standardnih promjena",
+      "name": "Naziv",
+      "usage": "Korištenja",
+      "state": "Stanje",
+      "actions": "Akcije",
+      "active": "Aktivan",
+      "inactive": "Neaktivan",
+      "editNamed": "Uredi šablon {{name}}",
+      "saved": "Šablon je spremljen.",
+      "editTitle": "Uredi šablon",
+      "createTitle": "Novi šablon standardne promjene",
+      "sheetDescription": "Standardna promjena prolazi bez CAB-a, pa šablon smije biti samo niskog ili srednjeg rizika.",
+      "activeHint": "Neaktivan šablon se ne nudi pri kreiranju; postojeće promjene ostaju vezane za njega."
+    },
+    "related": {
+      "tab": "Promjene",
+      "title": "Povezane promjene",
+      "create": "Kreiraj promjenu",
+      "emptyTitle": "Nema povezanih promjena",
+      "emptyBody": "Promjene vezane za ovaj zapis pojavit će se ovdje."
     }
   }
 }

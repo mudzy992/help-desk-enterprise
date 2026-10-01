@@ -7184,7 +7184,17 @@
       "save": "Save",
       "create": "Create",
       "created": "Change created",
-      "saved": "Change saved"
+      "saved": "Change saved",
+      "removeAsset": "Remove asset {{tag}}",
+      "assetSearch": "Search assets by tag or name",
+      "assetResults": "Asset search results",
+      "assetNone": "No assets found.",
+      "assetHint": "Type at least 2 characters.",
+      "clearProblem": "Remove the problem link",
+      "problemSearch": "Search problems by number or title",
+      "problemResults": "Problem search results",
+      "problemNone": "No open problems found.",
+      "problemHint": "A change may fix at most one problem."
     },
     "detail": {
       "back": "Changes",
@@ -7352,6 +7362,55 @@
         "outcome": "Choose the implementation outcome.",
         "reviewNotes": "Enter review notes (at least 20 characters for failed or rolled-back changes)."
       }
+    },
+    "tabs": {
+      "register": "Register",
+      "calendar": "Calendar",
+      "templates": "Templates"
+    },
+    "calendar": {
+      "previous": "Previous month",
+      "next": "Next month",
+      "today": "Today",
+      "truncated": "The period has more than 500 items; the view is incomplete. Narrow the period or use the register.",
+      "legend": "Shows scheduled and active changes, service downtime not created by a change and freeze periods (snowflake icon).",
+      "caption": "Change calendar for {{month}}",
+      "cellChanges_one": "{{count}} change",
+      "cellChanges_other": "{{count}} changes",
+      "cellDowntime_one": "{{count}} service downtime",
+      "cellDowntime_other": "{{count}} service downtimes",
+      "cellFreeze": "freeze: {{label}}",
+      "downtimeItem": "Downtime: {{service}}",
+      "more_one": "+{{count}} more",
+      "more_other": "+{{count}} more",
+      "emptyTitle": "Nothing this month",
+      "emptyBody": "There are no changes, service downtimes or freezes in the selected month."
+    },
+    "templates": {
+      "includeInactive": "Show inactive",
+      "create": "New template",
+      "emptyTitle": "No templates",
+      "emptyBody": "Templates enable standard changes without CAB approval. Add the first template.",
+      "caption": "Standard change templates",
+      "name": "Name",
+      "usage": "Uses",
+      "state": "State",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "editNamed": "Edit template {{name}}",
+      "saved": "Template saved.",
+      "editTitle": "Edit template",
+      "createTitle": "New standard change template",
+      "sheetDescription": "A standard change skips the CAB, so a template may only be low or medium risk.",
+      "activeHint": "An inactive template is not offered when creating; existing changes stay linked to it."
+    },
+    "related": {
+      "tab": "Changes",
+      "title": "Linked changes",
+      "create": "Create change",
+      "emptyTitle": "No linked changes",
+      "emptyBody": "Changes linked to this record will appear here."
     }
   }
 }

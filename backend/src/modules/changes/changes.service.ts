@@ -6,7 +6,8 @@ import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
-import { formatProblemNumber } from '../problems/problem-rules';
+import { formatProblemNumber, parseProblemNumberSearch } from '../problems/problem-rules';
+import { problemVisibilityWhere } from '../problems/problem-visibility';
 import { ChangeAccessService, type ChangeConfiguration, type ChangeScope, type ChangeViewer } from './change-access.service';
 import {
   assertChangeAction,
@@ -795,6 +796,56 @@ export class ChangesService {
       take: 20,
     });
     return { items };
+  }
+
+  /**
+   * §11 link picker: equipment by tag, name or serial number. Only while the
+   * CMDB is on; at least two characters, at most 10 results.
+   */
+  async searchAssets(viewer: ChangeViewer, search: string) {
+    await this.access.require(viewer, permissionKeys.changeRequest);
+    if (!(await this.access.cmdbEnabled())) return { items: [] };
+    const term = search.trim().slice(0, changeLimits.searchMax);
+    if (term.length < 2) return { items: [] };
+    const items = await this.prisma.asset.findMany({
+      where: {
+        OR: [
+          { assetTag: { contains: term, mode: 'insensitive' } },
+          { name: { contains: term, mode: 'insensitive' } },
+          { serialNumber: { contains: term, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true, assetTag: true, name: true },
+      orderBy: { assetTag: 'asc' },
+      take: 10,
+    });
+    return { items };
+  }
+
+  /**
+   * §11 link picker: problems that are not closed or cancelled, by number or
+   * title. Only while the problem module is on; at most 10 results.
+   */
+  async searchProblems(viewer: ChangeViewer, search: string) {
+    await this.access.require(viewer, permissionKeys.changeRequest);
+    if (!(await this.access.problemsEnabled()) || !this.access.hasPermission(viewer, permissionKeys.problemRead)) return { items: [] };
+    const term = search.trim().slice(0, changeLimits.searchMax);
+    if (term.length < 1) return { items: [] };
+    // Same visibility as the problem register (3.3 §12).
+    const visible = problemVisibilityWhere(await this.access.scopeOf(viewer, permissionKeys.problemRead), viewer.userId);
+    const prefix = await this.access.problemNumberPrefix();
+    const sequence = parseProblemNumberSearch(term, prefix);
+    const rows = await this.prisma.problem.findMany({
+      where: {
+        status: { notIn: ['CLOSED', 'CANCELLED'] },
+        ...(visible === null ? {} : { AND: [visible] }),
+        OR: [{ title: { contains: term, mode: 'insensitive' } }, ...(sequence === null ? [] : [{ sequence }])],
+      },
+      select: { id: true, sequence: true, title: true, status: true },
+      orderBy: { sequence: 'desc' },
+      take: 10,
+    });
+    return { items: rows.map((row) => ({ id: row.id, number: formatProblemNumber(prefix, row.sequence), title: row.title, status: row.status })) };
   }
 
   /** Loads a change visible to the viewer; anything else reads as not found. */

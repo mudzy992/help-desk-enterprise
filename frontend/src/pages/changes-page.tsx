@@ -3,7 +3,9 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { GitPullRequestArrow, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ChangeCalendar } from "@/components/changes/change-calendar";
 import { ChangeFormSheet } from "@/components/changes/change-form-sheet";
+import { ChangeTemplatesPanel } from "@/components/changes/change-templates-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +22,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
+import { UnderlineTabs } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/toast";
 import {
   changeRiskKeys,
@@ -46,6 +49,8 @@ import {
   type ChangeStatus,
   type ChangeType,
 } from "@/services/changes-api";
+
+type PageTab = "register" | "calendar" | "templates";
 
 /** "open" and "all" are presets; any other value is a single status. */
 type StatusFilter = "open" | "all" | ChangeStatus;
@@ -82,6 +87,7 @@ export function ChangesPage() {
   const mine = params.get("mine") === "true";
   const awaitingMyVote = params.get("vote") === "true";
   const [createOpen, setCreateOpen] = useState(false);
+  const tabParam = params.get("tab");
 
   useEffect(() => {
     const handle = window.setTimeout(() => setSearch(searchText.trim()), 300);
@@ -189,9 +195,25 @@ export function ChangesPage() {
     </FilterField>
   );
 
+  // §17: calendar for everyone who reads changes; templates only for change managers.
+  const tab: PageTab = tabParam === "calendar" ? "calendar" : tabParam === "templates" && capabilities.canManage ? "templates" : "register";
+
   return (
     <section>
       {header}
+      <UnderlineTabs
+        items={[
+          { key: "register", label: t("changes.tabs.register") },
+          { key: "calendar", label: t("changes.tabs.calendar") },
+          ...(capabilities.canManage ? [{ key: "templates", label: t("changes.tabs.templates") }] : []),
+        ]}
+        active={tab}
+        onChange={(key) => setParam("tab", key === "register" ? "" : key)}
+      />
+      <div className="mt-3">
+      {tab === "calendar" ? <ChangeCalendar /> : null}
+      {tab === "templates" ? <ChangeTemplatesPanel options={optionsQuery.data} /> : null}
+      {tab === "register" ? (
       <div className="grid gap-3">
         <FilterBar
           label={t("changes.list.filtersLabel")}
@@ -379,6 +401,8 @@ export function ChangesPage() {
             {listQuery.isFetchingNextPage ? t("ui.loading") : t("changes.list.loadMore")}
           </Button>
         ) : null}
+      </div>
+      ) : null}
       </div>
       {optionsQuery.data ? (
         <ChangeFormSheet

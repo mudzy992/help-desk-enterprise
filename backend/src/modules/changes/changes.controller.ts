@@ -84,6 +84,20 @@ export class ChangesController {
     return runChange(() => this.changes.searchOwners(this.viewer(request), search ?? ''));
   }
 
+  /** §11: equipment for the link picker (CMDB on). */
+  @Get('link-search/assets')
+  @Header('Cache-Control', 'no-store')
+  searchAssets(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
+    return runChange(() => this.changes.searchAssets(this.viewer(request), search ?? ''));
+  }
+
+  /** §11: open problems for the link picker (problem module on). */
+  @Get('link-search/problems')
+  @Header('Cache-Control', 'no-store')
+  searchProblems(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
+    return runChange(() => this.changes.searchProblems(this.viewer(request), search ?? ''));
+  }
+
   /** §17: changes, downtime windows and freezes in a period. */
   @Get('calendar')
   @Header('Cache-Control', 'no-store')
