@@ -410,3 +410,9 @@ To je kriterij kompletnosti.
 - Računar koji nestane iz AD-a ili bude onemogućen se ne briše; dobija oznaku „nije u AD-u od …“, a otpis radi čovjek.
 - Zaštita: ako bi odjednom „nestalo“ previše računara (npr. pogrešan Base DN), ništa se ne označava i izvještaj upozorava.
 - Računari koji se ne mogu smjestiti u organizacionu jedinicu preskaču se dok se ne podesi rezervna jedinica.
+
+## Dežurstva i agenti s ulogom ograničenom na OJ (ispravka 2026-10-01)
+
+- Kalendar dežurstava je zajednički za sve grupe; vidi ga svaki nosilac `oncall.read`, uključujući agente čija je uloga AGENT dodijeljena samo za njihovu organizacionu jedinicu.
+- Uređivanje rasporeda i zamjena (`oncall.manage`) i dalje traži dodjelu bez ograničenja na OJ (administrator).
+- Opšte pravilo ostaje: dozvola dodijeljena za jednu OJ ne otvara globalne administratorske funkcije; izuzeci su pobrojani u `scopeAgnosticPermissionKeys`.

@@ -1,4 +1,5 @@
 import { authorizationDecisionReasons } from './authorization-decision-reason';
+import { scopeAgnosticPermissionKeys } from './authorization.constants';
 import { doesOrganizationalUnitScopeCover } from './does-organizational-unit-scope-cover';
 import { doesServiceScopeCover } from './does-service-scope-cover';
 import type {
@@ -46,6 +47,9 @@ function doesAssignmentGrant(
       return false;
     }
   }
+  const scopeAgnostic =
+    input.requiredPermissions.length > 0 &&
+    input.requiredPermissions.every((permissionKey) => scopeAgnosticPermissionKeys.includes(permissionKey));
   if (input.requireOrganizationalUnitScope) {
     if (
       !doesOrganizationalUnitScopeCover({
@@ -57,7 +61,8 @@ function doesAssignmentGrant(
     }
   } else if (
     input.requiredPermissions.length > 0 &&
-    assignment.organizationalUnitId !== null
+    assignment.organizationalUnitId !== null &&
+    !scopeAgnostic
   ) {
     return false;
   }
@@ -72,7 +77,8 @@ function doesAssignmentGrant(
     }
   } else if (
     input.requiredPermissions.length > 0 &&
-    assignment.serviceId !== null
+    assignment.serviceId !== null &&
+    !scopeAgnostic
   ) {
     return false;
   }

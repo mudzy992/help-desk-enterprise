@@ -51,6 +51,47 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
     ).toBe(false);
   });
 
+  it('lets an OU-scoped agent read the shared on-call calendar (scope-agnostic permission)', () => {
+    const scopedAgent = createTestAuthorizationContext({
+      assignments: [
+        createTestAssignment({
+          roleKey: authorizationRoleKeys.agent,
+          permissionKeys: [permissionKeys.onCallRead],
+          organizationalUnitId: 'ou-zenica',
+          organizationalUnitPath: '/Korisnici/ED Zenica',
+        }),
+      ],
+    });
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({ context: scopedAgent, requiredPermissions: [permissionKeys.onCallRead] }),
+      ),
+    ).toBe(true);
+    // Managing stays fail-closed for scoped assignments.
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({
+          context: createTestAuthorizationContext({
+            assignments: [
+              createTestAssignment({
+                permissionKeys: [permissionKeys.onCallManage],
+                organizationalUnitId: 'ou-zenica',
+                organizationalUnitPath: '/Korisnici/ED Zenica',
+              }),
+            ],
+          }),
+          requiredPermissions: [permissionKeys.onCallManage],
+        }),
+      ),
+    ).toBe(false);
+    // A mixed requirement is not scope-agnostic.
+    expect(
+      evaluateAuthorizationAccess(
+        createTestDecisionInput({ context: scopedAgent, requiredPermissions: [permissionKeys.onCallRead, permissionKeys.routingWrite] }),
+      ),
+    ).toBe(false);
+  });
+
   it('grants SuperAdmin every well-formed permission and role', () => {
     const superAdmin = createTestAuthorizationContext({
       subjectId: 'super-admin-1',
