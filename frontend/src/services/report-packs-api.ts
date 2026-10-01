@@ -13,7 +13,12 @@ export type ReportPackKey =
   | "asset_expiring"
   | "asset_license_compliance"
   | "asset_top_tickets"
-  | "asset_inactive_holders";
+  | "asset_inactive_holders"
+  | "problem_top"
+  | "problem_time_to_known_error"
+  | "problem_time_to_resolution"
+  | "problem_backlog"
+  | "problem_recurrence";
 
 export type ReportExportFormat = "csv" | "json";
 

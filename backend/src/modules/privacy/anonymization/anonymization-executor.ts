@@ -341,6 +341,44 @@ export class AnonymizationExecutor {
       add('inboundEmails', 1);
     }
 
+    // Paket 3.3 P6: problem texts may name the person (as reporter, owner or in
+    // a linked ticket quoted into the analysis). The pseudonymised user row
+    // keeps the ownership; free text and event details are scrubbed.
+    const problems = await this.prisma.problem.findMany({
+      where: {
+        OR: [
+          { createdByUserId: u },
+          { ownerUserId: u },
+          ...(scope.scrub.length > 0 ? [{ tickets: { some: { ticketId: { in: scope.scrub } } } }] : []),
+        ],
+      },
+      select: { id: true, title: true, description: true, rootCause: true, rcaWhys: true, workaround: true, resolution: true, cancelReason: true },
+    });
+    for (const problem of problems) {
+      const data: Record<string, unknown> = {};
+      for (const column of ['title', 'description', 'rootCause', 'workaround', 'resolution', 'cancelReason'] as const) {
+        const value = problem[column];
+        if (value === null) continue;
+        const result = scrubber.scrub(value);
+        if (result.count > 0) data[column] = result.text;
+      }
+      const whys = scrubber.scrubJson(problem.rcaWhys);
+      if (whys.count > 0) data.rcaWhys = whys.value;
+      if (Object.keys(data).length === 0) continue;
+      await this.prisma.problem.update({ where: { id: problem.id }, data: data as never });
+      add('problems', 1);
+    }
+    const problemEvents = await this.prisma.problemEvent.findMany({
+      where: { OR: [{ actorUserId: u }, ...(problems.length > 0 ? [{ problemId: { in: problems.map((row) => row.id) } }] : [])] },
+      select: { id: true, detail: true },
+    });
+    for (const event of problemEvents) {
+      const detail = scrubber.scrubJson(event.detail);
+      if (detail.count === 0) continue;
+      await this.prisma.problemEvent.update({ where: { id: event.id }, data: { detail: detail.value as never } });
+      add('problemEvents', 1);
+    }
+
     // Change log entries about or by the person.
     const changeLogs = await this.prisma.changeLog.findMany({
       where: { OR: [{ entityId: u }, { actorUserId: u }] },

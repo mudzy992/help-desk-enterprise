@@ -41,3 +41,9 @@ Tab **Veze** na problemu prikazuje:
 - **Incidenti na status stranici** (kad je status stranica uključena) – prekidi čiji je uzrok ovaj problem.
 
 Veze uređuje upravitelj problema iz grupe dok problem nije zatvoren. Na kartici opreme pojavljuje se tab **Problemi**, a na incidentu napomena „Ovaj prekid je posljedica problema …“.
+
+## Izvještaji
+Dok je modul uključen, u **Izvještajima** se pojavljuje pet paketa: problemi s najviše povezanih tiketa, vrijeme do poznate greške, vrijeme do rješenja (medijan i 90. percentil po prioritetu i grupi), otvoreni problemi po starosti s probijenim rokovima, te ponavljanja nakon rješenja. Mogu se izvesti i zakazati kao i ostali paketi.
+
+## Lični podaci
+Izvoz ličnih podataka sadrži `problems.json`. Anonimizacija osobe uklanja njeno ime iz teksta problema.

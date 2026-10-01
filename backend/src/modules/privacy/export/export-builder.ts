@@ -1,5 +1,8 @@
 import JSZip from 'jszip';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { formatProblemNumber } from '../../problems/problem-rules';
+import { problemDefaults } from '../../settings/definitions/problem-settings';
+import { settingKeys } from '../../settings/setting-keys';
 import type { TicketAttachmentStorage } from '../../tickets/attachments/attachments.types';
 
 const batch = 1000;
@@ -340,6 +343,49 @@ export class ExportBuilder {
       }),
     );
 
+    // Paket 3.3 P6: problems the person reported or owns, and their own problem actions.
+    const [problemPrefixRow, problems, problemActions] = await Promise.all([
+      this.prisma.appSetting.findUnique({ where: { key: settingKeys.privateProblemsNumberPrefix }, select: { value: true } }),
+      this.prisma.problem.findMany({
+        where: { OR: [{ createdByUserId: u }, { ownerUserId: u }] },
+        orderBy: { sequence: 'asc' },
+        select: {
+          sequence: true,
+          title: true,
+          description: true,
+          status: true,
+          priority: true,
+          rootCause: true,
+          workaround: true,
+          resolution: true,
+          createdByUserId: true,
+          ownerUserId: true,
+          createdAt: true,
+          resolvedAt: true,
+          closedAt: true,
+        },
+      }),
+      this.prisma.problemEvent.findMany({
+        where: { actorUserId: u },
+        orderBy: { createdAt: 'asc' },
+        select: { action: true, createdAt: true, problem: { select: { sequence: true } } },
+      }),
+    ]);
+    const problemPrefix = typeof problemPrefixRow?.value === 'string' ? problemPrefixRow.value : problemDefaults.numberPrefix;
+    counts.problems = problems.length;
+    counts.problemActions = problemActions.length;
+    zip.file(
+      'problems.json',
+      json({
+        problems: problems.map(({ sequence, createdByUserId, ownerUserId, ...row }) => ({
+          number: formatProblemNumber(problemPrefix, sequence),
+          roles: [...(createdByUserId === u ? ['reporter'] : []), ...(ownerUserId === u ? ['owner'] : [])],
+          ...row,
+        })),
+        actions: problemActions.map((row) => ({ problem: formatProblemNumber(problemPrefix, row.problem.sequence), action: row.action, createdAt: row.createdAt })),
+      }),
+    );
+
     const audit: unknown[] = [];
     await paginate(
       (cursor) =>
@@ -475,6 +521,7 @@ function readme(
     '  activity.json – vaše radnje na tiketima, evidencija vremena, spominjanja',
     '  sessions.json – prijave (vrijeme, IP adresa, preglednik)',
     '  notifications.json – obavještenja',
+    '  problems.json – problemi koje ste prijavili ili vodite i vaše radnje na njima',
     '  audit.json – zapisi revizije gdje ste akter ili predmet',
     '  attachments/ – prilozi koje ste vi priložili',
     `Interne bilješke drugih zaposlenih: ${notes.split(' / ')[0]}. One su izostavljene zadano radi zaštite`,

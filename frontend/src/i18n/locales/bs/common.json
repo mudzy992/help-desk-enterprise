@@ -1769,7 +1769,12 @@
         "asset_expiring": "Imovina: ističe u 90 dana",
         "asset_license_compliance": "Imovina: usklađenost licenci",
         "asset_top_tickets": "Imovina: oprema s najviše tiketa",
-        "asset_inactive_holders": "Imovina: oprema kod neaktivnih ili premještenih korisnika"
+        "asset_inactive_holders": "Imovina: oprema kod neaktivnih ili premještenih korisnika",
+        "problem_top": "Problemi: najviše povezanih tiketa",
+        "problem_time_to_known_error": "Problemi: vrijeme do poznate greške",
+        "problem_time_to_resolution": "Problemi: vrijeme do rješenja",
+        "problem_backlog": "Problemi: otvoreni po starosti",
+        "problem_recurrence": "Problemi: ponavljanja nakon rješenja"
       },
       "descriptions": {
         "monthly_kpi": "Kreirani, riješeni i zatvoreni tiketi, SLA prekoračenja, CSAT i prosječna vremena odziva i rješavanja.",
@@ -1782,7 +1787,12 @@
         "asset_expiring": "Garancije, ugovori i licence koje ističu u narednih 90 dana od generisanja, najbliži prvi. Period se ne primjenjuje.",
         "asset_license_compliance": "Licence s brojem mjesta, iskorištenim, slobodnim i prekoračenim mjestima; prekoračene su na vrhu. Licence za lokaciju se ne broje.",
         "asset_top_tickets": "Do 50 stavki opreme s najviše tiketa kreiranih u odabranom periodu, s brojem još otvorenih.",
-        "asset_inactive_holders": "Oprema zadužena na korisnika koji je deaktiviran ili je u OJ izvan OJ opreme. Period se ne primjenjuje."
+        "asset_inactive_holders": "Oprema zadužena na korisnika koji je deaktiviran ili je u OJ izvan OJ opreme. Period se ne primjenjuje.",
+        "problem_top": "Do 50 problema s najviše tiketa povezanih u odabranom periodu, s ukupnim brojem i brojem još otvorenih tiketa.",
+        "problem_time_to_known_error": "Medijan i 90. percentil sati od prijave problema do poznate greške, po prioritetu i problem-grupi, za probleme koji su u periodu postali poznata greška.",
+        "problem_time_to_resolution": "Medijan i 90. percentil sati od prijave problema do rješenja, po prioritetu i problem-grupi, za probleme riješene u periodu.",
+        "problem_backlog": "Trenutno otvoreni problemi po statusu i starosti (0–7, 8–30, 31–90, 90+ dana), s brojem probijenih rokova. Ne zavisi od perioda.",
+        "problem_recurrence": "Problemi na koje su u periodu povezani tiketi nakon što su riješeni – znak da uzrok nije stvarno otklonjen."
       },
       "columns": {
         "createdCount": "Kreirano",
@@ -1837,7 +1847,20 @@
         "holder": "Zadužen",
         "reason": "Razlog",
         "holderUnit": "OJ korisnika",
-        "assetUnit": "OJ opreme"
+        "assetUnit": "OJ opreme",
+        "problemNumber": "Problem",
+        "priority": "Prioritet",
+        "rootCauseCategory": "Kategorija uzroka",
+        "problemGroup": "Problem-grupa",
+        "ticketsInPeriod": "Tiketi u periodu",
+        "ticketsTotal": "Tiketi ukupno",
+        "medianHours": "Medijan (h)",
+        "p90Hours": "P90 (h)",
+        "ageBucket": "Starost (dana)",
+        "overdue": "Probijen rok",
+        "resolvedAt": "Riješen",
+        "recurrenceTickets": "Ponovljeni tiketi",
+        "lastRecurrenceAt": "Zadnje ponavljanje"
       },
       "rowTypes": {
         "agent_service": "Agent × servis",

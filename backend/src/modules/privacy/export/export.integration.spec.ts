@@ -127,6 +127,7 @@ describeIfDatabase('privacy export (integration)', () => {
         'tickets.csv',
         'messages.json',
         'authored.json',
+        'problems.json',
         'activity.json',
         'sessions.json',
         'notifications.json',
