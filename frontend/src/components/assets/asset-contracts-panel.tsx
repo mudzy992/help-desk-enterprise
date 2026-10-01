@@ -15,7 +15,6 @@ import {
   selectCompactClassName,
   tableHeadClassName,
   tableRowClassName,
-  tableWrapClassName,
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -117,7 +116,7 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
         <EmptyState icon={<FileText size={18} />} title={t("assets.contracts.emptyTitle")} body={t("assets.contracts.emptyBody")} />
       ) : (
         <Card className="overflow-hidden p-0">
-          <div className={tableWrapClassName}>
+          <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <caption className="sr-only">{t("assets.contracts.caption")}</caption>
               <thead>

@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
@@ -64,13 +64,13 @@ function SignatoriesCard() {
           </p>
         ) : null}
         {units.length > 0 ? (
-          <div className={tableWrapClassName}>
+          <div className="overflow-x-auto rounded-md border border-border/70">
             <table className="w-full text-[12.5px]">
               <thead>
-                <tr>
-                  <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.unit")}</th>
-                  <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.own")}</th>
-                  <th scope="col" className={tableHeadClassName}>{t("assets.transfers.signatories.effective")}</th>
+                <tr className={tableHeadClassName}>
+                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.unit")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.own")}</th>
+                  <th scope="col" className="px-3 py-2 text-left">{t("assets.transfers.signatories.effective")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -206,16 +206,24 @@ export function formatAssetDate(date: string | null, language: string): string {
   if (date === null) return "—";
   const parsed = new Date(date.length === 10 ? `${date}T00:00:00Z` : date);
   if (Number.isNaN(parsed.getTime())) return date;
+  // Explicit fields, not `dateStyle`: without Bosnian CLDR data a browser
+  // renders "bs-BA" medium as "2026 M10 5" (same fix as announcements).
   return new Intl.DateTimeFormat(language.startsWith("bs") ? "bs-BA" : "en-GB", {
-    dateStyle: "medium",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     ...(date.length === 10 ? { timeZone: "UTC" } : {}),
   }).format(parsed);
 }
 
 export function formatAssetDateTime(value: string, language: string): string {
   return new Intl.DateTimeFormat(language.startsWith("bs") ? "bs-BA" : "en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
   }).format(new Date(value));
 }
 

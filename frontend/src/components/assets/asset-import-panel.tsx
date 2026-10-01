@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
 import { Field, Select } from "@/components/ui/field";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
@@ -281,7 +281,7 @@ export function AssetImportPanel() {
                     {t("assets.import.downloadErrors")}
                   </Button>
                 </div>
-                <div className={`${tableWrapClassName} max-h-[360px]`}>
+                <div className="max-h-[360px] overflow-auto border-t border-border/70">
                   <table className="w-full text-[12.5px]">
                     <caption className="sr-only">{t("assets.import.errorsCaption")}</caption>
                     <thead>
@@ -351,7 +351,7 @@ export function AssetImportPanel() {
         {(jobsQuery.data?.items ?? []).length === 0 ? (
           <p className={`p-4 ${hintClassName}`}>{jobsQuery.isLoading ? t("ui.loading") : t("assets.import.historyEmpty")}</p>
         ) : (
-          <div className={tableWrapClassName}>
+          <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <caption className="sr-only">{t("assets.import.historyTitle")}</caption>
               <thead>

@@ -6,7 +6,7 @@ import { FlaskConical, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
 import { StatCard } from "@/components/ui/stat-card";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
@@ -122,7 +122,7 @@ export function AssetDirectorySyncCard() {
         ) : null}
 
         {conflicts.length > 0 ? (
-          <div className={tableWrapClassName}>
+          <div className="overflow-x-auto rounded-md border border-border/70">
             <table className="w-full text-[12.5px]">
               <caption className="px-3 py-2 text-left text-[12.5px] font-medium text-foreground">{t("assets.directory.conflictsTitle", { count: conflicts.length })}</caption>
               <thead>

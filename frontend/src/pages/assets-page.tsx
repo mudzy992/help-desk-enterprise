@@ -24,7 +24,6 @@ import {
   controlCompactClassName,
   tableHeadClassName,
   tableRowClassName,
-  tableWrapClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
 import { AssetImportPanel } from "@/components/assets/asset-import-panel";
@@ -402,7 +401,7 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
         />
       ) : (
         <Card className="overflow-hidden p-0">
-          <div className={tableWrapClassName}>
+          <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <caption className="sr-only">{t("assets.list.caption")}</caption>
               <thead>

@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
-import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName, tableWrapClassName } from "@/components/ui/control";
+import { errorTextClassName, hintClassName, tableHeadClassName, tableRowClassName } from "@/components/ui/control";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { assetStatusKeys, formatAssetDate, formatAssetDateTime, mapAssetError } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
@@ -178,13 +178,13 @@ function Empty({ text }: { readonly text: string }) {
 
 function OverviewTable({ caption, headers, rows }: { readonly caption: string; readonly headers: readonly string[]; readonly rows: readonly (readonly ReactNode[])[] }) {
   return (
-    <div className={tableWrapClassName}>
+    <div className="overflow-x-auto">
       <table className="w-full text-[12.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr>
+          <tr className={tableHeadClassName}>
             {headers.map((header) => (
-              <th key={header} scope="col" className={tableHeadClassName}>
+              <th key={header} scope="col" className="px-3 py-2 text-left">
                 {header}
               </th>
             ))}

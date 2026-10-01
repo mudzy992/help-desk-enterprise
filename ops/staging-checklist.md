@@ -61,6 +61,14 @@ Kod 2 s `NOPERM ... access a channel` znači ACL: dodati **aditivno**, bez
 (`PSUBSCRIBE` traži literalno poklapanje patterna; `&socket.io#*` ne pokriva
 `socket.io#/#*`). Detalji u `ops/runbook/redis-down.md`.
 
+**Redis korisnik `ephelpdesk` (puna definicija):** ključevi `~ephelpdesk*`
+(`REDIS_KEY_PREFIX`) **i** `~bull:ephelpdesk*` (`QUEUE_PREFIX`, BullMQ; bez
+njega worker pada s `NOPERM No permissions to access a key` na `evalsha`),
+kanali (`allchannels` ili barem `&socket.io#/#*`), komande `+@all` bez
+administrativnih. Korisnik kreiran samo s `ACL SETUSER` nestaje pri restartu
+Redisa: **uvijek `ACL SAVE`** (fajl `aclfile`, npr. `/etc/redis/users.acl`) i
+provjera `ACL USERS` nakon restarta servera.
+
 **Prečac bez tunela:** aplikacija već sama sebi dokazuje adapter pri startu —
 u API logu svake instance tražiti `ws_adapter_redis_ok=1`. Ako je umjesto toga
 `ws_adapter_redis_acl_denied channel=...`, instanca radi s in-memory adapterom i
