@@ -12,10 +12,10 @@ export function useAssetProblems(assetId: string) {
   return useQuery({ queryKey: problemLinkKeys.byAsset(assetId), queryFn: () => getProblemsForAsset(assetId), retry: false, staleTime: 60_000 });
 }
 
-function ProblemRows({ items }: { readonly items: readonly ProblemReference[] }) {
+function ProblemRows({ items, compact = false }: { readonly items: readonly ProblemReference[]; readonly compact?: boolean }) {
   const { t } = useTranslation();
   return (
-    <ul className="grid gap-0.5">
+    <ul className={compact ? "grid gap-0.5" : "grid gap-0.5 px-2 py-2"}>
       {items.map((item) => (
         <li key={item.id} className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] hover:bg-muted/60">
           <Puzzle size={13} className="shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -52,8 +52,8 @@ export function IncidentProblemLinks({ incidentId }: { readonly incidentId: stri
   if (items.length === 0) return null;
   return (
     <div className="mt-2 grid gap-1 rounded-md border border-border/70 p-2" data-testid="incident-problem-links">
-      <p className="text-[12px] font-medium text-muted-foreground">{t("problems.links.incidentCausedBy", { count: items.length })}</p>
-      <ProblemRows items={items} />
+      <p className="px-2 text-[12px] font-medium text-muted-foreground">{t("problems.links.incidentCausedBy", { count: items.length })}</p>
+      <ProblemRows items={items} compact />
     </div>
   );
 }

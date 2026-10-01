@@ -130,7 +130,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
 
       <Card>
         <CardHeader title={t("problems.links.servicesTitle")} subtitle={t("problems.links.servicesSubtitle")} />
-        <div className="grid gap-2">
+        <div className="grid gap-2 px-4 py-3">
           <p className="text-[12.5px] text-foreground">
             <span className="text-muted-foreground">{t("problems.links.mainService")}: </span>
             {problem.service?.name ?? t("problems.form.none")}
@@ -180,7 +180,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
       {links.cmdbEnabled ? (
         <Card>
           <CardHeader title={t("problems.links.assetsTitle")} subtitle={t("problems.links.assetsSubtitle")} />
-          <div className="grid gap-3">
+          <div className="grid gap-3 px-4 py-3">
             {links.assets.length === 0 ? (
               <p className={hintClassName}>{t("problems.links.assetsEmpty")}</p>
             ) : (
@@ -258,7 +258,7 @@ export function ProblemLinksPanel({ problem, options }: ProblemLinksPanelPropert
       {links.statusEnabled ? (
         <Card>
           <CardHeader title={t("problems.links.incidentsTitle")} subtitle={t("problems.links.incidentsSubtitle")} />
-          <div className="grid gap-3">
+          <div className="grid gap-3 px-4 py-3">
             {links.incidents.length === 0 ? (
               <p className={hintClassName}>{t("problems.links.incidentsEmpty")}</p>
             ) : (
