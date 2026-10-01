@@ -115,7 +115,7 @@ To je kriterij kompletnosti.
 - **Postavke / permisije:** nema. Osigurač: ako se greška ponovi u roku od 30 s, stranica se ne
   osvježava ponovo sama.
 - **Izvori:** `frontend/src/lib/app/chunk-reload.ts`, `frontend/nginx.conf` (keširanje
-  `index.html` i `/assets/`)
+  `index.html` i `/static/`; build folder nije `/assets/` jer je to ruta modula Imovina)
 - **Status:** Važi
 - **Wiki stranica:** Početak → Česta pitanja; Operativa → Ažuriranje verzije
 
