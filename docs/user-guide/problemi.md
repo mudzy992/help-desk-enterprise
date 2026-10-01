@@ -33,3 +33,11 @@ Agent u „Dodaj u problem“ vidi samo probleme svoje organizacione jedinice.
 
 ## Registar
 Lista se filtrira po statusu, prioritetu, vlasniku, grupi, servisu, roku i kategoriji uzroka. Kolona „Tiketi“ prikazuje otvorene i ukupne povezane tikete, a „Starost“ broj dana od otvaranja. Prečica **g p** otvara Probleme.
+
+## Veze (servisi, oprema, incidenti)
+Tab **Veze** na problemu prikazuje:
+- **Servisi** – glavni servis i dodatni zahvaćeni servisi.
+- **Zahvaćena oprema** (kad je evidencija imovine uključena) – aplikacija predlaže opremu prikačenu na povezane tikete; može se dodati pojedinačno ili sve odjednom, ili pronaći pretragom.
+- **Incidenti na status stranici** (kad je status stranica uključena) – prekidi čiji je uzrok ovaj problem.
+
+Veze uređuje upravitelj problema iz grupe dok problem nije zatvoren. Na kartici opreme pojavljuje se tab **Problemi**, a na incidentu napomena „Ovaj prekid je posljedica problema …“.

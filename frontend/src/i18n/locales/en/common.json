@@ -6691,7 +6691,9 @@
       "articleInvalid": "The article could not be created. Check the title, text, service and organizational unit.",
       "validationUnit": "The problem has no organizational unit: your account has no home unit and the ticket's unit is outside your scope. Contact an administrator.",
       "notProblemGroup": "The chosen group is not a problem group.",
-      "ownerNotInGroup": "The owner must be a problem manager and a member of the chosen group."
+      "ownerNotInGroup": "The owner must be a problem manager and a member of the chosen group.",
+      "assetNotFound": "The asset was not found or the asset register is off.",
+      "incidentNotFound": "The incident was not found or the status page is off."
     },
     "title": "Problems",
     "subtitle": "Causes behind recurring incidents: analysis, workarounds and known errors.",
@@ -6844,7 +6846,13 @@
       "knowledgeArticle": "Article draft “{{title}}” created",
       "ticketsResolved": "Group ticket resolution: {{resolved}} resolved, {{skipped}} skipped, {{failed}} failed",
       "statusAuto": "Status: {{from}} → {{to}} (automatically after {{days}} d without reopening)",
-      "ticketLinkedRecurrence": "Linked ticket {{ticket}} — recurrence of a resolved problem"
+      "ticketLinkedRecurrence": "Linked ticket {{ticket}} — recurrence of a resolved problem",
+      "assetLinked": "Affected equipment {{asset}} added",
+      "assetUnlinked": "Affected equipment {{asset}} removed",
+      "serviceLinked": "Service {{service}} added",
+      "serviceUnlinked": "Service {{service}} removed",
+      "incidentLinked": "Incident “{{incident}}” linked",
+      "incidentUnlinked": "Incident “{{incident}}” unlinked"
     },
     "detail": {
       "back": "All problems",
@@ -6913,6 +6921,40 @@
       }
     },
     "setupTitle": "The problem module needs setting up",
-    "setupBody": "An administrator needs to mark at least one group as a problem group (Groups → edit → Problem group) and add problem managers to it."
+    "setupBody": "An administrator needs to mark at least one group as a problem group (Groups → edit → Problem group) and add problem managers to it.",
+    "links": {
+      "tab": "Links",
+      "servicesTitle": "Services",
+      "servicesSubtitle": "The main service is changed through “Edit”; add the other affected services here.",
+      "mainService": "Main service",
+      "servicesEmpty": "No additional services.",
+      "chooseService": "Choose a service",
+      "addService": "Add service",
+      "removeService": "Remove service {{name}}",
+      "assetsTitle": "Affected equipment",
+      "assetsSubtitle": "Asset register items affected by the problem.",
+      "assetsEmpty": "No affected equipment marked.",
+      "removeAsset": "Remove {{tag}}",
+      "addAsset": "Add {{tag}}",
+      "suggestedTitle": "Suggested from linked tickets",
+      "addAllSuggested_one": "Add {{count}} item",
+      "addAllSuggested_other": "Add all ({{count}})",
+      "suggestedTickets_one": "{{count}} ticket",
+      "suggestedTickets_other": "{{count}} tickets",
+      "assetSearch": "Search equipment by asset tag, name or serial number",
+      "searchResults": "Search results",
+      "noResults": "No results.",
+      "incidentsTitle": "Status page incidents",
+      "incidentsSubtitle": "Outages users were told about that this problem causes. A problem never publishes to the status page by itself.",
+      "incidentsEmpty": "No linked incidents.",
+      "incidentSearch": "Search incidents (active and resolved in the last 180 days)",
+      "addIncident": "Link incident {{title}}",
+      "removeIncident": "Unlink incident {{title}}",
+      "assetProblemsTab": "Problems",
+      "assetProblemsTitle": "Problems",
+      "assetProblemsSubtitle": "Problems that list this item as affected equipment.",
+      "incidentCausedBy_one": "This outage is caused by problem:",
+      "incidentCausedBy_other": "This outage is caused by problems:"
+    }
   }
 }

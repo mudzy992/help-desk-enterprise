@@ -66,6 +66,10 @@ describe("problem-view", () => {
       'problems.history.updated:{"fields":"problems.fields.title, problems.fields.rootCause"}',
     );
     expect(problemHistoryText(t, "ticket_linked", { ticketNumber: "T-000001" })).toBe('problems.history.ticketLinked:{"ticket":"T-000001"}');
+    // P5b: link events of CMDB items, services and incidents.
+    expect(problemHistoryText(t, "asset_linked", { assetTag: "PC-0042" })).toBe('problems.history.assetLinked:{"asset":"PC-0042"}');
+    expect(problemHistoryText(t, "service_unlinked", { name: "Mail" })).toBe('problems.history.serviceUnlinked:{"service":"Mail"}');
+    expect(problemHistoryText(t, "incident_linked", { title: "VPN prekid" })).toBe('problems.history.incidentLinked:{"incident":"VPN prekid"}');
     expect(problemHistoryText(t, "knowledge_article", { title: "Printer" })).toBe('problems.history.knowledgeArticle:{"title":"Printer"}');
     expect(problemHistoryText(t, "tickets_resolved", { resolved: 3, skipped: 1, failed: 0 })).toBe(
       'problems.history.ticketsResolved:{"resolved":3,"skipped":1,"failed":0}',

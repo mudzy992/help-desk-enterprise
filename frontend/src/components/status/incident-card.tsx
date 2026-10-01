@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bell, BellOff, CheckCircle2, ChevronDown, ChevronUp, Link2, Megaphone, Pencil } from "lucide-react";
+import { IncidentProblemLinks } from "@/components/problems/problem-reference-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -101,6 +102,7 @@ export function IncidentCard({
               </>
             ) : null}
           </p>
+          {canManage ? <IncidentProblemLinks incidentId={incident.id} /> : null}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {!resolved && onSubscribe ? (

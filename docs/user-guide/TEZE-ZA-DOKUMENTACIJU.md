@@ -437,3 +437,4 @@ To je kriterij kompletnosti.
 - Vlasnik problema može biti samo upravitelj problema iz te grupe. Ako vlasnik nije određen, upravitelji grupe dobiju obavijest, a bilo ko od njih problem preuzima dugmetom „Preuzmi“ i rješava ga ili zatvara.
 - Podsjetnik za rok ide vlasniku, a ako ga nema – grupi. Obavijest o ponavljanju ide i vlasniku i grupi. Grupa problema se može promijeniti; vlasnik koji nije u novoj grupi se uklanja.
 - Ko je prijavio problem, uvijek ga vidi.
+- Problem može navesti zahvaćenu opremu iz evidencije imovine (uz prijedlog iz povezanih tiketa), dodatne servise i incidente sa status stranice; veze uređuje upravitelj problema iz grupe, a oprema i incident pokazuju povezane probleme.

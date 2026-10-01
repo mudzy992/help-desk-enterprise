@@ -68,6 +68,8 @@ const problemErrorKeys = {
   PROBLEM_ARTICLE_INVALID: "problems.errors.articleInvalid",
   PROBLEM_NOT_PROBLEM_GROUP: "problems.errors.notProblemGroup",
   PROBLEM_OWNER_NOT_IN_GROUP: "problems.errors.ownerNotInGroup",
+  PROBLEM_ASSET_NOT_FOUND: "problems.errors.assetNotFound",
+  PROBLEM_INCIDENT_NOT_FOUND: "problems.errors.incidentNotFound",
 } as const;
 
 /** Whole days since the problem was opened (never negative). */
@@ -192,6 +194,19 @@ export function problemHistoryText(t: Translate, action: string, detail: Record<
       const count = (key: string) => (detail !== null && typeof detail[key] === "number" ? (detail[key] as number) : 0);
       return t("problems.history.ticketsResolved", { resolved: count("resolved"), skipped: count("skipped"), failed: count("failed") });
     }
+    // P5b (§9): affected CMDB items, extra services, status-page incidents.
+    case "asset_linked":
+      return t("problems.history.assetLinked", { asset: value("assetTag") ?? "—" });
+    case "asset_unlinked":
+      return t("problems.history.assetUnlinked", { asset: value("assetTag") ?? "—" });
+    case "service_linked":
+      return t("problems.history.serviceLinked", { service: value("name") ?? "—" });
+    case "service_unlinked":
+      return t("problems.history.serviceUnlinked", { service: value("name") ?? "—" });
+    case "incident_linked":
+      return t("problems.history.incidentLinked", { incident: value("title") ?? "—" });
+    case "incident_unlinked":
+      return t("problems.history.incidentUnlinked", { incident: value("title") ?? "—" });
     default:
       return action;
   }

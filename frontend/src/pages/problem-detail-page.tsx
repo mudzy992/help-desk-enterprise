@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ProblemAnalysisPanel } from "@/components/problems/problem-analysis-panel";
 import { ProblemArticleSheet } from "@/components/problems/problem-article-sheet";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
+import { ProblemLinksPanel } from "@/components/problems/problem-links-panel";
 import { ProblemHistoryPanel } from "@/components/problems/problem-history-panel";
 import { ProblemStatusSheet } from "@/components/problems/problem-status-sheet";
 import { ProblemTicketsPanel } from "@/components/problems/problem-tickets-panel";
@@ -24,7 +25,7 @@ import { ticketPriorityLabelKey, ticketSeverityLabelKey } from "@/lib/tickets/ti
 import { ticketText } from "@/lib/tickets/ticket-text";
 import { claimProblem, getProblem, getProblemOptions, problemDetailKeys, problemQueryKeys, type ProblemDetail, type ProblemStatus } from "@/services/problems-api";
 
-type Tab = "overview" | "analysis" | "tickets" | "history";
+type Tab = "overview" | "analysis" | "tickets" | "links" | "history";
 
 /** Paket 3.3 (§14): problem record with overview, analysis, tickets and history. */
 export function ProblemDetailPage() {
@@ -155,6 +156,7 @@ export function ProblemDetailPage() {
             { key: "overview", label: t("problems.detail.tabs.overview") },
             { key: "analysis", label: t("problems.detail.tabs.analysis") },
             { key: "tickets", label: t("problems.detail.tabs.tickets"), count: problem.ticketCount },
+            { key: "links", label: t("problems.links.tab") },
             { key: "history", label: t("problems.detail.tabs.history") },
           ]}
           active={tab}
@@ -172,6 +174,7 @@ export function ProblemDetailPage() {
           />
         ) : null}
         {tab === "tickets" ? <ProblemTicketsPanel problem={problem} onChanged={refresh} /> : null}
+        {tab === "links" ? <ProblemLinksPanel problem={problem} options={optionsQuery.data} /> : null}
         {tab === "history" ? <ProblemHistoryPanel problemId={problem.id} versionKey={problem.version} /> : null}
       </div>
       {optionsQuery.data && canManage ? (

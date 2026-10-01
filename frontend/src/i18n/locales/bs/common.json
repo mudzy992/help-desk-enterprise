@@ -6751,7 +6751,9 @@
       "articleInvalid": "Članak nije moguće kreirati. Provjerite naslov, tekst, servis i organizacionu jedinicu.",
       "validationUnit": "Problem nema organizacionu jedinicu: vaš nalog nema matičnu OJ, a OJ tiketa nije u vašem opsegu. Obratite se administratoru.",
       "notProblemGroup": "Izabrana grupa nije problem-grupa.",
-      "ownerNotInGroup": "Vlasnik mora biti upravitelj problema i član izabrane grupe."
+      "ownerNotInGroup": "Vlasnik mora biti upravitelj problema i član izabrane grupe.",
+      "assetNotFound": "Stavka imovine nije pronađena ili je evidencija imovine isključena.",
+      "incidentNotFound": "Incident nije pronađen ili je status stranica isključena."
     },
     "title": "Problemi",
     "subtitle": "Uzroci iza ponovljenih incidenata: analiza, zaobilazna rješenja i poznate greške.",
@@ -6906,7 +6908,13 @@
       "knowledgeArticle": "Kreiran nacrt članka „{{title}}”",
       "ticketsResolved": "Grupno rješavanje tiketa: riješeno {{resolved}}, preskočeno {{skipped}}, neuspješno {{failed}}",
       "statusAuto": "Status: {{from}} → {{to}} (automatski nakon {{days}} d bez ponovnog otvaranja)",
-      "ticketLinkedRecurrence": "Povezan tiket {{ticket}} — ponavljanje riješenog problema"
+      "ticketLinkedRecurrence": "Povezan tiket {{ticket}} — ponavljanje riješenog problema",
+      "assetLinked": "Dodana zahvaćena oprema {{asset}}",
+      "assetUnlinked": "Uklonjena zahvaćena oprema {{asset}}",
+      "serviceLinked": "Dodan servis {{service}}",
+      "serviceUnlinked": "Uklonjen servis {{service}}",
+      "incidentLinked": "Povezan incident „{{incident}}”",
+      "incidentUnlinked": "Uklonjena veza s incidentom „{{incident}}”"
     },
     "detail": {
       "back": "Svi problemi",
@@ -6977,6 +6985,43 @@
       }
     },
     "setupTitle": "Modul problema čeka podešavanje",
-    "setupBody": "Administrator treba bar jednu grupu označiti kao problem-grupu (Grupe → uredi → Problem-grupa) i u nju dodati upravitelje problema."
+    "setupBody": "Administrator treba bar jednu grupu označiti kao problem-grupu (Grupe → uredi → Problem-grupa) i u nju dodati upravitelje problema.",
+    "links": {
+      "tab": "Veze",
+      "servicesTitle": "Servisi",
+      "servicesSubtitle": "Glavni servis se mijenja preko „Uredi“; ovdje se dodaju ostali zahvaćeni servisi.",
+      "mainService": "Glavni servis",
+      "servicesEmpty": "Nema dodatnih servisa.",
+      "chooseService": "Izaberite servis",
+      "addService": "Dodaj servis",
+      "removeService": "Ukloni servis {{name}}",
+      "assetsTitle": "Zahvaćena oprema",
+      "assetsSubtitle": "Stavke iz evidencije imovine na koje problem utiče.",
+      "assetsEmpty": "Nije označena zahvaćena oprema.",
+      "removeAsset": "Ukloni {{tag}}",
+      "addAsset": "Dodaj {{tag}}",
+      "suggestedTitle": "Prijedlog iz povezanih tiketa",
+      "addAllSuggested_one": "Dodaj {{count}} stavku",
+      "addAllSuggested_few": "Dodaj sve ({{count}})",
+      "addAllSuggested_other": "Dodaj sve ({{count}})",
+      "suggestedTickets_one": "{{count}} tiket",
+      "suggestedTickets_few": "{{count}} tiketa",
+      "suggestedTickets_other": "{{count}} tiketa",
+      "assetSearch": "Pretraga opreme po inventarnom broju, nazivu ili serijskom broju",
+      "searchResults": "Rezultati pretrage",
+      "noResults": "Nema rezultata.",
+      "incidentsTitle": "Incidenti na status stranici",
+      "incidentsSubtitle": "Prekidi o kojima su korisnici obaviješteni, a čiji je uzrok ovaj problem. Problem nikad sam ne objavljuje na status stranici.",
+      "incidentsEmpty": "Nema povezanih incidenata.",
+      "incidentSearch": "Pretraga incidenata (aktivni i riješeni u zadnjih 180 dana)",
+      "addIncident": "Poveži incident {{title}}",
+      "removeIncident": "Ukloni vezu s incidentom {{title}}",
+      "assetProblemsTab": "Problemi",
+      "assetProblemsTitle": "Problemi",
+      "assetProblemsSubtitle": "Problemi koji navode ovu stavku kao zahvaćenu opremu.",
+      "incidentCausedBy_one": "Ovaj prekid je posljedica problema:",
+      "incidentCausedBy_few": "Ovaj prekid je posljedica problema:",
+      "incidentCausedBy_other": "Ovaj prekid je posljedica problema:"
+    }
   }
 }
