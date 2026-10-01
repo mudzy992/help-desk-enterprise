@@ -1,3 +1,4 @@
+import { problemTakeoverStatuses } from '../tickets/assignment/take-over-ticket-for-problem';
 import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -217,6 +218,9 @@ export class ProblemResolutionService {
         ticket: { select: { id: true, ticketNumber: true, title: true, status: true, isConfidential: true, mergedIntoTicketId: true } },
       },
     });
+    // Decision 2026-10-01: whoever holds problem.close (PROBLEM_MANAGER, ADMIN)
+    // resolves every linked ticket, whatever unit it came from.
+    const delegated = this.access.hasPermission(viewer, permissionKeys.problemClose);
     const gated = await this.accessPolicies.bind({ actorUserId: viewer.userId });
     const result: Candidate[] = [];
     let resolvable = 0;
@@ -225,7 +229,7 @@ export class ProblemResolutionService {
       if (ticket.status === 'WAITING_FOR_USER') reason = 'waiting_for_user';
       else if (ticket.status === 'PENDING_APPROVAL') reason = 'pending_approval';
       else if (ticket.mergedIntoTicketId !== null) reason = 'merged';
-      else {
+      else if (!delegated) {
         try {
           const { access } = await loadAccessibleTicket(this.prisma, this.authorizationContextLoader, ticket.id, gated, { writable: true });
           if (access.visibility !== 'staff') reason = 'no_access';
@@ -255,7 +259,7 @@ export class ProblemResolutionService {
     const visible = problemVisibilityWhere(scope, viewer.userId);
     const problem = await this.prisma.problem.findFirst({
       where: { id: problemId, ...(visible === null ? {} : visible) },
-      select: { id: true, sequence: true, status: true, resolution: true },
+      select: { id: true, sequence: true, status: true, resolution: true, title: true },
     });
     if (problem === null) throw new ProblemError(problemErrorCodes.notFound);
     return problem;
@@ -310,11 +314,16 @@ export class ProblemResolutionService {
     const items = await this.candidates(problemId, viewer, configuration.bulkResolveMax);
     const message = options.message.trim();
     const closeCode = options.closeCode?.trim() || undefined;
-    const context = { actorUserId: viewer.userId };
+    const context = { actorUserId: viewer.userId, problemDelegation: { problemId } };
+    const problemDetail = `${problemId}|${number} ${problem.title}`;
     const resolved: { ticketId: string; ticketNumber: string; messageSent: boolean }[] = [];
     const failed: { ticketId: string; ticketNumber: string; code: string }[] = [];
     for (const item of items.filter((candidate) => candidate.resolvable)) {
       try {
+        // Not started yet (PENDING/UNROUTED/ASSIGNED): take over, then resolve.
+        if ((problemTakeoverStatuses as readonly string[]).includes(item.status)) {
+          await this.tickets.takeOverForProblem(item.id, { actorUserId: viewer.userId, problemDetail });
+        }
         await this.tickets.update(item.id, { status: 'RESOLVED', closeCode, resolutionNote: number }, context);
       } catch (error) {
         failed.push({ ticketId: item.id, ticketNumber: item.ticketNumber, code: ticketFailureCode(error) });

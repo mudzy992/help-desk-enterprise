@@ -65,7 +65,7 @@ function setup(options: { problem?: Partial<typeof baseProblem>; tickets?: Ticke
     hasPermission: jest.fn((_viewer: unknown, key: string) => key !== 'problem.close' || options.canClose !== false),
     configuration: jest.fn(async () => ({ numberPrefix: 'P-', bulkResolveMax: options.max ?? 200 })),
   };
-  const ticketsService = { update: jest.fn(async (id: string) => { if (id === 'fail') throw new ConflictException({ code: 'INVALID_STATUS_TRANSITION' }); }) };
+  const ticketsService = { takeOverForProblem: jest.fn(async (_id: string, _input: unknown) => ({})), update: jest.fn(async (id: string) => { if (id === 'fail') throw new ConflictException({ code: 'INVALID_STATUS_TRANSITION' }); }) };
   const collaboration = { createMessage: jest.fn(async () => ({})) };
   const closeCodes = { load: jest.fn(async () => options.closeCodes ?? { enabled: false, requireOnResolve: false, allowedCodes: [] }) };
   const service = new ProblemResolutionService(
@@ -131,7 +131,8 @@ describe('ProblemResolutionService group resolution', () => {
     { id: 'w', status: 'WAITING_FOR_USER' },
     { id: 'p', status: 'PENDING_APPROVAL' },
     { id: 'm', status: 'ASSIGNED', mergedIntoTicketId: 'a' },
-    { id: 'x', status: 'ASSIGNED', visibility: 'public' },
+    // Outside the resolver's own ticket access (another unit): resolved via problem.close.
+    { id: 'x', status: 'PENDING', visibility: 'public' },
     { id: 'fail', status: 'ASSIGNED' },
     { id: 'b', status: 'ASSIGNED' },
   ];
@@ -144,8 +145,8 @@ describe('ProblemResolutionService group resolution', () => {
       ['w', 'waiting_for_user'],
       ['p', 'pending_approval'],
       ['m', 'merged'],
-      ['x', 'no_access'],
-      ['fail', null],
+      ['x', null],
+      ['fail', 'limit'],
       ['b', 'limit'],
     ]);
     expect(preview.resolvable).toBe(2);
@@ -160,16 +161,18 @@ describe('ProblemResolutionService group resolution', () => {
     await expect(required.assertResolveOptions('p1', viewer, { message: 'Riješeno je.', closeCode: 'fixed' })).resolves.toBeUndefined();
   });
 
-  it('resolves tickets status first, then replies; failures do not stop the rest', async () => {
+  it('takes over unstarted tickets, resolves status first, then replies; failures do not stop the rest', async () => {
     const { service, ticketsService, collaboration, events } = setup({ tickets, problem: { status: 'RESOLVED' } });
     const result = await service.resolveTickets('p1', viewer, { message: ' Uzrok je otklonjen. ' });
-    expect(result.resolved.map((item) => item.ticketId)).toEqual(['a', 'b']);
+    expect(result.resolved.map((item) => item.ticketId)).toEqual(['a', 'x', 'b']);
+    expect(ticketsService.takeOverForProblem.mock.calls.map((call) => call[0])).toEqual(['x', 'fail', 'b']);
+    expect(ticketsService.takeOverForProblem).toHaveBeenCalledWith('x', { actorUserId: 'u1', problemDetail: 'p1|P-000012 ' + baseProblem.title });
     expect(result.failed).toEqual([{ ticketId: 'fail', ticketNumber: 'T-fail', code: 'INVALID_STATUS_TRANSITION' }]);
-    expect(result.skipped).toHaveLength(4);
-    expect(ticketsService.update).toHaveBeenCalledWith('a', { status: 'RESOLVED', closeCode: undefined, resolutionNote: 'P-000012' }, { actorUserId: 'u1' });
-    expect(collaboration.createMessage).toHaveBeenCalledTimes(2);
-    expect(collaboration.createMessage).toHaveBeenCalledWith('a', { type: 'AGENT_REPLY', body: 'Uzrok je otklonjen.' }, { actorUserId: 'u1' });
-    expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 2, skipped: 4, failed: 1 } }]);
+    expect(result.skipped).toHaveLength(3);
+    expect(ticketsService.update).toHaveBeenCalledWith('a', { status: 'RESOLVED', closeCode: undefined, resolutionNote: 'P-000012' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
+    expect(collaboration.createMessage).toHaveBeenCalledTimes(3);
+    expect(collaboration.createMessage).toHaveBeenCalledWith('a', { type: 'AGENT_REPLY', body: 'Uzrok je otklonjen.' }, { actorUserId: 'u1', problemDelegation: { problemId: 'p1' } });
+    expect(events).toEqual([{ problemId: 'p1', action: 'tickets_resolved', actorUserId: 'u1', detail: { resolved: 3, skipped: 3, failed: 1 } }]);
   });
 
   it('refuses to resolve tickets of a problem that is not resolved', async () => {

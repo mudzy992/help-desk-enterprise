@@ -73,7 +73,7 @@ describe('problem lifecycle (3.3 §5)', () => {
     expect(transitionNeedsClosePermission('NEW', 'CANCELLED')).toBe(true);
     expect(transitionNeedsClosePermission('RESOLVED', 'INVESTIGATING')).toBe(true);
     expect(transitionNeedsClosePermission('KNOWN_ERROR', 'INVESTIGATING')).toBe(false);
-    expect(transitionNeedsClosePermission('INVESTIGATING', 'RESOLVED')).toBe(false);
+    expect(transitionNeedsClosePermission('INVESTIGATING', 'RESOLVED')).toBe(true);
   });
 
   it('sets and clears timestamps', () => {

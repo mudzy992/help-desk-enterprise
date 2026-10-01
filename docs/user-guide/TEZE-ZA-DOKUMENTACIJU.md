@@ -429,3 +429,6 @@ To je kriterij kompletnosti.
 - Riješen problem se automatski zatvara nakon podešenog broja dana (0 = nikad); u historiji piše da je zatvoren automatski.
 - Ako se isti kvar ponovi nakon rješenja, tiket se i dalje može povezati s riješenim problemom; vlasnik dobija obavijest o ponavljanju. Zatvoren ili otkazan problem se ne može puniti novim tiketima.
 - Agenti čiji su tiketi povezani s problemom dobijaju obavijest kad problem postane poznata greška (workaround) i kad je riješen.
+- Uloga „Upravitelj problema“ (PROBLEM_MANAGER) dodaje se odabranim ljudima, obično vođi tima ili servisa. Samo oni i administratori rješavaju, zatvaraju i otkazuju probleme te grupno rješavaju povezane tikete iz svih organizacionih jedinica.
+- Agenti i dalje prijavljuju probleme, povezuju tikete i vode analizu uzroka, workaround i poznatu grešku.
+- Ako povezani tiket još niko nije preuzeo, grupno rješavanje ga automatski dodjeljuje onome ko rješava problem pa ga rješava; to se vidi u historiji tiketa.

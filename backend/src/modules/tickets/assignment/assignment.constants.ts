@@ -37,4 +37,5 @@ export const defaultTicketAssignmentConfiguration = {
 export const ticketAssignmentChangeLogReasons = {
   assign: 'ticket_assign',
   claim: 'ticket_claim',
+  problemTakeover: 'ticket_problem_takeover',
 } as const;

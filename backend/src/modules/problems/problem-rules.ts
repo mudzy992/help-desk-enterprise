@@ -19,7 +19,8 @@ export function allowedProblemTransitions(from: ProblemStatusValue): readonly Pr
 
 /** Transitions that need `problem.close` on top of `problem.manage`. */
 export function transitionNeedsClosePermission(from: ProblemStatusValue, to: ProblemStatusValue): boolean {
-  if (to === 'CLOSED' || to === 'CANCELLED') return true;
+  // Decision 2026-10-01 (PROBLEM_MANAGER): resolving belongs with closing.
+  if (to === 'RESOLVED' || to === 'CLOSED' || to === 'CANCELLED') return true;
   return to === 'INVESTIGATING' && (from === 'RESOLVED' || from === 'CANCELLED');
 }
 

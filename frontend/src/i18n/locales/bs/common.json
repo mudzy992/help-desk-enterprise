@@ -56,7 +56,8 @@
       "admin": "Admin",
       "agent": "Agent",
       "user": "Korisnik",
-      "assetManager": "Upravitelj imovine"
+      "assetManager": "Upravitelj imovine",
+      "problemManager": "Upravitelj problema"
     },
     "searchTrigger": "Pretraži…"
   },
@@ -475,7 +476,8 @@
       "AGENT": "Agent",
       "ADMIN": "Administrator",
       "SUPER_ADMIN": "SuperAdmin",
-      "ASSET_MANAGER": "Upravitelj imovine"
+      "ASSET_MANAGER": "Upravitelj imovine",
+      "PROBLEM_MANAGER": "Upravitelj problema"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -3873,7 +3875,8 @@
       "incidentResolved": "Incident „{{title}}” je riješen",
       "knowledgeDraftCreated": "Iz odgovora je napravljen nacrt članka „{{title}}“",
       "problemLinked": "Povezano s problemom {{problem}}",
-      "problemUnlinked": "Uklonjena veza s problemom {{problem}}"
+      "problemUnlinked": "Uklonjena veza s problemom {{problem}}",
+      "problemTakeover": "Preuzeto radi grupnog rješavanja problema {{problem}}"
     },
     "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
     "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",

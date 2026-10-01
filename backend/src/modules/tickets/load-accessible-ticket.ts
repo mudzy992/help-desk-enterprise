@@ -29,7 +29,8 @@ export async function loadAccessibleTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
-  const access = await resolveTicketActorAccess(prisma, {
+  // Paket 3.3: the problem group resolution acts as staff on linked tickets.
+  const access: TicketActorAccess = context.problemDelegation !== undefined ? { visibility: 'staff' } : await resolveTicketActorAccess(prisma, {
     context: authContext,
     ticket,
     originUnitPath,

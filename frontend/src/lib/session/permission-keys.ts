@@ -54,6 +54,7 @@ export const roleKeys = {
   user: "USER",
   agent: "AGENT",
   assetManager: "ASSET_MANAGER",
+  problemManager: "PROBLEM_MANAGER",
   admin: "ADMIN",
   superAdmin: "SUPER_ADMIN",
 } as const;

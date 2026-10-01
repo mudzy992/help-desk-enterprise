@@ -80,7 +80,7 @@ export async function updateTicket(
   if (originUnitPath === null) {
     throw new TicketsError('ORIGIN_UNIT_NOT_FOUND');
   }
-  await assertTicketVisible(prisma, {
+  if (context.problemDelegation === undefined) await assertTicketVisible(prisma, {
     context: authContext,
     requesterId: current.requesterId,
     originUnitId: current.originUnitId,
@@ -97,6 +97,7 @@ export async function updateTicket(
       context: authContext,
       from: current.status,
       to: input.status,
+      delegated: context.problemDelegation !== undefined,
     });
     await assertPlaybookStepsComplete({
       prisma,

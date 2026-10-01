@@ -7,6 +7,8 @@ export const authorizationRoleKeys = {
   superAdmin: authenticationConstants.superAdminRoleKey,
   /** Paket 3.2: manages assets (added next to USER, e.g. procurement). */
   assetManager: 'ASSET_MANAGER',
+  /** Paket 3.3: resolves, closes and cancels problems across units (usually added to an agent). */
+  problemManager: 'PROBLEM_MANAGER',
 } as const;
 
 export const permissionKeys = {
@@ -112,7 +114,13 @@ const agentPermissionKeys = [
   permissionKeys.onCallRead,
   permissionKeys.assetRead,
   permissionKeys.assetManage,
-  // Paket 3.3 (decision 2026-10-01): agents run problems end to end.
+  // Paket 3.3: agents report problems, link tickets and run the analysis;
+  // resolving, closing and cancelling (problem.close) is PROBLEM_MANAGER/ADMIN.
+  permissionKeys.problemRead,
+  permissionKeys.problemManage,
+] as const;
+
+const problemManagerPermissionKeys = [
   permissionKeys.problemRead,
   permissionKeys.problemManage,
   permissionKeys.problemClose,
@@ -165,6 +173,7 @@ const adminPermissionKeys = [
   permissionKeys.assetContractManage,
   permissionKeys.assetTypeManage,
   permissionKeys.assetReportRead,
+  permissionKeys.problemClose,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =
@@ -173,6 +182,7 @@ export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[
     [authorizationRoleKeys.agent]: agentPermissionKeys,
     [authorizationRoleKeys.admin]: adminPermissionKeys,
     [authorizationRoleKeys.assetManager]: assetManagerPermissionKeys,
+    [authorizationRoleKeys.problemManager]: problemManagerPermissionKeys,
     [authorizationRoleKeys.superAdmin]: [
       ...allPermissionKeys,
     ],

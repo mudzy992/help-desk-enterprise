@@ -56,7 +56,8 @@
       "admin": "Admin",
       "agent": "Agent",
       "user": "User",
-      "assetManager": "Asset manager"
+      "assetManager": "Asset manager",
+      "problemManager": "Problem manager"
     },
     "searchTrigger": "Search…"
   },
@@ -468,7 +469,8 @@
       "AGENT": "Agent",
       "ADMIN": "Administrator",
       "SUPER_ADMIN": "SuperAdmin",
-      "ASSET_MANAGER": "Asset manager"
+      "ASSET_MANAGER": "Asset manager",
+      "PROBLEM_MANAGER": "Problem manager"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -3852,7 +3854,8 @@
       "incidentResolved": "Incident \"{{title}}\" was resolved",
       "knowledgeDraftCreated": "An article draft “{{title}}” was made from a reply",
       "problemLinked": "Linked to problem {{problem}}",
-      "problemUnlinked": "Removed the link to problem {{problem}}"
+      "problemUnlinked": "Removed the link to problem {{problem}}",
+      "problemTakeover": "Taken over for the group resolution of problem {{problem}}"
     },
     "errorAttachmentInfected": "The antivirus scan rejected this file.",
     "errorForwardStatus": "A ticket in this status cannot be forwarded.",

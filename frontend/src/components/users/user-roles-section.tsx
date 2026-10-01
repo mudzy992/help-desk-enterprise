@@ -21,7 +21,7 @@ import {
   shouldWarnOrganizationalUnitMissingForRoleAssignment,
 } from "@/lib/users/user-role-organizational-unit-scope";
 
-const assignableRoleKeys = ["USER", "AGENT", "ASSET_MANAGER", "ADMIN", "SUPER_ADMIN"] as const;
+const assignableRoleKeys = ["USER", "AGENT", "ASSET_MANAGER", "PROBLEM_MANAGER", "ADMIN", "SUPER_ADMIN"] as const;
 
 interface UserRolesSectionProperties {
   readonly userId: string;

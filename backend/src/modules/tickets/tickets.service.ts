@@ -39,6 +39,7 @@ import { TicketRealtimeHub } from './ticket-realtime.hub';
 import { TicketLabelCacheService } from './labels/ticket-label-cache.service';
 import { respondLoadedTicket } from './to-ticket-client-responses';
 import { updateTicket } from './update-ticket';
+import { takeOverTicketForProblem } from './assignment/take-over-ticket-for-problem';
 import { withTicketAccessPolicies } from './with-ticket-access-policies';
 import type {
   CreateTicketInput,
@@ -315,6 +316,19 @@ export class TicketsService {
       // Paket 2.6: principal context is cached, so this adds no query.
       const viewer = await this.authorizationContextLoader.loadBySubjectId(gated.actorUserId);
       return { ...response, privacy: ticketPrivacyMarkers(record, canSeeLegalHold(viewer)) };
+    });
+  }
+
+  /**
+   * Paket 3.3: problem group resolution takes over an unstarted linked ticket
+   * (server only; the caller verified `problem.close`).
+   */
+  takeOverForProblem(ticketId: string, input: { readonly actorUserId: string; readonly problemDetail: string }) {
+    return executeTicketOperation(async () => {
+      const messages: TicketPersistedMessageSink = [];
+      const updated = await takeOverTicketForProblem(this.prisma, { ticketId, ...input }, messages);
+      publishPersistedTicketMessages(this.realtimeHub, updated, messages);
+      return updated;
     });
   }
 

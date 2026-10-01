@@ -67,6 +67,7 @@ const staffOnlyActions = new Set<string>([
   ticketSystemEventActions.assetUnlinked,
   ticketSystemEventActions.problemLinked,
   ticketSystemEventActions.problemUnlinked,
+  ticketSystemEventActions.problemTakeover,
   ticketSystemEventActions.incidentUnlinked,
   ticketSystemEventActions.incidentResolved,
   // Paket 2.9 (K1c): an article draft was made from a reply.

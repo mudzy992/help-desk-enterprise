@@ -8,11 +8,13 @@ export function assertPatchTicketStatus(input: {
   readonly context: AuthorizationContext;
   readonly from: TicketStatus;
   readonly to: TicketStatus;
+  /** Paket 3.3: problem group resolution (problem.close already verified). */
+  readonly delegated?: boolean;
 }): void {
   if (input.from === input.to) {
     return;
   }
-  if (!canChangeTicketStatus(input.context)) {
+  if (input.delegated !== true && !canChangeTicketStatus(input.context)) {
     throw new TicketsError('STATUS_CHANGE_FORBIDDEN');
   }
   if (input.from === 'PENDING_APPROVAL') {

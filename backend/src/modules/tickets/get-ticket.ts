@@ -35,6 +35,10 @@ export async function getTicket(
   }
   const configuration =
     context.confidential ?? defaultTicketConfidentialConfiguration;
+  // Paket 3.3: delegated by the problem group resolution (server only).
+  if (context.problemDelegation !== undefined) {
+    return ticket;
+  }
   try {
     await assertTicketVisibleOrMergedRequester(prisma, {
       context: authContext,
