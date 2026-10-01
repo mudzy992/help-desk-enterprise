@@ -57,7 +57,10 @@ export function setup() {
   if (!capabilities || capabilities.enabled !== true || capabilities.canRead !== true) {
     fail('The CMDB module is off or the user has no asset.read.');
   }
-  return { token, canReadReports: capabilities.canReadReports === true };
+  const canReadReports = capabilities.canReadReports === true;
+  // Without asset.report.read the overview metric stays empty; say so instead of printing 0 ms.
+  if (!canReadReports) console.warn('The user has no asset.report.read — /assets/overview is skipped (0 ms in the summary).');
+  return { token, canReadReports };
 }
 
 const searches = ['lap', 'mon', 'INV', 'dell', 'pc-'];
@@ -102,7 +105,10 @@ export function handleSummary(data) {
   const lines = [`# Assets load test — ${label}`, '', '| Metric | p50 | p95 | max | budget p95 |', '|---|---|---|---|---|'];
   for (const [name, description, budget] of rows) {
     const values = data.metrics[name] ? data.metrics[name].values : undefined;
-    if (values === undefined) continue;
+    if (values === undefined || !values.max) {
+      lines.push(`| ${description} | – | – | – | ${budget} ms (nije mjereno / not measured) |`);
+      continue;
+    }
     const ms = (number) => `${Math.round(number)} ms`;
     lines.push(`| ${description} | ${ms(values.med)} | ${ms(values['p(95)'])} | ${ms(values.max)} | ${budget} ms |`);
   }
