@@ -65,7 +65,7 @@ test.describe('27 assets import, export and bulk', () => {
             key: `e2e-import-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 48),
             nameBs: `E2E uvoz ${stamp}`,
             nameEn: `E2E import ${stamp}`,
-            icon: 'package',
+            icon: 'box',
             category: 'OTHER',
             isUserSelectable: false,
             sortOrder: 9001,
