@@ -416,3 +416,12 @@ To je kriterij kompletnosti.
 - Kalendar dežurstava je zajednički za sve grupe; vidi ga svaki nosilac `oncall.read`, uključujući agente čija je uloga AGENT dodijeljena samo za njihovu organizacionu jedinicu.
 - Uređivanje rasporeda i zamjena (`oncall.manage`) i dalje traži dodjelu bez ograničenja na OJ (administrator).
 - Opšte pravilo ostaje: dozvola dodijeljena za jednu OJ ne otvara globalne administratorske funkcije; izuzeci su pobrojani u `scopeAgnosticPermissionKeys`.
+
+## Problem management (3.3) – odluke korisnika (1.10.2026)
+
+- Problemima upravljaju agenti u potpunosti: kreiranje, analiza uzroka, zatvaranje, otkazivanje i grupno rješavanje povezanih tiketa.
+- Admini se ne opterećuju operativnim poslom; njihova uloga su osjetljive radnje (npr. jedan admin na 300 korisnika i 30 agenata koji dnevno riješe ~200 tiketa).
+- Kad se uzrok otkloni, aplikacija nudi grupno rješavanje otvorenih povezanih tiketa uz poruku korisniku; ništa se ne rješava automatski.
+- Rokovi za probleme postoje kao postavka i zadano su isključeni.
+- Modul je zadano isključen i uključuje se postavkom.
+- Podnosilac tiketa ne vidi problem ni analizu uzroka.
