@@ -17,6 +17,7 @@ import {
   CalendarClock,
   Megaphone,
   Boxes,
+  Puzzle,
   Laptop,
 } from "lucide-react";
 
@@ -43,6 +44,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/announcements": Megaphone,
   "/assets": Boxes,
   "/my-assets": Laptop,
+  "/problems": Puzzle,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

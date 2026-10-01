@@ -58,6 +58,18 @@ export class ProblemsController {
     return problemViewerOf(request, privacyActorOf(request).principal.subjectId);
   }
 
+  @Get('options')
+  @Header('Cache-Control', 'no-store')
+  options(@Req() request: AuthenticatedHttpRequest) {
+    return runProblem(() => this.problems.options(this.viewer(request)));
+  }
+
+  @Get('owners')
+  @Header('Cache-Control', 'no-store')
+  owners(@Req() request: AuthenticatedHttpRequest, @Query('search') search: string | undefined) {
+    return runProblem(() => this.problems.searchOwners(this.viewer(request), search ?? ''));
+  }
+
   @Get('capabilities')
   @Header('Cache-Control', 'no-store')
   capabilities(@Req() request: AuthenticatedHttpRequest) {

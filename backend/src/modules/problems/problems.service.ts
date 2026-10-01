@@ -4,7 +4,7 @@ import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { isPathInScope } from '../assets/asset-viewer';
+import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { resolveTicketPriority } from '../tickets/resolve-ticket-priority';
 import { ProblemAccessService, type ProblemConfiguration, type ProblemScope, type ProblemViewer } from './problem-access.service';
@@ -419,6 +419,58 @@ export class ProblemsService {
       });
     });
     return this.get(viewer, id);
+  }
+
+  /**
+   * Form options (§14): units in the manage scope (read scope for readers),
+   * active services, groups and the configured root-cause categories.
+   */
+  async options(viewer: ProblemViewer) {
+    await this.access.require(viewer, permissionKeys.problemRead);
+    const permission = this.access.hasPermission(viewer, permissionKeys.problemManage) ? permissionKeys.problemManage : permissionKeys.problemRead;
+    const unitWhere = unitScopeWhere(await this.access.scopeOf(viewer, permission));
+    const [units, services, groups, configuration] = await Promise.all([
+      this.prisma.organizationalUnit.findMany({
+        where: (unitWhere ?? {}) as Prisma.OrganizationalUnitWhereInput,
+        select: { id: true, name: true, ouPath: true },
+        orderBy: { ouPath: 'asc' },
+        take: 2000,
+      }),
+      this.prisma.service.findMany({
+        where: { lifecycle: { not: 'DEPRECATED' } },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+        take: 2000,
+      }),
+      this.prisma.group.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' }, take: 2000 }),
+      this.access.configuration(),
+    ]);
+    return {
+      units: units.map((unit) => ({ id: unit.id, name: unit.name, path: unit.ouPath })),
+      services,
+      groups,
+      rootCauseCategories: configuration.rootCauseCategories,
+      homeOrganizationalUnitId: viewer.homeOrganizationalUnitId,
+    };
+  }
+
+  /** Owner picker: active users holding `problem.manage` through a role (§12). */
+  async searchOwners(viewer: ProblemViewer, search: string) {
+    await this.access.require(viewer, permissionKeys.problemManage);
+    const text = search.trim().slice(0, problemLimits.searchMax);
+    if (text.length < 2) return { items: [] };
+    const items = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        anonymizedAt: null,
+        userRoles: { some: { role: { rolePermissions: { some: { permission: { key: permissionKeys.problemManage } } } } } },
+        OR: [{ displayName: { contains: text, mode: 'insensitive' } }, { email: { contains: text, mode: 'insensitive' } }],
+      },
+      select: userSelect,
+      orderBy: { displayName: 'asc' },
+      take: 20,
+    });
+    return { items };
   }
 
   /**

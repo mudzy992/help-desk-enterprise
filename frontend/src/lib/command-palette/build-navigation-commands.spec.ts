@@ -28,6 +28,7 @@ const labels: Record<NavigationLabelKey, string> = {
   "navigation.announcements": "Najave",
   "navigation.assets": "Imovina",
   "navigation.myAssets": "Moja oprema",
+  "navigation.problems": "Problemi",
 };
 
 const sectionLabels: Record<NavigationSectionKey, string> = {

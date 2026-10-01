@@ -10,6 +10,7 @@ import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
   canOpenAssets,
+  canOpenProblems,
   canOpenEmailTemplatesPage,
   canOpenMyAssets,
   canAccessNavigationItem,
@@ -23,6 +24,7 @@ function buildCapabilities(input: {
   readonly permissionKeys?: readonly string[];
   readonly isSuperAdmin?: boolean;
   readonly cmdb?: boolean;
+  readonly problems?: boolean;
 }): SessionCapabilities {
   return {
     session: {
@@ -31,7 +33,7 @@ function buildCapabilities(input: {
       permissionKeys: input.permissionKeys ?? [],
       organizationalUnitId: null,
       organizationalUnitName: null,
-      modules: { cmdb: input.cmdb ?? false },
+      modules: { cmdb: input.cmdb ?? false, problems: input.problems ?? false },
       principal: {
         subjectId: "user-1",
         displayName: "Test User",
@@ -76,7 +78,7 @@ describe("route access", () => {
   });
 
   it("allows superadmin into all navigation entries", () => {
-    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true });
+    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true, problems: true });
     const visible = filterNavigationSections(navigationSections, capabilities);
     expect(visible.flatMap((section) => section.items)).toHaveLength(
       navigationSections.flatMap((section) => section.items).length,
@@ -94,6 +96,14 @@ describe("canOpenAssets / canOpenMyAssets (paket 3.2)", () => {
     expect(canOpenAssets(buildCapabilities({ cmdb: true, permissionKeys: [permissionKeys.assetRead] }))).toBe(true);
     expect(canOpenAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(false);
     expect(canOpenMyAssets(buildCapabilities({ cmdb: true, roleKeys: [roleKeys.user] }))).toBe(true);
+  });
+});
+
+describe("canOpenProblems (paket 3.3)", () => {
+  it("needs the module and problem.read", () => {
+    expect(canOpenProblems(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+    expect(canOpenProblems(buildCapabilities({ problems: true, permissionKeys: [permissionKeys.problemRead] }))).toBe(true);
+    expect(canOpenProblems(buildCapabilities({ problems: true, roleKeys: [roleKeys.user] }))).toBe(false);
   });
 });
 

@@ -67,6 +67,8 @@ const AnnouncementsPage = lazyPage(() => import("@/pages/announcements-page"), "
 const AssetsPage = lazyPage(() => import("@/pages/assets-page"), "AssetsPage");
 const AssetDetailPage = lazyPage(() => import("@/pages/asset-detail-page"), "AssetDetailPage");
 const MyAssetsPage = lazyPage(() => import("@/pages/my-assets-page"), "MyAssetsPage");
+const ProblemsPage = lazyPage(() => import("@/pages/problems-page"), "ProblemsPage");
+const ProblemDetailPage = lazyPage(() => import("@/pages/problem-detail-page"), "ProblemDetailPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
@@ -139,6 +141,11 @@ export function AppRouter() {
               <Route path=":assetId" element={<AssetDetailPage />} />
             </Route>
             <Route path="my-assets" element={<MyAssetsPage />} />
+            {/* Paket 3.3: problems; the pages handle "module off" and the server enforces scope. */}
+            <Route path="problems">
+              <Route index element={<ProblemsPage />} />
+              <Route path=":problemId" element={<ProblemDetailPage />} />
+            </Route>
             <Route path="knowledge-base">
               <Route index element={<KnowledgeBasePage />} />
               <Route path=":articleId" element={<KnowledgeArticleDetailPage />} />

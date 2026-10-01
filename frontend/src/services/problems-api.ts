@@ -138,3 +138,152 @@ export function unlinkProblemTicket(problemId: string, ticketId: string): Promis
 export function getProblemTickets(problemId: string): Promise<ProblemTicketsResponse> {
   return apiRequest(`/problems/${encodeURIComponent(problemId)}/tickets`);
 }
+
+// ------------------------------------------------------------ P3: list, detail, editing
+
+export type ProblemCapabilities = {
+  readonly enabled: boolean;
+  readonly canRead: boolean;
+  readonly canManage: boolean;
+  readonly canClose: boolean;
+  readonly configuration: {
+    readonly numberPrefix: string;
+    readonly rootCauseCategories: readonly string[];
+    readonly requireWorkaroundForKnownError: boolean;
+    readonly autoCloseDays: number;
+    readonly bulkResolveMax: number;
+    readonly targetEnabled: boolean;
+  } | null;
+};
+
+export type ProblemWhy = { readonly question: string; readonly answer: string };
+
+export type ProblemDetail = ProblemListItem & {
+  readonly description: string;
+  readonly impact: ProblemSeverity;
+  readonly urgency: ProblemSeverity;
+  readonly rootCause: string | null;
+  readonly rcaWhys: readonly ProblemWhy[];
+  readonly workaround: string | null;
+  readonly workaroundAt: string | null;
+  readonly resolution: string | null;
+  readonly knowledgeArticle: { readonly id: string; readonly title: string; readonly status: string } | null;
+  readonly identifiedAt: string | null;
+  readonly resolvedAt: string | null;
+  readonly closedAt: string | null;
+  readonly cancelledAt: string | null;
+  readonly cancelReason: string | null;
+  readonly createdBy: UserRef | null;
+  readonly version: number;
+  readonly allowedTransitions: readonly ProblemStatus[];
+  readonly permissions: { readonly canManage: boolean; readonly canClose: boolean };
+};
+
+export type ProblemOptions = {
+  readonly units: readonly { readonly id: string; readonly name: string; readonly path: string }[];
+  readonly services: readonly NamedRef[];
+  readonly groups: readonly NamedRef[];
+  readonly rootCauseCategories: readonly string[];
+  readonly homeOrganizationalUnitId: string | null;
+};
+
+export type ProblemEvent = {
+  readonly id: string;
+  readonly action: string;
+  readonly actor: UserRef | null;
+  readonly detail: Record<string, unknown> | null;
+  readonly createdAt: string;
+};
+
+export type ProblemListFilters = {
+  readonly search?: string;
+  readonly status?: readonly ProblemStatus[];
+  readonly priority?: readonly ProblemSeverity[];
+  /** "me" = the viewer. */
+  readonly ownerUserId?: string;
+  readonly groupId?: string;
+  readonly serviceId?: string;
+  readonly organizationalUnitId?: string;
+};
+
+export type UpdateProblemInput = {
+  readonly version: number;
+  readonly title?: string;
+  readonly description?: string;
+  readonly impact?: ProblemSeverity;
+  readonly urgency?: ProblemSeverity;
+  readonly organizationalUnitId?: string;
+  readonly ownerUserId?: string | null;
+  readonly groupId?: string | null;
+  readonly serviceId?: string | null;
+  readonly rootCauseCategory?: string | null;
+  readonly rootCause?: string | null;
+  readonly rcaWhys?: readonly ProblemWhy[] | null;
+  readonly workaround?: string | null;
+  readonly resolution?: string | null;
+};
+
+export type CreateProblemFullInput = CreateProblemInput & {
+  readonly organizationalUnitId?: string;
+  readonly ownerUserId?: string | null;
+  readonly groupId?: string | null;
+  readonly serviceId?: string | null;
+};
+
+export const problemDetailKeys = {
+  capabilities: ["problems", "capabilities"] as const,
+  options: ["problems", "options"] as const,
+  list: (filters: ProblemListFilters) => ["problems", "list", filters] as const,
+  detail: (id: string) => ["problems", "detail", id] as const,
+  events: (id: string) => ["problems", "detail", id, "events"] as const,
+  owners: (search: string) => ["problems", "owners", search] as const,
+};
+
+export function getProblemCapabilities(): Promise<ProblemCapabilities> {
+  return apiRequest("/problems/capabilities");
+}
+
+export function getProblemOptions(): Promise<ProblemOptions> {
+  return apiRequest("/problems/options");
+}
+
+export function searchProblemOwners(search: string): Promise<{ readonly items: readonly UserRef[] }> {
+  return apiRequest(`/problems/owners?search=${encodeURIComponent(search)}`);
+}
+
+export function listProblemsPage(filters: ProblemListFilters, cursor?: string, limit = 25): Promise<ProblemListResponse> {
+  const params = new URLSearchParams();
+  if (filters.search) params.set("search", filters.search);
+  if (filters.status && filters.status.length > 0) params.set("status", filters.status.join(","));
+  if (filters.priority && filters.priority.length > 0) params.set("priority", filters.priority.join(","));
+  if (filters.ownerUserId) params.set("ownerUserId", filters.ownerUserId);
+  if (filters.groupId) params.set("groupId", filters.groupId);
+  if (filters.serviceId) params.set("serviceId", filters.serviceId);
+  if (filters.organizationalUnitId) params.set("organizationalUnitId", filters.organizationalUnitId);
+  if (cursor) params.set("cursor", cursor);
+  params.set("limit", String(limit));
+  return apiRequest(`/problems?${params.toString()}`);
+}
+
+export function createProblemFull(input: CreateProblemFullInput): Promise<CreatedProblem> {
+  return apiRequest("/problems", { method: "POST", ...json(input) });
+}
+
+export function getProblem(id: string): Promise<ProblemDetail> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}`);
+}
+
+export function updateProblem(id: string, input: UpdateProblemInput): Promise<ProblemDetail> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}`, { method: "PATCH", ...json(input) });
+}
+
+export function changeProblemStatus(
+  id: string,
+  input: { readonly version: number; readonly status: ProblemStatus; readonly reason?: string },
+): Promise<ProblemDetail> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/status`, { method: "POST", ...json(input) });
+}
+
+export function getProblemEvents(id: string): Promise<{ readonly items: readonly ProblemEvent[] }> {
+  return apiRequest(`/problems/${encodeURIComponent(id)}/events`);
+}

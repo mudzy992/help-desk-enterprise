@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/services/api";
-import { highestSeverity, mapProblemError, problemStatusTone, suggestProblemDraft } from "./problem-view";
+import {
+  highestSeverity,
+  mapProblemError,
+  problemHistoryText,
+  problemStatusTone,
+  rootCauseLabel,
+  suggestProblemDraft,
+  transitionLabelKey,
+  transitionNeedsReason,
+} from "./problem-view";
 
 describe("problem-view", () => {
   it("picks the highest severity, defaulting to MEDIUM", () => {
@@ -32,5 +41,30 @@ describe("problem-view", () => {
   it("gives open statuses a coloured tone and final ones neutral", () => {
     expect(problemStatusTone("KNOWN_ERROR")).toBe("warning");
     expect(problemStatusTone("CLOSED")).toBe("neutral");
+  });
+
+  it("maps a missing requirement to its field", () => {
+    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "rootCause"))).toBe("problems.errors.requirement.rootCause");
+    expect(mapProblemError(new ApiError(409, "PROBLEM_REQUIREMENT_MISSING", "other"))).toBe("problems.errors.requirementMissing");
+  });
+
+  it("mirrors the reason rule and transition labels", () => {
+    expect(transitionNeedsReason("INVESTIGATING", "CANCELLED")).toBe(true);
+    expect(transitionNeedsReason("RESOLVED", "INVESTIGATING")).toBe(true);
+    expect(transitionNeedsReason("KNOWN_ERROR", "INVESTIGATING")).toBe(false);
+    expect(transitionLabelKey("NEW", "INVESTIGATING")).toBe("problems.transition.start");
+    expect(transitionLabelKey("RESOLVED", "INVESTIGATING")).toBe("problems.transition.reopen");
+    expect(transitionLabelKey("INVESTIGATING", "KNOWN_ERROR")).toBe("problems.transition.KNOWN_ERROR");
+  });
+
+  it("labels root-cause categories and history lines", () => {
+    const t = (key: string, options?: Record<string, unknown>) => (options ? `${key}:${JSON.stringify(options)}` : key);
+    expect(rootCauseLabel(t, "network")).toBe("problems.rootCause.network");
+    expect(rootCauseLabel(t, "custom-key")).toBe("custom-key");
+    expect(rootCauseLabel(t, null)).toBe("—");
+    expect(problemHistoryText(t, "updated", { changes: { title: {} }, textChanged: ["rootCause"] })).toBe(
+      'problems.history.updated:{"fields":"problems.fields.title, problems.fields.rootCause"}',
+    );
+    expect(problemHistoryText(t, "ticket_linked", { ticketNumber: "T-000001" })).toBe('problems.history.ticketLinked:{"ticket":"T-000001"}');
   });
 });

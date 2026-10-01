@@ -13,6 +13,7 @@ export const navigationAccessKinds = {
   onCall: "onCall",
   assets: "assets",
   myAssets: "myAssets",
+  problems: "problems",
 } as const;
 
 export type NavigationAccessKind =
@@ -103,6 +104,15 @@ export function canOpenMyAssets(capabilities: SessionCapabilities): boolean {
   return capabilities.session?.modules?.cmdb === true;
 }
 
+/** Paket 3.3 (§14): the problem module is on and the viewer holds `problem.read`. */
+export function canOpenProblems(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null || session.modules?.problems !== true) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.problemRead);
+}
+
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
@@ -168,6 +178,8 @@ export function canAccessNavigationItem(
       return canOpenAssets(capabilities);
     case navigationAccessKinds.myAssets:
       return canOpenMyAssets(capabilities);
+    case navigationAccessKinds.problems:
+      return canOpenProblems(capabilities);
     default:
       return false;
   }
