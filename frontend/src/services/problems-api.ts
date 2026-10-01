@@ -29,6 +29,8 @@ export type ProblemListItem = {
   readonly organizationalUnit: NamedRef & { readonly ouPath: string };
   readonly service: NamedRef | null;
   readonly ticketCount: number;
+  /** Linked tickets not yet resolved, closed or archived (register only). */
+  readonly openTicketCount?: number;
   readonly targetAt: string | null;
   /** P5: running target already passed (NEW/INVESTIGATING only). */
   readonly targetOverdue: boolean;
@@ -215,6 +217,8 @@ export type ProblemListFilters = {
   readonly organizationalUnitId?: string;
   /** P5: only problems whose running target has passed. */
   readonly overdue?: boolean;
+  /** Root-cause category; "none" = not categorised. */
+  readonly rootCauseCategory?: string;
 };
 
 export type UpdateProblemInput = {
@@ -278,6 +282,7 @@ export function listProblemsPage(filters: ProblemListFilters, cursor?: string, l
   if (filters.serviceId) params.set("serviceId", filters.serviceId);
   if (filters.organizationalUnitId) params.set("organizationalUnitId", filters.organizationalUnitId);
   if (filters.overdue) params.set("overdue", "true");
+  if (filters.rootCauseCategory) params.set("rootCauseCategory", filters.rootCauseCategory);
   if (cursor) params.set("cursor", cursor);
   params.set("limit", String(limit));
   return apiRequest(`/problems?${params.toString()}`);

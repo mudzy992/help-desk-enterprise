@@ -14,6 +14,7 @@ export type ShortcutId =
   | "goDashboard"
   | "goKnowledge"
   | "goStatus"
+  | "goProblems"
   | "listNext"
   | "listPrevious"
   | "listOpen"
@@ -70,6 +71,7 @@ export const shortcutCatalog: readonly ShortcutDefinition[] = [
   d("goDashboard", "global", ["g", "d"], ["G", "D"]),
   d("goKnowledge", "global", ["g", "k"], ["G", "K"]),
   d("goStatus", "global", ["g", "s"], ["G", "S"]),
+  d("goProblems", "global", ["g", "p"], ["G", "P"]),
   d("listNext", "list", ["j"], ["J"]),
   d("listPrevious", "list", ["k"], ["K"]),
   d("listOpen", "list", ["enter"], ["Enter"], true),

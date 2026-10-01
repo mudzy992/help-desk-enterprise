@@ -42,6 +42,8 @@ export type ProblemListQuery = {
   readonly serviceId?: string;
   /** P5 (§10): only problems past their target while the cause is unknown. */
   readonly overdue?: boolean;
+  /** Root-cause category; "none" = not categorised yet. */
+  readonly rootCauseCategory?: string;
   readonly cursor?: string;
   readonly limit?: number;
 };
@@ -150,6 +152,9 @@ export class ProblemsService {
     if (query.ownerUserId) and.push({ ownerUserId: query.ownerUserId === 'me' ? viewer.userId : query.ownerUserId });
     if (query.groupId) and.push({ groupId: query.groupId });
     if (query.overdue) and.push({ status: { in: ['NEW', 'INVESTIGATING'] }, targetAt: { lt: new Date() } });
+    if (query.rootCauseCategory) {
+      and.push({ rootCauseCategory: query.rootCauseCategory === 'none' ? null : query.rootCauseCategory });
+    }
     if (query.organizationalUnitId) and.push({ organizationalUnitId: query.organizationalUnitId });
     if (query.serviceId) {
       and.push({ OR: [{ serviceId: query.serviceId }, { services: { some: { serviceId: query.serviceId } } }] });
@@ -176,8 +181,9 @@ export class ProblemsService {
       this.prisma.problem.count({ where }),
     ]);
     const page = rows.slice(0, limit);
+    const openCounts = await this.openTicketCounts(page.map((row) => row.id));
     return {
-      items: page.map((row) => this.toListItem(row, configuration)),
+      items: page.map((row) => ({ ...this.toListItem(row, configuration), openTicketCount: openCounts.get(row.id) ?? 0 })),
       total,
       nextCursor: rows.length > limit ? (page[page.length - 1]?.id ?? null) : null,
     };
@@ -621,6 +627,17 @@ export class ProblemsService {
     if (input.ownerUserId && (owner === null || !owner.isActive)) throw new ProblemError(problemErrorCodes.userNotFound);
     if (input.groupId && group === null) throw new ProblemError(problemErrorCodes.groupNotFound);
     if (input.serviceId && service === null) throw new ProblemError(problemErrorCodes.serviceNotFound);
+  }
+
+  /** Linked tickets still being worked on (not resolved, closed or archived), one query per page. */
+  private async openTicketCounts(problemIds: readonly string[]): Promise<Map<string, number>> {
+    if (problemIds.length === 0) return new Map();
+    const groups = await this.prisma.problemTicket.groupBy({
+      by: ['problemId'],
+      where: { problemId: { in: [...problemIds] }, ticket: { status: { notIn: ['RESOLVED', 'CLOSED', 'ARCHIVED'] } } },
+      _count: { _all: true },
+    });
+    return new Map(groups.map((group) => [group.problemId, group._count._all]));
   }
 
   private toListItem(row: ListRow, configuration: ProblemConfiguration) {

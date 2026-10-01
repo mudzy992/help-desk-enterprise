@@ -5315,7 +5315,8 @@
         "previousTicket": "Previous ticket from the list",
         "backToList": "Back to the list",
         "send": "Send the message",
-        "leaveEditor": "Leave the editor (text is kept)"
+        "leaveEditor": "Leave the editor (text is kept)",
+        "goProblems": "Go to problems"
       },
       "unavailable": {
         "claim": "Claiming is not available for this ticket right now.",
@@ -6721,13 +6722,19 @@
       "caption": "Problem list",
       "number": "Number",
       "status": "Status",
-      "tickets": "Tickets",
+      "tickets": "Tickets (open/total)",
       "created": "Created",
       "noOwner": "No owner",
       "loadMore": "Load more",
       "target": "Target",
       "overdue": "Overdue",
-      "overdueFilter": "Overdue"
+      "overdueFilter": "Overdue",
+      "allCategories": "All root-cause categories",
+      "noCategory": "Uncategorised",
+      "age": "Age",
+      "ageDays_one": "{{count}} day",
+      "ageDays_other": "{{count}} days",
+      "ticketsTitle": "Open: {{open}} of {{total}}"
     },
     "rootCause": {
       "hardware": "Hardware",

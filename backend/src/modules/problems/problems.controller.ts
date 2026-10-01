@@ -37,6 +37,7 @@ export function parseProblemListQuery(raw: RawListQuery): ProblemListQuery {
     organizationalUnitId: idOf(raw.organizationalUnitId),
     serviceId: idOf(raw.serviceId),
     overdue: raw.overdue === 'true',
+    rootCauseCategory: raw.rootCauseCategory?.trim().slice(0, 80) || undefined,
     cursor: idOf(raw.cursor),
     limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
   };

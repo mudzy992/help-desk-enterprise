@@ -5354,7 +5354,8 @@
         "previousTicket": "Prethodni tiket s liste",
         "backToList": "Nazad na listu",
         "send": "Pošalji poruku",
-        "leaveEditor": "Izađi iz editora (tekst ostaje)"
+        "leaveEditor": "Izađi iz editora (tekst ostaje)",
+        "goProblems": "Idi na probleme"
       },
       "unavailable": {
         "claim": "Preuzimanje trenutno nije dostupno za ovaj tiket.",
@@ -6782,13 +6783,20 @@
       "caption": "Lista problema",
       "number": "Broj",
       "status": "Status",
-      "tickets": "Tiketi",
+      "tickets": "Tiketi (otv./uk.)",
       "created": "Kreiran",
       "noOwner": "Bez vlasnika",
       "loadMore": "Učitaj još",
       "target": "Rok",
       "overdue": "Kasni",
-      "overdueFilter": "Kasni"
+      "overdueFilter": "Kasni",
+      "allCategories": "Sve kategorije uzroka",
+      "noCategory": "Bez kategorije",
+      "age": "Starost",
+      "ageDays_one": "{{count}} dan",
+      "ageDays_few": "{{count}} dana",
+      "ageDays_other": "{{count}} dana",
+      "ticketsTitle": "Otvoreni: {{open}} od ukupno {{total}}"
     },
     "rootCause": {
       "hardware": "Hardver",

@@ -22,7 +22,7 @@ import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { formatAssetDate } from "@/lib/assets/asset-view";
 import { mapApiError } from "@/lib/map-api-error";
-import { mapProblemError, problemStatusKeys, problemStatusTone } from "@/lib/problems/problem-view";
+import { mapProblemError, problemAgeDays, problemStatusKeys, problemStatusTone, rootCauseLabel } from "@/lib/problems/problem-view";
 import { ticketPriorityLabelKey, ticketPriorityValues } from "@/lib/tickets/ticket-constants";
 import { ticketText } from "@/lib/tickets/ticket-text";
 import {
@@ -65,6 +65,8 @@ export function ProblemsPage() {
   const groupId = params.get("group") ?? "";
   const serviceId = params.get("service") ?? "";
   const overdue = params.get("overdue") === "true";
+  const category = params.get("category") ?? "";
+  const [nowMs] = useState(() => Date.now());
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -98,8 +100,9 @@ export function ProblemsPage() {
       groupId: groupId || undefined,
       serviceId: serviceId || undefined,
       overdue: overdue || undefined,
+      rootCauseCategory: category || undefined,
     }),
-    [search, status, priority, owner, groupId, serviceId, overdue],
+    [search, status, priority, owner, groupId, serviceId, overdue, category],
   );
   const listQuery = useInfiniteQuery({
     queryKey: problemDetailKeys.list(filters),
@@ -111,7 +114,7 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const hasFilters = search !== "" || status !== "open" || priority !== "" || owner !== "" || groupId !== "" || serviceId !== "" || overdue;
+  const hasFilters = search !== "" || status !== "open" || priority !== "" || owner !== "" || groupId !== "" || serviceId !== "" || overdue || category !== "";
   const targetEnabled = capabilities?.configuration?.targetEnabled === true;
 
   const header = (
@@ -220,6 +223,15 @@ export function ProblemsPage() {
               </option>
             ))}
           </select>
+          <select className={selectCompactClassName} aria-label={t("problems.fields.rootCauseCategory")} value={category} onChange={(event) => setParam("category", event.target.value)}>
+            <option value="">{t("problems.list.allCategories")}</option>
+            <option value="none">{t("problems.list.noCategory")}</option>
+            {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
+              <option key={value} value={value}>
+                {rootCauseLabel((key) => ticketText(t, key), value)}
+              </option>
+            ))}
+          </select>
           {targetEnabled ? (
             <Button variant={overdue ? "secondary" : "ghost"} size="sm" aria-pressed={overdue} onClick={() => setParam("overdue", overdue ? "" : "true")}>
               {t("problems.list.overdueFilter")}
@@ -272,6 +284,7 @@ export function ProblemsPage() {
                     <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.organizationalUnit")}</th>
                     <th scope="col" className="px-3 py-2 text-right">{t("problems.list.tickets")}</th>
                     <th scope="col" className="px-3 py-2 text-left">{t("problems.list.created")}</th>
+                    <th scope="col" className="px-3 py-2 text-right">{t("problems.list.age")}</th>
                     {targetEnabled ? <th scope="col" className="px-3 py-2 text-left">{t("problems.list.target")}</th> : null}
                   </tr>
                 </thead>
@@ -296,8 +309,11 @@ export function ProblemsPage() {
                         {item.group ? <span className="block text-[11.5px] text-muted-foreground">{item.group.name}</span> : null}
                       </td>
                       <td className="px-3 py-2">{item.organizationalUnit.name}</td>
-                      <td className="tnum px-3 py-2 text-right">{item.ticketCount}</td>
+                      <td className="tnum px-3 py-2 text-right" title={t("problems.list.ticketsTitle", { open: item.openTicketCount ?? 0, total: item.ticketCount })}>
+                        {item.openTicketCount ?? 0} / {item.ticketCount}
+                      </td>
                       <td className="px-3 py-2 text-muted-foreground">{formatAssetDate(item.createdAt, i18n.language)}</td>
+                      <td className="tnum px-3 py-2 text-right text-muted-foreground">{t("problems.list.ageDays", { count: problemAgeDays(item.createdAt, nowMs) })}</td>
                       {targetEnabled ? (
                         <td className="px-3 py-2">
                           {item.targetAt === null ? (

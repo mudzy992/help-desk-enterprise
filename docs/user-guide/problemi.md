@@ -30,3 +30,6 @@ Upravitelj problema otvara problem i klikne **Preuzmi** – postaje vlasnik. Vod
 
 ## Poznato ograničenje
 Agent u „Dodaj u problem“ vidi samo probleme svoje organizacione jedinice.
+
+## Registar
+Lista se filtrira po statusu, prioritetu, vlasniku, grupi, servisu, roku i kategoriji uzroka. Kolona „Tiketi“ prikazuje otvorene i ukupne povezane tikete, a „Starost“ broj dana od otvaranja. Prečica **g p** otvara Probleme.

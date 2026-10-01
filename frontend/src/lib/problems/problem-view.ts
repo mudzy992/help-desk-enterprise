@@ -70,6 +70,13 @@ const problemErrorKeys = {
   PROBLEM_OWNER_NOT_IN_GROUP: "problems.errors.ownerNotInGroup",
 } as const;
 
+/** Whole days since the problem was opened (never negative). */
+export function problemAgeDays(createdAt: string, nowMs: number): number {
+  const created = Date.parse(createdAt);
+  if (Number.isNaN(created)) return 0;
+  return Math.max(0, Math.floor((nowMs - created) / 86_400_000));
+}
+
 export type ProblemErrorKey = (typeof problemErrorKeys)[keyof typeof problemErrorKeys];
 
 const requirementFields = ["owner", "rootCause", "rootCauseCategory", "workaround", "resolution"] as const;
