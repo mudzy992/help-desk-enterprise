@@ -66,6 +66,11 @@ export function GroupCard({
                 {t("groups.problemGroupBadge")}
               </Badge>
             ) : null}
+            {group.isCabGroup ? (
+              <Badge tone="info" dot={false}>
+                {t("groups.cabGroupBadge")}
+              </Badge>
+            ) : null}
           </div>
           <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
             {group.isFallback

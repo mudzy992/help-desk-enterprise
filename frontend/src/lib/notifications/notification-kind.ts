@@ -22,8 +22,13 @@ export function notificationKind(type: string): NotificationKind {
 export function notificationTicketPath(
   ticketId: string | null | undefined,
   type?: string,
-  payload?: { readonly problemId?: string } | null,
+  payload?: { readonly problemId?: string; readonly changeId?: string } | null,
 ): string | null {
+  // Paket 3.4 (§14): change notifications open the change (or the register).
+  if (type?.startsWith("change.")) {
+    const changeId = payload?.changeId;
+    return changeId ? `/changes/${encodeURIComponent(changeId)}` : "/changes";
+  }
   // Paket 3.3 (P5): problem notifications open the problem (or the register).
   if (type?.startsWith("problem.")) {
     const problemId = payload?.problemId;
@@ -119,6 +124,11 @@ export function notificationTitleKey(
   | "notifications.items.problemTargetDue"
   | "notifications.items.problemRecurrence"
   | "notifications.items.problemGroupAssigned"
+  | "notifications.items.changeApprovalRequested"
+  | "notifications.items.changeDecided"
+  | "notifications.items.changeStartingSoon"
+  | "notifications.items.changeOverdue"
+  | "notifications.items.changeFailed"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -193,6 +203,16 @@ export function notificationTitleKey(
       return "notifications.items.problemRecurrence";
     case "problem.groupAssigned":
       return "notifications.items.problemGroupAssigned";
+    case "change.approvalRequested":
+      return "notifications.items.changeApprovalRequested";
+    case "change.decided":
+      return "notifications.items.changeDecided";
+    case "change.startingSoon":
+      return "notifications.items.changeStartingSoon";
+    case "change.overdue":
+      return "notifications.items.changeOverdue";
+    case "change.failed":
+      return "notifications.items.changeFailed";
     default:
       return "notifications.items.unknown";
   }

@@ -47,6 +47,10 @@ export const permissionKeys = {
   problemReport: "problem.report",
   problemManage: "problem.manage",
   problemClose: "problem.close",
+  changeRead: "change.read",
+  changeRequest: "change.request",
+  changeManage: "change.manage",
+  changeApprove: "change.approve",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];
@@ -56,6 +60,7 @@ export const roleKeys = {
   agent: "AGENT",
   assetManager: "ASSET_MANAGER",
   problemManager: "PROBLEM_MANAGER",
+  changeManager: "CHANGE_MANAGER",
   admin: "ADMIN",
   superAdmin: "SUPER_ADMIN",
 } as const;

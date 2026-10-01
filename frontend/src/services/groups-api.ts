@@ -16,6 +16,8 @@ export type GroupListItemResponse = {
   readonly organizationalUnitPath: string;
   readonly isFallback: boolean;
   readonly isProblemGroup: boolean;
+  /** Paket 3.4: CAB groups vote on changes. */
+  readonly isCabGroup: boolean;
   readonly memberCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -46,12 +48,14 @@ export type CreateGroupInput = {
   readonly organizationalUnitId: string;
   readonly isFallback?: boolean;
   readonly isProblemGroup?: boolean;
+  readonly isCabGroup?: boolean;
 };
 
 export type UpdateGroupInput = {
   readonly name?: string;
   readonly isFallback?: boolean;
   readonly isProblemGroup?: boolean;
+  readonly isCabGroup?: boolean;
 };
 
 export function listGroups(

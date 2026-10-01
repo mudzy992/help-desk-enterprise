@@ -10,6 +10,7 @@ import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
 import type { SessionCapabilities } from "@/lib/session/use-session-capabilities";
 import {
   canOpenAssets,
+  canOpenChanges,
   canOpenProblems,
   canOpenEmailTemplatesPage,
   canOpenMyAssets,
@@ -25,6 +26,7 @@ function buildCapabilities(input: {
   readonly isSuperAdmin?: boolean;
   readonly cmdb?: boolean;
   readonly problems?: boolean;
+  readonly changes?: boolean;
 }): SessionCapabilities {
   return {
     session: {
@@ -33,7 +35,7 @@ function buildCapabilities(input: {
       permissionKeys: input.permissionKeys ?? [],
       organizationalUnitId: null,
       organizationalUnitName: null,
-      modules: { cmdb: input.cmdb ?? false, problems: input.problems ?? false },
+      modules: { cmdb: input.cmdb ?? false, problems: input.problems ?? false, changes: input.changes ?? false },
       principal: {
         subjectId: "user-1",
         displayName: "Test User",
@@ -78,7 +80,7 @@ describe("route access", () => {
   });
 
   it("allows superadmin into all navigation entries", () => {
-    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true, problems: true });
+    const capabilities = buildCapabilities({ isSuperAdmin: true, cmdb: true, problems: true, changes: true });
     const visible = filterNavigationSections(navigationSections, capabilities);
     expect(visible.flatMap((section) => section.items)).toHaveLength(
       navigationSections.flatMap((section) => section.items).length,
@@ -104,6 +106,14 @@ describe("canOpenProblems (paket 3.3)", () => {
     expect(canOpenProblems(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
     expect(canOpenProblems(buildCapabilities({ problems: true, permissionKeys: [permissionKeys.problemRead] }))).toBe(true);
     expect(canOpenProblems(buildCapabilities({ problems: true, roleKeys: [roleKeys.user] }))).toBe(false);
+  });
+});
+
+describe("canOpenChanges (paket 3.4)", () => {
+  it("needs the module and change.read", () => {
+    expect(canOpenChanges(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
+    expect(canOpenChanges(buildCapabilities({ changes: true, permissionKeys: [permissionKeys.changeRead] }))).toBe(true);
+    expect(canOpenChanges(buildCapabilities({ changes: true, roleKeys: [roleKeys.user] }))).toBe(false);
   });
 });
 

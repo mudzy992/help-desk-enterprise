@@ -69,6 +69,8 @@ const AssetDetailPage = lazyPage(() => import("@/pages/asset-detail-page"), "Ass
 const MyAssetsPage = lazyPage(() => import("@/pages/my-assets-page"), "MyAssetsPage");
 const ProblemsPage = lazyPage(() => import("@/pages/problems-page"), "ProblemsPage");
 const ProblemDetailPage = lazyPage(() => import("@/pages/problem-detail-page"), "ProblemDetailPage");
+const ChangesPage = lazyPage(() => import("@/pages/changes-page"), "ChangesPage");
+const ChangeDetailPage = lazyPage(() => import("@/pages/change-detail-page"), "ChangeDetailPage");
 const VisualQaPrimitivesPage = import.meta.env.DEV
   ? lazyPage(() => import("@/pages/visual-qa-primitives-page"), "VisualQaPrimitivesPage")
   : null;
@@ -145,6 +147,11 @@ export function AppRouter() {
             <Route path="problems">
               <Route index element={<ProblemsPage />} />
               <Route path=":problemId" element={<ProblemDetailPage />} />
+            </Route>
+            {/* Paket 3.4: changes; same pattern as problems. */}
+            <Route path="changes">
+              <Route index element={<ChangesPage />} />
+              <Route path=":changeId" element={<ChangeDetailPage />} />
             </Route>
             <Route path="knowledge-base">
               <Route index element={<KnowledgeBasePage />} />

@@ -23,6 +23,7 @@ export const navigationLabelKeys = {
   assets: "navigation.assets",
   myAssets: "navigation.myAssets",
   problems: "navigation.problems",
+  changes: "navigation.changes",
 } as const;
 
 export type NavigationLabelKey =
@@ -192,6 +193,14 @@ export const problemsNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.problems },
 };
 
+/** Paket 3.4 (§17): change register (module on + change.read). */
+export const changesNavigationItem: NavigationItem = {
+  path: "/changes",
+  labelKey: navigationLabelKeys.changes,
+  end: false,
+  access: { kind: navigationAccessKinds.changes },
+};
+
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
@@ -199,7 +208,7 @@ export const navigationSections: readonly NavigationSection[] = [
   },
   {
     labelKey: navigationSectionKeys.tickets,
-    items: [ticketsNavigationItem, inboxNavigationItem, problemsNavigationItem, templatesNavigationItem, onCallNavigationItem],
+    items: [ticketsNavigationItem, inboxNavigationItem, problemsNavigationItem, changesNavigationItem, templatesNavigationItem, onCallNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.services,

@@ -67,6 +67,10 @@ export const installAddonCopyKeys = {
     label: "install.addons.catalog.problems.label",
     description: "install.addons.catalog.problems.description",
   },
+  changes: {
+    label: "install.addons.catalog.changes.label",
+    description: "install.addons.catalog.changes.description",
+  },
 } as const;
 
 export type InstallAddonCopyKey = keyof typeof installAddonCopyKeys;

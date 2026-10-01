@@ -14,6 +14,7 @@ export const navigationAccessKinds = {
   assets: "assets",
   myAssets: "myAssets",
   problems: "problems",
+  changes: "changes",
 } as const;
 
 export type NavigationAccessKind =
@@ -113,6 +114,15 @@ export function canOpenProblems(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.problemRead);
 }
 
+/** Paket 3.4 (§15, §17): the change module is on and the viewer holds `change.read`. */
+export function canOpenChanges(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null || session.modules?.changes !== true) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.changeRead);
+}
+
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
@@ -180,6 +190,8 @@ export function canAccessNavigationItem(
       return canOpenMyAssets(capabilities);
     case navigationAccessKinds.problems:
       return canOpenProblems(capabilities);
+    case navigationAccessKinds.changes:
+      return canOpenChanges(capabilities);
     default:
       return false;
   }

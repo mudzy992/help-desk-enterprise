@@ -22,6 +22,8 @@ export const notificationPreferenceCategoryKeys = [
   "ops.alert",
   "status.incident",
   "account.security",
+  "change.approval",
+  "change.owner",
 ] as const;
 export type NotificationPreferenceCategoryKey = (typeof notificationPreferenceCategoryKeys)[number];
 

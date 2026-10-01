@@ -18,6 +18,7 @@ import {
   Megaphone,
   Boxes,
   Puzzle,
+  GitPullRequestArrow,
   Laptop,
 } from "lucide-react";
 
@@ -45,6 +46,7 @@ const navigationIcons: Record<string, LucideIcon> = {
   "/assets": Boxes,
   "/my-assets": Laptop,
   "/problems": Puzzle,
+  "/changes": GitPullRequestArrow,
 };
 
 export function navigationIconFor(path: string): LucideIcon {

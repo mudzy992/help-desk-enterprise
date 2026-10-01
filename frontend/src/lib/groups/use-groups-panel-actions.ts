@@ -49,6 +49,7 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
     readonly isProblemGroup: boolean;
+    readonly isCabGroup: boolean;
   }) => {
     if (editingId === null) {
       return;
@@ -59,6 +60,7 @@ export function useGroupsPanelActions(onChanged: () => Promise<void>) {
       name: input.name,
       isFallback: input.isFallback,
       isProblemGroup: input.isProblemGroup,
+      isCabGroup: input.isCabGroup,
     })
       .then(async () => {
         setEditingId(null);

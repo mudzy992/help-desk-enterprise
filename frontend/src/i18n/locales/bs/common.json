@@ -28,7 +28,8 @@
     "announcements": "Najave",
     "assets": "Imovina",
     "myAssets": "Moja oprema",
-    "problems": "Problemi"
+    "problems": "Problemi",
+    "changes": "Promjene"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -57,7 +58,8 @@
       "agent": "Agent",
       "user": "Korisnik",
       "assetManager": "Upravitelj imovine",
-      "problemManager": "Upravitelj problema"
+      "problemManager": "Upravitelj problema",
+      "changeManager": "Upravitelj promjena"
     },
     "searchTrigger": "Pretraži…"
   },
@@ -180,7 +182,12 @@
       "problemResolved": "Problem povezan s vašim tiketom je riješen",
       "problemTargetDue": "Rok problema se približava ili je prošao",
       "problemRecurrence": "Riješeni problem se ponovio",
-      "problemGroupAssigned": "Novi problem čeka preuzimanje u vašoj grupi"
+      "problemGroupAssigned": "Novi problem čeka preuzimanje u vašoj grupi",
+      "changeApprovalRequested": "Promjena čeka vaš glas u CAB-u",
+      "changeDecided": "CAB je odlučio o promjeni",
+      "changeStartingSoon": "Promjena uskoro počinje",
+      "changeOverdue": "Promjena je prekoračila planirani kraj",
+      "changeFailed": "Promjena vezana za vaš problem nije uspjela"
     }
   },
   "placeholders": {
@@ -486,7 +493,8 @@
       "ADMIN": "Administrator",
       "SUPER_ADMIN": "SuperAdmin",
       "ASSET_MANAGER": "Upravitelj imovine",
-      "PROBLEM_MANAGER": "Upravitelj problema"
+      "PROBLEM_MANAGER": "Upravitelj problema",
+      "CHANGE_MANAGER": "Upravitelj promjena"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -555,7 +563,11 @@
       "problem.read": "Problemi",
       "problem.report": "Prijava problema",
       "problem.manage": "Upravljanje problemima",
-      "problem.close": "Zatvaranje problema"
+      "problem.close": "Zatvaranje problema",
+      "change.read": "Promjene",
+      "change.request": "Zahtjev za promjenu",
+      "change.manage": "Upravljanje promjenama",
+      "change.approve": "Glasanje u CAB-u"
     }
   },
   "maintenance": {
@@ -599,7 +611,9 @@
       "saving": "Snimanje…",
       "cancel": "Odustani",
       "problemGroup": "Problem-grupa",
-      "problemGroupHint": "Agenti ovoj grupi predaju probleme; upravitelji problema u njoj ih preuzimaju i rješavaju. Modul problema je aktivan tek kad postoji bar jedna problem-grupa."
+      "problemGroupHint": "Agenti ovoj grupi predaju probleme; upravitelji problema u njoj ih preuzimaju i rješavaju. Modul problema je aktivan tek kad postoji bar jedna problem-grupa.",
+      "cabGroup": "CAB grupa",
+      "cabGroupHint": "Članovi s dozvolom change.approve glasaju o promjenama. Modul promjena je aktivan tek kad postoji bar jedna CAB grupa."
     },
     "members": {
       "heading": "Članovi",
@@ -619,7 +633,8 @@
     "errorMemberExists": "Korisnik je već član ove grupe.",
     "errorMemberMissing": "Korisnik nije član ove grupe.",
     "errorGeneric": "Operacija nad grupom nije uspjela.",
-    "problemGroupBadge": "Problem-grupa"
+    "problemGroupBadge": "Problem-grupa",
+    "cabGroupBadge": "CAB"
   },
   "permissions": {
     "title": "Permisije uloga",
@@ -712,7 +727,11 @@
         "problem.read": "Pregled problema i registra poznatih grešaka u svom opsegu OJ (paket 3.3).",
         "problem.report": "Kreiranje problema predajom problem-grupi te povezivanje i odvajanje tiketa (paket 3.3).",
         "problem.manage": "Analiza, workaround, status i vlasništvo problema u problem-grupama čiji ste član (paket 3.3).",
-        "problem.close": "Zatvaranje, otkazivanje i ponovno otvaranje problema te grupno rješavanje povezanih tiketa (paket 3.3)."
+        "problem.close": "Zatvaranje, otkazivanje i ponovno otvaranje problema te grupno rješavanje povezanih tiketa (paket 3.3).",
+        "change.read": "Pregled registra i detalja promjena u svom opsegu OJ, uz vlastite promjene i promjene CAB-a čiji ste član (paket 3.4).",
+        "change.request": "Kreiranje zahtjeva za promjenu, uređivanje vlastitog nacrta i slanje na procjenu (paket 3.4).",
+        "change.manage": "Procjena, termin, realizacija, pregled nakon implementacije, šabloni i otkazivanje promjena (paket 3.4).",
+        "change.approve": "Glas o promjenama u CAB grupama čiji ste član; podnosilac ne glasa o svojoj promjeni (paket 3.4)."
       }
     }
   },
@@ -997,7 +1016,8 @@
         "private.collaboration": "Saradnja agenata",
         "private.privacy": "Zaštita ličnih podataka",
         "private.assets": "Imovina (CMDB)",
-        "private.problems": "Problemi"
+        "private.problems": "Problemi",
+        "private.changes": "Promjene"
       },
       "keys": {
         "private.addons.approvals": "Uključuje ili isključuje dodatak za odobravanje tiketa.",
@@ -1435,7 +1455,15 @@
         "private.assets.transfer.warehouseLabel": "Tekst kad predaje ili preuzima skladište (prazno = „Skladište“).",
         "private.assets.transfer.place": "Mjesto izdavanja na prenosnici (npr. grad).",
         "private.assets.transfer.defaultSignatoryUserId": "Potpisnik kad ga nijedna organizaciona jedinica u lancu nema (ID korisnika; prazno = nema).",
-        "private.assets.locations.enabled": "Vodi fizičke lokacije (zgrada, sprat, prostorija). Isključeno: kao mjesto se prikazuje puna putanja organizacione jedinice, a već unesene lokacije ostaju sačuvane."
+        "private.assets.locations.enabled": "Vodi fizičke lokacije (zgrada, sprat, prostorija). Isključeno: kao mjesto se prikazuje puna putanja organizacione jedinice, a već unesene lokacije ostaju sačuvane.",
+        "private.addons.changes": "Uključuje ili isključuje modul upravljanja promjenama: zahtjevi, CAB, kalendar i prozori održavanja. Aktivan je tek uz bar jednu CAB grupu. Zadano isključeno.",
+        "private.changes.numberPrefix": "Prefiks broja promjene (slova, cifre ili -; najviše 8), npr. CHG-000042.",
+        "private.changes.normalQuorum": "Broj odobrenja CAB-a potrebnih za normalnu promjenu (ograničen brojem članova s pravom glasa).",
+        "private.changes.emergencyQuorum": "Broj odobrenja hitnog CAB-a potrebnih za hitnu promjenu.",
+        "private.changes.minLeadTimeHours": "Minimalno vrijeme u satima od slanja normalne promjene CAB-u do njenog početka (0 = isključeno).",
+        "private.changes.requireTestPlan": "Plan testiranja je obavezan prije slanja promjene CAB-u. Zadano isključeno.",
+        "private.changes.freezePeriods": "Periodi zamrzavanja kao JSON lista [{\"from\":\"2026-12-24\",\"to\":\"2027-01-02\",\"label\":\"Kraj godine\"}], datumi uključivo. Blokiraju standardne i normalne promjene; hitne samo upozoravaju.",
+        "private.changes.reminderHoursBeforeStart": "Koliko sati prije početka vlasnik dobija podsjetnik (0 = bez podsjetnika)."
       }
     },
     "emailTemplates": {
@@ -1528,7 +1556,11 @@
         "asset_expiring": "Oprema: podsjetnik o isteku",
         "problem_assigned": "Problem: dodijeljen vlasniku",
         "problem_resolved": "Problem: riješen (agenti povezanih tiketa)",
-        "problem_target_due": "Problem: podsjetnik o roku"
+        "problem_target_due": "Problem: podsjetnik o roku",
+        "change_approval_requested": "Promjena: zatražen glas CAB-a",
+        "change_decided": "Promjena: odluka CAB-a",
+        "change_starting_soon": "Promjena: podsjetnik o početku",
+        "change_overdue": "Promjena: prekoračen planirani kraj"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -2684,6 +2716,10 @@
         "problems": {
           "label": "Upravljanje problemima",
           "description": "Problemi, analiza uzroka i registar poznatih grešaka."
+        },
+        "changes": {
+          "label": "Upravljanje promjenama",
+          "description": "Zahtjevi za promjenu, odobravanje CAB-a, kalendar i prozori održavanja."
         }
       }
     },
@@ -4723,6 +4759,14 @@
         "problem_linked": {
           "label": "Problemi povezani s mojim tiketima",
           "hint": "Poznata greška (workaround) i rješenje problema za otvorene tikete koji su vam dodijeljeni."
+        },
+        "change_approval": {
+          "label": "Glasanje u CAB-u",
+          "hint": "Promjene koje čekaju vaš glas kao člana CAB-a."
+        },
+        "change_owner": {
+          "label": "Promjene koje vodim ili sam tražio/la",
+          "hint": "Odluka CAB-a, podsjetnik prije početka, prekoračenje i neuspjela promjena vezana za problem."
         }
       },
       "emailOnly": "Samo e-mail",
@@ -5386,7 +5430,8 @@
         "backToList": "Nazad na listu",
         "send": "Pošalji poruku",
         "leaveEditor": "Izađi iz editora (tekst ostaje)",
-        "goProblems": "Idi na probleme"
+        "goProblems": "Idi na probleme",
+        "goChanges": "Idi na promjene"
       },
       "unavailable": {
         "claim": "Preuzimanje trenutno nije dostupno za ovaj tiket.",
@@ -7053,6 +7098,332 @@
       "incidentCausedBy_one": "Ovaj prekid je posljedica problema:",
       "incidentCausedBy_few": "Ovaj prekid je posljedica problema:",
       "incidentCausedBy_other": "Ovaj prekid je posljedica problema:"
+    }
+  },
+  "changes": {
+    "title": "Promjene",
+    "subtitle": "Zahtjevi za promjenu (RFC), odobravanje CAB-a, termini i pregled nakon implementacije.",
+    "setupTitle": "Modul promjena čeka CAB grupu",
+    "setupBody": "Addon je uključen, ali nijedna grupa nije označena kao CAB. Administrator u Grupama označava „CAB grupa“ i dodaje članove s pravom glasa.",
+    "disabledTitle": "Modul promjena nije uključen",
+    "disabledBody": "Upravljanje promjenama uključuje administrator u postavkama (addon „Upravljanje promjenama“).",
+    "forbiddenTitle": "Nemate pristup promjenama",
+    "forbiddenBody": "Za pregled promjena potrebna je dozvola change.read.",
+    "status": {
+      "DRAFT": "Nacrt",
+      "ASSESSMENT": "Procjena",
+      "AUTHORIZATION": "Odobravanje",
+      "SCHEDULED": "Zakazana",
+      "IMPLEMENTING": "U realizaciji",
+      "REVIEW": "Pregled",
+      "CLOSED": "Zatvorena",
+      "REJECTED": "Odbijena",
+      "CANCELLED": "Otkazana"
+    },
+    "type": {
+      "STANDARD": "Standardna",
+      "NORMAL": "Normalna",
+      "EMERGENCY": "Hitna"
+    },
+    "risk": {
+      "LOW": "Nizak",
+      "MEDIUM": "Srednji",
+      "HIGH": "Visok",
+      "CRITICAL": "Kritičan"
+    },
+    "level": {
+      "LOW": "Nizak",
+      "MEDIUM": "Srednji",
+      "HIGH": "Visok"
+    },
+    "outcome": {
+      "SUCCESSFUL": "Uspješna",
+      "PARTIAL": "Djelimično uspješna",
+      "FAILED": "Neuspješna",
+      "ROLLED_BACK": "Vraćena (rollback)"
+    },
+    "action": {
+      "submit": "Pošalji",
+      "return": "Vrati na doradu",
+      "authorize": "Pošalji CAB-u",
+      "withdraw": "Povuci s odobravanja",
+      "schedule": "Zakaži",
+      "start": "Započni realizaciju",
+      "finish": "Završi realizaciju",
+      "close": "Zatvori nakon pregleda",
+      "cancel": "Otkaži promjenu"
+    },
+    "fields": {
+      "title": "Naslov",
+      "type": "Tip",
+      "description": "Opis",
+      "reason": "Razlog promjene",
+      "impact": "Uticaj",
+      "likelihood": "Vjerovatnoća",
+      "risk": "Rizik",
+      "causesDowntime": "Uzrokuje prekid servisa",
+      "plannedStart": "Planirani početak",
+      "plannedEnd": "Planirani kraj",
+      "organizationalUnit": "Organizaciona jedinica",
+      "cabGroup": "CAB grupa",
+      "owner": "Vlasnik",
+      "requester": "Podnosilac",
+      "problem": "Problem",
+      "template": "Šablon",
+      "services": "Servisi",
+      "assets": "Oprema",
+      "implementationPlan": "Plan implementacije",
+      "backoutPlan": "Plan povrata",
+      "testPlan": "Plan testiranja",
+      "communicationPlan": "Plan komunikacije",
+      "outcome": "Ishod",
+      "reviewNotes": "Bilješke pregleda (PIR)",
+      "service": "Servis"
+    },
+    "list": {
+      "create": "Nova promjena",
+      "filtersLabel": "Filteri promjena",
+      "searchLabel": "Pretraga promjena",
+      "searchPlaceholder": "Broj ili naslov promjene",
+      "resetFilters": "Poništi filtere",
+      "statusFilter": "Status",
+      "statusOpen": "Otvorene",
+      "statusAll": "Sve",
+      "allTypes": "Svi tipovi",
+      "allRisks": "Svi rizici",
+      "allCabGroups": "Sve CAB grupe",
+      "allServices": "Svi servisi",
+      "anyOwner": "Bilo koji vlasnik",
+      "ownedByMe": "Ja sam vlasnik",
+      "mine": "Moji zahtjevi",
+      "awaitingMyVote": "Čeka moj glas",
+      "count_one": "{{count}} promjena (prikazano {{shown}})",
+      "count_few": "{{count}} promjene (prikazano {{shown}})",
+      "count_other": "{{count}} promjena (prikazano {{shown}})",
+      "noMatchesTitle": "Nema promjena za ove filtere",
+      "noMatchesBody": "Promijenite pretragu ili poništite filtere.",
+      "emptyTitle": "Još nema promjena",
+      "emptyBody": "Nova promjena se kreira dugmetom „Nova promjena“.",
+      "caption": "Registar promjena",
+      "number": "Broj",
+      "status": "Status",
+      "window": "Termin",
+      "causesDowntime": "uz prekid servisa",
+      "noOwner": "Bez vlasnika",
+      "loadMore": "Učitaj još"
+    },
+    "form": {
+      "createTitle": "Nova promjena",
+      "editTitle": "Uredi promjenu",
+      "createDescription": "Popunite zahtjev; plan, termin i CAB se mogu dopuniti prije slanja na odobravanje.",
+      "editDescription": "Izmjene se bilježe u historiji promjene.",
+      "windowOnlyDescription": "Zakazanoj promjeni se mijenjaju samo termin i vlasnik. Termin izvan odobrenog prozora vraća promjenu na odobravanje.",
+      "typeHint": {
+        "STANDARD": "Unaprijed odobrena promjena po šablonu; ne ide pred CAB.",
+        "NORMAL": "Procjena, zatim odobravanje CAB-a prije termina.",
+        "EMERGENCY": "Hitni CAB s manjim kvorumom, bez procjene; zamrzavanje samo upozorava."
+      },
+      "templateHint": "Šablon određuje planove, uticaj, vjerovatnoću i servise.",
+      "templatePlaceholder": "Izaberite šablon",
+      "descriptionStandardHint": "Prazno = opis iz šablona.",
+      "reasonHint": "Zašto je promjena potrebna (obavezno prije slanja).",
+      "riskPreview": "Izračunati rizik:",
+      "servicesHint": "Bar jedan servis ili jedna stavka opreme prije slanja.",
+      "servicesStandardHint": "Servisi iz šablona se dodaju automatski.",
+      "selectedServices": "Izabrani servisi",
+      "removeService": "Ukloni servis {{name}}",
+      "noServices": "Nijedan servis nije izabran.",
+      "serviceSearch": "Pretraga servisa",
+      "serviceResults": "Servisi za dodavanje",
+      "serviceNone": "Nema servisa za prikaz.",
+      "serviceMore": "Još {{count}} — suzite pretragu.",
+      "cabGroupHint": "Članovi ove grupe s pravom glasa odobravaju promjenu.",
+      "window": "Termin",
+      "windowHint": "Vrijeme je u vašoj lokalnoj zoni.",
+      "windowLeadHint": "Normalna promjena traži najmanje {{hours}} h od slanja CAB-u do početka.",
+      "windowBoth": "Unesite i početak i kraj, ili ostavite oba prazna.",
+      "causesDowntimeHint": "Za zakazanu promjenu servisi automatski dobijaju prozor održavanja (MAINTENANCE).",
+      "ownerSearch": "Pretraga vlasnika",
+      "ownerResults": "Upravitelji promjena",
+      "ownerNone": "Nema rezultata.",
+      "clearOwner": "Ukloni vlasnika",
+      "planHint": "Obavezno prije slanja CAB-u.",
+      "testPlanRequired": "Obavezno prije slanja CAB-u (postavka).",
+      "saving": "Spremanje…",
+      "save": "Spremi",
+      "create": "Kreiraj",
+      "created": "Promjena je kreirana",
+      "saved": "Promjena je spremljena"
+    },
+    "detail": {
+      "back": "Promjene",
+      "notFoundTitle": "Promjena nije pronađena",
+      "edit": "Uredi",
+      "reschedule": "Pomjeri termin",
+      "claim": "Preuzmi",
+      "claimed": "Promjena je preuzeta",
+      "moreActions": "Još radnji",
+      "riskLine": "Rizik: {{risk}}",
+      "tabs": {
+        "overview": "Pregled",
+        "plan": "Plan",
+        "approvals": "Odobravanje",
+        "links": "Veze",
+        "history": "Historija"
+      },
+      "responsibility": "Odgovornost",
+      "assessment": "Procjena",
+      "timeline": "Tok",
+      "actualWindow": "Stvarno trajanje",
+      "inProgress": "u toku",
+      "createdAt": "Kreirana",
+      "submittedAt": "Poslana",
+      "authorizedAt": "Odobrena",
+      "closedAt": "Zatvorena",
+      "cancelledAt": "Otkazana",
+      "cancelReason": "Razlog otkazivanja",
+      "notSet": "Nije uneseno.",
+      "yes": "Da",
+      "no": "Ne"
+    },
+    "links": {
+      "noServices": "Nema povezanih servisa.",
+      "noAssets": "Nema povezane opreme.",
+      "noProblem": "Promjena nije vezana za problem."
+    },
+    "conflicts": {
+      "title": "Konflikti termina",
+      "none": "Nema konflikata u ovom terminu.",
+      "changesTitle_one": "{{count}} promjena u istom terminu",
+      "changesTitle_few": "{{count}} promjene u istom terminu",
+      "changesTitle_other": "{{count}} promjena u istom terminu",
+      "downtimeTitle_one": "{{count}} prozor prekida na zahvaćenim servisima",
+      "downtimeTitle_few": "{{count}} prozora prekida na zahvaćenim servisima",
+      "downtimeTitle_other": "{{count}} prozora prekida na zahvaćenim servisima",
+      "sharedAssets_one": "{{count}} zajednička stavka opreme",
+      "sharedAssets_few": "{{count}} zajedničke stavke opreme",
+      "sharedAssets_other": "{{count}} zajedničkih stavki opreme",
+      "freezeBlocks": "Termin pada u period zamrzavanja „{{label}}“ ({{from}} – {{to}}). Izaberite drugi termin.",
+      "freezeWarns": "Termin pada u period zamrzavanja „{{label}}“ ({{from}} – {{to}}); hitna promjena je dozvoljena uz upozorenje.",
+      "freezeUnnamed": "bez naziva",
+      "acknowledge": "Upoznat/a sam s konfliktima i nastavljam",
+      "acknowledgedAt": "Konflikti potvrđeni {{at}}."
+    },
+    "actionSheet": {
+      "current": "Trenutni status: {{status}}",
+      "reason": "Razlog",
+      "reasonHint": "Najmanje {{min}} znakova; bilježi se u historiji.",
+      "outcomePlaceholder": "Izaberite ishod",
+      "reviewHint": "Šta je urađeno, odstupanja i lekcije (najmanje {{min}} znakova).",
+      "reviewLaterHint": "Opcionalno; bilješke se mogu dopuniti u pregledu.",
+      "done": "Status promjene je ažuriran",
+      "hint": {
+        "submit": "Promjena ide na procjenu (hitna odmah CAB-u). Potrebni su naslov, opis, razlog i bar jedan servis ili stavka opreme.",
+        "return": "Promjena se vraća podnosiocu na doradu.",
+        "authorize": "CAB dobija obavijest i glasa. Potrebni su plan implementacije, plan povrata, termin i CAB grupa.",
+        "withdraw": "Promjena se povlači s odobravanja; glasanje se ponavlja u novoj rundi.",
+        "schedule": "Standardna promjena se zakazuje bez CAB-a, prema šablonu.",
+        "start": "Bilježi stvarni početak realizacije.",
+        "finish": "Bilježi stvarni kraj i ishod; prozor prekida koji još traje se skraćuje.",
+        "close": "Promjena se zatvara nakon pregleda.",
+        "cancel": "Otkazivanje je konačno; budući prozori prekida se brišu."
+      }
+    },
+    "approvals": {
+      "standardTitle": "Standardna promjena ne ide pred CAB",
+      "standardBody": "Šablon je unaprijed odobren.",
+      "roundTitle": "Runda glasanja {{round}}",
+      "progress": "Odobrenja: {{approvals}} od potrebnih {{quorum}}",
+      "cab": "CAB: {{name}}",
+      "noCab": "CAB grupa nije izabrana.",
+      "noVoters": "U CAB grupi nema članova s pravom glasa.",
+      "votersLabel": "Članovi CAB-a s pravom glasa",
+      "voted": "glasao/la",
+      "waiting": "čeka",
+      "voteTitle": "Vaš glas",
+      "comment": "Komentar",
+      "commentHint": "Opcionalan uz odobrenje, obavezan uz odbijanje.",
+      "rejectNeedsComment": "Za odbijanje upišite komentar.",
+      "approve": "Odobri",
+      "reject": "Odbij",
+      "recorded": "Glas je zabilježen",
+      "notOpen": "Glasanje je moguće samo dok je promjena na odobravanju.",
+      "requesterCannotVote": "Podnosilac ne glasa o svojoj promjeni.",
+      "cannotVote": "Već ste glasali ili niste član CAB-a s pravom glasa.",
+      "votesTitle": "Glasovi u ovoj rundi",
+      "noVotes": "Još nema glasova.",
+      "earlierTitle": "Ranije runde (ne broje se)",
+      "approved": "Odobreno",
+      "rejected": "Odbijeno"
+    },
+    "history": {
+      "title": "Historija",
+      "emptyTitle": "Nema zapisa",
+      "emptyBody": "Radnje na promjeni pojavit će se ovdje.",
+      "system": "Sistem",
+      "reason": "Razlog: {{reason}}",
+      "comment": "Komentar: {{comment}}",
+      "created": "Kreirana promjena {{number}}",
+      "status": "Status: {{from}} → {{to}}",
+      "statusCab": "CAB: {{from}} → {{to}}",
+      "statusReschedule": "Termin pomjeren izvan odobrenog prozora; promjena je vraćena na odobravanje",
+      "claimed": "Promjenu je preuzeo vlasnik",
+      "owner": "Promijenjen vlasnik",
+      "updated": "Izmijenjeno: {{fields}}",
+      "linksChanged": "veze",
+      "approved": "Glas: odobreno ({{approvals}}/{{quorum}}, runda {{round}})",
+      "rejected": "Glas: odbijeno (runda {{round}})",
+      "conflictsAcknowledged": "Konflikti termina su potvrđeni",
+      "downtime": "Prozori prekida: kreirano {{created}}, pomjereno {{updated}}, obrisano {{deleted}}, preskočeno {{skipped}}",
+      "reminderStartingSoon": "Poslan podsjetnik o skorom početku",
+      "reminderOverdue": "Poslana obavijest o prekoračenju planiranog kraja"
+    },
+    "errors": {
+      "disabled": "Modul promjena nije uključen.",
+      "notFound": "Promjena ne postoji ili nije u vašem opsegu.",
+      "forbidden": "Nemate dozvolu za ovu radnju.",
+      "outOfScope": "Organizaciona jedinica nije u vašem opsegu.",
+      "unitNotFound": "Organizaciona jedinica ne postoji.",
+      "userNotFound": "Korisnik ne postoji ili nije aktivan.",
+      "groupNotFound": "Grupa ne postoji.",
+      "notCabGroup": "Izabrana grupa nije CAB grupa.",
+      "serviceNotFound": "Servis ne postoji.",
+      "assetNotFound": "Stavka opreme ne postoji.",
+      "problemNotFound": "Problem ne postoji.",
+      "templateNotFound": "Šablon ne postoji.",
+      "templateInactive": "Šablon nije aktivan.",
+      "templateRisk": "Šablon standardne promjene mora biti niskog ili srednjeg rizika.",
+      "transition": "Ova radnja nije dozvoljena u trenutnom statusu.",
+      "requirementMissing": "Nedostaje podatak potreban za ovaj korak.",
+      "reasonRequired": "Upišite razlog (najmanje 5 znakova).",
+      "finalStatus": "Promjena je u konačnom statusu.",
+      "locked": "Sadržaj promjene je zaključan u ovom statusu.",
+      "versionConflict": "Promjenu je u međuvremenu izmijenio neko drugi. Osvježite stranicu.",
+      "validation": "Neki podaci nisu ispravni.",
+      "windowInvalid": "Početak termina mora biti prije kraja.",
+      "leadTime": "Normalna promjena ne poštuje minimalno najavno vrijeme do početka.",
+      "freeze": "Termin pada u period zamrzavanja.",
+      "conflictsNotAcknowledged": "Termin ima konflikte; potvrdite da ste upoznati s njima.",
+      "noApprovers": "U CAB grupi nema nikoga osim podnosioca ko može glasati.",
+      "notApprover": "Niste član CAB-a ove promjene s pravom glasa.",
+      "requesterVote": "Podnosilac ne glasa o svojoj promjeni.",
+      "alreadyVoted": "Već ste glasali u ovoj rundi.",
+      "notInAuthorization": "Promjena nije na odobravanju.",
+      "ownerNotManager": "Vlasnik mora biti upravitelj promjena.",
+      "requirement": {
+        "title": "Nedostaje naslov.",
+        "description": "Nedostaje opis.",
+        "reason": "Nedostaje razlog promjene.",
+        "links": "Dodajte bar jedan servis ili jednu stavku opreme.",
+        "templateId": "Standardna promjena traži šablon.",
+        "plannedWindow": "Nedostaje termin (početak i kraj).",
+        "implementationPlan": "Nedostaje plan implementacije.",
+        "backoutPlan": "Nedostaje plan povrata.",
+        "testPlan": "Nedostaje plan testiranja.",
+        "cabGroupId": "Nije izabrana CAB grupa.",
+        "outcome": "Izaberite ishod realizacije.",
+        "reviewNotes": "Upišite bilješke pregleda (za neuspješne ili vraćene promjene najmanje 20 znakova)."
+      }
     }
   }
 }

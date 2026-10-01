@@ -9,7 +9,7 @@ export type CurrentSessionResponse = {
   readonly organizationalUnitId: string | null;
   readonly organizationalUnitName: string | null;
   /** Paket 3.2: optional modules that are switched on (menus only). */
-  readonly modules?: { readonly cmdb: boolean; readonly problems?: boolean };
+  readonly modules?: { readonly cmdb: boolean; readonly problems?: boolean; readonly changes?: boolean };
 };
 
 export function getCurrentSession(): Promise<CurrentSessionResponse> {

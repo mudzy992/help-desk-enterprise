@@ -28,7 +28,8 @@
     "announcements": "Announcements",
     "assets": "Assets",
     "myAssets": "My equipment",
-    "problems": "Problems"
+    "problems": "Problems",
+    "changes": "Changes"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -57,7 +58,8 @@
       "agent": "Agent",
       "user": "User",
       "assetManager": "Asset manager",
-      "problemManager": "Problem manager"
+      "problemManager": "Problem manager",
+      "changeManager": "Change manager"
     },
     "searchTrigger": "Search…"
   },
@@ -179,7 +181,12 @@
       "problemResolved": "A problem linked to your ticket was resolved",
       "problemTargetDue": "A problem target is near or passed",
       "problemRecurrence": "A resolved problem recurred",
-      "problemGroupAssigned": "A new problem is waiting in your group"
+      "problemGroupAssigned": "A new problem is waiting in your group",
+      "changeApprovalRequested": "A change is waiting for your CAB vote",
+      "changeDecided": "The CAB decided on a change",
+      "changeStartingSoon": "A change starts soon",
+      "changeOverdue": "A change has passed its planned end",
+      "changeFailed": "A change linked to your problem failed"
     }
   },
   "placeholders": {
@@ -478,7 +485,8 @@
       "ADMIN": "Administrator",
       "SUPER_ADMIN": "SuperAdmin",
       "ASSET_MANAGER": "Asset manager",
-      "PROBLEM_MANAGER": "Problem manager"
+      "PROBLEM_MANAGER": "Problem manager",
+      "CHANGE_MANAGER": "Change manager"
     },
     "packs": {
       "PACK_IT_STANDARD": {
@@ -547,7 +555,11 @@
       "problem.read": "Problems",
       "problem.report": "Report problems",
       "problem.manage": "Manage problems",
-      "problem.close": "Close problems"
+      "problem.close": "Close problems",
+      "change.read": "Changes",
+      "change.request": "Request for change",
+      "change.manage": "Change management",
+      "change.approve": "CAB voting"
     }
   },
   "maintenance": {
@@ -591,7 +603,9 @@
       "saving": "Saving…",
       "cancel": "Cancel",
       "problemGroup": "Problem group",
-      "problemGroupHint": "Agents hand problems to this group; its problem managers take them over and resolve them. The problem module becomes active once at least one problem group exists."
+      "problemGroupHint": "Agents hand problems to this group; its problem managers take them over and resolve them. The problem module becomes active once at least one problem group exists.",
+      "cabGroup": "CAB group",
+      "cabGroupHint": "Members with change.approve vote on changes. The change module is active only once at least one CAB group exists."
     },
     "members": {
       "heading": "Members",
@@ -611,7 +625,8 @@
     "errorMemberExists": "This user is already a member of the group.",
     "errorMemberMissing": "This user is not a member of the group.",
     "errorGeneric": "Group operation failed.",
-    "problemGroupBadge": "Problem group"
+    "problemGroupBadge": "Problem group",
+    "cabGroupBadge": "CAB"
   },
   "permissions": {
     "title": "Role permissions",
@@ -704,7 +719,11 @@
         "problem.read": "View problems and the known-error register in the own unit scope (package 3.3).",
         "problem.report": "Create problems by handing them to a problem group, and link or unlink tickets (package 3.3).",
         "problem.manage": "Analysis, workaround, status and ownership of problems in the problem groups you belong to (package 3.3).",
-        "problem.close": "Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3)."
+        "problem.close": "Close, cancel and reopen problems and bulk-resolve their linked tickets (package 3.3).",
+        "change.read": "View the change register and details in your unit scope, plus your own changes and changes of CABs you belong to (package 3.4).",
+        "change.request": "Create requests for change, edit your own draft and submit it for assessment (package 3.4).",
+        "change.manage": "Assessment, scheduling, implementation, post-implementation review, templates and cancelling changes (package 3.4).",
+        "change.approve": "Vote on changes in CAB groups you belong to; requesters do not vote on their own change (package 3.4)."
       }
     }
   },
@@ -987,7 +1006,8 @@
         "private.collaboration": "Agent collaboration",
         "private.privacy": "Privacy",
         "private.assets": "Assets (CMDB)",
-        "private.problems": "Problems"
+        "private.problems": "Problems",
+        "private.changes": "Changes"
       },
       "keys": {
         "private.addons.approvals": "Turns the ticket approvals add-on on or off.",
@@ -1425,7 +1445,15 @@
         "private.assets.transfer.warehouseLabel": "Text printed when the warehouse hands over or receives (empty = “Warehouse”).",
         "private.assets.transfer.place": "Place of issue printed on the transfer record (e.g. the city).",
         "private.assets.transfer.defaultSignatoryUserId": "Signatory when no organizational unit in the chain defines one (user id; empty = none).",
-        "private.assets.locations.enabled": "Track physical locations (building, floor, room). Off: the full organizational unit path is shown as the place and stored locations are kept."
+        "private.assets.locations.enabled": "Track physical locations (building, floor, room). Off: the full organizational unit path is shown as the place and stored locations are kept.",
+        "private.addons.changes": "Turns the change management module on or off: requests, CAB, calendar and maintenance windows. Active only with at least one CAB group. Off by default.",
+        "private.changes.numberPrefix": "Change number prefix (letters, digits or -; at most 8), e.g. CHG-000042.",
+        "private.changes.normalQuorum": "CAB approvals needed for a normal change (capped by the number of voting members).",
+        "private.changes.emergencyQuorum": "Emergency CAB approvals needed for an emergency change.",
+        "private.changes.minLeadTimeHours": "Minimum hours between sending a normal change to the CAB and its start (0 = off).",
+        "private.changes.requireTestPlan": "A test plan is required before sending a change to the CAB. Off by default.",
+        "private.changes.freezePeriods": "Freeze periods as a JSON list [{\"from\":\"2026-12-24\",\"to\":\"2027-01-02\",\"label\":\"Year end\"}], dates inclusive. They block standard and normal changes; emergency changes only get a warning.",
+        "private.changes.reminderHoursBeforeStart": "How many hours before the start the owner is reminded (0 = no reminder)."
       }
     },
     "emailTemplates": {
@@ -1517,7 +1545,11 @@
         "asset_expiring": "Assets: expiry reminder",
         "problem_assigned": "Problem: assigned to owner",
         "problem_resolved": "Problem: resolved (linked ticket agents)",
-        "problem_target_due": "Problem: target reminder"
+        "problem_target_due": "Problem: target reminder",
+        "change_approval_requested": "Change: CAB vote requested",
+        "change_decided": "Change: CAB decision",
+        "change_starting_soon": "Change: starting reminder",
+        "change_overdue": "Change: planned end passed"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -2667,6 +2699,10 @@
         "problems": {
           "label": "Problem management",
           "description": "Problems, root cause analysis and the known-error register."
+        },
+        "changes": {
+          "label": "Change management",
+          "description": "Requests for change, CAB approval, calendar and maintenance windows."
         }
       }
     },
@@ -4691,6 +4727,14 @@
         "problem_linked": {
           "label": "Problems linked to my tickets",
           "hint": "Known error (workaround) and resolution for open tickets assigned to you."
+        },
+        "change_approval": {
+          "label": "CAB voting",
+          "hint": "Changes waiting for your vote as a CAB member."
+        },
+        "change_owner": {
+          "label": "Changes I own or requested",
+          "hint": "CAB decision, reminder before the start, overrun and a failed change linked to a problem."
         }
       },
       "emailOnly": "E-mail only",
@@ -5346,7 +5390,8 @@
         "backToList": "Back to the list",
         "send": "Send the message",
         "leaveEditor": "Leave the editor (text is kept)",
-        "goProblems": "Go to problems"
+        "goProblems": "Go to problems",
+        "goChanges": "Go to changes"
       },
       "unavailable": {
         "claim": "Claiming is not available for this ticket right now.",
@@ -6985,6 +7030,328 @@
       "assetProblemsSubtitle": "Problems that list this item as affected equipment.",
       "incidentCausedBy_one": "This outage is caused by problem:",
       "incidentCausedBy_other": "This outage is caused by problems:"
+    }
+  },
+  "changes": {
+    "title": "Changes",
+    "subtitle": "Requests for change (RFC), CAB approval, schedules and post-implementation review.",
+    "setupTitle": "The change module is waiting for a CAB group",
+    "setupBody": "The add-on is on, but no group is marked as a CAB. An administrator marks \"CAB group\" under Groups and adds members who may vote.",
+    "disabledTitle": "The change module is off",
+    "disabledBody": "An administrator turns change management on in the settings (\"Change management\" add-on).",
+    "forbiddenTitle": "You have no access to changes",
+    "forbiddenBody": "Viewing changes requires the change.read permission.",
+    "status": {
+      "DRAFT": "Draft",
+      "ASSESSMENT": "Assessment",
+      "AUTHORIZATION": "Authorization",
+      "SCHEDULED": "Scheduled",
+      "IMPLEMENTING": "Implementing",
+      "REVIEW": "Review",
+      "CLOSED": "Closed",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "type": {
+      "STANDARD": "Standard",
+      "NORMAL": "Normal",
+      "EMERGENCY": "Emergency"
+    },
+    "risk": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
+    "level": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High"
+    },
+    "outcome": {
+      "SUCCESSFUL": "Successful",
+      "PARTIAL": "Partially successful",
+      "FAILED": "Failed",
+      "ROLLED_BACK": "Rolled back"
+    },
+    "action": {
+      "submit": "Submit",
+      "return": "Return for rework",
+      "authorize": "Send to CAB",
+      "withdraw": "Withdraw from authorization",
+      "schedule": "Schedule",
+      "start": "Start implementation",
+      "finish": "Finish implementation",
+      "close": "Close after review",
+      "cancel": "Cancel change"
+    },
+    "fields": {
+      "title": "Title",
+      "type": "Type",
+      "description": "Description",
+      "reason": "Reason for change",
+      "impact": "Impact",
+      "likelihood": "Likelihood",
+      "risk": "Risk",
+      "causesDowntime": "Causes service downtime",
+      "plannedStart": "Planned start",
+      "plannedEnd": "Planned end",
+      "organizationalUnit": "Organizational unit",
+      "cabGroup": "CAB group",
+      "owner": "Owner",
+      "requester": "Requester",
+      "problem": "Problem",
+      "template": "Template",
+      "services": "Services",
+      "assets": "Equipment",
+      "implementationPlan": "Implementation plan",
+      "backoutPlan": "Backout plan",
+      "testPlan": "Test plan",
+      "communicationPlan": "Communication plan",
+      "outcome": "Outcome",
+      "reviewNotes": "Review notes (PIR)",
+      "service": "Service"
+    },
+    "list": {
+      "create": "New change",
+      "filtersLabel": "Change filters",
+      "searchLabel": "Search changes",
+      "searchPlaceholder": "Change number or title",
+      "resetFilters": "Reset filters",
+      "statusFilter": "Status",
+      "statusOpen": "Open",
+      "statusAll": "All",
+      "allTypes": "All types",
+      "allRisks": "All risks",
+      "allCabGroups": "All CAB groups",
+      "allServices": "All services",
+      "anyOwner": "Any owner",
+      "ownedByMe": "Owned by me",
+      "mine": "My requests",
+      "awaitingMyVote": "Awaiting my vote",
+      "count_one": "{{count}} change (showing {{shown}})",
+      "count_other": "{{count}} changes (showing {{shown}})",
+      "noMatchesTitle": "No changes match these filters",
+      "noMatchesBody": "Change the search or reset the filters.",
+      "emptyTitle": "No changes yet",
+      "emptyBody": "Create a change with the \"New change\" button.",
+      "caption": "Change register",
+      "number": "Number",
+      "status": "Status",
+      "window": "Window",
+      "causesDowntime": "with service downtime",
+      "noOwner": "No owner",
+      "loadMore": "Load more"
+    },
+    "form": {
+      "createTitle": "New change",
+      "editTitle": "Edit change",
+      "createDescription": "Fill in the request; the plan, window and CAB can be completed before authorization.",
+      "editDescription": "Edits are recorded in the change history.",
+      "windowOnlyDescription": "A scheduled change only accepts a new window and owner. A window outside the approved one sends the change back to authorization.",
+      "typeHint": {
+        "STANDARD": "Pre-approved change from a template; it does not go to the CAB.",
+        "NORMAL": "Assessment, then CAB approval before the window.",
+        "EMERGENCY": "Emergency CAB with a smaller quorum, no assessment; a freeze only warns."
+      },
+      "templateHint": "The template sets the plans, impact, likelihood and services.",
+      "templatePlaceholder": "Choose a template",
+      "descriptionStandardHint": "Empty = the template description.",
+      "reasonHint": "Why the change is needed (required before submitting).",
+      "riskPreview": "Calculated risk:",
+      "servicesHint": "At least one service or equipment item before submitting.",
+      "servicesStandardHint": "The template's services are added automatically.",
+      "selectedServices": "Selected services",
+      "removeService": "Remove service {{name}}",
+      "noServices": "No service selected.",
+      "serviceSearch": "Search services",
+      "serviceResults": "Services to add",
+      "serviceNone": "No services to show.",
+      "serviceMore": "{{count}} more — narrow the search.",
+      "cabGroupHint": "Voting members of this group approve the change.",
+      "window": "Window",
+      "windowHint": "Times are in your local time zone.",
+      "windowLeadHint": "A normal change needs at least {{hours}} h between sending to the CAB and the start.",
+      "windowBoth": "Enter both start and end, or leave both empty.",
+      "causesDowntimeHint": "Once scheduled, the services automatically get a maintenance window (MAINTENANCE).",
+      "ownerSearch": "Search owners",
+      "ownerResults": "Change managers",
+      "ownerNone": "No results.",
+      "clearOwner": "Remove owner",
+      "planHint": "Required before sending to the CAB.",
+      "testPlanRequired": "Required before sending to the CAB (setting).",
+      "saving": "Saving…",
+      "save": "Save",
+      "create": "Create",
+      "created": "Change created",
+      "saved": "Change saved"
+    },
+    "detail": {
+      "back": "Changes",
+      "notFoundTitle": "Change not found",
+      "edit": "Edit",
+      "reschedule": "Reschedule",
+      "claim": "Take over",
+      "claimed": "You now own the change",
+      "moreActions": "More actions",
+      "riskLine": "Risk: {{risk}}",
+      "tabs": {
+        "overview": "Overview",
+        "plan": "Plan",
+        "approvals": "Approval",
+        "links": "Links",
+        "history": "History"
+      },
+      "responsibility": "Responsibility",
+      "assessment": "Assessment",
+      "timeline": "Timeline",
+      "actualWindow": "Actual duration",
+      "inProgress": "in progress",
+      "createdAt": "Created",
+      "submittedAt": "Submitted",
+      "authorizedAt": "Authorized",
+      "closedAt": "Closed",
+      "cancelledAt": "Cancelled",
+      "cancelReason": "Cancellation reason",
+      "notSet": "Not entered.",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "links": {
+      "noServices": "No linked services.",
+      "noAssets": "No linked equipment.",
+      "noProblem": "The change is not linked to a problem."
+    },
+    "conflicts": {
+      "title": "Schedule conflicts",
+      "none": "No conflicts in this window.",
+      "changesTitle_one": "{{count}} change in the same window",
+      "changesTitle_other": "{{count}} changes in the same window",
+      "downtimeTitle_one": "{{count}} downtime window on affected services",
+      "downtimeTitle_other": "{{count}} downtime windows on affected services",
+      "sharedAssets_one": "{{count}} shared equipment item",
+      "sharedAssets_other": "{{count}} shared equipment items",
+      "freezeBlocks": "The window falls in the freeze period \"{{label}}\" ({{from}} – {{to}}). Choose another window.",
+      "freezeWarns": "The window falls in the freeze period \"{{label}}\" ({{from}} – {{to}}); an emergency change is allowed with a warning.",
+      "freezeUnnamed": "unnamed",
+      "acknowledge": "I am aware of the conflicts and want to continue",
+      "acknowledgedAt": "Conflicts acknowledged {{at}}."
+    },
+    "actionSheet": {
+      "current": "Current status: {{status}}",
+      "reason": "Reason",
+      "reasonHint": "At least {{min}} characters; recorded in the history.",
+      "outcomePlaceholder": "Choose an outcome",
+      "reviewHint": "What was done, deviations and lessons (at least {{min}} characters).",
+      "reviewLaterHint": "Optional; notes can be completed during the review.",
+      "done": "Change status updated",
+      "hint": {
+        "submit": "The change goes to assessment (an emergency change straight to the CAB). Title, description, reason and at least one service or equipment item are required.",
+        "return": "The change goes back to the requester for rework.",
+        "authorize": "The CAB is notified and votes. Implementation plan, backout plan, window and CAB group are required.",
+        "withdraw": "The change is withdrawn from authorization; voting restarts in a new round.",
+        "schedule": "A standard change is scheduled without the CAB, as per its template.",
+        "start": "Records the actual start of implementation.",
+        "finish": "Records the actual end and outcome; a downtime window still running is shortened.",
+        "close": "The change is closed after the review.",
+        "cancel": "Cancelling is final; future downtime windows are removed."
+      }
+    },
+    "approvals": {
+      "standardTitle": "A standard change does not go to the CAB",
+      "standardBody": "The template is pre-approved.",
+      "roundTitle": "Voting round {{round}}",
+      "progress": "Approvals: {{approvals}} of {{quorum}} required",
+      "cab": "CAB: {{name}}",
+      "noCab": "No CAB group selected.",
+      "noVoters": "The CAB group has no members who may vote.",
+      "votersLabel": "CAB members who may vote",
+      "voted": "voted",
+      "waiting": "waiting",
+      "voteTitle": "Your vote",
+      "comment": "Comment",
+      "commentHint": "Optional when approving, required when rejecting.",
+      "rejectNeedsComment": "Enter a comment to reject.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "recorded": "Vote recorded",
+      "notOpen": "Voting is possible only while the change is in authorization.",
+      "requesterCannotVote": "The requester does not vote on their own change.",
+      "cannotVote": "You have already voted or are not a voting CAB member.",
+      "votesTitle": "Votes in this round",
+      "noVotes": "No votes yet.",
+      "earlierTitle": "Earlier rounds (not counted)",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "history": {
+      "title": "History",
+      "emptyTitle": "No entries",
+      "emptyBody": "Actions on the change will appear here.",
+      "system": "System",
+      "reason": "Reason: {{reason}}",
+      "comment": "Comment: {{comment}}",
+      "created": "Change {{number}} created",
+      "status": "Status: {{from}} → {{to}}",
+      "statusCab": "CAB: {{from}} → {{to}}",
+      "statusReschedule": "Window moved outside the approved one; the change went back to authorization",
+      "claimed": "The change was taken over by its owner",
+      "owner": "Owner changed",
+      "updated": "Changed: {{fields}}",
+      "linksChanged": "links",
+      "approved": "Vote: approved ({{approvals}}/{{quorum}}, round {{round}})",
+      "rejected": "Vote: rejected (round {{round}})",
+      "conflictsAcknowledged": "Schedule conflicts acknowledged",
+      "downtime": "Downtime windows: created {{created}}, moved {{updated}}, removed {{deleted}}, skipped {{skipped}}",
+      "reminderStartingSoon": "Starting-soon reminder sent",
+      "reminderOverdue": "Planned-end overrun notice sent"
+    },
+    "errors": {
+      "disabled": "The change module is off.",
+      "notFound": "The change does not exist or is outside your scope.",
+      "forbidden": "You are not allowed to do this.",
+      "outOfScope": "The organizational unit is outside your scope.",
+      "unitNotFound": "The organizational unit does not exist.",
+      "userNotFound": "The user does not exist or is inactive.",
+      "groupNotFound": "The group does not exist.",
+      "notCabGroup": "The selected group is not a CAB group.",
+      "serviceNotFound": "The service does not exist.",
+      "assetNotFound": "The equipment item does not exist.",
+      "problemNotFound": "The problem does not exist.",
+      "templateNotFound": "The template does not exist.",
+      "templateInactive": "The template is inactive.",
+      "templateRisk": "A standard change template must be low or medium risk.",
+      "transition": "This action is not allowed in the current status.",
+      "requirementMissing": "Information required for this step is missing.",
+      "reasonRequired": "Enter a reason (at least 5 characters).",
+      "finalStatus": "The change is in a final status.",
+      "locked": "The change content is locked in this status.",
+      "versionConflict": "Someone else changed this meanwhile. Refresh the page.",
+      "validation": "Some data is invalid.",
+      "windowInvalid": "The window start must be before its end.",
+      "leadTime": "The normal change does not meet the minimum lead time before the start.",
+      "freeze": "The window falls in a freeze period.",
+      "conflictsNotAcknowledged": "The window has conflicts; confirm you are aware of them.",
+      "noApprovers": "Nobody in the CAB group other than the requester can vote.",
+      "notApprover": "You are not a voting member of this change's CAB.",
+      "requesterVote": "The requester does not vote on their own change.",
+      "alreadyVoted": "You have already voted in this round.",
+      "notInAuthorization": "The change is not in authorization.",
+      "ownerNotManager": "The owner must be a change manager.",
+      "requirement": {
+        "title": "The title is missing.",
+        "description": "The description is missing.",
+        "reason": "The reason for the change is missing.",
+        "links": "Add at least one service or equipment item.",
+        "templateId": "A standard change needs a template.",
+        "plannedWindow": "The window (start and end) is missing.",
+        "implementationPlan": "The implementation plan is missing.",
+        "backoutPlan": "The backout plan is missing.",
+        "testPlan": "The test plan is missing.",
+        "cabGroupId": "No CAB group selected.",
+        "outcome": "Choose the implementation outcome.",
+        "reviewNotes": "Enter review notes (at least 20 characters for failed or rolled-back changes)."
+      }
     }
   }
 }

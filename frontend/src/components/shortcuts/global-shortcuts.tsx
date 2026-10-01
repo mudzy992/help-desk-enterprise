@@ -19,5 +19,6 @@ export function GlobalShortcuts({ onTogglePalette, onOpenPalette }: GlobalShortc
   useShortcut("goKnowledge", () => navigate("/knowledge-base"));
   useShortcut("goStatus", () => navigate("/status"));
   useShortcut("goProblems", () => navigate("/problems"));
+  useShortcut("goChanges", () => navigate("/changes"));
   return null;
 }

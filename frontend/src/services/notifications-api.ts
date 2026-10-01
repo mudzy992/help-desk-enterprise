@@ -9,6 +9,8 @@ export type InAppNotificationPayload = {
   readonly confidential?: boolean;
   /** Paket 3.3 (P5): problem notifications carry the problem instead of a ticket. */
   readonly problemId?: string;
+  /** Paket 3.4: change notices. */
+  readonly changeId?: string;
   readonly problemNumber?: string;
 };
 

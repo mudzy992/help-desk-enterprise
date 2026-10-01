@@ -7,6 +7,7 @@ export function sessionRoleLabelKey(
   | "shell.roles.agent"
   | "shell.roles.assetManager"
   | "shell.roles.problemManager"
+  | "shell.roles.changeManager"
   | "shell.roles.user" {
   if (isSuperAdmin || roleKeys.includes("SUPER_ADMIN")) {
     return "shell.roles.superAdmin";
@@ -16,6 +17,9 @@ export function sessionRoleLabelKey(
   }
   if (roleKeys.includes("PROBLEM_MANAGER")) {
     return "shell.roles.problemManager";
+  }
+  if (roleKeys.includes("CHANGE_MANAGER")) {
+    return "shell.roles.changeManager";
   }
   if (roleKeys.includes("AGENT")) {
     return "shell.roles.agent";

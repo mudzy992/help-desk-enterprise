@@ -21,6 +21,7 @@ interface GroupDetailSlotProperties {
     readonly organizationalUnitId: string;
     readonly isFallback: boolean;
     readonly isProblemGroup: boolean;
+    readonly isCabGroup: boolean;
   }) => void;
   readonly onCancelEdit: () => void;
   readonly onMembersChanged: (group: GroupResponse) => void;
