@@ -99,7 +99,12 @@ export async function createAsset(
   api: ApiClient,
   input: { readonly typeId: string; readonly organizationalUnitId: string; readonly name: string; readonly assetTag: string; readonly status?: string } & Record<string, unknown>,
 ): Promise<CreatedAsset> {
-  return api.requestJson<CreatedAsset>('/assets', { method: 'POST', body: JSON.stringify({ status: 'IN_STOCK', ...input }) });
+  const created = await api.requestJson<Partial<CreatedAsset> & { id: string }>('/assets', {
+    method: 'POST',
+    body: JSON.stringify({ status: 'IN_STOCK', ...input }),
+  });
+  // The create endpoint may answer with the id only; name and tag come from the input.
+  return { ...created, id: created.id, name: created.name ?? input.name, assetTag: created.assetTag ?? input.assetTag };
 }
 
 export async function findAssignableUser(api: ApiClient, email: string): Promise<AssetUserHit> {
