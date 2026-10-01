@@ -38,6 +38,13 @@ export const problemEventActions = {
   ticketUnlinked: 'ticket_unlinked',
   knowledgeArticle: 'knowledge_article',
   ticketsResolved: 'tickets_resolved',
+  /** P5b (§9): affected CMDB items, extra services, status-page incidents. */
+  assetLinked: 'asset_linked',
+  assetUnlinked: 'asset_unlinked',
+  serviceLinked: 'service_linked',
+  serviceUnlinked: 'service_unlinked',
+  incidentLinked: 'incident_linked',
+  incidentUnlinked: 'incident_unlinked',
 } as const;
 
 export const problemErrorCodes = {
@@ -53,6 +60,10 @@ export const problemErrorCodes = {
   /** Paket 3.3: the owner must be a problem manager of the problem group. */
   ownerNotInGroup: 'PROBLEM_OWNER_NOT_IN_GROUP',
   serviceNotFound: 'PROBLEM_SERVICE_NOT_FOUND',
+  /** P5b: the asset does not exist or the CMDB module is off. */
+  assetNotFound: 'PROBLEM_ASSET_NOT_FOUND',
+  /** P5b: the incident does not exist or the status page is off. */
+  incidentNotFound: 'PROBLEM_INCIDENT_NOT_FOUND',
   rootCauseCategoryInvalid: 'PROBLEM_ROOT_CAUSE_CATEGORY_INVALID',
   statusTransition: 'PROBLEM_STATUS_TRANSITION',
   requirementMissing: 'PROBLEM_REQUIREMENT_MISSING',

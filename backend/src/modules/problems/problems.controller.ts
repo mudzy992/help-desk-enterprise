@@ -4,9 +4,10 @@ import { SessionAuthenticationGuard } from '../authentication/session-authentica
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { runProblem } from './map-problem-error';
 import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './problem-access.service';
-import { CreateProblemArticleDto, CreateProblemDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { CreateProblemArticleDto, CreateProblemDto, LinkProblemAssetsDto, LinkProblemIncidentDto, LinkProblemServiceDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
 import { ProblemNotifier } from './problem-notifier';
 import { ProblemResolutionService } from './problem-resolution.service';
+import { ProblemLinksService } from './problem-links.service';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { problemSeverities, problemStatuses, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
 import { ProblemsService, type ProblemListQuery } from './problems.service';
@@ -58,6 +59,7 @@ export class ProblemsController {
     private readonly problemTickets: ProblemTicketsService,
     private readonly resolution: ProblemResolutionService,
     private readonly notifier: ProblemNotifier,
+    private readonly links: ProblemLinksService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -107,6 +109,70 @@ export class ProblemsController {
       const ticketLinks = await this.problemTickets.link(created.id, ticketIds, viewer, { singleAsError: false });
       return { ...(await this.problems.get(viewer, created.id)), ticketLinks };
     });
+  }
+
+  /** P5b reverse side (asset card, incident card); static paths before ":id". */
+  @Get('by-asset/:assetId')
+  @Header('Cache-Control', 'no-store')
+  byAsset(@Req() request: AuthenticatedHttpRequest, @Param('assetId') assetId: string) {
+    return runProblem(() => this.links.forAsset(assetId, this.viewer(request)));
+  }
+
+  @Get('by-incident/:incidentId')
+  @Header('Cache-Control', 'no-store')
+  byIncident(@Req() request: AuthenticatedHttpRequest, @Param('incidentId') incidentId: string) {
+    return runProblem(() => this.links.forIncident(incidentId, this.viewer(request)));
+  }
+
+  @Get(':id/links')
+  @Header('Cache-Control', 'no-store')
+  getLinks(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.links.get(id, this.viewer(request)));
+  }
+
+  @Get(':id/links/asset-search')
+  @Header('Cache-Control', 'no-store')
+  searchAssets(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Query('search') search?: string) {
+    return runProblem(() => this.links.searchAssets(id, this.viewer(request), search ?? ''));
+  }
+
+  @Post(':id/assets')
+  linkAssets(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: LinkProblemAssetsDto) {
+    return runProblem(() => this.links.linkAssets(id, this.viewer(request), body.assetIds));
+  }
+
+  @Delete(':id/assets/:assetId')
+  @HttpCode(204)
+  async unlinkAsset(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('assetId') assetId: string) {
+    await runProblem(() => this.links.unlinkAsset(id, this.viewer(request), assetId));
+  }
+
+  @Post(':id/services')
+  linkService(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: LinkProblemServiceDto) {
+    return runProblem(() => this.links.linkService(id, this.viewer(request), body.serviceId));
+  }
+
+  @Delete(':id/services/:serviceId')
+  @HttpCode(204)
+  async unlinkService(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('serviceId') serviceId: string) {
+    await runProblem(() => this.links.unlinkService(id, this.viewer(request), serviceId));
+  }
+
+  @Get(':id/links/incident-search')
+  @Header('Cache-Control', 'no-store')
+  searchIncidents(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Query('search') search?: string) {
+    return runProblem(() => this.links.searchIncidents(id, this.viewer(request), search ?? ''));
+  }
+
+  @Post(':id/incidents')
+  linkIncident(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: LinkProblemIncidentDto) {
+    return runProblem(() => this.links.linkIncident(id, this.viewer(request), body.incidentId));
+  }
+
+  @Delete(':id/incidents/:incidentId')
+  @HttpCode(204)
+  async unlinkIncident(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('incidentId') incidentId: string) {
+    await runProblem(() => this.links.unlinkIncident(id, this.viewer(request), incidentId));
   }
 
   @Get(':id')

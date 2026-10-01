@@ -11,6 +11,7 @@ import {
   type AssetViewer,
 } from '../assets/asset-viewer';
 import { problemDefaults, parseRootCauseCategories } from '../settings/definitions/problem-settings';
+import { opsDefaults } from '../settings/definitions/ops-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { SettingsService } from '../settings/settings.service';
 import type { ProblemTargetDays } from './problem-target';
@@ -68,6 +69,16 @@ export class ProblemAccessService {
     } catch {
       return fallback;
     }
+  }
+
+  /** P5b (§9): affected CMDB items only while the CMDB module (3.2) is on. */
+  async cmdbEnabled(): Promise<boolean> {
+    return (await this.readSetting<unknown>(settingKeys.privateAddonsCmdb, false)) === true;
+  }
+
+  /** P5b (§9): status-page incident links only while the status page (2.7) is on. */
+  async statusPageEnabled(): Promise<boolean> {
+    return (await this.readSetting<unknown>(settingKeys.privateStatusPageEnabled, opsDefaults.statusPageEnabled)) === true;
   }
 
   async isAddonEnabled(): Promise<boolean> {

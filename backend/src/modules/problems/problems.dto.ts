@@ -27,6 +27,20 @@ export class LinkProblemTicketsDto {
   ticketIds!: string[];
 }
 
+/** P5b: affected CMDB items, one batch at a time. */
+export class LinkProblemAssetsDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(problemLimits.linkBatchMax) @IsString({ each: true }) @MaxLength(64, { each: true })
+  assetIds!: string[];
+}
+
+export class LinkProblemServiceDto {
+  @IsString() @MinLength(1) @MaxLength(64) serviceId!: string;
+}
+
+export class LinkProblemIncidentDto {
+  @IsString() @MinLength(1) @MaxLength(64) incidentId!: string;
+}
+
 export class UpdateProblemDto {
   @IsInt() @Min(1) version!: number;
   @IsOptional() @IsString() @MinLength(3) @MaxLength(problemLimits.titleMax) title?: string;

@@ -14,6 +14,8 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.serviceNotFound:
     case problemErrorCodes.ticketNotFound:
     case problemErrorCodes.ticketNotLinked:
+    case problemErrorCodes.assetNotFound:
+    case problemErrorCodes.incidentNotFound:
       return new NotFoundException(body);
     case problemErrorCodes.forbidden:
     case problemErrorCodes.outOfScope:
