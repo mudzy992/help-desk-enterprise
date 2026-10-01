@@ -79,7 +79,7 @@ test.describe('23 assets (CMDB)', () => {
       const userPage = await userContext.newPage();
       await signIn(userPage, env.userEmail, env.userPassword);
       await userPage.goto('/my-assets');
-      await expect(userPage.getByText(`E2E laptop ${stamp}`)).toBeVisible({ timeout: 15_000 });
+      await expect(userPage.getByRole("heading", { name: `E2E laptop ${stamp}` })).toBeVisible({ timeout: 15_000 });
       await expectNoSeriousA11yViolations(userPage, 'my-assets', testInfo);
       await userContext.close();
 
@@ -87,7 +87,8 @@ test.describe('23 assets (CMDB)', () => {
       await signIn(page, env.superAdminEmail, env.superAdminPassword);
       await page.goto(`/assets?tab=overview`);
       await expect(page.getByRole('tab', { name: /Pregled|Overview/ })).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByText(/Oprema po statusu|Equipment by status/)).toBeVisible();
+      // Heading, not text: the table repeats the title as its (sr-only) caption.
+      await expect(page.getByRole("heading", { name: /Oprema po statusu|Equipment by status/ })).toBeVisible();
       await expectNoSeriousA11yViolations(page, 'assets-overview', testInfo);
       await page.goto('/assets');
       await expect(page.getByRole('link', { name: `E2E-${stamp}` })).toBeVisible({ timeout: 15_000 });
