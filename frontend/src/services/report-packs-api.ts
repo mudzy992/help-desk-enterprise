@@ -18,7 +18,10 @@ export type ReportPackKey =
   | "problem_time_to_known_error"
   | "problem_time_to_resolution"
   | "problem_backlog"
-  | "problem_recurrence";
+  | "problem_recurrence"
+  // Paket 3.4: only while the change module is on.
+  | "change_outcomes"
+  | "change_schedule";
 
 export type ReportExportFormat = "csv" | "json";
 

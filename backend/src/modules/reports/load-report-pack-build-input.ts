@@ -8,7 +8,8 @@ import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { assetReportHorizonDays } from './packs/build-asset-reports';
 import { loadAssetReportData, type AssetReportPart } from './packs/load-asset-report-data';
 import { loadProblemReportData, type ProblemReportPart } from './packs/load-problem-report-data';
-import { isAssetReportPack, isProblemReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
+import { loadChangeReportData } from './packs/load-change-report-data';
+import { isAssetReportPack, isChangeReportPack, isProblemReportPack, reportPackKeys, type ReportPackKey } from './reports.constants';
 import { settingKeys } from '../settings/setting-keys';
 
 const assetPackParts: Readonly<Record<string, AssetReportPart>> = {
@@ -53,6 +54,11 @@ export async function loadReportPackBuildInput(
   if (isProblemReportPack(pack)) {
     const problems = await loadProblemReportData(prisma, { unitIds: organizationalUnitIds, part: problemPackParts[pack], window, now: new Date() });
     return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], problems };
+  }
+  if (isChangeReportPack(pack)) {
+    const part = pack === reportPackKeys.changeOutcomes ? 'outcomes' : 'schedule';
+    const changes = await loadChangeReportData(prisma, { unitIds: organizationalUnitIds, part, window });
+    return { window, tickets: [], csatByTicketId: new Map(), closeCodesById: new Map(), articles: [], feedback: [], changes };
   }
   if (isAssetReportPack(pack)) {
     const assets = await loadAssetReportData(prisma, {

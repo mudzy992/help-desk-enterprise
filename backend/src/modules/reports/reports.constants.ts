@@ -19,6 +19,9 @@ export const reportPackKeys = {
   problemTimeToResolution: 'problem_time_to_resolution',
   problemBacklog: 'problem_backlog',
   problemRecurrence: 'problem_recurrence',
+  // Paket 3.4: offered only while the change module is on (never in the setting).
+  changeOutcomes: 'change_outcomes',
+  changeSchedule: 'change_schedule',
 } as const;
 
 export const reportPackKeyList = Object.values(reportPackKeys);
@@ -50,6 +53,13 @@ export const problemReportPackKeyList = [
 
 export function isProblemReportPack(pack: string): pack is (typeof problemReportPackKeyList)[number] {
   return (problemReportPackKeyList as readonly string[]).includes(pack);
+}
+
+/** Paket 3.4 (§18): change packs, added to the enabled packs while `addons.changes` is on. */
+export const changeReportPackKeyList = [reportPackKeys.changeOutcomes, reportPackKeys.changeSchedule] as const;
+
+export function isChangeReportPack(pack: string): pack is (typeof changeReportPackKeyList)[number] {
+  return (changeReportPackKeyList as readonly string[]).includes(pack);
 }
 
 export type ReportPackKey = (typeof reportPackKeyList)[number];
@@ -125,6 +135,8 @@ export const reportPackSlugs: Readonly<Record<ReportPackKey, string>> = {
   problem_time_to_resolution: 'problem-time-to-resolution',
   problem_backlog: 'problem-backlog',
   problem_recurrence: 'problem-recurrence',
+  change_outcomes: 'change-outcomes',
+  change_schedule: 'change-schedule',
 };
 
 export const bottleneckStatusKeys = [

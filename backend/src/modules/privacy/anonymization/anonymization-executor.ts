@@ -379,6 +379,55 @@ export class AnonymizationExecutor {
       add('problemEvents', 1);
     }
 
+    // Paket 3.4 (§19): texts of changes the person requested or owns, and the
+    // comments of their own CAB votes; event details are scrubbed as well.
+    const changes = await this.prisma.changeRequest.findMany({
+      where: { OR: [{ requesterUserId: u }, { ownerUserId: u }] },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        reason: true,
+        implementationPlan: true,
+        backoutPlan: true,
+        testPlan: true,
+        communicationPlan: true,
+        reviewNotes: true,
+        cancelReason: true,
+      },
+    });
+    const changeTextColumns = ['title', 'description', 'reason', 'implementationPlan', 'backoutPlan', 'testPlan', 'communicationPlan', 'reviewNotes', 'cancelReason'] as const;
+    for (const change of changes) {
+      const data: Record<string, unknown> = {};
+      for (const column of changeTextColumns) {
+        const value = change[column];
+        if (value === null) continue;
+        const result = scrubber.scrub(value);
+        if (result.count > 0) data[column] = result.text;
+      }
+      if (Object.keys(data).length === 0) continue;
+      await this.prisma.changeRequest.update({ where: { id: change.id }, data: data as never });
+      add('changes', 1);
+    }
+    const changeVotes = await this.prisma.changeApproval.findMany({ where: { approverUserId: u, comment: { not: null } }, select: { id: true, comment: true } });
+    for (const vote of changeVotes) {
+      if (vote.comment === null) continue;
+      const result = scrubber.scrub(vote.comment);
+      if (result.count === 0) continue;
+      await this.prisma.changeApproval.update({ where: { id: vote.id }, data: { comment: result.text } });
+      add('changeVotes', 1);
+    }
+    const changeEvents = await this.prisma.changeEvent.findMany({
+      where: { OR: [{ actorUserId: u }, ...(changes.length > 0 ? [{ changeId: { in: changes.map((row) => row.id) } }] : [])] },
+      select: { id: true, detail: true },
+    });
+    for (const event of changeEvents) {
+      const detail = scrubber.scrubJson(event.detail);
+      if (detail.count === 0) continue;
+      await this.prisma.changeEvent.update({ where: { id: event.id }, data: { detail: detail.value as never } });
+      add('changeEvents', 1);
+    }
+
     // Change log entries about or by the person.
     const changeLogs = await this.prisma.changeLog.findMany({
       where: { OR: [{ entityId: u }, { actorUserId: u }] },

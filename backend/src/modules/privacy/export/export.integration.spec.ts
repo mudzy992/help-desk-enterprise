@@ -128,6 +128,7 @@ describeIfDatabase('privacy export (integration)', () => {
         'messages.json',
         'authored.json',
         'problems.json',
+        'changes.json',
         'activity.json',
         'sessions.json',
         'notifications.json',

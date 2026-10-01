@@ -204,7 +204,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Iz liste tiketa: „kreiraj problem od odabranih".
 - Izvještaji: najčešći problemi, vrijeme do rješenja uzroka.
 
-### 3.4 Change management (ITIL)  · ~7 RD · dizajn: `modules/3.4-change-management.md` · odobreno (preporuke prihvaćene), implementacija C1–C6
+### 3.4 Change management (ITIL)  · ~7 RD · dizajn: `modules/3.4-change-management.md` · odobreno (preporuke prihvaćene) · implementirano C1–C5 (k6 `changes-list.js`, uputstvo `user-guide/promjene.md`); C6 E2E 31–32 slijedi zajedno s korisnikom
 - Zahtjev za promjenu: tip (standardna / normalna / hitna), rizik i uticaj, plan implementacije i
   povrata, zahvaćene CMDB stavke i servisi, termin.
 - Odobravanje (CAB) — koristi postojeći approvals mehanizam s više odobravalaca.

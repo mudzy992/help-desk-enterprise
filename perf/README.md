@@ -153,3 +153,15 @@ k6 run -e BASE_URL="$BASE_URL" -e ACCESS_TOKEN="$ACCESS_TOKEN" -e ORG_UNIT_ID="$
 ```
 
 Traži uključen addon `private.addons.problems`, bar jednu problem-grupu i korisnika s `problem.read`. `PROBLEMS_VU` (zadano 10) korisnika po `PROBLEMS_DURATION` (zadano 1m) čita registar (prva i druga stranica), pretragu s prioritetom i grupom, te detalj nasumičnog problema s tiketima i historijom; petina korisnika čita izvještaj `problem-backlog` (ako je zadan `ORG_UNIT_ID`). Budžeti p95: `PROBLEMS_LIST_P95_MS` (200), `PROBLEMS_SEARCH_P95_MS` (200), `PROBLEMS_DETAIL_P95_MS` (200), `PROBLEMS_REPORT_P95_MS` (400).
+
+## Promjene (paket 3.4)
+
+Zaseban, ručni scenarij (modul je zadano isključen):
+
+```bash
+source perf/session-login.sh   # postavi ACCESS_TOKEN i BASE_URL
+k6 run -e BASE_URL="$BASE_URL" -e ACCESS_TOKEN="$ACCESS_TOKEN" \
+       -e REPORT_LABEL=changes-list perf/changes-list.js
+```
+
+Traži uključen addon `private.addons.changes`, bar jednu CAB grupu i korisnika s `change.read`. `CHANGES_VU` (zadano 10) korisnika po `CHANGES_DURATION` (zadano 1m) čita registar (prva i druga stranica), pretragu s rizikom i tipom, te detalj nasumične promjene s konfliktima, glasovima i historijom; trećina korisnika čita kalendar (mrežu od 6 sedmica). Budžeti p95: `CHANGES_LIST_P95_MS` (200), `CHANGES_SEARCH_P95_MS` (200), `CHANGES_DETAIL_P95_MS` (200), `CHANGES_CALENDAR_P95_MS` (400).

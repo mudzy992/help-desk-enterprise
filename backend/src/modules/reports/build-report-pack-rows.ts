@@ -48,6 +48,13 @@ import {
   problemTimingColumns,
   problemTopColumns,
 } from './packs/build-problem-reports';
+import {
+  buildChangeOutcomesReport,
+  buildChangeScheduleReport,
+  changeOutcomeColumns,
+  changeScheduleColumns,
+  emptyChangeReportData,
+} from './packs/build-change-reports';
 import type { ReportExportRow, ReportPackBuildInput } from './reports.types';
 
 export function buildReportPackRows(
@@ -81,6 +88,9 @@ export function buildReportPackRows(
   if (pack === reportPackKeys.timeTracking) {
     return { columns: timeTrackingColumns, rows: buildTimeTrackingReport(input) };
   }
+  const changes = input.changes ?? emptyChangeReportData;
+  if (pack === reportPackKeys.changeOutcomes) return { columns: changeOutcomeColumns, rows: buildChangeOutcomesReport(changes) };
+  if (pack === reportPackKeys.changeSchedule) return { columns: changeScheduleColumns, rows: buildChangeScheduleReport(changes) };
   const problems = input.problems ?? emptyProblemReportData;
   if (pack === reportPackKeys.problemTop) return { columns: problemTopColumns, rows: buildProblemTopReport(problems) };
   if (pack === reportPackKeys.problemTimeToKnownError) return { columns: problemTimingColumns, rows: buildProblemTimeToKnownErrorReport(problems) };

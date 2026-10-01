@@ -444,3 +444,16 @@ To je kriterij kompletnosti.
 - Dugme prikazuje broj aktivnih naprednih filtera; panel se sam otvori kad su filteri već primijenjeni (npr. link s filterima), da suženje liste nikad nije skriveno.
 - U panelu svaki filter ima vidljiv naziv; kvačice su grupisane pod „Opcije“.
 - Primjenjeno na Probleme i Imovinu (registar, ugovori, licence, prenosnice); zajednička komponenta `components/ui/filter-bar.tsx` za buduće liste.
+
+## Change management (3.4) – odluke korisnika (1.10.2026.)
+- Korisnik je unaprijed prihvatio sve preporuke iz dizajna (`docs/plans/modules/3.4-change-management.md` §22).
+- Modul je zadano isključen i aktivan je tek uz bar jednu CAB grupu; CAB je obična grupa označena kvačicom „CAB grupa“.
+- Glasaju samo članovi CAB grupe s pravom glasa; podnosilac ne glasa o svojoj promjeni, a ni administrator ne zaobilazi članstvo. Jedno odbijanje odbija promjenu.
+- Standardne promjene nastaju samo iz šablona niskog ili srednjeg rizika i ne idu na CAB.
+- Rizik računa sistem (uticaj × vjerovatnoća); korisnik ga ne upisuje.
+- Konflikti termina su upozorenja uz obaveznu potvrdu; periodi zamrzavanja blokiraju sve osim hitnih promjena.
+- Promjena koja uzrokuje prekid automatski planira održavanje servisa na status stranici.
+- Pregled nakon realizacije je obavezan za zatvaranje; neuspjela promjena vezana za problem obavještava vlasnika problema.
+- Uloga „Upravitelj promjena“ (CHANGE_MANAGER) dodaje se odabranim ljudima i vidi promjene svih organizacionih jedinica; agent čita i podnosi.
+- Povezane promjene su na problemu i opremi u zasebnom tabu „Promjene“ (umjesto kartice u tabu „Veze“), uz dugme „Kreiraj promjenu“ – dosljedno s tabom „Problemi“ na opremi.
+- Pretraga problema pri povezivanju poštuje vidljivost problema (OJ opseg) i nudi samo otvorene probleme; oprema se traži tek od 2 znaka.

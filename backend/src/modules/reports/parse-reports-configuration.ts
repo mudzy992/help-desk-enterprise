@@ -3,6 +3,7 @@ import {
   reportErrorCodes,
   assetReportPackKeyList,
   problemReportPackKeyList,
+  changeReportPackKeyList,
   settingReportPackKeyList,
   type ReportExportFormat,
   type ReportPackKey,
@@ -29,6 +30,8 @@ export function parseReportsConfiguration(input: {
   readonly cmdbEnabled?: unknown;
   /** Paket 3.3 P6: `private.addons.problems`; true adds the problem packs. */
   readonly problemsEnabled?: unknown;
+  /** Paket 3.4: `private.addons.changes`; true adds the change packs. */
+  readonly changesEnabled?: unknown;
 }): ReportsConfiguration {
   if (
     typeof input.reportsEnabled !== 'boolean' ||
@@ -44,6 +47,7 @@ export function parseReportsConfiguration(input: {
       ...parsePacks(typeof input.packsJson === 'string' ? input.packsJson : ''),
       ...(input.cmdbEnabled === true ? assetReportPackKeyList : []),
       ...(input.problemsEnabled === true ? problemReportPackKeyList : []),
+      ...(input.changesEnabled === true ? changeReportPackKeyList : []),
     ],
     allowedFormats: parseFormats(
       typeof input.allowedFormatsCsv === 'string'

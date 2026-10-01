@@ -40,6 +40,9 @@ export class ReportsConfigurationLoader {
         problemsEnabled: await this.settingsService
           .getSetting(settingKeys.privateAddonsProblems)
           .catch(() => false),
+        changesEnabled: await this.settingsService
+          .getSetting(settingKeys.privateAddonsChanges)
+          .catch(() => false),
       });
     } catch (error) {
       if (error instanceof ReportsError) {

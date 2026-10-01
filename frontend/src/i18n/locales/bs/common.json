@@ -1814,7 +1814,9 @@
         "problem_time_to_known_error": "Problemi: vrijeme do poznate greške",
         "problem_time_to_resolution": "Problemi: vrijeme do rješenja",
         "problem_backlog": "Problemi: otvoreni po starosti",
-        "problem_recurrence": "Problemi: ponavljanja nakon rješenja"
+        "problem_recurrence": "Problemi: ponavljanja nakon rješenja",
+        "change_outcomes": "Promjene: ishodi",
+        "change_schedule": "Promjene: raspored"
       },
       "descriptions": {
         "monthly_kpi": "Kreirani, riješeni i zatvoreni tiketi, SLA prekoračenja, CSAT i prosječna vremena odziva i rješavanja.",
@@ -1832,7 +1834,9 @@
         "problem_time_to_known_error": "Medijan i 90. percentil sati od prijave problema do poznate greške, po prioritetu i problem-grupi, za probleme koji su u periodu postali poznata greška.",
         "problem_time_to_resolution": "Medijan i 90. percentil sati od prijave problema do rješenja, po prioritetu i problem-grupi, za probleme riješene u periodu.",
         "problem_backlog": "Trenutno otvoreni problemi po statusu i starosti (0–7, 8–30, 31–90, 90+ dana), s brojem probijenih rokova. Ne zavisi od perioda.",
-        "problem_recurrence": "Problemi na koje su u periodu povezani tiketi nakon što su riješeni – znak da uzrok nije stvarno otklonjen."
+        "problem_recurrence": "Problemi na koje su u periodu povezani tiketi nakon što su riješeni – znak da uzrok nije stvarno otklonjen.",
+        "change_outcomes": "Promjene zatvorene u periodu po tipu: uspješne, djelimične, neuspješne i vraćene, sa stopom uspješnosti i udjelom (red ALL je ukupno; udio reda EMERGENCY je udio hitnih).",
+        "change_schedule": "Promjene čiji planirani termin pada u odabrani period, s tipom, rizikom, statusom, ishodom i CAB grupom."
       },
       "columns": {
         "createdCount": "Kreirano",
@@ -1900,7 +1904,21 @@
         "overdue": "Probijen rok",
         "resolvedAt": "Riješen",
         "recurrenceTickets": "Ponovljeni tiketi",
-        "lastRecurrenceAt": "Zadnje ponavljanje"
+        "lastRecurrenceAt": "Zadnje ponavljanje",
+        "changeType": "Tip promjene",
+        "closed": "Zatvoreno",
+        "successful": "Uspješne",
+        "partial": "Djelimične",
+        "failed": "Neuspješne",
+        "rolledBack": "Vraćene",
+        "successRatePercent": "Stopa uspješnosti (%)",
+        "sharePercent": "Udio (%)",
+        "changeNumber": "Broj promjene",
+        "risk": "Rizik",
+        "plannedStart": "Planirani početak",
+        "plannedEnd": "Planirani kraj",
+        "outcome": "Ishod",
+        "cabGroup": "CAB grupa"
       },
       "rowTypes": {
         "agent_service": "Agent × servis",

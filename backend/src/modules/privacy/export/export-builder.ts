@@ -1,5 +1,7 @@
 import JSZip from 'jszip';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { formatChangeNumber } from '../../changes/change-rules';
+import { changeDefaults } from '../../settings/definitions/change-settings';
 import { formatProblemNumber } from '../../problems/problem-rules';
 import { problemDefaults } from '../../settings/definitions/problem-settings';
 import { settingKeys } from '../../settings/setting-keys';
@@ -386,6 +388,59 @@ export class ExportBuilder {
       }),
     );
 
+    // Paket 3.4 (§19): changes the person requested or owns, their CAB votes and actions.
+    const [changePrefixRow, changes, changeVotes, changeActions] = await Promise.all([
+      this.prisma.appSetting.findUnique({ where: { key: settingKeys.privateChangesNumberPrefix }, select: { value: true } }),
+      this.prisma.changeRequest.findMany({
+        where: { OR: [{ requesterUserId: u }, { ownerUserId: u }] },
+        orderBy: { sequence: 'asc' },
+        select: {
+          sequence: true,
+          title: true,
+          description: true,
+          reason: true,
+          type: true,
+          status: true,
+          risk: true,
+          plannedStart: true,
+          plannedEnd: true,
+          outcome: true,
+          reviewNotes: true,
+          cancelReason: true,
+          requesterUserId: true,
+          ownerUserId: true,
+          createdAt: true,
+          closedAt: true,
+        },
+      }),
+      this.prisma.changeApproval.findMany({
+        where: { approverUserId: u },
+        orderBy: { decidedAt: 'asc' },
+        select: { round: true, decision: true, comment: true, decidedAt: true, change: { select: { sequence: true } } },
+      }),
+      this.prisma.changeEvent.findMany({
+        where: { actorUserId: u },
+        orderBy: { createdAt: 'asc' },
+        select: { action: true, createdAt: true, change: { select: { sequence: true } } },
+      }),
+    ]);
+    const changePrefix = typeof changePrefixRow?.value === 'string' ? changePrefixRow.value : changeDefaults.numberPrefix;
+    counts.changes = changes.length;
+    counts.changeVotes = changeVotes.length;
+    counts.changeActions = changeActions.length;
+    zip.file(
+      'changes.json',
+      json({
+        changes: changes.map(({ sequence, requesterUserId, ownerUserId, ...row }) => ({
+          number: formatChangeNumber(changePrefix, sequence),
+          roles: [...(requesterUserId === u ? ['requester'] : []), ...(ownerUserId === u ? ['owner'] : [])],
+          ...row,
+        })),
+        votes: changeVotes.map(({ change, ...row }) => ({ change: formatChangeNumber(changePrefix, change.sequence), ...row })),
+        actions: changeActions.map((row) => ({ change: formatChangeNumber(changePrefix, row.change.sequence), action: row.action, createdAt: row.createdAt })),
+      }),
+    );
+
     const audit: unknown[] = [];
     await paginate(
       (cursor) =>
@@ -522,6 +577,7 @@ function readme(
     '  sessions.json – prijave (vrijeme, IP adresa, preglednik)',
     '  notifications.json – obavještenja',
     '  problems.json – problemi koje ste prijavili ili vodite i vaše radnje na njima',
+    '  changes.json – promjene koje ste tražili ili vodite, vaši CAB glasovi i radnje',
     '  audit.json – zapisi revizije gdje ste akter ili predmet',
     '  attachments/ – prilozi koje ste vi priložili',
     `Interne bilješke drugih zaposlenih: ${notes.split(' / ')[0]}. One su izostavljene zadano radi zaštite`,

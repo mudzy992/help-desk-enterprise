@@ -1801,7 +1801,9 @@
         "problem_time_to_known_error": "Problems: time to known error",
         "problem_time_to_resolution": "Problems: time to resolution",
         "problem_backlog": "Problems: open by age",
-        "problem_recurrence": "Problems: recurrence after resolution"
+        "problem_recurrence": "Problems: recurrence after resolution",
+        "change_outcomes": "Changes: outcomes",
+        "change_schedule": "Changes: schedule"
       },
       "descriptions": {
         "monthly_kpi": "Created, resolved and closed tickets, SLA breaches, CSAT and average response and resolution times.",
@@ -1819,7 +1821,9 @@
         "problem_time_to_known_error": "Median and 90th percentile hours from problem creation to known error, by priority and problem group, for problems that became a known error in the period.",
         "problem_time_to_resolution": "Median and 90th percentile hours from problem creation to resolution, by priority and problem group, for problems resolved in the period.",
         "problem_backlog": "Currently open problems by status and age (0–7, 8–30, 31–90, 90+ days), with the number of missed targets. Does not depend on the period.",
-        "problem_recurrence": "Problems that got tickets linked in the period after they were resolved – a sign the cause was not really removed."
+        "problem_recurrence": "Problems that got tickets linked in the period after they were resolved – a sign the cause was not really removed.",
+        "change_outcomes": "Changes closed in the period by type: successful, partial, failed and rolled back, with the success rate and share (the ALL row is the total; the share of the EMERGENCY row is the emergency share).",
+        "change_schedule": "Changes whose planned window falls in the selected period, with type, risk, status, outcome and CAB group."
       },
       "columns": {
         "createdCount": "Created",
@@ -1887,7 +1891,21 @@
         "overdue": "Missed target",
         "resolvedAt": "Resolved",
         "recurrenceTickets": "Recurring tickets",
-        "lastRecurrenceAt": "Last recurrence"
+        "lastRecurrenceAt": "Last recurrence",
+        "changeType": "Change type",
+        "closed": "Closed",
+        "successful": "Successful",
+        "partial": "Partial",
+        "failed": "Failed",
+        "rolledBack": "Rolled back",
+        "successRatePercent": "Success rate (%)",
+        "sharePercent": "Share (%)",
+        "changeNumber": "Change number",
+        "risk": "Risk",
+        "plannedStart": "Planned start",
+        "plannedEnd": "Planned end",
+        "outcome": "Outcome",
+        "cabGroup": "CAB group"
       },
       "rowTypes": {
         "agent_service": "Agent × service",
