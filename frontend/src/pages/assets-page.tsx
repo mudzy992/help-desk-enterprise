@@ -83,64 +83,66 @@ export function AssetsPage() {
 
   if (isLoading) {
     return (
-      <div>
+      <section>
         {header}
         <PanelSkeleton label={t("ui.loading")} />
-      </div>
+      </section>
     );
   }
   if (error || capabilities === undefined || !capabilities.enabled) {
     return (
-      <div>
+      <section>
         {header}
         <EmptyState icon={<Boxes size={18} />} title={t("assets.disabledTitle")} body={t("assets.disabledBody")} />
-      </div>
+      </section>
     );
   }
   if (!capabilities.canRead) {
     return (
-      <div>
+      <section>
         {header}
         <EmptyState icon={<Boxes size={18} />} title={t("assets.forbiddenTitle")} body={t("assets.forbiddenBody")} />
-      </div>
+      </section>
     );
   }
   return (
-    <div className="grid gap-4">
+    <section>
       {header}
-      <UnderlineTabs
-        items={[
-          { key: "register", label: t("assets.tabs.register") },
-          ...(capabilities.canReadReports ? [{ key: "overview", label: t("assets.tabs.overview") }] : []),
-          { key: "transfers", label: t("assets.tabs.transfers") },
-          { key: "licenses", label: t("assets.tabs.licenses") },
-          { key: "contracts", label: t("assets.tabs.contracts") },
-          ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
-          ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
-        ]}
-        active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) || (tab === "overview" && !capabilities.canReadReports) ? "register" : tab}
-        onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
-      />
-      {tab === "overview" && capabilities.canReadReports ? (
-        <AssetOverviewPanel />
-      ) : tab === "transfers" ? (
-        <AssetTransfersPanel mode={{ kind: "all" }} canManage={capabilities.canManage} />
-      ) : tab === "licenses" ? (
-        <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
-      ) : tab === "contracts" ? (
-        <AssetContractsPanel canManage={capabilities.canManageContracts} />
-      ) : capabilities.canImport && tab === "import" ? (
-        <AssetImportPanel />
-      ) : capabilities.canManageTypes && tab === "catalog" ? (
-        <div className="grid gap-4">
-          <AssetCatalogManager />
-          <AssetTransferSettingsCard />
-          <AssetDirectorySyncCard />
-        </div>
-      ) : (
-        <AssetRegister canManage={capabilities.canManage} />
-      )}
-    </div>
+      <div className="grid gap-4">
+        <UnderlineTabs
+          items={[
+            { key: "register", label: t("assets.tabs.register") },
+            ...(capabilities.canReadReports ? [{ key: "overview", label: t("assets.tabs.overview") }] : []),
+            { key: "transfers", label: t("assets.tabs.transfers") },
+            { key: "licenses", label: t("assets.tabs.licenses") },
+            { key: "contracts", label: t("assets.tabs.contracts") },
+            ...(capabilities.canImport ? [{ key: "import", label: t("assets.tabs.import") }] : []),
+            ...(capabilities.canManageTypes ? [{ key: "catalog", label: t("assets.tabs.catalog") }] : []),
+          ]}
+          active={(tab === "catalog" && !capabilities.canManageTypes) || (tab === "import" && !capabilities.canImport) || (tab === "overview" && !capabilities.canReadReports) ? "register" : tab}
+          onChange={(key) => setSearchParams(key === "register" ? {} : { tab: key }, { replace: true })}
+        />
+        {tab === "overview" && capabilities.canReadReports ? (
+          <AssetOverviewPanel />
+        ) : tab === "transfers" ? (
+          <AssetTransfersPanel mode={{ kind: "all" }} canManage={capabilities.canManage} />
+        ) : tab === "licenses" ? (
+          <AssetLicensesPanel canManage={capabilities.canManageLicenses} />
+        ) : tab === "contracts" ? (
+          <AssetContractsPanel canManage={capabilities.canManageContracts} />
+        ) : capabilities.canImport && tab === "import" ? (
+          <AssetImportPanel />
+        ) : capabilities.canManageTypes && tab === "catalog" ? (
+          <div className="grid gap-4">
+            <AssetCatalogManager />
+            <AssetTransferSettingsCard />
+            <AssetDirectorySyncCard />
+          </div>
+        ) : (
+          <AssetRegister canManage={capabilities.canManage} />
+        )}
+      </div>
+    </section>
   );
 }
 

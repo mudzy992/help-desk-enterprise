@@ -145,7 +145,7 @@ export function AssetImportPanel() {
 
       <Card className="p-0">
         <CardHeader title={t("assets.import.setupTitle")} subtitle={t("assets.import.setupSubtitle")} />
-        <form className="grid gap-3 px-4 pb-4 md:grid-cols-2" onSubmit={(event) => void submitPreview(event)} noValidate>
+        <form className="grid gap-3 p-4 md:grid-cols-2" onSubmit={(event) => void submitPreview(event)} noValidate>
           <Field label={t("assets.fields.type")} required hint={t("assets.import.typeHint")}>
             {(control) => (
               <Select
@@ -229,7 +229,7 @@ export function AssetImportPanel() {
         <>
           <Card className="p-0">
             <CardHeader title={t("assets.import.mappingTitle")} subtitle={t("assets.import.mappingSubtitle")} />
-            <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
               {preview.headers.map((header, index) => (
                 <Field key={`${header}-${index}`} label={header || t("assets.import.emptyHeader", { index: index + 1 })}>
                   {(control) => (
@@ -294,9 +294,9 @@ export function AssetImportPanel() {
                     <tbody>
                       {preview.errors.map((item, index) => (
                         <tr key={`${item.row}-${item.column}-${index}`} className={tableRowClassName}>
-                          <td className="px-3 py-1.5 tabular-nums">{item.row}</td>
-                          <td className="px-3 py-1.5">{columnLabel(item.column)}</td>
-                          <td className="px-3 py-1.5">{describeError(item)}</td>
+                          <td className="px-3 py-2 tabular-nums">{item.row}</td>
+                          <td className="px-3 py-2">{columnLabel(item.column)}</td>
+                          <td className="px-3 py-2">{describeError(item)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -349,7 +349,7 @@ export function AssetImportPanel() {
       <Card className="overflow-hidden p-0">
         <CardHeader title={t("assets.import.historyTitle")} />
         {(jobsQuery.data?.items ?? []).length === 0 ? (
-          <p className={`px-4 pb-4 ${hintClassName}`}>{jobsQuery.isLoading ? t("ui.loading") : t("assets.import.historyEmpty")}</p>
+          <p className={`p-4 ${hintClassName}`}>{jobsQuery.isLoading ? t("ui.loading") : t("assets.import.historyEmpty")}</p>
         ) : (
           <div className={tableWrapClassName}>
             <table className="w-full text-[12.5px]">
@@ -366,20 +366,20 @@ export function AssetImportPanel() {
               <tbody>
                 {(jobsQuery.data?.items ?? []).map((job) => (
                   <tr key={job.id} className={tableRowClassName}>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2">
                       <span className="block">{job.fileName}</span>
                       {job.createdBy ? <span className="block text-[11.5px] text-muted-foreground">{job.createdBy}</span> : null}
                     </td>
-                    <td className="px-3 py-1.5">{job.type ? localizedName(job.type, i18n.language) : "—"}</td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2">{job.type ? localizedName(job.type, i18n.language) : "—"}</td>
+                    <td className="px-3 py-2">
                       <Badge tone={statusTone[job.status]}>{t(`assets.import.statuses.${job.status}` as const)}</Badge>
                     </td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2">
                       {job.totals.applied
                         ? t("assets.import.appliedBody", job.totals.applied)
                         : t("assets.import.previewResult", { create: job.totals.create, update: job.totals.update, errors: job.totals.errors })}
                     </td>
-                    <td className="px-3 py-1.5">{formatAssetDateTime(job.appliedAt ?? job.createdAt, i18n.language)}</td>
+                    <td className="px-3 py-2">{formatAssetDateTime(job.appliedAt ?? job.createdAt, i18n.language)}</td>
                   </tr>
                 ))}
               </tbody>

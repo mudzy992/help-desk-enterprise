@@ -2,13 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Ban, FileCheck2, FileDown, FileText, Upload } from "lucide-react";
+import { Ban, FileCheck2, FileDown, FileText, Search, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { errorTextClassName, hintClassName } from "@/components/ui/control";
+import { controlCompactClassName, errorTextClassName, hintClassName, selectCompactClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Textarea } from "@/components/ui/field";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/components/ui/toast";
@@ -77,45 +77,45 @@ export function AssetTransfersPanel({ mode, canManage }: AssetTransfersPanelProp
   return (
     <div className="grid gap-3">
       {mode.kind === "all" ? (
-        <Card className="grid gap-3 p-3 md:grid-cols-[2fr_1fr_1fr]">
-          <Field label={t("assets.transfers.search")}>
-            {(control) => (
-              <Input {...control} type="search" value={searchText} placeholder={t("assets.transfers.searchPlaceholder")} onChange={(event) => setSearchText(event.target.value)} />
-            )}
-          </Field>
-          <Field label={t("assets.transfers.statusFilter")}>
-            {(control) => (
-              <Select
-                {...control}
-                value={filters.status ?? ""}
-                onChange={(event) => setFilters((current) => ({ ...current, status: (event.target.value || undefined) as AssetTransferStatus | undefined }))}
-              >
-                <option value="">{t("assets.transfers.any")}</option>
-                {assetTransferStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {t(transferStatusKeys[status])}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label={t("assets.transfers.scenarioFilter")}>
-            {(control) => (
-              <Select
-                {...control}
-                value={filters.scenario ?? ""}
-                onChange={(event) => setFilters((current) => ({ ...current, scenario: (event.target.value || undefined) as AssetTransferScenario | undefined }))}
-              >
-                <option value="">{t("assets.transfers.any")}</option>
-                {assetTransferScenarios.map((scenario) => (
-                  <option key={scenario} value={scenario}>
-                    {t(transferScenarioKeys[scenario])}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-        </Card>
+        <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t("assets.transfers.search")}>
+          <div className="relative min-w-[220px] flex-1">
+            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input
+              type="search"
+              className={`${controlCompactClassName} w-full pl-8`}
+              value={searchText}
+              placeholder={t("assets.transfers.searchPlaceholder")}
+              aria-label={t("assets.transfers.search")}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+          </div>
+          <select
+            className={selectCompactClassName}
+            aria-label={t("assets.transfers.statusFilter")}
+            value={filters.status ?? ""}
+            onChange={(event) => setFilters((current) => ({ ...current, status: (event.target.value || undefined) as AssetTransferStatus | undefined }))}
+          >
+            <option value="">{t("assets.transfers.statusFilter")}: {t("assets.transfers.any")}</option>
+            {assetTransferStatuses.map((status) => (
+              <option key={status} value={status}>
+                {t(transferStatusKeys[status])}
+              </option>
+            ))}
+          </select>
+          <select
+            className={selectCompactClassName}
+            aria-label={t("assets.transfers.scenarioFilter")}
+            value={filters.scenario ?? ""}
+            onChange={(event) => setFilters((current) => ({ ...current, scenario: (event.target.value || undefined) as AssetTransferScenario | undefined }))}
+          >
+            <option value="">{t("assets.transfers.scenarioFilter")}: {t("assets.transfers.any")}</option>
+            {assetTransferScenarios.map((scenario) => (
+              <option key={scenario} value={scenario}>
+                {t(transferScenarioKeys[scenario])}
+              </option>
+            ))}
+          </select>
+        </div>
       ) : null}
       {loading ? <PanelSkeleton label={t("ui.loading")} /> : null}
       {error ? (

@@ -15,7 +15,7 @@ export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
     <div className="grid gap-4 lg:grid-cols-2">
       <Card className="p-0">
         <CardHeader title={t("assets.coverage.licensesTitle")} />
-        <div className="grid gap-1 px-4 pb-4 text-[12.5px]">
+        <div className="grid gap-1 p-4 text-[12.5px]">
           {licenses.length === 0 ? <p className={hintClassName}>{t("assets.coverage.noLicenses")}</p> : null}
           {licenses.map((entry) => (
             <div key={entry.assignmentId} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5">
@@ -36,7 +36,7 @@ export function AssetCoveragePanel({ asset }: { readonly asset: AssetDetail }) {
       </Card>
       <Card className="p-0">
         <CardHeader title={t("assets.coverage.contractsTitle")} />
-        <div className="grid gap-1 px-4 pb-4 text-[12.5px]">
+        <div className="grid gap-1 p-4 text-[12.5px]">
           {contracts.length === 0 ? <p className={hintClassName}>{t("assets.coverage.noContracts")}</p> : null}
           {contracts.map((contract) => (
             <div key={contract.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5">

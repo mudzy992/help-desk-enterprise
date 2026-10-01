@@ -102,7 +102,7 @@ export function AssetOverviewPanel() {
           )}
         </OverviewCard>
         <OverviewCard title={t("assets.overview.directoryTitle")} subtitle={t("assets.overview.directorySubtitle")}>
-          <dl className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3 text-[12.5px]">
+          <dl className="grid grid-cols-2 gap-3 p-4 text-[12.5px]">
             <div>
               <dt className="text-muted-foreground">{t("assets.overview.directorySuggested")}</dt>
               <dd className="tnum text-[20px] font-semibold text-foreground">{data.directory.suggested}</dd>
@@ -173,7 +173,7 @@ function OverviewCard({ title, subtitle, children }: { readonly title: string; r
 }
 
 function Empty({ text }: { readonly text: string }) {
-  return <p className={`px-4 pb-4 pt-3 ${hintClassName}`}>{text}</p>;
+  return <p className={`p-4 ${hintClassName}`}>{text}</p>;
 }
 
 function OverviewTable({ caption, headers, rows }: { readonly caption: string; readonly headers: readonly string[]; readonly rows: readonly (readonly ReactNode[])[] }) {

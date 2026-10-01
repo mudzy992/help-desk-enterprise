@@ -71,7 +71,7 @@ export function AssetDirectorySyncCard() {
           ) : undefined
         }
       />
-      <div className="grid gap-3 px-4 pb-4">
+      <div className="grid gap-3 p-4">
         {statusQuery.isLoading ? <p className={hintClassName}>{t("ui.loading")}</p> : null}
         {status ? (
           <p className={hintClassName}>
@@ -135,13 +135,13 @@ export function AssetDirectorySyncCard() {
               <tbody>
                 {conflicts.map((conflict) => (
                   <tr key={conflict.assetId} className={tableRowClassName}>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2">
                       <Link className="underline-offset-2 hover:underline" to={`/assets/${encodeURIComponent(conflict.assetId)}`}>
                         {conflict.name}
                       </Link>
                     </td>
-                    <td className="px-3 py-1.5">{conflict.assignedUser ?? "—"}</td>
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-2">{conflict.assignedUser ?? "—"}</td>
+                    <td className="px-3 py-2">
                       {conflict.suggestedUser ?? "—"}{" "}
                       <span className="text-muted-foreground">({t(`assets.directory.matchedBy.${conflict.matchedBy}` as "assets.directory.matchedBy.managedBy", { defaultValue: conflict.matchedBy })})</span>
                     </td>

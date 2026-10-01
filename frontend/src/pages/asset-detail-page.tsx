@@ -81,22 +81,22 @@ export function AssetDetailPage() {
 
   if (assetQuery.isLoading) {
     return (
-      <div>
+      <section>
         <PageHeader crumbs={crumbs} title={t("assets.title")} />
         <PanelSkeleton label={t("ui.loading")} />
-      </div>
+      </section>
     );
   }
   if (assetQuery.error || assetQuery.data === undefined) {
     return (
-      <div>
+      <section>
         <PageHeader crumbs={crumbs} title={t("assets.title")} actions={back} />
         <EmptyState
           icon={<Boxes size={18} />}
           title={t("assets.detail.notFoundTitle")}
           body={t(mapAssetError(assetQuery.error) ?? (assetQuery.error ? mapApiError(assetQuery.error) : "assets.errors.notFound"))}
         />
-      </div>
+      </section>
     );
   }
 
@@ -169,7 +169,7 @@ export function AssetDetailPage() {
   );
 
   return (
-    <div className="grid gap-4">
+    <section>
       <PageHeader
         crumbs={crumbs}
         title={
@@ -190,81 +190,83 @@ export function AssetDetailPage() {
         }
         actions={actions}
       />
+      <div className="grid gap-4">
 
-      {asset.frequentFailure.flagged ? (
-        <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
-          <span>
-            {t("assets.detail.frequentFailure", { count: asset.frequentFailure.count, days: asset.frequentFailure.days })}
-          </span>
-        </div>
-      ) : null}
-      {asset.missingFromDirectoryAt ? (
-        <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
-          <span>{t("assets.detail.missingFromDirectory", { date: formatAssetDate(asset.missingFromDirectoryAt, i18n.language) })}</span>
-        </div>
-      ) : null}
-
-      <UnderlineTabs
-        items={[
-          { key: "overview", label: t("assets.detail.tabs.overview") },
-          { key: "tickets", label: t("assets.detail.tabs.tickets"), count: asset.tickets.total },
-          { key: "relations", label: t("assets.detail.tabs.relations"), count: asset.relations.length },
-          { key: "coverage", label: t("assets.detail.tabs.coverage"), count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0) },
-          { key: "transfers", label: t("assets.detail.tabs.transfers") },
-          { key: "history", label: t("assets.detail.tabs.history") },
-        ]}
-        active={tab}
-        onChange={(key) => setTab(key as Tab)}
-      />
-
-      {tab === "overview" ? <AssetOverview asset={asset} /> : null}
-      {tab === "tickets" ? <AssetTickets asset={asset} /> : null}
-      {tab === "relations" ? <AssetRelationsPanel asset={asset} onChanged={refresh} /> : null}
-      {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
-      {tab === "transfers" ? <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} /> : null}
-      {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
-
-      {canManage && catalogQuery.data && optionsQuery.data ? (
-        <AssetFormSheet
-          open={sheet === "edit" || sheet === "duplicate"}
-          onOpenChange={(open) => (open ? undefined : setSheet(null))}
-          catalog={catalogQuery.data}
-          options={optionsQuery.data}
-          asset={asset}
-          duplicate={sheet === "duplicate"}
-          onSaved={(id) => {
-            refresh();
-            if (id !== asset.id) navigate(`/assets/${id}`);
-            toast({ tone: "success", title: t("assets.form.saved") });
-          }}
-        />
-      ) : null}
-      {canManage ? (
-        <>
-          <AssetStatusSheet open={sheet === "status"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
-          <AssetAssignSheet open={sheet === "assign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
-          <AssetUnassignSheet open={sheet === "unassign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
-        </>
-      ) : null}
-      <ConfirmDialog
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-        title={t("assets.detail.deleteTitle")}
-        description={t("assets.detail.deleteBody", { name: `${asset.assetTag} · ${asset.name}` })}
-        intent="danger"
-        confirmLabel={t("assets.actions.delete")}
-        isPending={deletePending}
-        onConfirm={() => void confirmDelete()}
-      >
-        {deleteError ? (
-          <p role="alert" className={errorTextClassName}>
-            {deleteError}
-          </p>
+        {asset.frequentFailure.flagged ? (
+          <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+            <span>
+              {t("assets.detail.frequentFailure", { count: asset.frequentFailure.count, days: asset.frequentFailure.days })}
+            </span>
+          </div>
         ) : null}
-      </ConfirmDialog>
-    </div>
+        {asset.missingFromDirectoryAt ? (
+          <div role="status" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[12.5px] text-foreground">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+            <span>{t("assets.detail.missingFromDirectory", { date: formatAssetDate(asset.missingFromDirectoryAt, i18n.language) })}</span>
+          </div>
+        ) : null}
+
+        <UnderlineTabs
+          items={[
+            { key: "overview", label: t("assets.detail.tabs.overview") },
+            { key: "tickets", label: t("assets.detail.tabs.tickets"), count: asset.tickets.total },
+            { key: "relations", label: t("assets.detail.tabs.relations"), count: asset.relations.length },
+            { key: "coverage", label: t("assets.detail.tabs.coverage"), count: (asset.licenses?.length ?? 0) + (asset.contracts?.length ?? 0) },
+            { key: "transfers", label: t("assets.detail.tabs.transfers") },
+            { key: "history", label: t("assets.detail.tabs.history") },
+          ]}
+          active={tab}
+          onChange={(key) => setTab(key as Tab)}
+        />
+
+        {tab === "overview" ? <AssetOverview asset={asset} /> : null}
+        {tab === "tickets" ? <AssetTickets asset={asset} /> : null}
+        {tab === "relations" ? <AssetRelationsPanel asset={asset} onChanged={refresh} /> : null}
+        {tab === "coverage" ? <AssetCoveragePanel asset={asset} /> : null}
+        {tab === "transfers" ? <AssetTransfersPanel mode={{ kind: "asset", assetId: asset.id }} canManage={canManage} /> : null}
+        {tab === "history" ? <AssetHistoryPanel assetId={asset.id} /> : null}
+
+        {canManage && catalogQuery.data && optionsQuery.data ? (
+          <AssetFormSheet
+            open={sheet === "edit" || sheet === "duplicate"}
+            onOpenChange={(open) => (open ? undefined : setSheet(null))}
+            catalog={catalogQuery.data}
+            options={optionsQuery.data}
+            asset={asset}
+            duplicate={sheet === "duplicate"}
+            onSaved={(id) => {
+              refresh();
+              if (id !== asset.id) navigate(`/assets/${id}`);
+              toast({ tone: "success", title: t("assets.form.saved") });
+            }}
+          />
+        ) : null}
+        {canManage ? (
+          <>
+            <AssetStatusSheet open={sheet === "status"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
+            <AssetAssignSheet open={sheet === "assign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
+            <AssetUnassignSheet open={sheet === "unassign"} onOpenChange={(open) => (open ? undefined : setSheet(null))} asset={asset} onDone={refresh} />
+          </>
+        ) : null}
+        <ConfirmDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          title={t("assets.detail.deleteTitle")}
+          description={t("assets.detail.deleteBody", { name: `${asset.assetTag} · ${asset.name}` })}
+          intent="danger"
+          confirmLabel={t("assets.actions.delete")}
+          isPending={deletePending}
+          onConfirm={() => void confirmDelete()}
+        >
+          {deleteError ? (
+            <p role="alert" className={errorTextClassName}>
+              {deleteError}
+            </p>
+          ) : null}
+        </ConfirmDialog>
+      </div>
+    </section>
   );
 }
 

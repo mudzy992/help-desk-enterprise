@@ -32,16 +32,16 @@ export function MyAssetsPage() {
 
   if (isLoading) {
     return (
-      <div>
+      <section>
         {header}
         <PanelSkeleton label={t("ui.loading")} />
-      </div>
+      </section>
     );
   }
   if (error) {
     const key = mapAssetError(error);
     return (
-      <div>
+      <section>
         {header}
         {key === "assets.errors.disabled" ? (
           <EmptyState icon={<Laptop size={18} />} title={t("assets.disabledTitle")} body={t("assets.disabledBody")} />
@@ -50,85 +50,89 @@ export function MyAssetsPage() {
             {t(key ?? mapApiError(error))}
           </p>
         )}
-      </div>
+      </section>
     );
   }
   const items = data?.items ?? [];
   if (items.length === 0) {
     return (
-      <div>
+      <section>
         {header}
-        <EmptyState icon={<Laptop size={18} />} title={t("assets.mine.emptyTitle")} body={t("assets.mine.emptyBody")} />
-        <MyTransfers />
-      </div>
+        <div className="grid gap-4">
+          <EmptyState icon={<Laptop size={18} />} title={t("assets.mine.emptyTitle")} body={t("assets.mine.emptyBody")} />
+          <MyTransfers />
+        </div>
+      </section>
     );
   }
   return (
-    <div className="grid gap-4">
+    <section>
       {header}
-      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label={t("assets.mine.listLabel")}>
-        {items.map((item) => {
-          const Icon = resolveAssetIcon(item.type.icon);
-          return (
-            <li key={item.id}>
-              <Card className="grid h-full gap-3 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                    <Icon size={18} aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[13.5px] font-semibold text-foreground">{item.name}</h2>
-                    <p className="truncate text-[12px] text-muted-foreground">
-                      {localizedName(item.type, i18n.language)} · {item.assetTag}
-                    </p>
+      <div className="grid gap-4">
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label={t("assets.mine.listLabel")}>
+          {items.map((item) => {
+            const Icon = resolveAssetIcon(item.type.icon);
+            return (
+              <li key={item.id}>
+                <Card className="grid h-full gap-3 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                      <Icon size={18} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="truncate text-[13.5px] font-semibold text-foreground">{item.name}</h2>
+                      <p className="truncate text-[12px] text-muted-foreground">
+                        {localizedName(item.type, i18n.language)} · {item.assetTag}
+                      </p>
+                    </div>
+                    <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge>
                   </div>
-                  <Badge tone={assetStatusTone(item.status)}>{t(assetStatusKeys[item.status])}</Badge>
-                </div>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
-                  <dt className="text-muted-foreground">{t("assets.fields.model")}</dt>
-                  <dd className="truncate text-foreground">{[item.manufacturer, item.model].filter(Boolean).join(" ") || "—"}</dd>
-                  <dt className="text-muted-foreground">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</dt>
-                  <dd className="truncate text-foreground">{locationsEnabled ? (item.location?.label ?? "—") : item.organizationalUnit.path}</dd>
-                  <dt className="text-muted-foreground">{t("assets.fields.assignedAt")}</dt>
-                  <dd className="text-foreground">{formatAssetDate(item.assignedAt, i18n.language)}</dd>
-                  <dt className="text-muted-foreground">{t("assets.fields.warrantyEndsAt")}</dt>
-                  <dd className="text-foreground">{formatAssetDate(item.warrantyEndsAt, i18n.language)}</dd>
-                </dl>
-                {item.status === "IN_USE" || item.status === "IN_REPAIR" ? (
-                  <Button asChild variant="outline" size="sm" className="justify-self-start">
-                    <Link
-                      to={`/tickets/new?assetId=${encodeURIComponent(item.id)}`}
-                      aria-label={t("assets.mine.reportProblemFor", { name: item.name })}
-                    >
-                      <MessageSquareWarning size={14} aria-hidden="true" />
-                      {t("assets.mine.reportProblem")}
-                    </Link>
-                  </Button>
-                ) : null}
-                <section>
-                  <h3 className="mb-1 text-[12px] font-semibold text-foreground">{t("assets.mine.tickets")}</h3>
-                  {item.tickets.length === 0 ? (
-                    <p className={hintClassName}>{t("assets.mine.noTickets")}</p>
-                  ) : (
-                    <ul className="grid gap-1 text-[12px]">
-                      {item.tickets.map((ticket) => (
-                        <li key={ticket.id} className="flex min-w-0 items-center gap-2">
-                          <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
-                            {ticket.ticketNumber}
-                          </Link>
-                          <span className="truncate text-foreground">{ticket.title}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              </Card>
-            </li>
-          );
-        })}
-      </ul>
-      <MyTransfers />
-    </div>
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+                    <dt className="text-muted-foreground">{t("assets.fields.model")}</dt>
+                    <dd className="truncate text-foreground">{[item.manufacturer, item.model].filter(Boolean).join(" ") || "—"}</dd>
+                    <dt className="text-muted-foreground">{t(locationsEnabled ? "assets.fields.location" : "assets.fields.place")}</dt>
+                    <dd className="truncate text-foreground">{locationsEnabled ? (item.location?.label ?? "—") : item.organizationalUnit.path}</dd>
+                    <dt className="text-muted-foreground">{t("assets.fields.assignedAt")}</dt>
+                    <dd className="text-foreground">{formatAssetDate(item.assignedAt, i18n.language)}</dd>
+                    <dt className="text-muted-foreground">{t("assets.fields.warrantyEndsAt")}</dt>
+                    <dd className="text-foreground">{formatAssetDate(item.warrantyEndsAt, i18n.language)}</dd>
+                  </dl>
+                  {item.status === "IN_USE" || item.status === "IN_REPAIR" ? (
+                    <Button asChild variant="outline" size="sm" className="justify-self-start">
+                      <Link
+                        to={`/tickets/new?assetId=${encodeURIComponent(item.id)}`}
+                        aria-label={t("assets.mine.reportProblemFor", { name: item.name })}
+                      >
+                        <MessageSquareWarning size={14} aria-hidden="true" />
+                        {t("assets.mine.reportProblem")}
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <section>
+                    <h3 className="mb-1 text-[12px] font-semibold text-foreground">{t("assets.mine.tickets")}</h3>
+                    {item.tickets.length === 0 ? (
+                      <p className={hintClassName}>{t("assets.mine.noTickets")}</p>
+                    ) : (
+                      <ul className="grid gap-1 text-[12px]">
+                        {item.tickets.map((ticket) => (
+                          <li key={ticket.id} className="flex min-w-0 items-center gap-2">
+                            <Link to={`/tickets/${ticket.id}`} className={ticketIdClassName}>
+                              {ticket.ticketNumber}
+                            </Link>
+                            <span className="truncate text-foreground">{ticket.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+        <MyTransfers />
+      </div>
+    </section>
   );
 }
 
@@ -138,7 +142,7 @@ function MyTransfers() {
   const { data } = useQuery({ queryKey: assetTransferQueryKeys.mine, queryFn: listMyAssetTransfers, retry: false });
   if (!data || data.length === 0) return null;
   return (
-    <section className="mt-2 grid gap-2" aria-labelledby="my-transfers-heading">
+    <section className="grid gap-3" aria-labelledby="my-transfers-heading">
       <h2 id="my-transfers-heading" className="text-[14px] font-semibold text-foreground">
         {t("assets.transfers.mineTitle")}
       </h2>
