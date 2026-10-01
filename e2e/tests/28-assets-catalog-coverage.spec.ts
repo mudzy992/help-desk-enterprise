@@ -291,7 +291,7 @@ test.describe('28 assets catalog, relations, licences and contracts', () => {
         ] as const) {
           await page.goto(`/assets?tab=${tab}`);
           await expect(page.getByRole('tab', { name: label, selected: true })).toBeVisible({ timeout: 15_000 });
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
           await expectNoSeriousA11yViolations(page, `assets-${tab}-tab`, testInfo);
         }
 
@@ -301,7 +301,7 @@ test.describe('28 assets catalog, relations, licences and contracts', () => {
         await expectNoSeriousA11yViolations(page, 'asset-relations-tab', testInfo);
         for (const name of [/Licence i ugovori|Licences and contracts/, /^(Historija|History)$/]) {
           await page.getByRole('tab', { name }).click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
           await expectNoSeriousA11yViolations(page, `asset-tab-${String(name).slice(1, 12)}`, testInfo);
         }
       } finally {
