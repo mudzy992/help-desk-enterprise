@@ -12,6 +12,8 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.userNotFound:
     case problemErrorCodes.groupNotFound:
     case problemErrorCodes.serviceNotFound:
+    case problemErrorCodes.ticketNotFound:
+    case problemErrorCodes.ticketNotLinked:
       return new NotFoundException(body);
     case problemErrorCodes.forbidden:
     case problemErrorCodes.outOfScope:
@@ -20,6 +22,8 @@ export function mapProblemError(error: unknown): unknown {
     case problemErrorCodes.requirementMissing:
     case problemErrorCodes.finalStatus:
     case problemErrorCodes.versionConflict:
+    case problemErrorCodes.ticketInOtherProblem:
+    case problemErrorCodes.problemNotOpen:
       return new ConflictException(body);
     default:
       return new BadRequestException(body);

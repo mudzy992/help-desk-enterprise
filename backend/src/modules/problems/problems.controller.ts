@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Header, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Header, Param, Patch, Post, Query, Req, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import type { AuthenticatedHttpRequest } from '../authentication/authenticated-request';
 import { SessionAuthenticationGuard } from '../authentication/session-authentication.guard';
 import { privacyActorOf } from '../privacy/privacy-actor';
 import { runProblem } from './map-problem-error';
 import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './problem-access.service';
-import { CreateProblemDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { CreateProblemDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { ProblemTicketsService } from './problem-tickets.service';
 import { problemSeverities, problemStatuses, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
 import { ProblemsService, type ProblemListQuery } from './problems.service';
 
@@ -50,6 +51,7 @@ export class ProblemsController {
   constructor(
     private readonly access: ProblemAccessService,
     private readonly problems: ProblemsService,
+    private readonly problemTickets: ProblemTicketsService,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -68,9 +70,24 @@ export class ProblemsController {
     return runProblem(() => this.problems.list(this.viewer(request), parseProblemListQuery(query)));
   }
 
+  /** Ticket panel (§8.3); static path, declared before ":id". */
+  @Get('tickets/:ticketId')
+  @Header('Cache-Control', 'no-store')
+  ticketPanel(@Req() request: AuthenticatedHttpRequest, @Param('ticketId') ticketId: string) {
+    return runProblem(() => this.problemTickets.panel(ticketId, this.viewer(request)));
+  }
+
+  /** §8.1: optional `ticketIds` are linked right after creation. */
   @Post()
   create(@Req() request: AuthenticatedHttpRequest, @Body() body: CreateProblemDto) {
-    return runProblem(() => this.problems.create(this.viewer(request), body));
+    return runProblem(async () => {
+      const viewer = this.viewer(request);
+      const { ticketIds, ...input } = body;
+      const created = await this.problems.create(viewer, input);
+      if (!ticketIds || ticketIds.length === 0) return { ...created, ticketLinks: null };
+      const ticketLinks = await this.problemTickets.link(created.id, ticketIds, viewer, { singleAsError: false });
+      return { ...(await this.problems.get(viewer, created.id)), ticketLinks };
+    });
   }
 
   @Get(':id')
@@ -93,5 +110,22 @@ export class ProblemsController {
   @Header('Cache-Control', 'no-store')
   events(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
     return runProblem(() => this.problems.events(this.viewer(request), id));
+  }
+
+  @Get(':id/tickets')
+  @Header('Cache-Control', 'no-store')
+  tickets(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string) {
+    return runProblem(() => this.problemTickets.listForProblem(id, this.viewer(request)));
+  }
+
+  @Post(':id/tickets')
+  linkTickets(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Body() body: LinkProblemTicketsDto) {
+    return runProblem(() => this.problemTickets.link(id, body.ticketIds, this.viewer(request)));
+  }
+
+  @Delete(':id/tickets/:ticketId')
+  @HttpCode(204)
+  async unlinkTicket(@Req() request: AuthenticatedHttpRequest, @Param('id') id: string, @Param('ticketId') ticketId: string) {
+    await runProblem(() => this.problemTickets.unlink(id, ticketId, this.viewer(request)));
   }
 }

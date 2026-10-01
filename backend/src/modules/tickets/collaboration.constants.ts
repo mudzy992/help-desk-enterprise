@@ -100,6 +100,9 @@ export const ticketSystemEventActions = {
   // Paket 3.2 (§8): `action:<assetId>|<tag name>` (staff only).
   assetLinked: 'ticket_asset_linked',
   assetUnlinked: 'ticket_asset_unlinked',
+  // Paket 3.3 (§8): `action:<problemId>|<number> <title>` (staff only).
+  problemLinked: 'ticket_problem_linked',
+  problemUnlinked: 'ticket_problem_unlinked',
   // Paket 2.9 (K1c): `action:<articleId>|<title>` (staff only).
   knowledgeDraftCreated: 'ticket_knowledge_draft_created',
   ticketMergedChild: 'ticket_merged_child',

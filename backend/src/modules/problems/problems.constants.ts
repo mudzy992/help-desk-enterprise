@@ -20,6 +20,8 @@ export const problemLimits = {
   listMax: 100,
   listDefault: 25,
   searchMax: 120,
+  /** Tickets linked in one request (list bulk action, §8.1). */
+  linkBatchMax: 50,
 } as const;
 
 export const problemEventActions = {
@@ -27,6 +29,8 @@ export const problemEventActions = {
   updated: 'updated',
   status: 'status',
   owner: 'owner',
+  ticketLinked: 'ticket_linked',
+  ticketUnlinked: 'ticket_unlinked',
 } as const;
 
 export const problemErrorCodes = {
@@ -45,6 +49,10 @@ export const problemErrorCodes = {
   finalStatus: 'PROBLEM_FINAL_STATUS',
   versionConflict: 'PROBLEM_VERSION_CONFLICT',
   validation: 'PROBLEM_VALIDATION',
+  ticketNotFound: 'PROBLEM_TICKET_NOT_FOUND',
+  ticketInOtherProblem: 'PROBLEM_TICKET_IN_OTHER_PROBLEM',
+  ticketNotLinked: 'PROBLEM_TICKET_NOT_LINKED',
+  problemNotOpen: 'PROBLEM_NOT_OPEN',
 } as const;
 
 export type ProblemErrorCode = (typeof problemErrorCodes)[keyof typeof problemErrorCodes];

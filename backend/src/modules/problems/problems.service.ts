@@ -4,7 +4,7 @@ import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
 import type { AuditLogTransactionalClient } from '../audit-log/audit-log.types';
 import { recordAuditEntry } from '../audit-log/record-audit-entry';
-import { isPathInScope, unitScopeWhere } from '../assets/asset-viewer';
+import { isPathInScope } from '../assets/asset-viewer';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { resolveTicketPriority } from '../tickets/resolve-ticket-priority';
 import { ProblemAccessService, type ProblemConfiguration, type ProblemScope, type ProblemViewer } from './problem-access.service';
@@ -27,6 +27,7 @@ import {
   type ProblemSeverityValue,
   type ProblemStatusValue,
 } from './problems.constants';
+import { linkedTicketWorkWhere, problemVisibilityWhere } from './problem-visibility';
 
 export type ProblemListQuery = {
   readonly search?: string;
@@ -132,8 +133,8 @@ export class ProblemsService {
     const configuration = await this.access.configuration();
     const limit = Math.min(Math.max(query.limit ?? problemLimits.listDefault, 1), problemLimits.listMax);
     const and: Prisma.ProblemWhereInput[] = [];
-    const unitWhere = unitScopeWhere(scope);
-    if (unitWhere !== null) and.push({ organizationalUnit: unitWhere });
+    const visible = problemVisibilityWhere(scope, viewer.userId);
+    if (visible !== null) and.push(visible);
     if (query.status && query.status.length > 0) and.push({ status: { in: [...query.status] } });
     if (query.priority && query.priority.length > 0) and.push({ priority: { in: [...query.priority] } });
     if (query.ownerUserId) and.push({ ownerUserId: query.ownerUserId === 'me' ? viewer.userId : query.ownerUserId });
@@ -173,13 +174,13 @@ export class ProblemsService {
 
   async get(viewer: ProblemViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.problemRead);
-    const row = await this.loadInScope(id, scope);
+    const row = await this.loadInScope(id, scope, viewer);
     return this.toDetail(viewer, row, await this.access.configuration());
   }
 
   async events(viewer: ProblemViewer, id: string) {
     const scope = await this.access.require(viewer, permissionKeys.problemRead);
-    await this.loadInScope(id, scope);
+    await this.loadInScope(id, scope, viewer);
     const events = await this.prisma.problemEvent.findMany({
       where: { problemId: id },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -263,7 +264,7 @@ export class ProblemsService {
   async update(viewer: ProblemViewer, id: string, input: UpdateProblemDto) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
     const configuration = await this.access.configuration();
-    const current = await this.loadInScope(id, scope);
+    const current = await this.loadInScope(id, scope, viewer);
     if ((problemFinalStatuses as readonly string[]).includes(current.status)) throw new ProblemError(problemErrorCodes.finalStatus);
     if (input.version !== current.version) throw new ProblemError(problemErrorCodes.versionConflict);
 
@@ -372,7 +373,7 @@ export class ProblemsService {
   async changeStatus(viewer: ProblemViewer, id: string, input: ProblemStatusDto) {
     const scope = await this.access.require(viewer, permissionKeys.problemManage);
     const configuration = await this.access.configuration();
-    const current = await this.loadInScope(id, scope);
+    const current = await this.loadInScope(id, scope, viewer);
     if (input.version !== current.version) throw new ProblemError(problemErrorCodes.versionConflict);
     const from = current.status;
     const to = input.status;
@@ -420,11 +421,14 @@ export class ProblemsService {
     return this.get(viewer, id);
   }
 
-  /** Loads a problem and checks the unit scope; out of scope reads as not found. */
-  private async loadInScope(id: string, scope: ProblemScope): Promise<DetailRow> {
-    const unitWhere = unitScopeWhere(scope);
+  /**
+   * Loads a problem visible to the viewer (unit scope or a linked ticket the
+   * viewer works on, §12); anything else reads as not found.
+   */
+  private async loadInScope(id: string, scope: ProblemScope, viewer: ProblemViewer): Promise<DetailRow> {
+    const visible = problemVisibilityWhere(scope, viewer.userId);
     const row = await this.prisma.problem.findFirst({
-      where: { id, ...(unitWhere === null ? {} : { organizationalUnit: unitWhere }) },
+      where: { id, ...(visible === null ? {} : visible) },
       select: detailSelect,
     });
     if (row === null) throw new ProblemError(problemErrorCodes.notFound);
@@ -466,8 +470,13 @@ export class ProblemsService {
   }
 
   private async toDetail(viewer: ProblemViewer, row: DetailRow, configuration: ProblemConfiguration) {
-    const inScope = async (permission: string) =>
-      this.access.hasPermission(viewer, permission) && isPathInScope(await this.access.scopeOf(viewer, permission), row.organizationalUnit.ouPath);
+    let worksOnLinked: boolean | null = null;
+    const inScope = async (permission: string) => {
+      if (!this.access.hasPermission(viewer, permission)) return false;
+      if (isPathInScope(await this.access.scopeOf(viewer, permission), row.organizationalUnit.ouPath)) return true;
+      worksOnLinked ??= (await this.prisma.problemTicket.count({ where: { problemId: row.id, ticket: linkedTicketWorkWhere(viewer.userId) } })) > 0;
+      return worksOnLinked;
+    };
     const canManage = await inScope(permissionKeys.problemManage);
     const canClose = canManage && (await inScope(permissionKeys.problemClose));
     const transitions = canManage
