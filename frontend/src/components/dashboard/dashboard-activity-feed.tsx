@@ -52,6 +52,7 @@ export function DashboardActivityFeed() {
             const path = notificationTicketPath(
               notification.ticketId,
               notification.type,
+              notification.payload,
             );
             return (
               <li key={notification.id}>

@@ -165,7 +165,12 @@
       "onCallGap": "On-call shift without anyone on call",
       "announcementPublished": "New announcement",
       "announcementReminder": "Reminder: please acknowledge the announcement",
-      "assetExpiring": "Licences, warranties or contracts are expiring"
+      "assetExpiring": "Licences, warranties or contracts are expiring",
+      "problemAssigned": "A problem was assigned to you",
+      "problemKnownError": "A problem linked to your ticket is a known error",
+      "problemResolved": "A problem linked to your ticket was resolved",
+      "problemTargetDue": "A problem target is near or passed",
+      "problemRecurrence": "A resolved problem recurred"
     }
   },
   "placeholders": {
@@ -1494,7 +1499,10 @@
         "ops_alert": "Operational alarm",
         "announcement_published": "Announcement",
         "announcement_reminder": "Announcement: acknowledgement reminder",
-        "asset_expiring": "Assets: expiry reminder"
+        "asset_expiring": "Assets: expiry reminder",
+        "problem_assigned": "Problem: assigned to owner",
+        "problem_resolved": "Problem: resolved (linked ticket agents)",
+        "problem_target_due": "Problem: target reminder"
       },
       "accentInherit": "installation",
       "accentUseGlobal": "Installation colour",
@@ -4636,6 +4644,14 @@
         "asset_expiring": {
           "label": "Licence, warranty and contract expiry",
           "hint": "Daily reminder for assets in your scope whose warranty, contract or licence is about to end (thresholds from settings)."
+        },
+        "problem_owner": {
+          "label": "Problems I own",
+          "hint": "Problem assignment, target reminders and recurrence of a resolved problem."
+        },
+        "problem_linked": {
+          "label": "Problems linked to my tickets",
+          "hint": "Known error (workaround) and resolution for open tickets assigned to you."
         }
       },
       "emailOnly": "E-mail only",
@@ -6696,7 +6712,10 @@
       "tickets": "Tickets",
       "created": "Created",
       "noOwner": "No owner",
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "target": "Target",
+      "overdue": "Overdue",
+      "overdueFilter": "Overdue"
     },
     "rootCause": {
       "hardware": "Hardware",
@@ -6800,7 +6819,9 @@
       "system": "System",
       "reason": "Reason: {{reason}}",
       "knowledgeArticle": "Article draft “{{title}}” created",
-      "ticketsResolved": "Group ticket resolution: {{resolved}} resolved, {{skipped}} skipped, {{failed}} failed"
+      "ticketsResolved": "Group ticket resolution: {{resolved}} resolved, {{skipped}} skipped, {{failed}} failed",
+      "statusAuto": "Status: {{from}} → {{to}} (automatically after {{days}} d without reopening)",
+      "ticketLinkedRecurrence": "Linked ticket {{ticket}} — recurrence of a resolved problem"
     },
     "detail": {
       "back": "All problems",
@@ -6825,7 +6846,8 @@
       "resolvedAt": "Resolved",
       "closedAt": "Closed",
       "cancelledAt": "Cancelled",
-      "cancelReason": "Cancellation reason"
+      "cancelReason": "Cancellation reason",
+      "targetAt": "Target date"
     },
     "article": {
       "action": "Create article",

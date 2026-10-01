@@ -165,7 +165,12 @@
       "onCallGap": "Dežurna smjena bez dežurnog",
       "announcementPublished": "Nova najava",
       "announcementReminder": "Podsjetnik: potvrdite najavu",
-      "assetExpiring": "Ističu licence, garancije ili ugovori"
+      "assetExpiring": "Ističu licence, garancije ili ugovori",
+      "problemAssigned": "Dodijeljen vam je problem",
+      "problemKnownError": "Problem povezan s vašim tiketom je poznata greška",
+      "problemResolved": "Problem povezan s vašim tiketom je riješen",
+      "problemTargetDue": "Rok problema se približava ili je prošao",
+      "problemRecurrence": "Riješeni problem se ponovio"
     }
   },
   "placeholders": {
@@ -1504,7 +1509,10 @@
         "ops_alert": "Operativni alarm",
         "announcement_published": "Najava",
         "announcement_reminder": "Najava: podsjetnik na potvrdu",
-        "asset_expiring": "Oprema: podsjetnik o isteku"
+        "asset_expiring": "Oprema: podsjetnik o isteku",
+        "problem_assigned": "Problem: dodijeljen vlasniku",
+        "problem_resolved": "Problem: riješen (agenti povezanih tiketa)",
+        "problem_target_due": "Problem: podsjetnik o roku"
       },
       "accentInherit": "globalna",
       "accentUseGlobal": "Globalna boja",
@@ -4667,6 +4675,14 @@
         "asset_expiring": {
           "label": "Istek licenci, garancija i ugovora",
           "hint": "Dnevni podsjetnik za opremu u vašem opsegu kojoj ističe garancija, ugovor ili licenca (pragovi iz postavki)."
+        },
+        "problem_owner": {
+          "label": "Problemi koje vodim",
+          "hint": "Dodjela problema, podsjetnici o roku i ponavljanje riješenog problema."
+        },
+        "problem_linked": {
+          "label": "Problemi povezani s mojim tiketima",
+          "hint": "Poznata greška (workaround) i rješenje problema za otvorene tikete koji su vam dodijeljeni."
         }
       },
       "emailOnly": "Samo e-mail",
@@ -6757,7 +6773,10 @@
       "tickets": "Tiketi",
       "created": "Kreiran",
       "noOwner": "Bez vlasnika",
-      "loadMore": "Učitaj još"
+      "loadMore": "Učitaj još",
+      "target": "Rok",
+      "overdue": "Kasni",
+      "overdueFilter": "Kasni"
     },
     "rootCause": {
       "hardware": "Hardver",
@@ -6861,7 +6880,9 @@
       "system": "Sistem",
       "reason": "Razlog: {{reason}}",
       "knowledgeArticle": "Kreiran nacrt članka „{{title}}”",
-      "ticketsResolved": "Grupno rješavanje tiketa: riješeno {{resolved}}, preskočeno {{skipped}}, neuspješno {{failed}}"
+      "ticketsResolved": "Grupno rješavanje tiketa: riješeno {{resolved}}, preskočeno {{skipped}}, neuspješno {{failed}}",
+      "statusAuto": "Status: {{from}} → {{to}} (automatski nakon {{days}} d bez ponovnog otvaranja)",
+      "ticketLinkedRecurrence": "Povezan tiket {{ticket}} — ponavljanje riješenog problema"
     },
     "detail": {
       "back": "Svi problemi",
@@ -6886,7 +6907,8 @@
       "resolvedAt": "Riješen",
       "closedAt": "Zatvoren",
       "cancelledAt": "Otkazan",
-      "cancelReason": "Razlog otkazivanja"
+      "cancelReason": "Razlog otkazivanja",
+      "targetAt": "Ciljni rok"
     },
     "article": {
       "action": "Napravi članak",

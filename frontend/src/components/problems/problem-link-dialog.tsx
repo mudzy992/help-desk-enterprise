@@ -22,7 +22,7 @@ import {
   createProblem,
   linkProblemTickets,
   listProblems,
-  problemOpenStatuses,
+  problemLinkableStatuses,
   problemQueryKeys,
   type ProblemSeverity,
   type ProblemTicketLinkResult,
@@ -75,7 +75,7 @@ export function ProblemLinkDialog({ open, onOpenChange, tickets, initialMode = "
 
   const candidates = useQuery({
     queryKey: problemQueryKeys.search(debounced),
-    queryFn: () => listProblems({ search: debounced || undefined, status: problemOpenStatuses, limit: 10 }),
+    queryFn: () => listProblems({ search: debounced || undefined, status: problemLinkableStatuses, limit: 10 }),
     enabled: open && mode === "attach",
     retry: false,
   });

@@ -53,3 +53,15 @@ describe("directory sync notifications (paket 1.8)", () => {
     expect(notificationTitleKey("account.recoveryCodeUsed")).toBe("notifications.items.accountRecoveryCodeUsed");
   });
 });
+
+describe("problem notifications (P5)", () => {
+  it("open the problem from the payload", () => {
+    expect(notificationTicketPath(null, "problem.assigned", { problemId: "p-1" })).toBe("/problems/p-1");
+  });
+  it("fall back to the register without a problem id", () => {
+    expect(notificationTicketPath(null, "problem.resolved", null)).toBe("/problems");
+  });
+  it("have dedicated title keys", () => {
+    expect(notificationTitleKey("problem.targetDue")).toBe("notifications.items.problemTargetDue");
+  });
+});

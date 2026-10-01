@@ -22,7 +22,13 @@ export function notificationKind(type: string): NotificationKind {
 export function notificationTicketPath(
   ticketId: string | null | undefined,
   type?: string,
+  payload?: { readonly problemId?: string } | null,
 ): string | null {
+  // Paket 3.3 (P5): problem notifications open the problem (or the register).
+  if (type?.startsWith("problem.")) {
+    const problemId = payload?.problemId;
+    return problemId ? `/problems/${encodeURIComponent(problemId)}` : "/problems";
+  }
   // Paket 1.7 (U2): the weekly digest points at the overdue list, not a ticket.
   if (type === "ticket.unroutedDigest") {
     return "/tickets?view=all&unroutedOverdue=true";
@@ -107,6 +113,11 @@ export function notificationTitleKey(
   | "notifications.items.announcementPublished"
   | "notifications.items.announcementReminder"
   | "notifications.items.assetExpiring"
+  | "notifications.items.problemAssigned"
+  | "notifications.items.problemKnownError"
+  | "notifications.items.problemResolved"
+  | "notifications.items.problemTargetDue"
+  | "notifications.items.problemRecurrence"
   | "notifications.items.unknown" {
   switch (type) {
     case "ticket.created":
@@ -169,6 +180,16 @@ export function notificationTitleKey(
       return "notifications.items.announcementReminder";
     case "asset.expiring":
       return "notifications.items.assetExpiring";
+    case "problem.assigned":
+      return "notifications.items.problemAssigned";
+    case "problem.knownError":
+      return "notifications.items.problemKnownError";
+    case "problem.resolved":
+      return "notifications.items.problemResolved";
+    case "problem.targetDue":
+      return "notifications.items.problemTargetDue";
+    case "problem.recurrence":
+      return "notifications.items.problemRecurrence";
     default:
       return "notifications.items.unknown";
   }

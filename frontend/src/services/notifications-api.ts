@@ -7,6 +7,9 @@ export type InAppNotificationPayload = {
   readonly messageId?: string;
   readonly actorUserId?: string | null;
   readonly confidential?: boolean;
+  /** Paket 3.3 (P5): problem notifications carry the problem instead of a ticket. */
+  readonly problemId?: string;
+  readonly problemNumber?: string;
 };
 
 export type InAppNotification = {

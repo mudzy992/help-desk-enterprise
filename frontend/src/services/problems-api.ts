@@ -10,6 +10,8 @@ import type { TicketPriority, TicketStatus } from "@/services/tickets-api";
 export const problemStatuses = ["NEW", "INVESTIGATING", "KNOWN_ERROR", "RESOLVED", "CLOSED", "CANCELLED"] as const;
 export type ProblemStatus = (typeof problemStatuses)[number];
 export const problemOpenStatuses: readonly ProblemStatus[] = ["NEW", "INVESTIGATING", "KNOWN_ERROR"];
+/** P5: a resolved problem still accepts links; the link is recorded as a recurrence. */
+export const problemLinkableStatuses: readonly ProblemStatus[] = [...problemOpenStatuses, "RESOLVED"];
 export type ProblemSeverity = TicketPriority;
 
 type NamedRef = { readonly id: string; readonly name: string };
@@ -28,6 +30,8 @@ export type ProblemListItem = {
   readonly service: NamedRef | null;
   readonly ticketCount: number;
   readonly targetAt: string | null;
+  /** P5: running target already passed (NEW/INVESTIGATING only). */
+  readonly targetOverdue: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -204,6 +208,8 @@ export type ProblemListFilters = {
   readonly groupId?: string;
   readonly serviceId?: string;
   readonly organizationalUnitId?: string;
+  /** P5: only problems whose running target has passed. */
+  readonly overdue?: boolean;
 };
 
 export type UpdateProblemInput = {
@@ -262,6 +268,7 @@ export function listProblemsPage(filters: ProblemListFilters, cursor?: string, l
   if (filters.groupId) params.set("groupId", filters.groupId);
   if (filters.serviceId) params.set("serviceId", filters.serviceId);
   if (filters.organizationalUnitId) params.set("organizationalUnitId", filters.organizationalUnitId);
+  if (filters.overdue) params.set("overdue", "true");
   if (cursor) params.set("cursor", cursor);
   params.set("limit", String(limit));
   return apiRequest(`/problems?${params.toString()}`);

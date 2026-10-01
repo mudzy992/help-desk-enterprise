@@ -64,6 +64,7 @@ export function ProblemsPage() {
   const owner = params.get("owner") ?? "";
   const groupId = params.get("group") ?? "";
   const serviceId = params.get("service") ?? "";
+  const overdue = params.get("overdue") === "true";
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -96,8 +97,9 @@ export function ProblemsPage() {
       ownerUserId: owner || undefined,
       groupId: groupId || undefined,
       serviceId: serviceId || undefined,
+      overdue: overdue || undefined,
     }),
-    [search, status, priority, owner, groupId, serviceId],
+    [search, status, priority, owner, groupId, serviceId, overdue],
   );
   const listQuery = useInfiniteQuery({
     queryKey: problemDetailKeys.list(filters),
@@ -109,7 +111,8 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const hasFilters = search !== "" || status !== "open" || priority !== "" || owner !== "" || groupId !== "" || serviceId !== "";
+  const hasFilters = search !== "" || status !== "open" || priority !== "" || owner !== "" || groupId !== "" || serviceId !== "" || overdue;
+  const targetEnabled = capabilities?.configuration?.targetEnabled === true;
 
   const header = (
     <PageHeader
@@ -209,6 +212,11 @@ export function ProblemsPage() {
               </option>
             ))}
           </select>
+          {targetEnabled ? (
+            <Button variant={overdue ? "secondary" : "ghost"} size="sm" aria-pressed={overdue} onClick={() => setParam("overdue", overdue ? "" : "true")}>
+              {t("problems.list.overdueFilter")}
+            </Button>
+          ) : null}
           {hasFilters ? (
             <Button
               variant="ghost"
@@ -256,6 +264,7 @@ export function ProblemsPage() {
                     <th scope="col" className="px-3 py-2 text-left">{t("problems.fields.organizationalUnit")}</th>
                     <th scope="col" className="px-3 py-2 text-right">{t("problems.list.tickets")}</th>
                     <th scope="col" className="px-3 py-2 text-left">{t("problems.list.created")}</th>
+                    {targetEnabled ? <th scope="col" className="px-3 py-2 text-left">{t("problems.list.target")}</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -281,6 +290,18 @@ export function ProblemsPage() {
                       <td className="px-3 py-2">{item.organizationalUnit.name}</td>
                       <td className="tnum px-3 py-2 text-right">{item.ticketCount}</td>
                       <td className="px-3 py-2 text-muted-foreground">{formatAssetDate(item.createdAt, i18n.language)}</td>
+                      {targetEnabled ? (
+                        <td className="px-3 py-2">
+                          {item.targetAt === null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className={item.targetOverdue ? "text-foreground" : "text-muted-foreground"}>{formatAssetDate(item.targetAt, i18n.language)}</span>
+                              {item.targetOverdue ? <Badge tone="danger">{t("problems.list.overdue")}</Badge> : null}
+                            </span>
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

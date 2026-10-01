@@ -250,6 +250,14 @@ function ProblemOverview({ problem }: { readonly problem: ProblemDetail }) {
         <CardHeader title={t("problems.detail.timeline")} />
         <dl className="grid divide-y divide-border/60 px-4 py-2 sm:grid-cols-2 sm:divide-y-0">
           <DefinitionRow label={t("problems.detail.createdAt")}>{date(problem.createdAt)}</DefinitionRow>
+          {problem.targetAt ? (
+            <DefinitionRow label={t("problems.detail.targetAt")}>
+              <span className="inline-flex items-center gap-1.5">
+                {date(problem.targetAt)}
+                {problem.targetOverdue ? <Badge tone="danger">{t("problems.list.overdue")}</Badge> : null}
+              </span>
+            </DefinitionRow>
+          ) : null}
           <DefinitionRow label={t("problems.detail.identifiedAt")}>{date(problem.identifiedAt)}</DefinitionRow>
           <DefinitionRow label={t("problems.detail.resolvedAt")}>{date(problem.resolvedAt)}</DefinitionRow>
           <DefinitionRow label={t("problems.detail.closedAt")}>{date(problem.closedAt)}</DefinitionRow>

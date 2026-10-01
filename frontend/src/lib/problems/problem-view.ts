@@ -154,9 +154,17 @@ export function problemHistoryText(t: Translate, action: string, detail: Record<
       const from = value("from");
       const to = value("to");
       const label = (status: string | null) => (status !== null && status in problemStatusKeys ? t(problemStatusKeys[status as ProblemStatus]) : "—");
+      // P5: the sweep closes resolved problems without an actor after N days.
+      if (detail !== null && detail.auto === true) {
+        return t("problems.history.statusAuto", { from: label(from), to: label(to), days: typeof detail.days === "number" ? detail.days : 0 });
+      }
       return t("problems.history.status", { from: label(from), to: label(to) });
     }
     case "ticket_linked":
+      // P5: a link on a resolved problem signals a recurrence.
+      if (detail !== null && detail.recurrence === true) {
+        return t("problems.history.ticketLinkedRecurrence", { ticket: value("ticketNumber") ?? "—" });
+      }
       return t("problems.history.ticketLinked", { ticket: value("ticketNumber") ?? "—" });
     case "ticket_unlinked":
       return t("problems.history.ticketUnlinked", { ticket: value("ticketNumber") ?? "—" });

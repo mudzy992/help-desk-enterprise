@@ -425,3 +425,7 @@ To je kriterij kompletnosti.
 - Rokovi za probleme postoje kao postavka i zadano su isključeni.
 - Modul je zadano isključen i uključuje se postavkom.
 - Podnosilac tiketa ne vidi problem ni analizu uzroka.
+- Kad su rokovi uključeni, vlasnik problema dobija podsjetnik radni dan prije roka, na dan roka i jednom kad rok istekne — samo radnim danima, od 07:00.
+- Riješen problem se automatski zatvara nakon podešenog broja dana (0 = nikad); u historiji piše da je zatvoren automatski.
+- Ako se isti kvar ponovi nakon rješenja, tiket se i dalje može povezati s riješenim problemom; vlasnik dobija obavijest o ponavljanju. Zatvoren ili otkazan problem se ne može puniti novim tiketima.
+- Agenti čiji su tiketi povezani s problemom dobijaju obavijest kad problem postane poznata greška (workaround) i kad je riješen.
