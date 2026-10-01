@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Plus, Puzzle, Search } from "lucide-react";
+import { Plus, Puzzle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ProblemFormSheet } from "@/components/problems/problem-form-sheet";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  controlCompactClassName,
   errorTextClassName,
   hintClassName,
   selectCompactClassName,
@@ -16,7 +15,9 @@ import {
   tableRowClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
+import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -114,7 +115,8 @@ export function ProblemsPage() {
   });
   const items = listQuery.data?.pages.flatMap((page) => page.items) ?? [];
   const total = listQuery.data?.pages[0]?.total ?? 0;
-  const hasFilters = search !== "" || status !== "open" || priority !== "" || owner !== "" || groupId !== "" || serviceId !== "" || overdue || category !== "";
+  const advancedCount = [status !== "open", priority !== "", owner !== "", groupId !== "", serviceId !== "", overdue, category !== ""].filter(Boolean).length;
+  const hasFilters = search !== "" || advancedCount > 0;
   const targetEnabled = capabilities?.configuration?.targetEnabled === true;
 
   const header = (
@@ -170,86 +172,86 @@ export function ProblemsPage() {
     <section>
       {header}
       <div className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t("problems.list.filtersLabel")}>
-          <div className="relative min-w-[220px] flex-1">
-            <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <input
-              type="search"
-              className={`${controlCompactClassName} w-full pl-8`}
-              placeholder={t("problems.list.searchPlaceholder")}
-              aria-label={t("problems.list.searchLabel")}
-              value={searchText}
-              maxLength={120}
-              onChange={(event) => {
-                setSearchText(event.target.value);
-                setParam("search", event.target.value.trim());
-              }}
-            />
-          </div>
-          <select className={selectCompactClassName} aria-label={t("problems.list.statusFilter")} value={status} onChange={(event) => setParam("status", event.target.value === "open" ? "" : event.target.value)}>
-            <option value="open">{t("problems.list.statusOpen")}</option>
-            {problemStatuses.map((value) => (
-              <option key={value} value={value}>
-                {t(problemStatusKeys[value])}
-              </option>
-            ))}
-            <option value="all">{t("problems.list.statusAll")}</option>
-          </select>
-          <select className={selectCompactClassName} aria-label={t("problems.fields.priority")} value={priority} onChange={(event) => setParam("priority", event.target.value)}>
-            <option value="">{t("problems.list.allPriorities")}</option>
-            {ticketPriorityValues.map((value) => (
-              <option key={value} value={value}>
-                {ticketText(t, ticketPriorityLabelKey[value])}
-              </option>
-            ))}
-          </select>
-          <select className={selectCompactClassName} aria-label={t("problems.fields.owner")} value={owner} onChange={(event) => setParam("owner", event.target.value)}>
-            <option value="">{t("problems.list.anyOwner")}</option>
-            <option value="me">{t("problems.list.mine")}</option>
-          </select>
-          <select className={selectCompactClassName} aria-label={t("problems.fields.group")} value={groupId} onChange={(event) => setParam("group", event.target.value)}>
-            <option value="">{t("problems.list.allGroups")}</option>
-            {(optionsQuery.data?.groups ?? []).map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-          <select className={selectCompactClassName} aria-label={t("problems.fields.service")} value={serviceId} onChange={(event) => setParam("service", event.target.value)}>
-            <option value="">{t("problems.list.allServices")}</option>
-            {(optionsQuery.data?.services ?? []).map((service) => (
-              <option key={service.id} value={service.id}>
-                {service.name}
-              </option>
-            ))}
-          </select>
-          <select className={selectCompactClassName} aria-label={t("problems.fields.rootCauseCategory")} value={category} onChange={(event) => setParam("category", event.target.value)}>
-            <option value="">{t("problems.list.allCategories")}</option>
-            <option value="none">{t("problems.list.noCategory")}</option>
-            {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
-              <option key={value} value={value}>
-                {rootCauseLabel((key) => ticketText(t, key), value)}
-              </option>
-            ))}
-          </select>
+        <FilterBar
+          label={t("problems.list.filtersLabel")}
+          searchLabel={t("problems.list.searchLabel")}
+          searchPlaceholder={t("problems.list.searchPlaceholder")}
+          searchValue={searchText}
+          onSearchChange={(value) => {
+            setSearchText(value);
+            setParam("search", value.trim());
+          }}
+          activeCount={advancedCount}
+          resetLabel={t("problems.list.resetFilters")}
+          onReset={() => {
+            setSearchText("");
+            setParams(new URLSearchParams(), { replace: true });
+          }}
+        >
+          <FilterField label={t("problems.list.statusFilter")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.list.statusFilter")} value={status} onChange={(event) => setParam("status", event.target.value === "open" ? "" : event.target.value)}>
+              <option value="open">{t("problems.list.statusOpen")}</option>
+              {problemStatuses.map((value) => (
+                <option key={value} value={value}>
+                  {t(problemStatusKeys[value])}
+                </option>
+              ))}
+              <option value="all">{t("problems.list.statusAll")}</option>
+            </select>
+          </FilterField>
+          <FilterField label={t("problems.fields.priority")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.priority")} value={priority} onChange={(event) => setParam("priority", event.target.value)}>
+              <option value="">{t("problems.list.allPriorities")}</option>
+              {ticketPriorityValues.map((value) => (
+                <option key={value} value={value}>
+                  {ticketText(t, ticketPriorityLabelKey[value])}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label={t("problems.fields.owner")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.owner")} value={owner} onChange={(event) => setParam("owner", event.target.value)}>
+              <option value="">{t("problems.list.anyOwner")}</option>
+              <option value="me">{t("problems.list.mine")}</option>
+            </select>
+          </FilterField>
+          <FilterField label={t("problems.fields.group")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.group")} value={groupId} onChange={(event) => setParam("group", event.target.value)}>
+              <option value="">{t("problems.list.allGroups")}</option>
+              {(optionsQuery.data?.groups ?? []).map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label={t("problems.fields.service")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.service")} value={serviceId} onChange={(event) => setParam("service", event.target.value)}>
+              <option value="">{t("problems.list.allServices")}</option>
+              {(optionsQuery.data?.services ?? []).map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+          <FilterField label={t("problems.fields.rootCauseCategory")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("problems.fields.rootCauseCategory")} value={category} onChange={(event) => setParam("category", event.target.value)}>
+              <option value="">{t("problems.list.allCategories")}</option>
+              <option value="none">{t("problems.list.noCategory")}</option>
+              {(optionsQuery.data?.rootCauseCategories ?? []).map((value) => (
+                <option key={value} value={value}>
+                  {rootCauseLabel((key) => ticketText(t, key), value)}
+                </option>
+              ))}
+            </select>
+          </FilterField>
           {targetEnabled ? (
-            <Button variant={overdue ? "secondary" : "ghost"} size="sm" aria-pressed={overdue} onClick={() => setParam("overdue", overdue ? "" : "true")}>
-              {t("problems.list.overdueFilter")}
-            </Button>
+            <FilterToggles label={t("ui.filters.options")}>
+              <Checkbox label={t("problems.list.overdueFilter")} checked={overdue} onChange={(event) => setParam("overdue", event.target.checked ? "true" : "")} />
+            </FilterToggles>
           ) : null}
-          {hasFilters ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearchText("");
-                setParams(new URLSearchParams(), { replace: true });
-              }}
-            >
-              {t("problems.list.resetFilters")}
-            </Button>
-          ) : null}
-        </div>
+        </FilterBar>
 
         <p className={hintClassName} aria-live="polite">
           {listQuery.isLoading ? t("ui.loading") : t("problems.list.count", { count: total, shown: items.length })}

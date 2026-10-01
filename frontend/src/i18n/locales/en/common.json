@@ -123,7 +123,14 @@
     "dismiss": "Dismiss notification",
     "clear": "Clear",
     "selectAll": "Select all",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "filters": {
+      "advanced": "Advanced search",
+      "reset": "Reset filters",
+      "options": "Options",
+      "activeCount_one": "{{count}} active filter",
+      "activeCount_other": "{{count}} active filters"
+    }
   },
   "notifications": {
     "title": "Notifications",

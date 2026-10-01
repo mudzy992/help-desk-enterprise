@@ -123,7 +123,15 @@
     "dismiss": "Zatvori obavještenje",
     "clear": "Očisti",
     "selectAll": "Odaberi sve",
-    "loading": "Učitavanje…"
+    "loading": "Učitavanje…",
+    "filters": {
+      "advanced": "Napredna pretraga",
+      "reset": "Poništi filtere",
+      "options": "Opcije",
+      "activeCount_one": "{{count}} aktivan filter",
+      "activeCount_few": "{{count}} aktivna filtera",
+      "activeCount_other": "{{count}} aktivnih filtera"
+    }
   },
   "notifications": {
     "title": "Obavještenja",

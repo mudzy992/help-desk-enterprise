@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Boxes, Download, Plus, Search } from "lucide-react";
+import { Boxes, Download, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { AssetCatalogManager } from "@/components/assets/asset-catalog-manager";
 import { AssetDirectorySyncCard } from "@/components/assets/asset-directory-sync-card";
@@ -21,13 +21,13 @@ import {
   errorTextClassName,
   hintClassName,
   selectCompactClassName,
-  controlCompactClassName,
   tableHeadClassName,
   tableRowClassName,
   ticketIdClassName,
 } from "@/components/ui/control";
 import { AssetImportPanel } from "@/components/assets/asset-import-panel";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
@@ -226,7 +226,8 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
     void queryClient.invalidateQueries({ queryKey: assetQueryKeys.all });
   }
 
-  const hasFilters = Boolean(search || typeId || status || organizationalUnitId || locationId || source || warrantyExpiring || unassigned);
+  const advancedCount = [typeId, status, organizationalUnitId, locationId, source, warrantyExpiring, unassigned].filter(Boolean).length;
+  const hasFilters = Boolean(search) || advancedCount > 0;
 
   function resetFilters() {
     setSearchText("");
@@ -253,107 +254,114 @@ function AssetRegister({ canManage }: { readonly canManage: boolean }) {
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t("assets.list.filtersLabel")}>
-        <div className="relative min-w-[220px] flex-1">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            className={`${controlCompactClassName} w-full pl-8`}
-            placeholder={t("assets.list.searchPlaceholder")}
-            aria-label={t("assets.list.searchLabel")}
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-        </div>
-        <select className={selectCompactClassName} aria-label={t("assets.fields.type")} value={typeId} onChange={(event) => setTypeId(event.target.value)}>
-          <option value="">{t("assets.list.allTypes")}</option>
-          {(catalogQuery.data?.types ?? []).map((type) => (
-            <option key={type.id} value={type.id}>
-              {localizedName(type, i18n.language)}
-            </option>
-          ))}
-        </select>
-        <select
-          className={selectCompactClassName}
-          aria-label={t("assets.fields.status")}
-          value={status}
-          onChange={(event) => setStatus(event.target.value as AssetStatus | "")}
-        >
-          <option value="">{t("assets.list.allStatuses")}</option>
-          {assetStatuses.map((value) => (
-            <option key={value} value={value}>
-              {t(assetStatusKeys[value])}
-            </option>
-          ))}
-        </select>
-        <select
-          className={selectCompactClassName}
-          aria-label={t("assets.fields.organizationalUnit")}
-          value={organizationalUnitId}
-          onChange={(event) => setOrganizationalUnitId(event.target.value)}
-        >
-          <option value="">{t("assets.list.allUnits")}</option>
-          {(optionsQuery.data?.units ?? []).map((unit) => (
-            <option key={unit.id} value={unit.id}>
-              {unit.path}
-            </option>
-          ))}
-        </select>
-        {locationsEnabled ? (
-        <select className={selectCompactClassName} aria-label={t("assets.fields.location")} value={locationId} onChange={(event) => setLocationId(event.target.value)}>
-          <option value="">{t("assets.list.allLocations")}</option>
-          {locationRows.map((row) => (
-            <option key={row.location.id} value={row.location.id}>
-              {row.path}
-            </option>
-          ))}
-        </select>
-        ) : null}
-        <select
-          className={selectCompactClassName}
-          aria-label={t("assets.fields.source")}
-          value={source}
-          onChange={(event) => setSource(event.target.value as AssetSource | "")}
-        >
-          <option value="">{t("assets.list.allSources")}</option>
-          <option value="MANUAL">{t("assets.source.MANUAL")}</option>
-          <option value="IMPORT">{t("assets.source.IMPORT")}</option>
-          <option value="DIRECTORY">{t("assets.source.DIRECTORY")}</option>
-        </select>
-        <Checkbox label={t("assets.list.warrantyExpiring")} checked={warrantyExpiring} onChange={(event) => setWarrantyExpiring(event.target.checked)} />
-        <Checkbox label={t("assets.list.unassigned")} checked={unassigned} onChange={(event) => setUnassigned(event.target.checked)} />
-        {hasFilters ? (
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            {t("assets.list.resetFilters")}
-          </Button>
-        ) : null}
-        <div className="ml-auto flex items-center gap-1">
-          {(["xlsx", "csv"] as const).map((format) => (
-            <Button
-              key={format}
-              variant="outline"
-              size="sm"
-              disabled={exporting !== null || total === 0}
-              onClick={() => void runExport(format)}
-              aria-label={t("assets.export.label", { format: format.toUpperCase() })}
-            >
-              <Download size={14} aria-hidden="true" />
-              {exporting === format ? t("ui.loading") : format.toUpperCase()}
-            </Button>
-          ))}
-        </div>
-        {canManage ? (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-            disabled={catalogQuery.data === undefined || optionsQuery.data === undefined}
+      <FilterBar
+        label={t("assets.list.filtersLabel")}
+        searchLabel={t("assets.list.searchLabel")}
+        searchPlaceholder={t("assets.list.searchPlaceholder")}
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        activeCount={advancedCount}
+        resetLabel={t("assets.list.resetFilters")}
+        onReset={resetFilters}
+        actions={
+          <>
+              {(["xlsx", "csv"] as const).map((format) => (
+                <Button
+                  key={format}
+                  variant="outline"
+                  size="sm"
+                  disabled={exporting !== null || total === 0}
+                  onClick={() => void runExport(format)}
+                  aria-label={t("assets.export.label", { format: format.toUpperCase() })}
+                >
+                  <Download size={14} aria-hidden="true" />
+                  {exporting === format ? t("ui.loading") : format.toUpperCase()}
+                </Button>
+              ))}
+            {canManage ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setCreateOpen(true)}
+                disabled={catalogQuery.data === undefined || optionsQuery.data === undefined}
+              >
+                <Plus size={14} aria-hidden="true" />
+                {t("assets.list.create")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <FilterField label={t("assets.fields.type")}>
+          <select className={`${selectCompactClassName} w-full`} aria-label={t("assets.fields.type")} value={typeId} onChange={(event) => setTypeId(event.target.value)}>
+            <option value="">{t("assets.list.allTypes")}</option>
+            {(catalogQuery.data?.types ?? []).map((type) => (
+              <option key={type.id} value={type.id}>
+                {localizedName(type, i18n.language)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField label={t("assets.fields.status")}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.fields.status")}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as AssetStatus | "")}
           >
-            <Plus size={14} aria-hidden="true" />
-            {t("assets.list.create")}
-          </Button>
+            <option value="">{t("assets.list.allStatuses")}</option>
+            {assetStatuses.map((value) => (
+              <option key={value} value={value}>
+                {t(assetStatusKeys[value])}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField label={t("assets.fields.organizationalUnit")}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.fields.organizationalUnit")}
+            value={organizationalUnitId}
+            onChange={(event) => setOrganizationalUnitId(event.target.value)}
+          >
+            <option value="">{t("assets.list.allUnits")}</option>
+            {(optionsQuery.data?.units ?? []).map((unit) => (
+              <option key={unit.id} value={unit.id}>
+                {unit.path}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        {locationsEnabled ? (
+          <FilterField label={t("assets.fields.location")}>
+            <select className={`${selectCompactClassName} w-full`} aria-label={t("assets.fields.location")} value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+              <option value="">{t("assets.list.allLocations")}</option>
+              {locationRows.map((row) => (
+                <option key={row.location.id} value={row.location.id}>
+                  {row.path}
+                </option>
+              ))}
+            </select>
+          </FilterField>
         ) : null}
-      </div>
+        <FilterField label={t("assets.fields.source")}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.fields.source")}
+            value={source}
+            onChange={(event) => setSource(event.target.value as AssetSource | "")}
+          >
+            <option value="">{t("assets.list.allSources")}</option>
+            <option value="MANUAL">{t("assets.source.MANUAL")}</option>
+            <option value="IMPORT">{t("assets.source.IMPORT")}</option>
+            <option value="DIRECTORY">{t("assets.source.DIRECTORY")}</option>
+          </select>
+        </FilterField>
+        <FilterToggles label={t("ui.filters.options")}>
+          <Checkbox label={t("assets.list.warrantyExpiring")} checked={warrantyExpiring} onChange={(event) => setWarrantyExpiring(event.target.checked)} />
+          <Checkbox label={t("assets.list.unassigned")} checked={unassigned} onChange={(event) => setUnassigned(event.target.checked)} />
+        </FilterToggles>
+      </FilterBar>
 
       <p className={hintClassName} aria-live="polite">
         {listQuery.isLoading ? t("ui.loading") : t("assets.list.count", { count: total, shown: items.length })}

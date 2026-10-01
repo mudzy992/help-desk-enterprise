@@ -141,3 +141,15 @@ k6 run -e BASE_URL=https://api.desk.ba101.top \
 ```
 
 Traži uključen addon `private.addons.cmdb` i korisnika s `asset.read` (ADMIN ili upravitelj imovine); s MFA proslijedi `-e ACCESS_TOKEN=…` (vidi gore). `ASSETS_VU` (zadano 10) korisnika po `ASSETS_DURATION` (zadano 1m) čita prvu i drugu stranicu registra (50, kursor) i pretragu sa statusom; petina korisnika čita `/assets/overview` ako ima `asset.report.read`. Budžeti p95: `ASSETS_LIST_P95_MS` (200), `ASSETS_SEARCH_P95_MS` (200), `ASSETS_OVERVIEW_P95_MS` (400). Za smislen rezultat pokreni ga nad demo podacima (`assets-seed-demo.js`) ili stvarnim inventarom.
+
+## Problemi (paket 3.3)
+
+Zaseban, ručni scenarij (modul je zadano isključen):
+
+```bash
+source perf/session-login.sh   # postavi ACCESS_TOKEN, ORG_UNIT_ID i BASE_URL
+k6 run -e BASE_URL="$BASE_URL" -e ACCESS_TOKEN="$ACCESS_TOKEN" -e ORG_UNIT_ID="$ORG_UNIT_ID" \
+       -e REPORT_LABEL=problems-list perf/problems-list.js
+```
+
+Traži uključen addon `private.addons.problems`, bar jednu problem-grupu i korisnika s `problem.read`. `PROBLEMS_VU` (zadano 10) korisnika po `PROBLEMS_DURATION` (zadano 1m) čita registar (prva i druga stranica), pretragu s prioritetom i grupom, te detalj nasumičnog problema s tiketima i historijom; petina korisnika čita izvještaj `problem-backlog` (ako je zadan `ORG_UNIT_ID`). Budžeti p95: `PROBLEMS_LIST_P95_MS` (200), `PROBLEMS_SEARCH_P95_MS` (200), `PROBLEMS_DETAIL_P95_MS` (200), `PROBLEMS_REPORT_P95_MS` (400).

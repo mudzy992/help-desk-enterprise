@@ -438,3 +438,9 @@ To je kriterij kompletnosti.
 - Podsjetnik za rok ide vlasniku, a ako ga nema – grupi. Obavijest o ponavljanju ide i vlasniku i grupi. Grupa problema se može promijeniti; vlasnik koji nije u novoj grupi se uklanja.
 - Ko je prijavio problem, uvijek ga vidi.
 - Problem može navesti zahvaćenu opremu iz evidencije imovine (uz prijedlog iz povezanih tiketa), dodatne servise i incidente sa status stranice; veze uređuje upravitelj problema iz grupe, a oprema i incident pokazuju povezane probleme.
+
+## Filteri na listama (odluka 1.10.2026.)
+- Kad lista ima pretragu i više od jednog filtera, filteri su skriveni iza dugmeta **Napredna pretraga**; u redu ostaju pretraga, „Poništi filtere“ i akcije (izvoz, „Nova …“).
+- Dugme prikazuje broj aktivnih naprednih filtera; panel se sam otvori kad su filteri već primijenjeni (npr. link s filterima), da suženje liste nikad nije skriveno.
+- U panelu svaki filter ima vidljiv naziv; kvačice su grupisane pod „Opcije“.
+- Primjenjeno na Probleme i Imovinu (registar, ugovori, licence, prenosnice); zajednička komponenta `components/ui/filter-bar.tsx` za buduće liste.

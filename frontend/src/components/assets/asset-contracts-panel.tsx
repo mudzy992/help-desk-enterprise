@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { FileText, Plus, Search, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2 } from "lucide-react";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import {
-  controlCompactClassName,
   errorTextClassName,
   hintClassName,
   selectCompactClassName,
@@ -69,40 +69,50 @@ export function AssetContractsPanel({ canManage }: { readonly canManage: boolean
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t("assets.contracts.filtersLabel")}>
-        <div className="relative min-w-[220px] flex-1">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            className={`${controlCompactClassName} w-full pl-8`}
-            aria-label={t("assets.contracts.searchLabel")}
-            placeholder={t("assets.contracts.searchPlaceholder")}
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-        </div>
-        <select
-          className={selectCompactClassName}
-          aria-label={t("assets.contracts.fields.kind")}
-          value={kind}
-          onChange={(event) => setKind(event.target.value as AssetContractKind | "")}
-        >
-          <option value="">{t("assets.contracts.allKinds")}</option>
-          {assetContractKinds.map((value) => (
-            <option key={value} value={value}>
-              {t(`assets.contracts.kinds.${value}` as const)}
-            </option>
-          ))}
-        </select>
-        <Checkbox label={t("assets.contracts.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
-        <Checkbox label={t("assets.contracts.includeExpired")} checked={includeExpired} onChange={(event) => setIncludeExpired(event.target.checked)} />
-        {canManage ? (
-          <Button variant="primary" size="sm" className="ml-auto" onClick={() => setEditing("new")}>
-            <Plus size={14} aria-hidden="true" />
-            {t("assets.contracts.create")}
-          </Button>
-        ) : null}
-      </div>
+      <FilterBar
+        label={t("assets.contracts.filtersLabel")}
+        searchLabel={t("assets.contracts.searchLabel")}
+        searchPlaceholder={t("assets.contracts.searchPlaceholder")}
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        activeCount={[kind, expiring, includeExpired].filter(Boolean).length}
+        onReset={() => {
+          setSearchText("");
+          setKind("");
+          setExpiring(false);
+          setIncludeExpired(false);
+        }}
+        actions={
+          <>
+            {canManage ? (
+              <Button variant="primary" size="sm" onClick={() => setEditing("new")}>
+                <Plus size={14} aria-hidden="true" />
+                {t("assets.contracts.create")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <FilterField label={t("assets.contracts.fields.kind")}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.contracts.fields.kind")}
+            value={kind}
+            onChange={(event) => setKind(event.target.value as AssetContractKind | "")}
+          >
+            <option value="">{t("assets.contracts.allKinds")}</option>
+            {assetContractKinds.map((value) => (
+              <option key={value} value={value}>
+                {t(`assets.contracts.kinds.${value}` as const)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterToggles label={t("ui.filters.options")}>
+          <Checkbox label={t("assets.contracts.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
+          <Checkbox label={t("assets.contracts.includeExpired")} checked={includeExpired} onChange={(event) => setIncludeExpired(event.target.checked)} />
+        </FilterToggles>
+      </FilterBar>
 
       {listQuery.error ? (
         <p role="alert" className={errorTextClassName}>

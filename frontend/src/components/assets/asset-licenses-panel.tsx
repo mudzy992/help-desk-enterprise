@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { Eye, KeyRound, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, KeyRound, Plus, Trash2 } from "lucide-react";
 import { AssetExpiryBadge, parseMoneyInput } from "@/components/assets/asset-expiry-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FilterBar, FilterField, FilterToggles } from "@/components/ui/filter-bar";
 import {
-  controlCompactClassName,
   errorTextClassName,
   hintClassName,
   selectCompactClassName,
@@ -73,40 +73,50 @@ export function AssetLicensesPanel({ canManage }: { readonly canManage: boolean 
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t("assets.licenses.filtersLabel")}>
-        <div className="relative min-w-[220px] flex-1">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input
-            type="search"
-            className={`${controlCompactClassName} w-full pl-8`}
-            aria-label={t("assets.licenses.searchLabel")}
-            placeholder={t("assets.licenses.searchPlaceholder")}
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-          />
-        </div>
-        <select
-          className={selectCompactClassName}
-          aria-label={t("assets.licenses.fields.kind")}
-          value={kind}
-          onChange={(event) => setKind(event.target.value as SoftwareLicenseKind | "")}
-        >
-          <option value="">{t("assets.licenses.allKinds")}</option>
-          {softwareLicenseKinds.map((value) => (
-            <option key={value} value={value}>
-              {t(`assets.licenses.kinds.${value}` as const)}
-            </option>
-          ))}
-        </select>
-        <Checkbox label={t("assets.licenses.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
-        <Checkbox label={t("assets.licenses.overAllocatedFilter")} checked={overAllocated} onChange={(event) => setOverAllocated(event.target.checked)} />
-        {canManage ? (
-          <Button variant="primary" size="sm" className="ml-auto" onClick={() => setEditing("new")}>
-            <Plus size={14} aria-hidden="true" />
-            {t("assets.licenses.create")}
-          </Button>
-        ) : null}
-      </div>
+      <FilterBar
+        label={t("assets.licenses.filtersLabel")}
+        searchLabel={t("assets.licenses.searchLabel")}
+        searchPlaceholder={t("assets.licenses.searchPlaceholder")}
+        searchValue={searchText}
+        onSearchChange={setSearchText}
+        activeCount={[kind, expiring, overAllocated].filter(Boolean).length}
+        onReset={() => {
+          setSearchText("");
+          setKind("");
+          setExpiring(false);
+          setOverAllocated(false);
+        }}
+        actions={
+          <>
+            {canManage ? (
+              <Button variant="primary" size="sm" onClick={() => setEditing("new")}>
+                <Plus size={14} aria-hidden="true" />
+                {t("assets.licenses.create")}
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <FilterField label={t("assets.licenses.fields.kind")}>
+          <select
+            className={`${selectCompactClassName} w-full`}
+            aria-label={t("assets.licenses.fields.kind")}
+            value={kind}
+            onChange={(event) => setKind(event.target.value as SoftwareLicenseKind | "")}
+          >
+            <option value="">{t("assets.licenses.allKinds")}</option>
+            {softwareLicenseKinds.map((value) => (
+              <option key={value} value={value}>
+                {t(`assets.licenses.kinds.${value}` as const)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterToggles label={t("ui.filters.options")}>
+          <Checkbox label={t("assets.licenses.expiringFilter")} checked={expiring} onChange={(event) => setExpiring(event.target.checked)} />
+          <Checkbox label={t("assets.licenses.overAllocatedFilter")} checked={overAllocated} onChange={(event) => setOverAllocated(event.target.checked)} />
+        </FilterToggles>
+      </FilterBar>
 
       {listQuery.error ? (
         <p role="alert" className={errorTextClassName}>
