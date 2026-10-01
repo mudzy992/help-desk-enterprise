@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import { auditLogActions, auditLogEntityTypes } from '../audit-log/audit-log.constants';
@@ -28,6 +28,8 @@ import {
   type ProblemStatusValue,
 } from './problems.constants';
 import { linkedTicketWorkWhere, problemVisibilityWhere } from './problem-visibility';
+import { ProblemNotifier } from './problem-notifier';
+import { computeProblemTarget, isTargetOverdue, isTargetRunning } from './problem-target';
 
 export type ProblemListQuery = {
   readonly search?: string;
@@ -38,6 +40,8 @@ export type ProblemListQuery = {
   readonly groupId?: string;
   readonly organizationalUnitId?: string;
   readonly serviceId?: string;
+  /** P5 (§10): only problems past their target while the cause is unknown. */
+  readonly overdue?: boolean;
   readonly cursor?: string;
   readonly limit?: number;
 };
@@ -126,7 +130,13 @@ export class ProblemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProblemAccessService,
+    @Optional() private readonly notifier?: ProblemNotifier,
   ) {}
+
+  private notify(label: string, operation: (notifier: ProblemNotifier) => Promise<unknown>): void {
+    const notifier = this.notifier;
+    if (notifier !== undefined) notifier.run(label, () => operation(notifier));
+  }
 
   async list(viewer: ProblemViewer, query: ProblemListQuery) {
     const scope = await this.access.require(viewer, permissionKeys.problemRead);
@@ -139,6 +149,7 @@ export class ProblemsService {
     if (query.priority && query.priority.length > 0) and.push({ priority: { in: [...query.priority] } });
     if (query.ownerUserId) and.push({ ownerUserId: query.ownerUserId === 'me' ? viewer.userId : query.ownerUserId });
     if (query.groupId) and.push({ groupId: query.groupId });
+    if (query.overdue) and.push({ status: { in: ['NEW', 'INVESTIGATING'] }, targetAt: { lt: new Date() } });
     if (query.organizationalUnitId) and.push({ organizationalUnitId: query.organizationalUnitId });
     if (query.serviceId) {
       and.push({ OR: [{ serviceId: query.serviceId }, { services: { some: { serviceId: query.serviceId } } }] });
@@ -214,6 +225,7 @@ export class ProblemsService {
     const impact = input.impact ?? 'MEDIUM';
     const urgency = input.urgency ?? 'MEDIUM';
     const priority = await resolveTicketPriority(this.prisma, impact, urgency);
+    const targetAt = await computeProblemTarget(this.prisma, configuration, priority, new Date());
     const title = input.title.trim();
     const description = input.description.trim();
     if (title.length < 3) throw new ProblemError(problemErrorCodes.validation, 'title');
@@ -237,6 +249,7 @@ export class ProblemsService {
           ownerUserId,
           groupId,
           serviceId,
+          targetAt,
           createdByUserId: viewer.userId,
         },
         select: { id: true },
@@ -258,6 +271,7 @@ export class ProblemsService {
       });
       return created.id;
     });
+    if (ownerUserId !== null) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
     return this.get(viewer, id);
   }
 
@@ -302,6 +316,11 @@ export class ProblemsService {
       data.impact = input.impact ?? current.impact;
       data.urgency = input.urgency ?? current.urgency;
       data.priority = await resolveTicketPriority(this.prisma, data.impact, data.urgency);
+    }
+    // P5 (§10): a new priority moves a running target (counted from creation).
+    if (data.priority !== undefined && data.priority !== current.priority && isTargetRunning(current.status)) {
+      data.targetAt = await computeProblemTarget(this.prisma, configuration, data.priority as ProblemSeverityValue, current.createdAt);
+      data.targetRemindersSent = [];
     }
     const category = optionalText(input.rootCauseCategory);
     if (category !== undefined) {
@@ -367,6 +386,7 @@ export class ProblemsService {
         },
       });
     });
+    if (changes.ownerUserId && data.ownerUserId) this.notify('owner', (notifier) => notifier.ownerAssigned(id, viewer.userId));
     return this.get(viewer, id);
   }
 
@@ -386,6 +406,7 @@ export class ProblemsService {
     });
     const reason = input.reason?.trim() || null;
     const now = new Date();
+    const reopened = to === 'INVESTIGATING' && (from === 'RESOLVED' || from === 'CANCELLED');
     const action =
       to === 'CLOSED'
         ? auditLogActions.problemClosed
@@ -403,6 +424,8 @@ export class ProblemsService {
           ...transitionTimestamps(from, to, now),
           ...(to === 'CANCELLED' ? { cancelReason: reason } : {}),
           ...(to === 'INVESTIGATING' && from === 'CANCELLED' ? { cancelReason: null } : {}),
+          // P5 (§10): a reopened problem starts a new target from now.
+          ...(reopened ? { targetAt: await computeProblemTarget(this.prisma, configuration, current.priority, now), targetRemindersSent: [] } : {}),
           version: { increment: 1 },
         },
       });
@@ -516,6 +539,7 @@ export class ProblemsService {
       service: row.service,
       ticketCount: row._count.tickets,
       targetAt: row.targetAt?.toISOString() ?? null,
+      targetOverdue: isTargetOverdue(row, new Date()),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

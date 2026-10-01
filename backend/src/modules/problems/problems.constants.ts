@@ -8,6 +8,8 @@ export type ProblemSeverityValue = (typeof problemSeverities)[number];
 
 /** Statuses in which the problem is still being worked on. */
 export const problemOpenStatuses: readonly ProblemStatusValue[] = ['NEW', 'INVESTIGATING', 'KNOWN_ERROR'];
+/** Ticket statuses that still count as "open" on the problem (§8.3). */
+export const problemOpenTicketStatuses = ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_USER'] as const;
 export const problemFinalStatuses: readonly ProblemStatusValue[] = ['CLOSED', 'CANCELLED'];
 
 export const problemLimits = {

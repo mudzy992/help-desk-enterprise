@@ -17,9 +17,8 @@ import { TicketsService } from '../tickets/tickets.service';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { buildKnownErrorArticle, type ProblemArticleLocale } from './problem-article';
 import { formatProblemNumber } from './problem-rules';
-import { problemOpenTicketStatuses } from './problem-tickets.service';
 import { problemVisibilityWhere } from './problem-visibility';
-import { problemErrorCodes, problemEventActions, problemLimits, ProblemError } from './problems.constants';
+import { problemErrorCodes, problemEventActions, problemLimits, problemOpenTicketStatuses, ProblemError } from './problems.constants';
 
 export type ProblemTicketResolveSkip = 'waiting_for_user' | 'pending_approval' | 'merged' | 'no_access' | 'limit';
 

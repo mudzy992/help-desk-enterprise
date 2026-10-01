@@ -42,6 +42,8 @@ import { assetRemindersQueueName } from './modules/assets/reminders/asset-remind
 import { AssetRemindersProcessor } from './modules/assets/reminders/asset-reminders.processor';
 import { assetDirectorySyncQueueName } from './modules/assets/directory/asset-directory-sync.constants';
 import { AssetDirectorySyncProcessor } from './modules/assets/directory/asset-directory-sync.processor';
+import { problemSweepQueueName } from './modules/problems/sweep/problem-sweep.constants';
+import { ProblemSweepProcessor } from './modules/problems/sweep/problem-sweep.processor';
 
 jest.mock('./common/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -68,6 +70,7 @@ const scheduledQueueNames = [
   opsHealthQueueName,
   assetRemindersQueueName,
   assetDirectorySyncQueueName,
+  problemSweepQueueName,
 ] as const;
 
 const processorTypes = [
@@ -90,6 +93,7 @@ const processorTypes = [
   OpsHealthProcessor,
   AssetRemindersProcessor,
   AssetDirectorySyncProcessor,
+  ProblemSweepProcessor,
 ] as const;
 
 function createFakeQueue() {

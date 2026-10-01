@@ -13,6 +13,7 @@ import {
 import { problemDefaults, parseRootCauseCategories } from '../settings/definitions/problem-settings';
 import { settingKeys } from '../settings/setting-keys';
 import { SettingsService } from '../settings/settings.service';
+import type { ProblemTargetDays } from './problem-target';
 import { ProblemError, problemErrorCodes } from './problems.constants';
 
 /** Same grant/scope model as the CMDB, restricted to `problem.*` permissions. */
@@ -30,6 +31,9 @@ export type ProblemConfiguration = {
   readonly autoCloseDays: number;
   readonly bulkResolveMax: number;
   readonly targetEnabled: boolean;
+  /** P5 (§10): calendar id ('' = default) and working days per priority. */
+  readonly targetCalendarId: string;
+  readonly targetDays: ProblemTargetDays;
 };
 
 export type ProblemCapabilities = {
@@ -66,13 +70,18 @@ export class ProblemAccessService {
   }
 
   async configuration(): Promise<ProblemConfiguration> {
-    const [prefix, categories, requireWorkaround, autoClose, bulkMax, target] = await Promise.all([
+    const [prefix, categories, requireWorkaround, autoClose, bulkMax, target, calendarId, critical, high, medium, low] = await Promise.all([
       this.readSetting<unknown>(settingKeys.privateProblemsNumberPrefix, problemDefaults.numberPrefix),
       this.readSetting<unknown>(settingKeys.privateProblemsRootCauseCategories, problemDefaults.rootCauseCategories),
       this.readSetting<unknown>(settingKeys.privateProblemsRequireWorkaroundForKnownError, problemDefaults.requireWorkaroundForKnownError),
       this.readSetting<unknown>(settingKeys.privateProblemsAutoCloseDays, problemDefaults.autoCloseDays),
       this.readSetting<unknown>(settingKeys.privateProblemsBulkResolveMax, problemDefaults.bulkResolveMax),
       this.readSetting<unknown>(settingKeys.privateProblemsTargetEnabled, problemDefaults.targetEnabled),
+      this.readSetting<unknown>(settingKeys.privateProblemsTargetCalendarId, problemDefaults.targetCalendarId),
+      this.readSetting<unknown>(settingKeys.privateProblemsTargetCriticalWorkingDays, problemDefaults.targetCriticalWorkingDays),
+      this.readSetting<unknown>(settingKeys.privateProblemsTargetHighWorkingDays, problemDefaults.targetHighWorkingDays),
+      this.readSetting<unknown>(settingKeys.privateProblemsTargetMediumWorkingDays, problemDefaults.targetMediumWorkingDays),
+      this.readSetting<unknown>(settingKeys.privateProblemsTargetLowWorkingDays, problemDefaults.targetLowWorkingDays),
     ]);
     const integer = (value: unknown, fallback: number) => (typeof value === 'number' && Number.isInteger(value) ? value : fallback);
     return {
@@ -82,6 +91,13 @@ export class ProblemAccessService {
       autoCloseDays: integer(autoClose, problemDefaults.autoCloseDays),
       bulkResolveMax: integer(bulkMax, problemDefaults.bulkResolveMax),
       targetEnabled: target === true,
+      targetCalendarId: typeof calendarId === 'string' ? calendarId : '',
+      targetDays: {
+        CRITICAL: integer(critical, problemDefaults.targetCriticalWorkingDays),
+        HIGH: integer(high, problemDefaults.targetHighWorkingDays),
+        MEDIUM: integer(medium, problemDefaults.targetMediumWorkingDays),
+        LOW: integer(low, problemDefaults.targetLowWorkingDays),
+      },
     };
   }
 

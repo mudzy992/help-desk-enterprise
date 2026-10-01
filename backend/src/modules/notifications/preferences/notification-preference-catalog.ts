@@ -85,6 +85,10 @@ export const notificationPreferenceCategories: readonly NotificationPreferenceCa
   category('announcement', [notificationTypes.announcementPublished, notificationTypes.announcementReminder], 0, both),
   // Paket 3.2 (§10): asset managers, daily expiry reminders (in-app and e-mail).
   category('asset.expiring', [notificationTypes.assetExpiring], 1, both),
+  // Paket 3.3 (P5, §11): problem owner (assignment, target, recurrence) and the
+  // agents of open linked tickets (known error / workaround, resolved).
+  category('problem.owner', [notificationTypes.problemAssigned, notificationTypes.problemTargetDue, notificationTypes.problemRecurrence], 1, both),
+  category('problem.linked', [notificationTypes.problemKnownError, notificationTypes.problemResolved], 1, both),
   category(
     'account.security',
     [

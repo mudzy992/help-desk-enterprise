@@ -1,5 +1,6 @@
 import { directorySyncQueueName } from '../directory-sync/ldaps/directory-sync.job.constants';
 import { assetRemindersQueueName } from '../assets/reminders/asset-reminders.constants';
+import { problemSweepQueueName } from '../problems/sweep/problem-sweep.constants';
 import { assetDirectorySyncQueueName } from '../assets/directory/asset-directory-sync.constants';
 import { inboundEmailQueueName } from '../inbound-email/inbound-email.constants';
 import { integrationQueueName } from '../integration-queue/integration-queue.constants';
@@ -49,6 +50,7 @@ export const opsMonitoredQueueNames = [
   announcementSweepQueueName,
   assetRemindersQueueName,
   assetDirectorySyncQueueName,
+  problemSweepQueueName,
 ] as const;
 
 export const opsProbeTimeouts = {

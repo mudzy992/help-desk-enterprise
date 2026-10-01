@@ -29,6 +29,10 @@ export const emailTemplateKeys = [
   'announcement.reminder',
   // Paket 3.2 (§10): daily list of expiring warranties, contracts and licences.
   'asset.expiring',
+  // Paket 3.3 (P5, §11): problem notices (no ticket card).
+  'problem.assigned',
+  'problem.resolved',
+  'problem.target_due',
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -46,7 +50,8 @@ export const ticketEmailTemplateKeys: readonly EmailTemplateKey[] = emailTemplat
     key !== 'ops.alert' &&
     key !== 'announcement.published' &&
     key !== 'announcement.reminder' &&
-    key !== 'asset.expiring',
+    key !== 'asset.expiring' &&
+    !key.startsWith('problem.'),
 );
 
 export const emailLocales = ['bs', 'en'] as const;

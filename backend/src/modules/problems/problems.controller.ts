@@ -5,6 +5,7 @@ import { privacyActorOf } from '../privacy/privacy-actor';
 import { runProblem } from './map-problem-error';
 import { ProblemAccessService, problemViewerOf, type ProblemViewer } from './problem-access.service';
 import { CreateProblemArticleDto, CreateProblemDto, LinkProblemTicketsDto, ProblemStatusDto, UpdateProblemDto } from './problems.dto';
+import { ProblemNotifier } from './problem-notifier';
 import { ProblemResolutionService } from './problem-resolution.service';
 import { ProblemTicketsService } from './problem-tickets.service';
 import { problemSeverities, problemStatuses, type ProblemSeverityValue, type ProblemStatusValue } from './problems.constants';
@@ -35,6 +36,7 @@ export function parseProblemListQuery(raw: RawListQuery): ProblemListQuery {
     groupId: idOf(raw.groupId),
     organizationalUnitId: idOf(raw.organizationalUnitId),
     serviceId: idOf(raw.serviceId),
+    overdue: raw.overdue === 'true',
     cursor: idOf(raw.cursor),
     limit: limit !== undefined && Number.isInteger(limit) ? limit : undefined,
   };
@@ -54,6 +56,7 @@ export class ProblemsController {
     private readonly problems: ProblemsService,
     private readonly problemTickets: ProblemTicketsService,
     private readonly resolution: ProblemResolutionService,
+    private readonly notifier: ProblemNotifier,
   ) {}
 
   private viewer(request: AuthenticatedHttpRequest): ProblemViewer {
@@ -127,8 +130,14 @@ export class ProblemsController {
       const groupResolve = resolveTickets === true && status.status === 'RESOLVED';
       if (groupResolve) await this.resolution.assertResolveOptions(id, viewer, { message, closeCode });
       const problem = await this.problems.changeStatus(viewer, id, status);
-      if (!groupResolve) return { ...problem, ticketResolution: null };
+      // P5 (§11): after the group resolution, so only agents of tickets that stayed open hear about it.
+      const notify = () => this.notifier.run('status', () => this.notifier.statusChanged(id, status.status, viewer.userId));
+      if (!groupResolve) {
+        notify();
+        return { ...problem, ticketResolution: null };
+      }
       const ticketResolution = await this.resolution.resolveTickets(id, viewer, { message: message ?? '', closeCode });
+      notify();
       return { ...(await this.problems.get(viewer, id)), ticketResolution };
     });
   }

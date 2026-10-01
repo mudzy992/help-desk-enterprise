@@ -41,6 +41,12 @@ export const notificationTypes = {
   announcementReminder: 'announcement.reminder',
   // Paket 3.2 (§10): expiring warranties, contracts and licences.
   assetExpiring: 'asset.expiring',
+  // Paket 3.3 (P5, §11): problem owner, linked-ticket agents, target, recurrence.
+  problemAssigned: 'problem.assigned',
+  problemKnownError: 'problem.knownError',
+  problemResolved: 'problem.resolved',
+  problemTargetDue: 'problem.targetDue',
+  problemRecurrence: 'problem.recurrence',
 } as const;
 
 export type NotificationType =
@@ -86,6 +92,11 @@ export const notificationTitleKeys: Readonly<Record<NotificationType, string>> =
     [notificationTypes.announcementPublished]: 'notifications.items.announcementPublished',
     [notificationTypes.announcementReminder]: 'notifications.items.announcementReminder',
     [notificationTypes.assetExpiring]: 'notifications.items.assetExpiring',
+    [notificationTypes.problemAssigned]: 'notifications.items.problemAssigned',
+    [notificationTypes.problemKnownError]: 'notifications.items.problemKnownError',
+    [notificationTypes.problemResolved]: 'notifications.items.problemResolved',
+    [notificationTypes.problemTargetDue]: 'notifications.items.problemTargetDue',
+    [notificationTypes.problemRecurrence]: 'notifications.items.problemRecurrence',
   };
 
 export const notificationListLimits = {

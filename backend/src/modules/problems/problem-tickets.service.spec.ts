@@ -90,8 +90,14 @@ describe('ProblemTicketsService.link', () => {
     expect(result.skipped).toHaveLength(1);
   });
 
-  it('refuses links on a resolved or final problem', async () => {
+  it('accepts links on a resolved problem as a recurrence (P5)', async () => {
     const { service } = setup({ problemStatus: 'RESOLVED', tickets: [ticket('a')] });
+    const result = await service.link('p1', ['a'], viewer);
+    expect(result.linked).toHaveLength(1);
+  });
+
+  it('refuses links on a final problem', async () => {
+    const { service } = setup({ problemStatus: 'CLOSED', tickets: [ticket('a')] });
     await expect(service.link('p1', ['a'], viewer)).rejects.toEqual(new ProblemError(problemErrorCodes.problemNotOpen));
   });
 

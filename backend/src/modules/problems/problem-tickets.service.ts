@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../authorization/authorization-context.loader';
 import { permissionKeys } from '../authorization/authorization.constants';
@@ -12,11 +12,14 @@ import { TicketRealtimeHub } from '../tickets/ticket-realtime.hub';
 import type { TicketRecord } from '../tickets/tickets.types';
 import { ProblemAccessService, type ProblemViewer } from './problem-access.service';
 import { formatProblemNumber } from './problem-rules';
-import { problemErrorCodes, problemEventActions, problemLimits, problemOpenStatuses, ProblemError } from './problems.constants';
+import { problemErrorCodes, problemEventActions, problemLimits, problemOpenStatuses, problemOpenTicketStatuses, ProblemError } from './problems.constants';
 import { problemVisibilityWhere } from './problem-visibility';
+import { ProblemNotifier } from './problem-notifier';
 
-/** Ticket statuses that still count as "open" on the problem (§8.3). */
-export const problemOpenTicketStatuses = ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED', 'IN_PROGRESS', 'WAITING_FOR_USER'] as const;
+/** P5 (§11): tickets may still join a RESOLVED problem; the owner gets a recurrence signal. */
+const problemLinkableStatuses: readonly string[] = [...problemOpenStatuses, 'RESOLVED'];
+
+export { problemOpenTicketStatuses };
 const readOnlyTicketStatuses = new Set(['ARCHIVED']);
 
 export type ProblemTicketSkipReason = 'not_found' | 'merged' | 'already_linked' | 'other_problem' | 'read_only';
@@ -71,6 +74,7 @@ export class ProblemTicketsService {
     private readonly authorizationContextLoader: AuthorizationContextLoader,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
+    @Optional() private readonly notifier?: ProblemNotifier,
   ) {}
 
   /** Staff access to a ticket, or null (not found, requester-only, archived when writing). */
@@ -191,7 +195,7 @@ export class ProblemTicketsService {
     options: { readonly singleAsError?: boolean } = {},
   ): Promise<ProblemTicketLinkResult> {
     const problem = await this.loadProblem(problemId, viewer, permissionKeys.problemManage);
-    if (!(problemOpenStatuses as readonly string[]).includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
+    if (!problemLinkableStatuses.includes(problem.status)) throw new ProblemError(problemErrorCodes.problemNotOpen);
     const unique = [...new Set(ticketIds.map((id) => id.trim()).filter((id) => id.length > 0))].slice(0, problemLimits.linkBatchMax);
     if (unique.length === 0) throw new ProblemError(problemErrorCodes.validation, 'ticketIds');
     const number = formatProblemNumber((await this.access.configuration()).numberPrefix, problem.sequence);
@@ -226,7 +230,8 @@ export class ProblemTicketsService {
               problemId: problem.id,
               action: problemEventActions.ticketLinked,
               actorUserId: viewer.userId,
-              detail: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber },
+              // P5/P6: a ticket joining a RESOLVED problem is a recurrence.
+              detail: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber, ...(problem.status === 'RESOLVED' ? { recurrence: true } : {}) },
             },
           });
           messages.push(
@@ -248,6 +253,11 @@ export class ProblemTicketsService {
       }
       publishPersistedTicketMessages(this.realtimeHub, ticket, messages);
       linked.push({ ticketId: ticket.id, ticketNumber: ticket.ticketNumber });
+    }
+
+    if (problem.status === 'RESOLVED' && linked.length > 0 && this.notifier !== undefined) {
+      const notifier = this.notifier;
+      notifier.run('recurrence', () => notifier.recurrence(problem.id, linked.map((item) => item.ticketNumber), viewer.userId));
     }
 
     // A single ticket (ticket panel) reports the reason as an error.
