@@ -17,7 +17,7 @@ import { signIn } from '../helpers/sign-in';
 
 type ImportTotals = { total: number; create: number; update: number; unchanged: number; skipped: number; errors: number; duplicateSkipped?: number };
 type ImportPreview = { id: string; status: 'PREVIEW'; totals: ImportTotals; errorCount: number; errors: ReadonlyArray<{ row: number; column: string | null; code: string }> };
-type ImportApplied = { id: string; status: 'APPLIED' | 'FAILED'; applied: number };
+type ImportApplied = { id: string; status: 'APPLIED' | 'FAILED'; applied: { created: number; updated: number; failed: number } };
 type AssetRow = { id: string; assetTag: string; name: string; status: string; assignedUser?: { id: string } | null; assignedUserId?: string | null };
 
 const settings = { [assetSettingKeys.cmdb]: true, [assetSettingKeys.transferEnabled]: false, [assetSettingKeys.transferRequired]: false };
@@ -101,7 +101,7 @@ test.describe('27 assets import, export and bulk', () => {
         // Partial import: the good rows go in, the bad one is reported.
         const loose = (await (await preview(admin, type.id, withError, 'CREATE_ONLY', false)).json()) as ImportPreview;
         const applied = await admin.requestJson<ImportApplied>(`/assets/import/${loose.id}/apply`, { method: 'POST' });
-        expect(applied).toMatchObject({ status: 'APPLIED', applied: 2 });
+        expect(applied).toMatchObject({ status: 'APPLIED', applied: { created: 2, updated: 0, failed: 0 } });
         const rows = await listByStamp(admin, stamp);
         created.push(...rows.map((row) => row.id));
         expect(rows.map((row) => row.assetTag).sort()).toEqual([tagA, tagB].sort());
@@ -172,6 +172,8 @@ test.describe('27 assets import, export and bulk', () => {
         }
         const bar = page.getByRole('region', { name: /Odabrana oprema|Selected equipment/ });
         await expect(bar).toContainText(/2/);
+        // Export buttons re-enable once the filtered list loads; axe must not catch them mid-fade.
+        for (const button of await page.getByRole('button', { name: /Izvezi popis kao|Export list as/ }).all()) await expect(button).toBeEnabled();
         await expectNoSeriousA11yViolations(page, 'assets-bulk-selection', testInfo);
         await bar.getByRole('button', { name: /^(Zaduži|Assign)$/ }).click();
 
