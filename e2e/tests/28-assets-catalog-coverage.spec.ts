@@ -296,10 +296,10 @@ test.describe('28 assets catalog, relations, licences and contracts', () => {
         }
 
         await page.goto(`/assets/${main.id}`);
-        await page.getByRole('tab', { name: /^(Veze|Relations)$/ }).click();
+        await page.getByRole('tab', { name: /^(Veze|Relations)\b/ }).click();
         await expect(page.getByText(other.assetTag).first()).toBeVisible({ timeout: 15_000 });
         await expectNoSeriousA11yViolations(page, 'asset-relations-tab', testInfo);
-        for (const name of [/Licence i ugovori|Licences and contracts/, /^(Historija|History)$/]) {
+        for (const name of [/Licence i ugovori|Licences and contracts/, /^(Historija|History)\b/]) {
           await page.getByRole('tab', { name }).click();
           await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
           await expectNoSeriousA11yViolations(page, `asset-tab-${String(name).slice(1, 12)}`, testInfo);
