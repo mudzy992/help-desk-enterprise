@@ -31,15 +31,17 @@ Testovi: backend jest 2336/2336, frontend vitest 572/572, tsc oba, sve `check-*`
    Provjereno: 21 red pod `bull:servicedesk:*`, svi `failed=0`. Redis klijenti: `servicedesk` 72, `ephelpdesk` 0
    (`inventory` je druga aplikacija i ne dira se). Prijava u aplikaciju radi.
 
-**Otvoreno pitanje:** korisnik javlja da mu se *izgleda gubi sesija*. Ne zna se da li se to odnosi na sesiju u aplikaciji ili
-na chat sesiju. Na početku sljedeće sesije pitati i, ako je u pitanju aplikacija, provjeriti: odjavljuje li se korisnik
-nakon refresha, kad se to dešava, i da li se dešava i nakon `localStorage.getItem('service-desk.session')`
-(DevTools → Console). Registar sesija je u Postgresu, a opoziv tokena u Redisu uz fail-open, pa promjena Redisa ne bi trebala
-odjavljivati korisnike (ispravka i kandidati za uzrok: §4).
+**Pitanje o sesiji — zatvoreno (2026-10-02):** korisnik je mislio na chat sesiju (razgovor s asistentom), a ne na prijavu u
+aplikaciju. U aplikaciji nema problema, pa nema šta provjeravati. Registar sesija je u Postgresu, a opoziv tokena u Redisu uz
+fail-open, pa promjena Redisa ne odjavljuje korisnike (ispravka tvrdnje: §4).
 
 ## 2. Preostali koraci A9 (komandu po komandu, uz čekanje na rezultat)
 
-### Korak 5 — licence (KDF v2)
+### Korak 5 — licence (KDF v2) — ✅ gotovo 2026-10-02
+
+Rezultat probnog prolaza na stagingu: `checked 0: 0 already v2, would re-encrypt 0, 0 changed meanwhile (re-run), 0 unreadable`.
+Nema pohranjenih licenčnih ključeva, pa nema šta prešifrovati (novi ključevi se ionako pišu samo s v2). Prolaz bez `--dry-run`
+nije potreban. Komanda i pravila čitanja ispisa ostaju ispod za slučaj da se licence kasnije pojave:
 
 Prvo proba, koja ništa ne mijenja:
 ```
@@ -101,12 +103,11 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
   `/health/worker` daje `ok` s heartbeatom starim 6 s (worker piše u Redis pod `servicedesk`).
 - **Ispravka tvrdnje „sesije su u Postgresu“.** Registar sesija je u Postgresu, ali opoziv tokena je u Redisu
   (`auth:revoked-jti:*`, `auth:revoked-sid:*`, `auth:sessions-valid-after:*`) i radi fail-open. Kvar ili promjena Redisa dakle
-  ne može odjaviti korisnike (detalji: §12 dizajna, „Ispravka §7.4“). Ako je odjava u aplikaciji stvarna, prvi kandidati su:
-  1. JWT traje 1 h, a SPA ga produžava samo uz aktivnost (`frontend/src/lib/session/session-keep-alive.ts`). Neaktivnost od
-     60 min je odjava po dizajnu (odluka iz Review 2026-09-25).
-  2. `/auth/refresh` opoziva stari token, a svaki 401 na prijavljenom zahtjevu (pa i na samom `/auth/refresh`) briše
-     pohranjenu sesiju, koju dijele svi tabovi preko localStorage-a (`frontend/src/services/api.ts`). Dva taba koja
-     istovremeno osvježavaju isti token mogu zato jedan drugog odjaviti (npr. kad se laptop probudi s više otvorenih tabova).
+  ne može odjaviti korisnike (detalji: §12 dizajna, „Ispravka §7.4“).
+- **Opservacija iz koda, nepotvrđena i izvan A9:** `/auth/refresh` opoziva stari token, a svaki 401 na prijavljenom zahtjevu
+  (pa i na samom `/auth/refresh`) briše pohranjenu sesiju koju dijele svi tabovi (`frontend/src/services/api.ts`), pa dva taba
+  koja istovremeno osvježavaju isti token teoretski mogu jedan drugog odjaviti. Ako se odjave ikad pojave u aplikaciji, krenuti
+  odatle i od 1 h neaktivnosti (`frontend/src/lib/session/session-keep-alive.ts`, odluka iz Review 2026-09-25).
 - **Za odluku vlasnika, izvan A9: skraćenica `ephd`** nije u listi traženih oblika (§1 dizajna), pa je `check-client-neutral` ne
   hvata. Ostaci: e-mail zaglavlje `X-EPHD-Ticket` (`compose-ticket-email.ts`; ako klijent ima mail pravila na to zaglavlje,
   promjena ih lomi), sessionStorage ključ `ephd.entra.configuration`, DR zadane vrijednosti `ephd-drill-uploads` i log
