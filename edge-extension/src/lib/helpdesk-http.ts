@@ -1,5 +1,5 @@
 /**
- * Minimalni, strogi HTTP klijent prema EP-HelpDesk API-ju.
+ * Minimalni, strogi HTTP klijent prema Service Desk API-ju.
  *
  * - 15 s timeout (SW kontekst, bez vječnog visenja).
  * - 401 → {@link AuthExpiredError}; pozivatelj (edge-session) čisti sesiju.

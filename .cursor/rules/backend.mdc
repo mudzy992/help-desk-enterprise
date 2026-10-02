@@ -1,5 +1,5 @@
 ---
-description: NestJS backend architecture rules for EP-HelpDesk
+description: NestJS backend architecture rules for Service Desk
 globs: ["src/modules/**/*.ts", "src/common/**/*.ts"]
 alwaysApply: false
 ---

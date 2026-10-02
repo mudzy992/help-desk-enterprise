@@ -1,4 +1,4 @@
-# MVP Scope — EP-HelpDesk (enterprise, prva isporuka)
+# MVP Scope — Service Desk (enterprise, prva isporuka)
 
 Source of truth za **šta ulazi u prvu isporuku**: `RAW_PROJECT_EPHELPDESK.md` (sekcija *MVP constraints*).
 Ovaj fajl je operativni sažetak. Ako je u konfliktu s RAW IN/OUT listom, **pobjeđuje RAW**.

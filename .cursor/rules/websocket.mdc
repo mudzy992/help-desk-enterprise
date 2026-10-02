@@ -1,5 +1,5 @@
 ---
-description: WebSocket / real-time rules for EP-HelpDesk
+description: WebSocket / real-time rules for Service Desk
 globs: ["src/modules/websocket/**/*.ts", "**/*.gateway.ts"]
 alwaysApply: false
 ---

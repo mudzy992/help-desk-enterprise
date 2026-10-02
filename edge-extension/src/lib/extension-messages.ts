@@ -18,7 +18,7 @@ export const extensionMessageTypes = {
 } as const;
 
 /** Naziv dugoživog porta SW → popup (live push). */
-export const popupPortName = 'ep-helpdesk.popup.v1';
+export const popupPortName = 'service-desk.popup.v1';
 
 export type SessionSetMessage = {
   readonly type: typeof extensionMessageTypes.sessionSet;

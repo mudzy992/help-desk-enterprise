@@ -30,7 +30,7 @@ export function RoutingPage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Administracija", "Usmjeravanje"]}
+        crumbs={["Service Desk", "Administracija", "Usmjeravanje"]}
         title="Routing — usmjeravanje tiketa"
         subtitle="Deterministička rezolucija: (jedinica porijekla + usluga) → handler grupa. Parent fallback hoda po OU lancu; bez pogotka je first-class UNROUTED, nikad proizvoljna grupa."
         actions={

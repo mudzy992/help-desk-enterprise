@@ -1,5 +1,5 @@
 ---
-description: React/Next.js frontend rules for EP-HelpDesk
+description: React/Next.js frontend rules for Service Desk
 globs: ["frontend/**/*.tsx", "frontend/**/*.ts"]
 alwaysApply: false
 ---

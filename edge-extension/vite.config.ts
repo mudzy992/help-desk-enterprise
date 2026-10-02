@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
 /**
- * EP-HelpDesk Edge companion — MV3 bundle.
+ * Service Desk Edge companion — MV3 bundle.
  *
  * - `background.ts` builds to a plain ES module service worker (background.js).
  * - `popup.html` is the action popup entry; assets keep stable names so the

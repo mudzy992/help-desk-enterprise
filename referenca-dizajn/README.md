@@ -1,6 +1,6 @@
 # [ARHIVIRANO] referenca-dizajn — stara dark-first referenca
 
-> **Ovaj prototip više nije kanonski.** Služio je kao vizuelna referenca dok je EP-HelpDesk bio
+> **Ovaj prototip više nije kanonski.** Služio je kao vizuelna referenca dok je Service Desk bio
 > dark-first aplikacija. Aktivni identitet je danas **Pulse** (svijetli kao primarni, tamni mod
 > ravnopravan, tri brend palete), a živi prototip je **[`demo/`](../demo/)**.
 

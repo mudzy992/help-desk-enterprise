@@ -1,4 +1,4 @@
-# Theme — EP-HelpDesk tokeni
+# Theme — Service Desk tokeni
 
 Ovaj fajl je **implementacijski katalog tokena** (hex, Tailwind `@theme`, geometrija, kretanje). Nije samostalni dizajn-sistem.
 

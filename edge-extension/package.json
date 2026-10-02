@@ -1,8 +1,8 @@
 {
-  "name": "ep-helpdesk-edge-extension",
+  "name": "service-desk-edge-extension",
   "version": "1.0.0",
   "private": true,
-  "description": "Manifest V3 companion klijent za EP-HelpDesk — redacted notifikacije, mini inbox, quick reply i Quick Assist za Microsoft Edge.",
+  "description": "Manifest V3 companion klijent za Service Desk — redacted notifikacije, mini inbox, quick reply i Quick Assist za Microsoft Edge.",
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {

@@ -1,18 +1,18 @@
 {
   "extensionName": {
-    "message": "EP-HelpDesk",
+    "message": "Service Desk",
     "description": "Naziv ekstenzije vidljiv u Edge Add-ons katalogu."
   },
   "extensionDescription": {
-    "message": "EP-HelpDesk companion: diskretne (redacted) notifikacije, mini inbox tiketa, brzi odgovori i Quick Assist — direktno u Microsoft Edge.",
+    "message": "Service Desk companion: diskretne (redacted) notifikacije, mini inbox tiketa, brzi odgovori i Quick Assist — direktno u Microsoft Edge.",
     "description": "Opis ekstenzije u store listingu."
   },
   "actionTitle": {
-    "message": "EP-HelpDesk — tiketi i notifikacije",
+    "message": "Service Desk — tiketi i notifikacije",
     "description": "Tooltip ikone u toolbaru."
   },
   "commandOpenPopup": {
-    "message": "Otvori EP-HelpDesk popup",
+    "message": "Otvori Service Desk popup",
     "description": "Opis prečice tastature."
   }
 }

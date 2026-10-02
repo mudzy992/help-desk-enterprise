@@ -87,7 +87,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <LifeBuoy size={17} strokeWidth={2} />
         </span>
         <div className="leading-tight">
-          <p className="text-[13.5px] font-semibold tracking-tight text-text">EP-HelpDesk</p>
+          <p className="text-[13.5px] font-semibold tracking-tight text-text">Service Desk</p>
           <p className="text-[10.5px] text-muted/80">Enterprise servisni centar</p>
         </div>
         <Badge tone="neutral" className="ml-auto text-[9.5px] px-1">v0.4</Badge>

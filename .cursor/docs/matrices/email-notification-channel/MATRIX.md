@@ -36,7 +36,7 @@ Allow-list placeholderi: `{{ticketNumber}}`, `{{ticketTitle}}`, `{{ticketId}}`, 
 `templates.enabled=false` → uvijek ugrađeni defaulti.
 
 ## Internal-only
-Interna domena: `@epbih.ba`. Dok je `internalOnly=true`, eksterne adrese se ne šalju (allow-list se ignorira). Primaoci su isključivo User zapisi iz postojećeg notification fan-out-a, ne ad-hoc adrese.
+Interna domena: `@example.com`. Dok je `internalOnly=true`, eksterne adrese se ne šalju (allow-list se ignorira). Primaoci su isključivo User zapisi iz postojećeg notification fan-out-a, ne ad-hoc adrese.
 
 ## Idempotency
 `NotificationEmailDelivery` unique `(userId, dedupeKey)` gdje je `dedupeKey` isti kao in-app (`type:messageId`). Claim pa send; send failure briše claim da retry može proći. Dupli ingest istog eventa ne šalje drugi mail.

@@ -1,4 +1,4 @@
-# Changelog — EP-HelpDesk Edge ekstenzija
+# Changelog — Service Desk Edge ekstenzija
 
 ## 1.0.0 — produkcijski rewrite
 

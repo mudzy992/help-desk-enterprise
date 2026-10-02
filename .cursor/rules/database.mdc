@@ -1,5 +1,5 @@
 ---
-description: Prisma/PostgreSQL database rules for EP-HelpDesk
+description: Prisma/PostgreSQL database rules for Service Desk
 globs: ["backend/prisma/**/*.prisma", "backend/prisma/**/*.ts"]
 alwaysApply: false
 ---

@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "short_name": "EP-HelpDesk",
+  "short_name": "Service Desk",
   "version": "1.0.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "bs",
-  "author": "EP-HelpDesk",
+  "author": "Service Desk",
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -31,7 +31,7 @@
     "http://localhost:10001/*",
     "http://127.0.0.1:10001/*",
     "https://*.ba101.top/*",
-    "https://*.epbih.ba/*"
+    "https://*.example.com/*"
   ],
   "commands": {
     "_execute_action": {

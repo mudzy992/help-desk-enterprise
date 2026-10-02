@@ -45,7 +45,7 @@ function toastMessageFor(input: RedactedToastInput): string {
   if (input.ticketId !== null && input.ticketId.length > 0) {
     return `…${input.ticketId.slice(-6)}`;
   }
-  return 'EP-HelpDesk';
+  return 'Service Desk';
 }
 
 export async function showRedactedToast(
@@ -58,7 +58,7 @@ export async function showRedactedToast(
       iconUrl: 'icons/icon-128.png',
       title: toastTitleFor(input.type),
       message: toastMessageFor(input),
-      contextMessage: 'EP-HelpDesk',
+      contextMessage: 'Service Desk',
       priority: isRemote ? 2 : 0,
       requireInteraction: isRemote,
       buttons: [{ title: t('toastOpenInDesk') }],

@@ -1,4 +1,4 @@
-# Domain Model — EP-HelpDesk
+# Domain Model — Service Desk
 
 Source of truth: `backend/prisma/schema/` (Prisma 7, PostgreSQL). This file is a map, not a substitute for the schema.
 

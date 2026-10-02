@@ -56,7 +56,7 @@ export function TicketsPage({ initialStatus }: { initialStatus?: string }) {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Tiketi"]}
+        crumbs={["Service Desk", "Tiketi"]}
         title="Svi tiketi"
         subtitle={`${openCount} otvorenih · ${riskCount} pod SLA rizikom · sortirano po ažuriranju`}
         actions={

@@ -1,5 +1,5 @@
 ---
-description: EP-HelpDesk UI/UX — Pulse je aktivni dizajn-sistem, classic je naslijeđe.
+description: Service Desk UI/UX — Pulse je aktivni dizajn-sistem, classic je naslijeđe.
 globs: ["frontend/**/*.tsx", "frontend/**/*.ts", "frontend/**/*.css", ".cursor/docs/theme.md"]
 alwaysApply: false
 ---

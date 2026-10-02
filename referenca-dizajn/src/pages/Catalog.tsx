@@ -29,7 +29,7 @@ export function CatalogPage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Usluge i znanje", "Katalog usluga"]}
+        crumbs={["Service Desk", "Usluge i znanje", "Katalog usluga"]}
         title="Katalog usluga"
         subtitle="Životni ciklus: Nacrt → Aktivan → Zastarjelo. Dostupnost i održavanje nikad ne blokiraju prijavu tiketa — samo obavještavaju."
         actions={

@@ -120,10 +120,10 @@ type Dictionary = Record<UiStringKey, string>;
 
 const bs: Dictionary = {
   appTagline: 'Tiketi & notifikacije, bez otvaranja Deska',
-  welcomeTitle: 'Dobrodošli u EP-HelpDesk',
+  welcomeTitle: 'Dobrodošli u Service Desk',
   welcomeSubtitle: 'Prijavite se da biste primali obavještenja i odgovarali na tikete direktno iz Edgea.',
   emailLabel: 'Email',
-  emailPlaceholder: 'ime.prezime@epbih.ba',
+  emailPlaceholder: 'ime.prezime@example.com',
   passwordLabel: 'Lozinka',
   passwordPlaceholder: '••••••••',
   signInAction: 'Prijava',
@@ -166,7 +166,7 @@ const bs: Dictionary = {
   blockedHint: 'Ako smatrate da je ovo greška, kontaktirajte administratora HelpDeska.',
   deskUrlMissing: 'Adresa Deska nije podešena na serveru (APP_PUBLIC_URL).',
   toastOpenInDesk: 'Otvori u Desku',
-  toastGenericTitle: 'EP-HelpDesk notifikacija',
+  toastGenericTitle: 'Service Desk notifikacija',
   toastRemoteTitle: 'Zahtjev za udaljenu podršku',
   toastRemoteBody: 'Otvorite popup za pokretanje Quick Assist-a.',
   toastSlaTitle: 'SLA upozorenje',
@@ -211,10 +211,10 @@ const bs: Dictionary = {
 
 const en: Dictionary = {
   appTagline: 'Tickets & notifications, without opening the Desk',
-  welcomeTitle: 'Welcome to EP-HelpDesk',
+  welcomeTitle: 'Welcome to Service Desk',
   welcomeSubtitle: 'Sign in to receive notifications and reply to tickets directly from Edge.',
   emailLabel: 'Email',
-  emailPlaceholder: 'first.last@epbih.ba',
+  emailPlaceholder: 'first.last@example.com',
   passwordLabel: 'Password',
   passwordPlaceholder: '••••••••',
   signInAction: 'Sign in',
@@ -257,7 +257,7 @@ const en: Dictionary = {
   blockedHint: 'If you believe this is an error, contact your HelpDesk administrator.',
   deskUrlMissing: 'The Desk address is not configured on the server (APP_PUBLIC_URL).',
   toastOpenInDesk: 'Open in Desk',
-  toastGenericTitle: 'EP-HelpDesk notification',
+  toastGenericTitle: 'Service Desk notification',
   toastRemoteTitle: 'Remote support request',
   toastRemoteBody: 'Open the popup to launch Quick Assist.',
   toastSlaTitle: 'SLA warning',

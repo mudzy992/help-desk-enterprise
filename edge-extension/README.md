@@ -1,6 +1,6 @@
-# EP-HelpDesk — Edge ekstenzija (F9)
+# Service Desk — Edge ekstenzija (F9)
 
-Manifest V3 companion klijent za EP-HelpDesk. Radi na **istim Socket.IO kanalima**
+Manifest V3 companion klijent za Service Desk. Radi na **istim Socket.IO kanalima**
 (`handshake.auth.token`, soba `user:{userId}`) kao web aplikacija — bez novog
 gatewaya i bez novih WS event imena.
 

@@ -37,7 +37,7 @@ export function KnowledgePage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Usluge i znanje", "Baza znanja"]}
+        crumbs={["Service Desk", "Usluge i znanje", "Baza znanja"]}
         title="Baza znanja"
         subtitle={`Full-text pretraga (tsvector + GIN) · u zadnja 3 mjeseca KB intercept spriječio ${totalIntercepts} tiketa · ${reviewDue} članka čeka redovni pregled`}
         actions={

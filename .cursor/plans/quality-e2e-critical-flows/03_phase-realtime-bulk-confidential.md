@@ -5,7 +5,7 @@
 Preduslov setup: `private.smtp.enabled`, `private.addons.email`, `private.notifications.email.enabled`, `private.notifications.email.internalOnly=true`, `private.addons.edge`, `private.integrations.queue.enabled`, `typesCsv` uključuje `email,edge`.
 
 1. **In-app:** akcija koja fan-out-uje (create/assign). UI inbox notifikacija i/ili `GET /notifications`.
-2. **Email internal-only:** primalac `@epbih.ba` → `GET /integration-jobs` ima `EMAIL` job za taj event. Ako postoji nalog van `@epbih.ba`, **nema** EMAIL joba za njega (internal-only).
+2. **Email internal-only:** primalac `@example.com` → `GET /integration-jobs` ima `EMAIL` job za taj event. Ako postoji nalog van `@example.com`, **nema** EMAIL joba za njega (internal-only).
 3. **Edge kroz queue:** isti fan-out → `EDGE_EVENT` red u `IntegrationJob` (F7-A). Nije test Edge popup-a.
 
 Socket.IO: opciono `page.waitForResponse` / UI refresh; ne mockovati gateway.

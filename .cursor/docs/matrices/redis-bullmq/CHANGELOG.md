@@ -1,8 +1,8 @@
 # CHANGELOG — redis-bullmq
 
 ## 2026-09-14
-- ACL `ephelpdesk`: `+info` poslije `-@dangerous`; kanali `&integration-queue:*` `&ephelpdesk:*` `&bull:ephelpdesk:*` (nije Socket.IO adapter).
-- Redis auth ugovor: ACL placeholder `change-me` (ne `CHANGE_ME`); isti `REDIS_*` na backend i worker preko compose `x-redis-environment`. `WRONGPASS` = par nije ACL user `ephelpdesk`.
+- ACL `servicedesk`: `+info` poslije `-@dangerous`; kanali `&integration-queue:*` `&servicedesk:*` `&bull:servicedesk:*` (nije Socket.IO adapter).
+- Redis auth ugovor: ACL placeholder `change-me` (ne `CHANGE_ME`); isti `REDIS_*` na backend i worker preko compose `x-redis-environment`. `WRONGPASS` = par nije ACL user `servicedesk`.
 - Worker sada učitava Prisma/Settings zbog domain procesora; connection bootstrap nepromijenjen. Durable queue dokumentovan u `integrations-durable-queue`. Shutdown i dalje: keep-alive timer + `application.close()`.
 
 ## 2026-09-10

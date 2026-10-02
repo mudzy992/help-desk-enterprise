@@ -1,5 +1,9 @@
 # Pulse UI — Faze 0–7 isporučene (migracija kompletna; ostaje tvoj QA prolaz i UAT)
 
+> **Napomena (Paket 4.1, A6):** svi patchevi iz ovog dokumenta su odavno primijenjeni u kod i uklonjeni su iz
+> repozitorija. Dostupni su u git istoriji (npr. `git show a2ed88a:demo/patches/<ime>`).
+
+
 > Ovo je produkcijska implementacija novog identiteta na **stvarnom frontendu** tvog projekta
 > (`frontend/`), predata kao `.patch` fajlovi jer je moja sesija fiksirana na granu
 > `arena/01a0cefc-help-desk-enterprise` i ne mogu kreirati granu `pulse-ui`.
@@ -346,7 +350,7 @@ Nije novi dizajn: paleta rotira **samo brend boje**, a površine, radijusi, sjen
 |---|---|
 | **Zašto je ispalo jeftino** | Cijela aplikacija od Faze 0 boju čita iz CSS varijabli (**0 hardkodiranih boja u komponentama**), a „dizajn" su znala samo **5 fajlova**. Zato paleta = **8 varijabli** po bloku (`--primary`, `-hover`, `-active`, `-foreground`, `--ring`, `--link`, `--selection-bg`, `--selection-fg`) + `--shadow-glow`, i **nema drugog bloka tokena po svjetlini** — `.dark` varijanta mijenja samo te iste vrijednosti |
 | **Skaliranje u CSS-u** | Selektori su oblikovani kao `:root[data-theme="pulse"][data-accent="teal"]` — specifičnost (0,2,1) pobjeđuje bazni `:root[data-theme="pulse"]` bez obzira na redoslijed, a **`classic` je izuzet** jer selektor traži `pulse`. Klasična tema zadržava svoju plavu bez obzira koja je paleta izabrana |
-| **Kontrakt i perzistencija** | `ThemeAccent` + `THEME_ACCENTS` + `isThemeAccent` + `DEFAULT_THEME_ACCENT` u `lib/theme/theme-storage.ts`; `accent` / `setAccent` u `ThemeProvider`-u; ključ `ep-helpdesk.theme.accent`; **pre-paint skripta** u `index.html` sada postavlja i `data-accent` (i sanitizuje neispravnu vrijednost) |
+| **Kontrakt i perzistencija** | `ThemeAccent` + `THEME_ACCENTS` + `isThemeAccent` + `DEFAULT_THEME_ACCENT` u `lib/theme/theme-storage.ts`; `accent` / `setAccent` u `ThemeProvider`-u; ključ `service-desk.theme.accent`; **pre-paint skripta** u `index.html` sada postavlja i `data-accent` (i sanitizuje neispravnu vrijednost) |
 | **Tri ulaza, jedan kontrakt** | Grupa **„Boja"** u biraču teme (samo za Pulse, kao i svjetlina) · korisnički meni → „Izgled" → `/appearance` · kartica **„Paleta boja"** na `/appearance`. Svi pišu kroz isti `useTheme()`, pa se ne mogu razići. „Vrati na zadano" sada resetuje i paletu |
 | **Bug koji je uhvatilo mjerenje** | `::selection` boja **ne smije** biti ista u svijetloj i tamnoj paleti: browser je crta kao alpha blend **preko podloge**, pa je rezultat uvijek svijetao u svijetlim paletama i taman u tamnim. Prva verzija je u tamnim paletama dala **1.65:1** (tekst praktično nevidljiv pri selektovanju). Popravljeno i sada je 8.79–12.77:1. Isto pravilo važi za `--primary-foreground`: svijetla primarna boja traži **taman** tekst na sebi |
 | **Dokaz kontrasta (24 mjerenja)** | Vrijednosti pročitane iz **generisanog CSS-a**, ne iz izvora: |
@@ -380,7 +384,7 @@ stvar koja je stvarno nedostajala: **stranicu na kojoj se izgled objašnjava i m
 | **Ruta** | `app/router.tsx`: `<Route path="appearance" element={<AppearancePage />} />` — **bez `RequireAccess`**, jer izgled ne smije zavisiti od dozvola. Ruta `settings` (`LegacyAdminRedirect`) **nije dirana** — i dalje radi kako je radila |
 | **i18n** | **22 nova ključa** u novom bloku `appearance.*` u **oba** lokala (`bs` i `en`); korišteni su i postojeći `theme.*` ključevi iz Faze 0. Ukupno `bs` **2164** = `en` **2164**, parity **0/0** |
 | **„Vrati na zadano"** | Dugme u zaglavlju stranice vraća i dizajn i svjetlinu na `DEFAULT_THEME_DESIGN` / `DEFAULT_THEME_MODE` (jedan izvor istine iz `theme-storage.ts`) i **disabled** je kad si već na zadanim vrijednostima |
-| **Perzistencija i sistemska preferencija** | Bez novog koda — postojeći `ThemeProvider` već piše u `localStorage` (`ep-helpdesk.theme.design|mode`) i sluša `prefers-color-scheme` preko `matchMedia`; stranica piše kroz isti `useTheme()` kontrakt, pa se toggle u topbaru, meni i stranica **ne mogu razići** |
+| **Perzistencija i sistemska preferencija** | Bez novog koda — postojeći `ThemeProvider` već piše u `localStorage` (`service-desk.theme.design|mode`) i sluša `prefers-color-scheme` preko `matchMedia`; stranica piše kroz isti `useTheme()` kontrakt, pa se toggle u topbaru, meni i stranica **ne mogu razići** |
 | **Dark mode — dokaz pokrivenosti** | Sva tri tematska bloka (`:root[data-theme="classic"]`, `:root[data-theme="pulse"]`, `:root[data-theme="pulse"].dark`) imaju **identičan skup od 48 varijabli — nula razlika**. Nijedan token ne pada na fallback u tamnom Pulse modu. `classic` je i dalje forsirano tamna (kako je i zamišljeno) |
 | **Dokazi (bez izmjena koda)** | `tsc` **0 grešaka**; `vitest` **89 fajlova / 306 testova**; `vite build` prolazi; guard za ID-jeve tiketa **0**; **49 utility klasa** u nova 4 fajla — **0 propusta** kroz pravi Tailwind build (CSS je ostao **isti**, 63 138 B: nijedna nova utility klasa nije uvedena) |
 

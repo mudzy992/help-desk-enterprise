@@ -1,5 +1,5 @@
 /*
-  EP-HelpDesk — domenska jezgra (frontend presjek)
+  Service Desk — domenska jezgra (frontend presjek)
   Labele i logika prate RAW/domain model: statusi, priority matrica,
   routing rezolucija (EXACT / PARENT_FALLBACK / UNROUTED) sa hodanjem
   po OU parentId lancu. Bez silent fallback grupa.

@@ -12,7 +12,7 @@ const configuration = {
   enabled: true,
   retentionDays: { attachments: 0, ticketContent: 0, audit: 0, sessions: 90, emailDeliveries: 180, requestRegister: 0 },
   exportLinkValidDays: 7,
-  controller: { name: 'Example Organisation d.o.o.', address: '', dpoName: 'Amra H.', dpoEmail: 'dpo@example.com', purpose: '', legalBasis: '' },
+  controller: { name: 'Primjer d.o.o.', address: '', dpoName: 'Amra H.', dpoEmail: 'dpo@example.com', purpose: '', legalBasis: '' },
   notice: { bs: '', en: '' },
 } as never;
 

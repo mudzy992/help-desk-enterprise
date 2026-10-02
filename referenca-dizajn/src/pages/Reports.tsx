@@ -7,7 +7,7 @@ export function ReportsPage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Pregled", "Izvještaji"]}
+        crumbs={["Service Desk", "Pregled", "Izvještaji"]}
         title="Izvještaji i uska grla"
         subtitle="Report pack: tok tiketa, usklađenost SLA, opterećenje grupa i KB defleksija. Izvoz se evidentira u audit logu."
         actions={

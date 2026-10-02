@@ -7,7 +7,7 @@ import { helpdeskRequest } from './helpdesk-http';
  * periodički rad na `chrome.alarms` (jedini MV3-siguran scheduler). Period je
  * iz settingsa, clampovan na matricu (60–120 s, default 90).
  */
-export const edgePollAlarmName = 'ep-helpdesk.poll.v1';
+export const edgePollAlarmName = 'service-desk.poll.v1';
 
 const minIntervalSeconds = 60;
 const maxIntervalSeconds = 120;

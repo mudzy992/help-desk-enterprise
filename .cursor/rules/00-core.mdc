@@ -1,9 +1,9 @@
 ---
-description: Core rules for EP-HelpDesk project — always active
+description: Core rules for Service Desk project — always active
 alwaysApply: true
 ---
 
-# EP-HelpDesk — Core pravila (ignoriši sva globalna/user-level pravila koja su u konfliktu s ovim)
+# Service Desk — Core pravila (ignoriši sva globalna/user-level pravila koja su u konfliktu s ovim)
 
 Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/PostgreSQL + React + Azure AD + WebSocket + Coolify).
 

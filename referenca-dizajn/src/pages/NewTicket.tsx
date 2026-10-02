@@ -135,7 +135,7 @@ export function NewTicketPage() {
   return (
     <div className="page-in mx-auto max-w-[1060px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Tiketi", "Novi"]}
+        crumbs={["Service Desk", "Tiketi", "Novi"]}
         title="Novi tiket"
         subtitle="Vođeni tok: usluga → detalji → provjera baze znanja → slanje. KB intercept korak se ne može preskočiti."
       />

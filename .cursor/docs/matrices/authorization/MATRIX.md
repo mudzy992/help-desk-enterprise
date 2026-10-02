@@ -40,7 +40,7 @@ Evaluacija je **na istom `UserRole` assignmentu** (nema unije permissiona iz jed
 | Permission bez OU scope | mora biti `organizationalUnitId = null` | deny |
 | Permission + OU scope | deny (nije globalno) | assigned path = requested path ili ancestor (`requested.startsWith(assigned + '/')`) |
 
-Nasljeđivanje ide naniže (assigned OU pokriva potomke). Ancestor, sibling, i path prefix collision (`/Korisnici/ED` vs `/Korisnici/ED Zenica`) su deny.
+Nasljeđivanje ide naniže (assigned OU pokriva potomke). Ancestor, sibling, i path prefix collision (`/Korisnici/ED` vs `/Korisnici/Podružnica Zenica`) su deny.
 
 | Zahtjev | Assignment `serviceId = null` | Assignment sa `serviceId` |
 |---|---|---|

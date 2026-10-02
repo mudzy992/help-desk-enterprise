@@ -33,7 +33,7 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - Plaintext secret u change logu, public/private snapshotima ili error porukama.
 
 ## Seed ključevi (skeleton)
-- `public.branding.appName` (public, string, default `EP-HelpDesk`)
+- `public.branding.appName` (public, string, default `Service Desk`)
 - `private.install.completedAt` (private, string, default `""`)
 - `private.install.completedByUserId` (private, string, default `""`)
 - `private.auth.mode` (private, `local` | `entra_ad`, default `local`)

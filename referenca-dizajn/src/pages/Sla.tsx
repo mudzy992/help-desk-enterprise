@@ -28,7 +28,7 @@ export function SlaPage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Administracija", "SLA pravila"]}
+        crumbs={["Service Desk", "Administracija", "SLA pravila"]}
         title="SLA engine"
         subtitle="BH kalendari + profili + pravila po prioritetu. Tajmeri se pauziraju u 'Čeka korisnika' i 'Pending Approval'; eskalacije su in-app uz badge i filter."
         actions={

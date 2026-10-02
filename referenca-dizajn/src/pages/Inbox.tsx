@@ -28,7 +28,7 @@ export function InboxPage() {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Tiketi", "Grupni inbox"]}
+        crumbs={["Service Desk", "Tiketi", "Grupni inbox"]}
         title="Grupni inbox"
         subtitle="Grupa je vlasnik tiketa; agent preuzima ručno ili auto-assign dodjeljuje po modu grupe. Neusmjereni red ima zaseban vlasnik."
         actions={

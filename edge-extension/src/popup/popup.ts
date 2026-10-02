@@ -357,7 +357,7 @@ async function onPortEvent(event: PopupPortEvent): Promise<void> {
 // ---------------------------------------------------------------------------
 
 function bindStaticChrome(): void {
-  document.title = `EP-HelpDesk — ${t('appTagline', undefined, language)}`;
+  document.title = `Service Desk — ${t('appTagline', undefined, language)}`;
 
   const searchInput = requireElement<HTMLInputElement>('#inbox-search');
   searchInput.placeholder = t('searchPlaceholder', undefined, language);

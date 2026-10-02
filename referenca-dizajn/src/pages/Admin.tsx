@@ -54,7 +54,7 @@ export function AdminPage({ tab }: { tab?: AdminTab }) {
   return (
     <div className="page-in mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Administracija"]}
+        crumbs={["Service Desk", "Administracija"]}
         title="Administracija sistema"
         subtitle="Identitet, organizaciona struktura, postavke i operacije. Sve izmjene prolaze kroz change log s razlogom; read-only mod je dostupan po ulozi."
         actions={
