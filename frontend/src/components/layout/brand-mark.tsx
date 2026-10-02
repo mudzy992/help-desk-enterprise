@@ -17,14 +17,19 @@ interface BrandMarkProperties {
 export function BrandMark({ size = 32, className }: BrandMarkProperties) {
   const { logoDataUrl } = useBranding();
   if (logoDataUrl.length > 0) {
+    // The default mark background sits under the logo, so a transparent PNG/WebP
+    // keeps the brand tile; an opaque logo simply covers it.
     return (
-      <img
-        src={logoDataUrl}
-        alt=""
-        aria-hidden="true"
-        className={cn("shrink-0 rounded-[11px] object-contain", className, "shadow-none")}
+      <span
+        className={cn(
+          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-[11px] pulse-gradient",
+          className,
+          "shadow-none",
+        )}
         style={{ width: size, height: size }}
-      />
+      >
+        <img src={logoDataUrl} alt="" aria-hidden="true" className="size-full object-contain" />
+      </span>
     );
   }
   return (

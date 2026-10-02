@@ -155,7 +155,9 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSaveMany
         <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{t("settings.branding.preview")}</p>
         <div className="mt-2 flex items-center gap-2.5">
           {draft.logoDataUrl.length > 0 ? (
-            <img src={draft.logoDataUrl} alt="" className="size-8 shrink-0 rounded-[11px] object-contain" />
+            <span className="pulse-gradient flex size-8 shrink-0 overflow-hidden rounded-[11px]">
+              <img src={draft.logoDataUrl} alt="" className="size-full object-contain" />
+            </span>
           ) : (
             <span className="pulse-gradient size-8 shrink-0 rounded-[11px]" aria-hidden="true" />
           )}
