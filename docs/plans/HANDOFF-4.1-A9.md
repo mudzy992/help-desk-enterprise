@@ -1,8 +1,9 @@
 # Handoff — Paket 4.1, faza A9 (prelazak na stagingu)
 
-Stanje na dan 2026-10-02. Grana prve sesije, `arena/01a0d46c-help-desk-enterprise`, već je na `master` (`585dd8f`).
-**Grana tekuće sesije je `arena/01a0fe12-help-desk-enterprise`** (ime zadaje sesija; radi se i pusha samo na nju). Odatle ide
-fast-forward na `master` (Coolify gradi master).
+Stanje na dan 2026-10-02. Grane ranijih sesija (`arena/01a0d46c-…`) već su na `master`. **Grana tekuće sesije je
+`arena/01a0feaa-help-desk-enterprise`** (ime zadaje sesija; radi se i pusha samo na nju). Odatle ide fast-forward na `master`
+(Coolify gradi master). Posljednji commit prethodne sesije (`arena/01a0fe12-…`, `47ee7a3`: zapis provjera prije koraka 7)
+prenesen je na ovu granu cherry-pick-om (`abbb1a7`), jer je ta grana stala na njemu.
 Dizajn paketa: `docs/plans/modules/4.1-audit-vise-klijenata.md`. Odluke su u §0, prelazak u §7, a bilješke po fazama u §11 i §12.
 
 ## 1. Gotovo
@@ -143,3 +144,13 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
   - Usput: korisnik `inventory-v2` ima `~bull:*` i `&bull:*`, što tehnički pokriva i `bull:servicedesk:*`. To nije dio A9 i ne dira se.
   - Odluka o brisanju: čeka odgovor korisnika, „brisati odmah“ (kapija se svjesno preskače, zapisati u §12) ili „čekamo“ (kapija
     2026-10-03 19:22 UTC).
+
+### Sesija 3 (2026-10-02, poslije 22:10 UTC)
+
+- Provjereno stanje: koraci 1–6 su zatvoreni; u koraku 7 urađene su samo read-only provjere (gore); implementacija 4.1a
+  **nije počela** (u kodu su još `X-EPHD-Ticket` i `ephd.entra.configuration`); dizajn 4.1a je na `master` (`e9ca5d0`) i čeka
+  odobrenje. CI na `master` je zelen (`e9ca5d0`, run `37070461993`).
+- Otvorene odluke korisnika: (a) korak 7 — brisati odmah (kapija se svjesno preskače) ili poslije kapije
+  (2026-10-03 19:22 UTC), ranije samo ako se u Coolifyju vidi tačno vrijeme deploya iz koraka 4; (b) odobrenje 4.1a i odgovor
+  na njegovo otvoreno pitanje E1 (mail pravila na `X-EPHD-Ticket`).
+
