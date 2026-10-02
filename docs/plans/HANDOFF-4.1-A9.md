@@ -147,10 +147,12 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
 
 ### Sesija 3 (2026-10-02, poslije 22:10 UTC)
 
-- Provjereno stanje: koraci 1–6 su zatvoreni; u koraku 7 urađene su samo read-only provjere (gore); implementacija 4.1a
-  **nije počela** (u kodu su još `X-EPHD-Ticket` i `ephd.entra.configuration`); dizajn 4.1a je na `master` (`e9ca5d0`) i čeka
-  odobrenje. CI na `master` je zelen (`e9ca5d0`, run `37070461993`).
-- Otvorene odluke korisnika: (a) korak 7 — brisati odmah (kapija se svjesno preskače) ili poslije kapije
-  (2026-10-03 19:22 UTC), ranije samo ako se u Coolifyju vidi tačno vrijeme deploya iz koraka 4; (b) odobrenje 4.1a i odgovor
-  na njegovo otvoreno pitanje E1 (mail pravila na `X-EPHD-Ticket`).
+- Provjereno stanje: koraci 1–6 su zatvoreni; u koraku 7 bile su urađene samo read-only provjere (gore). CI na `master` je
+  zelen (`e9ca5d0`, run `37070461993`).
+- **Odluke korisnika (2.10.2026.) i ishod:** (a) korak 7 — **čekamo kapiju**, brisanje tek poslije 2026-10-03 19:22 UTC
+  (ranije samo ako se u Coolifyju vidi tačno vrijeme deploya iz koraka 4); (b) 4.1a **odobren** i implementiran (faze
+  B1–B4, commiti `45c80d3`…`d5d7bcd`), a odgovor na E1 je „nema mail pravila“ → šalje se samo `X-Service-Desk-Ticket`.
+- 4.1a ne dira Redis ni bazu, pa ne traži novi prelaz: deploy ide uz prvi sljedeći push na `master`. Provjera na stagingu
+  poslije deploya: jedna notifikacija tiketa mora nositi `X-Service-Desk-Ticket: HD-…`; povratni Entra tok traži Entra
+  aplikaciju, pa ga pokriva samo spec (ime ključa i kruženje konfiguracije).
 
