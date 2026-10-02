@@ -229,6 +229,12 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   tačkom, ukupno 22 fajla (u radnom kodu jedno e-mail zaglavlje i jedan ključ sessionStorage-a). Zamjene, proširenje CI
   provjere i test same provjere.
 
+### 4.2 UX liste i detalja tiketa (zahtjev vlasnika 2026-10-02)  · dizajn: `modules/4.2-ux-lista-i-detalji-tiketa.md`
+- **A) Lista tiketa:** sačuvani pogledi iz trajne kolone (220 px) prebačeni u kompaktnu kontrolu u redu filtera —
+  ✅ implementirano 2026-10-02.
+- **B) Detalji tiketa:** prijedlog „tri kartice + sklopive sekcije“ (13 kartica s desne strane → 3, bez gubitka
+  funkcionalnosti) — **čeka odluku vlasnika**.
+
 ## Zavisnosti i redoslijed
 
 ```
