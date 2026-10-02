@@ -1677,7 +1677,8 @@
       "saved": "Brending je snimljen.",
       "invalidEmail": "Unesite ispravnu e-mail adresu.",
       "invalidUrl": "Adresa mora počinjati s https://.",
-      "required": "Naziv aplikacije je obavezan."
+      "required": "Naziv aplikacije je obavezan.",
+      "taglineHint": "Prikazuje se ispod naziva. Prazno = zadani opis."
     }
   },
   "errors": {

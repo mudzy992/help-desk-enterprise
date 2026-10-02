@@ -96,7 +96,7 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: 
         <Field label={t("settings.branding.appName")} required error={errors.appName}>
           {(control) => <Input {...control} value={draft.appName} maxLength={60} disabled={disabled} onChange={(event) => update("appName", event.target.value)} />}
         </Field>
-        <Field label={t("settings.branding.tagline")} hint={t("settings.registry.keys.public.branding.tagline")}>
+        <Field label={t("settings.branding.tagline")} hint={t("settings.branding.taglineHint")}>
           {(control) => <Input {...control} value={draft.tagline} maxLength={120} disabled={disabled} onChange={(event) => update("tagline", event.target.value)} />}
         </Field>
         <Field label={t("settings.branding.organizationName")} className="sm:col-span-2">

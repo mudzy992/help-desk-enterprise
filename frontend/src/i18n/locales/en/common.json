@@ -1666,7 +1666,8 @@
       "saved": "Branding saved.",
       "invalidEmail": "Enter a valid e-mail address.",
       "invalidUrl": "The address must start with https://.",
-      "required": "Application name is required."
+      "required": "Application name is required.",
+      "taglineHint": "Shown under the name. Empty = default description."
     }
   },
   "errors": {
