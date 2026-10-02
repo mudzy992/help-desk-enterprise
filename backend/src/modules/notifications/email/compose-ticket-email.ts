@@ -156,7 +156,7 @@ export function composeTicketEmail(input: {
       // RFC 3834 + Exchange: no out-of-office storms back into the system.
       'Auto-Submitted': 'auto-generated',
       'X-Auto-Response-Suppress': 'All',
-      'X-EPHD-Ticket': ticket.ticketNumber,
+      'X-Service-Desk-Ticket': ticket.ticketNumber,
     },
   };
 }
