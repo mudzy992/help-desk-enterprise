@@ -78,6 +78,13 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSaveMany
   };
 
   const save = async (reason: string) => {
+    // A repeated click/Enter after a successful save finds nothing left to send.
+    if (saving) return;
+    if (changed.length === 0) {
+      setConfirming(false);
+      toast({ tone: "info", title: t("settings.branding.noChanges") });
+      return;
+    }
     setSaving(true);
     try {
       // One all-or-nothing request: either every changed field is saved or none.
@@ -175,7 +182,7 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSaveMany
       </div>
 
       {canWrite ? (
-        confirming ? (
+        confirming && changed.length > 0 ? (
           <SettingsReasonConfirm pending={busy} onConfirm={save} onCancel={() => setConfirming(false)} />
         ) : (
           <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
