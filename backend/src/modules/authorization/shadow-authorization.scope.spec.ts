@@ -24,7 +24,7 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
     harness.findService.mockReset();
     harness.loadBySubjectId.mockResolvedValue(createTestAuthorizationContext());
     harness.findOrganizationalUnit.mockResolvedValue({
-      ouPath: '/Korisnici/ED Zenica',
+      ouPath: '/Korisnici/Podružnica Zenica',
     });
     harness.findService.mockResolvedValue({ id: 'service-hr' });
   });
@@ -37,13 +37,13 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
             roleKey: authorizationRoleKeys.admin,
             permissionKeys: [permissionKeys.routingWrite],
             organizationalUnitId: 'ou-zenica',
-            organizationalUnitPath: '/Korisnici/ED Zenica',
+            organizationalUnitPath: '/Korisnici/Podružnica Zenica',
           }),
         ],
       }),
     );
     harness.findOrganizationalUnit.mockResolvedValue({
-      ouPath: '/Korisnici/ED Zenica/Breza',
+      ouPath: '/Korisnici/Podružnica Zenica/Breza',
     });
     const report = await harness.shadowAuthorizationService.evaluate({
       principal: shadowTestPrincipal,
@@ -57,12 +57,12 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
     });
     expect(report.decision).toBe(shadowAuthorizationDecisions.allow);
     expect(report.requested.organizationalUnitPath).toBe(
-      '/Korisnici/ED Zenica/Breza',
+      '/Korisnici/Podružnica Zenica/Breza',
     );
     expect(report.considered.organizationalUnitScopes).toEqual([
       {
         organizationalUnitId: 'ou-zenica',
-        organizationalUnitPath: '/Korisnici/ED Zenica',
+        organizationalUnitPath: '/Korisnici/Podružnica Zenica',
       },
     ]);
   });
@@ -75,7 +75,7 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
             roleKey: authorizationRoleKeys.admin,
             permissionKeys: [permissionKeys.routingWrite],
             organizationalUnitId: 'ou-zenica',
-            organizationalUnitPath: '/Korisnici/ED Zenica',
+            organizationalUnitPath: '/Korisnici/Podružnica Zenica',
           }),
         ],
       }),
@@ -102,7 +102,7 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
       serviceId: null,
     });
     harness.findOrganizationalUnit.mockResolvedValue({
-      ouPath: '/Korisnici/ED Zenica Extra',
+      ouPath: '/Korisnici/Podružnica Zenica Extra',
     });
     const prefixCollision = await harness.shadowAuthorizationService.evaluate({
       principal: shadowTestPrincipal,

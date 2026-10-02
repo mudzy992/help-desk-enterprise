@@ -86,7 +86,7 @@ export function setup() {
     fail('ORG_UNIT_ID is required (root organizational unit id).');
   }
   // Accounts with MFA cannot log in from k6: pass the session token instead
-  // (browser: localStorage `ep-helpdesk.session` → accessToken, valid ~1 h).
+  // (browser: localStorage `service-desk.session` → accessToken, valid ~1 h).
   if (env.ACCESS_TOKEN) {
     return { token: env.ACCESS_TOKEN };
   }

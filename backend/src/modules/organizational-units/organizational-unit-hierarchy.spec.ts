@@ -76,19 +76,19 @@ describe('organizational unit hierarchy helpers', () => {
     expect(
       rewriteDescendantDistinguishedName({
         currentDistinguishedName:
-          'OU=Breza,OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
-        oldAncestorDistinguishedName: 'OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+          'OU=Breza,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com',
+        oldAncestorDistinguishedName: 'OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com',
         newAncestorDistinguishedName:
-          'OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
+          'OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
       }),
-    ).toBe('OU=Breza,OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com');
+    ).toBe('OU=Breza,OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com');
   });
 
   it('rewrites descendant paths when an ancestor moves', () => {
     expect(
       rewriteOrganizationalUnitPath({
-        currentPath: '/Korisnici/ED Zenica/Breza',
-        oldAncestorPath: '/Korisnici/ED Zenica',
+        currentPath: '/Korisnici/Podružnica Zenica/Breza',
+        oldAncestorPath: '/Korisnici/Podružnica Zenica',
         newAncestorPath: '/Korisnici/ED Sarajevo',
       }),
     ).toBe('/Korisnici/ED Sarajevo/Breza');

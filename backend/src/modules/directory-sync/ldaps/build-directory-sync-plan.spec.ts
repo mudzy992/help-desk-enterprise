@@ -11,14 +11,14 @@ const agentGroup = 'CN=SERVICEDESK_ROLE_AGENT,OU=Grupe,DC=example,DC=com';
 
 const units = [
   { distinguishedName: base, name: 'Korisnici', path: '/Korisnici', guid: 'u0' },
-  { distinguishedName: `OU=ED Zenica,${base}`, name: 'ED Zenica', path: '/Korisnici/ED Zenica', guid: 'u1' },
-  { distinguishedName: `OU=Breza,OU=ED Zenica,${base}`, name: 'Breza', path: '/Korisnici/ED Zenica/Breza', guid: 'u2' },
+  { distinguishedName: `OU=Podružnica Zenica,${base}`, name: 'Podružnica Zenica', path: '/Korisnici/Podružnica Zenica', guid: 'u1' },
+  { distinguishedName: `OU=Breza,OU=Podružnica Zenica,${base}`, name: 'Breza', path: '/Korisnici/Podružnica Zenica/Breza', guid: 'u2' },
 ];
 
 function adUser(overrides: Partial<LdapsDirectoryUserEntry> = {}): LdapsDirectoryUserEntry {
   return {
     guid: 'guid-ana',
-    distinguishedName: `CN=Ana,OU=Breza,OU=ED Zenica,${base}`,
+    distinguishedName: `CN=Ana,OU=Breza,OU=Podružnica Zenica,${base}`,
     email: 'ana@example.com',
     userPrincipalName: 'ana@example.com',
     samAccountName: 'ana',
@@ -40,10 +40,10 @@ function dbUser(overrides: Partial<ExistingDirectoryUser> = {}): ExistingDirecto
     isLocalOnly: false,
     directoryObjectGuid: 'guid-ana',
     directoryDeactivatedAt: null,
-    distinguishedName: `CN=Ana,OU=Breza,OU=ED Zenica,${base}`,
+    distinguishedName: `CN=Ana,OU=Breza,OU=Podružnica Zenica,${base}`,
     company: 'Primjer d.o.o.',
     department: 'Breza',
-    ouPath: '/Korisnici/ED Zenica/Breza',
+    ouPath: '/Korisnici/Podružnica Zenica/Breza',
     managed: true,
     directoryRoles: [],
     ...overrides,
@@ -74,13 +74,13 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
     const plan = buildDirectorySyncPlan(input());
     expect(plan.organizationalUnits.create.map((unit) => [unit.path, unit.type, unit.parentPath])).toEqual([
       ['/Korisnici', 'DIRECTORATE', null],
-      ['/Korisnici/ED Zenica', 'BRANCH', '/Korisnici'],
-      ['/Korisnici/ED Zenica/Breza', 'OFFICE', '/Korisnici/ED Zenica'],
+      ['/Korisnici/Podružnica Zenica', 'BRANCH', '/Korisnici'],
+      ['/Korisnici/Podružnica Zenica/Breza', 'OFFICE', '/Korisnici/Podružnica Zenica'],
     ]);
     expect(plan.users.create).toEqual([
-      expect.objectContaining({ guid: 'guid-ana', email: 'ana@example.com', ouPath: '/Korisnici/ED Zenica/Breza' }),
+      expect.objectContaining({ guid: 'guid-ana', email: 'ana@example.com', ouPath: '/Korisnici/Podružnica Zenica/Breza' }),
     ]);
-    expect(plan.unitCounts).toEqual([{ path: '/Korisnici/ED Zenica', users: 1 }]);
+    expect(plan.unitCounts).toEqual([{ path: '/Korisnici/Podružnica Zenica', users: 1 }]);
     expect(plan.safeguard.tripped).toBe(false);
   });
 
@@ -167,13 +167,13 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
         directoryUsers: [adUser({ memberOf: [agentGroup.toLowerCase()] })],
         existingUsers: [
           dbUser({
-            directoryRoles: [{ userRoleId: 'ur-admin', roleKey: 'ADMIN', ouPath: '/Korisnici/ED Zenica/Breza' }],
+            directoryRoles: [{ userRoleId: 'ur-admin', roleKey: 'ADMIN', ouPath: '/Korisnici/Podružnica Zenica/Breza' }],
           }),
         ],
       }),
     );
     expect(plan.roles.grant).toEqual([
-      { userId: 'user-ana', email: 'ana@example.com', roleKey: 'AGENT', ouPath: '/Korisnici/ED Zenica/Breza' },
+      { userId: 'user-ana', email: 'ana@example.com', roleKey: 'AGENT', ouPath: '/Korisnici/Podružnica Zenica/Breza' },
     ]);
     expect(plan.roles.revoke).toEqual([
       { userRoleId: 'ur-admin', userId: 'user-ana', email: 'ana@example.com', roleKey: 'ADMIN' },

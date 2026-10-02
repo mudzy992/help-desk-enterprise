@@ -20,7 +20,7 @@ describe('ShadowAuthorizationService SuperAdmin', () => {
     harness.findOrganizationalUnit.mockReset();
     harness.findService.mockReset();
     harness.findOrganizationalUnit.mockResolvedValue({
-      ouPath: '/Korisnici/ED Zenica',
+      ouPath: '/Korisnici/Podružnica Zenica',
     });
     harness.findService.mockResolvedValue({ id: 'service-hr' });
   });

@@ -2,14 +2,14 @@ import { buildLocationPaths, checkLocationParent, locationDepth, locationSubtree
 
 const nodes: LocationNode[] = [
   { id: 'hq', name: 'Direkcija', parentId: null },
-  { id: 'ze', name: 'ED Zenica', parentId: 'hq' },
+  { id: 'ze', name: 'Podružnica Zenica', parentId: 'hq' },
   { id: 'vi', name: 'Visoko', parentId: 'ze' },
   { id: 'ka', name: 'Kakanj', parentId: 'ze' },
 ];
 
 describe('asset location tree (§7)', () => {
   it('builds full paths and subtrees', () => {
-    expect(buildLocationPaths(nodes).get('vi')).toBe('Direkcija › ED Zenica › Visoko');
+    expect(buildLocationPaths(nodes).get('vi')).toBe('Direkcija › Podružnica Zenica › Visoko');
     expect(locationSubtreeIds(nodes, 'ze').sort()).toEqual(['ka', 'vi', 'ze']);
     expect(locationDepth(nodes, 'vi')).toBe(3);
   });

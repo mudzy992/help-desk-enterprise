@@ -11,7 +11,7 @@ describe('evaluateAuthorizationAccess organizational unit scope', () => {
     roleKey: authorizationRoleKeys.admin,
     permissionKeys: [permissionKeys.routingWrite],
     organizationalUnitId: 'ou-zenica',
-    organizationalUnitPath: '/Korisnici/ED Zenica',
+    organizationalUnitPath: '/Korisnici/Podružnica Zenica',
   });
 
   it('inherits access to descendant units on the same assignment', () => {
@@ -23,7 +23,7 @@ describe('evaluateAuthorizationAccess organizational unit scope', () => {
           }),
           requiredPermissions: [permissionKeys.routingWrite],
           organizationalUnitId: 'ou-breza',
-          organizationalUnitPath: '/Korisnici/ED Zenica/Breza',
+          organizationalUnitPath: '/Korisnici/Podružnica Zenica/Breza',
           requireOrganizationalUnitScope: true,
         }),
       ),
@@ -88,7 +88,7 @@ describe('evaluateAuthorizationAccess organizational unit scope', () => {
         createTestDecisionInput({
           requiredPermissions: [permissionKeys.ticketMerge],
           organizationalUnitId: 'ou-zenica',
-          organizationalUnitPath: '/Korisnici/ED Zenica',
+          organizationalUnitPath: '/Korisnici/Podružnica Zenica',
           requireOrganizationalUnitScope: true,
         }),
       ),
@@ -106,7 +106,7 @@ describe('evaluateAuthorizationAccess organizational unit scope', () => {
           }),
           requiredPermissions: [permissionKeys.routingWrite],
           organizationalUnitId: 'ou-zenica',
-          organizationalUnitPath: '/Korisnici/ED Zenica',
+          organizationalUnitPath: '/Korisnici/Podružnica Zenica',
           requireOrganizationalUnitScope: true,
         }),
       ),

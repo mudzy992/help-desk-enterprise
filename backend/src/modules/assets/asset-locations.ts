@@ -1,6 +1,6 @@
 /**
  * Paket 3.2 (§7): location tree helpers. Locations form a tree up to
- * `assetLimits.locationDepthMax` levels (e.g. Direkcija › ED Zenica › Visoko).
+ * `assetLimits.locationDepthMax` levels (e.g. Direkcija › Podružnica Zenica › Visoko).
  * The table is small (hundreds of rows), so callers load it whole.
  */
 export type LocationNode = { readonly id: string; readonly name: string; readonly parentId: string | null };

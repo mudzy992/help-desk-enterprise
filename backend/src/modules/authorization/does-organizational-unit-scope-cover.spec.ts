@@ -4,14 +4,14 @@ describe('doesOrganizationalUnitScopeCover', () => {
   it('allows the assigned unit and its descendants', () => {
     expect(
       doesOrganizationalUnitScopeCover({
-        assignedPath: '/Korisnici/ED Zenica',
-        requestedPath: '/Korisnici/ED Zenica',
+        assignedPath: '/Korisnici/Podružnica Zenica',
+        requestedPath: '/Korisnici/Podružnica Zenica',
       }),
     ).toBe(true);
     expect(
       doesOrganizationalUnitScopeCover({
-        assignedPath: '/Korisnici/ED Zenica',
-        requestedPath: '/Korisnici/ED Zenica/Breza',
+        assignedPath: '/Korisnici/Podružnica Zenica',
+        requestedPath: '/Korisnici/Podružnica Zenica/Breza',
       }),
     ).toBe(true);
   });
@@ -19,20 +19,20 @@ describe('doesOrganizationalUnitScopeCover', () => {
   it('denies ancestors, siblings, and prefix collisions', () => {
     expect(
       doesOrganizationalUnitScopeCover({
-        assignedPath: '/Korisnici/ED Zenica',
+        assignedPath: '/Korisnici/Podružnica Zenica',
         requestedPath: '/Korisnici',
       }),
     ).toBe(false);
     expect(
       doesOrganizationalUnitScopeCover({
-        assignedPath: '/Korisnici/ED Zenica',
+        assignedPath: '/Korisnici/Podružnica Zenica',
         requestedPath: '/Korisnici/ED Sarajevo',
       }),
     ).toBe(false);
     expect(
       doesOrganizationalUnitScopeCover({
         assignedPath: '/Korisnici/ED',
-        requestedPath: '/Korisnici/ED Zenica',
+        requestedPath: '/Korisnici/Podružnica Zenica',
       }),
     ).toBe(false);
   });

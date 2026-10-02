@@ -145,7 +145,7 @@ export const assetLimits = {
   selectOptionsMax: 100,
   reasonMax: 500,
   pickerMax: 50,
-  /** Location tree depth, e.g. Direkcija › ED Zenica › Visoko › Kancelarija 12. */
+  /** Location tree depth, e.g. Direkcija › Podružnica Zenica › Visoko › Kancelarija 12. */
   locationDepthMax: 6,
 } as const;
 

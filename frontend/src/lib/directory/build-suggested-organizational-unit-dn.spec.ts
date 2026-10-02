@@ -7,17 +7,17 @@ describe("buildSuggestedOrganizationalUnitDistinguishedName", () => {
       buildSuggestedOrganizationalUnitDistinguishedName({
         displayName: "Visoko",
         parentDistinguishedName:
-          "OU=Djelatnost distribucije,OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba",
+          "OU=Sektor podrške,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com",
       }),
     ).toBe(
-      "OU=Visoko,OU=Djelatnost distribucije,OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba",
+      "OU=Visoko,OU=Sektor podrške,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com",
     );
     expect(
       buildSuggestedOrganizationalUnitDistinguishedName({
         displayName: "Staff",
         parentDistinguishedName: null,
-        existingDistinguishedName: "OU=Korisnici,DC=epbih,DC=ba",
+        existingDistinguishedName: "OU=Korisnici,DC=example,DC=com",
       }),
-    ).toBe("OU=Staff,DC=epbih,DC=ba");
+    ).toBe("OU=Staff,DC=example,DC=com");
   });
 });

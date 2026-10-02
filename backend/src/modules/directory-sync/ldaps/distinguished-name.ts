@@ -61,7 +61,7 @@ export function isDistinguishedNameWithin(dn: string, baseDn: string): boolean {
 }
 
 /**
- * OU path used by the application (`/Korisnici/ED Zenica/Visoko`): OU values
+ * OU path used by the application (`/Korisnici/Podružnica Zenica/Visoko`): OU values
  * from the top down. For a user DN the leading CN is skipped, so the path is
  * the user's container.
  */

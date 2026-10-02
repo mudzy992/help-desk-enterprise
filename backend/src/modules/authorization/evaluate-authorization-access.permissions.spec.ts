@@ -41,7 +41,7 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
               createTestAssignment({
                 permissionKeys: [permissionKeys.routingWrite],
                 organizationalUnitId: 'ou-zenica',
-                organizationalUnitPath: '/Korisnici/ED Zenica',
+                organizationalUnitPath: '/Korisnici/Podružnica Zenica',
               }),
             ],
           }),
@@ -58,7 +58,7 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
           roleKey: authorizationRoleKeys.agent,
           permissionKeys: [permissionKeys.onCallRead],
           organizationalUnitId: 'ou-zenica',
-          organizationalUnitPath: '/Korisnici/ED Zenica',
+          organizationalUnitPath: '/Korisnici/Podružnica Zenica',
         }),
       ],
     });
@@ -76,7 +76,7 @@ describe('evaluateAuthorizationAccess permissions and roles', () => {
               createTestAssignment({
                 permissionKeys: [permissionKeys.onCallManage],
                 organizationalUnitId: 'ou-zenica',
-                organizationalUnitPath: '/Korisnici/ED Zenica',
+                organizationalUnitPath: '/Korisnici/Podružnica Zenica',
               }),
             ],
           }),

@@ -21,15 +21,15 @@ describe('OrganizationalUnitsService hierarchy', () => {
       distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     const child = await service.create({
-      name: 'ED Zenica',
+      name: 'Podružnica Zenica',
       type: 'BRANCH',
-      distinguishedName: 'OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+      distinguishedName: 'OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com',
       parentId: root.id,
     });
     const grandchild = await service.create({
       name: 'Breza',
       type: 'OFFICE',
-      distinguishedName: 'OU=Breza,OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+      distinguishedName: 'OU=Breza,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com',
       parentId: child.id,
     });
     return { rootId: root.id, childId: child.id, grandchildId: grandchild.id };
@@ -59,7 +59,7 @@ describe('OrganizationalUnitsService hierarchy', () => {
     await expect(
       service.update(ids.childId, {
         parentId: ids.grandchildId,
-        distinguishedName: 'OU=ED Zenica,OU=Breza,OU=Korisnici,DC=example,DC=com',
+        distinguishedName: 'OU=Podružnica Zenica,OU=Breza,OU=Korisnici,DC=example,DC=com',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -83,14 +83,14 @@ describe('OrganizationalUnitsService hierarchy', () => {
     });
     const moved = await service.update(ids.childId, {
       parentId: direkcija.id,
-      distinguishedName: 'OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
+      distinguishedName: 'OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
     });
     expect(moved.parentId).toBe(direkcija.id);
-    expect(moved.ouPath).toBe('/Korisnici/Direkcija/ED Zenica');
+    expect(moved.ouPath).toBe('/Korisnici/Direkcija/Podružnica Zenica');
     const grandchild = await service.getById(ids.grandchildId);
-    expect(grandchild.ouPath).toBe('/Korisnici/Direkcija/ED Zenica/Breza');
+    expect(grandchild.ouPath).toBe('/Korisnici/Direkcija/Podružnica Zenica/Breza');
     expect(grandchild.distinguishedName).toBe(
-      'OU=Breza,OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
+      'OU=Breza,OU=Podružnica Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
     );
   });
 });

@@ -30,7 +30,7 @@ describe('AuthorizationService', () => {
     findOrganizationalUnit.mockReset();
     findService.mockReset();
     loadBySubjectId.mockResolvedValue(createTestAuthorizationContext());
-    findOrganizationalUnit.mockResolvedValue({ ouPath: '/Korisnici/ED Zenica' });
+    findOrganizationalUnit.mockResolvedValue({ ouPath: '/Korisnici/Podružnica Zenica' });
     findService.mockResolvedValue({ id: 'service-hr' });
   });
 
@@ -85,7 +85,7 @@ describe('AuthorizationService', () => {
         serviceId: null,
       }),
     ).resolves.toBe(false);
-    findOrganizationalUnit.mockResolvedValue({ ouPath: '/Korisnici/ED Zenica' });
+    findOrganizationalUnit.mockResolvedValue({ ouPath: '/Korisnici/Podružnica Zenica' });
     findService.mockResolvedValue(null);
     await expect(
       service.authorize({

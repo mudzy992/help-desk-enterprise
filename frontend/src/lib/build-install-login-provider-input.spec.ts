@@ -44,8 +44,8 @@ describe("buildInstallLoginProviderInput", () => {
       isInstallLoginProviderFormReady({
         mode: "entra_ad",
         ...emptyEntra,
-        adLdapsUrlsCsv: "ldaps://dc1.epbih.ba:636",
-        adBindDn: "CN=svc,DC=epbih,DC=ba",
+        adLdapsUrlsCsv: "ldaps://dc1.example.com:636",
+        adBindDn: "CN=svc,DC=example,DC=com",
         adBindPassword: "secret",
       }),
     ).toBe(true);

@@ -12,15 +12,15 @@ function plan(): DirectorySyncPlan {
     },
     users: {
       create: [{
-        guid: "g", email: "a@epbih.ba", displayName: "Čedo \"Ć\" Šabić", distinguishedName: "CN=a",
+        guid: "g", email: "a@example.com", displayName: "Čedo \"Ć\" Šabić", distinguishedName: "CN=a",
         company: null, department: null, ouPath: "/Visoko",
       }],
       update: [],
       reactivate: [],
-      deactivate: [{ userId: "u", email: "b@epbih.ba", displayName: "=HYPERLINK()", reason: "missing" }],
+      deactivate: [{ userId: "u", email: "b@example.com", displayName: "=HYPERLINK()", reason: "missing" }],
       unchanged: 3,
     },
-    roles: { grant: [{ userId: null, email: "a@epbih.ba", roleKey: "AGENT", ouPath: "/Visoko" }], revoke: [] },
+    roles: { grant: [{ userId: null, email: "a@example.com", roleKey: "AGENT", ouPath: "/Visoko" }], revoke: [] },
     exceptions: [{ code: "NO_EMAIL", distinguishedName: "CN=c", email: null, detail: null }],
     unitCounts: [],
     safeguard,
@@ -44,7 +44,7 @@ describe("buildDirectoryPlanCsv (paket 1.8)", () => {
   });
 
   it("includes roles and exceptions", () => {
-    expect(lines[4]).toBe('"role";"grant";"a@epbih.ba";"";"AGENT @ /Visoko";""');
+    expect(lines[4]).toBe('"role";"grant";"a@example.com";"";"AGENT @ /Visoko";""');
     expect(lines[5]).toBe('"exception";"NO_EMAIL";"";"";"CN=c";""');
   });
 });

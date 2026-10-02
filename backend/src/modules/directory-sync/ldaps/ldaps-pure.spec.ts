@@ -45,9 +45,9 @@ describe('LDAPS helpers (paket 1.8)', () => {
     expect(at('/Korisnici')).toBe('DIRECTORATE');
     expect(at('/Korisnici/Direkcija')).toBe('DIRECTORATE');
     expect(at('/Korisnici/Direkcija/Služba IT')).toBe('SERVICE');
-    expect(at('/Korisnici/ED Zenica')).toBe('BRANCH');
-    expect(at('/Korisnici/ED Zenica/Breza')).toBe('OFFICE');
-    expect(at('/Korisnici/ED Zenica/Breza/Tim')).toBe('SECTOR');
+    expect(at('/Korisnici/Podružnica Zenica')).toBe('BRANCH');
+    expect(at('/Korisnici/Podružnica Zenica/Breza')).toBe('OFFICE');
+    expect(at('/Korisnici/Podružnica Zenica/Breza/Tim')).toBe('SECTOR');
   });
 
   it('maps a user entry and detects disabled accounts', () => {
@@ -71,25 +71,25 @@ describe('LDAPS helpers (paket 1.8)', () => {
 
   it('resolves the OU: override > strategy > DN path; company/department falls back to DN', () => {
     const units = new Map([
-      ['/Korisnici/ED Zenica', { path: '/Korisnici/ED Zenica', company: null, department: null }],
-      ['/Korisnici/ED Zenica/Breza', { path: '/Korisnici/ED Zenica/Breza', company: 'Primjer d.o.o.', department: 'Breza' }],
+      ['/Korisnici/Podružnica Zenica', { path: '/Korisnici/Podružnica Zenica', company: null, department: null }],
+      ['/Korisnici/Podružnica Zenica/Breza', { path: '/Korisnici/Podružnica Zenica/Breza', company: 'Primjer d.o.o.', department: 'Breza' }],
       ['/Korisnici/Direkcija', { path: '/Korisnici/Direkcija', company: null, department: null }],
     ]);
     const user = {
       guid: 'g', email: 'a@x', userPrincipalName: null, samAccountName: null, displayName: 'A',
       memberOf: [], disabled: false,
-      distinguishedName: 'CN=A,OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+      distinguishedName: 'CN=A,OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com',
       company: 'Primjer d.o.o.', department: 'Breza',
     };
     expect(resolveUserOrganizationalUnit({ user, strategy: 'by_dn_ou_path', overrides: [], knownUnits: units }))
-      .toEqual({ path: '/Korisnici/ED Zenica', via: 'dn_path' });
+      .toEqual({ path: '/Korisnici/Podružnica Zenica', via: 'dn_path' });
     expect(resolveUserOrganizationalUnit({ user, strategy: 'by_company_department', overrides: [], knownUnits: units }))
-      .toEqual({ path: '/Korisnici/ED Zenica/Breza', via: 'company_department' });
+      .toEqual({ path: '/Korisnici/Podružnica Zenica/Breza', via: 'company_department' });
     expect(
       resolveUserOrganizationalUnit({
         user,
         strategy: 'by_company_department',
-        overrides: [{ dnSuffix: 'OU=ED Zenica,OU=Korisnici,DC=example,DC=com', ouPath: '/Korisnici/Direkcija' }],
+        overrides: [{ dnSuffix: 'OU=Podružnica Zenica,OU=Korisnici,DC=example,DC=com', ouPath: '/Korisnici/Direkcija' }],
         knownUnits: units,
       }),
     ).toEqual({ path: '/Korisnici/Direkcija', via: 'override' });

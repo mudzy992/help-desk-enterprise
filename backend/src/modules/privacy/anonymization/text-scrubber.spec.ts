@@ -16,7 +16,7 @@ const scrubber = createTextScrubber(
 describe('text scrubber (paket 2.6 §6.3)', () => {
   it('replaces full name, reversed name, e-mail, local part, DN and login', () => {
     const input =
-      'Pozdrav, Amra Hodžić (amra.hodzic@example.com). HODŽIĆ AMRA je javila; login EPBIH\\ahodzic, lokalno amra.hodzic. DN: CN=Amra Hodžić,OU=IT,DC=example,DC=com';
+      'Pozdrav, Amra Hodžić (amra.hodzic@example.com). HODŽIĆ AMRA je javila; login EXAMPLE\\ahodzic, lokalno amra.hodzic. DN: CN=Amra Hodžić,OU=IT,DC=example,DC=com';
     const { text, count } = scrubber.scrub(input);
     expect(text).not.toMatch(/amra|hodžić|hodzic|ahodzic/i);
     expect(count).toBe(6);
