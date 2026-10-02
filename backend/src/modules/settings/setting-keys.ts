@@ -2,6 +2,11 @@ import { addonSettingKey } from './addon-catalog';
 
 export const settingKeys = {
   publicBrandingAppName: 'public.branding.appName',
+  publicBrandingTagline: 'public.branding.tagline',
+  publicBrandingOrganizationName: 'public.branding.organizationName',
+  publicBrandingLogoDataUrl: 'public.branding.logoDataUrl',
+  publicBrandingSupportEmail: 'public.branding.supportEmail',
+  publicBrandingSupportUrl: 'public.branding.supportUrl',
   publicMaintenanceEnabled: 'public.maintenance.enabled',
   publicMaintenanceMessage: 'public.maintenance.message',
   publicMaintenanceFromAt: 'public.maintenance.fromAt',

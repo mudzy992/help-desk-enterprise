@@ -23,7 +23,7 @@ const channel = {
   smtp: { host: 'smtp.x.ba', port: 587, tls: true, username: 'u', password: 'p', fromAddress: 'desk@epbih.ba' },
   templates: defaultEmailTemplates,
   presentation: {
-    appName: 'EP Help Desk',
+    appName: 'Service Desk',
     publicUrl: 'https://desk.epbih.ba',
     accentColor: '#4F46E5',
     includeMessageExcerpt: false,
@@ -109,11 +109,11 @@ describe('ops alert e-mail', () => {
 
 describe('Teams card', () => {
   it('is an Adaptive Card with facts, the first step and a link', () => {
-    const card = buildTeamsAlertCard({ message: diskMessage, locale: 'en', appName: 'EP Help Desk', openUrl: 'https://desk/admin?tab=ops', now });
+    const card = buildTeamsAlertCard({ message: diskMessage, locale: 'en', appName: 'Service Desk', openUrl: 'https://desk/admin?tab=ops', now });
     const content = (card.attachments as Array<{ contentType: string; content: Record<string, unknown> }>)[0]!;
     expect(content.contentType).toBe('application/vnd.microsoft.card.adaptive');
     const body = content.content.body as Array<Record<string, unknown>>;
-    expect(body[0]).toMatchObject({ text: 'EP Help Desk: Attachment disk is filling up', color: 'Attention' });
+    expect(body[0]).toMatchObject({ text: 'Service Desk: Attachment disk is filling up', color: 'Attention' });
     expect((body[2]!.facts as Array<{ title: string }>).map((fact) => fact.title)).toContain('Used (%)');
     expect(content.content.actions).toEqual([{ type: 'Action.OpenUrl', title: 'Open system health', url: 'https://desk/admin?tab=ops' }]);
   });

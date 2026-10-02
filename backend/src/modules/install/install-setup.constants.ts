@@ -6,6 +6,7 @@ export const installSetupErrorCodes = {
 export const installSetupAllowlist = {
   healthMethod: 'GET',
   healthPath: '/health',
+  brandingPath: '/branding',
   installPathPrefix: '/install',
   completeMethod: 'POST',
   completePath: '/install/complete',

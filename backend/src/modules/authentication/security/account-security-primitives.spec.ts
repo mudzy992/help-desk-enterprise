@@ -47,8 +47,8 @@ describe('HOTP / TOTP (RFC 4226, RFC 6238)', () => {
   });
 
   it('builds an otpauth URI authenticator apps understand', () => {
-    const uri = buildOtpauthUri({ issuer: 'EP HelpDesk', accountName: 'a@b.ba', base32Secret: 'ABC' });
-    expect(uri).toBe('otpauth://totp/EP%20HelpDesk:a%40b.ba?secret=ABC&issuer=EP+HelpDesk&algorithm=SHA1&digits=6&period=30');
+    const uri = buildOtpauthUri({ issuer: 'Service Desk', accountName: 'a@b.ba', base32Secret: 'ABC' });
+    expect(uri).toBe('otpauth://totp/Service%20Desk:a%40b.ba?secret=ABC&issuer=Service+Desk&algorithm=SHA1&digits=6&period=30');
   });
 });
 

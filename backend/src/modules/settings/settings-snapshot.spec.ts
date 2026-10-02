@@ -218,7 +218,7 @@ describe('SettingsService with the snapshot', () => {
   it('reads the whole table once for the settings a request asks for', async () => {
     findMany.mockResolvedValue([
       { key: settingKeys.privateAuthMode, value: 'local' },
-      { key: settingKeys.publicBrandingAppName, value: 'EP-HelpDesk' },
+      { key: settingKeys.publicBrandingAppName, value: 'Service Desk' },
     ]);
     const service = await createService();
 
@@ -228,7 +228,7 @@ describe('SettingsService with the snapshot', () => {
       await service.getSetting(settingKeys.publicMaintenanceEnabled),
     ]);
 
-    expect(values).toEqual(['local', 'EP-HelpDesk', false]);
+    expect(values).toEqual(['local', 'Service Desk', false]);
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(findUnique).not.toHaveBeenCalled();
   });

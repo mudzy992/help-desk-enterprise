@@ -10,7 +10,7 @@ const publicAppName = definePublicSetting({
   valueType: 'string',
   description: 'Application name',
   isRequired: true,
-  defaultValue: 'EP-HelpDesk',
+  defaultValue: 'Service Desk',
 });
 
 describe('createSettingsRegistry', () => {

@@ -64,7 +64,7 @@ describe('loadEmailChannelConfiguration — presentation', () => {
       includeMessageExcerpt: true,
       defaultLocale: 'bs',
       supportedLocales: ['bs', 'en'],
-      appName: 'EP-HelpDesk',
+      appName: 'Service Desk',
       accentColor: '#4f46e5',
     });
   });

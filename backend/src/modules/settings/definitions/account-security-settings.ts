@@ -45,12 +45,12 @@ export const accountSecuritySettings: readonly SettingDefinition[] = [
     key: settingKeys.privateAuthMfaIssuerName,
     categoryId: category,
     valueType: 'string',
-    description: 'Name shown in the authenticator app',
-    isRequired: true,
-    defaultValue: 'EP HelpDesk',
+    description: 'Name shown in the authenticator app; empty uses the application name',
+    isRequired: false,
+    defaultValue: '',
     assertValue: (value) => {
-      if (typeof value !== 'string' || value.trim().length === 0 || value.length > 40 || value.includes(':')) {
-        throw new SettingsError('Issuer name must be 1-40 characters without ":"');
+      if (typeof value !== 'string' || value.length > 40 || value.includes(':')) {
+        throw new SettingsError('Issuer name must be at most 40 characters without ":"');
       }
     },
   }),

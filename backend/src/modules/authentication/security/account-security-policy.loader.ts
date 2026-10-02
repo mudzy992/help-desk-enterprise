@@ -29,7 +29,7 @@ export class AccountSecurityPolicyLoader {
     ] = await Promise.all([
       get(settingKeys.privateAuthMfaRequiredForAdmins, d.mfaRequiredForAdmins, isBool),
       get(settingKeys.privateAuthMfaAllowOptional, d.mfaAllowOptional, isBool),
-      get(settingKeys.privateAuthMfaIssuerName, d.mfaIssuerName, isText),
+      get(settingKeys.privateAuthMfaIssuerName, '', isText),
       get(settingKeys.privateAuthPasswordMinLength, d.passwordMinLength, isInt),
       get(settingKeys.privateAuthPasswordBlocklistEnabled, d.passwordBlocklistEnabled, isBool),
       get(settingKeys.privateAuthPasswordHistoryCount, d.passwordHistoryCount, isInt),
@@ -38,10 +38,12 @@ export class AccountSecurityPolicyLoader {
       get(settingKeys.privateAuthSessionsMaxPerUser, d.sessionsMaxPerUser, isInt),
       get(settingKeys.privateAuthSessionsNewDeviceAlert, d.sessionsNewDeviceAlert, isBool),
     ]);
+    // Paket 4.1: an empty issuer follows the product name (public.branding.appName).
+    const issuer = mfaIssuerName.trim() || (await get(settingKeys.publicBrandingAppName, d.mfaIssuerName, isText)).trim().replaceAll(':', ' ').slice(0, 40);
     return {
       mfaRequiredForAdmins,
       mfaAllowOptional,
-      mfaIssuerName: mfaIssuerName.trim(),
+      mfaIssuerName: issuer,
       passwordMinLength: Math.max(localPasswordConstants.minimumLength, passwordMinLength),
       passwordMaxLength: d.passwordMaxLength,
       passwordBlocklistEnabled,

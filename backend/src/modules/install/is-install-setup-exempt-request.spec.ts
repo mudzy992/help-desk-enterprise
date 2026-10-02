@@ -16,6 +16,11 @@ describe('isInstallSetupExemptRequest', () => {
     ).toBe(true);
   });
 
+  it('allows GET /branding but not writes to it', () => {
+    expect(isInstallSetupExemptRequest({ method: 'GET', path: '/branding' })).toBe(true);
+    expect(isInstallSetupExemptRequest({ method: 'POST', path: '/branding' })).toBe(false);
+  });
+
   it('does not exempt protected application routes', () => {
     expect(
       isInstallSetupExemptRequest({ method: 'POST', path: '/auth/login' }),

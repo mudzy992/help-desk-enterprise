@@ -41,7 +41,7 @@ describe('SettingsService', () => {
     const service = await createService();
     const publicSettings = await service.getPublicSettings();
     expect(publicSettings).toEqual({
-      [settingKeys.publicBrandingAppName]: 'EP-HelpDesk',
+      [settingKeys.publicBrandingAppName]: 'Service Desk',
       [settingKeys.publicMaintenanceEnabled]: false,
       [settingKeys.publicMaintenanceMessage]: '',
       [settingKeys.publicMaintenanceFromAt]: '',

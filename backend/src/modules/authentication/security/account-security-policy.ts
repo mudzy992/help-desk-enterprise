@@ -1,3 +1,4 @@
+import { defaultAppName } from '../../branding/branding.constants';
 import { accountSecuritySettingRanges as r } from '../../settings/definitions/account-security-settings';
 import { localPasswordConstants } from '../is-valid-local-password';
 
@@ -19,7 +20,7 @@ export type AccountSecurityPolicy = {
 export const defaultAccountSecurityPolicy: AccountSecurityPolicy = {
   mfaRequiredForAdmins: true,
   mfaAllowOptional: true,
-  mfaIssuerName: 'EP HelpDesk',
+  mfaIssuerName: defaultAppName,
   passwordMinLength: r.passwordMinLength.default,
   passwordMaxLength: localPasswordConstants.maximumLength,
   passwordBlocklistEnabled: true,

@@ -1,3 +1,4 @@
+import { defaultAppName } from '../branding/branding.constants';
 import { createTransport } from 'nodemailer';
 import {
   opsAlertAction,
@@ -106,7 +107,7 @@ export class OpsFallbackNotifier {
     }
     if (teamsWebhookUrl !== null) {
       try {
-        await this.teams(teamsWebhookUrl, buildTeamsAlertCard({ message, locale: 'bs', appName: 'EP Help Desk', openUrl: null, now: at }));
+        await this.teams(teamsWebhookUrl, buildTeamsAlertCard({ message, locale: 'bs', appName: defaultAppName, openUrl: null, now: at }));
         delivered.push('teams');
       } catch {
         // See above.

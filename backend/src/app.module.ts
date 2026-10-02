@@ -33,6 +33,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { OpsHealthModule } from './modules/ops-health/ops-health.module';
 import { StatusPageModule } from './modules/status-page/status-page.module';
+import { BrandingModule } from './modules/branding/branding.module';
 import { OnCallModule } from './modules/on-call/on-call.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { AssetsModule } from './modules/assets/assets.module';
@@ -81,6 +82,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     PrivacyModule,
     OpsHealthModule,
     StatusPageModule,
+    BrandingModule,
     OnCallModule,
     AnnouncementsModule,
     AssetsModule,

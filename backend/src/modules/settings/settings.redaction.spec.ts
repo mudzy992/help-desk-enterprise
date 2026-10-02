@@ -5,7 +5,7 @@ describe('redactIfSecret', () => {
     expect(redactIfSecret('secret', 'plaintext-secret')).toBe(
       redactedSecretPlaceholder,
     );
-    expect(redactIfSecret('public', 'EP-HelpDesk')).toBe('EP-HelpDesk');
+    expect(redactIfSecret('public', 'Service Desk')).toBe('Service Desk');
     expect(redactIfSecret('private', 'local')).toBe('local');
   });
 });

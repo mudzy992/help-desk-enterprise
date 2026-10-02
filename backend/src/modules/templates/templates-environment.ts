@@ -1,3 +1,4 @@
+import { defaultAppName } from '../branding/branding.constants';
 import { readPublicAppUrl } from '../notifications/email/load-email-channel-configuration';
 import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
 import { settingKeys } from '../settings/setting-keys';
@@ -19,7 +20,7 @@ export async function loadTemplateEnvironment(settings: SettingsService): Promis
     readInstallationTimeZone(settings),
   ]);
   return {
-    appName: typeof appName === 'string' && appName.trim().length > 0 ? appName.trim() : 'EP-HelpDesk',
+    appName: typeof appName === 'string' && appName.trim().length > 0 ? appName.trim() : defaultAppName,
     publicUrl: readPublicAppUrl(),
     timeZone,
   };

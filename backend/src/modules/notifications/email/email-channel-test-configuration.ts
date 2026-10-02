@@ -31,7 +31,7 @@ export function createEmailChannelTestConfiguration(
       provider: 'o365',
     },
     presentation: {
-      appName: 'EP-HelpDesk',
+      appName: 'Service Desk',
       publicUrl: 'https://desk.epbih.ba',
       accentColor: '#4f46e5',
       includeMessageExcerpt: true,

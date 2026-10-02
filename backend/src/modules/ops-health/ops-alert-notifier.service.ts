@@ -1,3 +1,4 @@
+import { defaultAppName } from '../branding/branding.constants';
 import { authenticationConstants } from '../authentication/authentication.constants';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -234,7 +235,7 @@ export class OpsAlertNotifier {
         buildTeamsAlertCard({
           message: input.message,
           locale: channel === null ? 'bs' : resolveEmailLocale(null, channel),
-          appName: presentation?.appName ?? 'EP Help Desk',
+          appName: presentation?.appName ?? defaultAppName,
           openUrl: presentation?.publicUrl == null ? null : `${presentation.publicUrl}${opsHealthPath}`,
           now,
         }),

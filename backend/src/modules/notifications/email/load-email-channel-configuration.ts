@@ -1,3 +1,4 @@
+import { defaultAppName } from '../../branding/branding.constants';
 import { settingKeys } from '../../settings/setting-keys';
 import type { SettingsService } from '../../settings/settings.service';
 import { defaultEmailTemplates } from './default-email-templates';
@@ -184,7 +185,7 @@ export async function readEmailPresentation(
     await settingsService.getSetting(settingKeys.privateNotificationsEmailAccentColor),
   );
   return {
-    appName: appName.length > 0 ? appName : 'EP-HelpDesk',
+    appName: appName.length > 0 ? appName : defaultAppName,
     publicUrl: readPublicAppUrl(),
     accentColor: accent.length > 0 ? accent : defaultEmailAccentColor,
     includeMessageExcerpt:

@@ -11,7 +11,7 @@ function input(overrides: Partial<RenderEmailMessageInput> = {}): RenderEmailMes
       actorName: 'Amra',
       groupName: 'IT',
     },
-    appName: 'EP-HelpDesk',
+    appName: 'Service Desk',
     accentColor: '#4f46e5',
     confidential: false,
     ticket: {
