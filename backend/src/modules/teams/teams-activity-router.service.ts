@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { readCardAction, type TeamsActivity } from './teams-activity';
 import { adaptiveCard, cardActivity, escapeCardText, execute, heading, openUrl, paragraph, type CardElement } from './teams-cards';
-import { parseTeamsCommand } from './teams-commands';
+import { parseTeamsInput, type TeamsCommand } from './teams-commands';
 import { messagePayloadText } from './teams-ticket-create';
 import type { TeamsConfiguration } from './teams-configuration.service';
 import { defaultTeamsChannelEvents, maxMyTickets, teamsVerbs } from './teams.constants';
@@ -27,6 +27,28 @@ export interface TeamsActionHandler {
   handle(input: { verb: string; data: Record<string, unknown>; user: TeamsLinkedUser; activity: TeamsActivity; config: TeamsConfiguration }): Promise<Record<string, unknown>>;
 }
 
+/** §20b: who sees which commands in `pomoć`. */
+export interface TeamsQueryAudience {
+  readonly isStaff: boolean;
+  readonly cab: boolean;
+  readonly onCall: boolean;
+}
+
+export interface TeamsQueryInput {
+  readonly command: TeamsCommand;
+  readonly argument: string;
+  /** Raw message text (bare ticket numbers that do not exist fall back to help). */
+  readonly text: string | undefined;
+  readonly user: TeamsLinkedUser;
+  readonly config: TeamsConfiguration;
+}
+
+/** Extension point for the read commands (T4b). */
+export interface TeamsQueryHandler {
+  audience(userId: string): Promise<TeamsQueryAudience>;
+  answer(input: TeamsQueryInput): Promise<Record<string, unknown>[] | null>;
+}
+
 interface RouteContext {
   readonly activity: TeamsActivity;
   readonly config: TeamsConfiguration;
@@ -46,6 +68,7 @@ interface RouteContext {
 export class TeamsActivityRouter {
   private readonly logger = new Logger(TeamsActivityRouter.name);
   private actionHandler: TeamsActionHandler | null = null;
+  private queryHandler: TeamsQueryHandler | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,6 +78,10 @@ export class TeamsActivityRouter {
 
   registerActionHandler(handler: TeamsActionHandler): void {
     this.actionHandler = handler;
+  }
+
+  registerQueryHandler(handler: TeamsQueryHandler): void {
+    this.queryHandler = handler;
   }
 
   async route(activity: TeamsActivity, config: TeamsConfiguration, transport: TeamsTransport): Promise<TeamsInvokeResponse | null> {
@@ -78,10 +105,10 @@ export class TeamsActivityRouter {
     };
     switch (activity.type) {
       case 'installationUpdate':
-        if (conversation.kind === 'PERSONAL') await this.reply(context, this.welcomeCard(context));
+        if (conversation.kind === 'PERSONAL') await this.reply(context, await this.welcomeCard(context));
         return null;
       case 'conversationUpdate':
-        if (conversation.kind === 'PERSONAL' && TeamsConversationsService.isBotMember(activity, activity.membersAdded)) await this.reply(context, this.welcomeCard(context));
+        if (conversation.kind === 'PERSONAL' && TeamsConversationsService.isBotMember(activity, activity.membersAdded)) await this.reply(context, await this.welcomeCard(context));
         return null;
       case 'message':
         await this.onMessage(context);
@@ -94,7 +121,7 @@ export class TeamsActivityRouter {
   }
 
   private async onMessage(context: RouteContext): Promise<void> {
-    const command = parseTeamsCommand(context.activity.text);
+    const { command, argument } = parseTeamsInput(context.activity.text);
     if (context.conversation.kind !== 'PERSONAL') {
       // Channel and group chat: the bot only reacts to link / unlink (it is @-mentioned there).
       if (command === 'link') await this.reply(context, await this.linkCard(context));
@@ -119,8 +146,19 @@ export class TeamsActivityRouter {
       case 'link':
         await this.reply(context, this.noticeCard(context, 'linkOnlyChannel'));
         return;
-      default:
-        await this.reply(context, this.helpCard(context));
+      case 'help':
+      case 'unlink':
+      case 'unknown':
+        await this.reply(context, await this.helpCard(context));
+        return;
+      default: {
+        const cards = this.queryHandler ? await this.queryHandler.answer({ command, argument, text: context.activity.text, user: context.user, config: context.config }) : null;
+        if (!cards) {
+          await this.reply(context, await this.helpCard(context));
+          return;
+        }
+        for (const card of cards) await this.reply(context, cardActivity(card));
+      }
     }
   }
 
@@ -166,7 +204,9 @@ export class TeamsActivityRouter {
       return task(await this.actionHandler.ticketForm(context.locale, context.config, description, 'submit'));
     }
     const data = ((context.activity.value as { data?: unknown } | null)?.data ?? {}) as Record<string, unknown>;
-    const card = await this.actionHandler.handle({ verb: teamsVerbs.createTicket, data, user: context.user, activity: context.activity, config: context.config });
+    // Task-module buttons (Dalje / Ipak kreiraj / Riješeno) carry their verb in the data.
+    const verb = data.verb === teamsVerbs.deflectTicket ? teamsVerbs.deflectTicket : teamsVerbs.createTicket;
+    const card = await this.actionHandler.handle({ verb, data: { ...data, submitMode: 'submit' }, user: context.user, activity: context.activity, config: context.config });
     return task(card);
   }
 
@@ -231,22 +271,35 @@ export class TeamsActivityRouter {
 
   // ---- cards ---------------------------------------------------------------
 
-  private welcomeCard(context: RouteContext): TeamsOutboundActivity {
+  private async welcomeCard(context: RouteContext): Promise<TeamsOutboundActivity> {
     const t = (key: TeamsTextKey, params?: Record<string, string>) => teamsText(context.locale, key, params);
     const app = context.config.appName || t('openApp');
     const body: CardElement[] = [heading(t('welcomeTitle', { app: escapeCardText(app) }))];
     body.push(paragraph(context.user ? t('welcomeLinked', { name: escapeCardText(context.user.displayName) }) : t('notLinked')));
-    if (context.user) body.push(...this.helpLines(context));
+    if (context.user) body.push(...(await this.helpLines(context)));
     return cardActivity(adaptiveCard(body, this.appLink(context)), t('welcomeTitle', { app }));
   }
 
-  private helpCard(context: RouteContext): TeamsOutboundActivity {
-    return cardActivity(adaptiveCard([heading(teamsText(context.locale, 'helpTitle')), ...this.helpLines(context)], this.appLink(context)));
+  private async helpCard(context: RouteContext): Promise<TeamsOutboundActivity> {
+    return cardActivity(adaptiveCard([heading(teamsText(context.locale, 'helpTitle')), ...(await this.helpLines(context))], this.appLink(context)));
   }
 
-  private helpLines(context: RouteContext): CardElement[] {
-    const keys: TeamsTextKey[] = ['helpNewTicket', 'helpMyTickets', 'helpHelp', 'helpChannel'];
-    return keys.map((key) => paragraph(`• ${teamsText(context.locale, key)}`, { spacing: 'Small' }));
+  /** §20b: only the commands the user may use. */
+  private async helpLines(context: RouteContext): Promise<CardElement[]> {
+    const line = (key: TeamsTextKey) => paragraph(`• ${teamsText(context.locale, key)}`, { spacing: 'Small' });
+    const personal: TeamsTextKey[] = ['helpNewTicket', 'helpMyTickets'];
+    if (this.queryHandler) personal.push('helpTicket', 'helpSearch', 'helpApprovals', 'helpStatus');
+    personal.push('helpHelp');
+    const lines = personal.map(line);
+    const audience = context.user && this.queryHandler ? await this.queryHandler.audience(context.user.id).catch(() => null) : null;
+    if (audience?.isStaff) {
+      const agent: TeamsTextKey[] = ['helpAssigned', 'helpQueue', 'helpSla'];
+      if (audience.cab) agent.push('helpCab');
+      if (audience.onCall) agent.push('helpOnCall');
+      lines.push(paragraph(teamsText(context.locale, 'helpAgentTitle'), { weight: 'Bolder', spacing: 'Medium' }), ...agent.map(line));
+    }
+    lines.push(paragraph(teamsText(context.locale, 'helpChannel'), { isSubtle: true, spacing: 'Medium', size: 'Small' }));
+    return lines;
   }
 
   private async myTicketsCard(context: RouteContext, user: TeamsLinkedUser): Promise<TeamsOutboundActivity> {
@@ -271,7 +324,8 @@ export class TeamsActivityRouter {
         ],
       });
     }
-    return cardActivity(adaptiveCard(body, this.appLink(context)), t('myTicketsTitle'));
+    const all = context.config.publicUrl ? [openUrl(t('openAll'), `${context.config.publicUrl}/tickets?view=requested`)] : [];
+    return cardActivity(adaptiveCard(body, all), t('myTicketsTitle'));
   }
 
   private noticeCardContent(context: RouteContext, key: TeamsTextKey, withLink = false, params: Record<string, string | number> = {}): Record<string, unknown> {

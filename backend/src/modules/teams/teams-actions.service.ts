@@ -4,6 +4,10 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { assetViewerFromContext } from '../assets/asset-viewer';
 import { appendAuditLog } from '../audit-log/append-audit-log';
 import { ChangeApprovalsService } from '../changes/change-approvals.service';
+import { KnowledgeBaseDiscoveryService } from '../knowledge-base/knowledge-base-discovery.service';
+import { readInstallationTimeZone } from '../settings/read-installation-time-zone';
+import { settingKeys } from '../settings/setting-keys';
+import { SettingsService } from '../settings/settings.service';
 import { isServiceOfferedToRequesters } from '../service-catalog/assert-service-lifecycle-transition';
 import { parseFormSchema } from '../service-catalog/parse-form-schema';
 import { TicketsApprovalsService } from '../tickets/approvals/tickets-approvals.service';
@@ -15,7 +19,8 @@ import type { TeamsActivity } from './teams-activity';
 import { TeamsActivityRouter, type TeamsActionHandler } from './teams-activity-router.service';
 import { adaptiveCard, paragraph } from './teams-cards';
 import type { TeamsConfiguration } from './teams-configuration.service';
-import { teamsVerbs } from './teams.constants';
+import { teamsListLimits, teamsVerbs } from './teams.constants';
+import { interceptCard } from './teams-query-cards';
 import { TeamsDeliveryService } from './teams-delivery.service';
 import type { TeamsLinkedUser } from './teams-identity.service';
 import { teamsText, type TeamsLocale, type TeamsTextKey } from './teams-text';
@@ -32,6 +37,7 @@ const handledVerbs = new Set<string>([
   teamsVerbs.approveChange,
   teamsVerbs.rejectChange,
   teamsVerbs.createTicket,
+  teamsVerbs.deflectTicket,
 ]);
 
 type ActionInput = Parameters<TeamsActionHandler['handle']>[0];
@@ -55,6 +61,8 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
     private readonly approvals: TicketsApprovalsService,
     private readonly changeApprovals: ChangeApprovalsService,
     private readonly delivery: TeamsDeliveryService,
+    private readonly knowledge: KnowledgeBaseDiscoveryService,
+    private readonly settings: SettingsService,
   ) {}
 
   onModuleInit(): void {
@@ -69,6 +77,7 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
     const { verb, user, config } = input;
     const locale = user.locale;
     if (verb === teamsVerbs.createTicket) return this.createTicket(input);
+    if (verb === teamsVerbs.deflectTicket) return this.deflect(input);
     if (!config.actionsEnabled) return notice(locale, 'actionUnavailable');
     const context: TicketMutationContext = { actorUserId: user.id, messageSource: 'TEAMS' };
     const ticketId = str(input.data.ticketId, 64);
@@ -177,7 +186,8 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
     if (!config.ticketCreateEnabled) return notice(locale, 'newTicketDisabled');
     const { choices } = await this.creatableServices();
     if (choices.length === 0) return notice(locale, 'createNoServices');
-    return ticketFormCard({ locale, services: choices, description, publicUrl: config.publicUrl, submitMode });
+    const intercept = await this.interceptEnabled();
+    return ticketFormCard({ locale, services: choices, description, publicUrl: config.publicUrl, submitMode, intercept });
   }
 
   async searchServices(query: string): Promise<{ title: string; value: string }[]> {
@@ -193,6 +203,15 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
     if (!draft) return notice(locale, 'errInvalid');
     const { needsForm } = await this.creatableServices();
     if (needsForm.has(draft.serviceId)) return needsFormCard(locale, draft.serviceId, config.publicUrl);
+    if (input.data.confirmed !== true) {
+      const suggestions = await this.suggestions(user.id, draft.serviceId, `${draft.title} ${draft.description}`);
+      if (suggestions.length > 0) {
+        return interceptCard(
+          { locale, timeZone: await readInstallationTimeZone(this.settings), publicUrl: config.publicUrl },
+          { articles: suggestions, draft: { ...draft }, submitMode: input.data.submitMode === 'submit' ? 'submit' : 'execute' },
+        );
+      }
+    }
     try {
       const created = await this.tickets.create(
         { title: draft.title, description: draft.description, serviceId: draft.serviceId, impact: draft.impact, urgency: draft.urgency },
@@ -205,6 +224,49 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
       const key = teamsErrorTextKey(error);
       if (key === null) throw error;
       return notice(locale, key);
+    }
+  }
+
+  /** §20b.2: „Riješeno, ne treba tiket“ – records the deflection like the web form. */
+  private async deflect(input: ActionInput): Promise<Record<string, unknown>> {
+    const { user } = input;
+    const serviceId = str(input.data.serviceId, 64);
+    if (!serviceId) return notice(user.locale, 'errInvalid');
+    const articleId = str(input.data.articleId, 64);
+    const account = await this.prisma.user.findUnique({ where: { id: user.id }, select: { organizationalUnitId: true } });
+    if (account?.organizationalUnitId) {
+      try {
+        const resolution = await this.knowledge.resolveIntercept(
+          { serviceId, organizationalUnitId: account.organizationalUnitId, ...(articleId ? { articleId } : {}) },
+          { actorUserId: user.id },
+        );
+        await this.audit(user, input.activity, teamsVerbs.deflectTicket, 'knowledgeInterceptResolution', resolution.id);
+      } catch (error) {
+        // The user is helped either way; a failed statistic must not turn into an error card.
+        this.logger.warn(`teams_deflect_record_failed user=${user.id} reason=${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    return notice(user.locale, 'doneDeflected');
+  }
+
+  private async interceptEnabled(): Promise<boolean> {
+    return (await this.settings.getSetting(settingKeys.privateAddonsKbIntercept).catch(() => false)) === true;
+  }
+
+  /** Up to 3 visible, published articles for the service; a failing search never blocks the ticket. */
+  private async suggestions(userId: string, serviceId: string, query: string) {
+    if (!(await this.interceptEnabled())) return [];
+    try {
+      const result = await this.knowledge.intercept({ serviceId, query: query.slice(0, 500) }, { actorUserId: userId });
+      return result.articles.slice(0, teamsListLimits.intercept).map((article) => ({
+        id: article.id,
+        slug: article.slug,
+        title: article.title,
+        preview: article.bodyPreview.length > 160 ? `${article.bodyPreview.slice(0, 159)}…` : article.bodyPreview,
+      }));
+    } catch (error) {
+      this.logger.warn(`teams_intercept_failed user=${userId} reason=${error instanceof Error ? error.message : String(error)}`);
+      return [];
     }
   }
 

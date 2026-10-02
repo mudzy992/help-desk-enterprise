@@ -15,5 +15,6 @@ import { StatusPageService } from './status-page.service';
   imports: [SettingsModule, AuthenticationModule, AuthorizationModule, TicketsModule],
   controllers: [StatusPageController, PublicStatusPageController],
   providers: [StatusPageConfigurationLoader, ServiceAvailabilityConfigurationLoader, StatusPageService, StatusIncidentsService],
+  exports: [StatusPageService],
 })
 export class StatusPageModule {}

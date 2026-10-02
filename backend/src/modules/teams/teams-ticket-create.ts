@@ -64,6 +64,8 @@ export function ticketFormCard(input: {
   publicUrl: string | null;
   /** Task modules (message action) submit with Action.Submit; chat cards use Action.Execute. */
   submitMode?: 'execute' | 'submit';
+  /** §20b.2: with the knowledge intercept on the button reads „Dalje“ (suggestions come first). */
+  intercept?: boolean;
 }): Record<string, unknown> {
   const t = (key: TeamsTextKey) => teamsText(input.locale, key);
   const levels = (id: string, label: string): CardElement => ({
@@ -90,10 +92,11 @@ export function ticketFormCard(input: {
     { type: 'Input.Text', id: 'description', label: t('createDescription'), isRequired: true, isMultiline: true, maxLength: 10_000, value: input.description ?? '', errorMessage: t('createDescription') },
     { type: 'ColumnSet', columns: [{ type: 'Column', width: 'stretch', items: [levels('impact', t('createImpact'))] }, { type: 'Column', width: 'stretch', items: [levels('urgency', t('createUrgency'))] }] },
   ];
+  const submit = t(input.intercept ? 'createNext' : 'createSubmit');
   const actions: CardElement[] = [
     input.submitMode === 'submit'
-      ? { type: 'Action.Submit', title: t('createSubmit'), style: 'positive', data: { verb: teamsVerbs.createTicket } }
-      : execute(t('createSubmit'), teamsVerbs.createTicket, {}, { associatedInputs: 'auto', style: 'positive' }),
+      ? { type: 'Action.Submit', title: submit, style: 'positive', data: { verb: teamsVerbs.createTicket } }
+      : execute(submit, teamsVerbs.createTicket, {}, { associatedInputs: 'auto', style: 'positive' }),
   ];
   if (input.publicUrl) actions.push(openUrl(t('openApp'), `${input.publicUrl}/tickets/new`));
   return adaptiveCard(body, actions);

@@ -474,3 +474,8 @@ To je kriterij kompletnosti.
 - Simulator Teamsa dozvoljava da se cijeli tok (instalacija, komande, kartice, dugmad, novi tiket) isproba bez ikakvog Microsoft naloga ili pretplate.
 - Na stranici „Moje obavijesti“ vidi se da li je Teams aplikacija povezana, i tu se Teams obavijesti uključuju po događaju.
 - Stari „Teams (stub)“ dodatak je uklonjen iz aplikacije; Teams se uključuje isključivo dodatkom „Microsoft Teams konektor“.
+- Bot u ličnom chatu odgovara i na: `tiket HD-123` (ili samo broj), `traži <tekst>`, `odobrenja` i `status`; agenti dodatno `dodijeljeni`, `red`, `sla`, `cab` (uz modul promjena) i `dežurni` (uz pravo čitanja dežurstava). Komande rade s dijakriticima i bez, na bosanskom i engleskom.
+- Bot nikad ne pokazuje više nego web aplikacija: svaki odgovor ide kroz ista prava i opseg OJ; za tiket koji ne postoji i tiket koji korisniku nije dostupan odgovor je isti.
+- Liste u Teamsu su kratke (5 za korisnika, 10 za agenta); ispod je „Prikazano X od Y“ i dugme „Otvori sve u aplikaciji“ s istim filterom.
+- `pomoć` pokazuje samo komande koje korisnik smije koristiti.
+- Kad je uključen KB intercept, Teams formular za novi tiket ima dugme „Dalje“: ako postoje članci za servis, bot prvo ponudi do 3 članka i dugmad „Riješeno, ne treba tiket“ (bilježi se kao skretanje, isto kao na webu) i „Ipak kreiraj tiket“; bez članaka tiket se kreira odmah. Isto vrijedi za „Kreiraj tiket iz poruke“.

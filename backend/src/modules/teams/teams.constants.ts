@@ -19,9 +19,12 @@ export const teamsVerbs = {
   approveChange: 'change.approve',
   rejectChange: 'change.reject',
   createTicket: 'ticket.create',
+  deflectTicket: 'ticket.deflect',
 } as const;
 
 /** Simulated activities use this service URL and, without a configured tenant, this tenant. */
 export const simulatorTenantId = 'simulator-tenant';
 export const maxMyTickets = 5;
+/** §20b: list sizes of the command answers (personal / agent lists, approval cards, intercept suggestions). */
+export const teamsListLimits = { personal: 5, agent: 10, cards: 5, intercept: 3 } as const;
 export const maxLinkableGroups = 50;

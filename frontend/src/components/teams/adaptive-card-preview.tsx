@@ -23,7 +23,7 @@ const asText = (value: unknown): string => (typeof value === "string" ? value : 
 
 /**
  * Paket 3.1 (§16): renders the Adaptive Card subset the connector sends
- * (TextBlock, FactSet, ColumnSet, Container, Input.Text, Input.ChoiceSet,
+ * (TextBlock, FactSet, ColumnSet, Container, ActionSet, Input.Text, Input.ChoiceSet,
  * Action.Execute/Submit/OpenUrl/ShowCard) with the design system — a
  * faithful-enough preview for the simulator, not a general renderer.
  */
@@ -36,7 +36,7 @@ export function AdaptiveCardPreview({ card, disabled = false, onAction }: Adapti
   const renderElement = (node: CardNode, key: string): ReactNode => {
     switch (node.type) {
       case "TextBlock": {
-        const color = node.color === "Attention" ? "text-danger" : node.color === "Good" ? "text-ok" : node.color === "Warning" ? "text-warning" : "text-foreground";
+        const color = node.color === "Attention" ? "text-danger" : node.color === "Good" ? "text-ok" : node.color === "Warning" ? "text-warning" : node.color === "Accent" ? "text-link" : "text-foreground";
         return (
           <p
             key={key}
@@ -74,12 +74,21 @@ export function AdaptiveCardPreview({ card, disabled = false, onAction }: Adapti
             ))}
           </div>
         );
-      case "Container":
+      case "Container": {
+        const select = node.selectAction as CardNode | undefined;
         return (
-          <div key={key} className="space-y-2">
+          <div key={key} className={cn("space-y-1", node.separator === true ? "border-t border-border pt-2" : null)}>
             {asNodes(node.items).map((item, index) => renderElement(item, `${key}-${index}`))}
+            {select?.type === "Action.OpenUrl" ? (
+              <a className="text-[11.5px] text-link hover:underline" href={asText(select.url)} target="_blank" rel="noreferrer">
+                {asText(select.title)}
+              </a>
+            ) : null}
           </div>
         );
+      }
+      case "ActionSet":
+        return <div key={key}>{renderActions(asNodes(node.actions), [], `a${key}`)}</div>;
       case "Input.Text": {
         const id = asText(node.id);
         const label = asText(node.label) || asText(node.placeholder) || id;

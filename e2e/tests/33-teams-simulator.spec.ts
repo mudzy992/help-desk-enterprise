@@ -172,4 +172,93 @@ test.describe('33 teams simulator', () => {
       teamsDefaults,
     );
   });
+
+  test('T4b: ticket card, KB search, status, agent commands and the intercept step', async () => {
+    const env = readE2EEnvironment();
+    const admin = new ApiClient();
+    await admin.login(env.superAdminEmail, env.superAdminPassword);
+    const stamp = uniqueStamp();
+    const kbIntercept = 'private.addons.kbIntercept';
+
+    await withSettings(
+      admin,
+      {
+        [teamsSettings.addon]: true,
+        [teamsSettings.mode]: 'simulator',
+        [teamsSettings.personalEnabled]: true,
+        [teamsSettings.ticketCreateEnabled]: true,
+        [teamsSettings.actionsEnabled]: true,
+        [kbIntercept]: true,
+      },
+      `E2E 3.1 T4b ${stamp}`,
+      async () => {
+        const users = await admin.requestJson<Array<{ id: string; email: string }>>('/users');
+        const idOf = (email: string) => {
+          const found = users.find((item) => item.email.toLowerCase() === email.toLowerCase());
+          expect(found, email).toBeTruthy();
+          return found!.id;
+        };
+        const userId = idOf(env.userEmail);
+        const agentId = idOf(env.agentEmail);
+        const userApi = new ApiClient();
+        await userApi.login(env.userEmail, env.userPassword);
+        const say = async (who: string, text: string) => {
+          expect((await simulate(admin, { kind: 'message', userId: who, scope: 'personal', text })).status).toBe(200);
+        };
+        await simulate(admin, { kind: 'install', userId, scope: 'personal' });
+        await simulate(admin, { kind: 'install', userId: agentId, scope: 'personal' });
+
+        // Help: users see personal commands only, agents also the agent block.
+        await say(userId, 'pomoć');
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/traži|search/);
+        expect(await botTranscript(admin, userId)).not.toMatch(/\*\*dodijeljeni\*\*|\*\*assigned\*\*/);
+        await say(agentId, 'pomoc');
+        await expect.poll(() => botTranscript(admin, agentId), { timeout: 15_000 }).toMatch(/\*\*dodijeljeni\*\*|\*\*assigned\*\*/);
+
+        // Form button reads „Dalje“ with the intercept on; a fresh service has no articles → created directly.
+        await say(userId, 'novi tiket');
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/"title":"(Dalje|Next)"/);
+        const service = await createOfferedService(admin, { label: 'Teams T4b' });
+        const title = `E2E Teams T4b ${stamp}`;
+        const created = await simulate(admin, {
+          kind: 'action',
+          userId,
+          scope: 'personal',
+          verb: 'ticket.create',
+          data: { serviceId: service.id, title, description: 'Bez članaka za ovaj servis.', impact: 'LOW', urgency: 'LOW' },
+        });
+        expect(JSON.stringify(created.response)).toMatch(/kreiran|was created/);
+        const list = await userApi.requestJson<{ items: TicketRow[] }>(`/tickets?serviceId=${encodeURIComponent(service.id)}`);
+        const ticket = list.items.find((item) => item.title === title);
+        expect(ticket).toBeTruthy();
+
+        // „tiket <broj>“ and the bare number show the card; a foreign/unknown number does not leak.
+        await say(userId, `tiket ${ticket!.ticketNumber}`);
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(new RegExp(`(Tiket|Ticket) ${ticket!.ticketNumber.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+        await say(userId, `tiket XX-${stamp}`);
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/ne postoji ili vam nije dostupan|does not exist or is not available/);
+
+        // Knowledge base search and status always answer (results depend on the data).
+        await say(userId, `traži e2e-${stamp}`);
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/Nema članaka|No articles|nije dostupna|not available/);
+        await say(userId, 'status');
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/Status servisa|Service status|Statusna stranica je isključena|status page is turned off/);
+
+        // Agent commands: refused for users, answered for agents.
+        await say(userId, 'dodijeljeni');
+        await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/samo agentima|agents only/);
+        await say(agentId, 'red');
+        await expect.poll(() => botTranscript(admin, agentId), { timeout: 15_000 }).toMatch(/Red – nepreuzeti tiketi|Queue – unclaimed tickets/);
+        await say(agentId, 'sla');
+        await expect.poll(() => botTranscript(admin, agentId), { timeout: 15_000 }).toMatch(/ugroženim ili probijenim|at-risk or breached/);
+
+        // Deflection is recorded and creates no ticket.
+        const deflected = await simulate(admin, { kind: 'action', userId, scope: 'personal', verb: 'ticket.deflect', data: { serviceId: service.id } });
+        expect(JSON.stringify(deflected.response)).toMatch(/Tiket nije kreiran|No ticket was created/);
+        const after = await userApi.requestJson<{ items: TicketRow[] }>(`/tickets?serviceId=${encodeURIComponent(service.id)}`);
+        expect(after.items).toHaveLength(1);
+      },
+      { ...teamsDefaults, [kbIntercept]: true },
+    );
+  });
 });

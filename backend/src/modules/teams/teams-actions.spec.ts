@@ -26,9 +26,10 @@ const activity = parseTeamsActivity({
   conversation: { id: 'c1', conversationType: 'personal' },
 })!;
 
-function setup(options: { assigned?: string | null; approval?: boolean; formSchema?: unknown; claimError?: Error } = {}) {
+function setup(options: { assigned?: string | null; approval?: boolean; formSchema?: unknown; claimError?: Error; intercept?: boolean; articles?: number; unitId?: string | null } = {}) {
   const prisma = {
     ticket: { findUnique: jest.fn(async () => ({ assignedUserId: options.assigned ?? null })) },
+    user: { findUnique: jest.fn(async () => ({ organizationalUnitId: options.unitId === undefined ? 'ou1' : options.unitId })) },
     ticketApproval: { findFirst: jest.fn(async () => (options.approval === false ? null : { id: 'ap1' })) },
     service: {
       findMany: jest.fn(async () => [
@@ -52,6 +53,13 @@ function setup(options: { assigned?: string | null; approval?: boolean; formSche
   };
   const principals = { load: jest.fn(async () => ({ roleKeys: [], assignments: [{ roleKey: 'AGENT', permissionKeys: ['change.approve'], organizationalUnitPath: null }] })) };
   const router = { registerActionHandler: jest.fn() };
+  const knowledge = {
+    intercept: jest.fn(async () => ({
+      articles: Array.from({ length: options.articles ?? 0 }, (_, index) => ({ id: `a${index + 1}`, slug: `clanak-${index + 1}`, title: `Članak ${index + 1}`, bodyPreview: 'Restartujte VPN klijent.', isStale: false, score: 1, viewerFeedback: null })),
+    })),
+    resolveIntercept: jest.fn(async () => ({ id: 'r1' })),
+  };
+  const settings = { getSetting: jest.fn(async (key: string) => (key.endsWith('kbIntercept') ? (options.intercept ?? false) : 'Europe/Sarajevo')) };
   const service = new TeamsActionsService(
     prisma as never,
     router as never,
@@ -61,9 +69,11 @@ function setup(options: { assigned?: string | null; approval?: boolean; formSche
     approvals as never,
     changeApprovals as never,
     delivery as never,
+    knowledge as never,
+    settings as never,
   );
   const run = (verb: string, data: Record<string, unknown>, cfg = config) => service.handle({ verb, data, user, activity, config: cfg });
-  return { service, run, prisma, tickets, collaboration, approvals, changeApprovals, delivery };
+  return { service, run, prisma, tickets, collaboration, approvals, changeApprovals, delivery, knowledge };
 }
 
 const json = (value: unknown) => JSON.stringify(value);
@@ -95,6 +105,63 @@ describe('TeamsActionsService', () => {
     await run(teamsVerbs.noteTicket, { ticketId: 't1', text: 'Interno' });
     expect(collaboration.createMessage).toHaveBeenNthCalledWith(1, 't1', { type: 'AGENT_REPLY', body: 'Provjerite kabl.' }, expect.objectContaining({ messageSource: 'TEAMS' }));
     expect(collaboration.createMessage).toHaveBeenNthCalledWith(2, 't1', { type: 'INTERNAL_NOTE', body: 'Interno' }, expect.anything());
+  });
+
+  describe('knowledge intercept (§20b.2)', () => {
+    const draft = { serviceId: 's1', title: 'VPN ne radi', description: 'Ne mogu se spojiti.', impact: 'LOW', urgency: 'LOW' };
+
+    it('labels the form button „Dalje“ only with the intercept on', async () => {
+      expect(json(await setup({ intercept: true }).service.ticketForm('bs', config))).toContain('"title":"Dalje"');
+      expect(json(await setup({ intercept: false }).service.ticketForm('bs', config))).toContain('"title":"Kreiraj tiket"');
+    });
+
+    it('shows up to 3 articles with „Riješeno“ and „Ipak kreiraj“ instead of creating', async () => {
+      const { run, tickets, knowledge } = setup({ intercept: true, articles: 5 });
+      const card = json(await run(teamsVerbs.createTicket, draft));
+      expect(knowledge.intercept).toHaveBeenCalledWith({ serviceId: 's1', query: 'VPN ne radi Ne mogu se spojiti.' }, { actorUserId: 'u1' });
+      expect(tickets.create).not.toHaveBeenCalled();
+      expect(card).toContain('Članak 3');
+      expect(card).not.toContain('Članak 4');
+      expect(card).toContain('Riješeno, ne treba tiket');
+      expect(card).toContain('"verb":"ticket.deflect"');
+      expect(card).toContain('"confirmed":true');
+      expect(card).toContain('https://desk.example.com/knowledge-base/a1');
+    });
+
+    it('creates immediately without hits, with the intercept off, or when confirmed', async () => {
+      for (const [options, data] of [
+        [{ intercept: true, articles: 0 }, draft],
+        [{ intercept: false, articles: 3 }, draft],
+        [{ intercept: true, articles: 3 }, { ...draft, confirmed: true }],
+      ] as const) {
+        const { run, tickets } = setup(options);
+        expect(json(await run(teamsVerbs.createTicket, data))).toContain('HD-000009');
+        expect(tickets.create).toHaveBeenCalledTimes(1);
+      }
+    });
+
+    it('a failing knowledge search never blocks the ticket', async () => {
+      const { run, tickets, knowledge } = setup({ intercept: true, articles: 2 });
+      knowledge.intercept.mockRejectedValueOnce(new Error('db down'));
+      expect(json(await run(teamsVerbs.createTicket, draft))).toContain('HD-000009');
+      expect(tickets.create).toHaveBeenCalled();
+    });
+
+    it('uses Action.Submit inside the message-action task module', async () => {
+      const card = json(await setup({ intercept: true, articles: 1 }).run(teamsVerbs.createTicket, { ...draft, submitMode: 'submit' }));
+      expect(card).toContain('"type":"Action.Submit"');
+      expect(card).not.toContain('Action.Execute');
+    });
+
+    it('records the deflection with the user’s unit and the first article', async () => {
+      const { run, knowledge, tickets } = setup();
+      expect(json(await run(teamsVerbs.deflectTicket, { serviceId: 's1', articleId: 'a1' }))).toContain('Tiket nije kreiran');
+      expect(knowledge.resolveIntercept).toHaveBeenCalledWith({ serviceId: 's1', organizationalUnitId: 'ou1', articleId: 'a1' }, { actorUserId: 'u1' });
+      expect(tickets.create).not.toHaveBeenCalled();
+      const noUnit = setup({ unitId: null });
+      expect(json(await noUnit.run(teamsVerbs.deflectTicket, { serviceId: 's1' }))).toContain('Tiket nije kreiran');
+      expect(noUnit.knowledge.resolveIntercept).not.toHaveBeenCalled();
+    });
   });
 
   it('falls back to USER_REPLY for requesters', async () => {

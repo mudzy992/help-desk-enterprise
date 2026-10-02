@@ -24,9 +24,22 @@ const copy = {
     full: 'Obavijesti o tiketima, odobrenja, CAB glasanje i prijava tiketa direktno iz Microsoft Teamsa.',
     createFromMessage: 'Kreiraj tiket iz poruke',
     createFromMessageDescription: 'Prijavi tiket s tekstom ove poruke',
+    // §20b: Teams allows 10 commands per list; `cab` and `dežurni` work when typed and appear in `pomoć`.
     commands: [
-      ['moji tiketi', 'Vaši otvoreni tiketi'],
+      ['pomoć', 'Šta bot zna'],
       ['novi tiket', 'Prijava novog tiketa'],
+      ['moji tiketi', 'Vaši otvoreni tiketi'],
+      ['tiket', 'Kartica tiketa, npr. tiket HD-123'],
+      ['traži', 'Pretraga baze znanja, npr. traži vpn'],
+      ['odobrenja', 'Odobrenja koja čekaju vas'],
+      ['status', 'Prekidi i planirani radovi'],
+      ['dodijeljeni', 'Agenti: vaši tiketi po SLA roku'],
+      ['red', 'Agenti: nepreuzeti tiketi grupa'],
+      ['sla', 'Agenti: ugroženi i probijeni SLA rokovi'],
+    ],
+    teamCommands: [
+      ['poveži', 'Poveži kanal s grupom'],
+      ['odspoji', 'Ukloni vezu kanala s grupom'],
       ['pomoć', 'Šta bot zna'],
     ],
   },
@@ -36,8 +49,20 @@ const copy = {
     createFromMessage: 'Create ticket from message',
     createFromMessageDescription: 'Report a ticket with the text of this message',
     commands: [
-      ['my tickets', 'Your open tickets'],
+      ['help', 'What the bot can do'],
       ['new ticket', 'Report a new ticket'],
+      ['my tickets', 'Your open tickets'],
+      ['ticket', 'Ticket card, e.g. ticket HD-123'],
+      ['search', 'Knowledge base search, e.g. search vpn'],
+      ['approvals', 'Approvals waiting for you'],
+      ['status', 'Outages and planned maintenance'],
+      ['assigned', 'Agents: your tickets by SLA deadline'],
+      ['queue', 'Agents: unclaimed tickets of your groups'],
+      ['sla', 'Agents: at-risk and breached SLA deadlines'],
+    ],
+    teamCommands: [
+      ['link', 'Link the channel to a group'],
+      ['unlink', 'Remove the channel link'],
       ['help', 'What the bot can do'],
     ],
   },
@@ -69,7 +94,10 @@ export function buildTeamsManifest(input: TeamsManifestInput): Record<string, un
         scopes: ['personal', 'team'],
         supportsFiles: false,
         isNotificationOnly: false,
-        commandLists: [{ scopes: ['personal', 'team'], commands: text.commands.map(([title, description]) => ({ title, description })) }],
+        commandLists: [
+          { scopes: ['personal'], commands: text.commands.map(([title, description]) => ({ title, description })) },
+          { scopes: ['team'], commands: text.teamCommands.map(([title, description]) => ({ title, description })) },
+        ],
       },
     ],
     composeExtensions: [
@@ -108,6 +136,15 @@ export function validateTeamsManifest(manifest: Record<string, unknown>): string
   if (!Array.isArray(domains) || domains.some((domain) => domain.includes('/') || domain.includes(':'))) problems.push('validDomains must be bare host names');
   const developer = manifest.developer as Record<string, string>;
   for (const key of ['websiteUrl', 'privacyUrl', 'termsOfUseUrl']) if (!String(developer?.[key]).startsWith('https://')) problems.push(`developer.${key} must be https`);
+  const bots = (manifest.bots ?? []) as { commandLists?: { commands?: { title?: string; description?: string }[] }[] }[];
+  for (const list of bots.flatMap((bot) => bot.commandLists ?? [])) {
+    const commands = list.commands ?? [];
+    if (commands.length > 10) problems.push('a command list may have at most 10 commands');
+    for (const command of commands) {
+      if (!command.title || command.title.length > 32) problems.push('command titles must have 1–32 characters');
+      if (!command.description || command.description.length > 128) problems.push('command descriptions must have 1–128 characters');
+    }
+  }
   return problems;
 }
 

@@ -74,7 +74,7 @@ function t(locale: TeamsLocale, key: TeamsTextKey): string {
   return teamsText(locale, key);
 }
 
-function formatDate(value: Date | null, locale: TeamsLocale, timeZone: string): string | null {
+export function formatDate(value: Date | null, locale: TeamsLocale, timeZone: string): string | null {
   if (!value) return null;
   return new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'bs-BA', {
     timeZone,
@@ -86,7 +86,7 @@ function formatDate(value: Date | null, locale: TeamsLocale, timeZone: string): 
   }).format(value);
 }
 
-function facts(entries: readonly (readonly [string, string | null])[]): CardElement {
+export function facts(entries: readonly (readonly [string, string | null])[]): CardElement {
   return { type: 'FactSet', facts: entries.filter((entry) => entry[1] !== null).map(([title, value]) => ({ title, value: escapeCardText(value ?? '') })) };
 }
 
@@ -94,7 +94,7 @@ function link(input: NotificationCardInput, path: string): CardElement[] {
   return input.publicUrl ? [openUrl(t(input.locale, 'open'), `${input.publicUrl}${path}`)] : [];
 }
 
-function textForm(locale: TeamsLocale, title: string, verb: string, inputId: string, placeholder: string, data: Record<string, unknown>, required: boolean): CardElement {
+export function textForm(locale: TeamsLocale, title: string, verb: string, inputId: string, placeholder: string, data: Record<string, unknown>, required: boolean): CardElement {
   return {
     type: 'Action.ShowCard',
     title,
