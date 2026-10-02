@@ -162,3 +162,15 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
   poslije deploya: jedna notifikacija tiketa mora nositi `X-Service-Desk-Ticket: HD-…`; povratni Entra tok traži Entra
   aplikaciju, pa ga pokriva samo spec (ime ključa i kruženje konfiguracije).
 
+### Sesija 4 (2026-10-03)
+
+- **4.2 dio A je na `master`** (`d4ff532`, CI run `37075361145` zelen) — korisnik ga je deployao; sačuvani pogledi su sada
+  kontrola u redu filtera, tabela je puna širina.
+- **4.2 dio B (detalji tiketa) je spreman na grani** (`b575055` kod, `ed43a1a` dokumentacija; dizajn §3.5–§3.6).
+  Nema API/migracija/permisija. Poslije deploya na stagingu vrijedi provjeriti: (a) tri kartice i sklopive sekcije,
+  (b) „Proširi/Skupi sve“ i pamćenje stanja poslije reloada, (c) CSAT traku preko tiketa kad je tiket riješen.
+- **Otpor na E2E:** paneli koji se otvaraju sami (prosljeđivanja, imovina, playbook, spojeni) moraju ostati vidljivi odmah
+  — zato su po zadanom otvoreni; sklopljene su samo tri dopunske sekcije. E2E job se vrti samo na `master`, pa to
+  provjerava prvi deploy.
+- Neizmijenjeno čeka korisnika: **korak 7** poslije 2026-10-03 19:22 UTC, 4.1a provjera zaglavlja `X-Service-Desk-Ticket`
+  na stagingu, i **instalacija DR cron-a na hostu** (`ops/DR.md`, poglavlje „Instalacija cron-a“).
