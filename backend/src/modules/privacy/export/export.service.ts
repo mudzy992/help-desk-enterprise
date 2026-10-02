@@ -15,7 +15,7 @@ import { PrivacyConfigurationLoader } from '../privacy-configuration.loader';
 import { privacyErrorCodes, privacyLimits, type ExportStatus } from '../privacy.constants';
 import { PrivacyError } from '../privacy.error';
 import { ExportBuilder, type ExportSummary } from './export-builder';
-import { createExportDecryptStream, createExportEncryptStream, readExportMasterKey } from './export-cipher';
+import { createExportDecryptStream, createExportEncryptStream, readExportDecryptionKeys, readExportMasterKey } from './export-cipher';
 
 export const PRIVACY_EXPORT_ROOT = Symbol('PRIVACY_EXPORT_ROOT');
 export const defaultPrivacyExportRoot = () => path.join(resolveUploadRoot(), 'privacy-exports');
@@ -189,7 +189,7 @@ export class PrivacyExportService {
         requestId: actor.requestId,
       });
     });
-    const decrypt = createExportDecryptStream(key);
+    const decrypt = createExportDecryptStream(readExportDecryptionKeys());
     const source = createReadStream(file);
     source.on('error', (error) => decrypt.destroy(error));
     return { stream: source.pipe(decrypt), filename: `izvoz-licnih-podataka-${row.id}.zip` };

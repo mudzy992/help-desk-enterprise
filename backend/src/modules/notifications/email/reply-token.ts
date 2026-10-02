@@ -1,4 +1,6 @@
 import { createHash, createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
+import { kdfLabels } from '../../../common/crypto/kdf-labels';
+import { legacyKdfLabels } from '../../../common/crypto/legacy-kdf-labels';
 import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 
 /*
@@ -26,12 +28,12 @@ export function readReplyTokenSecret(environment: NodeJS.Dict<string> = process.
 }
 
 /** The secret derived from MFA_ENCRYPTION_KEY (used when no explicit secret is set). */
-export function deriveReplyTokenSecret(environment: NodeJS.Dict<string> = process.env): Buffer | null {
+export function deriveReplyTokenSecret(environment: NodeJS.Dict<string> = process.env, label: string = kdfLabels.inboundReplyToken): Buffer | null {
   const mfa = environment.MFA_ENCRYPTION_KEY?.trim();
   if (mfa === undefined || mfa.length === 0) return null;
   const key = Buffer.from(mfa, 'base64');
   if (key.length !== 32) return null;
-  return Buffer.from(hkdfSync('sha256', key, Buffer.alloc(0), 'ephelpdesk-inbound-reply-token', 32));
+  return Buffer.from(hkdfSync('sha256', key, Buffer.alloc(0), label, 32));
 }
 
 function sign(secret: Buffer, payload: string): string {
@@ -63,6 +65,11 @@ export function readReplyTokenVerificationSecrets(environment: NodeJS.Dict<strin
   const previous = readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS)?.bytes ?? null;
   const secrets = current === null ? [] : [current];
   if (previous !== null && (current === null || !previous.equals(current))) secrets.push(previous);
+  // Paket 4.1 (§5): replies to e-mails signed with the v1-derived secret (only when no explicit secret is set).
+  if (readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET) === null) {
+    const legacy = deriveReplyTokenSecret(environment, legacyKdfLabels.inboundReplyTokenV1);
+    if (legacy !== null && !secrets.some((secret) => secret.equals(legacy))) secrets.push(legacy);
+  }
   return secrets;
 }
 

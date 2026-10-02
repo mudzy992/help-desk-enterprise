@@ -1,4 +1,6 @@
 import { createHash, createHmac } from 'node:crypto';
+import { kdfLabels } from '../../../common/crypto/kdf-labels';
+import { legacyKdfLabels } from '../../../common/crypto/legacy-kdf-labels';
 import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 import { readMfaEncryptionKey } from '../../authentication/security/mfa-secret-cipher';
 
@@ -15,10 +17,10 @@ export function readTombstoneKey(env: NodeJS.ProcessEnv = process.env): Buffer |
 }
 
 /** The key derived from MFA_ENCRYPTION_KEY (used when no explicit key is set). */
-export function deriveTombstoneKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
+export function deriveTombstoneKey(env: NodeJS.ProcessEnv = process.env, label: string = kdfLabels.privacyTombstone): Buffer | null {
   const mfaKey = readMfaEncryptionKey(env.MFA_ENCRYPTION_KEY);
   if (mfaKey === null) return null;
-  return createHash('sha256').update('ephelpdesk:privacy-tombstone:v1').update(mfaKey).digest();
+  return createHash('sha256').update(label).update(mfaKey).digest();
 }
 
 /**
@@ -31,6 +33,11 @@ export function readTombstoneMatchKeys(env: NodeJS.ProcessEnv = process.env): Bu
   const previous = readExplicitSecret(env.PRIVACY_TOMBSTONE_KEY_PREVIOUS)?.bytes ?? null;
   const keys = current === null ? [] : [current];
   if (previous !== null && (current === null || !previous.equals(current))) keys.push(previous);
+  // Paket 4.1 (§5): tombstones written with the v1-derived key can never be re-keyed (one-way HMACs).
+  if (readExplicitSecret(env.PRIVACY_TOMBSTONE_KEY) === null) {
+    const legacy = deriveTombstoneKey(env, legacyKdfLabels.privacyTombstoneV1);
+    if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
+  }
   return keys;
 }
 

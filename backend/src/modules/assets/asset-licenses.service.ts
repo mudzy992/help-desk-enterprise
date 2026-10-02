@@ -6,7 +6,7 @@ import { recordAuditEntry } from '../audit-log/record-audit-entry';
 import { permissionKeys } from '../authorization/authorization.constants';
 import { AssetAccessService } from './asset-access.service';
 import { dateOnly, daysUntil, optionalDate, optionalMoney, optionalText, requiredText } from './asset-fields';
-import { decryptLicenseKey, encryptLicenseKey, readLicenseKeyCipherKey } from './asset-license-cipher';
+import { decryptLicenseKey, encryptLicenseKey, readLicenseKeyCipherKey, readLicenseKeyDecryptionKeys } from './asset-license-cipher';
 import { isPathInScope, unitScopeWhere, type AssetScope, type AssetViewer } from './asset-viewer';
 import {
   AssetError,
@@ -276,7 +276,7 @@ export class AssetLicensesService {
     if (key === null) throw new AssetError(assetErrorCodes.licenseKeyUnavailable);
     let plain: string;
     try {
-      plain = decryptLicenseKey(row.keyEncrypted, key);
+      plain = decryptLicenseKey(row.keyEncrypted, readLicenseKeyDecryptionKeys());
     } catch {
       throw new AssetError(assetErrorCodes.licenseKeyUnavailable, 'decrypt');
     }

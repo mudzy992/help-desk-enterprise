@@ -1,3 +1,5 @@
+import { kdfLabels } from '../../../common/crypto/kdf-labels';
+import { legacyKdfLabels } from '../../../common/crypto/legacy-kdf-labels';
 import { readExplicitSecret } from '../../../common/security/read-explicit-secret';
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from 'node:crypto';
 import { Transform, type TransformCallback } from 'node:stream';
@@ -37,10 +39,21 @@ export function readExportMasterKey(env: NodeJS.ProcessEnv = process.env): Buffe
 }
 
 /** The key derived from MFA_ENCRYPTION_KEY (used when no explicit key is set). */
-export function deriveExportMasterKey(env: NodeJS.ProcessEnv = process.env): Buffer | null {
+export function deriveExportMasterKey(env: NodeJS.ProcessEnv = process.env, label: string = kdfLabels.privacyExport): Buffer | null {
   const mfaKey = readMfaEncryptionKey(env.MFA_ENCRYPTION_KEY);
   if (mfaKey === null) return null;
-  return Buffer.from(hkdfSync('sha256', mfaKey, Buffer.alloc(0), 'ephelpdesk:privacy-export:v1', 32));
+  return Buffer.from(hkdfSync('sha256', mfaKey, Buffer.alloc(0), label, 32));
+}
+
+/** Paket 4.1 (§5): keys tried when opening an export - current, then the v1-derived one. */
+export function readExportDecryptionKeys(env: NodeJS.ProcessEnv = process.env): Buffer[] {
+  const current = readExportMasterKey(env);
+  const keys = current === null ? [] : [current];
+  if (readExplicitSecret(env.PRIVACY_EXPORT_KEY) === null) {
+    const legacy = deriveExportMasterKey(env, legacyKdfLabels.privacyExportV1);
+    if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
+  }
+  return keys;
 }
 
 function nonce(base: Buffer, counter: number): Buffer {
@@ -113,7 +126,8 @@ export function createExportEncryptStream(masterKey: Buffer): Transform {
   });
 }
 
-export function createExportDecryptStream(masterKey: Buffer): Transform {
+export function createExportDecryptStream(masterKeyOrKeys: Buffer | readonly Buffer[]): Transform {
+  const masterKeys = Buffer.isBuffer(masterKeyOrKeys) ? [masterKeyOrKeys] : masterKeyOrKeys;
   let buffer = Buffer.alloc(0);
   let key: Buffer | null = null;
   let baseNonce: Buffer | null = null;
@@ -134,10 +148,7 @@ export function createExportDecryptStream(masterKey: Buffer): Transform {
         if (key === null) {
           if (buffer.length < headerLength) return callback();
           if (!buffer.subarray(0, 4).equals(magic)) throw new Error('export_format_invalid');
-          const unwrap = createDecipheriv('aes-256-gcm', masterKey, buffer.subarray(4, 16));
-          unwrap.setAAD(magic);
-          unwrap.setAuthTag(buffer.subarray(16, 32));
-          key = Buffer.concat([unwrap.update(buffer.subarray(32, 64)), unwrap.final()]);
+          key = unwrapExportKey(masterKeys, buffer);
           baseNonce = Buffer.from(buffer.subarray(64, 72));
           buffer = buffer.subarray(headerLength);
         }
@@ -171,4 +182,20 @@ export function createExportDecryptStream(masterKey: Buffer): Transform {
       }
     },
   });
+}
+
+/** The header authenticates the wrapped key, so a wrong master key fails here, before any output. */
+function unwrapExportKey(masterKeys: readonly Buffer[], header: Buffer): Buffer {
+  let lastError: unknown = new Error('export_key_missing');
+  for (const masterKey of masterKeys) {
+    try {
+      const unwrap = createDecipheriv('aes-256-gcm', masterKey, header.subarray(4, 16));
+      unwrap.setAAD(magic);
+      unwrap.setAuthTag(header.subarray(16, 32));
+      return Buffer.concat([unwrap.update(header.subarray(32, 64)), unwrap.final()]);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
