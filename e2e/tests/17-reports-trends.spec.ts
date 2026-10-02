@@ -69,7 +69,7 @@ test.describe('17 reports trends', () => {
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('trends-export-csv').click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/^ephelpdesk_trends_.+\.csv$/);
+    expect(download.suggestedFilename()).toMatch(/^report_trends_.+\.csv$/);
     const content = await readFile((await download.path())!, 'utf8');
     expect(content.charCodeAt(0)).toBe(0xfeff);
     expect(content).toContain('periodStart');

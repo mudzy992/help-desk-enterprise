@@ -77,7 +77,7 @@ test.describe('12 report packs and forward tracking', () => {
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('report-pack-download-csv').click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/^ephelpdesk_monthly_kpi_.+\.csv$/);
+    expect(download.suggestedFilename()).toMatch(/^report_monthly_kpi_.+\.csv$/);
     const content = await readFile((await download.path())!, 'utf8');
     expect(content.charCodeAt(0)).toBe(0xfeff);
     expect(content).toContain('createdCount');

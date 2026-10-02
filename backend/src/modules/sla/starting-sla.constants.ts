@@ -70,7 +70,7 @@ const businessDays = (value: number): StartingSlaDuration => ({
   value,
 });
 
-// RAW_PROJECT_EPHELPDESK.md — Startni SLA profili (BH_STANDARD).
+// RAW_PROJECT.md — Startni SLA profili (BH_STANDARD).
 export const startingSlaProfileDefinitions: readonly StartingSlaProfileDefinition[] =
   [
     {

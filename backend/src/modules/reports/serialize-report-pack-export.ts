@@ -29,7 +29,7 @@ export function serializeReportPackExport(
   };
 }
 
-/** `ephelpdesk_<pack>_<unit>_<from>_<to>` with ASCII-safe unit code (plan §3 D6). */
+/** `report_<pack>_<unit>_<from>_<to>` with ASCII-safe unit code (plan §3 D6; Paket 4.1: no product prefix). */
 export function reportFileBaseName(
   pack: ReportPackKey | 'trends',
   naming: { readonly unitCode: string | null; readonly window: ReportWindow },
@@ -43,5 +43,5 @@ export function reportFileBaseName(
     .replace(/^-+|-+$/g, '')
     .toLowerCase() || 'unit';
   const day = (value: Date) => value.toISOString().slice(0, 10);
-  return `ephelpdesk_${pack}_${unit}_${day(naming.window.from)}_${day(naming.window.to)}`;
+  return `report_${pack}_${unit}_${day(naming.window.from)}_${day(naming.window.to)}`;
 }

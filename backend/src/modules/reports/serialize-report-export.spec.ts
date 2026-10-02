@@ -31,6 +31,6 @@ describe('serialize report export', () => {
         unitCode: 'Služba IT / Sarajevo',
         window: { from: new Date('2026-09-01T00:00:00Z'), to: new Date('2026-09-25T10:00:00Z') },
       }),
-    ).toBe('ephelpdesk_monthly_kpi_sluzba-it-sarajevo_2026-09-01_2026-09-25');
+    ).toBe('report_monthly_kpi_sluzba-it-sarajevo_2026-09-01_2026-09-25');
   });
 });

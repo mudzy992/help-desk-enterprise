@@ -1090,7 +1090,7 @@
         "private.dataLifecycle.archive.archivedReadOnly": "Odbij sve upise na arhivirane tikete.",
         "private.dataLifecycle.archive.enabled": "Automatski arhiviraj zatvorene tikete nakon podešenog kašnjenja.",
         "private.dataLifecycle.archive.searchable": "Dozvoli prikaz arhiviranih tiketa pri filteru status=ARCHIVED.",
-        "private.edgeExtension.allowedEmailDomain": "Email domena dozvoljena za korištenje Edge ekstenzije.",
+        "private.edgeExtension.allowedEmailDomain": "E-mail domena kojoj je dozvoljena Edge ekstenzija. Prazno = prva interna e-mail domena.",
         "private.edgeExtension.attachments.enabled": "Dozvoli upload privitaka iz chata Edge ekstenzije (isključeno u MVP-u).",
         "private.edgeExtension.chat.enabled": "Uključi brzi chat odgovor u popup-u Edge ekstenzije.",
         "private.edgeExtension.chat.maxMessagesPerTicket": "Maksimalan broj poruka po tiketu u popup-u ekstenzije.",
@@ -1479,7 +1479,8 @@
         "public.branding.organizationName": "Organizacija koja koristi servisni centar (obavještenje o privatnosti, podnožje e-maila, izvještaji).",
         "public.branding.logoDataUrl": "Logo (PNG, JPEG ili WebP, najviše 200 KB i 1024 px). Prazno = ugrađeni znak.",
         "public.branding.supportEmail": "E-mail za podršku na stranici prijave i u podnožju e-maila.",
-        "public.branding.supportUrl": "Stranica podrške ili intraneta (https) na stranici prijave i u podnožju e-maila."
+        "public.branding.supportUrl": "Stranica podrške ili intraneta (https) na stranici prijave i u podnožju e-maila.",
+        "private.auth.password.organisationWordsCsv": "Riječi organizacije koje lozinka ne smije sadržavati, odvojene zarezom. Naziv aplikacije i interne e-mail domene se uvijek dodaju."
       }
     },
     "emailTemplates": {

@@ -60,7 +60,7 @@ describe('ReportsService OU scoping', () => {
       null,
       now,
     );
-    expect(exported.fileName).toMatch(/^ephelpdesk_monthly_kpi_.+_2026-09-01_2026-09-30\.csv$/);
+    expect(exported.fileName).toMatch(/^report_monthly_kpi_.+_2026-09-01_2026-09-30\.csv$/);
     expect(exported.content.startsWith('\uFEFF')).toBe(true);
     const [audit] = (await harness.prisma.auditLog.findMany()) as Array<{ metadata: unknown }>;
     expect(audit?.metadata).toMatchObject({

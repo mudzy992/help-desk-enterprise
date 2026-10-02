@@ -37,7 +37,7 @@ export function readFallbackConfiguration(env: NodeJS.ProcessEnv = process.env):
   return {
     smtpUrl: /^smtps?:\/\//i.test(smtpUrl) ? smtpUrl : null,
     emailTo,
-    emailFrom: env.OPS_ALERT_EMAIL_FROM?.trim() || 'ephelpdesk-monitor@localhost',
+    emailFrom: env.OPS_ALERT_EMAIL_FROM?.trim() || 'service-desk-monitor@localhost',
     teamsWebhookUrl: teams.startsWith('https://') ? teams : null,
   };
 }

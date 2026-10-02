@@ -1080,7 +1080,7 @@
         "private.dataLifecycle.archive.archivedReadOnly": "Reject any writes against archived tickets.",
         "private.dataLifecycle.archive.enabled": "Automatically archive closed tickets after the configured delay.",
         "private.dataLifecycle.archive.searchable": "Allow archived tickets to appear when filtering status=ARCHIVED.",
-        "private.edgeExtension.allowedEmailDomain": "Email domain allowed to use the Edge extension.",
+        "private.edgeExtension.allowedEmailDomain": "E-mail domain allowed to use the Edge extension. Empty = the first internal e-mail domain.",
         "private.edgeExtension.attachments.enabled": "Allow uploading attachments from the Edge extension chat (off in MVP).",
         "private.edgeExtension.chat.enabled": "Enable quick-reply chat in the Edge extension popup.",
         "private.edgeExtension.chat.maxMessagesPerTicket": "Maximum messages loaded per ticket in the extension popup.",
@@ -1469,7 +1469,8 @@
         "public.branding.organizationName": "Organisation operating the service desk (privacy notice, e-mail footer, reports).",
         "public.branding.logoDataUrl": "Logo (PNG, JPEG or WebP, at most 200 KB and 1024 px). Empty = built-in mark.",
         "public.branding.supportEmail": "Support e-mail shown on the sign-in page and in the e-mail footer.",
-        "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in the e-mail footer."
+        "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in the e-mail footer.",
+        "private.auth.password.organisationWordsCsv": "Comma-separated organisation words a password must not contain. The application name and internal e-mail domains are always added."
       }
     },
     "emailTemplates": {
