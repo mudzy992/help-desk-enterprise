@@ -250,17 +250,21 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
 | 3 | 3.1–3.4 | ~26 RD |
 | **Ukupno** | 21 paket | **~70 RD** |
 
-## Otvorena pitanja (odgovoriti prije razrade pojedinog paketa)
+## Otvorena pitanja
 
-1. (1.1) Da li „eskalacija" znači samo prosljeđivanje višem nivou ili i automatsku eskalaciju
-   (već postoji kroz SLA eskalacije)? Ko definiše „viši nivo" — po grupi ili po servisu?
-2. (1.5 / 2.3) ~~Koji sandučić~~ — odlučeno 2026-09-25: oba načina (bez odgovora / zajednički
-   sandučić) biraju se u postavkama, provajderi su modularni (O365, Gmail, vlastiti SMTP).
-   Otvoreno za 2.3: pristup sandučiću (IMAP ili Microsoft Graph) i ko registruje aplikaciju u tenantu.
-3. (2.1) MFA samo za SUPER_ADMIN ili i za ADMIN? (Entra korisnici već imaju MFA kroz Microsoft.)
-4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku klijenta?
+Riješena tokom implementacije:
+
+1. ~~(1.1) „Eskalacija"~~ — odlučeno: eskalacija = prosljeđivanje na grupu s potrebnim ovlastima; automatske SLA eskalacije ostaju zaseban mehanizam (`modules/1.1-prosljedjivanje-tiketa.md` §3).
+2. ~~(1.5 / 2.3) sandučić~~ — odlučeno 2026-09-25: oba načina (bez odgovora / zajednički sandučić) biraju se u postavkama, provajderi su modularni (Graph, IMAP, Gmail); **aplikaciju u tenantu registruje IT klijenta** (`modules/2.3-odgovor-emailom.md` §3, uputstvo `docs/ops/inbound-email.md`).
+3. ~~(2.1) MFA za ADMIN-e~~ — odlučeno: obavezan MFA za lokalne ADMIN i SUPER_ADMIN naloge; sve preporuke iz §9 prihvaćene i implementirane 2026-09-26.
+
+Čeka klijenta:
+
+4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku klijenta (upitnik `docs/privacy/DPO-UPITNIK.md`).
 5. (3.2) Postoji li postojeći popis imovine (Excel, drugi sistem, Intune) za početni import?
 6. (3.4) Postoji li CAB (odbor za promjene) i ko su članovi?
+
+Uz to, live režim 3.1 (Teams) i 2.3 (inbound pošta) traži registraciju aplikacije u tenantu klijenta — checkliste su u dizajnima (3.1 §18, `docs/ops/inbound-email.md`).
 
 ---
 
