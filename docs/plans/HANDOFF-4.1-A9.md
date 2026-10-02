@@ -128,3 +128,18 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
 - **Korak 7 (2026-10-02, poslije 21:04 UTC):** korisnik je napisao „možeš kreniti i sa korakom 7“. Kapija od 24 h tada još nije bila
   prošla, pa se počinje samo provjerama koje ništa ne mijenjaju (klijenti po korisniku, broj starih ključeva, `ACL LIST` bez
   hash-eva). Brisanje (`UNLINK`, `ACL DELUSER`) tek uz izričitu potvrdu korisnika da se kapija preskače, ili poslije kapije.
+- **Provjere prije brisanja (2026-10-02, poslije 21:54 UTC, samo čitanje):**
+  - Klijenti po korisniku: `default` 1 (naša sesija), `inventory-v2` 10 (ispis ga skraćuje na `inventory`, jer obrazac `[a-z]*`
+    staje na `-`), `servicedesk` 72, **`ephelpdesk` 0**.
+  - Ključevi za brisanje: `ephelpdesk:*` 14 i `bull:ephelpdesk:*` 415. Novi, koji se ne diraju: `servicedesk:*` 16 i
+    `bull:servicedesk:*` 360.
+  - ACL obrasci stare korisnice su bez dvotočke (`~ephelpdesk*`, `~bull:ephelpdesk*`), a SCAN gore ide s dvotočkom. Prije brisanja
+    provjeriti da širi obrazac daje isti broj (da nema ključeva izvan `ephelpdesk:` i `bull:ephelpdesk:`).
+  - `ACL LIST` prije brisanja (hash-evi sakriveni), pravila korisnika koji se briše i koji ujedno služe kao recept za povrat
+    (`ACL SETUSER ephelpdesk on >STARA_LOZINKA` plus ova pravila, lozinka je u starim vrijednostima u Coolifyju):
+    `~ephelpdesk* ~bull:ephelpdesk* &* +@all -flushall -flushdb -config -shutdown -acl -debug -save -bgsave -bgrewriteaof
+    -replicaof -slaveof -monitor -module -failover`. Pravila korisnika `servicedesk` su ista, uz obrasce `~servicedesk*` i
+    `~bull:servicedesk*`.
+  - Usput: korisnik `inventory-v2` ima `~bull:*` i `&bull:*`, što tehnički pokriva i `bull:servicedesk:*`. To nije dio A9 i ne dira se.
+  - Odluka o brisanju: čeka odgovor korisnika, „brisati odmah“ (kapija se svjesno preskače, zapisati u §12) ili „čekamo“ (kapija
+    2026-10-03 19:22 UTC).
