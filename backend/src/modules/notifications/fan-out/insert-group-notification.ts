@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Prisma } from '../../../generated/prisma/client';
+import { emitNotificationsCreated } from './notification-created-sinks';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { NotificationType } from '../notifications.constants';
 import type { NotificationPayload, NotificationRecord } from '../notifications.types';
@@ -48,5 +49,7 @@ export async function insertGroupNotification(
     data: [data],
     skipDuplicates: true,
   });
-  return result.count > 0 ? record : null;
+  if (result.count === 0) return null;
+  emitNotificationsCreated([record]);
+  return record;
 }

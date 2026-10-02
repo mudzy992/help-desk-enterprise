@@ -45,6 +45,7 @@ describe('IntegrationQueueProcessor', () => {
       processEmail as never,
       processEdge as never,
       processTeams as never,
+      { process: jest.fn() } as never,
       queue as never,
     );
     await processor.process({
@@ -97,6 +98,7 @@ describe('IntegrationQueueProcessor', () => {
       processEmail as never,
       processEdge as never,
       processTeams as never,
+      { process: jest.fn() } as never,
       queue as never,
     );
     await processor.process({

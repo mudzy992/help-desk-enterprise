@@ -3,6 +3,7 @@ import type { NotificationPayload, NotificationRecord } from '../notifications.t
 import type { NotificationType } from '../notifications.constants';
 import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 import { resolveDeliveryDecisions } from '../preferences/resolve-delivery-decisions';
+import { emitNotificationsCreated } from './notification-created-sinks';
 
 export async function persistInAppNotification(
   prisma: PrismaService,
@@ -27,7 +28,7 @@ export async function persistInAppNotification(
     }
   }
   try {
-    return (await prisma.notification.create({
+    const created = (await prisma.notification.create({
       data: {
         userId: input.userId,
         type: input.type,
@@ -38,6 +39,8 @@ export async function persistInAppNotification(
         dedupeKey: input.dedupeKey,
       },
     })) as NotificationRecord;
+    emitNotificationsCreated([created]);
+    return created;
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       return null;

@@ -15,18 +15,22 @@ import {
   loadNotificationPreferencePolicy,
   type NotificationPreferencePolicy,
 } from './notification-preference-policy';
+import { isTeamsPersonalChannelAvailable } from '../../teams/read-teams-availability';
 import { nextDigestSlot } from './notification-schedule-time';
+import { effectiveTeamsPreference, isTeamsCapableCategory, teamsPreferenceDefaults } from './teams-preference-defaults';
 
 export type NotificationPreferenceCategoryView = {
   readonly key: string;
-  readonly channels: { readonly inApp: boolean; readonly email: boolean };
+  readonly channels: { readonly inApp: boolean; readonly email: boolean; readonly teams: boolean };
   readonly alwaysOn: boolean;
   readonly inApp: boolean;
+  /** Paket 3.1: effective Teams choice (false for categories without Teams). */
+  readonly teams: boolean;
   readonly email: NotificationEmailMode;
   readonly inAppLocked: boolean;
   readonly emailLocked: boolean;
   readonly customized: boolean;
-  readonly defaults: { readonly inApp: boolean; readonly email: NotificationEmailMode };
+  readonly defaults: { readonly inApp: boolean; readonly email: NotificationEmailMode; readonly teams: boolean };
 };
 
 export type NotificationScheduleView = {
@@ -49,6 +53,8 @@ export type NotificationPreferencesView = {
     readonly digestDefaultTime: string;
     readonly timeZone: string;
     readonly emailChannelAvailable: boolean;
+    /** Paket 3.1: the Teams column is shown only while the connector delivers personal notifications. */
+    readonly teamsChannelAvailable: boolean;
   };
   readonly digest: { readonly nextAt: string | null; readonly pendingItems: number };
 };
@@ -65,6 +71,7 @@ export type NotificationPreferenceUpdate = {
     readonly category: string;
     readonly inApp?: boolean | null;
     readonly email?: string | null;
+    readonly teams?: boolean | null;
   }[];
   readonly schedule?: {
     readonly quietHoursEnabled?: boolean;
@@ -128,14 +135,15 @@ export class NotificationPreferencesService {
       const effective = effectivePreference(entry, policy, row);
       return {
         key: entry.key,
-        channels: entry.channels,
+        channels: { ...entry.channels, teams: !entry.alwaysOn && isTeamsCapableCategory(entry.key) },
         alwaysOn: entry.alwaysOn,
         inApp: effective.inApp,
+        teams: effectiveTeamsPreference(entry.key, row?.teams),
         email: entry.channels.email ? effective.email : 'OFF',
         inAppLocked: effective.inAppLocked,
         emailLocked: effective.emailLocked,
-        customized: row !== undefined && (row.inApp !== null || row.email !== null),
-        defaults: { inApp: true, email: entry.channels.email ? defaultEmailMode(entry, policy) : 'OFF' },
+        customized: row !== undefined && (row.inApp !== null || row.email !== null || (row.teams ?? null) !== null),
+        defaults: { inApp: true, email: entry.channels.email ? defaultEmailMode(entry, policy) : 'OFF', teams: teamsPreferenceDefaults[entry.key] === true },
       };
     });
     const schedule = scheduleRow ?? { ...defaultSchedule };
@@ -158,9 +166,14 @@ export class NotificationPreferencesService {
         digestDefaultTime: formatClockMinute(policy.digestDefaultMinute),
         timeZone: policy.timeZone,
         emailChannelAvailable: emailConfiguration.deliveryEnabled && emailConfiguration.smtp !== null,
+        teamsChannelAvailable: await this.isTeamsChannelAvailable(),
       },
       digest: { nextAt: policy.digestEnabled ? (next?.toISOString() ?? null) : null, pendingItems },
     };
+  }
+
+  private async isTeamsChannelAvailable(): Promise<boolean> {
+    return isTeamsPersonalChannelAvailable(this.settingsService).catch(() => false);
   }
 
   async update(userId: string, roleRank: NotificationRoleRank, input: NotificationPreferenceUpdate): Promise<void> {
@@ -171,13 +184,13 @@ export class NotificationPreferencesService {
     const plan = validatePreferenceUpdate(input, roleRank, policy);
     await this.prisma.$transaction(async (transaction) => {
       for (const change of plan.preferences) {
-        if (change.inApp === null && change.email === null) {
+        if (change.inApp === null && change.email === null && change.teams === null) {
           await transaction.userNotificationPreference.deleteMany({ where: { userId, category: change.category } });
         } else {
           await transaction.userNotificationPreference.upsert({
             where: { userId_category: { userId, category: change.category } },
-            create: { userId, category: change.category, inApp: change.inApp, email: change.email },
-            update: { inApp: change.inApp, email: change.email },
+            create: { userId, category: change.category, inApp: change.inApp, email: change.email, teams: change.teams },
+            update: { inApp: change.inApp, email: change.email, teams: change.teams },
           });
         }
       }
@@ -210,12 +223,12 @@ export class NotificationPreferencesService {
 
   async summary(userId: string): Promise<NotificationPreferencesSummary> {
     const [rows, schedule, pendingItems] = await Promise.all([
-      this.prisma.userNotificationPreference.findMany({ where: { userId }, select: { inApp: true, email: true } }),
+      this.prisma.userNotificationPreference.findMany({ where: { userId }, select: { inApp: true, email: true, teams: true } }),
       this.prisma.userNotificationSchedule.findUnique({ where: { userId } }),
       this.prisma.notificationDigestItem.count({ where: { userId } }),
     ]);
     return {
-      customizedCategories: rows.filter((row) => row.inApp !== null || row.email !== null).length,
+      customizedCategories: rows.filter((row) => row.inApp !== null || row.email !== null || row.teams !== null).length,
       quietHours:
         schedule?.quietHoursEnabled === true
           ? {
@@ -249,11 +262,11 @@ export function validatePreferenceUpdate(
   roleRank: NotificationRoleRank,
   policy: NotificationPreferencePolicy,
 ): {
-  readonly preferences: { category: string; inApp: boolean | null; email: NotificationEmailMode | null }[];
+  readonly preferences: { category: string; inApp: boolean | null; email: NotificationEmailMode | null; teams: boolean | null }[];
   readonly schedule: ScheduleWrite | null;
 } {
   const errors: string[] = [];
-  const preferences: { category: string; inApp: boolean | null; email: NotificationEmailMode | null }[] = [];
+  const preferences: { category: string; inApp: boolean | null; email: NotificationEmailMode | null; teams: boolean | null }[] = [];
   const seen = new Set<string>();
   for (const change of input.preferences ?? []) {
     const entry = findPreferenceCategory(change.category);
@@ -297,7 +310,12 @@ export function validatePreferenceUpdate(
         email = change.email === defaultEmailMode(entry, policy) ? null : change.email;
       }
     }
-    preferences.push({ category: entry.key, inApp, email });
+    let teams: boolean | null = null;
+    if (change.teams !== undefined && change.teams !== null) {
+      if (!isTeamsCapableCategory(entry.key)) errors.push(`${entry.key}: has no Teams channel`);
+      else teams = change.teams === (teamsPreferenceDefaults[entry.key] === true) ? null : change.teams;
+    }
+    preferences.push({ category: entry.key, inApp, email, teams });
   }
   let schedule: ScheduleWrite | null = null;
   if (input.schedule !== undefined) {

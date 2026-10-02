@@ -34,6 +34,24 @@ const texts = {
     channelsDisabled: 'Obavijesti u kanale su isključene u postavkama.',
     actionUnavailable: 'Ova akcija još nije dostupna.',
     actionFailed: 'Akcija nije uspjela. Pokušajte ponovo ili otvorite aplikaciju.',
+    reply: 'Odgovori',
+    replyPlaceholder: 'Javni odgovor podnosiocu…',
+    note: 'Interna bilješka',
+    notePlaceholder: 'Vidljivo samo agentima…',
+    send: 'Pošalji',
+    claim: 'Preuzmi',
+    approve: 'Odobri',
+    reject: 'Odbij',
+    rejectComment: 'Razlog odbijanja (obavezno)',
+    fieldService: 'Servis',
+    fieldPriority: 'Prioritet',
+    fieldStatus: 'Status',
+    fieldAssignee: 'Dodijeljeno',
+    fieldDue: 'Rok',
+    fieldRisk: 'Rizik',
+    fieldWindow: 'Termin',
+    unassigned: 'Nije preuzet',
+    hiddenTitle: 'Naslov nije prikazan u kanalu',
   },
   en: {
     welcomeTitle: 'Welcome to {app}',
@@ -63,6 +81,24 @@ const texts = {
     channelsDisabled: 'Channel notifications are turned off in the settings.',
     actionUnavailable: 'This action is not available yet.',
     actionFailed: 'The action failed. Try again or open the application.',
+    reply: 'Reply',
+    replyPlaceholder: 'Public reply to the requester…',
+    note: 'Internal note',
+    notePlaceholder: 'Visible to agents only…',
+    send: 'Send',
+    claim: 'Claim',
+    approve: 'Approve',
+    reject: 'Reject',
+    rejectComment: 'Reason for rejection (required)',
+    fieldService: 'Service',
+    fieldPriority: 'Priority',
+    fieldStatus: 'Status',
+    fieldAssignee: 'Assigned to',
+    fieldDue: 'Due',
+    fieldRisk: 'Risk',
+    fieldWindow: 'Window',
+    unassigned: 'Not claimed',
+    hiddenTitle: 'Title not shown in channels',
   },
 } as const;
 
@@ -83,4 +119,75 @@ const statusLabels: Record<TeamsLocale, Record<string, string>> = {
 
 export function teamsStatusLabel(locale: TeamsLocale, status: string): string {
   return statusLabels[locale][status] ?? status;
+}
+
+const priorityLabels: Record<TeamsLocale, Record<string, string>> = {
+  bs: { LOW: 'Nizak', MEDIUM: 'Srednji', HIGH: 'Visok', CRITICAL: 'Kritičan' },
+  en: { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High', CRITICAL: 'Critical' },
+};
+
+export function teamsPriorityLabel(locale: TeamsLocale, value: string): string {
+  return priorityLabels[locale][value] ?? value;
+}
+
+/** Headline of a notification card, by notification type (fallback: generic). */
+const headlines: Record<TeamsLocale, Record<string, string>> = {
+  bs: {
+    'ticket.created': 'Novi tiket u grupi',
+    'ticket.assigned': 'Tiket vam je dodijeljen',
+    'ticket.forwarded': 'Tiket je proslijeđen',
+    'ticket.message': 'Nova poruka na tiketu',
+    'ticket.mentioned': 'Spomenuti ste u bilješci',
+    'ticket.resolved': 'Tiket je riješen',
+    'ticket.closed': 'Tiket je zatvoren',
+    'ticket.approval': 'Odobrenje tiketa',
+    'ticket.sla': 'SLA upozorenje',
+    'sla.breached': 'SLA rok je probijen',
+    'problem.assigned': 'Problem vam je dodijeljen',
+    'problem.groupAssigned': 'Problem je dodijeljen grupi',
+    'problem.knownError': 'Poznata greška',
+    'problem.resolved': 'Problem je riješen',
+    'problem.targetDue': 'Rok problema se približava',
+    'problem.recurrence': 'Problem se ponavlja',
+    'change.approvalRequested': 'Traži se vaš glas (CAB)',
+    'change.decided': 'Odluka o promjeni',
+    'change.startingSoon': 'Promjena počinje uskoro',
+    'change.overdue': 'Promjena je prekoračila termin',
+    'change.failed': 'Promjena nije uspjela',
+    'oncall.reminder': 'Podsjetnik za dežurstvo',
+    'oncall.shiftStarted': 'Dežurstvo je počelo',
+    'oncall.swap': 'Zahtjev za zamjenu dežurstva',
+    generic: 'Obavijest',
+  },
+  en: {
+    'ticket.created': 'New ticket in the group',
+    'ticket.assigned': 'Ticket assigned to you',
+    'ticket.forwarded': 'Ticket forwarded',
+    'ticket.message': 'New message on a ticket',
+    'ticket.mentioned': 'You were mentioned in a note',
+    'ticket.resolved': 'Ticket resolved',
+    'ticket.closed': 'Ticket closed',
+    'ticket.approval': 'Ticket approval',
+    'ticket.sla': 'SLA warning',
+    'sla.breached': 'SLA deadline breached',
+    'problem.assigned': 'Problem assigned to you',
+    'problem.groupAssigned': 'Problem assigned to the group',
+    'problem.knownError': 'Known error',
+    'problem.resolved': 'Problem resolved',
+    'problem.targetDue': 'Problem target date is near',
+    'problem.recurrence': 'Problem recurrence',
+    'change.approvalRequested': 'Your CAB vote is requested',
+    'change.decided': 'Change decision',
+    'change.startingSoon': 'Change starts soon',
+    'change.overdue': 'Change overran its window',
+    'change.failed': 'Change failed',
+    'oncall.reminder': 'On-call reminder',
+    'oncall.shiftStarted': 'On-call shift started',
+    'oncall.swap': 'On-call swap request',
+    generic: 'Notification',
+  },
+};
+
+export function teamsHeadline(locale: TeamsLocale, key: string): string {
+  return headlines[locale][key] ?? headlines[locale].generic;
 }

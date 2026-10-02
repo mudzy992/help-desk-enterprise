@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Prisma } from '../../../generated/prisma/client';
+import { emitNotificationsCreated } from './notification-created-sinks';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { NotificationType } from '../notifications.constants';
 import type { NotificationPayload, NotificationRecord } from '../notifications.types';
@@ -76,5 +77,6 @@ export async function insertNotificationBatch(
     // had, `P2002` → skip).
     skipDuplicates: true,
   });
+  emitNotificationsCreated(records);
   return records;
 }

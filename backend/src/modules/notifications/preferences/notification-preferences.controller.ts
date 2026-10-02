@@ -70,6 +70,11 @@ export class NotificationPreferenceChangeDto {
   @IsOptional()
   @IsIn([...notificationEmailModes, null])
   email?: string | null;
+
+  /** Paket 3.1: Teams channel (only for Teams-capable categories). */
+  @IsOptional()
+  @IsBoolean()
+  teams?: boolean | null;
 }
 
 export class NotificationScheduleChangeDto {

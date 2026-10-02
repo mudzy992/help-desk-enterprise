@@ -226,8 +226,8 @@ describe('preference update validation', () => {
       ),
     ).toEqual({
       preferences: [
-        { category: 'ticket.created', inApp: null, email: null },
-        { category: 'ticket.message', inApp: false, email: 'DIGEST' },
+        { category: 'ticket.created', inApp: null, email: null, teams: null },
+        { category: 'ticket.message', inApp: false, email: 'DIGEST', teams: null },
       ],
       schedule: { digestMinute: null, quietStartMinute: 19 * 60 },
     });
@@ -275,5 +275,20 @@ describe('preference update validation', () => {
         ],
       }),
     );
+  });
+});
+
+describe('teams preference channel (paket 3.1)', () => {
+  it('stores the Teams default as null, rejects categories without Teams', () => {
+    const plan = validatePreferenceUpdate(
+      { preferences: [{ category: 'ticket.approval', teams: true }, { category: 'ticket.assigned', teams: true }] },
+      3,
+      policy(),
+    );
+    expect(plan.preferences).toEqual([
+      { category: 'ticket.approval', inApp: null, email: null, teams: null },
+      { category: 'ticket.assigned', inApp: null, email: null, teams: true },
+    ]);
+    expect(() => validatePreferenceUpdate({ preferences: [{ category: 'ticket.created', teams: true }] }, 3, policy())).toThrow();
   });
 });

@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { MAIL_TRANSPORT } from '../notifications/email/mail-transport';
 import { SmtpMailTransport } from '../notifications/email/smtp-mail-transport';
 import { SettingsModule } from '../settings/settings.module';
+import { TeamsCoreModule } from '../teams/teams-core.module';
 import { IntegrationJobDlqRetentionService } from './integration-job-dlq-retention.service';
 import { IntegrationQueueCoreModule } from './integration-queue-core.module';
 import { IntegrationQueueProcessor } from './integration-queue.processor';
@@ -19,6 +20,8 @@ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.se
   imports: [
     IntegrationQueueCoreModule,
     SettingsModule,
+    // Paket 3.1: TEAMS jobs and the notification sink in the worker process.
+    TeamsCoreModule,
     // Phase 4.1: the heartbeat and DLQ-retention timers became queue schedules.
     BullModule.registerQueue({ name: integrationWorkerMaintenanceQueueName }),
   ],
