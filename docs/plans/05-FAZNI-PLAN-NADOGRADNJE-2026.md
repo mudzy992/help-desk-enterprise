@@ -185,7 +185,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ## FAZA 3 — Proširenja (ranije van obima)
 
-### 3.1 Microsoft Teams konektor (pun)  · ~6 RD · dizajn: `modules/3.1-teams-konektor.md` · čeka odobrenje (cilj: spremno za aktivaciju, simulator dok tenant ne bude dostupan)
+### 3.1 Microsoft Teams konektor (pun)  · ~6 RD · dizajn: `modules/3.1-teams-konektor.md` · odobreno 2.10.2026., implementacija T1–T6 (razvoj bez Microsoft resursa: simulator + potpuno pripremljen live režim)
 - Teams app / bot (Azure Bot Service ili Graph): notifikacije u kanal grupe i lično korisniku,
   adaptive cards (preuzmi, odgovori, odobri), kreiranje tiketa iz Teamsa.
 - Postojeći stub i durable queue su osnova; SSO preko istog Entra tenanta.
@@ -247,3 +247,9 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
 4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku EPBiH?
 5. (3.2) Postoji li postojeći popis imovine (Excel, drugi sistem, Intune) za početni import?
 6. (3.4) Postoji li CAB (odbor za promjene) i ko su članovi?
+
+---
+
+## Budući koraci (odluka 2.10.2026.)
+
+- **Audit „više klijenata“:** aplikacija je proizvod za više klijenata; EPBiH je samo jedan od njih. U jednom od narednih koraka radi se audit cijelog repozitorija (kod, UI tekstovi, seed, e-mail šabloni, dokumentacija, testovi) i uklanja se svako spominjanje ili hardkodiranje EPBiH; sve što je specifično za klijenta postaje postavka ili brending.

@@ -457,3 +457,10 @@ To je kriterij kompletnosti.
 - Uloga „Upravitelj promjena“ (CHANGE_MANAGER) dodaje se odabranim ljudima i vidi promjene svih organizacionih jedinica; agent čita i podnosi.
 - Povezane promjene su na problemu i opremi u zasebnom tabu „Promjene“ (umjesto kartice u tabu „Veze“), uz dugme „Kreiraj promjenu“ – dosljedno s tabom „Problemi“ na opremi.
 - Pretraga problema pri povezivanju poštuje vidljivost problema (OJ opseg) i nudi samo otvorene probleme; oprema se traži tek od 2 znaka.
+
+## Teams konektor (3.1) i klijenti – odluke korisnika (2.10.2026.)
+- Aplikacija nije pravljena za jednog naručioca: EPBiH je samo jedan od budućih klijenata. Svako spominjanje ili hardkodiranje EPBiH uklonit će se u posebnom auditu.
+- Teams konektor se razvija bez ikakvih produkcijskih Microsoft resursa (tenant, registracija aplikacije, Azure pretplata). Sve se dokazuje u režimu simulatora, a produkcijski režim je pripremljen tako da ga klijent aktivira sam.
+- Prihvaćene su sve preporuke iz dizajna 3.1, osim onih koje su pretpostavljale da će jedan konkretni klijent nešto obezbijediti; lista preduslova je dio dokumentacije za svakog klijenta.
+- Teams konektor je addon, zadano isključen; poruke u kanalu ne sadrže opis tiketa ni poruke, a naslov samo uz postavku.
+- Svaka akcija iz Teamsa (preuzmi, odgovori, odobri, CAB glas, novi tiket) radi pod istim pravima kao u aplikaciji; korisnik se prepoznaje automatski preko istog Microsoft naloga, lokalni nalozi se ne povezuju.
