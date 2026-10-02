@@ -7477,7 +7477,38 @@
       "more_few": "+{{count}} još",
       "more_other": "+{{count}} još",
       "emptyTitle": "Nema stavki u ovom mjesecu",
-      "emptyBody": "U odabranom mjesecu nema promjena, prekida servisa ni zamrzavanja."
+      "emptyBody": "U odabranom mjesecu nema promjena, prekida servisa ni zamrzavanja.",
+      "months": {
+        "m0": "januar",
+        "m1": "februar",
+        "m2": "mart",
+        "m3": "april",
+        "m4": "maj",
+        "m5": "juni",
+        "m6": "juli",
+        "m7": "august",
+        "m8": "septembar",
+        "m9": "oktobar",
+        "m10": "novembar",
+        "m11": "decembar"
+      },
+      "weekdays": {
+        "short0": "pon",
+        "short1": "uto",
+        "short2": "sri",
+        "short3": "čet",
+        "short4": "pet",
+        "short5": "sub",
+        "short6": "ned",
+        "long0": "ponedjeljak",
+        "long1": "utorak",
+        "long2": "srijeda",
+        "long3": "četvrtak",
+        "long4": "petak",
+        "long5": "subota",
+        "long6": "nedjelja"
+      },
+      "dayLabel": "{{weekday}}, {{day}}. {{month}} {{year}}."
     },
     "templates": {
       "includeInactive": "Prikaži i neaktivne",

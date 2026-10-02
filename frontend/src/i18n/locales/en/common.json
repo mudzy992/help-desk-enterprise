@@ -7402,7 +7402,38 @@
       "more_one": "+{{count}} more",
       "more_other": "+{{count}} more",
       "emptyTitle": "Nothing this month",
-      "emptyBody": "There are no changes, service downtimes or freezes in the selected month."
+      "emptyBody": "There are no changes, service downtimes or freezes in the selected month.",
+      "months": {
+        "m0": "January",
+        "m1": "February",
+        "m2": "March",
+        "m3": "April",
+        "m4": "May",
+        "m5": "June",
+        "m6": "July",
+        "m7": "August",
+        "m8": "September",
+        "m9": "October",
+        "m10": "November",
+        "m11": "December"
+      },
+      "weekdays": {
+        "short0": "Mon",
+        "short1": "Tue",
+        "short2": "Wed",
+        "short3": "Thu",
+        "short4": "Fri",
+        "short5": "Sat",
+        "short6": "Sun",
+        "long0": "Monday",
+        "long1": "Tuesday",
+        "long2": "Wednesday",
+        "long3": "Thursday",
+        "long4": "Friday",
+        "long5": "Saturday",
+        "long6": "Sunday"
+      },
+      "dayLabel": "{{weekday}}, {{day}} {{month}} {{year}}"
     },
     "templates": {
       "includeInactive": "Show inactive",

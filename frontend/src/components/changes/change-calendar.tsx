@@ -29,7 +29,6 @@ type DayItems = {
  */
 export function ChangeCalendar() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.language.startsWith("bs") ? "bs-BA" : "en-GB";
   const [month, setMonth] = useState<CalendarMonth>(() => monthOf(new Date()));
   const [today] = useState(() => new Date());
   const grid = useMemo(() => buildMonthGrid(month), [month]);
@@ -37,10 +36,12 @@ export function ChangeCalendar() {
   const to = grid.to.toISOString();
   const query = useQuery({ queryKey: changeExtraKeys.calendar(from, to), queryFn: () => getChangeCalendar(from, to), retry: false });
 
-  const monthLabel = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(new Date(month.year, month.month, 1));
-  const weekdayFormat = new Intl.DateTimeFormat(locale, { weekday: "short" });
-  const dayFormat = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const weekdays = grid.weeks[0]?.map((day) => ({ short: weekdayFormat.format(day), key: dayKey(day) })) ?? [];
+  // Month and weekday names come from i18n: browsers without bs locale data print "M10" / "Mon".
+  const monthName = (index: number) => t(`changes.calendar.months.m${index}` as "changes.calendar.months.m0");
+  const weekdayName = (date: Date, form: "short" | "long") => t(`changes.calendar.weekdays.${form}${(date.getDay() + 6) % 7}` as "changes.calendar.weekdays.short0");
+  const monthLabel = `${monthName(month.month)} ${month.year}`;
+  const dayFormat = { format: (date: Date) => t("changes.calendar.dayLabel", { weekday: weekdayName(date, "long"), day: date.getDate(), month: monthName(date.getMonth()), year: date.getFullYear() }) };
+  const weekdays = grid.weeks[0]?.map((day) => ({ short: weekdayName(day, "short"), key: dayKey(day) })) ?? [];
 
   const itemsFor = (day: Date): DayItems => {
     const data = query.data;
@@ -120,7 +121,7 @@ export function ChangeCalendar() {
         <table className="w-full table-fixed text-[12px]">
           <caption className="sr-only">{t("changes.calendar.caption", { month: monthLabel })}</caption>
           <thead>
-            <tr className="border-b border-border/70 bg-muted/40">
+            <tr className="border-b border-border/70">
               {weekdays.map((weekday) => (
                 <th key={weekday.key} scope="col" className="px-2 py-1.5 text-left text-[11.5px] font-medium capitalize text-muted-foreground">
                   {weekday.short}
@@ -150,7 +151,7 @@ export function ChangeCalendar() {
                     <td
                       key={dayKey(day)}
                       aria-label={label}
-                      className={`h-28 align-top border-l border-border/60 first:border-l-0 px-1 py-1 ${items.freeze ? "bg-info/10" : ""} ${outside ? "bg-muted/30" : ""}`}
+                      className={`h-28 align-top border-l border-border/60 first:border-l-0 px-1 py-1 ${items.freeze ? "border-t-2 border-t-info" : ""}`}
                     >
                       <div className="mb-0.5 flex items-center justify-between gap-1 px-1">
                         <span
