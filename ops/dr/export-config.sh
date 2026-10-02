@@ -6,12 +6,12 @@
 #   API_URL        npr. https://api.desk.ba101.top            [obavezno]
 #   ADMIN_EMAIL    lokalni ADMIN/SUPER_ADMIN nalog              [obavezno]
 #   ADMIN_PASSWORD lozinka (čita se iz env, nikad kao argument) [obavezno]
-#   OUT_DIR        odredište (default /var/backups/ephelpdesk)
+#   OUT_DIR        odredište (default /var/backups/servicedesk)
 # Tajne postavke se NE snimaju (collectConfigSnapshot ih izostavlja).
 set -euo pipefail
 command -v jq >/dev/null || { echo "Potreban je jq"; exit 2; }
 : "${API_URL:?}"; : "${ADMIN_EMAIL:?}"; : "${ADMIN_PASSWORD:?}"
-OUT_DIR="${OUT_DIR:-/var/backups/ephelpdesk}"
+OUT_DIR="${OUT_DIR:-/var/backups/servicedesk}"
 STAMP="$(date -u +%F)"
 mkdir -p "$OUT_DIR"
 

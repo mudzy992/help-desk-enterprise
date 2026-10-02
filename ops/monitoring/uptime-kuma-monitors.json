@@ -19,12 +19,12 @@
       "description": "SPA index.html se servira (riječ iz <title>).",
       "body": null,
       "headers": null,
-      "keyword": "EP-HelpDesk",
+      "keyword": "Service Desk",
       "pushToken": null,
       "notificationIDList": {},
       "id": 1,
       "weight": 1999,
-      "name": "EP-HelpDesk · Frontend",
+      "name": "Service Desk · Frontend",
       "type": "keyword",
       "url": "https://__FRONTEND_HOST__/",
       "interval": 60
@@ -51,7 +51,7 @@
       "notificationIDList": {},
       "id": 2,
       "weight": 1998,
-      "name": "EP-HelpDesk · API liveness",
+      "name": "Service Desk · API liveness",
       "type": "http",
       "url": "https://__API_HOST__/health",
       "interval": 60
@@ -78,7 +78,7 @@
       "notificationIDList": {},
       "id": 3,
       "weight": 1997,
-      "name": "EP-HelpDesk · API readiness",
+      "name": "Service Desk · API readiness",
       "type": "http",
       "url": "https://__API_HOST__/health/ready",
       "interval": 60
@@ -105,7 +105,7 @@
       "notificationIDList": {},
       "id": 4,
       "weight": 1996,
-      "name": "EP-HelpDesk · Worker (heartbeat)",
+      "name": "Service Desk · Worker (heartbeat)",
       "type": "http",
       "url": "https://__API_HOST__/health/worker",
       "interval": 120
@@ -132,7 +132,7 @@
       "notificationIDList": {},
       "id": 5,
       "weight": 1995,
-      "name": "EP-HelpDesk · Worker push (dead man's switch)",
+      "name": "Service Desk · Worker push (dead man's switch)",
       "type": "push",
       "url": null,
       "interval": 120

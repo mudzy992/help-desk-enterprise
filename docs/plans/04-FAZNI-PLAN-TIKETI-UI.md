@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan implementacije: Grupni inbox, Svi tiketi, Detalji tiketa, Novi tiket
+# Service Desk — Fazni plan implementacije: Grupni inbox, Svi tiketi, Detalji tiketa, Novi tiket
 
 **Datum:** 20.09.2026.
 **Izvor nalaza:** `03-GAP-ANALIZA-TIKETI-UI.md` (ID-jevi `INB-*`, `LST-*`, `DET-*`, `NEW-*`, `DAT-*`, `DSG-*`, `I18-*`, `TST-*`, `HYG-*`, `QA-*`, odluke `D1–D10`).

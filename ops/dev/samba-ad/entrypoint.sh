@@ -2,8 +2,8 @@
 # Provisions the test domain on first start, then runs Samba in the foreground.
 set -euo pipefail
 
-: "${SAMBA_REALM:=TEST.EPBIH.LAB}"
-: "${SAMBA_DOMAIN:=TESTEPBIH}"
+: "${SAMBA_REALM:=TEST.EXAMPLE.LAB}"
+: "${SAMBA_DOMAIN:=TESTEXAMPLE}"
 : "${SAMBA_ADMIN_PASSWORD:?SAMBA_ADMIN_PASSWORD must be set}"
 : "${SAMBA_HOSTNAME:=dc1}"
 

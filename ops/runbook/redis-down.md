@@ -23,7 +23,7 @@ runbook služi da se to ne miješa s „aplikacija je pala".
     **ne** dozvoljava `PSUBSCRIBE socket.io#/#*`. U ACL-u mora stajati i
     `&socket.io#/#*` (adapter), uz `&socket.io-request#*`/`&socket.io-response#*`
     (request/response kanali) i `&tickets:realtime-bridge` (F4 most).
-  - Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om, pa `&ephelpdesk:*` ovdje ne
+  - Kanali se **ne** prefiksiraju `REDIS_KEY_PREFIX`-om, pa `&servicedesk:*` ovdje ne
     pomaže: adapter je `socket.io…`, bez prefiksa.
 
 ## Šta se dešava po komponenti (fail-open grane)
@@ -44,14 +44,14 @@ redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping          # PONG ili timeout
 redis-cli -h "$REDIS_HOST" --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" ping
 grep -E 'schedule_failed|fallback=in_memory|heartbeat' api.log worker.log | tail -30
 redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" info clients
-redis-cli llen 'bull:ephelpdesk:integration-jobs:wait'    # da li red stoji
+redis-cli llen 'bull:servicedesk:integration-jobs:wait'    # da li red stoji
 ```
 Provjeri i ACL (`ops/redis-acl.line`), `REDIS_KEY_PREFIX`/`QUEUE_PREFIX` i da nije
 riječ o mreži/LB-u između API-ja i Redisa.
 
 ```bash
 redis-cli -a "$REDIS_PASSWORD" ACL GETUSER "$REDIS_USERNAME" | grep -A1 channels
-#   očekivano: &ephelpdesk:* &bull:ephelpdesk:* &integration-queue:*
+#   očekivano: &servicedesk:* &bull:servicedesk:* &integration-queue:*
 #              &tickets:realtime-bridge &socket.io#* &socket.io-request#*
 #              &socket.io-response:*
 redis-cli --user "$REDIS_USERNAME" -a "$REDIS_PASSWORD" --no-auth-warning \

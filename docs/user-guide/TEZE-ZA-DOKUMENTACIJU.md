@@ -38,7 +38,7 @@ Svaka teza je jedan odjeljak u §4, sa sljedećim poljima. Obavezna polja su ozn
 - **Tip:** Razlika | Pravilo | Zamka | Postavka | Operativa | Odstupanje *
 - **Teza:** <1–3 rečenice: šta je istina, bez „možda“> *
 - **Zašto:** <razlog odluke; korisnik lakše prihvati pravilo kad zna razlog>
-- **Primjer:** <konkretna situacija, po mogućnosti iz EPBiH prakse>
+- **Primjer:** <konkretna situacija, po mogućnosti iz prakse klijenta>
 - **Postavke / permisije:** <ključ postavke (`private.…`) ili permisija (`status.incidents.manage`) i zadana vrijednost>
 - **Ekran:** <putanja u meniju, npr. Usluge → (usluga) → Zakaži prekid>
 - **Izvori:** <dizajn §, fajl u kodu, commit> *
@@ -174,13 +174,13 @@ To je kriterij kompletnosti.
   provjeru **pošiljaoca dolaznog e-maila** (zajednički sandučić).
 - **Zašto:** aplikacija nije vezana za jednog klijenta; ograničenje je zadano uključeno da e-mail
   (koji napušta sistem) ne ode na neplanirane adrese.
-- **Primjer:** interna `epbih.ba`, pojedinačne `test.user@gmail.com, test.agent@gmail.com` →
+- **Primjer:** interna `example.com`, pojedinačne `test.user@gmail.com, test.agent@gmail.com` →
   ti testni nalozi dobijaju e-mail, ostale gmail adrese ne.
 - **Zamka:** ograničena dostava s praznim listama (i bez interne domene) ne šalje **nikome**. Kartica
   SMTP u postavkama tada prikazuje upozorenje.
 - **Postavke / permisije:** `private.notifications.email.internalOnly` (zadano uključeno),
   `…internalDomainsCsv` (instalacija upisuje domenu super admina; postojeće instalacije dobijaju
-  `epbih.ba` migracijom), `…allowedExternalDomainsCsv`, `…allowedExternalEmailsCsv` (zadano prazno).
+  `example.com` migracijom), `…allowedExternalDomainsCsv`, `…allowedExternalEmailsCsv` (zadano prazno).
 - **Izvori:** `is-allowed-notification-email-address.ts`, migracija `20261201090000_email_internal_domains`,
   `seed-install-internal-email-domain.ts`
 - **Status:** Važi
@@ -336,11 +336,11 @@ To je kriterij kompletnosti.
 
 ## CMDB — lokacije i prenosnice (30.9.2026)
 
-- Lokacije su stablo, npr. Direkcija → ED Zenica → Zenica, Visoko, Kakanj.
+- Lokacije su stablo, npr. Direkcija → Podružnica Zenica → Zenica, Visoko, Kakanj.
 - Pri svakom kretanju opreme generiše se prenosnica po DOCX šablonu organizacije.
 - Scenariji kretanja: skladište → korisnik, korisnik → korisnik i korisnik → skladište.
 - Polja na prenosnici su: ko predaje, ko preuzima, naziv opreme, inventarni broj i potpisnik.
-- Potpisnik se definiše po organizacionoj jedinici i nasljeđuje se na sve jedinice ispod nje, dok niža jedinica ne definiše svog (Direkcija → ED Zenica → Snabdijevanje).
+- Potpisnik se definiše po organizacionoj jedinici i nasljeđuje se na sve jedinice ispod nje, dok niža jedinica ne definiše svog (Direkcija → Podružnica Zenica → Snabdijevanje).
 - Broj prenosnice je mjesec-broj-godina (01-0001-2026); brojač kreće od 1 svakog mjeseca.
 - Prenosnica se izdaje kao DOCX, a potpisana kopija se prilaže kao PDF ili JPG.
 - Kod prvog zaduženja upisuje se ko predaje; ako se ne upiše, na prenosnici piše „Skladište“.
@@ -459,7 +459,7 @@ To je kriterij kompletnosti.
 - Pretraga problema pri povezivanju poštuje vidljivost problema (OJ opseg) i nudi samo otvorene probleme; oprema se traži tek od 2 znaka.
 
 ## Teams konektor (3.1) i klijenti – odluke korisnika (2.10.2026.)
-- Aplikacija nije pravljena za jednog naručioca: EPBiH je samo jedan od budućih klijenata. Svako spominjanje ili hardkodiranje EPBiH uklonit će se u posebnom auditu.
+- Aplikacija nije pravljena za jednog naručioca: svaki klijent je samo jedan od budućih klijenata. Svako spominjanje ili hardkodiranje bilo kojeg klijenta uklonit će se u posebnom auditu.
 - Teams konektor se razvija bez ikakvih produkcijskih Microsoft resursa (tenant, registracija aplikacije, Azure pretplata). Sve se dokazuje u režimu simulatora, a produkcijski režim je pripremljen tako da ga klijent aktivira sam.
 - Prihvaćene su sve preporuke iz dizajna 3.1, osim onih koje su pretpostavljale da će jedan konkretni klijent nešto obezbijediti; lista preduslova je dio dokumentacije za svakog klijenta.
 - Teams konektor je addon, zadano isključen; poruke u kanalu ne sadrže opis tiketa ni poruke, a naslov samo uz postavku.

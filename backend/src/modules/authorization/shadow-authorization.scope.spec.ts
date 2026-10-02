@@ -93,7 +93,7 @@ describe('ShadowAuthorizationService scopes and SuperAdmin', () => {
       serviceId: null,
     });
     harness.findOrganizationalUnit.mockResolvedValue({
-      ouPath: '/Korisnici/ED Sarajevo',
+      ouPath: '/Korisnici/Podružnica Sarajevo',
     });
     const sibling = await harness.shadowAuthorizationService.evaluate({
       principal: shadowTestPrincipal,

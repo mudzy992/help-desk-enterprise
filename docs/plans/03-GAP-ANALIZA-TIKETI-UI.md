@@ -1,7 +1,7 @@
-# EP-HelpDesk — GAP analiza: Grupni inbox, Svi tiketi, Detalji tiketa, Novi tiket
+# Service Desk — GAP analiza: Grupni inbox, Svi tiketi, Detalji tiketa, Novi tiket
 
 **Datum:** 20.09.2026.
-**Obuhvat:** četiri ekrana (`/tickets?view=inbox`, `/tickets`, `/tickets/:id`, `/tickets/new`), podaci i backend rute koje ih hrane, poređenje s `RAW_PROJECT_EPHELPDESK.md` i s `referenca-dizajn/`, i18n, te inventar za Toast sistem.
+**Obuhvat:** četiri ekrana (`/tickets?view=inbox`, `/tickets`, `/tickets/:id`, `/tickets/new`), podaci i backend rute koje ih hrane, poređenje s `RAW_PROJECT.md` i s `referenca-dizajn/`, i18n, te inventar za Toast sistem.
 **Metod:** statička analiza koda (backend NestJS/Prisma, frontend React/Vite, referenca). Aplikacija nije pokretana ni renderovana. Sve tvrdnje o ponašanju izvedene su iz koda; tvrdnje o izgledu označene „provjeriti vizuelno“ traže potvrdu u fazi F0/F6.
 **Prati:** `04-FAZNI-PLAN-TIKETI-UI.md` (redoslijed implementacije po fazama).
 

@@ -1,6 +1,6 @@
 # Usklađenost s projektnim zadatkom + šta još nedostaje — 2026-09-25
 
-Izvor zahtjeva: `RAW_PROJECT_EPHELPDESK.md` (strukturirani SRS iz `EPHELPDESK.pdf`),
+Izvor zahtjeva: `RAW_PROJECT.md` (strukturirani SRS iz `EPHELPDESK.pdf`),
 §1 Core features, §8 Notifikacije, §10 Kvalitet, §12 Acceptance criteria, MVP constraints.
 Edge ekstenzija je **izuzeta** (posebna tema).
 
@@ -15,7 +15,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | ✅ Implementirano | 51 |
 | 🟡 Djelimično (bitan dio fali) | 8 |
 | ❌ Nije implementirano | 2 |
-| 🔎 Treba verifikovati na EPBiH infrastrukturi | 3 |
+| 🔎 Treba verifikovati na infrastrukturi klijenta | 3 |
 
 **Nedostaje ili je djelimično (po prioritetu):**
 
@@ -32,7 +32,7 @@ kodu. „✅" znači da postoji implementacija i test; nije ručno testirano na 
 | G9 | **Unrouted queue — cilj grupa i rok čišćenja** | 🟡 | Queue i owner rola postoje; `targetGroupId` i `cleanupSlaHours` (upozorenje kad unrouted tiket stoji > 8 h) nisu implementirani. |
 | G10 | `routing.rules.updated` realtime event | ❌ (nisko) | Ne emituje se; drugi admin mora osvježiti stranicu. |
 
-**Za verifikaciju na EPBiH strani (kod postoji, ne može se provjeriti odavde):**
+**Za verifikaciju na strani klijenta (kod postoji, ne može se provjeriti odavde):**
 - V1 — Entra ID SSO na pravom tenantu (ID token → korisnik, role iz lokalne baze).
 - V2 — LDAPS AD sync (`OU=Korisnici`, `OU=Grupe`) na pravim DC-ovima; mapiranje OU po DN putanji.
 - V3 — DR restore drill (`ops/DR.md` postoji; zadatak traži bar jedan stvarno izveden restore).

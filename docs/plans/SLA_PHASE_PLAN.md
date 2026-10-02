@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan: SLA engine (SLA_PHASE_PLAN.md)
+# Service Desk — Fazni plan: SLA engine (SLA_PHASE_PLAN.md)
 
 **Scope:** isključivo SLA (backend `modules/sla`, frontend `pages/sla-page.tsx` + `components/sla/*`, i direktne veze — notifications fan-out, config-versioning apply za SLA, reports ako se doda compliance metrika). Ništa van ovog scope-a se ne dira.
 

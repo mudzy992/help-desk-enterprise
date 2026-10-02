@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Seeds an EPBiH-like OU tree, users and role groups into the test domain.
+# Seeds a client-like OU tree, users and role groups into the test domain.
 # Idempotent: existing objects are skipped. Usage (inside the container):
 #   seed.sh                 # base data set (~30 users)
 #   seed.sh --bulk 500      # plus N generated users in OU=Masovni
@@ -10,9 +10,9 @@ if [ ! -f /var/lib/samba/private/sam.ldb ] && [ -f "$(dirname "$0")/docker-compo
   exec docker compose exec -T samba-ad "$(basename "$0")" "$@"
 fi
 
-REALM="${SAMBA_REALM:-TEST.EPBIH.LAB}"
+REALM="${SAMBA_REALM:-TEST.EXAMPLE.LAB}"
 BASE="DC=$(echo "${REALM,,}" | sed 's/\./,DC=/g')"
-MAIL_DOMAIN="${SEED_MAIL_DOMAIN:-test.epbih.lab}"
+MAIL_DOMAIN="${SEED_MAIL_DOMAIN:-test.example.lab}"
 PASSWORD="${SEED_USER_PASSWORD:-Test-Lozinka-2026!}"
 BULK=0
 if [ "${1:-}" = "--bulk" ]; then BULK="${2:-0}"; fi
@@ -38,19 +38,19 @@ ou "OU=HelpDesk"
 ou "OU=Grupe,OU=HelpDesk"
 ou "OU=Servisni,OU=HelpDesk"
 ou "OU=Korisnici"
-for ed in "ED Zenica" "ED Sarajevo" "ED Tuzla" "ED Mostar" "ED Bihać"; do
+for ed in "Podružnica Zenica" "Podružnica Sarajevo" "Podružnica Tuzla" "Podružnica Mostar" "Podružnica Bihać"; do
   ou "OU=${ed},OU=Korisnici"
 done
-ou "OU=Visoko,OU=ED Zenica,OU=Korisnici"
-ou "OU=Kakanj,OU=ED Zenica,OU=Korisnici"
-ou "OU=Ilidža,OU=ED Sarajevo,OU=Korisnici"
+ou "OU=Visoko,OU=Podružnica Zenica,OU=Korisnici"
+ou "OU=Kakanj,OU=Podružnica Zenica,OU=Korisnici"
+ou "OU=Ilidža,OU=Podružnica Sarajevo,OU=Korisnici"
 ou "OU=Direkcija,OU=Korisnici"
 ou "OU=IT,OU=Direkcija,OU=Korisnici"
 
 # ── Bind account for the help desk (read-only; Domain Users is enough) ──
 if ! samba-tool user show svc-helpdesk >/dev/null 2>&1; then
   samba-tool user create svc-helpdesk "${SVC_BIND_PASSWORD:-Bind-Lozinka-2026!}" \
-    --userou="OU=Servisni,OU=HelpDesk" --description="EP HelpDesk LDAPS bind" >/dev/null
+    --userou="OU=Servisni,OU=HelpDesk" --description="Service Desk LDAPS bind" >/dev/null
   samba-tool user setexpiry svc-helpdesk --noexpiry >/dev/null
   echo "USR + svc-helpdesk (bind)"
 fi
@@ -60,23 +60,23 @@ group "HD-Administratori"
 group "HD-Agenti"
 
 # ── Users (names with č ć š ž đ on purpose) ──
-user amar.hodzic     Amar     Hodžić     "OU=Visoko,OU=ED Zenica,OU=Korisnici"  "EP BiH" "ED Zenica"
-user lejla.begic     Lejla    Begić      "OU=Visoko,OU=ED Zenica,OU=Korisnici"  "EP BiH" "ED Zenica"
-user emir.kovacevic  Emir     Kovačević  "OU=Visoko,OU=ED Zenica,OU=Korisnici"  "EP BiH" "ED Zenica"
-user selma.dzafic    Selma    Džafić     "OU=Kakanj,OU=ED Zenica,OU=Korisnici"  "EP BiH" "ED Zenica"
-user haris.mujic     Haris    Mujić      "OU=Kakanj,OU=ED Zenica,OU=Korisnici"  "EP BiH" "ED Zenica"
-user adna.causevic   Adna     Čaušević   "OU=ED Zenica,OU=Korisnici"            "EP BiH" "ED Zenica"
-user tarik.salihovic Tarik    Salihović  "OU=Ilidža,OU=ED Sarajevo,OU=Korisnici" "EP BiH" "ED Sarajevo"
-user amra.djulic     Amra     Đulić      "OU=Ilidža,OU=ED Sarajevo,OU=Korisnici" "EP BiH" "ED Sarajevo"
-user kenan.zukic     Kenan    Zukić      "OU=ED Sarajevo,OU=Korisnici"          "EP BiH" "ED Sarajevo"
-user nermin.sehic    Nermin   Šehić      "OU=ED Tuzla,OU=Korisnici"             "EP BiH" "ED Tuzla"
-user maja.jurkovic   Maja     Jurković   "OU=ED Mostar,OU=Korisnici"            "EP BiH" "ED Mostar"
-user edin.pasic      Edin     Pašić      "OU=ED Bihać,OU=Korisnici"             "EP BiH" "ED Bihać"
-user dzenana.omerovic Dženana Omerović   "OU=IT,OU=Direkcija,OU=Korisnici"      "EP BiH" "Direkcija"
-user mirza.ibrahimovic Mirza  Ibrahimović "OU=IT,OU=Direkcija,OU=Korisnici"     "EP BiH" "Direkcija"
-user sanela.kurtovic Sanela   Kurtović   "OU=Direkcija,OU=Korisnici"            "EP BiH" "Direkcija"
+user amar.hodzic     Amar     Hodžić     "OU=Visoko,OU=Podružnica Zenica,OU=Korisnici"  "Primjer d.o.o." "Podružnica Zenica"
+user lejla.begic     Lejla    Begić      "OU=Visoko,OU=Podružnica Zenica,OU=Korisnici"  "Primjer d.o.o." "Podružnica Zenica"
+user emir.kovacevic  Emir     Kovačević  "OU=Visoko,OU=Podružnica Zenica,OU=Korisnici"  "Primjer d.o.o." "Podružnica Zenica"
+user selma.dzafic    Selma    Džafić     "OU=Kakanj,OU=Podružnica Zenica,OU=Korisnici"  "Primjer d.o.o." "Podružnica Zenica"
+user haris.mujic     Haris    Mujić      "OU=Kakanj,OU=Podružnica Zenica,OU=Korisnici"  "Primjer d.o.o." "Podružnica Zenica"
+user adna.causevic   Adna     Čaušević   "OU=Podružnica Zenica,OU=Korisnici"            "Primjer d.o.o." "Podružnica Zenica"
+user tarik.salihovic Tarik    Salihović  "OU=Ilidža,OU=Podružnica Sarajevo,OU=Korisnici" "Primjer d.o.o." "Podružnica Sarajevo"
+user amra.djulic     Amra     Đulić      "OU=Ilidža,OU=Podružnica Sarajevo,OU=Korisnici" "Primjer d.o.o." "Podružnica Sarajevo"
+user kenan.zukic     Kenan    Zukić      "OU=Podružnica Sarajevo,OU=Korisnici"          "Primjer d.o.o." "Podružnica Sarajevo"
+user nermin.sehic    Nermin   Šehić      "OU=Podružnica Tuzla,OU=Korisnici"             "Primjer d.o.o." "Podružnica Tuzla"
+user maja.jurkovic   Maja     Jurković   "OU=Podružnica Mostar,OU=Korisnici"            "Primjer d.o.o." "Podružnica Mostar"
+user edin.pasic      Edin     Pašić      "OU=Podružnica Bihać,OU=Korisnici"             "Primjer d.o.o." "Podružnica Bihać"
+user dzenana.omerovic Dženana Omerović   "OU=IT,OU=Direkcija,OU=Korisnici"      "Primjer d.o.o." "Direkcija"
+user mirza.ibrahimovic Mirza  Ibrahimović "OU=IT,OU=Direkcija,OU=Korisnici"     "Primjer d.o.o." "Direkcija"
+user sanela.kurtovic Sanela   Kurtović   "OU=Direkcija,OU=Korisnici"            "Primjer d.o.o." "Direkcija"
 for i in $(seq -w 1 15); do
-  user "korisnik.visoko${i}" Korisnik "Visoko ${i}" "OU=Visoko,OU=ED Zenica,OU=Korisnici" "EP BiH" "ED Zenica"
+  user "korisnik.visoko${i}" Korisnik "Visoko ${i}" "OU=Visoko,OU=Podružnica Zenica,OU=Korisnici" "Primjer d.o.o." "Podružnica Zenica"
 done
 
 member "HD-Administratori" dzenana.omerovic
@@ -88,10 +88,10 @@ member "HD-Agenti" tarik.salihovic
 # 1) user without e-mail → exception NO_EMAIL
 if ! samba-tool user show bez.maila >/dev/null 2>&1; then
   samba-tool user create bez.maila "$PASSWORD" --given-name=Bez --surname=Maila \
-    --userou="OU=Visoko,OU=ED Zenica,OU=Korisnici" >/dev/null && echo "USR + bez.maila (no mail)"
+    --userou="OU=Visoko,OU=Podružnica Zenica,OU=Korisnici" >/dev/null && echo "USR + bez.maila (no mail)"
 fi
 # 2) disabled account → planned as deactivation / not created
-user onemogucen.korisnik Onemogućen Korisnik "OU=Kakanj,OU=ED Zenica,OU=Korisnici" "EP BiH" "ED Zenica"
+user onemogucen.korisnik Onemogućen Korisnik "OU=Kakanj,OU=Podružnica Zenica,OU=Korisnici" "Primjer d.o.o." "Podružnica Zenica"
 samba-tool user disable onemogucen.korisnik >/dev/null 2>&1 || true
 
 # ── Optional bulk set (paging with pageSize 500, performance) ──
@@ -101,7 +101,7 @@ if [ "$BULK" -gt 0 ]; then
     login=$(printf "masovni.%05d" "$i")
     samba-tool user show "$login" >/dev/null 2>&1 && continue
     samba-tool user create "$login" "$PASSWORD" --given-name=Masovni --surname="$i" \
-      --mail-address="${login}@${MAIL_DOMAIN}" --company="EP BiH" --department="Masovni" \
+      --mail-address="${login}@${MAIL_DOMAIN}" --company="Primjer d.o.o." --department="Masovni" \
       --userou="OU=Masovni,OU=Korisnici" >/dev/null
     [ $((i % 100)) -eq 0 ] && echo "USR + ${i}/${BULK} bulk"
   done

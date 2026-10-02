@@ -5,7 +5,7 @@
 # Varijable:
 #   PG_CONTAINER   Postgres kontejner (npr. hgpchekxb6dutalsyctu42al)   [obavezno]
 #   PG_USER        korisnik (default admin)
-#   DRILL_DB       ciljna baza (default ephelpdesk-drill) — mora sadržati "drill"
+#   DRILL_DB       ciljna baza (default servicedesk-drill) — mora sadržati "drill"
 #   DUMP_FILE      Coolify backup (.dmp custom format ili .sql / .sql.gz)  [obavezno]
 #   UPLOADS_ARCHIVE uploads-YYYY-MM-DD.tar.gz                            [obavezno]
 #   DRILL_UPLOADS_VOLUME  volumen za drill stack (default ephd-drill-uploads)
@@ -14,7 +14,7 @@ set -euo pipefail
 
 : "${PG_CONTAINER:?}"; : "${DUMP_FILE:?}"; : "${UPLOADS_ARCHIVE:?}"
 PG_USER="${PG_USER:-admin}"
-DRILL_DB="${DRILL_DB:-ephelpdesk-drill}"
+DRILL_DB="${DRILL_DB:-servicedesk-drill}"
 DRILL_UPLOADS_VOLUME="${DRILL_UPLOADS_VOLUME:-ephd-drill-uploads}"
 
 case "$DRILL_DB" in *drill*) ;; *) echo "DRILL_DB mora sadržati 'drill' (zaštita od prepisivanja)"; exit 2;; esac

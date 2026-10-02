@@ -1,7 +1,7 @@
 # MATRIX — sla-starting-profiles
 
 ## Cilj
-Idempotentan seed startnih SLA profila iz `RAW_PROJECT_EPHELPDESK.md` na postojeće `BusinessHoursCalendar` / `SlaProfile` / `SlaRule`. Nema novog SLA modela, timer/breach/UI mehanizma ni notifikacija.
+Idempotentan seed startnih SLA profila iz `RAW_PROJECT.md` na postojeće `BusinessHoursCalendar` / `SlaProfile` / `SlaRule`. Nema novog SLA modela, timer/breach/UI mehanizma ni notifikacija.
 
 ## Izvor
 RAW sekcija *Startni SLA profili (default vrijednosti) — BH_STANDARD*. Kalendar: `BH_STANDARD`, Pon–Pet 08:00–16:00, `Europe/Sarajevo`. `1 BD` = jedan radni dan tog kalendara (8h = 480 min).

@@ -1,6 +1,6 @@
-# EP-HelpDesk — Implementacioni promptovi: Faza 7 (ostatak) → Faza 9
+# Service Desk — Implementacioni promptovi: Faza 7 (ostatak) → Faza 9
 
-Generisano na osnovu `TASKS.md` (stavke od "Durable integration queue" u Fazi 7, do kraja Faze 9) i unakrsno provjereno naspram stvarnog stanja repozitorija (Prisma šema, backend `src/modules/**`, `.cursor/docs/`, `.cursor/rules/`, `RAW_PROJECT_EPHELPDESK.md`).
+Generisano na osnovu `TASKS.md` (stavke od "Durable integration queue" u Fazi 7, do kraja Faze 9) i unakrsno provjereno naspram stvarnog stanja repozitorija (Prisma šema, backend `src/modules/**`, `.cursor/docs/`, `.cursor/rules/`, `RAW_PROJECT.md`).
 
 Ovo je NASTAVAK `fe-alignment-prompts.md` dokumenta, ali potpuno ODVOJEN opseg: taj dokument pokriva vizuelno poravnanje frontend-a (FE-0…FE-9 task ID-jevi); ovaj dokument pokriva preostale FUNKCIONALNE backend/infra/ops/edge/testing stavke iz `TASKS.md`. Ne miješaj ih — različiti su task ID prefiksi (`F7-`/`F8-`/`F9-` ovdje, `FE-` u drugom dokumentu) namjerno, da se ne pobrkaju u istoj sesiji.
 
@@ -66,7 +66,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije ~163-169, ~545-554, ~952-953, ~1041; `.cursor/docs/05-infra-coolify.md`; `.cursor/docs/matrices/redis-bullmq/MATRIX.md` (postojeći infra sloj — REUSE `RedisModule`/BullMQ `forRoot`, ne pravi paralelni Redis klijent).
+2. Pročitaj: `RAW_PROJECT.md` linije ~163-169, ~545-554, ~952-953, ~1041; `.cursor/docs/05-infra-coolify.md`; `.cursor/docs/matrices/redis-bullmq/MATRIX.md` (postojeći infra sloj — REUSE `RedisModule`/BullMQ `forRoot`, ne pravi paralelni Redis klijent).
 3. Dependency (mora već biti gotovo prije ovog taska): Faza 0 stavka "Redis/BullMQ klijent + worker entry" (VEĆ [x]); Faza 7 stavke "Email kanal" i "Socket.IO" (VEĆ [x], jer edge eventi idu preko postojećih WS kanala nakon što ih queue isporuči).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -119,7 +119,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 163-164, 363, 542-544, 833-834, 966-967.
+2. Pročitaj: `RAW_PROJECT.md` linije 163-164, 363, 542-544, 833-834, 966-967.
 3. Dependency (mora već biti gotovo prije ovog taska): F7-A (durable queue mora postojati — Teams stub jobovi prolaze kroz isti queue/worker mehanizam).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -167,7 +167,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 263-280, 649-654, 871, 1001-1003, 1093-1094.
+2. Pročitaj: `RAW_PROJECT.md` linije 263-280, 649-654, 871, 1001-1003, 1093-1094.
 3. Dependency (mora već biti gotovo prije ovog taska): Settings registry (Faza 0, [x]); routing (Faza 2, [x]); SLA (Faza 6, [x]); service forms/catalog (Faza 2, [x]); change log modul za settings/routing (Faza 2, [x], REUSE, ne duplirati diff logiku).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -223,7 +223,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 241-243, 601-604, 988-989; `security.mdc` ("Svaka akcija koja mijenja stanje... mora ostaviti trag u AuditLog").
+2. Pročitaj: `RAW_PROJECT.md` linije 241-243, 601-604, 988-989; `security.mdc` ("Svaka akcija koja mijenja stanje... mora ostaviti trag u AuditLog").
 3. Dependency (mora već biti gotovo prije ovog taska): Postojeći `change-log` modul (`build-deterministic-diff.ts`, `canonicalize-json.ts`) za reuse hash/diff pomoćnih funkcija ako je primjenjivo.. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -277,7 +277,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 718-721, 948-950, 1076; `backend.mdc` (error format).
+2. Pročitaj: `RAW_PROJECT.md` linije 718-721, 948-950, 1076; `backend.mdc` (error format).
 3. Dependency (mora već biti gotovo prije ovog taska): F8-2 (audit export) treba postojati prije nego support bundle može uključiti audit export dio; F8-1 (config versioning) korisno je za snapshot reuse (nije striktan blocker — ako F8-1 nije gotov, koristi direktan settings read za snapshot).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -325,7 +325,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 264-283 (report packs, bottleneck dashboard), 1006-1007, 1024-1026 (search UX); `.cursor/docs/frontend-reference-alignment-plan.md` FE-4.2 (postojeća client-side aggregacija koju je moguće zamijeniti server-side agregacijom).
+2. Pročitaj: `RAW_PROJECT.md` linije 264-283 (report packs, bottleneck dashboard), 1006-1007, 1024-1026 (search UX); `.cursor/docs/frontend-reference-alignment-plan.md` FE-4.2 (postojeća client-side aggregacija koju je moguće zamijeniti server-side agregacijom).
 3. Dependency (mora već biti gotovo prije ovog taska): Ticket domain (Faza 4/5/6, [x]), close codes (Faza 5, [x]), KB (Faza 4, [x]).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -375,7 +375,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 849-860; `ops/COOLIFY.md`; `.cursor/docs/05-infra-coolify.md`.
+2. Pročitaj: `RAW_PROJECT.md` linije 849-860; `ops/COOLIFY.md`; `.cursor/docs/05-infra-coolify.md`.
 3. Dependency (mora već biti gotovo prije ovog taska): F8-1 (config versioning) — opciono, za reuse snapshot mehanizma; nije striktan blocker za sam dokument.. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -427,7 +427,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 1038, 1041, 975; `.cursor/docs/frontend-reference-alignment-plan.md` (za postojeći frontend routing/SLA/catalog admin — NE duplirati).
+2. Pročitaj: `RAW_PROJECT.md` linije 1038, 1041, 975; `.cursor/docs/frontend-reference-alignment-plan.md` (za postojeći frontend routing/SLA/catalog admin — NE duplirati).
 3. Dependency (mora već biti gotovo prije ovog taska): F7-A (queue backend + admin retry API) i F8-1 (config versioning backend) MORAJU biti gotovi prije ovog taska — bez njih nema šta zvati.. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -478,7 +478,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 161-162, 309-345 (Manifest V3 komponente, delivery/pouzdanost, event kanali, enterprise hardening), 693-711 (settings ključevi), 829 (`edge-extension-client` slug); `.cursor/docs/03-edge-extension.md`; `.cursor/docs/matrices/websocket-gateway/MATRIX.md`.
+2. Pročitaj: `RAW_PROJECT.md` linije 161-162, 309-345 (Manifest V3 komponente, delivery/pouzdanost, event kanali, enterprise hardening), 693-711 (settings ključevi), 829 (`edge-extension-client` slug); `.cursor/docs/03-edge-extension.md`; `.cursor/docs/matrices/websocket-gateway/MATRIX.md`.
 3. Dependency (mora već biti gotovo prije ovog taska): F7-A (durable queue — edge eventi se isporučuju kroz queue prema RAW-u); websocket-gateway (Faza 0/7, [x], REUSE, ne pravi novi gateway).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -494,7 +494,7 @@ Scope (radi SAMO ovo, ništa više):
 - Delivered/opened receipts: extension šalje backend-u potvrdu prijema/otvaranja notifikacije (audit/troubleshooting) — potreban je mali novi backend endpoint ako ne postoji.
 - Minimalan popup UI shell (samo da postoji mjesto za toast "Open in Desk" link) — PUNI popup (mini inbox + quick reply) je F9-2, ne ovaj task.
 - Kill switch: `private.edgeExtension.killSwitchEnabled` (default true) — provjeri backend flag prije uspostave konekcije; ako je isključen, extension se ne konektuje.
-- Feature flag i dozvoljeni domen: `private.edgeExtension.enabled` (default true), `private.edgeExtension.allowedEmailDomain` (default `epbih.ba`).
+- Feature flag i dozvoljeni domen: `private.edgeExtension.enabled` (default true), `private.edgeExtension.allowedEmailDomain` (default `example.com`).
 
 Šta MORAŠ sačuvati (Preserve) — ne smije regresirati:
 Ne pravi novi WS gateway ili novi auth mehanizam — extension je "još jedan klijent na istim kanalima" po `websocket.mdc` ("Edge ekstenzija se tretira kao još jedan klijent na istim kanalima — nema posebne logike za nju na backendu").
@@ -534,7 +534,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 161-162, 311-345, 693-711, 830 (`edge-extension-chat-remote-contract`), 961-965.
+2. Pročitaj: `RAW_PROJECT.md` linije 161-162, 311-345, 693-711, 830 (`edge-extension-chat-remote-contract`), 961-965.
 3. Dependency (mora već biti gotovo prije ovog taska): F9-1 (extension background/WS konekcija mora već postojati); F7-A (remote eventi idu kroz durable queue).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -542,7 +542,7 @@ Prije pisanja koda:
 Cilj (Goal): Puni popup UI extension-a: mini inbox + quick reply (tekst, bez attachmenta) + "Request Remote" flow koji otvara `ms-quick-assist:` protokol uz audit acknowledge i rate limit.
 
 Scope (radi SAMO ovo, ništa više):
-- Popup UI: mini inbox (lista otvorenih tiketa korisnika iz WS/poll podataka) + quick reply textarea koji šalje poruku preko postojećeg ticket message send API-ja (permission `ticket.message.send`) + "Open in Desk" link na `desk.epbih.ba`. Extension end-user NIKAD ne smije prikazati `INTERNAL_NOTE` tip poruke (isto pravilo kao web frontend).
+- Popup UI: mini inbox (lista otvorenih tiketa korisnika iz WS/poll podataka) + quick reply textarea koji šalje poruku preko postojećeg ticket message send API-ja (permission `ticket.message.send`) + "Open in Desk" link na `desk.example.com`. Extension end-user NIKAD ne smije prikazati `INTERNAL_NOTE` tip poruke (isto pravilo kao web frontend).
 - Remote request flow: backend endpoint/event koji inicira "Request Remote" (RAW ne precizira da li agent ili user inicira — provjeri/potvrdi u planu prije implementacije); extension prikazuje toast + dugme "Open Quick Assist"; klik okida `ms-quick-assist:` protokol handler i šalje audit event "acknowledged/opened" nazad backend-u (permission `ticket.remote.open_quick_assist`).
 - Rate limit: `private.edgeExtension.remote.rateLimitMinutesPerTicket` (default 10) — anti-spam po tiketu, backend-enforced.
 - `private.edgeExtension.remote.requireUserClickToOpenQuickAssist` (default true) — `ms-quick-assist:` se NIKAD ne okida automatski, samo na eksplicitan klik korisnika.
@@ -587,7 +587,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 861-875; `.cursor/rules/plan-first.mdc`.
+2. Pročitaj: `RAW_PROJECT.md` linije 861-875; `.cursor/rules/plan-first.mdc`.
 3. Dependency (mora već biti gotovo prije ovog taska): Praktično SVI prethodni Faza 0-8 taskovi moraju biti funkcionalno gotovi (test #9 direktno zavisi od F8-1 config versioning; test #4 zavisi od F7-A durable queue).. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -646,7 +646,7 @@ U TASKS.md označi ovu stavku sa `[~] IN PROGRESS` prije nego počneš (ako već
 
 Prije pisanja koda:
 1. Pročitaj `.cursor/rules/00-core.mdc` (uvijek aktivan) i relevantna pravila po sloju koji diraš (`backend.mdc`, `database.mdc`, `websocket.mdc`, `security.mdc`, `design-settings-realtime-notifications.mdc`, `frontend.mdc` / `frontend-ui-ux.mdc` po potrebi).
-2. Pročitaj: `RAW_PROJECT_EPHELPDESK.md` linije 225-239 (RBAC test suite obavezno — detaljna lista), 599; `security.mdc`; postojeći `authorization` modul (Faza 1, [x]).
+2. Pročitaj: `RAW_PROJECT.md` linije 225-239 (RBAC test suite obavezno — detaljna lista), 599; `security.mdc`; postojeći `authorization` modul (Faza 1, [x]).
 3. Dependency (mora već biti gotovo prije ovog taska): Permission sistem (Faza 1, [x]), confidential ACL (Faza 5, [x]), bulk akcije (Faza 5, [x]). Export OU scoping testovi su jači ako F8-2/F8-4 već postoje, ali nisu striktan blocker.. Ako nešto od ovoga NIJE implementirano, stani i javi mi prije nego što nastaviš.
 4. Napravi usko pretraživanje repoa (grep/симbol search) da provjeriš stvarno trenutno stanje koda prije nego pretpostaviš bilo šta — ne nagađaj (`token-efficiency.mdc`).
 5. Predloži kratak plan implementacije (bullet lista, fazno ako je task velik — `plan-first.mdc`: >3 faze → `.cursor/plans/<slug>/`); sačekaj moju potvrdu prije koda.
@@ -690,4 +690,4 @@ Na kraju:
 ---
 ## Nakon svih F7/F8/F9 taskova
 
-Kad Faza 7-9 iz `TASKS.md` bude kompletna, projekat dostiže puni RAW IN scope prve isporuke (`RAW_PROJECT_EPHELPDESK.md` MVP constraints lista). U tom trenutku vrijedi ponovo proći kroz `.cursor/docs/frontend-reference-alignment-plan.md` §12 "Definition of Done (global)" kao finalnu provjeru, i kroz F9-3 E2E suite kao regresioni test cijelog sistema prije produkcijskog deploya (`.cursor/docs/05-infra-coolify.md`).
+Kad Faza 7-9 iz `TASKS.md` bude kompletna, projekat dostiže puni RAW IN scope prve isporuke (`RAW_PROJECT.md` MVP constraints lista). U tom trenutku vrijedi ponovo proći kroz `.cursor/docs/frontend-reference-alignment-plan.md` §12 "Definition of Done (global)" kao finalnu provjeru, i kroz F9-3 E2E suite kao regresioni test cijelog sistema prije produkcijskog deploya (`.cursor/docs/05-infra-coolify.md`).

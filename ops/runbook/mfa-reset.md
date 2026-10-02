@@ -16,7 +16,7 @@ Potreban je shell pristup backend kontejneru (to je granica povjerenja).
 
 ```bash
 # Coolify → backend → Terminal (ili docker exec -it <backend> sh)
-node dist/src/cli/reset-mfa.js --email admin@epbih.ba --reason "izgubljen telefon, potvrđeno lično"
+node dist/src/cli/reset-mfa.js --email admin@example.com --reason "izgubljen telefon, potvrđeno lično"
 ```
 
 - Briše MFA i rezervne kodove, opoziva sve sesije (baza + Redis), upisuje audit `auth.mfa_reset` s `via: server`.

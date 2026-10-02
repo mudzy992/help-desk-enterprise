@@ -6,7 +6,7 @@
  * Pokretanje:
  *   node ops/ws-cross-instance-check.mjs                  # puni dokaz (treba Redis)
  *   node ops/ws-cross-instance-check.mjs --preflight      # SAMO Redis + ACL, bez servera
- *   REDIS_URL=redis://ephelpdesk:<lozinka>@127.0.0.1:6380 node ops/ws-cross-instance-check.mjs
+ *   REDIS_URL=redis://servicedesk:<lozinka>@127.0.0.1:6380 node ops/ws-cross-instance-check.mjs
  *   node ops/ws-cross-instance-check.mjs --redis-url=redis://127.0.0.1:6379
  *
  * Izlazni kodovi (razlikuju „nije dokazano" od „nije ni mjereno"):
@@ -65,7 +65,7 @@ if (wantHelp) {
   console.log(`Upotreba: node ops/ws-cross-instance-check.mjs [opcije]
 
   --preflight           samo Redis + ACL provjera, ne diže Socket.IO servere
-  --redis-url=<url>     npr. redis://ephelpdesk:lozinka@127.0.0.1:6380
+  --redis-url=<url>     npr. redis://servicedesk:lozinka@127.0.0.1:6380
   --room=<soba>         default: ${room}
   --timeout=<ms>        koliko se čeka na dokaz, default ${proofTimeoutMs}
 
@@ -117,7 +117,7 @@ function explainRedisError(error) {
   if (message.includes('NOPERM') || message.includes('permissions to access a channel')) {
     return {
       kind: 'acl',
-      hint: `ACL odbija kanal. Dodaj ADITIVNO (bez resetchannels): ACL SETUSER ephelpdesk &socket.io#/#* &socket.io-request#/# &socket.io-response#/# , pa ACL SAVE`,
+      hint: `ACL odbija kanal. Dodaj ADITIVNO (bez resetchannels): ACL SETUSER servicedesk &socket.io#/#* &socket.io-request#/# &socket.io-response#/# , pa ACL SAVE`,
     };
   }
   if (code === 'ECONNRESET' || message.includes('ECONNRESET')) {

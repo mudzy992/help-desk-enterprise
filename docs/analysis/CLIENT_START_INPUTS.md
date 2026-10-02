@@ -1,8 +1,8 @@
-# EP-HelpDesk — start inputs (MVP) (EPBiH)
+# Service Desk — start inputs (MVP) (klijent)
 
-Ovaj dokument je “source of truth” za minimalne ulaze koje EPBiH treba isporučiti da MVP može krenuti bez blokera. Fokus: **AD/LDAPS + OU mapping + role grupe**, plus osnovna infrastruktura.
+Ovaj dokument je “source of truth” za minimalne ulaze koje klijent treba isporučiti da MVP može krenuti bez blokera. Fokus: **AD/LDAPS + OU mapping + role grupe**, plus osnovna infrastruktura.
 
-Planirani domen aplikacije: `desk.epbih.ba` (app na odvojenom VM serveru).
+Planirani domen aplikacije: `desk.example.com` (app na odvojenom VM serveru).
 
 ---
 
@@ -20,26 +20,26 @@ Planirani domen aplikacije: `desk.epbih.ba` (app na odvojenom VM serveru).
 
 ### 1.2 LDAPS konekcija
 
-- DC hostovi (primarni + sekundarni), npr. `dc1.epbih.ba`, `dc2.epbih.ba`
+- DC hostovi (primarni + sekundarni), npr. `dc1.example.com`, `dc2.example.com`
 - Port: **636 (LDAPS)**
-- **Base DN**: `DC=epbih,DC=ba`
+- **Base DN**: `DC=example,DC=com`
 - **CA/cert chain** (da backend može validirati LDAPS cert)
 - Network:
   - da li treba whitelist IP VM servera prema DC-ovima
 
 ### 1.3 OU scope + pravilo mapiranja (source-of-truth)
 
-Standard (potvrđen u EPBiH):
+Standard (potvrđen kod klijenta):
 
-- `DC=epbih,DC=ba`
-- `OU=Grupe,DC=epbih,DC=ba` (gdje su sve grupe)
-- `OU=Korisnici,DC=epbih,DC=ba` (root gdje su svi korisnici u scope-u)
+- `DC=example,DC=com`
+- `OU=Grupe,DC=example,DC=com` (gdje su sve grupe)
+- `OU=Korisnici,DC=example,DC=com` (root gdje su svi korisnici u scope-u)
   - `OU=Direkcija,...` (unutra podjela po službama)
-  - `OU=ED <grad>,...` (npr. `OU=ED Zenica,...`) (unutra podjela po poslovnicama: npr. `OU=Breza`, `OU=Visoko`, …)
+  - `OU=ED <grad>,...` (npr. `OU=Podružnica Zenica,...`) (unutra podjela po poslovnicama: npr. `OU=Breza`, `OU=Visoko`, …)
 
 Tražimo od sysadmina:
 
-- Potvrdu da je `OU=Korisnici,DC=epbih,DC=ba` “scope root” za HelpDesk (ili listu dodatnih root OU-ova ako ih ima)
+- Potvrdu da je `OU=Korisnici,DC=example,DC=com` “scope root” za HelpDesk (ili listu dodatnih root OU-ova ako ih ima)
 - Listu top-level OU-ova ispod `OU=Korisnici` koji ulaze u scope (Direkcija + ED-ovi)
 - Listu izuzetaka (ako postoje) gdje se korisnici nalaze van ove strukture
 
@@ -62,9 +62,9 @@ Potvrda da su sljedeći atributi dostupni i smisleni:
 
 Kreirati AD security grupe i dostaviti njihove **DistinguishedName (DN)**:
 
-- `EPHELPDESK_ROLE_SUPER_ADMIN`
-- `EPHELPDESK_ROLE_ADMIN`
-- `EPHELPDESK_ROLE_AGENT`
+- `SERVICEDESK_ROLE_SUPER_ADMIN`
+- `SERVICEDESK_ROLE_ADMIN`
+- `SERVICEDESK_ROLE_AGENT`
 
 Pravilo:
 
@@ -84,7 +84,7 @@ Pravilo:
 
 ## 4) Email notifikacije (lokalno/O365)
 
-- Sender mailbox (npr. `helpdesk@epbih.ba`)
+- Sender mailbox (npr. `helpdesk@example.com`)
 - Potvrda da je slanje **interno** (lokalno) ili ima eksternih primaoca
 - Eventi (minimalno): new ticket, assigned, new message, resolved/closed, remote requested
 
@@ -92,10 +92,10 @@ Pravilo:
 
 ## 5) Infrastruktura (minimalno)
 
-- Domen + DNS: app `desk.epbih.ba`, API `api.desk.epbih.ba` (staging: `*.ba101.top` na Coolify)
+- Domen + DNS: app `desk.example.com`, API `api.desk.example.com` (staging: `*.ba101.top` na Coolify)
 - Coolify deploy (bez Traefik path prefixa)
 - PostgreSQL (Coolify Database) + backup politika
-- Redis: postojeći `redis-core` / `redis-net` + ACL user `ephelpdesk`
+- Redis: postojeći `redis-core` / `redis-net` + ACL user `servicedesk`
 - Uploads: persistent volume `/usr/app/uploads`
 
 ---

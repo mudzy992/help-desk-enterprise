@@ -1,6 +1,6 @@
 # PERFORMANSE — Fazni dokument remedijacije
 
-**Predmet:** `mudzy992/help-desk-enterprise` (EP-HelpDesk)
+**Predmet:** `mudzy992/help-desk-enterprise` (Service Desk)
 **Ciljni profil opterećenja:** 3.000–4.000 registrovanih korisnika, ~70% istovremeno aktivnih (2.100–2.800)
 **Metodologija:** statička analiza koda (WebSocket gateway, SLA modul, notification fan-out, auth/RBAC lanac, frontend obrasci dohvata) + model opterećenja izveden iz konstanti u kodu
 **Presuda ulaza (baseline):** sistem na ciljnoj skali **kolabira** — i to ne zbog kapaciteta servera, već zbog obrazaca "po zahtjevu / po događaju / po tick-u tajmera"

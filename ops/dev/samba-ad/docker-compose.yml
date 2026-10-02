@@ -4,14 +4,14 @@
 #   docker compose up -d --build
 #   docker compose exec samba-ad seed.sh
 #
-# DC je dostupan backendu i workeru kao ldaps://dc1.test.epbih.lab:636 preko
+# DC je dostupan backendu i workeru kao ldaps://dc1.test.example.lab:636 preko
 # mreže db_net (ista eksterna mreža kao u glavnom docker-compose.yml). Port
 # se NE objavljuje na hostu.
 services:
   samba-ad:
     build: .
     hostname: dc1
-    domainname: test.epbih.lab
+    domainname: test.example.lab
     privileged: false
     cap_add: [SYS_ADMIN]
     env_file: .env
@@ -21,7 +21,7 @@ services:
       - ./export:/export
     networks:
       db_net:
-        aliases: [dc1.test.epbih.lab]
+        aliases: [dc1.test.example.lab]
     restart: unless-stopped
 
 volumes:

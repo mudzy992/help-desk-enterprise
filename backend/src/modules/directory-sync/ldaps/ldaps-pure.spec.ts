@@ -31,10 +31,10 @@ describe('LDAPS helpers (paket 1.8)', () => {
   });
 
   it('parses DNs with escaped commas and builds the application OU path', () => {
-    const dn = 'CN=Anić\\, Ana,OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=example,DC=com';
+    const dn = 'CN=Anić\\, Ana,OU=Visoko,OU=Podružnica Sarajevo,OU=Korisnici,DC=example,DC=com';
     expect(parseDistinguishedName(dn)[0]).toEqual({ type: 'CN', value: 'Anić, Ana' });
-    expect(organizationalUnitPathFromDistinguishedName(dn)).toBe('/Korisnici/ED Sarajevo/Visoko');
-    expect(parentDistinguishedName(dn)).toBe('OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=example,DC=com');
+    expect(organizationalUnitPathFromDistinguishedName(dn)).toBe('/Korisnici/Podružnica Sarajevo/Visoko');
+    expect(parentDistinguishedName(dn)).toBe('OU=Visoko,OU=Podružnica Sarajevo,OU=Korisnici,DC=example,DC=com');
     expect(isDistinguishedNameWithin(dn, 'ou=korisnici, dc=EXAMPLE, dc=com')).toBe(true);
     expect(isDistinguishedNameWithin('CN=x,OU=Grupe,DC=example,DC=com', base)).toBe(false);
     expect(organizationalUnitPathFromDistinguishedName('DC=example,DC=com')).toBeNull();

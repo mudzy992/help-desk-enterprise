@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan: Katalog usluga (CATALOG_PHASE_PLAN.md)
+# Service Desk — Fazni plan: Katalog usluga (CATALOG_PHASE_PLAN.md)
 
 **Scope:** isključivo Service Catalog (backend `modules/service-catalog`, frontend `pages/services-page.tsx` + `components/services/`*), plus direktno vezan orphan model `PriorityMatrixRule` (koji RAW vezuje za tok kreiranja tiketa preko kataloga/forme — impact/urgency se biraju u istoj formi). Ne diramo Routing/SLA/RBAC/Settings-registry osim tačaka gdje se service-catalog direktno oslanja na njih (routing coverage note, policy-pack apply — oba već rade, samo se čitaju).
 

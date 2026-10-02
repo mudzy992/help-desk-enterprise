@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan popravki (na osnovu GAP_LIST_v2)
+# Service Desk — Fazni plan popravki (na osnovu GAP_LIST_v2)
 
 Svaka faza je nezavisno isporučljiva (build+test prolazi na kraju svake faze). Redoslijed prati prioritet iz gap liste: prvo sigurnosni/operativni blokeri (P0), zatim administrativna kontrola (P1), zatim ostatak.
 

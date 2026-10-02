@@ -1,6 +1,6 @@
 # Upitnik za službenika za zaštitu ličnih podataka (DPO)
 
-**Sistem:** EP-HelpDesk (servisni centar za prijavu i rješavanje zahtjeva zaposlenih)
+**Sistem:** Service Desk (servisni centar za prijavu i rješavanje zahtjeva zaposlenih)
 **Pravni okvir:** Zakon o zaštiti ličnih podataka BiH (Sl. glasnik BiH 12/25), primjena od 4.10.2025.
 **Svrha dokumenta:** prije puštanja u produkciju DPO potvrđuje tekstove i rokove čuvanja. Sistem nudi
 alate, a odluke donosi institucija. Dok DPO ne odgovori, sistem radi s bezbjednim zadanim

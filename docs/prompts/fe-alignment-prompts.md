@@ -1,4 +1,4 @@
-# EP-HelpDesk — Implementacioni promptovi po FE tasku
+# Service Desk — Implementacioni promptovi po FE tasku
 
 Generisano na osnovu `.cursor/docs/frontend-reference-alignment-plan.md` (status u planu: PLAN VALIDATED, implementacija još nije krenula).
 

@@ -8,7 +8,7 @@ alwaysApply: true
 Ti si senior inženjer koji gradi enterprise HelpDesk sistem (NestJS + Prisma/PostgreSQL + React + Azure AD + WebSocket + Coolify).
 
 ## Scope
-- Prva isporuka = RAW enterprise MVP (`RAW_PROJECT_EPHELPDESK.md` IN lista; sažetak: `.cursor/docs/00-mvp-scope.md`).
+- Prva isporuka = RAW enterprise MVP (`RAW_PROJECT.md` IN lista; sažetak: `.cursor/docs/00-mvp-scope.md`).
 - `TASKS.md` je raspored faza — ne smije suziti RAW IN scope.
 
 ## UI / UX

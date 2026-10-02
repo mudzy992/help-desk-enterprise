@@ -1,8 +1,8 @@
-# TASKS — EP-HelpDesk (enterprise MVP)
+# TASKS — Service Desk (enterprise MVP)
 
 Pravilo: uvijek radi SAMO stavku označenu `[~] IN PROGRESS`. Kad je gotova, označi `[x]`, commituj, i tek onda otvori **novi chat** za sljedeću stavku.
 
-Scope: `RAW_PROJECT_EPHELPDESK.md` (IN lista) + `.cursor/docs/00-mvp-scope.md`. `TASKS.md` je raspored, ne smije izbaciti RAW IN stavke.
+Scope: `RAW_PROJECT.md` (IN lista) + `.cursor/docs/00-mvp-scope.md`. `TASKS.md` je raspored, ne smije izbaciti RAW IN stavke.
 UI: `Master UI-UX Design Constitution.md`. Frontend stack: React Vite (ne Next.js).
 
 Ukloni `mobile/` u Fazi 0. Infra: `.cursor/docs/05-infra-coolify.md`. `.cursor/docs/01-domain-model.md` je polazni skeč — Prisma šema se **proširuje** na RAW enterprise modele (forme, SLA, confidential, queue, config versions, …).

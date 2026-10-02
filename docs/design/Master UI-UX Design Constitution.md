@@ -1,6 +1,6 @@
-# EP-HelpDesk — Master UI/UX Design Constitution
+# Service Desk — Master UI/UX Design Constitution
 
-> **Source of truth** za sav UI/UX ovog projekta. Globalna/template pravila (Apple-linear, one-page, generički SaaS dashboard) ne važe. Tokeni su u `.cursor/docs/theme.md`. Ticket status i priority labele dolaze iz `RAW_PROJECT_EPHELPDESK.md` / domain modela — ovaj dokument definiše vizuelni tretman, ne drugačiji vokabular.
+> **Source of truth** za sav UI/UX ovog projekta. Globalna/template pravila (Apple-linear, one-page, generički SaaS dashboard) ne važe. Tokeni su u `.cursor/docs/theme.md`. Ticket status i priority labele dolaze iz `RAW_PROJECT.md` / domain modela — ovaj dokument definiše vizuelni tretman, ne drugačiji vokabular.
 
 > **Dizajn-sistem: Pulse.** Aktivni identitet je **Pulse** (svijetli kao primarni, tamni mod ravnopravan).
 > **classic** je naslijeđena tamna tema koja ostaje dostupna preko `data-theme="classic"` tokom tranzicije.
@@ -9,11 +9,11 @@
 >
 > Tri ose izgleda (detalji u `theme.md`): `data-theme` (`pulse` | `classic`) · `.dark` (svjetlina unutar Pulse-a) · `data-accent` (`indigo` | `teal` | `rose` | `cyan` | `amber` | `orange`).
 
-Ova pravila definišu vizuelni i UX smjer cijelog EP-HelpDesk frontenda.
+Ova pravila definišu vizuelni i UX smjer cijelog Service Desk frontenda.
 
 Ovo NIJE generički SaaS dashboard i NIJE redesign u stilu jednog konkretnog proizvoda.
 
-EP-HelpDesk je enterprise HelpDesk / IT Service Management aplikacija koju korisnici i support operateri koriste svakodnevno za rad sa ticketima, korisnicima, organizacijskom hijerarhijom, routingom, knowledge base sadržajem i statusima obrade.
+Service Desk je enterprise HelpDesk / IT Service Management aplikacija koju korisnici i support operateri koriste svakodnevno za rad sa ticketima, korisnicima, organizacijskom hijerarhijom, routingom, knowledge base sadržajem i statusima obrade.
 
 Cilj je napraviti interfejs koji djeluje kao ozbiljan, moderan i premium enterprise proizvod.
 
@@ -41,7 +41,7 @@ Interfejs treba izgledati kao proizvod koji je dizajnirao iskusan enterprise pro
 
 # 2. VISUAL PERSONALITY
 
-EP-HelpDesk treba biti:
+Service Desk treba biti:
 
 - profesionalan
 - precizan
@@ -89,7 +89,7 @@ Ne praviti "Linear clone".
 
 Koristiti njihove principe, ne njihov branding.
 
-EP-HelpDesk mora imati vlastiti identitet.
+Service Desk mora imati vlastiti identitet.
 
 ---
 
@@ -1083,7 +1083,7 @@ Nova brend paleta = **3 koraka** (blok u `index.css`, ime u `THEME_ACCENTS`, dva
 
 Vizuelni jezik treba biti povezan sa HelpDesk domenom.
 
-EP-HelpDesk nije:
+Service Desk nije:
 
 - social network
 - consumer app
@@ -1159,7 +1159,7 @@ Ne mijenjaj API contracts radi UI-a bez eksplicitnog razloga.
 
 # 45. FINAL DESIGN TARGET
 
-Konačni EP-HelpDesk treba izgledati kao kombinacija:
+Konačni Service Desk treba izgledati kao kombinacija:
 
 **Linear**
 za disciplinu i information hierarchy
@@ -1181,7 +1181,7 @@ za brzinu i command-oriented interaction
 
 -
 
-**vlastiti EP-HelpDesk identitet**
+**vlastiti Service Desk identitet**
 za enterprise HelpDesk / IT operations domen.
 
 Krajnji rezultat treba ostaviti osjećaj:

@@ -1,4 +1,4 @@
-# EP-HelpDesk — Analiza "Administracije" (Org/Groups/Users/Permissions/Settings/Ops)
+# Service Desk — Analiza "Administracije" (Org/Groups/Users/Permissions/Settings/Ops)
 
 **Metodologija:** kod iz najnovijeg zip-a (post-R6/R8), unakrsno provjeren sa `referenca-dizajn/src/pages/Admin.tsx` i sa backend modulima (`settings`, `rbac`, `authorization`, `users`, `directory-sync`, `integration-queue`). Sve niže je potvrđeno grep-om/čitanjem koda, ne pretpostavka.
 

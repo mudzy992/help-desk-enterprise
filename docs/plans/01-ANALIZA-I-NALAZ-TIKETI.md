@@ -1,8 +1,8 @@
-# EP-HelpDesk — Analiza i nalaz: modul TIKETI
+# Service Desk — Analiza i nalaz: modul TIKETI
 
 **Datum analize:** 18.09.2026.
 **Obuhvat:** isključivo funkcionalnosti tiketa i modula direktno vezanih za tikete (RBAC/OU scoping, grupe/handler groups, routing, katalog usluga kao ulaz u kreiranje tiketa, SLA kao atribut tiketa, i18n i UUID→naziv prikaz **na ekranima tiketa**). Svi moduli koji se tiču isključivo drugih domena (npr. cjelokupni Knowledge Base uređivački tok, Edge ekstenzija van ticket-remote/chat kontrakta, izvještaji koji nisu vezani za tikete) su **svjesno izostavljeni** u skladu sa uputom.
-**Metod:** statička analiza izvornog koda (backend NestJS/Prisma, frontend React/Vite), poređenje sa `RAW_PROJECT_EPHELPDESK.md`, `TASKS.md`, `Master UI-UX Design Constitution.md` i `/referenca-dizajn`. Aplikacija nije pokretana (nema mrežnog pristupa u ovom okruženju), pa nalazi o ponašanju u runtime-u su izvedeni iz koda, ne iz manuelnog klikanja kroz UI.
+**Metod:** statička analiza izvornog koda (backend NestJS/Prisma, frontend React/Vite), poređenje sa `RAW_PROJECT.md`, `TASKS.md`, `Master UI-UX Design Constitution.md` i `/referenca-dizajn`. Aplikacija nije pokretana (nema mrežnog pristupa u ovom okruženju), pa nalazi o ponašanju u runtime-u su izvedeni iz koda, ne iz manuelnog klikanja kroz UI.
 
 ---
 
@@ -251,7 +251,7 @@ Napomena metodologije: nije moguće izvršiti piksel-tačno poređenje bez pokre
 
 ## 9) Popis izvora provjerenih u ovoj analizi (za sljedivost)
 
-- `RAW_PROJECT_EPHELPDESK.md`, `TASKS.md`
+- `RAW_PROJECT.md`, `TASKS.md`
 - `backend/src/modules/tickets/**` (kompletan popis fajlova pregledan strukturno; ključni fajlovi čitani u cjelini: `create-ticket.ts`, `assert-can-create-ticket.ts`, `list-tickets.ts`, `authorize-ticket-actor.ts`, `assert-ticket-status-transition.ts`, `assert-patch-ticket-status.ts`, `tickets.constants.ts`, `assignment/list-group-inbox-tickets.ts`, `bulk/*`, `ticket-split-panel.tsx`)
 - `backend/src/modules/authorization/**` (`evaluate-authorization-access.ts`, `does-organizational-unit-scope-cover.ts`, `does-service-scope-cover.ts`, `role.guard.ts`)
 - `backend/src/modules/organizational-units/organizational-units.controller.ts`, `backend/src/modules/groups/groups.controller.ts`

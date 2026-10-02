@@ -1,10 +1,10 @@
-# Conversation context (EPHelpDesk) — import u novi chat
+# Conversation context (Service Desk) — import u novi chat
 
 Ovaj fajl postoji samo da bi se **lako prenio kontekst** u novi Cursor chat u novom workspace-u.
 
 ## Kako ga koristiti
 
-1) U novom workspace-u (`ephelpdesk-enterprise`) otvori novi chat.  
+1) U novom workspace-u (`help-desk-enterprise`) otvori novi chat.  
 2) Dodaj ovaj fajl kao kontekst (Add context → File) ili ga samo otvori i reci agentu: “koristi `CONVERSATION_CONTEXT.md` kao kontekst”.
 
 ## Zašto ne radi “link” `eeace9c2-8d83-4a52-bec2-76b959cc9bb9`
@@ -16,13 +16,13 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 
 ## Trenutni source-of-truth deliverable
 
-- `RAW_PROJECT_EPHELPDESK.md` je glavni “enterprise” RAW projekat (najbitnije odluke su tu).
+- `RAW_PROJECT.md` je glavni “enterprise” RAW projekat (najbitnije odluke su tu).
 - `Master UI-UX Design Constitution.md` je source of truth za sav UI/UX (tokeni: `.cursor/docs/theme.md`).
 - Infra: `.cursor/docs/05-infra-coolify.md`, `.cursor/docs/04-install-wizard.md`.
 - Dodatni dokumenti:
-  - `EPBIH_START_INPUTS.md`
-  - `EPBIH_IT_EMAIL_CHECKLIST.md`
-  - `EPBIH_SYSADMIN_AD_MIN_EMAIL.md`
+  - `CLIENT_START_INPUTS.md`
+  - `CLIENT_IT_EMAIL_CHECKLIST.md`
+  - `CLIENT_SYSADMIN_AD_MIN_EMAIL.md`
 
 ## Ključne odluke (sažetak)
 
@@ -34,8 +34,8 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 - **Auth**: install wizard bira `local` | `entra_ad`. SuperAdmin je uvijek lokalni break-glass. Isti permission tok, bez `if (test)` grana.
 - **AD dev read**: u dev se može privremeno koristiti lični AD user za read, uz throttling/caching i “manual_only” sync (definisano u RAW-u).
 - **OU source-of-truth**: `DistinguishedName` / OU path; standard:
-  - `OU=Korisnici,DC=epbih,DC=ba` (users)
-  - `OU=Grupe,DC=epbih,DC=ba` (groups)
+  - `OU=Korisnici,DC=example,DC=com` (users)
+  - `OU=Grupe,DC=example,DC=com` (groups)
   - top-level: `OU=Direkcija` i `OU=ED <grad>`; pod ED: poslovnice (npr. Breza/Visoko).
 - **Service catalog + forms**: 1:1 servis → schema-driven forma + **form versioning**.
 - **Approval flow**: ITIL-lite, settings-driven.
@@ -44,10 +44,10 @@ Ako baš želiš originalni transcript fajl, nalazi se na disku ovdje:
 - **SLA engine**: “professional”, BH calendars, profiles, pause rules, overdue + escalations (in-app).
 - **RBAC**: granular permissions + permission scopes (OU/Service); default mapping role→permissions.
 - **Confidential tickets**: per-ticket restricted visibility (HR/Finance/Legal), safe logging mode, audit.
-- **Notifications**: in-app obavezno; email interno-only; Edge extension interni dodatak za `epbih.ba`.
+- **Notifications**: in-app obavezno; email interno-only; Edge extension interni dodatak za `example.com`.
 - **Ops/Quality**: config versioning + rollback + dry-run/validate + shadow mode; audit export (light tamper-evident); report packs; maintenance banner global/per-service (non-blocking).
 
 ## Šta je sljedeće
 
-Nastavak je “Plan mode za implementaciju” u ovom repo-u, bazirano na `RAW_PROJECT_EPHELPDESK.md`.
+Nastavak je “Plan mode za implementaciju” u ovom repo-u, bazirano na `RAW_PROJECT.md`.
 

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # Paket 1.8 (A6) — dnevna arhiva uploads volumena + SHA-256 + retention.
 # Cron na Coolify hostu (primjer, 02:15 UTC):
-#   15 2 * * * /opt/ephelpdesk/ops/dr/backup-uploads.sh >> /var/log/ephd-uploads-backup.log 2>&1
+#   15 2 * * * /opt/servicedesk/ops/dr/backup-uploads.sh >> /var/log/ephd-uploads-backup.log 2>&1
 #
 # Varijable:
 #   UPLOADS_VOLUME   ime Docker volumena (docker volume ls | grep uploads)  [obavezno]
-#   BACKUP_DIR       odredište (default /var/backups/ephelpdesk)
+#   BACKUP_DIR       odredište (default /var/backups/servicedesk)
 #   RETENTION_DAYS   koliko dana se čuvaju lokalne arhive (default 14)
 # Off-box kopiju (rclone/S3/NAS) radite nakon ove skripte; lokalno brisanje
 # starijih arhiva je sigurno tek kad je off-box kopija potvrđena.
 set -euo pipefail
 
 : "${UPLOADS_VOLUME:?Postavite UPLOADS_VOLUME (npr. abc123_uploads)}"
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/ephelpdesk}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/servicedesk}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 STAMP="$(date -u +%F)"
 ARCHIVE="uploads-${STAMP}.tar.gz"

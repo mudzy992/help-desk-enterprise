@@ -2,9 +2,9 @@
 # Briše E2E podatke sa stagingu (vidi ops/sql/cleanup-e2e-data.sql za tačan opseg).
 # Pokreće se NA SERVERU (Coolify), SQL ide kroz psql u Postgres kontejneru.
 #
-#   ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W          # proba (samo broji)
-#   ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W --apply  # stvarno briše
-#   ops/cleanup-e2e-data.sh --url 'postgresql://admin:LOZINKA@127.0.0.1:5432/ephelpdesk-dev'
+#   ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W          # proba (samo broji)
+#   ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --apply  # stvarno briše
+#   ops/cleanup-e2e-data.sh --url 'postgresql://admin:LOZINKA@127.0.0.1:5432/servicedesk-dev'
 #   ops/cleanup-e2e-data.sh ... --apply --seed   # + '[staging-seed]' tiketi (nakon k6)
 #
 # Opcije:  --db IME   --user KORISNIK   -W|--password (traži lozinku, ne ispisuje je)
@@ -56,7 +56,7 @@ if [ -n "$url" ]; then
 else
   [ -n "$user" ] || user="$(docker exec "$container" printenv POSTGRES_USER 2>/dev/null || echo postgres)"
   if [ -z "$db" ]; then
-    echo "Navedi bazu: --db <ime> (npr. --db ephelpdesk-dev) ili --url" >&2
+    echo "Navedi bazu: --db <ime> (npr. --db servicedesk-dev) ili --url" >&2
     exit 2
   fi
   target=(-U "$user" -d "$db")

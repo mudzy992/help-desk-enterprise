@@ -1,10 +1,10 @@
-# EP-HelpDesk — primjer maila sysadminu (minimalno za AD/LDAPS)
+# Service Desk — primjer maila sysadminu (minimalno za AD/LDAPS)
 
-Subject: EP-HelpDesk (MVP) — minimalni AD/LDAPS pristup + role grupe
+Subject: Service Desk (MVP) — minimalni AD/LDAPS pristup + role grupe
 
 Pozdrav,
 
-za pokretanje MVP verzije EP-HelpDesk aplikacije (domen `desk.epbih.ba`, aplikacija na odvojenom VM serveru) treba nam minimalna integracija sa Active Directory.
+za pokretanje MVP verzije Service Desk aplikacije (domen `desk.example.com`, aplikacija na odvojenom VM serveru) treba nam minimalna integracija sa Active Directory.
 
 Molim da obezbijedite sljedeće:
 
@@ -20,7 +20,7 @@ Molim da obezbijedite sljedeće:
 
 - DC hostovi (primarni + sekundarni) za povezivanje preko LDAPS
 - Port: 636
-- Base DN: `DC=epbih,DC=ba`
+- Base DN: `DC=example,DC=com`
 - CA/cert chain za validaciju LDAPS certifikata na aplikacijskom serveru
 - Potvrda da VM server (IP ćemo dostaviti) može pristupiti DC-ovima na 636 (whitelist ako treba)
 
@@ -30,8 +30,8 @@ HelpDesk OU membership mapiramo po `DistinguishedName` / OU path.
 
 Molim potvrdu sljedećeg (ili ispravku ako je drugačije):
 
-- korisnici u scope-u su pod: `OU=Korisnici,DC=epbih,DC=ba`
-- grupe su pod: `OU=Grupe,DC=epbih,DC=ba`
+- korisnici u scope-u su pod: `OU=Korisnici,DC=example,DC=com`
+- grupe su pod: `OU=Grupe,DC=example,DC=com`
 - top-level OU-ovi ispod `OU=Korisnici` (Direkcija + ED-ovi) su scope za HelpDesk
 - dublji podfolderi ispod službe/poslovnice ne mijenjaju OU scope u MVP-u
 
@@ -41,9 +41,9 @@ Ako postoje izuzeci gdje korisnici nisu pod `OU=Korisnici`, molim da dostavite l
 
 Molim kreirati (ili potvrditi postojanje) sljedećih grupa i dostaviti njihove DN-ove:
 
-- `EPHELPDESK_ROLE_SUPER_ADMIN`
-- `EPHELPDESK_ROLE_ADMIN`
-- `EPHELPDESK_ROLE_AGENT`
+- `SERVICEDESK_ROLE_SUPER_ADMIN`
+- `SERVICEDESK_ROLE_ADMIN`
+- `SERVICEDESK_ROLE_AGENT`
 
 Napomena: korisnici koji nisu u ovim grupama tretiraju se kao “USER” (default).
 

@@ -89,8 +89,8 @@ describe('organizational unit hierarchy helpers', () => {
       rewriteOrganizationalUnitPath({
         currentPath: '/Korisnici/Podružnica Zenica/Breza',
         oldAncestorPath: '/Korisnici/Podružnica Zenica',
-        newAncestorPath: '/Korisnici/ED Sarajevo',
+        newAncestorPath: '/Korisnici/Podružnica Sarajevo',
       }),
-    ).toBe('/Korisnici/ED Sarajevo/Breza');
+    ).toBe('/Korisnici/Podružnica Sarajevo/Breza');
   });
 });

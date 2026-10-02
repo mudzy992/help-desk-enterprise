@@ -36,7 +36,7 @@ docker logs <api-kontejner> 2>&1 | grep -E 'ws_adapter_redis_(ok|acl_denied)'
 (`0.0.0.0:6379`). Zato je dovoljno:
 
 ```bash
-REDIS_URL='redis://ephelpdesk:<lozinka>@127.0.0.1:6379' node ops/ws-cross-instance-check.mjs
+REDIS_URL='redis://servicedesk:<lozinka>@127.0.0.1:6379' node ops/ws-cross-instance-check.mjs
 ```
 
 Lozinku sa `!` drži u jednostrukim navodnicima (u dvostrukim bash radi history expansion).
@@ -45,8 +45,8 @@ IP kontejnera (ispod) je samo fallback — mijenja se pri svakom redeployu.
 ```bash
 docker ps --format '{{.Names}} | {{.Ports}}' | grep -i redis
 docker inspect redis-core --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}'
-REDIS_URL='redis://ephelpdesk:<lozinka>@<IP>:6379' node ops/ws-cross-instance-check.mjs --preflight
-REDIS_URL='redis://ephelpdesk:<lozinka>@<IP>:6379' node ops/ws-cross-instance-check.mjs
+REDIS_URL='redis://servicedesk:<lozinka>@<IP>:6379' node ops/ws-cross-instance-check.mjs --preflight
+REDIS_URL='redis://servicedesk:<lozinka>@<IP>:6379' node ops/ws-cross-instance-check.mjs
 ```
 
 ### A2. Varijanta 2 — SSH tunel s Windowsa
@@ -76,8 +76,8 @@ ssh -N -p 2222 -L 6380:127.0.0.1:<host-port> administrator@sql.ba101.top
 U drugom Git Bash prozoru:
 
 ```bash
-REDIS_URL='redis://ephelpdesk:<lozinka>@127.0.0.1:6380' node ops/ws-cross-instance-check.mjs --preflight
-REDIS_URL='redis://ephelpdesk:<lozinka>@127.0.0.1:6380' node ops/ws-cross-instance-check.mjs
+REDIS_URL='redis://servicedesk:<lozinka>@127.0.0.1:6380' node ops/ws-cross-instance-check.mjs --preflight
+REDIS_URL='redis://servicedesk:<lozinka>@127.0.0.1:6380' node ops/ws-cross-instance-check.mjs
 ```
 
 Napomena: IP kontejnera se mijenja pri redeployu — tunel treba ponovo podesiti.
@@ -89,7 +89,7 @@ Napomena: IP kontejnera se mijenja pri redeployu — tunel treba ponovo podesiti
 `PSUBSCRIBE` traži **literalno** poklapanje patterna:
 
 ```
-ACL SETUSER ephelpdesk '&socket.io#/#*'
+ACL SETUSER servicedesk '&socket.io#/#*'
 ACL SAVE
 ```
 
@@ -191,7 +191,7 @@ E2E paket ostavlja tikete (`E2E …`) i servise (`e2e-…`); C ostavlja `[stagin
 Na serveru, iz korijena repozitorija:
 
 ```bash
-ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W   # proba: samo broji (ROLLBACK)
+ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W   # proba: samo broji (ROLLBACK)
 ops/cleanup-e2e-data.sh --apply         # briše E2E tikete i servise
 ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 ```
@@ -201,11 +201,11 @@ ops/cleanup-e2e-data.sh --apply --seed  # + staging seed (tek NAKON k6 mjerenja)
 ```bash
 cd ~/Documents/GitHub/help-desk-enterprise && git pull
 # 1) proba — samo broji, ništa ne briše (ROLLBACK):
-ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W --seed
+ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --seed
 # 2) stvarno brisanje (E2E + [staging-seed] tiketi, SLA stanja, notifikacije):
-ops/cleanup-e2e-data.sh --db ephelpdesk-dev --user admin -W --apply --seed
+ops/cleanup-e2e-data.sh --db servicedesk-dev --user admin -W --apply --seed
 # 3) kontrola — oba broja moraju biti 0:
-docker exec hgpchekxb6dutalsyctu42al psql -U admin -d ephelpdesk-dev -Atc \
+docker exec hgpchekxb6dutalsyctu42al psql -U admin -d servicedesk-dev -Atc \
   "select count(*) from \"Ticket\" where title like '[staging-seed]%'; select count(*) from \"Notification\" n where n.\"ticketId\" is null and n.type='ticket.sla';"
 # 4) Coolify → API env: DB_QUERY_METRICS=false → redeploy
 # 5) lokalni artefakti (opciono): rm -f api-*.log

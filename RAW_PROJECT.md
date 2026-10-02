@@ -1,21 +1,21 @@
-# RAW PROJECT — EP-HelpDesk (popunjeno iz SRS @EPHELPDESK.pdf)
+# RAW PROJECT — Service Desk (popunjeno iz SRS @EPHELPDESK.pdf)
 
 ---
 
 ## 1) Project identity
 
-- **Project name**: EP-HelpDesk
-- **Short description** (1–2 rečenice): Centralizovan, skalabilan i “inteligentan” HelpDesk sistem za Elektroprivredu BiH, sa SSO preko Microsoft Entra ID, OU-hijerarhijom, automatskim routingom tiketa, self-service knowledge base, real-time komunikacijom i naprednom analitikom.
+- **Project name**: Service Desk
+- **Short description** (1–2 rečenice): Centralizovan, skalabilan i “inteligentan” HelpDesk sistem za klijenta, sa SSO preko Microsoft Entra ID, OU-hijerarhijom, automatskim routingom tiketa, self-service knowledge base, real-time komunikacijom i naprednom analitikom.
 - **Tenant / isolation definition (kritično)**:
-  - Tenant = jedna organizacija (EPBiH) sa hijerarhijskim OU-ovima (nije “SaaS multi-tenant” sa više kompanija).
+  - Tenant = jedna organizacija (klijent) sa hijerarhijskim OU-ovima (nije “SaaS multi-tenant” sa više kompanija).
   - “Tenant-like” izolacija je po OU scope-u: **Admin/Agent** vidi i radi samo unutar OU-a za koji je ovlašten (default), a **SuperAdmin** ima globalni pristup.
   - Cross-OU radnje su dozvoljene samo eksplicitno kroz permissione i auditovane su (npr. forwarding tiketa u drugu grupu/OU).
 - **AD OU mapping (source-of-truth) (kritično)**:
   - Source-of-truth za OU membership je **AD `DistinguishedName` / OU path** (ne samo `Company/Department`).
   - Standard struktura:
-    - `DC=epbih,DC=ba`
-    - `OU=Korisnici,DC=epbih,DC=ba` (root za korisnike u scope-u)
-    - Top-level pod `OU=Korisnici` su npr. `OU=Direkcija` i `OU=ED <grad>` (npr. `OU=ED Zenica`)
+    - `DC=example,DC=com`
+    - `OU=Korisnici,DC=example,DC=com` (root za korisnike u scope-u)
+    - Top-level pod `OU=Korisnici` su npr. `OU=Direkcija` i `OU=ED <grad>` (npr. `OU=Podružnica Zenica`)
     - Pod `OU=Direkcija` su “službe” (direktni children)
     - Pod `OU=ED <grad>` su “poslovnice/podružnice” (direktni children) npr. `OU=Breza`, `OU=Visoko`
   - Dublji podfolderi ispod službe/poslovnice (ako postoje) **ne mijenjaju** OU scope u MVP-u; svi korisnici ispod te grane pripadaju toj službi/poslovnici.
@@ -64,7 +64,7 @@
   - Dodjela tiketa: manuelno preuzimanje + opcionalno auto-assign (Least Busy / Round Robin)
   - Prosljeđivanje/eskalacija tiketa (promjena grupe, eskalacije)
   - Cross-OU forwarding (podržano, auditovano):
-    - agent/admin može proslijediti tiket u drugu OU/grupu kada je to realno nadležno (npr. ED Zenica → Direkcija)
+    - agent/admin može proslijediti tiket u drugu OU/grupu kada je to realno nadležno (npr. Podružnica Zenica → Direkcija)
     - prosljeđivanje je eksplicitna radnja sa obaveznim “reason” tekstom (slobodan tekst), i mora biti auditovana
     - nakon forwarding-a, pristup tiketu se mijenja prema OU/group pravilima (novi handleri imaju pristup; stari samo ako su ostavljeni kao watchers/participants po politici)
   - Approval flow (ITIL-lite, settings-driven): za odabrane servise tiket ide u “Pending Approval” prije dodjele/obrade
@@ -223,7 +223,7 @@
       - Mapping je izmjenjiv kroz admin UI i ide u change log (reason + diff).
   - Permission scopes (enterprise) (obavezno):
     - permissions mogu biti scoped na:
-      - OU scope (npr. `routing.write` samo za OU=ED Zenica)
+      - OU scope (npr. `routing.write` samo za OU=Podružnica Zenica)
       - Service scope (npr. `service.forms.write` samo za HR servise)
     - super admin ima global scope po defaultu
     - scope se evaluira zajedno sa OU/group guardovima i **nikad** ne smije zaobići confidential per-ticket ACL
@@ -307,13 +307,13 @@
     - admin može privremeno staviti odabrane module u read-only (npr. settings, routing, service catalog)
     - ticket create ostaje dozvoljen (kao što je definisano), ali admin dijelovi mogu biti zaključani
   - Obavezno: Edge ekstenzija (background listener + popup UI + quick reply, remote initiation, WS + polling fallback)
-  - Edge ekstenzija je **interni dodatak**: namijenjena samo korisnicima `epbih.ba` (enterprise distribution/policy; bez “public” ekstenzije)
+  - Edge ekstenzija je **interni dodatak**: namijenjena samo korisnicima `example.com` (enterprise distribution/policy; bez “public” ekstenzije)
   - Edge integracija (chat + remote) — contract (obavezno):
     - Ekstenzija je “companion client”, ne puni replacement web app-a:
       - notifikacije
       - lightweight chat (quick reply)
       - remote request → otvaranje Quick Assist
-      - link “Open in Desk” na `desk.epbih.ba`
+      - link “Open in Desk” na `desk.example.com`
     - Komponente (Manifest V3):
       - background service worker: WS connect/reconnect, prima evente, prikazuje notifikacije, pokreće Quick Assist
       - popup UI: mini inbox + quick reply + open-in-desk
@@ -404,7 +404,7 @@ Ako projekat odstupa od standarda, navedi tačno:
 
 - **DB vendor**: PostgreSQL (Coolify Database resource)
 - **Connection**: samo `DATABASE_URL` (katalog: `.env.example`)
-- **DB_NAME**: ephelpdesk
+- **DB_NAME**: servicedesk
 - **Notes**:
   - Prisma schema + migracije; `migrate deploy` samo na backend kontejneru.
   - OU isolation: upiti scoped po `organizationalUnitId` osim `SUPER_ADMIN`.
@@ -418,7 +418,7 @@ Ako projekat odstupa od standarda, navedi tačno:
 
 Source of truth: `.cursor/docs/05-infra-coolify.md`, `ops/COOLIFY.md`.
 
-- **App URL**: `APP_PUBLIC_URL` (staging `https://desk.ba101.top`; prod `https://desk.epbih.ba`)
+- **App URL**: `APP_PUBLIC_URL` (staging `https://desk.ba101.top`; prod `https://desk.example.com`)
 - **API URL**: `API_PUBLIC_URL` (staging `https://api.desk.ba101.top`)
 - **Nema** Traefik labela, **nema** `BACKEND_PATH_PREFIX`.
 - **Servisi**: frontend, backend (migrate + API/WS), worker (BullMQ). Worker bez public FQDN.
@@ -463,8 +463,8 @@ Navedi prve settings ključeve koje želiš (min 10):
   - `private.auth.jwtSigningSecret` (secret string): signing secret za lokalni dev JWT (ne dijeliti izvan dev okruženja)
   - `private.auth.adRead.enabled` (boolean): dev-only flag za čitanje iz AD-a (default false; ručno uključiti kad testiraš)
   - `private.auth.adRead.strategy` (string): `manual_only` (dev default) | `scheduled` (kasnije)
-  - `private.auth.adRead.usersBaseDn` (string): npr. `OU=Korisnici,DC=epbih,DC=ba` (ne koristiti široki `DC=epbih,DC=ba`)
-  - `private.auth.adRead.groupsBaseDn` (string): npr. `OU=Grupe,DC=epbih,DC=ba`
+  - `private.auth.adRead.usersBaseDn` (string): npr. `OU=Korisnici,DC=example,DC=com` (ne koristiti široki `DC=example,DC=com`)
+  - `private.auth.adRead.groupsBaseDn` (string): npr. `OU=Grupe,DC=example,DC=com`
   - `private.auth.adRead.maxQueriesPerSecond` (number): dev throttle (default 0.5)
   - `private.auth.adRead.syncCooldownMinutes` (number): minimalni razmak između “heavy sync” (default 15)
   - `private.auth.adRead.cacheTtlMinutes` (number): cache za AD lookups (default 30)
@@ -480,15 +480,15 @@ Navedi prve settings ključeve koje želiš (min 10):
   - `private.auth.entraGroupRoleMappingJson` (secret string): mapiranje Entra groupId → role (ako se koristi)
   - `private.auth.ouMappingStrategy` (string): `by_dn_ou_path` | `by_company_department` | `by_custom_mapping` (kako mapiramo AD identitet u OU)
   - `private.auth.ouMappingOverridesJson` (secret string): override mapping pravila (ako treba)
-  - `private.auth.adBaseDn` (string): npr. `DC=epbih,DC=ba`
-  - `private.auth.adUsersRootOuDn` (string): npr. `OU=Korisnici,DC=epbih,DC=ba`
-  - `private.auth.adGroupsRootOuDn` (string): npr. `OU=Grupe,DC=epbih,DC=ba`
-  - `private.auth.adLdapsUrlsCsv` (string): npr. `ldaps://dc1.epbih.ba:636,ldaps://dc2.epbih.ba:636`
+  - `private.auth.adBaseDn` (string): npr. `DC=example,DC=com`
+  - `private.auth.adUsersRootOuDn` (string): npr. `OU=Korisnici,DC=example,DC=com`
+  - `private.auth.adGroupsRootOuDn` (string): npr. `OU=Grupe,DC=example,DC=com`
+  - `private.auth.adLdapsUrlsCsv` (string): npr. `ldaps://dc1.example.com:636,ldaps://dc2.example.com:636`
   - `private.auth.adBindDn` (secret string): DN servisnog read-only naloga (ako se koristi simple bind)
   - `private.auth.adBindPassword` (secret string): password read-only naloga (ako se koristi simple bind)
-  - `private.auth.adRoleGroupDnSuperAdmin` (string): DN grupe `EPHELPDESK_ROLE_SUPER_ADMIN`
-  - `private.auth.adRoleGroupDnAdmin` (string): DN grupe `EPHELPDESK_ROLE_ADMIN`
-  - `private.auth.adRoleGroupDnAgent` (string): DN grupe `EPHELPDESK_ROLE_AGENT`
+  - `private.auth.adRoleGroupDnSuperAdmin` (string): DN grupe `SERVICEDESK_ROLE_SUPER_ADMIN`
+  - `private.auth.adRoleGroupDnAdmin` (string): DN grupe `SERVICEDESK_ROLE_ADMIN`
+  - `private.auth.adRoleGroupDnAgent` (string): DN grupe `SERVICEDESK_ROLE_AGENT`
   - `private.ticket.autoAssign.enabled` (boolean): uključi auto-assign
   - `private.ticket.autoAssign.strategy` (string): `least_busy` | `round_robin`
   - `private.ticket.routing.fallbackGroupId` (string): fallback handler grupa kad nema routing match-a
@@ -692,7 +692,7 @@ Navedi prve settings ključeve koje želiš (min 10):
   - `private.notifications.email.enabled` (boolean): uključi email notifikacije
   - `private.notifications.edge.enabled` (boolean): uključi Edge/Windows notifikacije
   - `private.edgeExtension.enabled` (boolean): uključi edge extension module (default true)
-  - `private.edgeExtension.allowedEmailDomain` (string): allow domain za korisnike (default `epbih.ba`)
+  - `private.edgeExtension.allowedEmailDomain` (string): allow domain za korisnike (default `example.com`)
   - `private.edgeExtension.ws.enabled` (boolean): WS u extension-u (default true)
   - `private.edgeExtension.ws.reconnectMaxBackoffSeconds` (number): default 60
   - `private.edgeExtension.ws.minClientVersion` (string): minimalna dozvoljena verzija extension-a (default prazno)
@@ -760,7 +760,7 @@ Po potrebi (odmah ili kasnije):
 
 - **Email**: da (Office 365) — implementirati kao kanal u Notification engine-u (settings-driven)
 - **Email delivery scope**:
-  - default: internal-only (primaoci unutar `@epbih.ba`)
+  - default: internal-only (primaoci unutar `@example.com`)
   - izuzetak: ako postoje legitimni eksterni primaoci koji moraju dobijati potvrde/status (npr. vanjski saradnici), onda omogućiti eksterno slanje kroz settings + allow-list domena/emaileva
 - **Push (mobilna aplikacija)**: ne primjenjuje se (mobilna aplikacija nije dio projekta)
 - **Templates**: da (minimalno: “new ticket”, “assigned”, “new message”, “resolved/closed”, “remote requested”)

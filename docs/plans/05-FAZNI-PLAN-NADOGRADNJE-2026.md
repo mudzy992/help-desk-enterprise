@@ -96,7 +96,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   (upozorenje owneru kad tiket stoji duže; brojač na dashboardu).
 - Realtime `routing.rules.updated` (i ostali admin eventi iz RAW §7) → osvježavanje admin ekrana.
 
-### 1.8 Verifikacija na EPBiH infrastrukturi (V1–V3)  · zavisi od IT-a EPBiH · dizajn: `modules/1.8-verifikacija-epbih.md` (~7 RD razvoja: LDAPS provider i Entra login tok ne postoje — nalaz N1–N5)
+### 1.8 Verifikacija na infrastrukturi klijenta (V1–V3)  · zavisi od IT-a klijenta · dizajn: `modules/1.8-verifikacija-kod-klijenta.md` (~7 RD razvoja: LDAPS provider i Entra login tok ne postoje — nalaz N1–N5)
 - V1 Entra SSO na pravom tenantu — checklist, test nalozi, mapiranje uloga.
 - V2 LDAPS sync na pravim DC-ovima — dry-run, broj korisnika po OU, izuzeci.
 - V3 Restore drill po `ops/DR.md` — izvesti i zapisati rezultat (RPO/RTO).
@@ -127,7 +127,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   tiketu (prepoznavanje po threading zaglavljima + tokenu u adresi/predmetu).
 - Opcionalno: novi e-mail na adresu podrške kreira tiket (servis „Opšti upit", routing po
   pošiljaocu).
-- Zaštite: samo poznati pošiljaoci (domena `epbih.ba`), uklanjanje citiranog teksta i potpisa,
+- Zaštite: samo poznati pošiljaoci (domena `example.com`), uklanjanje citiranog teksta i potpisa,
   prilozi kroz iste provjere (ClamAV), anti-loop (auto-reply, bounce), redaction.
 
 ### 2.4 Saradnja agenata  · ~3 RD
@@ -213,7 +213,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 - Kalendar promjena, konflikti s downtime prozorima servisa (automatsko planiranje
   MAINTENANCE statusa), post-implementacijski pregled.
 
-**Faza 3 ukupno: ~26 RD** (3.1 zavisi od EPBiH tenanta; 3.4 zavisi od 3.2).
+**Faza 3 ukupno: ~26 RD** (3.1 zavisi od tenanta klijenta; 3.4 zavisi od 3.2).
 
 ---
 
@@ -253,7 +253,7 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
    sandučić) biraju se u postavkama, provajderi su modularni (O365, Gmail, vlastiti SMTP).
    Otvoreno za 2.3: pristup sandučiću (IMAP ili Microsoft Graph) i ko registruje aplikaciju u tenantu.
 3. (2.1) MFA samo za SUPER_ADMIN ili i za ADMIN? (Entra korisnici već imaju MFA kroz Microsoft.)
-4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku EPBiH?
+4. (2.6) Rokovi zadržavanja podataka prema internom pravilniku klijenta?
 5. (3.2) Postoji li postojeći popis imovine (Excel, drugi sistem, Intune) za početni import?
 6. (3.4) Postoji li CAB (odbor za promjene) i ko su članovi?
 
@@ -261,4 +261,4 @@ Preporučeni tok: 1.1 → 1.5 → 1.6 → 1.2 → 1.3 → 1.7 → 1.4 → (1.8 p
 
 ## Budući koraci (odluka 2.10.2026.)
 
-- **Audit „više klijenata“:** aplikacija je proizvod za više klijenata; EPBiH je samo jedan od njih. U jednom od narednih koraka radi se audit cijelog repozitorija (kod, UI tekstovi, seed, e-mail šabloni, dokumentacija, testovi) i uklanja se svako spominjanje ili hardkodiranje EPBiH; sve što je specifično za klijenta postaje postavka ili brending.
+- **Audit „više klijenata“:** aplikacija je proizvod za više klijenata; svaka instalacija služi jednom klijentu. U jednom od narednih koraka radi se audit cijelog repozitorija (kod, UI tekstovi, seed, e-mail šabloni, dokumentacija, testovi) i uklanja se svako spominjanje ili hardkodiranje bilo kojeg klijenta; sve što je specifično za klijenta postaje postavka ili brending.

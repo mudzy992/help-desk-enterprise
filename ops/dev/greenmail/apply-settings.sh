@@ -8,12 +8,12 @@ docker exec -i "$container" node dist/src/cli/apply-settings.js --reason "Paket 
 {
   "private.inbound.enabled": true,
   "private.inbound.provider": "imap",
-  "private.inbound.address": "helpdesk@epbih.ba",
+  "private.inbound.address": "helpdesk@example.com",
   "private.inbound.pollSeconds": 30,
   "private.inbound.imap.host": "greenmail.test",
   "private.inbound.imap.port": 3143,
   "private.inbound.imap.tls": false,
-  "private.inbound.imap.username": "helpdesk@epbih.ba",
+  "private.inbound.imap.username": "helpdesk@example.com",
   "private.inbound.imap.password": "helpdesk-test",
   "private.inbound.imap.authMethod": "password",
   "private.inbound.requireAuthPass": false

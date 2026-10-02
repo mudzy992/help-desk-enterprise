@@ -1,6 +1,6 @@
 # E2E kritični tokovi (F9-3) — overview
 
-Playwright suite za 9 RAW acceptance tokova (`RAW_PROJECT_EPHELPDESK.md` 861–874). Novi sloj testiranja; Jest/Vitest ostaju netaknuti. CI workflow se **ne** uvodi (F9-4).
+Playwright suite za 9 RAW acceptance tokova (`RAW_PROJECT.md` 861–874). Novi sloj testiranja; Jest/Vitest ostaju netaknuti. CI workflow se **ne** uvodi (F9-4).
 
 ## Stanje koda (provjereno, 2026-09-14)
 

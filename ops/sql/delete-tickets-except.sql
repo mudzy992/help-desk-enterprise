@@ -1,7 +1,7 @@
 -- Briše SVE tikete osim navedenih (staging, 2026-09-25) i sve što je vezano za njih.
 --
 -- Proba (default): prebroji i uradi ROLLBACK — ništa se ne mijenja.
---   docker exec -i <pg> psql -U admin -d ephelpdesk-dev \
+--   docker exec -i <pg> psql -U admin -d servicedesk-dev \
 --     -v keep="'id1','id2'" -f - < ops/sql/delete-tickets-except.sql
 -- Stvarno brisanje: dodaj -v apply=1
 --

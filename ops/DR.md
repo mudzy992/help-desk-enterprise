@@ -1,4 +1,4 @@
-# Disaster recovery (EP-HelpDesk)
+# Disaster recovery (Service Desk)
 
 Deploy odluke (bez Traefik-a, Postgres van compose-a, volume `/usr/app/uploads`): `ops/COOLIFY.md` i `.cursor/docs/05-infra-coolify.md`. Ovaj fajl je backup/restore runbook. Ne committati `.env` ni dumpove.
 
@@ -34,7 +34,7 @@ Daily, read-only volume → arhiva na istu off-box destinaciju kao Postgres, ime
 ```bash
 docker run --rm \
   -v uploads:/data:ro \
-  -v /var/backups/ephelpdesk:/backup \
+  -v /var/backups/servicedesk:/backup \
   alpine tar -C /data -czf /backup/uploads-$(date -u +%F).tar.gz .
 ```
 
@@ -93,7 +93,7 @@ Nema matrix foldera za ovaj runbook. Config snapshot API: `.cursor/docs/matrices
 Automatizovani koraci iz ovog runbooka su u `ops/dr/`:
 - `backup-uploads.sh` — dnevna arhiva uploads volumena (cron na hostu);
 - `export-config.sh` — config snapshot „DR backup YYYY-MM-DD";
-- `restore-drill.sh` — restore u zasebnu bazu `ephelpdesk-drill` i volumen `ephd-drill-uploads`;
+- `restore-drill.sh` — restore u zasebnu bazu `servicedesk-drill` i volumen `ephd-drill-uploads`;
 - `verify-restore.mjs` — četiri provjere (login, tiket, stari prilog, audit export) i JSON za zapisnik.
 
 Postupak mjesečnog drilla s privremenim Coolify stackom i obrazac zapisnika su u `docs/ops/test-okruzenje-1.8.md` (§4 i §5).

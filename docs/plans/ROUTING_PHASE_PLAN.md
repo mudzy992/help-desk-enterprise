@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan: Routing/Usmjeravanje (ROUTING_PHASE_PLAN.md)
+# Service Desk — Fazni plan: Routing/Usmjeravanje (ROUTING_PHASE_PLAN.md)
 
 **Scope:** isključivo Routing (backend `modules/routing`, frontend `pages/routing-page.tsx` + `components/routing/*`, direktne veze — `change-log` modul, `service-onboarding` samo za coverage-warning kuku, settings ključevi `private.ticket.routing.*`). Ništa van ovog scope-a se ne dira. `PriorityMatrixRule` (impact×urgency→priority) je **van scope-a** — to je poseban koncept (određivanje prioriteta tiketa), ne "usmjeravanje na grupu", referentni dizajn ga ne prikazuje ni u jednom od 4 Routing taba. Samo se bilježi kao nalaz na kraju ovog dokumenta, ne radi se.
 

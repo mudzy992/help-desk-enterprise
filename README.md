@@ -1,7 +1,7 @@
-# EP-HelpDesk — Cursor Workspace Starter
+# Service Desk — Cursor Workspace Starter
 
 ## Šta je ovo
-Priprema za razvoj EP-HelpDesk sistema u Cursor-u, dizajnirana da minimizira potrošnju tokena/kredita tako što agent NIKAD ne mora čitati cijeli originalni SRS odjednom.
+Priprema za razvoj Service Desk sistema u Cursor-u, dizajnirana da minimizira potrošnju tokena/kredita tako što agent NIKAD ne mora čitati cijeli originalni SRS odjednom.
 
 ## Struktura
 ```

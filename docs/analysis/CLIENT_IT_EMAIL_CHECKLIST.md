@@ -1,10 +1,10 @@
-# EP-HelpDesk — email/checklist za EPBiH IT (copy/paste)
+# Service Desk — email/checklist za IT klijenta (copy/paste)
 
-Subject: EP-HelpDesk (MVP) — potrebni ulazi za SSO/AD, routing, notifikacije i infrastrukturu
+Subject: Service Desk (MVP) — potrebni ulazi za SSO/AD, routing, notifikacije i infrastrukturu
 
 Poštovani,
 
-radimo na pokretanju MVP verzije EP-HelpDesk sistema. Da bismo mogli startati implementaciju i testiranje bez blokera, molimo vas da nam dostavite sljedeće informacije i artefakte.
+radimo na pokretanju MVP verzije Service Desk sistema. Da bismo mogli startati implementaciju i testiranje bez blokera, molimo vas da nam dostavite sljedeće informacije i artefakte.
 
 ## A) Entra ID / SSO (obavezno)
 

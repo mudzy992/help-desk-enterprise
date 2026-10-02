@@ -2,7 +2,7 @@
 
 > Paket 2.3. Dizajn: `docs/plans/modules/2.3-odgovor-emailom.md`.
 
-Korisnik ili agent odgovori na obavijest o tiketu u svom mail klijentu. Odgovor stiže u zajednički sandučić podrške (npr. `helpdesk@epbih.ba`). Worker svakih 60 s čita sandučić, prepozna tiket i doda poruku na tiket u ime pošiljaoca. Poruka dobija oznaku „Putem e-maila”. Ostali učesnici dobijaju obavijest kao i za poruku napisanu u aplikaciji.
+Korisnik ili agent odgovori na obavijest o tiketu u svom mail klijentu. Odgovor stiže u zajednički sandučić podrške (npr. `helpdesk@example.com`). Worker svakih 60 s čita sandučić, prepozna tiket i doda poruku na tiket u ime pošiljaoca. Poruka dobija oznaku „Putem e-maila”. Ostali učesnici dobijaju obavijest kao i za poruku napisanu u aplikaciji.
 
 ## 1. Preduslovi
 
@@ -16,7 +16,7 @@ Korisnik ili agent odgovori na obavijest o tiketu u svom mail klijentu. Odgovor 
 
 ## 2. Office 365 — Microsoft Graph (preporučeno)
 
-Radi IT EPBiH, jednom:
+Radi IT klijenta, jednom:
 
 1. Entra ID → App registrations → New registration, npr. „Help Desk – dolazna pošta”, single tenant.
 2. API permissions → Microsoft Graph → **Application** → `Mail.ReadWrite`, zatim **Grant admin consent**.
@@ -25,19 +25,19 @@ Radi IT EPBiH, jednom:
    - preporučeno, RBAC for Applications (Exchange Online PowerShell):
      ```powershell
      New-ServicePrincipal -AppId <client-id> -ObjectId <enterprise-app-object-id> -DisplayName "Help Desk inbound"
-     New-ManagementScope -Name "HelpDeskMailbox" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'helpdesk@epbih.ba'"
+     New-ManagementScope -Name "HelpDeskMailbox" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'helpdesk@example.com'"
      New-ManagementRoleAssignment -App <client-id> -Role "Application Mail.ReadWrite" -CustomResourceScope "HelpDeskMailbox"
      ```
      U tom slučaju se Graph dozvola iz koraka 2 može ukloniti (RBAC je dovoljan).
    - stariji način, Application Access Policy:
      ```powershell
-     New-DistributionGroup -Name "HelpDesk-App-Scope" -Type Security -Members helpdesk@epbih.ba
+     New-DistributionGroup -Name "HelpDesk-App-Scope" -Type Security -Members helpdesk@example.com
      New-ApplicationAccessPolicy -AppId <client-id> -PolicyScopeGroupId HelpDesk-App-Scope -AccessRight RestrictAccess -Description "Help Desk inbound"
-     Test-ApplicationAccessPolicy -AppId <client-id> -Identity helpdesk@epbih.ba   # AccessCheckResult: Granted
+     Test-ApplicationAccessPolicy -AppId <client-id> -Identity helpdesk@example.com   # AccessCheckResult: Granted
      ```
 5. U aplikaciji (Postavke → Dolazna pošta) postaviti:
    - `provider = graph`;
-   - `address = helpdesk@epbih.ba`;
+   - `address = helpdesk@example.com`;
    - `graph.tenantId`, `graph.clientId`, `graph.clientSecret`.
 6. Kliknuti „Testiraj konekciju” na kartici „Dolazna pošta (odgovor e-mailom)”, pa uključiti `private.inbound.enabled`.
 
@@ -50,7 +50,7 @@ Folderi `HelpDesk/Obradjeno` i `HelpDesk/Odbijeno` se kreiraju sami pod Inboxom.
 | Server | host / port / TLS | Prijava |
 |---|---|---|
 | Gmail / Google Workspace | `imap.gmail.com` / 993 / da | app password (2FA uključen na nalogu) → `imap.password`, `authMethod = password` |
-| Office 365 | `outlook.office365.com` / 993 / da | `authMethod = oauth2_entra` + Entra aplikacija iz §2 s dozvolom **Office 365 Exchange Online → IMAP.AccessAsApp** i `Add-MailboxPermission -Identity helpdesk@epbih.ba -User <service-principal-id> -AccessRights FullAccess` |
+| Office 365 | `outlook.office365.com` / 993 / da | `authMethod = oauth2_entra` + Entra aplikacija iz §2 s dozvolom **Office 365 Exchange Online → IMAP.AccessAsApp** i `Add-MailboxPermission -Identity helpdesk@example.com -User <service-principal-id> -AccessRights FullAccess` |
 | Ostali | po dokumentaciji servera | lozinka |
 
 Port 993 koristi implicitni TLS, a ostali portovi STARTTLS kad je `imap.tls = da`.
@@ -95,7 +95,7 @@ sh apply-settings.sh <backend-kontejner>       # IMAP greenmail.test:3143, bez D
 ./send-reply.sh T-000123 <email-postojećeg-korisnika> "Printer radi, hvala."
 # nakon ≤60 s: poruka na tiketu T-000123 s oznakom „Putem e-maila”, citat uklonjen
 ./send-reply.sh T-000123 <email> "Van ureda" "Auto-Submitted: auto-replied"   # → Ignorisano
-./send-reply.sh T-000123 nepoznat@epbih.ba "x"                                  # → Odbijeno: nepoznat pošiljalac
+./send-reply.sh T-000123 nepoznat@example.com "x"                                  # → Odbijeno: nepoznat pošiljalac
 ./send-reply.sh - <email> "Novi laptop" "Subject: Trebam novi laptop"          # → Odbijeno (ili novi tiket uz createTickets)
 ```
 

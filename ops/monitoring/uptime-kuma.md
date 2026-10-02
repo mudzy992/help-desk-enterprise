@@ -12,7 +12,7 @@ alarm. Tu situaciju pokriva Uptime Kuma, koja aplikaciju gleda **izvana**.
 1. Na **drugom** serveru u Coolifyju: **+ New → Service → Uptime Kuma**. Ako drugog servera nema,
    koristite bilo koji drugi Docker host (`docker run -d --restart=unless-stopped -p 3001:3001
    -v uptime-kuma:/app/data louislam/uptime-kuma:1`).
-2. FQDN, npr. `status-mon.ba101.top` (prod: `status-mon.epbih.ba`). Ne javno objavljivati.
+2. FQDN, npr. `status-mon.ba101.top` (prod: `status-mon.example.com`). Ne javno objavljivati.
 3. Persistent storage: `/app/data`. Tu su baza monitora i historija.
 4. Prvo otvaranje: kreirajte admin nalog s jakom lozinkom i uključite 2FA
    (**Settings → Security**).
@@ -37,7 +37,7 @@ prije isteka je zahtjev iz §7.2.
 
 | Monitor | Tip | URL | Interval | Uslov |
 |---|---|---|---|---|
-| Frontend | HTTP(s) – Keyword | `https://<desk>/` | 60 s | 200 i riječ `EP-HelpDesk` |
+| Frontend | HTTP(s) – Keyword | `https://<desk>/` | 60 s | 200 i riječ `Service Desk` |
 | API liveness | HTTP(s) | `https://<api>/health` | 60 s | 200 |
 | API readiness | HTTP(s) | `https://<api>/health/ready` | 60 s | 200 (503 = baza ili Redis) |
 | Worker | HTTP(s) | `https://<api>/health/worker` | 120 s | 200 (503 = nema heartbeata 120 s) |
@@ -71,7 +71,7 @@ intervala nema poziva, Kuma javi grešku. Tako se hvata ugašen server, zaglavlj
 
 1. U Kumi otvorite monitor **Worker push** i kopirajte **Push URL**, npr.
    `https://status-mon.ba101.top/api/push/<token>?status=up&msg=OK&ping=`.
-2. Coolify → projekat EP-HelpDesk → servis **worker** → Environment:
+2. Coolify → projekat Service Desk → servis **worker** → Environment:
    `OPS_UPTIME_PUSH_URL=<push URL>`. Postavlja se samo na workeru, jer backend ne šalje push.
 3. **Redeploy** servisa worker. Restart zadržava staro okruženje.
 4. U roku od 1–2 min monitor postaje zelen.

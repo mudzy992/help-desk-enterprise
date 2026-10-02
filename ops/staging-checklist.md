@@ -9,7 +9,7 @@ Redoslijed je namjeran: 1 i 2 su jeftini i hvataju infrastrukturne pretpostavke,
 | Šta | Zašto |
 |---|---|
 | Staging okruženje s **2 API instance** iza LB-a | rizik 3 (sticky/drain) se ne može izmjeriti na jednoj instanci |
-| Redis koji aplikacija koristi (`REDIS_URL`) i ACL user `ephelpdesk` | kanali adaptera su već u `ops/redis-acl.line` |
+| Redis koji aplikacija koristi (`REDIS_URL`) i ACL user `servicedesk` | kanali adaptera su već u `ops/redis-acl.line` |
 | k6 ≥ 0.46 | `winget install k6 --source winget` (Windows) ili `brew install k6` |
 | Test nalozi na stagingu (`agent.it@…`, `requester@…`) | `perf/config.js` ih čita iz env-a |
 | 100k tiketa (stavka 3) | `ops/sql/seed-large-dataset.sql`; bez toga lista/SLA skener nisu na realnoj veličini |
@@ -21,7 +21,7 @@ drži u shell varijablama (`export REDIS_PASSWORD=…`) da ne završe u historij
 
 ## 1. Cross-instance emit + rolling deploy *(rizik 3, ~1 h)*
 
-> **Rezultat 2026-09-24 (server mudzy-server, `REDIS_URL=redis://ephelpdesk:***@127.0.0.1:6379`):**
+> **Rezultat 2026-09-24 (server mudzy-server, `REDIS_URL=redis://servicedesk:***@127.0.0.1:6379`):**
 > preflight 6/6 ✔ (AUTH, PING, PUBLISH, PSUBSCRIBE `socket.io#/#*`, SUBSCRIBE request/response),
 > dokaz ✔ — klijent na instanci B primio `group.feed-changed` emit s instance A. **Cross-instance emit DOKAZAN.**
 > Rolling deploy (ispod) i dalje otvoren.
@@ -31,7 +31,7 @@ pravim Redis adapterom i pravim klijentom — ne treba aplikacija, samo Redis):
 
 ```bash
 # u repo rootu; trebaju node_modules u backend/ i frontend/ (npm install u oba)
-export REDIS_URL='redis://ephelpdesk:<REDIS_PASSWORD>@<redis-host>:6379'
+export REDIS_URL='redis://servicedesk:<REDIS_PASSWORD>@<redis-host>:6379'
 
 # prvo SAMO Redis + ACL (ne diže servere) — kaže TAČNO gdje je problem
 node ops/ws-cross-instance-check.mjs --preflight
@@ -57,12 +57,12 @@ mrežno ime koje SSH server ne razrješava). Tražiti u `ssh -v` ispisu:
 `channel N: open failed: connect failed: <razlog>`, pa tunel usmjeriti na **IP
 kontejnera** ili na objavljeni host port, a ne na Docker mrežno ime.
 Kod 2 s `NOPERM ... access a channel` znači ACL: dodati **aditivno**, bez
-`resetchannels` — `ACL SETUSER ephelpdesk &socket.io#/#*` pa `ACL SAVE`
+`resetchannels` — `ACL SETUSER servicedesk &socket.io#/#*` pa `ACL SAVE`
 (`PSUBSCRIBE` traži literalno poklapanje patterna; `&socket.io#*` ne pokriva
 `socket.io#/#*`). Detalji u `ops/runbook/redis-down.md`.
 
-**Redis korisnik `ephelpdesk` (puna definicija):** ključevi `~ephelpdesk*`
-(`REDIS_KEY_PREFIX`) **i** `~bull:ephelpdesk*` (`QUEUE_PREFIX`, BullMQ; bez
+**Redis korisnik `servicedesk` (puna definicija):** ključevi `~servicedesk*`
+(`REDIS_KEY_PREFIX`) **i** `~bull:servicedesk*` (`QUEUE_PREFIX`, BullMQ; bez
 njega worker pada s `NOPERM No permissions to access a key` na `evalsha`),
 kanali (`allchannels` ili barem `&socket.io#/#*`), komande `+@all` bez
 administrativnih. Korisnik kreiran samo s `ACL SETUSER` nestaje pri restartu

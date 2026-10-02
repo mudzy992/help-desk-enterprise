@@ -13,12 +13,12 @@ if [ ! -f /var/lib/samba/private/sam.ldb ] && [ -f "$(dirname "$0")/docker-compo
   cd "$(dirname "$0")"
   exec docker compose exec -T samba-ad "$(basename "$0")" "$@"
 fi
-REALM="${SAMBA_REALM:-TEST.EPBIH.LAB}"
+REALM="${SAMBA_REALM:-TEST.EXAMPLE.LAB}"
 BASE="DC=$(echo "${REALM,,}" | sed 's/\./,DC=/g')"
 
 case "${1:-}" in
   move)
-    samba-tool user move lejla.begic "OU=Kakanj,OU=ED Zenica,OU=Korisnici,${BASE}" ;;
+    samba-tool user move lejla.begic "OU=Kakanj,OU=Podružnica Zenica,OU=Korisnici,${BASE}" ;;
   disable) samba-tool user disable haris.mujic ;;
   enable)  samba-tool user enable haris.mujic ;;
   rename)  samba-tool user rename amar.hodzic --surname="Hodžić-Test" ;;

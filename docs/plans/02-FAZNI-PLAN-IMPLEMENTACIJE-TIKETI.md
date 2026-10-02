@@ -1,4 +1,4 @@
-# EP-HelpDesk — Fazni plan implementacije: modul TIKETI
+# Service Desk — Fazni plan implementacije: modul TIKETI
 
 Prati nalaze iz `01-ANALIZA-I-NALAZ-TIKETI.md`. Obuhvat je strogo ograničen na tikete i direktno povezane module (RBAC/OU/Grupe kao davaoci pristupa tiketima, katalog kao ulaz u kreiranje tiketa). Svaka faza ima: cilj, tačne fajlove za izmjenu, kriterij prihvatanja (acceptance criteria) i test plan. Faze su poredane po prioritetu (Faza 1 rješava oba prijavljena bug-a i mora ići prva).
 

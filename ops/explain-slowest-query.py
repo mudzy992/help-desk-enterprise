@@ -7,7 +7,7 @@ slowest `execute` statement whose text matches --match, substitutes its
 `docker exec <container> psql`. Prints a compact plan (node lines only).
 
   docker logs --since 5m <pg> 2>&1 | python3 ops/explain-slowest-query.py \
-      --container <pg> --db ephelpdesk-dev --user admin --match ILIKE
+      --container <pg> --db servicedesk-dev --user admin --match ILIKE
 
 Read-only: EXPLAIN ANALYZE executes the statement, so only SELECTs are run.
 """
@@ -18,7 +18,7 @@ import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--container", required=True)
-parser.add_argument("--db", default="ephelpdesk-dev")
+parser.add_argument("--db", default="servicedesk-dev")
 parser.add_argument("--user", default="admin")
 parser.add_argument("--match", default="", help="substring the SQL must contain")
 parser.add_argument("--full", action="store_true", help="print the whole plan")

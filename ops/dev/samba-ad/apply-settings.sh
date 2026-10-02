@@ -17,10 +17,10 @@ done
 [ -f .env ] || { echo "Nema .env (cp .env.example .env)"; exit 1; }
 SVC_BIND_PASSWORD="$(grep -E '^SVC_BIND_PASSWORD=' .env | head -1 | cut -d= -f2-)"
 REALM="$(grep -E '^SAMBA_REALM=' .env | head -1 | cut -d= -f2-)"
-REALM="${REALM:-TEST.EPBIH.LAB}"
+REALM="${REALM:-TEST.EXAMPLE.LAB}"
 [ -n "$SVC_BIND_PASSWORD" ] || { echo "SVC_BIND_PASSWORD nije postavljen u .env"; exit 1; }
 
-# DC=test,DC=epbih,DC=lab iz realma
+# DC=test,DC=example,DC=lab iz realma
 BASE_DN="$(echo "$REALM" | tr 'A-Z' 'a-z' | sed 's/^/DC=/; s/\./,DC=/g')"
 HOST="dc1.$(echo "$REALM" | tr 'A-Z' 'a-z')"
 

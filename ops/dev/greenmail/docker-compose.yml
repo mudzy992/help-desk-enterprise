@@ -2,7 +2,7 @@
 # Uputstvo: docs/ops/inbound-email.md §5
 #
 #   docker compose up -d
-#   ./send-reply.sh T-000123 ana.anic@epbih.ba "Printer radi, hvala."
+#   ./send-reply.sh T-000123 ana.anic@example.com "Printer radi, hvala."
 #
 # Dostupan backendu i workeru kao greenmail.test:3143 (IMAP) i :3025 (SMTP)
 # preko mreže db_net. Portovi se NE objavljuju na hostu. GreenMail prihvata
@@ -15,7 +15,7 @@ services:
         -Dgreenmail.setup.test.smtp
         -Dgreenmail.setup.test.imap
         -Dgreenmail.hostname=0.0.0.0
-        -Dgreenmail.users=helpdesk:helpdesk-test@epbih.ba
+        -Dgreenmail.users=helpdesk:helpdesk-test@example.com
         -Dgreenmail.users.login=email
         -Dgreenmail.verbose
     networks:

@@ -1,6 +1,6 @@
 # MVP Scope — Service Desk (enterprise, prva isporuka)
 
-Source of truth za **šta ulazi u prvu isporuku**: `RAW_PROJECT_EPHELPDESK.md` (sekcija *MVP constraints*).
+Source of truth za **šta ulazi u prvu isporuku**: `RAW_PROJECT.md` (sekcija *MVP constraints*).
 Ovaj fajl je operativni sažetak. Ako je u konfliktu s RAW IN/OUT listom, **pobjeđuje RAW**.
 
 UI/UX: `Master UI-UX Design Constitution.md` + `.cursor/docs/theme.md`.

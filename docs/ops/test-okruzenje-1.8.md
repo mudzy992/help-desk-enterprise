@@ -1,7 +1,7 @@
 # Paket 1.8: testno okruženje i verifikacija (Entra SSO, LDAPS sync, DR drill)
 
 > Za koga: administrator koji verifikaciju radi **van mreže preduzeća**, na vlastitom Linux serveru (Coolify). Ne treba mu testni tenant preduzeća ni pristup produkcijskom AD-u.
-> Veza: dizajn `docs/plans/modules/1.8-verifikacija-epbih.md` (checkliste V1–V3), DR runbook `ops/DR.md`.
+> Veza: dizajn `docs/plans/modules/1.8-verifikacija-kod-klijenta.md` (checkliste V1–V3), DR runbook `ops/DR.md`.
 
 Sadržaj:
 
@@ -23,7 +23,7 @@ Fajlovi su u `ops/dev/samba-ad/`:
 | Fajl | Namjena |
 |---|---|
 | `Dockerfile`, `entrypoint.sh` | Debian + Samba. Domen se provizionira pri prvom startu, a CA certifikat se izvozi u `export/samba-ca.pem`. |
-| `docker-compose.yml` | Kontejner na mreži `db_net` s aliasom `dc1.test.epbih.lab`. Port se **ne** objavljuje na hostu. |
+| `docker-compose.yml` | Kontejner na mreži `db_net` s aliasom `dc1.test.example.lab`. Port se **ne** objavljuje na hostu. |
 | `seed.sh` | OU stablo po uzoru na produkciju (`Korisnici / ED … / poslovnica`), 30+ korisnika s dijakriticima, bind nalog, grupe `HD-Administratori` i `HD-Agenti`, rubni slučajevi (bez e-maila, onemogućen nalog). `--bulk N` dodaje N korisnika za test paginacije. |
 | `scenario.sh` | Izmjene za checklistu: premještanje, deaktivacija, reaktivacija, preimenovanje, dodjela uloge, okidanje osigurača. |
 
@@ -47,9 +47,9 @@ Brza provjera LDAPS-a iz samog kontejnera:
 
 ```bash
 docker compose exec samba-ad bash -c \
-  'LDAPTLS_CACERT=/export/samba-ca.pem ldapsearch -H ldaps://dc1.test.epbih.lab \
-   -D "CN=svc-helpdesk,OU=Servisni,OU=HelpDesk,DC=test,DC=epbih,DC=lab" -w "$SVC_BIND_PASSWORD" \
-   -b "OU=Korisnici,DC=test,DC=epbih,DC=lab" "(mail=*)" mail | grep -c ^mail:'
+  'LDAPTLS_CACERT=/export/samba-ca.pem ldapsearch -H ldaps://dc1.test.example.lab \
+   -D "CN=svc-helpdesk,OU=Servisni,OU=HelpDesk,DC=test,DC=example,DC=lab" -w "$SVC_BIND_PASSWORD" \
+   -b "OU=Korisnici,DC=test,DC=example,DC=lab" "(mail=*)" mail | grep -c ^mail:'
 ```
 
 ### 1.2 CA certifikat u backendu i workeru
@@ -90,17 +90,17 @@ Kao SUPER_ADMIN otvorite **Postavke → Autentikacija** i podesite:
 
 | Ključ | Vrijednost za test |
 |---|---|
-| `private.auth.adLdapsUrlsCsv` | `ldaps://dc1.test.epbih.lab:636` (za test failovera: `ldaps://nepostojeci.test:636,ldaps://dc1.test.epbih.lab:636`) |
-| `private.auth.adBindDn` | `CN=svc-helpdesk,OU=Servisni,OU=HelpDesk,DC=test,DC=epbih,DC=lab` |
+| `private.auth.adLdapsUrlsCsv` | `ldaps://dc1.test.example.lab:636` (za test failovera: `ldaps://nepostojeci.test:636,ldaps://dc1.test.example.lab:636`) |
+| `private.auth.adBindDn` | `CN=svc-helpdesk,OU=Servisni,OU=HelpDesk,DC=test,DC=example,DC=lab` |
 | `private.auth.adBindPassword` | `SVC_BIND_PASSWORD` iz `.env` (secret) |
 | `private.auth.adRead.enabled` | `true` |
 | `private.auth.adRead.source` | `ldaps` |
-| `private.auth.adRead.usersBaseDn` | `OU=Korisnici,DC=test,DC=epbih,DC=lab` |
-| `private.auth.adRead.groupsBaseDn` | `OU=Grupe,OU=HelpDesk,DC=test,DC=epbih,DC=lab` |
+| `private.auth.adRead.usersBaseDn` | `OU=Korisnici,DC=test,DC=example,DC=lab` |
+| `private.auth.adRead.groupsBaseDn` | `OU=Grupe,OU=HelpDesk,DC=test,DC=example,DC=lab` |
 | `private.auth.ouMappingStrategy` | `by_dn_ou_path` (drugi test: `by_company_department`) |
 | `private.auth.roleSource` | `local_db` (drugi test: `ad_groups`, uz DN-ove grupa ispod) |
-| `private.auth.adRoleGroupDnAdmin` | `CN=HD-Administratori,OU=Grupe,OU=HelpDesk,DC=test,DC=epbih,DC=lab` |
-| `private.auth.adRoleGroupDnAgent` | `CN=HD-Agenti,OU=Grupe,OU=HelpDesk,DC=test,DC=epbih,DC=lab` |
+| `private.auth.adRoleGroupDnAdmin` | `CN=HD-Administratori,OU=Grupe,OU=HelpDesk,DC=test,DC=example,DC=lab` |
+| `private.auth.adRoleGroupDnAgent` | `CN=HD-Agenti,OU=Grupe,OU=HelpDesk,DC=test,DC=example,DC=lab` |
 | `private.auth.adRead.maxDeactivationPercent` | `10` |
 | `private.auth.adRead.syncCooldownMinutes` | `0` za vrijeme testiranja, nakon toga `15` |
 | `private.auth.adRead.strategy` | `manual_only`; za test rasporeda `scheduled` + `private.auth.adRead.scheduleCron` npr. `*/20 * * * *` |
@@ -141,7 +141,7 @@ Tenant preduzeća nije potreban. Svaki Microsoft nalog može napraviti vlastiti 
 1. Na <https://portal.azure.com> se prijavite privatnim Microsoft nalogom. Ako nemate Azure pretplatu, napravite je. Entra ID Free se ne naplaćuje, a kartica se traži samo za verifikaciju identiteta.
 2. Otvorite **Microsoft Entra ID → Manage tenants → Create → Microsoft Entra ID** i dajte mu naziv, npr. `ephd-test` (domen `ephdtest.onmicrosoft.com`).
 3. Prebacite se u novi tenant i otvorite **App registrations → New registration**:
-   - naziv `EP HelpDesk (test)`, *Accounts in this organizational directory only*;
+   - naziv `Service Desk (test)`, *Accounts in this organizational directory only*;
    - Redirect URI: platforma **Single-page application**, `https://desk.ba101.top/auth/callback`. Za lokalni razvoj dodajte i `http://localhost:5173/auth/callback`.
 4. Na stranici **Overview** kopirajte *Directory (tenant) ID* i *Application (client) ID*. Client secret se **ne** pravi, jer je SPA javni klijent i koristi PKCE.
 5. Na stranici **Token configuration → Add optional claim → ID** dodajte `email` i `upn`.
@@ -179,7 +179,7 @@ Odluka iz dizajna je zasebna baza na istom Postgres serveru i privremeni Coolify
 |---|---|
 | `backup-uploads.sh` | Dnevna arhiva volumena `uploads`, SHA-256, manifest i retention (cron na hostu). |
 | `export-config.sh` | Config verzija „DR backup YYYY-MM-DD" i snapshot JSON, bez tajni. |
-| `restore-drill.sh` | Dump u bazu `ephelpdesk-drill` (ime mora sadržavati „drill"), uploads u volumen `ephd-drill-uploads`. Ispisuje RPO, trajanje i ID-ove za verifikaciju. |
+| `restore-drill.sh` | Dump u bazu `servicedesk-drill` (ime mora sadržavati „drill"), uploads u volumen `ephd-drill-uploads`. Ispisuje RPO, trajanje i ID-ove za verifikaciju. |
 | `verify-restore.mjs` | 4 provjere (login, novi tiket, stari prilog, audit export), PASS/FAIL i JSON za zapisnik. `--dry` preskače kreiranje tiketa. |
 
 Postupak:
@@ -187,7 +187,7 @@ Postupak:
 ```bash
 export RESTORE_STARTED_AT=$(date -u +%FT%TZ)
 PG_CONTAINER=hgpchekxb6dutalsyctu42al DUMP_FILE=/putanja/do/backupa.dmp \
-UPLOADS_ARCHIVE=/var/backups/ephelpdesk/uploads-2026-10-03.tar.gz \
+UPLOADS_ARCHIVE=/var/backups/servicedesk/uploads-2026-10-03.tar.gz \
   ops/dr/restore-drill.sh
 ```
 
@@ -195,7 +195,7 @@ Privremeni stack u Coolifyju:
 
 1. **Clone** postojećeg resursa aplikacije (ili novi resurs iz istog repoa/grane), npr. `ephd-drill`.
 2. Environment:
-   - `DATABASE_URL` pokazuje na bazu `ephelpdesk-drill`;
+   - `DATABASE_URL` pokazuje na bazu `servicedesk-drill`;
    - vlastiti domeni, npr. `drill.desk.ba101.top` i `api.drill.desk.ba101.top`;
    - `VITE_API_BASE_URL` i `CORS_ORIGINS` prilagoditi tim domenima.
 3. Volumen `uploads` zamijeniti postojećim volumenom `ephd-drill-uploads`.
@@ -208,7 +208,7 @@ ATTACHMENT_TICKET_ID=… ATTACHMENT_ID=… AUDIT_OU_ID=… \
   node ops/dr/verify-restore.mjs --json=drill-2026-10-03.json
 ```
 
-6. Nakon zapisnika: obrisati Coolify resurs `ephd-drill`, bazu (`DROP DATABASE "ephelpdesk-drill"`) i volumen (`docker volume rm ephd-drill-uploads`).
+6. Nakon zapisnika: obrisati Coolify resurs `ephd-drill`, bazu (`DROP DATABASE "servicedesk-drill"`) i volumen (`docker volume rm ephd-drill-uploads`).
 
 ---
 
@@ -232,7 +232,7 @@ Odstupanja / napomene:
 
 ```
 Datum: 2026-09-26   Izvršio: administrator (staging mudzy-server)   Verzija: 6330a12
-V2 LDAPS sync: DC ldaps://dc1.test.epbih.lab:636 (Samba AD 4.17, simulacija)
+V2 LDAPS sync: DC ldaps://dc1.test.example.lab:636 (Samba AD 4.17, simulacija)
    L1 ✔ L2 ✔ L3 ✔ L4 ✔ L5 ✔ L6 ✔ L7 ✔ L8 ✔ L9 ✔ L10 ✔ L11 ✔ L12 ✔ L13 ✔ L14 ✔ L15 ✔ (1200+ korisnika) L16 ✔
 V1: odgođeno (nema testnog tenanta).  V3: nije izveden.
 Napomene: CA preko AD_LDAPS_CA_CERT_BASE64 (Coolify compose nema file mount);

@@ -26,12 +26,12 @@ describe('doesOrganizationalUnitScopeCover', () => {
     expect(
       doesOrganizationalUnitScopeCover({
         assignedPath: '/Korisnici/Podružnica Zenica',
-        requestedPath: '/Korisnici/ED Sarajevo',
+        requestedPath: '/Korisnici/Podružnica Sarajevo',
       }),
     ).toBe(false);
     expect(
       doesOrganizationalUnitScopeCover({
-        assignedPath: '/Korisnici/ED',
+        assignedPath: '/Korisnici/Podružnica',
         requestedPath: '/Korisnici/Podružnica Zenica',
       }),
     ).toBe(false);
