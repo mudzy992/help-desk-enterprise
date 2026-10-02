@@ -1,5 +1,5 @@
-import {
 import { UpdateSettingsBatchDto } from './dto/update-settings-batch.dto';
+import {
   Body,
   Controller,
   Get,

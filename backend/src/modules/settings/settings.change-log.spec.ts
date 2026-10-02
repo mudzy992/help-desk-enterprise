@@ -109,4 +109,45 @@ describe('SettingsService change log', () => {
       value: 'plaintext-secret',
     });
   });
+
+  it('Paket 4.1: batch saves every key with one change-log entry each', async () => {
+    const { service, memory } = await createHarness();
+    await service.setSettingValues(
+      [
+        { key: settingKeys.publicBrandingAppName, value: 'Klijent Desk' },
+        { key: settingKeys.publicBrandingTagline, value: 'Podrška' },
+        { key: settingKeys.publicBrandingSupportEmail, value: 'podrska@example.com' },
+      ],
+      { reason: 'Brending', actorUserId: 'admin-1' },
+    );
+    expect(memory.changeLogs.map((entry) => entry.entityId)).toEqual([
+      settingKeys.publicBrandingAppName,
+      settingKeys.publicBrandingTagline,
+      settingKeys.publicBrandingSupportEmail,
+    ]);
+    expect(await service.getSetting(settingKeys.publicBrandingTagline)).toBe('Podrška');
+  });
+
+  it('Paket 4.1: batch is all-or-nothing when one value is invalid', async () => {
+    const { service, memory } = await createHarness();
+    await expect(
+      service.setSettingValues(
+        [
+          { key: settingKeys.publicBrandingAppName, value: 'Klijent Desk' },
+          { key: settingKeys.publicBrandingSupportUrl, value: 'http://not-https.example.com' },
+        ],
+        { reason: 'Brending', actorUserId: 'admin-1' },
+      ),
+    ).rejects.toBeInstanceOf(SettingsError);
+    expect(memory.changeLogs).toHaveLength(0);
+    await expect(
+      service.setSettingValues(
+        [
+          { key: settingKeys.publicBrandingAppName, value: 'A' },
+          { key: settingKeys.publicBrandingAppName, value: 'B' },
+        ],
+        { reason: 'Brending', actorUserId: 'admin-1' },
+      ),
+    ).rejects.toBeInstanceOf(SettingsError);
+  });
 });
