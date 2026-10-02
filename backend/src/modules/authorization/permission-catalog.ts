@@ -340,4 +340,9 @@ export const permissionCatalogEntries: readonly PermissionCatalogEntry[] = [
     categoryId: permissionCategoryIds.ticket,
     description: 'Vote on changes as a member of their change advisory board (package 3.4).',
   },
+  {
+    key: permissionKeys.integrationsTeamsManage,
+    categoryId: permissionCategoryIds.integrations,
+    description: 'Configure the Microsoft Teams connector, check readiness, link channels and use the simulator (package 3.1).',
+  },
 ];

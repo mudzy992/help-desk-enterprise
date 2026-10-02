@@ -1,4 +1,5 @@
 model User {
+  teamsConversations TeamsConversation[] @relation("TeamsConversationUser")
   changesOwned ChangeRequest[] @relation("ChangeOwner")
   changesRequested ChangeRequest[] @relation("ChangeRequester")
   changeApprovals ChangeApproval[] @relation("ChangeApprover")
@@ -161,6 +162,7 @@ model UserRole {
 }
 
 model Group {
+  teamsChannel TeamsGroupChannel? @relation("TeamsGroupChannel")
   cabChanges ChangeRequest[] @relation("ChangeCabGroup")
   problems Problem[]
   id                   String                 @id @default(cuid())

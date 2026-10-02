@@ -28,6 +28,7 @@ describe('installAddonCatalog', () => {
       ['cmdb', false],
       ['problems', false],
       ['changes', false],
+      ['teams', false],
     ]);
   });
 

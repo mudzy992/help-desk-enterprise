@@ -559,7 +559,8 @@
       "change.read": "Changes",
       "change.request": "Request for change",
       "change.manage": "Change management",
-      "change.approve": "CAB voting"
+      "change.approve": "CAB voting",
+      "integrations.teams.manage": "Manage Teams connector"
     }
   },
   "maintenance": {
@@ -723,7 +724,8 @@
         "change.read": "View the change register and details in your unit scope, plus your own changes and changes of CABs you belong to (package 3.4).",
         "change.request": "Create requests for change, edit your own draft and submit it for assessment (package 3.4).",
         "change.manage": "Assessment, scheduling, implementation, post-implementation review, templates and cancelling changes (package 3.4).",
-        "change.approve": "Vote on changes in CAB groups you belong to; requesters do not vote on their own change (package 3.4)."
+        "change.approve": "Vote on changes in CAB groups you belong to; requesters do not vote on their own change (package 3.4).",
+        "integrations.teams.manage": "Teams connector settings, readiness check, channel linking and simulator (package 3.1)."
       }
     }
   },
@@ -1116,9 +1118,9 @@
         "private.integrations.queue.maxBackoffSeconds": "Maximum retry delay in seconds.",
         "private.integrations.queue.typesCsv": "Comma-separated integration types that use the durable queue (email, edge, teams).",
         "private.integrations.queue.workerPollSeconds": "How often the worker refreshes settings and sweeps dead-letter retention.",
-        "private.integrations.teams.eventTypesCsv": "Comma-separated Teams stub event types (e.g. ticket.created, ticket.assigned).",
-        "private.integrations.teams.stubEnabled": "Enable the Teams stub: enqueue jobs without sending to Teams.",
-        "private.integrations.teams.webhookUrl": "Teams webhook URL stored for a future connector (stub never calls it).",
+        "private.integrations.teams.eventTypesCsv": "Comma-separated Teams stub event types (e.g. ticket.created, ticket.assigned). Deprecated (replaced by the connector in package 3.1).",
+        "private.integrations.teams.stubEnabled": "Enable the Teams stub: enqueue jobs without sending to Teams. Deprecated (replaced by the connector in package 3.1).",
+        "private.integrations.teams.webhookUrl": "Teams webhook URL stored for a future connector (stub never calls it). Deprecated (replaced by the connector in package 3.1).",
         "private.knowledgeBase.feedback.enabled": "Allow helpful / not-helpful feedback on knowledge articles.",
         "private.knowledgeBase.feedback.oneVotePerUserPerArticle": "Keep only one current feedback vote per user per article.",
         "private.knowledgeBase.ranking.useFeedbackWeight": "Include feedback score when ranking knowledge intercept suggestions.",
@@ -1453,7 +1455,20 @@
         "private.changes.minLeadTimeHours": "Minimum hours between sending a normal change to the CAB and its start (0 = off).",
         "private.changes.requireTestPlan": "A test plan is required before sending a change to the CAB. Off by default.",
         "private.changes.freezePeriods": "Freeze periods as a JSON list [{\"from\":\"2026-12-24\",\"to\":\"2027-01-02\",\"label\":\"Year end\"}], dates inclusive. They block standard and normal changes; emergency changes only get a warning.",
-        "private.changes.reminderHoursBeforeStart": "How many hours before the start the owner is reminded (0 = no reminder)."
+        "private.changes.reminderHoursBeforeStart": "How many hours before the start the owner is reminded (0 = no reminder).",
+        "private.integrations.teams.mode": "Teams connector mode: simulator (no Microsoft resources, requires TEAMS_SIMULATOR_SECRET on the server) or live (Bot Connector).",
+        "private.integrations.teams.tenantId": "Microsoft Entra tenant ID of the organisation (live mode); activities from other tenants are refused.",
+        "private.integrations.teams.botAppId": "Application (client) ID of the single-tenant bot app registration (live mode).",
+        "private.integrations.teams.botAppSecret": "Client secret of the bot app registration; leave empty when a certificate is used.",
+        "private.integrations.teams.botCertificatePem": "Optional certificate and private key (PEM) of the bot app registration; preferred over a secret.",
+        "private.integrations.teams.personalEnabled": "Sends personal Teams notifications according to each user's notification preferences.",
+        "private.integrations.teams.channelEnabled": "Posts group events to the Teams channels linked to groups.",
+        "private.integrations.teams.channelIncludeTitle": "Shows the ticket title in channel cards (channels never show the description or messages). Off by default.",
+        "private.integrations.teams.ticketCreateEnabled": "Allows creating tickets from Teams (personal chat command and message action).",
+        "private.integrations.teams.actionsEnabled": "Shows action buttons on cards (claim, reply, approve, vote); off means cards only link to the application.",
+        "private.integrations.teams.appShortName": "Short name of the Teams app in the generated package (empty = application name from branding).",
+        "private.integrations.teams.appDescription": "Short description of the Teams app in the generated package (empty = generic description).",
+        "private.addons.teams": "Turns the Microsoft Teams connector on or off: notifications, card actions and ticket creation from Teams. Off by default."
       }
     },
     "emailTemplates": {
@@ -2721,6 +2736,10 @@
         "changes": {
           "label": "Change management",
           "description": "Requests for change, CAB approval, calendar and maintenance windows."
+        },
+        "teams": {
+          "label": "Microsoft Teams connector",
+          "description": "Notifications and actions in Teams plus ticket creation from Teams. Runs in the simulator until the organisation registers its own Teams app."
         }
       }
     },

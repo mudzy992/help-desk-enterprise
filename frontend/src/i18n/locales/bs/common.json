@@ -567,7 +567,8 @@
       "change.read": "Promjene",
       "change.request": "Zahtjev za promjenu",
       "change.manage": "Upravljanje promjenama",
-      "change.approve": "Glasanje u CAB-u"
+      "change.approve": "Glasanje u CAB-u",
+      "integrations.teams.manage": "Upravljanje Teams konektorom"
     }
   },
   "maintenance": {
@@ -731,7 +732,8 @@
         "change.read": "Pregled registra i detalja promjena u svom opsegu OJ, uz vlastite promjene i promjene CAB-a čiji ste član (paket 3.4).",
         "change.request": "Kreiranje zahtjeva za promjenu, uređivanje vlastitog nacrta i slanje na procjenu (paket 3.4).",
         "change.manage": "Procjena, termin, realizacija, pregled nakon implementacije, šabloni i otkazivanje promjena (paket 3.4).",
-        "change.approve": "Glas o promjenama u CAB grupama čiji ste član; podnosilac ne glasa o svojoj promjeni (paket 3.4)."
+        "change.approve": "Glas o promjenama u CAB grupama čiji ste član; podnosilac ne glasa o svojoj promjeni (paket 3.4).",
+        "integrations.teams.manage": "Postavke Teams konektora, provjera spremnosti, povezivanje kanala i simulator (paket 3.1)."
       }
     }
   },
@@ -1126,9 +1128,9 @@
         "private.integrations.queue.maxBackoffSeconds": "Maksimalno kašnjenje ponovnog pokušaja u sekundama.",
         "private.integrations.queue.typesCsv": "Tipovi integracija odvojeni zarezom koji koriste trajni red (email, edge, teams).",
         "private.integrations.queue.workerPollSeconds": "Koliko često worker osvježava postavke i čisti dead-letter zadržavanje.",
-        "private.integrations.teams.eventTypesCsv": "Tipovi događaja Teams stub-a odvojeni zarezom (npr. ticket.created, ticket.assigned).",
-        "private.integrations.teams.stubEnabled": "Uključi Teams stub: stavlja poslove u red bez slanja u Teams.",
-        "private.integrations.teams.webhookUrl": "Teams webhook URL sačuvan za budući konektor (stub ga ne poziva).",
+        "private.integrations.teams.eventTypesCsv": "Tipovi događaja Teams stub-a odvojeni zarezom (npr. ticket.created, ticket.assigned). Zastarjelo (paket 3.1 zamijenio konektorom).",
+        "private.integrations.teams.stubEnabled": "Uključi Teams stub: stavlja poslove u red bez slanja u Teams. Zastarjelo (paket 3.1 zamijenio konektorom).",
+        "private.integrations.teams.webhookUrl": "Teams webhook URL sačuvan za budući konektor (stub ga ne poziva). Zastarjelo (paket 3.1 zamijenio konektorom).",
         "private.knowledgeBase.feedback.enabled": "Dozvoli ocjene korisno / nije korisno na člancima baze znanja.",
         "private.knowledgeBase.feedback.oneVotePerUserPerArticle": "Zadrži samo jedan trenutni glas po korisniku po članku.",
         "private.knowledgeBase.ranking.useFeedbackWeight": "Uključi ocjenu feedbacka u rangiranje prijedloga baze znanja.",
@@ -1463,7 +1465,20 @@
         "private.changes.minLeadTimeHours": "Minimalno vrijeme u satima od slanja normalne promjene CAB-u do njenog početka (0 = isključeno).",
         "private.changes.requireTestPlan": "Plan testiranja je obavezan prije slanja promjene CAB-u. Zadano isključeno.",
         "private.changes.freezePeriods": "Periodi zamrzavanja kao JSON lista [{\"from\":\"2026-12-24\",\"to\":\"2027-01-02\",\"label\":\"Kraj godine\"}], datumi uključivo. Blokiraju standardne i normalne promjene; hitne samo upozoravaju.",
-        "private.changes.reminderHoursBeforeStart": "Koliko sati prije početka vlasnik dobija podsjetnik (0 = bez podsjetnika)."
+        "private.changes.reminderHoursBeforeStart": "Koliko sati prije početka vlasnik dobija podsjetnik (0 = bez podsjetnika).",
+        "private.integrations.teams.mode": "Režim Teams konektora: simulator (bez Microsoft resursa, traži TEAMS_SIMULATOR_SECRET na serveru) ili live (Bot Connector).",
+        "private.integrations.teams.tenantId": "ID Microsoft Entra tenanta organizacije (live režim); aktivnosti iz drugih tenanta se odbijaju.",
+        "private.integrations.teams.botAppId": "Application (client) ID single-tenant registracije bota (live režim).",
+        "private.integrations.teams.botAppSecret": "Tajna (client secret) registracije bota; ostaviti prazno ako se koristi certifikat.",
+        "private.integrations.teams.botCertificatePem": "Opcionalni certifikat i privatni ključ (PEM) registracije bota; preporučuje se umjesto tajne.",
+        "private.integrations.teams.personalEnabled": "Šalje lične Teams obavijesti prema postavkama obavijesti svakog korisnika.",
+        "private.integrations.teams.channelEnabled": "Objavljuje događaje grupe u Teams kanale povezane s grupama.",
+        "private.integrations.teams.channelIncludeTitle": "Prikazuje naslov tiketa u karticama kanala (kanal nikad ne prikazuje opis ni poruke). Zadano isključeno.",
+        "private.integrations.teams.ticketCreateEnabled": "Dozvoljava kreiranje tiketa iz Teamsa (komanda u ličnom chatu i akcija nad porukom).",
+        "private.integrations.teams.actionsEnabled": "Prikazuje dugmad akcija na karticama (preuzmi, odgovori, odobri, glasaj); isključeno znači da kartice samo vode u aplikaciju.",
+        "private.integrations.teams.appShortName": "Kratki naziv Teams aplikacije u generisanom paketu (prazno = naziv aplikacije iz brendinga).",
+        "private.integrations.teams.appDescription": "Kratki opis Teams aplikacije u generisanom paketu (prazno = opšti opis).",
+        "private.addons.teams": "Uključuje ili isključuje Microsoft Teams konektor: obavijesti, akcije na karticama i kreiranje tiketa iz Teamsa. Zadano isključeno."
       }
     },
     "emailTemplates": {
@@ -2738,6 +2753,10 @@
         "changes": {
           "label": "Upravljanje promjenama",
           "description": "Zahtjevi za promjenu, odobravanje CAB-a, kalendar i prozori održavanja."
+        },
+        "teams": {
+          "label": "Microsoft Teams konektor",
+          "description": "Obavijesti i akcije u Teamsu te kreiranje tiketa iz Teamsa. Radi u simulatoru dok organizacija ne registruje vlastitu Teams aplikaciju."
         }
       }
     },

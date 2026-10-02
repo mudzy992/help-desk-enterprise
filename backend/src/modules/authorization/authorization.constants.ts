@@ -82,6 +82,8 @@ export const permissionKeys = {
   changeRequest: 'change.request',
   changeManage: 'change.manage',
   changeApprove: 'change.approve',
+  /** Paket 3.1: Teams connector settings, readiness, channels, simulator. */
+  integrationsTeamsManage: 'integrations.teams.manage',
   edgeConnect: 'edge.connect',
   edgeNotifyReceive: 'edge.notify.receive',
   ticketMessageSend: 'ticket.message.send',
@@ -197,6 +199,7 @@ const adminPermissionKeys = [
   permissionKeys.problemClose,
   permissionKeys.changeManage,
   permissionKeys.changeApprove,
+  permissionKeys.integrationsTeamsManage,
 ] as const;
 
 export const defaultRolePermissionKeys: Readonly<Record<string, readonly string[]>> =

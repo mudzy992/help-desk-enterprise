@@ -34,7 +34,7 @@ export type TicketMessageResponse = {
   readonly authorUserId: string | null;
   readonly createdAt: string;
   /** Paket 2.3: `EMAIL` when the message arrived as an e-mail reply. */
-  readonly source?: "APP" | "EMAIL";
+  readonly source?: "APP" | "EMAIL" | "TEAMS";
   readonly redactionWarnings?: readonly {
     readonly field: string;
     readonly patternId: string;

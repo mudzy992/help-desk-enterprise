@@ -319,6 +319,7 @@ export const settingKeys = {
   privateAddonsCmdb: addonSettingKey('cmdb'),
   privateAddonsProblems: addonSettingKey('problems'),
   privateAddonsChanges: addonSettingKey('changes'),
+  privateAddonsTeams: addonSettingKey('teams'),
   privateKnowledgeBaseReviewCycleEnabled:
     'private.knowledgeBase.reviewCycle.enabled',
   privateKnowledgeBaseReviewCycleDefaultReviewDays:
@@ -409,6 +410,19 @@ export const settingKeys = {
   privateIntegrationsTeamsWebhookUrl: 'private.integrations.teams.webhookUrl',
   privateIntegrationsTeamsEventTypesCsv:
     'private.integrations.teams.eventTypesCsv',
+  // Paket 3.1: Teams connector (bot); the addon switches it on.
+  privateIntegrationsTeamsMode: 'private.integrations.teams.mode',
+  privateIntegrationsTeamsTenantId: 'private.integrations.teams.tenantId',
+  privateIntegrationsTeamsBotAppId: 'private.integrations.teams.botAppId',
+  privateIntegrationsTeamsBotAppSecret: 'private.integrations.teams.botAppSecret',
+  privateIntegrationsTeamsBotCertificatePem: 'private.integrations.teams.botCertificatePem',
+  privateIntegrationsTeamsPersonalEnabled: 'private.integrations.teams.personalEnabled',
+  privateIntegrationsTeamsChannelEnabled: 'private.integrations.teams.channelEnabled',
+  privateIntegrationsTeamsChannelIncludeTitle: 'private.integrations.teams.channelIncludeTitle',
+  privateIntegrationsTeamsTicketCreateEnabled: 'private.integrations.teams.ticketCreateEnabled',
+  privateIntegrationsTeamsActionsEnabled: 'private.integrations.teams.actionsEnabled',
+  privateIntegrationsTeamsAppShortName: 'private.integrations.teams.appShortName',
+  privateIntegrationsTeamsAppDescription: 'private.integrations.teams.appDescription',
   privateConfigVersioningEnabled: 'private.configVersioning.enabled',
   privateConfigVersioningAllowRollback:
     'private.configVersioning.allowRollback',

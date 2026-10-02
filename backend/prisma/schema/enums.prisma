@@ -100,6 +100,8 @@ enum MessageType {
 enum MessageSource {
   APP
   EMAIL
+  /// Paket 3.1: reply or note sent from a Teams card.
+  TEAMS
 }
 
 /// Paket 2.3: outcome of one inbound e-mail.
@@ -140,6 +142,8 @@ enum IntegrationJobType {
   EMAIL
   EDGE_EVENT
   TEAMS_STUB
+  /// Paket 3.1: a real Teams delivery (card post or update).
+  TEAMS
 }
 
 enum IntegrationJobStatus {

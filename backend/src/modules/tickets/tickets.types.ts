@@ -201,7 +201,7 @@ export type TicketMutationContext = {
   readonly archive?: TicketArchiveConfiguration;
   readonly slaTimers?: TicketSlaTimersPort;
   /** Paket 2.3: set only by the inbound e-mail worker, never from HTTP. */
-  readonly messageSource?: 'APP' | 'EMAIL';
+  readonly messageSource?: 'APP' | 'EMAIL' | 'TEAMS';
   /**
    * Paket 3.3: set only by the problem group resolution after it verified
    * `problem.close` on a problem the ticket is linked to; never from HTTP.

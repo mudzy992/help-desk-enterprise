@@ -1,0 +1,91 @@
+/// Paket 3.1: Microsoft Teams connector. Everything here is written only
+/// while the `teams` addon is on; the mode (simulator | live) is a setting.
+
+enum TeamsConversationKind {
+  PERSONAL
+  CHANNEL
+  GROUP_CHAT
+}
+
+enum TeamsConnectorMode {
+  SIMULATOR
+  LIVE
+}
+
+/// A conversation the bot may write to (captured from installation events).
+model TeamsConversation {
+  id             String                @id @default(cuid())
+  conversationId String                @unique @db.VarChar(512)
+  kind           TeamsConversationKind
+  mode           TeamsConnectorMode
+  tenantId       String                @db.VarChar(64)
+  serviceUrl     String                @db.VarChar(512)
+  teamId         String?               @db.VarChar(512)
+  teamName       String?               @db.VarChar(256)
+  channelId      String?               @db.VarChar(512)
+  channelName    String?               @db.VarChar(256)
+  /// Teams user (aadObjectId) of a personal conversation.
+  aadObjectId    String?               @db.VarChar(64)
+  /// Our user of a personal conversation (null = not linked).
+  userId         String?
+  installedAt    DateTime              @default(now())
+  removedAt      DateTime?
+  lastActivityAt DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  user          User?               @relation("TeamsConversationUser", fields: [userId], references: [id], onDelete: SetNull)
+  groupChannels TeamsGroupChannel[]
+  cards         TeamsCardMessage[]
+
+  @@index([userId, removedAt])
+  @@index([kind, removedAt])
+  @@index([aadObjectId])
+}
+
+/// One group posts to at most one channel; a channel may serve several groups.
+model TeamsGroupChannel {
+  id                  String   @id @default(cuid())
+  groupId             String   @unique
+  teamsConversationId String
+  /// Event keys posted to the channel (see teams.constants.ts).
+  events              String[]
+  includeTitle        Boolean  @default(false)
+  createdByUserId     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  group        Group             @relation("TeamsGroupChannel", fields: [groupId], references: [id], onDelete: Cascade)
+  conversation TeamsConversation @relation(fields: [teamsConversationId], references: [id], onDelete: Cascade)
+
+  @@index([teamsConversationId])
+}
+
+/// A card the bot posted, kept so later changes update it instead of posting anew.
+model TeamsCardMessage {
+  id                  String   @id @default(cuid())
+  teamsConversationId String
+  activityId          String   @db.VarChar(512)
+  entityType          String   @db.VarChar(40)
+  entityId            String   @db.VarChar(64)
+  cardKind            String   @db.VarChar(60)
+  stateHash           String   @db.VarChar(64)
+  /// Simulator only: the rendered card (live cards live in Teams).
+  payload             Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  conversation TeamsConversation @relation(fields: [teamsConversationId], references: [id], onDelete: Cascade)
+
+  @@unique([teamsConversationId, entityType, entityId, cardKind])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+/// Inbound idempotency: an activity id is processed once (kept 7 days).
+model TeamsInboundActivity {
+  activityId String   @id @db.VarChar(512)
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+}

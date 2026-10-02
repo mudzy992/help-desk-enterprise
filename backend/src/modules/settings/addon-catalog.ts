@@ -19,7 +19,7 @@ export const installAddonCatalog = [
   {
     key: 'teamsStub',
     defaultEnabled: false,
-    description: 'Teams stub addon flag from the install wizard catalog',
+    description: 'Deprecated Teams stub flag (replaced by the teams addon, package 3.1); kept readable',
   },
   {
     key: 'csat',
@@ -93,6 +93,13 @@ export const installAddonCatalog = [
     key: 'changes',
     defaultEnabled: false,
     description: 'Change management addon: change requests, CAB approval, change calendar, reviews',
+  },
+  {
+    // Paket 3.1: Microsoft Teams connector (bot). Off until the organisation
+    // has its own Teams app registration; the simulator works without one.
+    key: 'teams',
+    defaultEnabled: false,
+    description: 'Microsoft Teams connector: notifications, card actions and ticket creation in Teams',
   },
 ] as const;
 

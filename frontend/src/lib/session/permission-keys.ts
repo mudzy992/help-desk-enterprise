@@ -51,6 +51,7 @@ export const permissionKeys = {
   changeRequest: "change.request",
   changeManage: "change.manage",
   changeApprove: "change.approve",
+  integrationsTeamsManage: "integrations.teams.manage",
 } as const;
 
 export type PermissionKey = (typeof permissionKeys)[keyof typeof permissionKeys];

@@ -36,7 +36,7 @@ export type TicketMessageRecord = {
   readonly authorUserId: string | null;
   readonly createdAt: Date;
   /** Paket 2.3: absent on records selected without the column. */
-  readonly source?: 'APP' | 'EMAIL';
+  readonly source?: 'APP' | 'EMAIL' | 'TEAMS';
   /** Paket 2.6: set when anonymization replaced names in the body. */
   readonly redactedAt?: Date | null;
 };
@@ -49,7 +49,7 @@ export type TicketMessageResponse = {
   readonly authorUserId: string | null;
   readonly createdAt: string;
   /** Paket 2.3: `EMAIL` when the message arrived as an e-mail reply. */
-  readonly source?: 'APP' | 'EMAIL';
+  readonly source?: 'APP' | 'EMAIL' | 'TEAMS';
   readonly redactionWarnings?: readonly RedactionMatch[];
   /** Paket 2.6: names in the body were replaced by a pseudonym (anonymization). */
   readonly redacted?: boolean;
