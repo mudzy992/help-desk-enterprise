@@ -120,8 +120,11 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
   (pa i na samom `/auth/refresh`) briše pohranjenu sesiju koju dijele svi tabovi (`frontend/src/services/api.ts`), pa dva taba
   koja istovremeno osvježavaju isti token teoretski mogu jedan drugog odjaviti. Ako se odjave ikad pojave u aplikaciji, krenuti
   odatle i od 1 h neaktivnosti (`frontend/src/lib/session/session-keep-alive.ts`, odluka iz Review 2026-09-25).
-- **Za odluku vlasnika, izvan A9: skraćenica `ephd`** nije u listi traženih oblika (§1 dizajna), pa je `check-client-neutral` ne
-  hvata. Ostaci: e-mail zaglavlje `X-EPHD-Ticket` (`compose-ticket-email.ts`; ako klijent ima mail pravila na to zaglavlje,
-  promjena ih lomi), sessionStorage ključ `ephd.entra.configuration`, DR zadane vrijednosti `ephd-drill-uploads` i log
-  `/var/log/ephd-uploads-backup.log`, te primjeri `ephd-test` / `ephdtest` u `docs/ops/test-okruzenje-1.8.md`. Predlog: poseban
-  mali paket (dizajn, odobrenje, pa implementacija) koji uz to dodaje `ephd` u provjeru.
+- **Dizajn `modules/4.1a-skracenice-klijenta.md` je napisan i čeka odobrenje** (2026-10-02, na zahtjev korisnika). Obim je širi od
+  `ephd`: 22 fajla i 89 redova (kratke oznake `ephd` i `EP`, domene `ep.ba` i `ep-grupa.ba`, oznaka marke `EP·HelpDesk` sa srednjom
+  tačkom koju provjera ne hvata, ID-ovi `EP-10xx` u arhiviranom `referenca-dizajn/`). U radnom kodu su samo e-mail zaglavlje
+  `X-EPHD-Ticket` i sessionStorage ključ `ephd.entra.configuration`. Jedno otvoreno pitanje za vlasnika: ima li klijent mail
+  pravila na `X-EPHD-Ticket`. Implementacija tek nakon odobrenja; ne spaja se s A9.
+- **Korak 7 (2026-10-02, poslije 21:04 UTC):** korisnik je napisao „možeš kreniti i sa korakom 7“. Kapija od 24 h tada još nije bila
+  prošla, pa se počinje samo provjerama koje ništa ne mijenjaju (klijenti po korisniku, broj starih ključeva, `ACL LIST` bez
+  hash-eva). Brisanje (`UNLINK`, `ACL DELUSER`) tek uz izričitu potvrdu korisnika da se kapija preskače, ili poslije kapije.
