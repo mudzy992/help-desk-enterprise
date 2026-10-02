@@ -3825,7 +3825,12 @@
       "namePlaceholder": "View name",
       "makeDefault": "Set as default",
       "save": "Save current filters",
-      "delete": "Delete view"
+      "delete": "Delete view",
+      "manage": "Manage views…",
+      "manageHint": "A view stores the current list filters; the default one is applied when the list opens.",
+      "empty": "No saved views yet.",
+      "removeLabel": "Delete view: {{name}}",
+      "nameLabel": "View name"
     },
     "messageType": {
       "USER_REPLY": "User reply",

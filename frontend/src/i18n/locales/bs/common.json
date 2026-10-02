@@ -3847,7 +3847,12 @@
       "namePlaceholder": "Naziv pogleda",
       "makeDefault": "Postavi kao default",
       "save": "Sačuvaj trenutni filter",
-      "delete": "Obriši pogled"
+      "delete": "Obriši pogled",
+      "manage": "Upravljaj pogledima…",
+      "manageHint": "Pogled čuva trenutne filtere liste; zadani se primjenjuje pri otvaranju liste.",
+      "empty": "Još nema sačuvanih pogleda.",
+      "removeLabel": "Obriši pogled: {{name}}",
+      "nameLabel": "Naziv pogleda"
     },
     "messageType": {
       "USER_REPLY": "Odgovor korisnika",
