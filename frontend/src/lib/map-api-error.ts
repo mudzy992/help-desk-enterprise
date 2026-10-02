@@ -9,7 +9,8 @@ export type ApiErrorKey =
   | "errors.setupRequired"
   | "errors.readOnly"
   | "errors.server"
-  | "errors.network";
+  | "errors.network"
+  | "errors.payloadTooLarge";
 
 const statusKeys: Partial<Record<number, ApiErrorKey>> = {
   400: "errors.validation",
@@ -17,6 +18,7 @@ const statusKeys: Partial<Record<number, ApiErrorKey>> = {
   403: "errors.forbidden",
   404: "errors.notFound",
   409: "errors.conflict",
+  413: "errors.payloadTooLarge",
   422: "errors.validation",
   503: "errors.setupRequired",
 };

@@ -25,6 +25,8 @@ export function resolveExceptionHttpStatus(exception: unknown): number {
   if (isDatabaseSaturationError(exception)) {
     return HttpStatus.SERVICE_UNAVAILABLE;
   }
+  const bodyError = readBodyParserError(exception);
+  if (bodyError !== null) return bodyError.status;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
@@ -40,6 +42,10 @@ export function toStandardErrorResponse(
         details: {},
         requestId,
       };
+    }
+    const bodyError = readBodyParserError(exception);
+    if (bodyError !== null) {
+      return { code: bodyError.code, message: bodyError.message, details: {}, requestId };
     }
     return {
       code: 'INTERNAL_ERROR',
@@ -114,4 +120,19 @@ function buildDetails(
     details.messages = messages;
   }
   return details;
+}
+
+/**
+ * body-parser rejects requests before any controller runs and throws plain
+ * http-errors objects (`type`, `status`), not HttpExceptions. Without this
+ * they surfaced as 500 INTERNAL_ERROR (Paket 4.1: a large logo upload).
+ */
+function readBodyParserError(exception: unknown): { status: number; code: string; message: string } | null {
+  if (typeof exception !== 'object' || exception === null) return null;
+  const { type, status } = exception as { type?: unknown; status?: unknown };
+  if (typeof type !== 'string' || typeof status !== 'number') return null;
+  if (type === 'entity.too.large') return { status: HttpStatus.PAYLOAD_TOO_LARGE, code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large' };
+  if (type === 'entity.parse.failed') return { status: HttpStatus.BAD_REQUEST, code: 'INVALID_JSON', message: 'Request body is not valid JSON' };
+  if (status >= 400 && status < 500) return { status, code: 'INVALID_REQUEST_BODY', message: 'Request body was rejected' };
+  return null;
 }

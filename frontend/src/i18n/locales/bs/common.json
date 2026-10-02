@@ -1691,7 +1691,8 @@
     "readOnly": "Sistem je u režimu samo za čitanje.",
     "server": "Server je vratio grešku. Probajte ponovo.",
     "network": "Zahtjev nije uspio. Provjerite konekciju pa probajte ponovo.",
-    "requestId": "ID zahtjeva: {{requestId}}"
+    "requestId": "ID zahtjeva: {{requestId}}",
+    "payloadTooLarge": "Zahtjev je prevelik. Smanjite datoteku i pokušajte ponovo."
   },
   "dashboard": {
     "intro": "Operativni pregled tiketa kojima imate pristup.",

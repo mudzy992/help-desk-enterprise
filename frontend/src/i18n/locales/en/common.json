@@ -1680,7 +1680,8 @@
     "readOnly": "The system is in read-only mode.",
     "server": "The server returned an error. Please try again.",
     "network": "The request failed. Check your connection and try again.",
-    "requestId": "Request ID: {{requestId}}"
+    "requestId": "Request ID: {{requestId}}",
+    "payloadTooLarge": "The request is too large. Use a smaller file and try again."
   },
   "dashboard": {
     "intro": "Operational overview of the tickets you can access.",

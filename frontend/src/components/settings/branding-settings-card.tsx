@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
+import { mapApiError } from "@/lib/map-api-error";
+import { ApiError } from "@/services/api";
 import { readLogoFile, type LogoReadError } from "@/lib/branding/read-logo-file";
 import { brandingSettingKeys } from "@/lib/settings/is-featured-setting-key";
 import { readStringSetting } from "@/lib/settings/read-setting-entry";
@@ -82,8 +84,13 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: 
       setEdits({});
       setConfirming(false);
       toast({ tone: "success", title: t("settings.branding.saved") });
-    } catch {
-      // The registry hook shows the mapped API error; keep the draft for correction.
+    } catch (error) {
+      // Keep the draft for correction; the backend message names the failing rule.
+      toast({
+        tone: "danger",
+        title: t(mapApiError(error)),
+        description: error instanceof ApiError && error.status < 500 ? error.message : undefined,
+      });
     } finally {
       setSaving(false);
     }

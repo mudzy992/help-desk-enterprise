@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { toStandardErrorResponse } from './format-error-response';
+import { resolveExceptionHttpStatus, toStandardErrorResponse } from './format-error-response';
 
 describe('toStandardErrorResponse', () => {
   it('keeps existing code and message and adds requestId at the top level', () => {
@@ -40,5 +40,15 @@ describe('toStandardErrorResponse', () => {
       details: {},
       requestId: 'req-789',
     });
+  });
+
+  it('Paket 4.1: maps body-parser errors to 413/400 instead of 500', () => {
+    const tooLarge = Object.assign(new Error('request entity too large'), { type: 'entity.too.large', status: 413 });
+    expect(resolveExceptionHttpStatus(tooLarge)).toBe(413);
+    expect(toStandardErrorResponse(tooLarge, 'r1')).toMatchObject({ code: 'PAYLOAD_TOO_LARGE', requestId: 'r1' });
+    const badJson = Object.assign(new Error('Unexpected token'), { type: 'entity.parse.failed', status: 400 });
+    expect(resolveExceptionHttpStatus(badJson)).toBe(400);
+    expect(toStandardErrorResponse(badJson, 'r2').code).toBe('INVALID_JSON');
+    expect(resolveExceptionHttpStatus(new Error('boom'))).toBe(500);
   });
 });
