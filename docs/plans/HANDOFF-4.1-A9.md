@@ -67,6 +67,12 @@ Zadani direktorij u `ops/dr/*` je sada `/var/backups/servicedesk`. Provjeriti `c
 poziva `backup-uploads.sh` ili `export-config.sh`, treba mu dodati `BACKUP_DIR=/var/backups/ephelpdesk`
 (odnosno `OUT_DIR=…`) ili premjestiti direktorij.
 
+**2.10.2026. (poslije nalaza):** pripremljeni su `ops/dr/cron.example` (dvije dnevne linije za
+`/etc/cron.d/servicedesk-backups` + opciona kontrolna), `ops/dr/verify-backups.sh` (RPO 24 h + SHA-256, exit 1 na
+problem) i `ADMIN_PASSWORD_FILE` u `export-config.sh` (lozinka iz fajla 600, nikad u cron liniji). Uputstvo korak po
+korak: `ops/DR.md` §„Instalacija cron-a“. Instalacija na hostu je obaveza korisnika (nije dio A9); DR praznina iz
+Paketa 1.8 zatvara se kad `verify-backups.sh` na hostu vrati `OK`.
+
 ### Korak 7 — čišćenje (najranije 24 h nakon koraka 4, tek uz potvrdu korisnika)
 
 Vremenska kapija: korak 4 je završen prije 2026-10-02 19:21 UTC, kad je ovaj handoff pushan na master. Zato je 24 h sigurno prošlo
