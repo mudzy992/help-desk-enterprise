@@ -97,6 +97,13 @@ describe('TeamsActionsService', () => {
     expect(collaboration.createMessage).toHaveBeenNthCalledWith(2, 't1', { type: 'INTERNAL_NOTE', body: 'Interno' }, expect.anything());
   });
 
+  it('falls back to USER_REPLY for requesters', async () => {
+    const { run, collaboration } = setup();
+    collaboration.createMessage.mockRejectedValueOnce(new TicketsError('MESSAGE_TYPE_NOT_ALLOWED' as never));
+    expect(json(await run(teamsVerbs.replyTicket, { ticketId: 't1', text: 'Hvala, radi.' }))).toContain('Odgovor je poslan');
+    expect(collaboration.createMessage).toHaveBeenLastCalledWith('t1', { type: 'USER_REPLY', body: 'Hvala, radi.' }, expect.anything());
+  });
+
   it('approves the caller’s pending approval; rejection needs a reason', async () => {
     const { run, approvals } = setup();
     await run(teamsVerbs.approveTicket, { ticketId: 't1' });

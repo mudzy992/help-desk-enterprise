@@ -10,7 +10,7 @@ import { TicketsApprovalsService } from '../tickets/approvals/tickets-approvals.
 import { TicketsCollaborationService } from '../tickets/tickets-collaboration.service';
 import { TicketsService } from '../tickets/tickets.service';
 import type { TicketMutationContext } from '../tickets/tickets.types';
-import { teamsErrorTextKey } from './teams-action-errors';
+import { domainErrorCode, teamsErrorTextKey } from './teams-action-errors';
 import type { TeamsActivity } from './teams-activity';
 import { TeamsActivityRouter, type TeamsActionHandler } from './teams-activity-router.service';
 import { adaptiveCard, paragraph } from './teams-cards';
@@ -89,7 +89,11 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
           const text = str(input.data.text, 10_000)?.trim() ?? '';
           if (!ticketId) return notice(locale, 'errInvalid');
           if (text.length < textMin || text.length > textMax) return this.entityCard('ticket', ticketId, cardKind, input, 'errTextLength');
-          await this.collaboration.createMessage(ticketId, { type: verb === teamsVerbs.noteTicket ? 'INTERNAL_NOTE' : 'AGENT_REPLY', body: text }, context);
+          if (verb === teamsVerbs.noteTicket) {
+            await this.collaboration.createMessage(ticketId, { type: 'INTERNAL_NOTE', body: text }, context);
+          } else {
+            await this.reply(ticketId, text, context);
+          }
           await this.audit(user, input.activity, verb, 'ticket', ticketId);
           return this.entityCard('ticket', ticketId, cardKind, input, verb === teamsVerbs.noteTicket ? 'doneNoted' : 'doneReplied');
         }
@@ -130,6 +134,19 @@ export class TeamsActionsService implements TeamsActionHandler, OnModuleInit {
       if (ticketId) return this.entityCard('ticket', ticketId, cardKind, input, key);
       if (changeId) return this.entityCard('change', changeId, 'change.vote', input, key);
       return notice(locale, key);
+    }
+  }
+
+  /**
+   * Staff reply as AGENT_REPLY, requesters as USER_REPLY; the service decides
+   * by the caller's access (same fallback as inbound e-mail).
+   */
+  private async reply(ticketId: string, body: string, context: TicketMutationContext): Promise<void> {
+    try {
+      await this.collaboration.createMessage(ticketId, { type: 'AGENT_REPLY', body }, context);
+    } catch (error) {
+      if (domainErrorCode(error) !== 'MESSAGE_TYPE_NOT_ALLOWED') throw error;
+      await this.collaboration.createMessage(ticketId, { type: 'USER_REPLY', body }, context);
     }
   }
 
