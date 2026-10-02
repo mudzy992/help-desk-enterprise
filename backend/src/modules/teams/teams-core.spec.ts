@@ -2,7 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { sign } from 'jsonwebtoken';
 import { BotConnectorJwtValidator, botConnectorIssuer, botConnectorOpenIdMetadataUrl } from './bot-connector-jwt-validator';
 import { assertServiceUrl, BotConnectorTeamsTransport } from './bot-connector-teams-transport';
-import { BotTokenClient } from './bot-token-client';
+import { BotTokenClient, buildClientAssertion } from './bot-token-client';
 import { InMemoryTeamsSimulatorOutbox, SimulatorTeamsTransport } from './simulator-teams-transport';
 import { signSimulatorActivity, verifySimulatorActivity } from './simulator-signature';
 import { TeamsError } from './teams.error';
@@ -145,5 +145,14 @@ describe('BotConnectorJwtValidator', () => {
     await expectCode(validator.validate({ authorizationHeader: `Bearer ${token({}, 'k2')}`, appId, activityServiceUrl: serviceUrl }), 'UNAUTHORIZED_ACTIVITY');
     const unendorsed = new BotConnectorJwtValidator(fetchFor([{ ...jwk, endorsements: ['skype'] }]) as unknown as typeof fetch);
     await expectCode(unendorsed.validate({ authorizationHeader: `Bearer ${token()}`, appId, activityServiceUrl: serviceUrl }), 'UNAUTHORIZED_ACTIVITY');
+  });
+});
+
+describe('certificate client assertion', () => {
+  it('signs an RS256 assertion with x5t when a certificate is configured', async () => {
+    expect(() => buildClientAssertion('not a pem', appId, 'https://login.microsoftonline.com/x/oauth2/v2.0/token', 0)).toThrow(TeamsError);
+    const fetchMock = jest.fn(async () => jsonResponse({ access_token: 't', expires_in: 3600 }));
+    await expectCode(new BotTokenClient(fetchMock as never).getToken({ ...credentials, appSecret: '', certificatePem: 'bad' }), 'NOT_CONFIGURED');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

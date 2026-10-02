@@ -38,6 +38,7 @@ import { AnnouncementsModule } from './modules/announcements/announcements.modul
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProblemsModule } from './modules/problems/problems.module';
 import { ChangesModule } from './modules/changes/changes.module';
+import { TeamsModule } from './modules/teams/teams.module';
 import { EdgeExtensionModule } from './modules/edge-extension/edge-extension.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 
@@ -85,6 +86,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     AssetsModule,
     ProblemsModule,
     ChangesModule,
+    TeamsModule,
     EdgeExtensionModule,
     WebsocketModule,
   ],

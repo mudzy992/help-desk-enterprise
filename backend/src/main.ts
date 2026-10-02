@@ -12,7 +12,11 @@ import { startEventLoopLagMonitor } from './modules/observability/metrics/event-
 import { createHttpMetricsMiddleware, HttpMetricsService } from './modules/ops-health/http-metrics.service';
 
 async function bootstrap(): Promise<void> {
-  const application = await NestFactory.create(AppModule, { bufferLogs: true });
+  const application = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    // Paket 3.1: the Teams simulator HMAC is computed over the exact request bytes.
+    rawBody: true,
+  });
   application.enableShutdownHooks();
   const requestIdMiddleware = new RequestIdMiddleware();
   application.use(

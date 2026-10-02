@@ -89,3 +89,23 @@ model TeamsInboundActivity {
 
   @@index([receivedAt])
 }
+
+enum TeamsSimulatorDirection {
+  INBOUND
+  OUTBOUND
+}
+
+/// Simulator mode only: every activity exchanged with the simulated Teams
+/// client, shown in Administration → Teams → Simulator (kept 7 days).
+model TeamsSimulatorMessage {
+  id             String                  @id @default(cuid())
+  conversationId String                  @db.VarChar(512)
+  activityId     String                  @unique @db.VarChar(512)
+  direction      TeamsSimulatorDirection
+  payload        Json
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([conversationId, createdAt])
+  @@index([createdAt])
+}
