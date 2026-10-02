@@ -395,6 +395,22 @@ export function LoginPage() {
               {t("privacy.notice.loginLink")}
             </Link>
           </p>
+          {branding.supportEmail || branding.supportUrl ? (
+            <p className="mt-2 text-center text-[11.5px] text-muted-foreground" data-testid="login-support-contact">
+              {t("login.supportHelp")}{" "}
+              {branding.supportEmail ? (
+                <a href={`mailto:${branding.supportEmail}`} className="text-link underline-offset-4 hover:underline">
+                  {branding.supportEmail}
+                </a>
+              ) : null}
+              {branding.supportEmail && branding.supportUrl ? " · " : null}
+              {branding.supportUrl ? (
+                <a href={branding.supportUrl} target="_blank" rel="noreferrer noopener" className="text-link underline-offset-4 hover:underline">
+                  {branding.supportUrl.replace(/^https:\/\//, "")}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
         </section>
       </main>
     </div>

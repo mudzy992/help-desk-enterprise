@@ -3,6 +3,7 @@ import { emailChannelSettingKeys } from "@/services/settings-api";
 const emailFeaturedKeys = new Set<string>(Object.values(emailChannelSettingKeys));
 
 const featuredPrefixes = [
+  "public.branding.",
   "private.auth.",
   "private.smtp.",
   "private.addons.",
@@ -24,6 +25,16 @@ export function isFeaturedSettingKey(key: string): boolean {
 export function addonRegistryKey(addonKey: string): string {
   return `private.addons.${addonKey}`;
 }
+
+// Paket 4.1 (§3a): edited on the Branding card, not in the generic registry.
+export const brandingSettingKeys = {
+  appName: "public.branding.appName",
+  tagline: "public.branding.tagline",
+  organizationName: "public.branding.organizationName",
+  logoDataUrl: "public.branding.logoDataUrl",
+  supportEmail: "public.branding.supportEmail",
+  supportUrl: "public.branding.supportUrl",
+} as const;
 
 export const authSettingKeys = {
   mode: "private.auth.mode",

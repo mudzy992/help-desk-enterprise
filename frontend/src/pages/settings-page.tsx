@@ -1,4 +1,5 @@
 import { Settings } from "lucide-react";
+import { BrandingSettingsCard } from "@/components/settings/branding-settings-card";
 import { useTranslation } from "react-i18next";
 import { AddonsSettingsPanel } from "@/components/settings/addons-settings-panel";
 import { AuthProviderSettingsCard } from "@/components/settings/auth-provider-settings-card";
@@ -58,6 +59,12 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
         <>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div className="space-y-4">
+              <BrandingSettingsCard
+                entries={registry.entries}
+                canWrite={canWrite}
+                pendingKey={registry.pendingKey}
+                onSave={registry.save}
+              />
               <AuthProviderSettingsCard
                 entries={registry.entries}
                 canWrite={canWrite}
