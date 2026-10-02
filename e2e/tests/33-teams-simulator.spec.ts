@@ -218,7 +218,7 @@ test.describe('33 teams simulator', () => {
         // Form button reads „Dalje“ with the intercept on; a fresh service has no articles → created directly.
         await say(userId, 'novi tiket');
         await expect.poll(() => botTranscript(admin, userId), { timeout: 15_000 }).toMatch(/"title":"(Dalje|Next)"/);
-        const service = await createOfferedService(admin, { label: 'Teams T4b' });
+        const service = await createOfferedService(admin, { label: 'teams-t4b' });
         const title = `E2E Teams T4b ${stamp}`;
         const created = await simulate(admin, {
           kind: 'action',
