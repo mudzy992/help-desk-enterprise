@@ -72,6 +72,20 @@ export const accountSecuritySettings: readonly SettingDefinition[] = [
     defaultValue: true,
   }),
   definePrivateSetting({
+    key: settingKeys.privateAuthPasswordOrganisationWordsCsv,
+    categoryId: category,
+    valueType: 'string',
+    description:
+      'Comma-separated organisation words refused in passwords; the application name and internal e-mail domains are always added',
+    isRequired: false,
+    defaultValue: '',
+    assertValue: (value) => {
+      if (typeof value !== 'string' || value.length > 500) {
+        throw new SettingsError('Organisation words: text of at most 500 characters');
+      }
+    },
+  }),
+  definePrivateSetting({
     key: settingKeys.privateAuthPasswordHistoryCount,
     categoryId: category,
     valueType: 'number',

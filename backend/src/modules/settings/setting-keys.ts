@@ -52,6 +52,7 @@ export const settingKeys = {
   privateAuthMfaIssuerName: 'private.auth.mfa.issuerName',
   privateAuthPasswordMinLength: 'private.auth.password.minLength',
   privateAuthPasswordBlocklistEnabled: 'private.auth.password.blocklist.enabled',
+  privateAuthPasswordOrganisationWordsCsv: 'private.auth.password.organisationWordsCsv',
   privateAuthPasswordHistoryCount: 'private.auth.password.historyCount',
   privateAuthPasswordMaxAgeDays: 'private.auth.password.maxAgeDays',
   privateAuthPasswordSuperAdminMaxAgeDays: 'private.auth.password.superAdminMaxAgeDays',

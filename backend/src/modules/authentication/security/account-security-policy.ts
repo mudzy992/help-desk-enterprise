@@ -10,6 +10,7 @@ export type AccountSecurityPolicy = {
   readonly passwordMinLength: number;
   readonly passwordMaxLength: number;
   readonly passwordBlocklistEnabled: boolean;
+  readonly passwordOrganisationWords: readonly string[];
   readonly passwordHistoryCount: number;
   readonly passwordMaxAgeDays: number;
   readonly superAdminPasswordMaxAgeDays: number;
@@ -24,6 +25,7 @@ export const defaultAccountSecurityPolicy: AccountSecurityPolicy = {
   passwordMinLength: r.passwordMinLength.default,
   passwordMaxLength: localPasswordConstants.maximumLength,
   passwordBlocklistEnabled: true,
+  passwordOrganisationWords: [],
   passwordHistoryCount: r.passwordHistoryCount.default,
   passwordMaxAgeDays: r.passwordMaxAgeDays.default,
   superAdminPasswordMaxAgeDays: r.superAdminPasswordMaxAgeDays.default,

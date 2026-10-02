@@ -9,6 +9,8 @@ export type PasswordPolicy = {
   readonly minLength: number;
   readonly maxLength: number;
   readonly blocklistEnabled: boolean;
+  /** Paket 4.1: client words (setting + app name + internal domains), lower-case. */
+  readonly organisationWords?: readonly string[];
 };
 
 export type PasswordViolation =
@@ -20,7 +22,32 @@ export type PasswordViolation =
   | 'CONTAINS_ORGANISATION_WORD'
   | 'CONTAINS_EMAIL_NAME';
 
-const ORGANISATION_WORDS = ['epbih', 'elektroprivreda', 'helpdesk', 'ephelpdesk', 'lozinka', 'password'];
+/** Product-neutral words refused everywhere; client words come from settings (Paket 4.1). */
+const GENERIC_WORDS = ['helpdesk', 'servicedesk', 'lozinka', 'password'];
+const minimumOrganisationWordLength = 4;
+
+/**
+ * Paket 4.1 (§4): the client's own words - the CSV setting, the product name
+ * and the internal e-mail domains (label before the TLD, e.g. example.com →
+ * "example"). Compact lower-case, ≥4 characters, de-duplicated.
+ */
+export function buildOrganisationWords(input: {
+  readonly wordsCsv: string;
+  readonly appName: string;
+  readonly internalDomains: readonly string[];
+}): string[] {
+  const compact = (value: string) =>
+    value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const words = [
+    ...input.wordsCsv.split(','),
+    input.appName,
+    ...input.internalDomains.map((domain) => {
+      const labels = domain.trim().toLowerCase().split('.').filter(Boolean);
+      return labels.length >= 2 ? labels[labels.length - 2] : (labels[0] ?? '');
+    }),
+  ].map(compact);
+  return [...new Set(words.filter((word) => word.length >= minimumOrganisationWordLength))];
+}
 
 let common: Set<string> | null = null;
 function commonPasswords(): Set<string> {
@@ -48,7 +75,8 @@ export function checkPassword(password: string, email: string, policy: PasswordP
     const set = commonPasswords();
     if (set.has(lower) || set.has(stem(password))) violations.push('COMMON_PASSWORD');
     const compact = lower.replace(/[^a-z0-9]/g, '');
-    if (ORGANISATION_WORDS.some((word) => compact.includes(word))) violations.push('CONTAINS_ORGANISATION_WORD');
+    const organisationWords = [...GENERIC_WORDS, ...(policy.organisationWords ?? [])];
+    if (organisationWords.some((word) => compact.includes(word))) violations.push('CONTAINS_ORGANISATION_WORD');
     const localPart = normalizedEmail.split('@')[0] ?? '';
     const nameParts = localPart.split(/[._-]+/).filter((part) => part.length >= 4);
     if (nameParts.some((part) => compact.includes(part))) violations.push('CONTAINS_EMAIL_NAME');

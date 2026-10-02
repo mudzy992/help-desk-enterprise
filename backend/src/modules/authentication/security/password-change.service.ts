@@ -27,6 +27,7 @@ export class PasswordChangeService {
       minLength: policy.passwordMinLength,
       maxLength: policy.passwordMaxLength,
       blocklistEnabled: policy.passwordBlocklistEnabled,
+      organisationWords: policy.passwordOrganisationWords,
     });
     if (violations.length > 0) {
       throw new AccountSecurityError('INVALID_PASSWORD', violations);

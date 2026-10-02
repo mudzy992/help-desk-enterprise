@@ -4,7 +4,7 @@ import { buildOtpauthUri, hotp, totpCode, totpStep, verifyTotp } from './totp';
 import { decryptMfaSecret, encryptMfaSecret, MfaEncryptionKeyMissingError, readMfaEncryptionKey } from './mfa-secret-cipher';
 import { generateRecoveryCodes, hashRecoveryCode, looksLikeRecoveryCode } from './recovery-codes';
 import { truncateIpAddress } from './network-prefix';
-import { checkPassword } from './password-policy';
+import { buildOrganisationWords, checkPassword } from './password-policy';
 import { defaultAccountSecurityPolicy as policy } from './account-security-policy';
 import { isPasswordExpired, passwordExpiresAt, resolveMfaRequirement } from './account-security-rules';
 
@@ -108,21 +108,26 @@ describe('password policy', () => {
   const rules = { minLength: 12, maxLength: 128, blocklistEnabled: true };
 
   it('accepts a long passphrase', () => {
-    expect(checkPassword('correct-horse-battery', 'amar.hodzic@epbih.ba', rules)).toEqual([]);
+    expect(checkPassword('correct-horse-battery', 'amar.hodzic@example.com', rules)).toEqual([]);
   });
 
   it('refuses common passwords, also with a year and symbol appended', () => {
-    expect(checkPassword('password1234', 'x@y.ba', rules)).toContain('COMMON_PASSWORD');
-    expect(checkPassword('Sunshine2026!', 'x@y.ba', rules)).toContain('COMMON_PASSWORD');
+    expect(checkPassword('password1234', 'x@example.com', rules)).toContain('COMMON_PASSWORD');
+    expect(checkPassword('Sunshine2026!', 'x@example.com', rules)).toContain('COMMON_PASSWORD');
   });
 
   it('refuses organisation words and parts of the own e-mail', () => {
-    expect(checkPassword('Elektroprivreda#77', 'x@y.ba', rules)).toContain('CONTAINS_ORGANISATION_WORD');
-    expect(checkPassword('hodzic-plavi-most', 'amar.hodzic@epbih.ba', rules)).toContain('CONTAINS_EMAIL_NAME');
+    const organisationWords = buildOrganisationWords({ wordsCsv: 'Primjer, ab', appName: 'Klijent Desk', internalDomains: ['example.com', 'mail.klijent.ba'] });
+    expect(organisationWords).toEqual(['primjer', 'klijentdesk', 'example', 'klijent']);
+    expect(checkPassword('Primjer#2026-plavo', 'x@example.com', { ...rules, organisationWords })).toContain('CONTAINS_ORGANISATION_WORD');
+    expect(checkPassword('example-plavi-most', 'x@example.com', { ...rules, organisationWords })).toContain('CONTAINS_ORGANISATION_WORD');
+    expect(checkPassword('Servicedesk#2026x', 'x@example.com', rules)).toContain('CONTAINS_ORGANISATION_WORD');
+    expect(checkPassword('Primjer#2026-plavo', 'x@example.com', rules)).not.toContain('CONTAINS_ORGANISATION_WORD');
+    expect(checkPassword('hodzic-plavi-most', 'amar.hodzic@example.com', rules)).toContain('CONTAINS_EMAIL_NAME');
   });
 
   it('checks length independent of the blocklist switch', () => {
-    expect(checkPassword('short', 'x@y.ba', { ...rules, blocklistEnabled: false })).toEqual(['TOO_SHORT']);
+    expect(checkPassword('short', 'x@example.com', { ...rules, blocklistEnabled: false })).toEqual(['TOO_SHORT']);
   });
 });
 

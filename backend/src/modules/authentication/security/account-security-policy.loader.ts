@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SettingsService } from '../../settings/settings.service';
 import { settingKeys } from '../../settings/setting-keys';
 import { localPasswordConstants } from '../is-valid-local-password';
+import { buildOrganisationWords } from './password-policy';
 
 export { type AccountSecurityPolicy, defaultAccountSecurityPolicy } from './account-security-policy';
 import { type AccountSecurityPolicy, defaultAccountSecurityPolicy } from './account-security-policy';
@@ -40,6 +41,13 @@ export class AccountSecurityPolicyLoader {
     ]);
     // Paket 4.1: an empty issuer follows the product name (public.branding.appName).
     const issuer = mfaIssuerName.trim() || (await get(settingKeys.publicBrandingAppName, d.mfaIssuerName, isText)).trim().replaceAll(':', ' ').slice(0, 40);
+    const isString = (value: unknown): value is string => typeof value === 'string';
+    const [wordsCsv, appName, domainsCsv] = await Promise.all([
+      get(settingKeys.privateAuthPasswordOrganisationWordsCsv, '', isString),
+      get(settingKeys.publicBrandingAppName, '', isString),
+      get(settingKeys.privateNotificationsEmailInternalDomainsCsv, '', isString),
+    ]);
+    const passwordOrganisationWords = buildOrganisationWords({ wordsCsv, appName, internalDomains: domainsCsv.split(',') });
     return {
       mfaRequiredForAdmins,
       mfaAllowOptional,
@@ -47,6 +55,7 @@ export class AccountSecurityPolicyLoader {
       passwordMinLength: Math.max(localPasswordConstants.minimumLength, passwordMinLength),
       passwordMaxLength: d.passwordMaxLength,
       passwordBlocklistEnabled,
+      passwordOrganisationWords,
       passwordHistoryCount,
       passwordMaxAgeDays,
       superAdminPasswordMaxAgeDays,
