@@ -65,11 +65,10 @@ export function readReplyTokenVerificationSecrets(environment: NodeJS.Dict<strin
   const previous = readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS)?.bytes ?? null;
   const secrets = current === null ? [] : [current];
   if (previous !== null && (current === null || !previous.equals(current))) secrets.push(previous);
-  // Paket 4.1 (§5): replies to e-mails signed with the v1-derived secret (only when no explicit secret is set).
-  if (readExplicitSecret(environment.INBOUND_EMAIL_TOKEN_SECRET) === null) {
-    const legacy = deriveReplyTokenSecret(environment, legacyKdfLabels.inboundReplyTokenV1);
-    if (legacy !== null && !secrets.some((secret) => secret.equals(legacy))) secrets.push(legacy);
-  }
+  // Paket 4.1 (§5): replies to e-mails signed with the v1-derived secret. Always
+  // tried, so pinning the v2 value later does not orphan older replies.
+  const legacy = deriveReplyTokenSecret(environment, legacyKdfLabels.inboundReplyTokenV1);
+  if (legacy !== null && !secrets.some((secret) => secret.equals(legacy))) secrets.push(legacy);
   return secrets;
 }
 

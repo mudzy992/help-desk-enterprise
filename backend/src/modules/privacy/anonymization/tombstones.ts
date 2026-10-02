@@ -34,10 +34,9 @@ export function readTombstoneMatchKeys(env: NodeJS.ProcessEnv = process.env): Bu
   const keys = current === null ? [] : [current];
   if (previous !== null && (current === null || !previous.equals(current))) keys.push(previous);
   // Paket 4.1 (§5): tombstones written with the v1-derived key can never be re-keyed (one-way HMACs).
-  if (readExplicitSecret(env.PRIVACY_TOMBSTONE_KEY) === null) {
-    const legacy = deriveTombstoneKey(env, legacyKdfLabels.privacyTombstoneV1);
-    if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
-  }
+  // Always tried, so pinning the v2 value later does not orphan older tombstones.
+  const legacy = deriveTombstoneKey(env, legacyKdfLabels.privacyTombstoneV1);
+  if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
   return keys;
 }
 

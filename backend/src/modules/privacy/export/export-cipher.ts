@@ -49,10 +49,9 @@ export function deriveExportMasterKey(env: NodeJS.ProcessEnv = process.env, labe
 export function readExportDecryptionKeys(env: NodeJS.ProcessEnv = process.env): Buffer[] {
   const current = readExportMasterKey(env);
   const keys = current === null ? [] : [current];
-  if (readExplicitSecret(env.PRIVACY_EXPORT_KEY) === null) {
-    const legacy = deriveExportMasterKey(env, legacyKdfLabels.privacyExportV1);
-    if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
-  }
+  // Always tried, so pinning the v2 value later does not orphan older exports.
+  const legacy = deriveExportMasterKey(env, legacyKdfLabels.privacyExportV1);
+  if (legacy !== null && !keys.some((key) => key.equals(legacy))) keys.push(legacy);
   return keys;
 }
 
