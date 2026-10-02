@@ -1,9 +1,9 @@
 /**
  * Tab titles (2.8 §3.1, WCAG 2.4.2).
  *
- * The product name is read once from the static <title> in index.html (text
- * before " — "), so it stays configurable at build time and is never
- * duplicated in code.
+ * The product name starts as the static <title> in index.html (text before
+ * " — ") and is replaced by the client's configured name once branding loads
+ * (Paket 4.1); the current tab title is rewritten in place.
  */
 const SEPARATOR = " · ";
 
@@ -20,6 +20,17 @@ export function getProductName(): string {
     productName = resolveProductName(typeof document === "undefined" ? "" : document.title);
   }
   return productName;
+}
+
+export function setProductName(name: string): void {
+  const next = name.trim();
+  if (next.length === 0) return;
+  const previous = getProductName();
+  productName = next;
+  if (typeof document === "undefined" || previous === next) return;
+  const suffix = `${SEPARATOR}${previous}`;
+  if (document.title === previous || document.title.startsWith(`${previous} — `)) document.title = next;
+  else if (document.title.endsWith(suffix)) document.title = `${document.title.slice(0, -suffix.length)}${SEPARATOR}${next}`;
 }
 
 export function formatDocumentTitle(parts: readonly (string | null | undefined)[], product: string): string {

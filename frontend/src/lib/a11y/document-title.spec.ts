@@ -3,7 +3,7 @@ import { formatDocumentTitle, resolveProductName } from "./document-title";
 
 describe("document title", () => {
   it("takes the product name from the static title before the dash", () => {
-    expect(resolveProductName("EP-HelpDesk — Enterprise servisni centar")).toBe("EP-HelpDesk");
+    expect(resolveProductName("Service Desk — Enterprise servisni centar")).toBe("Service Desk");
     expect(resolveProductName("Desk")).toBe("Desk");
   });
 

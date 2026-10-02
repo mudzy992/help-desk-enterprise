@@ -3,13 +3,13 @@ import { VisualQaChartsBoard } from "@/components/visual-qa/visual-qa-charts-boa
 import { VisualQaFormsBoard } from "@/components/visual-qa/visual-qa-forms-board";
 import { VisualQaSurfacesBoard } from "@/components/visual-qa/visual-qa-surfaces-board";
 import { VisualQaThemeBoard } from "@/components/visual-qa/visual-qa-theme-board";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 
 export function VisualQaPrimitivesPage() {
   return (
     <section className="flex flex-col gap-8">
       <PageHeader
-        crumbs={["EP-HelpDesk", "Visual QA"]}
+        crumbs={[brandCrumb, "Visual QA"]}
         title="Primitive-i"
         subtitle="Pulse identitet: tokeni, Button, Badge, Card, Field, Progress, StatCard, Tabs, EmptyState, Segmented, Chip, Modal, ConfirmDialog, Toast i svi grafikoni."
       />

@@ -1,4 +1,8 @@
 import type { ReactNode } from "react";
+import { useBranding } from "@/lib/branding/branding-store";
+
+/** Paket 4.1: placeholder crumb replaced by the configured product name. */
+export const brandCrumb = "\u0000brand";
 
 interface PageHeaderProperties {
   readonly crumbs: readonly string[];
@@ -13,6 +17,7 @@ export function PageHeader({
   subtitle,
   actions,
 }: PageHeaderProperties) {
+  const { appName } = useBranding();
   return (
     <div className="mb-5">
       {crumbs.length > 0 ? (
@@ -21,7 +26,7 @@ export function PageHeader({
             <span key={`${crumb}-${index}`} className="flex items-center gap-1.5">
               {index > 0 ? <span className="text-muted-foreground">/</span> : null}
               <span className={index === crumbs.length - 1 ? "text-muted-foreground" : ""}>
-                {crumb}
+                {crumb === brandCrumb ? appName : crumb}
               </span>
             </span>
           ))}

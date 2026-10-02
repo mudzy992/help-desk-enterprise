@@ -11,7 +11,7 @@ import { SystemSettingsCard } from "@/components/settings/system-settings-card";
 import { UnroutedQueueSettingsCard } from "@/components/settings/unrouted-queue-settings-card";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useSettingsRegistry } from "@/lib/settings/use-settings-registry";
 import { permissionKeys, roleKeys } from "@/lib/session/permission-keys";
@@ -36,7 +36,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
     <div className="space-y-4">
       {embedded ? null : (
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.settings")]}
+          crumbs={[brandCrumb, t("navigation.settings")]}
           title={t("navigation.settings")}
           subtitle={t("settings.intro")}
         />

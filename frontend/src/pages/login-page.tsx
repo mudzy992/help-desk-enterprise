@@ -7,6 +7,7 @@ import { MfaCodeForm } from "@/components/auth/mfa-code-form";
 import { MfaEnrollment } from "@/components/auth/mfa-enrollment";
 import { RecoveryCodesPanel } from "@/components/auth/recovery-codes-panel";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { useBranding } from "@/lib/branding/branding-store";
 import { Button } from "@/components/ui/button";
 import {
   controlClassName,
@@ -69,6 +70,7 @@ const POINTS = [
 
 export function LoginPage() {
   const { t } = useTranslation();
+  const branding = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
   const { session, signIn, completePasswordChange, completeMfa, confirmMfaEnrollment } = useSession();
@@ -175,7 +177,7 @@ export function LoginPage() {
         <div className="relative flex items-center gap-2.5">
           <BrandMark size={36} className="shadow-none" />
           <p className="text-[15px] font-semibold tracking-[-0.02em] text-primary-foreground">
-            EP<span className="text-primary-foreground/60">·</span>HelpDesk
+            {branding.appName}
           </p>
         </div>
 
@@ -213,10 +215,10 @@ export function LoginPage() {
             <BrandMark />
             <div className="leading-tight">
               <p className="text-[14px] font-semibold tracking-[-0.02em] text-foreground">
-                EP<span className="text-link">·</span>HelpDesk
+                {branding.appName}
               </p>
               <p className="text-[10.5px] text-muted-foreground">
-                {t("login.subtitle")}
+                {branding.tagline || t("login.subtitle")}
               </p>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { Progress } from "@/components/ui/progress";
 import { Segmented } from "@/components/ui/segmented";
 import { StatCard } from "@/components/ui/stat-card";
@@ -259,7 +259,7 @@ export function AppearancePage() {
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("theme.label")]}
+        crumbs={[brandCrumb, t("theme.label")]}
         title={t("appearance.title")}
         subtitle={t("appearance.subtitle")}
         actions={

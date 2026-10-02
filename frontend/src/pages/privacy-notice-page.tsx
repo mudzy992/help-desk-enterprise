@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { setDocumentTitle } from "@/lib/a11y/document-title";
 import { BrandMark } from "@/components/layout/brand-mark";
+import { useBranding } from "@/lib/branding/branding-store";
 import { MarkdownView } from "@/components/privacy/markdown-view";
 import { Button } from "@/components/ui/button";
 import { hintClassName } from "@/components/ui/control";
@@ -20,6 +21,7 @@ import { readStoredSession } from "@/services/session-store";
  */
 export function PrivacyNoticePage() {
   const { t } = useTranslation();
+  const { appName } = useBranding();
   const { locale, changeLocale } = useLocale();
   const [notice, setNotice] = useState<PrivacyNotice | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "disabled" | "failed">("loading");
@@ -53,7 +55,7 @@ export function PrivacyNoticePage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-5 py-3">
           <Link to={signedIn ? "/" : "/login"} className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
             <BrandMark size={26} className="shadow-none" />
-            EP·HelpDesk
+            {appName}
           </Link>
           <div className="flex items-center gap-2">
             <Segmented

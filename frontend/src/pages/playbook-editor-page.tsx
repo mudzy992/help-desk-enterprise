@@ -10,7 +10,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { hintClassName } from "@/components/ui/control";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
 import { useAdminConfigLiveRefresh } from "@/lib/realtime/use-admin-config-live-refresh";
@@ -176,7 +176,7 @@ export function PlaybookEditorPage() {
 
   return (
     <section ref={containerRef} className="space-y-4">
-      <PageHeader crumbs={["EP-HelpDesk", t("templates.title"), title]} title={title} subtitle={t("templates.playbook.subtitle")} />
+      <PageHeader crumbs={[brandCrumb, t("templates.title"), title]} title={title} subtitle={t("templates.playbook.subtitle")} />
       <Link to="/admin/templates?tab=playbooks" className="inline-flex items-center gap-1.5 text-[12.5px] text-link hover:underline">
         <ArrowLeft size={13} /> {t("templates.actions.back")}
       </Link>

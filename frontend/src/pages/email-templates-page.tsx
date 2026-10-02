@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Warning } from "@/components/settings/email-templates-card";
 import { EmailTemplatesEditor } from "@/components/settings/email-templates-editor";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
@@ -38,7 +38,7 @@ export function EmailTemplatesPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.settings"), t("settings.emailTemplates.title")]}
+        crumbs={[brandCrumb, t("navigation.settings"), t("settings.emailTemplates.title")]}
         title={t("settings.emailTemplates.editorTitle")}
         subtitle={t("settings.emailTemplates.editorDescription")}
       />

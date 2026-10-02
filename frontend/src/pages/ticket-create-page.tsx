@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { CreateTicketForm } from "@/components/tickets/create-ticket-form";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 
 export function TicketCreatePage() {
   const { t } = useTranslation();
@@ -10,7 +10,7 @@ export function TicketCreatePage() {
   return (
     <section className="mx-auto max-w-[1060px]">
       <PageHeader
-        crumbs={["EP-HelpDesk", ticketsTitle, createHeading]}
+        crumbs={[brandCrumb, ticketsTitle, createHeading]}
         title={createHeading}
         subtitle={createSubtitle}
       />

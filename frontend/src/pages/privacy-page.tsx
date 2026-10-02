@@ -7,7 +7,7 @@ import { PrivacyLegalHoldsPanel } from "@/components/privacy/privacy-legal-holds
 import { PrivacyRecordPanel } from "@/components/privacy/privacy-record-panel";
 import { PrivacyRequestsPanel } from "@/components/privacy/privacy-requests-panel";
 import { PrivacyRetentionPanel } from "@/components/privacy/privacy-retention-panel";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { readPrivacyTab, visiblePrivacyTabs, type PrivacyTab } from "@/lib/privacy/privacy-view";
 import { canOpenAdminArea } from "@/lib/session/route-access";
@@ -55,7 +55,7 @@ export function PrivacyPage() {
     <section data-testid="privacy-page">
       <div className="print:hidden">
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.sections.administration"), t("navigation.privacy")]}
+          crumbs={[brandCrumb, t("navigation.sections.administration"), t("navigation.privacy")]}
           title={t("privacy.title")}
           subtitle={t("privacy.intro")}
         />

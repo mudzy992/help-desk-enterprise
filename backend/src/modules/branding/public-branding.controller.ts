@@ -10,12 +10,12 @@ type HeaderResponse = { setHeader(name: string, value: string): void };
 /**
  * Paket 4.1 (§3a): the login page, favicon and document title need branding
  * before anyone signs in, so this endpoint is public. It exposes only the
- * public.branding.* values, is cached per process for 60 s and is rate
- * limited per IP (fails open - the cache already bounds database load).
+ * public.branding.* values (read through the settings snapshot cache, so a
+ * saved change is visible at once), lets browsers cache it for 60 s and is
+ * rate limited per IP (fails open - the snapshot bounds database load).
  */
 @Controller('branding')
 export class PublicBrandingController {
-  private cached: { readonly at: number; readonly body: Branding } | null = null;
   private readonly memoryHits = new Map<string, { count: number; resetAt: number }>();
 
   constructor(
@@ -26,12 +26,9 @@ export class PublicBrandingController {
   @Get()
   async get(@Req() request: PublicRequest, @Res({ passthrough: true }) response: HeaderResponse): Promise<Branding> {
     await this.limit(request.ip ?? 'unknown');
-    const now = Date.now();
-    if (this.cached === null || now - this.cached.at >= brandingLimits.publicCacheSeconds * 1000) {
-      this.cached = { at: now, body: await this.branding.load() };
-    }
+    const body = await this.branding.load();
     response.setHeader('Cache-Control', `public, max-age=${brandingLimits.publicCacheSeconds}`);
-    return this.cached.body;
+    return body;
   }
 
   private async limit(ip: string): Promise<void> {

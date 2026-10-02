@@ -935,7 +935,7 @@
       "subtitle": "Odlazne notifikacije preko postojećeg SMTP/O365 setupa, samo internim korisnicima.",
       "loading": "Učitavanje email postavki…",
       "smtpRequired": "SMTP i email dodatak moraju biti uključeni (install wizard ili SMTP settings) prije isporuke.",
-      "deliveryHint": "SMTP i email dodatak su uključeni. Kanal šalje mail samo internim @epbih.ba adresama dok je internal-only uključen.",
+      "deliveryHint": "SMTP i email dodatak su uključeni. Dok je internal-only uključen, kanal šalje mail samo na interne domene organizacije.",
       "channelEnabled": "Email notifikacije",
       "channelEnabledHint": "Uključuje email kanal uz postojeći in-app inbox. Ne šalje se ako su SMTP ili email dodatak ugašeni.",
       "templatesEnabled": "Email predlošci",
@@ -1140,7 +1140,7 @@
         "private.notifications.email.allowedExternalEmailsCsv": "Pojedinačne vanjske ADRESE kojima se šalje dok je dostava ograničena, npr. ime@gmail.com. Samo te adrese, ne cijela domena.",
         "private.notifications.email.enabled": "Uključi email obavještenja (i dalje treba SMTP i email dodatak).",
         "private.notifications.email.includeMessageExcerpt": "Uključuje isječak javne poruke u e-mail o novoj poruci (nikad za povjerljive tikete).",
-        "private.notifications.email.internalDomainsCsv": "Interne e-mail domene organizacije, odvojene zarezom (npr. epbih.ba). Uvijek dozvoljene; koriste se i za provjeru pošiljaoca dolaznog e-maila.",
+        "private.notifications.email.internalDomainsCsv": "Interne e-mail domene organizacije, odvojene zarezom (npr. example.com). Uvijek dozvoljene; koriste se i za provjeru pošiljaoca dolaznog e-maila.",
         "private.notifications.email.internalOnly": "Uključeno: e-mail ide samo na interne domene i na dodatne domene/adrese ispod. Isključeno: na svaku ispravnu adresu.",
         "private.notifications.email.replyMode": "no_reply: odgovori idu kroz aplikaciju; shared_mailbox: Reply-To je zajednički sandučić.",
         "private.notifications.email.replyToAddress": "Adresa zajedničkog sandučića za Reply-To (obavezna za shared_mailbox).",
@@ -1289,7 +1289,7 @@
         "private.workflow.requiredFields.byServiceJson": "JSON mapa service id → dodatni obavezni ključevi polja (osjetljivo).",
         "private.workflow.requiredFields.enabled": "Forsiraj obavezna polja prije rješavanja ili zatvaranja tiketa.",
         "private.workflow.requiredFields.globalRequiredOnResolveCsv": "Globalna polja obavezna prije rješavanja ili zatvaranja.",
-        "public.branding.appName": "Naziv aplikacije prikazan u zaglavlju.",
+        "public.branding.appName": "Naziv proizvoda u zaglavlju, kartici preglednika, e-mailovima, Teamsu i aplikaciji za autentifikaciju.",
         "public.maintenance.affectedServicesCsv": "Nazivi ili id usluga pogođeni kad je opseg održavanja per_service ili both.",
         "public.maintenance.enabled": "Prikaži neblokirajući banner održavanja krajnjim korisnicima.",
         "public.maintenance.fromAt": "Početak prozora održavanja (ISO datum/vrijeme).",
@@ -1299,7 +1299,7 @@
         "public.maintenance.toAt": "Kraj prozora održavanja (ISO datum/vrijeme).",
         "private.auth.mfa.requiredForAdmins": "Obavezna potvrda u dva koraka (TOTP) za ADMIN naloge s lokalnom lozinkom. SUPER_ADMIN je uvijek obavezan.",
         "private.auth.mfa.allowOptional": "Ostali korisnici s lokalnom lozinkom mogu sami uključiti potvrdu u dva koraka.",
-        "private.auth.mfa.issuerName": "Naziv koji aplikacija za autentifikaciju prikazuje uz nalog.",
+        "private.auth.mfa.issuerName": "Naziv koji aplikacija za autentifikaciju prikazuje uz nalog. Prazno = naziv aplikacije.",
         "private.auth.password.minLength": "Minimalna dužina lokalne lozinke (12–64).",
         "private.auth.password.blocklist.enabled": "Odbij najčešće lozinke, naziv organizacije i dijelove vlastite e-mail adrese (offline lista).",
         "private.auth.password.historyCount": "Broj prethodnih lozinki koje se ne smiju ponoviti (0 = bez provjere).",
@@ -1474,7 +1474,12 @@
         "private.integrations.teams.actionsEnabled": "Prikazuje dugmad akcija na karticama (preuzmi, odgovori, odobri, glasaj); isključeno znači da kartice samo vode u aplikaciju.",
         "private.integrations.teams.appShortName": "Kratki naziv Teams aplikacije u generisanom paketu (prazno = naziv aplikacije iz brendinga).",
         "private.integrations.teams.appDescription": "Kratki opis Teams aplikacije u generisanom paketu (prazno = opšti opis).",
-        "private.addons.teams": "Uključuje ili isključuje Microsoft Teams konektor: obavijesti, akcije na karticama i kreiranje tiketa iz Teamsa. Zadano isključeno."
+        "private.addons.teams": "Uključuje ili isključuje Microsoft Teams konektor: obavijesti, akcije na karticama i kreiranje tiketa iz Teamsa. Zadano isključeno.",
+        "public.branding.tagline": "Kratki red ispod naziva na stranici prijave i u bočnoj traci. Prazno = zadani opis.",
+        "public.branding.organizationName": "Organizacija koja koristi servisni centar (obavještenje o privatnosti, podnožje e-maila, izvještaji).",
+        "public.branding.logoDataUrl": "Logo (PNG, JPEG ili WebP, najviše 200 KB i 1024 px). Prazno = ugrađeni znak.",
+        "public.branding.supportEmail": "E-mail za podršku na stranici prijave i u podnožju e-maila.",
+        "public.branding.supportUrl": "Stranica podrške ili intraneta (https) na stranici prijave i u podnožju e-maila."
       }
     },
     "emailTemplates": {
@@ -1645,6 +1650,34 @@
         "ATTACHMENTS_REJECTED": "neki prilozi odbijeni",
         "OTHER": "tehnička greška"
       }
+    },
+    "branding": {
+      "title": "Brending",
+      "subtitle": "Naziv, logo i kontakt podrške koje vide svi korisnici, i prije prijave",
+      "appName": "Naziv aplikacije",
+      "tagline": "Podnaslov",
+      "organizationName": "Naziv organizacije",
+      "supportEmail": "E-mail podrške",
+      "supportUrl": "Stranica podrške (https)",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG ili WebP, najviše 200 KB i 1024 × 1024 px. SVG nije dozvoljen.",
+      "logoUpload": "Učitaj logo",
+      "logoRemove": "Ukloni logo",
+      "logoTooLarge": "Logo je veći od 200 KB.",
+      "logoBadType": "Dozvoljeni su samo PNG, JPEG i WebP.",
+      "logoTooWide": "Logo je veći od 1024 × 1024 px.",
+      "logoUnreadable": "Slika se ne može pročitati.",
+      "preview": "Pregled",
+      "previewHint": "Ovako izgleda zaglavlje i prijava nakon snimanja.",
+      "save": "Snimi brending",
+      "reset": "Poništi izmjene",
+      "reasonTitle": "Izmjena brendinga",
+      "reasonDefault": "Izmjena brendinga",
+      "noChanges": "Nema izmjena.",
+      "saved": "Brending je snimljen.",
+      "invalidEmail": "Unesite ispravnu e-mail adresu.",
+      "invalidUrl": "Adresa mora počinjati s https://.",
+      "required": "Naziv aplikacije je obavezan."
     }
   },
   "errors": {
@@ -3376,7 +3409,7 @@
   "login": {
     "title": "Prijava",
     "subtitle": "Enterprise servisni centar",
-    "intro": "Prijavite se EP-HelpDesk nalogom za pristup tiketima, servisima i administraciji.",
+    "intro": "Prijavite se svojim nalogom za pristup tiketima, servisima i administraciji.",
     "panelTitle": "Servisni centar na jednom mjestu",
     "panelBody": "Tiketi, katalog usluga, baza znanja i SLA — bez prebacivanja između alata.",
     "pointTickets": "Katalog usluga sa jasnim SLA rokovima",
@@ -3391,7 +3424,8 @@
     "entraFailed": "Prijava Microsoft računom nije uspjela. Pokušajte ponovo ili se obratite administratoru.",
     "entraCompleting": "Završavanje prijave…",
     "localShow": "Prijava lokalnim nalogom (administrator)",
-    "localHide": "Sakrij lokalnu prijavu"
+    "localHide": "Sakrij lokalnu prijavu",
+    "supportHelp": "Trebate pomoć?"
   },
   "auth": {
     "changePassword": {

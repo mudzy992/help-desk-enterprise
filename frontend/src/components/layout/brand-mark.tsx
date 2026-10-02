@@ -1,10 +1,12 @@
+import { useBranding } from "@/lib/branding/branding-store";
 import { cn } from "@/lib/utils";
 
 /*
   Pulse brand mark: a "volt" spark on the brand gradient. Used by the sidebar,
   the sign-in page and the install wizard so the product reads the same
   everywhere. The gradient lives in `index.css` (`.pulse-gradient`) because it
-  is decorative — never a semantic surface.
+  is decorative — never a semantic surface. When the client uploads a logo
+  (Paket 4.1, Administracija → Postavke → Brending) it replaces the spark.
 */
 
 interface BrandMarkProperties {
@@ -13,6 +15,18 @@ interface BrandMarkProperties {
 }
 
 export function BrandMark({ size = 32, className }: BrandMarkProperties) {
+  const { logoDataUrl } = useBranding();
+  if (logoDataUrl.length > 0) {
+    return (
+      <img
+        src={logoDataUrl}
+        alt=""
+        aria-hidden="true"
+        className={cn("shrink-0 rounded-[11px] object-contain", className, "shadow-none")}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   return (
     <span
       className={cn(
@@ -49,6 +63,8 @@ export function BrandLockup({
   titleClassName,
   subtitle,
 }: BrandLockupProperties) {
+  const { appName, tagline } = useBranding();
+  const secondLine = tagline.length > 0 ? tagline : subtitle;
   return (
     <div className="flex items-center gap-2.5">
       <BrandMark />
@@ -60,10 +76,10 @@ export function BrandLockup({
               titleClassName,
             )}
           >
-            EP<span className="text-link">·</span>HelpDesk
+            {appName}
           </p>
-          {subtitle ? (
-            <p className="truncate text-[10.5px] text-muted-foreground">{subtitle}</p>
+          {secondLine ? (
+            <p className="truncate text-[10.5px] text-muted-foreground">{secondLine}</p>
           ) : null}
         </div>
       )}

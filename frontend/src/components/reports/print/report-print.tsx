@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useBranding } from "@/lib/branding/branding-store";
 import { useTranslation } from "react-i18next";
 
 /**
@@ -43,9 +44,10 @@ interface ReportPrintHeaderProperties {
 /** Only visible on paper: organisation, scope, period, time and author. */
 export function ReportPrintHeader({ title, scope, period, generatedBy }: ReportPrintHeaderProperties) {
   const { t, i18n } = useTranslation();
+  const branding = useBranding();
   return (
     <div className="mb-4 hidden border-b border-border pb-3 print:block" data-testid="report-print-header">
-      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">EP-HelpDesk</p>
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{branding.organizationName || branding.appName}</p>
       <h1 className="mt-0.5 text-[18px] font-semibold text-foreground">{title}</h1>
       <p className="mt-1 text-[12px] text-foreground">
         {t("reports.print.scope")}: {scope}

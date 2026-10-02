@@ -10,7 +10,7 @@ import { KnowledgePortalHome } from "@/components/knowledge-base/portal/knowledg
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { knowledgeListFiltersAreActive } from "@/lib/knowledge-base/filter-knowledge-articles";
@@ -134,7 +134,7 @@ export function KnowledgeBasePage() {
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.sections.services"), t("knowledgeBase.title")]}
+        crumbs={[brandCrumb, t("navigation.sections.services"), t("knowledgeBase.title")]}
         title={t("knowledgeBase.title")}
         subtitle={subtitle}
         actions={

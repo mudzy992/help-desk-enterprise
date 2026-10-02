@@ -2,7 +2,7 @@ import { History } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ConfigVersionsWorkspace } from "@/components/config-versions/config-versions-workspace";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import {
   canImportConfigPackage,
@@ -37,7 +37,7 @@ export function ConfigVersionsPage() {
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.configVersions")]}
+        crumbs={[brandCrumb, t("navigation.configVersions")]}
         title={t("configVersions.title")}
         subtitle={t("configVersions.intro")}
       />

@@ -6,7 +6,7 @@ import { WorkflowParametersCard } from "@/components/workflow/workflow-parameter
 import { WorkflowTransitionsTable } from "@/components/workflow/workflow-transitions-table";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Card, CardHeader } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { getTicketCounts } from "@/services/tickets-counts-api";
@@ -61,7 +61,7 @@ export function WorkflowPage() {
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.sections.administration"), t("workflow.title")]}
+        crumbs={[brandCrumb, t("navigation.sections.administration"), t("workflow.title")]}
         title={t("workflow.title")}
         subtitle={t("workflow.intro")}
       />

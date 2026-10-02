@@ -2,7 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PermissionsPanel } from "@/components/rbac/permissions-panel";
 import { RequireAccess } from "@/components/layout/require-access";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { roleKeys } from "@/lib/session/permission-keys";
 
 interface PermissionsPageProperties {
@@ -15,7 +15,7 @@ export function PermissionsPage({ embedded = false }: PermissionsPageProperties)
     <section>
       {embedded ? null : (
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.admin"), t("permissions.title")]}
+          crumbs={[brandCrumb, t("navigation.admin"), t("permissions.title")]}
           title={t("permissions.title")}
           subtitle={t("permissions.subtitle")}
         />

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Textarea } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs, type UnderlineTabItem } from "@/components/ui/tabs";
@@ -163,7 +163,7 @@ export function TemplatesPage() {
   return (
     <section ref={containerRef}>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.sections.tickets"), t("templates.title")]}
+        crumbs={[brandCrumb, t("navigation.sections.tickets"), t("templates.title")]}
         title={t("templates.title")}
         subtitle={t("templates.intro")}
         actions={newAction}

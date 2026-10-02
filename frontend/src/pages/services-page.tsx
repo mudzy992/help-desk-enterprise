@@ -14,7 +14,7 @@ import { ServiceCatalogReadOnlyBanner } from "@/components/services/service-cata
 import { ServiceDowntimeWindowsSheet } from "@/components/services/service-downtime-windows-sheet";
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { resolveCatalogWriteFlags, canBypassAdminReadOnly } from "@/lib/services/resolve-catalog-write-flags";
 import {
@@ -78,7 +78,7 @@ export function ServicesPage() {
     <section ref={containerRef}>
       <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.sections.services"), t("services.title")]}
+        crumbs={[brandCrumb, t("navigation.sections.services"), t("services.title")]}
         title={t("services.title")}
         subtitle={t("services.intro")}
         actions={

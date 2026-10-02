@@ -925,7 +925,7 @@
       "subtitle": "Outbound notifications through the existing SMTP/O365 setup, internal users only.",
       "loading": "Loading email settings…",
       "smtpRequired": "SMTP and the email addon must be enabled (install wizard or SMTP settings) before delivery.",
-      "deliveryHint": "SMTP and the email addon are on. The channel sends mail only to internal @epbih.ba addresses while internal-only is on.",
+      "deliveryHint": "SMTP and the email addon are on. While internal-only is on, the channel sends mail only to the organisation's internal domains.",
       "channelEnabled": "Email notifications",
       "channelEnabledHint": "Turns on the email channel next to the in-app inbox. Nothing is sent if SMTP or the email addon is off.",
       "templatesEnabled": "Email templates",
@@ -1130,7 +1130,7 @@
         "private.notifications.email.allowedExternalEmailsCsv": "Individual external ADDRESSES that receive e-mail while delivery is restricted, e.g. name@gmail.com. Only these addresses, not the whole domain.",
         "private.notifications.email.enabled": "Enable email notifications (still needs SMTP and the email add-on).",
         "private.notifications.email.includeMessageExcerpt": "Include the public message text in new-message e-mails (never for confidential tickets).",
-        "private.notifications.email.internalDomainsCsv": "Internal e-mail domains of the organisation, comma-separated (e.g. epbih.ba). Always allowed; also used to check inbound e-mail senders.",
+        "private.notifications.email.internalDomainsCsv": "Internal e-mail domains of the organisation, comma-separated (e.g. example.com). Always allowed; also used to check inbound e-mail senders.",
         "private.notifications.email.internalOnly": "On: e-mail goes only to the internal domains and the extra domains/addresses below. Off: to any valid address.",
         "private.notifications.email.replyMode": "no_reply: replies go through the application; shared_mailbox: Reply-To is the shared mailbox.",
         "private.notifications.email.replyToAddress": "Shared mailbox address used as Reply-To (required for shared_mailbox).",
@@ -1279,7 +1279,7 @@
         "private.workflow.requiredFields.byServiceJson": "JSON map of service id → extra required field keys (sensitive).",
         "private.workflow.requiredFields.enabled": "Enforce required fields before a ticket can be resolved or closed.",
         "private.workflow.requiredFields.globalRequiredOnResolveCsv": "Global fields required before resolve or close.",
-        "public.branding.appName": "Application name shown in the header.",
+        "public.branding.appName": "Product name in the header, browser tab, e-mails, Teams and the authenticator app.",
         "public.maintenance.affectedServicesCsv": "Service names or ids affected when maintenance scope is per_service or both.",
         "public.maintenance.enabled": "Show the non-blocking maintenance banner to end users.",
         "public.maintenance.fromAt": "Maintenance window start time (ISO datetime).",
@@ -1289,7 +1289,7 @@
         "public.maintenance.toAt": "Maintenance window end time (ISO datetime).",
         "private.auth.mfa.requiredForAdmins": "Require two-step verification (TOTP) for ADMIN accounts with a local password. SUPER_ADMIN is always required.",
         "private.auth.mfa.allowOptional": "Other users with a local password may enable two-step verification themselves.",
-        "private.auth.mfa.issuerName": "Name the authenticator app shows next to the account.",
+        "private.auth.mfa.issuerName": "Name the authenticator app shows next to the account. Empty = application name.",
         "private.auth.password.minLength": "Minimum local password length (12–64).",
         "private.auth.password.blocklist.enabled": "Reject common passwords, the organisation name and parts of the own e-mail address (offline list).",
         "private.auth.password.historyCount": "Number of previous passwords that may not be reused (0 = no check).",
@@ -1464,7 +1464,12 @@
         "private.integrations.teams.actionsEnabled": "Shows action buttons on cards (claim, reply, approve, vote); off means cards only link to the application.",
         "private.integrations.teams.appShortName": "Short name of the Teams app in the generated package (empty = application name from branding).",
         "private.integrations.teams.appDescription": "Short description of the Teams app in the generated package (empty = generic description).",
-        "private.addons.teams": "Turns the Microsoft Teams connector on or off: notifications, card actions and ticket creation from Teams. Off by default."
+        "private.addons.teams": "Turns the Microsoft Teams connector on or off: notifications, card actions and ticket creation from Teams. Off by default.",
+        "public.branding.tagline": "Short line under the name on the sign-in page and in the sidebar. Empty = default description.",
+        "public.branding.organizationName": "Organisation operating the service desk (privacy notice, e-mail footer, reports).",
+        "public.branding.logoDataUrl": "Logo (PNG, JPEG or WebP, at most 200 KB and 1024 px). Empty = built-in mark.",
+        "public.branding.supportEmail": "Support e-mail shown on the sign-in page and in the e-mail footer.",
+        "public.branding.supportUrl": "Support or intranet page (https) shown on the sign-in page and in the e-mail footer."
       }
     },
     "emailTemplates": {
@@ -1634,6 +1639,34 @@
         "ATTACHMENTS_REJECTED": "some attachments rejected",
         "OTHER": "technical error"
       }
+    },
+    "branding": {
+      "title": "Branding",
+      "subtitle": "Name, logo and support contact everyone sees, even before signing in",
+      "appName": "Application name",
+      "tagline": "Tagline",
+      "organizationName": "Organisation name",
+      "supportEmail": "Support e-mail",
+      "supportUrl": "Support page (https)",
+      "logo": "Logo",
+      "logoHint": "PNG, JPEG or WebP, at most 200 KB and 1024 × 1024 px. SVG is not allowed.",
+      "logoUpload": "Upload logo",
+      "logoRemove": "Remove logo",
+      "logoTooLarge": "The logo is larger than 200 KB.",
+      "logoBadType": "Only PNG, JPEG and WebP are allowed.",
+      "logoTooWide": "The logo is larger than 1024 × 1024 px.",
+      "logoUnreadable": "The image cannot be read.",
+      "preview": "Preview",
+      "previewHint": "This is how the header and sign-in look after saving.",
+      "save": "Save branding",
+      "reset": "Discard changes",
+      "reasonTitle": "Branding change",
+      "reasonDefault": "Branding change",
+      "noChanges": "No changes.",
+      "saved": "Branding saved.",
+      "invalidEmail": "Enter a valid e-mail address.",
+      "invalidUrl": "The address must start with https://.",
+      "required": "Application name is required."
     }
   },
   "errors": {
@@ -3354,7 +3387,7 @@
   "login": {
     "title": "Sign in",
     "subtitle": "Enterprise service center",
-    "intro": "Use your EP-HelpDesk account to access tickets, services, and administration.",
+    "intro": "Sign in with your account to access tickets, services, and administration.",
     "panelTitle": "Your service desk in one place",
     "panelBody": "Tickets, service catalog, knowledge base and SLA — without switching tools.",
     "pointTickets": "Service catalog with clear SLA targets",
@@ -3369,7 +3402,8 @@
     "entraFailed": "Microsoft sign-in failed. Try again or contact your administrator.",
     "entraCompleting": "Completing sign-in…",
     "localShow": "Sign in with a local account (administrator)",
-    "localHide": "Hide local sign-in"
+    "localHide": "Hide local sign-in",
+    "supportHelp": "Need help?"
   },
   "auth": {
     "changePassword": {

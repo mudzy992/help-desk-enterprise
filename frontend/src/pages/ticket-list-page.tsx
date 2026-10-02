@@ -15,7 +15,7 @@ import { TicketWorkspaceNav } from "@/components/tickets/ticket-workspace-nav";
 import { TicketBulkBar } from "@/components/tickets/ticket-bulk-bar";
 import { TicketSavedViewsPanel } from "@/components/tickets/ticket-saved-views-panel";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -55,8 +55,8 @@ export function TicketListPage() {
     ? t("tickets.inboxHint")
     : ticketText(t, "tickets.listSubtitle", { open: openCount, risk: riskCount });
   const crumbs = isInbox
-    ? ["EP-HelpDesk", t("tickets.title"), t("tickets.views.inbox")]
-    : ["EP-HelpDesk", t("tickets.title")];
+    ? [brandCrumb, t("tickets.title"), t("tickets.views.inbox")]
+    : [brandCrumb, t("tickets.title")];
   return (
     <section>
       <PageHeader

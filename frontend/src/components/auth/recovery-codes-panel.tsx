@@ -1,4 +1,6 @@
 import { Copy, Download } from "lucide-react";
+import { brandFileSlug } from "@/lib/branding/brand-file-slug";
+import { useBranding } from "@/lib/branding/branding-store";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -13,16 +15,17 @@ interface RecoveryCodesPanelProperties {
 /** Paket 2.1 (M4): shown exactly once; the user confirms they were saved. */
 export function RecoveryCodesPanel({ codes, onDone, doneLabel }: RecoveryCodesPanelProperties) {
   const { t } = useTranslation();
+  const { appName } = useBranding();
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const text = codes.join("\n");
 
   const download = () => {
-    const blob = new Blob([`EP HelpDesk — ${t("auth.mfa.recoveryTitle")}\n\n${text}\n`], { type: "text/plain" });
+    const blob = new Blob([`${appName} — ${t("auth.mfa.recoveryTitle")}\n\n${text}\n`], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "ephelpdesk-recovery-codes.txt";
+    anchor.download = `${brandFileSlug(appName)}-recovery-codes.txt`;
     anchor.click();
     URL.revokeObjectURL(url);
   };

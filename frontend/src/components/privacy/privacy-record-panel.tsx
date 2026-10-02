@@ -1,4 +1,5 @@
 import { AlertTriangle, ExternalLink, Printer } from "lucide-react";
+import { useBranding } from "@/lib/branding/branding-store";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -19,6 +20,7 @@ const missingKey = (field: string) =>
  */
 export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: string | null }) {
   const { t, i18n } = useTranslation();
+  const branding = useBranding();
   const format = useDateFormat();
   const [locale, setLocale] = useState<"bs" | "en">(i18n.language.startsWith("en") ? "en" : "bs");
   const [record, setRecord] = useState<ProcessingRecord | null>(null);
@@ -94,7 +96,7 @@ export function PrivacyRecordPanel({ generatedBy }: { readonly generatedBy: stri
             </div>
           ) : null}
           <header className="mb-5 border-b border-border pb-3">
-            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">EP-HelpDesk</p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{branding.organizationName || branding.appName}</p>
             <h2 className="mt-0.5 text-[18px] font-semibold text-foreground">{record.title}</h2>
             <p className="mt-1 text-[11.5px] text-muted-foreground">
               {t("privacy.record.generated", { when: format.dateTime(record.generatedAt), who: generatedBy ?? "—" })}

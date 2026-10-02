@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { errorTextClassName } from "@/components/ui/control";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { countOrganizationalUnitMembers } from "@/lib/directory/count-organizational-unit-members";
 import { findOrganizationalUnitNode } from "@/lib/directory/find-organizational-unit-node";
@@ -57,7 +57,7 @@ export function OrganizationalUnitsPage({
     <section>
       {embedded ? null : (
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.organizationalUnits")]}
+          crumbs={[brandCrumb, t("navigation.organizationalUnits")]}
           title={t("navigation.organizationalUnits")}
           subtitle={t("directory.unitsIntro")}
         />

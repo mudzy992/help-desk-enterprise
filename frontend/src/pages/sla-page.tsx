@@ -9,7 +9,7 @@ import { SlaProfileDetail } from "@/components/sla/sla-profile-detail";
 import { SlaProfileList } from "@/components/sla/sla-profile-list";
 import { Button } from "@/components/ui/button";
 import { errorTextClassName } from "@/components/ui/control";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { useSlaPageData } from "@/lib/sla/use-sla-page-data";
 import { useSlaPageMutations } from "@/lib/sla/use-sla-page-mutations";
 import { permissionKeys } from "@/lib/session/permission-keys";
@@ -44,7 +44,7 @@ export function SlaPage() {
     return (
       <section ref={containerRef}>
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.sla")]}
+          crumbs={[brandCrumb, t("navigation.sla")]}
           title={t("sla.calendarsHeading")}
           subtitle={t("sla.intro")}
           actions={
@@ -63,7 +63,7 @@ export function SlaPage() {
     return (
       <section ref={containerRef}>
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.sla")]}
+          crumbs={[brandCrumb, t("navigation.sla")]}
           title={t("sla.priorityMatrixTitle")}
           subtitle={t("sla.priorityMatrixIntro")}
           actions={
@@ -81,7 +81,7 @@ export function SlaPage() {
   return (
     <section ref={containerRef}>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.sla")]}
+        crumbs={[brandCrumb, t("navigation.sla")]}
         title={t("sla.title")}
         subtitle={t("sla.intro")}
         actions={

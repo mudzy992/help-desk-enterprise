@@ -5,7 +5,7 @@ import { KnowledgeArticleDetailPanel } from "@/components/knowledge-base/knowled
 import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { useKnowledgeArticle } from "@/lib/knowledge-base/use-knowledge-article";
@@ -40,7 +40,7 @@ export function KnowledgeArticleDetailPage() {
     <section>
       <PageHeader
         crumbs={[
-          "EP-HelpDesk",
+          brandCrumb,
           t("navigation.sections.services"),
           articleTitle,
         ]}

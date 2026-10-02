@@ -14,7 +14,7 @@ import { GroupsPage } from "@/pages/groups-page";
 import { PermissionsPage } from "@/pages/permissions-page";
 import { UsersPage } from "@/pages/users-page";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { UnderlineTabs } from "@/components/ui/tabs";
 import { roleKeys } from "@/lib/session/permission-keys";
@@ -68,7 +68,7 @@ export function AdminPage() {
   return (
     <section>
       <PageHeader
-        crumbs={["EP-HelpDesk", t("navigation.admin")]}
+        crumbs={[brandCrumb, t("navigation.admin")]}
         title={t("admin.title")}
         subtitle={t("admin.subtitle")}
       />

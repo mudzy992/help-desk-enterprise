@@ -10,7 +10,7 @@ import { ApiErrorText } from "@/components/ui/api-error-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { controlCompactClassName } from "@/components/ui/control";
-import { PageHeader } from "@/components/ui/page-header";
+import { PageHeader, brandCrumb } from "@/components/ui/page-header";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDirectory } from "@/lib/directory/use-directory";
 import { countRoutingRulesByGroup } from "@/lib/groups/count-routing-rules-by-group";
@@ -117,7 +117,7 @@ export function GroupsPage({ embedded = false }: GroupsPageProperties) {
       <AdminConfigChangedBanner pending={live.pending} onRefresh={live.refreshNow} onDismiss={live.dismiss} />
       {embedded ? null : (
         <PageHeader
-          crumbs={["EP-HelpDesk", t("navigation.groups")]}
+          crumbs={[brandCrumb, t("navigation.groups")]}
           title={t("groups.title")}
           subtitle={t("groups.subtitle")}
         />
