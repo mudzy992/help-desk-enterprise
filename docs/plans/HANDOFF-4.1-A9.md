@@ -52,7 +52,15 @@ Ispis: `checked N: X already v2, would re-encrypt Y, Z changed meanwhile (re-run
 - `U = 0`, `Y > 0`: pokrenuti istu komandu bez `--dry-run`. Ako je `Z > 0`, pokrenuti je ponovo.
 - `U > 0`: stati i istražiti (ključ se ne može dešifrovati ni trenutnim ni legacy ključem).
 
-### Korak 6 — DR cron (samo ako postoji)
+### Korak 6 — DR cron (samo ako postoji) — ✅ gotovo 2026-10-02: ne postoji, nema šta mijenjati
+
+Rezultat provjere na staging hostu: crontab korisnika `administrator` i `root` te `/etc/cron.d` i `/etc/crontab` nemaju nijednu
+liniju koja poziva `backup-uploads.sh` ili `export-config.sh`. Ne postoje ni `/opt/ephelpdesk`, `/opt/servicedesk`,
+`/var/backups/ephelpdesk` i `/var/backups/servicedesk`, pa na hostu nema traga da su skripte iz `ops/dr/` ikad pokretane sa
+zadanim direktorijem. Znači da se uploads volumen i config snapshot ne arhiviraju tim skriptama. Ako se rade drugačije (npr. vlastitim
+skriptama na hostu), to je u redu; ako ne, to je DR praznina iz Paketa 1.8 i nije dio A9.
+
+Izvorni opis koraka:
 
 Zadani direktorij u `ops/dr/*` je sada `/var/backups/servicedesk`. Provjeriti `crontab -l` / `sudo crontab -l`. Ako cron
 poziva `backup-uploads.sh` ili `export-config.sh`, treba mu dodati `BACKUP_DIR=/var/backups/ephelpdesk`
@@ -60,9 +68,11 @@ poziva `backup-uploads.sh` ili `export-config.sh`, treba mu dodati `BACKUP_DIR=/
 
 ### Korak 7 — čišćenje (najranije 24 h nakon koraka 4, tek uz potvrdu korisnika)
 
-Vremenska kapija: korak 4 je završen 2026-10-02, pa korak 7 ne ide prije 2026-10-03. Tačno vrijeme završetka nije zapisano:
-pitati korisnika ili pogledati Coolify deployment, odnosno `docker inspect -f '{{.State.StartedAt}}' <backend kontejner>`
-(kasniji restart samo pomjera kapiju naprijed, a to je sigurna strana).
+Vremenska kapija: korak 4 je završen prije 2026-10-02 19:21 UTC, kad je ovaj handoff pushan na master. Zato je 24 h sigurno prošlo
+nakon **2026-10-03 19:22 UTC** (21:22 po lokalnom vremenu, CEST). Ranije samo ako se u historiji deploya u Coolifyju vidi tačno vrijeme
+deploya iz koraka 4 (plus 24 h). Backend kontejner se mijenja pri svakom deployu (stari nestaju zajedno sa svojim logovima), pa za
+svaku komandu ime tražiti iznova: `docker ps --format '{{.Names}}' | grep '^backend-'`. Kriterij „24 h bez grešaka“ provjeriti u
+logovima trenutnih kontejnera (backend i worker): bez `NOPERM`, `WRONGPASS`, `NOAUTH`, `failing open`, `authz_cache_unavailable`.
 
 1. Ponovo provjeriti da nema klijenata `user=ephelpdesk`:
    `redis-cli CLIENT LIST | grep -o "user=[a-z]*" | sort | uniq -c`.
@@ -95,12 +105,14 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
 
 ## 4. Dopune — sesija 2 (2026-10-02)
 
-- **CI na masteru je bio crven od `585dd8f`.** Ovaj handoff doslovno navodi stare identifikatore, pa je `check-client-neutral`
-  pao, a GitHub Actions je zbog toga preskočio sve sljedeće korake frontend joba (uključujući `npm test` i `npm run build`).
-  Popravak je privremeni izuzetak za ovaj fajl u `scripts/check-client-neutral.mjs` i u §9 dizajna (izuzima se fajl, ne
-  obrazac; negativni test s privremenim fajlom i dalje pada). CI na masteru ozeleni tek nakon fast-forwarda s grane sesije.
-- **Staging je zdrav** (samo čitanje, 2026-10-02 19:32 UTC): `/health/ready` daje `database: ok`, `redis: ok`, a
-  `/health/worker` daje `ok` s heartbeatom starim 6 s (worker piše u Redis pod `servicedesk`).
+- **CI na masteru je bio crven od `585dd8f`, a od `a93a6cc` je zelen.** Ovaj handoff doslovno navodi stare identifikatore, pa je
+  `check-client-neutral` pao, a GitHub Actions je zbog toga preskočio sve sljedeće korake frontend joba (uključujući `npm test` i
+  `npm run build`). Popravak je privremeni izuzetak za ovaj fajl u `scripts/check-client-neutral.mjs` i u §9 dizajna (izuzima
+  se fajl, ne obrazac; negativni test s privremenim fajlom i dalje pada). Korisnik je master pomjerio na `a93a6cc` u 19:39 UTC;
+  run `37055587931`: frontend, backend i E2E zeleni.
+- **Staging je zdrav** (samo čitanje, 2026-10-02 u 19:32 i u 20:14 UTC): `/health/ready` daje `database: ok`, `redis: ok`, a
+  `/health/worker` daje `ok` s heartbeatom starim 6–7 s (worker piše u Redis pod `servicedesk`). Između ta dva mjerenja backend
+  kontejner je zamijenjen novim, najvjerovatnije zbog deploya nakon push-a na master u 19:39 UTC, a novi deploy je zdrav.
 - **Ispravka tvrdnje „sesije su u Postgresu“.** Registar sesija je u Postgresu, ali opoziv tokena je u Redisu
   (`auth:revoked-jti:*`, `auth:revoked-sid:*`, `auth:sessions-valid-after:*`) i radi fail-open. Kvar ili promjena Redisa dakle
   ne može odjaviti korisnike (detalji: §12 dizajna, „Ispravka §7.4“).
