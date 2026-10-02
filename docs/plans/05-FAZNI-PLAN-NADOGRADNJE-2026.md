@@ -186,10 +186,12 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 ## FAZA 3 — Proširenja (ranije van obima)
 
 ### 3.1 Microsoft Teams konektor (pun)  · ~6 RD · dizajn: `modules/3.1-teams-konektor.md` · odobreno 2.10.2026., implementacija T1–T6 (razvoj bez Microsoft resursa: simulator + potpuno pripremljen live režim)
+
+> **Status:** ✅ implementirano i verifikovano na stagingu 2026-10-02 u simulatoru (T1 012ae65, T2 24e81b0, T3 bdb8127, T4 7c0e0a4, T5 43bc3b0, uklanjanje stuba 856dfef, T6 E2E 33 9a332a6; T4b proširene komande i KB intercept 64a7f7a/7b9678f). E2E 33 prolazi 2/2. Live režim je potpuno implementiran i pokriven unit testovima; aktivira ga klijent kad obezbijedi preduslove (checklist u dizajnu §18).
 - Teams app / bot (Azure Bot Service ili Graph): notifikacije u kanal grupe i lično korisniku,
   adaptive cards (preuzmi, odgovori, odobri), kreiranje tiketa iz Teamsa.
 - Postojeći stub i durable queue su osnova; SSO preko istog Entra tenanta.
-- Zavisi od: registracija aplikacije u EPBiH tenantu (IT EPBiH).
+- Zavisi od (samo za live režim): registracija aplikacije u tenantu klijenta.
 
 ### 3.2 CMDB — imovina i konfiguracione stavke  · ~8 RD (dizajn: ~12 RD, pun obim) · dizajn: `modules/3.2-cmdb.md` · ✅ implementirano (E2E 23–28, k6 `assets-list.js`)
 - Model: tipovi stavki (računar, štampač, server, aplikacija, licenca…), atributi po tipu,
