@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field, Select, Textarea } from "@/components/ui/field";
@@ -49,34 +50,35 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
   const percent = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
-    <Card className="fade-in" data-testid="ticket-playbook-panel">
-      <CardHeader
-        title={
-          <span className="flex items-center gap-1.5">
-            <ClipboardList size={14} /> {playbook?.name ?? t("templates.checklist.title")}
-          </span>
-        }
-        subtitle={
-          playbook && progress
-            ? `${t("templates.checklist.progress", { done: progress.done, total: progress.total })}${
-                progress.requiredTotal > 0
-                  ? ` · ${t("templates.checklist.requiredProgress", {
-                      done: progress.requiredDone,
-                      total: progress.requiredTotal,
-                    })}`
-                  : ""
-              }`
-            : undefined
-        }
-        actions={
-          playbook && !view.readOnly ? (
-            <Button type="button" size="xs" variant="ghost" disabled={busy} onClick={() => setDetachOpen(true)}>
-              {t("templates.checklist.detach")}
-            </Button>
-          ) : null
-        }
-      />
-      <div className="space-y-3 px-4 py-3">
+    <DetailSection
+      id="playbook"
+      testId="ticket-playbook-panel"
+      title={
+        <span className="flex items-center gap-1.5">
+          <ClipboardList size={14} aria-hidden="true" /> {playbook?.name ?? t("templates.checklist.title")}
+        </span>
+      }
+      subtitle={
+        playbook && progress
+          ? `${t("templates.checklist.progress", { done: progress.done, total: progress.total })}${
+              progress.requiredTotal > 0
+                ? ` · ${t("templates.checklist.requiredProgress", {
+                    done: progress.requiredDone,
+                    total: progress.requiredTotal,
+                  })}`
+                : ""
+            }`
+          : undefined
+      }
+      actions={
+        playbook && !view.readOnly ? (
+          <Button type="button" size="xs" variant="ghost" disabled={busy} onClick={() => setDetachOpen(true)}>
+            {t("templates.checklist.detach")}
+          </Button>
+        ) : null
+      }
+    >
+      <div className="space-y-3">
         {errorKey !== null ? (
           <p role="alert" className="text-[12.5px] text-danger">
             {t(errorKey)}
@@ -222,7 +224,7 @@ export function TicketPlaybookPanel({ controller, onInsertTemplate }: TicketPlay
           <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={3} maxLength={500} />
         </Field>
       </ConfirmDialog>
-    </Card>
+    </DetailSection>
   );
 }
 

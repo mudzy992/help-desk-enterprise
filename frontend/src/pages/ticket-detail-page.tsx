@@ -11,6 +11,8 @@ import { TicketForwardPanel } from "@/components/tickets/ticket-forward-panel";
 import { TicketSplitPanel } from "@/components/tickets/ticket-split-panel";
 import { TicketMergePanel } from "@/components/tickets/ticket-merge-panel";
 import { TicketMergedBanner } from "@/components/tickets/ticket-merged-banner";
+import { TicketCsatPanel } from "@/components/tickets/ticket-csat-panel";
+import { TicketFormDataView } from "@/components/tickets/ticket-form-data-view";
 import { TicketMergedCard } from "@/components/tickets/ticket-merged-card";
 import { TicketPriorityPanel } from "@/components/tickets/ticket-priority-panel";
 import { findLastPriorityOverride } from "@/lib/tickets/describe-ticket-activity";
@@ -25,6 +27,7 @@ import { ticketText } from "@/lib/tickets/ticket-text";
 import { useTicketApprovals } from "@/lib/tickets/use-ticket-approvals";
 import { useTicketContext } from "@/lib/tickets/use-ticket-context";
 import { useTicketDetail } from "@/lib/tickets/use-ticket-detail";
+import { useTicketDetailSections } from "@/lib/tickets/use-detail-sections";
 import { useTicketServiceName } from "@/lib/tickets/use-ticket-service-name";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSession } from "@/lib/session/use-session";
@@ -257,6 +260,17 @@ export function TicketDetailPage() {
   };
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
+  // Paket 4.2 (dio B): the right column is three cards with collapsible sections
+  // whose state is remembered per user. Approvals open themselves while a
+  // decision is pending; anything the user toggled wins over that default.
+  const computedSectionDefaults = useMemo(
+    () => ({ approvals: approvals.items.some((item) => item.status === "PENDING") }),
+    [approvals.items],
+  );
+  const detailSections = useTicketDetailSections(computedSectionDefaults);
+  const actionsCardVisible =
+    (canUseTemplates && actions.viewActivity) ||
+    (approvals.visible && approvals.items.length > 0);
 
   return (
     <section>
@@ -334,6 +348,12 @@ export function TicketDetailPage() {
       ) : ticket.redactionWarnings && ticket.redactionWarnings.length > 0 ? (
         <p className="mt-3 text-[12.5px] text-warning">{t("tickets.redactionWarning")}</p>
       ) : null}
+      <TicketCsatPanel
+        className="mt-4"
+        ticket={ticket}
+        onComplete={detail.applyTicket}
+        onError={detail.setActionError}
+      />
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_330px]">
         <TicketDetailWorkspace
           ticket={ticket}
@@ -391,63 +411,85 @@ export function TicketDetailPage() {
           }
         />
         <div className="space-y-4">
-        {canUseTemplates && actions.viewActivity ? (
-          <TicketPlaybookPanel
-            controller={playbook}
-            onInsertTemplate={(templateId, name) =>
-              setTemplateInsert((current) => ({ templateId, name, nonce: (current?.nonce ?? 0) + 1 }))
-            }
+          <TicketDetailSideStack
+            sections={detailSections}
+            actionsVisible={actionsCardVisible}
+            slots={{
+              formData: <TicketFormDataView formData={ticket.formData} />,
+              playbook:
+                canUseTemplates && actions.viewActivity ? (
+                  <TicketPlaybookPanel
+                    controller={playbook}
+                    onInsertTemplate={(templateId, name) =>
+                      setTemplateInsert((current) => ({
+                        templateId,
+                        name,
+                        nonce: (current?.nonce ?? 0) + 1,
+                      }))
+                    }
+                  />
+                ) : null,
+              merged: <TicketMergedCard items={mergedItems} />,
+              assets:
+                session?.modules?.cmdb === true ? (
+                  <TicketAssetsPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
+                ) : null,
+              problems:
+                isStaffView && session?.modules?.problems === true ? (
+                  <TicketProblemPanel
+                    ticket={{
+                      id: ticket.id,
+                      ticketNumber: ticket.ticketNumber,
+                      title: ticket.title,
+                      priority: ticket.priority,
+                    }}
+                    versionKey={ticket.updatedAt}
+                    onInsertWorkaround={
+                      access !== "requester" && !ticket.mergedIntoTicketId
+                        ? (text) =>
+                            setWorkaroundInsert((current) => ({
+                              text,
+                              nonce: (current?.nonce ?? 0) + 1,
+                            }))
+                        : undefined
+                    }
+                  />
+                ) : null,
+              links:
+                isStaffView && collaborationConfig.linksEnabled ? (
+                  <TicketLinksPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
+                ) : null,
+            }}
+            ticket={ticket}
+            originName={originName}
+            serviceName={serviceName}
+            authorNames={authorNames}
+            groupNames={groupNames}
+            slaContext={context.slaContext}
+            canConfigureSla={hasPermission(permissionKeys.slaWrite)}
+            approvals={approvals.items}
+            approvalsVisible={approvals.visible}
+            approvalsSaving={approvals.isSaving}
+            participants={detail.participants}
+            participantCandidates={participantCandidates}
+            canManageParticipants={actions.manageParticipants}
+            forwardHistoryVisible={actions.viewActivity}
+            onApprove={async (approvalId, comment) => {
+              if ((await approvals.approve(approvalId, comment)) !== null) {
+                await detail.reload();
+              }
+            }}
+            onReject={async (approvalId, comment) => {
+              if ((await approvals.reject(approvalId, comment)) !== null) {
+                await detail.reload();
+              }
+            }}
+            onAddParticipant={detail.addParticipant}
+            onRemoveParticipant={detail.removeParticipant}
+            canOverridePriority={actions.overridePriority}
+            onEditPriority={() => setPriorityOpen(true)}
+            priorityOverrideTitle={priorityOverrideTitle}
           />
-        ) : null}
-        <TicketMergedCard items={mergedItems} />
-        {session?.modules?.cmdb === true ? <TicketAssetsPanel ticketId={ticket.id} versionKey={ticket.updatedAt} /> : null}
-        {isStaffView && session?.modules?.problems === true ? (
-          <TicketProblemPanel
-            ticket={{ id: ticket.id, ticketNumber: ticket.ticketNumber, title: ticket.title, priority: ticket.priority }}
-            versionKey={ticket.updatedAt}
-            onInsertWorkaround={
-              access !== "requester" && !ticket.mergedIntoTicketId
-                ? (text) => setWorkaroundInsert((current) => ({ text, nonce: (current?.nonce ?? 0) + 1 }))
-                : undefined
-            }
-          />
-        ) : null}
-        {isStaffView && collaborationConfig.linksEnabled ? (
-          <TicketLinksPanel ticketId={ticket.id} versionKey={ticket.updatedAt} />
-        ) : null}
-        <TicketDetailSideStack
-          ticket={ticket}
-          originName={originName}
-          serviceName={serviceName}
-          authorNames={authorNames}
-          groupNames={groupNames}
-          slaContext={context.slaContext}
-          canConfigureSla={hasPermission(permissionKeys.slaWrite)}
-          approvals={approvals.items}
-          approvalsVisible={approvals.visible}
-          approvalsSaving={approvals.isSaving}
-          participants={detail.participants}
-          participantCandidates={participantCandidates}
-          canManageParticipants={actions.manageParticipants}
-          forwardHistoryVisible={actions.viewActivity}
-          onError={detail.setActionError}
-          onCsatComplete={detail.applyTicket}
-          onApprove={async (approvalId, comment) => {
-            if ((await approvals.approve(approvalId, comment)) !== null) {
-              await detail.reload();
-            }
-          }}
-          onReject={async (approvalId, comment) => {
-            if ((await approvals.reject(approvalId, comment)) !== null) {
-              await detail.reload();
-            }
-          }}
-          onAddParticipant={detail.addParticipant}
-          onRemoveParticipant={detail.removeParticipant}
-          canOverridePriority={actions.overridePriority}
-          onEditPriority={() => setPriorityOpen(true)}
-          priorityOverrideTitle={priorityOverrideTitle}
-        />
         </div>
       </div>
       <ConfirmDialog

@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { ProblemLinkDialog, type ProblemLinkTicket } from "@/components/problems/problem-link-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { mapApiError } from "@/lib/map-api-error";
@@ -55,9 +55,8 @@ export function TicketProblemPanel({
   if (problem === null && !data.canLink) return null;
 
   return (
-    <Card className="fade-in" data-testid="ticket-problem-panel">
-      <CardHeader title={t("problems.ticket.panelTitle")} />
-      <div className="grid gap-2 px-4 py-3">
+    <DetailSection id="problems" testId="ticket-problem-panel" title={t("problems.ticket.panelTitle")}>
+      <div className="grid gap-2">
         {problem === null ? (
           <>
             <p className={hintClassName}>{t("problems.ticket.empty")}</p>
@@ -154,6 +153,6 @@ export function TicketProblemPanel({
           if (problem !== null) unlink.mutate(problem.id);
         }}
       />
-    </Card>
+    </DetailSection>
   );
 }

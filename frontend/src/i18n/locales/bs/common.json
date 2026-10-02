@@ -3800,7 +3800,15 @@
       "unknownUser": "Nepoznat korisnik",
       "unknownGroup": "Nepoznata grupa",
       "unknownOrigin": "Nepoznata organizaciona jedinica",
-      "formVersionValue": "v{{version}}"
+      "formVersionValue": "v{{version}}",
+      "title": "Detalji",
+      "expandAll": "Proširi sve",
+      "collapseAll": "Skupi sve",
+      "cards": {
+        "summary": "Sažetak",
+        "actions": "Radnje",
+        "related": "Povezano i tok"
+      }
     },
     "csat": {
       "title": "CSAT ocjena",

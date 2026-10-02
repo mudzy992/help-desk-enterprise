@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { errorTextClassName, hintClassName } from "@/components/ui/control";
 import { Input } from "@/components/ui/field";
@@ -84,9 +84,13 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
   const candidates = (lookup.data?.items ?? []).filter((item) => !linked.has(item.id));
 
   return (
-    <Card className="fade-in" data-testid="ticket-assets-panel">
-      <CardHeader title={t("assets.ticket.panelTitle")} subtitle={t("assets.ticket.count", { count: data.items.length })} />
-      <div className="grid gap-2 px-4 py-3">
+    <DetailSection
+      id="assets"
+      testId="ticket-assets-panel"
+      title={t("assets.ticket.panelTitle")}
+      subtitle={t("assets.ticket.count", { count: data.items.length })}
+    >
+      <div className="grid gap-2">
         {data.items.length === 0 ? <p className={hintClassName}>{t("assets.ticket.empty")}</p> : null}
         <ul className="grid gap-2">
           {data.items.map((item) => {
@@ -201,6 +205,6 @@ export function TicketAssetsPanel({ ticketId, versionKey }: { readonly ticketId:
           if (removing !== null) unlink.mutate(removing.assetId);
         }}
       />
-    </Card>
+    </DetailSection>
   );
 }

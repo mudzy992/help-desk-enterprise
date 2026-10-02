@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { TicketPriorityBadge } from "@/components/tickets/ticket-badges";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardHeader } from "@/components/ui/card";
+import { DetailSection } from "@/components/ui/detail-section";
 import {
   ticketAssigneeName,
   ticketGroupName,
@@ -135,9 +135,8 @@ export function TicketDetailSidebar({
     },
   ];
   return (
-    <Card className="fade-in">
-      <CardHeader title={t("tickets.detail.properties")} />
-      <dl className="divide-y divide-border/40 px-4 py-1.5 text-[12px]">
+    <DetailSection id="properties" title={t("tickets.detail.properties")}>
+      <dl className="divide-y divide-border/40 text-[12px]">
         {rows.map((row) => (
           <div key={row.label} className="flex items-start justify-between gap-3 py-2.5">
             <dt className="shrink-0 text-muted-foreground">{row.label}</dt>
@@ -151,7 +150,7 @@ export function TicketDetailSidebar({
         ))}
       </dl>
       {createRuleHref !== null ? (
-        <div className="border-t border-border/40 px-4 py-3">
+        <div className="mt-3 border-t border-border/40 pt-3">
           <Button asChild size="xs" variant="outline" className="w-full">
             <Link to={createRuleHref} data-testid="ticket-create-routing-rule">
               <RouteIcon size={12} /> {t("tickets.unrouted.createRule")}
@@ -159,6 +158,6 @@ export function TicketDetailSidebar({
           </Button>
         </div>
       ) : null}
-    </Card>
+    </DetailSection>
   );
 }

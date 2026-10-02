@@ -3778,7 +3778,15 @@
       "unknownUser": "Unknown user",
       "unknownGroup": "Unknown group",
       "unknownOrigin": "Unknown organizational unit",
-      "formVersionValue": "v{{version}}"
+      "formVersionValue": "v{{version}}",
+      "title": "Details",
+      "expandAll": "Expand all",
+      "collapseAll": "Collapse all",
+      "cards": {
+        "summary": "Summary",
+        "actions": "Actions",
+        "related": "Related and flow"
+      }
     },
     "csat": {
       "title": "CSAT rating",
