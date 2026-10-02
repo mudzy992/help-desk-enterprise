@@ -1,7 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { createContext, useContext, useId, type ReactNode } from "react";
 import {
-  detailSectionDefaults,
   isDetailSectionCollapsible,
   type DetailSectionKey,
   type DetailSectionOverrides,
@@ -30,10 +29,12 @@ export interface DetailSectionsStore {
 
 const FALLBACK_STORE: DetailSectionsStore = {
   overrides: {},
-  isOpen: (key) => detailSectionDefaults[key],
+  // Without a provider nothing may be hidden: a section rendered on its own
+  // shows its full content.
+  isOpen: () => true,
   toggle: () => {},
   setAll: () => {},
-  allOpen: false,
+  allOpen: true,
 };
 
 const DetailSectionsContext = createContext<DetailSectionsStore | null>(null);
