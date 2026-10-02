@@ -232,8 +232,9 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 ### 4.2 UX liste i detalja tiketa (zahtjev vlasnika 2026-10-02)  · dizajn: `modules/4.2-ux-lista-i-detalji-tiketa.md`
 - **A) Lista tiketa:** sačuvani pogledi iz trajne kolone (220 px) prebačeni u kompaktnu kontrolu u redu filtera —
   ✅ implementirano 2026-10-02.
-- **B) Detalji tiketa:** prijedlog „tri kartice + sklopive sekcije“ (13 kartica s desne strane → 3, bez gubitka
-  funkcionalnosti) — **čeka odluku vlasnika**.
+- **B) Detalji tiketa:** odobreno 2026-10-02 i ✅ implementirano 2026-10-03 — desna kolona je 13 ravnopravnih
+  kartica zamijenila s tri (Sažetak / Radnje / Povezano i tok) sa sklopivim sekcijama koje pamte stanje po
+  korisniku, a CSAT je traka preko cijelog tiketa. Bez gubitka funkcionalnosti.
 
 ## Zavisnosti i redoslijed
 
