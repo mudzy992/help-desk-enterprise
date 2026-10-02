@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Put,
   Req,
   UseGuards,
@@ -60,6 +61,7 @@ export class SettingsController {
   }
 
   @Put('batch')
+  @HttpCode(204)
   @RequirePermissions(permissionKeys.settingsWrite)
   async updateSettingsBatch(
     @Body() body: UpdateSettingsBatchDto,

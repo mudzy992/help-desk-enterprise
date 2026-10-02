@@ -98,7 +98,14 @@ export async function apiRequest<T>(
   if (response.status === 204) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  // A 200 with an empty body (e.g. a Nest handler returning void) is a
+  // success, not a parse failure; reading it as JSON used to throw and the
+  // caller reported a "network" error although the change was saved.
+  const text = await response.text();
+  if (text.trim().length === 0) {
+    return undefined as T;
+  }
+  return JSON.parse(text) as T;
 }
 
 export async function apiBlobRequest(
