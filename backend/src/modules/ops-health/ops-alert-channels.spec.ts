@@ -64,7 +64,7 @@ describe('ops alert e-mail', () => {
     expect(composed.html).toContain(`border-bottom:3px solid ${opsSeverityColors.CRITICAL.toLowerCase()}`);
     expect(composed.html).toContain('https://desk.example.com/admin?tab=ops');
     expect(composed.headers['X-Priority']).toBe('1');
-    expect(composed.messageId).toMatch(/^<[0-9a-f]{32}@example\.ba>$/);
+    expect(composed.messageId).toMatch(/^<[0-9a-f]{32}@example\.com>$/);
   });
 
   it('keeps an explicit template colour and says how long a resolved alarm lasted', () => {

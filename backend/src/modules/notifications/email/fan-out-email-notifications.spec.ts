@@ -134,7 +134,7 @@ describe('email notification fan-out', () => {
       References: `<ticket-${created.id}@example.com>`,
       'Auto-Submitted': 'auto-generated',
     });
-    expect(message?.messageId).toMatch(/@example\.ba>$/);
+    expect(message?.messageId).toMatch(/@example\.com>$/);
     expect(message?.replyTo).toBeUndefined();
   });
 

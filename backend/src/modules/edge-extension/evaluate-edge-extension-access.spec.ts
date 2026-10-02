@@ -54,7 +54,7 @@ describe('evaluateEdgeExtensionAccess', () => {
     expect(
       evaluateEdgeExtensionAccess({
         configuration: open,
-        email: 'user@example.com',
+        email: 'user@example.org',
         extensionVersion: '0.0.1',
       }),
     ).toBe(edgeExtensionDenyReasons.domain);
@@ -64,6 +64,6 @@ describe('evaluateEdgeExtensionAccess', () => {
     expect(isExtensionVersionAllowed('0.0.2', '0.0.1')).toBe(true);
     expect(isExtensionVersionAllowed('0.0.1', '0.0.2')).toBe(false);
     expect(isExtensionVersionAllowed('1.0.0', '')).toBe(true);
-    expect(emailMatchesAllowedDomain('Ana@EPBIH.BA', 'example.com')).toBe(true);
+    expect(emailMatchesAllowedDomain('Ana@EXAMPLE.COM', 'example.com')).toBe(true);
   });
 });

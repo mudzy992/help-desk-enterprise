@@ -66,7 +66,7 @@ describe('pseudonym and tombstones (§6.4)', () => {
 
   it('tombstones are keyed, normalised HMACs', () => {
     const key = readTombstoneKey({ PRIVACY_TOMBSTONE_KEY: 'x'.repeat(32) } as never)!;
-    const a = computeTombstones(key, { email: ' Amra@EPBIH.ba ', directoryObjectGuid: 'ABC', entraObjectId: null });
+    const a = computeTombstones(key, { email: ' Amra@example.com ', directoryObjectGuid: 'ABC', entraObjectId: null });
     const b = computeTombstones(key, { email: 'amra@example.com', directoryObjectGuid: 'abc' });
     expect(a).toEqual(b);
     expect(a).toHaveLength(2);

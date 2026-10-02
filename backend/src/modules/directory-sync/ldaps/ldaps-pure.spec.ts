@@ -35,7 +35,7 @@ describe('LDAPS helpers (paket 1.8)', () => {
     expect(parseDistinguishedName(dn)[0]).toEqual({ type: 'CN', value: 'Anić, Ana' });
     expect(organizationalUnitPathFromDistinguishedName(dn)).toBe('/Korisnici/ED Sarajevo/Visoko');
     expect(parentDistinguishedName(dn)).toBe('OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=example,DC=com');
-    expect(isDistinguishedNameWithin(dn, 'ou=korisnici, dc=EPBIH, dc=ba')).toBe(true);
+    expect(isDistinguishedNameWithin(dn, 'ou=korisnici, dc=EXAMPLE, dc=com')).toBe(true);
     expect(isDistinguishedNameWithin('CN=x,OU=Grupe,DC=example,DC=com', base)).toBe(false);
     expect(organizationalUnitPathFromDistinguishedName('DC=example,DC=com')).toBeNull();
   });
@@ -53,7 +53,7 @@ describe('LDAPS helpers (paket 1.8)', () => {
   it('maps a user entry and detects disabled accounts', () => {
     const user = mapLdapsUserEntry({
       distinguishedName: 'CN=Ana,OU=Visoko,OU=Korisnici,DC=example,DC=com',
-      mail: 'Ana.Anic@EPBIH.ba',
+      mail: 'Ana.Anic@example.com',
       givenName: 'Ana',
       sn: 'Anić',
       userAccountControl: '514',

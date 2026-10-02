@@ -5,7 +5,7 @@ import { isDescendantDistinguishedName } from './is-descendant-distinguished-nam
 describe('normalizeDistinguishedName', () => {
   it('canonicalizes LDAP DN attribute types and spacing', () => {
     expect(
-      normalizeDistinguishedName(' ou=Korisnici , dc=example , dc=ba '),
+      normalizeDistinguishedName(' ou=Korisnici , dc=example , dc=com '),
     ).toBe('OU=Korisnici,DC=example,DC=com');
   });
 

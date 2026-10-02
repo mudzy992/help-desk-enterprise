@@ -9,7 +9,7 @@ const restricted = {
 
 describe('isAllowedNotificationEmailAddress', () => {
   it('restricted: allows every configured internal domain, case-insensitively', () => {
-    expect(isAllowedNotificationEmailAddress('Agent.IT@EPBIH.BA', restricted)).toBe(true);
+    expect(isAllowedNotificationEmailAddress('Agent.IT@EXAMPLE.COM', restricted)).toBe(true);
     expect(isAllowedNotificationEmailAddress('ops@ep-grupa.ba', restricted)).toBe(true);
   });
 

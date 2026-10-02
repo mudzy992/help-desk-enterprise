@@ -46,7 +46,7 @@ describe('composeTicketEmail', () => {
   it('keeps the Message-ID stable per event and recipient', () => {
     expect(compose().messageId).toBe(compose().messageId);
     expect(compose(undefined, 'u2').messageId).not.toBe(compose().messageId);
-    expect(compose().messageId).toMatch(/^<[0-9a-f]{32}@example\.ba>$/);
+    expect(compose().messageId).toMatch(/^<[0-9a-f]{32}@example\.com>$/);
   });
 
   it('sets Reply-To only in the shared mailbox mode', () => {

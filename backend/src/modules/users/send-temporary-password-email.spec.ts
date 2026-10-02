@@ -24,7 +24,7 @@ function send(toAddress: string) {
 describe('sendTemporaryPasswordEmail recipient policy', () => {
   it('restricted delivery: an address outside the policy is not e-mailed (the UI shows the password)', async () => {
     channel = createEmailChannelTestConfiguration({ internalOnly: true, internalDomains: ['example.com'] });
-    const { result, mailTransport } = send('e2e.user@example.com');
+    const { result, mailTransport } = send('e2e.user@example.org');
     await expect(result).resolves.toBe(false);
     expect(mailTransport.send).not.toHaveBeenCalled();
   });
