@@ -1,4 +1,4 @@
-# Fazni plan nadogradnje EP·HelpDesk — 2026
+# Fazni plan nadogradnje Service Desk — 2026
 
 Osnova: `docs/PROJEKTNI-ZADATAK-GAP-2026-09-25.md` (audit usklađenosti) i odluke vlasnika:
 
@@ -224,7 +224,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
   dokumentacija); neutralni naziv proizvoda „Service Desk“; potpuno preimenovanje tehničkih identifikatora i na
   stagingu; CI provjera protiv povratka.
 
-### 4.1a Preostale skraćenice klijenta (dopuna audita)  · ~0,75 RD · dizajn: `modules/4.1a-skracenice-klijenta.md` · čeka odobrenje
+### 4.1a Preostale skraćenice klijenta (dopuna audita)  · ~0,75 RD · dizajn: `modules/4.1a-skracenice-klijenta.md` · ✅ implementirano 2026-10-02 (B1–B4; provjera na stagingu uz prvi deploy)
 - Popis oblika iz 4.1 nije bio potpun: ostale su kratke oznake klijenta, njegove druge domene i oznaka marke sa srednjom
   tačkom, ukupno 22 fajla (u radnom kodu jedno e-mail zaglavlje i jedan ključ sessionStorage-a). Zamjene, proširenje CI
   provjere i test same provjere.
