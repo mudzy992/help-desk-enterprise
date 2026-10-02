@@ -6,7 +6,7 @@
  */
 export const heartbeatIntervalMilliseconds = 60_000;
 export const activityWriteThrottleMilliseconds = 10_000;
-export const activityStorageKey = "ep-helpdesk.timeActivityAt";
+export const activityStorageKey = "service-desk.timeActivityAt";
 
 export type IdleInput = {
   readonly now: number;

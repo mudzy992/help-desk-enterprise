@@ -9,7 +9,9 @@ export const redisConstants = {
   },
   defaults: {
     port: 6379,
-    keyPrefix: 'ephelpdesk',
-    queuePrefix: 'bull:ephelpdesk',
+    // Paket 4.1: neutral defaults. Existing installations set REDIS_KEY_PREFIX /
+    // QUEUE_PREFIX explicitly (verified on staging), so they keep their keys.
+    keyPrefix: 'servicedesk',
+    queuePrefix: 'bull:servicedesk',
   },
 } as const;

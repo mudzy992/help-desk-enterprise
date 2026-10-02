@@ -4,7 +4,7 @@ export type Locale = (typeof supportedLocales)[number];
 
 export const defaultLocale: Locale = "bs";
 export const fallbackLocale: Locale = "en";
-export const localeStorageKey = "ephelpdesk.locale";
+export const localeStorageKey = "service-desk.locale";
 
 const localeSet = new Set<string>(supportedLocales);
 

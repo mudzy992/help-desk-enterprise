@@ -15,16 +15,36 @@
     -->
     <script>
       (function () {
+        // Paket 4.1: one-off move of the old ep-helpdesk.* keys (mirrors
+        // src/lib/storage/legacy-storage-keys.ts); runs before anything reads them.
         try {
-          var design = window.localStorage.getItem("ep-helpdesk.theme.design");
+          var legacy = [
+            ["ep-helpdesk.theme.design", "service-desk.theme.design"],
+            ["ep-helpdesk.theme.mode", "service-desk.theme.mode"],
+            ["ep-helpdesk.theme.accent", "service-desk.theme.accent"],
+            ["ep-helpdesk.session", "service-desk.session"],
+            ["ep-helpdesk.timeActivityAt", "service-desk.timeActivityAt"],
+            ["ephelpdesk.locale", "service-desk.locale"]
+          ];
+          for (var i = 0; i < legacy.length; i++) {
+            var value = window.localStorage.getItem(legacy[i][0]);
+            if (value === null) continue;
+            if (window.localStorage.getItem(legacy[i][1]) === null) window.localStorage.setItem(legacy[i][1], value);
+            window.localStorage.removeItem(legacy[i][0]);
+          }
+        } catch (error) {}
+      })();
+      (function () {
+        try {
+          var design = window.localStorage.getItem("service-desk.theme.design");
           if (design !== "classic" && design !== "pulse") {
             design = "pulse";
           }
-          var mode = window.localStorage.getItem("ep-helpdesk.theme.mode");
+          var mode = window.localStorage.getItem("service-desk.theme.mode");
           if (mode !== "light" && mode !== "dark" && mode !== "system") {
             mode = "system";
           }
-          var accent = window.localStorage.getItem("ep-helpdesk.theme.accent");
+          var accent = window.localStorage.getItem("service-desk.theme.accent");
           if (
             accent !== "indigo" &&
             accent !== "teal" &&

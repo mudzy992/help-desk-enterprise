@@ -92,6 +92,6 @@ export async function expectNoSeriousA11yViolations(
 /** Forces the colour mode before the app boots (theme storage contract). */
 export async function useColourMode(page: Page, mode: 'light' | 'dark'): Promise<void> {
   await page.addInitScript((value) => {
-    window.localStorage.setItem('ep-helpdesk.theme.mode', value);
+    window.localStorage.setItem('service-desk.theme.mode', value);
   }, mode);
 }

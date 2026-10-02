@@ -20,9 +20,9 @@ export const databasePoolConstants = {
      */
     statementTimeoutMs: 5_000,
     /** Identifies the API in `pg_stat_activity.application_name`. */
-    applicationName: 'ep-helpdesk-api',
+    applicationName: 'service-desk-api',
     /** Worker jobs (SLA scan, retention) may legitimately run longer. */
-    workerApplicationName: 'ep-helpdesk-worker',
+    workerApplicationName: 'service-desk-worker',
     workerStatementTimeoutMs: 30_000,
   },
   /** Hard ceilings so a typo in env cannot exhaust the database. */

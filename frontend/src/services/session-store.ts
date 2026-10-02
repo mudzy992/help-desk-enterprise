@@ -10,7 +10,7 @@ export type StoredSession = {
   readonly principal: SessionPrincipal;
 };
 
-const sessionStorageKey = "ep-helpdesk.session";
+const sessionStorageKey = "service-desk.session";
 
 let cachedRaw: string | null | undefined;
 let cachedSession: StoredSession | null = null;

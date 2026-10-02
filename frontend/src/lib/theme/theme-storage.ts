@@ -24,9 +24,9 @@ export type ThemeMode = "light" | "dark" | "system";
 export type ThemeAccent = "indigo" | "teal" | "rose" | "cyan" | "amber" | "orange";
 export type ResolvedColorMode = "light" | "dark";
 
-export const THEME_DESIGN_STORAGE_KEY = "ep-helpdesk.theme.design";
-export const THEME_MODE_STORAGE_KEY = "ep-helpdesk.theme.mode";
-export const THEME_ACCENT_STORAGE_KEY = "ep-helpdesk.theme.accent";
+export const THEME_DESIGN_STORAGE_KEY = "service-desk.theme.design";
+export const THEME_MODE_STORAGE_KEY = "service-desk.theme.mode";
+export const THEME_ACCENT_STORAGE_KEY = "service-desk.theme.accent";
 
 /**
  * Rollout switch. Pilot default potvrđen 2026-09-24: `pulse` + `indigo`

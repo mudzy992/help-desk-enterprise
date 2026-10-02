@@ -7,6 +7,7 @@ import { App } from "@/app/app";
 import { initializeI18n } from "@/i18n/config";
 import { reloadForChunkError } from "@/lib/app/chunk-reload";
 import { startBranding } from "@/lib/branding/branding-store";
+import { migrateLegacyStorageKeys } from "@/lib/storage/legacy-storage-keys";
 import "@/index.css";
 
 // Vite reports a failed modulepreload (stale build after a redeploy) here.
@@ -20,6 +21,8 @@ if (!rootElement) {
   throw new Error("Root element was not found");
 }
 
+// Normally already done by the pre-paint script in index.html; kept for safety.
+if (typeof window !== "undefined") migrateLegacyStorageKeys(window.localStorage);
 startBranding();
 
 void initializeI18n().then(() => {

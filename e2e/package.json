@@ -1,5 +1,5 @@
 {
-  "name": "ephelpdesk-e2e",
+  "name": "service-desk-e2e",
   "version": "0.0.1",
   "private": true,
   "scripts": {
