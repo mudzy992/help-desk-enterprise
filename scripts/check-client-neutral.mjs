@@ -2,9 +2,10 @@
 // Guards the multi-client rule (Paket 4.1 §9): no tracked file may carry the
 // name, domain or abbreviation of a single client. Exceptions are limited to
 // data that must stay readable forever (legacy KDF labels, applied migrations),
-// the client's original SRS files and the audit design itself. The localStorage
-// migration table is allowed line by line: a legacy key is only accepted when
-// the same line also names its neutral `service-desk.*` replacement.
+// the client's original SRS files, the audit design itself and, until A9 is
+// closed, the staging cutover handoff. The localStorage migration table is
+// allowed line by line: a legacy key is only accepted when the same line also
+// names its neutral `service-desk.*` replacement.
 import { execFileSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,10 @@ const excludedPathspecs = [
   ":(exclude)EPHELPDESK.pdf",
   ":(exclude)EPHELPDESK.docx",
   ":(exclude)docs/plans/modules/4.1-audit-vise-klijenata.md",
+  // Temporary (Paket 4.1, A9): the staging cutover handoff has to quote the old
+  // Redis user, key prefixes and backup directory verbatim, because its commands
+  // depend on them. Remove this line together with the file when A9 is closed.
+  ":(exclude)docs/plans/HANDOFF-4.1-A9.md",
   ":(exclude)scripts/check-client-neutral.mjs",
 ];
 // References to the SRS files by name are fine; the files themselves are kept.
