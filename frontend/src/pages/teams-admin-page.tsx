@@ -156,7 +156,7 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
             </Button>
           }
         />
-        <div className="px-4 pb-4">
+        <div className="px-4 py-3.5">
           {fact(
             t("teamsAdmin.status.mode"),
             <Badge tone={status.mode === "off" ? "neutral" : status.mode === "live" ? "success" : "info"} dot>
@@ -195,7 +195,7 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
               </Button>
             }
           />
-          <div className="px-4 pb-4">
+          <div className="px-4 py-3.5">
             {readiness === null ? (
               <p className={hintClassName}>{t("teamsAdmin.readiness.notRun")}</p>
             ) : (
@@ -224,7 +224,7 @@ function StatusTab({ status, onRefresh }: { readonly status: TeamsStatus; readon
         </Card>
         <Card>
           <CardHeader title={t("teamsAdmin.package.title")} subtitle={t("teamsAdmin.package.subtitle")} />
-          <div className="flex flex-wrap gap-2 px-4 pb-4">
+          <div className="flex flex-wrap gap-2 px-4 py-3.5">
             <Button size="xs" variant="outline" disabled={busy} onClick={() => void runPackage("bs")}>
               <Download /> {t("teamsAdmin.package.downloadBs")}
             </Button>
@@ -459,7 +459,7 @@ function SimulatorTab() {
       </Card>
       <Card>
         <CardHeader title={t("teamsAdmin.simulator.transcript")} subtitle={lastStatus === null ? undefined : t("teamsAdmin.simulator.lastStatus", { status: lastStatus })} />
-        <div className="max-h-[60vh] space-y-3 overflow-y-auto px-4 pb-3" aria-live="polite">
+        <div className="max-h-[60vh] space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
           {messages.length === 0 ? <p className={hintClassName}>{t("teamsAdmin.simulator.empty")}</p> : null}
           {messages.map((message) => {
             const inbound = message.direction === "INBOUND";
