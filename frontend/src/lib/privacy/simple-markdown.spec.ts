@@ -18,20 +18,20 @@ describe("parseMarkdown", () => {
   });
 
   it("parses bold, italic, code and links", () => {
-    expect(parseInline("**Rukovalac:** _EP_ `x` [web](https://ep.ba)")).toEqual([
+    expect(parseInline("**Rukovalac:** _Org_ `x` [web](https://example.com)")).toEqual([
       { kind: "strong", children: [{ kind: "text", text: "Rukovalac:" }] },
       { kind: "text", text: " " },
-      { kind: "em", children: [{ kind: "text", text: "EP" }] },
+      { kind: "em", children: [{ kind: "text", text: "Org" }] },
       { kind: "text", text: " " },
       { kind: "code", text: "x" },
       { kind: "text", text: " " },
-      { kind: "link", href: "https://ep.ba", children: [{ kind: "text", text: "web" }] },
+      { kind: "link", href: "https://example.com", children: [{ kind: "text", text: "web" }] },
     ]);
   });
 
   it("drops unsafe link targets but keeps their text", () => {
     expect(parseInline("[klik](javascript:alert(1))")).toEqual([{ kind: "text", text: "klik" }, { kind: "text", text: ")" }]);
-    expect(safeHref("mailto:dpo@ep.ba")).toBe("mailto:dpo@ep.ba");
+    expect(safeHref("mailto:dpo@example.com")).toBe("mailto:dpo@example.com");
     expect(safeHref("data:text/html,x")).toBeNull();
   });
 

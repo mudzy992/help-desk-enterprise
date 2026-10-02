@@ -109,7 +109,7 @@ export function createConfigSnapshotFixture(
     },
     references: {
       organizationalUnits: [
-        { id: 'ou-root', parentId: null, ouPath: '/EP' },
+        { id: 'ou-root', parentId: null, ouPath: '/Org' },
       ],
       groups: [{ id: 'group-it' }],
     },

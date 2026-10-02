@@ -13,7 +13,7 @@ import { parseConfigPackageMappings } from './parse-import-options';
 import { resolvePortableConfig } from './resolve-portable-config';
 
 const sourceIndex: ConfigReferenceIndex = {
-  organizationalUnits: [{ id: 'ou-root', key: '/EP' }],
+  organizationalUnits: [{ id: 'ou-root', key: '/Org' }],
   groups: [{ id: 'group-it', key: 'IT' }],
   services: [{ id: 'service-vpn', key: 'vpn' }],
   serviceCategories: [{ id: 'cat-1', key: 'network' }],
@@ -49,12 +49,12 @@ function productionSnapshot(): ConfigSnapshot {
       })),
     },
     forms: { versions: base.forms.versions.map((form) => ({ ...form, id: 'p-form', serviceId: 'p-vpn' })) },
-    references: { organizationalUnits: [{ id: 'p-ou', parentId: null, ouPath: '/EP' }], groups: [{ id: 'p-it' }] },
+    references: { organizationalUnits: [{ id: 'p-ou', parentId: null, ouPath: '/Org' }], groups: [{ id: 'p-it' }] },
   };
 }
 
 const productionIndex: ConfigReferenceIndex = {
-  organizationalUnits: [{ id: 'p-ou', key: '/EP' }],
+  organizationalUnits: [{ id: 'p-ou', key: '/Org' }],
   groups: [{ id: 'p-it', key: 'IT' }],
   services: [{ id: 'p-vpn', key: 'vpn' }],
   serviceCategories: [{ id: 'p-cat', key: 'network' }],
@@ -98,7 +98,7 @@ describe('config package (Paket 2.9 K4)', () => {
     });
     const without = buildPortableConfig(snapshot, sourceIndex, { includeEnvironmentBound: false, isSecret });
     expect(without.settings).toEqual({ 'private.ticket.a': 1 });
-    expect(without.routing.rules).toEqual([{ originUnit: '/EP', service: 'vpn', group: 'IT' }]);
+    expect(without.routing.rules).toEqual([{ originUnit: '/Org', service: 'vpn', group: 'IT' }]);
     expect(without.catalog.services[0]).toMatchObject({ slug: 'vpn', category: 'network', slaProfile: 'INCIDENT' });
     expect(without.forms.versions[0]).toMatchObject({ service: 'vpn', version: 1 });
     expect(JSON.stringify(without)).not.toMatch(/service-vpn|group-it|ou-root|cal-1|profile-1|cat-1/);

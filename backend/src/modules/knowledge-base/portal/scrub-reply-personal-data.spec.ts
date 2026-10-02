@@ -7,7 +7,7 @@ const people = [
 describe('scrubReplyPersonalData (K1c)', () => {
   it('replaces e-mails, names, logins, IPs and phones with per-kind counts', () => {
     const { text, counts } = scrubReplyPersonalData(
-      'Poštovana Amra Hodžić, korisnik EP\\ahodzic (amra.hodzic@example.com, podrska@example.com) ' +
+      'Poštovana Amra Hodžić, korisnik CORP\\ahodzic (amra.hodzic@example.com, podrska@example.com) ' +
         'na 10.20.30.40 neka nazove +387 61 123 456 ili 033/123-456.',
       people,
       replyScrubLabels.bs,

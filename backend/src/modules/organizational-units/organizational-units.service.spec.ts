@@ -65,9 +65,9 @@ describe('OrganizationalUnitsService CRUD', () => {
       distinguishedName: 'OU=Korisnici,DC=example,DC=com',
       company: 'Primjer d.o.o.',
     });
-    const updated = await service.update(created.id, { name: 'Korisnici EP' });
-    expect(updated.name).toBe('Korisnici EP');
-    expect(updated.ouPath).toBe('/Korisnici EP');
+    const updated = await service.update(created.id, { name: 'Korisnici Org' });
+    expect(updated.name).toBe('Korisnici Org');
+    expect(updated.ouPath).toBe('/Korisnici Org');
     expect(updated.company).toBe('Primjer d.o.o.');
   });
 
