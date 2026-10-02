@@ -63,7 +63,7 @@ export function SettingsPage({ embedded = false }: SettingsPageProperties) {
                 entries={registry.entries}
                 canWrite={canWrite}
                 pendingKey={registry.pendingKey}
-                onSave={registry.save}
+                onSaveMany={registry.saveMany}
               />
               <AuthProviderSettingsCard
                 entries={registry.entries}

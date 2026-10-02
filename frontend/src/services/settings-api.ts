@@ -57,6 +57,17 @@ export function updateSetting(input: {
   });
 }
 
+/** Paket 4.1: several keys under one reason, saved all-or-nothing. */
+export function updateSettings(input: {
+  readonly entries: readonly { readonly key: string; readonly value: string | number | boolean }[];
+  readonly reason: string;
+}): Promise<void> {
+  return apiRequest("/settings/batch", {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
 export const emailChannelSettingKeys = {
   channelEnabled: "private.notifications.email.enabled",
   templatesEnabled: "private.notifications.templates.enabled",

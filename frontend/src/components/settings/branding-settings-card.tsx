@@ -11,7 +11,6 @@ import { ApiError } from "@/services/api";
 import { readLogoFile, type LogoReadError } from "@/lib/branding/read-logo-file";
 import { brandingSettingKeys } from "@/lib/settings/is-featured-setting-key";
 import { readStringSetting } from "@/lib/settings/read-setting-entry";
-import type { SettingsSaveInput } from "@/lib/settings/use-settings-registry";
 import type { SettingRegistryEntry } from "@/services/settings-api";
 
 type BrandingField = keyof typeof brandingSettingKeys;
@@ -24,14 +23,17 @@ interface BrandingSettingsCardProperties {
   readonly entries: readonly SettingRegistryEntry[];
   readonly canWrite: boolean;
   readonly pendingKey: string | null;
-  readonly onSave: (input: SettingsSaveInput) => Promise<void>;
+  readonly onSaveMany: (input: {
+    readonly entries: readonly { readonly key: string; readonly value: string }[];
+    readonly reason: string;
+  }) => Promise<void>;
 }
 
 /**
  * Paket 4.1 (§3a): the client's product name, tagline, organisation, logo and
  * support contacts, with a live preview. One reason covers all changed keys.
  */
-export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: BrandingSettingsCardProperties) {
+export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSaveMany }: BrandingSettingsCardProperties) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -78,9 +80,11 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: 
   const save = async (reason: string) => {
     setSaving(true);
     try {
-      for (const field of changed) {
-        await onSave({ key: brandingSettingKeys[field], value: draft[field].trim(), reason });
-      }
+      // One all-or-nothing request: either every changed field is saved or none.
+      await onSaveMany({
+        entries: changed.map((field) => ({ key: brandingSettingKeys[field], value: draft[field].trim() })),
+        reason,
+      });
       setEdits({});
       setConfirming(false);
       toast({ tone: "success", title: t("settings.branding.saved") });

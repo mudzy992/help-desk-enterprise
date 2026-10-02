@@ -8,6 +8,7 @@ import {
 import {
   getSettingsRegistry,
   updateSetting,
+  updateSettings,
   type SettingRegistryEntry,
 } from "@/services/settings-api";
 
@@ -59,6 +60,25 @@ export function useSettingsRegistry() {
     }
   }, [reload]);
 
+  /** Paket 4.1: one request, one reload - the card never re-renders mid-save. */
+  const saveMany = useCallback(
+    async (input: { readonly entries: readonly { readonly key: string; readonly value: string | number | boolean }[]; readonly reason: string }) => {
+      setPendingKey(input.entries[0]?.key ?? null);
+      setErrorKey(null);
+      try {
+        await updateSettings(input);
+        bumpSettingsGeneration();
+        await reload();
+      } catch (error) {
+        setErrorKey(mapApiError(error));
+        throw error;
+      } finally {
+        setPendingKey(null);
+      }
+    },
+    [reload],
+  );
+
   return {
     entries,
     isLoading,
@@ -66,5 +86,6 @@ export function useSettingsRegistry() {
     errorKey,
     reload,
     save,
+    saveMany,
   };
 }

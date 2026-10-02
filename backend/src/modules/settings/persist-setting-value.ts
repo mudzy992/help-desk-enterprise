@@ -22,46 +22,72 @@ export async function persistSettingValue(
   value: SettingValue,
   mutation: SettingsMutationInput,
 ): Promise<void> {
+  await persistSettingValues(prisma, [{ definition, value }], mutation);
+}
+
+/**
+ * Paket 4.1: several keys under one reason, all-or-nothing. Every value is
+ * validated before anything is written, then all rows and change-log entries
+ * go into a single transaction (one change-log entry per key, as before).
+ */
+export async function persistSettingValues(
+  prisma: PrismaService,
+  items: readonly { readonly definition: SettingDefinition; readonly value: SettingValue }[],
+  mutation: SettingsMutationInput,
+): Promise<readonly SettingValue[]> {
   const reason = readRequiredReason(mutation.reason);
-  const validated = validateSettingValue(definition, value);
-  const persistence = mapVisibilityToPersistence(definition.visibility);
+  const validated = items.map((item) => validateSettingValue(item.definition, item.value));
   await prisma.$transaction(async (transaction) => {
-    const stored = await transaction.appSetting.findUnique({
-      where: { key: definition.key },
-      select: { value: true },
-    });
-    const beforeValue =
-      stored === null
-        ? getSettingDefaultValue(definition)
-        : validateSettingValue(definition, stored.value);
-    await transaction.appSetting.upsert({
-      where: { key: definition.key },
-      create: {
-        key: definition.key,
-        value: validated,
-        scope: persistence.scope,
-        isSecret: persistence.isSecret,
-        description: definition.description,
-      },
-      update: {
-        value: validated,
-        scope: persistence.scope,
-        isSecret: persistence.isSecret,
-        description: definition.description,
-      },
-    });
-    await recordChangeLog(transaction as unknown as ChangeLogPrismaClient, {
-      entityType: changeLogEntityTypes.setting,
-      entityId: definition.key,
-      reason,
-      actorUserId: mutation.actorUserId,
-      diff: buildSettingChangeLogDiff({
-        definition,
-        action: stored === null ? 'create' : 'update',
-        beforeValue,
-        afterValue: validated,
-      }),
-    });
+    for (const [index, { definition }] of items.entries()) {
+      await writeSetting(transaction, definition, validated[index], reason, mutation.actorUserId);
+    }
+  });
+  return validated;
+}
+
+async function writeSetting(
+  transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+  definition: SettingDefinition,
+  validated: SettingValue,
+  reason: string,
+  actorUserId: string | null,
+): Promise<void> {
+  const persistence = mapVisibilityToPersistence(definition.visibility);
+  const stored = await transaction.appSetting.findUnique({
+    where: { key: definition.key },
+    select: { value: true },
+  });
+  const beforeValue =
+    stored === null
+      ? getSettingDefaultValue(definition)
+      : validateSettingValue(definition, stored.value);
+  await transaction.appSetting.upsert({
+    where: { key: definition.key },
+    create: {
+      key: definition.key,
+      value: validated,
+      scope: persistence.scope,
+      isSecret: persistence.isSecret,
+      description: definition.description,
+    },
+    update: {
+      value: validated,
+      scope: persistence.scope,
+      isSecret: persistence.isSecret,
+      description: definition.description,
+    },
+  });
+  await recordChangeLog(transaction as unknown as ChangeLogPrismaClient, {
+    entityType: changeLogEntityTypes.setting,
+    entityId: definition.key,
+    reason,
+    actorUserId,
+    diff: buildSettingChangeLogDiff({
+      definition,
+      action: stored === null ? 'create' : 'update',
+      beforeValue,
+      afterValue: validated,
+    }),
   });
 }
 

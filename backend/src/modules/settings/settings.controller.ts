@@ -1,4 +1,5 @@
 import {
+import { UpdateSettingsBatchDto } from './dto/update-settings-batch.dto';
   Body,
   Controller,
   Get,
@@ -53,6 +54,22 @@ export class SettingsController {
   async getEmailChannelSettings(): Promise<EmailChannelSettingsResponse> {
     try {
       return await readEmailChannelSettings(this.settingsService);
+    } catch (error) {
+      throw mapSettingsError(error);
+    }
+  }
+
+  @Put('batch')
+  @RequirePermissions(permissionKeys.settingsWrite)
+  async updateSettingsBatch(
+    @Body() body: UpdateSettingsBatchDto,
+    @Req() request: AuthenticatedHttpRequest,
+  ): Promise<void> {
+    try {
+      await this.settingsService.setSettingValues(
+        body.entries.map((entry) => ({ key: entry.key, value: entry.value })),
+        { reason: body.reason, actorUserId: readSettingsActorUserId(request) },
+      );
     } catch (error) {
       throw mapSettingsError(error);
     }

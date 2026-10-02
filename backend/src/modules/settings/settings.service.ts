@@ -1,7 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { listSettingsRegistry } from './list-settings-registry';
-import { persistSettingValue } from './persist-setting-value';
+import { persistSettingValue, persistSettingValues } from './persist-setting-value';
 import { SettingsError } from './settings.error';
 import { SETTINGS_REGISTRY } from './settings.registry-token';
 import {
@@ -86,6 +86,29 @@ export class SettingsService {
     const realtime = toSettingsRealtimePayload(definition);
     if (realtime !== null) {
       this.settingsRealtimeHub?.publish(realtime);
+    }
+  }
+
+  /** Paket 4.1: several keys, one reason, one transaction (all-or-nothing). */
+  async setSettingValues(
+    entries: readonly { readonly key: string; readonly value: SettingValue }[],
+    mutation: SettingsMutationInput,
+  ): Promise<void> {
+    const keys = new Set(entries.map((entry) => entry.key));
+    if (entries.length === 0 || keys.size !== entries.length) {
+      throw new SettingsError('Batch must contain distinct keys');
+    }
+    const items = entries.map((entry) => ({ definition: this.registry.requireDefinition(entry.key), value: entry.value }));
+    const validated = await persistSettingValues(this.prisma, items, mutation);
+    const published = new Set<string>();
+    for (const [index, { definition }] of items.entries()) {
+      rememberSettingValue(definition.key, validated[index]);
+      const realtime = toSettingsRealtimePayload(definition);
+      const signature = realtime === null ? null : JSON.stringify(realtime);
+      if (realtime !== null && signature !== null && !published.has(signature)) {
+        published.add(signature);
+        this.settingsRealtimeHub?.publish(realtime);
+      }
     }
   }
 
