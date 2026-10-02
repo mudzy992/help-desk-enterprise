@@ -93,7 +93,7 @@ Nema matrix foldera za ovaj runbook. Config snapshot API: `.cursor/docs/matrices
 Automatizovani koraci iz ovog runbooka su u `ops/dr/`:
 - `backup-uploads.sh` — dnevna arhiva uploads volumena (cron na hostu);
 - `export-config.sh` — config snapshot „DR backup YYYY-MM-DD";
-- `restore-drill.sh` — restore u zasebnu bazu `servicedesk-drill` i volumen `ephd-drill-uploads`;
+- `restore-drill.sh` — restore u zasebnu bazu `servicedesk-drill` i volumen `servicedesk-drill-uploads`;
 - `verify-restore.mjs` — četiri provjere (login, tiket, stari prilog, audit export) i JSON za zapisnik.
 
 Postupak mjesečnog drilla s privremenim Coolify stackom i obrazac zapisnika su u `docs/ops/test-okruzenje-1.8.md` (§4 i §5).

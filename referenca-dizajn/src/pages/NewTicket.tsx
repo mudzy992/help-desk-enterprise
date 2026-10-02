@@ -95,7 +95,7 @@ export function NewTicketPage() {
             </span>
             <h1 className="text-[18px] font-semibold text-text">Tiket je uspješno kreiran</h1>
             <p className="text-[13px] text-muted">
-              Broj tiketa: <span className="tnum font-semibold text-[#7FA8F5]">EP-1046</span> · potvrda poslana email-om
+              Broj tiketa: <span className="tnum font-semibold text-[#7FA8F5]">HD-1046</span> · potvrda poslana email-om
             </p>
           </div>
           <div className="space-y-3 px-8 py-6 text-[12.5px]">
@@ -120,7 +120,7 @@ export function NewTicketPage() {
             </div>
           </div>
           <div className="flex items-center justify-center gap-2 border-t border-border/70 px-8 py-5">
-            <Button variant="primary" onClick={() => go({ name: "ticket", id: "EP-1043" })}>
+            <Button variant="primary" onClick={() => go({ name: "ticket", id: "HD-1043" })}>
               Otvori tiket
             </Button>
             <Button variant="outline" onClick={() => go({ name: "dashboard" })}>
