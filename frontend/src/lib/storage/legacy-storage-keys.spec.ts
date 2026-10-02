@@ -13,15 +13,27 @@ function memoryStorage(initial: Record<string, string>) {
   };
 }
 
+function legacyKeyOf(current: string): string {
+  const pair = legacyStorageKeys.find(([, next]) => next === current);
+  if (!pair) throw new Error(`no legacy key for ${current}`);
+  return pair[0];
+}
+
 describe("migrateLegacyStorageKeys", () => {
   it("moves old values to the new keys and removes the old ones", () => {
-    const storage = memoryStorage({ "ep-helpdesk.theme.mode": "dark", "ephelpdesk.locale": "en" });
+    const storage = memoryStorage({
+      [legacyKeyOf("service-desk.theme.mode")]: "dark",
+      [legacyKeyOf("service-desk.locale")]: "en",
+    });
     migrateLegacyStorageKeys(storage);
     expect(Object.fromEntries(storage.data)).toEqual({ "service-desk.theme.mode": "dark", "service-desk.locale": "en" });
   });
 
   it("never overwrites a value already stored under the new key", () => {
-    const storage = memoryStorage({ "ep-helpdesk.theme.mode": "dark", "service-desk.theme.mode": "light" });
+    const storage = memoryStorage({
+      [legacyKeyOf("service-desk.theme.mode")]: "dark",
+      "service-desk.theme.mode": "light",
+    });
     migrateLegacyStorageKeys(storage);
     expect(Object.fromEntries(storage.data)).toEqual({ "service-desk.theme.mode": "light" });
   });

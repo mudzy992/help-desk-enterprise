@@ -50,6 +50,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: Check tracked files are client-neutral (Paket 4.1 §9)
+        run: node ../scripts/check-client-neutral.mjs
       - name: Check .env.example is authoritative (Paket 4.1 §7a)
         run: node ../scripts/check-env-example.mjs
       - name: Check ticket screens for raw identifiers
