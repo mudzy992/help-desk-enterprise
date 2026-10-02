@@ -31,13 +31,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ephelpdesk
-          POSTGRES_PASSWORD: ephelpdesk
-          POSTGRES_DB: ephelpdesk
+          POSTGRES_USER: servicedesk
+          POSTGRES_PASSWORD: servicedesk
+          POSTGRES_DB: servicedesk
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ephelpdesk"
+          --health-cmd "pg_isready -U servicedesk"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -51,12 +51,12 @@ jobs:
           --health-timeout 5s
           --health-retries 20
     env:
-      DATABASE_URL: postgresql://ephelpdesk:ephelpdesk@127.0.0.1:5432/ephelpdesk
+      DATABASE_URL: postgresql://servicedesk:servicedesk@127.0.0.1:5432/servicedesk
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: "6379"
       INSTALL_TOKEN: perf-smoke-install-token-0001
-      REDIS_KEY_PREFIX: ephelpdesk
-      QUEUE_PREFIX: bull:ephelpdesk
+      REDIS_KEY_PREFIX: servicedesk
+      QUEUE_PREFIX: bull:servicedesk
       PORT: "10001"
       CORS_ORIGIN: http://127.0.0.1:5173
       # The query-budget tool (plan §4.2, item 2) is OFF in production and ON here.

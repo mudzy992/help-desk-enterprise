@@ -115,7 +115,7 @@ describe('WorkerModule', () => {
   beforeEach(() => {
     process.env.REDIS_HOST = 'redis-core';
     process.env.REDIS_PORT = '6379';
-    process.env.QUEUE_PREFIX = 'bull:ephelpdesk';
+    process.env.QUEUE_PREFIX = 'bull:servicedesk';
   });
 
   it('boots Redis, Prisma, and every scheduled job without HTTP or websocket', async () => {

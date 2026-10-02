@@ -4,20 +4,20 @@ describe('loadRedisConfiguration', () => {
   const validEnvironment = {
     REDIS_HOST: 'redis-core',
     REDIS_PORT: '6379',
-    REDIS_USERNAME: 'ephelpdesk',
+    REDIS_USERNAME: 'servicedesk',
     REDIS_PASSWORD: 'change-me',
-    REDIS_KEY_PREFIX: 'ephelpdesk',
-    QUEUE_PREFIX: 'bull:ephelpdesk',
+    REDIS_KEY_PREFIX: 'servicedesk',
+    QUEUE_PREFIX: 'bull:servicedesk',
   };
 
   it('loads typed configuration from existing Coolify env keys', () => {
     expect(loadRedisConfiguration(validEnvironment)).toEqual({
       host: 'redis-core',
       port: 6379,
-      username: 'ephelpdesk',
+      username: 'servicedesk',
       password: 'change-me',
-      keyPrefix: 'ephelpdesk:',
-      queuePrefix: 'bull:ephelpdesk',
+      keyPrefix: 'servicedesk:',
+      queuePrefix: 'bull:servicedesk',
     });
   });
 
@@ -40,8 +40,8 @@ describe('loadRedisConfiguration', () => {
       port: 6379,
       username: undefined,
       password: undefined,
-      keyPrefix: 'ephelpdesk:',
-      queuePrefix: 'bull:ephelpdesk',
+      keyPrefix: 'servicedesk:',
+      queuePrefix: 'bull:servicedesk',
     });
   });
 
@@ -56,8 +56,8 @@ describe('loadRedisConfiguration', () => {
   it('keeps an explicit trailing colon on REDIS_KEY_PREFIX', () => {
     const configuration = loadRedisConfiguration({
       REDIS_HOST: 'redis-core',
-      REDIS_KEY_PREFIX: 'ephelpdesk:',
+      REDIS_KEY_PREFIX: 'servicedesk:',
     });
-    expect(configuration.keyPrefix).toBe('ephelpdesk:');
+    expect(configuration.keyPrefix).toBe('servicedesk:');
   });
 });

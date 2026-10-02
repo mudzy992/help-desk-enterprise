@@ -5,10 +5,10 @@ describe('createBullMqRootConfiguration', () => {
   const configuration: RedisConfiguration = {
     host: 'redis-core',
     port: 6379,
-    username: 'ephelpdesk',
+    username: 'servicedesk',
     password: 'change-me',
-    keyPrefix: 'ephelpdesk:',
-    queuePrefix: 'bull:ephelpdesk',
+    keyPrefix: 'servicedesk:',
+    queuePrefix: 'bull:servicedesk',
   };
 
   it('builds BullMQ connection options without sharing the app key prefix', () => {
@@ -16,12 +16,12 @@ describe('createBullMqRootConfiguration', () => {
       connection: {
         host: 'redis-core',
         port: 6379,
-        username: 'ephelpdesk',
+        username: 'servicedesk',
         password: 'change-me',
         maxRetriesPerRequest: null,
         lazyConnect: true,
       },
-      prefix: 'bull:ephelpdesk',
+      prefix: 'bull:servicedesk',
     });
   });
 });

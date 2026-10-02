@@ -8,10 +8,10 @@ describe('RedisModule', () => {
   beforeEach(() => {
     process.env.REDIS_HOST = 'redis-core';
     process.env.REDIS_PORT = '6379';
-    process.env.REDIS_USERNAME = 'ephelpdesk';
+    process.env.REDIS_USERNAME = 'servicedesk';
     process.env.REDIS_PASSWORD = 'test-password';
-    process.env.REDIS_KEY_PREFIX = 'ephelpdesk';
-    process.env.QUEUE_PREFIX = 'bull:ephelpdesk';
+    process.env.REDIS_KEY_PREFIX = 'servicedesk';
+    process.env.QUEUE_PREFIX = 'bull:servicedesk';
   });
 
   it('initializes Redis and BullMQ infrastructure without opening a TCP session', async () => {
@@ -23,7 +23,7 @@ describe('RedisModule', () => {
     );
     const redisService = moduleRef.get(RedisService);
     expect(configuration.host).toBe('redis-core');
-    expect(configuration.queuePrefix).toBe('bull:ephelpdesk');
+    expect(configuration.queuePrefix).toBe('bull:servicedesk');
     expect(redisService.getClient().status).toBe('wait');
     await moduleRef.close();
     expect(redisService.getClient().status).toBe('end');

@@ -12,7 +12,7 @@ describe('loadDatabasePoolConfiguration', () => {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 3_000,
       statementTimeoutMillis: 5_000,
-      applicationName: 'ep-helpdesk-api',
+      applicationName: 'service-desk-api',
     });
   });
 
@@ -20,7 +20,7 @@ describe('loadDatabasePoolConfiguration', () => {
     const configuration = loadDatabasePoolConfiguration({}, 'worker');
 
     expect(configuration.statementTimeoutMillis).toBe(30_000);
-    expect(configuration.applicationName).toBe('ep-helpdesk-worker');
+    expect(configuration.applicationName).toBe('service-desk-worker');
     expect(configuration.max).toBe(
       databasePoolConstants.defaults.max,
     );
@@ -39,7 +39,7 @@ describe('loadDatabasePoolConfiguration', () => {
       idleTimeoutMillis: 15_000,
       connectionTimeoutMillis: 1_000,
       statementTimeoutMillis: 9_000,
-      applicationName: 'ep-helpdesk-api',
+      applicationName: 'service-desk-api',
     });
   });
 
@@ -81,13 +81,13 @@ describe('toDatabasePoolConfig', () => {
       DB_POOL_MAX: '12',
     });
 
-    expect(toDatabasePoolConfig('postgresql://localhost:5432/ephelpdesk', configuration))
+    expect(toDatabasePoolConfig('postgresql://localhost:5432/servicedesk', configuration))
       .toEqual({
-        connectionString: 'postgresql://localhost:5432/ephelpdesk',
+        connectionString: 'postgresql://localhost:5432/servicedesk',
         max: 12,
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 3_000,
-        application_name: 'ep-helpdesk-api',
+        application_name: 'service-desk-api',
         options: '-c statement_timeout=5000',
       });
   });

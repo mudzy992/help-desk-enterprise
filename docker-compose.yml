@@ -3,7 +3,7 @@
 # Postgres NIJE ovdje — Coolify Database → DATABASE_URL.
 # Redis: external mreža redis_net, host redis-core.
 # REDIS_USERNAME + REDIS_PASSWORD moraju biti isti na backend i worker,
-# i jednaki ACL useru ephelpdesk iz ops/redis-acl.line (placeholder change-me).
+# i jednaki ACL useru servicedesk iz ops/redis-acl.line (placeholder change-me).
 
 # Postgres je eksterni servis (Coolify Database). Ovaj anchor prosljeđuje pool i
 # timeout-e (plan §1.4) u oba procesa; worker dobija duži statement_timeout jer
@@ -18,10 +18,10 @@ x-database-environment: &database-environment
 x-redis-environment: &redis-environment
   REDIS_HOST: ${REDIS_HOST}
   REDIS_PORT: ${REDIS_PORT:-6379}
-  REDIS_USERNAME: ${REDIS_USERNAME:-ephelpdesk}
+  REDIS_USERNAME: ${REDIS_USERNAME:-servicedesk}
   REDIS_PASSWORD: ${REDIS_PASSWORD}
-  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ephelpdesk}
-  QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:ephelpdesk}
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-servicedesk}
+  QUEUE_PREFIX: ${QUEUE_PREFIX:-bull:servicedesk}
 
 # Paket 1.5: linkovi u e-mailovima. Oba procesa renderuju e-mailove (worker za
 # SLA događaje), pa oba moraju znati javni URL frontenda.

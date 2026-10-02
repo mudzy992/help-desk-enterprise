@@ -21,7 +21,7 @@ jest.mock('./common/prisma/prisma.service', () => ({
 async function compileAppModule() {
   process.env.REDIS_HOST = '127.0.0.1';
   process.env.REDIS_PORT = '6379';
-  process.env.DATABASE_URL = 'postgresql://user:pass@127.0.0.1:5432/ephelpdesk';
+  process.env.DATABASE_URL = 'postgresql://user:pass@127.0.0.1:5432/servicedesk';
   return Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(getQueueToken(integrationQueueName))
     .useValue(createFakeIntegrationQueue())
