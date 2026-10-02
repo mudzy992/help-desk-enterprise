@@ -19,7 +19,7 @@ const open: EdgeExtensionConfiguration = {
   dedupEnabled: true,
   pollingFallbackEnabled: true,
   pollingIntervalSeconds: 90,
-  allowedEmailDomain: 'epbih.ba',
+  allowedEmailDomain: 'example.com',
   chatEnabled: true,
   chatMaxMessagesPerTicket: 50,
   attachmentsEnabled: false,
@@ -34,7 +34,7 @@ describe('evaluateEdgeExtensionAccess', () => {
     expect(
       evaluateEdgeExtensionAccess({
         configuration: open,
-        email: 'user@epbih.ba',
+        email: 'user@example.com',
         extensionVersion: '0.0.1',
       }),
     ).toBe(edgeExtensionDenyReasons.ok);
@@ -44,7 +44,7 @@ describe('evaluateEdgeExtensionAccess', () => {
     expect(
       evaluateEdgeExtensionAccess({
         configuration: { ...open, killSwitchEnabled: true },
-        email: 'user@epbih.ba',
+        email: 'user@example.com',
         extensionVersion: '0.0.1',
       }),
     ).toBe(edgeExtensionDenyReasons.killSwitch);
@@ -64,6 +64,6 @@ describe('evaluateEdgeExtensionAccess', () => {
     expect(isExtensionVersionAllowed('0.0.2', '0.0.1')).toBe(true);
     expect(isExtensionVersionAllowed('0.0.1', '0.0.2')).toBe(false);
     expect(isExtensionVersionAllowed('1.0.0', '')).toBe(true);
-    expect(emailMatchesAllowedDomain('Ana@EPBIH.BA', 'epbih.ba')).toBe(true);
+    expect(emailMatchesAllowedDomain('Ana@EPBIH.BA', 'example.com')).toBe(true);
   });
 });

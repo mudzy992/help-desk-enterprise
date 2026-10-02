@@ -14,11 +14,11 @@ function configuration(overrides: Partial<LdapsSyncConfiguration> = {}): LdapsSy
     enabled: true,
     strategy: 'manual_only',
     connection: {
-      urls: ['ldaps://dc1:636'], bindDn: 'CN=svc,OU=Servis,DC=epbih,DC=ba', bindPassword: 'secret',
+      urls: ['ldaps://dc1:636'], bindDn: 'CN=svc,OU=Servis,DC=example,DC=com', bindPassword: 'secret',
       caCertificatePem: null, connectTimeoutMilliseconds: 1, operationTimeoutMilliseconds: 1,
     },
-    usersBaseDn: 'OU=Korisnici,DC=epbih,DC=ba',
-    groupsBaseDn: 'OU=Grupe,DC=epbih,DC=ba',
+    usersBaseDn: 'OU=Korisnici,DC=example,DC=com',
+    groupsBaseDn: 'OU=Grupe,DC=example,DC=com',
     pageSize: 500,
     userFilter: '(objectClass=user)',
     retryBackoffMilliseconds: 180_000,
@@ -39,7 +39,7 @@ describe('withLdapsSession (paket 1.8)', () => {
     const factory = jest.fn();
     await expect(
       withLdapsSession({
-        configuration: configuration({ usersBaseDn: 'DC=epbih,DC=ba' }),
+        configuration: configuration({ usersBaseDn: 'DC=example,DC=com' }),
         backoff: new DirectoryBackoff(),
         now: () => 0,
         factory,

@@ -51,9 +51,9 @@ const verify = (records: readonly AuditLogRecord[], start?: Parameters<typeof ve
 
 describe('verifyAuditLogChain (paket 2.6: v2, redaction, checkpoints)', () => {
   const mixed: Draft[] = [
-    { metadata: { email: 'amra@epbih.ba' }, version: 1 },
-    { metadata: { email: 'amra@epbih.ba', reason: 'bad_password' }, version: 1 },
-    { metadata: { email: 'amra@epbih.ba' }, version: 2 },
+    { metadata: { email: 'amra@example.com' }, version: 1 },
+    { metadata: { email: 'amra@example.com', reason: 'bad_password' }, version: 1 },
+    { metadata: { email: 'amra@example.com' }, version: 2 },
     { metadata: { recordCount: 3 }, version: 2 },
   ];
 

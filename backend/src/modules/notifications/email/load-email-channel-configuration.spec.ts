@@ -11,7 +11,7 @@ function settings(values: Record<string, unknown>): SettingsService {
 
 const base = {
   [settingKeys.privateSmtpEnabled]: true,
-  [settingKeys.privateSmtpFromAddress]: 'helpdesk@epbih.ba',
+  [settingKeys.privateSmtpFromAddress]: 'helpdesk@example.com',
   [settingKeys.privateSmtpPort]: 2525,
   [settingKeys.privateSmtpTls]: false,
 };
@@ -41,10 +41,10 @@ describe('loadEmailChannelConfiguration — provider (E10)', () => {
       settings({
         ...base,
         [settingKeys.privateSmtpProvider]: 'o365',
-        [settingKeys.privateSmtpHost]: 'mail.epbih.ba',
+        [settingKeys.privateSmtpHost]: 'mail.example.com',
       }),
     );
-    expect(configuration.smtp).toMatchObject({ host: 'mail.epbih.ba', port: 2525, tls: false });
+    expect(configuration.smtp).toMatchObject({ host: 'mail.example.com', port: 2525, tls: false });
   });
 
   it('needs a host for the custom provider', async () => {
@@ -82,12 +82,12 @@ describe('loadEmailChannelConfiguration — presentation', () => {
       settings({
         ...base,
         [settingKeys.privateNotificationsEmailReplyMode]: 'shared_mailbox',
-        [settingKeys.privateNotificationsEmailReplyToAddress]: 'podrska@epbih.ba',
+        [settingKeys.privateNotificationsEmailReplyToAddress]: 'podrska@example.com',
       }),
     );
     expect(presentation).toMatchObject({
       replyMode: 'shared_mailbox',
-      replyToAddress: 'podrska@epbih.ba',
+      replyToAddress: 'podrska@example.com',
     });
   });
 });
@@ -99,8 +99,8 @@ describe('readPublicAppUrl', () => {
   });
 
   it('normalises the URL and rejects anything that is not http(s)', () => {
-    process.env.APP_PUBLIC_URL = 'https://desk.epbih.ba/';
-    expect(readPublicAppUrl()).toBe('https://desk.epbih.ba');
+    process.env.APP_PUBLIC_URL = 'https://desk.example.com/';
+    expect(readPublicAppUrl()).toBe('https://desk.example.com');
     process.env.APP_PUBLIC_URL = 'javascript:alert(1)';
     expect(readPublicAppUrl()).toBeNull();
     process.env.APP_PUBLIC_URL = '';

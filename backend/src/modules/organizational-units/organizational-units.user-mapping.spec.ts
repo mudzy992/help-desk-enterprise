@@ -18,12 +18,12 @@ describe('OrganizationalUnitsService user mapping', () => {
     const first = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     const second = await service.create({
       name: 'Direkcija',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=example,DC=com',
       parentId: first.id,
     });
     seedUser({
@@ -64,7 +64,7 @@ describe('OrganizationalUnitsService user mapping', () => {
     const unit = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     seedUser({
       id: 'user-1',

@@ -12,7 +12,7 @@ const configuration = {
   enabled: true,
   retentionDays: { attachments: 0, ticketContent: 0, audit: 0, sessions: 90, emailDeliveries: 180, requestRegister: 0 },
   exportLinkValidDays: 7,
-  controller: { name: 'JP Elektroprivreda BiH', address: '', dpoName: 'Amra H.', dpoEmail: 'dpo@epbih.ba', purpose: '', legalBasis: '' },
+  controller: { name: 'JP Elektroprivreda BiH', address: '', dpoName: 'Amra H.', dpoEmail: 'dpo@example.com', purpose: '', legalBasis: '' },
   notice: { bs: '', en: '' },
 } as never;
 
@@ -56,7 +56,7 @@ describe('processing record (§8)', () => {
     expect(draft.draft).toBe(true);
     expect(draft.markdown.startsWith('> **NACRT: potvrditi s DPO.**')).toBe(true);
     expect(draft.markdown).toContain('30 dana');
-    expect(draft.markdown).toContain('dpo@epbih.ba');
+    expect(draft.markdown).toContain('dpo@example.com');
   });
 
   it('escapes markdown in admin-entered values', () => {

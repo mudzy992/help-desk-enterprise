@@ -5,13 +5,13 @@ import { isDescendantDistinguishedName } from './is-descendant-distinguished-nam
 describe('normalizeDistinguishedName', () => {
   it('canonicalizes LDAP DN attribute types and spacing', () => {
     expect(
-      normalizeDistinguishedName(' ou=Korisnici , dc=epbih , dc=ba '),
-    ).toBe('OU=Korisnici,DC=epbih,DC=ba');
+      normalizeDistinguishedName(' ou=Korisnici , dc=example , dc=ba '),
+    ).toBe('OU=Korisnici,DC=example,DC=com');
   });
 
   it('rejects malformed distinguished names', () => {
     expect(() => normalizeDistinguishedName('Korisnici')).toThrow(OrganizationalUnitError);
-    expect(() => normalizeDistinguishedName('OU=,DC=epbih,DC=ba')).toThrow(
+    expect(() => normalizeDistinguishedName('OU=,DC=example,DC=com')).toThrow(
       OrganizationalUnitError,
     );
     expect(() => normalizeDistinguishedName('OU=A,,DC=ba')).toThrow(OrganizationalUnitError);
@@ -20,14 +20,14 @@ describe('normalizeDistinguishedName', () => {
   it('detects descendant distinguished names', () => {
     expect(
       isDescendantDistinguishedName({
-        childDistinguishedName: 'OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba',
-        parentDistinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+        childDistinguishedName: 'OU=Direkcija,OU=Korisnici,DC=example,DC=com',
+        parentDistinguishedName: 'OU=Korisnici,DC=example,DC=com',
       }),
     ).toBe(true);
     expect(
       isDescendantDistinguishedName({
-        childDistinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
-        parentDistinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+        childDistinguishedName: 'OU=Korisnici,DC=example,DC=com',
+        parentDistinguishedName: 'OU=Korisnici,DC=example,DC=com',
       }),
     ).toBe(false);
   });

@@ -27,7 +27,7 @@ describe('EnqueueIntegrationJobService', () => {
         type: IntegrationJobType.EMAIL,
         payload: {
           userId: 'user-1',
-          toAddress: 'agent@epbih.ba',
+          toAddress: 'agent@example.com',
           subject: 'Ticket',
           text: 'Body',
           templateKey: 'ticket.created',

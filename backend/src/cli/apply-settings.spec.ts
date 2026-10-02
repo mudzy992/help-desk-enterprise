@@ -11,7 +11,7 @@ describe('planSettings', () => {
   it('validates the 1.8 test settings', () => {
     const plan = planSettings(
       {
-        'private.auth.adLdapsUrlsCsv': 'ldaps://dc1.test.epbih.lab:636',
+        'private.auth.adLdapsUrlsCsv': 'ldaps://dc1.test.example.com:636',
         'private.auth.adBindPassword': 'x',
         'private.auth.adRead.enabled': true,
         'private.auth.adRead.source': 'ldaps',

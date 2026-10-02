@@ -10,7 +10,7 @@ function directoryUser(overrides: Partial<DirectoryUser> = {}): DirectoryUser {
     login: 'agent@example.com',
     email: 'agent@example.com',
     displayName: 'Agent One',
-    distinguishedName: 'CN=Agent One,OU=IT,DC=epbih,DC=ba',
+    distinguishedName: 'CN=Agent One,OU=IT,DC=example,DC=com',
     organizationalUnitPath: null,
     ...overrides,
   };
@@ -128,7 +128,7 @@ describe('materializeDirectoryRead invalidation', () => {
           {
             externalId: 'group-1',
             displayName: 'IT Support',
-            distinguishedName: 'CN=IT,OU=IT,DC=epbih,DC=ba',
+            distinguishedName: 'CN=IT,OU=IT,DC=example,DC=com',
             organizationalUnitPath: '/Korisnici/IT',
           },
         ],

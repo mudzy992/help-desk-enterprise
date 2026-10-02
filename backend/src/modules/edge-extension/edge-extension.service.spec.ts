@@ -25,7 +25,7 @@ describe('EdgeExtensionService', () => {
 
   const principal = {
     subjectId: 'user-1',
-    email: 'ana@epbih.ba',
+    email: 'ana@example.com',
     displayName: 'Ana',
     isLocalOnly: false,
   };
@@ -58,7 +58,7 @@ describe('EdgeExtensionService', () => {
         [settingKeys.privateEdgeExtensionEventsDedupEnabled]: true,
         [settingKeys.privateEdgeExtensionPollingFallbackEnabled]: true,
         [settingKeys.privateEdgeExtensionPollingFallbackIntervalSeconds]: 90,
-        [settingKeys.privateEdgeExtensionAllowedEmailDomain]: 'epbih.ba',
+        [settingKeys.privateEdgeExtensionAllowedEmailDomain]: 'example.com',
       };
       return Promise.resolve(values[key]);
     });

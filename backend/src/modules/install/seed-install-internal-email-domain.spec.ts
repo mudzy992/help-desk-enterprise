@@ -25,9 +25,9 @@ describe('seedInstallInternalEmailDomain', () => {
   });
 
   it('never overwrites a configured value', async () => {
-    const { fake, values } = store({ [key]: 'epbih.ba' });
+    const { fake, values } = store({ [key]: 'example.com' });
     await seedInstallInternalEmailDomain(fake, 'admin@drugi.ba');
-    expect(values.get(key)).toBe('epbih.ba');
+    expect(values.get(key)).toBe('example.com');
   });
 
   it('fills an empty value and ignores malformed addresses', async () => {

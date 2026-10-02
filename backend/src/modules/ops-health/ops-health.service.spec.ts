@@ -2,7 +2,7 @@ jest.mock('../../common/prisma/prisma.service', () => ({ PrismaService: class Pr
 jest.mock('../settings/settings.service', () => ({ SettingsService: class SettingsService {} }));
 jest.mock('../inbound-email/inbound-email-configuration', () => ({
   loadInboundEmailConfiguration: jest.fn(async () => ({ enabled: true })),
-  inboundMailboxKey: jest.fn(() => 'imap:helpdesk@epbih.ba'),
+  inboundMailboxKey: jest.fn(() => 'imap:helpdesk@example.com'),
 }));
 jest.mock('../audit-log/record-audit-entry', () => ({ recordAuditEntry: jest.fn(async () => undefined) }));
 
@@ -93,7 +93,7 @@ describe('OpsHealthService', () => {
     const { service, prisma } = setup();
     expect((await service.overview(now)).components.inbound).toEqual([
       {
-        mailboxKey: 'imap:helpdesk@epbih.ba',
+        mailboxKey: 'imap:helpdesk@example.com',
         lastRunAt: now.toISOString(),
         lastSuccessAt: null,
         lastError: 'AUTHENTICATIONFAILED',
@@ -101,7 +101,7 @@ describe('OpsHealthService', () => {
         consecutiveFails: 4,
       },
     ]);
-    expect(prisma.inboundMailboxState.findUnique).toHaveBeenCalledWith({ where: { mailboxKey: 'imap:helpdesk@epbih.ba' } });
+    expect(prisma.inboundMailboxState.findUnique).toHaveBeenCalledWith({ where: { mailboxKey: 'imap:helpdesk@example.com' } });
     (loadInboundEmailConfiguration as jest.Mock).mockResolvedValueOnce({ enabled: false });
     expect((await service.overview(now)).components.inbound).toEqual([]);
   });

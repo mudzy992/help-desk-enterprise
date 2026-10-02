@@ -17,8 +17,8 @@ jest.mock('../../common/prisma/prisma.service', () => ({
 const tenantId = '11111111-1111-4111-8111-111111111111';
 const clientId = '22222222-2222-4222-8222-222222222222';
 const bindPassword = 'ldaps-bind-secret-value';
-const bindDn = 'CN=svc,OU=Service,DC=epbih,DC=ba';
-const ldapsUrls = 'ldaps://dc1.epbih.ba:636, ldaps://dc2.epbih.ba:636';
+const bindDn = 'CN=svc,OU=Service,DC=example,DC=com';
+const ldapsUrls = 'ldaps://dc1.example.com:636, ldaps://dc2.example.com:636';
 
 async function createHarness(withSuperAdmin = true) {
   const users = createInMemoryInstallSuperAdminPrisma();
@@ -109,7 +109,7 @@ describe('InstallLoginProviderService', () => {
     });
     expect(saved.mode).toBe('entra_ad');
     expect(saved.directoryBind).toEqual({
-      urls: 'ldaps://dc1.epbih.ba:636,ldaps://dc2.epbih.ba:636',
+      urls: 'ldaps://dc1.example.com:636,ldaps://dc2.example.com:636',
       bindDnConfigured: true,
       bindPasswordConfigured: true,
     });
@@ -148,7 +148,7 @@ describe('InstallLoginProviderService', () => {
     await expect(
       service.save({
         mode: 'entra_ad',
-        adLdapsUrlsCsv: 'ldap://dc1.epbih.ba:389',
+        adLdapsUrlsCsv: 'ldap://dc1.example.com:389',
         adBindDn: bindDn,
         adBindPassword: bindPassword,
       }),

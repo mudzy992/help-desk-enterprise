@@ -25,7 +25,7 @@ function setup(overrides: { blockers?: string[]; email?: string; requireSecondAp
     $executeRaw: jest.fn(),
   };
   const prisma = {
-    user: { findUnique: jest.fn(async () => ({ email: overrides.email ?? 'amra@epbih.ba' })) },
+    user: { findUnique: jest.fn(async () => ({ email: overrides.email ?? 'amra@example.com' })) },
     dataSubjectRequest: { count: jest.fn(async () => 1) },
     privacyErasure: {
       findUnique: jest.fn(async () => ({
@@ -62,7 +62,7 @@ function setup(overrides: { blockers?: string[]; email?: string; requireSecondAp
 describe('AnonymizationRequestService (§6.1)', () => {
   it('refuses a blocked user before asking for MFA', async () => {
     const { service, confirmer } = setup({ blockers: ['active'] });
-    await expect(service.request('u-1', { confirmEmail: 'amra@epbih.ba' }, actor)).rejects.toMatchObject({
+    await expect(service.request('u-1', { confirmEmail: 'amra@example.com' }, actor)).rejects.toMatchObject({
       code: 'ANONYMIZATION_BLOCKED',
     });
     expect(confirmer.confirm).not.toHaveBeenCalled();
@@ -70,21 +70,21 @@ describe('AnonymizationRequestService (§6.1)', () => {
 
   it('requires the typed e-mail to match (case-insensitive)', async () => {
     const { service } = setup();
-    await expect(service.request('u-1', { confirmEmail: 'other@epbih.ba' }, actor)).rejects.toMatchObject({
+    await expect(service.request('u-1', { confirmEmail: 'other@example.com' }, actor)).rejects.toMatchObject({
       code: 'CONFIRMATION_MISMATCH',
     });
   });
 
   it('queues the job directly without four-eyes', async () => {
     const { service, queue, created } = setup();
-    await service.request('u-1', { confirmEmail: 'AMRA@epbih.ba', code: '123456' }, actor);
+    await service.request('u-1', { confirmEmail: 'AMRA@example.com', code: '123456' }, actor);
     expect(created[0]).toMatchObject({ data: { status: 'QUEUED', approvalDeadline: null } });
     expect(queue.add).toHaveBeenCalledWith('anonymize-user', { erasureId: 'er-1' }, expect.objectContaining({ jobId: 'anonymize-user-er-1' }));
   });
 
   it('waits for approval with four-eyes and does not queue', async () => {
     const { service, queue, created } = setup({ requireSecondApprover: true });
-    await service.request('u-1', { confirmEmail: 'amra@epbih.ba' }, actor);
+    await service.request('u-1', { confirmEmail: 'amra@example.com' }, actor);
     expect(created[0]).toMatchObject({ data: { status: 'PENDING_APPROVAL' } });
     expect(queue.add).not.toHaveBeenCalled();
   });

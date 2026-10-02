@@ -7,8 +7,8 @@ describe('ops settings (paket 2.7)', () => {
   it('validates the extra recipient list', () => {
     const assert = definition(settingKeys.privateOpsAlertsExtraRecipientsCsv).assertValue!;
     expect(() => assert('')).not.toThrow();
-    expect(() => assert('it@epbih.ba, dezurni@epbih.ba')).not.toThrow();
-    expect(() => assert('it@epbih.ba, nije-adresa')).toThrow('Invalid e-mail address: nije-adresa');
+    expect(() => assert('it@example.com, dezurni@example.com')).not.toThrow();
+    expect(() => assert('it@example.com, nije-adresa')).toThrow('Invalid e-mail address: nije-adresa');
     expect(parseEmailCsv(' A@x.ba ,, b@y.ba ')).toEqual(['a@x.ba', 'b@y.ba']);
   });
 

@@ -24,13 +24,13 @@ const items = [
 
 describe('digest e-mail (paket 2.2)', () => {
   it('groups by ticket, newest first, hides confidential titles and caps the list', () => {
-    const result = buildDigestRows({ items, tickets, locale: 'en', publicUrl: 'https://desk.epbih.ba', maxItems: 2 });
+    const result = buildDigestRows({ items, tickets, locale: 'en', publicUrl: 'https://desk.example.com', maxItems: 2 });
     expect(result.total).toBe(3);
     expect(result.rows.map((row) => [row.ticketNumber, row.eventCount, row.title])).toEqual([
       ['HD-1', 2, 'Title HD-1'],
       ['HD-2', 1, ''],
     ]);
-    expect(result.rows[0]?.url).toBe('https://desk.epbih.ba/tickets/a');
+    expect(result.rows[0]?.url).toBe('https://desk.example.com/tickets/a');
     expect(result.more).not.toBeNull();
   });
 

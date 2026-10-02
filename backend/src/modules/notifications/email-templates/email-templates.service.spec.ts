@@ -13,7 +13,7 @@ jest.mock('../../../common/prisma/prisma.service', () => ({
 function createService(values: Record<string, unknown> = {}) {
   const store: Record<string, unknown> = {
     [settingKeys.privateSmtpEnabled]: true,
-    [settingKeys.privateSmtpFromAddress]: 'helpdesk@epbih.ba',
+    [settingKeys.privateSmtpFromAddress]: 'helpdesk@example.com',
     [settingKeys.privateNotificationsTemplatesEnabled]: true,
     ...values,
   };
@@ -36,7 +36,7 @@ function createService(values: Record<string, unknown> = {}) {
   const prisma = {
     ...createInMemoryAuditLogDelegate(auditLogs, () => `audit-${++auditId}`, () => new Date()),
     user: {
-      findUnique: async () => ({ email: 'admin@epbih.ba', displayName: 'Admin Adminović' }),
+      findUnique: async () => ({ email: 'admin@example.com', displayName: 'Admin Adminović' }),
     },
   };
   return {
@@ -61,7 +61,7 @@ describe('EmailTemplatesService', () => {
       hasSmtpTransport: true,
       provider: 'o365',
       replyMode: 'no_reply',
-      fromAddress: 'helpdesk@epbih.ba',
+      fromAddress: 'helpdesk@example.com',
     });
   });
 
@@ -124,8 +124,8 @@ describe('EmailTemplatesService', () => {
     const { service, sent, auditLogs } = createService();
     await expect(
       service.sendTest({ key: 'ticket.assigned', locale: 'en' }, 'admin'),
-    ).resolves.toEqual({ toAddress: 'admin@epbih.ba' });
-    expect(sent[0]).toMatchObject({ to: 'admin@epbih.ba', from: 'helpdesk@epbih.ba' });
+    ).resolves.toEqual({ toAddress: 'admin@example.com' });
+    expect(sent[0]).toMatchObject({ to: 'admin@example.com', from: 'helpdesk@example.com' });
     expect(sent[0]?.subject.startsWith('[TEST] ')).toBe(true);
     expect(sent[0]?.html).toContain('<!DOCTYPE html>');
     expect(auditLogs[0]).toMatchObject({

@@ -29,10 +29,10 @@ describe('OrganizationalUnitsService CRUD', () => {
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     expect(created.parentId).toBeNull();
-    expect(created.distinguishedName).toBe('OU=Korisnici,DC=epbih,DC=ba');
+    expect(created.distinguishedName).toBe('OU=Korisnici,DC=example,DC=com');
     expect(created.ouPath).toBe('/Korisnici');
     expect(created.children).toEqual([]);
     expect(created.users).toEqual([]);
@@ -43,12 +43,12 @@ describe('OrganizationalUnitsService CRUD', () => {
     const root = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     const child = await service.create({
       name: 'Direkcija',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=example,DC=com',
       parentId: root.id,
     });
     expect(child.parentId).toBe(root.id);
@@ -62,13 +62,13 @@ describe('OrganizationalUnitsService CRUD', () => {
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
-      company: 'EPBiH',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
+      company: 'Primjer d.o.o.',
     });
     const updated = await service.update(created.id, { name: 'Korisnici EP' });
     expect(updated.name).toBe('Korisnici EP');
     expect(updated.ouPath).toBe('/Korisnici EP');
-    expect(updated.company).toBe('EPBiH');
+    expect(updated.company).toBe('Primjer d.o.o.');
   });
 
   it('rejects duplicate distinguished names and paths', async () => {
@@ -76,13 +76,13 @@ describe('OrganizationalUnitsService CRUD', () => {
     await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     await expect(
       service.create({
         name: 'Korisnici',
         type: 'BRANCH',
-        distinguishedName: 'ou=Korisnici,dc=epbih,dc=ba',
+        distinguishedName: 'ou=Korisnici,dc=example,dc=com',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -92,13 +92,13 @@ describe('OrganizationalUnitsService CRUD', () => {
     const root = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     await expect(
       service.create({
         name: 'Direkcija',
         type: 'DIRECTORATE',
-        distinguishedName: 'OU=Direkcija,DC=epbih,DC=ba',
+        distinguishedName: 'OU=Direkcija,DC=example,DC=com',
         parentId: root.id,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -110,7 +110,7 @@ describe('OrganizationalUnitsService CRUD', () => {
       service.create({
         name: 'Direkcija',
         type: 'DIRECTORATE',
-        distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba',
+        distinguishedName: 'OU=Direkcija,OU=Korisnici,DC=example,DC=com',
         parentId: 'missing-parent',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -122,7 +122,7 @@ describe('OrganizationalUnitsService CRUD', () => {
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     memory.seedUser({
       id: 'local-user',
@@ -148,7 +148,7 @@ describe('OrganizationalUnitsService CRUD', () => {
     const created = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     await service.delete(created.id);
     await expect(service.getById(created.id)).rejects.toBeInstanceOf(NotFoundException);

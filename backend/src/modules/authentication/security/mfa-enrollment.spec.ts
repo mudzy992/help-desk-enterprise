@@ -68,7 +68,7 @@ function fakePrisma() {
   return { prisma: { userMfa }, rows };
 }
 
-const subject = { id: 'u-1', email: 'amra@epbih.ba', localPasswordHash: 'hash', entraObjectId: null, roleKeys: ['ADMIN'] };
+const subject = { id: 'u-1', email: 'amra@example.com', localPasswordHash: 'hash', entraObjectId: null, roleKeys: ['ADMIN'] };
 
 describe('MfaService enrollment', () => {
   const previousKey = process.env.MFA_ENCRYPTION_KEY;

@@ -15,12 +15,12 @@ import {
   resolveUserOrganizationalUnit,
 } from './resolve-user-organizational-unit';
 
-const base = 'OU=Korisnici,DC=epbih,DC=ba';
+const base = 'OU=Korisnici,DC=example,DC=com';
 
 describe('LDAPS helpers (paket 1.8)', () => {
   it('escapes filter values per RFC 4515', () => {
     expect(escapeLdapFilterValue('a*b(c)\\d\u0000')).toBe('a\\2ab\\28c\\29\\5cd\\00');
-    expect(escapeLdapFilterValue('ana.anic@epbih.ba')).toBe('ana.anic@epbih.ba');
+    expect(escapeLdapFilterValue('ana.anic@example.com')).toBe('ana.anic@example.com');
   });
 
   it('formats objectGUID like Get-ADUser (mixed endianness)', () => {
@@ -31,13 +31,13 @@ describe('LDAPS helpers (paket 1.8)', () => {
   });
 
   it('parses DNs with escaped commas and builds the application OU path', () => {
-    const dn = 'CN=Anić\\, Ana,OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=epbih,DC=ba';
+    const dn = 'CN=Anić\\, Ana,OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=example,DC=com';
     expect(parseDistinguishedName(dn)[0]).toEqual({ type: 'CN', value: 'Anić, Ana' });
     expect(organizationalUnitPathFromDistinguishedName(dn)).toBe('/Korisnici/ED Sarajevo/Visoko');
-    expect(parentDistinguishedName(dn)).toBe('OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=epbih,DC=ba');
+    expect(parentDistinguishedName(dn)).toBe('OU=Visoko,OU=ED Sarajevo,OU=Korisnici,DC=example,DC=com');
     expect(isDistinguishedNameWithin(dn, 'ou=korisnici, dc=EPBIH, dc=ba')).toBe(true);
-    expect(isDistinguishedNameWithin('CN=x,OU=Grupe,DC=epbih,DC=ba', base)).toBe(false);
-    expect(organizationalUnitPathFromDistinguishedName('DC=epbih,DC=ba')).toBeNull();
+    expect(isDistinguishedNameWithin('CN=x,OU=Grupe,DC=example,DC=com', base)).toBe(false);
+    expect(organizationalUnitPathFromDistinguishedName('DC=example,DC=com')).toBeNull();
   });
 
   it('classifies units per RAW §17–20', () => {
@@ -52,19 +52,19 @@ describe('LDAPS helpers (paket 1.8)', () => {
 
   it('maps a user entry and detects disabled accounts', () => {
     const user = mapLdapsUserEntry({
-      distinguishedName: 'CN=Ana,OU=Visoko,OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'CN=Ana,OU=Visoko,OU=Korisnici,DC=example,DC=com',
       mail: 'Ana.Anic@EPBIH.ba',
       givenName: 'Ana',
       sn: 'Anić',
       userAccountControl: '514',
-      memberOf: ['CN=G1,OU=Grupe,DC=epbih,DC=ba'],
+      memberOf: ['CN=G1,OU=Grupe,DC=example,DC=com'],
       objectGUID: Buffer.alloc(16, 1),
     });
     expect(user).toMatchObject({
-      email: 'ana.anic@epbih.ba',
+      email: 'ana.anic@example.com',
       displayName: 'Ana Anić',
       disabled: true,
-      memberOf: ['CN=G1,OU=Grupe,DC=epbih,DC=ba'],
+      memberOf: ['CN=G1,OU=Grupe,DC=example,DC=com'],
     });
     expect(user?.guid).toMatch(/^[0-9a-f-]{36}$/);
   });
@@ -72,14 +72,14 @@ describe('LDAPS helpers (paket 1.8)', () => {
   it('resolves the OU: override > strategy > DN path; company/department falls back to DN', () => {
     const units = new Map([
       ['/Korisnici/ED Zenica', { path: '/Korisnici/ED Zenica', company: null, department: null }],
-      ['/Korisnici/ED Zenica/Breza', { path: '/Korisnici/ED Zenica/Breza', company: 'EPBiH', department: 'Breza' }],
+      ['/Korisnici/ED Zenica/Breza', { path: '/Korisnici/ED Zenica/Breza', company: 'Primjer d.o.o.', department: 'Breza' }],
       ['/Korisnici/Direkcija', { path: '/Korisnici/Direkcija', company: null, department: null }],
     ]);
     const user = {
       guid: 'g', email: 'a@x', userPrincipalName: null, samAccountName: null, displayName: 'A',
       memberOf: [], disabled: false,
-      distinguishedName: 'CN=A,OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba',
-      company: 'EPBiH', department: 'Breza',
+      distinguishedName: 'CN=A,OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+      company: 'Primjer d.o.o.', department: 'Breza',
     };
     expect(resolveUserOrganizationalUnit({ user, strategy: 'by_dn_ou_path', overrides: [], knownUnits: units }))
       .toEqual({ path: '/Korisnici/ED Zenica', via: 'dn_path' });
@@ -89,13 +89,13 @@ describe('LDAPS helpers (paket 1.8)', () => {
       resolveUserOrganizationalUnit({
         user,
         strategy: 'by_company_department',
-        overrides: [{ dnSuffix: 'OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba', ouPath: '/Korisnici/Direkcija' }],
+        overrides: [{ dnSuffix: 'OU=ED Zenica,OU=Korisnici,DC=example,DC=com', ouPath: '/Korisnici/Direkcija' }],
         knownUnits: units,
       }),
     ).toEqual({ path: '/Korisnici/Direkcija', via: 'override' });
     expect(
       resolveUserOrganizationalUnit({
-        user: { ...user, distinguishedName: 'CN=A,OU=Nepoznata,OU=Korisnici,DC=epbih,DC=ba', company: null },
+        user: { ...user, distinguishedName: 'CN=A,OU=Nepoznata,OU=Korisnici,DC=example,DC=com', company: null },
         strategy: 'by_company_department',
         overrides: [],
         knownUnits: units,
@@ -109,14 +109,14 @@ describe('LDAPS helpers (paket 1.8)', () => {
       parseOrganizationalUnitMappingOverrides(
         JSON.stringify([
           { dnSuffix: 'OU=X,DC=a', ouPath: '/Korisnici/X' },
-          { company: 'EPBiH', department: 'IT', ouPath: '/Korisnici/Direkcija/IT' },
-          { company: 'EPBiH', ouPath: 'bez-kose-crte' },
+          { company: 'Primjer d.o.o.', department: 'IT', ouPath: '/Korisnici/Direkcija/IT' },
+          { company: 'Primjer d.o.o.', ouPath: 'bez-kose-crte' },
           42,
         ]),
       ),
     ).toEqual([
       { dnSuffix: 'OU=X,DC=a', ouPath: '/Korisnici/X' },
-      { company: 'EPBiH', department: 'IT', ouPath: '/Korisnici/Direkcija/IT' },
+      { company: 'Primjer d.o.o.', department: 'IT', ouPath: '/Korisnici/Direkcija/IT' },
     ]);
   });
 

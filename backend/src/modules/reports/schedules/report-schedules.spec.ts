@@ -101,10 +101,10 @@ describe('recipient eligibility mirrors the reports page (design §5.2)', () => 
 const channel = {
   deliveryEnabled: true,
   internalOnly: true,
-  internalDomains: ['epbih.ba'],
+  internalDomains: ['example.com'],
   allowedExternalDomains: [],
   allowedExternalEmails: [],
-  smtp: { host: 'smtp', port: 587, tls: true, username: '', password: '', fromAddress: 'helpdesk@epbih.ba' },
+  smtp: { host: 'smtp', port: 587, tls: true, username: '', password: '', fromAddress: 'helpdesk@example.com' },
   presentation: { appName: 'Service Desk', accentColor: '#4f46e5', publicUrl: 'https://desk.example', defaultLocale: 'bs' },
   templates: defaultEmailTemplates,
 } as never;
@@ -234,8 +234,8 @@ function schedule(overrides: Partial<ReportScheduleRecord> = {}): ReportSchedule
     service: null,
     group: null,
     recipients: [
-      { userId: 'u-ok', user: { id: 'u-ok', displayName: 'Ok', email: 'ok@epbih.ba', isActive: true } },
-      { userId: 'u-gone', user: { id: 'u-gone', displayName: 'Gone', email: 'gone@epbih.ba', isActive: false } },
+      { userId: 'u-ok', user: { id: 'u-ok', displayName: 'Ok', email: 'ok@example.com', isActive: true } },
+      { userId: 'u-gone', user: { id: 'u-gone', displayName: 'Gone', email: 'gone@example.com', isActive: false } },
     ],
     ...overrides,
   };
@@ -299,13 +299,13 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
   const settings = {
     getSetting: async (key: string) => {
       const values: Record<string, unknown> = {
-        'private.notifications.email.internalDomainsCsv': 'epbih.ba',
+        'private.notifications.email.internalDomainsCsv': 'example.com',
         'private.notifications.email.enabled': true,
         'private.smtp.enabled': true,
         'private.smtp.provider': 'smtp',
-        'private.smtp.host': 'smtp.epbih.ba',
+        'private.smtp.host': 'smtp.example.com',
         'private.smtp.port': 587,
-        'private.smtp.fromAddress': 'helpdesk@epbih.ba',
+        'private.smtp.fromAddress': 'helpdesk@example.com',
         'private.addons.email': true,
       };
       return values[key];
@@ -349,7 +349,7 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
           id === 'u-ok'
             ? {
                 ok: true,
-                user: { id, email: 'ok@epbih.ba', displayName: 'Ok', preferredLocale: 'bs', isLocalOnly: false, isActive: true },
+                user: { id, email: 'ok@example.com', displayName: 'Ok', preferredLocale: 'bs', isLocalOnly: false, isActive: true },
               }
             : { ok: false, userId: id, reason: 'inactive' },
         ),
@@ -375,7 +375,7 @@ describe('ScheduledReportRunner sweep (design §5.4)', () => {
   it('sends only to eligible recipients and records the skipped ones', async () => {
     const { runner, runs, sent } = createRunner({ due: [schedule()] });
     await runner.runDue(new Date('2026-03-30T05:01:00Z'));
-    expect(sent.map((message) => message.to)).toEqual(['ok@epbih.ba']);
+    expect(sent.map((message) => message.to)).toEqual(['ok@example.com']);
     const final = runs.find((run) => 'final' in run)?.final as Record<string, unknown>;
     expect(final).toMatchObject({
       status: 'PARTIAL',

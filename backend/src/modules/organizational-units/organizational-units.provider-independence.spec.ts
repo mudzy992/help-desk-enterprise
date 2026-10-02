@@ -14,7 +14,7 @@ describe('organizational unit authentication independence', () => {
     const unit = await service.create({
       name: 'Korisnici',
       type: 'DIRECTORATE',
-      distinguishedName: 'OU=Korisnici,DC=epbih,DC=ba',
+      distinguishedName: 'OU=Korisnici,DC=example,DC=com',
     });
     memory.seedUser({
       id: 'local-user',

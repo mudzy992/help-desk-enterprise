@@ -12,7 +12,7 @@ function createRecord(
 ): OrganizationalUnitRecord {
   return {
     type: 'DIRECTORATE',
-    distinguishedName: `OU=${partial.name},DC=epbih,DC=ba`,
+    distinguishedName: `OU=${partial.name},DC=example,DC=com`,
     company: null,
     department: null,
     createdAt,
@@ -76,12 +76,12 @@ describe('organizational unit hierarchy helpers', () => {
     expect(
       rewriteDescendantDistinguishedName({
         currentDistinguishedName:
-          'OU=Breza,OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba',
-        oldAncestorDistinguishedName: 'OU=ED Zenica,OU=Korisnici,DC=epbih,DC=ba',
+          'OU=Breza,OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
+        oldAncestorDistinguishedName: 'OU=ED Zenica,OU=Korisnici,DC=example,DC=com',
         newAncestorDistinguishedName:
-          'OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba',
+          'OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com',
       }),
-    ).toBe('OU=Breza,OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=epbih,DC=ba');
+    ).toBe('OU=Breza,OU=ED Zenica,OU=Direkcija,OU=Korisnici,DC=example,DC=com');
   });
 
   it('rewrites descendant paths when an ancestor moves', () => {

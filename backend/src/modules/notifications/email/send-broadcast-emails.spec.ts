@@ -8,9 +8,9 @@ jest.mock('../../../common/prisma/prisma.service', () => ({
 
 function prisma(overrides: Record<string, unknown> = {}) {
   const findMany = jest.fn(async () => [
-    { id: 'requester', email: 'req@epbih.ba', displayName: 'Req', preferredLocale: 'en' },
-    { id: 'agent', email: 'agent@epbih.ba', displayName: 'Agent', preferredLocale: null },
-    { id: 'lead', email: 'lead@epbih.ba', displayName: 'Lead', preferredLocale: null },
+    { id: 'requester', email: 'req@example.com', displayName: 'Req', preferredLocale: 'en' },
+    { id: 'agent', email: 'agent@example.com', displayName: 'Agent', preferredLocale: null },
+    { id: 'lead', email: 'lead@example.com', displayName: 'Lead', preferredLocale: null },
   ]);
   return {
     findMany,
@@ -51,7 +51,7 @@ describe('sendBroadcastEmails', () => {
     expect(sent).toBe(1);
     expect(findMany).toHaveBeenCalledTimes(1);
     expect(work[0]).toMatchObject({
-      toAddress: 'req@epbih.ba',
+      toAddress: 'req@example.com',
       templateKey: 'ticket.broadcast',
       dedupeKey: 'ticket.broadcast:b1:t1',
     });

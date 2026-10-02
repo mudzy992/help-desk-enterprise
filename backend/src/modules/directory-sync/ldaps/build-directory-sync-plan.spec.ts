@@ -5,9 +5,9 @@ import {
 } from './build-directory-sync-plan';
 import type { LdapsDirectoryUserEntry } from './ldaps-directory.types';
 
-const base = 'OU=Korisnici,DC=epbih,DC=ba';
-const adminGroup = 'CN=EPHELPDESK_ROLE_ADMIN,OU=Grupe,DC=epbih,DC=ba';
-const agentGroup = 'CN=EPHELPDESK_ROLE_AGENT,OU=Grupe,DC=epbih,DC=ba';
+const base = 'OU=Korisnici,DC=example,DC=com';
+const adminGroup = 'CN=SERVICEDESK_ROLE_ADMIN,OU=Grupe,DC=example,DC=com';
+const agentGroup = 'CN=SERVICEDESK_ROLE_AGENT,OU=Grupe,DC=example,DC=com';
 
 const units = [
   { distinguishedName: base, name: 'Korisnici', path: '/Korisnici', guid: 'u0' },
@@ -19,11 +19,11 @@ function adUser(overrides: Partial<LdapsDirectoryUserEntry> = {}): LdapsDirector
   return {
     guid: 'guid-ana',
     distinguishedName: `CN=Ana,OU=Breza,OU=ED Zenica,${base}`,
-    email: 'ana@epbih.ba',
-    userPrincipalName: 'ana@epbih.ba',
+    email: 'ana@example.com',
+    userPrincipalName: 'ana@example.com',
     samAccountName: 'ana',
     displayName: 'Ana Anić',
-    company: 'EPBiH',
+    company: 'Primjer d.o.o.',
     department: 'Breza',
     memberOf: [],
     disabled: false,
@@ -34,14 +34,14 @@ function adUser(overrides: Partial<LdapsDirectoryUserEntry> = {}): LdapsDirector
 function dbUser(overrides: Partial<ExistingDirectoryUser> = {}): ExistingDirectoryUser {
   return {
     id: 'user-ana',
-    email: 'ana@epbih.ba',
+    email: 'ana@example.com',
     displayName: 'Ana Anić',
     isActive: true,
     isLocalOnly: false,
     directoryObjectGuid: 'guid-ana',
     directoryDeactivatedAt: null,
     distinguishedName: `CN=Ana,OU=Breza,OU=ED Zenica,${base}`,
-    company: 'EPBiH',
+    company: 'Primjer d.o.o.',
     department: 'Breza',
     ouPath: '/Korisnici/ED Zenica/Breza',
     managed: true,
@@ -78,7 +78,7 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
       ['/Korisnici/ED Zenica/Breza', 'OFFICE', '/Korisnici/ED Zenica'],
     ]);
     expect(plan.users.create).toEqual([
-      expect.objectContaining({ guid: 'guid-ana', email: 'ana@epbih.ba', ouPath: '/Korisnici/ED Zenica/Breza' }),
+      expect.objectContaining({ guid: 'guid-ana', email: 'ana@example.com', ouPath: '/Korisnici/ED Zenica/Breza' }),
     ]);
     expect(plan.unitCounts).toEqual([{ path: '/Korisnici/ED Zenica', users: 1 }]);
     expect(plan.safeguard.tripped).toBe(false);
@@ -116,7 +116,7 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
       input({
         configuration: { ...input().configuration, maxDeactivationPercent: 100 },
         directoryUsers: [adUser({ disabled: true })],
-        existingUsers: [dbUser(), dbUser({ id: 'user-old', email: 'old@epbih.ba', directoryObjectGuid: 'guid-old' })],
+        existingUsers: [dbUser(), dbUser({ id: 'user-old', email: 'old@example.com', directoryObjectGuid: 'guid-old' })],
       }),
     );
     expect(plan.users.deactivate).toEqual([
@@ -127,7 +127,7 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
 
   it('trips the safeguard when too many users would be deactivated', () => {
     const existingUsers = Array.from({ length: 10 }, (_, index) =>
-      dbUser({ id: `u${index}`, email: `u${index}@epbih.ba`, directoryObjectGuid: `g${index}` }),
+      dbUser({ id: `u${index}`, email: `u${index}@example.com`, directoryObjectGuid: `g${index}` }),
     );
     const plan = buildDirectorySyncPlan(input({ directoryUsers: [], existingUsers }));
     expect(plan.safeguard).toMatchObject({ activeManagedUsers: 10, deactivations: 10, percent: 100, tripped: true });
@@ -147,17 +147,17 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
     const plan = buildDirectorySyncPlan(
       input({
         directoryUsers: [
-          adUser({ guid: 'a', email: 'dup@epbih.ba' }),
-          adUser({ guid: 'b', email: 'dup@epbih.ba' }),
+          adUser({ guid: 'a', email: 'dup@example.com' }),
+          adUser({ guid: 'b', email: 'dup@example.com' }),
           adUser({ guid: 'c', email: null }),
-          adUser({ guid: 'd', email: 'x@epbih.ba', distinguishedName: `CN=X,OU=Nepoznato,${base}` }),
+          adUser({ guid: 'd', email: 'x@example.com', distinguishedName: `CN=X,OU=Nepoznato,${base}` }),
         ],
       }),
     );
     expect(plan.exceptions.map((exception) => exception.code).sort()).toEqual(
       ['DUPLICATE_EMAIL', 'DUPLICATE_EMAIL', 'NO_EMAIL', 'NO_OU_MATCH'].sort(),
     );
-    expect(plan.users.create.map((user) => user.email)).toEqual(['x@epbih.ba']);
+    expect(plan.users.create.map((user) => user.email)).toEqual(['x@example.com']);
   });
 
   it('ad_groups: grants ADMIN/AGENT in the user unit and revokes stale assignments', () => {
@@ -173,10 +173,10 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
       }),
     );
     expect(plan.roles.grant).toEqual([
-      { userId: 'user-ana', email: 'ana@epbih.ba', roleKey: 'AGENT', ouPath: '/Korisnici/ED Zenica/Breza' },
+      { userId: 'user-ana', email: 'ana@example.com', roleKey: 'AGENT', ouPath: '/Korisnici/ED Zenica/Breza' },
     ]);
     expect(plan.roles.revoke).toEqual([
-      { userRoleId: 'ur-admin', userId: 'user-ana', email: 'ana@epbih.ba', roleKey: 'ADMIN' },
+      { userRoleId: 'ur-admin', userId: 'user-ana', email: 'ana@example.com', roleKey: 'ADMIN' },
     ]);
   });
 
@@ -189,10 +189,10 @@ describe('buildDirectorySyncPlan (paket 1.8)', () => {
 describe('buildDirectorySyncPlan — returning anonymized person (paket 2.6 §6.4)', () => {
   it('creates a new account and warns with RETURNING_ANONYMIZED', () => {
     const plan = buildDirectorySyncPlan(
-      input({ isReturningAnonymized: ({ email, guid }) => email === 'ana@epbih.ba' && guid === 'guid-ana' }),
+      input({ isReturningAnonymized: ({ email, guid }) => email === 'ana@example.com' && guid === 'guid-ana' }),
     );
     expect(plan.users.create).toHaveLength(1);
-    expect(plan.exceptions).toEqual([expect.objectContaining({ code: 'RETURNING_ANONYMIZED', email: 'ana@epbih.ba' })]);
+    expect(plan.exceptions).toEqual([expect.objectContaining({ code: 'RETURNING_ANONYMIZED', email: 'ana@example.com' })]);
   });
 
   it('does not warn for a known account or without tombstones', () => {

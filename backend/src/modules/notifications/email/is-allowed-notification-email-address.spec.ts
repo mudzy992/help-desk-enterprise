@@ -2,7 +2,7 @@ import { isAllowedNotificationEmailAddress } from './is-allowed-notification-ema
 
 const restricted = {
   internalOnly: true,
-  internalDomains: ['epbih.ba', 'ep-grupa.ba'],
+  internalDomains: ['example.com', 'ep-grupa.ba'],
   allowedExternalDomains: ['partner.example'],
   allowedExternalEmails: ['guest@external.test'],
 };
@@ -21,19 +21,19 @@ describe('isAllowedNotificationEmailAddress', () => {
   it('restricted: blocks everything else, including subdomains and look-alikes', () => {
     expect(isAllowedNotificationEmailAddress('other@gmail.com', restricted)).toBe(false);
     expect(isAllowedNotificationEmailAddress('other@external.test', restricted)).toBe(false);
-    expect(isAllowedNotificationEmailAddress('x@mail.epbih.ba', restricted)).toBe(false);
-    expect(isAllowedNotificationEmailAddress('x@epbih.ba.evil.test', restricted)).toBe(false);
+    expect(isAllowedNotificationEmailAddress('x@mail.example.com', restricted)).toBe(false);
+    expect(isAllowedNotificationEmailAddress('x@example.com.evil.test', restricted)).toBe(false);
   });
 
   it('restricted with no domains and no lists: nobody (nothing is hardcoded)', () => {
     const empty = { internalOnly: true, internalDomains: [], allowedExternalDomains: [], allowedExternalEmails: [] };
-    expect(isAllowedNotificationEmailAddress('agent@epbih.ba', empty)).toBe(false);
+    expect(isAllowedNotificationEmailAddress('agent@example.com', empty)).toBe(false);
   });
 
   it('unrestricted: any valid address, even with empty lists', () => {
     const open = { internalOnly: false, internalDomains: [], allowedExternalDomains: [], allowedExternalEmails: [] };
     expect(isAllowedNotificationEmailAddress('other@gmail.com', open)).toBe(true);
-    expect(isAllowedNotificationEmailAddress('agent@epbih.ba', open)).toBe(true);
+    expect(isAllowedNotificationEmailAddress('agent@example.com', open)).toBe(true);
   });
 
   it('rejects malformed addresses in both modes', () => {

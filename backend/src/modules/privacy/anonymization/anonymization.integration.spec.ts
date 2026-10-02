@@ -28,7 +28,7 @@ describeIfDatabase('anonymization (integration)', () => {
   let rawRoot: string;
   let ledger: ErasureLedger;
   const stamp = Date.now();
-  const email = `amra.hodzic.${stamp}@epbih.ba`;
+  const email = `amra.hodzic.${stamp}@example.com`;
   const rawKey = `2026-01/raw${stamp}.eml.gz`;
   const ids: Record<string, string> = {};
 

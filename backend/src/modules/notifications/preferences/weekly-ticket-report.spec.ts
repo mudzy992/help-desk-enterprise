@@ -95,7 +95,7 @@ describe('weekly ticket report (paket 2.2a)', () => {
       sla: new Map(),
       now,
     });
-    const list = buildWeeklyReportRows({ entries, locale: 'bs', publicUrl: 'https://desk.epbih.ba', maxRows: 2, timeZone: tz, now });
+    const list = buildWeeklyReportRows({ entries, locale: 'bs', publicUrl: 'https://desk.example.com', maxRows: 2, timeZone: tz, now });
     expect(list.rows.map((row) => [row.ticketNumber, row.title, row.section])).toEqual([
       ['HD-a', '', 'Dodijeljeni vama'],
       ['HD-b', 'Title b', 'Pratite / čeka vaše odobrenje'],

@@ -26,8 +26,8 @@ describe('email notification fan-out', () => {
     await ingestEmail(harness, mail, enabledConfiguration());
     expect(mail.messages).toHaveLength(1);
     expect(mail.messages[0]).toMatchObject({
-      to: 'user-agent-it@epbih.ba',
-      from: 'helpdesk@epbih.ba',
+      to: 'user-agent-it@example.com',
+      from: 'helpdesk@example.com',
     });
     expect(mail.messages[0]?.subject).toContain(created.ticketNumber);
     expect([...harness.memory.emailDeliveries.values()]).toHaveLength(1);
@@ -104,7 +104,7 @@ describe('email notification fan-out', () => {
     }
     expect(mail.messages).toEqual([]);
     expect(enqueued).toHaveLength(1);
-    expect(enqueued[0]?.toAddress).toBe('user-agent-it@epbih.ba');
+    expect(enqueued[0]?.toAddress).toBe('user-agent-it@example.com');
   });
 
   it('uses the ticket number instead of the title for confidential tickets', async () => {
@@ -128,13 +128,13 @@ describe('email notification fan-out', () => {
     await ingestEmail(harness, mail, enabledConfiguration());
     const message = mail.messages[0];
     expect(message?.html).toContain('<!DOCTYPE html>');
-    expect(message?.html).toContain(`https://desk.epbih.ba/tickets/${created.id}`);
+    expect(message?.html).toContain(`https://desk.example.com/tickets/${created.id}`);
     expect(message?.subject.startsWith(`[${created.ticketNumber}]`)).toBe(true);
     expect(message?.headers).toMatchObject({
-      References: `<ticket-${created.id}@epbih.ba>`,
+      References: `<ticket-${created.id}@example.com>`,
       'Auto-Submitted': 'auto-generated',
     });
-    expect(message?.messageId).toMatch(/@epbih\.ba>$/);
+    expect(message?.messageId).toMatch(/@example\.ba>$/);
     expect(message?.replyTo).toBeUndefined();
   });
 
@@ -143,7 +143,7 @@ describe('email notification fan-out', () => {
     harness.memory.seedUser({
       id: ticketsTestIds.agentIt,
       organizationalUnitId: ticketsTestIds.ouIt,
-      email: 'user-agent-it@epbih.ba',
+      email: 'user-agent-it@example.com',
       preferredLocale: 'en',
     });
     await harness.tickets.create(vpnCreateInput(), { actorUserId: ticketsTestIds.requester });
@@ -293,7 +293,7 @@ async function routedWithInternalAgent() {
   harness.memory.seedUser({
     id: ticketsTestIds.agentIt,
     organizationalUnitId: ticketsTestIds.ouIt,
-    email: 'user-agent-it@epbih.ba',
+    email: 'user-agent-it@example.com',
   });
   return harness;
 }

@@ -16,15 +16,15 @@ import {
 import { resolveInboundTarget } from './resolve-inbound-target';
 
 const secret = Buffer.alloc(32, 7);
-const passHeaders: [string, string[]][] = [['authentication-results', ['mx.epbih.ba; spf=pass; dkim=pass; dmarc=pass']]];
+const passHeaders: [string, string[]][] = [['authentication-results', ['mx.example.com; spf=pass; dkim=pass; dmarc=pass']]];
 
 function message(overrides: Partial<InboundMessage> & { headerList?: [string, string[]][] } = {}): InboundMessage {
   const { headerList, ...rest } = overrides;
   return {
-    messageId: '<m1@mail.epbih.ba>',
+    messageId: '<m1@mail.example.com>',
     inReplyTo: null,
     references: [],
-    fromAddress: 'ana@epbih.ba',
+    fromAddress: 'ana@example.com',
     fromName: 'Ana',
     subject: 'RE: [T-000123] Printer',
     text: 'Printer radi, hvala.\n\nOn Mon, 1 Oct 2026 Help Desk wrote:\n> old text',
@@ -48,7 +48,7 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
       return value;
     };
   const base: InboundProcessingPorts = {
-    findSenderByEmail: record('findSender', { id: 'user00001', email: 'ana@epbih.ba', isActive: true }),
+    findSenderByEmail: record('findSender', { id: 'user00001', email: 'ana@example.com', isActive: true }),
     findTicketById: record('findTicketById', ticket()),
     findTicketByNumber: record('findTicketByNumber', ticket()),
     countRecentFromSender: record('countRecent', 0),
@@ -63,10 +63,10 @@ function ports(overrides: Partial<InboundProcessingPorts> = {}) {
 }
 
 const options: InboundProcessingOptions = {
-  ownAddresses: ['helpdesk@epbih.ba'],
+  ownAddresses: ['helpdesk@example.com'],
   replyTokenSecret: secret,
   requireAuthPass: true,
-  recipientPolicy: { internalOnly: true, internalDomains: ['epbih.ba'], allowedExternalDomains: [], allowedExternalEmails: [] },
+  recipientPolicy: { internalOnly: true, internalDomains: ['example.com'], allowedExternalDomains: [], allowedExternalEmails: [] },
   maxPerSenderPerHour: 20,
   createTickets: false,
   maxBodyLength: 8000,
@@ -75,7 +75,7 @@ const options: InboundProcessingOptions = {
 
 describe('Paket 2.3 — reply token and target', () => {
   it('round-trips a signed token and rejects a tampered one', () => {
-    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'user00001', dedupeKey: 'k', domain: 'epbih.ba' });
+    const id = createReplyTokenMessageId({ secret, ticketId: 'ticket0001', recipientId: 'user00001', dedupeKey: 'k', domain: 'example.com' });
     expect(id).not.toBeNull();
     const target = resolveInboundTarget(message({ inReplyTo: id }), secret);
     expect(target).toEqual({ kind: 'token', ticketId: 'ticket0001', recipientId: 'user00001' });
@@ -85,7 +85,7 @@ describe('Paket 2.3 — reply token and target', () => {
   });
 
   it('falls back to the 1.5 thread root, then the subject number', () => {
-    expect(resolveInboundTarget(message({ references: ['<ticket-ticket0009@epbih.ba>'] }), secret)).toEqual({
+    expect(resolveInboundTarget(message({ references: ['<ticket-ticket0009@example.com>'] }), secret)).toEqual({
       kind: 'thread',
       ticketId: 'ticket0009',
     });
@@ -105,16 +105,16 @@ describe('Paket 2.3 — anti-loop and sender authentication', () => {
     ['Auto-Submitted', [['auto-submitted', ['auto-replied']]], {}],
     ['X-Auto-Response-Suppress', [['x-auto-response-suppress', ['All']]], {}],
     ['Precedence bulk', [['precedence', ['bulk']]], {}],
-    ['List-Id', [['list-id', ['<news.epbih.ba>']]], {}],
+    ['List-Id', [['list-id', ['<news.example.com>']]], {}],
     ['out of office subject', [], { subject: 'Automatski odgovor: Printer' }],
-    ['mailer-daemon', [], { fromAddress: 'mailer-daemon@epbih.ba' }],
+    ['mailer-daemon', [], { fromAddress: 'mailer-daemon@example.com' }],
   ])('ignores %s', (_label, headerList, overrides) => {
-    expect(detectAutoReply(message({ headerList, ...overrides }), ['helpdesk@epbih.ba'])).not.toBeNull();
+    expect(detectAutoReply(message({ headerList, ...overrides }), ['helpdesk@example.com'])).not.toBeNull();
   });
 
   it('ignores our own address and accepts a normal reply', () => {
-    expect(detectAutoReply(message({ fromAddress: 'helpdesk@epbih.ba' }), ['helpdesk@epbih.ba'])).toBe('OWN_MESSAGE');
-    expect(detectAutoReply(message(), ['helpdesk@epbih.ba'])).toBeNull();
+    expect(detectAutoReply(message({ fromAddress: 'helpdesk@example.com' }), ['helpdesk@example.com'])).toBe('OWN_MESSAGE');
+    expect(detectAutoReply(message(), ['helpdesk@example.com'])).toBeNull();
   });
 
   it('reads DMARC / SPF+DKIM from the topmost Authentication-Results', () => {
@@ -128,7 +128,7 @@ describe('Paket 2.3 — anti-loop and sender authentication', () => {
 
 describe('Paket 2.3 — reply text cleaning', () => {
   it.each([
-    ['Gmail en', 'Radi sada.\n\nOn Tue, Oct 1, 2026 at 9:00 AM Help Desk <helpdesk@epbih.ba> wrote:\n> Stari tekst', 'Radi sada.'],
+    ['Gmail en', 'Radi sada.\n\nOn Tue, Oct 1, 2026 at 9:00 AM Help Desk <helpdesk@example.com> wrote:\n> Stari tekst', 'Radi sada.'],
     ['Outlook bs', 'Hvala.\n\nOd: Help Desk\nPoslano: utorak\nZa: Ana\nPredmet: RE: x\n\nStari tekst', 'Hvala.'],
     ['Outlook en separator', 'OK\n-----Original Message-----\nFrom: x', 'OK'],
     ['quoted lines', 'Da.\n> ranije', 'Da.'],
@@ -153,7 +153,7 @@ describe('Paket 2.3 — processInboundMessage', () => {
 
   it.each<[string, Partial<InboundProcessingPorts>, Partial<InboundProcessingOptions>, Partial<InboundMessage> & { headerList?: [string, string[]][] }, string]>([
     ['unknown sender', { findSenderByEmail: async () => null }, {}, {}, 'UNKNOWN_SENDER'],
-    ['inactive sender', { findSenderByEmail: async () => ({ id: 'u', email: 'ana@epbih.ba', isActive: false }) }, {}, {}, 'SENDER_INACTIVE'],
+    ['inactive sender', { findSenderByEmail: async () => ({ id: 'u', email: 'ana@example.com', isActive: false }) }, {}, {}, 'SENDER_INACTIVE'],
     ['external domain', {}, {}, { fromAddress: 'eve@gmail.com' }, 'SENDER_DOMAIN_NOT_ALLOWED'],
     ['DMARC fail', {}, {}, { headerList: [['authentication-results', ['x; dmarc=fail']]] }, 'AUTHENTICATION_FAILED'],
     ['rate limit', { countRecentFromSender: async () => 20 }, {}, {}, 'RATE_LIMITED'],
@@ -245,11 +245,11 @@ describe('Paket 2.3 — parsing, configuration and notices', () => {
   it('parses a raw RFC 5322 message', async () => {
     const raw = Buffer.from(
       [
-        'From: Ana <Ana@epbih.ba>',
-        'To: helpdesk@epbih.ba',
+        'From: Ana <Ana@example.com>',
+        'To: helpdesk@example.com',
         'Subject: RE: [T-000123] Printer',
-        'Message-ID: <abc@epbih.ba>',
-        'In-Reply-To: <r.x@epbih.ba>',
+        'Message-ID: <abc@example.com>',
+        'In-Reply-To: <r.x@example.com>',
         'Authentication-Results: mx; dmarc=pass',
         'Content-Type: text/plain; charset=utf-8',
         '',
@@ -257,7 +257,7 @@ describe('Paket 2.3 — parsing, configuration and notices', () => {
       ].join('\r\n'),
     );
     const parsed = await parseInboundMessage(raw);
-    expect(parsed.fromAddress).toBe('ana@epbih.ba');
+    expect(parsed.fromAddress).toBe('ana@example.com');
     expect(parsed.subject).toBe('RE: [T-000123] Printer');
     expect(parsed.headers.get('authentication-results')?.[0]).toContain('dmarc=pass');
     expect(parsed.text.trim()).toBe('Radi.');

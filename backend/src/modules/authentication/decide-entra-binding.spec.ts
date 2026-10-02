@@ -4,7 +4,7 @@ import { decideEntraBinding } from './decide-entra-binding';
 function user(overrides: Partial<AuthenticationUserRecord> = {}): AuthenticationUserRecord {
   return {
     id: 'u1',
-    email: 'ana@epbih.ba',
+    email: 'ana@example.com',
     displayName: 'Ana',
     isActive: true,
     isLocalOnly: false,
@@ -18,7 +18,7 @@ function user(overrides: Partial<AuthenticationUserRecord> = {}): Authentication
 
 describe('decideEntraBinding (paket 1.8 A2)', () => {
   it('logs in an already linked user by oid, even if the e-mail changed', () => {
-    const linked = user({ entraObjectId: 'oid-1', email: 'old@epbih.ba' });
+    const linked = user({ entraObjectId: 'oid-1', email: 'old@example.com' });
     expect(decideEntraBinding({ byObjectId: linked, byEmail: null, jitProvisioning: false }))
       .toEqual({ kind: 'login', user: linked });
   });

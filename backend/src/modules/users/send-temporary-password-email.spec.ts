@@ -23,15 +23,15 @@ function send(toAddress: string) {
 
 describe('sendTemporaryPasswordEmail recipient policy', () => {
   it('restricted delivery: an address outside the policy is not e-mailed (the UI shows the password)', async () => {
-    channel = createEmailChannelTestConfiguration({ internalOnly: true, internalDomains: ['epbih.ba'] });
+    channel = createEmailChannelTestConfiguration({ internalOnly: true, internalDomains: ['example.com'] });
     const { result, mailTransport } = send('e2e.user@example.com');
     await expect(result).resolves.toBe(false);
     expect(mailTransport.send).not.toHaveBeenCalled();
   });
 
   it('restricted delivery: an internal address is e-mailed', async () => {
-    channel = createEmailChannelTestConfiguration({ internalOnly: true, internalDomains: ['epbih.ba'] });
-    const { result, mailTransport } = send('agent@epbih.ba');
+    channel = createEmailChannelTestConfiguration({ internalOnly: true, internalDomains: ['example.com'] });
+    const { result, mailTransport } = send('agent@example.com');
     await expect(result).resolves.toBe(true);
     expect(mailTransport.send).toHaveBeenCalledTimes(1);
   });

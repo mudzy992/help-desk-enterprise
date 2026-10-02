@@ -20,11 +20,11 @@ const now = new Date('2026-11-20T10:00:00.000Z');
 
 const channel = {
   deliveryEnabled: true,
-  smtp: { host: 'smtp.x.ba', port: 587, tls: true, username: 'u', password: 'p', fromAddress: 'desk@epbih.ba' },
+  smtp: { host: 'smtp.x.ba', port: 587, tls: true, username: 'u', password: 'p', fromAddress: 'desk@example.com' },
   templates: defaultEmailTemplates,
   presentation: {
     appName: 'Service Desk',
-    publicUrl: 'https://desk.epbih.ba',
+    publicUrl: 'https://desk.example.com',
     accentColor: '#4F46E5',
     includeMessageExcerpt: false,
     replyMode: 'no_reply',
@@ -62,9 +62,9 @@ describe('ops alert e-mail', () => {
     expect(composed.text).toContain('Oslobodite prostor');
     expect(composed.text).toContain('ops/runbook/ALERTS.md#disk-usage');
     expect(composed.html).toContain(`border-bottom:3px solid ${opsSeverityColors.CRITICAL.toLowerCase()}`);
-    expect(composed.html).toContain('https://desk.epbih.ba/admin?tab=ops');
+    expect(composed.html).toContain('https://desk.example.com/admin?tab=ops');
     expect(composed.headers['X-Priority']).toBe('1');
-    expect(composed.messageId).toMatch(/^<[0-9a-f]{32}@epbih\.ba>$/);
+    expect(composed.messageId).toMatch(/^<[0-9a-f]{32}@example\.ba>$/);
   });
 
   it('keeps an explicit template colour and says how long a resolved alarm lasted', () => {
@@ -123,7 +123,7 @@ describe('OpsFallbackNotifier', () => {
   it('reads only valid env values', () => {
     expect(
       readFallbackConfiguration({ OPS_ALERT_SMTP_URL: 'http://x', OPS_ALERT_EMAIL_TO: 'a@x.ba, bad', OPS_ALERT_TEAMS_WEBHOOK_URL: 'http://t' }),
-    ).toEqual({ smtpUrl: null, emailTo: ['a@x.ba'], emailFrom: 'ephelpdesk-monitor@localhost', teamsWebhookUrl: null });
+    ).toEqual({ smtpUrl: null, emailTo: ['a@x.ba'], emailFrom: 'service-desk-monitor@localhost', teamsWebhookUrl: null });
   });
 
   it('sends once per key and kind every 30 minutes, on both channels', async () => {
@@ -160,8 +160,8 @@ describe('OpsFallbackNotifier', () => {
 
 describe('OpsAlertNotifier', () => {
   const users = [
-    { id: 'u1', email: 'admin@epbih.ba', displayName: 'Admin', preferredLocale: 'en' },
-    { id: 'u2', email: 'super@epbih.ba', displayName: 'Super', preferredLocale: null },
+    { id: 'u1', email: 'admin@example.com', displayName: 'Admin', preferredLocale: 'en' },
+    { id: 'u2', email: 'super@example.com', displayName: 'Super', preferredLocale: null },
   ];
 
   function setup(teams = jest.fn(async () => undefined)) {
@@ -181,7 +181,7 @@ describe('OpsAlertNotifier', () => {
     const { prisma, transport, teams, notifier } = setup();
     const results = await notifier.notify({
       message: diskMessage,
-      configuration: { ...fallbackOpsConfiguration, extraRecipients: ['admin@epbih.ba', 'dezurni@epbih.ba'], teamsWebhookUrl: 'https://t' },
+      configuration: { ...fallbackOpsConfiguration, extraRecipients: ['admin@example.com', 'dezurni@example.com'], teamsWebhookUrl: 'https://t' },
       dedupeKey: 'ops-alert:a1:opened:1',
       alertId: 'a1',
       now,
@@ -196,7 +196,7 @@ describe('OpsAlertNotifier', () => {
     expect(JSON.stringify(where)).toContain('SUPER_ADMIN');
     expect((deliverNotificationEmail as jest.Mock).mock.calls.map((call) => call[3].templateKey)).toEqual(['ops.alert', 'ops.alert']);
     expect(transport.send).toHaveBeenCalledTimes(1);
-    expect((transport.send.mock.calls[0] as unknown as [{ to: string }])[0].to).toBe('dezurni@epbih.ba');
+    expect((transport.send.mock.calls[0] as unknown as [{ to: string }])[0].to).toBe('dezurni@example.com');
     expect((persistInAppNotification as jest.Mock).mock.calls[0][1]).toMatchObject({
       userId: 'u1',
       type: 'ops.alert',

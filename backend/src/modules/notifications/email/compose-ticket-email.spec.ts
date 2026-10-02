@@ -32,21 +32,21 @@ describe('composeTicketEmail', () => {
   it('threads every ticket e-mail and suppresses auto-replies', () => {
     const email = compose();
     expect(email.headers).toMatchObject({
-      'In-Reply-To': '<ticket-ticket-1@epbih.ba>',
-      References: '<ticket-ticket-1@epbih.ba>',
+      'In-Reply-To': '<ticket-ticket-1@example.com>',
+      References: '<ticket-ticket-1@example.com>',
       'Auto-Submitted': 'auto-generated',
       'X-Auto-Response-Suppress': 'All',
       'X-EPHD-Ticket': 'HD-1',
     });
     expect(email.replyTo).toBeUndefined();
-    expect(email.text).toContain('https://desk.epbih.ba/tickets/ticket-1');
+    expect(email.text).toContain('https://desk.example.com/tickets/ticket-1');
     expect(email.text).toContain('Dodijeljen');
   });
 
   it('keeps the Message-ID stable per event and recipient', () => {
     expect(compose().messageId).toBe(compose().messageId);
     expect(compose(undefined, 'u2').messageId).not.toBe(compose().messageId);
-    expect(compose().messageId).toMatch(/^<[0-9a-f]{32}@epbih\.ba>$/);
+    expect(compose().messageId).toMatch(/^<[0-9a-f]{32}@example\.ba>$/);
   });
 
   it('sets Reply-To only in the shared mailbox mode', () => {
@@ -54,10 +54,10 @@ describe('composeTicketEmail', () => {
       createEmailChannelTestConfiguration({}, {
         replyMode: 'shared_mailbox',
         configuredReplyMode: 'shared_mailbox',
-        replyToAddress: 'podrska@epbih.ba',
+        replyToAddress: 'podrska@example.com',
       }),
     );
-    expect(email.replyTo).toBe('podrska@epbih.ba');
+    expect(email.replyTo).toBe('podrska@example.com');
     expect(email.text).toContain('Na ovu poruku možete odgovoriti');
   });
 

@@ -35,8 +35,8 @@ describe('validateInstallLoginProvider', () => {
       validateInstallLoginProvider(
         {
           mode: 'entra_ad',
-          adLdapsUrlsCsv: 'ldaps://dc1.epbih.ba:636',
-          adBindDn: 'CN=svc,DC=epbih,DC=ba',
+          adLdapsUrlsCsv: 'ldaps://dc1.example.com:636',
+          adBindDn: 'CN=svc,DC=example,DC=com',
           adBindPassword: 'secret',
         },
         emptyStored,
@@ -45,8 +45,8 @@ describe('validateInstallLoginProvider', () => {
       mode: 'entra_ad',
       entra: null,
       directoryBind: {
-        urlsCsv: 'ldaps://dc1.epbih.ba:636',
-        bindDn: 'CN=svc,DC=epbih,DC=ba',
+        urlsCsv: 'ldaps://dc1.example.com:636',
+        bindDn: 'CN=svc,DC=example,DC=com',
       },
     });
   });
@@ -75,8 +75,8 @@ describe('validateInstallLoginProvider', () => {
       validateInstallLoginProvider(
         {
           mode: 'entra_ad',
-          adLdapsUrlsCsv: 'ldaps://dc1.epbih.ba:636',
-          adBindDn: 'CN=svc,DC=epbih,DC=ba',
+          adLdapsUrlsCsv: 'ldaps://dc1.example.com:636',
+          adBindDn: 'CN=svc,DC=example,DC=com',
         },
         emptyStored,
       ),

@@ -29,7 +29,7 @@ describe('SLA escalation email gate', () => {
         group: { findUnique: async () => null },
         user: {
           findMany: async () => [
-            { id: 'user-1', email: 'a@epbih.ba', displayName: 'A', preferredLocale: null },
+            { id: 'user-1', email: 'a@example.com', displayName: 'A', preferredLocale: null },
           ],
         },
       } as never,
@@ -67,7 +67,7 @@ describe('SLA escalation email gate', () => {
         group: { findUnique: async () => null },
         user: {
           findMany: async () => [
-            { id: 'user-1', email: 'a@epbih.ba', displayName: 'A', preferredLocale: null },
+            { id: 'user-1', email: 'a@example.com', displayName: 'A', preferredLocale: null },
           ],
         },
       } as never,
