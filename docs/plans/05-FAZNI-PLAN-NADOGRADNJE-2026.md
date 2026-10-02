@@ -185,7 +185,7 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ## FAZA 3 — Proširenja (ranije van obima)
 
-### 3.1 Microsoft Teams konektor (pun)  · ~6 RD
+### 3.1 Microsoft Teams konektor (pun)  · ~6 RD · dizajn: `modules/3.1-teams-konektor.md` · čeka odobrenje (cilj: spremno za aktivaciju, simulator dok tenant ne bude dostupan)
 - Teams app / bot (Azure Bot Service ili Graph): notifikacije u kanal grupe i lično korisniku,
   adaptive cards (preuzmi, odgovori, odobri), kreiranje tiketa iz Teamsa.
 - Postojeći stub i durable queue su osnova; SSO preko istog Entra tenanta.
