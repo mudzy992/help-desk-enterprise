@@ -217,6 +217,13 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ---
 
+## FAZA 4 — Proizvod za više klijenata
+
+### 4.1 Audit „više klijenata“  · dizajn: `modules/4.1-audit-vise-klijenata.md` · čeka odobrenje
+- Uklanjanje svakog spominjanja i hardkodiranja naziva klijenta (kod, UI, postavke, testovi, infrastruktura,
+  dokumentacija); neutralni naziv proizvoda „Service Desk“; potpuno preimenovanje tehničkih identifikatora i na
+  stagingu; CI provjera protiv povratka.
+
 ## Zavisnosti i redoslijed
 
 ```
