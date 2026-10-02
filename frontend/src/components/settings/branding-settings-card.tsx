@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsReasonConfirm } from "@/components/settings/settings-reason-confirm";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { readLogoFile, type LogoReadError } from "@/lib/branding/read-logo-file";
@@ -92,6 +92,7 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: 
   return (
     <Card className="fade-in">
       <CardHeader title={t("settings.branding.title")} subtitle={t("settings.branding.subtitle")} />
+      <CardBody>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={t("settings.branding.appName")} required error={errors.appName}>
           {(control) => <Input {...control} value={draft.appName} maxLength={60} disabled={disabled} onChange={(event) => update("appName", event.target.value)} />}
@@ -176,6 +177,7 @@ export function BrandingSettingsCard({ entries, canWrite, pendingKey, onSave }: 
           </div>
         )
       ) : null}
+      </CardBody>
     </Card>
   );
 }

@@ -717,6 +717,8 @@ Preferirati:
 
 Card koristiti kada postoji stvarna konceptualna granica između sadržaja.
 
+**Padding kartice (obavezno):** `Card` namjerno nema padding (`CardHeader` ima svoj `px-4`). Sadržaj ispod zaglavlja uvijek ide u `CardBody` (`px-4 py-4`) iz `components/ui/card.tsx`, ne u ručno pisan padding. Izuzetak su liste i tabele koje idu od ruba do ruba i imaju vlastiti padding po redu (`divide-y` + `px-4` u stavci).
+
 ---
 
 # 26. BORDERS / RADIUS / SHADOWS

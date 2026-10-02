@@ -52,3 +52,12 @@ export function CardHeader({
     </div>
   );
 }
+
+/**
+ * Standard card content padding (matches CardHeader's px-4). `Card` itself is
+ * unpadded on purpose so lists and tables can run edge to edge; every other
+ * card body uses this instead of hand-written padding.
+ */
+export function CardBody({ className, ...properties }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("px-4 py-4", className)} {...properties} />;
+}
