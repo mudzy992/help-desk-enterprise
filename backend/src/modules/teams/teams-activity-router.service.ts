@@ -3,6 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { readCardAction, type TeamsActivity } from './teams-activity';
 import { adaptiveCard, cardActivity, escapeCardText, execute, heading, openUrl, paragraph, type CardElement } from './teams-cards';
 import { parseTeamsCommand } from './teams-commands';
+import { messagePayloadText } from './teams-ticket-create';
 import type { TeamsConfiguration } from './teams-configuration.service';
 import { defaultTeamsChannelEvents, maxMyTickets, teamsVerbs } from './teams.constants';
 import { TeamsConversationsService, type TeamsConversationRecord } from './teams-conversations.service';
@@ -21,6 +22,8 @@ const openTicketStatuses = ['PENDING', 'UNROUTED', 'PENDING_APPROVAL', 'ASSIGNED
 /** Extension point for T4 (card actions and ticket creation). */
 export interface TeamsActionHandler {
   handles(verb: string): boolean;
+  ticketForm(locale: TeamsLocale, config: TeamsConfiguration, description?: string, submitMode?: 'execute' | 'submit'): Promise<Record<string, unknown>>;
+  searchServices(query: string): Promise<{ title: string; value: string }[]>;
   handle(input: { verb: string; data: Record<string, unknown>; user: TeamsLinkedUser; activity: TeamsActivity; config: TeamsConfiguration }): Promise<Record<string, unknown>>;
 }
 
@@ -107,7 +110,11 @@ export class TeamsActivityRouter {
         await this.reply(context, await this.myTicketsCard(context, context.user));
         return;
       case 'newTicket':
-        await this.reply(context, this.noticeCard(context, context.config.ticketCreateEnabled ? 'newTicketSoon' : 'newTicketDisabled', true));
+        if (this.actionHandler && context.config.ticketCreateEnabled) {
+          await this.reply(context, cardActivity(await this.actionHandler.ticketForm(context.locale, context.config), teamsText(context.locale, 'createTitle')));
+        } else {
+          await this.reply(context, this.noticeCard(context, context.config.ticketCreateEnabled ? 'newTicketSoon' : 'newTicketDisabled', true));
+        }
         return;
       case 'link':
         await this.reply(context, this.noticeCard(context, 'linkOnlyChannel'));
@@ -118,6 +125,9 @@ export class TeamsActivityRouter {
   }
 
   private async onInvoke(context: RouteContext): Promise<TeamsInvokeResponse> {
+    const name = context.activity.name ?? '';
+    if (name === 'application/search') return this.onSearch(context);
+    if (name === 'composeExtension/fetchTask' || name === 'composeExtension/submitAction') return this.onMessageAction(context, name);
     const action = readCardAction(context.activity);
     if (!action) return { status: 200, body: { statusCode: 200, type: 'application/vnd.microsoft.activity.message', value: teamsText(context.locale, 'actionUnavailable') } };
     if (!context.user) return cardResponse(this.noticeCardContent(context, 'notLinked'));
@@ -131,6 +141,33 @@ export class TeamsActivityRouter {
       }
     }
     return cardResponse(this.noticeCardContent(context, 'actionUnavailable', true));
+  }
+
+  // ---- ticket creation (§10) -----------------------------------------------
+
+  private async onSearch(context: RouteContext): Promise<TeamsInvokeResponse> {
+    const value = (context.activity.value ?? {}) as { queryText?: unknown; dataset?: unknown };
+    const results = context.user && this.actionHandler && value.dataset === 'services' ? await this.actionHandler.searchServices(typeof value.queryText === 'string' ? value.queryText : '') : [];
+    return { status: 200, body: { statusCode: 200, type: 'application/vnd.microsoft.search.searchResponse', value: { results } } };
+  }
+
+  /** Message action „Kreiraj tiket iz poruke“: a task module with the prefilled form, then creation. */
+  private async onMessageAction(context: RouteContext, name: string): Promise<TeamsInvokeResponse> {
+    const title = teamsText(context.locale, 'createTitle');
+    const task = (card: Record<string, unknown>) => ({
+      status: 200,
+      body: { task: { type: 'continue', value: { title, card: { contentType: 'application/vnd.microsoft.card.adaptive', content: card } } } },
+    });
+    if (!context.user) return task(this.noticeCardContent(context, 'notLinked'));
+    if (!this.actionHandler || !context.config.ticketCreateEnabled) return task(this.noticeCardContent(context, 'newTicketDisabled', true));
+    if (name === 'composeExtension/fetchTask') {
+      const { text, link } = messagePayloadText(context.activity.value);
+      const description = [text, link ? `${teamsText(context.locale, 'createFromMessage')}: ${link}` : ''].filter(Boolean).join('\n\n');
+      return task(await this.actionHandler.ticketForm(context.locale, context.config, description, 'submit'));
+    }
+    const data = ((context.activity.value as { data?: unknown } | null)?.data ?? {}) as Record<string, unknown>;
+    const card = await this.actionHandler.handle({ verb: teamsVerbs.createTicket, data, user: context.user, activity: context.activity, config: context.config });
+    return task(card);
   }
 
   // ---- linking (§11) -------------------------------------------------------

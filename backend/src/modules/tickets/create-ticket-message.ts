@@ -71,7 +71,7 @@ export async function createTicketMessage(
       type: normalized.type,
       body: normalized.body,
       authorUserId: context.actorUserId,
-      ...(context.messageSource === 'EMAIL' ? { source: 'EMAIL' as const } : {}),
+      ...(context.messageSource === 'EMAIL' || context.messageSource === 'TEAMS' ? { source: context.messageSource } : {}),
       ...(responseTemplateId === null ? {} : { responseTemplateId }),
     },
   })) as TicketMessageRecord;

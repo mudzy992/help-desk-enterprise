@@ -83,7 +83,7 @@ describe('buildNotificationCard', () => {
         locale: 'en',
         notificationType: 'change.approvalRequested',
         ticket: null,
-        change: { id: 'c1', number: 'CHG-000007', title: 'Firewall', risk: 'HIGH', status: 'AUTHORIZATION', plannedStart: new Date('2026-10-10T20:00:00Z'), plannedEnd: null },
+        change: { id: 'c1', number: 'CHG-000007', title: 'Firewall', risk: 'HIGH', status: 'AUTHORIZATION', plannedStart: new Date('2026-10-10T20:00:00Z'), plannedEnd: null, version: 3 },
       }),
     )!;
     expect(card.cardKind).toBe('change.vote');

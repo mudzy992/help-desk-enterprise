@@ -23,6 +23,8 @@ export interface ChangeCardFacts {
   readonly status: string;
   readonly plannedStart: Date | null;
   readonly plannedEnd: Date | null;
+  /** Optimistic lock of the change (CAB votes must name it). */
+  readonly version: number;
 }
 
 export interface NotificationCardInput {
@@ -131,21 +133,18 @@ function ticketCard(input: NotificationCardInput, ticket: TicketCardFacts): Buil
       [t(locale, 'fieldDue'), formatDate(ticket.dueAt, locale, input.timeZone)],
     ]),
   ];
-  const data = { ticketId: ticket.id, version: ticket.status };
+  const cardKind = input.target === 'channel' ? 'channel.ticket' : input.notificationType === 'ticket.approval' && input.event === 'ticket_approval_requested' ? 'ticket.approval' : 'ticket';
+  const data = { ticketId: ticket.id, version: `${ticket.status}:${ticket.assigneeName ?? ''}`, cardKind };
   const actions: CardElement[] = [];
-  let cardKind: string;
-  if (input.target === 'channel') {
-    cardKind = 'channel.ticket';
+  if (cardKind === 'channel.ticket') {
     if (!input.includeTitle) body.push(paragraph(t(locale, 'hiddenTitle'), { size: 'Small', isSubtle: true }));
     if (input.actionsEnabled && open && !ticket.assigneeName) actions.push(execute(t(locale, 'claim'), teamsVerbs.claimTicket, data, { style: 'positive' }));
-  } else if (input.notificationType === 'ticket.approval' && input.event === 'ticket_approval_requested') {
-    cardKind = 'ticket.approval';
+  } else if (cardKind === 'ticket.approval') {
     if (input.actionsEnabled && ticket.status === 'PENDING_APPROVAL') {
       actions.push(execute(t(locale, 'approve'), teamsVerbs.approveTicket, data, { style: 'positive' }));
       actions.push(textForm(locale, t(locale, 'reject'), teamsVerbs.rejectTicket, 'comment', t(locale, 'rejectComment'), data, true));
     }
   } else {
-    cardKind = 'ticket';
     if (input.body && !ticket.isConfidential && input.notificationType === 'ticket.message') {
       body.push(paragraph(escapeCardText(input.body.slice(0, snippetLength)), { isSubtle: true }));
     }
@@ -177,7 +176,7 @@ function changeCard(input: NotificationCardInput, change: ChangeCardFacts): Buil
   ];
   const voting = input.notificationType === 'change.approvalRequested';
   const actions: CardElement[] = [];
-  const data = { changeId: change.id, version: change.status };
+  const data = { changeId: change.id, version: change.version, cardKind: voting ? 'change.vote' : `change.${input.notificationType}` };
   if (voting && input.actionsEnabled && change.status === 'AUTHORIZATION') {
     actions.push(execute(t(locale, 'approve'), teamsVerbs.approveChange, data, { style: 'positive' }));
     actions.push(textForm(locale, t(locale, 'reject'), teamsVerbs.rejectChange, 'comment', t(locale, 'rejectComment'), data, true));

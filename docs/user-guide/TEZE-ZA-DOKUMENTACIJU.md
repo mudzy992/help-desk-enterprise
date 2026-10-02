@@ -464,3 +464,9 @@ To je kriterij kompletnosti.
 - Prihvaćene su sve preporuke iz dizajna 3.1, osim onih koje su pretpostavljale da će jedan konkretni klijent nešto obezbijediti; lista preduslova je dio dokumentacije za svakog klijenta.
 - Teams konektor je addon, zadano isključen; poruke u kanalu ne sadrže opis tiketa ni poruke, a naslov samo uz postavku.
 - Svaka akcija iz Teamsa (preuzmi, odgovori, odobri, CAB glas, novi tiket) radi pod istim pravima kao u aplikaciji; korisnik se prepoznaje automatski preko istog Microsoft naloga, lokalni nalozi se ne povezuju.
+- Teams obavijesti prate iste preference kao obavijesti u aplikaciji; korisnik ih može isključiti po vrsti događaja. Tihi sati važe za Teams samo ako ih korisnik ima uključene i za e-mail.
+- Kanal tima povezuje samo osoba koja smije upravljati grupom; ostali dobiju objašnjenje.
+- Ako je kartica zastarjela (neko je već preuzeo tiket ili glasao), Teams prikaže svježe stanje i poruku „U međuvremenu je promijenjeno“ – ništa se ne izvrši dvaput.
+- Iz Teamsa se tiket kreira samo za servise bez obaveznog formulara; za ostale Teams vodi u aplikaciju na isti servis.
+- Tiket se može kreirati i iz bilo koje Teams poruke („Kreiraj tiket iz poruke“) – opis se popuni tekstom poruke i linkom na nju.
+- Svaka akcija iz Teamsa upisuje se u audit log s oznakom kanala „teams“.

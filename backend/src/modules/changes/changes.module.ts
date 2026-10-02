@@ -25,6 +25,6 @@ import { ChangesService } from './changes.service';
     ChangeNotifier,
     ServiceAvailabilityConfigurationLoader,
   ],
-  exports: [ChangeAccessService, ChangesService, ChangeScheduleService, ChangeNotifier],
+  exports: [ChangeAccessService, ChangesService, ChangeScheduleService, ChangeNotifier, ChangeApprovalsService],
 })
 export class ChangesModule {}

@@ -186,7 +186,8 @@ export class TeamsDeliveryService {
     return null;
   }
 
-  private async buildForKind(entityType: 'ticket' | 'change', entityId: string, cardKind: string, target: 'personal' | 'channel', locale: ReturnType<typeof toTeamsLocale>, config: TeamsConfiguration) {
+  /** Current card for an entity (invoke responses and refreshes). */
+  async buildForKind(entityType: 'ticket' | 'change', entityId: string, cardKind: string, target: 'personal' | 'channel', locale: ReturnType<typeof toTeamsLocale>, config: TeamsConfiguration) {
     const base = {
       target,
       locale,
@@ -244,11 +245,11 @@ export class TeamsDeliveryService {
   private async changeFacts(changeId: string, number: unknown): Promise<ChangeCardFacts | null> {
     const change = await this.prisma.changeRequest.findUnique({
       where: { id: changeId },
-      select: { id: true, sequence: true, title: true, risk: true, status: true, plannedStart: true, plannedEnd: true },
+      select: { id: true, sequence: true, title: true, risk: true, status: true, plannedStart: true, plannedEnd: true, version: true },
     });
     if (!change) return null;
     const existing = typeof number === 'string' && number ? number : await this.changeNumber(change.sequence);
-    return { id: change.id, number: existing, title: change.title, risk: change.risk, status: change.status, plannedStart: change.plannedStart, plannedEnd: change.plannedEnd };
+    return { id: change.id, number: existing, title: change.title, risk: change.risk, status: change.status, plannedStart: change.plannedStart, plannedEnd: change.plannedEnd, version: change.version };
   }
 
   private async changeNumber(sequence: number): Promise<string> {
