@@ -44,7 +44,7 @@ Nakon završetka wizard se **zaključava**. Izmjene idu kroz Settings (SuperAdmi
 | `sla` | on | — |
 | `email` | off | SMTP enabled |
 | `edge` | off | — |
-| `teamsStub` | off | — |
+| `teams` | off | — |
 | `csat` | on | — |
 | `autoAssign` | off | — |
 | `approvals` | on | — |

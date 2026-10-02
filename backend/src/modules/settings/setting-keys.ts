@@ -304,7 +304,6 @@ export const settingKeys = {
   privateAddonsSla: addonSettingKey('sla'),
   privateAddonsEmail: addonSettingKey('email'),
   privateAddonsEdge: addonSettingKey('edge'),
-  privateAddonsTeamsStub: addonSettingKey('teamsStub'),
   privateAddonsCsat: addonSettingKey('csat'),
   privateAddonsAutoAssign: addonSettingKey('autoAssign'),
   privateAddonsApprovals: addonSettingKey('approvals'),
@@ -406,10 +405,6 @@ export const settingKeys = {
     'private.integrations.queue.workerPollSeconds',
   privateIntegrationsQueueAdminUiEnabled:
     'private.integrations.queue.adminUiEnabled',
-  privateIntegrationsTeamsStubEnabled: 'private.integrations.teams.stubEnabled',
-  privateIntegrationsTeamsWebhookUrl: 'private.integrations.teams.webhookUrl',
-  privateIntegrationsTeamsEventTypesCsv:
-    'private.integrations.teams.eventTypesCsv',
   // Paket 3.1: Teams connector (bot); the addon switches it on.
   privateIntegrationsTeamsMode: 'private.integrations.teams.mode',
   privateIntegrationsTeamsTenantId: 'private.integrations.teams.tenantId',

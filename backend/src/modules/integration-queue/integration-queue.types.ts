@@ -28,13 +28,6 @@ export type EdgeEventIntegrationJobPayload = {
   readonly data: unknown;
 };
 
-export type TeamsStubIntegrationJobPayload = {
-  readonly eventType: string;
-  readonly event: string;
-  readonly ticketId: string;
-  readonly messageId: string;
-};
-
 export type IntegrationQueueSettings = {
   readonly enabled: boolean;
   readonly typeTokens: ReadonlySet<string>;
@@ -64,7 +57,6 @@ export type EnqueueIntegrationJobInput = {
   readonly payload:
     | EmailIntegrationJobPayload
     | EdgeEventIntegrationJobPayload
-    | TeamsStubIntegrationJobPayload
     | Record<string, unknown>;
 };
 

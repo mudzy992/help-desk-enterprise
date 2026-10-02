@@ -13,7 +13,6 @@ describe('installAddonCatalog', () => {
       ['sla', true],
       ['email', false],
       ['edge', false],
-      ['teamsStub', false],
       ['csat', true],
       ['autoAssign', false],
       ['approvals', true],
@@ -34,7 +33,7 @@ describe('installAddonCatalog', () => {
 
   it('maps catalog keys to Settings Registry private.addons.<key> keys', () => {
     expect(addonSettingKey('email')).toBe('private.addons.email');
-    expect(addonSettingKey('teamsStub')).toBe('private.addons.teamsStub');
+    expect(addonSettingKey('teams')).toBe('private.addons.teams');
     expect(isInstallAddonKey('sla')).toBe(true);
     expect(isInstallAddonKey('ticketing')).toBe(false);
   });

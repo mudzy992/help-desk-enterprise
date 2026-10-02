@@ -473,3 +473,4 @@ To je kriterij kompletnosti.
 - Administracija → Operacije → Microsoft Teams: status konektora, provjera spremnosti (bez slanja poruka), preuzimanje Teams paketa i upravljanje povezanim kanalima.
 - Simulator Teamsa dozvoljava da se cijeli tok (instalacija, komande, kartice, dugmad, novi tiket) isproba bez ikakvog Microsoft naloga ili pretplate.
 - Na stranici „Moje obavijesti“ vidi se da li je Teams aplikacija povezana, i tu se Teams obavijesti uključuju po događaju.
+- Stari „Teams (stub)“ dodatak je uklonjen iz aplikacije; Teams se uključuje isključivo dodatkom „Microsoft Teams konektor“.

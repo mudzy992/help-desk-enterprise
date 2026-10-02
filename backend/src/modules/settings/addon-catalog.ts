@@ -17,11 +17,6 @@ export const installAddonCatalog = [
     description: 'Edge addon flag from the install wizard catalog',
   },
   {
-    key: 'teamsStub',
-    defaultEnabled: false,
-    description: 'Deprecated Teams stub flag (replaced by the teams addon, package 3.1); kept readable',
-  },
-  {
     key: 'csat',
     defaultEnabled: true,
     description: 'CSAT addon flag from the install wizard catalog',

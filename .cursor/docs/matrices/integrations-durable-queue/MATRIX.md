@@ -7,7 +7,7 @@ Outgoing integracije (email, Edge eventi, Teams stub) idu kroz BullMQ + Redis wo
 | Proces | Enqueue | Processor | Prisma `IntegrationJob` | SMTP | WS emit |
 |---|---|---|---|---|---|
 | backend (HTTP) | da | ne | insert PENDING, admin list/retry | samo ako je queue OFF | subscriber Redis → `TicketRealtimeHub` |
-| worker | delayed retry add | da (`EMAIL`, `EDGE_EVENT`, `TEAMS_STUB`) | PROCESSING / COMPLETED / FAILED / DLQ | da (samo EMAIL) | Redis publish, bez `WebsocketGateway` |
+| worker | delayed retry add | da (`EMAIL`, `EDGE_EVENT`, `TEAMS`) | PROCESSING / COMPLETED / FAILED / DLQ | da (samo EMAIL) | Redis publish, bez `WebsocketGateway` |
 
 Queue name: `integration` (BullMQ prefix iz `QUEUE_PREFIX`, ACL `~bull:ephelpdesk:*`). Job data: `{ integrationJobId }`. `jobId` prvog enqueue-a = `IntegrationJob.id`.
 
@@ -24,7 +24,7 @@ Queue name: `integration` (BullMQ prefix iz `QUEUE_PREFIX`, ACL `~bull:ephelpdes
 | `private.integrations.queue.workerPollSeconds` | `5` |
 | `private.integrations.queue.adminUiEnabled` | `true` |
 
-Tokeni u `typesCsv`: `email` → `EMAIL`, `edge` → `EDGE_EVENT`, `teams` → `TEAMS_STUB`.
+Tokeni u `typesCsv`: `email` → `EMAIL`, `edge` → `EDGE_EVENT`, `teams` → `TEAMS`.
 
 ## Tok
 1. Producent zove `EnqueueIntegrationJobService`: insert `PENDING`, zatim `queue.add`.
@@ -40,8 +40,8 @@ Payload: `{ userId, toAddress, subject, text, templateKey, dedupeKey }` — bez 
 ## EDGE_EVENT
 Payload: `{ userId, ticketId?, eventName, data }`. Worker `PUBLISH` / API `SUBSCRIBE` na kanal `integration-queue:edge-event` (ioredis pub/sub **ne** dodaje `keyPrefix`; ACL `&integration-queue:*`). Ako klijent ipak prefiksira: `&ephelpdesk:*`. API subscriber (postojeći Redis klijent `.duplicate()`) → `TicketRealtimeHub.publishEdgeEvent` → gateway emit na `user:{userId}` i opcionalno `ticket:{ticketId}`. Nije Socket.IO Redis adapter. Nema proizvođača u ovom sloju (Phase 9 Edge).
 
-## TEAMS_STUB
-Procesor postoji: log `would send to Teams` + payload metadata, zatim `COMPLETED`. Nema HTTP poziva ka webhook-u. Producent i settings su u `integrations-teams-stub`.
+## TEAMS
+Paket 3.1: isporuka Teams kartice (`TeamsDeliveryService.process`). Stari `TEAMS_STUB` je uklonjen (migracija `20270305090000_remove_teams_stub`).
 
 ## Admin API
 - Permission: `integrations.queue.manage` (ADMIN katalog + SuperAdmin).

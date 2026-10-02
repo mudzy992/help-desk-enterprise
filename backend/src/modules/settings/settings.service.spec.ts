@@ -125,7 +125,7 @@ describe('SettingsService', () => {
       [settingKeys.privateAddonsSla]: true,
       [settingKeys.privateAddonsEmail]: false,
       [settingKeys.privateAddonsEdge]: false,
-      [settingKeys.privateAddonsTeamsStub]: false,
+      [settingKeys.privateAddonsTeams]: false,
       [settingKeys.privateAddonsCsat]: true,
       [settingKeys.privateAddonsAutoAssign]: false,
     });

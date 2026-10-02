@@ -13,7 +13,6 @@ import { IntegrationWorkerMaintenanceProcessor } from './integration-worker-main
 import { IntegrationWorkerMaintenanceSchedulerService } from './integration-worker-maintenance.scheduler.service';
 import { ProcessEdgeEventIntegrationJobService } from './process-edge-event-integration-job.service';
 import { ProcessEmailIntegrationJobService } from './process-email-integration-job.service';
-import { ProcessTeamsStubIntegrationJobService } from './process-teams-stub-integration-job.service';
 import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.service';
 
 @Module({
@@ -31,7 +30,6 @@ import { PublishEdgeEventToRedisService } from './publish-edge-event-to-redis.se
     PublishEdgeEventToRedisService,
     ProcessEmailIntegrationJobService,
     ProcessEdgeEventIntegrationJobService,
-    ProcessTeamsStubIntegrationJobService,
     IntegrationQueueProcessor,
     IntegrationJobDlqRetentionService,
     IntegrationQueueWorkerHeartbeatService,

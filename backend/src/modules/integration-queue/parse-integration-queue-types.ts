@@ -6,7 +6,7 @@ import { integrationQueueTypeTokens } from './integration-queue.constants';
 const tokenToJobTypes: Readonly<Record<string, readonly IntegrationJobType[]>> = {
   [integrationQueueTypeTokens.email]: [IntegrationJobType.EMAIL],
   [integrationQueueTypeTokens.edge]: [IntegrationJobType.EDGE_EVENT],
-  [integrationQueueTypeTokens.teams]: [IntegrationJobType.TEAMS, IntegrationJobType.TEAMS_STUB],
+  [integrationQueueTypeTokens.teams]: [IntegrationJobType.TEAMS],
 };
 
 export function parseIntegrationQueueTypeTokens(

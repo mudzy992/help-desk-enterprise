@@ -22,7 +22,7 @@ export const retryableIntegrationJobStatuses: readonly IntegrationJobAdminStatus
   integrationJobStatuses.dlq,
 ];
 
-export type IntegrationJobType = "EMAIL" | "EDGE_EVENT" | "TEAMS_STUB";
+export type IntegrationJobType = "EMAIL" | "EDGE_EVENT" | "TEAMS";
 
 export type IntegrationJob = {
   readonly id: string;

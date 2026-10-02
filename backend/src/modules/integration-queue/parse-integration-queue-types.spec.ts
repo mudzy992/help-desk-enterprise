@@ -13,7 +13,7 @@ describe('parseIntegrationQueueTypeTokens', () => {
       isQueuedIntegrationJobType(IntegrationJobType.EMAIL, tokens),
     ).toBe(true);
     expect(
-      isQueuedIntegrationJobType(IntegrationJobType.TEAMS_STUB, tokens),
+      isQueuedIntegrationJobType(IntegrationJobType.TEAMS, tokens),
     ).toBe(false);
   });
 });

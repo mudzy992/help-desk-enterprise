@@ -45,7 +45,6 @@ describe('IntegrationQueueProcessor', () => {
       processEmail as never,
       processEdge as never,
       processTeams as never,
-      { process: jest.fn() } as never,
       queue as never,
     );
     await processor.process({
@@ -57,17 +56,12 @@ describe('IntegrationQueueProcessor', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
-  it('marks a successful TEAMS_STUB job COMPLETED without email delivery', async () => {
+  it('marks a successful TEAMS job COMPLETED without email delivery', async () => {
     const record = {
       id: 'job-2',
-      type: IntegrationJobType.TEAMS_STUB,
+      type: IntegrationJobType.TEAMS,
       status: IntegrationJobStatus.PENDING,
-      payload: {
-        eventType: 'ticket.created',
-        event: 'ticket_created',
-        ticketId: 'ticket-1',
-        messageId: 'msg-1',
-      },
+      payload: { target: 'personal', teamsConversationId: 'tc-1', notificationId: 'n-1' },
       attempts: 0,
     };
     const repository = {
@@ -98,7 +92,6 @@ describe('IntegrationQueueProcessor', () => {
       processEmail as never,
       processEdge as never,
       processTeams as never,
-      { process: jest.fn() } as never,
       queue as never,
     );
     await processor.process({

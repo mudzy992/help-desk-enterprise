@@ -12,7 +12,6 @@ import { NotificationsController } from './notifications.controller';
 import { EmailTemplatesController } from './email-templates/email-templates.controller';
 import { EmailTemplatesService } from './email-templates/email-templates.service';
 import { NotificationsService } from './notifications.service';
-import { TeamsIntegrationService } from './teams/teams-integration.service';
 import { NotificationDigestService } from './preferences/notification-digest.service';
 import { NotificationPreferencesController } from './preferences/notification-preferences.controller';
 import { NotificationPreferencesService } from './preferences/notification-preferences.service';
@@ -32,7 +31,6 @@ import { WeeklyTicketReportService } from './preferences/weekly-ticket-report.se
     EmailTemplatesService,
     NotificationsFanOutService,
     NotificationUnreadCountCache,
-    TeamsIntegrationService,
     NotificationPreferencesService,
     NotificationDigestService,
     WeeklyTicketReportService,

@@ -11,10 +11,6 @@ export const installAddonCopyKeys = {
     label: "install.addons.catalog.edge.label",
     description: "install.addons.catalog.edge.description",
   },
-  teamsStub: {
-    label: "install.addons.catalog.teamsStub.label",
-    description: "install.addons.catalog.teamsStub.description",
-  },
   csat: {
     label: "install.addons.catalog.csat.label",
     description: "install.addons.catalog.csat.description",

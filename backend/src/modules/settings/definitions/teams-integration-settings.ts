@@ -41,29 +41,6 @@ const category = settingCategoryIds.privateIntegrations;
 
 export const teamsIntegrationSettings: readonly SettingDefinition[] = [
   definePrivateSetting({
-    key: settingKeys.privateIntegrationsTeamsStubEnabled,
-    categoryId: category,
-    valueType: 'boolean',
-    description: 'Deprecated (package 3.1 replaced the stub with the Teams connector); no longer read',
-    isRequired: true,
-    defaultValue: false,
-  }),
-  defineSecretSetting({
-    key: settingKeys.privateIntegrationsTeamsWebhookUrl,
-    categoryId: category,
-    valueType: 'string',
-    description: 'Deprecated (package 3.1); alarms and announcements have their own Teams webhook settings',
-    isRequired: false,
-  }),
-  definePrivateSetting({
-    key: settingKeys.privateIntegrationsTeamsEventTypesCsv,
-    categoryId: category,
-    valueType: 'string',
-    description: 'Deprecated (package 3.1); events are chosen per channel and in notification preferences',
-    isRequired: false,
-    defaultValue: '',
-  }),
-  definePrivateSetting({
     key: settingKeys.privateIntegrationsTeamsMode,
     categoryId: category,
     valueType: 'string',

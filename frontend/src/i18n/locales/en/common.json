@@ -1024,7 +1024,6 @@
         "private.addons.savedViews": "Turns the saved ticket views add-on on or off.",
         "private.addons.serviceDowntime": "Turns the service downtime scheduling add-on on or off.",
         "private.addons.sla": "Turns the SLA tracking add-on on or off.",
-        "private.addons.teamsStub": "Turns the Microsoft Teams stub integration add-on on or off.",
         "private.addons.ticketSplit": "Turns the ticket split add-on on or off.",
         "private.addons.timeTracking": "Turns the time tracking add-on on or off.",
         "private.audit.export.allowedFormatsCsv": "Allowed audit export formats, as a comma-separated list (csv, json).",
@@ -1118,9 +1117,6 @@
         "private.integrations.queue.maxBackoffSeconds": "Maximum retry delay in seconds.",
         "private.integrations.queue.typesCsv": "Comma-separated integration types that use the durable queue (email, edge, teams).",
         "private.integrations.queue.workerPollSeconds": "How often the worker refreshes settings and sweeps dead-letter retention.",
-        "private.integrations.teams.eventTypesCsv": "Comma-separated Teams stub event types (e.g. ticket.created, ticket.assigned). Deprecated (replaced by the connector in package 3.1).",
-        "private.integrations.teams.stubEnabled": "Enable the Teams stub: enqueue jobs without sending to Teams. Deprecated (replaced by the connector in package 3.1).",
-        "private.integrations.teams.webhookUrl": "Teams webhook URL stored for a future connector (stub never calls it). Deprecated (replaced by the connector in package 3.1).",
         "private.knowledgeBase.feedback.enabled": "Allow helpful / not-helpful feedback on knowledge articles.",
         "private.knowledgeBase.feedback.oneVotePerUserPerArticle": "Keep only one current feedback vote per user per article.",
         "private.knowledgeBase.ranking.useFeedbackWeight": "Include feedback score when ranking knowledge intercept suggestions.",
@@ -2677,10 +2673,6 @@
           "label": "Edge",
           "description": "Browser extension for quick replies and remote requests."
         },
-        "teamsStub": {
-          "label": "Teams (stub)",
-          "description": "Teams feature flag without actual message delivery."
-        },
         "csat": {
           "label": "CSAT",
           "description": "Satisfaction survey after a ticket is closed."
@@ -3036,7 +3028,7 @@
     "types": {
       "EMAIL": "Email",
       "EDGE_EVENT": "Edge event",
-      "TEAMS_STUB": "Teams stub"
+      "TEAMS": "Teams"
     },
     "errorUnauthorized": "Sign in is required to view the integration queue.",
     "errorForbidden": "You do not have permission to view or retry integration jobs.",

@@ -1034,7 +1034,6 @@
         "private.addons.savedViews": "Uključuje ili isključuje dodatak za sačuvane prikaze tiketa.",
         "private.addons.serviceDowntime": "Uključuje ili isključuje dodatak za zakazivanje nedostupnosti usluga.",
         "private.addons.sla": "Uključuje ili isključuje dodatak za praćenje SLA-a.",
-        "private.addons.teamsStub": "Uključuje ili isključuje stub dodatak za Microsoft Teams integraciju.",
         "private.addons.ticketSplit": "Uključuje ili isključuje dodatak za dijeljenje tiketa.",
         "private.addons.timeTracking": "Uključuje ili isključuje dodatak za praćenje vremena.",
         "private.audit.export.allowedFormatsCsv": "Dozvoljeni formati izvoza revizije, odvojeni zarezom (csv, json).",
@@ -1128,9 +1127,6 @@
         "private.integrations.queue.maxBackoffSeconds": "Maksimalno kašnjenje ponovnog pokušaja u sekundama.",
         "private.integrations.queue.typesCsv": "Tipovi integracija odvojeni zarezom koji koriste trajni red (email, edge, teams).",
         "private.integrations.queue.workerPollSeconds": "Koliko često worker osvježava postavke i čisti dead-letter zadržavanje.",
-        "private.integrations.teams.eventTypesCsv": "Tipovi događaja Teams stub-a odvojeni zarezom (npr. ticket.created, ticket.assigned). Zastarjelo (paket 3.1 zamijenio konektorom).",
-        "private.integrations.teams.stubEnabled": "Uključi Teams stub: stavlja poslove u red bez slanja u Teams. Zastarjelo (paket 3.1 zamijenio konektorom).",
-        "private.integrations.teams.webhookUrl": "Teams webhook URL sačuvan za budući konektor (stub ga ne poziva). Zastarjelo (paket 3.1 zamijenio konektorom).",
         "private.knowledgeBase.feedback.enabled": "Dozvoli ocjene korisno / nije korisno na člancima baze znanja.",
         "private.knowledgeBase.feedback.oneVotePerUserPerArticle": "Zadrži samo jedan trenutni glas po korisniku po članku.",
         "private.knowledgeBase.ranking.useFeedbackWeight": "Uključi ocjenu feedbacka u rangiranje prijedloga baze znanja.",
@@ -2694,10 +2690,6 @@
           "label": "Edge",
           "description": "Preglednička ekstenzija za brze odgovore i remote zahtjeve."
         },
-        "teamsStub": {
-          "label": "Teams (stub)",
-          "description": "Teams feature flag bez stvarne isporuke poruka."
-        },
         "csat": {
           "label": "CSAT",
           "description": "Anketa zadovoljstva nakon zatvaranja tiketa."
@@ -3053,7 +3045,7 @@
     "types": {
       "EMAIL": "Email",
       "EDGE_EVENT": "Edge event",
-      "TEAMS_STUB": "Teams stub"
+      "TEAMS": "Teams"
     },
     "errorUnauthorized": "Prijava je potrebna za pregled reda poslova.",
     "errorForbidden": "Nemate dozvolu za pregled ili retry integration jobova.",

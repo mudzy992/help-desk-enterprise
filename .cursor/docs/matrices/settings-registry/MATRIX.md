@@ -99,7 +99,6 @@ Visibility se **ne** izvodi iz imena ključa. DB `AppSetting.scope` / `isSecret`
 - `private.addons.sla` (private, boolean, default `true`)
 - `private.addons.email` (private, boolean, default `false`; SMTP off forsira `false`)
 - `private.addons.edge` (private, boolean, default `false`)
-- `private.addons.teamsStub` (private, boolean, default `false`)
 - `private.addons.csat` (private, boolean, default `true`)
 - `private.addons.autoAssign` (private, boolean, default `false`)
 - `private.addons.approvals` (private, boolean, default `true`)

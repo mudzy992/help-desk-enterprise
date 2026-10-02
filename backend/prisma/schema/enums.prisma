@@ -141,7 +141,6 @@ enum AutoAssignStrategy {
 enum IntegrationJobType {
   EMAIL
   EDGE_EVENT
-  TEAMS_STUB
   /// Paket 3.1: a real Teams delivery (card post or update).
   TEAMS
 }

@@ -10,7 +10,7 @@ describe('resolveInstallAddonsState', () => {
     expect(resolved.sla).toBe(true);
     expect(resolved.email).toBe(false);
     expect(resolved.edge).toBe(false);
-    expect(resolved.teamsStub).toBe(false);
+    expect(resolved.teams).toBe(false);
     expect(resolved.csat).toBe(true);
     expect(resolved.autoAssign).toBe(false);
     expect(resolved.approvals).toBe(true);
