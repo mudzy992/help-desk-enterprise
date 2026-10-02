@@ -144,6 +144,15 @@ export function canOpenConfigVersionsPage(
   });
 }
 
+/** Paket 3.1 (§16): Administration → Microsoft Teams. */
+export function canOpenTeamsAdminPage(capabilities: SessionCapabilities): boolean {
+  const session = capabilities.session;
+  if (session === null) {
+    return false;
+  }
+  return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.integrationsTeamsManage);
+}
+
 /** Paket 1.5: same audience as the settings page (ADMIN / SUPER_ADMIN). */
 export function canOpenEmailTemplatesPage(capabilities: SessionCapabilities): boolean {
   const session = capabilities.session;

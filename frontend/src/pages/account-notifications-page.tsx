@@ -35,6 +35,7 @@ import { ScrollRegion } from "@/components/ui/scroll-region";
 import { OnCallCalendarFeedCard } from "@/components/on-call/on-call-calendar-feed-card";
 import { permissionKeys } from "@/lib/session/permission-keys";
 import { useSessionCapabilities } from "@/lib/session/use-session-capabilities";
+import { getTeamsMe } from "@/services/teams-api";
 
 type CategoryLabelKey = `account.notifications.categories.${Replace<NotificationPreferenceCategoryKey>}`;
 type Replace<S extends string> = S extends `${infer Head}.${infer Tail}` ? `${Head}_${Replace<Tail>}` : S;
@@ -140,6 +141,15 @@ export function AccountNotificationsPage() {
     setDraft((current) => (current ? { ...current, schedule: { ...current.schedule, ...patch } } : current));
 
   const policy = draft?.policy;
+  // Paket 3.1: Teams column only while the connector can deliver to personal chats.
+  const showTeams = policy?.teamsChannelAvailable === true;
+  const [teamsConnected, setTeamsConnected] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!showTeams) return;
+    void getTeamsMe()
+      .then((me) => setTeamsConnected(me.available ? me.connected : null))
+      .catch(() => setTeamsConnected(null));
+  }, [showTeams]);
   const editable = policy?.preferencesEnabled === true;
 
   return (
@@ -179,6 +189,15 @@ export function AccountNotificationsPage() {
               {t("account.notifications.emailUnavailable")}
             </p>
           ) : null}
+          {showTeams && teamsConnected !== null ? (
+            <p className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[12.5px] text-muted-foreground" data-testid="teams-connection">
+              <span className="font-medium text-foreground">{t("account.notifications.teamsLabel")}</span>
+              <Badge tone={teamsConnected ? "success" : "neutral"} dot>
+                {teamsConnected ? t("account.notifications.teamsConnected") : t("account.notifications.teamsNotInstalled")}
+              </Badge>
+              {teamsConnected ? null : <span>{t("account.notifications.teamsInstallHint")}</span>}
+            </p>
+          ) : null}
           {problems.length > 0 ? (
             <ul className={errorTextClassName} role="alert" data-testid="notification-preferences-problems">
               {problems.map((problem) => (
@@ -196,6 +215,7 @@ export function AccountNotificationsPage() {
                     <th className="px-4 py-2 font-medium">{t("account.notifications.columnEvent")}</th>
                     <th className="px-4 py-2 font-medium">{t("account.notifications.columnInApp")}</th>
                     <th className="px-4 py-2 font-medium">{t("account.notifications.columnEmail")}</th>
+                    {showTeams ? <th className="px-4 py-2 font-medium">{t("account.notifications.columnTeams")}</th> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -251,6 +271,20 @@ export function AccountNotificationsPage() {
                           <span className="text-muted-foreground">{t("account.notifications.inAppOnly")}</span>
                         )}
                       </td>
+                      {showTeams ? (
+                        <td className="px-4 py-2.5 align-top">
+                          {category.channels.teams === true ? (
+                            <Switch
+                              checked={category.teams === true}
+                              disabled={!editable}
+                              onCheckedChange={(checked) => updateCategory(category.key, { teams: checked })}
+                              aria-label={`${t(`${categoryLabel(category.key)}.label`)} — ${t("account.notifications.columnTeams")}`}
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>

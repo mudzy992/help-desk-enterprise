@@ -6,6 +6,7 @@ import {
   Settings2,
   Timer,
   GitFork,
+  MessageSquare,
   MessageSquareText,
   ShieldCheck,
   CalendarClock,
@@ -20,6 +21,7 @@ import {
   canOpenAdminArea,
   canOpenConfigVersionsPage,
   canOpenEmailTemplatesPage,
+  canOpenTeamsAdminPage,
   canOpenPrivacy,
   canOpenOnCall,
   canOpenReports,
@@ -42,6 +44,7 @@ import { TicketListPage } from "@/pages/ticket-list-page";
 
 const InstallPage = lazyPage(() => import("@/pages/install-page"), "InstallPage");
 const AdminPage = lazyPage(() => import("@/pages/admin-page"), "AdminPage");
+const TeamsAdminPage = lazyPage(() => import("@/pages/teams-admin-page"), "TeamsAdminPage");
 const ReportsPage = lazyPage(() => import("@/pages/reports-page"), "ReportsPage");
 const RoutingPage = lazyPage(() => import("@/pages/routing-page"), "RoutingPage");
 const ConfigVersionsPage = lazyPage(() => import("@/pages/config-versions-page"), "ConfigVersionsPage");
@@ -238,6 +241,19 @@ export function AppRouter() {
                   icon={<GitFork size={18} strokeWidth={1.8} />}
                 >
                   <WorkflowPage />
+                </RequireAccess>
+              }
+            />
+            <Route
+              path="admin/teams"
+              element={
+                <RequireAccess
+                  check={canOpenTeamsAdminPage}
+                  forbiddenTitleKey="admin.forbiddenTitle"
+                  forbiddenBodyKey="admin.forbiddenBody"
+                  icon={<MessageSquare size={18} strokeWidth={1.8} />}
+                >
+                  <TeamsAdminPage />
                 </RequireAccess>
               }
             />

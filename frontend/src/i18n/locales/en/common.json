@@ -3964,7 +3964,8 @@
       "knowledgeDraftCreated": "An article draft “{{title}}” was made from a reply",
       "problemLinked": "Linked to problem {{problem}}",
       "problemUnlinked": "Removed the link to problem {{problem}}",
-      "problemTakeover": "Taken over for the group resolution of problem {{problem}}"
+      "problemTakeover": "Taken over for the group resolution of problem {{problem}}",
+      "viaTeams": "Teams"
     },
     "errorAttachmentInfected": "The antivirus scan rejected this file.",
     "errorForwardStatus": "A ticket in this status cannot be forwarded.",
@@ -4777,7 +4778,12 @@
       "emailOnly": "E-mail only",
       "weeklyTitle": "Weekly ticket review",
       "weeklySubtitle": "Once a week you receive the list of open tickets you take part in (assigned, watching, pending approval).",
-      "testWeekly": "Send test review"
+      "testWeekly": "Send test review",
+      "columnTeams": "Teams",
+      "teamsLabel": "Microsoft Teams:",
+      "teamsConnected": "connected",
+      "teamsNotInstalled": "app not installed",
+      "teamsInstallHint": "Install the app in Teams to receive notifications there."
     }
   },
   "privacy": {
@@ -7479,6 +7485,110 @@
       "create": "Create change",
       "emptyTitle": "No linked changes",
       "emptyBody": "Changes linked to this record will appear here."
+    }
+  },
+  "teamsAdmin": {
+    "title": "Microsoft Teams",
+    "subtitle": "Connector status, activation readiness, channels and the simulator.",
+    "cardBody": "Connector for notifications, approvals and ticket reporting from Microsoft Teams.",
+    "open": "Open",
+    "refresh": "Refresh",
+    "tabs": {
+      "status": "Status",
+      "channels": "Channels",
+      "simulator": "Simulator"
+    },
+    "mode": {
+      "off": "Off",
+      "simulator": "Simulator",
+      "live": "Production"
+    },
+    "status": {
+      "title": "Status",
+      "mode": "Effective mode",
+      "configuredMode": "Configured mode",
+      "personal": "Personal chats",
+      "channels": "Channels",
+      "linkedGroups": "Linked groups",
+      "lastInbound": "Last inbound activity",
+      "lastDelivery": "Last delivery",
+      "failed": "Failed deliveries",
+      "endpoint": "Messaging endpoint",
+      "never": "Never",
+      "addonOff": "The “Microsoft Teams” addon is off – the connector neither receives nor sends anything.",
+      "openSettings": "Open settings"
+    },
+    "readiness": {
+      "title": "Activation readiness",
+      "subtitle": "Checks the prerequisites without sending any message to users.",
+      "run": "Check readiness",
+      "notRun": "The check has not been run yet.",
+      "ok": "OK",
+      "fail": "Not met",
+      "ready": "Ready",
+      "notReady": "Not ready",
+      "checks": {
+        "addon": "The addon is on",
+        "tenant": "Tenant ID (GUID) is set",
+        "appId": "Bot App ID (GUID) is set",
+        "credential": "A secret or certificate is set",
+        "token": "A token is issued by Microsoft Entra",
+        "publicUrl": "The public application URL is HTTPS",
+        "endpoint": "The messaging endpoint is reachable over HTTPS",
+        "simulatorSecret": "TEAMS_SIMULATOR_SECRET is set"
+      }
+    },
+    "package": {
+      "title": "Teams app package",
+      "subtitle": "Manifest and icons to upload in the Teams admin center (needs the Bot App ID and an HTTPS public URL).",
+      "downloadBs": "Download (Bosnian)",
+      "downloadEn": "Download (English)"
+    },
+    "channels": {
+      "title": "Linked channels",
+      "subtitle": "A group member links a channel with the “link” command in the channel; configure events or remove the link here.",
+      "emptyTitle": "No linked channels",
+      "emptyBody": "Mention the bot in a Teams channel and send “link” to connect a group.",
+      "group": "Group",
+      "channel": "Team / channel",
+      "events": "Events",
+      "includeTitle": "Ticket title",
+      "includeTitleShort": "Show title",
+      "actions": "Actions",
+      "removed": "Bot removed",
+      "remove": "Remove link",
+      "removeTitle": "Remove the channel link?",
+      "removeBody": "Group {{group}} will no longer post to this channel.",
+      "event": {
+        "created": "New ticket in group",
+        "assigned": "Ticket claimed/assigned",
+        "slaWarning": "SLA warning",
+        "slaBreached": "SLA breached"
+      }
+    },
+    "simulator": {
+      "user": "User",
+      "scope": "Conversation",
+      "personal": "Personal chat",
+      "channel": "Channel",
+      "install": "Install app",
+      "hint": "The simulator sends signed activities along the same path as Teams. Users without a Microsoft account get a synthetic ID in the simulator only.",
+      "transcript": "Conversation",
+      "lastStatus": "Last response: HTTP {{status}}",
+      "empty": "No messages yet. Install the app or send “help”.",
+      "you": "User",
+      "bot": "Bot",
+      "actionSent": "Action",
+      "installed": "App installed",
+      "placeholder": "Message to the bot, e.g. “my tickets” or “new ticket”",
+      "send": "Send"
+    },
+    "errors": {
+      "appIdRequired": "The package needs the Bot App ID (GUID).",
+      "publicUrlRequired": "APP_PUBLIC_URL must be an HTTPS address.",
+      "simulatorOff": "The simulator works only in simulator mode with the addon on.",
+      "forbidden": "You are not allowed to do this.",
+      "generic": "Something went wrong. Please try again."
     }
   }
 }

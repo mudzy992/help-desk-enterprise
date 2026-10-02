@@ -13,6 +13,7 @@ import {
   canOpenChanges,
   canOpenProblems,
   canOpenEmailTemplatesPage,
+  canOpenTeamsAdminPage,
   canOpenMyAssets,
   canAccessNavigationItem,
   canOpenAdminArea,
@@ -114,6 +115,14 @@ describe("canOpenChanges (paket 3.4)", () => {
     expect(canOpenChanges(buildCapabilities({ isSuperAdmin: true }))).toBe(false);
     expect(canOpenChanges(buildCapabilities({ changes: true, permissionKeys: [permissionKeys.changeRead] }))).toBe(true);
     expect(canOpenChanges(buildCapabilities({ changes: true, roleKeys: [roleKeys.user] }))).toBe(false);
+  });
+});
+
+describe("canOpenTeamsAdminPage (paket 3.1)", () => {
+  it("needs integrations.teams.manage or super admin", () => {
+    expect(canOpenTeamsAdminPage(buildCapabilities({ roleKeys: [roleKeys.admin] }))).toBe(false);
+    expect(canOpenTeamsAdminPage(buildCapabilities({ permissionKeys: [permissionKeys.integrationsTeamsManage] }))).toBe(true);
+    expect(canOpenTeamsAdminPage(buildCapabilities({ isSuperAdmin: true }))).toBe(true);
   });
 });
 

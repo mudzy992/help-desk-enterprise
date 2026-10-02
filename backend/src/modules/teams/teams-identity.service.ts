@@ -5,6 +5,8 @@ import { authorizationRoleKeys, permissionKeys } from '../authorization/authoriz
 import { maxLinkableGroups } from './teams.constants';
 import { toTeamsLocale, type TeamsLocale } from './teams-text';
 
+export const simulatedUserPrefix = 'sim-user:';
+
 export interface TeamsLinkedUser {
   readonly id: string;
   readonly displayName: string;
@@ -22,11 +24,13 @@ export class TeamsIdentityService {
     private readonly principals: PrincipalContextLoader,
   ) {}
 
-  async resolveUser(aadObjectId: string | undefined, defaultLocale: TeamsLocale): Promise<TeamsLinkedUser | null> {
+  async resolveUser(aadObjectId: string | undefined, defaultLocale: TeamsLocale, simulator = false): Promise<TeamsLinkedUser | null> {
     const objectId = aadObjectId?.trim().toLowerCase();
     if (!objectId) return null;
+    // Simulator only: users without an Entra ID are addressed as `sim-user:<id>` (§20a).
+    const simulatedUserId = simulator && objectId.startsWith(simulatedUserPrefix) ? aadObjectId!.trim().slice(simulatedUserPrefix.length) : null;
     const user = await this.prisma.user.findFirst({
-      where: { entraObjectId: { equals: objectId, mode: 'insensitive' }, isActive: true, anonymizedAt: null },
+      where: { ...(simulatedUserId ? { id: simulatedUserId } : { entraObjectId: { equals: objectId, mode: 'insensitive' } }), isActive: true, anonymizedAt: null },
       select: { id: true, displayName: true, preferredLocale: true },
     });
     if (!user) return null;

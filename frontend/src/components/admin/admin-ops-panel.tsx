@@ -1,4 +1,8 @@
+import { MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useTranslation } from "react-i18next";
 import { AdminAuditExportCard } from "@/components/admin/admin-audit-export-card";
 import { AdminAuditLogCard } from "@/components/admin/admin-audit-log-card";
@@ -38,6 +42,9 @@ export function AdminOpsPanel() {
     session?.isSuperAdmin === true || hasPermission(permissionKeys.opsHealthView);
   const canManageAlerts =
     session?.isSuperAdmin === true || hasPermission(permissionKeys.opsAlertsManage);
+  // Paket 3.1: Microsoft Teams connector administration.
+  const canManageTeams =
+    session?.isSuperAdmin === true || hasPermission(permissionKeys.integrationsTeamsManage);
   const canSupportBundle =
     session?.isSuperAdmin === true || hasRole(roleKeys.superAdmin);
   const [unitId, setUnitId] = useState("");
@@ -110,6 +117,22 @@ export function AdminOpsPanel() {
     <div className="fade-in space-y-4">
       {canViewHealth ? <OpsHealthCard canManage={canManageAlerts} /> : null}
       {canManageQueue ? <IntegrationQueueCard enabled /> : null}
+      {canManageTeams ? (
+        <Card className="fade-in">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+            <div>
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                <MessageSquare size={14} className="text-link" />
+                {t("teamsAdmin.title")}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-[15px] text-muted-foreground">{t("teamsAdmin.cardBody")}</p>
+            </div>
+            <Button asChild size="xs" variant="outline">
+              <Link to="/admin/teams">{t("teamsAdmin.open")}</Link>
+            </Button>
+          </div>
+        </Card>
+      ) : null}
       {canExportAudit ? (
         <>
           <label className="grid max-w-md gap-1.5 text-[12.5px] font-medium text-foreground">

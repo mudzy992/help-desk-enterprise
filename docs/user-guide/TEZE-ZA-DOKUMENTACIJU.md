@@ -470,3 +470,6 @@ To je kriterij kompletnosti.
 - Iz Teamsa se tiket kreira samo za servise bez obaveznog formulara; za ostale Teams vodi u aplikaciju na isti servis.
 - Tiket se može kreirati i iz bilo koje Teams poruke („Kreiraj tiket iz poruke“) – opis se popuni tekstom poruke i linkom na nju.
 - Svaka akcija iz Teamsa upisuje se u audit log s oznakom kanala „teams“.
+- Administracija → Operacije → Microsoft Teams: status konektora, provjera spremnosti (bez slanja poruka), preuzimanje Teams paketa i upravljanje povezanim kanalima.
+- Simulator Teamsa dozvoljava da se cijeli tok (instalacija, komande, kartice, dugmad, novi tiket) isproba bez ikakvog Microsoft naloga ili pretplate.
+- Na stranici „Moje obavijesti“ vidi se da li je Teams aplikacija povezana, i tu se Teams obavijesti uključuju po događaju.

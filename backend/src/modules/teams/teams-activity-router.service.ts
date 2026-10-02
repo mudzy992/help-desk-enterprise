@@ -59,7 +59,7 @@ export class TeamsActivityRouter {
 
   async route(activity: TeamsActivity, config: TeamsConfiguration, transport: TeamsTransport): Promise<TeamsInvokeResponse | null> {
     const mode = config.mode === 'live' ? 'live' : 'simulator';
-    const user = await this.identity.resolveUser(activity.from.aadObjectId, config.defaultLocale);
+    const user = await this.identity.resolveUser(activity.from.aadObjectId, config.defaultLocale, config.mode === 'simulator');
     const removal =
       (activity.type === 'installationUpdate' && activity.action?.startsWith('remove')) ||
       (activity.type === 'conversationUpdate' && TeamsConversationsService.isBotMember(activity, activity.membersRemoved));

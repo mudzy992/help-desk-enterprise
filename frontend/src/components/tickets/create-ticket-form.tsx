@@ -38,6 +38,8 @@ export function CreateTicketForm() {
   const [draft, setDraft] = useState<CreateTicketDraft>(() => ({
     ...emptyCreateTicketDraft,
     assetId: (searchParams.get("assetId") ?? "").slice(0, 64),
+    // Paket 3.1 (§10): Teams links services with a required form here, preselected.
+    serviceId: (searchParams.get("serviceId") ?? "").slice(0, 64),
   }));
   const [activeForm, setActiveForm] = useState<FormVersionResponse | null>(null);
   const [step, setStep] = useState(0);

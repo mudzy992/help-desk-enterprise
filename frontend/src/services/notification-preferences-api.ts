@@ -31,14 +31,16 @@ export type NotificationEmailMode = "IMMEDIATE" | "DIGEST" | "OFF";
 
 export type NotificationPreferenceCategory = {
   readonly key: NotificationPreferenceCategoryKey;
-  readonly channels: { readonly inApp: boolean; readonly email: boolean };
+  /** Paket 3.1: `teams` is absent on older servers. */
+  readonly channels: { readonly inApp: boolean; readonly email: boolean; readonly teams?: boolean };
   readonly alwaysOn: boolean;
   readonly inApp: boolean;
   readonly email: NotificationEmailMode;
+  readonly teams?: boolean;
   readonly inAppLocked: boolean;
   readonly emailLocked: boolean;
   readonly customized: boolean;
-  readonly defaults: { readonly inApp: boolean; readonly email: NotificationEmailMode };
+  readonly defaults: { readonly inApp: boolean; readonly email: NotificationEmailMode; readonly teams?: boolean };
 };
 
 export type NotificationSchedule = {
@@ -60,6 +62,8 @@ export type NotificationPreferences = {
     readonly digestDefaultTime: string;
     readonly timeZone: string;
     readonly emailChannelAvailable: boolean;
+    /** Paket 3.1: the Teams column is shown only when the connector can deliver personally. */
+    readonly teamsChannelAvailable?: boolean;
   };
   readonly digest: { readonly nextAt: string | null; readonly pendingItems: number };
 };
@@ -69,6 +73,7 @@ export type NotificationPreferencesUpdate = {
     readonly category: string;
     readonly inApp?: boolean;
     readonly email?: NotificationEmailMode;
+    readonly teams?: boolean;
   }[];
   readonly schedule?: Partial<NotificationSchedule>;
 };
@@ -123,9 +128,10 @@ export function diffNotificationPreferences(
   const preferences = draft.categories.flatMap((category) => {
     const before = savedByKey.get(category.key);
     if (before === undefined || category.alwaysOn) return [];
-    const change: { category: string; inApp?: boolean; email?: NotificationEmailMode } = { category: category.key };
+    const change: { category: string; inApp?: boolean; email?: NotificationEmailMode; teams?: boolean } = { category: category.key };
     if (before.inApp !== category.inApp && !category.inAppLocked) change.inApp = category.inApp;
     if (before.email !== category.email && !category.emailLocked && category.channels.email) change.email = category.email;
+    if (category.teams !== undefined && before.teams !== category.teams && category.channels.teams === true) change.teams = category.teams;
     return Object.keys(change).length > 1 ? [change] : [];
   });
   const schedule: Record<string, unknown> = {};

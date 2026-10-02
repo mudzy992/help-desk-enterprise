@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationModule } from '../authentication/authentication.module';
+import { AuthorizationModule } from '../authorization/authorization.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ChangesModule } from '../changes/changes.module';
 import { TicketsModule } from '../tickets/tickets.module';
 import { TeamsActionsService } from './teams-actions.service';
+import { TeamsAdminController, TeamsMeController } from './teams-admin.controller';
+import { TeamsAdminService } from './teams-admin.service';
 import { TeamsCardRefresher } from './teams-card-refresher.service';
 import { TeamsActivityRouter } from './teams-activity-router.service';
 import { TeamsCoreModule } from './teams-core.module';
@@ -13,9 +16,9 @@ import { TeamsInboundService } from './teams-inbound.service';
 
 /** Paket 3.1: Microsoft Teams connector (behind the `teams` addon). */
 @Module({
-  imports: [SettingsModule, AuthenticationModule, TicketsModule, ChangesModule, TeamsCoreModule],
-  controllers: [TeamsInboundController],
-  providers: [TeamsIdentityService, TeamsActivityRouter, TeamsInboundService, TeamsCardRefresher, TeamsActionsService],
+  imports: [SettingsModule, AuthenticationModule, AuthorizationModule, TicketsModule, ChangesModule, TeamsCoreModule],
+  controllers: [TeamsInboundController, TeamsAdminController, TeamsMeController],
+  providers: [TeamsIdentityService, TeamsActivityRouter, TeamsInboundService, TeamsCardRefresher, TeamsActionsService, TeamsAdminService],
   exports: [TeamsCoreModule, TeamsIdentityService, TeamsActivityRouter],
 })
 export class TeamsModule {}

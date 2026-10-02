@@ -1,4 +1,4 @@
-import { EyeOff, Mail, MessageSquareLock } from "lucide-react";
+import { EyeOff, Mail, MessageSquare, MessageSquareLock } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/avatar";
@@ -60,6 +60,12 @@ export function TicketMessageBubble({
             <Badge tone="info" className="px-1">
               <Mail size={9} aria-hidden="true" />
               {t("tickets.activity.viaEmail")}
+            </Badge>
+          ) : null}
+          {message.source === "TEAMS" ? (
+            <Badge tone="info" className="px-1">
+              <MessageSquare size={9} aria-hidden="true" />
+              {t("tickets.activity.viaTeams")}
             </Badge>
           ) : null}
           {message.redacted === true ? (

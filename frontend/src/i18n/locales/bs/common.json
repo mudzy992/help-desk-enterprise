@@ -3986,7 +3986,8 @@
       "knowledgeDraftCreated": "Iz odgovora je napravljen nacrt članka „{{title}}“",
       "problemLinked": "Povezano s problemom {{problem}}",
       "problemUnlinked": "Uklonjena veza s problemom {{problem}}",
-      "problemTakeover": "Preuzeto radi grupnog rješavanja problema {{problem}}"
+      "problemTakeover": "Preuzeto radi grupnog rješavanja problema {{problem}}",
+      "viaTeams": "Teams"
     },
     "errorAttachmentInfected": "Antivirusna provjera je odbila ovaj fajl.",
     "errorForwardStatus": "Tiket u ovom statusu nije moguće proslijediti.",
@@ -4809,7 +4810,12 @@
       "emailOnly": "Samo e-mail",
       "weeklyTitle": "Sedmični pregled tiketa",
       "weeklySubtitle": "Jednom sedmično stiže lista otvorenih tiketa u kojima učestvujete (dodijeljeni, gost, odobrenje na čekanju).",
-      "testWeekly": "Pošalji probni pregled"
+      "testWeekly": "Pošalji probni pregled",
+      "columnTeams": "Teams",
+      "teamsLabel": "Microsoft Teams:",
+      "teamsConnected": "povezan",
+      "teamsNotInstalled": "aplikacija nije instalirana",
+      "teamsInstallHint": "Instalirajte aplikaciju u Teamsu da biste primali obavijesti tamo."
     }
   },
   "privacy": {
@@ -7554,6 +7560,110 @@
       "create": "Kreiraj promjenu",
       "emptyTitle": "Nema povezanih promjena",
       "emptyBody": "Promjene vezane za ovaj zapis pojavit će se ovdje."
+    }
+  },
+  "teamsAdmin": {
+    "title": "Microsoft Teams",
+    "subtitle": "Status konektora, spremnost za aktivaciju, kanali i simulator.",
+    "cardBody": "Konektor za obavijesti, odobrenja i prijavu tiketa iz Microsoft Teamsa.",
+    "open": "Otvori",
+    "refresh": "Osvježi",
+    "tabs": {
+      "status": "Status",
+      "channels": "Kanali",
+      "simulator": "Simulator"
+    },
+    "mode": {
+      "off": "Isključen",
+      "simulator": "Simulator",
+      "live": "Produkcija"
+    },
+    "status": {
+      "title": "Status",
+      "mode": "Efektivni režim",
+      "configuredMode": "Podešeni režim",
+      "personal": "Lični chatovi",
+      "channels": "Kanali",
+      "linkedGroups": "Povezane grupe",
+      "lastInbound": "Posljednja ulazna aktivnost",
+      "lastDelivery": "Posljednja isporuka",
+      "failed": "Neuspjele isporuke",
+      "endpoint": "Messaging endpoint",
+      "never": "Nikad",
+      "addonOff": "Addon „Microsoft Teams“ je isključen – konektor ne prima niti šalje ništa.",
+      "openSettings": "Otvori postavke"
+    },
+    "readiness": {
+      "title": "Spremnost za aktivaciju",
+      "subtitle": "Provjera preduslova bez slanja ikakve poruke korisnicima.",
+      "run": "Provjeri spremnost",
+      "notRun": "Provjera još nije pokrenuta.",
+      "ok": "U redu",
+      "fail": "Nije ispunjeno",
+      "ready": "Spremno",
+      "notReady": "Nije spremno",
+      "checks": {
+        "addon": "Addon je uključen",
+        "tenant": "Tenant ID (GUID) je upisan",
+        "appId": "Bot App ID (GUID) je upisan",
+        "credential": "Tajna ili certifikat je upisan",
+        "token": "Token se dobija od Microsoft Entra",
+        "publicUrl": "Javni URL aplikacije je HTTPS",
+        "endpoint": "Messaging endpoint je dostupan preko HTTPS",
+        "simulatorSecret": "TEAMS_SIMULATOR_SECRET je postavljen"
+      }
+    },
+    "package": {
+      "title": "Paket Teams aplikacije",
+      "subtitle": "Manifest i ikone za upload u Teams admin centar (traži Bot App ID i HTTPS javni URL).",
+      "downloadBs": "Preuzmi (bosanski)",
+      "downloadEn": "Preuzmi (engleski)"
+    },
+    "channels": {
+      "title": "Povezani kanali",
+      "subtitle": "Kanal povezuje član grupe komandom „link“ u kanalu; ovdje se podešavaju događaji ili veza uklanja.",
+      "emptyTitle": "Nema povezanih kanala",
+      "emptyBody": "U Teams kanalu pomenite bota i pošaljite „link“ da povežete grupu.",
+      "group": "Grupa",
+      "channel": "Tim / kanal",
+      "events": "Događaji",
+      "includeTitle": "Naslov tiketa",
+      "includeTitleShort": "Prikaži naslov",
+      "actions": "Akcije",
+      "removed": "Bot uklonjen",
+      "remove": "Ukloni vezu",
+      "removeTitle": "Ukloniti vezu s kanalom?",
+      "removeBody": "Grupa {{group}} više neće objavljivati u ovaj kanal.",
+      "event": {
+        "created": "Novi tiket u grupi",
+        "assigned": "Tiket preuzet/dodijeljen",
+        "slaWarning": "SLA upozorenje",
+        "slaBreached": "SLA probijen"
+      }
+    },
+    "simulator": {
+      "user": "Korisnik",
+      "scope": "Razgovor",
+      "personal": "Lični chat",
+      "channel": "Kanal",
+      "install": "Instaliraj aplikaciju",
+      "hint": "Simulator šalje potpisane aktivnosti istim putem kao Teams. Korisnici bez Microsoft naloga dobijaju sintetički ID samo u simulatoru.",
+      "transcript": "Razgovor",
+      "lastStatus": "Posljednji odgovor: HTTP {{status}}",
+      "empty": "Još nema poruka. Instalirajte aplikaciju ili pošaljite „pomoć“.",
+      "you": "Korisnik",
+      "bot": "Bot",
+      "actionSent": "Akcija",
+      "installed": "Aplikacija instalirana",
+      "placeholder": "Poruka botu, npr. „moji tiketi“ ili „novi tiket“",
+      "send": "Pošalji"
+    },
+    "errors": {
+      "appIdRequired": "Za paket je potreban Bot App ID (GUID).",
+      "publicUrlRequired": "APP_PUBLIC_URL mora biti HTTPS adresa.",
+      "simulatorOff": "Simulator radi samo u režimu simulatora uz uključen addon.",
+      "forbidden": "Nemate pravo na ovu akciju.",
+      "generic": "Došlo je do greške. Pokušajte ponovo."
     }
   }
 }
