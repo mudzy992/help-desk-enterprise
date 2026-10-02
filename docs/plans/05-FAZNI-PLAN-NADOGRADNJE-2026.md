@@ -108,18 +108,18 @@ Cilj: nakon ove faze svaka stavka RAW-a je ✅. Paketi su grupisani po srodnosti
 
 ## FAZA 2 — Funkcionalnosti help-deska ovog obima
 
-### 2.1 Sigurnost naloga  · ~3 RD
+### 2.1 Sigurnost naloga  · ~3 RD · dizajn: `modules/2.1-sigurnost-naloga.md` · ✅ implementirano 2026-09-26 (§10 dizajna)
 - **MFA (TOTP)** obavezno za SUPER_ADMIN, opcionalno za ostale lokalne naloge; recovery kodovi;
   reset MFA samo od drugog SUPER_ADMIN-a uz audit.
 - Pregled aktivnih sesija korisnika + „odjavi sve uređaje" (nadogradnja na opoziv iz reviewa).
 - Politika lozinki za lokalne naloge (dužina, historija, istek za break-glass nalog).
 
-### 2.2 Notifikacije po mjeri korisnika  · ~2 RD
+### 2.2 Notifikacije po mjeri korisnika  · ~2 RD · dizajn: `modules/2.2-notifikacije-po-mjeri.md` · ✅ implementirano (§10 dizajna)
 - Lične postavke: koji događaji e-mailom / in-app, „tihi sati", dnevni sažetak (digest) umjesto
   pojedinačnih e-mailova za agente.
 - Admin može zaključati obavezne notifikacije (npr. odobrenja).
 
-### 2.2a Sedmični pregled tiketa agentima (e-mail)  · ~1,5 RD · dizajn: `modules/2.2a-sedmicni-pregled-tiketa-agentima.md`
+### 2.2a Sedmični pregled tiketa agentima (e-mail)  · ~1,5 RD · dizajn: `modules/2.2a-sedmicni-pregled-tiketa-agentima.md` · ✅ implementirano
 - Pojašnjenje klijenta (2026-09-27): sedmično agentu lista otvorenih tiketa u kojima je učesnik (dodijeljen/gost), sa statusom — podsjetnik šta treba riješiti.
 
 ### 2.3 Odgovor e-mailom (inbound)  · ~5,5 RD · dizajn: `modules/2.3-odgovor-emailom.md` · **implementirano**
