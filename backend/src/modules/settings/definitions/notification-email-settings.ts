@@ -52,7 +52,7 @@ export const notificationEmailSettings: readonly SettingDefinition[] = [
     categoryId: settingCategoryIds.privateNotifications,
     valueType: 'string',
     description:
-      "Comma-separated internal e-mail domains of the organisation (e.g. epbih.ba); always allowed, also as inbound senders",
+      "Comma-separated internal e-mail domains of the organisation (e.g. example.com); always allowed, also as inbound senders",
     isRequired: false,
     defaultValue: '',
   }),

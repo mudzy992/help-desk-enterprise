@@ -91,7 +91,7 @@ export function composeAssetReminderEmail(input: {
       footerReason: text.footer,
     },
   });
-  const domain = (input.configuration.smtp?.fromAddress ?? '').split('@')[1]?.trim().toLowerCase() || 'ephelpdesk.local';
+  const domain = (input.configuration.smtp?.fromAddress ?? '').split('@')[1]?.trim().toLowerCase() || 'service-desk.invalid';
   return {
     subject: rendered.subject,
     html: rendered.html,

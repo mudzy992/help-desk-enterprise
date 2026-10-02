@@ -97,7 +97,7 @@ export function assertLdapsConfigured(configuration: LdapsSyncConfiguration): vo
   if (configuration.connection.urls.length === 0) missing.push('private.auth.adLdapsUrlsCsv');
   if (configuration.connection.bindDn === '') missing.push('private.auth.adBindDn');
   if (configuration.connection.bindPassword === '') missing.push('private.auth.adBindPassword');
-  // RAW §466: never the whole forest (`DC=epbih,DC=ba`) — an OU is required.
+  // RAW §466: never the whole forest (`DC=example,DC=com`) — an OU is required.
   if (!hasOrganizationalUnit(configuration.usersBaseDn)) {
     missing.push('private.auth.adRead.usersBaseDn');
   }

@@ -105,7 +105,7 @@ export function composePrivacyEmail(input: {
 
 function mailDomain(fromAddress: string | undefined): string {
   const domain = (fromAddress ?? '').split('@')[1]?.trim().toLowerCase() ?? '';
-  return /^[a-z0-9.-]+$/.test(domain) && domain.length > 0 ? domain : 'ephelpdesk.local';
+  return /^[a-z0-9.-]+$/.test(domain) && domain.length > 0 ? domain : 'service-desk.invalid';
 }
 
 /** Sample e-mails for the template editor preview (same code path as real ones). */

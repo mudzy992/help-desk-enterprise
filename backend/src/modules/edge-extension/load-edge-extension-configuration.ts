@@ -70,7 +70,9 @@ export async function loadEdgeExtensionConfiguration(
         await settingsService.getSetting(
           settingKeys.privateEdgeExtensionAllowedEmailDomain,
         ),
-      ) || defaultEdgeExtensionAllowedEmailDomain,
+      ) ||
+      firstInternalDomain(await settingsService.getSetting(settingKeys.privateNotificationsEmailInternalDomainsCsv)) ||
+      defaultEdgeExtensionAllowedEmailDomain,
     chatEnabled:
       (await settingsService.getSetting(
         settingKeys.privateEdgeExtensionChatEnabled,
@@ -125,4 +127,10 @@ export function clampPollingInterval(value: unknown): number {
     edgeExtensionPollingIntervalMaximumSeconds,
     Math.max(edgeExtensionPollingIntervalMinimumSeconds, numeric),
   );
+}
+
+/** Paket 4.1: the extension follows the organisation's internal domains when no domain is set. */
+function firstInternalDomain(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  return value.split(',').map((entry) => entry.trim().toLowerCase().replace(/^@/, '')).find((entry) => entry.length > 0) ?? '';
 }

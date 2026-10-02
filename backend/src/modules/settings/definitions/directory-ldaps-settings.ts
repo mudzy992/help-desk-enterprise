@@ -17,7 +17,7 @@ export const roleSources = ['local_db', 'ad_groups'] as const;
 
 /**
  * Active accounts with an e-mail address; disabled accounts (UAC bit 2) are
- * excluded. EPBiH extends it with its service/admin account convention.
+ * excluded. A client extends it with its own service/admin account convention.
  */
 export const defaultDirectoryUserFilter =
   '(&(objectCategory=person)(objectClass=user)(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';

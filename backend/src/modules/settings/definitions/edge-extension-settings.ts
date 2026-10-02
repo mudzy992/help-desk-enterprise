@@ -8,7 +8,8 @@ export const defaultEdgeExtensionPollingIntervalSeconds = 90;
 export const edgeExtensionPollingIntervalMinimumSeconds = 60;
 export const edgeExtensionPollingIntervalMaximumSeconds = 120;
 export const defaultEdgeExtensionReconnectMaxBackoffSeconds = 60;
-export const defaultEdgeExtensionAllowedEmailDomain = 'epbih.ba';
+/** Paket 4.1: empty = the first internal e-mail domain; without one nobody is allowed. */
+export const defaultEdgeExtensionAllowedEmailDomain = '';
 export const defaultEdgeExtensionChatMaxMessagesPerTicket = 50;
 export const defaultEdgeExtensionRemoteRateLimitMinutes = 10;
 
@@ -25,8 +26,8 @@ export const edgeExtensionSettings: readonly SettingDefinition[] = [
     key: settingKeys.privateEdgeExtensionAllowedEmailDomain,
     categoryId: settingCategoryIds.privateEdgeExtension,
     valueType: 'string',
-    description: 'Email domain allowed to use the Edge extension',
-    isRequired: true,
+    description: 'Email domain allowed to use the Edge extension; empty uses the first internal e-mail domain',
+    isRequired: false,
     defaultValue: defaultEdgeExtensionAllowedEmailDomain,
   }),
   definePrivateSetting({
