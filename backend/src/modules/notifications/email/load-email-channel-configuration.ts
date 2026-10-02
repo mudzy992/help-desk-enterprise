@@ -27,8 +27,16 @@ export type SmtpTransportConfig = {
   readonly provider: EmailProvider;
 };
 
+/** Paket 4.1 (§3a): organisation and support contact for template variables and the footer. */
+export type EmailBrand = {
+  readonly organizationName: string;
+  readonly supportEmail: string;
+  readonly supportUrl: string;
+};
+
 export type EmailPresentationConfiguration = {
   readonly appName: string;
+  readonly brand?: EmailBrand;
   /** `APP_PUBLIC_URL` without trailing slash; null → e-mails go out without links. */
   readonly publicUrl: string | null;
   readonly accentColor: string;
@@ -184,8 +192,14 @@ export async function readEmailPresentation(
   const accent = asString(
     await settingsService.getSetting(settingKeys.privateNotificationsEmailAccentColor),
   );
+  const brand: EmailBrand = {
+    organizationName: asString(await settingsService.getSetting(settingKeys.publicBrandingOrganizationName)),
+    supportEmail: asString(await settingsService.getSetting(settingKeys.publicBrandingSupportEmail)),
+    supportUrl: asString(await settingsService.getSetting(settingKeys.publicBrandingSupportUrl)),
+  };
   return {
     appName: appName.length > 0 ? appName : defaultAppName,
+    brand,
     publicUrl: readPublicAppUrl(),
     accentColor: accent.length > 0 ? accent : defaultEmailAccentColor,
     includeMessageExcerpt:

@@ -45,6 +45,7 @@ export async function sendTemporaryPasswordEmail(input: {
       event: 'user.created',
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

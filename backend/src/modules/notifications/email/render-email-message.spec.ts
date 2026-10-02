@@ -22,7 +22,7 @@ function input(overrides: Partial<RenderEmailMessageInput> = {}): RenderEmailMes
       priorityLabel: 'Visok',
     },
     excerpt: 'Probajte <script>alert(1)</script> ponovo',
-    ctaUrl: 'https://desk.epbih.ba/tickets/t1',
+    ctaUrl: 'https://desk.example.com/tickets/t1',
     replyMode: 'no_reply',
     ...overrides,
   };
@@ -52,11 +52,11 @@ describe('renderEmailMessage', () => {
   it('renders the card, excerpt, button, fallback link and no-reply footer', () => {
     const { html, text } = renderEmailMessage(input());
     expect(html).toContain('Štampači');
-    expect(html).toContain('href="https://desk.epbih.ba/tickets/t1"');
+    expect(html).toContain('href="https://desk.example.com/tickets/t1"');
     expect(html).toContain('Ako dugme ne radi');
     expect(html).toContain('Ne odgovarajte');
     expect(html).toContain('<!--[if mso]>');
-    expect(text).toContain('Pogledaj i odgovori: https://desk.epbih.ba/tickets/t1');
+    expect(text).toContain('Pogledaj i odgovori: https://desk.example.com/tickets/t1');
     expect(text).toContain('> Probajte');
     expect(text).toContain('Ne odgovarajte');
   });
@@ -70,7 +70,7 @@ describe('renderEmailMessage', () => {
       expect(part).not.toContain('Probajte');
     }
     expect(rendered.html).toContain('Povjerljivo');
-    expect(rendered.text).toContain('https://desk.epbih.ba/tickets/t1');
+    expect(rendered.text).toContain('https://desk.example.com/tickets/t1');
   });
 
   it('omits the button when there is no safe public URL', () => {
@@ -116,5 +116,24 @@ describe('resolveAccent', () => {
     expect(resolveAccent('#4f46e5')).toEqual({ background: '#4f46e5', foreground: '#ffffff' });
     expect(resolveAccent('#fde047').foreground).toBe('#111827');
     expect(resolveAccent('red').background).toBe('#4f46e5');
+  });
+
+  it('Paket 4.1: exposes branding as variables and adds an escaped footer line', () => {
+    const rendered = renderEmailMessage(
+      input({
+        template: { ...defaultEmailTemplates.bs['ticket.message'], footer: 'Pomoć: {{supportEmail}}' },
+        brand: { organizationName: 'Klijent <d.o.o.>', supportEmail: 'podrska@example.com', supportUrl: 'https://example.com/pomoc' },
+      }),
+    );
+    expect(rendered.text).toContain('Pomoć: podrska@example.com');
+    expect(rendered.text).toContain('Klijent <d.o.o.> · podrska@example.com · https://example.com/pomoc');
+    expect(rendered.html).toContain('Klijent &lt;d.o.o.&gt;');
+    expect(rendered.html).toContain('href="mailto:podrska@example.com"');
+  });
+
+  it('Paket 4.1: drops a non-https support URL and omits the line without branding', () => {
+    const rendered = renderEmailMessage(input({ brand: { organizationName: '', supportEmail: '', supportUrl: 'javascript:alert(1)' } }));
+    expect(rendered.html).not.toContain('javascript:');
+    expect(renderEmailMessage(input()).text).not.toContain(' · ');
   });
 });

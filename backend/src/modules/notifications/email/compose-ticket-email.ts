@@ -110,6 +110,7 @@ export function composeTicketEmail(input: {
       appName: presentation.appName,
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential,
     ticket: {

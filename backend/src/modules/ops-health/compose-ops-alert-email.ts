@@ -55,6 +55,7 @@ export function composeOpsAlertEmail(input: {
       reportPeriod: opsAlertStateLine(input.message, input.locale, input.now),
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

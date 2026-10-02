@@ -107,6 +107,10 @@ export const emailTemplatePlaceholders = [
   'announcementBody',
   'announcementSeverity',
   'announcementPeriod',
+  // Paket 4.1 (§3a): client branding, available in every template.
+  'organizationName',
+  'supportEmail',
+  'supportUrl',
 ] as const;
 
 export type EmailTemplatePlaceholder =

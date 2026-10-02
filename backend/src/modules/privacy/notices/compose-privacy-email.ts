@@ -83,6 +83,7 @@ export function composePrivacyEmail(input: {
       reportName: input.variables.reportName ?? '',
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

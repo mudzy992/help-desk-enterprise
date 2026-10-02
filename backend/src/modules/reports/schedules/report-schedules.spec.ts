@@ -105,7 +105,7 @@ const channel = {
   allowedExternalDomains: [],
   allowedExternalEmails: [],
   smtp: { host: 'smtp', port: 587, tls: true, username: '', password: '', fromAddress: 'helpdesk@epbih.ba' },
-  presentation: { appName: 'EP Helpdesk', accentColor: '#4f46e5', publicUrl: 'https://desk.example', defaultLocale: 'bs' },
+  presentation: { appName: 'Service Desk', accentColor: '#4f46e5', publicUrl: 'https://desk.example', defaultLocale: 'bs' },
   templates: defaultEmailTemplates,
 } as never;
 

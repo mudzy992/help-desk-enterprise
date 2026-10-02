@@ -69,6 +69,7 @@ export function composeAssetReminderEmail(input: {
       reportPeriod: text.period(input.dateLabel),
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

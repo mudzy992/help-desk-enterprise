@@ -218,6 +218,7 @@ export function renderEmailTemplatePreview(input: {
         appName: configuration.presentation.appName,
       },
       appName: configuration.presentation.appName,
+      brand: configuration.presentation.brand,
       accentColor: configuration.presentation.accentColor,
       confidential: false,
       ticket: null,

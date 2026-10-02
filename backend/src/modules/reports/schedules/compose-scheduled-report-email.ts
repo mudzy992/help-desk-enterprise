@@ -78,6 +78,7 @@ export function composeScheduledReportEmail(input: {
       appName: presentation.appName,
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

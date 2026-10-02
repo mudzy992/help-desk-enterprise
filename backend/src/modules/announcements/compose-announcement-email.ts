@@ -139,6 +139,7 @@ export function composeAnnouncementEmail(input: {
       announcementPeriod: formatAnnouncementPeriod(announcement.startsAt, announcement.endsAt, input.locale, input.timeZone),
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

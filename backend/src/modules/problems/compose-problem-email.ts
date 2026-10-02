@@ -75,6 +75,7 @@ export function composeProblemEmail(input: {
       reportPeriod: input.detail,
     },
     appName: presentation.appName,
+    brand: presentation.brand,
     accentColor: presentation.accentColor,
     confidential: false,
     ticket: null,

@@ -1,3 +1,4 @@
+import { defaultAppName } from '../branding/branding.constants';
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -122,7 +123,7 @@ export class TeamsAdminService {
     const config = await this.configuration.load();
     if (!guid.test(config.botAppId)) throw new BadRequestException({ code: 'TEAMS_APP_ID_REQUIRED', message: 'Bot App ID (GUID) is required for the package.' });
     if (!config.publicUrl?.startsWith('https://')) throw new BadRequestException({ code: 'TEAMS_PUBLIC_URL_REQUIRED', message: 'APP_PUBLIC_URL must be an https URL.' });
-    const input = { botAppId: config.botAppId, appName: config.appName || 'Help desk', publicUrl: config.publicUrl, locale };
+    const input = { botAppId: config.botAppId, appName: config.appName || defaultAppName, publicUrl: config.publicUrl, locale };
     const problems = validateTeamsManifest(buildTeamsManifest(input));
     if (problems.length > 0) throw new BadRequestException({ code: 'TEAMS_MANIFEST_INVALID', message: problems.join('; ') });
     return { fileName: 'teams-app.zip', content: await buildTeamsAppPackage(input) };

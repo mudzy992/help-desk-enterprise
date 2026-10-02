@@ -1,3 +1,4 @@
+import { defaultAppName } from '../branding/branding.constants';
 import { deflateSync } from 'node:zlib';
 import JSZip from 'jszip';
 
@@ -71,7 +72,7 @@ const copy = {
 export function buildTeamsManifest(input: TeamsManifestInput): Record<string, unknown> {
   const text = copy[input.locale];
   const host = new URL(input.publicUrl).host;
-  const name = input.appName.slice(0, 30) || 'Help desk';
+  const name = input.appName.slice(0, 30) || defaultAppName;
   return {
     $schema: teamsManifestSchemaUrl,
     manifestVersion: teamsManifestSchemaVersion,

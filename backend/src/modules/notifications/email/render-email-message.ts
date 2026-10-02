@@ -1,3 +1,4 @@
+import type { EmailBrand } from './load-email-channel-configuration';
 import {
   defaultEmailAccentColor,
   emailMessageExcerptMaxLength,
@@ -21,6 +22,8 @@ export type RenderEmailMessageInput = {
   readonly locale: EmailLocale;
   readonly variables: EmailTemplateVariables;
   readonly appName: string;
+  /** Paket 4.1: organisation and support contact (template variables + footer line). */
+  readonly brand?: EmailBrand | null;
   readonly accentColor: string;
   /** Decision E3: number and link only. */
   readonly confidential: boolean;
@@ -109,16 +112,25 @@ const fontStack = "'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmailMessage {
   const labels = emailLayoutLabels[input.locale];
   const confidential = input.confidential;
+  const brandVariables = {
+    organizationName: input.brand?.organizationName.trim() ?? '',
+    supportEmail: input.brand?.supportEmail.trim() ?? '',
+    supportUrl: safeUrl(input.brand?.supportUrl.trim() || null) ?? '',
+  };
+  const baseVariables: EmailTemplateVariables = { ...brandVariables, ...input.variables };
   const variables: EmailTemplateVariables = confidential
     ? {
-        ...input.variables,
+        ...baseVariables,
         ticketTitle: input.ticket?.number ?? '',
         serviceName: '',
         groupName: '',
         ticketDescription: '',
         ticketDescriptionShort: '',
       }
-    : input.variables;
+    : baseVariables;
+  const brandLine = [brandVariables.organizationName, brandVariables.supportEmail, brandVariables.supportUrl]
+    .filter((part) => part.length > 0)
+    .join(' · ');
   const fill = (source: string) => interpolate(source, variables);
   const rawSubject = fill(
     confidential ? input.template.subjectConfidential : input.template.subject,
@@ -165,6 +177,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     '',
     '—',
     input.appName,
+    ...(brandLine.length > 0 ? [brandLine] : []),
     ...(input.ticket === null ? [] : [labels.footerReason]),
     ...(input.digest ? [input.digest.footerReason ?? labels.digestFooterReason] : []),
     ...(input.report ? [input.report.footerReason] : []),
@@ -179,6 +192,7 @@ export function renderEmailMessage(input: RenderEmailMessageInput): RenderedEmai
     locale: input.locale,
     subject,
     appName: input.appName,
+    brand: brandVariables,
     heading,
     body,
     confidentialLabel: confidential ? labels.confidential : null,
@@ -211,6 +225,7 @@ function renderHtml(view: {
   readonly locale: string;
   readonly subject: string;
   readonly appName: string;
+  readonly brand: { readonly organizationName: string; readonly supportEmail: string; readonly supportUrl: string };
   readonly heading: string;
   readonly body: string;
   readonly confidentialLabel: string | null;
@@ -283,12 +298,23 @@ function renderHtml(view: {
     `<tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;line-height:1.5;">` +
     (view.footerReason === null ? '' : `${e(view.footerReason)}<br>`) +
     `${e(view.footerNote)}` +
+    brandFooterHtml(view.brand) +
     (view.manageUrl === null
       ? ''
       : `<br><a href="${e(view.manageUrl)}" style="color:#374151;">${e(view.manageLabel)}</a>`) +
     `</td></tr>` +
     `</table></td></tr></table></body></html>`
   );
+}
+
+function brandFooterHtml(brand: { readonly organizationName: string; readonly supportEmail: string; readonly supportUrl: string }): string {
+  const e = escapeHtml;
+  const parts = [
+    brand.organizationName.length > 0 ? e(brand.organizationName) : '',
+    brand.supportEmail.length > 0 ? `<a href="mailto:${e(brand.supportEmail)}" style="color:#374151;">${e(brand.supportEmail)}</a>` : '',
+    brand.supportUrl.length > 0 ? `<a href="${e(brand.supportUrl)}" style="color:#374151;">${e(brand.supportUrl)}</a>` : '',
+  ].filter((part) => part.length > 0);
+  return parts.length === 0 ? '' : `<br>${parts.join(' · ')}`;
 }
 
 function digestText(digest: EmailDigestList | null, countLabel: string): string[] {
