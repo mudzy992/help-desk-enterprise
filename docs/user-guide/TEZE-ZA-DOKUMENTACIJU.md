@@ -315,6 +315,62 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Admin → Najave
 
+### T15 — Prvi SuperAdmin je uvijek lokalni nalog
+
+- **Modul / paket:** Instalacija · M1
+- **Publika:** Administrator | Operativa
+- **Tip:** Pravilo
+- **Teza:** Nalog kreiran u instalacijskom koraku 1 je **lokalni** (email + lozinka) i takav ostaje i kada se kao
+  način prijave izabere Microsoft Entra AD. Služi kao „break-glass“ ulaz ako vanjski provajder ne radi.
+- **Zašto:** sistem mora imati put u aplikaciju koji ne zavisi od Entra/AD dostupnosti; isti razlog je i
+  obavezni MFA za administratorske naloge.
+- **Primjer:** Nakon instalacije sa Entra prijavom, prekid u federaciji ne zaključava SuperAdmina — on se i dalje
+  prijavljuje lokalnom lozinkom.
+- **Postavke / permisije:** bez postavke; invarijanta se provodi u kodu (`isLocalOnly`, `applySuperAdminLocalOnlyInvariant`).
+- **Ekran:** Instalacija → korak 1 (**SuperAdmin nalog**); kasnije *Sigurnost naloga*.
+- **Izvori:** `backend/src/modules/install/create-install-super-admin.ts:46–70`,
+  `backend/src/modules/authentication/apply-super-admin-local-only-invariant.ts`
+- **Status:** Važi
+- **Wiki stranica:** Početak → Instalacija; Početak → Prijava i MFA
+
+### T16 — Instalacijski wizard se otvara samo uz `INSTALL_TOKEN`
+
+- **Modul / paket:** Instalacija · M1
+- **Publika:** Operativa
+- **Tip:** Zamka
+- **Teza:** Dok instalacija nije završena, svaki instalacijski poziv osim javne provjere stanja traži token iz
+  okruženja (`INSTALL_TOKEN`, najmanje 16 znakova) u zaglavlju `X-Install-Token`. Ako token nije postavljen,
+  wizard je zatvoren — prvi koji dođe na adresu **ne** može sam sebi napraviti SuperAdmina.
+- **Zašto:** između deploya i instalacije aplikacija nema nijedan nalog; bez tokena bi svako ko zna adresu mogao
+  preuzeti sistem.
+- **Primjer:** Svjež staging deploy bez `INSTALL_TOKEN` → ekran prikazuje da token nije podešen; nijedan korak se
+  ne može izvršiti dok se vrijednost ne doda u okruženje.
+- **Postavke / permisije:** env `INSTALL_TOKEN` (nije postavka u bazi); zaglavlje `X-Install-Token`; token se u
+  pregledniku pamti samo za tab.
+- **Ekran:** `/install` → **Instalacijski token** → dugme **Otključaj**.
+- **Izvori:** `backend/src/modules/install/install-token.ts:13,19,44–60`; `.env.example:28`
+- **Status:** Važi
+- **Wiki stranica:** Operativa → Instalacija
+
+### T17 — Poslije „Završi“ instalacijski koraci su zaključani
+
+- **Modul / paket:** Instalacija · M1
+- **Publika:** Administrator | Operativa
+- **Tip:** Pravilo
+- **Teza:** Čim se instalacija završi (dugme **Završi**), instalacijski koraci se više ne mogu mijenjati; ostaju
+  dostupni samo provjera stanja i katalog dodataka. Sve kasnije izmjene (način prijave, SMTP, dodaci) idu kroz
+  administratorske stranice i bilježe se u change log.
+- **Zašto:** wizard je neautentifikovan po dizajnu; da ostane otvoren i poslije instalacije, bio bi trajni ulaz za
+  preuzimanje sistema.
+- **Primjer:** Poslije završene instalacije poziv na korak za SuperAdmina vraća `INSTALL_LOCKED`, a SMTP se mijenja
+  u **Admin → Postavke**.
+- **Postavke / permisije:** `private.install.completedAt` (postavlja se u koraku 6).
+- **Ekran:** Instalacija → korak 6 (**Završi podešavanje**); kasnije Admin → Postavke.
+- **Izvori:** `backend/src/modules/install/is-install-wizard-mutation-locked.ts:7–10,35`;
+  `backend/src/modules/install/persist-install-completion.ts:21–85`
+- **Status:** Važi
+- **Wiki stranica:** Operativa → Instalacija
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
