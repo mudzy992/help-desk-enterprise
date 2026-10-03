@@ -708,6 +708,131 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Administracija → Policy paketi
 
+### T36 — Životni ciklus usluge: Nacrt, Aktivna, Ukinuta — i vidljivost
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** ADMIN / SUPER_ADMIN (uređivanje), svi (prijava tiketa)
+- **Tip:** Pravilo
+- **Teza:** Usluga ima lifecycle `DRAFT|ACTIVE|DEPRECATED`; dozvoljeni su samo prelazi Nacrt → Aktivna,
+  Aktivna → Ukinuta i Ukinuta → Aktivna. Korisnicima se nude isključivo **Aktivne** usluge; Nacrt je predviđen
+  da bude vidljiv samo adminima, a Ukinuta ostaje u administraciji i izvještajima. Brisanje je moguće samo za
+  Nacrt bez zavisnih zapisa (tiketi, verzije forme, routing pravila, dodjele rola).
+- **Zašto:** jasno razdvaja pripremu, upotrebu i ukidanje usluge.
+- **Primjer:** Nacrt se ne pojavljuje korisniku u izboru usluga; poslije **Aktiviraj** pojavljuje se, a poslije
+  **Označi zastarjelim** nestaje iz izbora, ali stari tiketi ostaju.
+- **Postavke / permisije:** `service.catalog.write`; `private.services.lifecycle.*`.
+- **Ekran:** **Katalog usluga** → kartica usluge → **Aktiviraj** / **Označi zastarjelim** / **Vrati u aktivno** /
+  **Obriši nacrt**.
+- **Izvori:** `backend/src/modules/service-catalog/service-catalog.constants.ts:4–16`,
+  `assert-service-lifecycle-transition.ts:6–34`, `transition-service-lifecycle.ts:114–158`,
+  `delete-service.ts:56–98`.
+- **Status:** Važi (uz ograničenje B2: serverski filter vidljivosti nacrta ne postoji)
+- **Wiki stranica:** Katalog usluga → Životni ciklus
+
+### T37 — Jedna forma po usluzi, s verzijama; stari tiketi čuvaju svoju verziju
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** ADMIN
+- **Tip:** Pravilo
+- **Teza:** Usluga ima najviše jednu formu (drugi `POST .../form` se odbija), a forma ima verzije
+  `DRAFT|ACTIVE|RETIRED` numerisane redom. Novi tiketi koriste najnoviju **aktivnu** verziju; svaki tiket trajno
+  pamti verziju s kojom je kreiran. Verzija koja nije Nacrt ili ima bar jedan tiket je **nepromjenjiva**; izmjena
+  se radi kroz novu verziju (**Nova verzija iz odabrane**). Aktivacija nacrta penzioniše prethodne aktivne verzije
+  osim ako postavka dozvoljava više aktivnih.
+- **Zašto:** izmjena forme ne smije mijenjati značenje istorijskih tiketa.
+- **Primjer:** Poslije aktivacije verzije 2, tiket kreiran uz verziju 1 i dalje prikazuje broj verzije 1 i svoja
+  polja; uređivanje verzije 1 je odbijeno.
+- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.versioning.*`.
+- **Ekran:** **Katalog usluga** → **Uredi formu** → **Verzije forme** → **Kreiraj formu**, **Sačuvaj nacrt**,
+  **Aktiviraj verziju**, **Nova verzija iz odabrane**.
+- **Izvori:** `backend/src/modules/service-catalog/create-service-form.ts:24–57`,
+  `create-service-form-version.ts:120–140`, `is-form-version-immutable.ts:32–37`,
+  `activate-service-form-version.ts:57–97`, `select-active-form-version-ref.ts:4–17`,
+  `backend/prisma/schema/catalog.prisma:79–94`.
+- **Status:** Važi
+- **Wiki stranica:** Katalog usluga → Forme i verzije
+
+### T38 — Šema forme: tipovi polja, ograničenja i gdje se šta validira
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** ADMIN
+- **Tip:** Pravilo
+- **Teza:** Šema forme je `schemaVersion: 1` s najviše 64 polja; tipovi su tekst, dugi tekst, broj, da/ne, izbor,
+  višestruki izbor, datum, datum i vrijeme i email. Identifikator polja prati `^[a-z][a-z0-9_]{0,63}$`, oznaka
+  (do 128) i redoslijed su obavezni, redoslijed i identifikatori moraju biti jedinstveni, a tipovi izbora
+  zahtijevaju opcije (do 64). **Server validira šemu** pri kreiranju i izmjeni nacrta, ali **ne validira
+  vrijednosti** koje korisnik pošalje uz tiket — to radi samo ekran za prijavu (vidi ograničenje B1).
+- **Zašto:** sprječava neispravne šeme i objašnjava granicu odgovornosti.
+- **Primjer:** Polje s identifikatorom `Dodatne Informacije` se odbija; `dodatne_informacije` prolazi.
+- **Postavke / permisije:** `service.forms.write`; `private.ticket.forms.enabled`, `requireStructuredFields`.
+- **Ekran:** **Uredi formu** → **Dodaj polje** (Identifikator, Oznaka, Tip, Obavezno, Placeholder, Pomoćni
+  tekst, Opcije, Gore/Dolje, Ukloni).
+- **Izvori:** `backend/src/modules/service-catalog/form-schema.constants.ts:1–23`,
+  `parse-form-schema.ts:11–32`, `parse-form-field.ts:13–84`, `parse-form-field-validation.ts:14–105`,
+  `backend/src/modules/tickets/to-ticket-form-data-input.ts:3–8`.
+- **Status:** Važi (uz ograničenje B1)
+- **Wiki stranica:** Katalog usluga → Forme i verzije
+
+### T39 — Obavezna polja se provjeravaju pri rješavanju/zatvaranju, ne pri kreiranju tiketa
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** AGENT / ADMIN
+- **Tip:** Pravilo
+- **Teza:** Pri prelasku tiketa u **Riješeno** ili **Zatvoreno** backend provjerava: close code (ako je
+  konfigurisan), resolution note, globalnu listu obaveznih polja, listu po usluzi (`byService`) i — ako je
+  `enforceSchemaRequiredFields` uključen — `required` polja iz šeme vezane za tiket. Ako nešto nedostaje, tiket
+  se **ne** može zatvoriti; greška sadrži listu polja. Pri **kreiranju** tiketa obaveznost iz forme provjerava
+  samo ekran za prijavu.
+- **Zašto:** podaci ne smiju ostati nepotpuni u trenutku zatvaranja, a korisnik ne smije biti blokiran u
+  prijavi.
+- **Primjer:** Ako je polje `asset_tag` obavezno, agent ne može preći u Riješeno dok ga ne popuni.
+- **Postavke / permisije:** `private.workflow.requiredFields.*`, `private.ticket.forms.requireStructuredFields`.
+- **Ekran:** detalj tiketa → promjena statusa u **Riješeno**/**Zatvoreno**.
+- **Izvori:** `backend/src/modules/tickets/required-fields/collect-missing-required-fields.ts:11–66`,
+  `read-form-schema-fields.ts:4–10`, `backend/src/modules/tickets/close-codes/apply-ticket-resolution.ts:34–53`.
+- **Status:** Važi
+- **Wiki stranica:** Katalog usluga → Obavezna polja
+
+### T40 — Onboarding čarobnjak: pet koraka i šta finalizacija postavlja
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** ADMIN
+- **Tip:** Pravilo
+- **Teza:** Novoizgrađena usluga (Nacrt) prolazi kroz korake **Servis → Forma → Usmjeravanje → SLA → Odobrenja**.
+  Koraci se popunjavaju redom, a finalizacija zahtijeva da su svi završeni i da je forma aktivna
+  (`INVALID_FORM_VERSION_REF` inače). Kod uspjeha usluga prelazi u **Aktivna**, dobija izabrani **SLA profil** i
+  usklađeno „Zahtijeva odobrenje“, a ako nema routing pravila vraća se upozorenje o nepokrivenom usmjeravanju.
+- **Zašto:** usluga ne ulazi u upotrebu polupripremljena.
+- **Primjer:** Bez aktivne forme finalizacija prijavljuje listu problema i usluga ostaje Nacrt.
+- **Postavke / permisije:** `service.catalog.write`; `private.serviceOnboarding.*`.
+- **Ekran:** **Usluge i znanje → Katalog usluga → Onboarding čarobnjak**.
+- **Izvori:** `backend/src/modules/service-onboarding/service-onboarding.constants.ts:7–28`,
+  `validate-onboarding-steps.ts:85–108`, `finalize-service-onboarding.ts:37–135`.
+- **Status:** Važi
+- **Wiki stranica:** Katalog usluga → Onboarding čarobnjak
+
+### T41 — Status dostupnosti i prekidi ne blokiraju prijavu tiketa
+
+- **Modul / paket:** Katalog usluga i forme
+- **Publika:** svi korisnici (informacija), ADMIN (uređivanje)
+- **Tip:** Pravilo
+- **Teza:** Usluga ima status `OPERATIONAL|DEGRADED|DOWN|MAINTENANCE` i opciono zakazane prozore prekida.
+  Efektivna dostupnost se računa u trenutku čitanja (aktivni prozor može podići status na Održavanje), a
+  kreiranje tiketa je **uvijek dozvoljeno** — status je informativan i prikazuje se uz uslugu. Prozori se ne
+  smiju preklapati, a promjena statusa i otkazivanje prozora zahtijevaju razlog ako je tako konfigurisano.
+- **Zašto:** korisnik mora biti obaviješten, ali ne spriječen da prijavi problem.
+- **Primjer:** Tokom zakazanog prekida kartica usluge pokazuje „Održavanje“ i napomenu da prijava nije
+  blokirana; tiket se kreira normalno.
+- **Postavke / permisije:** `service.availability.write`; `private.services.availability.*`,
+  `private.services.downtimeScheduling.*`.
+- **Ekran:** **Katalog usluga** → **Zakaži prekid** / izmjena statusa (**Dostupno**, **Smanjena**,
+  **Nedostupno**, **Održavanje**).
+- **Izvori:** `backend/src/modules/service-catalog/evaluate-service-runtime-availability.ts:48–80`,
+  `service-availability.service.ts:26–60`, `create-service-downtime-window.ts:32–40`,
+  `normalize-change-reason.ts:4–19`, `backend/prisma/schema/catalog.prisma:62–77`.
+- **Status:** Važi
+- **Wiki stranica:** Katalog usluga → Dostupnost i prekidi
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

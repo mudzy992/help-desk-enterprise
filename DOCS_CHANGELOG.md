@@ -193,3 +193,53 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   `list-policy-packs.ts`, `policy-packs.controller.ts`, `dto/apply-policy-pack.dto.ts`),
   `frontend/src/components/policy-packs/*`, `frontend/src/pages/users-page.tsx` i
   `backend/prisma/schema/identity.prisma`.
+
+---
+
+## M6 — Katalog usluga i forme (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/katalog-usluga-i-forme.md` — novi vodič: čemu modul služi, kome je namijenjen (tabela rola i
+  permisija), kako se dolazi (**Usluge i znanje → Katalog usluga**), korak-po-korak (grupe usluga, nova usluga,
+  forma i verzije, aktivacija, onboarding čarobnjak, status i prekidi), tabele polja/validacija/statusa s tačnim
+  nazivima iz UI-a, česta pitanja i greške s porukama, poznata ograničenja (B1–B7) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M6 — planirano/idealno/preporuka, stanje u kodu (model, API, servisni sloj, forme i
+  verzionisanje, tiket tok, onboarding, frontend), gap tabela s 12 redova, recenzija, nalazi **B1–B9**, ocjene
+  **F7 / K8 / S7** i novi red tabele iteracija „2 … M6 ✅ · M7 u toku“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T36** (životni ciklus i vidljivost usluge), **T37** (jedna forma po usluzi,
+  verzije, nepromjenjivost), **T38** (šema forme: tipovi i ograničenja; šta se validira na serveru, a šta ne),
+  **T39** (obavezna polja pri rješavanju/zatvaranju), **T40** (onboarding čarobnjak i šta finalizacija
+  postavlja), **T41** (status dostupnosti i prekidi ne blokiraju prijavu tiketa).
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — katalog usluga i forme do sada nisu bili dokumentovani.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul je bio potpuno nedokumentovan, a dvije stvari se lako pogrešno razumiju: (1) obavezna polja iz forme
+  **ne** blokiraju kreiranje tiketa (provjeravaju se pri rješavanju/zatvaranju), i (2) forma se validira na
+  serveru **samo kao šema** — vrijednosti koje korisnik pošalje provjerava isključivo ekran za prijavu. Vodič i
+  teze zato eksplicitno razdvajaju ta dva nivoa i navode nalaze B1–B7.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/service-catalog/*` (`service-catalog.constants.ts`,
+  `service-catalog.types.ts`, `service-catalog.error.ts`, `form-schema.*`, `service-forms.*`,
+  `parse-form-*`, `create-service-form*`, `update/activate-service-form-version.ts`,
+  `is-form-version-immutable.ts`, `load-form-version.ts`, `select-active-form-version-ref.ts`,
+  `bind-ticket-form-version-ref.ts`, `resolve-ticket-form-version.ts`, `services|service-forms|service-availability|service-categories.controller.ts`,
+  `map-service-catalog-error.ts`, `map-service-forms-error.ts`, `evaluate-service-runtime-availability.ts`),
+  `backend/src/modules/service-onboarding/*` (`service-onboarding.constants.ts`, `validate-onboarding-steps.ts`,
+  `finalize-service-onboarding.ts`), `backend/src/modules/tickets/*` (`create-ticket.ts`,
+  `resolve-create-form-version-ref.ts`, `to-ticket-form-data-input.ts`, `required-fields/*`,
+  `close-codes/apply-ticket-resolution.ts`, `update-ticket.ts`), `backend/prisma/schema/catalog.prisma`,
+  `backend/src/modules/authorization/read-authorization-requirements.ts`, te frontend
+  (`pages/services-page.tsx`, `components/services/*`, `components/tickets/service-form-fields.tsx`,
+  `components/tickets/ticket-form-data-view.tsx`, `lib/tickets/validate-service-form.ts`,
+  `services/service-catalog-api.ts`, `lib/services/use-service-catalog.ts`, i18n `services.*`).

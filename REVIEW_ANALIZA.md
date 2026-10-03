@@ -23,6 +23,7 @@
 | Iteracija | Moduli | Stanje |
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
+| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 u toku |
 
 ---
 
@@ -1224,3 +1225,372 @@ je u pitanju nedovršen rad ili rezervisano mjesto.
 | Funkcionalnost | **6 / 10** | Primjena tri default paketa radi ispravno i idempotentno, ali paket nosi samo permisije/role; SLA, required fields, klasifikacija i approvals iz zadatka nisu implementirani, a dodjela samo servisu nije moguća. |
 | Kvalitet koda | **8 / 10** | Čista i dobro testirana podjela (plan/apply/validate/registry), korektna invalidacija keša poslije commit-a, konzistentno mapiranje grešaka. Gube bodovi zbog mrtvih polja u modelu i nedostatka reverzne operacije. |
 | Sigurnost | **8 / 10** | Zabrana SUPER_ADMIN granta, allowlist permisija po roli, OU-scope guard na primjeni, audit s akterom i transparentnost. Umanjuju: B4 (UI/API politika) i B5 (nepovratnost bez traga o povlačenju). |
+
+---
+
+# M6 — Katalog usluga i dinamičke forme
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Service catalog + forme** (`RAW_PROJECT.md:32–46`): servis se bira iz kataloga (kategorije → servisi); svaki
+  servis može imati svoju „smart“ formu definisanu kroz **schema** sa obaveznim poljima i validacijom; podržati
+  **1:1 servis → form schema** i u MVP-u krenuti postepeno, ali model mora to podržavati od starta.
+- **Form versioning** (`RAW_PROJECT.md:38–44`): svaka forma ima verziju; novi tiketi koriste najnoviju aktivnu
+  verziju; stari tiketi zadržavaju referencu na verziju kojom su kreirani; admin aktivira novu verziju **bez
+  migracije starih tiketa**. Schema evolucija: uklanjanje/rename polja ostavlja staru verziju dostupnom za
+  prikaz/validaciju istorijskih tiketa; nova required polja važe samo za nove tikete; promjena tipa ide kroz novo
+  polje; **UI rendering: detalji tiketa renderuju formu prema `formVersionRef` vezanom za tiket**.
+- **Form data** (`RAW_PROJECT.md:45`): čuva se strukturalno (JSON) uz tiket radi analitike i automatizacija.
+- **Katalog nije samo za IT** (`RAW_PROJECT.md:46`): isti mehanizam za finansije, kadrovsku, pravnu, nabavke.
+- **Lifecycle** (`RAW_PROJECT.md:301–305`): `DRAFT` (vidljiv samo adminima) | `ACTIVE` (vidljiv korisnicima i
+  može se birati pri kreiranju tiketa) | `DEPRECATED` (ne nudi se korisnicima, historijski tiketi ostaju).
+- **Dostupnost i prekidi** (`RAW_PROJECT.md:47–49`: status `OPERATIONAL|DEGRADED|DOWN|MAINTENANCE` je
+  informativan i **ne blokira** kreiranje tiketa; `RAW_PROJECT.md:1027–1029`: admin UI prikazuje status u listi,
+  lifecycle u adminu, a deprecated se ne prikazuje korisnicima).
+- **Postavke** (`RAW_PROJECT.md:567–572`): `private.ticket.forms.enabled` (default true),
+  `private.ticket.forms.schemaRegistryJson` (secret, registry po serviceId), `requireStructuredFields`
+  (default true), `versioning.enabled` (default true), `versioning.allowMultipleActiveVersions` (default false),
+  `versioning.requireVersionOnTicket` (default true).
+- **Smart required fields** (`RAW_PROJECT.md:284–287`, `1008–1009`): backend ne dozvoljava `RESOLVED/CLOSED` bez
+  required polja (global + per-service), uz jasne greške.
+- **Acceptance** (`RAW_PROJECT.md:912–916`): kategorije i servisi u DB i UI; forma schema-driven; **required
+  polja se validiraju backendom**; structured form data uz tiket i može se filtrirati/izvještavati; validacija
+  prema verziji forme vezanoj za tiket.
+- **Onboarding** (`RAW_PROJECT.md:46`, `1039`): servis se konfiguriše kroz wizard (u M6 kontekstu: koraci koji
+  postavljaju formu, routing, SLA i odobrenja prije aktivacije).
+- **Config versioning** (`RAW_PROJECT.md:265–271`): promjene kataloga i formi ulaze u config verzije uz
+  validaciju šeme forme (required polja, konzistentnost verzionisanja).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Forma je ugovor, ne samo UI.** Ono što piše u šemi važi i na serveru: tipovi, obaveznost, opsezi i pattern
+   se provjeravaju pri kreiranju i izmjeni tiketa, pa su strukturirani podaci pouzdani za analitiku.
+2. **Vidljivost prati lifecycle na serveru.** Filter „samo aktivne“ je pravilo po roli na API-ju, a ne opcija
+   koju klijent može izostaviti.
+3. **Aktivacija je provjerena.** Servis ne može postati `ACTIVE` bez aktivne forme (i bez routing pokrivenosti),
+   pa „spremno za tikete“ znači stvarno spremno.
+4. **Postavke imaju efekat.** Kad su forme isključene ili `requireVersionOnTicket` ugašen, kreiranje tiketa to
+   poštuje umjesto da i dalje traži verziju forme.
+5. **Historija se vidi u kontekstu.** Detalj tiketa renderuje polja po šemi vezanoj za tiket (labela, tip,
+   opcije), a ne sirove JSON ključeve.
+6. **Između kataloga i SLA/odobrenja nema rupe.** Ono što wizard može postaviti može i katalog (SLA profil,
+   klasifikacija, odobrenje), uz isti change log s razlogom.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+- Zadržati postojeću strukturu (jedinične funkcije + service fasadе + konfiguracioni loader + change log). Dodati
+  po prioritetu:
+  1. **Serverski validator `formData`** iz iste šeme (funkcija tipa `validateFormValues(schema, values)`) i pozvati
+     ga u `create-ticket`/`update-ticket`; koristiti je i pri resolve provjeri umjesto samo prisustva polja.
+  2. **Server-side vidljivost po roli**: `listServices`/`getService` ne-admin rolama vraćaju samo `ACTIVE`
+     (agentima i `DEPRECATED`), a `form`/`form/versions` rute provjeravaju lifecycle.
+  3. **Tranzicija u ACTIVE** da zahtijeva aktivnu verziju forme (paralelno s routing coverage provjerom) ili da
+     vraća upozorenje koje admin mora potvrditi.
+  4. **Poštovati `private.ticket.forms.*`** u toku kreiranja tiketa (`enabled`, `requireVersionOnTicket`) i
+     dokumentovati da `schemaRegistryJson` nije implementiran.
+  5. **Detalj tiketa po verziji forme**: endpoint koji vraća šemu za `formVersionId` tiketa + render po tipu
+     polja; iskoristiti postojeći `resolveTicketFormVersion`, ili ga ukloniti ako se ne koristi.
+  6. **Proširiti formu kataloga** na `classification`, `isConfidentialDefault`, `autoAssignStrategy`,
+     `policyPackId` i `slaProfileId`, uz `reason` u DTO-u i diff u change logu.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model i kontrakti
+
+- `backend/prisma/schema/catalog.prisma`: `ServiceCategory` (`:1–14`, samoreferentno drvo, `onDelete: Restrict`),
+  `Service` (`:16–60`; `lifecycle` default `DRAFT`, `availability` default `OPERATIONAL`, `classification`,
+  `requiresApproval`, `isConfidentialDefault`, `autoAssignStrategy`, `slaProfileId`, `policyPackId`,
+  `categoryId onDelete: Restrict`), `ServiceDowntimeWindow` (`:62–77`, `onDelete: Cascade` s servisom),
+  `FormVersion` (`:79–94`; `schema Json`, `status FormVersionStatus @default(DRAFT)`, `@@unique([serviceId, version])`),
+  `ServiceOnboarding` (`:96+`).
+- `service-catalog.constants.ts:4–34`: stanja `DRAFT|ACTIVE|DEPRECATED`, dozvoljeni prelazi
+  `DRAFT→ACTIVE`, `ACTIVE→DEPRECATED`, `DEPRECATED→ACTIVE` (`:10–16`), default konfiguracija
+  (`enabled: true`, `defaultStateOnCreate: 'DRAFT'`), maks. dužina naziva 128 i slug-a 64.
+- `form-schema.constants.ts:1–23` i `form-schema.types.ts`: `schemaVersion = 1`; **9 tipova polja** (`text`,
+  `textarea`, `number`, `boolean`, `select`, `multiselect`, `date`, `datetime`, `email`); identifikator polja
+  `^[a-z][a-z0-9_]{0,63}$`; ograničenja: label 128, helpText 512, pattern 256, najviše 64 opcije i 64 polja.
+- `service-forms.constants.ts:4–26`: statusi `DRAFT|ACTIVE|RETIRED`; default konfiguracija (`enabled`,
+  `requireStructuredFields`, `versioningEnabled`, `allowMultipleActiveVersions: false`,
+  `requireVersionOnTicket: true`); change-log entitet `service_form_version` i razlozi `form_create`,
+  `form_version_create`, `form_version_update`, `form_version_activate`, `ticket_form_version_bind`.
+- `service-catalog.error.ts` (29 kodova) i `service-forms.error.ts` (16 kodova) + mapiranja
+  (`map-service-catalog-error.ts:11–77`: 404/409/503/400; `map-service-forms-error.ts:88–116`: 404/409/400).
+
+### 4.2 API
+
+- `services.controller.ts`: `@AdminConfigDomains('catalog')`, `SessionAuthenticationGuard` + `RoleGuard`,
+  klasno `@RequireRoles(admin)`; `POST /services`, `PATCH /services/:id`, `POST /services/:id/lifecycle`,
+  `DELETE /services/:id` traže `service.catalog.write` + `@RequireServiceScope({ field: 'serviceId' })`;
+  `GET /services` i `GET /services/:id` imaju **metodno** `@RequireRoles(user, agent, admin, superAdmin)`
+  (`catalog-ticket-create-read-roles.ts:3–8`), što nadjačava klasno pravilo
+  (`read-authorization-requirements.ts:19–22`, `getAllAndOverride([handler, class])`).
+- `service-forms.controller.ts`: `POST|GET /services/:id/form`, `POST /services/:id/form/versions`,
+  `GET|PATCH /services/:id/form/versions/:ref`, `POST .../activate`; pisanje traži `service.forms.write` +
+  service scope; čitanje traži `catalogTicketCreateReadRoles`.
+- `service-availability.controller.ts`: `PATCH /services/:id/availability`, `GET|POST|PATCH|DELETE
+  /services/:id/downtime-windows[...]` uz `service.availability.write`, i
+  `GET /services/:id/ticket-creation-eligibility` za sve role.
+- `service-categories.controller.ts`: klasno ADMIN; `GET` rute bez dodatne permisije, pisanje traži
+  `service.catalog.write`.
+- `service-onboarding.controller.ts`: `POST /services/onboarding`, `POST|GET /services/:id/onboarding`,
+  `POST /services/:id/onboarding/finalize` i step rute (dva kontrolera za domenske i form korake).
+
+### 4.3 Servisni sloj
+
+- `service-catalog.service.ts:100–173`: `create` (lifecycle konfiguracija), `list`/`getById` (evaluacija
+  dostupnosti + approvals konfiguracija), `update`, `transitionLifecycle` (uz `evaluateActivationCoverage` kad je
+  cilj `ACTIVE` i routing servis je dostupan), `delete`; `execute()` prevodi `RoutingError` i
+  `ServiceCatalogError` u HTTP.
+- `create-service.ts:24–79`: normalizacija naziva/slug-a, provjera kategorije, policy paketa i jedinstvenosti
+  slug-a, upis s `defaultStateOnCreate`, change log `create`; `update-service.ts:96–139`: mijenja naziv,
+  kategoriju, klasifikaciju, `requiresApproval`, `isConfidentialDefault`, `autoAssignStrategy`, `policyPackId`
+  (slug je nepromjenjiv jer ga DTO ne prima), change log `update` s `before/after` koji sadrže **samo**
+  `name`, `categoryId`, `slug` (`:126–136`).
+- `transition-service-lifecycle.ts:114–158`: provjera prelaza + upis + change log `lifecycle_transition`; vraća
+  `warnings` s routing coverage napomenom. **Ne provjerava postojanje aktivne forme.**
+- `delete-service.ts:56–98`: samo `DRAFT`; blokira brisanje ako postoje tiketi, verzije forme, routing pravila
+  ili dodjele rola (`HAS_DEPENDENCIES`).
+- `list-services.ts:13–46`: `findMany` po lifecycle/kategoriji, pa `loadServiceDowntimeWindowsForServices`,
+  `countOpenTicketsByService` (statusi `RESOLVED|CLOSED|ARCHIVED` nisu „otvoreni“), `loadOpenIncidentImpacts`;
+  `offeredOnly` je **opt-in** filter (`:42–45`) koji koristi klijent.
+- `to-service-response.ts:196–241`: `runtimeAvailability` (stored + downtime + incident impact),
+  `offeredToRequesters` = `lifecycle === 'ACTIVE'`, `approvalSteps` 0|1 iz approvals konfiguracije, broj
+  otvorenih tiketa.
+- `evaluate-service-runtime-availability.ts:48–80`: računa stanje i efektivnu dostupnost iz prozora prekida
+  (`autoSetMaintenanceStatus`), `ticketCreationAllowed` je uvijek `true` (RAW odluka: non-blocking).
+- `service-availability.service.ts:26–60`: `updateAvailability` (uz `normalizeChangeReason`, koji baca
+  `REASON_REQUIRED` kad konfiguracija traži razlog), `listDowntimeWindows`, `create/update/deleteDowntimeWindow`
+  i `evaluateTicketCreationEligibility`.
+
+### 4.4 Forme i verzionisanje
+
+- `parse-form-schema.ts:11–32`: plain objekat, poznati ključevi, `schemaVersion === 1`, max 64 polja,
+  `parseFormField` po polju, jedinstveni `id` i jedinstveni `order`, sortiranje po `order`.
+- `parse-form-field.ts` + `parse-form-field-validation.ts:14–105`: labela obavezna i ≤128, `required` boolean,
+  `order` cijeli ≥0; validacija se provjerava po tipu (tekstualni: `minLength|maxLength|pattern`; broj:
+  `min|max|integer`; `select`: samo `options`; `multiselect`: `options|minItems|maxItems`; ostali bez validacije),
+  rasponi `min ≤ max`, opcije obavezne za `select`/`multiselect` (jedinstvene vrijednosti, ≤64).
+- `create-service-form.ts:24–57`: `assertServiceFormsEnabled`, servis mora postojati, druga forma se odbija
+  (`FORM_ALREADY_EXISTS`), kreira verziju 1 u statusu `DRAFT`, change log `form_create`.
+- `create-service-form-version.ts:120–140`: `assertFormVersioningEnabled`, zahtijeva postojeću formu
+  (`FORM_NOT_FOUND` ako nema verzija), kreira `DRAFT` s `version + 1`, change log `form_version_create`.
+- `update-service-form-version.ts:26–56`: dozvoljeno samo dok je verzija `DRAFT` i bez tiketa
+  (`is-form-version-immutable.ts:32–37`: `status !== 'DRAFT' || ticketCount > 0`), change log
+  `form_version_update`.
+- `activate-service-form-version.ts:57–97`: samo `DRAFT` (`FORM_VERSION_NOT_DRAFT`), u transakciji penzioniše
+  prethodne `ACTIVE` u `RETIRED` osim ako je `allowMultipleActiveVersions`, change log `form_version_activate`.
+- `select-active-form-version-ref.ts:4–17`: `findFirst({ where: { serviceId, status: 'ACTIVE' }, orderBy: { version: 'desc' } })`,
+  inače `NO_ACTIVE_FORM_VERSION`.
+- `load-form-version.ts:18–28`: provjerava pripadnost servisu (`FORM_VERSION_SERVICE_MISMATCH`).
+- `get-service-form.ts`/`to-service-form-response.ts` i `get-service-form-version.ts`: čitanje forme s listom
+  verzija i `isImmutable`.
+
+### 4.5 Tiketi: kreiranje, validacija, prikaz
+
+- `create-ticket.ts:110–114`: `loadOfferedService` (usluga mora biti dostupna korisnicima) pa
+  `resolveCreateFormVersionRef`; `:196,199`: upis `formData` i `formVersionId`.
+- `resolve-create-form-version-ref.ts:7–32`: bez `formVersionRef` bira aktivnu verziju (`selectActiveFormVersionRef`),
+  s proslijeđenim ref-om učitava verziju i traži `status === 'ACTIVE'` (`FORM_VERSION_NOT_ACTIVE`); mapira
+  greške u `FORM_VERSION_REQUIRED`, `FORM_VERSION_NOT_FOUND`, `FORM_VERSION_SERVICE_MISMATCH`.
+- `to-ticket-form-data-input.ts:3–8`: **cast** proizvoljne vrijednosti u `Prisma.InputJsonValue`; `formData?: Record<string, unknown>`
+  u `create-ticket.dto.ts:49` i `update-ticket.dto.ts:43` bez dodatnih ograničenja; `update-ticket.ts:115–116,166`
+  dozvoljava zamjenu `formData` bez validacije.
+- Required polja: `apply-ticket-resolution.ts:34–52` poziva `collect-missing-required-fields.ts`, koje na
+  prelasku u `RESOLVED/CLOSED` provjerava close code, resolution note, `globalRequiredOnResolve` +
+  `byService[serviceId]` i — ako je `enforceSchemaRequiredFields` — `required` polja iz šeme vezane za tiket
+  (`read-form-schema-fields.ts:4–10`, greška `REQUIRED_FIELDS_MISSING` s listom polja).
+- `ServiceFormsService.bindTicketFormVersionRef` (`service-forms.service.ts:119–132`) i
+  `resolveTicketFormVersion` (`:134–136`): jedini pozivi su u `service-forms.*.spec.ts`; nijedan kontroler ni
+  tickets modul ih ne koristi (grep kroz `backend/src` bez spec fajlova: samo definicije i fasadne metode).
+- Prikaz: `ticket-detail-page.tsx:424` prosljeđuje `<TicketFormDataView formData={ticket.formData} />`, a
+  `ticket-form-data-view.tsx:8–31` ispisuje `Object.entries(formData)` kao parove **sirovih ključeva** i
+  `String(value)` (bez šeme, labela i tipova); broj verzije forme se prikazuje u zaglavlju/sidebaru tiketa
+  (`ticket-detail-header.tsx:138–144`, `ticket-detail-sidebar.tsx:63–71`).
+
+### 4.6 Onboarding wizard
+
+- `service-onboarding.constants.ts:7–28`: koraci `SERVICE → FORM → ROUTING → SLA → APPROVALS`; statusi
+  `IN_PROGRESS|READY_FOR_FINALIZATION|COMPLETED|ABANDONED`; konfiguracija (`enabled`, `requireValidationBeforeActivate`,
+  `autoFillRoutingEnabled`, `autoFillRoutingRequireConfirm`).
+- `finalize-service-onboarding.ts:37–94`: zahtijeva `DRAFT`, skuplja validacijske probleme svih koraka
+  (`FINAL_VALIDATION_FAILED` + upis problema), traži routing coverage, validira SLA referencu i approvals, pa u
+  transakciji postavlja `lifecycle: 'ACTIVE'`, **`slaProfileId`** i `requiresApproval` (`:106–113`), piše change
+  logove i prelazi u `COMPLETED`.
+- `validate-onboarding-steps.ts:85–108`: FORM korak zahtijeva `formVersionRef` koji postoji i ima status `ACTIVE`
+  (`INVALID_FORM_VERSION_REF`).
+
+### 4.7 Frontend
+
+- `pages/services-page.tsx:77–208`: naslov **Katalog usluga**, tabovi **Katalog**/**Grupe usluga**, dugmad
+  **Onboarding čarobnjak** i **Nova usluga**, grid kartica, read-only banner, sheets za formu, izmjenu, prekide,
+  grupe i kategorije; `resolveCatalogWriteFlags` + `useAdminModuleReadOnly` određuju šta je omogućeno.
+- `service-catalog-mutation-form.tsx:14–135`: polja **Naziv**, **Slug** (samo pri kreiranju), **Kategorija**,
+  prekidač **Zahtijeva odobrenje**, obavezno polje **Razlog izmjene**; `submit` šalje samo naziv, slug, kategoriju
+  i `requiresApproval` (`:57–62`), a sheet ih prosleđuje API-ju bez razloga
+  (`service-catalog-mutation-sheet.tsx:82–95`).
+- `service-catalog-api.ts:53–64`: `CreateServiceInput`/`UpdateServiceInput` sadrže samo `name`, `slug`,
+  `categoryId`, `requiresApproval`; `listOfferedServices()` koristi `?offeredOnly=true`.
+- `use-service-catalog.ts:30–44`: `listServices()` + `getServiceForm(id)` za svaku uslugu (uz `staleTime` 5 min).
+- `components/services/form-builder/*`: **Kreiraj formu** (šalje `defaultServiceFormSchema` s poljem
+  `dodatne_informacije`, `default-service-form-schema.ts:6–18`), editor polja (`form-field-editor.tsx`),
+  lista polja, **Verzije forme**, akcije **Sačuvaj nacrt**, **Aktiviraj verziju**, **Nova verzija iz odabrane**.
+- `components/tickets/create-ticket-form.tsx:85–136`: dohvat forme za servis, `validateServiceFormData` iz
+  `lib/tickets/validate-service-form.ts` (klijentska validacija: required, min/max, `integer`, `email` sadrži
+  `@`, `pattern` preko `new RegExp`, min/max stavki za multiselect), pa KB presretanje i pregled.
+- `components/tickets/service-form-fields.tsx:32–162`: render po tipu (checkbox za boolean, textarea, select,
+  input s `number|email|date|datetime-local`), a11y atributi i sažetak grešaka.
+- i18n: `services.*` (80 ključeva na bs), `tickets.form.required|invalid` (**„Ovo polje je obavezno.“**,
+  **„Vrijednost nije ispravna.“**), `tickets.errorFormVersionMissing` (poruka da usluga nema aktivnu formu),
+  `tickets.detail.formData|formVersion|formVersionFixed`.
+
+## 5. Gap analiza
+
+| Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Servis se bira iz kataloga (kategorije → servisi) | drvo kategorija + lista servisa | `ServiceCategory` drvo s parent provjerama; `GET /services` s filterima lifecycle/kategorija/`offeredOnly` | **Implementirano** |
+| Svaki servis ima „smart“ formu (schema, obavezna polja, validacija) | validacija šeme i **vrijednosti** na serveru | šema se validira pri pisanju; vrijednosti se **ne** validiraju na serveru (B1) | **Djelimično** |
+| 1:1 servis → form schema | jedna forma po servisu | `createServiceForm` odbija drugu formu (`FORM_ALREADY_EXISTS`); verzije su 1:N | **Implementirano** |
+| Form versioning (najnovija aktivna za nove tikete, referenca na tiketu) | kako piše u RAW-u | `selectActiveFormVersionRef` + `Ticket.formVersionId`; tiket čuva referencu; aktivacija penzioniše staru verziju | **Implementirano** |
+| Schema evolucija + prikaz istorijskih tiketa prema `formVersionRef` | detalj tiketa renderuje po šemi te verzije | stara verzija se čuva, ali detalj prikazuje sirove ključeve JSON-a (B5) | **Djelimično** |
+| Structured form data za analitiku | upis uz validaciju | zapis postoji, ali sadržaj je neprovjeren JSON proizvoljnog oblika (B1) | **Djelimično** |
+| Lifecycle `DRAFT` vidljiv samo adminima | serverska provjera po roli | tranzicije ispravne, ali `GET /services` bez `offeredOnly` vraća i nacrte svakom korisniku (B2) | **Odstupa** |
+| Status servisa i downtime ne blokiraju tikete | informativno, non-blocking | `runtimeAvailability` + prozori; `ticketCreationAllowed: true`; `REASON_REQUIRED` za izmjene po postavci | **Implementirano** |
+| Postavke `private.ticket.forms.*` | `enabled` i `requireVersionOnTicket` upravljaju tokom tiketa | ključevi postoje, ali te dvije postavke ne utiču na kreiranje tiketa; `schemaRegistryJson` ne postoji | **Odstupa** |
+| Smart required fields (global + per-service) | blokada resolve/close | `collect-missing-required-fields` + `REQUIRED_FIELDS_MISSING` s listom polja | **Implementirano** |
+| Onboarding wizard do aktivacije servisa | provjere svih koraka prije `ACTIVE` | 5 koraka; finalize provjerava formu/routing/SLA/approvals i postavlja `ACTIVE` + `slaProfileId` | **Implementirano** |
+| Katalog i forme u config verzijama | snapshot/rollback | `collect-config-snapshot.ts` uključuje servise i `formVersion` zapise | **Implementirano** |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Dobra strana.** Modul je najbolje strukturiran dio aplikacije do sada: parseri šeme su čiste funkcije s
+  preciznim kodovima grešaka, verzionisanje je stvarno implementirano (a ne samo nagoviješteno), lifecycle i
+  dostupnost su razdvojeni, a onboarding wizard ima pravu serversku validaciju koraka i transakcioni finalize.
+  Test pokrivenost je ozbiljna (20 spec fajlova u `service-catalog/`, 7 u `service-onboarding/`, e2e
+  `01-ticket-create` prolazi katalog → formu → KB → pregled).
+- **Glavna zamjerka.** Validacija forme postoji na dva mjesta i nijedno nije server: šema se provjerava pri
+  pisanju (dobro), a vrijednosti samo u browseru (`validate-service-form.ts`). Time obećanje iz RAW-a („required
+  polja se validiraju backendom“, `:914`) i svrha strukturiranih podataka padaju na klijenta.
+- **Druga zamjerka.** Vidljivost `DRAFT` usluga je stvar discipline klijenta, ne serverskog pravila; to je isti
+  obrazac kao B2 iz §M4 (dozvola postoji, ali je presudno ko je zove).
+- **Treća zamjerka.** Dvije postavke iz RAW-a (`enabled`, `requireVersionOnTicket`) su deklarativno prisutne, a
+  funkcionalno mrtve u toku tiketa, dok se `schemaRegistryJson` uopšte ne pominje u kodu — dokumentacija zato
+  mora jasno reći šta od postavki stvarno radi.
+- **Četvrta zamjerka.** Mrtvi kod (`bindTicketFormVersionRef`, `resolveTicketFormVersion`) i nedovršen prikaz
+  forme u detalju tiketa su dvije strane istog nedostatka: veza „tiket ↔ verzija forme“ postoji u modelu, ali se
+  ne koristi dalje od upisa `formVersionId`.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+**B1 — `SREDNJE` — server ne validira `formData` prema šemi forme.** `create-ticket.ts:196` i
+`update-ticket.ts:166` upisuju vrijednost kroz `toTicketFormDataInput` (`to-ticket-form-data-input.ts:3–8`), koji
+je samo cast u `Prisma.InputJsonValue`; DTO prima `Record<string, unknown>` bez ograničenja
+(`create-ticket.dto.ts:49`, `update-ticket.dto.ts:43`). Serverska provjera postoji **samo** za prisustvo required
+polja i to na prelasku u `RESOLVED/CLOSED` (`collect-missing-required-fields.ts:56–63` preko
+`apply-ticket-resolution.ts:38–52`). **Uticaj:** klijent može poslati nepoznata polja, pogrešne tipove ili
+vrijednosti izvan opsega; strukturirani podaci u izvještajima nisu pouzdani, a zahtjev iz RAW-a `:914` nije
+ispunjen. **Fix:** serverski validator iz šeme (tip, `required`, `min/max`, `pattern`, opcije, stavke) u
+create/update toku, uz iste kodove grešaka kao na klijentu.
+
+**B2 — `SREDNJE` — `DRAFT` usluge i njihove forme vidljive su svakom prijavljenom korisniku preko API-ja.**
+`services.controller.ts:59–70` i `service-forms.controller.ts:64–94` metodno dozvoljavaju role
+`USER|AGENT|ADMIN|SUPER_ADMIN`, a `read-authorization-requirements.ts:19–22` koristi
+`getAllAndOverride([handler, class])`, pa metodno pravilo nadjačava klasno `@RequireRoles(admin)`.
+`list-services.ts:19–25` filtrira samo po eksplicitnim parametrima — `offeredOnly` je opt-in
+(`:42–45`), a `GET /services/:id` i `GET /services/:id/form` ne provjeravaju lifecycle. **Uticaj:** svaki
+korisnik može enumerisati nacrte (naziv, slug, broj otvorenih tiketa) i preuzeti kompletne šeme formi usluga
+koje još nisu objavljene, suprotno RAW-u `:304` („DRAFT: vidljiv samo adminima“); UI to ne prikazuje, ali API
+dozvoljava. **Fix:** serverski filter po roli (ne-admin vidi `ACTIVE`, agent i `DEPRECATED`), uz provjeru
+lifecycle-a na `form` rutama.
+
+**B3 — `SREDNJE` — servis se može aktivirati bez aktivne verzije forme.** `transition-service-lifecycle.ts:114–158`
+provjerava samo dozvoljeni prelaz i (opciono) routing pokrivenost; nema provjere forme. **Uticaj:** poslije
+`POST /services/:id/lifecycle` s `ACTIVE` usluga je vidljiva korisnicima („Dostupna korisnicima: Da“, badge
+„Spremna za tikete“), a kreiranje tiketa za nju pada s `FORM_VERSION_REQUIRED`
+(`resolve-create-form-version-ref.ts:42–44`) i porukom „Odabrana usluga nema aktivnu verziju forme…“.
+Onboarding to sprečava (`validate-onboarding-steps.ts:85–108`), ručna aktivacija ne. **Fix:** pri prelazu u
+`ACTIVE` zahtijevati aktivnu verziju forme (ili vratiti upozorenje kao za routing).
+
+**B4 — `SREDNJE` — postavke formi ne utiču na kreiranje tiketa.** `private.ticket.forms.enabled` čita se samo u
+`assertServiceFormsEnabled` (`assert-service-forms-enabled.ts:4–10`), koga zovu isključivo operacije pisanja forme
+(`create-service-form.ts:31`, `create-service-form-version.ts:30`, `update-service-form-version.ts:34`,
+`activate-service-form-version.ts:27`); `resolve-create-form-version-ref.ts` ne učitava konfiguraciju, pa tiket i
+dalje traži aktivnu verziju i kad su forme ugašene. `versioning.requireVersionOnTicket` čita se **samo** u
+`bind-ticket-form-version-ref.ts:28`, a taj put nema pozivaoca van spec-ova. **Uticaj:** administrator ne može
+isključiti obaveznost forme kroz postavku; dokumentovano ponašanje i kod se razilaze. **Fix:** učitati
+konfiguraciju u create toku i poštovati `enabled`/`requireVersionOnTicket`.
+
+**B5 — `SREDNJE` — detalj tiketa ne renderuje formu prema vezanoj verziji; pripadajuće metode su mrtve.**
+RAW `:43–44` traži prikaz prema `formVersionRef`. Stvarno: `ticket-detail-page.tsx:424` prosljeđuje samo
+`ticket.formData`, a `ticket-form-data-view.tsx:8–31` prikazuje sirove ključeve i `String(value)` bez labela,
+tipova i opcija. `ServiceFormsService.bindTicketFormVersionRef`/`resolveTicketFormVersion`
+(`service-forms.service.ts:119–136`) nemaju nijednog pozivaoca izvan `service-forms.*.spec.ts`. **Uticaj:**
+korisnik vidi `dodatne_informacije: …` umjesto „Dodatne informacije“, multiselect kao spojen tekst, a istorijski
+tiketi se ne mogu prikazati po svojoj verziji forme; mrtvi kod održava iluziju da taj tok postoji. **Fix:** ruta
+`GET /tickets/:ticketId/form` koja vraća šemu verzije s tiketa i render po tipu polja, ili uklanjanje mrtvih
+metoda i eksplicitno ograničenje u dokumentaciji.
+
+**B6 — `NISKO` — change log izmjene usluge ne bilježi razlog ni sva promijenjena polja.**
+`service-catalog-mutation-form.tsx:48–63` traži „Razlog izmjene“ (dugme je blokirano bez njega), ali vrijednost
+se ne šalje (`service-catalog-mutation-sheet.tsx:82–95`, `service-catalog-api.ts:53–64`), a DTO je ne prima
+(`create-service.dto.ts`, `update-service.dto.ts`); `update-service.ts:113–136` uz to bilježi `diff` sa samo
+`name`, `categoryId`, `slug` iako mijenja i klasifikaciju, `requiresApproval`, `isConfidentialDefault`,
+`autoAssignStrategy` i `policyPackId`. **Uticaj:** za razliku od dostupnosti i prekida (gdje `reason` postoji),
+promjene kataloga u change logu nemaju razlog, a promjena osjetljivih polja (npr. `isConfidentialDefault`) nije
+dokaziva iz diff-a. **Fix:** primiti `reason` (uz `forbidNonWhitelisted` ga dodati u DTO) i bilježiti puni diff.
+i18n to i priznaje („Backend change log trenutno bilježi sistemski razlog“).
+
+**B7 — `NISKO` — UI kataloga ne može postaviti klasifikaciju, confidential default, strategiju dodjele, policy
+paket ni SLA profil.** Backend DTO prima `classification`, `isConfidentialDefault`, `autoAssignStrategy` i
+`policyPackId` (`create-service.dto.ts:31–51`, `update-service.dto.ts:28–48`), ali forma i API klijent šalju
+samo četiri polja (`service-catalog-mutation-form.tsx:14–19`, `service-catalog-api.ts:53–64`); `slaProfileId`
+nema ni u jednom DTO-u — postavlja ga isključivo onboarding finalize (`finalize-service-onboarding.ts:106–113`)
+i config-versioning snapshot. **Uticaj:** usluge nastale van wizarda ostaju `INTERNAL`, bez SLA profila i bez
+strategije dodjele, iako backend to podržava. **Fix:** proširiti formu i tipove; dodati SLA u katalog ili jasno
+dokumentovati da SLA ide samo kroz wizard.
+
+**B8 — `NISKO` — `SLUG_IMMUTABLE` je mrtav kod.** Kod postoji u `service-catalog.error.ts:17` i mapira se u
+poruku (`map-service-catalog-error.ts:43`), ali ga nijedna funkcija ne baca (grep kroz `service-catalog/` bez
+spec-ova: samo definicija i poruka); slug se mijenja onemogućavanjem polja u UI-u i izostavljanjem iz
+`UpdateServiceDto`. **Uticaj:** mala, ali stvara utisak da postoji serverska zaštita koju treba testirati.
+**Fix:** ukloniti kod ili ga baciti u `updateService` ako se `slug` ipak pojavi u tijelu zahtjeva.
+
+**B9 — `NISKO` — N+1 učitavanje kataloga.** `use-service-catalog.ts:31–44` poziva `listServices()` i zatim
+`getServiceForm(id)` za svaku uslugu (uz `staleTime` 5 min), a svaki od tih poziva radi vlastite upite nad
+verzijama forme (`to-service-form-response.ts`). **Uticaj:** vrijeme učitavanja i broj zahtjeva rastu linearno s
+katalogom, što je u suprotnosti s NFR-om (<300 ms, RAW `:172`). **Fix:** vratiti `activeFormVersionRef`/broj
+verzija u `ServiceResponse` ili dodati batch rutu.
+
+**Napomena (nije bug):** ekran kataloga u uvodu piše „Nacrt → Aktivan → **Zastarjelo**“, dok značka lifecycle-a
+koristi „**Ukinuta**“ (`services.intro` vs `services.lifecycle.DEPRECATED` u `bs/common.json`). Terminološka
+neusklađenost u prevodu, ne u ponašanju.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/` nije imao stranicu o katalogu usluga ni formama; `TEZE-ZA-DOKUMENTACIJU.md`
+nije imao teze za ovaj modul. Postojeće stranice dodiruju temu samo posredno (`promjene.md` spominje prekide
+kroz promjene, `precice-i-pristupacnost.md` prečice).
+
+**Dodato:**
+- `docs/user-guide/katalog-usluga-i-forme.md` — čemu služi, kome je namijenjen (ADMIN/SUPER_ADMIN za uređivanje,
+  svi za prijavu tiketa), kako se dolazi (**Usluge i znanje → Usluge** ili putanja ekrana), korak-po-korak
+  (grupe usluga, nova usluga, forma i verzije, aktivacija, onboarding čarobnjak, zakazivanje prekida), tabele
+  polja/validacija i statusa s tačnim nazivima iz UI-a, česta pitanja i greške, poznata ograničenja (B1–B7) i
+  povezani moduli.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T36** (lifecycle i vidljivost), **T37** (jedna forma po servisu + verzionisanje
+  i nepromjenjivost), **T38** (šema forme: tipovi i ograničenja; validacija šeme na serveru, validacija
+  vrijednosti samo na klijentu), **T39** (required polja pri resolve/close), **T40** (onboarding čarobnjak i šta
+  finalize postavlja), **T41** (status i prekidi ne blokiraju prijavu tiketa).
+
+**Ispravljeno:** ništa (modul nije bio dokumentovan).
+
+**Ostaje otvoreno:** `[NEJASNO]` — `private.ticket.forms.schemaRegistryJson` (RAW `:567`) ne postoji u kodu ni u
+`setting-keys.ts`; nije jasno da li je registry zamišljen kao alternativa koloni `FormVersion.schema` ili kao
+keš. Do odgovora dokumentacija ne spominje tu postavku.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **7 / 10** | Katalog, forme, verzionisanje, lifecycle, dostupnost/prekidi i onboarding wizard rade i pokriveni su testovima; padaju serverska validacija vrijednosti forme, vidljivost nacrta po roli, aktivacija bez forme i dvije postavke bez efekta. |
+| Kvalitet koda | **8 / 10** | Parser i validacija šeme su uzorni, transakcije i change log konzistentni, greške precizne. Umanjuju: mrtav kod (`bindTicketFormVersionRef`/`resolveTicketFormVersion`, `SLUG_IMMUTABLE`), nepotpun diff u change logu i N+1 na ekranu kataloga. |
+| Sigurnost | **7 / 10** | Role + permisije + service scope + read-only režim + audit pokrivaju sve rute, a confidential/approval polja se ne mogu slučajno promijeniti. Umanjuju: B2 (nacrti i šeme vidljivi svakom korisniku) i B1 (proizvoljan JSON u podacima tiketa). |
