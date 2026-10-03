@@ -122,3 +122,33 @@ to je prvi ekran na koji administrator dolazi poslije instalacije. Analiza: `REV
    `directory-sync` je prazan).
 2. Nalazi B1–B4 iz §M3 mijenjaju ponašanje kad se poprave (brisanje OU-a, audit, reset lozinke AD nalogu);
    stranica ih zasad opisuje u **Poznata ograničenja** i treba je uskladiti s popravkama.
+
+---
+
+## M4 — RBAC (role, permisije i OU scope) · 2026-10-03
+
+**Zašto:** sistem ima 63 permisije, OU/servis scope, preview uticaja i read-only režim, a korisnički vodič nije
+objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.md` §M4.
+
+### Dodato
+
+| Dokument | Šta je dodato | Izvor u kodu (dokaz) |
+|---|---|---|
+| `docs/user-guide/uloge-i-permisije.md` (novo) | Dva sloja dozvola (rola + permisija), katalog od 63 permisije po kategorijama, **Pregled uticaja** i **Potvrdi i sačuvaj**, dodjela role s OU/service scope-om, read-only režim, validacije/greške (403, `READ_ONLY_MODE`, `INVALID_PERMISSION_KEY`), FAQ i poznata ograničenja | `authorization/authorization.constants.ts:3–217`; `evaluate-authorization-access.ts:88–132`; `evaluate-admin-read-only-access.ts:11–58`; `rbac/roles.controller.ts:31–82`; `rbac/preview-role-permission-impact.ts`; `frontend/src/components/rbac/permissions-panel.tsx:91–124` |
+| `TEZE-ZA-DOKUMENTACIJU.md` | **T27** SuperAdmin ima sve i zaobilazi provjere, ali mora biti lokalan; **T28** scoped dodjela ne zadovoljava provjeru bez scope-a (izuzetak `oncall.read`); **T29** preview uticaja i diff u auditu (razlog još nije obavezan); **T30** read-only režim i bypass; **T31** default mapping nije upisan u bazu | `authorization.constants.ts:101,205–217`; `to-current-session-response.ts:29–35`; `replace-role-permissions.ts:46–57`; `read-only-mode.constants.ts:3–89` |
+| `REVIEW_ANALIZA.md` §M4 | 9 cjelina + gap tabela + nalazi B1–B5 | isto |
+
+### Izmijenjeno
+
+- Ništa. Postojeći fajlovi `docs/user-guide/*` nisu tvrdili ništa o RBAC-u.
+
+### Uklonjeno
+
+- Ništa.
+
+### Ostaje otvoreno `[NEJASNO]`
+
+1. RAW traži change log s **reason + diff** (`RAW_PROJECT.md:223`); implementiran je samo diff, pa treba
+   odluka da li se dodaje obavezno polje razloga pri promjeni permisija.
+2. RAW `:479` navodi `entra_groups` kao vrijednost `private.auth.roleSource`, a kod poznaje `local_db` i
+   `ad_groups` — potrebno je potvrditi da li je riječ samo o nazivu.

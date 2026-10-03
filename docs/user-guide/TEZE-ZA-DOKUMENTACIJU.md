@@ -536,6 +536,102 @@ To je kriterij kompletnosti.
 - **Status:** Privremeno (nalaz B3, `REVIEW_ANALIZA.md` §M3) — mijenja se kad kod dobije audit.
 - **Wiki stranica:** Administracija → Korisnici, OU i grupe
 
+### T27 — SuperAdmin ima sve permisije i zaobilazi provjere, ali mora biti lokalni nalog
+
+- **Modul / paket:** RBAC
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Nosilac role **SUPER_ADMIN** prolazi svaku provjeru dozvola (nema potrebe da mu se dodjeljuju
+  permisije), ali samo ako je nalog **lokalan** (`isLocalOnly` i bez `entraObjectId`). Za nelokalni nalog
+  odluka je odbijena s razlogom `SUPER_ADMIN_NOT_LOCAL_ONLY`, a prijava je već odbijena ranije.
+- **Zašto:** SuperAdmin je break-glass nalog; federacija bi ga učinila zavisnim od vanjskog identiteta.
+- **Primjer:** Sesija SuperAdmin-a vraća svih 63 permisije; ADMIN bez dodijeljenih permisija vraća 403 na
+  rutama koje traže permisiju.
+- **Postavke / permisije:** nije postavka.
+- **Ekran:** Administracija → **Permisije** (vidljivo samo SuperAdmin-u).
+- **Izvori:** `backend/src/modules/authorization/evaluate-authorization-access.ts:120–125`,
+  `to-current-session-response.ts:29–35`, `authorization/is-super-admin-authorization.ts:4–18`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Uloge i permisije
+
+### T28 — Scoped dodjela ne zadovoljava provjeru bez scope-a; izuzetak je samo `oncall.read`
+
+- **Modul / paket:** RBAC
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Ako dodjela role ima OU scope, ona **ne može** zadovoljiti rutu koja traži permisiju bez OU scope-a —
+  sistem je „fail-closed“. Jedina permisija koja je svjesno izuzeta je `oncall.read` (kalendar dežurstava je
+  zajednički).
+- **Zašto:** sprječava da permisija dodijeljena za jednu OJ otključa akciju globalno.
+- **Primjer:** ADMIN s dodjelom `group.manage` scoped na jednu OJ dobija 403 na `POST /groups` (ruta nema OU
+  scope), dok nescoped dodjela prolazi u svim OJ.
+- **Postavke / permisije:** `permissionKeys.groupManage`, `scopeAgnosticPermissionKeys`.
+- **Ekran:** Administracija → **Grupe** / **Korisnici**.
+- **Izvori:** `backend/src/modules/authorization/evaluate-authorization-access.ts:50–68`,
+  `authorization.constants.ts:101`.
+- **Status:** Važi (posljedice za `group.manage` = nalaz B4, §M4)
+- **Wiki stranica:** Administracija → Uloge i permisije
+
+### T29 — Preview uticaja: UI ne dopušta čuvanje bez pregleda, server to još ne zahtijeva
+
+- **Modul / paket:** RBAC
+- **Publika:** SUPER_ADMIN
+- **Tip:** Pravilo (uz ograničenje)
+- **Teza:** Prije promjene permisija role prikazuje se **Pregled uticaja**: broj pogođenih korisnika,
+  dodane/uklonjene permisije i uzorak promjena odluke `prije → poslije`. Dugme **Potvrdi i sačuvaj** postoji
+  samo u pregledu, a u audit log ulazi diff (`previousPermissionKeys` → `nextPermissionKeys`). Razlog promjene
+  se još ne unosi.
+- **Zašto:** promjena važi za sve nosioce role i teško se „vidi“ bez simulacije.
+- **Primjer:** Isključivanje `routing.write` na roli ADMIN prikazuje koliko korisnika gubi pristup i za njih do
+  tri primjera odluke.
+- **Postavke / permisije:** nije postavka (ekran je SUPER_ADMIN-only).
+- **Ekran:** Administracija → **Permisije** → **Pregled uticaja**.
+- **Izvori:** `backend/src/modules/rbac/preview-role-permission-impact.ts:25–70`,
+  `replace-role-permissions.ts:46–57`, `frontend/src/components/rbac/permissions-preview-panel.tsx:54–60`.
+- **Status:** Važi (uz ograničenje B2: server ne provjerava da je pregled izvršen)
+- **Wiki stranica:** Administracija → Uloge i permisije
+
+### T30 — Read-only režim zaključava module; SuperAdmin ga zaobilazi po postavci
+
+- **Modul / paket:** RBAC / pouzdanost
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Kad je read-only režim aktivan za modul (admin, settings, routing, service\_catalog,
+  service\_forms, sla), svaka mutirajuća metoda na tim rutama se odbija uz `READ_ONLY_MODE`; čitanje radi.
+  Izuzetak su POST rute koje su po prirodi čitanje (`/directory-sync/read`, `/policy-packs/validate`). Role iz
+  postavke `private.readOnlyMode.bypassRoles` (default SUPER_ADMIN) nisu blokirane.
+- **Zašto:** dozvoljava „zamrzavanje“ konfiguracije bez prekidanja rada.
+- **Primjer:** Dok je zaključan modul **settings**, čuvanje izmjena u Postavkama vraća 403 s kodom
+  `READ_ONLY_MODE`.
+- **Postavke / permisije:** `private.readOnlyMode.enabled`, `private.readOnlyMode.modulesCsv`,
+  `private.readOnlyMode.activeModulesCsv`, `private.readOnlyMode.bypassRolesCsv`.
+- **Ekran:** Administracija → **Postavke**.
+- **Izvori:** `backend/src/modules/authorization/read-only-mode.constants.ts:3–89`,
+  `evaluate-admin-read-only-access.ts:11–58`, `authorization.module.ts:25–28`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Uloge i permisije
+
+### T31 — Default mapping rola → permisije postoji u kodu, ali nije upisan pri instalaciji
+
+- **Modul / paket:** RBAC
+- **Publika:** SUPER_ADMIN / instalater
+- **Tip:** Ograničenje
+- **Teza:** Standardni mapping iz zadatka (USER/AGENT/ADMIN) definisan je u kodu
+  (`defaultRolePermissionKeys`), ali se **ne upisuje** u bazu pri instalaciji niti pri kreiranju role; tabele
+  `Permission`/`RolePermission` pune se tek kada SUPER_ADMIN sačuva permisije na ekranu **Permisije** ili kad se
+  primijeni policy paket. Do tada ADMIN i AGENT ne mogu izvršavati akcije koje traže permisiju.
+- **Zašto:** dokumentacija ne smije tvrditi da su defaulti aktivni odmah.
+- **Primjer:** Nakon instalacije, ADMIN klikom na **Grupe** → **Nova grupa** dobija 403 dok SuperAdmin ne
+  sačuva permisije role ADMIN.
+- **Postavke / permisije:** `defaultRolePermissionKeys`, `permissionKeys.groupManage`, `settings.write`.
+- **Ekran:** Administracija → **Permisije**.
+- **Izvori:** `backend/src/modules/authorization/authorization.constants.ts:205–217`;
+  `backend/src/modules/rbac/replace-role-permissions.ts:36–44`;
+  `backend/src/modules/policy-packs/ensure-policy-pack-catalog.ts:83–95`;
+  odsustvo upisa u `backend/prisma/migrations/20260909180000_init_enterprise_schema` i u `modules/install`.
+- **Status:** Privremeno (nalaz B1, `REVIEW_ANALIZA.md` §M4)
+- **Wiki stranica:** Administracija → Uloge i permisije
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

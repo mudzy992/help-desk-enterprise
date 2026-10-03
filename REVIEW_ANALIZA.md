@@ -22,7 +22,7 @@
 
 | Iteracija | Moduli | Stanje |
 |---|---|---|
-| 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · ostali u toku |
+| 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 u toku |
 
 ---
 
@@ -744,3 +744,262 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 | Funkcionalnost | **8 / 10** | Sve ključne operacije postoje (CRUD korisnika/OJ/grupa, AD sync s probnim prolazom i osiguračem, group inbox help). Gube bodovi zbog B1 (500 pri brisanju OJ), B4 i manjkavog Manager sync-a. |
 | Kvalitet koda | **8 / 10** | Dosljedna podjela po operaciji, domen-greške i solidna transakciona logika (prepisivanje DN-a potomaka, atomsko preuzimanje plana). Gube bodovi zbog raspoređenih invarijanti i duplirane fallback logike u `create-group`/`update-group`. |
 | Sigurnost | **7 / 10** | Dobro: SuperAdmin-only veza s direktorijem, zabrana upravljanja tuđim SuperAdmin-om, invalidacija keša na promjenu role/članstva. Slabo: B4 (tiha promjena načina prijave), B2 (kaskadno brisanje dozvola bez invalidacije), B5 (posljednji SuperAdmin). |
+
+---
+
+# M4 — RBAC (role, permisije i OU scope)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Granularni RBAC je obavezan** (`RAW_PROJECT.md:174–176`): pored rola (USER/AGENT/ADMIN/SUPER_ADMIN)
+  sistem ima permissione po akcijama; „permissioni se evaluiraju uz OU scoping (permission ≠ cross-OU)“.
+- **Minimalni „enterprise set“** (`RAW_PROJECT.md:177–194`): 17 navedenih permisija od `ticket.forward.cross_ou`
+  do `confidential.break_glass` (uključujući `ticket.bulk.*`, `service.*.write`, `sla.write`, `routing.write`,
+  `settings.write`, `audit.export`, `supportBundle.export`).
+- **Default mapping rola → permisije** (`RAW_PROJECT.md:195–220`): USER bez admin permisija; AGENT dobija
+  attachments, `ticket.merge`, `ticket.bulk.assign`, `ticket.bulk.status_update`, `ticket.forward.cross_ou`;
+  ADMIN sve iz AGENT + bulk priority/broadcast, routing/service/sla write, `settings.write`, `audit.export`,
+  `supportBundle.export`; SUPER_ADMIN sve + implicitno cross-OU (uz audit) + `confidential.break_glass`.
+- **Guardovi ostaju obavezni** (`RAW_PROJECT.md:222`): „OU/group guardovi su i dalje obavezni; permissions ne
+  smiju 'otključati' podatke van scope-a osim za SUPER_ADMIN“; (`:229`) scope nikad ne smije zaobići
+  confidential per-ticket ACL.
+- **Mapping je izmjenjiv kroz admin UI i ide u change log (reason + diff)** (`RAW_PROJECT.md:223`).
+- **Permission scopes** (`RAW_PROJECT.md:224–228`): OU scope (npr. `routing.write` samo za jednu OJ), service
+  scope (npr. `service.forms.write` samo za HR servise), SUPER_ADMIN globalno.
+- **Shadow permission check je obavezan** (`RAW_PROJECT.md:230–232`): prije aktivacije promjene prikazuje se
+  diff „ko dobija/gubi“ pristup; „promjena se ne može aktivirati bez pregleda (settings-driven)“.
+- **Izvor rola** (`RAW_PROJECT.md:479`): `private.auth.roleSource` : `local_db` | `entra_groups`.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Jedan servis odlučuje.** Sve rute (HTTP, jobovi, workeri) pitaju isti evaluator; nijedan kontroler ne
+   provjerava dozvole sam.
+2. **Fail-closed, ali predvidiv.** Nepoznata permisija, nedostatak scope-a ili konteksta = odbijanje, s jasnim
+   kodom zbog kojeg SRE može reći *zašto* je pristup odbijen.
+3. **Defaulti postoje čim sistem proradi.** Standardni mapping iz zadatka je dio instalacije, ne wiki
+   preporuka; novoinstaliran ADMIN odmah radi svoj posao.
+4. **Promjena dozvola je kontrolisan proces.** Preview (ko dobija/gubi), obavezan razlog, diff u audit logu i
+   verzija konfiguracije — sve serverski provjereno, ne samo u UI-u.
+5. **Scope je zatvoren.** Scoped dodjela nikad ne prolazi globalnu provjeru; ako ruta nema OU scope, to je
+   svjesna odluka zapisana uz rutu.
+6. **Sesija nosi tačno ono što korisnik smije.** Klijent prikazuje akcije koje server stvarno dozvoljava, a
+   keš dozvola ima TTL i invalidaciju.
+7. **Read-only režim je break-glass** koji jasno piše šta je zaključano i kome (ko smije zaobići).
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+- Zadržati decision-core (`evaluate-authorization-access.ts`) — razdvojen je od I/O-a i dobro testiran. Dodati,
+  po prioritetu:
+  1. **Idempotentno upisivanje default mappinga** (`defaultRolePermissionKeys`) pri instalaciji i pri kreiranju
+     sistemskih rola, plus migracija koja to radi na postojećim instalacijama (danas tabela `RolePermission`
+     ostaje prazna — vidi B1).
+  2. **Serverska kapija za preview**: `PUT /roles/:roleKey/permissions` prihvata `previewToken` (ili traži
+     potvrđen preview iz iste sesije) i obavezan `reason`; diff i razlog idu u audit i u „change log“.
+  3. **Eksplicitna semantika više permisija**: `@RequireAllPermissions` (AND) uz postojeći ANY-of, ili barem
+     dokumentovanje ponašanja na svakom mjestu gdje se koristi više ključeva.
+  4. **Scope pravilo po ruti**: za rute koje traže permisiju bez OU scope-a (npr. `group.manage`) odlučiti da li
+     je permisija scope-agnostička ili ruta dobija `@RequireOrganizationalUnitScope`.
+  5. **Test matrice** koja za svaku permisiju provjerava ko je ima po defaultu (da RAW mapping i kod ne
+     divergiraju tiho).
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model rola i permisija
+
+- `authorization.constants.ts:3–14`: `authorizationRoleKeys` = `USER`, `AGENT`, `ADMIN`, `SUPER_ADMIN`
+  (`authenticationConstants.superAdminRoleKey`) + paketske role `ASSET_MANAGER`, `PROBLEM_MANAGER`,
+  `CHANGE_MANAGER`.
+- `authorization.constants.ts:16–99`: **63 permisije** (`permissionKeys`), uključujući sve iz RAW liste i
+  kasnije dodatke (`privacy.*`, `ops.*`, `oncall.*`, `announcement.*`, `config.version.import`, `asset.*`,
+  `problem.*`, `change.*`, `integrations.teams.manage`).
+- `authorization.constants.ts:101`: `scopeAgnosticPermissionKeys = [onCallRead]` — jedina permisija koja smije
+  zadovoljiti provjeru bez OU scope-a; komentar objašnjava da je sve ostalo „fail-closed“.
+- `authorization.constants.ts:105–204`: grupe defaulta po roli (edge/agent/admin/asset/problem/change manager);
+  `:205–217` `defaultRolePermissionKeys` (SUPER_ADMIN = `allPermissionKeys`).
+- `permission-catalog.ts:21–348`: katalog od **63 stavke** s opisom i kategorijom; `permission-categories.ts:1–33`
+  definiše 15 kategorija (ticket, service, routing, group, sla, settings, integrations, audit, reports,
+  observability, confidential, knowledge, edge, privacy, assets).
+
+### 4.2 Evaluacija i guardovi
+
+- `evaluate-authorization-access.ts:29–86`: `doesAssignmentGrant` — traži poklapanje role (ako je tražena),
+  **bilo koju** od traženih permisija (`.some`, `:42–48`), pa scope: OU (`doesOrganizationalUnitScopeCover`) ili
+  pravilo „scoped dodjela ne zadovoljava globalnu provjeru“ (`:62–68`), isto za servis (`:69–84`).
+- `evaluate-authorization-access.ts:88–132`: `decideAuthorizationAccess` — odbija prazan kontekst, nevalidne
+  tokene, rutu bez ijednog zahtjeva; zahtijeva OU/service scope ako je tražen; **SUPER_ADMIN bypass**
+  (`:120–125`) uz uslov `isLocalOnly` (inače `SUPER_ADMIN_NOT_LOCAL_ONLY`); na kraju
+  `context.assignments.some(...)`.
+- `evaluate-authorization-request.ts:77–136`: učitava kontekst (`AuthorizationContextLoader`), za OU scope
+  prevodi `organizationalUnitId` u `ouPath` (nepoznat/prazan → odbijenica s razlogom), provjerava da servis
+  postoji, pa poziva decision-core.
+- `authorization-decision-reason.ts:1–14`: 12 razloga odluke (npr. `MISSING_ORGANIZATIONAL_UNIT_SCOPE`,
+  `SUPER_ADMIN_NOT_LOCAL_ONLY`, `NO_MATCHING_ASSIGNMENT`) — korisni za dijagnostiku.
+- `role.guard.ts:13–20` (`requireOrganizationalUnitScope: false`) i `ou-access.guard.ts:13–20`
+  (`requireOrganizationalUnitScope: true`) oba idu kroz `authorize-http-execution.ts:15–51`, koji baca
+  `UnauthorizedException`/`ForbiddenException` s kodovima `INVALID_CREDENTIALS`/`FORBIDDEN`.
+- Dekoratori: `require-roles.decorator.ts`, `require-permissions.decorator.ts`,
+  `require-organizational-unit-scope.decorator.ts` (`{ field: 'organizationalUnitId' | 'originUnitId' }`),
+  `require-service-scope.decorator.ts`, `admin-read-operation.decorator.ts`.
+- `read-authorization-requirements.ts:48–82`: spaja metadata s rute i klase; OU scope je obavezan i kad ga sam
+  guard traži (default polje `organizationalUnitId`).
+
+### 4.3 Sesija i klijentske dozvole
+
+- `current-session.controller.ts:29–53`: `GET /auth/session` vraća kontekst + kućnu OJ + stanje addona
+  (CMDB/problemi/promjene).
+- `to-current-session-response.ts:15–39`: `isSuperAdmin`, `roleKeys`, `permissionKeys`; za SuperAdmin se
+  **direktno vraćaju sve permisije** uz komentar „instead of depending on seeded role-permission rows“ (`:27–28`),
+  plus `organizationalUnitId/Name` i `modules`.
+- Frontend `lib/session/permission-keys.ts:1–30`: zrcalo ključeva s komentarom da je backend mjerodavan;
+  `lib/session/use-session-capabilities.ts:16–60` učitava `/auth/session` i nudi
+  `hasPermission`/`hasRole`; `lib/session/route-access.ts:27–70` (npr. `canOpenAdminArea`, `isTicketStaff`,
+  `canOpenReports`) odlučuje koji se meni/ekran prikazuje.
+- `RequireAccess` (`pages/permissions-page.tsx:23–33`) traži `isSuperAdmin` za ekran Permisije i prikazuje
+  `permissions.forbiddenTitle`/`forbiddenBody`.
+
+### 4.4 Administracija permisija (RBAC modul)
+
+- `backend/src/modules/rbac/roles.controller.ts:31–82`: cijeli kontroler je **SUPER_ADMIN-only**; rute
+  `GET /roles` (broj permisija po roli), `GET /roles/permissions/catalog` (63 stavke), `GET /roles/:roleKey/permissions`,
+  `POST /roles/:roleKey/permissions/preview`, `PUT /roles/:roleKey/permissions`.
+- `roles.service.ts:30–64`: uz `replace` prosljeđuje `PrincipalContextInvalidator.invalidateRoleHolders` — svi
+  nosioci role odmah dobijaju novi keš.
+- `replace-role-permissions.ts:23–61`: transakciono briše i upisuje `RolePermission`, upisuje audit
+  `rolePermissionReplace` s `previousPermissionKeys` i `nextPermissionKeys` (diff), pa invalidira nosioce.
+- `preview-role-permission-impact.ts:25–70+`: računa `added`/`removed`, broj pogođenih korisnika, uzorak do
+  **3** korisnika i za svaku promijenjenu permisiju upoređuje odluku prije/poslije koristeći stvarne lookupe i
+  `ShadowAuthorizationService`.
+- `assert-known-permission-keys.ts` odbija nepoznate ključeve; `ensure-permission-rows.ts:3–23` pri upisu
+  kreira red u `Permission` ako ne postoji.
+- Frontend: `components/rbac/permissions-panel.tsx:91–124` — **Pregled uticaja** poziva preview; čuvanje je
+  dugme **Potvrdi i sačuvaj** koje postoji **samo u preview panelu**
+  (`permissions-preview-panel.tsx:54–60`), pa se kroz UI ne može sačuvati bez prikazanog pregleda. Katalog je
+  grupisan po kategorijama (`group-permissions-by-category`), role se biraju u padajućoj listi s brojem
+  permisija.
+
+### 4.5 Read-only režim i realtime
+
+- `authorization.module.ts:25–28`: `AdminReadOnlyInterceptor` je registriran kao `APP_INTERCEPTOR`, pa vrijedi
+  za sve rute.
+- `classify-admin-read-only-request.ts:15–35` + `read-only-mode.constants.ts:21–70`: mutirajuće metode
+  (POST/PUT/PATCH/DELETE) na prefiksima `/organizational-units`, `/policy-packs`, `/settings`,
+  `/config-versions`, `/integration-jobs`, `/directory-sync`, `/services`, `/service-categories`, `/routing`,
+  `/sla`, uz izuzetke `/directory-sync/read` i `/policy-packs/validate`; module keys: admin, settings, routing,
+  service_catalog, service_forms, sla.
+- `evaluate-admin-read-only-access.ts:11–58`: zaključana je mutacija ako je modul (ili `admin`) aktivan; bypass
+  imaju role iz `private.readOnlyMode.bypassRoles` (default SUPER_ADMIN, `read-only-mode.constants.ts:87–89`);
+  prekršaj = `403 READ_ONLY_MODE` (`read-only-mode.constants.ts:82–85`).
+- `read-only-mode.configuration-loader.ts:14–35`: konfiguracija iz postavki; neispravna konfiguracija se
+  pretvara u zabranu (fail-closed).
+
+## 5. Gap analiza
+
+| Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Granularne permisije (`:174–176`) | 60+ permisija, provjera na svakoj ruti | 63 permisije, `@RequirePermissions` + `RoleGuard`/`OuAccessGuard` | **Implementirano** |
+| Minimalni set iz RAW-a (`:177–194`) | Sve navedene permisije postoje i koriste se | Postoje (i više od liste); `reports.controller.ts:48` koristi dvije zajedno (ANY-of) | **Implementirano** |
+| Default mapping (`:195–216`) | Standardni mapping aktivan odmah | **Nije upisan u bazu** — vidi B1 | **Odstupa** |
+| Premošćivanje scope-a zabranjeno (`:222,229`) | Scoped dodjela ne prolazi globalnu provjeru | Fail-closed pravilo u `evaluate-authorization-access.ts:62–68`; jedina scope-agnostička permisija `onCallRead` | **Implementirano** |
+| SUPER_ADMIN globalno uz audit (`:217–220`) | Bypass + trag o cross-OU akcijama | Bypass postoji (`:120–125`, uz `isLocalOnly`); sam bypass se ne auditira | **Djelimično** |
+| Mapping izmjenjiv kroz UI + change log s reason + diff (`:223`) | UI + obavezan razlog + diff u audit logu | UI i diff u auditu postoje; **nema razloga** u `ReplaceRolePermissionsDto` (`dto/replace-role-permissions.dto.ts:3–7`) | **Djelimično** |
+| Permission scopes OU/servis (`:224–228`) | Scope po dodjeli, evaluiran s guardovima | `organizationalUnitId`/`serviceId` na `UserRole` + `RequireOrganizationalUnitScope`/`RequireServiceScope` na rutama | **Implementirano** |
+| Shadow permission check prije aktivacije (`:230–232`) | Server traži pregled prije aktivacije | Preview endpoint + UI tok; **server ne zahtijeva** da je preview izvršen | **Djelimično** |
+| `roleSource` (`:479`) | `local_db` ili `entra_groups` | Radi kao `local_db`/`ad_groups` (vidi §M3, terminologija) | **Odstupa** (naziv) |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Snaga.** Decision-core je funkcijsko jezgro bez I/O-a, s vlastitim razlozima odluke i ozbiljnom test
+  pokrivenošću (`evaluate-authorization-access.*.spec.ts`, `shadow-authorization.*.spec.ts`,
+  `authorization-provider-independence.spec.ts`). Preview uticaja je iznad uobičajenog nivoa: računa stvarni
+  prije/poslije kroz isti evaluator, ne pogađa.
+- **Slabost 1 — defaulti.** Postojanje `defaultRolePermissionKeys` u kodu ostavlja utisak da je mapping
+  primijenjen; u stvari ga niko ne upisuje u bazu. To je klasična „tiho pokvarena pretpostavka“ — sve izgleda
+  ispravno dok se prvi ADMIN ne prijavi i ne dobije 403 na grupama i postavkama.
+- **Slabost 2 — proces.** RAW traži „ne može se aktivirati bez pregleda“ i „reason + diff“; implementirano je
+  „UI ne nudi dugme bez pregleda“ i „diff bez razloga“. Kad neko pozove API direktno, obje garancije padaju.
+- **Slabost 3 — tišina pravila.** ANY-of za više permisija i „scoped dodjela ne zadovoljava globalnu provjeru“
+  nigdje nisu zapisani kao ugovor na mjestu upotrebe (`reports.controller.ts:48`,
+  `groups.controller.ts:51–94`), pa ih čitalac mora rekonstruisati iz decision-core-a.
+- **Pozitivno:** read-only režim je fail-closed i pokriva tačno one module koje RAW navodi (settings, routing,
+  katalog, SLA), a bypass je eksplicitan u postavci.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+**B1 — `VISOKO` — default mapping rola → permisije se nikad ne upisuje u bazu; svježa instalacija daje
+ADMIN/AGENT naloge bez ijedne permisije.**
+`defaultRolePermissionKeys` (`authorization.constants.ts:205–217`) koriste samo
+`policy-packs/policy-pack.registry.ts:11–12`, `assert-policy-pack-definition.ts:61` i test harness
+(`knowledge-base/seed-knowledge-base-harness-actors.ts:103`). Nijedna migracija ne upisuje bazne redove: init
+migracija samo kreira tabele (`backend/prisma/migrations/20260909180000_init_enterprise_schema/migration.sql:194–199,931–934`),
+a kasnije migracije koje upisuju `RolePermission` samo dijele permisije onima koji ih već imaju, npr.
+`20260916100000_group_manage_permission/migration.sql` daje `group.manage` roll koja već ima `routing.write` —
+na praznoj tabeli to ne uradi ništa. Instalacija kreira samo SuperAdmin rolu bez permisija
+(`install/ensure-install-super-admin-role.ts:15–23`), a `users/ensure-system-role.ts:31–38` isto za ostale role.
+SuperAdmin i dalje radi jer ima bypass (`evaluate-authorization-access.ts:120–125`) i jer mu sesija vraća sve
+permisije (`to-current-session-response.ts:29–35` — komentar u kodu to i priznaje). **Uticaj:** nakon instalacije
+ADMIN/AGENT ne mogu ništa što traži permisiju — grupe (`group.manage`), postavke (`settings.write`), routing,
+SLA, izvještaji/izvoz (`reports.export`, `audit.export`), bulk akcije; dobijaju 403 dok SuperAdmin ručno ne
+sačuva permisije u UI-u ili ne primijeni policy paket. To je direktno protivno RAW default mapiranju
+(`RAW_PROJECT.md:195–216`). **Fix:** idempotentno upisati `defaultRolePermissionKeys` u okviru instalacije
+(`ensureInstallSuperAdminRole`/seed) i dodati migraciju za postojeće instalacije.
+
+**B2 — `SREDNJE` — preview uticaja nije serverska kapija, a razlog promjene se ne pamti.**
+`roles.controller.ts:69–82` prima `PUT` i odmah mijenja permisije; `dto/replace-role-permissions.dto.ts:3–7` nema
+polje `reason`. RAW `:231–232` traži da se promjena „ne može aktivirati bez pregleda (settings-driven)“, a `:223`
+traži change log s razlogom. UI tok (`permissions-panel.tsx` + `permissions-preview-panel.tsx:54–60`) to
+poštuje, ali svaki drugi klijent može preskočiti pregled. **Fix:** `previewToken`/potvrda u okviru sesije +
+obavezan `reason`, oba u audit metadata.
+
+**B3 — `NISKO` — `@RequirePermissions(a, b)` znači „bilo koja od njih“, ne „obje“.**
+`evaluate-authorization-access.ts:42–48` koristi `.some(...)`, a vanjski izbor je takođe `.some(...)`
+(`:126–128`); ne postoji AND varijanta dekoratora. Jedina upotreba s više ključeva je
+`reports.controller.ts:48` (`reportsExport, auditExport`) i tamo je OR vjerovatno namjera, ali je nedokumentovano.
+**Uticaj:** buduća ruta koja napiše dva ključa misleći „obje“ tiho dobija slabiju provjeru. **Fix:** uvesti
+`@RequireAllPermissions` ili objasniti semantiku u dekoratoru i na mjestu upotrebe.
+
+**B4 — `NISKO` — `group.manage` se provjerava bez OU scope-a, pa OU-scoped ADMIN ne može upravljati grupama.**
+`groups.controller.ts:51–94` traži `permissionKeys.groupManage` kroz `RoleGuard` (bez OU scope-a), a
+`scopeAgnosticPermissionKeys` sadrži samo `onCallRead` (`authorization.constants.ts:101`); po pravilu iz
+`evaluate-authorization-access.ts:62–68`, dodjela koja ima `organizationalUnitId` **ne može** zadovoljiti
+provjeru bez scope-a. **Uticaj:** dvije krajnosti — OU-scoped ADMIN je odbijen, a globalno (nescoped) dodijeljen
+`group.manage` daje upravljanje grupama u svim OJ. **Fix:** odlučiti da li ruta dobija
+`@RequireOrganizationalUnitScope` ili je `group.manage` scope-agnostic.
+
+**B5 — `NISKO` — SUPER_ADMIN bypass nije auditovan.**
+`evaluate-authorization-access.ts:120–125` propušta SuperAdmin-a bez provjere permisija i bez zapisa; RAW `:219`
+traži da implicitne cross-OU mogućnosti idu „uz audit“. Moduli pojedinačno bilježe svoje akcije (npr. forwarding),
+ali sam bypass nema trag. **Uticaj:** nemoguće je dokazati da je SuperAdmin koristio pravo van svog OU-a za
+radnje koje modul ne auditira. **Fix:** audit zapis (ili barem metrika) kad odluka padne na `superAdminAllowed`.
+
+**Napomena (nije bug):** preview uzima samo 3 uzorka korisnika
+(`preview-role-permission-impact.ts:11,39–46`), što je i prikazano u UI tekstu („{{count}} korisnika · …“) i u
+redu je s RAW-om koji traži diff, ne iscrpnu simulaciju.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/` nije imao stranicu o ulogama i permisijama; `TEZE-ZA-DOKUMENTACIJU.md` nije
+imao teze za RBAC; postojeći modulski fajlovi spominju permisije samo usput (npr. `dezurstva.md`, `promjene.md`).
+
+**Dodato:**
+- `docs/user-guide/uloge-i-permisije.md` — čemu služi RBAC, kome je namijenjen, kako se dolazi do ekrana
+  **Permisije**, korak-po-korak (odabir role, katalog po kategorijama, **Pregled uticaja**, **Potvrdi i
+  sačuvaj**), read-only režim i njegove posljedice, greške (403/„Potreban SuperAdmin pristup“), poznata
+  ograničenja (B1–B5) i veze na druge module.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T27** (SuperAdmin ima sve permisije i zaobilazi provjere, ali mora biti
+  lokalni nalog), **T28** (scoped dodjela ne zadovoljava provjeru bez scope-a; samo `oncall.read` je izuzetak),
+  **T29** (preview uticaja i „diff“ u audit logu; razlog još nije obavezan), **T30** (read-only režim zaključava
+  module, SuperAdmin ga zaobilazi po postavci), **T31** (default mapping postoji u kodu, ali nije upisan u bazu
+  — dokumentacija to mora reći).
+
+**Ispravljeno:** ništa (tema nije bila dokumentovana).
+
+**Ostaje otvoreno:** `[NEJASNO]` — RAW vrijednost `entra_groups` za `private.auth.roleSource` ne postoji u kodu
+(`ad_groups`); pitanje je da li je to samo naziv ili se očekuje vezivanje rola iz Entra grupa, ne iz AD grupa.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **7 / 10** | Sve komponente postoje (63 permisije, scope po OU/servisu, preview, read-only režim, sesija s dozvolama), ali B1 čini RBAC praktično neupotrebljivim za ADMIN/AGENT na svježoj instalaciji dok se mapping ručno ne uspostavi. |
+| Kvalitet koda | **9 / 10** | Decision-core odvojen od I/O-a, razlozi odluka, izuzetna test pokrivenost, čist preview kroz stvarni evaluator. Zamjerke su male: nedokumentovana ANY-of semantika i dvostruko čitanje pravila u komentarima umjesto u kodu. |
+| Sigurnost | **8 / 10** | Fail-closed scope pravilo, `isLocalOnly` uslov za SuperAdmin bypass, read-only režim fail-closed, revizija promjena kroz audit. Umanjuju: serverski neobavezan preview (B2), neauditovan bypass (B5) i implikacije B4. |
