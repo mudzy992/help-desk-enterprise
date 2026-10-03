@@ -11,10 +11,8 @@ import {
   dashboardOpenStatuses,
   dashboardSlaWatchlistLimit,
 } from "@/lib/dashboard/dashboard-ticket-sets";
-import {
-  dashboardVolumeDayCount,
-  dashboardVolumePageSize,
-} from "@/lib/dashboard/build-volume-14d";
+import { dashboardVolumeDayCount } from "@/lib/dashboard/build-volume-14d";
+import { loadDashboardVolume } from "@/lib/dashboard/load-dashboard-volume";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
@@ -93,9 +91,25 @@ export function useDashboardSummary(): DashboardSummaryState {
       // Val 1 (M15/B6): the lists used to be derived from „the first page of 50
       // tickets“ (newest first), so an overdue or critical ticket outside it
       // silently vanished from the dashboard. Each list now has its own
-      // server-filtered query with a small take, and the chart window is a
-      // separate, bounded page (`volumePageSize`).
-      const [counts, recentPage, overduePage, minePage, unassignedPage, volumePage] =
+      // server-filtered query with a small take, and the chart window walks
+      // its own bounded pages (`load-dashboard-volume`).
+      // Grafik se čita u stranicama koje API stvarno prihvata (najviše 50 po
+      // stranici) — prva stranica kreće odmah, sljedeća samo ako je puna.
+      const volume = loadDashboardVolume({
+        fetchPage: (page, pageSize) =>
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList({ view: "dashboard-volume", page }),
+            queryFn: () =>
+              listTicketsPage({
+                createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
+                sort: "createdAt",
+                dir: "desc",
+                page,
+                pageSize,
+              }),
+          }),
+      });
+      const [counts, recentPage, overduePage, minePage, unassignedPage, volumeLoad] =
         await Promise.all([
           queryClient.fetchQuery({
             queryKey: queryKeys.dashboardSummary("all", dayKey),
@@ -147,16 +161,7 @@ export function useDashboardSummary(): DashboardSummaryState {
                 pageSize: dashboardAttentionTicketLimit,
               }),
           }),
-          queryClient.fetchQuery({
-            queryKey: queryKeys.ticketList({ view: "dashboard-volume" }),
-            queryFn: () =>
-              listTicketsPage({
-                createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
-                sort: "createdAt",
-                dir: "desc",
-                pageSize: dashboardVolumePageSize,
-              }),
-          }),
+          volume,
         ]);
       setSummary(
         composeDashboardSummary({
@@ -165,8 +170,8 @@ export function useDashboardSummary(): DashboardSummaryState {
           overdueTickets: overduePage.items,
           assignedToMeTickets: minePage?.items ?? [],
           unassignedTickets: unassignedPage.items,
-          volumeTickets: volumePage.items,
-          volumeTruncated: volumePage.items.length >= dashboardVolumePageSize,
+          volumeTickets: volumeLoad.tickets,
+          volumeTruncated: volumeLoad.truncated,
           currentUserId,
         }),
       );

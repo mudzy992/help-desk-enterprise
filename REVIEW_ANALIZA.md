@@ -5333,6 +5333,8 @@ CSAT-a; „Poznata ograničenja“ svedena na ono što **ostaje** otvoreno.
 - **Backend:** `NODE_OPTIONS=--max-old-space-size=4096 npx jest --runInBand` → **498 prošlo / 5 preskočeno
   suitea, 2363 testa prošla / 31 preskočen, 0 padova**; poslije nastavka vala 1 (gapovi) **498 / 2364**
   (jedan novi backend test, vidi §2a), 0 padova.
+- **Regresija sa staginga (§2b):** nova provjera `check-ticket-list-page-size.mjs` prolazi na ispravnom kodu,
+  a **pada** kad se vrati `pageSize: 100` (provjereno privremenom izmjenom, poruka pokazuje fajl i liniju).
 - **Frontend:** `npx tsc -b` i `npm run build` bez grešaka; `npx vitest run` → **156 fajlova / 617 testova,
   0 padova** (prije vala 1: 151 / 594).
 - **Novi testovi:** backend — `parse-reports-configuration.spec.ts` (razdvajanje prozora + CSAT skala),
@@ -5340,7 +5342,8 @@ CSAT-a; „Poznata ograničenja“ svedena na ono što **ostaje** otvoreno.
   `BOTTLENECKS_DISABLED`), `tickets/csat/aggregate-ticket-csat.spec.ts` (prag po skali); frontend —
   `lib/reports/map-report-dashboard-charts.spec.ts` (4), `lib/reports/bottleneck-view.spec.ts` (4),
   `lib/reports/csat-view.spec.ts` (4), prepisan `lib/dashboard/compose-dashboard-summary.spec.ts` (6).
-- **Statičke provjere:** svih **8 `scripts/check-*.mjs`** prolazi, uključujući `check-docs-content`
+- **Statičke provjere:** svih **9 `scripts/check-*.mjs`** prolazi, uključujući novu
+  `check-ticket-list-page-size` i `check-docs-content`
   (29 stranica) poslije regeneracije ogledala (`node scripts/generate-docs-content.mjs`).
 
 ## 2a. Nastavak vala 1 — M15 gapovi (razrez po OU i opterećenje admina)
@@ -5354,6 +5357,31 @@ CSAT-a; „Poznata ograničenja“ svedena na ono što **ostaje** otvoreno.
 **Odluke (zapisane da se ne preispituju bez razloga):** razrez po OU broji **kreirane** tikete u periodu (kao
 „obim po servisu“), a opterećenje je **stanje sada** (otvoreni tiketi), jer period tu ne opisuje „opterećenje“;
 neusmjereni tiketi nisu ni na čijem spisku i imaju vlastiti brojač, pa se u opterećenje ne broje.
+
+## 2b. Regresija otkrivena na stagingu poslije isporuke (2026-10-03)
+
+Korisnik je na stagingu dobio `400 VALIDATION: pageSize must not be greater than 50` sa
+`GET /tickets?createdFrom=…&pageSize=100` — to je bio zahtjev **novog grafika** iz vala 1 (B6).
+
+- **Uzrok:** prva verzija je pretpostavila da `GET /tickets` prima `pageSize: 100`, a DTO ga odbija iznad
+  `ticketListPaging.maxPageSize = 50`
+  (`backend/src/modules/tickets/list/list-tickets.constants.ts:18`,
+  `backend/src/modules/tickets/dto/list-tickets-query.dto.ts:78` — `@Max`), dok `clampTicketListPageSize`
+  vrijedi samo za **serverski** put bez DTO validacije.
+- **Fix:** grafik više ne traži jednu veliku stranicu nego **hoda stranice po 50** i staje na prvom
+  nepotpunom listu (`frontend/src/lib/dashboard/load-dashboard-volume.ts` — `loadDashboardVolume`), najviše
+  **6 stranica / 300 tiketa**; oznaka „donja granica“ važi samo kad je i zadnja dozvoljena stranica puna.
+  `dashboardVolumePageSize` je sada izveden iz `ticketListMaxPageSize`
+  (`frontend/src/lib/tickets/ticket-constants.ts`), pa se brojevi ne mogu razići bez izmjene na jednom mjestu.
+- **Zaštita da se ne ponovi:** nova CI provjera `scripts/check-ticket-list-page-size.mjs` (frontend konstanta
+  mora biti jednaka backend maksimumu; nijedan `listTicketsPage({ pageSize: <broj> })` ne smije preko nje),
+  uključena u `.github/workflows/ci.yml` uz ostale `check-*` provjere. Test:
+  `frontend/src/lib/dashboard/load-dashboard-volume.spec.ts` (6 testova, uključujući „nikad ne traži više od
+  onoga što API prihvata“ i „puna zadnja dozvoljena stranica znači donju granicu“).
+- **Lekcija za dalje (NISKO, proces):** val 1 je imao testove logike i statičke provjere, ali nijedan test
+  nije prolazio kroz **DTO validaciju** — jedini sloj koji je ovdje pao. Zato je dogovor za sljedeće valove:
+  svaki novi zahtjev prema postojećem endpointu dobija bar jedan test/e2e scenario protiv stvarnog servera ili
+  provjeru granica u CI-u.
 
 ## 3. Šta ostaje otvoreno iz vala 1
 

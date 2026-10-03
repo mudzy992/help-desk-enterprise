@@ -227,8 +227,9 @@ Brojači se keširaju **60 sekundi** po korisniku i opsegu. Osvježavanje strani
 broj; poslije minute broj se ponovo računa.
 
 **Zašto se broj na grafiku zadnjih 14 dana razlikuje od brojača iznad njega?**
-Brojači dolaze iz serverskog agregata, a grafik se broji u pregledaču iz dohvaćene stranice tiketa (do 100
-zapisa). Kad u periodu ima više tiketa, ispod grafikona piše da su brojevi **donja granica**. Liste
+Brojači dolaze iz serverskog agregata, a grafik se broji u pregledaču iz dohvaćenih tiketa — server vraća
+najviše **50 po stranici**, a grafik pročita do **šest stranica** (300 tiketa). Kad u periodu ima više, ispod
+grafikona piše da su brojevi **donja granica**. Liste
 (**SLA nadzor**, **Aktivnost**, **Tiketi koji zahtijevaju pažnju**, **Nedavni tiketi**) ne dijele to
 ograničenje — svaka ima svoj serverski upit.
 
@@ -273,8 +274,8 @@ a e-mail to navodi.
 - **Opseg sažetka se ne koristi.** API prima `all`, `assignedToMe`, `requestedByMe` i `unassigned`, a ploča
   uvijek traži `all`; „Dodijeljeni meni“ i „Moji zahtjevi“ su brojači iz istog odgovora. Razlog: ploča
   prikazuje jedan zajednički pregled, a ne četiri odvojena.
-- **Grafik zadnjih 14 dana se broji u pregledaču** iz stranice tiketa (najviše 100 zapisa), pa je na vrlo
-  aktivnoj instalaciji to **donja granica** — ekran to i piše ispod grafikona. Liste (nedavni, prekoračeni,
+- **Grafik zadnjih 14 dana se broji u pregledaču** iz dohvaćenih stranica (do 300 tiketa: šest stranica po
+  50), pa je na vrlo aktivnoj instalaciji to **donja granica** — ekran to i piše ispod grafikona. Liste (nedavni, prekoračeni,
   dodijeljeni meni, bez izvršioca) dolaze iz ciljanih serverskih upita i nisu ograničene na prvi ekran.
 - **„Opterećenje admina“ je broj otvorenih tiketa po izvršiocu**, a ne sati; stvarni utrošak vremena i dalje
   dolazi iz izvoza **Evidentiranje vremena** (sati po agentu i servisu). Grafik prikazuje najviše osam

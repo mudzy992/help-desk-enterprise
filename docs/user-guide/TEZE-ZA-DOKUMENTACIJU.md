@@ -1913,8 +1913,9 @@ To je kriterij kompletnosti.
   ali je poslije k6 mjerenja (100 000 tiketa) vlasnik odobrio 60 s.
 - **Pogledi** (SLA nadzor, „Tiketi koji zahtijevaju vašu pažnju“, „Nedavni tiketi“) dolaze iz **ciljanih
   serverskih upita sa malim `take`** (8/5/8+8), pa tiket izvan prvog ekrana ne može nestati s liste
-  (popravljeno u valu 1, B6). **Grafik zadnjih 14 dana** se i dalje broji u pregledaču iz jedne stranice
-  (do 100 zapisa) i nosi oznaku „donja granica“ (`volumeTruncated`). Opseg `scope` API podržava, ali ga
+  (popravljeno u valu 1, B6). **Grafik zadnjih 14 dana** se i dalje broji u pregledaču, ali sada iz
+  **stranica po 50** koliko API dozvoljava (`loadDashboardVolume`, najviše 6 stranica / 300 tiketa) i nosi
+  oznaku „donja granica“ (`volumeTruncated`) kad je i zadnja stranica puna. Opseg `scope` API podržava, ali ga
   ekran uvijek šalje kao `all` (B4, otvoreno).
 - Dugme **Izvještaji** u zaglavlju ploče je sada **link** na `/reports` i prikazuje se samo onima koji smiju
   otvoriti izvještaje (`canOpenReports`); mrtvi prijevodi su uklonjeni (popravljeno u valu 1, B5).

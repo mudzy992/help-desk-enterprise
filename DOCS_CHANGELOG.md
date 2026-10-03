@@ -1130,6 +1130,18 @@ morala prestati opisivati stanje koje više ne postoji („uska grla nisu na ekr
 - Iz vodiča: tvrdnje da detaljan prikaz uskih grla nije na ekranu, da postavka ne djeluje na prikaz, da ista
   postavka perioda vuče i pakete izvještaja i da je dugme „Izvještaji“ trajno onemogućeno.
 
+### Regresija sa staginga (2026-10-03): `pageSize` grafikona
+
+Prva verzija vala 1 tražila je `GET /tickets?pageSize=100`, a server odbija sve iznad 50
+(`VALIDATION: pageSize must not be greater than 50`) — grafik zadnjih 14 dana je zato padao do isporuke ove
+popravke. Dokumentacija je morala promijeniti **broj**: oba mjesta koja su pominjala „do 100 zapisa“ sada
+kažu „šest stranica po 50 (do 300 tiketa)“:
+
+- `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — FAQ o razlici brojača i grafikona i „Poznata
+  ograničenja“.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — T95.
+- `backend/content/docs/**` — ogledalo regenerisano; `check-docs-content.mjs` prolazi.
+
 **Ostaje otvoreno (i dalje opisano kao ograničenje)**
 
 - **Serije na tabu Trendovi** nisu vezane na `private.csat.scaleMax` (prag je i dalje 4 na skali 5) — dio

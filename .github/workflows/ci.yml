@@ -70,6 +70,8 @@ jobs:
         run: node --test ../scripts/check-hooks-order.test.mjs
       - name: Check docs content and mirror sync (Faza 3, DOCS_MODULE.md §9)
         run: node ../scripts/check-docs-content.mjs
+      - name: Check the ticket-list page size (val 1 regresija: pageSize 100)
+        run: node ../scripts/check-ticket-list-page-size.mjs
       - run: npm test
       - run: npm run build
 
