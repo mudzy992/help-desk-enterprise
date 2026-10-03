@@ -1,3 +1,13 @@
+---
+title: Šabloni i playbooks
+slug: sabloni-i-playbooks
+module: M13
+part: agent
+audience: [Agent, Administrator, SUPER_ADMIN]
+roles: [AGENT, ADMIN, SUPER_ADMIN]
+order: 20
+tags: [sabloni, playbooks, odgovori, varijable, checklist]
+---
 # Šabloni i playbooks
 
 > **Namjena:** modul daje agentu **gotove odgovore** (šabloni) i **checklistu koraka** za propisane postupke

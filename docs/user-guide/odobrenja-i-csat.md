@@ -1,3 +1,13 @@
+---
+title: Odobrenja i CSAT
+slug: odobrenja-i-csat
+module: M9
+part: korisnik
+audience: [Korisnik, Agent, Administrator]
+roles: []
+order: 20
+tags: [odobrenja, csat, ocjena, komentar, nps]
+---
 # Odobrenja i CSAT
 
 > **Namjena:** **odobrenje** je kapija prije obrade — za usluge koje to traže tiket se otvara u statusu

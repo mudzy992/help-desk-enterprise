@@ -1,3 +1,13 @@
+---
+title: Pošta (e-mail)
+slug: posta
+module: M12
+part: administrator
+audience: [Korisnik, Agent, Administrator]
+roles: []
+order: 70
+tags: [email, smtp, sabloni, dolazna-posta, broadcast, odsustvo]
+---
 # Pošta (e-mail)
 
 > **Namjena:** modul šalje obavještenja **e-mailom** i, ako je uključeno, **čita odgovore iz zajedničkog

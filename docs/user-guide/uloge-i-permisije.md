@@ -1,3 +1,13 @@
+---
+title: Uloge i permisije (RBAC)
+slug: uloge-i-permisije
+module: M4
+part: administrator
+audience: [Administrator, SUPER_ADMIN]
+roles: [ADMIN, SUPER_ADMIN]
+order: 50
+tags: [rbac, uloge, permisije, scope, read-only, preview]
+---
 # Uloge i permisije (RBAC)
 
 > **Namjena:** stranica objašnjava kako sistem odlučuje šta korisnik smije: koje role postoje, šta su

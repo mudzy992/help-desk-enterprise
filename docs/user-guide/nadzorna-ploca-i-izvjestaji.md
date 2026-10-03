@@ -1,3 +1,13 @@
+---
+title: Nadzorna ploča i izvještaji
+slug: nadzorna-ploca-i-izvjestaji
+module: M15
+part: administrator
+audience: [Administrator, SUPER_ADMIN, Agent]
+roles: [ADMIN, SUPER_ADMIN]
+order: 80
+tags: [dashboard, izvjestaji, trendovi, zakazani, uska-grla, sla]
+---
 # Nadzorna ploča i izvještaji
 
 > **Namjena:** **Nadzorna ploča** je početna stranica na kojoj svaki korisnik vidi brojače i listu tiketa

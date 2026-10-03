@@ -1,3 +1,13 @@
+---
+title: Katalog usluga i forme
+slug: katalog-usluga-i-forme
+module: M6
+part: administrator
+audience: [Korisnik, Agent, Administrator]
+roles: []
+order: 10
+tags: [katalog, usluge, forme, verzije, dostupnost, onboarding]
+---
 # Katalog usluga i forme
 
 > **Namjena:** katalog usluga je mjesto na kojem administrator definiše šta korisnici mogu tražiti (kategorije →

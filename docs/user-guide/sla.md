@@ -1,3 +1,13 @@
+---
+title: SLA (rokovi, kalendari i eskalacije)
+slug: sla
+module: M10
+part: administrator
+audience: [Administrator, SUPER_ADMIN, Agent]
+roles: [ADMIN, SUPER_ADMIN]
+order: 30
+tags: [sla, rokovi, kalendari, pravila, eskalacije, pauze]
+---
 # SLA (rokovi, kalendari i eskalacije)
 
 > **Namjena:** SLA modul mjeri **rok za prvi odgovor** i **rok za rješenje** svakog tiketa — u radnom vremenu

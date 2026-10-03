@@ -68,6 +68,8 @@ jobs:
         run: node ../scripts/check-hooks-order.mjs
       - name: Test the hooks-order guard itself
         run: node --test ../scripts/check-hooks-order.test.mjs
+      - name: Check docs content and mirror sync (Faza 3, DOCS_MODULE.md §9)
+        run: node ../scripts/check-docs-content.mjs
       - run: npm test
       - run: npm run build
 

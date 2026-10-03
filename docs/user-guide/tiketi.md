@@ -1,3 +1,13 @@
+---
+title: Tiketi
+slug: tiketi
+module: M8
+part: korisnik
+audience: [Korisnik, Agent, Administrator]
+roles: []
+order: 10
+tags: [tiketi, statusi, prilozi, grupne-akcije, povjerljivi-tiketi, saved-views]
+---
 # Tiketi
 
 > **Namjena:** tiket je osnovna jedinica rada — od prijave zahtjeva, preko preuzimanja u grupi i obrade, do

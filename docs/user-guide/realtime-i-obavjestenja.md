@@ -1,3 +1,13 @@
+---
+title: Realtime i obavještenja
+slug: realtime-i-obavjestenja
+module: M11
+part: agent
+audience: [Svi korisnici, Agent, Administrator]
+roles: []
+order: 30
+tags: [obavjestenja, websocket, tihi-sati, sazetak, kanali]
+---
 # Realtime i obavještenja
 
 > **Namjena:** modul drži **zvono u zaglavlju** i kanal kojim promjene na tiketima stižu u aplikaciju **bez

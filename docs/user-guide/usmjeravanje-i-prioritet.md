@@ -1,3 +1,13 @@
+---
+title: Usmjeravanje i prioritet
+slug: usmjeravanje-i-prioritet
+module: M7
+part: administrator
+audience: [Administrator, SUPER_ADMIN]
+roles: [ADMIN, SUPER_ADMIN]
+order: 20
+tags: [rutiranje, prioritet, matrica, neusmjereno, override]
+---
 # Usmjeravanje i prioritet
 
 > **Namjena:** usmjeravanje (rutanje) odlučuje **kojoj grupi** ide novi tiket, na osnovu para

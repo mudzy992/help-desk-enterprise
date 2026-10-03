@@ -29,6 +29,7 @@
 | M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
 | **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
 | **Val 0** | 2026-10-03 | **RBAC — popravka B1** | `REVIEW_ANALIZA.md` (§M4 + `# Val 0`), `user-guide/uloge-i-permisije.md`, `user-guide/instalacija.md`, `TEZE` (T31), ovaj dokument | **Default mapping rola → permisije upisuje se pri instalaciji + CLI za postojeće instalacije** |
+| **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
 ---
@@ -925,3 +926,61 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   naslovi `^## `) 2026-10-03: 15 vodiča ima propisanih osam sekcija, osam ima tematske naslove.
 - Kod modula **još ne postoji**; sve što u `DOCS_MODULE.md` stoji o endpointima, fajlovima i ponašanju je dizajn,
   ne opis stanja — zato u koracima (b)–(d) svaka stavka dobija dokaz iz izvršavanja (test, provjera, build).
+
+---
+
+## Faza 3 — korak (b): sadržaj, backend i ogledalo (2026-10-03)
+
+**Zašto:** modul Dokumentacija je jedina preostala isporuka zadatka; korak (a) je dao dizajn, a korak (b) ga
+pretvara u stvarni sadržaj i backend koji ga služi. Bez ogledala i manifesta nema ni navigacije ni pretrage, a
+bez serverske provjere uloga tehničke stranice bi bile dostupne svakome.
+
+**Dodato**
+
+- `scripts/generate-docs-content.mjs` — generator ogledala: parsira frontmatter, sabira naslove za TOC, računa
+  `updatedAt` iz gita (`git log -1 --format=%cs`; fallback na postojeći manifest u shallow klonu) i piše
+  `backend/content/docs/*.md` + `manifest.json`; `--check` ne piše, nego pada ako ogledalo nije u sinhronizaciji.
+- `scripts/check-docs-content.mjs` — CI provjera sa 7 provjera (frontmatter, sinhronizacija, linkovi, slike,
+  tajne, `docsSlug(...)` slugovi iz koda, anchori) i novi korak u `.github/workflows/ci.yml` (uz postojećih 7
+  `check-*`).
+- `backend/content/docs/` — generisano ogledalo: 29 stranica + `manifest.json` (dijelovi, naslovi za TOC,
+  publika, role, `order`, tagovi, `updatedAt`, broj riječi).
+- `backend/src/modules/docs/` — novi modul: `docs.controller.ts` (`GET /docs/navigation`, `GET /docs/pages/:slug`,
+  `GET /docs/search`, svi `Cache-Control: no-store`), `docs.service.ts` (navigacija, stranica sa prethodnom/
+  sljedećom i TOC-om, pretraga sa rangiranjem i `excerptParts`), `docs-content.repository.ts` (učitava ogledalo
+  jednom, `OnModuleInit`, indeks u memoriji, ne dira bazu), `docs-access.service.ts` (provjera `roles` na
+  serveru), `docs.constants.ts`, `docs.error.ts` (404 za nepoznat **i** nedozvoljen slug, 503 kad ogledala nema,
+  400 za prekratak upit), `docs.types.ts`.
+- Testovi: `docs-access.service.spec.ts`, `docs-content.repository.spec.ts`, `docs.service.spec.ts`,
+  `docs.controller.spec.ts` — 18 testova.
+- Šest uvodnih stranica u `docs/user-guide/`: `pocetak-rad.md`, `pregled-modula.md` (dio `pocetak`),
+  `uloge-i-dozvole.md`, `cesta-pitanja.md`, `rjecnik.md`, `sta-je-novo.md` (dio `referenca`).
+- `backend/Dockerfile`: `COPY --from=builder /usr/app/content ./content` u runtime stage (bez toga bi modul u
+  kontejneru vraćao 503, jer `docs/` nije u backend build contextu).
+
+**Izmijenjeno**
+
+- Svih **23 vodiča** dobilo je YAML frontmatter (`title, slug, module, part, audience, roles, order, tags`) i
+  ujednačenu strukturu; osam tematskih vodiča (`dezurstva`, `imovina`, `najave`, `precice-i-pristupacnost`,
+  `problemi`, `promjene`, `prosljedjivanje-tiketa`, `status-incidenti-i-planirani-prekidi`) prepisano je u
+  propisanih osam sekcija bez novih tvrdnji.
+- `docs/DOCS_MODULE.md` §3.4 — konačno mapiranje svih 29 stranica u šest dijelova, zapisane dvije izmjene u
+  odnosu na radnu verziju (`usmjeravanje-i-prioritet` u dio `administrator`, `referenca` kao stvarni dio) i
+  označen zatvoren nalaz N1.
+- `REVIEW_ANALIZA.md` — nova sekcija `# Faza 3 — korak (b)` i red **6** u tabeli *Stanje po iteracijama*.
+- `backend/src/app.module.ts` — registracija `DocsModule`.
+- `README`/`CONTRIBUTING` pravilo (izmjena funkcionalnosti = izmjena Docs stranice) ostaje za korak (d).
+
+**Uklonjeno**
+
+- Ništa. Ogledalo je nova kopija sadržaja koja se **ne uređuje ručno** — jedini izvor ostaje `docs/user-guide/**`.
+
+**Napomena o dokazima**
+
+- Provjere su izvršene 2026-10-03 u razvojnom okruženju: `npx jest src/modules/docs` 18/18; cijeli backend
+  498 suiteova / 2 359 testova, 0 padova (prije: 494 / 2 341); `npx tsc --noEmit`, `npx eslint src/modules/docs` i
+  `npm run build` bez grešaka; `generate-docs-content.mjs --check` i `check-docs-content.mjs` prolaze
+  (29 stranica, 7 provjera). **Nije** pokretano u Docker kontejneru — `COPY content` je provjeren čitanjem
+  Dockerfilea, a putanja resolve-a (`dist/src/modules/docs → /usr/app/content/docs`) odgovara.
+- UI još ne postoji: `/docs` ekran, meni i renderer dolaze u koraku (c), pa u aplikaciji modul trenutno nije
+  vidljiv korisnicima (rute postoje i rade).

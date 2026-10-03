@@ -25,6 +25,9 @@ COPY --from=builder /usr/app/dist ./dist
 COPY --from=builder /usr/app/package*.json ./
 COPY --from=builder /usr/app/prisma ./prisma/
 COPY --from=builder /usr/app/prisma.config.ts ./prisma.config.ts
+# Faza 3 (b): generisano ogledalo dokumentacije; `docs/` nije u backend build
+# contextu, pa se sadržaj za /docs rute prenosi iz build stagea.
+COPY --from=builder /usr/app/content ./content
 
 ENV NODE_ENV=production
 ENV PORT=10001

@@ -1,3 +1,13 @@
+---
+title: Instalacija (prvi start)
+slug: instalacija
+module: M1
+part: pocetak
+audience: [Administrator, Operativa]
+roles: [ADMIN, SUPER_ADMIN]
+order: 10
+tags: [instalacija, install-token, superadmin, smtp, dodaci]
+---
 # Instalacija (prvi start)
 
 ## Čemu služi ovaj modul

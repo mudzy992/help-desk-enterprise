@@ -1,3 +1,13 @@
+---
+title: Baza znanja
+slug: baza-znanja
+module: M14
+part: korisnik
+audience: [Korisnik, Agent, Administrator]
+roles: []
+order: 40
+tags: [baza-znanja, clanci, kategorije, ocjene, review-cycle]
+---
 # Baza znanja
 
 > **Namjena:** modul drži uputstva, politike i rješenja na jednom mjestu, nudi ih korisniku **prije** nego

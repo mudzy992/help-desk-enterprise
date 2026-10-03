@@ -36,6 +36,7 @@ import { StatusPageModule } from './modules/status-page/status-page.module';
 import { BrandingModule } from './modules/branding/branding.module';
 import { OnCallModule } from './modules/on-call/on-call.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
+import { DocsModule } from './modules/docs/docs.module';
 import { AssetsModule } from './modules/assets/assets.module';
 import { ProblemsModule } from './modules/problems/problems.module';
 import { ChangesModule } from './modules/changes/changes.module';
@@ -85,6 +86,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     BrandingModule,
     OnCallModule,
     AnnouncementsModule,
+    DocsModule,
     AssetsModule,
     ProblemsModule,
     ChangesModule,

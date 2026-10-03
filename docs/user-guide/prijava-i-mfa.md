@@ -1,3 +1,13 @@
+---
+title: Prijava i potvrda u dva koraka (MFA)
+slug: prijava-i-mfa
+module: M2
+part: pocetak
+audience: [Svi korisnici, Agent, Administrator]
+roles: []
+order: 20
+tags: [prijava, mfa, totp, lozinka, sesija, rezervni-kodovi]
+---
 # Prijava i potvrda u dva koraka (MFA)
 
 ## Čemu služi ovaj modul

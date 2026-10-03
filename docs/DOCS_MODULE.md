@@ -111,8 +111,8 @@ vrijednost iz postojećeg `manifest.json`, a ako ni nje nema, upisuje `null` i U
 
 ### 3.4 Pokrivenost stranica
 
-Prva faza modula prikazuje **29 stranica**: 23 postojeća vodiča iz `docs/user-guide/` (M3–M15 i ranije) i 6
-uvodno-referentnih stranica koje nastaju u koraku (b):
+Prva faza modula prikazuje **29 stranica**: 23 vodiča iz `docs/user-guide/` i 6 uvodno-referentnih
+stranica napisanih u koraku (b):
 
 | Stranica | Dio | Sadržaj | Izvor |
 |---|---|---|---|
@@ -126,25 +126,31 @@ uvodno-referentnih stranica koje nastaju u koraku (b):
 Novih tvrdnji o ponašanju aplikacije na tim stranicama **nema** — to su izvodi i linkovi. Ako se pokaže da neka
 tvrdnja nema izvor, ide u `[NEJASNO]` i ne objavljuje se.
 
-Mapiranje 23 vodiča u dijelove (radna verzija za potvrdu u koraku (a)):
+Mapiranje 29 stranica u dijelove (konačno stanje koraka (b); unutar dijela po `order`):
 
-| Dio | Vodiči |
+| Dio | Stranice (slugovi) |
 |---|---|
-| `pocetak` | `instalacija` (samo ADMIN/SUPER_ADMIN), `prijava-i-mfa`, `precice-i-pristupacnost` |
-| `korisnik` | `tiketi`, `odobrenja-i-csat`, `status-incidenti-i-planirani-prekidi`, `baza-znanja`, `najave` |
-| `agent` | `prosljedjivanje-tiketa`, `usmjeravanje-i-prioritet`, `sabloni-i-playbooks`, `realtime-i-obavjestenja`, `dezurstva` |
-| `administrator` | `korisnici-oj-i-grupe`, `uloge-i-permisije`, `policy-paketi`, `katalog-usluga-i-forme`, `sla`, `posta`, `nadzorna-ploca-i-izvjestaji`, `imovina`, `problemi`, `promjene` |
-| `referenca` | (uvodno-referentne stranice iz tabele iznad) |
+| `pocetak` | `pocetak-rad` (5), `instalacija` (10, ADMIN/SUPER_ADMIN), `prijava-i-mfa` (20), `precice-i-pristupacnost` (30), `pregled-modula` (40) |
+| `korisnik` | `tiketi` (10), `odobrenja-i-csat` (20), `status-incidenti-i-planirani-prekidi` (30), `baza-znanja` (40), `najave` (50) |
+| `agent` | `prosljedjivanje-tiketa` (10), `sabloni-i-playbooks` (20), `realtime-i-obavjestenja` (30), `dezurstva` (40) |
+| `administrator` | `katalog-usluga-i-forme` (10), `usmjeravanje-i-prioritet` (20), `sla` (30), `korisnici-oj-i-grupe` (40), `uloge-i-permisije` (50), `policy-paketi` (60), `posta` (70), `nadzorna-ploca-i-izvjestaji` (80), `imovina` (90), `problemi` (100), `promjene` (110) |
+| `operativa` | (nema stranica u prvoj fazi — sadržaj iz `docs/ops/**` nije izvor modula) |
+| `referenca` | `uloge-i-dozvole` (10), `cesta-pitanja` (20), `rjecnik` (30), `sta-je-novo` (40) |
+
+Dvije izmjene u odnosu na radnu verziju iz koraka (a):
+
+- **`usmjeravanje-i-prioritet` je u dijelu `administrator`**, ne `agent`: ekran za pravila usmjeravanja je u
+  administraciji (M7), a vodič ga opisuje s te strane; `agent` dio pokriva rad na tiketima i dežurstva.
+- **`referenca` je stvarni dio** (nije samo napomena): četiri uvodno-referentne stranice, sve bez rolnih
+  ograničenja.
 
 **Za potvrdu:** `imovina` sadrži i korisnički dio („Moja imovina“), a `tiketi` sadrži i agentske sekcije; oba su
 smještena u dio po *primarnoj* publici. Alternativa je da se dijelovi režu po sekcijama unutar vodiča, što bi
 značilo razdvajanje jednog `.md` fajla na dva — skuplje za održavanje.
 
-**Provjereno pri pisanju ovog dokumenta (`grep '^## ' docs/user-guide/*.md`):** 15 vodiča ima propisanih osam
-sekcija, a **8 vodiča iz ranije faze** (`dezurstva`, `imovina`, `najave`, `precice-i-pristupacnost`, `problemi`,
-`promjene`, `prosljedjivanje-tiketa`, `status-incidenti-i-planirani-prekidi`) ima tematske naslove. Nalaz je
-zapisan kao **N1** u `REVIEW_ANALIZA.md`, `# Faza 3 — korak (a)`, §2; odluka (poravnati ih u koraku (b) ili ih
-voditi kao tematske stranice sa `layout: topic`) je otvorena.
+**N1 (8 vodiča bez propisanih sekcija) je zatvoren u koraku (b):** svih 29 stranica ima istih osam sekcija
+(`Čemu služi ovaj modul` … `Povezani moduli`), provjereno skriptom `scripts/check-docs-content.mjs` i
+`node scripts/generate-docs-content.mjs --check`.
 
 ---
 

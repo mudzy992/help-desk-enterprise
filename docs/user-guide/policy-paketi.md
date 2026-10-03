@@ -1,3 +1,13 @@
+---
+title: Policy paketi (paketi politika)
+slug: policy-paketi
+module: M5
+part: administrator
+audience: [SUPER_ADMIN, Administrator]
+roles: [ADMIN, SUPER_ADMIN]
+order: 60
+tags: [policy-paketi, bundle, primjena, audit, scope]
+---
 # Policy paketi (paketi politika)
 
 > **Namjena:** paket politika je pripremljena kombinacija rola i permisija koja se jednim klikom dodjeljuje

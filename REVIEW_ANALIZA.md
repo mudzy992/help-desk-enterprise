@@ -27,6 +27,7 @@
 | 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
 | 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · otvoreni ostaju B2 (`SREDNJE`) i B3–B5 (`NISKO`) — vidi `# Val 0 — popravka M4/B1` |
 | 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
+| 6 | **Faza 3** — Docs modul u aplikaciji (korak (b): sadržaj, backend i ogledalo) | ✅ Korak (b) isporučen 2026-10-03 · koraci (c)–(d) slijede — vidi `# Faza 3 — korak (b)` |
 
 ---
 
@@ -5119,3 +5120,51 @@ označiti vrstu (`layout: topic`).
 3. **Dockerfile** — `COPY --from=builder /usr/app/content ./content` u runtime stage (`backend/Dockerfile`),
    inače modul u kontejneru vraća 503.
 4. **Odluka o mjestu stavke u meniju** (predlog: dio **Pregled**) i o **osam tematskih vodiča** (N1).
+
+---
+
+# Faza 3 — korak (b): sadržaj, backend i ogledalo (2026-10-03)
+
+Korak (b) iz `docs/DOCS_MODULE.md` §11 je isporučen: sav sadržaj dokumentacije ima jedan izvor, generisano ogledalo
+je committed, backend modul `docs` služi `/docs` rute i sve je pokriveno testovima.
+
+## 1. Isporučeno
+
+| # | Isporuka | Fajlovi |
+|---|---|---|
+| 1 | Poravnanje 8 tematskih vodiča na propisanih 8 sekcija (nalaz N1) | `docs/user-guide/{dezurstva,imovina,najave,precice-i-pristupacnost,problemi,promjene,prosljedjivanje-tiketa,status-incidenti-i-planirani-prekidi}.md` |
+| 2 | Frontmatter `title, slug, module, part, audience, roles, order, tags` na svih 23 vodiča | `docs/user-guide/*.md` |
+| 3 | Šest uvodnih stranica | `pocetak-rad.md`, `pregled-modula.md` (dio `pocetak`); `uloge-i-dozvole.md`, `cesta-pitanja.md`, `rjecnik.md`, `sta-je-novo.md` (dio `referenca`) |
+| 4 | Generator ogledala i manifest | `scripts/generate-docs-content.mjs`, `backend/content/docs/*.md` (29) + `backend/content/docs/manifest.json` |
+| 5 | CI provjera sadržaja (7 provjera) | `scripts/check-docs-content.mjs`, korak u `.github/workflows/ci.yml` |
+| 6 | Backend modul `docs` | `backend/src/modules/docs/{docs.module,docs.controller,docs.service,docs-access.service,docs-content.repository,docs.constants,docs.error,docs.types}.ts`; registracija u `backend/src/app.module.ts:39,89` |
+| 7 | Testovi modula | `docs-access.service.spec.ts`, `docs-content.repository.spec.ts`, `docs.service.spec.ts`, `docs.controller.spec.ts` — 18 testova |
+| 8 | Ogledalo u kontejneru | `backend/Dockerfile` (`COPY --from=builder /usr/app/content ./content`) |
+| 9 | Dizajn ažuriran na konačno stanje | `docs/DOCS_MODULE.md` §3.4 (mapiranje 29 stranica, N1 zatvoren) |
+
+## 2. Dokazi (izvršeno 2026-10-03 u ovom okruženju)
+
+- `npx jest src/modules/docs` — **4 suitea, 18 testova, 0 padova**.
+- Cijeli backend: `npx jest --ci --coverage=false --runInBand` — **498 suitea prošlo (5 preskočeno), 2 359 testova prošlo (31 preskočeno), 0 padova**; prije koraka (b) bilo je 494 suitea / 2 341 test.
+- `npx tsc --noEmit` — 0 grešaka; `npx eslint src/modules/docs` — 0; `npm run build` — 0 (u `dist/` su i `dist/src/modules/docs/**`).
+- `node scripts/generate-docs-content.mjs --check` — „Ogledalo je u sinhronizaciji (29 stranica + manifest)“.
+- `node scripts/check-docs-content.mjs` — „OK (29 stranica, 7 provjera)“: frontmatter, sinhronizacija ogledala, 42 relativna linka, anchori, slike i obrasci tajni su čisti; `docsSlug(...)` literala u kodu još nema (dolaze u koraku (d) uz kontekstualnu „?“ pomoć).
+
+## 3. Nalaz N1 — zatvoren
+
+Osam tematskih vodiča prepisano je u propisanu strukturu od osam sekcija, bez novih tvrdnji; provjera skriptom nad
+svih 29 stranica daje 0 problema. Uz to je dio `referenca` uveden kao stvarni dio (4 stranice), a
+`usmjeravanje-i-prioritet` je, prema stvarnom meniju administracije, svrstan u dio `administrator` — obje izmjene u
+odnosu na radnu verziju su zapisane u `docs/DOCS_MODULE.md` §3.4.
+
+## 4. Šta ostaje za korake (c) i (d)
+
+- **(c)** `/docs` UI: stavka menija **Dokumentacija** u dio *Pregled*, ruta `/docs` (+ `/docs/:slug`, `?q=`),
+  lijevi nav / desni TOC / breadcrumbs / prethodna-sljedeća, pretraga sa isticanjem (`excerptParts`), filter po
+  ulozi i datumu izmjene, 404 i prazno stanje, responzivnost, i18n BS/EN, proširenje `simple-markdown.ts` i
+  `markdown-view.tsx` (tabele, code, slike, callouti, bez sirovog HTML-a, sigurni linkovi).
+- **(d)** Faza 2 modula (kontekstualna „?“ pomoć, feedback, nedavno posjećeno, štampa/PDF, i18n okvir), pravilo
+  u `README.md`/`CONTRIBUTING.md`, evidencija i nove ocjene.
+
+**Napomena:** u koraku (b) nijedan bug iz audita nije popravljan (pravilo Faze 3); `docsSlug` mapa ekran→stranica i
+sve što zavisi od UI-a dolaze u (c)/(d).

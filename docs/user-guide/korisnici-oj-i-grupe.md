@@ -1,3 +1,13 @@
+---
+title: Korisnici, organizacione jedinice i grupe
+slug: korisnici-oj-i-grupe
+module: M3
+part: administrator
+audience: [Administrator, SUPER_ADMIN]
+roles: [ADMIN, SUPER_ADMIN]
+order: 40
+tags: [korisnici, organizacione-jedinice, grupe, ad-sync, uloge]
+---
 # Korisnici, organizacione jedinice i grupe
 
 > **Namjena:** administracija naloga, OU stabla i grupa za rutiranje. Sve na ovoj stranici radi se u
