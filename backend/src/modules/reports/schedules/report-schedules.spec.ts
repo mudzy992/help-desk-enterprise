@@ -330,6 +330,8 @@ function createRunner(options: { due: ReportScheduleRecord[]; claimConflict?: bo
         allowedFormats: ['csv'],
         bottlenecksEnabled: true,
         defaultWindowDays: 30,
+        packWindowDays: 30,
+        csatScaleMax: 5,
         pingPongThreshold: 3,
       }),
     } as never,

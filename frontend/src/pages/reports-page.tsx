@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ReportPrintHeader, useLightPrintTheme } from "@/components/reports/print/report-print";
+import { ReportsBottlenecksPanel } from "@/components/reports/reports-bottlenecks-panel";
+import { ReportsCsatPanel } from "@/components/reports/reports-csat-panel";
 import { ReportsCharts } from "@/components/reports/reports-charts";
 import { ReportsDateFilter } from "@/components/reports/reports-date-filter";
 import { ReportPacksPanel } from "@/components/reports/report-packs-panel";
@@ -24,6 +26,7 @@ import {
   mapAgingBars,
   mapBottleneckBars,
   mapServiceVolumeBars,
+  showBottleneckChart,
 } from "@/lib/reports/map-report-dashboard-charts";
 import {
   formatTrendBucketLong,
@@ -49,10 +52,23 @@ import {
 import { recordReportPdfExport, type ReportTrendsResponse } from "@/services/report-trends-api";
 import { listServices } from "@/services/service-catalog-api";
 
-type ReportsTab = "overview" | "trends" | "packs" | "schedules";
+type ReportsTab =
+  | "overview"
+  | "bottlenecks"
+  | "csat"
+  | "trends"
+  | "packs"
+  | "schedules";
 
 function readTab(value: string | null, canSchedule: boolean): ReportsTab {
-  if (value === "trends" || value === "packs") return value;
+  if (
+    value === "trends" ||
+    value === "packs" ||
+    value === "bottlenecks" ||
+    value === "csat"
+  ) {
+    return value;
+  }
   if (value === "schedules" && canSchedule) return "schedules";
   return "overview";
 }
@@ -251,6 +267,8 @@ export function ReportsPage() {
 
   const tabs = [
     { key: "overview", label: t("reports.tabs.overview") },
+    { key: "bottlenecks", label: t("reports.tabs.bottlenecks") },
+    { key: "csat", label: t("reports.tabs.csat") },
     { key: "trends", label: t("reports.tabs.trends") },
     { key: "packs", label: t("reports.tabs.packs") },
     ...(canSchedule ? [{ key: "schedules", label: t("reports.tabs.schedules") }] : []),
@@ -275,7 +293,7 @@ export function ReportsPage() {
           subtitle={t("reports.intro")}
           actions={
             <>
-              {tab === "overview" || tab === "packs" ? (
+              {tab === "overview" || tab === "packs" || tab === "bottlenecks" ? (
                 <ReportsDateFilter
                   preset={preset}
                   customFrom={customFrom}
@@ -305,7 +323,15 @@ export function ReportsPage() {
         />
         <UnderlineTabs className="mb-4" items={tabs} active={tab} onChange={changeTab} />
       </div>
-      {tab === "packs" ? (
+      {tab === "csat" ? (
+        <ReportsCsatPanel />
+      ) : tab === "bottlenecks" ? (
+        <ReportsBottlenecksPanel
+          organizationalUnitId={organizationalUnitId}
+          from={fromIso}
+          to={toIso}
+        />
+      ) : tab === "packs" ? (
         <ReportPacksPanel organizationalUnitId={organizationalUnitId} from={fromIso} to={toIso} />
       ) : tab === "trends" ? (
         <ReportTrendsPanel
@@ -363,6 +389,7 @@ export function ReportsPage() {
           <ReportsMetricGrid kpis={dashboard.kpis} preset={preset} />
           <ReportsCharts
             preset={preset}
+            bottleneckEnabled={showBottleneckChart(dashboard)}
             bottleneckItems={bottleneck.items}
             bottleneckLabel={bottleneck.bottleneckLabel}
             serviceItems={serviceItems}

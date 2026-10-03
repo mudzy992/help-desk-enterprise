@@ -47,8 +47,11 @@ export function aggregateReportDashboardKpis(input: {
   readonly window: ReportWindow;
   readonly previousWindow: ReportWindow;
   readonly kbHelpedCount?: number;
+  /** Val 1 (M9/B3): najviša ocjena dolazi iz `private.csat.scaleMax`, ne iz konstante. */
+  readonly csatScaleMax: number;
 }): ReportDashboardKpis {
   return reportDashboardKpisFromTotals({
+    csatScaleMax: input.csatScaleMax,
     createdCount: countCreated(input.tickets, input.window),
     previousCreatedCount: countCreated(input.tickets, input.previousWindow),
     firstResponse: firstResponseMinutes(input.tickets, input.window),
@@ -61,7 +64,7 @@ export function aggregateReportDashboardKpis(input: {
 }
 
 export function reportDashboardKpisFromTotals(
-  totals: ReportDashboardKpiTotals,
+  totals: ReportDashboardKpiTotals & { readonly csatScaleMax: number },
 ): ReportDashboardKpis {
   const firstResponse = averageOf(totals.firstResponse);
   const previousFirstResponse = averageOf(totals.previousFirstResponse);
@@ -79,7 +82,7 @@ export function reportDashboardKpisFromTotals(
     resolutionDeltaHours: deltaWhenBoth(resolution, previousResolution),
     csatAverage: roundedAverageOf(totals.csat),
     csatCount: totals.csat.count,
-    csatScaleMax: 5,
+    csatScaleMax: totals.csatScaleMax,
     kbHelpedCount: totals.kbHelpedCount,
     kbResolutionRate:
       kbDenominator === 0 ? null : totals.kbHelpedCount / kbDenominator,

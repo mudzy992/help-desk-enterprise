@@ -210,6 +210,8 @@ export const reportTrendErrorCodes = [
   "REPORT_GRANULARITY_INVALID",
   "REPORT_TRENDS_DISABLED",
   "REPORTS_DISABLED",
+  /** Val 1 (M15/B2): usko grlo je isključeno postavkom, nije greška u radu. */
+  "BOTTLENECKS_DISABLED",
   "REPORT_ORGANIZATIONAL_UNIT_NOT_FOUND",
   "REPORT_FORMAT_NOT_ALLOWED",
   "REPORT_SCHEDULE_DISABLED",

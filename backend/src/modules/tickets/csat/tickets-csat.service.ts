@@ -69,6 +69,7 @@ export class TicketsCsatService {
         authorizationContextLoader: this.authorizationContextLoader,
         context: await this.accessPolicies.bind(context),
         archive: await this.archiveLoader.load(),
+        csat: await this.csatLoader.load(),
       }),
     );
   }

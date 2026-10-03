@@ -131,7 +131,7 @@ export class ReportsService {
       from: query.from,
       to: query.to,
       now,
-      defaultWindowDays: configuration.defaultWindowDays,
+      defaultWindowDays: configuration.packWindowDays,
       mode: 'month',
     });
     assertReportWindowSpan(window, reportPackLimits.maxWindowDays);

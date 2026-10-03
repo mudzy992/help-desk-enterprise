@@ -15,6 +15,7 @@ function dashboard(ticketCount: number): ReportsDashboard {
     previousWindow: { from: '2026-07-30T07:00:00.000Z', to: '2026-08-29T06:59:59.999Z' },
     ticketCount,
     kpis: {} as ReportsDashboard['kpis'],
+    bottlenecksEnabled: true,
     bottleneckByGroup: [],
     serviceVolume: [],
     volumeSeries: [],
@@ -94,7 +95,7 @@ describe('ReportDashboardCache (paket 2.5)', () => {
   it('ReportsService floors the window only when the cache is active and reuses the payload', async () => {
     const { redis } = fakeRedis();
     const cache = new ReportDashboardCache(redis as never);
-    const configuration = { reportsEnabled: true, addonEnabled: true, defaultWindowDays: 30 };
+    const configuration = { reportsEnabled: true, addonEnabled: true, defaultWindowDays: 30, packWindowDays: 30 };
     const service = new ReportsService({} as never, { load: async () => configuration } as never, cache);
     const spy = jest.spyOn(cache, 'getOrCompute').mockImplementation(async () => dashboard(5));
 

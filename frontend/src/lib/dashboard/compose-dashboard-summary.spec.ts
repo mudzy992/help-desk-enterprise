@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { composeDashboardSummary } from "@/lib/dashboard/compose-dashboard-summary";
+import {
+  composeDashboardSummary,
+  dashboardRecentTicketLimit,
+} from "@/lib/dashboard/compose-dashboard-summary";
 import type { DashboardSummaryCounts } from "@/services/report-summary-api";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
 
@@ -57,21 +60,46 @@ function counts(
   };
 }
 
+/** Val 1 (M15/B6): every list now has its own server-filtered input. */
+function summaryInput(overrides: {
+  readonly recentTickets?: readonly TicketResponse[];
+  readonly overdueTickets?: readonly TicketResponse[];
+  readonly assignedToMeTickets?: readonly TicketResponse[];
+  readonly unassignedTickets?: readonly TicketResponse[];
+  readonly volumeTickets?: readonly TicketResponse[];
+  readonly volumeTruncated?: boolean;
+  readonly currentUserId?: string | null;
+  readonly now?: Date;
+  readonly counts?: Partial<DashboardSummaryCounts>;
+} = {}) {
+  return {
+    counts: counts(overrides.counts),
+    recentTickets: overrides.recentTickets ?? [],
+    overdueTickets: overrides.overdueTickets ?? [],
+    assignedToMeTickets: overrides.assignedToMeTickets ?? [],
+    unassignedTickets: overrides.unassignedTickets ?? [],
+    volumeTickets: overrides.volumeTickets ?? [],
+    volumeTruncated: overrides.volumeTruncated ?? false,
+    currentUserId: overrides.currentUserId ?? null,
+    now: overrides.now ?? new Date(2026, 8, 14, 15, 0, 0),
+  };
+}
+
 describe("composeDashboardSummary", () => {
   it("takes every counter from the server aggregate", () => {
-    const summary = composeDashboardSummary({
-      counts: counts({
-        total: 1200,
-        open: 640,
-        critical: 12,
-        overdue: 33,
-        openedToday: 21,
-        waitingForUser: 8,
-        statusCounts: [{ status: "PENDING", count: 640 }],
+    const summary = composeDashboardSummary(
+      summaryInput({
+        counts: {
+          total: 1200,
+          open: 640,
+          critical: 12,
+          overdue: 33,
+          openedToday: 21,
+          waitingForUser: 8,
+          statusCounts: [{ status: "PENDING", count: 640 }],
+        },
       }),
-      tickets: [ticket("1", "PENDING")],
-      currentUserId: "user-1",
-    });
+    );
 
     expect(summary.total).toBe(1200);
     expect(summary.open).toBe(640);
@@ -82,63 +110,61 @@ describe("composeDashboardSummary", () => {
     expect(summary.statusCounts).toEqual([{ status: "PENDING", count: 640 }]);
   });
 
-  it("derives the presentation slices from the ticket page it was given", () => {
-    const now = new Date(2026, 8, 14, 15, 0, 0);
-    const summary = composeDashboardSummary({
-      counts: counts(),
-      tickets: [
-        ticket("1", "PENDING", {
-          priority: "CRITICAL",
-          createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
-        }),
-        ticket("2", "IN_PROGRESS", {
-          isOverdue: true,
-          createdAt: new Date(2026, 8, 13, 10, 0, 0).toISOString(),
-        }),
-        ticket("4", "ASSIGNED", {
-          isOverdue: true,
-          createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
-        }),
-      ],
-      currentUserId: null,
-      now,
-    });
+  it("keeps the watch and attention lists on their own server-filtered inputs", () => {
+    const summary = composeDashboardSummary(
+      summaryInput({
+        // Server sends overdue tickets only, newest first.
+        overdueTickets: [
+          ticket("4", "ASSIGNED", { isOverdue: true }),
+          ticket("2", "IN_PROGRESS", { isOverdue: true }),
+        ],
+        // Attention: open tickets assigned to the caller plus open unassigned ones.
+        assignedToMeTickets: [
+          ticket("6", "IN_PROGRESS", { assignedUserId: "user-1" }),
+        ],
+        unassignedTickets: [
+          ticket("1", "PENDING", { priority: "CRITICAL", assignedUserId: null }),
+          ticket("7", "UNROUTED", { assignedUserId: null }),
+        ],
+        currentUserId: "user-1",
+      }),
+    );
 
-    // Overdue tickets feed the watch list; the unattended critical one feeds the
-    // attention list (the selectors are unchanged, only their input is a page).
     expect(summary.slaWatchlist.map((item) => item.id)).toEqual(["4", "2"]);
-    expect(summary.attention.map((item) => item.id)).toEqual(["1"]);
-    expect(summary.recent.map((item) => item.id)).toEqual(["1", "4", "2"]);
+    expect(summary.attention.map((item) => item.id)).toEqual(["6", "1", "7"]);
   });
 
-  it("orders recent tickets newest first", () => {
-    const summary = composeDashboardSummary({
-      counts: counts(),
-      tickets: [ticket("1", "PENDING"), ticket("3", "PENDING"), ticket("2", "PENDING")],
-      currentUserId: null,
-    });
-    expect(summary.recent.map((item) => item.id)).toEqual(["3", "2", "1"]);
+  it("orders recent tickets newest first and cuts them to the limit", () => {
+    const many = Array.from({ length: dashboardRecentTicketLimit + 3 }, (_, index) =>
+      ticket(String((index % 9) + 1), "PENDING", {
+        createdAt: `2026-09-${String(10 + index).padStart(2, "0")}T10:00:00.000Z`,
+      }),
+    );
+    const summary = composeDashboardSummary(
+      summaryInput({ recentTickets: [...many].reverse() }),
+    );
+
+    expect(summary.recent).toHaveLength(dashboardRecentTicketLimit);
+    expect(summary.recent[0].createdAt >= summary.recent[1].createdAt).toBe(true);
   });
 
   it("buckets created and resolved tickets across the last 14 local days", () => {
-    const now = new Date(2026, 8, 14, 15, 0, 0);
-    const summary = composeDashboardSummary({
-      counts: counts(),
-      tickets: [
-        ticket("1", "PENDING", {
-          createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
-        }),
-        ticket("2", "RESOLVED", {
-          createdAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
-          resolvedAt: new Date(2026, 8, 13, 10, 0, 0).toISOString(),
-        }),
-        ticket("4", "RESOLVED", {
-          createdAt: new Date(2026, 8, 10, 9, 0, 0).toISOString(),
-        }),
-      ],
-      currentUserId: null,
-      now,
-    });
+    const summary = composeDashboardSummary(
+      summaryInput({
+        volumeTickets: [
+          ticket("1", "PENDING", {
+            createdAt: new Date(2026, 8, 14, 8, 0, 0).toISOString(),
+          }),
+          ticket("2", "RESOLVED", {
+            createdAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
+            resolvedAt: new Date(2026, 8, 13, 10, 0, 0).toISOString(),
+          }),
+          ticket("4", "RESOLVED", {
+            createdAt: new Date(2026, 8, 10, 9, 0, 0).toISOString(),
+          }),
+        ],
+      }),
+    );
 
     expect(summary.volume14d).toHaveLength(14);
     expect(summary.volume14d[0]).toEqual({ d: "01. 09", created: 1, resolved: 0 });
@@ -147,18 +173,21 @@ describe("composeDashboardSummary", () => {
     expect(summary.volume14d[9]).toEqual({ d: "10. 09", created: 1, resolved: 0 });
   });
 
-  it("keeps the chart empty rather than undefined when the page is empty", () => {
-    const now = new Date(2026, 8, 14, 15, 0, 0);
-    const summary = composeDashboardSummary({
-      counts: counts(),
-      tickets: [],
-      currentUserId: null,
-      now,
-    });
+  it("keeps the chart empty rather than undefined when there is no data", () => {
+    const summary = composeDashboardSummary(summaryInput());
+
     expect(summary.volume14d).toHaveLength(14);
     expect(
       summary.volume14d.every((day) => day.created === 0 && day.resolved === 0),
     ).toBe(true);
     expect(summary.recent).toEqual([]);
+    expect(summary.attention).toEqual([]);
+  });
+
+  it("marks the chart as a lower bound when the window held more than one page", () => {
+    expect(
+      composeDashboardSummary(summaryInput({ volumeTruncated: true })).volumeTruncated,
+    ).toBe(true);
+    expect(composeDashboardSummary(summaryInput()).volumeTruncated).toBe(false);
   });
 });

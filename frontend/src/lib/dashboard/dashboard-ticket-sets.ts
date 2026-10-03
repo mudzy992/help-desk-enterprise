@@ -3,7 +3,7 @@ import { truncateIdentifier } from "@/lib/tickets/ticket-display";
 import type { TicketResponse, TicketStatus } from "@/services/tickets-api";
 
 /// Statuses that still require handler attention (same set as KPI "open").
-const openStatuses: readonly TicketStatus[] = [
+export const dashboardOpenStatuses: readonly TicketStatus[] = [
   "PENDING",
   "UNROUTED",
   "ASSIGNED",
@@ -22,7 +22,7 @@ export type InboxGroupCount = {
 export function isDashboardOpenTicket(
   ticket: Pick<TicketResponse, "status">,
 ): boolean {
-  return openStatuses.includes(ticket.status);
+  return dashboardOpenStatuses.includes(ticket.status);
 }
 
 export function selectSlaWatchlist(

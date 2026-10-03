@@ -2,7 +2,7 @@
 
 > **Namjena:** **odobrenje** je kapija prije obrade — za usluge koje to traže tiket se otvara u statusu
 > **Čeka odobrenje** i ne ide u rad dok ovlaštena osoba ne odluči. **CSAT** je kratka ocjena zadovoljstva
-> (1–5 zvjezdica) koju naručilac daje nakon rješavanja ili zatvaranja tiketa. Oba toka se vide u detalju
+> (podrazumijevano 1–5 zvjezdica, skala je podesiva) koju naručilac daje nakon rješavanja ili zatvaranja tiketa. Oba toka se vide u detalju
 > tiketa.
 
 ## Čemu služi ovaj modul
@@ -85,13 +85,14 @@ rolu.
 
 | Element | Pravilo |
 |---|---|
-| Skala | Podesiva (podrazumijevano 1–5; dozvoljeno 2–10) |
+| Skala | Podesiva (podrazumijevano 1–5; dozvoljeno 2–10; postavka `private.csat.scaleMax`). Prag „zadovoljan“ je 80 % skale i prikazuje se uz ocjenu. |
 | Ko šalje | Samo **naručilac** tiketa |
 | Kada | Tiket **Riješeno** (podrazumijevano uključeno) i/ili **Zatvoreno** (podrazumijevano isključeno) |
 | Uzorak | Podesiv (0–1); odabir je deterministički — isti tiket uvijek prolazi ili ne prolazi |
 | Broj ocjena | **Jedna po tiketu** |
 | Komentar | Opcionalan, do 2000 znakova; prolazi provjeru osjetljivog sadržaja |
 | Izmjena | Nije moguća (nema izmjene ni brisanja) |
+| Gdje se vidi | **Izvještaji → Pregled** (KPI kartica **CSAT**) i **Izvještaji → CSAT** (prosjek na važećoj skali, broj ocjena, prag zadovoljan i razrez po jedinici, servisu i grupi) |
 
 ### Povezani statusi tiketa
 
@@ -127,10 +128,11 @@ rolu.
   (Nalaz B1 iz §M9.)
 - **Tiket koji počne kao „Nije usmjereno“ ne dobija zahtjev za odobrenje** čak i kad usluga traži odobrenje; ako
   se kasnije proslijedi u grupu, odobrenje se ne kreira. (Nalaz B2.)
-- **CSAT po jedinici, servisu i grupi se ne prikazuje u aplikaciji** iako server takvu agregaciju računa; u
-  izvještajima je vidljiv samo ukupan prosjek. (Nalaz B3.)
-- **Skala u izvještajima je fiksirana na 5** i prag „zadovoljan“ na ocjenu ≥ 4, bez obzira na podešenu skalu.
-  (Nalaz B3.)
+- **CSAT po jedinici, servisu i grupi** prikazuje se na tabu **CSAT** u izvještajima (popravljeno u valu 1);
+  ostaje ograničenje da taj razrez poštuje **vaše vidno polje**, a ne filtre perioda — CSAT nema period u
+  API-ju. Za razrez po vremenu koristite tab **Trendovi** (serije).
+- **Serije na tabu Trendovi** su i dalje vezane na skalu 5 i prag ≥ 4, bez obzira na postavku
+  `private.csat.scaleMax`; **tab Pregled i tab CSAT** poštuju postavku. (Preostali dio nalaza B3.)
 - **Postavka „koristi manager-a naručioca kao odobravaoca“** je vidljiva u postavkama, ali ne mijenja ponašanje.
   (Nalaz B4.)
 - **Zapis u change logu za ocjenu ne pokazuje razliku** (prije i poslije su identični); sama ocjena je vidljiva u

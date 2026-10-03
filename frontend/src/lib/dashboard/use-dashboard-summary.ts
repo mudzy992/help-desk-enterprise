@@ -3,8 +3,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { localDayKey, queryKeys } from "@/lib/query/query-keys";
 import {
   composeDashboardSummary,
+  dashboardRecentTicketLimit,
   type DashboardSummary,
 } from "@/lib/dashboard/compose-dashboard-summary";
+import {
+  dashboardAttentionTicketLimit,
+  dashboardOpenStatuses,
+  dashboardSlaWatchlistLimit,
+} from "@/lib/dashboard/dashboard-ticket-sets";
+import {
+  dashboardVolumeDayCount,
+  dashboardVolumePageSize,
+} from "@/lib/dashboard/build-volume-14d";
 import { useTicketCollectionRealtime } from "@/lib/realtime/use-ticket-collection-realtime";
 import { isTicketStaff } from "@/lib/session/route-access";
 import { useSession } from "@/lib/session/use-session";
@@ -21,6 +31,15 @@ import {
   listTicketsPage,
   type TicketResponse,
 } from "@/services/tickets-api";
+
+/** Početak lokalne civilne noći 13 dana prije `now` (prvi dan grafikona). */
+function dashboardVolumeWindowStart(now: Date): Date {
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - (dashboardVolumeDayCount - 1),
+  );
+}
 
 export type DashboardSummaryState = {
   readonly isStaff: boolean;
@@ -69,22 +88,85 @@ export function useDashboardSummary(): DashboardSummaryState {
     }
     try {
       // Phase 2.4: the counters come from the server aggregate (SQL over the
-      // same visibility scope as the lists); the first page is only the view
-      // data of the recent/watch/attention lists and the 14-day chart.
-      const [counts, firstPage] = await Promise.all([
-        queryClient.fetchQuery({
-          queryKey: queryKeys.dashboardSummary("all", dayKey),
-          queryFn: () => fetchDashboardSummary("all"),
-        }),
-        queryClient.fetchQuery({
-          queryKey: queryKeys.ticketList({ pageSize: 50 }),
-          queryFn: () => listTicketsPage({ pageSize: 50 }),
-        }),
-      ]);
+      // same visibility scope as the lists).
+      //
+      // Val 1 (M15/B6): the lists used to be derived from „the first page of 50
+      // tickets“ (newest first), so an overdue or critical ticket outside it
+      // silently vanished from the dashboard. Each list now has its own
+      // server-filtered query with a small take, and the chart window is a
+      // separate, bounded page (`volumePageSize`).
+      const [counts, recentPage, overduePage, minePage, unassignedPage, volumePage] =
+        await Promise.all([
+          queryClient.fetchQuery({
+            queryKey: queryKeys.dashboardSummary("all", dayKey),
+            queryFn: () => fetchDashboardSummary("all"),
+          }),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList({ view: "dashboard-recent" }),
+            queryFn: () =>
+              listTicketsPage({
+                sort: "createdAt",
+                dir: "desc",
+                pageSize: dashboardRecentTicketLimit,
+              }),
+          }),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList({ view: "dashboard-overdue" }),
+            queryFn: () =>
+              listTicketsPage({
+                overdue: true,
+                sort: "updatedAt",
+                dir: "desc",
+                pageSize: dashboardSlaWatchlistLimit,
+              }),
+          }),
+          currentUserId === null
+            ? Promise.resolve(null)
+            : queryClient.fetchQuery({
+                queryKey: queryKeys.ticketList({
+                  view: "dashboard-assigned",
+                  userId: currentUserId,
+                }),
+                queryFn: () =>
+                  listTicketsPage({
+                    assignedUserId: currentUserId,
+                    status: [...dashboardOpenStatuses],
+                    sort: "updatedAt",
+                    dir: "desc",
+                    pageSize: dashboardAttentionTicketLimit,
+                  }),
+              }),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList({ view: "dashboard-unassigned" }),
+            queryFn: () =>
+              listTicketsPage({
+                unassigned: true,
+                status: [...dashboardOpenStatuses],
+                sort: "updatedAt",
+                dir: "desc",
+                pageSize: dashboardAttentionTicketLimit,
+              }),
+          }),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.ticketList({ view: "dashboard-volume" }),
+            queryFn: () =>
+              listTicketsPage({
+                createdFrom: dashboardVolumeWindowStart(new Date()).toISOString(),
+                sort: "createdAt",
+                dir: "desc",
+                pageSize: dashboardVolumePageSize,
+              }),
+          }),
+        ]);
       setSummary(
         composeDashboardSummary({
           counts,
-          tickets: firstPage.items,
+          recentTickets: recentPage.items,
+          overdueTickets: overduePage.items,
+          assignedToMeTickets: minePage?.items ?? [],
+          unassignedTickets: unassignedPage.items,
+          volumeTickets: volumePage.items,
+          volumeTruncated: volumePage.items.length >= dashboardVolumePageSize,
           currentUserId,
         }),
       );

@@ -2,6 +2,14 @@ import type { TicketResponse } from "@/services/tickets-api";
 
 export const dashboardVolumeDayCount = 14;
 
+/**
+ * Val 1 (M15/B6): veličina stranice iz koje se broji grafik. API dozvoljava
+ * najviše 100 zapisa po stranici (vidi `clamp-ticket-list-page-size`), pa je
+ * `14 * 100` tiketa u periodu granica iznad koje grafik prikazuje donju granicu
+ * (UI to i kaže, `dashboard.volumeTruncatedHint`).
+ */
+export const dashboardVolumePageSize = 100;
+
 export type TicketVolumeDay = {
   readonly d: string;
   readonly created: number;

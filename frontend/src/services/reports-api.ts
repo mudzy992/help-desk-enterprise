@@ -41,6 +41,8 @@ export type ReportsDashboardResponse = {
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;
   readonly kpis: ReportDashboardKpis;
+  /** Val 1 (M15/B1): postavka uskih grla stvarno isključuje i podatke i prikaz. */
+  readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
@@ -52,6 +54,43 @@ export type ReportsDashboardQuery = {
   readonly from: string;
   readonly to: string;
 };
+
+export type BottleneckCounts = {
+  readonly pendingApproval: number;
+  readonly waitingForUser: number;
+  readonly unrouted: number;
+  readonly overdue: number;
+};
+
+export type BottleneckBreakdownRow = BottleneckCounts & {
+  readonly key: string;
+};
+
+export type BottleneckTrendRow = BottleneckCounts & {
+  readonly date: string;
+  readonly createdCount: number;
+};
+
+/** Val 1 (M15/B2): `GET /reports/bottlenecks` — usko grlo po OU/servisu/prioritetu + trend. */
+export type BottlenecksResponse = {
+  readonly window: { readonly from: string; readonly to: string };
+  readonly counts: BottleneckCounts;
+  readonly byOrganizationalUnit: readonly BottleneckBreakdownRow[];
+  readonly byService: readonly BottleneckBreakdownRow[];
+  readonly byPriority: readonly BottleneckBreakdownRow[];
+  readonly trend: readonly BottleneckTrendRow[];
+};
+
+export function fetchBottlenecks(
+  query: ReportsDashboardQuery,
+): Promise<BottlenecksResponse> {
+  const params = new URLSearchParams({
+    organizationalUnitId: query.organizationalUnitId,
+    from: query.from,
+    to: query.to,
+  });
+  return apiRequest(`/reports/bottlenecks?${params.toString()}`);
+}
 
 export function fetchReportsDashboard(
   query: ReportsDashboardQuery,

@@ -11,6 +11,47 @@ describe('parseReportsConfiguration', () => {
     defaultWindowDays: 30,
   };
 
+  it('razdvaja prozor uskih grla od prozora paketa (val 1, M15/B3)', () => {
+    const split = parseReportsConfiguration({
+      ...valid,
+      packsJson: '',
+      defaultWindowDays: 30,
+      packWindowDays: 90,
+    });
+    expect(split.defaultWindowDays).toBe(30);
+    expect(split.packWindowDays).toBe(90);
+
+    // Bez novog ključa (starije instalacije i direktni konstruktori) paketi
+    // nasljeđuju prozor uskih grla — ponašanje ostaje kompatibilno.
+    expect(
+      parseReportsConfiguration({ ...valid, packsJson: '' }).packWindowDays,
+    ).toBe(30);
+
+    // Neispravna vrijednost pada na prozor uskih grla, nikad na 0.
+    const invalid = parseReportsConfiguration({
+      ...valid,
+      packsJson: '',
+      packWindowDays: -5,
+    });
+    expect(invalid.packWindowDays).toBe(30);
+  });
+
+  it('čita CSAT skalu iz postavke, uz zadanu vrijednost 5 (val 1, M9/B3)', () => {
+    const allowedPacks = { ...valid, packsJson: '' };
+    expect(parseReportsConfiguration(allowedPacks).csatScaleMax).toBe(5);
+    expect(
+      parseReportsConfiguration({ ...allowedPacks, csatScaleMax: 10 })
+        .csatScaleMax,
+    ).toBe(10);
+    // Van dozvoljenog opsega 2–10 ne mijenja skalu.
+    for (const bad of [1, 11, 4.5, '5', null]) {
+      expect(
+        parseReportsConfiguration({ ...allowedPacks, csatScaleMax: bad })
+          .csatScaleMax,
+      ).toBe(5);
+    }
+  });
+
   it('uses the default pack set when packsJson is empty', () => {
     const parsed = parseReportsConfiguration({ ...valid, packsJson: '' });
     expect(parsed.enabledPacks).toEqual(Object.values(reportPackKeys).filter((pack) => !pack.startsWith('asset_') && !pack.startsWith('problem_') && !pack.startsWith('change_')));

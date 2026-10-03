@@ -225,6 +225,8 @@ function createService(overrides: { enabled?: boolean; reportsEnabled?: boolean 
         allowedFormats: ['csv', 'json'],
         bottlenecksEnabled: true,
         defaultWindowDays: 30,
+        packWindowDays: 30,
+        csatScaleMax: 5,
         pingPongThreshold: 3,
       }),
     } as never,

@@ -708,7 +708,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1268,
+      "wordCount": 1345,
       "source": "docs/user-guide/odobrenja-i-csat.md"
     },
     {
@@ -2183,6 +2183,16 @@
         },
         {
           "level": 3,
+          "text": "3a. Uska grla",
+          "id": "3a-uska-grla"
+        },
+        {
+          "level": 3,
+          "text": "3b. CSAT razrez",
+          "id": "3b-csat-razrez"
+        },
+        {
+          "level": 3,
           "text": "4. Trendovi",
           "id": "4-trendovi"
         },
@@ -2237,7 +2247,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2342,
+      "wordCount": 2656,
       "source": "docs/user-guide/nadzorna-ploca-i-izvjestaji.md"
     },
     {

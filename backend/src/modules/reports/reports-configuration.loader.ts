@@ -31,6 +31,12 @@ export class ReportsConfigurationLoader {
         defaultWindowDays: await this.settingsService.getSetting(
           settingKeys.privateDashboardBottlenecksDefaultWindowDays,
         ),
+        packWindowDays: await this.settingsService
+          .getSetting(settingKeys.privateReportsDefaultWindowDays)
+          .catch(() => undefined),
+        csatScaleMax: await this.settingsService
+          .getSetting(settingKeys.privateCsatScaleMax)
+          .catch(() => undefined),
         pingPongThreshold: await this.settingsService
           .getSetting(settingKeys.privateReportsPingPongThreshold)
           .catch(() => undefined),

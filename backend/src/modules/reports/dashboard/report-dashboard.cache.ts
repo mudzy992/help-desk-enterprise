@@ -116,6 +116,7 @@ function isReportsDashboard(value: unknown): value is ReportsDashboard {
     typeof candidate.window === 'object' &&
     candidate.kpis !== null &&
     typeof candidate.kpis === 'object' &&
+    typeof candidate.bottlenecksEnabled === 'boolean' &&
     Array.isArray(candidate.bottleneckByGroup) &&
     Array.isArray(candidate.serviceVolume) &&
     Array.isArray(candidate.volumeSeries) &&

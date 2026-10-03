@@ -31,6 +31,7 @@
 | 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
 | 8 | **Faza 3** — Docs modul u aplikaciji (korak (d): Faza 2 modula, pravilo, evidencija) | ✅ Korak (d) isporučen 2026-10-03 · Faza 3 zatvorena — vidi `# Faza 3 — korak (d)` |
 | 9 | **Faza 3 — zatvorena** (4 koraka) | ✅ Zatvorena 2026-10-03 · preostaju popravke po valovima 1–5 — vidi `# Faza 3 — korak (d)` i `# Zaključak Faze 2` |
+| 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
 
 ---
 
@@ -2608,7 +2609,7 @@ Testni pokrivač je tanak za značaj modula — tri spec fajla, oba za parser/e 
   odobrenje postoji samo za rutirane tikete.
 - **Ozbiljnost:** SREDNJE.
 
-### B3 — SREDNJE — CSAT agregacija po OU/servisu/grupi postoji, ali je UI ne koristi; skala je hardkodirana
+### B3 — SREDNJE — CSAT agregacija po OU/servisu/grupi postoji, ali je UI ne koristi; skala je hardkodirana  → ✅ **popravljeno u valu 1 (2026-10-03)** za prikaz, skalu i prag na ekranu; serije na tabu Trendovi ostaju na konstanti (vidi `# Val 1 — nadzor i tačnost brojeva` §3)
 
 - **Fajl/linija:** `backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts:11–38` i
   `csat/aggregate-ticket-csat.ts:11–13` (korpe po OU/servisu/grupi) nasuprot nula poziva u frontend-u;
@@ -4741,7 +4742,7 @@ jednokoračno odobrenje.
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-### B1 — SREDNJE — Postavka za uska grla ne isključuje ono što korisnik vidi
+### B1 — SREDNJE — Postavka za uska grla ne isključuje ono što korisnik vidi  → ✅ **popravljeno u valu 1 (2026-10-03)**
 
 - **Fajl:** `backend/src/modules/reports/reports.service.ts:155–163` (bottleneck) prema `:183–199`
   (dashboard), `backend/src/modules/settings/definitions/reports-settings.ts:169–176`,
@@ -4758,7 +4759,7 @@ jednokoračno odobrenje.
   ili ukloniti provjeru iz `bottleneck()` ako postavka treba čuvati samo taj API.
 - **Ozbiljnost:** SREDNJE.
 
-### B2 — SREDNJE — Bottleneck izvještaj (razrez po OU/servisu/prioritetu i trend) nema ekran
+### B2 — SREDNJE — Bottleneck izvještaj (razrez po OU/servisu/prioritetu i trend) nema ekran  → ✅ **popravljeno u valu 1 (2026-10-03)**
 
 - **Fajl:** `backend/src/modules/reports/reports.controller.ts:123–130`,
   `backend/src/modules/reports/reports.service.ts:155–181`,
@@ -4776,7 +4777,7 @@ jednokoračno odobrenje.
   uključiti razrez u postojeći pregled.
 - **Ozbiljnost:** SREDNJE.
 
-### B3 — NISKO — Jedna postavka opisana kao „bottleneck“ određuje i period paketa izvještaja
+### B3 — NISKO — Jedna postavka opisana kao „bottleneck“ određuje i period paketa izvještaja  → ✅ **popravljeno u valu 1 (2026-10-03)**
 
 - **Fajl:** `backend/src/modules/reports/reports.service.ts:130–136` (`buildPack`, `mode: 'month'`) i
   `:164–170` (`bottleneck`, `mode: 'rolling'`),
@@ -4809,7 +4810,7 @@ jednokoračno odobrenje.
   Bez izvršioca“) ili ukloniti parametar iz API-ja.
 - **Ozbiljnost:** NISKO.
 
-### B5 — NISKO — Dugme „Izvještaji“ na ploči je trajno onemogućeno uz zastarjelu poruku
+### B5 — NISKO — Dugme „Izvještaji“ na ploči je trajno onemogućeno uz zastarjelu poruku  → ✅ **popravljeno u valu 1 (2026-10-03)**
 
 - **Fajl:** `frontend/src/pages/dashboard-page.tsx:45–56`,
   `frontend/src/lib/navigation.ts:61–66`, i18n `dashboard.reportsActionDisabledHint`
@@ -4825,7 +4826,7 @@ jednokoračno odobrenje.
   ostaviti navigaciju), i obrisati nekorištene ključeve.
 - **Ozbiljnost:** NISKO.
 
-### B6 — NISKO — Grafik zadnjih 14 dana i liste računaju se iz prve strane od 50 tiketa
+### B6 — NISKO — Grafik zadnjih 14 dana i liste računaju se iz prve strane od 50 tiketa  → ✅ **popravljeno u valu 1 (2026-10-03)**
 
 - **Fajl:** `frontend/src/lib/dashboard/use-dashboard-summary.ts:71–90`,
   `frontend/src/lib/dashboard/build-volume-14d.ts:11–25`,
@@ -4905,11 +4906,15 @@ jednokoračno odobrenje.
 | M15 Nadzorna ploča i izvještaji | 8 | 8 | 8 | 0 / 2 / 4 | `user-guide/nadzorna-ploca-i-izvjestaji.md` |
 | **Prosjek (15 modula)** | **7,8** | **8,2** | **7,7** | **1 / 38 / 53** | **15 vodiča** |
 | *M4 poslije vala 0 (2026-10-03)* | *9* | *9* | *8* | *0 / 1 / 3* | *isti vodič* |
+| *M15 poslije vala 1 (2026-10-03)* | *9* | *8* | *9* | *0 / 0 / 3* | *isti vodič* |
+| *M9 poslije vala 1 (2026-10-03)* | *8* | *8* | *8* | *0 / 2 / 2* | *isti vodič* |
 
 Raspodjela ozbiljnosti: **1 VISOKO** (M4 B1 — default mapping rola → permisije se nikad ne upisuje u bazu),
-**38 SREDNJE**, **53 NISKO**, **0 KRITIČNO**. Poslije vala 0 (2026-10-03) jedini `VISOKO` je zatvoren:
-otvoreno je **0 KRITIČNO / 0 VISOKO / 38 SREDNJE / 53 NISKO**, a M4 ide na **F9 / K9 / S8**
-(prosjek F **7,9**); tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+**38 SREDNJE**, **53 NISKO**, **0 KRITIČNO**. Poslije vala 0 (2026-10-03) jedini `VISOKO` je zatvoren i M4
+ide na **F9 / K9 / S8**; poslije vala 1 (2026-10-03) zatvoreno je još **6 nalaza** (M15 B1, B2, B3, B5, B6;
+M9 B3 — prvi dio), pa je otvoreno **0 KRITIČNO / 0 VISOKO / 34 SREDNJE / 51 NISKO** (prosjek poslije
+vala 0 bio je F **7,9**; poslije vala 1 ide na **F 8,0 / K 8,2 / S 7,8**), a tabela iznad zadržava
+prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
 ne u tome da funkcija ne postoji.
@@ -4943,12 +4948,14 @@ modula):
 2. **Zatvoriti puteve na kojima zaštita živi samo u interfejsu:** šablon koji je deaktiviran ili interni
    (M13 B1), zamjena ličnih podataka pri nastanku članka (M14 B1), redakcija sadržaja bulk broadcasta
    (M12 B2), `DRAFT` usluge vidljive svima (M6 B2).
-3. **Popraviti nadzor:** ekran uskih grla (M15 B2), poštovanje postavke (M15 B1), grafik i liste iz
-   servera umjesto prve strane od 50 tiketa (M15 B6) i CSAT po OU/servisu/grupi (M9 B3). Bez toga RAW-ova
-   svrha („identifikacija uskih grla i optimizacija procesa/SLA“) nije ispunjena.
+3. ~~**Popraviti nadzor:** ekran uskih grla (M15 B2), poštovanje postavke (M15 B1), grafik i liste iz
+   servera umjesto prve strane od 50 tiketa (M15 B6) i CSAT po OU/servisu/grupi (M9 B3).~~ ✅ **Isporučeno
+   u valu 1 (2026-10-03)** — vidi `# Val 1 — nadzor i tačnost brojeva`; otvoreni ostaju M15 B4 (mrtav
+   opseg sažetka) i fiksna skala na serijama trendova (dio M9 B3).
 4. **Isporuka tačno jednom i alarm kanala e-pošte** (M12 B1, uz B2/B3): zaglavljen zahtjev danas trajno
    gubi e-mail, a nema mjerenja koje bi to pokazalo.
-5. **Ukloniti mrtve površine i zastarjele upute** (M15 B5, M9 B4, M8 B3, M7 B2, `roleSource`): jeftino,
+5. **Ukloniti mrtve površine i zastarjele upute** (~~M15 B5~~ ✅ val 1, M15 B4, M9 B4, M8 B3, M7 B2,
+   `roleSource`): jeftino,
    a svaka od njih je već jednom zavarala pri čitanju koda ili ekrana.
 6. **Dodati e2e pokrivenost za module koji je nemaju** (M14 portal, M15 nadzorna ploča, M12 pošta) i
    serverske testove za servise bez njih (M13). Nalazi tipa B4/B5 (statistika prije upisa, mrtva kolona)
@@ -4959,7 +4966,7 @@ modula):
 | Val | Sadržaj | Nalazi / gapovi | Procjena |
 |---|---|---|---|
 | **0 — odmah** | Default mapping rola → permisije u instalaciji + test | M4 B1 | ~0,5 RD |
-| **1 — nadzor i tačnost brojeva** | Ekran uskih grla u `/reports`; postavka koja stvarno isključuje prikaz; grafik i liste iz server agregata; CSAT po OU/servisu/grupi; link umjesto onemogućenog dugmeta | M15 B1, B2, B3, B5, B6; M9 B3; M15 gapovi (OU razrez, opterećenje admina) | ~4–5 RD |
+| **1 — nadzor i tačnost brojeva** ✅ **isporučen 2026-10-03** | Ekran uskih grla u `/reports`; postavka koja stvarno isključuje prikaz; grafik i liste iz server agregata; CSAT po OU/servisu/grupi; link umjesto onemogućenog dugmeta | M15 B1, B2, B3, B5, B6; M9 B3 (prvi dio) — zatvoreno; otvoreno: M15 B4, fiksna skala na trendovima (dio M9 B3), „opterećenje admina“ | ~4–5 RD (stvarno: ~1 RD) |
 | **2 — sigurnost i vidljivost** | Serverska provjera šablona pri slanju; zamjena ličnih podataka i pri upisu članka; redakcija broadcasta; `DRAFT` samo adminima; kapija odobrenja za `UNROUTED` i obavještenje odobravaocima; retention priloga; eskalacije s ciljevima i retroaktivni satovi | M13 B1; M14 B1; M12 B2; M6 B2; M9 B1, B2; M8 B1; M10 B1, B2, B4 | ~5–6 RD |
 | **3 — pouzdanost i skaliranje** | Isporuka e-pošte „tačno jednom“ s alarmom; SMTP pooling; članstvo u soba­ma iz baze i rate limit za `ticket:join`; rate limiter broadcasta u Redis; paginacija i limiti na listama (KB, šabloni, pickers) | M12 B1, B3, B4; M11 B1, B2; M8 B2; M14 B5; M13 B2 | ~4–5 RD |
 | **4 — testovi i CI** | e2e za portal znanja, nadzornu ploču i poštu; spec za servise šablona i bottleneck | M14, M15, M12 gapovi; M13 gapovi | ~2–3 RD |
@@ -4967,6 +4974,7 @@ modula):
 
 Ukupno za valove 0–4 (ono što je ispod „opsega“): **oko 16–20 RD**, od čega se valovi 0 i 1 mogu
 zatvoriti u jednoj iteraciji. **Val 0 je zatvoren 2026-10-03** (M4 B1 — default mapping rola → permisije),
+a **val 1 je isporučen istog dana** (M15 B1, B2, B3, B5, B6; M9 B3 — prvi dio; ~1 RD stvarnog rada),
 a **CI provjera dokumentacije** (frontmatter, jedinstveni slugovi, veze, slike, anchori, slugovi iz mape
 ekran→stranica i sinhronizacija ogledala) uvedena je u **Fazi 3, koracima (b) i (d)**, pa je ne treba
 ponovo planirati; dio vala 4 koji ostaje su isključivo e2e testovi i specovi servisa. Val 5 je širenje funkcionalnosti, ne popravka, pa ide kroz redovni
@@ -5294,3 +5302,62 @@ Docs modul je isporučen u četiri koraka: (a) dizajn i kriteriji, (b) sadržaj,
 UI sa pretragom i filterom, (d) Faza 2 modula, pravilo i evidencija. Kriteriji prihvatanja 1–9 su označeni u
 `docs/DOCS_MODULE.md` §12 uz napomenu šta je dokazano kako. Sljedeće na redu su **popravke po valovima 1–5** iz
 zaključka Faze 2 (`# Zaključak Faze 2`, §4), a prije njih — po potrebi — živa provjera modula na stagingu.
+
+---
+
+# Val 1 — nadzor i tačnost brojeva (2026-10-03)
+
+Prvi val popravki iz zaključka Faze 2 (`# Zaključak Faze 2`, §4): šest nalaza koji su svi govorili isto —
+**nadzorni ekrani nisu prikazivali ono što server već zna, a dio brojeva se računao iz pogrešnog uzorka.**
+
+## 1. Šta je popravljeno
+
+| Nalaz | Popravka | Dokaz (kod) |
+|---|---|---|
+| **M15 B1** (`SREDNJE`) — postavka uskih grla nije isključivala prikaz | `ReportsDashboard` nosi `bottlenecksEnabled`; sa isključenom postavkom `dashboard()` ne računa razrez, a UI **ne renderuje** karticu (umjesto praznog stanja koje izgleda kao „nema podataka“) | `backend/src/modules/reports/dashboard/build-reports-dashboard.ts:41,81–88,127–137`, `reports/dashboard/report-dashboard.cache.ts:110–126`, `frontend/src/lib/reports/map-report-dashboard-charts.ts:17–30` (`showBottleneckChart`), `frontend/src/components/reports/reports-charts.tsx:49–51` (kapija), `frontend/src/pages/reports-page.tsx:392` |
+| **M15 B2** (`SREDNJE`) — `GET /reports/bottlenecks` nije imao ekran | Novi tab **Uska grla**: četiri brojača, razrez po OU/servisu/prioritetu i dnevni trend, uz isti period i OU opseg; isključena postavka se prikazuje kao stanje („Prikaz uskih grla je isključen“), ne kao greška | `frontend/src/components/reports/reports-bottlenecks-panel.tsx` (nov, 207 r.), `frontend/src/lib/reports/bottleneck-view.ts` (nov, 72 r.), `frontend/src/services/reports-api.ts:75–88` (`fetchBottlenecks`), `frontend/src/pages/reports-page.tsx:56–68,271,326` |
+| **M15 B3** (`NISKO`) — jedna postavka je tiho pomjerala i pakete | Razdvojeno: **`private.reports.defaultWindowDays`** (novo, period paketa) i postojeći `private.dashboard.bottlenecks.defaultWindowDays` (uska grla i pregled); starije instalacije bez novog ključa zadržavaju staro ponašanje (fallback) | `backend/src/modules/settings/setting-keys.ts:442`, `settings/definitions/reports-settings.ts:26,171–181`, `reports/parse-reports-configuration.ts:29,63–67`, `reports/reports-configuration.loader.ts:34–36`, `reports/reports.service.ts:134` |
+| **M15 B5** (`NISKO`) — trajno onemogućeno dugme „Izvještaji“ i mrtvi prijevodi | Dugme je sada **link** na `/reports` i prikazuje se samo onima koji smiju otvoriti izvještaje (`canOpenReports`); obrisana tri nekorištena ključa (`dashboard.reportsActionDisabledHint`, `reports.exportAction`, `reports.exportDisabledHint`) | `frontend/src/pages/dashboard-page.tsx:19–58`, `frontend/src/i18n/locales/{bs,en}/common.json` |
+| **M15 B6** (`NISKO`) — liste i grafik iz prve strane od 50 tiketa | Liste sada imaju **vlastite serverske upite sa malim `take`**: nedavni (`createdAt desc`, 8), SLA nadzor (`overdue=true`, 5), pažnja (dodijeljeni meni i bez izvršioca, otvoreni statusi, 8+8); grafik je vezan na period (`createdFrom`) i **označen kao donja granica** kad stranica nije dovoljna | `frontend/src/lib/dashboard/use-dashboard-summary.ts:106–170`, `frontend/src/lib/dashboard/compose-dashboard-summary.ts`, `frontend/src/lib/dashboard/build-volume-14d.ts:11` (`dashboardVolumePageSize = 100`), `frontend/src/components/dashboard/dashboard-charts.tsx` |
+| **M9 B3** (`SREDNJE`) — CSAT razrez postoji ali ga UI ne koristi; skala hardkodirana | Novi tab **CSAT** (prosjek na važećoj skali, uzorak, prag zadovoljan, razrez po OU/servisu/grupi); `GET /tickets/csat/summary` sada vraća `scaleMax` i `satisfiedMinRating` (80 % skale); KPI „CSAT (zadovoljstvo)“ na pregledu koristi `private.csat.scaleMax` umjesto konstante 5 | `backend/src/modules/tickets/csat/aggregate-ticket-csat.ts:4–12,46–48`, `csat/csat.types.ts:44–51`, `csat/summarize-visible-ticket-csat.ts:21,44`, `csat/tickets-csat.service.ts:65–74`, `reports/parse-reports-configuration.ts:31,67,76–88`, `reports/dashboard/aggregate-report-dashboard-kpis.ts:15,51,67,85`, `frontend/src/components/reports/reports-csat-panel.tsx` (nov, 158 r.), `frontend/src/lib/reports/csat-view.ts` (nov, 45 r.), `frontend/src/services/tickets-csat-api.ts:4–37` |
+
+**Nove i izmijenjene stranice u vodiču:** `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — novi tabovi
+**Uska grla** i **CSAT**, novo ponašanje liste i grafikona na ploči, razdvojene postavke perioda i skala
+CSAT-a; „Poznata ograničenja“ svedena na ono što **ostaje** otvoreno.
+
+## 2. Dokazi (izvršeno 2026-10-03 u ovom okruženju)
+
+- **Backend:** `NODE_OPTIONS=--max-old-space-size=4096 npx jest --runInBand` → **498 prošlo / 5 preskočeno
+  suitea, 2363 testa prošla / 31 preskočen, 0 padova**.
+- **Frontend:** `npx tsc -b` i `npm run build` bez grešaka; `npx vitest run` → **156 fajlova / 617 testova,
+  0 padova** (prije vala 1: 151 / 594).
+- **Novi testovi:** backend — `parse-reports-configuration.spec.ts` (razdvajanje prozora + CSAT skala),
+  `dashboard/build-reports-dashboard.spec.ts` (isključena postavka prazni razrez, `bottleneck()` odbija sa
+  `BOTTLENECKS_DISABLED`), `tickets/csat/aggregate-ticket-csat.spec.ts` (prag po skali); frontend —
+  `lib/reports/map-report-dashboard-charts.spec.ts` (4), `lib/reports/bottleneck-view.spec.ts` (4),
+  `lib/reports/csat-view.spec.ts` (4), prepisan `lib/dashboard/compose-dashboard-summary.spec.ts` (6).
+- **Statičke provjere:** svih **8 `scripts/check-*.mjs`** prolazi, uključujući `check-docs-content`
+  (29 stranica) poslije regeneracije ogledala (`node scripts/generate-docs-content.mjs`).
+
+## 3. Šta ostaje otvoreno iz vala 1
+
+| # | Nalaz | Zašto nije zatvoren | Procjena |
+|---|---|---|---|
+| 1 | **M15 B4** (`NISKO`) — opseg sažetka (`scope`) postoji u API-ju i kešu, ali ga klijent ne koristi | Popravka je UX odluka (odvojena ploča po opsegu ili mrtva površina u API-ju), pa traži izbor vlasnika; zabilježeno i u vodiču kao **poznato ograničenje** | ~0,5 RD |
+| 2 | **M9 B3, drugi dio** — serije na tabu **Trendovi** i dalje koriste konstantu (`reportCsatScaleMax = 5`, `reportCsatSatisfiedMinRating = 4`), uključujući SQL izvor | Prag ulazi u SQL izvor i u keš trendova, pa promjena zahtijeva i reviziju keš ključa; prikaz i prag na **Pregledu** i **CSAT-u** su već vezani na postavku | ~1 RD |
+
+## 4. Re-ocjena modula M15 i M9
+
+| Modul | Prije | Poslije | Obrazloženje |
+|---|---|---|---|
+| **M15 — Nadzorna ploča** | F 8 / K 8 / S 8 | **F 9 / K 8 / S 9** | Funkcionalnost: usko grlo je konačno na ekranu, postavke stvarno djeluju, liste su tačne (B1, B2, B5, B6). Kvalitet: ostaje B4 (mrtva površina opsega) i grafik koji se broji u pregledaču; zato ocjena ostaje 8. Sigurnost: nema više tihog zaobilaženja administratorske postavke, a prikaz uskih grla traži isto pravo kao i API. |
+| **M9 — Odobrenja i CSAT** | F 6 / K 8 / S 8 | **F 8 / K 8 / S 8** | Funkcionalnost: RAW-ov zahtjev „CSAT po OU/servisu/grupi“ je ispunjen, a skala i prag dolaze iz konfiguracije; ostaje fiksna skala na serijama trendova (dokumentovano). |
+
+Preostali otvoreni nalazi iz ovih modula: **M15 B4** (`NISKO`), **M9 B1/B2** i dio **M9 B3** — svi su
+navedeni u §3 ili u redu prioriteta; nijedan nije KRITIČNO ni VISOKO, pa val 2 može početi neovisno.
+
+## 5. Sljedeće
+
+Val 2 — **sigurnost i vidljivost** (`# Zaključak Faze 2`, §4): serverska provjera šablona pri slanju
+(M13 B1), zamjena ličnih podataka pri upisu članka (M14 B1), redakcija broadcasta (M12 B2), `DRAFT` samo
+adminima (M6 B2), kapija odobrenja za `UNROUTED` (M9 B1)... redoslijed je u tabeli valova.

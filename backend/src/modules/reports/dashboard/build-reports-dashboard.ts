@@ -33,6 +33,12 @@ export type ReportsDashboard = {
   readonly previousWindow: { readonly from: string; readonly to: string };
   readonly ticketCount: number;
   readonly kpis: ReportDashboardKpis;
+  /**
+   * Val 1 (M15/B1): postavka `private.dashboard.bottlenecks.enabled` mora
+   * stvarno isključiti i **podatke** i prikaz, ne samo `GET /reports/bottlenecks`.
+   * Zato odgovor nosi i zastavicu, da UI zna zašto je lista prazna.
+   */
+  readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
@@ -72,8 +78,15 @@ export async function buildReportsDashboard(input: {
         to: previousWindow.to.toISOString(),
       },
       ticketCount: aggregates.ticketCount,
-      kpis: reportDashboardKpisFromTotals({ ...aggregates.kpis, kbHelpedCount }),
-      bottleneckByGroup: rankBottleneckBars(aggregates.groups, unroutedLabel),
+      kpis: reportDashboardKpisFromTotals({
+        ...aggregates.kpis,
+        kbHelpedCount,
+        csatScaleMax: input.configuration.csatScaleMax,
+      }),
+      bottlenecksEnabled: input.configuration.bottlenecksEnabled,
+      bottleneckByGroup: input.configuration.bottlenecksEnabled
+        ? rankBottleneckBars(aggregates.groups, unroutedLabel)
+        : [],
       serviceVolume: rankNamedBars(
         aggregates.services.map((service) => ({
           key: service.key,
@@ -117,13 +130,17 @@ export async function buildReportsDashboard(input: {
       window,
       previousWindow,
       kbHelpedCount,
+      csatScaleMax: input.configuration.csatScaleMax,
     }),
-    bottleneckByGroup: aggregateBottleneckHoursByGroup({
-      tickets,
-      window,
-      groupNames,
-      unroutedLabel,
-    }),
+    bottlenecksEnabled: input.configuration.bottlenecksEnabled,
+    bottleneckByGroup: input.configuration.bottlenecksEnabled
+      ? aggregateBottleneckHoursByGroup({
+          tickets,
+          window,
+          groupNames,
+          unroutedLabel,
+        })
+      : [],
     serviceVolume: aggregateServiceVolume({
       tickets,
       window,

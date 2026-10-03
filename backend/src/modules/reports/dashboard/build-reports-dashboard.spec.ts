@@ -55,10 +55,52 @@ describe('ReportsService.dashboard', () => {
     expect(dashboard.kpis.firstResponseMinutes).toBe(30);
     expect(dashboard.kpis.resolutionHours).toBe(6);
     expect(dashboard.kpis.resolutionSampleCount).toBe(1);
+    expect(dashboard.bottlenecksEnabled).toBe(true);
     expect(dashboard.bottleneckByGroup[0]?.value).toBe(6);
     expect(dashboard.serviceVolume[0]?.value).toBe(2);
     expect(dashboard.aging.lessThanOneDay + dashboard.aging.oneToThreeDays).toBe(
       1,
     );
+  });
+
+  it('isključena postavka uskih grla prazni razrez i nosi zastavicu (val 1, M15/B1)', async () => {
+    const harness = createReportsServiceHarness({ bottlenecksEnabled: false });
+    harness.memory.tickets.set(
+      't-resolved',
+      reportTicketSeed({
+        id: 't-resolved',
+        originUnitId: ticketsTestIds.ouIt,
+        status: 'RESOLVED',
+        createdAt: new Date('2026-09-10T08:00:00.000Z'),
+        resolvedAt: new Date('2026-09-10T14:00:00.000Z'),
+        assignedGroupId: ticketsTestIds.groupIt,
+      }),
+    );
+    const dashboard = await harness.reports.dashboard(
+      {
+        organizationalUnitId: ticketsTestIds.ouIt,
+        from: '2026-09-01T00:00:00.000Z',
+        to: '2026-09-15T23:59:59.999Z',
+      },
+      now,
+    );
+
+    expect(dashboard.bottlenecksEnabled).toBe(false);
+    expect(dashboard.bottleneckByGroup).toEqual([]);
+    // Ostali dijelovi pregleda se ne mijenjaju.
+    expect(dashboard.ticketCount).toBe(1);
+    expect(dashboard.serviceVolume[0]?.value).toBe(1);
+
+    // I sam API uskih grla vraća svoju grešku kad je postavka isključena.
+    await expect(
+      harness.reports.bottleneck(
+        {
+          organizationalUnitId: ticketsTestIds.ouIt,
+          from: '2026-09-01T00:00:00.000Z',
+          to: '2026-09-15T23:59:59.999Z',
+        },
+        now,
+      ),
+    ).rejects.toMatchObject({ code: 'BOTTLENECKS_DISABLED' });
   });
 });

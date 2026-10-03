@@ -7,6 +7,26 @@ import type {
 
 export const reportHoursSuffix = "h";
 
+/**
+ * Val 1 (M15/B1): koje sekcije pregleda izvještaja ima smisla crtati.
+ * Postavka `private.dashboard.bottlenecks.enabled` mora važiti i za prikaz —
+ * server tada vraća prazan razrez, a ovdje se kartica uopšte ne renderuje
+ * (umjesto praznog stanja koje izgleda kao „nema podataka“).
+ */
+export function dashboardChartSections(dashboard: {
+  readonly bottlenecksEnabled: boolean;
+}): readonly ("bottleneck" | "volume" | "flow")[] {
+  return dashboard.bottlenecksEnabled
+    ? ["bottleneck", "volume", "flow"]
+    : ["volume", "flow"];
+}
+
+export function showBottleneckChart(dashboard: {
+  readonly bottlenecksEnabled: boolean;
+}): boolean {
+  return dashboardChartSections(dashboard).includes("bottleneck");
+}
+
 export type ReportAgingLabels = {
   readonly lessThanOneDay: string;
   readonly oneToThreeDays: string;

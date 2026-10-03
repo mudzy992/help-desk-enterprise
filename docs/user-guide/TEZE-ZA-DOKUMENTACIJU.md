@@ -1247,12 +1247,14 @@ To je kriterij kompletnosti.
 - **Zašto:** CSAT je KPI menadžmenta i mora biti vezan za organizaciju, ne samo za pojedinačni tiket.
 - **Primjer:** Prosjek po servisu pokazuje da „Pristup mreži“ ima nižu ocjenu od „Opreme“.
 - **Postavke / permisije:** rola `agent|admin|superAdmin`; vidljivost iz OU/servis scope-a i povjerljivosti.
-- **Ekran:** trenutno bez ekrana — podatke vraća API (`GET /tickets/csat/summary`); u aplikaciji su vidljivi
-  **ukupan** prosjek i broj ocjena na izvještajima.
+- **Ekran:** **Izvještaji → CSAT** (kartice prosjek/uzorak/prag + razrez po jedinici, servisu i grupi); KPI
+  kartica **CSAT** na tabu **Pregled** nosi ukupan prosjek. Skala i prag dolaze iz postavke
+  (`private.csat.scaleMax`, prag = 80 % skale).
 - **Izvori:** `backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts:11–38`,
   `csat/aggregate-ticket-csat.ts:4–43`, `csat/csat.types.ts:34–48`,
   `csat/tickets-csat-summary.controller.ts:20–42`.
-- **Status:** Važi na serveru (uz B3: nijedan ekran ne prikazuje korpe, a izvještaji hardkodiraju skalu 5)
+- **Status:** Važi; korpe su prikazane od vala 1 (2026-10-03). Ostaje da serije na tabu **Trendovi** koriste
+  konstantu 5 / prag 4 (preostali dio nalaza B3).
 - **Wiki stranica:** Odobrenja i CSAT → CSAT u izvještajima
 
 ### T62 — SLA rok se računa u radnom vremenu i od kreiranja tiketa
@@ -1909,11 +1911,13 @@ To je kriterij kompletnosti.
 - Keš je **60 sekundi** po korisniku i opsegu (ključ nosi i vremensku zonu jer brojač „danas“ zavisi od
   nje), uz spajanje istovremenih promašaja; pad keša je promašaj, nikad greška. Plan je dozvoljavao 15–30 s,
   ali je poslije k6 mjerenja (100 000 tiketa) vlasnik odobrio 60 s.
-- **Pogledi** (grafik zadnjih 14 dana, SLA nadzor, „Tiketi koji zahtijevaju vašu pažnju“, „Nedavni tiketi“)
-  dolaze iz prve strane liste (`pageSize: 50`), pa mogu potcijeniti stanje kad korisnik ima više od 50
-  vidljivih tiketa (B6). Opseg `scope` API podržava, ali ga ekran uvijek šalje kao `all` (B4).
-- Dugme **Izvještaji** u zaglavlju ploče je trajno onemogućeno uz tekst „Izvještaji će biti dostupni kad se
-  doda ruta.“, iako ruta `/reports` postoji (B5).
+- **Pogledi** (SLA nadzor, „Tiketi koji zahtijevaju vašu pažnju“, „Nedavni tiketi“) dolaze iz **ciljanih
+  serverskih upita sa malim `take`** (8/5/8+8), pa tiket izvan prvog ekrana ne može nestati s liste
+  (popravljeno u valu 1, B6). **Grafik zadnjih 14 dana** se i dalje broji u pregledaču iz jedne stranice
+  (do 100 zapisa) i nosi oznaku „donja granica“ (`volumeTruncated`). Opseg `scope` API podržava, ali ga
+  ekran uvijek šalje kao `all` (B4, otvoreno).
+- Dugme **Izvještaji** u zaglavlju ploče je sada **link** na `/reports` i prikazuje se samo onima koji smiju
+  otvoriti izvještaje (`canOpenReports`); mrtvi prijevodi su uklonjeni (popravljeno u valu 1, B5).
 - **Izvori:** `backend/src/modules/reports/report-summary.controller.ts`,
   `report-summary.service.ts:24–34,36–47,145–153,155–181`,
   `summary/report-summary-cache.ts:2–22`, `summary/load-dashboard-summary-counts.ts:53`,
@@ -1921,7 +1925,7 @@ To je kriterij kompletnosti.
   `frontend/src/lib/dashboard/build-volume-14d.ts:11–25`,
   `frontend/src/lib/dashboard/dashboard-ticket-sets.ts:13–14,28–35`,
   `frontend/src/pages/dashboard-page.tsx:39–124`, i18n `dashboard.*`.
-- **Status:** Važi (uz B4, B5, B6)
+- **Status:** Važi (uz B4; B5 i B6 zatvoreni u valu 1, 2026-10-03)
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 1
 
 ### T96 — SLA nadzor i grupni inbox na ploči
@@ -1946,10 +1950,11 @@ To je kriterij kompletnosti.
 
 - Tab **Pregled** (`GET /reports/dashboard`) prikazuje KPI kartice **Kreirano (period)**, **Prosj. prvi
   odgovor**, **Prosj. rješenje**, **CSAT (zadovoljstvo)** i **KB resolution rate**.
-- Uz svaki prosjek ide **broj uzoraka**; CSAT je na skali 1–5; **KB resolution rate** je
-  *pomoglo u interceptu / (pomoglo + kreirani tiketi)* sa ciljem **≥ 30 %** u opisu kartice.
+- Uz svaki prosjek ide **broj uzoraka**; CSAT je na skali iz `private.csat.scaleMax` (2–10, zadano 5) i KPI
+  kartica prikazuje tu skalu (val 1); **KB resolution rate** je *pomoglo u interceptu / (pomoglo + kreirani
+  tiketi)* sa ciljem **≥ 30 %** u opisu kartice.
 - „Kreirano“ nosi promjenu prema **prethodnom periodu iste dužine**; podrazumijevani period je 30 dana i
-  dolazi iz postavke koju dijeli s uskim grlima (B3).
+  dolazi iz vlastite postavke `private.reports.defaultWindowDays` (val 1; prije je dijeljena s uskim grlima).
 - Grafikoni pregleda: uska grla po grupi (prosječno rješenje, oznaka „usko grlo“), obim po usluzi, tok i
   starenje backloga, starost otvorenih tiketa; dugme **Izvezi PDF** otvara dijalog za štampu i bilježi
   `report.pdf.exported`.
@@ -1959,7 +1964,7 @@ To je kriterij kompletnosti.
   `dashboard/aggregate-report-dashboard-kpis.ts:4–18,63–87`, `reports.controller.ts:96–121,151–189`,
   `settings/definitions/reports-settings.ts:26–32`, `frontend/src/components/reports/reports-metric-grid.tsx:33–112`,
   `frontend/src/components/reports/reports-charts.tsx:42–112`; plan 2.5 §2.1, §13.3.
-- **Status:** Važi (uz B3)
+- **Status:** Važi (B3 zatvoren u valu 1 za period; skala CSAT-a na ovom tabu poštuje postavku)
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3
 
 ### T98 — Trendovi: serije, granularnost i izvoz
@@ -2009,18 +2014,19 @@ To je kriterij kompletnosti.
 - `GET /reports/bottlenecks` vraća brojače `PENDING_APPROVAL`, `WAITING_FOR_USER`, `UNROUTED` i
   `OVERDUE`, razrez po **organizacionoj jedinici, servisu i prioritetu** te **dnevni trend** (UTC dan,
   prema datumu kreiranja) — tačno ono što RAW traži za identifikaciju uskih grla.
-- Postavka `private.dashboard.bottlenecks.enabled` provjerava se **samo** u tom endpointu; grafik u
-  pregledu izvještaja („Bottleneck: prosj. rješenje po grupi“) čita se iz `GET /reports/dashboard` i ne
-  poštuje je (B1). Postavka `defaultWindowDays` dijeli se s paketima izvještaja (B3).
-- Frontend **nema** ni funkciju klijenta ni komponentu za ovu rutu, pa se brojači i razrez mogu vidjeti
-  samo ručno, preko API-ja (B2); RAW-ova svrha („identifikacija uskih grla i optimizacija procesa/SLA“)
-  time nije dovršena do ekrana. Nijedan plan (1.6 ni 2.5) ne predviđa taj ekran.
+- Postavka `private.dashboard.bottlenecks.enabled` poštuje se i u tom endpointu **i** u prikazu: kad je
+  isključena, `GET /reports/dashboard` vraća `bottlenecksEnabled: false`, grafik „Bottleneck“ se ne
+  renderuje, a tab **Uska grla** prikazuje stanje sa objašnjenjem (popravljeno u valu 1, B1). Period je
+  razdvojen: `private.reports.defaultWindowDays` za pakete, `…bottlenecks.defaultWindowDays` za uska grla
+  (B3 — zatvoreno).
+- Frontend **ima** tab **Uska grla** u `/reports` (četiri brojača, razrez po OU/servisu/prioritetu, dnevni
+  trend, isti period i OU opseg) — RAW-ova svrha je dovršena do ekrana (popravljeno u valu 1, B2).
 - **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
   `reports.service.ts:155–181`, `bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
   `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`,
   `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
-- **Status:** Važi (uz B1, B2, B3)
-- **Wiki stranica:** Nadzorna ploča i izvještaji → Poznata ograničenja
+- **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03) — vidi `REVIEW_ANALIZA.md#Val 1`.
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
 
 ### T101 — Zakazani izvještaji: raspored, primaoci i historija
 
@@ -2208,3 +2214,52 @@ To je kriterij kompletnosti.
 - Liste u Teamsu su kratke (5 za korisnika, 10 za agenta); ispod je „Prikazano X od Y“ i dugme „Otvori sve u aplikaciji“ s istim filterom.
 - `pomoć` pokazuje samo komande koje korisnik smije koristiti.
 - Kad je uključen KB intercept, Teams formular za novi tiket ima dugme „Dalje“: ako postoje članci za servis, bot prvo ponudi do 3 članka i dugmad „Riješeno, ne treba tiket“ (bilježi se kao skretanje, isto kao na webu) i „Ipak kreiraj tiket“; bez članaka tiket se kreira odmah. Isto vrijedi za „Kreiraj tiket iz poruke“.
+
+### T102 — Tab CSAT: prosjek, uzorak i razrez po jedinici, servisu i grupi
+
+- **Modul / paket:** Nadzorna ploča i izvještaji (M15) + Odobrenja i CSAT (M9)
+- **Publika:** ADMIN / SUPER_ADMIN s pravom izvoza
+- **Tip:** Pravilo
+- **Teza:** Tab **CSAT** u `/reports` čita `GET /tickets/csat/summary` i prikazuje **prosječnu ocjenu na
+  važećoj skali**, **broj ocjena**, **prag zadovoljan** (80 % skale; na 5 → 4, na 10 → 8) i razrez po
+  **organizacionoj jedinici, servisu i grupi** — svaki red nosi prosjek, veličinu uzorka i oznaku **ispod
+  praga** kad je prosjek ispod granice. Razrez poštuje vidljivost tiketa aktera, ali **ne** filtrira po
+  periodu (API nema parametre); za serije kroz vrijeme služi tab **Trendovi**.
+- **Zašto:** RAW traži CSAT po OU/servisu/grupi; agregacija je postojala u servisu bez ijednog ekrana, pa
+  menadžment nije imao gdje vidjeti razliku između organizacionih jedinica.
+- **Primjer:** Prosjek 4,2 na skali 5 uz 12 ocjena za jednu jedinicu i 2,0 uz 2 ocjene za drugu; mali uzorak
+  je vidljiv kao broj, a ne skriven.
+- **Postavke / permisije:** `private.csat.scaleMax`; ruta `/reports` (pravo `reports.export`/`audit.export`),
+  `GET /tickets/csat/summary` traži rolu `agent|admin|superAdmin`.
+- **Ekran:** **Izvještaji → CSAT**.
+- **Izvori:** `backend/src/modules/tickets/csat/aggregate-ticket-csat.ts` (`satisfiedMinRating`),
+  `csat/csat.types.ts`, `csat/tickets-csat-summary.controller.ts`,
+  `frontend/src/components/reports/reports-csat-panel.tsx`,
+  `frontend/src/lib/reports/csat-view.ts`, `frontend/src/services/tickets-csat-api.ts`.
+- **Status:** Važi (isporučeno u valu 1, 2026-10-03)
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3b (CSAT razrez)
+
+### T103 — Tab Uska grla: brojači, razrez i dnevni trend
+
+- **Modul / paket:** Nadzorna ploča i izvještaji (M15)
+- **Publika:** ADMIN / SUPER_ADMIN s pravom izvoza
+- **Tip:** Pravilo
+- **Teza:** Tab **Uska grla** čita `GET /reports/bottlenecks` (rola `admin|superAdmin` + pravo izvoza) i
+  prikazuje **četiri brojača** (čeka odobrenje, čeka korisnika, neusmjereno, prekoračeno), **tri razreza**
+  (organizaciona jedinica, servis, prioritet) i **dnevni trend** (novi tiketi po danu i stanja zastoja), uz
+  isti **period** i **OU opseg** kao tab Pregled. Kad je postavka
+  `private.dashboard.bottlenecks.enabled` isključena, endpoint ne vraća razrez, tab prikazuje stanje sa
+  objašnjenjem, a grafik „Bottleneck“ u pregledu se ne renderuje.
+- **Zašto:** RAW („gdje tiketi stoje“, razrez po OU/servisu/prioritetu, trend) nije bio vidljiv nijednom
+  korisniku iako je API postojao.
+- **Primjer:** 14 tiketa prekoračeno, najviše u servisu „Pristup mreži“; trend pokazuje rast zastoja u
+  zadnjoj sedmici.
+- **Postavke / permisije:** `private.dashboard.bottlenecks.enabled`,
+  `private.dashboard.bottlenecks.defaultWindowDays`; rola `admin|superAdmin` + `reports.export`/`audit.export`.
+- **Ekran:** **Izvještaji → Uska grla**.
+- **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
+  `reports/bottleneck/aggregate-bottleneck-dashboard.ts`,
+  `frontend/src/components/reports/reports-bottlenecks-panel.tsx`,
+  `frontend/src/lib/reports/bottleneck-view.ts`, `frontend/src/services/reports-api.ts`.
+- **Status:** Važi (isporučeno u valu 1, 2026-10-03)
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
