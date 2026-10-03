@@ -450,3 +450,54 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   `backend/src/modules/ops-health/evaluate-ops-signals.ts`; te frontend (`pages/sla-page.tsx`,
   `components/sla/*`, `components/tickets/ticket-sla-panel.tsx`, `lib/sla/*`, `services/sla-api.ts`,
   `lib/session/route-access.ts`) i e2e `tests/07-sla.spec.ts`.
+
+---
+
+## M11 — Realtime i obavještenja (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/realtime-i-obavjestenja.md` — novi vodič: čemu modul služi, kome je namijenjen (tabela
+  rola), kako se dolazi (zvono → panel, filteri **Sve**/**Nepročitane**, **Označi sve**), korak-po-korak
+  (pregled, označavanje pročitanog, šta se osvježava samo, kada obavještenje izostane), tabele tipova
+  obavještenja i sadržaja/privatnosti (povjerljiv tiket nosi samo broj, interna bilješka ide samo spomenutima),
+  ponašanje pri padu veze (fallback 30 s), česta pitanja i poznata ograničenja (**B1–B5** + ograničenje broja
+  na 1000) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M11 — planirano/idealno/preporuka, stanje u kodu (transport i autentikacija, sobe i
+  emit, skaliranje i bridge, in-app model i keš, frontend, testovi), gap tabela sa 17 redova, recenzija,
+  nalazi **B1–B5**, ocjene **F8 / K9 / S8** i **novi red tabele iteracija 3** („M11 ✅ · M12 u toku“).
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T68–T73**: arhitektura kanala i soba; autentikacija i pravila pristupa;
+  model vidljivosti obavještenja i „pročitano“; fan-out i sadržaj; fallback pri padu veze; operativni zahtjevi
+  (više instanci, metrike, rollout, retencija).
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Najvažnije je objasniti **razliku između ličnog i grupnog obavještenja** (i zašto se grupno vidi jednom), da
+  se **sopstvene radnje ne obavještavaju**, da **interna bilješka** obavještava samo spomenute i da
+  **povjerljiv tiket** u obavještenju nosi samo broj. Uz to su navedena stvarna ograničenja (B1–B5): prava se u
+  aktivnoj vezi ne provjeravaju ponovo, ulazak u sobu tiketa nije ograničen, metrika veze nema alarm, prelazni
+  režim je uključen po defaultu i postoji mrtvi izvoz u klijentu.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/websocket/*` (38 `.ts`, 13 spec — gateway-i,
+  `socket-authentication.*`, `jwt-socket-authentication.verifier.ts`, `ticket-socket-rooms.ts`,
+  `broadcast-*-realtime.ts`, `group-feed-change.ts`, `websocket-emit-counter.ts`, `ws-redis-adapter.ts`),
+  `backend/src/modules/notifications/*` (26 spec — `notifications.controller.ts`, `notifications.service.ts`,
+  `notification-audience.ts`, `count-unread-notifications.ts`, `mark-notification-read.ts`,
+  `unread-count-cache.ts`, `fan-out/*`, `notification-retention.constants.ts`),
+  `backend/src/modules/tickets/ticket-realtime.{hub,types,bridge.*,redis-forwarder}.ts`,
+  `backend/src/modules/integration-queue/edge-event-realtime.subscriber.ts`,
+  `backend/src/common/{cors/resolve-cors-origin,admin-realtime/*}.ts`,
+  `backend/src/modules/settings/to-settings-realtime-payload.ts`, `backend/src/worker.module.ts`,
+  te frontend (`services/helpdesk-socket.ts`, `services/ticket-socket.ts`, `lib/realtime/*`,
+  `lib/notifications/use-inbox-notifications.ts`, `components/layout/notifications-*.tsx`) i e2e
+  (`tests/04-realtime-notifications.spec.ts`, `tests/15-workflow-unrouted-realtime.spec.ts`).

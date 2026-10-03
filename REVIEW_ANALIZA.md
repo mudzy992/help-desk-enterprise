@@ -24,6 +24,7 @@
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
+| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 u toku |
 
 ---
 
@@ -3056,3 +3057,336 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Sve ključne RAW stavke rade (BH kalendari, pravila, pauze, eskalacije, CRUD, audit, config-verzije, skener sa `nextDueAt`); minus za B1 (eskalacija bez primaoca), B2 (nema retroaktivnog starta), B3 (izvještaj samo po profilu i samo terminalni) i B4. |
 | **Kvalitet koda** | **9/10** | Čista podjela čistih funkcija i Prisma sloja, tipizovano, kodovi grešaka + mapiranje, komentari koji objašnjavaju odluke, 24 spec fajla, transakcioni upisi i optimizovan skener; jedina zamjerka je log uzorka (B5) i vezivanje `firstResponseAt` za ovaj modul. |
 | **Sigurnost** | **8/10** | Sve izmjene iza `SessionAuthenticationGuard` + `RoleGuard(admin)` + `sla.write`, čitanja zatvorena za admin rolе osim svjesno otvorene prioritetne matrice i agregata vidljivosti (`/reports/sla/summary`); nema sirovih SQL upita ni izlaganja tajni; minus za to što nema revizorskog traga „ko je vidio“ i za oslanjanje na rolu `admin` bez eksplicitnog pokrivanja `SUPER_ADMIN` (`[NEJASNO]`, isto kao u ranijim modulima). |
+
+# M11 — Realtime i obavještenja (WebSocket)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Realtime je „opt-in, ali obavezno kad treba“** (`RAW_PROJECT.md:732`) i potreban je za: **obavještenja**,
+  **postavke**, te **tiket događaje + chat + edge listener** (`:736–739`).
+- **Očekivani događaji** (`:742–750`): `ticket.created` (grupa + naručilac), `ticket.updated`
+  (status/prioritet/dodjela), `ticket.message.created` (tiket + naručilac + grupa), `ticket.attachment.created`
+  (samo metadata), `notification.created`, `settings.updated` (admini/superadmini + edge),
+  `remote.requested`, `routing.rules.updated`.
+- **In-app notifikacije su obavezne od starta**: lista, stanje nepročitanosti, označavanje kao pročitano
+  (`:752–757`). E-mail je kanal po postavkama (Office 365, internal-only uz allow-listu), a „push“ za mobilnu
+  aplikaciju se **ne primjenjuje** (`:759–767`).
+- **Kanal po tipu:** obavještenja idu in-app + (po postavkama) e-mail + **WS događaji** (`:951`), a
+  `private.notifications.edge.enabled` i `private.notifications.email.enabled` uključuju kanale (`:692–693`).
+- **Postavke i realtime:** promjena postavki se propagira realtime-om prema webu i edge ekstenziji (`:1050`),
+  a `settings.updated` ide prema adminima (`:749`).
+- **Edge ekstenzija** (interni dodatak, samo `@example.com`): background WS + **throttled polling fallback**
+  60–120 s samo za nepročitane notifikacije/poruke (`:309–345`), kanali `user:{userId}` i `ticket:{ticketId}`
+  (`:955`), dedup po `eventId` i `createdAt` (`:340`), redaktovani preview-i i kill switch (`:335`, `:344`).
+  Kontrolne postavke: `private.edgeExtension.ws.enabled` (`:696`), `private.edgeExtension.pollingFallback.enabled`
+  (`:703`).
+- **Kapacitet/dijagnostika:** uz realtime idu metrike (`ws_clients_count`, emit-i po sobi) i zahtjev da
+  skaliranje na više instanci radi bez gubitka događaja (`:1050–1053`).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Realtime je optimizacija, ne izvor istine.** Svaki ekran mora raditi i bez soketa (uz fallback), a
+   soket smije samo skratiti vrijeme do svježeg podatka.
+2. **Soba je sigurnosna granica, ne udobnost.** Ko je u sobi `ticket:{id}:staff` mora imati pristup tom tiketu
+   u tom trenutku; ko je u `group:{id}` ne smije vidjeti sadržaj koji mu ne pripada. Kad se pravo promijeni,
+   konekcija se mora ponovo provjeriti, a ne čekati reconnect.
+3. **Emit mora biti ograničen.** Grupa od 200 ljudi ne smije značiti 200 punih kopija istog događaja; grupa
+   dobija jedan lagani signal, a puni sadržaj samo oni kojima pripada.
+4. **Šum je kvar.** Bez dedup-a, bez limitera i bez „jednom po događaju“ pravila realtime postaje izvor
+   obavještenja koja ljudi nauče ignorisati.
+5. **Više instanci je normalno stanje.** Adapter, brojanje klijenata i skener moraju raditi i kad API nije
+   jedan proces; bridge za process koji nema Socket.IO server je obavezan, inače update tiho nestaje.
+6. **Vidljivost podataka ne smije zavisiti od kanala.** Ako je red obavještenja vidljiv grupi u listi, isti
+   red smije stići samo toj istoj grupi; ako je sadržaj osjetljiv, kanal nosi samo broj tiketa.
+7. **Metrika bez alarma je ukras.** Brojač emit-a i broj klijenata moraju imati prag koji nekoga probudi.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Revalidacija soba** (B1): na invalidaciju principala (`PrincipalContextInvalidator`) i na promjenu
+   članstva/rola preispitati sobe — najjednostavnije `server.in(groupRoomName(id)).socketsLeave(...)` za
+   pogođene korisnike ili periodična re-autentikacija socket-a (npr. svakih N minuta), uz test.
+2. **Limiter za join/leave** (B2): primijeniti isti obrazac kao za presence (`allowPresenceMessage`) na
+   `ticket:join`/`ticket:leave` (npr. 30/min po soketu), jer svaki join plaća čitanje tiketa i politike pristupa.
+3. **Prag za emit-e** (B3): dodati `private.ops.thresholds.wsEmitsPerMinute` i signal u ops-health koji čita
+   `consumeWebsocketEmitCounts()` (danas se brojači samo loguju).
+4. **Ugasiti prelazni režim** (B4): nakon roll-outa prebaciti `WS_GROUP_FEED_LEGACY_FULL_EMIT=off` i, umjesto
+   vječnog env prekidača, vezati ga na rok/datum (npr. „uključeno do prve sljedeće verzije“) da se ne zaboravi.
+5. **Ukloniti mrtvi izvoz** (B5) `connectTicketSocket` ili ga koristiti u e2e klijentu za provjeru WS dostave.
+6. **E2E koji stvarno sluša soket:** dodati scenarij u kojem drugi klijent šalje poruku, a Playwright stranica
+   dobija `ticket.message.created` bez reload-a — danas nijedan test ne provjerava WS dostavu.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Transport, autentikacija i sobe
+
+- **Dva gateway-a, isti CORS:** `WebsocketGateway` (`backend/src/modules/websocket/websocket.gateway.ts:39–43`)
+  i `TicketChatGateway` (`ticket-chat.gateway.ts:42–46`) koriste `resolveSocketCorsOrigin()`, koji je izvoz
+  zajedničkog `resolveCorsOrigin()` — čita `CORS_ORIGIN` (lista razdvojena zarezom, `*` se odbacuje, prazno =
+  zabrana) (`backend/src/common/cors/resolve-cors-origin.ts:1–17`).
+- **Handshake autentikacija:** middleware u `afterInit` (`websocket.gateway.ts:91–94`) zove
+  `authenticateHandshake` (`:193–222`), koji preko `SocketAuthenticationService.authenticate` parsira
+  `handshake.auth` i verificira token (`socket-authentication.service.ts:15–31`); verifikator je
+  `JwtSocketAuthenticationVerifier` → `SessionTokenService.verify` (JWT), a principal nosi samo `subjectId`
+  (`backend/src/modules/authentication/jwt-socket-authentication.verifier.ts:15–27`). Neuspjeh se loguje kao
+  `socket_authentication_rejected` i vraća generičku grešku (`create-socket-authentication-failure-error.ts`).
+- **Sobe pri konekciji:** socket ulazi u `user:{userId}` i u **sve** `group:{groupId}` svoje trenutne
+  članstva, a ako ima rolu ADMIN/SUPER_ADMIN i u `role:admins` (`websocket.gateway.ts:145–191`;
+  `socket-group-membership.service.ts:8–25` sa komentarom da se članstvo **namjerno ne kešira** i čita jednom
+  po konekciji). Svaki socket dobija `requestId` (`attach-socket-request-id.ts`).
+- **Imena soba** su na jednom mjestu: `ticket:{id}`, `ticket:{id}:public`, `ticket:{id}:staff`, `user:{id}`,
+  `group:{id}` (`ticket-socket-rooms.ts:1–19`).
+- **Ulaz u tiket:** `ticket:join` prvo autorizuje (`authorizeSocketJoin` → `loadAccessibleTicket` + politike
+  pristupa, `tickets/tickets-collaboration.service.ts:189–202`), pa tek onda pridružuje socket sobi tiketa i
+  **odgovarajućoj** sobi vidljivosti (`ticket:public` ili `ticket:staff`, `ticket-chat.gateway.ts:99–113`);
+  `ticket:leave` izlazi iz sve tri (`:115–126`), a `presence` je dozvoljen samo socketu koji je već u sobi
+  tiketa i uz limiter 30 poruka/min (`:129–160`, `presence-rate-limiter.ts:4–18`).
+
+### 4.2 Ko prima koji događaj
+
+- **Poruka u tiketu:** `ticket.message.created` ide u `:staff` sobu, a **samo ako je poruka javna** i u `:public`
+  sobu i u `user:{naručilac}`; interne bilješke i sistemski događaji ne idu dalje od staff sobe
+  (`broadcast-ticket-realtime.ts:29–45`).
+- **Promjena tiketa:** `ticket.updated` ide u staff sobu, u public sobu kad je promjena javna, te u user sobe
+  naručioca, dodijeljenog agenta i aktera (`ticket-updated-broadcast-rooms.ts:15–26`).
+- **Lagani signal grupi:** soba `group:{id}` **ne dobija** pune payload-e nego `group.feed-changed` (< 200 B:
+  `groupId`, `ticketId`, `kind` i vrijeme) — i to samo za javne promjene/poruke
+  (`group-feed-change.ts:5–76`, `broadcast-ticket-realtime.ts:76–96`). Uz to, dok je uključen prelazni
+  prekidač, grupa dobija i stari puni payload (`group-feed-change.ts:78–93`, vidi B4).
+- **Obavještenja:** lično obavještenje ide u `user:{userId}` (`broadcast-user-realtime.ts:18–26`), a grupno
+  **jednom** u `group:{groupId}` sa `excludedUserIds` u payload-u (`:29–47`,
+  `notifications/notification-realtime.types.ts:17–37`).
+- **Edge i admin kanali:** edge događaj ide u `user:{id}` i, ako ima tiket, u `ticket:{id}`
+  (`broadcast-edge-realtime.ts:5–13`); promjena konfiguracije ide u `role:admins`
+  (`common/admin-realtime/admin-config-realtime.types.ts:11`), a za domen `routing` i pod imenom
+  `routing.rules.updated` iz RAW-a (`broadcast-user-realtime.ts:49–63`).
+- **Postavke:** `settings.updated` se emituje **globalno** (svi povezani klijenti), a `session.invalidated`
+  dodatno kad promjena obara sesije (`broadcast-user-realtime.ts:65–75`); emit se filtrira na `public.*` i na
+  nekoliko familija privatnih ključeva (`notifications.`, `edgeExtension.`, `addons.`, `readOnlyMode.`, auth
+  mode i JWT tajna) tako da vrijednosti i ostali privatni ključevi ne izlaze na kanal
+  (`to-settings-realtime-payload.ts:5–34`).
+
+### 4.3 Skaliranje na više instanci (Faza 3.1–3.3)
+
+- **Redis adapter:** prije prvog klijenta gateway ispituje ACL (`checkRealtimeAdapterSubscriptions`); ako je
+  kanal **odbijen**, ostaje in-memory adapter uz jedno upozorenje, a „nepoznato“ (Redis nedostupan) instalira
+  adapter i oslanja se na ioredis retry (`ws-redis-adapter.ts:20–50,117+`, `websocket.gateway.ts:81–143`).
+  Adapter koristi **dva posvećena klijenta** i omotava `subscribe`/`publish` da odbijena dozvola ne obori proces
+  (`ws-redis-adapter.ts:73–101`). Runbook sa sticky sesijama i drain procedurom je
+  `ops/ws-rolling-deploy.md`, a dokaz cross-instance emit-a je skripta `ops/ws-cross-instance-check.mjs`.
+- **Metrike:** broj povezanih klijenata (`ws_clients_count`) loguje se svakih 30 s
+  (`observability/metrics/websocket-client-count.reporter.ts:39–60`), a emit-i se broje po vrsti sobe
+  (`staff`/`public`/`user`/`group`/`broadcast`) i ispisuju jednom u 30 s
+  (`websocket-emit-counter.ts:8–64`).
+
+### 4.4 Bridge za procese bez Socket.IO servera
+
+- **Worker → API:** worker (arhiviranje, waiting-for-user) objavljuje na kanal `tickets:realtime-bridge`
+  (`tickets/ticket-realtime-bridge.constants.ts:12`, `publish-ticket-realtime-to-redis.service.ts:12–20`), API
+  ga sluša i vraća u in-process hub (`ticket-realtime-bridge.subscriber.ts:30–69`); u workeru je registrovani
+  pretplatnik hub-a koji **forwarduje** sve što automatika objavi (`ticket-realtime.redis-forwarder.ts:5–52`),
+  a API ga ne registruje da se događaj ne bi poslao dvaput.
+- **Integracije → API:** edge događaji iz queue-a stižu preko `edgeEventRedisChannel` u isti hub
+  (`integration-queue/edge-event-realtime.subscriber.ts:30–61`).
+- **Hub:** `TicketRealtimeHub` je in-process pub/sub (pet tipova događaja), na koji su pretplaćeni gateway i
+  fan-out obavještenja (`tickets/ticket-realtime.hub.ts:20–80`, `notifications/fan-out/notifications-fan-out.service.ts:49–59`).
+
+### 4.5 In-app obavještenja (model, API, keš)
+
+- **Endpointi:** `GET /notifications` (lista + broj nepročitanih), `GET /notifications/unread-count`,
+  `POST /notifications/read-all`, `POST /notifications/:id/read` — sve iza sesijske autentikacije i za sve
+  četiri role (`notifications.controller.ts:22–65`).
+- **Vidljivost:** obavještenje je **lično** (`userId = ja`) ili **grupno** (moja grupa, kreirano **nakon** što
+  sam se pridružio, i nisam u `excludedUserIds`); stanje pročitanosti grupnog reda je `NotificationReceipt`,
+  pa jedan član ne „pročita“ tuđe (`notification-audience.ts:8–66`, `mark-notification-read.ts:15–46`).
+- **Brojač:** jedan `COUNT` (lični + grupni bez mog receipt-a), **ograničen na 1000** da skener SLA-a ne može
+  proizvesti beskonačan broj (`count-unread-notifications.ts:7–27`); rezultat se kešira u Redis-u 15 s sa
+  **epohama grupa** (bump pri svakom grupnom obavještenju) i briše se pri čitanju
+  (`unread-count-cache.constants.ts:9`, `unread-count-cache.ts:135–200`, `notifications.service.ts:42–105`).
+- **Fan-out:** na svaki realtime događaj tiketa mapira se tip (`map-ticket-event-to-notification.ts:33–59` —
+  `INTERNAL_NOTE` ide **samo** spomenutima preko `TicketMessageMention`), određuje publika (lična + jedna
+  grupna), gradi sadržaj (naslov iz `notificationTitleKeys`, tijelo = **naslov tiketa**, a za **povjerljiv**
+  tiket samo **broj tiketa**, `build-notification-content.ts:21–33`), upisuje lične redove jednim batch-om i
+  jedan grupni red (`fan-out-in-app-notifications.ts`, `fan-out/insert-group-notification.ts:13–55`).
+- **Objava:** prvo grupni red (jedan emit u sobu + `INCR` epohe), pa lični (po korisniku se broji badge)
+  (`fan-out/publish-created-notifications.ts:8–43`).
+- **Preferencije (paket 2.2):** tipovi imaju `lockedEmail` (`ticket.approval,ticket.sla,report.weeklyTickets`) i
+  `quietBypass` (`ticket.sla`), a članovi grupe koji su isključili in-app ulaze u `excludedUserIds`
+  (`notifications.constants.ts:70`, `notification-preference-settings.ts:11,15`,
+  `fan-out/fan-out-in-app-notifications.ts:60–81`).
+- **Retencija:** dnevni worker posao u 03:30 UTC briše obavještenja starija od **90 dana** (env
+  `NOTIFICATION_RETENTION_DAYS`) u batch-evima od 5000 (`notification-retention.constants.ts:9–28`), a modul je
+  registrovan u `worker.module.ts:38`.
+
+### 4.6 Frontend
+
+- **Jedan soket po tabu:** `acquireHelpdeskSocket`/`releaseHelpdeskSocket` broje reference i drže konekciju
+  0 ms nakon zadnjeg otpuštanja, a reconnect je „jittered“ (500 ms → 10 s, faktor 0,5) da rolling deploy ne
+  proizvede sinhroni talas (`services/helpdesk-socket.ts:15–67`).
+- **Host konekcije:** `HelpdeskSocketHost` pretplaćuje globalne događaje — `session.invalidated` → odjava,
+  `settings.updated` → nova generacija postavki, `admin.config.updated` → invalidacija keševa po domenu
+  (`lib/realtime/helpdesk-socket-host.tsx:20–74`).
+- **Mapiranje na keš:** `queryKeysForTicketEvent` povezuje `ticket.updated` (liste + detalj + dashboard + SLA
+  sažetak), `ticket.message.created` (lista + detalj), `group.feed-changed` (**samo liste**) i obavještenja sa
+  odgovarajućim upitima; pretplata **ne invalidira** dok ekran nije vidljiv
+  (`lib/realtime/invalidate-on-event.ts:22–53`, `:56–70`).
+- **Zvono i inbox:** `useInboxNotifications` drži listu i broj nepročitanih; broj je **push-driven**, a
+  fallback anketa od 30 s se uključuje **samo dok je soket pao** i odmah se osvježi pri povratku
+  (`lib/realtime/socket-health.ts:7–53`, `lib/notifications/use-inbox-notifications.ts:72–119`); lista se
+  puni pri otvaranju panela (`components/layout/notifications-bell.tsx:42`). Panel ima filter **Sve** /
+  **Nepročitane**, **Označi sve** i prazna stanja („Nema obavještenja.“, „Nema nepročitanih obavještenja.“)
+  (`components/layout/notifications-panel.tsx`).
+- **Primjena događaja:** `applyNotificationCreated` dedup-uje po `id`, `applyNotificationRead` pokriva i
+  „sve pročitano“, a `nextUnreadCount` uzima serverski broj ili lokalni `unreadDelta`; događaj iz grupne sobe se
+  **ignoriše** ako je korisnik u `excludedUserIds` (`lib/realtime/apply-notification-realtime.ts:15–64`).
+- **Detalj tiketa:** `use-ticket-realtime` ulazi u sobu tiketa, ponovo je prijavljuje na `connect` (nakon
+  reconnect-a) i primjenjuje `ticket.updated` i poruke uz dedup (`lib/tickets/use-ticket-realtime.ts:31–92`).
+
+### 4.7 Testovi i dokumentacija
+
+- **Backend:** 13 spec fajlova u `websocket/` (auth, handshake, CORS, adapter, sobe, emit brojači, gateway) i
+  26 u `notifications/` (fan-out, inbox, keš epohe, retencija, SLA poplava). **Frontend:** 9 spec fajlova u
+  `lib/realtime`/`lib/notifications` + `services/helpdesk-socket.spec.ts`.
+- **E2E:** `04-realtime-notifications.spec.ts` provjerava **queue** (EMAIL/EDGE_EVENT posao) i da se tiket vidi
+  na stranici, `15-workflow-unrouted-realtime.spec.ts` provjerava workflow neusmjerenog tiketa — **nijedan test
+  ne otvara Socket.IO klijent**, pa dostava putem WS-a nije pokrivena e2e-om.
+- **Operativna dokumentacija:** `ops/ws-rolling-deploy.md` (sticky sesije, drain procedura, cilj „pauza < 5 s za
+  < 1% klijenata“) i `ops/ws-cross-instance-check.mjs` (dokaz da emit s instance A stiže klijentu na instanci B,
+  sa različitim izlaznim kodovima za „nije dokazano“ i „nije mjereno“).
+
+## 5. Gap analiza
+
+| Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Realtime za obavještenja, postavke, tikete, chat, edge | Jedan autentikovan kanal sa jasnim sobama | Dva gateway-a, `user/ticket/group/role` sobe (`websocket.gateway.ts`, `ticket-socket-rooms.ts`) | ✅ |
+| `ticket.created` (grupa + naručilac) | Grupa dobija signal, naručilac potvrdu | Grupna obavještenja + `notification.created`; nema posebnog `ticket.created` imena | ➖ (ekvivalent) |
+| `ticket.updated` (status/prioritet/dodjela) | Promjena ide u tiket i zainteresovanima | `ticket.updated` u staff/public/user sobe (`ticket-updated-broadcast-rooms.ts:15–26`) | ✅ |
+| `ticket.message.created` | Tiket + naručilac + grupa | staff/public/user + lagani grupni signal, interne samo staff (`broadcast-ticket-realtime.ts:29–45`) | ✅ |
+| `ticket.attachment.created` (metadata) | Obavijest o prilogu bez sadržaja | Nema posebnog događaja za priloge | ⚠️ gap (NISKO) |
+| `notification.created` | Lično + grupno bez dupliranja | `user:{id}` i jedan red za grupu uz `excludedUserIds` | ✅ |
+| `settings.updated` (admini + svi) | Samo ono što korisnik smije vidjeti | Globalni emit **samo** za `public.*` i nekoliko familija (`to-settings-realtime-payload.ts:24–34`) | ✅ |
+| `remote.requested` / `routing.rules.updated` | Isti kanal, bez tajni | Edge događaj u `user`/`ticket` sobu; `routing.rules.updated` u `role:admins` | ✅ |
+| In-app: lista, nepročitano, pročitano | Model sa receipt-ima za grupne redove | `notification-audience.ts`, `mark-notification-read.ts`, `POST /read-all` | ✅ |
+| E-mail kanal kao dio istog engine-a | Jedan fan-out, kanali po postavkama | `NotificationsFanOutService` zove in-app i e-mail (`notifications-fan-out.service.ts:67–72`) | ✅ |
+| Edge: WS + throttled polling fallback | Fallback samo za nepročitano, strogo ograničen | Frontend: fallback 30 s **samo kad je soket pao** (`socket-health.ts:7–53`); edge ekstenzija je zaseban modul | ✅ (web) |
+| Dedup događaja po `eventId` | Klijent ne primjenjuje isti događaj dvaput | `eventId` u payload-u (`to-notification-realtime-client-payload.ts:12–31`), dedup po `id` u listi i porukama | ✅ |
+| Više instanci bez gubitka događaja | Redis adapter + bridge za workere | `ws-redis-adapter.ts`, `ticket-realtime-bridge.*` | ✅ |
+| Metrike: klijenti + emit-i po sobi | Metrika **i alarm** | Brojači se loguju (`websocket-emit-counter.ts:51–64`), alarma nema | ⚠️ B3 |
+| Sobe = sigurnosna granica u svakom trenutku | Promjena prava utiče odmah | Članstvo/rola se čitaju **jednom** po konekciji | ⚠️ B1 |
+| Prijava u tiket bez zloupotrebe | Limiter kao za presence | `ticket:join` bez limitera | ⚠️ B2 |
+| Rollout bez punog payload-a u grupi | Po defaultu lagani signal | Prelazni prekidač je **uključen** po defaultu | ⚠️ B4 |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Najbolji dio modula je ekonomija emit-a.** Umjesto „jedan emit po članu“ grupa dobija jedan lagani
+  `group.feed-changed`, lična obavještenja idu u user sobu, a grupa dobija jedan red — to je promjena koja se
+  vidi i u brojevima (emit-i se mjere po vrsti sobe) i u ponašanju klijenta (limitiranje na vidljiv ekran).
+- **Bridge obrada je zrela:** worker nema Socket.IO, pa se događaji prenose kanalom, a forwarder je namjerno
+  registrovan **samo** u workeru da se isti događaj ne pošalje dvaput — to je razlika između „radi“ i „radi
+  tačno jednom“.
+- **Degradirani režim je osmišljen:** ACL koji odbija adapter ne obara proces, Redis koji ne radi ne blokira
+  boot, a klijent ima 30-sekundni fallback tačno dok soket ne radi. Vrijedi isto za keš brojača: svaka greška
+  Redis-a znači „nema keša“, nikad grešku korisniku.
+- **Sigurnosna granica je tačna u trenutku spajanja, a ne posle.** Grupne sobe se pune iz članstva pri
+  handshake-u, pa korisnik koji izgubi članstvo ili rolu nastavlja primati događaje do reconnect-a (B1) — to je
+  jedina prava sigurnosna primjedba ovog modula i vrijedi je zatvoriti prije većeg broja grupa.
+- **Klijentska strana je disciplinovana:** jedan soket, referentno brojanje, jitter, invalidacija samo za
+  vidljive ekrane, dedup i poštovanje `excludedUserIds`. Slabosti su rubne: mrtvi izvoz (B5) i to što nijedan
+  e2e ne sluša soket, pa se regresija u dostavi otkrije tek ručno.
+- **Nedostaci su u „okvirima“, ne u srcu:** nema limitera za join (B2), nema alarma na emit-e (B3) i prelazni
+  režim ostaje uključen dok ga neko ne ugasi (B4). To su tri mala, jeftina popravka koja modul vode od „radi
+  odlično“ do „ne može se zloupotrijebiti ni zaboraviti“.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Članstvo u sobama i „admin“ rola su snimak iz trenutka spajanja
+
+- **Fajl:** `backend/src/modules/websocket/socket-group-membership.service.ts:8–25`,
+  `backend/src/modules/websocket/websocket.gateway.ts:145–191`,
+  `backend/src/common/principal-context/principal-context-invalidator.service.ts` (potrošači: `directory-sync`,
+  `authentication`)
+- **Opis:** pri konekciji se čitaju grupe korisnika i njegova ADMIN/SUPER_ADMIN rola i po tome se socket
+  pridružuje sobama `group:{id}` i `role:admins`. Poslije toga se stanje **ne provjerava ponovo**: nema
+  periodične revalidacije, a `PrincipalContextInvalidator` (koji podiže `authzVersion` i time obara HTTP
+  kešove) ne dira socket-e.
+- **Uticaj:** korisnik kome je ukinuto članstvo grupe ili admin rola nastavlja primati **grupna obavještenja**
+  (uključujući broj i naslov tiketa, a za povjerljive samo broj) i **admin konfiguracione događaje** dok se ne
+  odjavi ili ne reconnectuje; pravo se na HTTP sloju poštuje, pa je raskorak između onoga što vidi i onoga što
+  smije otvoriti.
+- **Fix:** na invalidaciju principala preispitati članstvo pogođenih korisnika i ukloniti ih iz soba
+  (`socketsLeave`) ili uvesti periodičnu revalidaciju socket-a (npr. 5 min) uz test koji mijenja članstvo
+  tokom aktivne konekcije.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — `ticket:join` nema ograničenje frekvencije
+
+- **Fajl:** `backend/src/modules/websocket/ticket-chat.gateway.ts:99–126`,
+  `backend/src/modules/tickets/tickets-collaboration.service.ts:189–202`
+- **Opis:** za razliku od `presence` (30 poruka/min po socketu, `presence-rate-limiter.ts:4–18`), događaji
+  `ticket:join` i `ticket:leave` se primaju bez limitera, a svaki join izvršava autorizaciju: učitavanje
+  tiketa i vezivanje politika pristupa (`loadAccessibleTicket` + `accessPolicies.bind`), dakle najmanje jedan
+  do dva upita u bazu.
+- **Uticaj:** autentikovan korisnik (ili pokvaren klijent u petlji) može generisati proizvoljan broj
+  autorizacionih upita i zauzeti bazu; nema ni detekcije takvog obrasca (join se ne loguje pojedinačno).
+- **Fix:** primijeniti isti obrazac kao za presence (prozor po socketu, npr. 30 join/leave u minuti) i vratiti
+  `{ok:false}` preko limita, uz brojač u logovima.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — NISKO — Emit-i po sobi imaju metriku, ali ne i alarm
+
+- **Fajl:** `backend/src/modules/websocket/websocket-emit-counter.ts:8–64`,
+  `backend/src/modules/ops-health/evaluate-ops-signals.ts` (nema WS signala)
+- **Opis:** brojači `staff/public/user/group/broadcast` se resetuju i loguju jednom u 30 s
+  (`startWebsocketEmitCountReporter`), ali nijedan ops signal ne čita te vrijednosti niti postoji prag
+  (`private.ops.thresholds.*`) za „emit-ova u sekundi“.
+- **Uticaj:** planirani dio „alert > prag“ nije isporučen; petlja koja proizvodi desetine hiljada emit-a u
+  sekundi vidi se samo u logovima koje niko ne čita, a posljedica je opterećenje Redis adaptera i klijenata.
+- **Fix:** dodati prag u ops postavke i signal koji čita `consumeWebsocketEmitCounts()` (uz `ws_clients_count`).
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Prelazni režim punog emit-a u grupne sobe je uključen po defaultu
+
+- **Fajl:** `backend/src/modules/websocket/group-feed-change.ts:78–93`,
+  `backend/src/modules/websocket/broadcast-ticket-realtime.ts:86–93`
+- **Opis:** `isLegacyGroupFullEmitEnabled()` vraća `true` osim ako je `WS_GROUP_FEED_LEGACY_FULL_EMIT`
+  eksplicitno `off/false/0`, pa grupa dobija **i** stari puni payload **i** novi lagani događaj.
+- **Uticaj:** do trenutka ručnog prebacivanja (runbook `ops/ws-rolling-deploy.md`) najveći izvor saobraćaja
+  koji je Faza 3.2 uklonila i dalje postoji, a prekidač je lako zaboraviti jer ništa ne upozorava.
+- **Fix:** vezati prelazni režim na rok ili na verziju klijenta (npr. automatski `off` nakon N dana ili kad
+  `/health` prijavi novu verziju), ili barem logovati upozorenje dok je uključen.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Nekorišteni izvoz `connectTicketSocket`
+
+- **Fajl:** `frontend/src/services/ticket-socket.ts:22–28`
+- **Opis:** funkcija pravi **drugi** Socket.IO klijent (bez referentnog brojanja i bez jitter-a iz
+  `helpdesk-socket.ts`), ali je nijedan modul ne koristi — `use-ticket-realtime` uzima socket iz
+  `acquireHelpdeskSocket`, a koriste se samo `ticketSocketEvents`, `joinTicketRoom` i `leaveTicketRoom`.
+- **Uticaj:** mrtvi kod koji poziva drugi obrazac povezivanja; ako ga neko upotrijebi, dobija se dvostruka
+  konekcija po tabu (bez dijeljenja i bez gašenja), što je tačno ono što je `helpdesk-socket` uveden da spriječi.
+- **Fix:** ukloniti izvoz ili ga zamijeniti korištenjem `acquireHelpdeskSocket` u e2e klijentu za WS provjeru.
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/realtime-i-obavjestenja.md`** po obaveznoj strukturi: šta modul radi (push
+  obavještenja), kome je namijenjen (svi prijavljeni; agenti i administratori dodatno), kako se dolazi (zvono
+  u zaglavlju), korak po korak (otvaranje panela, filteri, označavanje jednog/svih, ponašanje kad veza padne),
+  tabele (tipovi obavještenja sa naslovima i kad se šalju, šta znači grupno obavještenje, šta se vidi za
+  povjerljiv tiket), česta pitanja („zašto nema obavještenja“, „zašto se broj ne mijenja odmah“, „šta znači
+  isključena veza“), poznata ograničenja (**B1–B5** + činjenica da je broj nepročitanih ograničen na 1000) i
+  povezani moduli (Tiketi, SLA, Odobrenja/CSAT, Postavke, Dežurstva).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T68–T73** — (T68) arhitektura realtime kanala i sobe; (T69) autentikacija
+  socket-a i pravila pristupa sobama; (T70) in-app obavještenja: model vidljivosti i receipt-i; (T71) fan-out
+  i tipovi događaja (uključujući povjerljive tikete); (T72) fallback i ponašanje pri prekidu veze;
+  (T73) operativni zahtjevi (više instanci, metrike, roll-out prekidač, retencija).
+- **`REVIEW_ANALIZA.md`:** §M11 (ovaj tekst) i **novi red tabele iteracija 3** →
+  „M11 ✅ · M12 u toku“.
+- **`DOCS_CHANGELOG.md`:** sekcija M11 sa izvorima i B1–B5.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Sve RAW-om tražene klase događaja postoje (tiketi, poruke, obavještenja, postavke, admin konfiguracija, edge), in-app model je kompletan (lista, nepročitano, pročitano, retencija), a skaliranje na više instanci je riješeno adapterom i bridge-om; minus za B1 (sobe se ne revalidiraju), B2 (join bez limitera), odsutan `ticket.attachment.created` i prelazni režim koji je još uključen. |
+| **Kvalitet koda** | **9/10** | Čiste funkcije za emit i mapiranje keševa, jasna podjela hub/gateway/fan-out, tipizovani payload-i sa `eventId`, komentari koji objašnjavaju zašto (kvarljivi klijent, ACL probe, reset brojača), 13 + 26 backend i 9 frontend spec fajlova; zamjerke su mrtvi izvoz (B5) i metrika bez alarma (B3). |
+| **Sigurnost** | **8/10** | Handshake autentikacija je obavezna, sobe tiketa se dobijaju **samo** poslije autorizacije, interne bilješke nikad ne izlaze iz staff sobe, povjerljiv tiket u obavještenju nosi samo broj, a postavke se emituju po dozvoljenoj listi ključeva; minus za B1 (pravo se provjerava samo pri spajanju), B2 (neograničen join) i za to što grupni emit nosi listu `excludedUserIds` (identifikatori kolega) — niska osjetljivost, ali nepotreban podatak u dijeljenoj sobi. |

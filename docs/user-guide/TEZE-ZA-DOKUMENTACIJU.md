@@ -1385,6 +1385,138 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** SLA → Administracija
 
+### T68 — Realtime arhitektura: jedan kanal, sobe po kontekstu
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** svi (posljedica), ADMIN (operacije)
+- **Tip:** Arhitektura
+- **Teza:** Aplikacija drži jednu vezu po tabu prema Socket.IO serveru. Isporuka se određuje **sobama**:
+  `user:{userId}` (lična obavještenja i zahtjevi za udaljenu pomoć), `group:{groupId}` (jedan lagani signal
+  „nešto se promijenilo u vašoj grupi“), `ticket:{ticketId}:staff` / `:public` (chat i promjene tiketa prema
+  vidljivosti), `role:admins` (promjene konfiguracije). Više API instanci dijeli iste sobe preko Redis adaptera,
+  a događaji koje proizvede worker prenose se kanalom do API-ja koji jedini ima Socket.IO server.
+- **Zašto:** puni payload u grupnoj sobi znači jednu kopiju po članu; sobe po kontekstu drže saobraćaj
+  proporcionalan događaju, a ne veličini grupe.
+- **Primjer:** promjena statusa tiketa ide u sobu tiketa i u lične sobe uključenih, dok grupa dobija događaj bez
+  sadržaja („tiket X se promijenio“).
+- **Postavke / permisije:** nema korisničke postavke; operativno `CORS_ORIGIN` i ACL za Redis kanale adaptera.
+- **Ekran:** nije vidljivo direktno; posljedica je osvježavanje liste, detalja i zvona bez reload-a.
+- **Izvori:** `backend/src/modules/websocket/websocket.gateway.ts:39–191`,
+  `ticket-chat.gateway.ts:42–160`, `ticket-socket-rooms.ts:1–19`, `broadcast-ticket-realtime.ts:29–113`,
+  `ticket-updated-broadcast-rooms.ts:15–36`, `group-feed-change.ts:5–93`, `ws-redis-adapter.ts:37–143`,
+  `backend/src/modules/tickets/ticket-realtime-bridge.constants.ts:12` + `ticket-realtime-bridge.subscriber.ts:30–69`.
+- **Status:** Važi (uz B4: prelazni režim punog emit-a je uključen po defaultu)
+- **Wiki stranica:** Realtime i obavještenja → Kako radi
+
+### T69 — Autentikacija veze i pravila pristupa sobama
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Veza se uspostavlja **samo** s važećim sesijskim tokenom u handshake-u; bez njega server odbija
+  spajanje. Pri spajanju socket ulazi u svoju ličnu sobu i u sobe grupa kojima pripada (administratori i u
+  `role:admins`). U sobu tiketa ulazi se posebnim zahtjevom koji **prvo provjerava pristup tiketu**, pa se
+  socket pridružuje ili `:staff` ili `:public` sobi — što znači da interne bilješke nikada ne stižu u javnu
+  sobu niti u grupnu sobu.
+- **Zašto:** soba je sigurnosna granica; ko nije dobio tiket ne smije vidjeti ni njegov sadržaj ni interne
+  bilješke.
+- **Primjer:** korisnik koji nije član grupe i nema pristup tiketu neće primiti ni poruku iz tog tiketa ni
+  grupni signal.
+- **Postavke / permisije:** nema posebne postavke; pristup tiketu se rješava standardnim pravilima (OU/servis
+  scope, povjerljivost, učesnici).
+- **Ekran:** detalj tiketa (poruke i promjene stižu bez reload-a).
+- **Izvori:** `backend/src/modules/websocket/socket-authentication.service.ts:15–31`,
+  `backend/src/modules/authentication/jwt-socket-authentication.verifier.ts:15–27`,
+  `websocket.gateway.ts:145–222`, `ticket-chat.gateway.ts:99–126`,
+  `backend/src/modules/tickets/tickets-collaboration.service.ts:189–202`.
+- **Status:** Važi, uz ograničenje: članstvo i rola se provjeravaju pri spajanju, ne i kasnije (B1, §M11)
+- **Wiki stranica:** Realtime i obavještenja → Pristup i sigurnost
+
+### T70 — In-app obavještenja: model vidljivosti i „pročitano“
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Obavještenje je **lično** (vidljivo samo jednom korisniku) ili **grupno** (vidljivo članovima
+  grupe, kreirano nakon što su se pridružili i osim onih koji su izuzeti). Kod grupnog reda stanje
+  „pročitano“ je **lični zapis** — jedan član ne označava obavještenje pročitanim za ostale. Broj nepročitanih
+  je zbir ličnih nepročitanih i grupnih bez vlastitog zapisa, ograničen na 1000.
+- **Zašto:** grupa dijeli jedan red (umjesto stotina kopija), a svaki član ipak ima svoje stanje.
+- **Primjer:** novi tiket u grupi „Mreža“ stvara jedan red; agent A ga pročita, agentu B i dalje stoji
+  nepročitan.
+- **Postavke / permisije:** lične preferencije po tipu obavještenja.
+- **Ekran:** zvono i panel **Obavještenja** (filteri **Sve**/**Nepročitane**, **Označi sve**).
+- **Izvori:** `backend/src/modules/notifications/notification-audience.ts:8–66`,
+  `mark-notification-read.ts:15–46`, `mark-all-notifications-read.ts`,
+  `count-unread-notifications.ts:7–27`, `notifications.controller.ts:22–65`.
+- **Status:** Važi
+- **Wiki stranica:** Realtime i obavještenja → Obavještenja
+
+### T71 — Fan-out: koji događaj kome stiže i sa kojim sadržajem
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Svaki događaj na tiketu mapira se u tip obavještenja (novi tiket, dodjela, poruka, rješeno,
+  zatvoreno, odobrenje, SLA, prosljeđivanje, udaljena pomoć, spominjanje). Tijelo obavještenja je **naslov
+  tiketa**, osim za **povjerljiv** tiket gdje se šalje **samo broj**. **Interna bilješka** ne stvara
+  obavještenje grupi — obavještava isključivo spomenute kolege. Akter događaja i korisnici koji su već dobili
+  lično obavještenje izuzeti su iz grupnog reda.
+- **Zašto:** obavještenje mora nositi dovoljno da se zna šta se dešava, a ne više od onoga što korisnik smije
+  vidjeti.
+- **Primjer:** povjerljiv tiket u obavještenju prikazuje „#1042“ umjesto naslova; interna bilješka bez
+  spominjanja ne šalje ništa.
+- **Postavke / permisije:** lične preferencije (in-app, tiho vrijeme) po tipu.
+- **Ekran:** zvono (lista) i detalj tiketa.
+- **Izvori:** `backend/src/modules/notifications/fan-out/map-ticket-event-to-notification.ts:33–59`,
+  `build-notification-content.ts:21–33`, `fan-out-in-app-notifications.ts:60–105`,
+  `publish-created-notifications.ts:8–43`, `backend/src/modules/websocket/broadcast-user-realtime.ts:18–47`.
+- **Status:** Važi
+- **Wiki stranica:** Realtime i obavještenja → Tipovi obavještenja
+
+### T72 — Pad veze: fallback i ponašanje ekrana
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Dok veza radi, broj nepročitanih i promjene na ekranu stižu odmah i **ne** šalju periodične zahtjeve
+  za brojem. Ako veza padne, broj se provjerava svakih **30 sekundi**; čim se veza vrati, broj i lista se
+  odmah osvježe. Ekrani koji nisu vidljivi ne povlače podatke — događaj ih samo označi kao zastarjele.
+- **Zašto:** aplikacija mora raditi i na nestabilnoj mreži, ali i štedjeti server kada nema razloga za
+  saobraćaj.
+- **Primjer:** korisnik na mobilnoj mreži izgubi vezu; zvono i dalje pokazuje tačan broj, a klik na obavještenje
+  i dalje radi jer se oslanja na HTTP.
+- **Postavke / permisije:** nema.
+- **Ekran:** zvono, panel obavještenja, lista tiketa i detalj tiketa.
+- **Izvori:** `frontend/src/lib/realtime/socket-health.ts:7–53`,
+  `frontend/src/lib/notifications/use-inbox-notifications.ts:72–119`,
+  `frontend/src/lib/realtime/invalidate-on-event.ts:22–70`,
+  `frontend/src/services/helpdesk-socket.ts:15–67`.
+- **Status:** Važi
+- **Wiki stranica:** Realtime i obavještenja → Veza i osvježavanje
+
+### T73 — Operativni zahtjevi: više instanci, metrike, rollout i retencija
+
+- **Modul / paket:** Realtime i obavještenja
+- **Publika:** ADMIN / SUPER_ADMIN / operacije
+- **Tip:** Pravilo
+- **Teza:** Realtime mora raditi sa **više API instanci**: sobe se šire Redis adapterom, a ACL mora dozvoliti
+  njegove kanale — ako nije, aplikacija se diže u degradiranom režimu (jedna instanca) umjesto da padne.
+  Za vrijeme nadogradnje važi runbook sa **sticky sesijama** i postupnim gašenjem instanci. Metrike
+  (`ws_clients_count`, emit-i po vrsti sobe) se loguju, a obavještenja se čuvaju **90 dana** (podesivo) i brišu
+  dnevno u ograničenim serijama.
+- **Zašto:** bez dijeljenih soba i bez procedure, deploy ili druga instanca „tiho“ izgube događaje.
+- **Primjer:** emit s instance A stiže klijentu spojenom na instancu B — to je i mjerljiv dokaz
+  (`ops/ws-cross-instance-check.mjs`).
+- **Postavke / permisije:** `CORS_ORIGIN`, Redis ACL (`ops/redis-acl.line`), `WS_GROUP_FEED_LEGACY_FULL_EMIT`,
+  `NOTIFICATION_RETENTION_DAYS`; runbook `ops/ws-rolling-deploy.md`.
+- **Ekran:** nije korisnički; logovi `ws_clients_count` i `ws_emits_*`.
+- **Izvori:** `backend/src/modules/websocket/ws-redis-adapter.ts:20–50,73–143`,
+  `websocket-emit-counter.ts:8–64`, `observability/metrics/websocket-client-count.reporter.ts:39–60`,
+  `backend/src/modules/notifications/notification-retention.constants.ts:9–28`, `worker.module.ts:38`.
+- **Status:** Važi (uz B3: metrika bez alarma)
+- **Wiki stranica:** Realtime i obavještenja → Operacije
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
