@@ -1686,6 +1686,104 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B1: zaglavljena isporuka nije vidljiva u nadzoru)
 - **Wiki stranica:** Pošta → Nadzor i čuvanje
 
+### T81 — Šabloni odgovora: model, opseg i tip
+
+- Šablon (`ResponseTemplate`) ima naziv, tijelo na bosanskom (obavezno) i engleskom (opcionalno), tip
+  (`REPLY` / `INTERNAL` / `ANY`), oznake, aktivan/neaktivan, vlasnika i brojače upotrebe; opseg nije JSON nego
+  vezne tabele prema servisu, kategoriji i grupi (`onDelete: Cascade`).
+- Prazan `ownerUserId` znači **zajednički** šablon, a popunjen **lični** (vidi ga samo vlasnik).
+- Šablon se nikad ne briše fizički: `deletedAt` je soft delete, a poruka koja ga je koristila čuva svoj tekst.
+- **Izvori:** `backend/prisma/schema/templates.prisma:4–61`, `templates.constants.ts:8–25,32–46`,
+  `response-templates.service.ts:536–562`, `record-templates-change.ts:1–42`.
+- **Status:** Važi
+- **Wiki stranica:** Šabloni i playbooks → Polja, validacije i statusi
+
+### T82 — Varijable: bijela lista, pad na bosanski i prijava praznih polja
+
+- Dozvoljeno je tačno 16 varijabli (broj i naslov tiketa, link, servis, kategorija, grupa, status, prioritet,
+  ime i prvo ime podnosioca, ime i prvo ime agenta, organizaciona jedinica, SLA rok, naziv aplikacije, datum).
+- Nepoznato ime se **odbija pri čuvanju** (`TEMPLATE_UNKNOWN_VARIABLES`), a ako se nađe u postojećem tekstu
+  ostaje doslovno i prijavljuje se u pregledu; varijabla bez vrijednosti postaje prazna i vraća se u `missing`.
+- Jezik se bira po `preferredLocale` podnosioca; ako engleski tekst ne postoji, koristi se bosanski.
+- - **Izvori:** `backend/src/modules/templates/templates.constants.ts:8–30`,
+  `template-placeholders.ts:10–52`, `normalize-template-input.ts:67–80`,
+  `response-templates.service.ts:153–186`, `build-template-variables.ts:22–135`,
+  `templates-environment.ts:34`.
+- **Status:** Važi
+- **Wiki stranica:** Šabloni i playbooks → Dozvoljene varijable
+
+### T83 — Prava: lični šabloni, zajednički i ograničenje po servisima
+
+- Korištenje u poruci traži `ticket.templates.use`; lični šablon traži `ticket.templates.personal`; izmjena
+  zajedničkog traži `ticket.templates.manage`.
+- Administrator ograničen na servise (`canManageSharedScope`) **ne može** praviti globalni, kategorijski ni
+  grupni opseg, već samo opseg sastavljen od svojih servisa — time se ne zaobilazi OU scope.
+- Tiket se uvijek čita kroz prava pristupa (`loadAccessibleTicket`), pa šabloni ne otvaraju tuđe tikete.
+- - **Izvori:** `backend/src/modules/templates/template-scope.ts:31–58`,
+  `response-templates.service.ts:401–408,458–487,490–503`, `authorization.constants.ts:22–24`,
+  `tickets/create-ticket-message.ts:38–44`, `tickets/list-ticket-messages.ts:47`.
+- **Status:** Važi (uz B1: tip i aktivnost se provjeravaju samo u pregledu)
+- **Wiki stranica:** Šabloni i playbooks → Kome je namijenjen
+
+### T84 — Playbook: snimka koraka, verzija i nadogradnja
+
+- Playbook ima korake (`stepKey`, pozicija, obavezan, veza na članak baze znanja i šablon odgovora), opseg po
+  servisu/kategoriji i `version` koji raste **samo kad se koraci promijene**.
+- Vezivanje upisuje u tiket snimku koraka, naziv i verziju; izmjena playbooka ne dira tiket u toku.
+- Jedan aktivan playbook po tiketu zaštićen je zaključavanjem (`FOR UPDATE`) u transakciji; nadogradnja na
+  novu verziju čuva već štiklirane korake po `stepKey`, a štikliranje je idempotentno i bilježi ko i kada.
+- - **Izvori:** `backend/prisma/schema/templates.prisma:63–157`, `playbooks/playbooks.service.ts:1–335`,
+  `playbooks/normalize-playbook-input.ts:50–100`, `ticket-playbooks/attach-playbook-to-ticket.ts:43–100,106–132`,
+  `ticket-playbook-snapshot.ts:12–60`, `ticket-playbooks.service.ts:299–403`.
+- **Status:** Važi
+- **Wiki stranica:** Šabloni i playbooks → Korak po korak
+
+### T85 — Obavezni koraci pri rješavanju i automatsko vezivanje
+
+- Postavka `private.ticket.playbooks.requiredStepsOnResolve` ima tri režima: `off`, `warn` (dijalog sa
+  spiskom otvorenih obaveznih koraka) i `block` (odbijanje sa kodom `PLAYBOOK_REQUIRED_STEPS_OPEN` i spiskom
+  tiketa i koraka).
+- Provjera pokriva prelaz u `RESOLVED` i zatvaranje iz bilo kojeg statusa osim `RESOLVED`, i to i kod
+  pojedinačne promjene i kod bulk promjene; automatsko zatvaranje i spajanje tiketa je ne diraju.
+- Pri kreiranju tiketa playbook se veže automatski **samo ako tačno jedan** odgovara servisu/kategoriji, i to
+  je „best effort“ — greška ne ruši kreiranje tiketa.
+- - **Izvori:** `settings/definitions/ticket-templates-settings.ts:9–45`,
+  `tickets/playbooks/assert-playbook-steps-complete.ts:15–56`, `tickets/update-ticket.ts:102`,
+  `tickets/bulk/apply-bulk-status.ts:49`, `tickets/tickets.service.ts:154,159–178`,
+  `frontend/src/pages/ticket-detail-page.tsx:506–508`.
+- **Status:** Važi (uz B4: nema uvođenja na tikete koji su već u toku)
+- **Wiki stranica:** Šabloni i playbooks → Režimi obaveznih koraka
+
+### T86 — Administracija, revizija i verzije konfiguracije
+
+- Svaka izmjena šablona i playbooka upisuje se u change log sa razlogom (3–500 znakova), prije/poslije
+  vrijednostima i autorom; entity tipovi su `response_template`, `playbook` i `ticket_playbook`.
+- Uključivanje modula i automatskog vezivanja te režim obaveznih koraka su postavke u grupi šablona tiketa.
+- Konfiguracijski snapshot uključuje **samo zajedničke** šablone i playbookove (zaglavlja), a lični šabloni se
+  ne diraju ni pri primjeni snimke.
+- - **Izvori:** `backend/src/modules/templates/record-templates-change.ts:1–42`,
+  `templates.constants.ts:48–52`, `settings/definitions/ticket-templates-settings.ts:1–45`,
+  `settings/setting-keys.ts:148`, `config-versioning/collect-config-snapshot.ts:47–62,137`,
+  `config-versioning/apply-templates-snapshot.ts:6–40`.
+- **Status:** Važi
+- **Wiki stranica:** Šabloni i playbooks → Korak po korak
+
+### T87 — Ponuda šablona, statistika upotrebe i ekrani
+
+- Ponuda (picker) filtrira po načinu pisanja (odgovor / interna bilješka), pretrazi i opsegu, rangira
+  (servis 3, kategorija 2, grupa 1, globalno 0, tuđi opseg -1) i vraća do 200 šablona; „prikaži sve“ uključuje
+  i one koji ne pripadaju tiketu.
+- Upotreba se bilježi samo preko polja `responseTemplateId` pri upisu poruke; povećava `usageCount` i
+  `lastUsedAt`, ali **ne sprječava** slanje ako šablon ne postoji ili nije dostupan.
+- Ekrani su `admin/templates` (tabovi Šabloni i Playbookovi, editori) i kartica **Playbook** na detalju
+  tiketa; prijevodi pokrivaju 209 ključeva na oba jezika.
+- - **Izvori:** `backend/src/modules/templates/response-templates.service.ts:103–151`,
+  `templates.constants.ts:45`, `tickets/create-ticket-message.ts:63–67,81–108`,
+  `frontend/src/app/router.tsx:274–335`, `components/templates/ticket-playbook-panel.tsx:1–269`,
+  `frontend/src/i18n/locales/{bs,en}/common.json` (grana `templates`).
+- **Status:** Važi (uz B2 i B5: fiksni `take` bez redoslijeda; brojač raste prije upisa poruke)
+- **Wiki stranica:** Šabloni i playbooks → Kako doći
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

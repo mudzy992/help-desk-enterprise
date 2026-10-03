@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
-| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 u toku |
+| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 u toku |
 
 ---
 
@@ -3768,3 +3768,314 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Pokriveno je sve što RAW traži za izlazni kanal (uključivanje postavkom, internal-only + allow-liste, šabloni na dva jezika, povjerljivi režim, threading, queue sa retry/backoff i DLQ, ručni retry, bulk broadcast) i gotovo sve iz plana 2.3 za dolaznu poštu (Graph i IMAP konektor, potpisani token, anti-loop, idempotencija, nadzor, retencija, „novi e-mail → tiket“ uz uključivanje postavkom); minus za B1 i B2 (izgubljena isporuka i broadcast bez redakcije), za Gmail API konektor koji plan predviđa a kod nema, i za odsustvo e2e pokrivenosti dolazne pošte. |
 | **Kvalitet koda** | **9/10** | Jedan renderer i jedan kompozitor za sve tipove, čiste funkcije (`isAllowedNotificationEmailAddress`, `resolveInboundTarget`, `extractReplyText`, `detectAutoReply`) koje se testiraju bez baze, port za sandučić sa dvije implementacije, konzistentni kodovi grešaka i razloga, idempotencija na oba kraja (izlaz i ulaz) i 12 spec fajlova za 58 izvornih fajlova; zamjerke su B3 (transport bez pula), B4 (limiter u memoriji) i nejasan izraz gornje granice backoff-a. |
 | **Sigurnost** | **8/10** | Eksterni e-mail je zadano isključen uz allow-listu domena i adresa, povjerljivi tiket nikad ne nosi naslov ni isječak, interni sadržaj ne izlazi, tajne (SMTP lozinka, Entra klijent, IMAP lozinka) se čitaju samo interno, preview je u pješčaniku, a dolazna pošta provjerava DMARC/SPF/DKIM, aktivnog korisnika i pravo pisanja, uz zaštitu od petlji i od ponovne obrade iste poruke; minus za B2 (broadcast bez redakcije), B1 (tiha isporuka) i za to što je Gmail API iz plana izostavljen, pa instalacije na Google Workspaceu zavise od IMAP lozinke ili OAuth2 puta. |
+
+# M13 — Šabloni (gotovi odgovori i playbooks)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Šabloni su „agent-side, opcionalno, light“**: „za odabrane servise agent/admin ima **template odgovora**
+  i/ili **checklistu koraka** (playbook) radi konzistentnosti (ne mijenja ticket model; samo UX pomoć)“
+  (`RAW_PROJECT.md:104–105`).
+- **Postavka uključivanja:** `private.ticket.templates.enabled` (default **true**), uz
+  `private.ticket.templates.registryJson` („registry templates po serviceId“, default prazno, `:681–682`).
+- **Kapacitet se vodi kao zaseban modul** `ticket-templates-playbooks` (`:784`).
+- **Kriterij prihvatanja** (`:929–930`): „admin može definisati **template odgovor/playbook po servisu** i
+  koristiti ga u rješavanju (**bez uticaja na sigurnost/OU scope**)“.
+- **Odnos prema rješavanju tiketa:** playbook je pomoć pri rješavanju, pa se preporuke vežu na pravila
+  statusa i „Waiting for User“ automatike (`:933–935`), ali RAW izričito ne traži da checklista **blokira**
+  promjenu statusa — to je odluka paketa 1.4.
+- Paket 1.4 (`docs/plans/modules/1.4-sabloni-playbooks.md`) razrađuje odluke **T1–T6** (model šablona,
+  varijable, jezik, opseg, rangiranje, prava) i **P1–P5** (model playbooka, snapshot na tiketu, automatsko
+  vezivanje, koraci i štikliranje, guard pri rješavanju), uz dodatak **A1–A5** za administraciju i reviziju.
+  Odobreno je **bez `registryJson`** (šabloni su redovi u bazi, ne JSON postavka).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+- **Šablon je podatak sa opsegom, ne skrivena postavka.** Naziv, tijelo po jeziku, tip (javni odgovor /
+  interna bilješka / oboje), opseg (servis, kategorija, grupa) i vlasnik (zajednički ili lični) — sve u
+  tabelama sa vezama, pa se brisanje servisa ili grupe automatski odrazi i na šablon.
+- **Serverska pravila su ista kao i u pregledu.** Ako interfejs nudi samo aktivne šablone koji odgovaraju
+  načinu pisanja, server to mora ponoviti: deaktiviran šablon se ne može poslati, a šablon namijenjen
+  internoj bilješci ne može izaći kao javni odgovor. Pravilo koje postoji samo u UI-ju nije pravilo.
+- **Popunjavanje varijabli je predvidivo i bezopasno.** Dozvoljena je mala, unaprijed poznata lista
+  (podaci o tiketu, podnosiocu i trenutnom agentu), sve ostalo ostaje doslovno i prijavljuje se kao
+  nepoznato; vrijednost koje nema postaje prazna i **eksplicitno se prijavi** prije slanja, da agent ne
+  pošalje odgovor sa prazninom na mjestu imena.
+- **Playbook je kopija koja se ne mijenja pod nogama.** Tiket dobija snimku koraka i verziju; izmjena
+  playbooka ne mijenja tiket u toku, a „nadogradi checklistu“ je svjesna akcija koja čuva već štiklirane
+  korake po stabilnom ključu.
+- **Guard je predvidiv i objašnjen.** Ako je uključeno blokiranje, odbijanje nosi tačan spisak otvorenih
+  obaveznih koraka (i broj tiketa), a ne generičku grešku; u režimu „upozori“ agent vidi šta ostaje prije
+  nego potvrdi rješenje.
+- **Administracija je revidirana.** Svaka izmjena šablona i playbooka ima razlog, prije/poslije i autora, a
+  konfiguracijski snapshot ih uključuje (samo zajedničke, lični se nikad ne diraju).
+- **Bez testova nema povjerenja.** Servisi sa pravima, opsezima i transakcijama moraju imati testove na
+  nivou ponašanja (ko smije, koji opseg, šta se dešava pri istovremenom vezivanju), jer su to tačke gdje
+  greška znači ili curenje sadržaja ili nemogućnost rada.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Provjeriti šablon i pri slanju, ne samo u pregledu.** U `render` i u prihvatanju poruke provjeriti
+   `isActive` i poklapanje tipa (REPLY / INTERNAL / ANY) sa tipom poruke koja se kreira; u suprotnom
+   vratiti istu grešku koju UI prikazuje.
+2. **Rangiranje i filtriranje prenijeti u upit.** Umjesto „pročitaj prvih 500 pa filtriraj u memoriji“
+   filtrirati po opsegu i naručiti po rangu i upotrebi u SQL-u (ili paginirati), pa `pickerLimit` primijeniti
+   na već rangiranu listu.
+3. **Jedinstvenost imena zaštititi u bazi.** Dodati jedinstveni indeks (vlasnik + naziv, uz uslov da nije
+   obrisan) ili barem transakciju sa provjerom, da paralelni zahtjevi ne proizvedu dva šablona istog imena.
+4. **Statistiku upotrebe vezati za uspješno upisivanje poruke.** Povećanje `usageCount` prebaciti u istu
+   transakciju sa upisom poruke (ili poslije njega), da statistika ne raste za poruke koje nisu nastale.
+5. **Omogućiti svjesno uvođenje playbooka na tikete u toku.** Akcija „primijeni na otvorene tikete servisa“
+   u administraciji playbooka, umjesto da samo novi tiketi dobijaju checklistu.
+6. **Dodati testove na nivou servisa.** Scenariji: agent bez `ticket.templates.manage` ne mijenja zajednički
+   šablon; administrator ograničen na servis ne pravi globalni opseg; dva istovremena vezivanja playbooka
+   daju jedan uspjeh i jednu grešku; `block` režim vraća spisak koraka u 409; nadogradnja čuva štiklirane
+   korake i mijenja verziju.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model i postavke
+
+- **Šabloni:** `ResponseTemplate` sa `name`, `bodyBs` (obavezno) i `bodyEn` (opcionalno), `kind`
+  (`REPLY`/`INTERNAL`/`ANY`), oznakama, `isActive`, `ownerUserId` (prazno = zajednički), brojačima i
+  `deletedAt`; opsezi su vezne tabele `ResponseTemplateService`/`…Category`/`…Group` sa `onDelete: Cascade`
+  (`backend/prisma/schema/templates.prisma:4–61`).
+- **Playbook:** `Playbook` sa `version`, koracima (`PlaybookStep` sa `stepKey`, `position`, `required`,
+  vezom na članak baze znanja i šablon odgovora) i opsegom po servisu/kategoriji
+  (`templates.prisma:63–121`); `TicketPlaybook` drži **snimku** koraka (`stepsSnapshot`), naziv i
+  verziju playbooka na tiketu, a `TicketPlaybookStep` (jedinstven po `(ticketPlaybookId, stepKey)`) čuva ko je
+  koji korak štiklirao i kada (`templates.prisma:124–157`).
+- **Postavke** (`templates-configuration.loader.ts:16–53`, `templates.constants.ts:56–68`): šabloni uključeni,
+  playbooks uključeni, automatsko vezivanje uključeno i režim obaveznih koraka `off`/`warn`/`block`
+  (zadano `warn`); ključevi su `private.ticket.templates.enabled`, `private.ticket.playbooks.enabled`,
+  `private.ticket.playbooks.autoAttach`, `private.ticket.playbooks.requiredStepsOnResolve`
+  (`settings/definitions/ticket-templates-settings.ts:9–45`).
+
+### 4.2 Odabir i popunjavanje šablona
+
+- **Dozvoljene varijable** (`templates.constants.ts:8–25`): broj i naslov tiketa, link, servis, kategorija,
+  grupa, status, prioritet, ime i prvo ime podnosioca, ime i prvo ime agenta, organizaciona jedinica, SLA rok
+  rješenja, naziv aplikacije i današnji datum — namjerno bez podataka iz internih bilješki i bez polja formi.
+- **Popunjavanje** (`template-placeholders.ts:37–52`): nepoznata imena ostaju doslovno, a vrijednost koje
+  nema postaje prazna i vraća se u `missing`; editor prikazuje i `unknown`
+  (`response-templates.service.ts:188–221`).
+- **Vrijednosti** (`build-template-variables.ts:22–135`): prvo ime se izvodi i iz oblika „Prezime, Ime“,
+  datum i SLA rok se formatiraju po jeziku i vremenskoj zoni (`formatTemplateDateTime`, `:35–47`), a sve se
+  čita jednim paralelnim krugom upita.
+- **Opseg i rangiranje** (`template-scope.ts:20–29`): 3 = poklapa servis, 2 = kategorija, 1 = dodijeljena
+  grupa, 0 = globalni, -1 = vezan drugdje (prikazuje se samo uz „prikaži sve“).
+- **Prava** (`template-scope.ts:46–58`, `response-templates.service.ts:458–471`): lični šablon traži
+  `ticket.templates.personal`, zajednički `ticket.templates.manage`; administrator ograničen na servise
+  **ne može** praviti globalni, kategorijski ni grupni opseg, nego samo opseg sastavljen od njegovih servisa.
+  Korištenje u composeru traži `ticket.templates.use` (`:401–408`).
+- **Picker** (`response-templates.service.ts:103–151`): čita aktivne, neobrisane šablone koji su zajednički
+  ili moji, filtrira po tipu i pretrazi, izračuna rang i vrati do 200 najboljih sa pregledom i oznakom da
+  postoji engleska verzija.
+
+### 4.3 Upotreba šablona i statistika
+
+- **Umetanje u composer:** `template-picker.tsx`, `variable-palette.tsx` i `save-as-template-dialog.tsx`;
+  composer pamti koji je šablon ubačen i šalje `responseTemplateId` uz poruku
+  (`frontend/src/components/tickets/ticket-message-composer.tsx:16–17,150,196–237,277,502`).
+- **Render prije slanja:** `POST /tickets/:ticketId/response-templates/:templateId/render`
+  (`response-templates.controller.ts:112–121`) vraća tekst, jezik, nedostajuće i nepoznate varijable
+  (`response-templates.service.ts:153–186`).
+- **Statistika upotrebe** (`tickets/create-ticket-message.ts:81–108`): pri upisu poruke sa
+  `responseTemplateId` povećava `usageCount` i postavlja `lastUsedAt`, ali samo ako je šablon aktivan nije
+  obrisan i pripada pozivaocu ili je zajednički; nepoznat šablon se ignoriše i **ne sprječava** slanje.
+- **Revizija:** svaka izmjena šablona/playbooka ide u change log sa razlogom, prije/poslije i autorom
+  (`record-templates-change.ts:1–42`), a konfiguracijski snapshot ih uključuje — lični šabloni se ne diraju
+  (`config-versioning/apply-templates-snapshot.ts:6–40`, `collect-config-snapshot.ts:47–62,137`).
+
+### 4.4 Playbook na tiketu
+
+- **Automatsko vezivanje** (`attach-playbook-to-ticket.ts:106–132`): pri kreiranju tiketa traži se
+  odgovarajući playbook; ako ih je **tačno jedan**, veže se automatski (kao sistemska radnja, bez aktera).
+  Poziv je „best effort“ iz `TicketsService.create` (`tickets.service.ts:159–178`) — greška oko playbooka ne
+  ruši kreiranje.
+- **Ručno vezivanje** (`:43–100`): u transakciji se tiket zaključava (`FOR UPDATE`), provjerava da već ne
+  postoji aktivan playbook, pa se upisuje snimka koraka, verzija i naziv, uz sistemski događaj i zapis u
+  change log.
+- **Rad sa checklistom** (`ticket-playbooks.service.ts:75–252`): `get` vraća stanje (i spisak dostupnih
+  playbooka sa rangom), `attach`, `detach` (sa razlogom), `upgrade` (na noviju verziju, čuvajući štiklirane
+  korake po `stepKey`), `setStep` (idempotentno štikliranje, sistemski događaj, i događaj „završeno“ kad su
+  svi koraci gotovi). Stanje je dozvoljeno mijenjati samo osoblju sa `ticket.templates.use` i samo ako tiket
+  nije zaključan za izmjene (`:264–285`).
+- **Snimka i napredak** (`ticket-playbook-snapshot.ts:12–60`): koraci se sortiraju po poziciji, čitanje JSON-a
+  je tolerantno (loši unosi se odbacuju), a napredak računa ukupno, gotovo, obavezne i spisak otvorenih
+  obaveznih koraka.
+- **Guard pri rješavanju** (`tickets/playbooks/assert-playbook-steps-complete.ts:15–56`): pokriva prelaz u
+  `RESOLVED` i zatvaranje iz bilo kojeg statusa osim `RESOLVED`; u režimu `block` odbija promjenu sa kodom
+  `PLAYBOOK_REQUIRED_STEPS_OPEN` i spiskom tiketa i koraka, a u režimu `warn` upozorava u dijalogu
+  (`frontend/src/pages/ticket-detail-page.tsx:506–508`). Poziva se iz pojedinačne promjene statusa
+  (`tickets/update-ticket.ts:102`) i iz bulk promjene (`tickets/bulk/apply-bulk-status.ts:49`).
+- **Vidljivost:** sistemski događaji playbooka su u grupi `staffOnlyMessageTypes`
+  (`tickets/collaboration.constants.ts:32–36`), pa ih podnosilac ne vidi — checklista je interna, kako plan i
+  traži.
+
+### 4.5 Administracija i ekrani
+
+- **API:** `GET/POST/PUT/DELETE /response-templates` (+ `/manage`, `/preview`, `/mine` za lične),
+  `GET/POST/PUT/DELETE /playbooks` i rute na tiketu (`/tickets/:id/playbook`, `/playbook/upgrade`,
+  `/playbook/steps/:stepKey`); svi zahtjevi traže prijavu i **staff rolu**, a fine provjere su u servisima.
+- **Ekrani:** `admin/templates` (lista sa tabovima šabloni/playbookovi), `admin/templates/new` i
+  `admin/templates/:templateId`, `admin/templates/playbooks/new` i `…/:playbookId`
+  (`frontend/src/app/router.tsx:274–335`); na tiketu `ticket-playbook-panel.tsx` (269 linija) sa
+  napretkom, štikliranjem i ponudom dostupnih playbooka; prijevodi: **209 ključeva** u `templates.*` na oba
+  jezika.
+
+### 4.6 Testovi
+
+- **Backend:** modul `templates` ima **1 spec** (`templates-pure.spec.ts`, 205 linija) koji pokriva čiste
+  funkcije — validaciju placeholdera, normalizaciju unosa, opseg i prava, čitanje konfiguracije i pomoćne
+  funkcije playbooka (`computePlaybookProgress`, `keysKeptOnUpgrade`, `rankApplicablePlaybooks`,
+  `selectAutoAttachPlaybook`). Uz njega postoji `tickets/playbooks/assert-playbook-steps-complete.spec.ts`
+  (60 linija) za guard. **Servisi (576 + 335 + 403 linije) nemaju nijedan jedinični test.**
+- **Frontend:** `lib/templates/templates-lib.spec.ts` (98 linija).
+- **e2e:** `16-templates-playbooks.spec.ts` (170 linija, **1 test**) provjerava kroz API i UI režim obaveznih
+  koraka i ponašanje pri rješavanju.
+- Ukupno: **23 fajla u modulu, 1 spec**.
+
+## 5. Gap analiza
+
+| Zadatak (RAW / plan) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Šabloni odgovora po servisu (RAW `:104`) | Model sa opsegom i vlasnikom | `ResponseTemplate` + vezne tabele; opseg servis/kategorija/grupa | ✅ |
+| Playbook (checklista koraka) po servisu (RAW `:104`) | Koraci, napredak, ko je štiklirao | `Playbook` + `TicketPlaybook` + `TicketPlaybookStep` | ✅ |
+| „Ne mijenja ticket model, samo UX pomoć“ (RAW `:105`) | Bez uticaja na tok tiketa | Snimka i sistemski događaji; guard je opcija (`off/warn/block`) | ✅ |
+| Uključivanje postavkom (RAW `:681`) | Jedna postavka za šablone | `private.ticket.templates.enabled` (+ playbooks/autoAttach/mode) | ✅ |
+| `registryJson` po `serviceId` (RAW `:682`) | — | **Nije implementirano**: šabloni su redovi u bazi (odobreno odstupanje u 1.4) | ➖ (odstupljeno) |
+| Definiše **admin** (RAW `:929`) | Samo admin mijenja zajedničke | `ticket.templates.manage`, uz ograničenje opsega po servisima | ✅ |
+| Koristi ga **agent** u rješavanju (RAW `:929`) | Brz odabir u composeru | Picker + render + upotreba kroz `responseTemplateId` | ✅ |
+| Bez uticaja na OU scope (RAW `:930`) | Tiket se čita kroz prava pristupa | `loadAccessibleTicket` sa `writable` + staff provjera | ✅ |
+| Jezik: bs obavezan, en opcionalan (plan T1) | Pad na bs | `bodyBs` + `bodyEn` uz `resolveTemplateLocale` (jezik podnosioca) | ✅ |
+| Varijable: bijela lista (plan T2) | Bez internih podataka i polja formi | 16 dozvoljenih varijabli | ✅ |
+| Opseg i rangiranje (plan T5) | Servis > kategorija > grupa > globalno | `scoreTemplateScope` 3/2/1/0/-1 | ✅ |
+| Prava po opsegu (plan A2) | Ograničen admin ne dira tuđe servise | `canManageSharedScope` | ✅ |
+| Jedan playbook po tiketu (plan P2) | Bez dvostrukog vezivanja | `FOR UPDATE` + provjera aktivnog u transakciji | ✅ |
+| Snimka i nadogradnja (plan P2) | Koraci stabilni kroz izmjene | `stepKey` + `keysKeptOnUpgrade` + verzija | ✅ |
+| Guard pri rješavanju (plan P5) | `block` sa spiskom koraka | `assertPlaybookStepsComplete` u pojedinačnoj i bulk promjeni | ✅ |
+| Automatsko vezivanje pri kreiranju (plan P3) | Tačno jedan odgovarajući | `selectAutoAttachPlaybook`, best effort | ✅ |
+| Retroaktivno uvođenje playbooka | Tiketi u toku mogu dobiti checklistu | Samo ručno po tiketu; nema akcije po servisu | ⚠️ B4 |
+| Serverska provjera pri slanju | Deaktiviran/„interni“ šablon se ne može poslati kao javni | Provjere su samo u pickeru; `render` i upis poruke ne provjeravaju | ⚠️ B1 |
+| Pickerski upit | Filtriranje u bazi, determinisan izbor | `take: 500` bez `orderBy`, filtriranje u memoriji | ⚠️ B2 |
+| Jedinstvenost naziva | Zaštićeno u bazi | Samo provjera u aplikaciji (`assertNameFree`) | ⚠️ B3 |
+| Tačna statistika upotrebe | Broj raste samo za poslane poruke | `usageCount` se povećava prije upisa poruke | ⚠️ B5 |
+| Testovi servisa | Ponašanje prava, opsega i transakcija | 3 servisa bez testova; e2e 1 scenario | ⚠️ gap (NISKO) |
+| Revizija i snapshot | Svaka izmjena sa razlogom | Change log + config snapshot (bez ličnih) | ✅ |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Najbolji dio je model opsega i prava.** Opseg nije JSON nego veza, pa servis i grupa drže referencu, a
+  `canManageSharedScope` spriječava najčešću grešku u ovakvim modulima — da administrator ograničen na jedan
+  servis napravi globalni šablon i tako „vidi“ tuđe tikete. Uz to, filter `score >= 0` znači da agent ne
+  dobija šablone koji ne pripadaju tiketu, a `show all` je svjesna akcija.
+- **Playbook kao snimka je zrela odluka.** Tiket čuva kopiju koraka i verziju, štikliranje se pamti po
+  stabilnom `stepKey`, nadogradnja čuva već gotove korake, a jedan aktivan playbook po tiketu je zaštićen
+  `FOR UPDATE` zaključavanjem — to je razlika između „radi“ i „radi kad dva agenta kliknu istovremeno“.
+- **Vidljivost je ispravna:** sistemski događaji checkliste su staff-only, pa interna procedura ne izlazi
+  podnosiocu; guard u `block` režimu vraća **spisak otvorenih koraka**, što je jedina upotrebljiva poruka za
+  agenta u tom trenutku.
+- **Gdje bih tražio više:** (1) serverska provjera tipa i aktivnosti šablona ne postoji (B1) — to je jedina
+  tačka gdje pravilo postoji samo u interfejsu; (2) picker i liste playbooka čitaju fiksni broj redova bez
+  redoslijeda (B2), pa izbor nije determinisan; (3) jedinstvenost naziva počiva na aplikacijskoj provjeri
+  (B3); (4) brojanje upotrebe je prije upisa poruke (B5); (5) najveći sistemski rizik nije u kodu nego u
+  **testovima**: tri servisa sa pravima i opsezima (1314 linija) nemaju ni jedan jedinični test, a e2e pokriva
+  jedan scenario.
+- **Higijena:** tipizovano bez `any`, kod govori „zašto“ (komentari o snimci, o idempotentnom štikliranju, o
+  tome zašto automatsko zatvaranje ne prolazi guard), a poruke greške imaju kodove koji se mapiraju u UI
+  (`map-templates-error.ts`, `map-ticket-error.ts:144`).
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Deaktiviran ili „interni“ šablon može se poslati kao javni odgovor
+
+- **Fajl:** `backend/src/modules/templates/response-templates.service.ts:153–186` (render),
+  `backend/src/modules/tickets/create-ticket-message.ts:63–67` (prihvatanje poruke),
+  `backend/src/modules/templates/response-templates.service.ts:111–134` (picker, za kontrast)
+- **Opis:** picker nudi **samo aktivne** šablone i filtrira po tipu poruke, ali `render` učitava šablon samo po
+  `id`, bez `isActive` i bez provjere `kind`-a, a upis poruke (`createTicketMessage`) prima `responseTemplateId`
+  i koristi ga isključivo za statistiku — ne provjerava poklapa li se tip šablona sa tipom poruke. Ni jedno
+  mjesto ne provjerava da šablon nije deaktiviran.
+- **Uticaj:** poziv na API sa `templateId` šablona tipa `INTERNAL` (napisanog kao interna uputa) može ga
+  ubaciti u **javni odgovor** koji podnosilac vidi i dobija e-mailom; deaktiviran šablon ostaje upotrebljiv
+  nakon što ga administrator isključi.
+- **Fix:** u `render` i pri upisu poruke provjeriti `isActive: true` i poklapanje tipa
+  (`REPLY`/`INTERNAL`/`ANY` prema `USER_REPLY`/`AGENT_REPLY`/`INTERNAL_NOTE`), uz grešku koja se mapira u UI.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — NISKO — Picker i lista playbooka čitaju fiksni broj redova bez redoslijeda
+
+- **Fajl:** `backend/src/modules/templates/response-templates.service.ts:111–139`,
+  `backend/src/modules/templates/ticket-playbooks/attach-playbook-to-ticket.ts:18–36`
+- **Opis:** `findMany` za picker nema `orderBy`, uzima `take: 500`, a filtriranje po opsegu, rangiranje i
+  rezanje na `pickerLimit` (200) rade se **u memoriji**; isto tako lista kandidata playbooka uzima `take: 1000`
+  bez redoslijeda.
+- **Uticaj:** na instalaciji sa više od 500 aktivnih šablona (ili 1000 playbooka) relevantni šabloni mogu
+  biti odsječeni, a izbor nije determinisan (isti upit može vratiti različit podskup). Agent tada ne vidi
+  šablon koji mu pripada, a administrator ne može objasniti zašto.
+- **Fix:** filtriranje opsega i redoslijed (rang, `usageCount`, naziv) prenijeti u upit ili uvesti paginaciju
+  prije `take`.
+- **Ozbiljnost:** NISKO.
+
+### B3 — NISKO — Jedinstvenost naziva šablona nije zaštićena u bazi
+
+- **Fajl:** `backend/prisma/schema/templates.prisma:4–26` (nema jedinstvenog indeksa),
+  `backend/src/modules/templates/response-templates.service.ts:490–503` (`assertNameFree`)
+- **Opis:** jedinstvenost naziva po vlasniku provjerava se čitanjem preko Prisma klijenta prije upisa, ali u
+  bazi ne postoji odgovarajući jedinstveni indeks.
+- **Uticaj:** dva istovremena zahtjeva (dvostruki klik, dva taba) mogu upisati dva šablona istog naziva;
+  agent u pickeru vidi duplikate, a revizija pokazuje dva zapisa o istoj izmjeni.
+- **Fix:** jedinstveni indeks (vlasnik + naziv, uz uslov da zapis nije obrisan) ili serijalizacija provjere u
+  transakciji.
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Playbook se ne može uvesti na tikete koji su već u toku
+
+- **Fajl:** `backend/src/modules/templates/ticket-playbooks/attach-playbook-to-ticket.ts:106–132`,
+  `backend/src/modules/tickets/tickets.service.ts:154,159–178`
+- **Opis:** automatsko vezivanje se poziva **samo** pri kreiranju tiketa. Tiket otvoren prije nego je playbook
+  napravljen (ili dok je bio neaktivan, ili prekoračenjem `take` granice) ostaje bez checkliste i nema akcije
+  „primijeni na otvorene tikete servisa“ — pojedinačno vezivanje postoji, ali ne u masi.
+- **Uticaj:** propisani postupak se ne pojavljuje na tiketima koji su već u radu, pa se upravo najstariji i
+  najvažniji tiketi rješavaju bez checkliste; guard u `block` režimu ih ne dira jer nemaju playbook.
+- **Fix:** akcija u administraciji playbooka („primijeni na otvorene tikete ovog servisa“) ili backfill u
+  workeru, uz zapis u change log i sistemski događaj po tiketu.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Statistika upotrebe raste i kada poruka nije upisana
+
+- **Fajl:** `backend/src/modules/tickets/create-ticket-message.ts:63–67` (prije `:68–77`)
+- **Opis:** `countTemplateUse` povećava `usageCount` i `lastUsedAt` **prije** nego što se poruka upiše; ako
+  upis ne uspije (npr. `DATABASE_BUSY`, prekid veze), statistika ostaje uvećana iako poruka nikad nije poslana.
+- **Uticaj:** „najčešće korišteni“ rang u pickeru vremenom odstupa od stvarnosti, pa se na vrh guraju šabloni
+  koji su u praksi samo pokušani; nema načina da se brojač ispravi.
+- **Fix:** povećanje prebaciti u istu transakciju sa upisom poruke ili izvršiti poslije uspješnog upisa.
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/sabloni-i-playbooks.md`** po obaveznoj strukturi: čemu modul služi
+  (gotovi odgovori i checkliste), kome je namijenjen (agent koristi, administrator uređuje), kako se dolazi
+  (composer → **Šabloni**; meni **Administracija** → **Šabloni i playbooks**), korak po korak (ubaci šablon i
+  doradi ga, sačuvaj svoj šablon iz poruke, veži playbook na tiket, štikliraj korake, nadogradi checklistu,
+  rješavanje sa obaveznim koracima, uređivanje šablona i playbooka uz razlog), tabele (polja šablona i
+  playbooka, dozvoljene varijable, opsezi i rangiranje, režimi `off`/`warn`/`block`, poruke grešaka),
+  česta pitanja („zašto ne vidim šablon“, „zašto ne mogu sačuvati zajednički šablon“, „zašto me sistem
+  zaustavlja pri rješavanju“, „gdje je moj šablon nakon izmjene playbooka“), poznata ograničenja (**B1–B5**) i
+  povezani moduli (Tiketi, Baza znanja, Postavke, Verzije konfiguracije).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T81–T87** — (T81) model šablona i opsezi; (T82) varijable i popunjavanje;
+  (T83) prava: lični, zajednički i opseg po servisima; (T84) playbook: snimka, verzija i nadogradnja;
+  (T85) obavezni koraci pri rješavanju (`off`/`warn`/`block`); (T86) administracija, revizija i verzije
+  konfiguracije; (T87) statistika upotrebe i pretraga šablona.
+- **`REVIEW_ANALIZA.md`:** §M13 (ovaj tekst) i **red tabele iteracija 3** → „M11 ✅ · M12 ✅ · M13 ✅ ·
+  M14 u toku“.
+- **`DOCS_CHANGELOG.md`:** sekcija M13 sa izvorima i B1–B5.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Sve što RAW traži postoji: šabloni po servisu, playbook kao checklista, upotreba u rješavanju, administracija sa revizijom i uključivanje postavkom; dodatno su riješeni jezik, opsezi, rangiranje, snimka i nadogradnja checkliste i tri režima obaveznih koraka. Minus za B1 (deaktiviran/interni šablon se ipak može poslati), B4 (nema uvođenja na tikete u toku) i za to što `registryJson` iz RAW-a nije zamijenjen ničim što bi omogućilo uvoz/izvoz šablona izvan baze. |
+| **Kvalitet koda** | **7/10** | Model i prava su čisti i dobro razdvojeni (`template-scope`, `template-placeholders`, `normalize-*`, `ticket-playbook-snapshot`), transakcije sa zaključavanjem su na pravim mjestima, a greške imaju kodove; ocjenu snižavaju **testovi** (jedan spec za 23 fajla, servisi bez testova), B2 (upiti sa fiksnim `take` bez redoslijeda) i B5 (statistika prije upisa). |
+| **Sigurnost** | **7/10** | Prava su provjerena na serveru, OU scope se poštuje kroz `loadAccessibleTicket`, lični šabloni su vidljivi samo vlasniku, checklista je staff-only, a opseg zajedničkih šablona je ograničen za administratore vezane na servis; minus za B1, gdje jedina zaštita tipa i aktivnosti šablona živi u interfejsu, i za B3 (nedostatak baze kao garanta jedinstvenosti). |

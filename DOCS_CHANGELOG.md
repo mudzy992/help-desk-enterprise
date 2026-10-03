@@ -555,3 +555,66 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   email-templates-card,email-templates-editor,inbound-email-card}.tsx`, `pages/email-templates-page.tsx`,
   `app/router.tsx`) i e2e `tests/11-email-templates.spec.ts`; planovi `docs/plans/modules/{1.5,2.2,2.3}*.md`
   i `docs/ops/inbound-email.md`.
+
+---
+
+## M13 — Šabloni (gotovi odgovori i playbooks) (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/sabloni-i-playbooks.md` — novi vodič: čemu modul služi (gotovi odgovori i checklista
+  koraka kao pomoć, bez mijenjanja modela tiketa), kome je namijenjen (tabela rola: agent, ADMIN,
+  SUPER_ADMIN, korisnik), kako se dolazi (`Šabloni` u okviru za poruku, `Sačuvaj kao šablon`, meni
+  **Administracija** → **Šabloni**, kartica **Playbook** na tiketu), korak-po-korak (ubacivanje šablona,
+  čuvanje ličnog šablona, uređivanje zajedničkog uz razlog, pravljenje playbooka, checklista na tiketu,
+  rješavanje sa obaveznim koracima), tabele (polja šablona i playbooka, 16 dozvoljenih varijabli, tri režima
+  obaveznih koraka, poruke grešaka), česta pitanja i poznata ograničenja (**B1–B5**) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M13 — planirano/idealno/preporuka, stanje u kodu (model i postavke, odabir i
+  popunjavanje, upotreba i statistika, playbook na tiketu, administracija i ekrani, testovi), gap tabela sa 21
+  redom, recenzija, nalazi **B1–B5**, ocjene **F8 / K7 / S7** i ažuriran red tabele iteracija 3
+  („M11 ✅ · M12 ✅ · M13 ✅ · M14 u toku“).
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T81–T87**: model šablona, opseg i tip; varijable i pad na bosanski; prava
+  (lični, zajednički, ograničenje po servisima); playbook (snimka, verzija, nadogradnja); obavezni koraci pri
+  rješavanju i automatsko vezivanje; administracija, revizija i verzije konfiguracije; ponuda šablona,
+  statistika upotrebe i ekrani.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul nije bio dokumentovan, a jedini je primjer gdje pravilo postoji **samo u interfejsu**: pregled nudi
+  aktivne šablone koji odgovaraju načinu pisanja, ali slanje to ne provjerava ponovo. Zato vodič izričito
+  kaže „provjerite tekst prije slanja“ i navodi B1 kao ograničenje, a ne kao preporuku.
+- Najvažnije je objasniti **razliku između ličnog i zajedničkog šablona**, zašto administrator vezan na
+  servise ne može praviti globalni šablon, da **tiket čuva kopiju koraka** (izmjena playbooka ne mijenja
+  tiket u toku) i da **checklista nije vidljiva podnosiocu**. Uz to su navedena stvarna ograničenja (B1–B5):
+  tip i aktivnost šablona se ne provjeravaju pri slanju, ponuda čita fiksni broj zapisa bez redoslijeda,
+  jedinstvenost naziva nije zaštićena u bazi, playbook se ne uvodi na tikete koji su već u toku i statistika
+  upotrebe raste i kad poruka nije upisana.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/templates/*` (23 `.ts`, 1 spec —
+  `response-templates.service.ts`, `templates.constants.ts` (`templateLimits`, 16 varijabli),
+  `template-placeholders.ts`, `template-scope.ts` (`scoreTemplateScope`, `canManageSharedScope`),
+  `build-template-variables.ts`, `templates-environment.ts`, `normalize-template-input.ts`,
+  `record-templates-change.ts`, `templates.error.ts`, `dto/templates.dto.ts`, `response-templates.controller.ts`,
+  `playbooks/*` (`playbooks.service.ts`, `normalize-playbook-input.ts`, `playbooks.controller.ts`),
+  `ticket-playbooks/*` (`attach-playbook-to-ticket.ts`, `ticket-playbook-snapshot.ts`,
+  `ticket-playbooks.service.ts`), `templates-configuration.loader.ts`),
+  `backend/src/modules/tickets/{playbooks/assert-playbook-steps-complete.ts,create-ticket-message.ts:63–108,
+  update-ticket.ts:102,bulk/apply-bulk-status.ts:49,collaboration.constants.ts:32–36,tickets.service.ts:154–178}`,
+  `backend/src/modules/settings/definitions/ticket-templates-settings.ts`, `settings/setting-keys.ts:148`,
+  `backend/src/modules/authorization/authorization.constants.ts:22–24`,
+  `backend/src/modules/config-versioning/{collect-config-snapshot.ts:47–62,137,apply-templates-snapshot.ts}`,
+  `backend/prisma/schema/templates.prisma:4–157`, te frontend (`components/templates/*`,
+  `pages/{templates,response-template-editor,playbook-editor}-page.tsx`,
+  `components/tickets/ticket-message-composer.tsx`, `services/templates-api.ts`, `app/router.tsx:274–335`,
+  `lib/templates/*`) i e2e `tests/16-templates-playbooks.spec.ts`; plan `docs/plans/modules/1.4-sabloni-playbooks.md`
+  i RAW `RAW_PROJECT.md:104–105,681–682,784,929–930`.
