@@ -23,7 +23,7 @@
 | Iteracija | Moduli | Stanje |
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
-| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 u toku |
+| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 u toku |
 
 ---
 
@@ -2343,3 +2343,325 @@ osnovni tok tiketa (kreiranje, liste, detalj, statusi, merge/split, bulk, vrijem
 | Funkcionalnost | **9 / 10** | Kreiranje s routingom, grupni inbox i preuzimanje, tok statusa s čuvarima, merge/split, bulk s preview-om i structured broadcastom, saved views, mjerenje vremena s anti-abuse, arhiva, reopen i izvoz — sve radi i pokriveno je testovima. Umanjuje jedino odstupanje od RAW-a u poljima „request type/due date“ i nalazi B1–B4. |
 | Kvalitet koda | **8 / 10** | Tok statusa kao podatak, vidljivost izvedena iz aktera, transakcije i audit na svim promjenama, precizni kodovi grešaka, keš samo za brojeve. Umanjuju: tri postavke bez efekta (B1–B3), memorijski rate limiter (B2) i sitni nedostaci u konzistentnosti filtera (B4–B6). |
 | Sigurnost | **8 / 10** | OU/servis scope + D1 grupa, povjerljivi tiketi s vlastitom matricom (SuperAdmin bez implicitnog pristupa), break-glass uz audit, OU izolacija u upitima liste, klasifikacija priloga bez „spuštanja“, bulk scope i zabrana bulk close-a. Umanjuju: B1 (retention bez primjene) i B2 (limit po instanci). |
+
+# M9 — Odobrenja i CSAT
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Approval flow (ITIL-lite, settings-driven):** za odabrane servise tiket ide u `PENDING_APPROVAL` **prije**
+  dodjele/obrade (`RAW_PROJECT.md:70`, `:931`); odobravalac može **approve/reject sa razlogom** i sve se
+  auditira (`:932`); nakon odobrenja rutanje/dodjela nastavlja normalno (`:933`); obim MVP-a je „minimalno za
+  1–3 osjetljiva servisa“ (`:1066`).
+- **Uloga i poruke:** `APPROVER` kao uloga učesnika (`:112`, `:115`), tip poruke `APPROVAL_DECISION` (`:118`).
+- **SLA:** pauza tajmera dok je tiket u `PENDING_APPROVAL` (`:89`, `:511`).
+- **Dashboard:** `PENDING_APPROVAL` među stanjima u kojima tiketi „stoje“ (`:281`).
+- **Postavke odobrenja:** `private.ticket.approvals.enabled` (`:686`), `requiredByServiceJson` kao **secret**
+  (`:687`), `defaultApproverRole` (`:688`), `allowRequesterManager` kao priprema za AD managera
+  (`:689`, default `false` u MVP-u).
+- **CSAT nakon resolve/close:** korisnik dobija kratku ocjenu **1–5** i opcionalni komentar (`:358–359`);
+  ocjena ulazi u **KPI/dashboard po OU/servisu/grupi** (`:360`, `:1019`); forma ocjene nakon rješavanja/zatvaranja
+  (`:1047`); CSAT je izričito naveden kao obavezan element MVP-a (`:1103`) i kao dio paketa „Close codes + CSAT“
+  gdje resolve traži close code (`:870`); Baza znanja ima članak `csat-feedback` (`:825`).
+- **Postavke CSAT-a:** `private.csat.enabled`, `scaleMax`, `askOnResolved`, `askOnClosed`, `samplingRate`
+  (`:635–639`).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Odobrenje je blokirajuće stanje, pa mora biti vidljivo.** Ako tiket čeka odluku, odgovorni mora dobiti
+   obavještenje — inače odobrenje postaje „tihi zastoj“ koji se otkriva tek na SLA izvještaju.
+2. **Kapija se ne smije zaobići nijednim putem.** Servis koji traži odobrenje mora ga tražiti bez obzira na to
+   kako je tiket nastao ili kako je ušao u obradu (kreiranje, prosljeđivanje, ponovno otvaranje).
+3. **Odluka je auditovana i objašnjiva.** Uz odluku idu akter, razlog i zapis u change logu i vremenskoj liniji.
+4. **Odbijanje ne smije izgledati kao rješenje.** Ako je zahtjev odbijen, to treba biti jasno i korisniku i
+   izvještajima, a ne „zatvoren tiket“ bez konteksta.
+5. **CSAT je jedan po tiketu, dobrovoljan i otporan na zloupotrebu.** Ocjena dolazi od naručioca, u
+   definisanom prozoru, uz opcionalni komentar koji prolazi istu redakciju kao i ostali sadržaj.
+6. **Agregacija i skala su jedan izvor istine.** Ako je skala podesiva, svaki prikaz (forma, izvještaj, prag
+   „zadovoljan“) mora koristiti istu vrijednost.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Povezati obavještenje s pravim primaocima** (B1): poslati `ticket.approval` odgovornima za odluku
+   (rola iz `defaultApproverRole` unutar OU/servis scope-a, ili `PENDING_APPROVAL` nadzorna lista), a ne samo
+   učesnicima s ulogom `APPROVER`.
+2. **Zatvoriti zaobilazni put** (B2): kad tiket koji traži odobrenje uđe u obradu (npr. prosljeđivanjem),
+   kreirati odobrenje prije prelaza, ili eksplicitno dokumentovati da se odobrenje traži samo pri kreiranju.
+3. **Jedna skala za sve** (B3): prenijeti `private.csat.scaleMax` u izvještaje (KPI, trendovi, prag
+   „zadovoljan“) umjesto hardkodirane petice.
+4. **Iskoristiti postojeću agregaciju** (B3): `GET /tickets/csat/summary` već računa prosjek po OU/servisu/grupi —
+   prikazati ga na izvještajima ili ukloniti ako nije potreban.
+5. **Ukloniti mrtvu postavku** (B4) `allowRequesterManager` dok ne postoje podaci o manageru iz imenika.
+6. **Dodati testove na nivou odluke** (trenutno 3 spec fajla za cijeli modul): approve → `PENDING`,
+   reject → zatvoreno, zabrana samoodobrenja, zabrana van scope-a, te ponovljena odluka.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model i kontrakti
+
+- `TicketApproval`: `ticketId`, `stepOrder @default(1)`, `status ApprovalStatus @default(PENDING)`,
+  `approverUserId?`, `comment?`, `decidedAt?`, relacije na tiket (`onDelete: Cascade`) i korisnika
+  (`onDelete: SetNull`), indeksi po `ticketId` i `approverUserId`
+  (`backend/prisma/schema/ticketing-support.prisma:67–82`); `ApprovalStatus = PENDING|APPROVED|REJECTED`
+  (`enums.prisma:116–120`).
+- `TicketCsat`: `ticketId @unique` (jedna ocjena po tiketu), `rating Int`, `comment?`, `submittedByUserId`
+  (relacija `onDelete: Restrict`), `createdAt` s indeksom za trend
+  (`ticketing-support.prisma:112–124`).
+- Konfiguracija odobrenja: `enabled`, `requiredByService` (mapa servis → boolean), `defaultApproverRole`
+  (`ADMIN|AGENT|SUPER_ADMIN`), `allowRequesterManager` (`approvals.types.ts:7–12`); defaulti
+  `enabled: true`, prazna mapa, `ADMIN`, `false` (`approvals.constants.ts:10–15`).
+- Dozvoljene prelasce iz `PENDING_APPROVAL` propisuje tok statusa: → `PENDING` i → `CLOSED`, oba s akterom
+  `APPROVER`, okidačem `approval` i čuvarom `approval_decision`
+  (`backend/src/modules/tickets/workflow/ticket-workflow-definition.ts:58–59`).
+- Konfiguracija CSAT-a: `enabled`, `scaleMax` (2–10), `askOnResolved`, `askOnClosed`, `samplingRate` (0–1)
+  (`csat/csat.constants.ts:1–13`, `csat/csat.types.ts:1–7`).
+
+### 4.2 API
+
+- `GET /tickets/:ticketId/approvals` — lista koraka s `canDecide` po svakom zapisu
+  (`approvals/tickets-approvals.controller.ts:41–47`).
+- `POST /tickets/:ticketId/approvals/:approvalId/approve` i `…/reject` — tijelo `{ comment }`
+  (`:49–77`).
+- `POST /tickets/:ticketId/csat` — tijelo `{ rating, comment? }`, vraća osvježen tiket
+  (`csat/tickets-csat.controller.ts:40–47`).
+- `GET /tickets/csat/summary` — agregacija po OU, servisu i grupi; dopuštena rolama
+  `agent|admin|superAdmin` (`csat/tickets-csat-summary.controller.ts:20–42`).
+- Kontroleri dijele `SessionAuthenticationGuard` + `RoleGuard` i `ValidationPipe` s `whitelist`/
+  `forbidNonWhitelisted`; kontekst aktera se čita iz sesije, nikad iz tijela
+  (`tickets-approvals.controller.ts:23–37`, `tickets-csat.controller.ts:22–36`).
+
+### 4.3 Tok odobrenja
+
+- **Zahtjev nastaje pri kreiranju:** ako je status `PENDING_APPROVAL`, `writeCreatedTicketFollowUp` kreira jedan
+  `TicketApproval` (`stepOrder = 1`) i sistemski događaj `approvalRequested`
+  (`tickets/write-created-ticket-follow-up.ts:59–69`, `approvals/create-pending-ticket-approval.ts:6–17`).
+- **Da li servis traži odobrenje:** `resolveTicketApprovalRequirement` prvo gleda `requiredByService[serviceId]`
+  (overlay), pa polje `Service.requiresApproval`; ako je modul isključen, uvijek `false`
+  (`approvals/resolve-ticket-approval-requirement.ts:4–17`). Status pri kreiranju: `PENDING_APPROVAL` osim ako
+  odobrenje nije potrebno **ili je tiket `UNROUTED`** (`:19–27`).
+- **Odluka:** `decideTicketApproval` provjerava pristup i zapis, pa u transakciji mijenja status odobrenja
+  (`APPROVED`/`REJECTED`), upisuje `approverUserId`, `comment`, `decidedAt`, mijenja status tiketa
+  (**`APPROVED` → `PENDING`**, **`REJECTED` → `CLOSED`**), bilježi change log s razlogom
+  `ticket_approval_approved`/`rejected`, dodaje odobravaoca kao učesnika s ulogom `APPROVER`, upisuje sistemski
+  događaj i poruku tipa `APPROVAL_DECISION` (`approvals/decide-ticket-approval.ts:57–137`, konstante
+  `approvals.constants.ts:17–21`).
+- **Nakon odluke SLA se ponovo računa** (`applyTicketSlaTimers` s događajem `status_changed`,
+  `decide-ticket-approval.ts:130–135`).
+- **Ko smije odlučiti:** modul uključen, tiket u `PENDING_APPROVAL`, akter **nije** naručilac, SuperAdmin uvijek,
+  a ostali moraju imati rolu iz `approverRoleKeys(defaultApproverRole)` **unutar** OU i servis scope-a tiketa
+  (`approvals/assert-can-decide-ticket-approval.ts:9–43`, `approvals.constants.ts:28–38`); prekršaji daju
+  `APPROVALS_DISABLED`, `APPROVAL_NOT_PENDING`, `APPROVAL_SELF_FORBIDDEN` ili `FORBIDDEN` (`:52–73`).
+- **Prekršaj van JS-a:** `resolveCreateTicketApprovalStatus` je jedina kapija — nema je u toku prosljeđivanja
+  (`forwarding/forward-ticket.ts` ne spominje odobrenja).
+
+### 4.4 SLA i obavještenja
+
+- Pauza SLA tajmera: `isSlaPauseStatus` vraća `pauseOnWaitingForUser` za `WAITING_FOR_USER` i
+  `pauseOnPendingApproval` za `PENDING_APPROVAL` (`backend/src/modules/sla/is-sla-pause-status.ts:4–15`);
+  postavka `private.ticket.sla.pauseOnPendingApproval` je uključena po defaultu
+  (`settings/definitions/ticket-sla-settings.ts:39–46`), a primjenjuju je `start-ticket-sla-timers.ts:48`
+  i `sync-ticket-sla-timers.ts:116,136`.
+- Obavještenja: događaji `approvalRequested|approvalApproved|approvalRejected` mapiraju se u tip
+  `ticket.approval` (`notifications/fan-out/map-ticket-event-to-notification.ts:17–19`), s tekstom
+  **„Čeka odobrenje: {{ticketNumber}}“** (`i18n bs → notifications.items.ticketApproval`) i kategorijom u
+  preferencijama (`notification-preference-catalog.ts:51`) — ali primaoci su **samo učesnici s ulogom
+  `APPROVER`** (`resolve-notification-recipients.ts:211–212, 266–278`), a akter se uvijek izuzima
+  (`:29–35`). Ulogu `APPROVER` dodaje tek odluka (`decide-ticket-approval.ts:139–154`), a pri kreiranju se
+  dodaju samo `REQUESTER` i `HANDLER_GROUP` (`seed-default-ticket-participants.ts:7–35`,
+  `collaboration.constants.ts:50–53`).
+- U UI-u se do `PENDING_APPROVAL` dolazi preko nadzorne ploče (pločica vodi na
+  `/tickets?view=all&status=PENDING_APPROVAL`, `components/dashboard/dashboard-metric-grid.tsx:180`); detalj
+  prikazuje traku **„Odobrenje je u toku. SLA tajmer je pauziran dok lanac odobrenja traje.“**
+  (`i18n tickets.detail.pendingApprovalHint`).
+
+### 4.5 Tok CSAT-a
+
+- **Ko smije i kada:** `canActorSubmitTicketCsat` traži: modul uključen, ocjena još nije data, akter je
+  **naručilac**, status je `RESOLVED` (ako `askOnResolved`) ili `CLOSED` (ako `askOnClosed`) i tiket je prošao
+  **deterministički sampling** (`csat/can-submit-ticket-csat.ts:5–32`).
+- **Sampling:** FNV-1a hash `ticketId`-a u interval [0,1) ⇔ `< samplingRate`; `≥1` uvijek prolazi, `≤0` nikad
+  (`csat/is-ticket-csat-sampled.ts:1–21`) — isti tiket uvijek daje isti ishod.
+- **Upis:** validacija ocjene (`1…scaleMax`, cijeli broj) i komentara (do 2000 znakova), skeniranje komentara
+  redakcijom (`assertRedactionAllowed`), zatim **guardrail** `csat_submit` koji sprječava dvostruko slanje,
+  upis `TicketCsat`, change log s razlogom `ticket_csat_submit`, sistemski događaj `ticket_csat_submitted:<rating>`
+  i tretman jedinstvenog ograničenja kao `CSAT_ALREADY_SUBMITTED`
+  (`csat/submit-ticket-csat.ts:32–148`, `csat.constants.ts:15`).
+- **Prikaz u tiketu:** deskriptor `csat` se dodaje odgovoru samo kad su proslijeđeni konfiguracija i akter
+  (`tickets/to-ticket-client-responses.ts:74–85`), a panel se prikazuje kad je ocjena data **ili** je dozvoljeno
+  slanje (`components/tickets/ticket-csat-panel.tsx:24–55`); ocjena je niz zvjezdica do `scaleMax`
+  (`i18n tickets.csat.*`: naslov **„CSAT ocjena“**, dugme **„Pošalji ocjenu“**).
+- **Nema izmjene ni brisanja ocjene** — nema `PATCH`/`DELETE` ruta; ocjena je konačna
+  (`csat/tickets-csat.controller.ts:40–47`).
+
+### 4.6 Agregacija i izvještaji
+
+- `GET /tickets/csat/summary` računa ukupan broj, prosjek i korpe po OU, servisu i grupi
+  (`csat/summarize-visible-ticket-csat.ts:11–38`, `csat/aggregate-ticket-csat.ts:4–43`), uz gornju granicu od
+  **20.000** tiketa s ocjenom (`csat/csat.constants.ts:17–23`) i vidljivost koja dolazi iz liste tiketa
+  (`listTicketsWithin` s `hasCsatSubmission: true`).
+- **Izvještaji rade vlastitu agregaciju:** dashboard KPI čita ocjene iz `loadTicketCsatSubmissions` i vraća
+  `csatAverage`, `csatCount` i **`csatScaleMax: 5` (hardkodirano)**
+  (`reports/dashboard/aggregate-report-dashboard-kpis.ts:13–15, 80–82`); trendovi imaju konstante
+  `reportCsatScaleMax = 5` i `reportCsatSatisfiedMinRating = 4` s pragom „zadovoljan“ ≥ 4
+  (`reports/trends/report-trends.constants.ts:35–37`).
+
+### 4.7 Frontend
+
+- **Odobrenja:** panel `TicketApprovalsPanel` u desnoj koloni detalja prikazuje korake kao vertikalnu
+  vremensku liniju s ikonom i bojom po statusu (**Odobreno**, **čeka odluku**, **Odbijeno**), tekstom
+  **„Korak {{step}}“**, imenom odobravaoca, komentarom pod navodnicima i — samo kad `canDecide` — poljem
+  **„Razlog odluke“** s dugmadima **„Odobri“** i **„Odbij“**; oba dugmeta traže neprazan komentar
+  (`components/tickets/ticket-approvals-panel.tsx:22–140`).
+- **Učitavanje:** `useTicketApprovals` poziva `GET /tickets/:id/approvals`, a panel se osvježava na realtime
+  događaj s `change === "approval"` (`lib/tickets/use-ticket-approvals.ts:23–59`); ako poziv padne, panel se
+  skriva bez poruke (`:30–33`).
+- **CSAT:** traka iznad detalja (`pages/ticket-detail-page.tsx:357–362`), s ocjenom zvjezdicama, komentarom i
+  porukom o grešci preko zajedničkog mapiranja (`lib/tickets/ticket-text.ts`, `tickets.csat.*`).
+- **i18n:** `tickets.csat.*` (naslov, napomena, komentar, dugmad), `tickets.approvalStatus.*`
+  („Na čekanju“, „Odobreno“, „Odbijeno“) i `tickets.detail.*` (odobrenja, korak, odobri, odbij, razlog odluke).
+- E2E: `03-approvals.spec.ts` (naručilac kreira tiket jer samoodobrenje nije dozvoljeno → `PENDING_APPROVAL` →
+  approve pomjera status, reject zatvara tiket) i `08-close-codes-csat.spec.ts` (resolve traži close code).
+
+## 5. Gap analiza
+
+| # | Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|---|
+| 1 | `PENDING_APPROVAL` prije dodjele/obrade (`:70`, `:931`) | status postavljen pri kreiranju, grupa već dodijeljena | `resolveCreateTicketApprovalStatus` + `createPendingTicketApproval`; grupa se dodjeljuje istovremeno | Implementirano |
+| 2 | Approve/reject **sa razlogom** (`:932`) | obavezan razlog, audit | `comment` ide u zapis, poruku tipa `APPROVAL_DECISION`, change log i sistemski događaj; UI zahtijeva neprazan komentar | Implementirano |
+| 3 | Nakon odobrenja rutanje/dodjela nastavlja (`:933`) | tiket prelazi u radni red grupe | `APPROVED` → `PENDING` (grupa je već postavljena) | Implementirano |
+| 4 | Uloga `APPROVER` i tip poruke `APPROVAL_DECISION` (`:112`, `:118`) | učesnik i poruka u toku | dodaje se pri odluci; poruka tipa `APPROVAL_DECISION` u transakciji | Implementirano |
+| 5 | Pauza SLA u `PENDING_APPROVAL` (`:89`, `:511`) | pauza po postavci | `isSlaPauseStatus` + postavka default `true` | Implementirano |
+| 6 | Dashboard prikazuje `PENDING_APPROVAL` (`:281`) | vidljiv zastoj | pločica na nadzornoj ploči vodi na filtriranu listu | Implementirano |
+| 7 | Postavke odobrenja (`:686–689`) | žive postavke | `enabled`, `requiredByServiceJson` (secret), `defaultApproverRole` žive; `allowRequesterManager` **bez potrošača** | Djelimično (B4) |
+| 8 | Odobrenja za „1–3 osjetljiva servisa“ (`:1066`) | kapija na nivou servisa | `Service.requiresApproval` + overlay po servisu | Implementirano |
+| 9 | Obavijest odgovornima o odluci (idealno) | primalac je odobravalac koji treba djelovati | primaoci su samo učesnici s ulogom `APPROVER`, a ta uloga nastaje tek pri odluci | Odstupa (B1) |
+| 10 | Odobrenje se ne smije zaobići (idealno) | kapija na svim ulazima u obradu | tiket kreiran kao `UNROUTED` nikad ne dobija odobrenje, ni poslije prosljeđivanja | Odstupa (B2) |
+| 11 | CSAT ocjena 1–5 + komentar (`:358–359`) | kratka forma nakon rješavanja | zvjezdice do `scaleMax` + opcionalni komentar, deterministički sampling | Implementirano |
+| 12 | Prikaz nakon resolve/close (`:1047`) | prompt u trenutku rješavanja | traka u detalju kad je `canSubmit`; `askOnResolved` default `true`, `askOnClosed` `false` | Implementirano |
+| 13 | CSAT po OU/servisu/grupi (`:360`, `:1019`) | agregacija u izvještajima | `GET /tickets/csat/summary` postoji, ali ga **nijedan ekran ne poziva**; izvještaji računaju samo ukupan prosjek | Djelimično (B3) |
+| 14 | Jedna ocjena po tiketu, bez zloupotrebe | jedinstvenost + zaštita | `ticketId @unique`, guardrail `csat_submit`, `CSAT_ALREADY_SUBMITTED` | Implementirano |
+| 15 | Komentar prolazi redakciju (idealno) | isti tretman kao poruke | `scanTicketContent` + `assertRedactionAllowed` nad komentarom | Implementirano |
+| 16 | Skala CSAT-a podesiva (`:636`) | ista skala svuda | `private.csat.scaleMax` (2–10) živi za formu; izvještaji hardkodiraju 5 i prag ≥ 4 | Odstupa (B3) |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+Oba toka su korektno zatvorena u transakciji i dobro zaštićena: odluku ne može donijeti naručilac, van-scope
+akter ne prolazi, ponovna odluka pada na `APPROVAL_NOT_PENDING`, a sve što se dogodi ostavlja tri traga (change
+log, sistemski događaj, poruka). CSAT je uzoran u jednoj stvari koja se često pogrešno radi: **sampling je
+deterministički** (hash `ticketId`-a), pa isti tiket nikad ne „iskače“ iz uzorka između dva otvaranja ekrana.
+
+Slabosti su na ivicama sistema, ne u srcu. Prva: obavještenje o odobrenju ima tip, tekst i kategoriju, ali
+primaoci se računaju iz uloge učesnika koja u tom trenutku još ne postoji — kanal je time praktično mrtav.
+Druga: kapija odobrenja postoji samo na kreiranju, pa tiket nastao kao `UNROUTED` (npr. usluga bez routing
+pravila) poslije prosljeđivanja ulazi u obradu bez odobrenja. Treća: CSAT je podesiv (2–10), a izvještaji su
+zakucani na 5; to ne ruši funkcionalnost, ali daje pogrešnu sliku kad se skala promijeni.
+
+Testni pokrivač je tanak za značaj modula — tri spec fajla, oba za parser/e agregaciju, dok odluka
+(approve/reject, samoodobrenje, scope) nema jedinični test, a e2e pokriva sretan put i odbijanje.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Obavještenje o odobrenju ne može stići nikome
+
+- **Fajl/linija:** `backend/src/modules/notifications/fan-out/resolve-notification-recipients.ts:211–212`
+  (za `ticketApproval` primaoci su `participantUserIds(prisma, ticket.id, 'APPROVER')`), `:266–278` (nema
+  fallbacka), `:29–35` (akter se uvijek izuzima); `approvals/create-pending-ticket-approval.ts:6–17` (zapis se
+  kreira bez `approverUserId`); `tickets/seed-default-ticket-participants.ts:7–35` i
+  `collaboration.constants.ts:50–53` (pri kreiranju se dodaju samo `REQUESTER` i `HANDLER_GROUP`);
+  `approvals/decide-ticket-approval.ts:139–154` (uloga `APPROVER` dodaje se **poslije** odluke).
+- **Opis:** pri kreiranju tiketa s odobrenjem ne postoji nijedan učesnik s ulogom `APPROVER`, pa lista primalaca
+  za `ticket.approval` ostaje prazna. Kod odluke se odobravalac prvo dodaje kao `APPROVER`, ali se kao akter
+  izuzima, pa i ta obavijest ima nula primalaca; naručilac odluku ne dobija.
+- **Uticaj:** tip obavještenja koji postoji u katalogu, ima tekst **„Čeka odobrenje: {{ticketNumber}}“** i
+  kategoriju u preferencijama praktično nikad ne stigne nikome; odobrenje se otkriva samo ručno (nadzorna
+  ploča → filtrirana lista), pa tiket može čekati neograničeno.
+- **Fix:** primaoce računati iz `defaultApproverRole` **unutar** OU/servis scope-a tiketa (ili poslati na
+  grupu/handler red za `PENDING_APPROVAL`), a odluku vratiti naručiocu.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — Tiket koji počne kao `UNROUTED` nikad ne prolazi odobrenje
+
+- **Fajl/linija:** `backend/src/modules/tickets/approvals/resolve-ticket-approval-requirement.ts:19–27`
+  (`…|| input.routingStatus === 'UNROUTED'` vraća routing status bez odobrenja);
+  `tickets/write-created-ticket-follow-up.ts:59–69` (zapis odobrenja samo ako je status `PENDING_APPROVAL`);
+  `tickets/forwarding/forward-ticket.ts` (nijedna referenca na odobrenja).
+- **Opis:** ako usluga traži odobrenje, a za par (origin OU + usluga) ne postoji routing pravilo, tiket se
+  kreira kao `UNROUTED` **bez** zapisa odobrenja. Kasnije, kad administrator doda pravilo i agent proslijedi
+  tiket u grupu (`UNROUTED → PENDING`), odobrenje se ne kreira.
+- **Uticaj:** osjetljivi servis (npr. nabavka ili pristup) može biti obrađen bez ikakvog odobrenja — kapija se
+  zaobilazi posredno, bez poruke i bez traga u odobrenjima.
+- **Fix:** kreirati odobrenje pri ulasku u obradu ako servis traži odobrenje i za tiket još ne postoji
+  odobrenje (npr. u `forward-ticket` ili u čuvarskom sloju statusa), ili u dokumentaciji izričito navesti da
+  odobrenje postoji samo za rutirane tikete.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — SREDNJE — CSAT agregacija po OU/servisu/grupi postoji, ali je UI ne koristi; skala je hardkodirana
+
+- **Fajl/linija:** `backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts:11–38` i
+  `csat/aggregate-ticket-csat.ts:11–13` (korpe po OU/servisu/grupi) nasuprot nula poziva u frontend-u;
+  `backend/src/modules/reports/dashboard/aggregate-report-dashboard-kpis.ts:82` (`csatScaleMax: 5`),
+  `reports/trends/report-trends.constants.ts:36–37` (`reportCsatScaleMax = 5`,
+  `reportCsatSatisfiedMinRating = 4`) nasuprot `csat/csat.constants.ts:10–11` (`scaleMax` 2–10, postavka
+  `private.csat.scaleMax`).
+- **Opis:** RAW traži da CSAT uđe u KPI/dashboard **po OU/servisu/grupi**; endpoint to računa, ali nijedan ekran
+  ga ne poziva, a izvještaji prikazuju samo ukupan prosjek uz nazivnik zakucan na 5 i prag „zadovoljan“ ≥ 4.
+- **Uticaj:** administrator ne vidi CSAT po jedinici/servisu/grupi iz aplikacije, a ako promijeni skalu na 10,
+  izvještaj i dalje piše „x / 5“ i pogrešno tumači ocjene.
+- **Fix:** prikazati agregaciju u izvještajima, a `scaleMax` i prag „zadovoljan“ izvesti iz konfiguracije CSAT-a.
+- **Ozbiljnost:** SREDNJE.
+
+### B4 — NISKO — `private.ticket.approvals.allowRequesterManager` je bez potrošača
+
+- **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts:139–140`,
+  `settings/definitions/ticket-approvals-settings.ts:36–44`,
+  `approvals/parse-ticket-approvals-configuration.ts:26,34`, `approvals/approvals.types.ts:11` — i nigdje dalje
+  (pretraga kroz `backend/src` daje samo definiciju, parser, loader i test-harness).
+- **Opis:** postavka se čita i validira te prenosi u konfiguraciju, ali je nijedna logika odlučivanja ne koristi.
+- **Uticaj:** uključivanje ne mijenja ponašanje; vjerovatno je priprema za AD managera (RAW `:689`), ali to iz
+  koda nije vidljivo.
+- **Fix:** ukloniti do implementacije ili je označiti kao rezervisanu i dokumentovati.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — CSAT zapis u change logu ima identičan „prije“ i „poslije“
+
+- **Fajl/linija:** `backend/src/modules/tickets/csat/submit-ticket-csat.ts:98–104`
+  (`before: ticket, after: ticket`).
+- **Opis:** promjena se bilježi s istim stanjem prije i poslije, pa diff ne pokazuje da je ocjena dodana;
+  informacija o ocjeni postoji samo u sistemskom događaju `ticket_csat_submitted:<rating>`.
+- **Uticaj:** change log tiketa je za CSAT praktično prazan zapis; revizor mora gledati vremensku liniju.
+- **Fix:** u `after` uključiti stanje ocjene (npr. `rating`) ili u zapis staviti `metadata`.
+- **Ozbiljnost:** NISKO.
+
+**Napomena o terminu:** odbijanje odobrenja vodi tiket u status **`CLOSED`**
+(`decide-ticket-approval.ts:70`), a ne u posebno stanje „odbijeno“; status odobrenja (`REJECTED`) je vidljiv u
+panelu i u i18n ključu `tickets.approvalStatus.REJECTED`. Dokumentacija mora razlikovati **status tiketa** i
+**ishod odobrenja**.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/*` — odobrenja i CSAT nisu bili dokumentovani ni na jednoj stranici; detalji
+tiketa ih spominju samo posredno kroz `tickets.detail.*` u UI-u.
+
+**Dodato (M9):**
+
+- `docs/user-guide/odobrenja-i-csat.md` — nova stranica: čemu služi, kome je namijenjen (tabela rola), kako se
+  dolazi, korak-po-korak (tiket koji čeka odobrenje, odluka **Odobri**/**Odbij** s razlogom, šta se dešava
+  poslije odluke, ocjenjivanje tiketa i pravila uzorka), tabele polja/statusa/validacija, česta pitanja i poruke
+  grešaka, poznata ograničenja (B1–B5) i povezani moduli.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T57–T61**: odobrenje kao blokirajuće stanje (nastanak, odluka, posljedice);
+  ko smije odlučiti; SLA pauza u `PENDING_APPROVAL`; CSAT pravila (ko, kada, jednom, komentar); CSAT agregacija,
+  skala i prag „zadovoljan“.
+- `REVIEW_ANALIZA.md` §M9 — planirano/idealno/preporuka, stanje u kodu (model, API, tok odobrenja, SLA i
+  obavještenja, tok CSAT-a, agregacija i izvještaji, frontend), gap tabela sa 16 redova, recenzija, nalazi
+  **B1–B5**, ocjene **F7 / K8 / S8** i red tabele iteracija „2 … M9 ✅ · M10 u toku“.
+
+**Ostaje otvoreno:** `[NEJASNO]` — da li je predviđeno da odobrenje bude **višekoračno** (model ima `stepOrder`,
+ali kod uvijek kreira korak 1, a `firstStepOrder` je konstanta); do odgovora dokumentacija opisuje samo
+jednokoračno odobrenje.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **7 / 10** | Odluka (approve → u obradu, reject → zatvoreno) radi i ostavlja tri traga; samoodobrenje i van-scope su blokirani; CSAT radi s determinističkim uzorkom, jednom ocjenom po tiketu i opcionalnim komentarom. Umanjuju: obavještenje koje ne stiže nikome (B1), zaobilazni put kroz `UNROUTED` (B2), agregacija koja se ne prikazuje (B3) i podesiva skala koja se u izvještajima ignoriše (B3). |
+| Kvalitet koda | **8 / 10** | Transakcije, precizni kodovi grešaka, deterministički sampling, redakcija komentara i jedinstvenost ocjene po tiketu su uzorni; konfiguracija ima tolerantne parsere s jasnim granicama (2–10, 0–1). Umanjuju: mrtva postavka (B4), prazan CSAT diff (B5) i to što odluka nema jedinične testove. |
+| Sigurnost | **8 / 10** | Odluka traži rolu u OU/servis scope-u, naručilac je isključen, akter se nikad ne obavještava o vlastitoj akciji, CSAT može poslati samo naručilac i samo jednom, a komentar prolazi redakciju. Umanjuje: B1 (niko ne dobija obavještenje, pa nadzor nad čekanjem zavisi od ručnog pregleda) i B2 (kapija se može zaobići). |

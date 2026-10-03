@@ -343,3 +343,53 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   te frontend (`pages/ticket-*.tsx`, `components/tickets/*`, `lib/tickets/*`) i e2e
   (`01-ticket-create`, `05-bulk-broadcast`, `06-confidential`, `10-forward-cross-ou`, `14-time-tracking`,
   `15-workflow-unrouted-realtime`).
+
+---
+
+## M9 — Odobrenja i CSAT (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/odobrenja-i-csat.md` — novi vodič: čemu modul služi, kome je namijenjen (tabela rola),
+  kako se dolazi (nadzorna ploča → **Čeka odobrenje**, panel **Odobrenja**, traka **CSAT ocjena**),
+  korak-po-korak (kako tiket dođe u odobrenje, odluka **Odobri**/**Odbij** s razlogom i posljedice, ocjenjivanje
+  tiketa), tabele polja/statusa/validacija, česta pitanja i poruke grešaka, poznata ograničenja (B1–B5) i
+  povezani moduli.
+- `REVIEW_ANALIZA.md` §M9 — planirano/idealno/preporuka, stanje u kodu (model i kontrakti, API, tok odobrenja,
+  SLA i obavještenja, tok CSAT-a, agregacija i izvještaji, frontend), gap tabela sa 16 redova, recenzija,
+  nalazi **B1–B5**, ocjene **F7 / K8 / S8** i red tabele iteracija „2 … M9 ✅ · M10 u toku“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T57–T61**: odobrenje kao blokirajuće stanje s obaveznim razlogom; ko smije
+  odlučiti; SLA pauza u `PENDING_APPROVAL`; CSAT pravila (ko, kada, jednom, komentar); CSAT agregacija po
+  jedinici/servisu/grupi.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — odobrenja i CSAT do sada nisu bili dokumentovani.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Tri stvari se lako pogrešno razumiju i zato su u vodiču posebno istaknute: (1) **odbijanje odobrenja zatvara
+  tiket** (status **Zatvoreno**, ishod **Odbijeno** je vidljiv u panelu), (2) odobrenje **ne dodjeljuje agenta**
+  — samo vraća tiket u red grupe, i (3) CSAT može poslati **samo naručilac i samo jednom**, uz uzorkovanje.
+  Uz to su navedena stvarna ograničenja (B1–B5), uključujući to da obavještenje *„Čeka odobrenje“* u praksi ne
+  stiže nikome.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/tickets/approvals/*` (`create-pending-ticket-approval.ts`,
+  `decide-ticket-approval.ts`, `assert-can-decide-ticket-approval.ts`, `resolve-ticket-approval-requirement.ts`,
+  `list-ticket-approvals.ts`, `parse-ticket-approvals-configuration.ts`, `tickets-approvals.controller.ts`),
+  `backend/src/modules/tickets/csat/*` (`submit-ticket-csat.ts`, `can-submit-ticket-csat.ts`,
+  `is-ticket-csat-sampled.ts`, `summarize-visible-ticket-csat.ts`, `aggregate-ticket-csat.ts`,
+  `describe-ticket-csat.ts`, `tickets-csat*.controller.ts`), `backend/src/modules/tickets/write-created-ticket-follow-up.ts`,
+  `workflow/ticket-workflow-definition.ts`, `to-ticket-client-responses.ts`,
+  `backend/src/modules/sla/is-sla-pause-status.ts`, `backend/src/modules/settings/definitions/{ticket-approvals,ticket-csat,ticket-sla}-settings.ts`,
+  `backend/src/modules/notifications/fan-out/*`, `backend/src/modules/reports/dashboard/aggregate-report-dashboard-kpis.ts`,
+  `backend/prisma/schema/{ticketing-support,enums}.prisma`, te frontend
+  (`components/tickets/ticket-approvals-panel.tsx`, `components/tickets/ticket-csat-panel.tsx`,
+  `lib/tickets/use-ticket-approvals.ts`, `services/tickets-csat-api.ts`, `services/tickets-approvals-api.ts`) i
+  e2e (`03-approvals.spec.ts`, `08-close-codes-csat.spec.ts`).

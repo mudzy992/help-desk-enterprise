@@ -1145,6 +1145,110 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B1: `retentionDays` nema efekta; brisanjem upravlja modul Privatnost)
 - **Wiki stranica:** Tiketi → Prilozi
 
+### T57 — Odobrenje je blokirajuće stanje s obaveznim razlogom
+
+- **Modul / paket:** Odobrenja i CSAT
+- **Publika:** ADMIN / SUPER_ADMIN (odluka), korisnik (naručilac)
+- **Tip:** Pravilo
+- **Teza:** Ako usluga zahtijeva odobrenje, tiket se otvara u statusu **Čeka odobrenje** (`PENDING_APPROVAL`) i
+  dobija jedan zapis odobrenja sa statusom **Na čekanju**. Odluka ide s **obaveznim razlogom**: **Odobri** vodi
+  tiket u **Na čekanju** (odobreni zahtjev ulazi u radni red grupe), a **Odbij** ga **zatvara**. Svaka odluka
+  ostavlja tri traga — change log s razlogom `ticket_approval_approved`/`ticket_approval_rejected`, sistemski
+  događaj i poruku tipa *odluka o odobrenju* — i dodaje odlučioca kao učesnika s ulogom odobravaoca.
+- **Zašto:** osjetljivi zahtjevi ne smiju ući u obradu bez odluke, a odluka mora biti objašnjiva i dokaziva.
+- **Primjer:** Zahtjev za novu opremu stoji u **Čeka odobrenje**; admin odbija uz razlog „nije u budžetu ovog
+  kvartala“ — tiket je **Zatvoreno**, a razlog stoji u panelu **Odobrenja**.
+- **Postavke / permisije:** `private.ticket.approvals.enabled`, `requiredByServiceJson`, `defaultApproverRole`;
+  polje **Zahtijeva odobrenje** na usluzi.
+- **Ekran:** detalj tiketa → **Odobrenja** (dugmad **Odobri** / **Odbij**), nadzorna ploča → pločica **Čeka
+  odobrenje**.
+- **Izvori:** `backend/src/modules/tickets/write-created-ticket-follow-up.ts:59–69`,
+  `approvals/create-pending-ticket-approval.ts:6–17`, `approvals/decide-ticket-approval.ts:57–137`,
+  `approvals/approvals.constants.ts:17–26`, `workflow/ticket-workflow-definition.ts:58–59`,
+  `backend/prisma/schema/ticketing-support.prisma:67–82`.
+- **Status:** Važi
+- **Wiki stranica:** Odobrenja i CSAT → Tok odobrenja
+
+### T58 — Ko smije odlučiti o odobrenju
+
+- **Modul / paket:** Odobrenja i CSAT
+- **Publika:** ADMIN / SUPER_ADMIN / (AGENT ako je tako podešeno)
+- **Tip:** Pravilo
+- **Teza:** O odobrenju odlučuje akter koji **nije naručilac** i koji ima rolu iz postavke
+  `defaultApproverRole` **unutar OU i servis scope-a tiketa**; SUPER_ADMIN može uvijek. Ako je modul isključen,
+  tiket nije u statusu **Čeka odobrenje** ili je odluka već donesena, zahtjev se odbija jasnim kodom
+  (`APPROVALS_DISABLED`, `APPROVAL_NOT_PENDING`, `APPROVAL_SELF_FORBIDDEN`, `FORBIDDEN`). Rola odobravaoca se
+  nikad ne dodjeljuje automatski pojedincu — pravo dolazi iz role i scope-a.
+- **Zašto:** sprječava samoodobrenje i „odobrenje izvan nadležnosti“.
+- **Primjer:** Agent iz druge organizacijske jedinice vidi tiket, ali ne dobija dugmad **Odobri**/**Odbij**.
+- **Postavke / permisije:** `private.ticket.approvals.defaultApproverRole`, OU/servis scope iz RBAC-a.
+- **Ekran:** detalj tiketa → **Odobrenja** (dugmad se prikazuju samo kad polje `canDecide` dođe kao `true`).
+- **Izvori:** `backend/src/modules/tickets/approvals/assert-can-decide-ticket-approval.ts:9–73`,
+  `approvals/approvals.constants.ts:28–38`, `approvals/list-ticket-approvals.ts:38–48`.
+- **Status:** Važi
+- **Wiki stranica:** Odobrenja i CSAT → Pravo odluke
+
+### T59 — SLA je pauziran dok tiket čeka odobrenje
+
+- **Modul / paket:** Odobrenja i CSAT
+- **Publika:** svi (posljedica), ADMIN (postavka)
+- **Tip:** Pravilo
+- **Teza:** Dok je tiket u statusu **Čeka odobrenje**, SLA tajmeri (odgovor i rješavanje) su **pauzirani** ako je
+  uključena postavka `private.ticket.sla.pauseOnPendingApproval` (podrazumijevano uključena); nakon odluke
+  tajmeri se ponovo pokreću, a kod odbijanja tiket prelazi u **Zatvoreno**. Isto pravilo postoji i za status
+  **Čeka korisnika**.
+- **Zašto:** čekanje na tuđu odluku ne smije se pripisati agentu kao prekoračenje roka.
+- **Primjer:** Tiket otvoren u 09:00 ulazi u odobrenje; odobren je u 15:00 — šest sati čekanja ne ulazi u SLA.
+- **Postavke / permisije:** `private.ticket.sla.pauseOnPendingApproval`, `private.ticket.sla.pauseOnWaitingForUser`.
+- **Ekran:** detalj tiketa (napomena u zaglavlju) i SLA panel tiketa.
+- **Izvori:** `backend/src/modules/sla/is-sla-pause-status.ts:4–15`,
+  `settings/definitions/ticket-sla-settings.ts:31–46`, `sla/start-ticket-sla-timers.ts:48`,
+  `sla/sync-ticket-sla-timers.ts:116,136`, `tickets/approvals/decide-ticket-approval.ts:130–135`.
+- **Status:** Važi
+- **Wiki stranica:** Odobrenja i CSAT → SLA i odobrenja
+
+### T60 — CSAT: jedna ocjena po tiketu, samo od naručioca, u prozoru nakon rješavanja
+
+- **Modul / paket:** Odobrenja i CSAT
+- **Publika:** korisnik (naručilac), AGENT/ADMIN (pregled)
+- **Tip:** Pravilo
+- **Teza:** Ocjenu šalje **isključivo naručilac**, **jednom po tiketu**, dok je tiket **Riješeno** (podrazumijevano)
+  ili **Zatvoreno** (isključeno po defaultu), i to samo ako je tiket prošao **deterministički uzorak**
+  (`samplingRate`, 0–1). Ocjena je cijeli broj od 1 do podešene skale (podrazumijevano 5, dozvoljeno 2–10), a
+  komentar je opcionalan i prolazi provjeru osjetljivog sadržaja. Ocjena se **ne može** mijenjati ni brisati.
+- **Zašto:** ocjena mora biti vjerodostojna (samo naručilac, samo jednom) i ne smije opteretiti sve tikete ako je
+  uzorak smanjen.
+- **Primjer:** Naručilac na riješenom tiketu daje 4 zvjezdice i komentar „Brzo rješeno“; tiket nema više formu za
+  ocjenu.
+- **Postavke / permisije:** `private.csat.enabled`, `scaleMax`, `askOnResolved`, `askOnClosed`, `samplingRate`;
+  modul mora biti uključen i u katalogu dodataka (`private.addons.csat`).
+- **Ekran:** detalj tiketa → traka **CSAT ocjena** (**Pošalji ocjenu**).
+- **Izvori:** `backend/src/modules/tickets/csat/can-submit-ticket-csat.ts:5–32`,
+  `csat/is-ticket-csat-sampled.ts:1–21`, `csat/submit-ticket-csat.ts:32–148`,
+  `csat/csat.constants.ts:1–23`, `csat/parse-ticket-csat-configuration.ts:8–54`,
+  `frontend/src/components/tickets/ticket-csat-panel.tsx:24–55`.
+- **Status:** Važi
+- **Wiki stranica:** Odobrenja i CSAT → CSAT ocjena
+
+### T61 — CSAT agregacija: prosjek po jedinici, servisu i grupi
+
+- **Modul / paket:** Odobrenja i CSAT
+- **Publika:** AGENT / ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Server računa ukupan broj ocjena, prosjek i **korpe po organizacijskoj jedinici, servisu i handler
+  grupi** (`GET /tickets/csat/summary`), uz gornju granicu od 20.000 tiketa s ocjenom i vidljivost koja dolazi iz
+  pravila liste tiketa (ne može se vidjeti agregat za tikete koje akter ne smije vidjeti).
+- **Zašto:** CSAT je KPI menadžmenta i mora biti vezan za organizaciju, ne samo za pojedinačni tiket.
+- **Primjer:** Prosjek po servisu pokazuje da „Pristup mreži“ ima nižu ocjenu od „Opreme“.
+- **Postavke / permisije:** rola `agent|admin|superAdmin`; vidljivost iz OU/servis scope-a i povjerljivosti.
+- **Ekran:** trenutno bez ekrana — podatke vraća API (`GET /tickets/csat/summary`); u aplikaciji su vidljivi
+  **ukupan** prosjek i broj ocjena na izvještajima.
+- **Izvori:** `backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts:11–38`,
+  `csat/aggregate-ticket-csat.ts:4–43`, `csat/csat.types.ts:34–48`,
+  `csat/tickets-csat-summary.controller.ts:20–42`.
+- **Status:** Važi na serveru (uz B3: nijedan ekran ne prikazuje korpe, a izvještaji hardkodiraju skalu 5)
+- **Wiki stranica:** Odobrenja i CSAT → CSAT u izvještajima
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
