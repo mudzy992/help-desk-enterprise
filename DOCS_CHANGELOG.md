@@ -90,3 +90,35 @@ Analiza: `REVIEW_ANALIZA.md` §M2.
 2. Nalaz #1 iz §M2 (gašenje `mfa.allowOptional` tiho preskače verifikaciju postojećim korisnicima) mijenja
    ponašanje; dokumentacija ga zasad opisuje kao **poznato ograničenje**, a ne kao pravilo. Kad se kod popravi,
    i ovaj tekst treba uskladiti.
+
+---
+
+## M3 — Korisnici, organizacione jedinice i grupe · 2026-10-03
+
+**Zašto:** administracija naloga, OU stabla i grupa za rutiranje nije imala nijednu stranicu u `user-guide`, a
+to je prvi ekran na koji administrator dolazi poslije instalacije. Analiza: `REVIEW_ANALIZA.md` §M3.
+
+### Dodato
+
+| Dokument | Šta je dodato | Izvor u kodu (dokaz) |
+|---|---|---|
+| `docs/user-guide/korisnici-oj-i-grupe.md` (novo) | Dodavanje/uređivanje korisnika, privremena lozinka, reset lozinke i MFA-a, odjava sesija, AD veza i raskid veze, OU stablo (Dodaj OU, izmjena, brisanje, DN/ouPath), AD sinhronizacija (Test veze, Probni prolaz, Primijeni plan, osigurač), grupe (fallback, članovi, problem/CAB), validacije, poruke grešaka, FAQ i poznata ograničenja | `users/users.controller.ts:37–188`; `users/create-user.ts:19–69`; `users/issue-temporary-password-for-user.ts:22–43`; `users/delete-user.ts:12–40`; `users/link-user-directory-identity.ts:32–60`; `organizational-units/*`; `groups/*`; `directory-sync/directory-full-sync.service.ts:149–197`; `LdapsDirectorySyncPanel` i i18n `users.*`, `groups.*`, `directory.*` (bs) |
+| `TEZE-ZA-DOKUMENTACIJU.md` | **T23** jedan identitet po nalogu i eksplicitna AD veza (SuperAdmin); **T24** OU se ne briše s djecom/korisnicima (i šta se ne provjerava); **T25** fallback grupa je jedna po OU-u i aktivira problem/CAB module; **T26** audit pokriva samo role — dokumentacija to mora reći | `users/user-directory-identity.controller.ts:24`; `organizational-units/delete-organizational-unit.ts:20–25`; `groups/create-group.ts:18–35`; `users/assign-user-role.ts:92`, `remove-user-role.ts:35` |
+| `REVIEW_ANALIZA.md` §M3 | 9 cjelina + gap tabela + 7 nalaza (B1–B7) | isto |
+
+### Izmijenjeno
+
+- Ništa. Nijedan postojeći `docs/user-guide/*` fajl nije tvrdio ništa o administraciji korisnika/OJ/grupa, pa
+  nije bilo ispravki; ostali modulski fajlovi nisu dirani.
+
+### Uklonjeno
+
+- Ništa.
+
+### Ostaje otvoreno `[NEJASNO]`
+
+1. RAW traži „opcionalno Manager“ pri sync-u iz AD-a (`RAW_PROJECT.md:30`), ali ne definiše upotrebu manager
+   hijerarhije u aplikaciji; polje `User.managerUserId` postoji, mapiranje iz direktorija ne (`grep manager` u
+   `directory-sync` je prazan).
+2. Nalazi B1–B4 iz §M3 mijenjaju ponašanje kad se poprave (brisanje OU-a, audit, reset lozinke AD nalogu);
+   stranica ih zasad opisuje u **Poznata ograničenja** i treba je uskladiti s popravkama.

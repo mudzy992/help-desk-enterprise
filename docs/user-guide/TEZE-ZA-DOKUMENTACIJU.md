@@ -463,6 +463,79 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Početak → Prijava i MFA
 
+### T23 — Nalog ima jedan identitet; veza s katalogom je eksplicitna SuperAdmin akcija
+
+- **Modul / paket:** Korisnici, OU i grupe
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Nalog je ili **lokalan** ili **AD-praćen**. Veza s katalogom se uspostavlja isključivo ručno
+  (**Poveži sa AD nalogom**, samo SUPER_ADMIN) i nikad automatski po e-mail adresi; **Raskini AD vezu** vraća
+  nalog u lokalni i izdaje mu privremenu lozinku koju mora promijeniti pri sljedećoj prijavi.
+- **Zašto:** sprječava da nalog s istim e-mailom preuzme historiju tuđeg naloga.
+- **Primjer:** Dijalog **Poveži sa katalog identitetom** prikazuje uporedo **Lokalni nalog** i **Katalog
+  (AD/manual)** i traži potvrdu oba identiteta.
+- **Postavke / permisije:** veza/raskid su SUPER_ADMIN-only (`user-directory-identity.controller.ts:24`).
+- **Ekran:** Administracija → **Korisnici** → **Poveži sa AD nalogom** / **Raskini AD vezu**.
+- **Izvori:** `backend/src/modules/users/link-user-directory-identity.ts:32–60`,
+  `unlink-user-directory-identity.ts:35–52`, i18n `users.linkDirectory*`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Korisnici, OU i grupe
+
+### T24 — OU se ne može obrisati dok ima podređene jedinice ili korisnike
+
+- **Modul / paket:** Korisnici, OU i grupe
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Brisanje organizacione jedinice je blokirano ako jedinica ima podređenih OU-a ili mapiranih
+  korisnika. Ostale zavisnosti (grupe, imovina, KB, routing/SLA pravila) u kodu se **ne** provjeravaju — vidi
+  poznata ograničenja.
+- **Zašto:** čuva integritet stabla i vidljivost tiketa po OU-u.
+- **Primjer:** OU s podređenom službom vraća „Organizational unit still has child units“; OU s korisnicima
+  „Organizational unit still has mapped users“.
+- **Postavke / permisije:** nije postavka; brisanje traži ADMIN ili SUPER_ADMIN.
+- **Ekran:** Administracija → **Org. jedinice** → **Obriši**.
+- **Izvori:** `backend/src/modules/organizational-units/delete-organizational-unit.ts:20–25`,
+  `map-organizational-unit-error.ts:17–31`.
+- **Status:** Važi (uz ograničenje B1 iz `REVIEW_ANALIZA.md` §M3)
+- **Wiki stranica:** Administracija → Korisnici, OU i grupe
+
+### T25 — Fallback grupa je jedna po OU-u; problemi i promjene se aktiviraju svojom grupom
+
+- **Modul / paket:** Korisnici, OU i grupe
+- **Publika:** Administratori
+- **Tip:** Pravilo
+- **Teza:** Grupa može biti **fallback** (najviše jedna po OU-u), **problem-grupa** ili **CAB grupa**. Modul
+  problema aktivan je tek kad postoji bar jedna problem-grupa, a modul promjena tek kad postoji bar jedna CAB
+  grupa; tiketi iz OJ se dodjeljuju grupama, pa korisnik koji nije u nijednoj grupi te OJ ne dobija te tikete.
+- **Zašto:** sprječava „izgubljene“ tikete bez grupe i jasno označava vlasništvo nad problemima/promjenama.
+- **Primjer:** Prva grupa s uključenim **Fallback grupa za ovu OJ** gasi fallback na prethodnoj grupi iste OJ;
+  brisanje posljednje fallback grupe odbija se porukom `SOLE_FALLBACK_GROUP`.
+- **Postavke / permisije:** mutacije traže permisiju `group.manage`.
+- **Ekran:** Administracija → **Grupe**.
+- **Izvori:** `backend/src/modules/groups/create-group.ts:18–35`, `update-group.ts:18–30`,
+  `assert-group-deletable.ts:10–20`, i18n `groups.form.problemGroupHint`/`cabGroupHint`,
+  `users.roleGroupCoverageWarning`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Korisnici, OU i grupe
+
+### T26 — Audit trenutno pokriva samo dodjelu i uklanjanje uloga
+
+- **Modul / paket:** Korisnici, OU i grupe
+- **Publika:** Administratori
+- **Tip:** Ograničenje
+- **Teza:** U audit log ulaze `userRoleAssign` i `userRoleRemove`. Kreiranje, izmjena i brisanje korisnika,
+  izmjene organizacionih jedinica i izmjene grupa se **ne** bilježe, iako RAW traži audit svih akcija
+  (`RAW_PROJECT.md:173`). Dokumentacija zato ne smije tvrditi da su te radnje auditovane.
+- **Zašto:** forenzičko istraživanje („ko je obrisao nalog / promijenio OU“) zasad nije moguće iz aplikacije.
+- **Primjer:** Nakon brisanja korisnika u audit logu nema zapisa; zapis postoji samo ako mu je prije toga
+  dodijeljena/uklonjena rola.
+- **Postavke / permisije:** nije postavka.
+- **Ekran:** Administracija → **Ops** → audit (nema zapisa za ove radnje).
+- **Izvori:** `backend/src/modules/users/assign-user-role.ts:92`, `remove-user-role.ts:35`; prazan `grep`
+  `appendAuditLog` u `modules/organizational-units/` i `modules/groups/`.
+- **Status:** Privremeno (nalaz B3, `REVIEW_ANALIZA.md` §M3) — mijenja se kad kod dobije audit.
+- **Wiki stranica:** Administracija → Korisnici, OU i grupe
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
