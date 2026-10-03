@@ -393,3 +393,60 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   (`components/tickets/ticket-approvals-panel.tsx`, `components/tickets/ticket-csat-panel.tsx`,
   `lib/tickets/use-ticket-approvals.ts`, `services/tickets-csat-api.ts`, `services/tickets-approvals-api.ts`) i
   e2e (`03-approvals.spec.ts`, `08-close-codes-csat.spec.ts`).
+
+---
+
+## M10 — SLA (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/sla.md` — novi vodič: čemu modul služi, kome je namijenjen (tabela rola + permisija
+  `sla.write`), kako se dolazi (**SLA pravila**, **Upravljaj kalendarima**, **Matrica prioriteta**, panel
+  **SLA tajmeri** na tiketu), korak-po-korak (kalendar sa praznicima → profil → pravila po prioritetu →
+  override pravila → eskalacije → matrica → ponašanje na tiketu → usklađenost), tabele polja i validacija za
+  kalendar/profil/pravilo/eskalaciju/matricu, značenje stanja sata (**U okviru**, **Pod rizikom**,
+  **Prekoračen**, **pauza**) i razloga „SLA nije primijenjen“ (`NO_PROFILE`, `PROFILE_INACTIVE`, `NO_RULE`,
+  `NO_CALENDAR`, `NOT_APPLIED`), česta pitanja i poruke grešaka, poznata ograničenja (**B1–B5**) i povezani
+  moduli.
+- `REVIEW_ANALIZA.md` §M10 — planirano/idealno/preporuka, stanje u kodu (model i granice, izračun u radnom
+  vremenu, životni ciklus sata, skener i `nextDueAt`, eskalacije i obavještenja, administracija i change log,
+  usklađenost i izvještaji, frontend, testovi), gap tabela sa 23 reda, recenzija, nalazi **B1–B5**, ocjene
+  **F8 / K9 / S8** i red tabele iteracija „2 … M10 ✅ · iteracija 2 završena“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T62–T67**: rok u radnom vremenu od kreiranja; pauze i pomjeranje rokova;
+  izbor pravila i matrica prioriteta; eskalacije (offseti, mete, dežurni, dedupe); usklađenost i nadzor
+  skenera; administracija, change log i verzije konfiguracije.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — SLA do sada nije bio dokumentovan kao samostalan modul (spominjan
+  je u vodičima o tiketima i usmjeravanju).
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Praktično je najvažnije objasniti da su rokovi u **radnom vremenu** i da sat **počinje od kreiranja tiketa**, da
+  statusi **Čeka korisnika**/**Čeka odobrenje** pauziraju satove, da se prekoračenje **ne briše** promjenom
+  prioriteta, te da eskalacija bez meta u praksi ne stiže nikome. Uz to su navedena stvarna ograničenja (B1–B5) i
+  odstupanja od RAW postavki (konfiguracija je u bazi, `escalations.inAppEnabled` ne postoji).
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/sla/*` (140 `.ts`, 24 spec fajla) — posebno
+  `add-business-minutes.ts`, `count-business-minutes.ts`, `parse-weekly-hours.ts`, `business-hours-civil-time.ts`,
+  `resolve-matching-sla-rule.ts`, `start-ticket-sla-timers.ts`, `sync-ticket-sla-timers.ts`,
+  `apply-ticket-sla-pause.ts`/`apply-ticket-sla-resume.ts`, `recompute-ticket-sla-targets.ts`,
+  `compute-sla-next-due-at.ts`, `scan-due-ticket-sla-states.ts`, `sla-scan.processor.ts`,
+  `sla-scan.scheduler.service.ts`, `select-due-sla-escalations.ts`, `apply-due-sla-escalations.ts`,
+  `emit-ticket-sla-runtime-events.ts`, `record-ticket-sla-runtime-event.ts`, `sla-compliance.*`,
+  `assert-sla-*-constraints.ts`, `starting-sla.constants.ts`, `seed-starting-sla-profiles.ts`,
+  `priority-matrix.controller.ts`, `sla-*-settings` definicije; `backend/prisma/schema/sla.prisma`;
+  `backend/src/modules/config-versioning/{validate-sla-snapshot,apply-sla-snapshot,compute-shadow-diff}.ts`;
+  `backend/src/modules/tickets/context/load-ticket-sla-context.ts`;
+  `backend/src/modules/notifications/fan-out/resolve-sla-notification-recipients.ts` i
+  `resolve-notification-recipients.ts`; `backend/src/modules/notifications/email/fan-out-email-notifications.ts`;
+  `backend/src/modules/ops-health/evaluate-ops-signals.ts`; te frontend (`pages/sla-page.tsx`,
+  `components/sla/*`, `components/tickets/ticket-sla-panel.tsx`, `lib/sla/*`, `services/sla-api.ts`,
+  `lib/session/route-access.ts`) i e2e `tests/07-sla.spec.ts`.

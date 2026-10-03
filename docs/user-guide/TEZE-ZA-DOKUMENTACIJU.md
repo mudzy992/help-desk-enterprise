@@ -1249,6 +1249,142 @@ To je kriterij kompletnosti.
 - **Status:** Važi na serveru (uz B3: nijedan ekran ne prikazuje korpe, a izvještaji hardkodiraju skalu 5)
 - **Wiki stranica:** Odobrenja i CSAT → CSAT u izvještajima
 
+### T62 — SLA rok se računa u radnom vremenu i od kreiranja tiketa
+
+- **Modul / paket:** SLA
+- **Publika:** agent, admin
+- **Tip:** Pravilo
+- **Teza:** Rok za **prvi odgovor** i rok za **rješenje** računaju se u **minutama radnog vremena** kalendara
+  koji nosi SLA profil servisa, a sat počinje u trenutku **kreiranja tiketa** (`createdAt`). Praznici i dani bez
+  intervala ne troše vrijeme; vrijeme se računa u vremenskoj zoni kalendara.
+- **Zašto:** rok od 4 sata u 17:00 ne smije isteći u 21:00, nego tek sljedećeg radnog dana.
+- **Primjer:** `INCIDENT`/P1 s rokom prvog odgovora 10 min, tiket otvoren petak u 15:55 → rok je u ponedjeljak
+  u 08:05 (10 radnih minuta), a ne u 16:05.
+- **Postavke / permisije:** `private.ticket.sla.enabled`; kalendar/profil/pravilo se uređuju na **SLA pravila**.
+- **Ekran:** detalj tiketa → **SLA tajmeri**; **SLA pravila** → **Profili**/**Pravila**.
+- **Izvori:** `backend/src/modules/sla/add-business-minutes.ts:14–55`,
+  `count-business-minutes.ts:13–59`, `start-ticket-sla-timers.ts:13–92`,
+  `resolve-matching-sla-rule.ts:11–60`, `business-hours-civil-time.ts`, `parse-weekly-hours.ts:8–86`.
+- **Status:** Važi
+- **Wiki stranica:** SLA → Rokovi i kalendari
+
+### T63 — Pauza satova u statusima „Čeka korisnika“ i „Čeka odobrenje“
+
+- **Modul / paket:** SLA
+- **Publika:** agent, admin
+- **Tip:** Pravilo
+- **Teza:** Dok je tiket u statusu **Čeka korisnika** ili **Čeka odobrenje**, satovi **stoje** (ako je
+  odgovarajuća postavka uključena, što je podrazumijevano). Pri povratku u obradu rok se **pomjera** za
+  preostalo radno vrijeme, a ukupno vrijeme pauze se pamti u minutama radnog vremena. Tiket na čekanju nije
+  „prekoračen“.
+- **Zašto:** čekanje na korisnika ili odobrenje nije odgovornost agenta i ne smije mu se pripisati kao
+  prekoračenje.
+- **Primjer:** tiket otvoren u 09:00, u 09:30 prešao u **Čeka korisnika**, vraćen u obradu u 11:00 → sat je
+  stajao 30 radnih minuta, pa se rok pomjera za 30 minuta od trenutka vraćanja.
+- **Postavke / permisije:** `private.ticket.sla.pauseOnWaitingForUser`, `private.ticket.sla.pauseOnPendingApproval`.
+- **Ekran:** detalj tiketa → **SLA tajmeri** (oznaka **pauza**).
+- **Izvori:** `backend/src/modules/sla/is-sla-pause-status.ts:4–15`, `apply-ticket-sla-pause.ts:3–11`,
+  `apply-ticket-sla-resume.ts:6–42`, `sync-ticket-sla-timers.ts:109–152`.
+- **Status:** Važi
+- **Wiki stranica:** SLA → Pauze
+
+### T64 — Kako se bira SLA pravilo i čemu služi matrica prioriteta
+
+- **Modul / paket:** SLA
+- **Publika:** admin
+- **Tip:** Pravilo
+- **Teza:** U profilu se prvo bira pravilo sa istim **prioritetom**, a onda ono koje odgovara **servisu** i
+  **organizacionoj jedinici** tiketa; red bez servisa i OU je **default** i koristi se kao fallback. Redoslijed
+  odlučivanja: **Redoslijed** (manji prvi) → **specifičnost** (servis je specifičniji od OU) → redoslijed
+  zapisa. Prioritet tiketa dolazi iz **Matrice prioriteta** (Uticaj × Hitnost), osim ako je zadat ručno.
+- **Zašto:** jedno mjesto (profil) mora pokriti sve prioritete, a izuzeci (servis/OU) ne smiju „pobjeći“ od
+  defaulta.
+- **Primjer:** profil `STANDARD_REQUEST` ima default P3 rok 4h, a override za servis „Pristup mreži“ 2h;
+  tiket na tom servisu dobija 2h, svi ostali 4h.
+- **Postavke / permisije:** `private.ticket.sla.allowServiceOverrides`, `allowOuOverrides`; izmjena traži
+  permisiju **`sla.write`** i razlog.
+- **Ekran:** **SLA pravila** → profil → **Pravila**, **Override pravila**, dugme **Matrica prioriteta**.
+- **Izvori:** `backend/src/modules/sla/resolve-matching-sla-rule.ts:4–60`,
+  `normalize-sla-rule-values.ts:56–60`, `default-priority-matrix.ts`,
+  `backend/src/modules/sla/patch-priority-matrix.ts:25–72`,
+  `starting-sla.constants.ts:74–126`.
+- **Status:** Važi
+- **Wiki stranica:** SLA → Pravila i prioriteti
+
+### T65 — Eskalacije nakon prekoračenja roka
+
+- **Modul / paket:** SLA
+- **Publika:** admin (podešavanje), agent (posljedica)
+- **Tip:** Pravilo
+- **Teza:** Kada sat prekorači rok, pokreću se eskalacije čiji je **Trigger offset** istekao (0 = odmah, pa
+  rastući nivoi, podrazumijevano 0/30/120 min nakon prekoračenja, najviše koliko dozvoljava postavka);
+  svaka eskalacija se bilježi **jednom** (ključ `sat:pravilo`) i obavještava **jednu** metu — grupu, rolu,
+  korisnika ili **dežurnog grupe** (ako niko nije dežuran, obavještava se cijela grupa). Eskalacija ide u
+  vremensku liniju tiketa i u change log, a e-mail se šalje samo ako je uključena postavka.
+- **Zašto:** prekoračenje koje nikoga ne pokrene je propuštena intervencija.
+- **Primjer:** P1 tiket prekorači rok u 10:00; u 10:00 ide nivo 1 (voditelj grupe), u 10:30 nivo 2
+  (rola ADMIN), u 12:00 nivo 3 (korisnik).
+- **Postavke / permisije:** `private.ticket.sla.escalationsEnabled`, `maxEscalationLevels`,
+  `private.ticket.sla.escalations.emailEnabled`; pravila se uređuju uz `sla.write`.
+- **Ekran:** **SLA pravila** → profil → **Eskalacije**; detalj tiketa (vremenska linija).
+- **Izvori:** `backend/src/modules/sla/select-due-sla-escalations.ts:34–114`,
+  `apply-due-sla-escalations.ts:9–24`, `emit-ticket-sla-runtime-events.ts:52–84`,
+  `assert-sla-escalation-constraints.ts:13–138`,
+  `backend/src/modules/notifications/fan-out/resolve-sla-notification-recipients.ts:14–91`,
+  `backend/src/modules/notifications/email/fan-out-email-notifications.ts:171–183`.
+- **Status:** Važi, uz ograničenje: eskalacija iz **ugrađenog** pravila (profil bez eskalacionih pravila) nema
+  primaoca (B1, §M10)
+- **Wiki stranica:** SLA → Eskalacije
+
+### T66 — Usklađenost, nadzor skenera i pragovi
+
+- **Modul / paket:** SLA
+- **Publika:** admin
+- **Tip:** Pravilo
+- **Teza:** Usklađenost po profilu računa se kao procenat završenih tiketa (zadnjih 30 dana) koji **nisu**
+  prekoračili rok **prvog odgovora** odnosno **rješenja**; kartica prikazuje i trenutnu izloženost
+  (otvoreni/ugroženi/prekoračeni). Pozadinski **skener** svake minute obrađuje najviše 2000 stanja čiji je
+  `nextDueAt` istekao, a ops nadzor diže alarm ako nema uspješnog ciklusa duže od podešenog broja minuta
+  (podrazumijevano 5).
+- **Zašto:** bez nadzora skenera SLA tiho prestaje da radi i svi rokovi izgledaju „u okviru“.
+- **Primjer:** `sla.compliance?days=30` vraća `sampleCount` i procenat po profilu; tab „SLA“ na izvještajima
+  koristi prag `slaTargetPercent` (podrazumijevano 90%).
+- **Postavke / permisije:** `private.reports.trends.slaTargetPercent`,
+  `private.ops.thresholds.slaScanLateMinutes`; endpoint usklađenosti je admin-only.
+- **Ekran:** **SLA pravila** → profil → **Usklađenost (30 dana)** i **Trenutno izloženih**; **Izvještaji**.
+- **Izvori:** `backend/src/modules/sla/sla-compliance.controller.ts:18–37`,
+  `aggregate-sla-compliance.ts:30–85`, `load-sla-compliance-rows.ts:20–57`,
+  `scan-due-ticket-sla-states.ts:20–61`, `sla-scan.constants.ts:9–16`,
+  `backend/src/modules/ops-health/evaluate-ops-signals.ts:143–155`,
+  `backend/src/modules/reports/trends/report-trends.constants.ts:23,31`.
+- **Status:** Važi, uz ograničenja: agregat je samo po profilu i samo za završene tikete (B3, §M10)
+- **Wiki stranica:** SLA → Usklađenost i nadzor
+
+### T67 — Administracija SLA konfiguracije (change log, verzije, pravo pristupa)
+
+- **Modul / paket:** SLA
+- **Publika:** ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Kalendari, profili, pravila, eskalacije i matrica prioriteta uređuju se isključivo iz
+  administratorske zone; svaka izmjena traži **Razlog izmjene** i upisuje se u change log sa snimkom **prije** i
+  **poslije** (ko, kada, šta i zašto). Čitanje je dozvoljeno administratorskim rolama, izuzev **Matrice
+  prioriteta** koja je čitljiva svim rolama jer se koristi pri kreiranju tiketa. SLA konfiguracija ulazi u
+  **verzije konfiguracije**: validacija bez primjene (zone, intervali, pokrivenost prioriteta, matrica) i
+  shadow poređenje koliko bi tiketa promijenilo pravilo.
+- **Zašto:** promjena roka mijenja obećanje prema korisnicima i mora biti objašnjiva i provjerljiva prije
+  primjene.
+- **Primjer:** prije aktivacije nove verzije validacija prijavi `SLA_PRIORITY_INCOMPLETE` jer profil ne pokriva
+  prioritet `LOW` default pravilom.
+- **Postavke / permisije:** rola ADMIN/SUPER_ADMIN + permisija **`sla.write`** za izmjene.
+- **Ekran:** **SLA pravila** (sve sekcije) i **Change log**; **Verzije konfiguracije** za aktivaciju/poređenje.
+- **Izvori:** `backend/src/modules/sla/sla-profiles.controller.ts:31–52`,
+  `sla-calendars.controller.ts:37–57`, `sla-rules.controller.ts:41–61`,
+  `sla-escalation-rules.controller.ts:39–61`, `priority-matrix.controller.ts:27–68`,
+  `backend/src/modules/config-versioning/validate-sla-snapshot.ts:15–70`,
+  `apply-sla-snapshot.ts:8–40`, `compute-shadow-diff.ts:4–34,67–90`.
+- **Status:** Važi
+- **Wiki stranica:** SLA → Administracija
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

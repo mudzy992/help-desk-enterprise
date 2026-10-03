@@ -23,7 +23,7 @@
 | Iteracija | Moduli | Stanje |
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
-| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 u toku |
+| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
 
 ---
 
@@ -2665,3 +2665,394 @@ jednokoračno odobrenje.
 | Funkcionalnost | **7 / 10** | Odluka (approve → u obradu, reject → zatvoreno) radi i ostavlja tri traga; samoodobrenje i van-scope su blokirani; CSAT radi s determinističkim uzorkom, jednom ocjenom po tiketu i opcionalnim komentarom. Umanjuju: obavještenje koje ne stiže nikome (B1), zaobilazni put kroz `UNROUTED` (B2), agregacija koja se ne prikazuje (B3) i podesiva skala koja se u izvještajima ignoriše (B3). |
 | Kvalitet koda | **8 / 10** | Transakcije, precizni kodovi grešaka, deterministički sampling, redakcija komentara i jedinstvenost ocjene po tiketu su uzorni; konfiguracija ima tolerantne parsere s jasnim granicama (2–10, 0–1). Umanjuju: mrtva postavka (B4), prazan CSAT diff (B5) i to što odluka nema jedinične testove. |
 | Sigurnost | **8 / 10** | Odluka traži rolu u OU/servis scope-u, naručilac je isključen, akter se nikad ne obavještava o vlastitoj akciji, CSAT može poslati samo naručilac i samo jednom, a komentar prolazi redakciju. Umanjuje: B1 (niko ne dobija obavještenje, pa nadzor nad čekanjem zavisi od ručnog pregleda) i B2 (kapija se može zaobići). |
+
+# M10 — SLA (rokovi, kalendari, eskalacije)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **SLA engine (professional)** je nosivi dio tiketa: pravila po **servis + OU + prioritet** uz **fallback
+  default profil** (`RAW_PROJECT.md:80`).
+- **Metrike:** *response time* = vrijeme do **prve smislene reakcije**, izričito **ne zavisi od individualnog
+  assignee-a** (`:58`, `:83`); *resolution time* = vrijeme do `RESOLVED` (`:84`).
+- **Business Hours kalendari:** SLA se računa **unutar BH kalendara** (npr. Pon–Pet 08:00–16:00), podržano je
+  **više kalendara**, a praznici/neradni dani su dio kalendara i admin njima upravlja (`:85–88`).
+- **Pause pravila (settings-driven):** pauza dok je tiket `WAITING_FOR_USER` (`:90`) i dok je
+  `PENDING_APPROVAL` (`:91`).
+- **Overdue + eskalacije:** upozorenja prije isteka (T-minus) (`:92`) i eskalacije po pravilima prema
+  **roli/grupi/korisniku**, uz audit (`:93`).
+- **Administracija (obavezno, CRUD):** admin može kreirati/mijenjati/brisati **BH kalendare, SLA profile i SLA
+  rule setove**, a **svaka promjena ide kroz change log (reason + diff)** (`:95–97`).
+- **Startni „must-use“ set:** kalendar `BH_STANDARD` (Pon–Pet 08:00–16:00, lokalna zona), profili
+  `INCIDENT`, `ACCESS`, `STANDARD_REQUEST`, `FINANCE`, `HR` (`:98`) i **default priority baseline** za servise
+  bez vlastitog override-a: P1 15m/4h, P2 1h/8h, P3 4h/3 BD, P4 1 BD/10 BD, sve u BH (`:99–106`).
+- **Permisija:** `sla.write` je dio administratorskog seta (`:189`, `:213`).
+- **Config verzije:** SLA je jedan od scope-ova koji se validira bez side-effecta („SLA rules completeness +
+  sanity check (BH kalendari, profili, priority map)“, `:270`) i podržava **shadow mode** koji za nove tikete
+  računa razliku pravila bez primjene (`:275–276`).
+- **Postavke (RAW `:505–518`):** `private.ticket.sla.enabled`, `rulesJson`, `defaultCalendarKey`,
+  `calendarsJson`, `profilesJson`, `pauseOnWaitingForUser`, `pauseOnPendingApproval`,
+  `notifyBeforeOverdueMinutes`, `escalationsEnabled`, `escalationTargetsJson`, `escalations.inAppEnabled`,
+  `escalations.emailEnabled`, `requireAdminReasonForRuleChanges`, `allowServiceOverrides`, `allowOuOverrides`,
+  `maxEscalationLevels`.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Jedan sat za sve.** SLA sat mora biti jedna funkcija vremena i kalendara; svaki prikaz (panel tiketa,
+   lista, izvještaj, skener) mora dati isti broj za isti tiket u istom trenutku.
+2. **Pauza je stanje, ne prekidač.** Ako sat stane, mora se znati **kada** je stao i koliko je BH minuta
+   potrošeno dok je stajao; nastavak mora pomjeriti oba roka za preostalo vrijeme, ne za „proteklo“.
+3. **Skener ne smije rasti s brojem tiketa.** Zrelo rješenje ima indeksirani upit „šta je sljedeće na redu“,
+   ograničenu veličinu ciklusa i vidljiv nadzor da skener uopšte radi.
+4. **Eskalacija koja nikoga ne obavijesti je lažna sigurnost.** Ako pravilo nema metu, mora postojati
+   definisan fallback (grupa, voditelj) ili eskalacija ne smije biti proglašena izvršenom.
+5. **Kalendar je podatak, ne kod.** Praznici, vremenska zona i radno vrijeme se mijenjaju bez deploya.
+6. **Izvještaj prati ono što menadžment pita:** usklađenost po **profilu, OU, servisu i prioritetu** i to za
+   **sve tikete u prozoru**, ne samo za one koji su već terminalni.
+7. **Izvor istine za „prvi odgovor“ je tiket, ne SLA modul.** Ako je SLA isključen, metrika prvog odgovora i
+   dalje mora postojati.
+8. **Promjena SLA pravila nikoga ne smije iznenaditi:** startni set, numeričke granice i posljedice (npr.
+   „BD“ znači radni dan kalendara, ne 24 h) moraju biti dokumentovani u UI-u.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Fallback za eskalacije bez mete** (B1): ako je pravilo implicitno (`default`) ili mu meta ne postoji,
+   poslati eskalaciju članovima handler grupe tiketa (ili je uopšte ne evidentirati kao „poslanu“).
+2. **Popuniti praznine u satovima** (B2): periodični „backfill“ (npr. u skeneru, ograničen batch) koji za
+   otvorene tikete bez `TicketSlaState` pokušava izračunati rok — sada tiket koji dobije profil poslije
+   kreiranja ostaje bez SLA do sljedećeg događaja na tiketu.
+3. **Proširiti izvještaj usklađenosti** (B3): dodati dimenzije OU/servis/grupa i uključiti tikete koji su u
+   prozoru **prekršili** rok i prije nego što su zatvoreni.
+4. **Odvojiti `firstResponseAt` od SLA modula** (B4): prvi agentski odgovor treba zapisivati u toku tiketa
+   (kao i statusne promjene), a SLA modul neka ga samo čita.
+5. **Ispraviti uzorak dnevnika skenera** (B5) tako da „preostalo“ bude stvarni broj (ili ukloniti polje) da
+   nadzor ne daje lažnu sliku.
+6. **Zatvoriti gap prema RAW-u u postavkama:** dodati `escalations.inAppEnabled` kao prekidač in-app kanala i
+   odlučiti da li `escalationTargetsJson` ostaje samo u pravilima po profilu (dokumentovati odstupanje).
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model, konstante i granice
+
+- Modeli su u `backend/prisma/schema/sla.prisma`: `BusinessHoursCalendar` (`:1–12`, `key` unikatan, `weeklyHours` Json,
+  `timezone`, `isActive`), `CalendarHoliday` (`:14–22`, unikatan `[calendarId, date]`), `SlaProfile` (`:24–41`,
+  `calendarId` sa `Restrict`), `SlaRule` (`:43–62`, `priority`, `responseMinutes`, `resolutionMinutes`,
+  `evaluationOrder`, opcioni OU/servis), `TicketSlaState` (`:64–95`, jedan po tiketu: rokovi, `respondedAt`,
+  `resolutionCompletedAt`, `pausedAt`, `pausedBusinessMinutes`, četiri „mark“ polja, `firedEscalationKeys`,
+  `nextDueAt`, indeksi `[resolutionCompletedAt, nextDueAt]`, `[respondedAt]`), `SlaEscalationRule` (`:97–116`,
+  `triggerOffsetMinutes`, meta grupa/rola/korisnik + `targetOnCall`).
+- Konstante `backend/src/modules/sla/sla.constants.ts`: veličina batch-a skenera **2000** (`:36`), granice
+  (ključ 64, naziv 120, opis 2000, naziv praznika 120, **max 4 intervala dnevno**, `defaultEvaluationOrder: 100`,
+  zona `Europe/Sarajevo`) (`:38–46`), `standardWeeklyHours` = **Pon–Pet 08:00–16:00** (`:52–58`), razlozi/akcije
+  change loga i sistemskih događaja (`:10–26`), id implicitnog pravila eskalacije `default` (`:28`).
+- Tipovi `sla.types.ts` i `sla.error.ts` (30 kodova grešaka, `:1–33`) su jedinstveni kontrakti za servis, DTO i
+  mapiranje u HTTP (`map-sla-error.ts`).
+
+### 4.2 Izračun rokova u radnom vremenu
+
+- **Sabiranje BH minuta.** `add-business-minutes.ts:14–55` ide dan po dan: preskače praznike, nalazi prvi
+  interval koji još traje ili sljedeći, troši minute i prelazi u sljedeći civilni dan preko
+  `business-hours-civil-time.ts`; prekid petlje je 20.000 koraka, a nemoguć slučaj baca
+  `CALENDAR_HAS_NO_BUSINESS_HOURS` (`:51–53`); `minutes <= 0` baca `INVALID_SLA_TARGETS` (`:19–21`).
+- **Odbrojavanje minuta** između dva trenutka: `count-business-minutes.ts:13–59` (isti kalendar, `end <= start`
+  vraća 0).
+- **Validacija kalendara:** `parse-weekly-hours.ts:8–27` (samo dani `1..7`, najviše 4 intervala, bar jedan
+  interval), `normalizeClock` dozvoljava `24:00` samo kao kraj (`:69–78`), a `toMinutes` (`:80–86`) je dijeli
+  sa ostatkom modula; preklapanja i obrnuti intervali bacaju `OVERLAPPING_INTERVALS` (`:42–51`).
+  Vremenska zona se provjerava `assert-valid-iana-timezone.ts` (koristi ga i config validacija).
+- **Odabir pravila:** `resolve-matching-sla-rule.ts:11–60` — pravilo mora imati isti prioritet, a polja
+  servis/OU moraju biti `null` ili jednaka; sortira se po `evaluationOrder`, pa po **specifičnosti**
+  (servis = 2, OU = 1, `:4–9`), pa po `id`; fallback je pravilo bez OU i servisa.
+- **Ciljevi:** `compute-sla-targets.ts:9–40` (profil → pravilo → kalendar → `addBusinessMinutes` od
+  `startedAt`), izloženo i kao `GET /sla/rules/resolve`.
+- **Procjena stanja:** `evaluate-ticket-sla-breach.ts:15–29` (`clock > dueAt`, flagovi se samo uključuju) i
+  `evaluate-ticket-sla-at-risk.ts:46–64` (preostalo > 0 i ≤ `notifyBeforeOverdueMinutes`), a „efektivni sat“ je
+  `pausedAt ?? now` (`compute-elapsed-sla-minutes.ts:8–13`), uz `elapsed = BH(startedAt → kraj) − pausedBusinessMinutes`
+  (`:15–41`).
+
+### 4.3 Životni ciklus tiketa: start, pauza, nastavak, prvi odgovor
+
+- **Start:** `start-ticket-sla-timers.ts:13–92` uzima `service.slaProfileId` (`:19–25`), aktivan profil
+  (`:26–31`), pravilo za prioritet/servis/OU (`:32–42`) i aktivan kalendar (`:43–46`); ako bilo šta od toga
+  fali, **vraća `null`** i tiket ostaje bez SLA stanja. Rokovi se računaju od `ticket.createdAt` (`:47`), a ako
+  je tiket već u pauza-statusu, `pausedAt` se postavlja na `startedAt` (`:66`).
+- **Pauza/nastavak:** `apply-ticket-sla-pause.ts:3–11` pamti samo trenutak; `apply-ticket-sla-resume.ts:6–42`
+  broji BH minute pauze, dodaje ih u `pausedBusinessMinutes` i **pomjera rokove** za preostalo BH vrijeme od
+  `now` (ako je rok već prošao, ostaje nepromijenjen, `:37–40`).
+- **Prelazi stanja:** `sync-ticket-sla-timers.ts:33–90` + `applyLifecycle` (`:109–152`): merge djeteta pauzira
+  sat, unmerge ga nastavlja (`:121–128`); statusi iz `isSlaPauseStatus` (`is-sla-pause-status.ts:4–15`) daju
+  pauzu, izlaz iz pauza-statusa daje nastavak (`:129–139`); prvi odgovor se evidentira na `agent_replied` ili
+  prelaz u `IN_PROGRESS` (osim `user_resumed`/`scanned`, `:140–147`); terminalni statusi
+  `RESOLVED|CLOSED|ARCHIVED` (`is-sla-pause-status.ts:17–19`) zaustavljaju sat (`:148–150`).
+- **Prvi odgovor na tiketu:** nakon evidentiranog odgovora, `syncTicketSlaTimers` upisuje
+  `ticket.firstResponseAt` (`:83–88` → `persist-ticket-sla-state.ts:51–60`). **To je jedini pisac** te kolone
+  (osim testnih delegate-a), pa kad je SLA modul isključen ili servis nema profil, `firstResponseAt` ostaje
+  `null` (nalaz B4).
+- **Promjena prioriteta:** `recompute-ticket-sla-targets.ts:19–40` + `applyRecomputedSlaRule` (`:42–60`) —
+  rok se mjeri iznova od `startedAt` uz vraćene pauze; ako je odgovor već zabilježen, njegov rok ostaje, a
+  zabilježen prekršaj se **ne briše**; već opaljene eskalacije se čuvaju.
+
+### 4.4 Skener rokova (worker) i `nextDueAt`
+
+- Ciklus je **isključivo u worker procesu**: `sla-scan-worker.module.ts:10–27` registruje samo ono što skeneru
+  treba, a `SlaScanProcessor` (`sla-scan.processor.ts:16–37`) zove `TicketSlaTimersService.scanDue()` i loguje
+  uzorak (`format-sla-scan-sample.ts`).
+- Raspored je BullMQ job svakih **60 s** sa 2 pokušaja i eksponencijalnim backoff-om 5 s
+  (`sla-scan.constants.ts:9–16`), a `SlaScanSchedulerService` ga registruje idempotentno
+  (`upsertJobScheduler`, `sla-scan.scheduler.service.ts:30–56`); ako Redis nije dostupan, boot ne pada, samo se
+  zapiše `sla_scan_schedule_failed`.
+- **Bounded upit:** `scan-due-ticket-sla-states.ts:33–43` čita `resolutionCompletedAt: null AND nextDueAt <= now`
+  sortirano po `nextDueAt`, uz `take: batchSize` (2000), pa tikete jednim `id IN (...)` upitom (`:41–44`);
+  stanja bez tiketa se preskaču (`:47–50`), a svako stanje se obrađuje kroz isti `syncTicketSlaTimers` sa
+  događajem `scanned` (`:51–56`).
+- **Kada se stanje vraća u red** računa `computeSlaNextDueAt` (`compute-sla-next-due-at.ts:54–75`):
+  kandidati su `dueAt − notifyBeforeOverdueMinutes` (at-risk), `dueAt + 1 ms` (prekršaj) i `dueAt + offset`
+  u BH minutama za neopaljene eskalacije (offset ≤ 0 ⇒ sam trenutak prekršaja), a `null` znači „ništa
+  vremenski ne može promijeniti stanje“ (završeno ili pauzirano, `:64–66`).
+- **Nadzor rada skenera:** ops-health alarm ako skener „kasni“ više od `private.ops.thresholds.slaScanLateMinutes`
+  (default 5, opseg 2–60; `ops-settings.ts:16,60`, `evaluate-ops-signals.ts:143–155`).
+
+### 4.5 Eskalacije i obavještenja
+
+- **Odabir:** `listDueSlaEscalations` (`select-due-sla-escalations.ts:34–67`) gleda samo **prekršene** satove i
+  pravila čiji je offset istekao (`isOffsetElapsed`, `:96–114`); ako profil nema nijedno pravilo, koristi se
+  implicitno pravilo `default` sa offsetom 0 (`:44` i `:83–94`), pa se eskalacija evidentira odmah u trenutku
+  prekršaja.
+- **Evidencija bez ponavljanja:** `apply-due-sla-escalations.ts:9–24` dodaje ključeve `kind:ruleId` u
+  `firedEscalationKeys`, pa se isto pravilo ne opali dvaput (`slaEscalationKey`, `:13–18`).
+- **Događaji:** `emit-ticket-sla-runtime-events.ts:24–85` upisuje at-risk događaje (osim ako sat prekrši u
+  istoj evaluaciji, `:95–101`), prekršaje i eskalacije; `record-ticket-sla-runtime-event.ts:23–49` piše change
+  log (`entityType: ticket_sla_state`, akter `null`, snimka stanja kroz `to-ticket-sla-state-snapshot.ts`),
+  sistemsku poruku (`insertSystemTicketEvent`, `action:detail`) i šalje realtime/in-app obavještenje.
+- **Primaoci:** `resolve-sla-notification-recipients.ts:14–35` — za at-risk/prekršaj to su **assignee + članovi
+  grupe**, a za eskalaciju meta iz pravila: korisnik → rola → *on-call* (ako je uključen i neko je na
+  dežurstvu, uz audit `on_call_escalation_notified`) → članovi grupe (`:48–91`). Za at-risk/prekršaj in-app
+  audience je optimizovana na „assignee lično + jedna red grupe“ (`resolve-notification-recipients.ts:110–130`).
+  **Ako je pravilo implicitno `default`, `findUnique` ne nalazi red i vraća praznu listu — eskalacija tada ne
+  obavještava nikoga** (nalaz B1).
+- **E-mail:** samo za eskalacije i samo ako je uključena postavka `private.ticket.sla.escalations.emailEnabled`
+  (`fan-out-email-notifications.ts:171–183`; `load-email-channel-configuration.ts:81–106`); tip obavještenja je
+  `ticket.sla` (`notifications.constants.ts:8`), a preferencije ga drže „zaključanim“ za e-mail i
+  izuzetim od tihih sati (`notification-preference-settings.ts:11,15`).
+
+### 4.6 Administracija i change log
+
+- **Kontroleri** (`@Controller('sla/…')`) su iza `SessionAuthenticationGuard` + `RoleGuard` sa
+  `@RequireRoles(admin)` (`sla-profiles.controller.ts:31–34`, `sla-rules.controller.ts:41–44`,
+  `sla-calendars.controller.ts:37–40`, `sla-escalation-rules.controller.ts:39–42`), a svaka izmjena traži i
+  `@RequirePermissions(permissionKeys.slaWrite)` (npr. `sla-profiles.controller.ts:45–52`); čitanja ne traže
+  permisiju. Prioritetna matrica je izuzetak: `GET /priority-matrix` je dostupan svim rolama, a izmjena je
+  admin + `sla.write` (`priority-matrix.controller.ts:40–68`).
+- **Razlog je uvijek obavezan:** svaki write input nosi `reason`, a to je pokriveno testom
+  `sla-admin-reason-always-required.spec.ts` i kontekstom `read-sla-mutation-context.ts`; promjene idu kroz
+  `record-sla-change.ts`/`list-sla-change-logs.ts` (change log sa `before`/`after` snimkom).
+- **Konstrainti:** jedinstvenost i opseg ključa/naziva/zone, zatvoreni set intervala i praznika
+  (`assert-sla-rule-constraints.ts`, `assert-sla-escalation-constraints.ts:13–35,76–138`), provjera postojanja
+  OU/servisa (`:6–31`) i meta eskalacije (grupa/rola/korisnik, `:37–74`); `maxEscalationLevels` ograničava broj
+  pravila po profilu (`:76–95`), a offseti moraju biti strogo rastući i jedinstveni (`:97–138`).
+- **Override prekidači se poštuju pri upisu:** `normalize-sla-rule-values.ts:56–60` baca
+  `SERVICE_OVERRIDE_DISABLED` / `OU_OVERRIDE_DISABLED` ako je odgovarajuća postavka isključena.
+- **Prioritetna matrica:** `list-priority-matrix.ts:24–60` na čitanju **dopunjava** nedostajuće ćelije
+  zadanim vrijednostima (`buildDefaultPriorityMatrix` = sve kombinacije impact × urgency iz
+  `tickets.constants.ts`), a `patch-priority-matrix.ts:25–72` upisuje ćelije u transakciji i uz `reason` bilježi
+  change log (`entityId: 'global'`).
+- **Startni set:** `starting-sla.constants.ts:5–13` (`BH_STANDARD` + pet profila), raspored profila
+  `:74–126` (npr. `STANDARD_REQUEST` P1 15m/4h, P2 1h/8h, P3 4h/3 BD, P4 1 BD/10 BD — identično RAW baseline-u,
+  dok su `INCIDENT`/`ACCESS`/`FINANCE`/`HR` stroži), a „BD“ se pretvara u minute preko **prvog radnog dana u
+  kalendaru** (`to-starting-sla-minutes.ts:9–34`). Startna eskalaciona ljestvica je 0/30/120 min prema roli
+  `ADMIN` (`starting-sla.constants.ts:38–45`).
+- **Config verzije:** `validate-sla-snapshot.ts` bez side-effecta provjerava zone i `weeklyHours`, sanity
+  `normalizeSlaTargets` po pravilu, postojanje kalendara profila i **pokrivenost sva četiri prioriteta**
+  pravilom bez OU/servisa (`SLA_PRIORITY_INCOMPLETE`), te pokrivenost ćelija prioritetne matrice;
+  `apply-sla-snapshot.ts` primjenjuje snimku (upsert kalendara/profila/pravila + brisanje i ponovni upis
+  praznika), a `compute-shadow-diff.ts:4–34,67–90` broji koliko bi tiketa promijenilo pravilo.
+
+### 4.7 Usklađenost i izvještaji
+
+- **Endpoint `GET /sla/compliance`** je admin-only (`sla-compliance.controller.ts:18–37`), prozor je
+  `days` 1–365 (default 30, `dto/sla-compliance-query.dto.ts:5–12`; `aggregate-sla-compliance.ts:9–20`).
+- **Uzorak:** `load-sla-compliance-rows.ts:20–57` čita `TicketSlaState` sa profilom **samo za terminalne
+  tikete** (`RESOLVED|CLOSED|ARCHIVED`) i uzima `closedAt ?? resolvedAt` kao trenutak završetka; sve ostalo se
+  odbacuje.
+- **Agregacija:** `aggregate-sla-compliance.ts:30–85` daje po profilu `sampleCount` i
+  `responseCompliancePercent`/`resolutionCompliancePercent` (procenat satova **bez** prekršaja, `null` kad
+  nema uzorka); dimenzije OU/servis/grupa ne postoje u odgovoru.
+- **Ekspozicija (dashboard/tickets):** `GET /reports/sla/summary` (`report-summary.controller.ts:56–62`) nije
+  pod admin rolom — po komentaru u kodu (`:25–31`) brojevi prate **vidljivost tiketa** pozivaoca; frontend ih
+  koristi u `buildSlaExposureIndex` (`frontend/src/lib/sla/sla-exposure-index.ts:28–49`) za prikaz po profilu i
+  prioritetu, a nadzorna ploča ima listu prekršenih tiketa (`components/dashboard/dashboard-sla-watchlist.tsx`).
+- **Trendovi:** prag `private.reports.trends.slaTargetPercent` (default 90, opseg 50–100;
+  `report-trends.constants.ts:23,31`) ulazi u izračun trendova, a `private.reports.slaTargetPercent` je u
+  postavkama (M5).
+
+### 4.8 Frontend
+
+- Ruta `/sla` je zaštićena `canOpenSla` → `canOpenAdminArea` (ADMIN/SUPER_ADMIN ili rola admin;
+  `frontend/src/lib/session/route-access.ts:27–36,130–132`), a stranica ima tri prikaza — profili (lista +
+  detalj), kalendari i prioritetna matrica (`pages/sla-page.tsx:44–122`).
+- Modul ima 24 komponente u `frontend/src/components/sla/` (forme, tabele, detalj profila sa karticom
+  usklađenosti `sla-profile-detail.tsx:130`, panel change loga, grid radnog vremena, ciljna polja eskalacija),
+  plus `lib/sla/` (hookovi `use-sla-page-data`/`use-sla-page-mutations`, „exposure“ indeks, formatiranje
+  radnog vremena, mapiranje grešaka) i `services/sla-api.ts` + `services/sla-types.ts`.
+- **Panel na tiketu:** `components/tickets/ticket-sla-panel.tsx:49–140` crta dva sata (prvi odgovor,
+  rješavanje), stanja OK/RISK/BREACHED (`:20–24`), a prag rizika u klijentu je `SLA_RISK_PERCENT = 75`
+  (`lib/tickets/map-ticket-sla-panel.ts:4`); kontekst panela dolazi iz `load-ticket-sla-context.ts:46–100` sa
+  razlozima `NO_PROFILE`, `PROFILE_INACTIVE`, `NO_RULE`, `NO_CALENDAR`, `NOT_APPLIED`.
+- **i18n:** 149 ključeva `sla.*` u `bs` i `en`, plus 18 ključeva `tickets.detail.sla.*`.
+
+### 4.9 Testovi
+
+- U modulu je **24 spec fajla** (140 `.ts` ukupno), uključujući čistu matematiku
+  (`add-business-minutes`, `count-business-minutes`, `parse-weekly-hours`, `compute-sla-next-due-at`,
+  `resolve-matching-sla-rule`, `seed-starting-sla-profiles`), tokove (`sla.timers.spec.ts`, `sla.breach.spec.ts`,
+  `sla.change-log.spec.ts`, `sla.calendars.spec.ts`, `sla.rules.spec.ts`, `sla-escalation-rules.spec.ts`,
+  `sla-admin-reason-always-required.spec.ts`, `priority-matrix.spec.ts`) i regresiju „poplave“ obavještenja
+  (`sla-notification-flood.spec.ts:19–46`) — plus `config-versioning.validate.spec.ts` za SLA snimku.
+- **E2E** ima samo jedan scenario (`e2e/tests/07-sla.spec.ts:8–34`): provjeri da tiket nakon kreiranja ima
+  `responseDueAt`/`resolutionDueAt` (ili `isOverdue`) i da se vidi u listi — nema scenarija za pauzu, prekršaj,
+  eskalaciju, kalendar ni usklađenost.
+
+## 5. Gap analiza
+
+| Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Pravila po servis + OU + prioritet, fallback | Deterministički izbor, dokumentovan redoslijed | `resolve-matching-sla-rule.ts:11–60` (priority → servis/OU → `evaluationOrder` → specifičnost → `id`) | ✅ |
+| Response = prva smisljena reakcija, ne assignee | Sat vezan za tiket, ne za osobu | `respondedAt` na `agent_replied`/`IN_PROGRESS` (`sync-ticket-sla-timers.ts:140–147`) | ✅ |
+| Resolution do `RESOLVED` | Terminalna stanja zaustavljaju sat | `isSlaTerminalStatus` = RESOLVED/CLOSED/ARCHIVED (`is-sla-pause-status.ts:17–19`) | ✅ |
+| BH kalendari, više njih + praznici | Zona, praznici i intervali kao podatak | Modeli + CRUD + `Europe/Sarajevo` default, praznici po danu (`sla.prisma:1–22`) | ✅ |
+| Pauza `WAITING_FOR_USER` / `PENDING_APPROVAL` | Simetrična pauza/nastavak bez gubitka vremena | `is-sla-pause-status.ts:4–15`; nastavak pomjera rokove (`apply-ticket-sla-resume.ts:6–42`) | ✅ |
+| T-minus upozorenje | Jedno upozorenje po satu, bez šuma | `notifyBeforeOverdueMinutes` (30) + pravilo da se at-risk preskoči ako isti ciklus prekrši (`emit-ticket-sla-runtime-events.ts:95–101`) | ✅ |
+| Eskalacije po roli/grupi/korisniku + audit | Meta je obavezna; eskalacija uvijek ima primaoca | Meta se validira (`assert-sla-escalation-constraints.ts:37–74`), ali **implicitno `default` pravilo nema primaoca** | ⚠️ B1 |
+| Admin CRUD + change log (reason + diff) | Svaka izmjena auditovana | Kontroleri + `sla.write` + uvijek obavezan razlog + `recordSlaChange` | ✅ |
+| Startni set (BH_STANDARD + 5 profila + baseline) | Defaulti tačno kao u RAW-u | `starting-sla.constants.ts:5–13,74–126`; `STANDARD_REQUEST` = RAW baseline, ostali stroži | ✅ (odstupanje dokumentovati) |
+| `sla.write` za ADMIN | Permisija na svim izmjenama | `@RequirePermissions(sla.write)` na POST/PATCH/DELETE | ✅ |
+| Config verzije: SLA validacija bez side-effecta | Zone, intervali, pokrivenost prioriteta, matrica | `validate-sla-snapshot.ts:15–70` (`SLA_PRIORITY_INCOMPLETE`, provjera matrice) | ✅ |
+| Shadow mode (opciono) | Broj tiketa koji bi promijenili pravilo | `compute-shadow-diff.ts:4–34,67–90` | ✅ |
+| Postavke `rulesJson/calendarsJson/profilesJson/defaultCalendarKey` | Konfiguracija kao podatak | Ne postoje; konfiguracija je u **DB tabelama** (kalendari/profili/pravila) | ➖ svjesno odstupanje |
+| `escalationTargetsJson` / `escalations.inAppEnabled` | Prekidač in-app kanala | Ne postoje; meta je na pravilu, in-app je uvijek uključen | ⚠️ gap |
+| `escalations.emailEnabled` | E-mail kao dodatni kanal | `private.ticket.sla.escalations.emailEnabled` (default false) | ✅ |
+| `requireAdminReasonForRuleChanges` | Razlog obavezan kad je uključeno | Postavka ne postoji; razlog je **uvijek** obavezan | ✅ (strože) |
+| `allowServiceOverrides` / `allowOuOverrides` | Isključivanje override-a se poštuje | `normalize-sla-rule-values.ts:56–60` | ✅ |
+| `maxEscalationLevels` | Ograničen broj nivoa | `assert-escalation-level-allowed` (`assert-sla-escalation-constraints.ts:76–95`) | ✅ |
+| Usklađenost po OU/servisu/grupi | Dimenzije za menadžment | Samo **po profilu**, samo terminalni tiketi (`aggregate-sla-compliance.ts:30–85`) | ⚠️ B3 |
+| Vidljivost SLA panela | Razlog kad satova nema | `load-ticket-sla-context.ts:46–100` sa pet razloga | ✅ |
+| Skener koji ne raste s brojem tiketa | Indeksiran „next due“ upit + batch | `nextDueAt` + `take: 2000` (`scan-due-ticket-sla-states.ts:33–43`) | ✅ |
+| Nadzor da skener radi | Alarm kad zakašnjava | `slaScanLateMinutes` (5) u ops-health | ✅ |
+| `firstResponseAt` kao metrika tiketa | Ne zavisi od SLA modula | Upisuje ga **samo** SLA (`sync-ticket-sla-timers.ts:83–88`) | ⚠️ B4 |
+| E2E pokrivenost | Pauza, prekršaj, eskalacija, kalendar | Samo jedan scenario (`07-sla.spec.ts`) | ⚠️ NISKO |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Najzreliji modul do sada.** Matematika radnog vremena je čista i odvojena od Prisme
+  (`add-business-minutes`/`count-business-minutes` + `business-hours-civil-time`), sa civilnim vremenom umjesto
+  oslanjanja na `Date` aritmetiku — to je jedini ispravan način da DST i `24:00` ne pokvare rokove.
+- **Skener je dobro projektovan:** `nextDueAt` kao jedina kolona koja govori „kada me opet pogledaj“, uz
+  batch i indeks `[resolutionCompletedAt, nextDueAt]`, je pravo rješenje za rast tabele; uz to postoji
+  idempotentan raspored u workeru i ops alarm ako ciklusi izostanu.
+- **Audit je dosljedan:** svaka promjena konfiguracije nosi razlog, a runtime događaji (at-risk, prekršaj,
+  eskalacija) se upisuju i u change log i u vremensku liniju tiketa, sa dedupe ključevima u
+  `firedEscalationKeys`.
+- **Dizajnerski rizik:** SLA modul „posjeduje“ `ticket.firstResponseAt`; to je logički podatak tiketa i ne
+  smije zavisiti od toga da li je SLA uključen (B4).
+- **Eskalacije imaju slijepu tačku:** implicitno pravilo postoji da eskalacija ne bi bila „izgubljena“, ali
+  upravo ono nema primaoca (B1) — dakle sistem tvrdi da je eskalirao, a nikoga nije obavijestio.
+- **Izvještajna ambicija je veća od isporuke:** u kodu postoji disciplinovan agregat, ali menadžment od njega
+  traži OU/servis/grupu (RAW `:1019`) i stanje u toku prozora, ne samo zatvorene tikete (B3).
+- **Testovi:** 24 spec fajla za 140 fajlova je solidno, ali **e2e je gotovo prazan** — jedini scenario ne
+  provjerava ni pauzu ni eskalaciju, a to su tačke gdje greške imaju najveću cijenu.
+- **Higijena:** kod je tipizovan bez `any`, greške imaju kodove i mapiraju se u HTTP, a komentari u kodu
+  objašnjavaju odluke (npr. zašto se at-risk preskače uz prekršaj) — to je nivo koji bih očekivao u
+  profesionalnom paketu.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Eskalacija iz implicitnog pravila ne obavještava nikoga
+
+- **Fajl:** `backend/src/modules/sla/select-due-sla-escalations.ts:44,83–94`,
+  `backend/src/modules/notifications/fan-out/resolve-sla-notification-recipients.ts:22–27,48–64`
+- **Opis:** kad profil nema nijedno pravilo eskalacije, `listDueSlaEscalations` koristi **implicitno** pravilo
+  sa `id: 'default'` i offsetom 0, pa se ono opali u trenutku prekršaja i zapiše u `firedEscalationKeys`. Pri
+  slanju obavještenja, primalac se traži kroz `prisma.slaEscalationRule.findUnique({ where: { id: 'default' } })`
+  — tog reda u bazi nema, pa funkcija vraća `[]`.
+- **Uticaj:** eskalacija se pojavi u change logu i vremenskoj liniji, ali **nijedan korisnik ne dobija in-app
+  ni e-mail obavještenje** (nema assignee-a, nema grupe, nema role). Na profilu bez eksplicitnih pravila
+  „eskalacija“ je knjigovodstvena, ne operativna.
+- **Fix:** kad pravilo nije nađeno (ili je `default`), vratiti članove `assignedGroupId` tiketa (i assignee-a),
+  ili zabraniti eskalaciju bez meta; uz to spec test sa profilom bez pravila.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — Satovi se ne uspostavljaju retroaktivno za tikete koji su propustili kreiranje
+
+- **Fajl:** `backend/src/modules/sla/start-ticket-sla-timers.ts:19–46`,
+  `backend/src/modules/sla/scan-due-ticket-sla-states.ts:33–37`, `backend/src/modules/sla/sync-ticket-sla-timers.ts:37–48`
+- **Opis:** `TicketSlaState` nastaje samo iz `syncTicketSlaTimers` (događaj na tiketu); skener čita isključivo
+  **postojeća** stanja (`resolutionCompletedAt: null AND nextDueAt <= now`). Ako je tiket kreiran dok servis
+  još nije imao aktivan profil/pravilo/kalendar, ili je pravilo dodato kasnije, tiket ostaje bez SLA stanja
+  sve dok se na njemu ne desi novi događaj (odgovor, promjena statusa, prioriteta).
+- **Uticaj:** takvi tiketi su nevidljivi za SLA nadzor, usklađenost i „watchlist“; kad sat ipak nastane, računa
+  se od `createdAt`, pa se prekršaj pojavi „u prošlosti“ i može izazvati naknadnu poplavu događaja.
+- **Fix:** ograničen backfill u skeneru (npr. svakih N ciklusa, batch otvorenih tiketa bez stanja) ili
+  eksplicitna akcija „primijeni SLA“ u administraciji profila.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — SREDNJE — Izvještaj usklađenosti gubi dimenzije i „u toku“ tikete
+
+- **Fajl:** `backend/src/modules/sla/load-sla-compliance-rows.ts:24–28`,
+  `backend/src/modules/sla/aggregate-sla-compliance.ts:44–48`,
+  `backend/src/modules/sla/sla-compliance.types.ts:28–31`
+- **Opis:** upit uzima stanja samo za tikete u terminalnim statusima, a agregacija vraća isključivo red po
+  **SLA profilu** (`responseCompliancePercent`, `resolutionCompliancePercent`). RAW traži vidljivost po
+  OU/servisu/grupi (`RAW_PROJECT.md:1019`), a dashboard prikazuje ekspoziciju posebno.
+- **Uticaj:** menadžer ne može vidjeti koji servis ili jedinica „puca“ rokove, niti tikete koji su rok
+  prekoračili a još su otvoreni — najkorisniji signal za intervenciju nedostaje.
+- **Fix:** proširiti red agregata na OU/servis/grupu (i/ili uključiti otvorena stanja sa `isResponseBreached`/
+  `isResolutionBreached`) uz `group by` u upitu.
+- **Ozbiljnost:** SREDNJE.
+
+### B4 — SREDNJE — `ticket.firstResponseAt` postoji samo ako SLA modul radi
+
+- **Fajl:** `backend/src/modules/sla/sync-ticket-sla-timers.ts:37–39,83–88`,
+  `backend/src/modules/sla/persist-ticket-sla-state.ts:51–60`
+- **Opis:** `firstResponseAt` na tiketu upisuje jedino SLA modul, i to nakon što je stanje sata evidentiralo
+  `respondedAt`. Ako je `private.ticket.sla.enabled=false`, ako servis nema profil/pravilo/kalendar, ili ako
+  sat nije nastao, kolona ostaje `null` i pored agentskih odgovora.
+- **Uticaj:** metrika „prvi odgovor“ (kolone u listi, izvještaji, SLA panel drugih tiketa) je prazna u
+  okruženjima koja su isključila SLA, a podatak se ne može rekonstruisati iz tiketa jer se ne zapisuje drugdje.
+- **Fix:** upisivati `firstResponseAt` u toku obrade agentskog odgovora (u tickets modulu), nezavisno od SLA-a.
+- **Ozbiljnost:** SREDNJE.
+
+### B5 — NISKO — Uzorak dnevnika skenera prijavljuje netačno „preostalo“
+
+- **Fajl:** `backend/src/modules/sla/sla-scan.processor.ts:27–36`
+- **Opis:** u log ide `remaining: Math.max(0, processed - slaScanBatchSize)`. `processed` je broj **obrađenih**
+  stanja u ovom ciklusu (najviše 2000), pa je izraz praktično uvijek 0 i ne predstavlja stvarni broj stanja koja
+  čekaju sljedeći ciklus.
+- **Uticaj:** dijagnostika (i tumačenje uz ops alarm `slaScanLateMinutes`) može dati pogrešnu sliku da nema
+  zaostatka; pravi zaostatak se vidi tek posredno.
+- **Fix:** prebrojati stanja sa `nextDueAt <= now` nakon ciklusa (jedan `count`) ili polje preimenovati/ukloniti.
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/sla.md`** po obaveznoj strukturi (šta je modul, kome je namijenjen, kako se
+  dolazi, korak po korak, polja/validacije/statusi, česta pitanja i greške, poznata ograničenja, povezani
+  moduli), sa tabelama: BH kalendar (zona, intervali, praznici, max 4 intervala), SLA profil, SLA pravilo
+  (prioritet, servis, OU, `evaluationOrder`, response/resolution u minutama), eskalaciono pravilo
+  (offset, meta, on-call), prioritetna matrica (impact × urgency → prioritet), te značenje statusa sata
+  (OK / rizik ≥ `notifyBeforeOverdueMinutes` / prekršen) i razloga „nema satova“ (`NO_PROFILE`,
+  `PROFILE_INACTIVE`, `NO_RULE`, `NO_CALENDAR`, `NOT_APPLIED`). U ograničenja idu **B1–B5** i činjenica da su
+  rokove moguće mijenjati nakon promjene prioriteta (breach ostaje zabilježen).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T62–T67** — (T62) SLA sat se računa u BH kalendaru i od kreiranja tiketa;
+  (T63) pauza `WAITING_FOR_USER`/`PENDING_APPROVAL` i pomjeranje rokova; (T64) izbor pravila i prioritetna
+  matrica; (T65) eskalacije (offseti, mete, on-call, dedupe) uz ograničenje B1; (T66) usklađenost i nadzor
+  skenera (`slaScanLateMinutes`); (T67) administracija i change log (obavezan razlog, `sla.write`,
+  config-verzije/shadow diff).
+- **`REVIEW_ANALIZA.md`:** §M10 (ovaj tekst) i red tabele iteracija 2 → **„M10 ✅ · iteracija 2 završena“**.
+- **`DOCS_CHANGELOG.md`:** sekcija M10 sa izvorima i B1–B5.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Sve ključne RAW stavke rade (BH kalendari, pravila, pauze, eskalacije, CRUD, audit, config-verzije, skener sa `nextDueAt`); minus za B1 (eskalacija bez primaoca), B2 (nema retroaktivnog starta), B3 (izvještaj samo po profilu i samo terminalni) i B4. |
+| **Kvalitet koda** | **9/10** | Čista podjela čistih funkcija i Prisma sloja, tipizovano, kodovi grešaka + mapiranje, komentari koji objašnjavaju odluke, 24 spec fajla, transakcioni upisi i optimizovan skener; jedina zamjerka je log uzorka (B5) i vezivanje `firstResponseAt` za ovaj modul. |
+| **Sigurnost** | **8/10** | Sve izmjene iza `SessionAuthenticationGuard` + `RoleGuard(admin)` + `sla.write`, čitanja zatvorena za admin rolе osim svjesno otvorene prioritetne matrice i agregata vidljivosti (`/reports/sla/summary`); nema sirovih SQL upita ni izlaganja tajni; minus za to što nema revizorskog traga „ko je vidio“ i za oslanjanje na rolu `admin` bez eksplicitnog pokrivanja `SUPER_ADMIN` (`[NEJASNO]`, isto kao u ranijim modulima). |
