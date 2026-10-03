@@ -70,8 +70,12 @@ jobs:
         run: node --test ../scripts/check-hooks-order.test.mjs
       - name: Check docs content and mirror sync (Faza 3, DOCS_MODULE.md §9)
         run: node ../scripts/check-docs-content.mjs
-      - name: Check the ticket-list page size (val 1 regresija: pageSize 100)
+      - name: Check the ticket-list page size against the API maximum (val 1)
         run: node ../scripts/check-ticket-list-page-size.mjs
+      - name: Check workflow YAML for unquoted colons
+        run: node ../scripts/check-workflows-yaml.mjs
+      - name: Test the workflow-YAML guard itself
+        run: node --test ../scripts/check-workflows-yaml.test.mjs
       - run: npm test
       - run: npm run build
 

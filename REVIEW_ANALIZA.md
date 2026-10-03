@@ -5385,6 +5385,15 @@ Korisnik je na stagingu dobio `400 VALIDATION: pageSize must not be greater than
   odmah, a provjera je **proširena na cijeli `frontend/src`**; pad provjere na vraćenom otpatku je provjeren
   (`load-dashboard-volume.ts:12 traži pageSize 100, a server prihvata najviše 50`). `tsc` i `vitest` ovo nisu
   mogli uhvatiti jer je neželjeni kod bio sintaksno ispravan i nekorišten.
+- **Ista klasa greške u CI konfiguraciji (2026-10-03, ista sesija):** korak CI-a je dobio ime
+  `name: Check the ticket-list page size (val 1 regresija: pageSize 100)`, pa je GitHub odbio **cijeli
+  workflow**: *„You have an error in your yaml syntax on line 73"* (dvotočka u neukotvljenoj vrijednosti).
+  Dokazi: `js-yaml` na staroj verziji vraća `YAMLException: bad indentation of a mapping entry (73:63)`,
+  a na popravljenoj 0; GitHub validira workflow **tek poslije push-a**.
+  **Trajna zaštita:** `scripts/check-workflows-yaml.mjs` (+ `check-workflows-yaml.test.mjs`, 3 testa) traži
+  neukotvljenu dvotočku i tab u uvlačenju u `.github/workflows/**`, s izuzetkom sadržaja blok skalarа;
+  provjera je u CI-u i u `CONTRIBUTING.md`. Guard na staroj liniji prijavljuje
+  `.github/workflows/ci.yml:73 neukotvljena vrijednost sadrži dvotočku`.
 - **Lekcija za dalje (NISKO, proces):** val 1 je imao testove logike i statičke provjere, ali nijedan test
   nije prolazio kroz **DTO validaciju** — jedini sloj koji je ovdje pao. Zato je dogovor za sljedeće valove:
   svaki novi zahtjev prema postojećem endpointu dobija bar jedan test/e2e scenario protiv stvarnog servera ili

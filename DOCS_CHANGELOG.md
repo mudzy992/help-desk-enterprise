@@ -1130,6 +1130,13 @@ morala prestati opisivati stanje koje više ne postoji („uska grla nisu na ekr
 - Iz vodiča: tvrdnje da detaljan prikaz uskih grla nije na ekranu, da postavka ne djeluje na prikaz, da ista
   postavka perioda vuče i pakete izvještaja i da je dugme „Izvještaji“ trajno onemogućeno.
 
+### CI workflow: nevalidan YAML (2026-10-03)
+
+Ime CI koraka sadržavalo je dvotočku u neukotvljenoj vrijednosti, pa je GitHub odbio **cijeli**
+`.github/workflows/ci.yml` (*„You have an error in your yaml syntax on line 73"*). Popravljeno ime koraka,
+a uz to je uvedena trajna provjera `scripts/check-workflows-yaml.mjs` (dvotočka u neukotvljenom skalaru i tab
+u uvlačenju) s vlastitim testom; obje su navedene u `CONTRIBUTING.md` (spisak `check-*` provjera).
+
 ### Regresija sa staginga (2026-10-03): `pageSize` grafikona
 
 Prva verzija vala 1 tražila je `GET /tickets?pageSize=100`, a server odbija sve iznad 50

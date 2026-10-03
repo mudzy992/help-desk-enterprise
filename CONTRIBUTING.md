@@ -52,6 +52,12 @@ node scripts/check-client-neutral.mjs    node scripts/check-theme-contrast.mjs
 node scripts/check-env-example.mjs       node scripts/check-a11y-static.mjs
 node scripts/check-ticket-id-leaks.mjs   node scripts/check-hooks-order.mjs
 node scripts/check-pulse-design-system.mjs
+node scripts/check-ticket-list-page-size.mjs   node scripts/check-workflows-yaml.mjs
 ```
+
+Dvije provjere iz zadnjeg reda čuvaju greške koje su se stvarno desile: `check-ticket-list-page-size.mjs`
+drži veličinu stranice liste tiketa ispod server maksimuma (staging je vratio `pageSize must not be greater
+than 50`), a `check-workflows-yaml.mjs` traži dvotočku u neukotvljenoj vrijednosti u `.github/workflows/**`
+(GitHub je odbio cijeli workflow zbog `name: … (val 1 regresija: pageSize 100)`).
 
 Sve skripte iz `scripts/check-*.mjs` moraju proći prije commita; iste se pokreću i u CI-u.
