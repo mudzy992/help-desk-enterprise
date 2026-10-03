@@ -178,6 +178,20 @@ export function TicketDetailPage() {
   /** The newest foreign public reply when this public draft started (undefined = no draft). */
   const draftBaselineRef = useRef<string | null | undefined>(undefined);
 
+  /*
+    Paket 4.2 (dio B): the right column is three cards with collapsible sections
+    whose state is remembered per user. Approvals open themselves while a
+    decision is pending; anything the user toggled wins over that default.
+    These live above the early return on purpose: a hook may not be skipped on
+    the loading render, or React fails with "rendered more hooks than during the
+    previous render" (React error 310) as soon as the ticket arrives.
+  */
+  const computedSectionDefaults = useMemo(
+    () => ({ approvals: approvals.items.some((item) => item.status === "PENDING") }),
+    [approvals.items],
+  );
+  const detailSections = useTicketDetailSections(computedSectionDefaults);
+
   if (detail.isLoading || detail.ticket === null) {
     return (
       <TicketDetailBlockingState
@@ -260,14 +274,6 @@ export function TicketDetailPage() {
   };
   const canWaitForUser =
     actions.waitForUser && nextTicketStatuses(ticket.status).includes("WAITING_FOR_USER");
-  // Paket 4.2 (dio B): the right column is three cards with collapsible sections
-  // whose state is remembered per user. Approvals open themselves while a
-  // decision is pending; anything the user toggled wins over that default.
-  const computedSectionDefaults = useMemo(
-    () => ({ approvals: approvals.items.some((item) => item.status === "PENDING") }),
-    [approvals.items],
-  );
-  const detailSections = useTicketDetailSections(computedSectionDefaults);
   const actionsCardVisible =
     (canUseTemplates && actions.viewActivity) ||
     (approvals.visible && approvals.items.length > 0);

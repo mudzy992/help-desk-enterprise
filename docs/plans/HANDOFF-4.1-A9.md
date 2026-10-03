@@ -172,5 +172,8 @@ tome potvrditi s korisnikom. CI na masteru mora biti zelen.
 - **Otpor na E2E:** paneli koji se otvaraju sami (prosljeđivanja, imovina, playbook, spojeni) moraju ostati vidljivi odmah
   — zato su po zadanom otvoreni; sklopljene su samo tri dopunske sekcije. E2E job se vrti samo na `master`, pa to
   provjerava prvi deploy.
+- **Popravka poslije prvog deploya dijela B:** stranica detalja je padala s React error 310 (hook ispod ranog
+  `return`-a za učitavanje). Popravljeno u `ticket-detail-page.tsx`, a uz to je dodata CI provjera
+  `scripts/check-hooks-order.mjs` (+ test) koja tu klasu greške hvata prije deploya; detalji u §3.7 dizajna 4.2.
 - Neizmijenjeno čeka korisnika: **korak 7** poslije 2026-10-03 19:22 UTC, 4.1a provjera zaglavlja `X-Service-Desk-Ticket`
   na stagingu, i **instalacija DR cron-a na hostu** (`ops/DR.md`, poglavlje „Instalacija cron-a“).

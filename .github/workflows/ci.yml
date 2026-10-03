@@ -64,6 +64,10 @@ jobs:
         run: node ../scripts/check-theme-contrast.mjs
       - name: Check static accessibility rules (Paket 2.8 §5.2)
         run: node ../scripts/check-a11y-static.mjs
+      - name: Check no hook runs after an early return (React #310)
+        run: node ../scripts/check-hooks-order.mjs
+      - name: Test the hooks-order guard itself
+        run: node --test ../scripts/check-hooks-order.test.mjs
       - run: npm test
       - run: npm run build
 
