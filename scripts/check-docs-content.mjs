@@ -8,7 +8,8 @@
     3. relativne veze unutar `docs/user-guide/**`,
     4. slike (postoje i unutar `docs/user-guide/assets/`),
     5. tajne (obrasci iz §6),
-    6. slugovi iz koda (`docsSlug('…')` u frontend/backend izvoru),
+    6. slugovi iz koda (`docsSlug('…')` u frontend/backend izvoru, mapa ekran→stranica
+       u `frontend/src/lib/docs/docs-slug.ts` — uključujući anchore),
     7. anchori (`##`/`###` naslovi su jedinstveni unutar stranice).
 
   Pokretanje: node scripts/check-docs-content.mjs
@@ -203,6 +204,23 @@ function checkSecrets(files) {
   }
 }
 
+function anchorsBySlug() {
+  const anchors = new Map();
+  for (const name of readdirSync(sourceDir)) {
+    if (!name.endsWith('.md') || name === technicalSource) continue;
+    const content = readFileSync(path.join(sourceDir, name), 'utf8');
+    const parsed = frontmatterOf(content);
+    if (parsed === null || parsed.meta.slug === undefined) continue;
+    const set = new Set();
+    for (const match of content.matchAll(/^#{2,3}\s+(.+)$/gm)) {
+      const slug = slugifyHeading(match[1].trim());
+      if (slug.length > 0) set.add(slug);
+    }
+    anchors.set(String(parsed.meta.slug), set);
+  }
+  return anchors;
+}
+
 function checkCodeSlugs(slugs) {
   const scanRoots = [path.join(repoRoot, 'frontend', 'src'), path.join(repoRoot, 'backend', 'src')];
   let found = 0;
@@ -219,7 +237,30 @@ function checkCodeSlugs(slugs) {
       }
     }
   }
-  if (found === 0) notes.push('nema `docsSlug(...)` literala u kodu (očekivano u koraku (b))');
+  if (found === 0) notes.push('nema `docsSlug(...)` literala u kodu; veza „?" ide kroz mapu ispod');
+
+  // Faza 3 (d): kontekstualna „?" pomoć mapira rute ekrana na stranice; svaki
+  // slug (i anchor) iz mape mora postojati u sadržaju.
+  const mapFile = path.join(repoRoot, 'frontend', 'src', 'lib', 'docs', 'docs-slug.ts');
+  if (!existsSync(mapFile)) {
+    fail('slugovi iz koda', 'nema frontend/src/lib/docs/docs-slug.ts (mapa ekran→stranica)');
+    return;
+  }
+  const anchors = anchorsBySlug();
+  let mapped = 0;
+  const content = readFileSync(mapFile, 'utf8');
+  for (const match of content.matchAll(/\{\s*slug:\s*['"]([a-z0-9-]+)['"](?:\s*,\s*anchor:\s*['"]([a-z0-9-]+)['"])?\s*\}/g)) {
+    mapped += 1;
+    const [, slug, anchor] = match;
+    if (!slugs.has(slug)) {
+      fail('slugovi iz koda', `docs-slug.ts: stranica "${slug}" nema u manifestu`);
+      continue;
+    }
+    if (anchor !== undefined && !(anchors.get(slug) ?? new Set()).has(anchor)) {
+      fail('slugovi iz koda', `docs-slug.ts: anchor "#${anchor}" nema na stranici "${slug}"`);
+    }
+  }
+  if (mapped === 0) notes.push('mapa ekran→stranica je prazna (očekivano u koraku (d))');
 }
 
 function* walk(directory) {

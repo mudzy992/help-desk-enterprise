@@ -16,7 +16,7 @@ export function DocsPager({
     return null;
   }
   return (
-    <nav aria-label={t("docs.pagerLabel")} className="mt-6 flex items-stretch justify-between gap-3 border-t border-border pt-4">
+    <nav aria-label={t("docs.pagerLabel")} className="mt-6 flex items-stretch justify-between gap-3 border-t border-border pt-4 print:hidden">
       <div className="min-w-0 flex-1">
         {previous === null ? null : (
           <Link

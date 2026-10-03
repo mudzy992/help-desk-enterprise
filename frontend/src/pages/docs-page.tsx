@@ -1,9 +1,10 @@
-import { BookOpen, Menu, RefreshCw, X } from "lucide-react";
-import { useState } from "react";
+import { BookOpen, Menu, Printer, RefreshCw, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useParams, useSearchParams } from "react-router-dom";
 import { DocsBreadcrumbs } from "@/components/docs/docs-breadcrumbs";
 import { DocsEmptyState } from "@/components/docs/docs-empty-state";
+import { DocsFeedback } from "@/components/docs/docs-feedback";
 import { DocsPager } from "@/components/docs/docs-pager";
 import { DocsRoleFilter } from "@/components/docs/docs-role-filter";
 import { DocsSearch } from "@/components/docs/docs-search";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { useDocsNavigation, useDocsPage, useDocsSearch } from "@/lib/docs/use-docs";
 import { matchesDocsAudience, type DocsAudience } from "@/lib/docs/docs-audience";
+import { readRecentDocs, rememberRecentDoc } from "@/lib/docs/docs-local";
 import { cn } from "@/lib/utils";
 import { MarkdownView } from "@/components/privacy/markdown-view";
 
@@ -29,7 +31,11 @@ export function DocsPage() {
   const query = searchParams.get("q") ?? "";
   const [audience, setAudience] = useState<DocsAudience>("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [recentSlugs, setRecentSlugs] = useState<readonly string[]>([]);
   const searching = query.trim().length >= 2;
+  // EN sadržaj stranica nije preveden (dizajn §10): kad je UI na engleskom,
+  // korisnik to mora znati prije nego što počne čitati.
+  const contentLanguageNotice = i18n.language.startsWith("en");
 
   const { navigation, loading: navigationLoading, error: navigationError, reload } = useDocsNavigation();
   const { page, loading: pageLoading, error: pageError } = useDocsPage(searching ? null : (slug ?? null));
@@ -42,6 +48,20 @@ export function DocsPage() {
     page?.updatedAt === null || page?.updatedAt === undefined
       ? t("docs.updatedAtUnknown")
       : new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(page.updatedAt));
+
+  useEffect(() => {
+    setRecentSlugs(readRecentDocs());
+  }, [navigation]);
+
+  useEffect(() => {
+    if (page !== null) {
+      setRecentSlugs(rememberRecentDoc(page.slug));
+    }
+  }, [page]);
+
+  const printPage = useCallback((): void => {
+    window.print();
+  }, []);
 
   const setQuery = (value: string): void => {
     const next = new URLSearchParams(searchParams);
@@ -94,7 +114,7 @@ export function DocsPage() {
 
   return (
     <div className="flex flex-col gap-5 lg:flex-row lg:gap-6">
-      <aside className="lg:w-56 lg:shrink-0 lg:border-r lg:border-border lg:pr-4">
+      <aside className="print:hidden lg:w-56 lg:shrink-0 lg:border-r lg:border-border lg:pr-4">
         <button
           aria-expanded={sidebarOpen}
           className="flex w-full items-center justify-between rounded-md border border-border bg-surface px-3 py-2 text-[12.5px] font-medium text-foreground lg:hidden"
@@ -114,6 +134,7 @@ export function DocsPage() {
               audience={audience}
               navigation={navigation}
               onNavigate={() => setSidebarOpen(false)}
+              recentSlugs={recentSlugs}
             />
           )}
         </div>
@@ -127,17 +148,31 @@ export function DocsPage() {
               {t("docs.title")}
             </p>
           </div>
-          <DocsRoleFilter audience={audience} onChange={setAudience} />
+          <div className="flex items-center gap-2 print:hidden">
+            <DocsRoleFilter audience={audience} onChange={setAudience} />
+            <Button onClick={printPage} size="sm" variant="secondary">
+              <Printer size={14} strokeWidth={1.8} />
+              {t("docs.print")}
+            </Button>
+          </div>
         </header>
 
-        <DocsSearch
-          audience={audience}
-          error={searchError}
-          loading={searchLoading}
-          onQueryChange={setQuery}
-          query={query}
-          response={searching ? response : null}
-        />
+        {contentLanguageNotice ? (
+          <p className="mb-3 rounded-md border border-border bg-elevated px-3 py-2 text-[12px] text-muted-foreground">
+            {t("docs.languageNotice")}
+          </p>
+        ) : null}
+
+        <div className="print:hidden">
+          <DocsSearch
+            audience={audience}
+            error={searchError}
+            loading={searchLoading}
+            onQueryChange={setQuery}
+            query={query}
+            response={searching ? response : null}
+          />
+        </div>
 
         {searching ? null : pageError !== null ? (
           pageError.status === 404 ? (
@@ -168,11 +203,12 @@ export function DocsPage() {
             </div>
             <MarkdownView headingIds={page.toc.map((heading) => heading.id)} source={page.markdown} />
             <DocsPager next={page.next} previous={page.previous} />
+            <DocsFeedback slug={page.slug} />
           </article>
         )}
       </section>
 
-      <aside className="hidden xl:block xl:w-52 xl:shrink-0">
+      <aside className="hidden xl:block xl:w-52 xl:shrink-0 print:hidden">
         {searching || page === null ? null : <DocsToc toc={page.toc} />}
       </aside>
     </div>

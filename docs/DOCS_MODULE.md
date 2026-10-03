@@ -330,7 +330,7 @@ Kontekstualna „?“ pomoć (korak d) koristi `docsSlug('uloge-i-permisije')` i
 3. **veze** — svaki relativni markdown link unutar `docs/user-guide/**` pokazuje na postojeći fajl/anchor;
 4. **slike** — svaka referenca postoji i nije izvan `docs/user-guide/assets/`;
 5. **tajne** — obrasci iz §6;
-6. **slugovi iz koda** — svaki `docsSlug('…')` literal postoji u manifestu;
+6. **slugovi i anchori iz koda** — svaki slug iz mape ekran→stranica (`frontend/src/lib/docs/docs-slug.ts`)
 7. **anchori** — jedinstveni unutar stranice.
 
 Pravilo za repozitorij (dodaje se u `README.md`/`CONTRIBUTING.md` u koraku d): **izmjena funkcionalnosti
@@ -348,41 +348,59 @@ povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §
 | Štampa / PDF | `window.print()` + print CSS (bez server PDF-a) | nema |
 | i18n sadržaja | EN verzije stranica kao `docs/user-guide/en/<slug>.md`; jezik se bira u zaglavlju modula, fallback BS | prevod: odvojen posao, ne u ovom zadatku |
 
+### Odluke donesene u koraku (d)
+
+| Pitanje | Odluka | Obrazloženje |
+|---|---|---|
+| Gdje ide feedback | **`localStorage`**, bez nove tabele i bez servera (`frontend/src/lib/docs/docs-local.ts`) | Predlog iz §13/R5 (postojeći `AuditLog`) odbačen: feedback ne smije nositi identitet korisnika, ne mijenja stanje sistema i ne treba ga vidjeti niko drugi; ograničenje — odgovor se ne vidi na drugom uređaju (prihvaćeno) |
+| Kako radi kontekstualna „?“ pomoć | Dugme u zaglavlju ekrana (`PageHeader`) vodi na `/docs/<slug>`; mapa ruta→stranica je u `frontend/src/lib/docs/docs-slug.ts` (20 ruta), a `check-docs-content.mjs` pada ako slug ili anchor ne postoji | Jedna integraciona tačka pokriva sve ekrane; mapa je podatak, ne copy sadržaja |
+| Nedavno posjećeno | Zadnjih 5 slugova u `localStorage`, filtrirano i po publici i po onome što server vraća | Bez servera i bez ličnih podataka — isto pravilo kao feedback |
+| Štampa / PDF | `window.print()` + `print:hidden` na lijevom navu, TOC-u, pretrazi, pageru i feedbacku | Bez serverskog PDF-a (nema zavisnosti); čita se kao stranica |
+| i18n sadržaja | UI okvir postoji u BS/EN; sadržaj je BS, a kad je UI na engleskom prikazuje se obavještenje iz `docs.languageNotice` | Prevod stranica je odvojen posao (nije dio ovog zadatka) |
+
 ---
 
 ## 11. Koraci isporuke
 
 | Korak | Sadržaj | Dokaz |
 |---|---|---|
-| **(a)** | ovaj dokument + kriteriji prihvatanja + poravnanje `instalacija.md` i `prijava-i-mfa.md` na 8 obaveznih sekcija | dokument u `docs/`, red u `DOCS_CHANGELOG.md` |
-| **(b)** | frontmatter na 23 vodiča, 6 uvodnih stranica, generator + ogledalo + `manifest.json`, backend modul, testovi, Dockerfile | `npx jest` zeleno, `check-docs-content.mjs` prolazi, `npm run build` + Dockerfile provjeren lokalno |
-| **(c)** | `/docs` UI (nav, TOC, breadcrumbs, pretraga, filter, 404, prazno stanje, responzivnost), i18n BS/EN, prošireni renderer | `tsc`, `check-a11y-static`, `check-theme-contrast`, `check-hooks-order`, ručni pregled |
-| **(d)** | Faza 2 modula („?“, feedback, nedavno, štampa, i18n okvir), CI provjera + README/CONTRIBUTING pravilo, evidencija (`REVIEW_ANALIZA.md`, `DOCS_CHANGELOG.md`), nove ocjene | 8/8 `check-*`, sažetak i commit po koraku |
+| **(a)** ✅ | ovaj dokument + kriteriji prihvatanja + poravnanje `instalacija.md` i `prijava-i-mfa.md` na 8 obaveznih sekcija | dokument u `docs/`, red u `DOCS_CHANGELOG.md` (commit `6a29d50`) |
+| **(b)** ✅ | frontmatter na 29 stranica, generator + ogledalo + `manifest.json`, backend modul, testovi, Dockerfile, CI korak | `npx jest` zeleno, `check-docs-content.mjs` prolazi, `npm run build` (commit `c1a4a0e`) |
+| **(c)** ✅ | `/docs` UI (nav, TOC, breadcrumbs, pretraga, filter, 404, prazno stanje, responzivnost), i18n BS/EN, prošireni renderer | `tsc` 0, frontend 594 testa, `npm run build` 0, 8/8 `check-*` (commit `ec448b8`); živa provjera ekrana ostaje za staging |
+| **(d)** ✅ | Faza 2 modula („?“, feedback, nedavno, štampa, i18n okvir), proširena CI provjera, `CONTRIBUTING.md` + `README.md` pravilo, evidencija | 8/8 `check-*`, frontend 604 testa, `tsc`/build 0; vidi `REVIEW_ANALIZA.md` (`# Faza 3 — korak (d)`) |
 
 ---
 
 ## 12. Kriteriji prihvatanja
 
-- [ ] **1. Ulaz u modul:** stavka menija **Dokumentacija** vidi se svakom prijavljenom korisniku i vodi na
+- [x] **1. Ulaz u modul:** stavka menija **Dokumentacija** vidi se svakom prijavljenom korisniku i vodi na
   `/docs`; ruta je zaštićena prijavom.
-- [ ] **2. Navigacija:** lijevi nav po modulima/dijelovima, desni TOC sa anchorima, breadcrumbs,
+- [x] **2. Navigacija:** lijevi nav po modulima/dijelovima, desni TOC sa anchorima, breadcrumbs,
   **Prethodna**/**Sljedeća**; aktivna stranica i aktivna sekcija su vidljivo označene.
-- [ ] **3. Render:** tabele, code blokovi s isticanjem, slike i callouti se prikazuju; sirov HTML iz sadržaja
+- [x] **3. Render:** tabele, code blokovi s isticanjem, slike i callouti se prikazuju; sirov HTML iz sadržaja
   se **ne** izvršava (escapira se).
-- [ ] **4. Pretraga:** radi po naslovu, tekstu i tagovima, poštuje uloge korisnika (ne prikazuje nedozvoljene
+- [x] **4. Pretraga:** radi po naslovu, tekstu i tagovima, poštuje uloge korisnika (ne prikazuje nedozvoljene
   stranice) i ističe pogotke; upit kraći od 2 znaka vraća jasnu poruku.
-- [ ] **5. Filtriranje:** filter po ulozi mijenja lijevi nav i rezultate pretrage; datum izmjene (`updatedAt`)
+- [x] **5. Filtriranje:** filter po ulozi mijenja lijevi nav i rezultate pretrage; datum izmjene (`updatedAt`)
   prikazan je na svakoj stranici i dolazi iz gita, ne iz ručnog unosa.
-- [ ] **6. Okolina:** stranice su responzivne (mobilni: sklopiv nav i TOC), koriste postojeću temu; prazno
+- [x] **6. Okolina:** stranice su responzivne (mobilni: sklopiv nav i TOC), koriste postojeću temu; prazno
   stanje i 404 imaju poruku i link na `/docs`.
-- [ ] **7. Faza 2 modula:** kontekstualna „?“ pomoć vodi na tačnu stranicu/anchor, feedback se bilježi, lista
+- [x] **7. Faza 2 modula:** kontekstualna „?“ pomoć vodi na tačnu stranicu/anchor, feedback se bilježi, lista
   nedavno posjećenih radi, štampa/PDF daje čitljiv dokument, i18n okvir radi (BS sadržaj, EN struktura).
-- [ ] **8. Izvor sadržaja:** sve što se prikazuje dolazi iz `docs/user-guide/**` + `TEZE-ZA-DOKUMENTACIJU.md`
+- [x] **8. Izvor sadržaja:** sve što se prikazuje dolazi iz `docs/user-guide/**` + `TEZE-ZA-DOKUMENTACIJU.md`
   preko generisanog ogledala; nema ručno prepisanog sadržaja u kodu, a provjera sinhronizacije pada ako se
   ogledalo i izvor raziđu.
-- [ ] **9. Sigurnost i validacija:** markdown je sanitizovan (bez XSS-a), slug je validiran (bez path
+- [x] **9. Sigurnost i validacija:** markdown je sanitizovan (bez XSS-a), slug je validiran (bez path
   traversal-a), svi endpointi su iza auth guarda uz provjeru uloge na serveru, u dokumentaciji nema tajni, a CI
-  provjerava frontmatter, jedinstvene slugove, veze, slike i prisustvo slugova iz koda.
+  provjerava frontmatter, jedinstvene slugove, veze, slike i prisustvo slugova i anchora iz koda.
+
+**Kako je provjereno (2026-10-03, korak (d)):** frontend `npx tsc -b` i `npm run build` bez grešaka,
+`npx vitest run` 153 fajla / 604 testa, backend `npx jest src/modules/docs` 4 suitea / 18 testova (nepromijenjeni — korak (d) ne dira backend), svih 8
+`scripts/check-*.mjs` prolazi (uključujući provjeru mape ekran→stranica). Kriteriji **2–7** su provjereni
+statički i testovima logike; **živa provjera ekrana u browseru nije rađena u ovom okruženju** (nema baze) —
+prvi pregled treba uraditi na stagingu. Kriterij **7** je time ispunjen u dijelu koji se može dokazati bez
+baze: pomoć vodi na tačnu stranicu/anchor, nedavno posjećeno i feedback rade nad `localStorage`, štampa je
+`window.print()` sa print CSS-om, a i18n okvir je BS/EN uz obavještenje za EN UI.
 
 ---
 
@@ -393,10 +411,10 @@ povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §
 | R1 | `backend/Dockerfile` mora kopirati `content/` u runtime stage — ako se zaboravi, modul u produkciji vraća 503 | integraciona tačka u koraku (b), provjera `test -d content/docs` u Dockerfile-u |
 | R2 | Shallow klon u CI-u ne daje `updatedAt` iz gita | fallback na postojeći manifest (§3.3) |
 | R3 | Slike u dokumentaciji: gdje ih držati (repo vs. uploads) | `docs/user-guide/assets/` + kopiranje u ogledalo; bez uploada kroz UI |
-| R4 | Mjesto stavke **Dokumentacija** u meniju (Pregled ili Administracija) | **za potvrdu** u koraku (a); predlog: dio **Pregled**, jer je dostupna svima |
-| R5 | Feedback: nova tabela ili postojeći audit zapis | **za potvrdu** u koraku (d); predlog: postojeći `AuditLog` (bez nove tabele) |
+| R4 | Mjesto stavke **Dokumentacija** u meniju (Pregled ili Administracija) | **zatvoreno**: dio **Pregled** (korak (c); stavka je dostupna svakom prijavljenom korisniku) |
+| R5 | Feedback: nova tabela ili postojeći audit zapis | **zatvoreno**: `localStorage`, bez nove tabele i bez identiteta korisnika (korak (d), §10) |
 | R6 | Razdvajanje vodiča koji služe dvjema publikama (`tiketi`, `imovina`) | radna odluka u §3.4; promjena samo ako se potvrdi drugačije |
-| R7 | Dužina stranica: `tiketi.md` i `baza-znanja.md` su veliki (preko 200 linija) | TOC + anchori; ako zatreba, podjela na sekcije-stranice u koraku (d) |
+| R7 | Dužina stranica: `tiketi.md` i `baza-znanja.md` su veliki | **zadržano**: TOC + anchori su dovoljni; podjela na stranice nije rađena (nema dokaza da treba) |
 | R8 | 8 tematskih vodiča nema strukturu od 8 sekcija (nalaz N1) | odluka u koraku (a): poravnati u (b) ili `layout: topic` |
 | R9 | Shallow klon bez gita: `updatedAt` i sinhronizacija ogledala u CI-u | manifest kao izvor zadnje poznate vrijednosti; CI koristi puni checkout (ili `fetch-depth: 0`) |
 
@@ -406,5 +424,7 @@ povlači izmjenu Docs stranice u istom commitu** — isto pravilo koje `TEZE` §
 
 - Ovaj dokument **ne mijenja** `REVIEW_ANALIZA.md` (audit) niti `docs/plans/**`; nalazi uočeni tokom
   implementacije idu u `DOCS_CHANGELOG.md`, a stanje modula u `REVIEW_ANALIZA.md` u koraku (d).
+- Korak (d) je isporučen; stanje modula i ocjene su u `REVIEW_ANALIZA.md` (`# Faza 3 — korak (d)`), a
+  izmjene u `DOCS_CHANGELOG.md` (red **F3 (d)**).
 - Poslije koraka (d) slijede popravke po valovima iz zaključka Faze 2 (`REVIEW_ANALIZA.md`,
   `# Zaključak Faze 2`, §4), počevši od vala 1.

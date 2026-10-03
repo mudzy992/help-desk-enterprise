@@ -29,6 +29,8 @@
 | 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
 | 6 | **Faza 3** — Docs modul u aplikaciji (korak (b): sadržaj, backend i ogledalo) | ✅ Korak (b) isporučen 2026-10-03 · koraci (c)–(d) slijede — vidi `# Faza 3 — korak (b)` |
 | 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
+| 8 | **Faza 3** — Docs modul u aplikaciji (korak (d): Faza 2 modula, pravilo, evidencija) | ✅ Korak (d) isporučen 2026-10-03 · Faza 3 zatvorena — vidi `# Faza 3 — korak (d)` |
+| 9 | **Faza 3 — zatvorena** (4 koraka) | ✅ Zatvorena 2026-10-03 · preostaju popravke po valovima 1–5 — vidi `# Faza 3 — korak (d)` i `# Zaključak Faze 2` |
 
 ---
 
@@ -4960,11 +4962,14 @@ modula):
 | **1 — nadzor i tačnost brojeva** | Ekran uskih grla u `/reports`; postavka koja stvarno isključuje prikaz; grafik i liste iz server agregata; CSAT po OU/servisu/grupi; link umjesto onemogućenog dugmeta | M15 B1, B2, B3, B5, B6; M9 B3; M15 gapovi (OU razrez, opterećenje admina) | ~4–5 RD |
 | **2 — sigurnost i vidljivost** | Serverska provjera šablona pri slanju; zamjena ličnih podataka i pri upisu članka; redakcija broadcasta; `DRAFT` samo adminima; kapija odobrenja za `UNROUTED` i obavještenje odobravaocima; retention priloga; eskalacije s ciljevima i retroaktivni satovi | M13 B1; M14 B1; M12 B2; M6 B2; M9 B1, B2; M8 B1; M10 B1, B2, B4 | ~5–6 RD |
 | **3 — pouzdanost i skaliranje** | Isporuka e-pošte „tačno jednom“ s alarmom; SMTP pooling; članstvo u soba­ma iz baze i rate limit za `ticket:join`; rate limiter broadcasta u Redis; paginacija i limiti na listama (KB, šabloni, pickers) | M12 B1, B3, B4; M11 B1, B2; M8 B2; M14 B5; M13 B2 | ~4–5 RD |
-| **4 — testovi i CI** | e2e za portal znanja, nadzornu ploču i poštu; spec za servise šablona i bottleneck; CI provjera frontmattera i linkova u dokumentaciji (vezano za Fazu 3) | M14, M15, M12 gapovi; M13 gapovi | ~2–3 RD |
+| **4 — testovi i CI** | e2e za portal znanja, nadzornu ploču i poštu; spec za servise šablona i bottleneck | M14, M15, M12 gapovi; M13 gapovi | ~2–3 RD |
 | **5 — RAW zaostaci (opseg)** | Policy paket kao pun bundle + dodjela servisu ili OU + postavke; tip zahtjeva i rok na tiketu; preview rutanja u wizardu; postavke prioriteta i change loga; mjerenje kanala po RAW-u | M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 (dio) | ~8–10 RD |
 
 Ukupno za valove 0–4 (ono što je ispod „opsega“): **oko 16–20 RD**, od čega se valovi 0 i 1 mogu
-zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa ide kroz redovni
+zatvoriti u jednoj iteraciji. **Val 0 je zatvoren 2026-10-03** (M4 B1 — default mapping rola → permisije),
+a **CI provjera dokumentacije** (frontmatter, jedinstveni slugovi, veze, slike, anchori, slugovi iz mape
+ekran→stranica i sinhronizacija ogledala) uvedena je u **Fazi 3, koracima (b) i (d)**, pa je ne treba
+ponovo planirati; dio vala 4 koji ostaje su isključivo e2e testovi i specovi servisa. Val 5 je širenje funkcionalnosti, ne popravka, pa ide kroz redovni
 `docs/plans/modules/` postupak (dizajn prije koda, pravilo iz sesije).
 
 ## 5. Sažetak stanja dokumentacije
@@ -4994,8 +4999,13 @@ zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa
   dokumentaciju.
 - **Poravnanje dva stara vodiča** (`instalacija.md`, `prijava-i-mfa.md`) sa strukturom od osam sekcija je
   **završeno u Fazi 3, korak (a), 2026-10-03**.
-- **Pravilo koje Faza 3 treba preuzeti:** izmjena funkcionalnosti povlači izmjenu Docs stranice; predlog
-  je CI provjera frontmattera, jedinstvenih slugova i linkova (dogovoreno u pravilima sesije).
+- **Faza 3 je promijenila i samu dokumentaciju:** 29 stranica ima frontmatter i generisano ogledalo
+  (`backend/content/docs`, generator + provjera sinhronizacije u CI-u), a vodiči su dostupni u aplikaciji na
+  ruti `/docs` sa pretragom, TOC-om i filterom po publici (koraci (b)–(d)).
+- **Pravilo je uvedeno, ne više predlog:** izmjena funkcionalnosti povlači izmjenu Docs stranice u istom
+  commitu — zapisano u `CONTRIBUTING.md` (nov) i `README.md`, uz CI provjeru koja pada ako se ogledalo raziđe
+  sa `docs/user-guide/**` ili ako slug/anchor iz koda ne postoji u sadržaju. Detalji: `docs/DOCS_MODULE.md`,
+  izmjene: `DOCS_CHANGELOG.md` (F3 (a)–(d)).
 
 ## 6. Ograničenja ovog audita `[MIŠLJENJE]`
 
@@ -5221,3 +5231,66 @@ prošireni renderer (tabele, code, callouti, slike, anchori).
 
 **Napomena:** korak (c) je dokazan statičkim provjerama, testovima i buildom; živu ručnu provjeru ekrana
 (pregled u browseru na stvarnoj bazi) treba uraditi na stagingu pri prvom deployu.
+
+---
+
+# Faza 3 — korak (d): Faza 2 modula, pravilo i evidencija (2026-10-03)
+
+Korak (d) zatvara Docs modul: kontekstualna „?" pomoć, feedback, nedavno posjećeno, štampa/PDF i i18n okvir,
+uz pravilo za repozitorij i proširenu CI provjeru.
+
+## 1. Isporučeno
+
+| # | Isporuka | Fajlovi |
+|---|---|---|
+| 1 | Kontekstualna „?" pomoć | `frontend/src/lib/docs/docs-slug.ts` (mapa **20 ruta → 17 stranica**), `frontend/src/components/docs/docs-help-button.tsx` (nov), integracija u `frontend/src/components/ui/page-header.tsx` (dugme stoji uz naslov ekrana, `print:hidden`) |
+| 2 | Feedback | `frontend/src/lib/docs/docs-local.ts` (nov), `frontend/src/components/docs/docs-feedback.tsx` (nov), uključen na dno stranice u `frontend/src/pages/docs-page.tsx` |
+| 3 | Nedavno posjećeno | `rememberRecentDoc`/`readRecentDocs` u `docs-local.ts`, lista u `frontend/src/components/docs/docs-sidebar.tsx` (zadnjih 5, filtrirano po publici i po vidljivim stranicama) |
+| 4 | Štampa / PDF | dugme u `docs-page.tsx` (`window.print()`) + `print:hidden` na lijevom navu, TOC-u, pretrazi, pageru i feedbacku |
+| 5 | i18n okvir | `frontend/src/i18n/locales/{bs,en}/common.json` — `docs.feedback.*`, `docs.recent`, `docs.print`, `docs.helpLabel`, `docs.languageNotice` (32 ključa po jeziku + `audience` 5 + `parts` 6) |
+| 6 | Obavještenje za EN UI | `docs.languageNotice` se prikazuje kad je UI na engleskom, a sadržaj je BS (dokumentovano ograničenje, ne tiho ponašanje) |
+| 7 | Pravilo za repozitorij | **nov** `CONTRIBUTING.md` (dokumentacija ide uz kod, komande, lista provjera), sekcija „Dokumentacija i doprinosi" u `README.md` |
+| 8 | CI provjera | `scripts/check-docs-content.mjs` — provjera 6 sada pokriva i mapu ekran→stranica: slug i anchor iz `docs-slug.ts` moraju postojati u sadržaju (anchori se porede sa `slugifyHeading` nad `##`/`###` naslovima) |
+| 9 | Dizajn dokument | `docs/DOCS_MODULE.md` — §9 (provjera 6), §10 (odluke (d)), §11 (statusi koraka), §12 (kriteriji 1–9 označeni), §13 (R4, R5, R7 zatvoreni), §14 |
+
+## 2. Dokazi (izvršeno 2026-10-03 u ovom okruženju)
+
+- `npx tsc -b` (frontend) — 0 grešaka; `npm run build` — 0.
+- `npx vitest run` (frontend) — **153 fajla / 604 testa, 0 padova** (korak (c): 151/594). Novi testovi:
+  `src/lib/docs/docs-slug.spec.ts` (6 — tačna ruta, podruta, duži prefiks, lažni prefiks, `docsHref` bez/sa
+  anchora) i `src/lib/docs/docs-local.spec.ts` (4 — rad bez storagea, deduplikacija i limit od 5, feedback po
+  stranici, pokvaren zapis).
+- Backend `npx jest src/modules/docs` — 4 suitea / **18 testova** (nepromijenjeni; korak (d) ne dira backend).
+- Svih **8 `scripts/check-*.mjs`** prolazi, uključujući proširenu `check-docs-content` (29 stranica, 7 provjera).
+
+## 3. Odluke i granice
+
+- **Feedback:** `localStorage`, bez nove tabele i bez identiteta korisnika — predlog iz §13/R5 (`AuditLog`) je
+  odbačen jer feedback ne mijenja stanje sistema i ne treba mu trag u auditu; ograničenje (ne vidi se na drugom
+  uređaju) je prihvaćeno. Isto važi za nedavno posjećeno.
+- **„?" pomoć** je jedna integraciona tačka (`PageHeader`) i mapa podataka, bez dodirivanja 40+ stranica; mapa
+  pokriva 20 ruta, a pojedini ekrani (`/status`, `/problems`, `/changes`, `/on-call`…) vode na zajedničke
+  vodiče — ako se pokaže potreba, dodavanje rute je jedan red i CI odmah provjeri slug.
+- **Štampa/PDF** je `window.print()` sa print CSS-om; serverski PDF nije uveden (nova zavisnost, bez potrebe).
+- **EN sadržaj** nije preveden — preveden je UI okvir, a korisnik na EN UI dobija obavještenje da je sadržaj BS.
+  Prevod stranica ostaje odvojen posao.
+- **Ne dira se** `REVIEW_ANALIZA.md` audit (nalazi modula M1–M15 ostaju nepromijenjeni), `docs/plans/**` ni
+  nepovezani kod; izmjene u koracima (b)–(d) su u modulu `docs`, tri integracione tačke i dokumentaciji.
+
+## 4. Ocjena isporuke (novi modul, ne dira M1–M15)
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **9/10** | 9/9 kriterija prihvatanja ispunjeno na dokaziv način; jedina nepotpuna stavka je živa provjera ekrana u browseru (nije izvršena u ovom okruženju) i EN sadržaj (izvan obima) |
+| Kvalitet | **8/10** | Jedan izvor sadržaja + generator + sinhronizacija + 7 CI provjera; frontend 604 testa i `tsc`/build zeleni. Ocjena nije 9 jer UI nema DOM testova (repo nema `jsdom`/testing-library), pa se ponašanje ekrana dokazuje statički i na stagingu |
+| Sigurnost | **9/10** | Server provjerava ulogu na svakom endpointu, 404 za nedozvoljen slug, slug validiran prije čitanja, renderer ne emituje HTML, feedback i nedavno ne sadrže lične podatke ni tajne |
+
+**Ocjene modula M1–M15 se ne mijenjaju** — korak (d) ne dira njihov kod ni nalaze; jedina dva nova otvorena
+zadatka iz ove faze su van audita (živa provjera na stagingu i eventualni EN prevod).
+
+## 5. Faza 3 — zaključak
+
+Docs modul je isporučen u četiri koraka: (a) dizajn i kriteriji, (b) sadržaj, generator i backend, (c) `/docs`
+UI sa pretragom i filterom, (d) Faza 2 modula, pravilo i evidencija. Kriteriji prihvatanja 1–9 su označeni u
+`docs/DOCS_MODULE.md` §12 uz napomenu šta je dokazano kako. Sljedeće na redu su **popravke po valovima 1–5** iz
+zaključka Faze 2 (`# Zaključak Faze 2`, §4), a prije njih — po potrebi — živa provjera modula na stagingu.

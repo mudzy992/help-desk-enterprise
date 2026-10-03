@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { DocsHelpButton } from "@/components/docs/docs-help-button";
 import { useBranding } from "@/lib/branding/branding-store";
+import { docsTargetForPath } from "@/lib/docs/docs-slug";
 
 /** Paket 4.1: placeholder crumb replaced by the configured product name. */
 export const brandCrumb = "\u0000brand";
@@ -18,6 +21,10 @@ export function PageHeader({
   actions,
 }: PageHeaderProperties) {
   const { appName } = useBranding();
+  const { pathname } = useLocation();
+  // Faza 3 (d): kontekstualna „?" pomoć stoji uz naslov ekrana, kad za rutu
+  // postoji stranica dokumentacije (mapa je u `docs-slug.ts`).
+  const hasDocsHelp = !pathname.startsWith("/docs") && docsTargetForPath(pathname) !== null;
   return (
     <div className="mb-5">
       {crumbs.length > 0 ? (
@@ -43,7 +50,12 @@ export function PageHeader({
             </p>
           ) : null}
         </div>
-        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+        {actions || hasDocsHelp ? (
+          <div className="flex items-center gap-2">
+            {actions}
+            <DocsHelpButton />
+          </div>
+        ) : null}
       </div>
     </div>
   );

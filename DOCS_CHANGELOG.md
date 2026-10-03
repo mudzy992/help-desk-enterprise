@@ -29,6 +29,7 @@
 | M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
 | **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
 | **Val 0** | 2026-10-03 | **RBAC — popravka B1** | `REVIEW_ANALIZA.md` (§M4 + `# Val 0`), `user-guide/uloge-i-permisije.md`, `user-guide/instalacija.md`, `TEZE` (T31), ovaj dokument | **Default mapping rola → permisije upisuje se pri instalaciji + CLI za postojeće instalacije** |
+| **F3 (d)** | 2026-10-03 | **Docs modul — Faza 2 modula, pravilo i evidencija** | `frontend/src/lib/docs/docs-slug.ts` (nov), `frontend/src/lib/docs/docs-local.ts` (nov), `frontend/src/lib/docs/{docs-slug,docs-local}.spec.ts` (nov), `frontend/src/components/docs/{docs-help-button,docs-feedback}.tsx` (nov), `frontend/src/components/docs/docs-sidebar.tsx`, `frontend/src/components/docs/{docs-pager,docs-search}.tsx`, `frontend/src/components/ui/page-header.tsx`, `frontend/src/pages/docs-page.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `scripts/check-docs-content.mjs`, `CONTRIBUTING.md` (nov), `README.md`, `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (d)`), ovaj dokument | **Kontekstualna „?" pomoć (20 ruta → 17 stranica), feedback i nedavno posjećeno u `localStorage`, štampa/PDF preko print CSS-a, i18n okvir + obavještenje za EN UI, pravilo „dokumentacija ide uz kod" i CI provjera mape ekran→stranica; Faza 3 zatvorena (9/9 kriterija)** |
 | **F3 (c)** | 2026-10-03 | **Docs modul — `/docs` UI** | `frontend/src/pages/docs-page.tsx` (nov), `frontend/src/components/docs/**` (nov), `frontend/src/lib/docs/**` (nov), `frontend/src/services/docs-api.ts` (nov), `frontend/src/lib/navigation.ts`, `frontend/src/lib/session/route-access.ts`, `frontend/src/app/router.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/privacy/simple-markdown.ts`, `frontend/src/components/privacy/markdown-view.tsx`, `backend/src/modules/docs/**`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (c)`), ovaj dokument | **Meni Dokumentacija, ruta `/docs`, nav/TOC/breadcrumbs/pager, pretraga sa isticanjem, filter po publici, 404 i prazno stanje, prošireni renderer; i18n BS/EN** |
 | **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
@@ -1036,3 +1037,54 @@ jedina korisnička površina — meni, ruta, čitanje, pretraga i filter.
   statičkim provjerama i buildom, a prvi pregled u browseru treba uraditi na stagingu.
 - EN sadržaj stranica (prevod) je odvojen posao iz koraka (d)/budućnosti; sada su prevedeni UI okviri, a sadržaj
   je BS — kako dizajn §10 i predviđa.
+
+---
+
+## Faza 3 — korak (d): Faza 2 modula, pravilo i evidencija (2026-10-03)
+
+**Zašto:** korak (c) je dao čitanje i pretragu, ali bez pomoći u kontekstu ekrana, bez povratne informacije, bez
+brzog povratka na nedavno čitano i bez pravila koje dokumentaciju drži uz kod — modul time ne bi bio „gotov".
+
+**Dodato**
+
+- `frontend/src/lib/docs/docs-slug.ts` — mapa **ekran → stranica dokumentacije** (20 ruta, 17 stranica) i
+  `docsHref`; jedina tačka koju treba dopuniti kad se doda nova ruta.
+- `frontend/src/components/docs/docs-help-button.tsx` — dugme „?" koje vodi na stranicu koja opisuje ekran;
+  ugrađeno u `frontend/src/components/ui/page-header.tsx`, pa ga dobijaju svi ekrani sa naslovom (bez diranja
+  40+ stranica). Skriveno je na samoj Dokumentaciji, na rutama bez mapirane stranice i u štampi.
+- `frontend/src/lib/docs/docs-local.ts` + `frontend/src/components/docs/docs-feedback.tsx` — „Je li vam ova
+  stranica pomogla?" i lista **nedavno posjećenih** (zadnjih 5). Oba stoje u `localStorage`, bez servera, bez
+  nove tabele i bez identiteta korisnika; otkazan storage (privatni režim) ne kvari stranicu.
+- Štampa/PDF: dugme u zaglavlju stranice poziva `window.print()`, a print CSS skriva lijevi nav, TOC, pretragu,
+  pager i feedback — ostaje čist sadržaj.
+- `CONTRIBUTING.md` (nov) + sekcija u `README.md`: **izmjena funkcionalnosti povlači izmjenu stranice
+  dokumentacije u istom commitu**, uz komande (`generate-docs-content.mjs`, `--check`, `check-docs-content.mjs`),
+  pravila frontmattera i spisak `check-*` skripti.
+- i18n: `docs.feedback.*`, `docs.recent`, `docs.print`, `docs.helpLabel`, `docs.languageNotice` (BS/EN).
+
+**Izmijenjeno**
+
+- `scripts/check-docs-content.mjs` — provjera 6 više ne traži samo `docsSlug('…')` literale nego i mapu
+  ekran→stranica: svaki slug i svaki anchor iz `docs-slug.ts` mora postojati u sadržaju (anchori se porede sa
+  `slugifyHeading` nad `##`/`###` naslovima). Time tipfeler u mapi pada u CI-u, a ne u produkciji.
+- `frontend/src/pages/docs-page.tsx` — dugme za štampu, feedback na dnu, obavještenje za EN UI, `print:hidden`
+  na pomoćnim kolonama, prosljeđivanje nedavno posjećenih u sidebar.
+- `docs/DOCS_MODULE.md` — §9 (opis provjere 6), §10 (odluke koraka (d): feedback i nedavno u `localStorage`,
+  „?" kroz mapu, štampa bez serverskog PDF-a, i18n okvir), §11 (koraci (a)–(d) označeni sa dokazima), §12
+  (kriteriji 1–9 označeni + napomena šta je dokazano kako), §13 (R4, R5, R7 zatvoreni), §14.
+
+**Ne mijenja se**
+
+- Backend modul `docs` nije diran; njegova 4 suitea / 18 testova ostaju nepromijenjeni.
+- `REVIEW_ANALIZA.md` — auditni nalazi M1–M15 ostaju nepromijenjeni; korak (d) dodaje evidenciju i ocjenu
+  isporuke modula, ne dira nalaze. `docs/plans/**` i `EPHELPDESK.pdf/.docx` nisu dirani.
+
+**Napomene i ograničenja (iskreno)**
+
+- **Živa provjera ekrana nije rađena** u ovom okruženju (nema baze): dokazi su `tsc`, build, testovi logike i
+  statičke provjere; prvi pregled u browseru treba uraditi na stagingu pri deployu.
+- Feedback i nedavno posjećeno su **lokalni po uređaju** (prihvaćeno ograničenje; obrazloženje u §10 dizajna).
+- **Sadržaj je samo na bosanskom**; EN je preveden samo kao UI okvir, uz vidljivo obavještenje. Prevod stranica
+  ostaje odvojen posao.
+- UI nema DOM testova jer repozitorij nema `jsdom`/testing-library; to je postojeće ograničenje okruženja, ne
+  posljedica ovog koraka.
