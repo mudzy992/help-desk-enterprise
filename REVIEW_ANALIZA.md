@@ -4862,3 +4862,133 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Brojači, SLA nadzor, KPI sa uzorcima i formulama (uključujući KB stopu sa ciljem ≥ 30%), trendovi sa svim serijama, šest paketa u dva formata uz audit, zakazani izvještaji sa testnim slanjem i historijom — sve to radi i pokriveno je testovima. Minus za tri stvari iz RAW-a koje nisu došle do ekrana: razrez po OU, CSAT po servisu/grupi i **uska grla** (API postoji, ekran ne; B2), te za neefektivnu postavku (B1). |
 | **Kvalitet koda** | **8/10** | Agregati, keš sa zonom u ključu i single-flight, jasna podjela na „brojači sa servera / pogledi iz prve stranice“, mali fajlovi i komentari koji bilježe i mjerenja (k6) i odluke (TTL 60 s). Ocjenu snižavaju mrtve površine (B4, B5), jedna postavka sa dvostrukim dometom (B3), nevidljivi endpoint (B2) i to što dio ploče i dalje računa u pregledaču iz prve strane od 50 tiketa (B6). |
 | **Sigurnost** | **8/10** | Brojači se ne mogu zaobići (isti `buildTicketListWhere`), izvještaji traže i ulogu i pravo (`reports.export`/`audit.export`), svaki izvoz ostavlja zapis u audit sa periodom i fajlom, OU opseg se poštuje u svim paketima i trendovima, a u paketu prosljeđivanja naslovi povjerljivih tiketa zamjenjuju se oznakom `[confidential]`, koju pregled prevodi u `[povjerljivo]` (`backend/src/modules/reports/packs/build-forward-ping-pong-report.ts:19,38`, `frontend/src/lib/reports/report-pack-table.ts:54–55`). Minus za B1 (postavka koja ne isključuje prikaz, što je više dosljednost nego rizik) i za nedostatak e2e provjere same nadzorne ploče. |
+
+---
+
+# Zaključak Faze 2 — audit i dokumentacija (2026-10-03)
+
+> Zatvaranje Faze 2: 15 modula (M1–M15) u tri iteracije, 236 redova gap tabela, 92 nalaza i 15 novih
+> vodiča za krajnjeg korisnika. Sve tvrdnje u ovom zaključku izvedene su iz sekcija `# M1`–`# M15`
+> iznad; ocjene i nalazi se ne mijenjaju, ovdje se samo sabiraju.
+
+## 1. Sumarna tabela ocjena
+
+| Modul | F | K | S | Nalazi (V / S / N) | Vodič za korisnika |
+|---|---|---|---|---|---|
+| M1 Instalacija (prvi start) | 8 | 9 | 7 | 0 / 1 / 4 | `user-guide/instalacija.md` |
+| M2 Prijava i MFA | 9 | 8 | 8 | 0 / 2 / 4 | `user-guide/prijava-i-mfa.md` |
+| M3 Korisnici, OJ i grupe | 8 | 8 | 7 | 0 / 4 / 3 | `user-guide/korisnici-oj-i-grupe.md` |
+| M4 RBAC | 7 | 9 | 8 | **1** / 1 / 3 | `user-guide/uloge-i-permisije.md` |
+| M5 Policy paketi | 6 | 8 | 8 | 0 / 4 / 2 | `user-guide/policy-paketi.md` |
+| M6 Katalog usluga i forme | 7 | 8 | 7 | 0 / 5 / 4 | `user-guide/katalog-usluga-i-forme.md` |
+| M7 Usmjeravanje i prioritet | 8 | 8 | 8 | 0 / 4 / 5 | `user-guide/usmjeravanje-i-prioritet.md` |
+| M8 Tiketi | 9 | 8 | 8 | 0 / 2 / 5 | `user-guide/tiketi.md` |
+| M9 Odobrenja i CSAT | 7 | 8 | 8 | 0 / 3 / 2 | `user-guide/odobrenja-i-csat.md` |
+| M10 SLA | 8 | 9 | 8 | 0 / 4 / 1 | `user-guide/sla.md` |
+| M11 Realtime i obavještenja | 8 | 9 | 8 | 0 / 2 / 3 | `user-guide/realtime-i-obavjestenja.md` |
+| M12 Pošta | 8 | 9 | 8 | 0 / 2 / 3 | `user-guide/posta.md` |
+| M13 Šabloni i playbooks | 8 | 7 | 7 | 0 / 1 / 4 | `user-guide/sabloni-i-playbooks.md` |
+| M14 Baza znanja | 8 | 7 | 7 | 0 / 1 / 6 | `user-guide/baza-znanja.md` |
+| M15 Nadzorna ploča i izvještaji | 8 | 8 | 8 | 0 / 2 / 4 | `user-guide/nadzorna-ploca-i-izvjestaji.md` |
+| **Prosjek (15 modula)** | **7,8** | **8,2** | **7,7** | **1 / 38 / 53** | **15 vodiča** |
+
+Raspodjela ozbiljnosti: **1 VISOKO** (M4 B1 — default mapping rola → permisije se nikad ne upisuje u bazu),
+**38 SREDNJE**, **53 NISKO**, **0 KRITIČNO**. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+**15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
+problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
+ne u tome da funkcija ne postoji.
+
+## 2. Šta nedostaje (prema `RAW_PROJECT.md`)
+
+Samo stavke koje RAW izričito traži, a u kodu ih nema ili ne rade do kraja (detalji i dokazi u sekcijama
+modula):
+
+| # | RAW | Šta nedostaje | Modul |
+|---|---|---|---|
+| 1 | `:195–216` | Default mapping rola → permisije nikad se ne upisuje, pa svježa instalacija daje prazne role (B1, jedini VISOKO) | M4 |
+| 2 | `:296`, `:670–672` | Policy paket se ne može dodijeliti servisu **ili** OU; postavke `private.policyPacks.*` ne postoje; paket ne nosi SLA/obavezna polja/klasifikaciju/odobrenja | M5 |
+| 3 | `:54` | „service → request type → due date“ nema tip zahtjeva ni rok kao polja; forme to nose posredno | M8 |
+| 4 | `:269`, `:356–357` | Preview rutanja postoji kao endpoint, ali ga ekran za prijavu tiketa ne koristi | M7 |
+| 5 | `:726`, `:59–61` | Postavka change loga za routing nema potrošača; matrica prioriteta nema `enabled` prekidač ni postavke | M7 |
+| 6 | `:89`, `:511`, `:636` | Eskalacije nemaju ciljeve po roli/grupi/korisniku (`escalationTargetsJson`), a skala CSAT-a je u izvještajima hardkodirana na 5 | M10 / M9 |
+| 7 | `:360`, `:1019`, `:281` | CSAT se ne prikazuje po OU/servisu/grupi (agregacija postoji, nijedan ekran je ne poziva) | M9 / M15 |
+| 8 | `:171`, `:1031` | Nema razreza „tiketi po OU“ ni prikaza „opterećenje admina“ na nadzornoj ploči | M15 |
+| 9 | `:280–284`, `:1039` | Usko grlo: API (`/reports/bottlenecks`) vraća brojače, razrez i trend, ali **nema ekran** | M15 |
+| 10 | `:71` | „Pomoglo“ u presretanju ne sprječava kreiranje tiketa ni ne pamti koji je članak pomogao | M14 |
+| 11 | `:1050–1053` | Kanal e-pošte nema mjerenje ni alarm (zaglavljen zahtjev trajno gubi e-mail) | M12 |
+| 12 | `:11`, `:30`, `:479`, `:173` | OU izolacija za ADMIN/AGENT je djelimična, `roleSource` je naziv koji odstupa, audit korisnika/OU/grupa nije potpun | M3 |
+| 13 | `:683–685`, `:632–634` | Postavke baze znanja postoje i rade, ali pregledi se broje bez pravila, `isStale` se nikad ne postavlja, a izvoz „Znanje“ ne prikazuje stopu po članku | M14 |
+| 14 | `:636`, `:660–661` | Postavka uskih grla ne djeluje na ono što korisnik vidi, a jedna postavka perioda dijeli se s paketima izvještaja | M15 |
+
+## 3. Must-have unapređenja (prije široke produkcije)
+
+1. **Upisati default mapping rola → permisije pri instalaciji i pokriti ga testom** (M4 B1). Jedini nalaz
+   označen VISOKO; svježa instalacija bez njega daje role bez prava.
+2. **Zatvoriti puteve na kojima zaštita živi samo u interfejsu:** šablon koji je deaktiviran ili interni
+   (M13 B1), zamjena ličnih podataka pri nastanku članka (M14 B1), redakcija sadržaja bulk broadcasta
+   (M12 B2), `DRAFT` usluge vidljive svima (M6 B2).
+3. **Popraviti nadzor:** ekran uskih grla (M15 B2), poštovanje postavke (M15 B1), grafik i liste iz
+   servera umjesto prve strane od 50 tiketa (M15 B6) i CSAT po OU/servisu/grupi (M9 B3). Bez toga RAW-ova
+   svrha („identifikacija uskih grla i optimizacija procesa/SLA“) nije ispunjena.
+4. **Isporuka tačno jednom i alarm kanala e-pošte** (M12 B1, uz B2/B3): zaglavljen zahtjev danas trajno
+   gubi e-mail, a nema mjerenja koje bi to pokazalo.
+5. **Ukloniti mrtve površine i zastarjele upute** (M15 B5, M9 B4, M8 B3, M7 B2, `roleSource`): jeftino,
+   a svaka od njih je već jednom zavarala pri čitanju koda ili ekrana.
+6. **Dodati e2e pokrivenost za module koji je nemaju** (M14 portal, M15 nadzorna ploča, M12 pošta) i
+   serverske testove za servise bez njih (M13). Nalazi tipa B4/B5 (statistika prije upisa, mrtva kolona)
+   lakše bi se uhvatili testom nego pregledom.
+
+## 4. Prioritetizovani roadmap (procjena `[MIŠLJENJE]`, u radnim danima)
+
+| Val | Sadržaj | Nalazi / gapovi | Procjena |
+|---|---|---|---|
+| **0 — odmah** | Default mapping rola → permisije u instalaciji + test | M4 B1 | ~0,5 RD |
+| **1 — nadzor i tačnost brojeva** | Ekran uskih grla u `/reports`; postavka koja stvarno isključuje prikaz; grafik i liste iz server agregata; CSAT po OU/servisu/grupi; link umjesto onemogućenog dugmeta | M15 B1, B2, B3, B5, B6; M9 B3; M15 gapovi (OU razrez, opterećenje admina) | ~4–5 RD |
+| **2 — sigurnost i vidljivost** | Serverska provjera šablona pri slanju; zamjena ličnih podataka i pri upisu članka; redakcija broadcasta; `DRAFT` samo adminima; kapija odobrenja za `UNROUTED` i obavještenje odobravaocima; retention priloga; eskalacije s ciljevima i retroaktivni satovi | M13 B1; M14 B1; M12 B2; M6 B2; M9 B1, B2; M8 B1; M10 B1, B2, B4 | ~5–6 RD |
+| **3 — pouzdanost i skaliranje** | Isporuka e-pošte „tačno jednom“ s alarmom; SMTP pooling; članstvo u soba­ma iz baze i rate limit za `ticket:join`; rate limiter broadcasta u Redis; paginacija i limiti na listama (KB, šabloni, pickers) | M12 B1, B3, B4; M11 B1, B2; M8 B2; M14 B5; M13 B2 | ~4–5 RD |
+| **4 — testovi i CI** | e2e za portal znanja, nadzornu ploču i poštu; spec za servise šablona i bottleneck; CI provjera frontmattera i linkova u dokumentaciji (vezano za Fazu 3) | M14, M15, M12 gapovi; M13 gapovi | ~2–3 RD |
+| **5 — RAW zaostaci (opseg)** | Policy paket kao pun bundle + dodjela servisu ili OU + postavke; tip zahtjeva i rok na tiketu; preview rutanja u wizardu; postavke prioriteta i change loga; mjerenje kanala po RAW-u | M5 B1–B6; M8 3; M7 B2, B3, B5; M12 B1 (dio) | ~8–10 RD |
+
+Ukupno za valove 0–4 (ono što je ispod „opsega“): **oko 16–20 RD**, od čega se valovi 0 i 1 mogu
+zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa ide kroz redovni
+`docs/plans/modules/` postupak (dizajn prije koda, pravilo iz sesije).
+
+## 5. Sažetak stanja dokumentacije
+
+- **`docs/user-guide/` — 23 vodiča + `TEZE-ZA-DOKUMENTACIJU.md`.** Petnaest vodiča (po jedan za svaki
+  modul M1–M15) napisano je u Fazi 2, a sa nazivima dugmadi tačno kako stoje u interfejsu. **Trinaest ih
+  je po obaveznoj strukturi od osam sekcija** (čemu služi, kome je namijenjen, kako se dolazi, korak po
+  korak, polja/validacije/poruke, česta pitanja, poznata ograničenja, povezani moduli) — svi od M3 do M15;
+  **dva vodiča iz ranije faze (`instalacija.md`, `prijava-i-mfa.md`) imaju skraćenu strukturu od šest
+  sekcija** (bez tabele rola i bez tabele polja), pa ih Faza 3 može poravnati sa ostalima. Preostalih osam
+  vodiča pokrivaju module izvan audita (dežurstva, imovina, najave, prečice i pristupačnost, problemi,
+  promjene, prosljeđivanje tiketa, statusi/incidenti/planirani prekidi).
+- **`TEZE-ZA-DOKUMENTACIJU.md` — 101 teza (T1–T101)** i 15 blokova odluka korisnika (paketi, CMDB, Teams,
+  problemi, promjene, filteri, dežurstva). Teze su tehnički sloj
+  dokumentacije: model i tokovi, prava i vidljivost, formule, postavke i statusi, s putanjama do koda.
+  Svaka teza nosi `Status` („Važi“ ili „Važi uz B…“) i odredišnu wiki stranicu — što je i osnova za
+  pretragu i filter po ulozi u Fazi 3.
+- **`REVIEW_ANALIZA.md`** — 15 modulskih sekcija iste strukture (planirano / idealno / preporuka /
+  stanje u kodu / gap tabela / recenzija / nalazi / ažuriranje dokumentacije / ocjena) plus ovaj
+  zaključak; 236 redova gap tabela i 92 nalaza sa putanjom, linijom, uticajem, fixom i ozbiljnošću.
+- **`DOCS_CHANGELOG.md`** — jedan unos po modulu (dodato / izmijenjeno / uklonjeno / zašto / izvori),
+  sa nalazima o zastarjelim tvrdnjama u `docs/plans/**` koji su **evidentirani, ali ne dirani** (odluka
+  vlasnika: planovi se ne ispravljaju u Fazi 2).
+- **Otvoreno izvan ovog dokumenta:** odgovori DPO-a (`docs/privacy/DPO-UPITNIK.md`), korak 7 (A9)
+  verifikacije na stagingu i odobrenje paketa 4.1 — sve troje čeka odluke ili termine vlasnika, ne
+  dokumentaciju.
+- **Poravnanje dva stara vodiča** (`instalacija.md`, `prijava-i-mfa.md`) sa strukturom od osam sekcija je
+  posao za Fazu 3, kad se dokumentacija ionako čita kroz aplikaciju.
+- **Pravilo koje Faza 3 treba preuzeti:** izmjena funkcionalnosti povlači izmjenu Docs stranice; predlog
+  je CI provjera frontmattera, jedinstvenih slugova i linkova (dogovoreno u pravilima sesije).
+
+## 6. Ograničenja ovog audita `[MIŠLJENJE]`
+
+- **Statička analiza, bez izvršavanja na stagingu.** Zaključci o ponašanju dolaze iz koda i testova;
+  performance su preuzete iz mjerenja zapisanih u planovima (§13.3 paketa 2.5) i iz komentara u kodu, ne
+  iz vlastitog mjerenja. Ono što nije pročitano označeno je `[NEJASNO]` u sekcijama modula.
+- **Nisu rađeni:** penetracijski test, provjera pristupačnosti u realnom čitaču (osim `check-a11y-static`
+  i e2e skeniranja), provjera migracija na stvarnoj bazi i revizija infrastrukture (Coolify, Nginx,
+  Redis ACL) — te teme su u modulima dotaknute samo tamo gdje ih kod otkriva.
+- **Ocjene su recenzentske**, na skali 1–10, i odražavaju ravnotežu isporučenog i propusta; ne treba ih
+  čitati kao mjerenje, već kao poređenje s idealom opisanim u §2 svakog modula.

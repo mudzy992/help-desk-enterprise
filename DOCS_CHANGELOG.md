@@ -14,6 +14,20 @@
 | M1 | 2026-10-03 | Instalacija (prvi start) | `user-guide/instalacija.md` (nov), `TEZE` (+T15–T17) | Instalacija prvi put dokumentovana |
 | M2 | 2026-10-03 | Prijava i MFA | `user-guide/prijava-i-mfa.md` (nov), `TEZE` (+T18–T22) | Prijava, drugi faktor i sesije prvi put dokumentovani |
 | — | 2026-10-03 | Opšti nalazi | ovaj dokument | Zastarjeli navodi u `docs/plans/**` evidentirani, ne dirani |
+| M3 | 2026-10-03 | Korisnici, OJ i grupe | `user-guide/korisnici-oj-i-grupe.md` (nov), `TEZE` (+T23–T26) | Korisnici, OJ i grupe prvi put dokumentovani |
+| M4 | 2026-10-03 | RBAC (role, permisije, OU scope) | `user-guide/uloge-i-permisije.md` (nov), `TEZE` (+T27–T31) | Uloge, permisije i OU scope dokumentovani |
+| M5 | 2026-10-03 | Policy paketi | `user-guide/policy-paketi.md` (nov), `TEZE` (+T32–T35) | Paketi konfiguracije i njihove granice |
+| M6 | 2026-10-03 | Katalog usluga i forme | `user-guide/katalog-usluga-i-forme.md` (nov), `TEZE` (+T36–T41) | Katalog, forme i verzionisanje |
+| M7 | 2026-10-03 | Usmjeravanje i prioritet | `user-guide/usmjeravanje-i-prioritet.md` (nov), `TEZE` (+T42–T47) | Routing pravila, prioritet i neusmjereni red |
+| M8 | 2026-10-03 | Tiketi | `user-guide/tiketi.md` (nov), `TEZE` (+T48–T56) | Životni ciklus tiketa, merge/split, bulk |
+| M9 | 2026-10-03 | Odobrenja i CSAT | `user-guide/odobrenja-i-csat.md` (nov), `TEZE` (+T57–T61) | Odobrenja, ocjene i zadovoljstvo |
+| M10 | 2026-10-03 | SLA | `user-guide/sla.md` (nov), `TEZE` (+T62–T67) | Rokovi, kalendari i eskalacije |
+| M11 | 2026-10-03 | Realtime i obavještenja | `user-guide/realtime-i-obavjestenja.md` (nov), `TEZE` (+T68–T73) | Sobe, obavještenja i e-mail fan-out |
+| M12 | 2026-10-03 | Pošta | `user-guide/posta.md` (nov), `TEZE` (+T74–T80) | Izlazna i dolazna pošta, šabloni, broadcast |
+| M13 | 2026-10-03 | Šabloni i playbooks | `user-guide/sabloni-i-playbooks.md` (nov), `TEZE` (+T81–T87) | Gotovi odgovori i tokovi rješavanja |
+| M14 | 2026-10-03 | Baza znanja | `user-guide/baza-znanja.md` (nov), `TEZE` (+T88–T94) | Portal znanja, ocjene i ciklus pregleda |
+| M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
+| **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
 
 ---
 
@@ -761,3 +775,45 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   a tabovi u §7.1 su Pregled/Trendovi/Paketi/Zakazani); dva RAW reda o predefinisanim izvještajima
   (`RAW_PROJECT.md:278–279`) zapisana su unutar odjeljka „Config versioning + rollback“, a ne u odjeljku
   o analitici. Obje stvari su nalazi u `REVIEW_ANALIZA.md` §M15, bez izmjena planova.
+
+## Z — Zaključak Faze 2 (2026-10-03)
+
+**Dodato**
+
+- `REVIEW_ANALIZA.md` — završna sekcija **„Zaključak Faze 2“**: sumarna tabela ocjena za svih 15 modula
+  (prosjek **F 7,8 · K 8,2 · S 7,7**), raspodjela nalaza (1 VISOKO, 38 SREDNJE, 53 NISKO), pregled
+  gap tabela (236 redova: 151 ispunjeno, 65 djelimično, 15 odstupanja, 4 nedostaje, 1 van opsega),
+  tabela **14 stavki koje RAW traži a nedostaju** (sa modulom i dokazom), **šest must-have unapređenja**,
+  **prioritetizovani roadmap u šest valova sa procjenom napora** (~0,5 RD za val 0, ~4–5 RD val 1, ~5–6 RD
+  val 2, ~4–5 RD val 3, ~2–3 RD val 4, ~8–10 RD val 5) i **sažetak stanja dokumentacije** sa ograničenjima
+  ovog audita (statička analiza, bez penetracijskog testa i bez mjerenja na stagingu).
+- `DOCS_CHANGELOG.md` — tabela **Pregled** dopunjena redovima **M3–M15** i redom **Z** (do sada su u
+  pregledu bila samo prva dva modula), pa pregled sada odgovara stanju dokumenta.
+
+**Izmijenjeno**
+
+- Ništa u ranijim modulskim sekcijama `REVIEW_ANALIZA.md` i ništa u `docs/user-guide/**`; ocjene i nalazi
+  M1–M15 ostaju kako su zapisani u svojim sekcijama.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Faza 2 je zatvorena (M1–M15, tri iteracije), pa dokument treba jedan ulaz koji sabira ocjene, pokazuje
+  šta od RAW-a nije isporučeno i daje redoslijed popravki s procjenom napora — bez toga bi 4 900 linija
+  analize ostalo bez izlaznog zaključka.
+- Red **Z** u pregledu je dodat jer tabela „Pregled“ nije bila održavana od M2; ovako se iz jednog mjesta
+  vidi koji modul ima koji vodič i koje teze.
+
+**Napomena o izvorima**
+
+- Sumarni brojevi su izračunati iz samog `REVIEW_ANALIZA.md`: 15 sekcija `# M1`–`# M15` (ocjene iz §9),
+  92 naslova nalaza sa oznakom ozbiljnosti, 236 redova gap tabela (§5) i 101 teza `### T*` u
+  `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` (uz 15 blokova odluka korisnika i jedan šablon naslova).
+- Procjene napora u roadmapu su recenzentske (označene `[MIŠLJENJE]`), izvedene iz broja i prirode nalaza
+  po modulu; ne predstavljaju obavezu ni plan isporuke.
+- **Stanje vodiča (provjereno):** 13 vodiča (M3–M15) ima obaveznu strukturu od osam sekcija; `instalacija.md`
+  i `prijava-i-mfa.md` imaju šest sekcija (pisani prije usvajanja strukture) i predloženi su za poravnanje
+  u Fazi 3.
