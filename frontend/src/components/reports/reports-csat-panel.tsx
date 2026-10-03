@@ -132,7 +132,7 @@ export function ReportsCsatPanel() {
                       {dimension.rows.map((row) => (
                         <tr key={row.key} className="border-t border-border/50">
                           <td className="max-w-[180px] truncate py-1.5 pr-2 text-muted-foreground">
-                            {row.key}
+                            {row.label}
                           </td>
                           <td className="py-1.5 pr-2 tnum text-muted-foreground">{row.count}</td>
                           <td className="py-1.5 tnum text-foreground">

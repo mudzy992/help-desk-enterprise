@@ -1,24 +1,45 @@
 import type { TicketCsatBucket, TicketCsatRecord, TicketCsatSummary } from './csat.types';
 import type { TicketRecord } from '../tickets.types';
 
+/**
+ * Val 1 (M9/B3): razrez je prikazivao samo ID-eve. Nazive razrješava server
+ * (`load-ticket-display-labels`), a ovdje se samo pridružuju — bez mape ili bez
+ * pogotka labela je ključ, nikad prazan string.
+ */
+export type TicketCsatBucketLabels = {
+  readonly originUnits?: ReadonlyMap<string, string>;
+  readonly services?: ReadonlyMap<string, string>;
+  readonly groups?: ReadonlyMap<string, string>;
+};
+
 export function aggregateTicketCsat(
   rows: readonly { ticket: TicketRecord; submission: TicketCsatRecord }[],
   scaleMax: number,
+  labels: TicketCsatBucketLabels = {},
 ): TicketCsatSummary {
   return {
     count: rows.length,
     average: average(rows.map((row) => row.submission.rating)),
     scaleMax,
     satisfiedMinRating: satisfiedMinRating(scaleMax),
-    byOriginUnit: buckets(rows, (row) => row.ticket.originUnitId),
-    byService: buckets(rows, (row) => row.ticket.serviceId),
-    byGroup: buckets(rows, (row) => row.ticket.assignedGroupId ?? ''),
+    byOriginUnit: buckets(
+      rows,
+      (row) => row.ticket.originUnitId,
+      labels.originUnits,
+    ),
+    byService: buckets(rows, (row) => row.ticket.serviceId, labels.services),
+    byGroup: buckets(
+      rows,
+      (row) => row.ticket.assignedGroupId ?? '',
+      labels.groups,
+    ),
   };
 }
 
 function buckets(
   rows: readonly { ticket: TicketRecord; submission: TicketCsatRecord }[],
   keyFor: (row: { ticket: TicketRecord; submission: TicketCsatRecord }) => string,
+  labels: ReadonlyMap<string, string> | undefined,
 ): TicketCsatBucket[] {
   const grouped = new Map<string, number[]>();
   for (const row of rows) {
@@ -33,6 +54,7 @@ function buckets(
   return [...grouped.entries()]
     .map(([key, ratings]) => ({
       key,
+      label: labels?.get(key) ?? key,
       count: ratings.length,
       average: average(ratings) ?? 0,
     }))

@@ -133,7 +133,13 @@ export type BottleneckCounts = {
 };
 
 export type BottleneckBreakdownRow = BottleneckCounts & {
+  /** Sirovi ključ razreza: `originUnitId`, `serviceId` ili vrijednost prioriteta. */
   readonly key: string;
+  /**
+   * Val 1 (M15/B2): naziv za prikaz (OU/servis iz šifarnika); za prioritet je
+   * to vrijednost enuma, koju UI prevodi. Nikad prazno — bez naziva je `key`.
+   */
+  readonly label: string;
 };
 
 export type BottleneckTrendRow = BottleneckCounts & {

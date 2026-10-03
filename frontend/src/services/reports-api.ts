@@ -68,6 +68,8 @@ export type BottleneckCounts = {
 
 export type BottleneckBreakdownRow = BottleneckCounts & {
   readonly key: string;
+  /** Val 1 (M15/B2): naziv za prikaz (za prioritet je vrijednost enuma). */
+  readonly label: string;
 };
 
 export type BottleneckTrendRow = BottleneckCounts & {

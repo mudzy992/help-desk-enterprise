@@ -34,7 +34,13 @@ export type SubmitTicketCsatInput = {
 export type TicketCsatGroupKey = 'originUnitId' | 'serviceId' | 'assignedGroupId';
 
 export type TicketCsatBucket = {
+  /** Sirovi ključ: `originUnitId`, `serviceId` ili `assignedGroupId`. */
   readonly key: string;
+  /**
+   * Val 1 (M9/B3): naziv za prikaz iz šifarnika. Nikad prazno — kad naziva
+   * nema (obrisana grupa, servis van šifarnika), labela je ključ.
+   */
+  readonly label: string;
   readonly count: number;
   readonly average: number;
 };

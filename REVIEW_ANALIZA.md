@@ -31,7 +31,7 @@
 | 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
 | 8 | **Faza 3** — Docs modul u aplikaciji (korak (d): Faza 2 modula, pravilo, evidencija) | ✅ Korak (d) isporučen 2026-10-03 · Faza 3 zatvorena — vidi `# Faza 3 — korak (d)` |
 | 9 | **Faza 3 — zatvorena** (4 koraka) | ✅ Zatvorena 2026-10-03 · preostaju popravke po valovima 1–5 — vidi `# Faza 3 — korak (d)` i `# Zaključak Faze 2` |
-| 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
+| 10 | **Val 1** — nadzor i tačnost brojeva (M15 B1, B2, B3, B5, B6; M9 B3) | ✅ Isporučen 2026-10-03 · dopuna iste večeri (nazivi razreza umjesto ID-eva, §2b.1) · ostaju otvoreni M15 B4 i dio M9 B3 (skala na trendovima) — vidi `# Val 1 — nadzor i tačnost brojeva` |
 
 ---
 
@@ -5322,6 +5322,7 @@ Prvi val popravki iz zaključka Faze 2 (`# Zaključak Faze 2`, §4): šest nalaz
 | **M15 B6** (`NISKO`) — liste i grafik iz prve strane od 50 tiketa | Liste sada imaju **vlastite serverske upite sa malim `take`**: nedavni (`createdAt desc`, 8), SLA nadzor (`overdue=true`, 5), pažnja (dodijeljeni meni i bez izvršioca, otvoreni statusi, 8+8); grafik je vezan na period (`createdFrom`) i **označen kao donja granica** kad stranica nije dovoljna | `frontend/src/lib/dashboard/use-dashboard-summary.ts:106–170`, `frontend/src/lib/dashboard/compose-dashboard-summary.ts`, `frontend/src/lib/dashboard/build-volume-14d.ts:11` (`dashboardVolumePageSize = 100`), `frontend/src/components/dashboard/dashboard-charts.tsx` |
 | **M15 gap 1** (RAW `:171`, `:1031`) — nije bilo razreza „tiketi po OU“ | Novi grafik **Tiketi po organizacionoj jedinici** (kreirani u periodu, naziv OU iz šifarnika); broji se u SQL-u i u referentnoj memorijskoj agregaciji | `backend/src/modules/reports/dashboard/aggregate-report-dashboard-charts.ts` (`aggregateOriginUnitVolume`), `dashboard/sql-reports-dashboard-store.ts` (grana `'u'`), `dashboard/build-reports-dashboard.ts`, `frontend/src/components/reports/reports-charts.tsx`, `frontend/src/lib/reports/map-report-dashboard-charts.ts` (`mapCountBars`) |
 | **M15 gap 2** (RAW `:171`, `:1031`) — nije bilo prikaza „opterećenje admina“ | Novi grafik **Opterećenje admina**: broj **otvorenih** tiketa po izvršiocu (stanje sada; neusmjereni imaju vlastiti brojač), najopterećeniji nosi upozorenje | `aggregate-report-dashboard-charts.ts` (`aggregateAssigneeWorkload`), `dashboard/sql-reports-dashboard-store.ts` (grana `'w'`), `dashboard/build-reports-dashboard.ts` (`loadUserNames`), `frontend/src/lib/reports/map-report-dashboard-charts.ts` (`mapWorkloadBars`) |
+| **M15 B2 / M9 B3 — dopuna** (`SREDNJE`, prijava sa staginga 2026-10-03) — razrez je prikazivao **ID-eve** umjesto naziva | Nazive razrješava **server**: novi `backend/src/modules/reports/load-report-lookups.ts` (4 loadera, batch + defanzivno), `BottleneckBreakdownRow` i `TicketCsatBucket` nose `{ key, label }`, SQL razrez dodaje `LEFT JOIN "OrganizationalUnit"` / `"Service"` uz `MAX(…name)`; prioritet ostaje enum i prevodi ga UI (`bottleneckRowLabel`) | `backend/src/modules/reports/load-report-lookups.ts` (nov), `reports/reports.types.ts` (`BottleneckBreakdownRow`), `reports/bottleneck/sql-bottleneck-dashboard-store.ts` (`unitName`/`serviceName`), `reports/bottleneck/aggregate-bottleneck-dashboard.ts`, `reports/reports.service.ts`, `tickets/csat/{csat.types.ts,aggregate-ticket-csat.ts,summarize-visible-ticket-csat.ts}`, `frontend/src/lib/reports/{bottleneck-view.ts,csat-view.ts}`, `frontend/src/components/reports/{reports-bottlenecks-panel.tsx,reports-csat-panel.tsx}`; detalji i dokazi u §2b.1 |
 | **M9 B3** (`SREDNJE`) — CSAT razrez postoji ali ga UI ne koristi; skala hardkodirana | Novi tab **CSAT** (prosjek na važećoj skali, uzorak, prag zadovoljan, razrez po OU/servisu/grupi); `GET /tickets/csat/summary` sada vraća `scaleMax` i `satisfiedMinRating` (80 % skale); KPI „CSAT (zadovoljstvo)“ na pregledu koristi `private.csat.scaleMax` umjesto konstante 5 | `backend/src/modules/tickets/csat/aggregate-ticket-csat.ts:4–12,46–48`, `csat/csat.types.ts:44–51`, `csat/summarize-visible-ticket-csat.ts:21,44`, `csat/tickets-csat.service.ts:65–74`, `reports/parse-reports-configuration.ts:31,67,76–88`, `reports/dashboard/aggregate-report-dashboard-kpis.ts:15,51,67,85`, `frontend/src/components/reports/reports-csat-panel.tsx` (nov, 158 r.), `frontend/src/lib/reports/csat-view.ts` (nov, 45 r.), `frontend/src/services/tickets-csat-api.ts:4–37` |
 
 **Nove i izmijenjene stranice u vodiču:** `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — novi tabovi
@@ -5398,6 +5399,53 @@ Korisnik je na stagingu dobio `400 VALIDATION: pageSize must not be greater than
   nije prolazio kroz **DTO validaciju** — jedini sloj koji je ovdje pao. Zato je dogovor za sljedeće valove:
   svaki novi zahtjev prema postojećem endpointu dobija bar jedan test/e2e scenario protiv stvarnog servera ili
   provjeru granica u CI-u.
+
+### 2b.1 Treća prijava sa staginga (2026-10-03): ID umjesto naziva u tabovima „Uska grla“ i „CSAT“
+
+Korisnik je na stagingu otvorio nove tabove iz vala 1 i vidio **sirove ID-eve** umjesto naziva organizacionih
+jedinica, servisa i grupa.
+
+- **Uzrok (dva sloja, oba u val 1):**
+  1. **Server nije slao nazive.** `GET /reports/bottlenecks` je za svaki razrez vraćao samo grupni ključ
+     (`originUnitId` / `serviceId` / `priority`) — `BreakdownSqlRow` nije ni čitao `OrganizationalUnit` ni
+     `Service` (`backend/src/modules/reports/bottleneck/sql-bottleneck-dashboard-store.ts`), a memorijski put je
+     pravio redove bez naziva (`aggregate-bottleneck-dashboard.ts`). Isto za `GET /tickets/csat/summary`:
+     `TicketCsatBucket` je imao samo `key` (`backend/src/modules/tickets/csat/csat.types.ts`).
+  2. **Klijent nije imao šta drugo prikazati.** Nove funkcije razreza su red gradile kao `label: row.key`
+     (`frontend/src/lib/reports/csat-view.ts`, `bottleneck-view.ts`), pa je ID završio u UI-u i u grafikama.
+- **Fix — nazive razrješava server, jednom po vrsti razreza:**
+  - novi `backend/src/modules/reports/load-report-lookups.ts` (`loadOrganizationalUnitNames`, `loadServiceNames`,
+    `loadGroupNames`, `loadUserNames`): batch `findMany` + `unique()`; defanzivno — ako delegat ne postoji
+    (memorijski klijenti u testovima), vraća praznu mapu, pa poziv nikad ne puca.
+  - `build-reports-dashboard.ts` je svoje privatne loadere zamijenio ovim (jedno mjesto za batch šifarnike).
+  - razrez uskih grla: `BottleneckBreakdownRow` sada nosi `{ key, label }`
+    (`backend/src/modules/reports/reports.types.ts`); SQL put dodaje `LEFT JOIN "OrganizationalUnit" ou` /
+    `LEFT JOIN "Service" sv` i čita `MAX(ou.name) AS "unitName"` / `MAX(sv.name) AS "serviceName"` (GROUPING
+    SETS ne dozvoljava goli `ou.name` u `SELECT`-u), a `labelFor` ih mapira u labelu; memorijski put učitava
+    mape prije agregacije (`reports.service.ts`) i prosljeđuje ih agregaciji.
+  - razrez CSAT-a: `TicketCsatBucket` nosi `{ key, label }`, a `summarize-visible-ticket-csat.ts` puni mape
+    preko postojećeg `loadTicketDisplayLabels` (OU entriji se mapiraju na `name`).
+  - **Prioritet nema šifarnik** — njegova labela ostaje vrijednost enuma (`HIGH`, `MEDIUM`, …), a prevodi je
+    klijent preko `ticketPriorityLabelKey` / `ticketText(t, …)`
+    (`frontend/src/lib/reports/bottleneck-view.ts` — `bottleneckRowLabel`). Poznato: traži se ključ prevoda;
+    ako ga nema, prikazuje se vrijednost enuma (bez praznog polja).
+  - Ako zapis više ne postoji (obrisana jedinica/servis/grupa), red **zadržava ID** — dokumentovano ponašanje i
+    u vodičima; istorijski naziv se ne čuva.
+- **Zaštita da se ne ponovi:** postojeći `scripts/check-ticket-id-leaks.mjs` je proširen na `components/reports`,
+  `lib/reports` i `reports-*.tsx`: zabranjuje `label:`/`title:`/`text:` postavljeno na `.key` i `{…key}` ispisan
+  kao JSX tekst (atribut `key={…}` i template literal `${…}` su dozvoljeni; izuzetak je dokumentovani fallback).
+  Guard je dobio izvoz čiste funkcije `findRawKeyLabelLines` + `scripts/check-ticket-id-leaks.test.mjs` (3 testa)
+  i dva CI koraka.
+- **Dokazi (isti dan, svi lokalno):**
+  - backend `npx tsc --noEmit` → 0; `jest src/modules/reports src/modules/tickets` → **120 suita / 661 test**;
+    novi `sql-bottleneck-dashboard-store.spec.ts` (2 testa, bez baze, preko lažnog `$queryRaw`) dokazuje JOIN i
+    mapiranje naziva; `aggregate-bottleneck-dashboard.spec.ts`, `aggregate-ticket-csat.spec.ts` i
+    `tickets.csat.spec.ts` dokazuju naziv uz ključ i fallback na ključ.
+  - frontend `npx tsc -b` → 0; `npx vitest run` → **157 fajlova / 627 testova**; `npm run build` ✓;
+    `node --test scripts/check-ticket-id-leaks.test.mjs` → 3/3; svi `check-*` guardovi prolaze.
+  - **Sopstvena greška u istom zadatku:** prva verzija CSAT testa je očekivala dva reda u `byService` iako su oba
+    tiketa na istom servisu, a prva verzija JSX zaštite je propuštala `${pack.key}` u template literalu
+    (lookbehind je bio na pogrešnoj strani `\{`) — oboje ispravljeno prije commit-a; vidi tabelu ispod.
 
 ## 3. Šta ostaje otvoreno iz vala 1
 

@@ -10,6 +10,7 @@ import type {
   TicketCsatSummary,
 } from './csat.types';
 import { loadTicketCsatSubmissions } from './load-ticket-csat-submissions';
+import { loadTicketDisplayLabels } from '../load-ticket-display-labels';
 import type { TicketArchiveConfiguration } from '../archive/archive.types';
 
 export async function summarizeVisibleTicketCsat(input: {
@@ -41,5 +42,16 @@ export async function summarizeVisibleTicketCsat(input: {
       rows.push({ ticket, submission });
     }
   }
-  return aggregateTicketCsat(rows, input.csat.scaleMax);
+  // Val 1 (M9/B3): razrez po OU/servisu/grupi prikazuje nazive, ne ID-eve.
+  const labels = await loadTicketDisplayLabels(
+    input.prisma,
+    rows.map((row) => row.ticket),
+  );
+  return aggregateTicketCsat(rows, input.csat.scaleMax, {
+    originUnits: new Map(
+      [...labels.originUnits.entries()].map(([id, unit]) => [id, unit.name]),
+    ),
+    services: labels.services,
+    groups: labels.groups,
+  });
 }

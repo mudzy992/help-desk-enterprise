@@ -14,6 +14,10 @@ import {
   type ReportsDashboard,
 } from './dashboard/build-reports-dashboard';
 import { loadReportPackBuildInput } from './load-report-pack-build-input';
+import {
+  loadOrganizationalUnitNames,
+  loadServiceNames,
+} from './load-report-lookups';
 import { loadScopedReportTickets } from './load-scoped-report-tickets';
 import { recordReportExportAudit } from './record-report-export-audit';
 import {
@@ -177,7 +181,18 @@ export class ReportsService {
       return loadBottleneckDashboardFromSql(this.prisma, scopedIds, window);
     }
     const tickets = await loadScopedReportTickets(this.prisma, scopedIds, false);
-    return aggregateBottleneckDashboard({ tickets, window });
+    // Val 1 (M15/B2): razrez nosi nazive, ne ID-eve (SQL put ih čita u upitu).
+    const [unitNames, serviceNames] = await Promise.all([
+      loadOrganizationalUnitNames(
+        this.prisma,
+        tickets.map((ticket) => ticket.originUnitId),
+      ),
+      loadServiceNames(
+        this.prisma,
+        tickets.map((ticket) => ticket.serviceId),
+      ),
+    ]);
+    return aggregateBottleneckDashboard({ tickets, window, unitNames, serviceNames });
   }
 
   async dashboard(

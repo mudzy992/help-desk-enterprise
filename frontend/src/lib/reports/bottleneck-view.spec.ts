@@ -7,9 +7,13 @@ import {
 } from "@/lib/reports/bottleneck-view";
 import type { BottleneckBreakdownRow, BottleneckTrendRow } from "@/services/reports-api";
 
-function row(key: string, counts: Partial<BottleneckBreakdownRow> = {}): BottleneckBreakdownRow {
+function row(
+  key: string,
+  counts: Partial<BottleneckBreakdownRow> = {},
+): BottleneckBreakdownRow {
   return {
     key,
+    label: counts.label ?? key,
     pendingApproval: 0,
     waitingForUser: 0,
     unrouted: 0,
@@ -32,13 +36,35 @@ describe("bottleneck-view (val 1, M15/B2)", () => {
 
   it("sortira razrez opadajuće, a jednake vrijednosti po nazivu", () => {
     const bars = bottleneckBreakdownBars([
-      row("Servis B", { overdue: 2 }),
-      row("Servis A", { overdue: 2 }),
-      row("Servis C", { unrouted: 9 }),
+      row("svc-b", { label: "Servis B", overdue: 2 }),
+      row("svc-a", { label: "Servis A", overdue: 2 }),
+      row("svc-c", { label: "Servis C", unrouted: 9 }),
     ]);
 
     expect(bars.map((bar) => bar.label)).toEqual(["Servis C", "Servis A", "Servis B"]);
     expect(bars.map((bar) => bar.value)).toEqual([9, 2, 2]);
+  });
+
+  it("prikazuje naziv umjesto ID-a, a ključ samo kad naziva nema (val 1, M15/B2)", () => {
+    const bars = bottleneckBreakdownBars([
+      row("ou-1", { label: "IT Ops", overdue: 1 }),
+      row("ou-2", { label: "", overdue: 1 }),
+      row("", { label: "", overdue: 1 }),
+    ]);
+
+    // Isti zbir (1) sortira se po labeli, pa prazna labela ide prva.
+    expect(bars.map((bar) => bar.label)).toEqual(["", "IT Ops", "ou-2"]);
+  });
+
+  it("prioritet prevodi preko i18n ključa, ostalo ostavlja kako je došlo", () => {
+    const translated = bottleneckBreakdownBars(
+      [row("HIGH", { label: "HIGH", overdue: 3 })],
+      (key) => `[${key}]`,
+    );
+    expect(translated[0].label).toBe("[tickets.priority.HIGH]");
+
+    const unknown = bottleneckBreakdownBars([row("ou-1", { label: "IT Ops" })]);
+    expect(unknown[0].label).toBe("IT Ops");
   });
 
   it("iz trenda izbacuje dane bez ijednog događaja", () => {

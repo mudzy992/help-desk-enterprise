@@ -111,6 +111,13 @@ describe('ReportsService OU scoping', () => {
       'ou-it',
       'ou-it-ops',
     ]);
+    // Val 1 (M15/B2): razrez nosi nazive iz šifarnika, ne ID-eve. Testeri su bez
+    // naziva u harness katalogu, pa jedinice bez naziva zadržavaju ključ.
+    expect(dashboard.byOrganizationalUnit.map((row) => row.label).sort()).toEqual([
+      'ou-it',
+      'ou-it-ops',
+    ]);
+    expect(dashboard.byService.map((row) => row.label)).toEqual(['VPN access']);
   });
 
   it('scopes KB helpfulness to the OU tree', async () => {

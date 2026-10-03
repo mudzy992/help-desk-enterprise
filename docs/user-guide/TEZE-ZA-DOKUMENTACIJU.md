@@ -1250,11 +1250,13 @@ To je kriterij kompletnosti.
 - **Ekran:** **Izvještaji → CSAT** (kartice prosjek/uzorak/prag + razrez po jedinici, servisu i grupi); KPI
   kartica **CSAT** na tabu **Pregled** nosi ukupan prosjek. Skala i prag dolaze iz postavke
   (`private.csat.scaleMax`, prag = 80 % skale).
+- Svaka korpa odgovora ima **`label`** (naziv iz šifarnika) uz `key`; ako zapis ne postoji, labela je ključ —
+  nikad prazno (dopuna vala 1, 2026-10-03).
 - **Izvori:** `backend/src/modules/tickets/csat/summarize-visible-ticket-csat.ts:11–38`,
   `csat/aggregate-ticket-csat.ts:4–43`, `csat/csat.types.ts:34–48`,
-  `csat/tickets-csat-summary.controller.ts:20–42`.
-- **Status:** Važi; korpe su prikazane od vala 1 (2026-10-03). Ostaje da serije na tabu **Trendovi** koriste
-  konstantu 5 / prag 4 (preostali dio nalaza B3).
+  `csat/tickets-csat-summary.controller.ts:20–42`, `reports/load-report-lookups.ts`.
+- **Status:** Važi; korpe su prikazane od vala 1 (2026-10-03) sa nazivima iste večeri. Ostaje da serije na tabu
+  **Trendovi** koriste konstantu 5 / prag 4 (preostali dio nalaza B3).
 - **Wiki stranica:** Odobrenja i CSAT → CSAT u izvještajima
 
 ### T62 — SLA rok se računa u radnom vremenu i od kreiranja tiketa
@@ -2024,11 +2026,16 @@ To je kriterij kompletnosti.
   (B3 — zatvoreno).
 - Frontend **ima** tab **Uska grla** u `/reports` (četiri brojača, razrez po OU/servisu/prioritetu, dnevni
   trend, isti period i OU opseg) — RAW-ova svrha je dovršena do ekrana (popravljeno u valu 1, B2).
+- Razrez odgovora nosi i **naziv** uz ključ: `BottleneckBreakdownRow` je `{ key, label }`, naziv dolazi iz
+  šifarnika u istom SQL upitu (`LEFT JOIN "OrganizationalUnit"`, `LEFT JOIN "Service"`, `MAX(…name)`), a
+  prioritet — koji šifarnik nema — prevodi UI preko ključa za i18n. Ako zapis više ne postoji, labela je ključ
+  (dopuna vala 1, 2026-10-03 — prije toga je tab pisao ID-eve).
 - **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
   `reports.service.ts:155–181`, `bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
-  `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`,
+  `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`, `reports/load-report-lookups.ts`,
   `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
-- **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03) — vidi `REVIEW_ANALIZA.md#Val 1`.
+- **Status:** Važi; B1, B2 i B3 zatvoreni u valu 1 (2026-10-03), dopuna istog dana za nazive razreza
+  (vidi `REVIEW_ANALIZA.md#2b1`).
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)
 
 ### T101 — Zakazani izvještaji: raspored, primaoci i historija
@@ -2225,9 +2232,10 @@ To je kriterij kompletnosti.
 - **Tip:** Pravilo
 - **Teza:** Tab **CSAT** u `/reports` čita `GET /tickets/csat/summary` i prikazuje **prosječnu ocjenu na
   važećoj skali**, **broj ocjena**, **prag zadovoljan** (80 % skale; na 5 → 4, na 10 → 8) i razrez po
-  **organizacionoj jedinici, servisu i grupi** — svaki red nosi prosjek, veličinu uzorka i oznaku **ispod
-  praga** kad je prosjek ispod granice. Razrez poštuje vidljivost tiketa aktera, ali **ne** filtrira po
-  periodu (API nema parametre); za serije kroz vrijeme služi tab **Trendovi**.
+  **organizacionoj jedinici, servisu i grupi** — svaki red nosi **naziv razreza** (iz šifarnika; ključ samo ako
+  zapis više ne postoji), prosjek, veličinu uzorka i oznaku **ispod praga** kad je prosjek ispod granice. Razrez
+  poštuje vidljivost tiketa aktera, ali **ne** filtrira po periodu (API nema parametre); za serije kroz vrijeme
+  služi tab **Trendovi**.
 - **Zašto:** RAW traži CSAT po OU/servisu/grupi; agregacija je postojala u servisu bez ijednog ekrana, pa
   menadžment nije imao gdje vidjeti razliku između organizacionih jedinica.
 - **Primjer:** Prosjek 4,2 na skali 5 uz 12 ocjena za jednu jedinicu i 2,0 uz 2 ocjene za drugu; mali uzorak
@@ -2249,8 +2257,9 @@ To je kriterij kompletnosti.
 - **Tip:** Pravilo
 - **Teza:** Tab **Uska grla** čita `GET /reports/bottlenecks` (rola `admin|superAdmin` + pravo izvoza) i
   prikazuje **četiri brojača** (čeka odobrenje, čeka korisnika, neusmjereno, prekoračeno), **tri razreza**
-  (organizaciona jedinica, servis, prioritet) i **dnevni trend** (novi tiketi po danu i stanja zastoja), uz
-  isti **period** i **OU opseg** kao tab Pregled. Kad je postavka
+  (organizaciona jedinica, servis, prioritet) sa **nazivima** jedinica i servisa iz šifarnika (prioritet se
+  prikazuje kao preveden naziv; ključ ostaje samo ako zapis više ne postoji) i **dnevni trend** (novi tiketi po
+  danu i stanja zastoja), uz isti **period** i **OU opseg** kao tab Pregled. Kad je postavka
   `private.dashboard.bottlenecks.enabled` isključena, endpoint ne vraća razrez, tab prikazuje stanje sa
   objašnjenjem, a grafik „Bottleneck“ u pregledu se ne renderuje.
 - **Zašto:** RAW („gdje tiketi stoje“, razrez po OU/servisu/prioritetu, trend) nije bio vidljiv nijednom
@@ -2262,7 +2271,8 @@ To je kriterij kompletnosti.
 - **Ekran:** **Izvještaji → Uska grla**.
 - **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
   `reports/bottleneck/aggregate-bottleneck-dashboard.ts`,
+  `reports/bottleneck/sql-bottleneck-dashboard-store.ts`, `reports/load-report-lookups.ts`,
   `frontend/src/components/reports/reports-bottlenecks-panel.tsx`,
   `frontend/src/lib/reports/bottleneck-view.ts`, `frontend/src/services/reports-api.ts`.
-- **Status:** Važi (isporučeno u valu 1, 2026-10-03)
+- **Status:** Važi (isporučeno u valu 1, 2026-10-03; nazivi razreza dopunjeni istog dana)
 - **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3a (Uska grla)

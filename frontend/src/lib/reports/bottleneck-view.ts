@@ -1,5 +1,6 @@
 import type { HorizontalBarItem } from "@/components/charts/h-bars";
 import { SEMANTIC_DOT_HEX } from "@/lib/theme/semantic-meta";
+import { ticketPriorityLabelKey } from "@/lib/tickets/ticket-constants";
 import type {
   BottleneckBreakdownRow,
   BottleneckCounts,
@@ -46,12 +47,29 @@ export function bottleneckTotal(counts: BottleneckCounts): number {
   return bottleneckCounterKeys.reduce((sum, key) => sum + counts[key], 0);
 }
 
-/** Razrez kao horizontalne trake: vrijednost je ukupan broj tiketa u zastoju. */
+/**
+ * Prioritet nema šifarnik, pa server šalje vrijednost enuma kao labelu; ovdje
+ * se prevodi na jezik interfejsa. Nepoznata vrijednost ostaje kako je došla.
+ */
+export function bottleneckRowLabel(
+  row: BottleneckBreakdownRow,
+  translate: (key: string) => string,
+): string {
+  const label = row.label.length > 0 ? row.label : row.key;
+  const key = (ticketPriorityLabelKey as Readonly<Record<string, string>>)[label];
+  return key === undefined ? label : translate(key);
+}
+
+/**
+ * Razrez kao horizontalne trake: vrijednost je ukupan broj tiketa u zastoju, a
+ * labela je naziv razreza (nikad sirovi ID).
+ */
 export function bottleneckBreakdownBars(
   rows: readonly BottleneckBreakdownRow[],
+  translate: (key: string) => string = (key) => key,
 ): readonly HorizontalBarItem[] {
   return rows
-    .map((row) => ({ label: row.key, value: bottleneckTotal(row) }))
+    .map((row) => ({ label: bottleneckRowLabel(row, translate), value: bottleneckTotal(row) }))
     .sort((left, right) =>
       right.value === left.value
         ? left.label.localeCompare(right.label)

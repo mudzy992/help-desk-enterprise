@@ -4,6 +4,8 @@ import type { TicketCsatBucket } from "@/services/tickets-csat-api";
 
 export type CsatBucketRow = {
   readonly key: string;
+  /** Ono što se prikazuje: naziv razreza, nikad sirovi ID. */
+  readonly label: string;
   readonly count: number;
   readonly average: number;
   /** Da li je prosjek razreza na pragu „zadovoljan“ iz konfiguracije CSAT-a. */
@@ -22,13 +24,15 @@ export function csatBucketRows(
   return [...buckets]
     .map((bucket) => ({
       key: bucket.key,
+      // Val 1 (M9/B3): server šalje i naziv; ID je samo rezerva za obrisane zapise.
+      label: bucket.label.length > 0 ? bucket.label : bucket.key,
       count: bucket.count,
       average: bucket.average,
       meetsTarget: bucket.average >= satisfiedMinRating,
     }))
     .sort((left, right) =>
       right.count === left.count
-        ? left.key.localeCompare(right.key)
+        ? left.label.localeCompare(right.label)
         : right.count - left.count,
     );
 }
@@ -38,7 +42,7 @@ export function csatBucketBars(
   rows: readonly CsatBucketRow[],
 ): readonly HorizontalBarItem[] {
   return rows.map((row) => ({
-    label: row.key,
+    label: row.label,
     value: Math.round(row.average * 10) / 10,
     color: row.meetsTarget ? SEMANTIC_DOT_HEX.success : SEMANTIC_DOT_HEX.warning,
   }));

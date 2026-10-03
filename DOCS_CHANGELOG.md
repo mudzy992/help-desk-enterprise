@@ -32,6 +32,7 @@
 | **F3 (d)** | 2026-10-03 | **Docs modul — Faza 2 modula, pravilo i evidencija** | `frontend/src/lib/docs/docs-slug.ts` (nov), `frontend/src/lib/docs/docs-local.ts` (nov), `frontend/src/lib/docs/{docs-slug,docs-local}.spec.ts` (nov), `frontend/src/components/docs/{docs-help-button,docs-feedback}.tsx` (nov), `frontend/src/components/docs/docs-sidebar.tsx`, `frontend/src/components/docs/{docs-pager,docs-search}.tsx`, `frontend/src/components/ui/page-header.tsx`, `frontend/src/pages/docs-page.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `scripts/check-docs-content.mjs`, `CONTRIBUTING.md` (nov), `README.md`, `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (d)`), ovaj dokument | **Kontekstualna „?" pomoć (20 ruta → 17 stranica), feedback i nedavno posjećeno u `localStorage`, štampa/PDF preko print CSS-a, i18n okvir + obavještenje za EN UI, pravilo „dokumentacija ide uz kod" i CI provjera mape ekran→stranica; Faza 3 zatvorena (9/9 kriterija)** |
 | **F3 (c)** | 2026-10-03 | **Docs modul — `/docs` UI** | `frontend/src/pages/docs-page.tsx` (nov), `frontend/src/components/docs/**` (nov), `frontend/src/lib/docs/**` (nov), `frontend/src/services/docs-api.ts` (nov), `frontend/src/lib/navigation.ts`, `frontend/src/lib/session/route-access.ts`, `frontend/src/app/router.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/privacy/simple-markdown.ts`, `frontend/src/components/privacy/markdown-view.tsx`, `backend/src/modules/docs/**`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (c)`), ovaj dokument | **Meni Dokumentacija, ruta `/docs`, nav/TOC/breadcrumbs/pager, pretraga sa isticanjem, filter po publici, 404 i prazno stanje, prošireni renderer; i18n BS/EN** |
 | **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
+| **Val 1 (d)** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT — nazivi u razrezima** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§2b.1), ovaj dokument | **Tabovi Uska grla i CSAT prikazuju nazive jedinica/servisa/grupa, a prioritet na jeziku interfejsa; ID ostaje samo kao rezerva za obrisane zapise** |
 | **Val 1** | 2026-10-03 | **Nadzorna ploča i izvještaji; CSAT** | `user-guide/nadzorna-ploca-i-izvjestaji.md`, `user-guide/odobrenja-i-csat.md`, `backend/content/docs/**` (ogledalo), `REVIEW_ANALIZA.md` (§M9, §M15, `# Val 1`), ovaj dokument | **Dva nova taba (Uska grla, CSAT), tačne liste i grafik na ploči, razdvojene postavke perioda, skala CSAT-a iz postavke** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
@@ -1171,3 +1172,21 @@ razreza „tiketi po OU“ ni prikaza „opterećenje admina“. Oba su sada na 
 - `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — T97 dopunjen novim grafikonima i njihovim izvorima
   (`originUnitVolume`, `assigneeWorkload`).
 - `backend/content/docs/**` — ogledalo regenerisano; `check-docs-content.mjs` prolazi.
+
+### Dopuna vala 1 (2026-10-03, ista večer): nazivi u razrezima umjesto ID-eva
+
+Prijava sa staginga: tabovi **Uska grla** i **CSAT** pisali su ID-eve organizacionih jedinica, servisa i grupa —
+server nije slao nazive, a nove view funkcije su red gradile kao `label: row.key`. Popravka je u kodu, a
+dokumentacija je morala prestati tvrditi da je razrez „po jedinici, servisu i grupi“ dovoljan opis:
+
+- `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — korak 3 na tabu **Uska grla** i korak 3 na tabu **CSAT**
+  sada kažu da redovi nose **nazive**, a prioritet **prevod**; u „Poznata ograničenja“ dodato je pravilo da se
+  naziv čita iz šifarnika u trenutku prikaza i da obrisan zapis znači **ID iz tiketa/ocjene** (nikad prazno
+  polje, istorijski naziv se ne čuva).
+- `docs/user-guide/odobrenja-i-csat.md` — red **Gdje se vidi** sada izričito piše „sa nazivima, ne ID-evima“;
+  u „Poznata ograničenja“ isti fallback za CSAT razrez.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — T100/T101 provjereni protiv koda; tvrdnje o razrezu dopunjene
+  nazivom kao dijelom odgovora servera (`label`), a ne samo ključem.
+- `backend/content/docs/**` — ogledalo regenerisano; `check-docs-content.mjs` prolazi.
+- **Zaštita:** `scripts/check-ticket-id-leaks.mjs` je proširen na izvještaje (zabranjen `label:`/`title:`/`text:`
+  iz `.key` i `{…key}` kao JSX tekst) i dobio test `check-ticket-id-leaks.test.mjs`; oba su u CI-u.

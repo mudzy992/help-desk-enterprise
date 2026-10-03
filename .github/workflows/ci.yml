@@ -56,8 +56,10 @@ jobs:
         run: node --test ../scripts/check-client-neutral.test.mjs
       - name: Check .env.example is authoritative (Paket 4.1 §7a)
         run: node ../scripts/check-env-example.mjs
-      - name: Check ticket screens for raw identifiers
+      - name: Check screens for raw identifiers or raw grouping keys
         run: node ../scripts/check-ticket-id-leaks.mjs
+      - name: Test the raw-identifier guard itself
+        run: node --test ../scripts/check-ticket-id-leaks.test.mjs
       - name: Check the Pulse design system (tokens, colours, radius, i18n)
         run: node ../scripts/check-pulse-design-system.mjs
       - name: Check theme contrast (WCAG AA — konstitucija §22.1 i §22.3)

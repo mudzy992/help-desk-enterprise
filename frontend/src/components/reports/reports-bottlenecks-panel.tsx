@@ -19,6 +19,7 @@ import {
 } from "@/lib/reports/bottleneck-view";
 import { mapApiError, readApiRequestId, type ApiErrorKey } from "@/lib/map-api-error";
 import { readReportErrorCode } from "@/lib/reports/report-trends-view";
+import { ticketText } from "@/lib/tickets/ticket-text";
 import {
   fetchBottlenecks,
   type BottlenecksResponse,
@@ -136,7 +137,10 @@ export function ReportsBottlenecksPanel({
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
         {breakdowns.map((breakdown) => {
-          const bars = bottleneckBreakdownBars(breakdown.rows);
+          // Prioritet se prevodi na jezik interfejsa; OU i servis stižu kao nazivi.
+          const bars = bottleneckBreakdownBars(breakdown.rows, (key) =>
+            ticketText(t, key),
+          );
           return (
             <Card key={breakdown.key} className="fade-in">
               <CardHeader

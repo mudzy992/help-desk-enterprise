@@ -3,6 +3,8 @@ import type { TicketResponse } from "@/services/tickets-api";
 
 export type TicketCsatBucket = {
   readonly key: string;
+  /** Val 1 (M9/B3): naziv organizacione jedinice, servisa ili grupe. */
+  readonly label: string;
   readonly count: number;
   readonly average: number;
 };

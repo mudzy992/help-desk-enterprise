@@ -110,7 +110,9 @@ prava izvoza, a svaki izvoz se zapisuje u audit.
 2. Pročitajte brojače: **Čeka odobrenje**, **Čeka korisnika**, **Neusmjereno** i **Prekoračeno**; zbir
    sva četiri je ono što grafikoni razreza prikazuju.
 3. Pogledajte razrez **Po organizacionoj jedinici**, **Po servisu** i **Po prioritetu** — traka je
-   najduža tamo gdje se tiketi najviše zadržavaju.
+   najduža tamo gdje se tiketi najviše zadržavaju. Redovi nose **nazive** jedinica i servisa; prioritet se
+   prikazuje na jeziku interfejsa. Sirovi ID se vidi samo ako zapis više ne postoji u šifarniku (npr. obrisana
+   jedinica) — tada nema iz čega izvesti naziv.
 4. U tabeli **Dnevni trend** vidite koliko je tiketa ušlo tog dana i koliko ih je bilo u kojem stanju
    zastoja.
 
@@ -119,8 +121,9 @@ prava izvoza, a svaki izvoz se zapisuje u audit.
 1. Otvorite tab **CSAT**.
 2. Kartice pokazuju **prosječnu ocjenu na važećoj skali**, **broj ocjena** i **prag zadovoljan** (80 %
    skale; na skali 5 to je 4, na skali 10 to je 8).
-3. Razrez **Po organizacionoj jedinici**, **Po servisu** i **Po grupi** prikazuje prosjek po razrezu i
-   veličinu uzorka; redovi ispod praga dobijaju oznaku **ispod praga**.
+3. Razrez **Po organizacionoj jedinici**, **Po servisu** i **Po grupi** prikazuje **naziv** razreza, prosjek i
+   veličinu uzorka; redovi ispod praga dobijaju oznaku **ispod praga**. Nazive razrješava server iz šifarnika;
+   ako zapis više ne postoji, prikazuje se ID iz ocjene.
 4. Ako još nema nijedne ocjene, tab prikazuje prazno stanje — CSAT se pojavljuje tek kad korisnici
    ocijene riješene tikete.
 
@@ -282,6 +285,8 @@ a e-mail to navodi.
   najopterećenijih osoba.
 - **Razrez po organizacionoj jedinici** postoji kao grafik na tabu **Pregled** (za kreirane tikete), a kao
   razrez zastoja i ocjena na tabovima **Uska grla** i **CSAT**.
+- **Nazivi u razrezima dolaze iz šifarnika u trenutku čitanja.** Ako je jedinica, servis ili grupa u međuvremenu
+  obrisana, red zadržava ID iz tiketa/ocjene (nikad prazna labela) — istorijski naziv se ne čuva.
 - **Izvoz paketa nije vezan na izbor u pregledu:** period birate u tabu **Paketi izvještaja** nezavisno od
   perioda na tabu **Pregled**.
 - **Nema automatskog testa nadzorne ploče:** nadzorna ploča je pokrivena samo a11y skeniranjem (kao
