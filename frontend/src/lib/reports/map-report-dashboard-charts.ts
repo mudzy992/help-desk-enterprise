@@ -15,10 +15,10 @@ export const reportHoursSuffix = "h";
  */
 export function dashboardChartSections(dashboard: {
   readonly bottlenecksEnabled: boolean;
-}): readonly ("bottleneck" | "volume" | "flow")[] {
+}): readonly ("bottleneck" | "volume" | "unit" | "workload" | "flow")[] {
   return dashboard.bottlenecksEnabled
-    ? ["bottleneck", "volume", "flow"]
-    : ["volume", "flow"];
+    ? ["bottleneck", "volume", "unit", "workload", "flow"]
+    : ["volume", "unit", "workload", "flow"];
 }
 
 export function showBottleneckChart(dashboard: {
@@ -59,6 +59,35 @@ export function mapServiceVolumeBars(
     label: row.label,
     value: row.value,
     color: SEMANTIC_DOT_HEX.primary,
+  }));
+}
+
+/**
+ * Val 1 (M15 gap): brojčani razrez (po OU, po izvršiocu) ne nosi suffix —
+ * vrijednost je broj tiketa, a ne sati.
+ */
+export function mapCountBars(
+  rows: readonly ReportDashboardNamedBar[],
+): readonly HorizontalBarItem[] {
+  return rows.map((row) => ({
+    label: row.label,
+    value: row.value,
+    color: SEMANTIC_DOT_HEX.primary,
+  }));
+}
+
+/** Opterećenje: najopterećeniji izvršilac nosi upozorenje, ostali primarnu boju. */
+export function mapWorkloadBars(
+  rows: readonly ReportDashboardNamedBar[],
+): readonly HorizontalBarItem[] {
+  const max = rows[0]?.value;
+  return rows.map((row) => ({
+    label: row.label,
+    value: row.value,
+    color:
+      max !== undefined && row.value === max
+        ? SEMANTIC_DOT_HEX.warning
+        : SEMANTIC_DOT_HEX.primary,
   }));
 }
 

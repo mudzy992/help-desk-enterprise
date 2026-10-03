@@ -3,7 +3,9 @@ import {
   dashboardChartSections,
   mapAgingBars,
   mapBottleneckBars,
+  mapCountBars,
   mapServiceVolumeBars,
+  mapWorkloadBars,
   showBottleneckChart,
 } from "@/lib/reports/map-report-dashboard-charts";
 
@@ -36,9 +38,36 @@ describe("map-report-dashboard-charts", () => {
 
   it("val 1 (M15/B1): isključena postavka skriva karticu uskih grla, ostalo ostaje", () => {
     expect(showBottleneckChart({ bottlenecksEnabled: true })).toBe(true);
-    expect(dashboardChartSections({ bottlenecksEnabled: true })).toEqual(["bottleneck", "volume", "flow"]);
+    expect(dashboardChartSections({ bottlenecksEnabled: true })).toEqual([
+      "bottleneck",
+      "volume",
+      "unit",
+      "workload",
+      "flow",
+    ]);
 
     expect(showBottleneckChart({ bottlenecksEnabled: false })).toBe(false);
-    expect(dashboardChartSections({ bottlenecksEnabled: false })).toEqual(["volume", "flow"]);
+    expect(dashboardChartSections({ bottlenecksEnabled: false })).toEqual([
+      "volume",
+      "unit",
+      "workload",
+      "flow",
+    ]);
+  });
+
+  it("val 1 (M15 gap): brojčani razrez nema suffix, a najopterećeniji nosi upozorenje", () => {
+    const units = mapCountBars([
+      { key: "ou-it", label: "IT", value: 12 },
+      { key: "ou-hr", label: "HR", value: 4 },
+    ]);
+    expect(units.map((item) => item.value)).toEqual([12, 4]);
+    expect(units.every((item) => item.suffix === undefined)).toBe(true);
+
+    const workload = mapWorkloadBars([
+      { key: "u-1", label: "Amina", value: 5 },
+      { key: "u-2", label: "Benjamin", value: 2 },
+    ]);
+    expect(workload[0].color).not.toBe(workload[1].color);
+    expect(workload[0].value).toBe(5);
   });
 });

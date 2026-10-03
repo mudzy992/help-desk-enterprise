@@ -1955,9 +1955,11 @@ To je kriterij kompletnosti.
   tiketi)* sa ciljem **≥ 30 %** u opisu kartice.
 - „Kreirano“ nosi promjenu prema **prethodnom periodu iste dužine**; podrazumijevani period je 30 dana i
   dolazi iz vlastite postavke `private.reports.defaultWindowDays` (val 1; prije je dijeljena s uskim grlima).
-- Grafikoni pregleda: uska grla po grupi (prosječno rješenje, oznaka „usko grlo“), obim po usluzi, tok i
-  starenje backloga, starost otvorenih tiketa; dugme **Izvezi PDF** otvara dijalog za štampu i bilježi
-  `report.pdf.exported`.
+- Grafikoni pregleda: uska grla po grupi (prosječno rješenje, oznaka „usko grlo“, kartice nema kad je
+  postavka isključena), obim po usluzi, **tiketi po organizacionoj jedinici** (kreirani u periodu,
+  `originUnitVolume`), **opterećenje admina** (otvoreni tiketi po izvršiocu, stanje sada, `assigneeWorkload`
+  — najopterećeniji nosi upozorenje), tok i starenje backloga, starost otvorenih tiketa; dugme **Izvezi PDF**
+  otvara dijalog za štampu i bilježi `report.pdf.exported`.
 - Period se računa u zoni instalacije (`private.reports.timeZone`, zadano `Europe/Sarajevo`), ne u zoni
   procesa ni pregledača.
 - **Izvori:** `backend/src/modules/reports/dashboard/build-reports-dashboard.ts:31–40,76,121`,

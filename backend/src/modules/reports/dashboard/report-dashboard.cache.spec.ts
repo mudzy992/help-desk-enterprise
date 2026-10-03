@@ -18,6 +18,8 @@ function dashboard(ticketCount: number): ReportsDashboard {
     bottlenecksEnabled: true,
     bottleneckByGroup: [],
     serviceVolume: [],
+    originUnitVolume: [],
+    assigneeWorkload: [],
     volumeSeries: [],
     aging: {} as ReportsDashboard['aging'],
   };

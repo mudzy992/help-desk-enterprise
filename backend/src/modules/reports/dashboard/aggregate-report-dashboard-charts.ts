@@ -107,6 +107,58 @@ export function aggregateServiceVolume(input: {
   );
 }
 
+/**
+ * Val 1 (M15 gap): RAW traži „tiketi po OU“ u nadzoru (`RAW_PROJECT.md:171`,
+ * `:1031`). Broji tikete **kreirane u prozoru** po organizacionoj jedinici iz
+ * koje su došli; naziv dolazi iz šifarnika, a ključ ostaje ako naziva nema.
+ */
+export function aggregateOriginUnitVolume(input: {
+  readonly tickets: readonly ReportTicketSnapshot[];
+  readonly window: ReportWindow;
+  readonly unitNames: ReadonlyMap<string, string>;
+}): readonly ReportDashboardNamedBar[] {
+  const counts = new Map<string, number>();
+  for (const ticket of input.tickets) {
+    if (!isInWindow(ticket.createdAt, input.window)) {
+      continue;
+    }
+    counts.set(ticket.originUnitId, (counts.get(ticket.originUnitId) ?? 0) + 1);
+  }
+  return rankNamedBars(
+    [...counts.entries()].map(([key, value]) => ({
+      key,
+      label: input.unitNames.get(key) ?? key,
+      value,
+    })),
+  );
+}
+
+/**
+ * Val 1 (M15 gap): „opterećenje admina“ iz RAW-a (`:171`, `:1031`) kao broj
+ * **otvorenih** tiketa po izvršiocu — stanje sada, ne u prozoru, jer je to
+ * jedina mjera koja odgovara riječi „workload“. Neusmjereni tiketi nisu ni na
+ * čijem spisku, pa se ne broje (imaju svoj brojač).
+ */
+export function aggregateAssigneeWorkload(input: {
+  readonly tickets: readonly ReportTicketSnapshot[];
+  readonly userNames: ReadonlyMap<string, string>;
+}): readonly ReportDashboardNamedBar[] {
+  const counts = new Map<string, number>();
+  for (const ticket of input.tickets) {
+    if (terminalStatuses.has(ticket.status) || ticket.assignedUserId === null) {
+      continue;
+    }
+    counts.set(ticket.assignedUserId, (counts.get(ticket.assignedUserId) ?? 0) + 1);
+  }
+  return rankNamedBars(
+    [...counts.entries()].map(([key, value]) => ({
+      key,
+      label: input.userNames.get(key) ?? key,
+      value,
+    })),
+  );
+}
+
 export function aggregateAgingBuckets(input: {
   readonly tickets: readonly ReportTicketSnapshot[];
   readonly now: Date;

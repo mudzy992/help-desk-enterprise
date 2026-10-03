@@ -2,6 +2,8 @@ export type InMemoryTicketUnit = {
   readonly id: string;
   readonly parentId: string | null;
   readonly ouPath: string;
+  /** Opcionalno: razrez „tiketi po OU“ prikazuje naziv kad postoji. */
+  readonly name?: string;
 };
 
 export type InMemoryTicketService = {

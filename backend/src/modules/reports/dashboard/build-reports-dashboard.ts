@@ -6,7 +6,9 @@ import { resolveReportWindow } from '../resolve-report-window';
 import type { ReportScopeQuery, ReportsConfiguration } from '../reports.types';
 import {
   aggregateAgingBuckets,
+  aggregateAssigneeWorkload,
   aggregateBottleneckHoursByGroup,
+  aggregateOriginUnitVolume,
   aggregateServiceVolume,
   rankBottleneckBars,
   rankNamedBars,
@@ -41,6 +43,13 @@ export type ReportsDashboard = {
   readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
+  /** Val 1 (M15 gap): tiketi kreirani u prozoru, po organizacionoj jedinici. */
+  readonly originUnitVolume: readonly ReportDashboardNamedBar[];
+  /**
+   * Val 1 (M15 gap): „opterećenje admina“ — otvoreni tiketi po izvršiocu
+   * (stanje sada; tiketi bez izvršioca imaju vlastiti brojač).
+   */
+  readonly assigneeWorkload: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
   readonly aging: ReportDashboardAging;
 };
@@ -94,6 +103,20 @@ export async function buildReportsDashboard(input: {
           value: service.count,
         })),
       ),
+      originUnitVolume: rankNamedBars(
+        aggregates.originUnits.map((unit) => ({
+          key: unit.key,
+          label: unit.name ?? unit.key,
+          value: unit.count,
+        })),
+      ),
+      assigneeWorkload: rankNamedBars(
+        aggregates.assignees.map((assignee) => ({
+          key: assignee.key,
+          label: assignee.name ?? assignee.key,
+          value: assignee.count,
+        })),
+      ),
       volumeSeries: buildReportVolumeSeries({
         window,
         createdByDay: aggregates.createdByDay,
@@ -104,16 +127,27 @@ export async function buildReportsDashboard(input: {
   }
   // Reference path (in-memory test clients without `$queryRaw`).
   const tickets = await loadScopedReportTickets(input.prisma, scopedIds, false);
-  const [csatByTicketId, groupNames, serviceNames, kbHelpedCount] =
-    await Promise.all([
-      loadTicketCsatSubmissions(
-        input.prisma,
-        tickets.map((ticket) => ticket.id),
-      ),
-      loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
-      loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
-      countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
-    ]);
+  const [
+    csatByTicketId,
+    groupNames,
+    serviceNames,
+    unitNames,
+    userNames,
+    kbHelpedCount,
+  ] = await Promise.all([
+    loadTicketCsatSubmissions(
+      input.prisma,
+      tickets.map((ticket) => ticket.id),
+    ),
+    loadGroupNames(input.prisma, tickets.map((ticket) => ticket.assignedGroupId)),
+    loadServiceNames(input.prisma, tickets.map((ticket) => ticket.serviceId)),
+    loadOrganizationalUnitNames(
+      input.prisma,
+      tickets.map((ticket) => ticket.originUnitId),
+    ),
+    loadUserNames(input.prisma, tickets.map((ticket) => ticket.assignedUserId)),
+    countKnowledgeInterceptResolutions(input.prisma, scopedIds, window),
+  ]);
   return {
     window: {
       from: window.from.toISOString(),
@@ -146,6 +180,12 @@ export async function buildReportsDashboard(input: {
       window,
       serviceNames,
     }),
+    originUnitVolume: aggregateOriginUnitVolume({
+      tickets,
+      window,
+      unitNames,
+    }),
+    assigneeWorkload: aggregateAssigneeWorkload({ tickets, userNames }),
     volumeSeries: aggregateReportVolumeSeries({ tickets, window }),
     aging: aggregateAgingBuckets({ tickets, now }),
   };
@@ -182,6 +222,56 @@ async function loadGroupNames(
     select: { id: true, name: true },
   })) as Array<{ id: string; name: string }>;
   return new Map(groups.map((group) => [group.id, group.name]));
+}
+
+async function loadOrganizationalUnitNames(
+  prisma: PrismaService,
+  unitIds: readonly (string | null)[],
+): Promise<ReadonlyMap<string, string>> {
+  if (typeof prisma.organizationalUnit?.findMany !== 'function') {
+    return new Map();
+  }
+  const uniqueIds = [
+    ...new Set(unitIds.filter((id): id is string => id !== null && id.length > 0)),
+  ];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+  const units = (await prisma.organizationalUnit.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, name: true },
+  })) as Array<{ id: string; name?: string }>;
+  return new Map(
+    units
+      .filter((unit) => typeof unit.name === 'string' && unit.name.length > 0)
+      .map((unit) => [unit.id, unit.name as string]),
+  );
+}
+
+async function loadUserNames(
+  prisma: PrismaService,
+  userIds: readonly (string | null)[],
+): Promise<ReadonlyMap<string, string>> {
+  if (typeof prisma.user?.findMany !== 'function') {
+    return new Map();
+  }
+  const uniqueIds = [
+    ...new Set(userIds.filter((id): id is string => id !== null && id.length > 0)),
+  ];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+  const users = (await prisma.user.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, displayName: true },
+  })) as Array<{ id: string; displayName?: string }>;
+  return new Map(
+    users
+      .filter(
+        (user) => typeof user.displayName === 'string' && user.displayName.length > 0,
+      )
+      .map((user) => [user.id, user.displayName as string]),
+  );
 }
 
 async function loadServiceNames(

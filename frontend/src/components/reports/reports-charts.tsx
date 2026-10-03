@@ -17,6 +17,10 @@ interface ReportsChartsProperties {
   readonly bottleneckItems: readonly HorizontalBarItem[];
   readonly bottleneckLabel: string | null;
   readonly serviceItems: readonly HorizontalBarItem[];
+  /** Val 1 (M15 gap): razrez po organizacionoj jedinici. */
+  readonly unitItems: readonly HorizontalBarItem[];
+  /** Val 1 (M15 gap): otvoreni tiketi po izvršiocu. */
+  readonly workloadItems: readonly HorizontalBarItem[];
   readonly volume: readonly GroupedBarDatum[];
   readonly agingItems: readonly HorizontalBarItem[];
   readonly waitingOverSevenDays: number;
@@ -35,6 +39,8 @@ export function ReportsCharts({
   bottleneckItems,
   bottleneckLabel,
   serviceItems,
+  unitItems,
+  workloadItems,
   volume,
   agingItems,
   waitingOverSevenDays,
@@ -92,6 +98,32 @@ export function ReportsCharts({
             />
           ) : (
             <HBars items={[...serviceItems]} />
+          )}
+        </div>
+      </Card>
+      <Card className="fade-in">
+        <CardHeader
+          title={t("reports.unitVolumeTitle")}
+          subtitle={t("reports.unitVolumeSubtitle")}
+        />
+        <div className="px-4 py-4">
+          {unitItems.length === 0 ? (
+            <EmptyState title={t("reports.unitVolumeEmpty")} />
+          ) : (
+            <HBars items={[...unitItems]} />
+          )}
+        </div>
+      </Card>
+      <Card className="fade-in">
+        <CardHeader
+          title={t("reports.workloadTitle")}
+          subtitle={t("reports.workloadSubtitle")}
+        />
+        <div className="px-4 py-4">
+          {workloadItems.length === 0 ? (
+            <EmptyState title={t("reports.workloadEmpty")} />
+          ) : (
+            <HBars items={[...workloadItems]} />
           )}
         </div>
       </Card>

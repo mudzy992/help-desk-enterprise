@@ -45,6 +45,10 @@ export type ReportsDashboardResponse = {
   readonly bottlenecksEnabled: boolean;
   readonly bottleneckByGroup: readonly ReportDashboardNamedBar[];
   readonly serviceVolume: readonly ReportDashboardNamedBar[];
+  /** Val 1 (M15 gap): tiketi kreirani u periodu, po organizacionoj jedinici. */
+  readonly originUnitVolume: readonly ReportDashboardNamedBar[];
+  /** Val 1 (M15 gap): „opterećenje admina“ — otvoreni tiketi po izvršiocu. */
+  readonly assigneeWorkload: readonly ReportDashboardNamedBar[];
   readonly volumeSeries: readonly ReportDashboardVolumePoint[];
   readonly aging: ReportDashboardAging;
 };

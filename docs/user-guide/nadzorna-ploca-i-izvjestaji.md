@@ -26,8 +26,8 @@ tags: [dashboard, izvjestaji, trendovi, zakazani, uska-grla, sla]
 - **SLA nadzor i grupni inbox (za osoblje):** najugroženiji tajmeri i nepreuzeti tiketi po grupama, uz
   upozorenje na neusmjerene tikete koji čekaju predugo.
 - **Izvještaji — Pregled:** KPI kartice (kreirano, prosječan prvi odgovor i rješenje, CSAT, **KB
-  resolution rate** sa ciljem ≥ 30 %) i četiri prikaza: uska grla po grupi, obim po usluzi, tok i
-  starenje backloga, starost otvorenih tiketa.
+  resolution rate** sa ciljem ≥ 30 %) i šest prikaza: uska grla po grupi, obim po usluzi, **tiketi po
+  organizacionoj jedinici**, **opterećenje admina**, tok i starenje backloga sa starošću otvorenih tiketa.
 - **Izvještaji — Uska grla:** brojači (čeka odobrenje, čeka korisnika, neusmjereno, prekoračeno) uz
   razrez po organizacionoj jedinici, servisu i prioritetu te dnevni trend (novi tiketi i stanje zastoja
   po danu). Prikaz poštuje odabranu jedinicu i period; ako je postavka uskih grla isključena, tab
@@ -97,7 +97,10 @@ prava izvoza, a svaki izvoz se zapisuje u audit.
    koliko uzoraka ima; **KB resolution rate** se računa kao *pomoglo u interceptu / (pomoglo + kreirani
    tiketi)*, sa ciljem **≥ 30 %**.
 4. Ispod su grafikoni: **Bottleneck: prosj. rješenje po grupi** (grupa s najdužim ciklusom nosi oznaku
-   „usko grlo: …“), **Obim po usluzi**, **Tok i starenje backloga** i **Starost otvorenih (bucketing)**.
+   „usko grlo: …“, a kartice nema ako je postavka uskih grla isključena), **Obim po usluzi**, **Tiketi po
+   organizacionoj jedinici** (kreirani u periodu, najviše osam jedinica), **Opterećenje admina** (otvoreni
+   tiketi po izvršiocu — stanje sada, ne u periodu; tiketi bez izvršioca imaju svoj brojač), **Tok i
+   starenje backloga** i **Starost otvorenih (bucketing)**.
 5. Dugme **Izvezi PDF** otvara dijalog za štampu sa zaglavljem (opseg, period, kada je generisano i ko je
    generisao); štampa se evidentira u audit.
 
@@ -273,10 +276,11 @@ a e-mail to navodi.
 - **Grafik zadnjih 14 dana se broji u pregledaču** iz stranice tiketa (najviše 100 zapisa), pa je na vrlo
   aktivnoj instalaciji to **donja granica** — ekran to i piše ispod grafikona. Liste (nedavni, prekoračeni,
   dodijeljeni meni, bez izvršioca) dolaze iz ciljanih serverskih upita i nisu ograničene na prvi ekran.
-- **„Opterećenje admina“** i dalje postoji samo kao izvoz evidentiranja vremena (sati po agentu i
-  servisu); nema svoje pločice ni ekrana.
-- **Razrez po organizacionoj jedinici** postoji na tabovima **Uska grla** i **CSAT**, dok je na tabu
-  **Pregled** jedinica samo filter.
+- **„Opterećenje admina“ je broj otvorenih tiketa po izvršiocu**, a ne sati; stvarni utrošak vremena i dalje
+  dolazi iz izvoza **Evidentiranje vremena** (sati po agentu i servisu). Grafik prikazuje najviše osam
+  najopterećenijih osoba.
+- **Razrez po organizacionoj jedinici** postoji kao grafik na tabu **Pregled** (za kreirane tikete), a kao
+  razrez zastoja i ocjena na tabovima **Uska grla** i **CSAT**.
 - **Izvoz paketa nije vezan na izbor u pregledu:** period birate u tabu **Paketi izvještaja** nezavisno od
   perioda na tabu **Pregled**.
 - **Nema automatskog testa nadzorne ploče:** nadzorna ploča je pokrivena samo a11y skeniranjem (kao
@@ -290,7 +294,8 @@ a e-mail to navodi.
 - **Baza znanja** — **KB resolution rate** i paket **Korisnost baze znanja** broje potvrde iz presretanja i
   ocjene članaka.
 - **CSAT** — prosjek i serija dolaze iz ocjena datih poslije rješavanja tiketa.
-- **Evidentiranje vremena** — paket **Evidentiranje vremena** sabira sate po agentu i servisu.
+- **Evidentiranje vremena** — paket **Evidentiranje vremena** sabira sate po agentu i servisu; grafik
+  **Opterećenje admina** na pregledu mjeri broj otvorenih tiketa, ne sate.
 - **Odobrenja i „neusmjereni“** — brojači čekanja na odobrenje i neusmjerenih tiketa pokazuju gdje proces
   stoji; detalji su u modulima tiketa i odobrenja.
 - **Audit** — svaki izvoz (paket, PDF, trendovi) ostavlja zapis u audit logu.

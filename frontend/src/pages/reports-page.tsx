@@ -25,7 +25,9 @@ import { selectCompactClassName } from "@/components/ui/control";
 import {
   mapAgingBars,
   mapBottleneckBars,
+  mapCountBars,
   mapServiceVolumeBars,
+  mapWorkloadBars,
   showBottleneckChart,
 } from "@/lib/reports/map-report-dashboard-charts";
 import {
@@ -255,6 +257,10 @@ export function ReportsPage() {
     dashboard === null
       ? null
       : mapServiceVolumeBars(dashboard.serviceVolume);
+  const unitItems =
+    dashboard === null ? null : mapCountBars(dashboard.originUnitVolume);
+  const workloadItems =
+    dashboard === null ? null : mapWorkloadBars(dashboard.assigneeWorkload);
   const agingItems =
     dashboard === null
       ? null
@@ -379,6 +385,8 @@ export function ReportsPage() {
         />
       ) : bottleneck === null ||
         serviceItems === null ||
+        unitItems === null ||
+        workloadItems === null ||
         agingItems === null ? null : (
         <>
           <div className="mb-2 flex justify-end print:hidden">
@@ -393,6 +401,8 @@ export function ReportsPage() {
             bottleneckItems={bottleneck.items}
             bottleneckLabel={bottleneck.bottleneckLabel}
             serviceItems={serviceItems}
+            unitItems={unitItems}
+            workloadItems={workloadItems}
             volume={dashboard.volumeSeries}
             agingItems={agingItems}
             waitingOverSevenDays={dashboard.aging.waitingOverSevenDays}

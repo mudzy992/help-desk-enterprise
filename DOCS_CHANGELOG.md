@@ -1138,3 +1138,17 @@ morala prestati opisivati stanje koje više ne postoji („uska grla nisu na ekr
   traži `all`; odluka je na vlasniku, pa ostaje dokumentovano, ne „popravljeno na papiru“.
 - **Živa provjera ekrana** nije rađena u ovom okruženju (nema baze) — prvi pregled u browseru treba uraditi
   na stagingu pri deployu.
+
+### Nastavak vala 1 — M15 gapovi (2026-10-03)
+
+Dva RAW-ova zahtjeva za nadzor (`RAW_PROJECT.md:171`, `:1031`) nisu bila nalaz nego **praznina**: nije bilo
+razreza „tiketi po OU“ ni prikaza „opterećenje admina“. Oba su sada na tabu **Pregled** u izvještajima.
+
+- `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — „Čemu služi ovaj modul“ i korak 3 sada navode **šest**
+  prikaza (dodati **Tiketi po organizacionoj jedinici** i **Opterećenje admina**), uz objašnjenje da je
+  opterećenje **stanje sada** (otvoreni tiketi), a ne period, i da prikazuje najviše osam osoba.
+- „Poznata ograničenja“: uklonjena rečenica da opterećenje postoji samo kao izvoz vremena; sada piše da
+  grafik mjeri **broj otvorenih tiketa**, dok sati ostaju u izvozu **Evidentiranje vremena**.
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — T97 dopunjen novim grafikonima i njihovim izvorima
+  (`originUnitVolume`, `assigneeWorkload`).
+- `backend/content/docs/**` — ogledalo regenerisano; `check-docs-content.mjs` prolazi.
