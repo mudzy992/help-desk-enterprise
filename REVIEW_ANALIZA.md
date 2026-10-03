@@ -23,7 +23,7 @@
 | Iteracija | Moduli | Stanje |
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
-| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 u toku |
+| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 u toku |
 
 ---
 
@@ -2002,3 +2002,344 @@ navodi samo stvarne ose `Nizak…Kritičan`.
 | Funkcionalnost | **8 / 10** | Rutanje, parent fallback, pokrivenost, UNROUTED red sa sweep-om i digestom, matrica prioriteta, override s auditom i SLA preračunom — sve radi i pokriveno je testovima (uklj. tri e2e scenarija). Umanjuju: matrica bez filtera (B1), preview koji UI ne koristi (B3) i dvostruko značenje „neusmjereno“ (B4). |
 | Kvalitet koda | **8 / 10** | Jedna tačka odluke, čiste funkcije za rezoluciju, transakcione izmjene s before/after snapshotom, precizne greške i dosljedni loaderi. Umanjuju: mrtva postavka (B2), duplirana formula (B8), `typeof` provjera na sopstvenom loaderu (B7) i GET koji upisuje (B9). |
 | Sigurnost | **8 / 10** | Mutacije su trostruko zaštićene (rola + `routing.write` + OU/servis scope), svaka izmjena je auditovana kroz change log s razlogom i akterom, tiket nikad ne završi bez grupe ili s pogrešnom grupom. Umanjuje: čitanje ruta bez permisije i OU scope-a (B6) i nedostatak `enabled` prekidača za matricu (B5). |
+
+# M8 — Tiketi
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Kreiranje i statusi:** „Ticketing: kreiranje tiketa (service → request type → due date → opis), statusi
+  (Pending/Assigned/In Progress/Waiting for User/Resolved/Closed)“ (`RAW_PROJECT.md:54`).
+- **Grupni inbox:** svaki novi tiket ide handler **grupi**, a ne pojedincu (`:55–56`); agenti preuzimaju tiket iz
+  grupe (`:57`); SLA response se računa od kreiranja do prve smislene reakcije (`:58`).
+- **Prioritet i matrica:** impact i urgency pri kreiranju, sistem predlaže prioritet, override je auditovan
+  (`:59–62`) — obrađeno u §M7.
+- **Prilozi:** upload uz tiket/poruku sa OU-scope kontrolom (`:129`), klasifikacija utiče na politiku priloga i
+  nasljeđivanje klasifikacije je obavezno (`:246–247`), limiti veličine i allow-lista MIME tipova (`:884`).
+- **Dedup/merge:** admin spaja duplikate u „parent“ tiket i broadcast-uje update vezanim tiketima (`:136`).
+- **Split:** agent/admin dijeli tiket na 2+ pod-tiketa; zadržava parent/child link, kopira kontekst, **agent bira**
+  šta se prenosi od poruka/priloga (default: ništa osim referenci), poštuje OU/confidential/participants pravila,
+  a split se auditira kao `SYSTEM_EVENT` s razlogom i listom djece (`:137–143`).
+- **Bulk akcije:** samo unutar iste OU/grupe (SuperAdmin smije cross-OU), **bulk close nije dozvoljen** (`:144–146`);
+  set: assign, status (bez close), priority (uz obrazloženje), structured broadcast („šta se dešava“, „koga
+  pogađa“, ETA, workaround) s pregledom broja primalaca i rate limitom, te bulk merge u parent (`:147–153`).
+- **Saved views:** agent/admin čuva lične filtere/prikaze (status, prioritet, servis, dodjela, datum), sort i
+  kolone, opciono default view; views su **per-user** i ne mijenjaju sigurnost (`:154–158`).
+- **Mjerenje vremena:** Start/Stop uz anti-abuse (auto-pauza kad tab nije aktivan, spriječiti „beskonačne“
+  sesije) (`:160`).
+- **Postavke:** waiting-for-user i reopen (`:500–504`), forwarding (`:521–523`), saved views (`:524–527`), bulk
+  akcije i broadcast (`:528–541`), prilozi (`:558–563`), split (`:629`), OU izolacija upita (`:410`), indeksi i
+  filteri liste (`:412`), arhiva i izvoz (v. §4.5).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Status nije slobodan tekst.** Prelazi su unaprijed definisani i zavise od aktera (korisnik, agent, sistem,
+   odobravalac); svaki pokušaj „preskakanja“ koraka se odbija s jasnim kodom greške.
+2. **Tiket ima jednog vlasnika u svakom trenutku.** Rutanje daje grupu, agent preuzima, a pravo rada prati
+   trenutnu grupu — ne matičnu OU agenta.
+3. **Zatvaranje je najstroža operacija.** Close code, resolution note i obavezna polja se provjeravaju prije
+   prelaza u Riješeno/Zatvoreno, a ne poslije.
+4. **Spajanje i dijeljenje su reverzibilni i objašnjivi.** Merge ima parent/child vezu s propagacijom statusa i
+   mogućnošću razdvajanja; split ostavlja audit trag s razlogom i listom djece.
+5. **Skupne akcije su „enterprise-safe“:** ograničene na istu OU/grupu, bez zatvaranja, sa structured broadcast
+   porukom, pregledom primalaca, rate limitom i batch auditom.
+6. **Ništa ne blokira korisnika da prijavi problem, ali ga sistem ne ostavlja bez odgovora:** waiting-for-user
+   automatika podsjeća i zatvara po isteku, a tiket se može ponovo otvoriti u definisanom roku.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Jedan izvor istine za tok statusa** (kod to ima: `ticket-workflow-definition.ts`) i ekran koji ga prikazuje
+   adminu bez dupliranja logike.
+2. **Vidljivost izvedena iz aktera, nikad iz upita** (kod to ima: `buildTicketVisibilityWhere`).
+3. **Provjere prije zatvaranja** (close code, required fields, resolution note) i jasna lista onoga što nedostaje.
+4. **Merge/split s ograničenjima i auditom**, uključujući zabranu spajanja povjerljivog s nepovjerljivim.
+5. **Bulk akcije s dvostrukom zaštitom:** scope + allow-lista akcija + zabrana close-a + rate limit.
+6. **Dosljednost dokumentacije i stvarnosti** za postavke: svaka registrovana postavka mora imati potrošača ili
+   biti uklonjena (nalazi B1–B3).
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model i kontrakti
+
+- Tiket nosi `status` (`PENDING`…`ARCHIVED`, `backend/prisma/schema/enums.prisma:9–19`), `priority`, `impact`,
+  `urgency` (`ticketing.prisma:8–11`), `formData`, `formVersionId`, veze prema `assignedGroupId`,
+  `assignedUserId`, `parentTicketId`, `reopenedFromTicketId` (`create-ticket.ts:196–206`), te
+  `routedByUnroutedFallback` (`:38`), `unroutedWarnedAt` (`:40`), `priorityOverridden*` (`:43–46`).
+- Dozvoljeni prelasci su **podatak**: `ticketWorkflowTransitions` s akterima (`STAFF|REQUESTER|APPROVER|SYSTEM`),
+  okidačima i čuvarima (`close_code`, `required_fields`, `resolution_note`, `reopen_window`,
+  `waiting_auto_close`, `archive_after`, `group_required`, `playbook_steps`) — `tickets/workflow/
+  ticket-workflow-definition.ts:32–78`; iz njega se izvodi `allowedTicketStatusTransitions`
+  (`tickets.constants.ts:49–52`), a faze (`intake|work|done`) su u `:40–50`.
+- `assertTicketStatusTransition` odbija nedozvoljen prelaz (`INVALID_STATUS_TRANSITION`) i propušta „isti u
+  isti“ (`assert-ticket-status-transition.ts:5–21`).
+- Životni ciklus pamti vremena: `resolvedAt`, `closedAt`, `archivedAt`, `waitingForUserEnteredAt`,
+  `waitingForUserReminderSentAt`; ponovno otvaranje briše `resolvedAt`/`closedAt`
+  (`apply-ticket-lifecycle-timestamps.ts:6–60`).
+
+### 4.2 API
+
+- `TicketsController` (`tickets.controller.ts:36–50`, sve rute uz `SessionAuthenticationGuard` + `RoleGuard` i
+  role `user|agent|admin|superAdmin`, `ValidationPipe` sa `whitelist`/`forbidNonWhitelisted`):
+  `POST /tickets` (`:54–60`), `POST /tickets/routing-preview` (`:62–72`, v. §M7),
+  `GET /tickets` s paginacijom (`:79–85`), `GET /tickets/counts` (`:87–96`), `GET /tickets/inbox` (`:98–107`),
+  `GET /tickets/inbox/status` (`:109–116`), `GET /tickets/:ticketId` (`:118–127`),
+  `POST /tickets/:ticketId/claim` (`:129–138`), `PATCH /tickets/:ticketId` (`:140–151`).
+- Ostali kontroleri istog modula: kolaboracija (`participants`, `messages` — `tickets-collaboration.controller.ts:
+  47–108`), kontekst detalja (`people`, `candidates`, `history`, `activity`, `actions`, `sla-context` —
+  `context/tickets-context.controller.ts:32–72`), merge/unmerge i prioritet (`merge/tickets-merge.controller.ts:
+  47–91`), forwarding (`forwarding/tickets-forwarding.controller.ts:45–79`), bulk (`bulk/tickets-bulk.controller.ts:
+  39–47`), split (`split/tickets-split.controller.ts:39`), mjerenje vremena (`time-tracking/
+  tickets-time-tracking.controller.ts:53–140`), izvoz (`export/tickets-export.controller.ts:43`), reopen
+  (`reopen/tickets-reopen.controller.ts:40`), prilozi (`attachments/tickets-attachments.controller.ts:52–108`),
+  break-glass za povjerljive (`confidential/tickets-confidential.controller.ts:41`) i remote zahtjev
+  (`remote/tickets-remote.controller.ts:39`).
+- DTO za kreiranje: naslov (do 200), opis (do 8000), `impact`, `urgency`, `serviceId`, opciono `originUnitId`,
+  `formVersionRef`, `formData`, `isConfidential`, `acknowledgeDuplicate`, `assetId` (`dto/create-ticket.dto.ts:16–64`).
+
+### 4.3 Kreiranje i vidljivost
+
+- `createTicket` učitava aktera i naručioca, razrješava origin OU i servis, provjerava `assertCanCreateTicket`,
+  pa u transakciji upisuje tiket s prioritetom iz matrice, klasifikacijom, povjerljivošću, `formData` i
+  routing odlukom (`create-ticket.ts:59–230`); broj tiketa se rezerviše i dodjeljuje uz retry
+  (`generate-ticket-number.ts`, `withTicketNumberRetry` u `:167–228`).
+- Vidljivost: `resolveTicketActorAccess` daje `staff` ako akter može rukovati tiketom, `public` ako je
+  naručilac ili aktivni učesnik koji nije `FOLLOWER`, inače `FORBIDDEN` (`resolve-ticket-actor-access.ts:24–67`);
+  povjerljivi tiketi imaju dodatnu kapiju (`confidential/assert-confidential-ticket-access`).
+- Pravo rukovanja: OU + servis scope **ili** članstvo u trenutnoj handler grupi, SuperAdmin uvijek
+  (`authorize-ticket-actor.ts:8–91`).
+- Liste rade istu logiku kao `WHERE` (bez provjere po tiketu), uključujući povjerljive i break-glass
+  (`list/build-ticket-visibility-where.ts:23–50`); grupni inbox **ne** prikazuje naručiocu vlastite tikete
+  (`requesterSeesOwn === false`, `:16–20`).
+
+### 4.4 Lista, filteri i brojači
+
+- Jedan rječnik filtera dijeli lista, izvoz i CSAT sažetak (`list/list-tickets.types.ts:13–59`): OU, servis,
+  status(i), dodijeljeni agent, prioritet, naručilac, grupa, `unassigned`, `hideMerged`, `forwarded`
+  (`any|toMyGroups`), `following`, `mentionedMe`, `unroutedOverdue`, `overdue`, `atRisk`, `createdFrom/To`, `q`.
+- Paginacija je ograničena: podrazumijevano 25, najviše 50 redova po odgovoru, vrijednost se klampuje a ne
+  odbija (`list/clamp-ticket-list-page-size.ts:10–15`, `list/list-tickets.constants.ts`).
+- Ukupan broj je ograničen (`countTicketsCapped`) i keširan 30 s po korisniku i filteru (samo broj, nikad redovi)
+  — `list-tickets.ts:20–50`.
+- Pretraga `q` pokriva broj i naslov, a opis samo kad to pozivalac zatraži (`list/list-tickets.types.ts:53–59`).
+
+### 4.5 Tok statusa, zatvaranje, arhiva i ponovno otvaranje
+
+- `PATCH /tickets/:id` provjerava: promjenu statusa smije samo staff (osim delegiranih slučajeva), prelaz iz
+  `PENDING_APPROVAL` traži odluku odobrenja, prelaz **u** `PENDING_APPROVAL` je zabranjen, a povratak iz
+  `RESOLVED/CLOSED` u `IN_PROGRESS` ide isključivo kroz reopen (`assert-patch-ticket-status.ts:7–34`).
+- Pri prelazu u Riješeno/Zatvoreno provjeravaju se close code, resolution note, globalna i po-servisu obavezna
+  polja te (opciono) `required` polja iz šeme forme (`apply-ticket-resolution.ts:34–53`, `required-fields/
+  collect-missing-required-fields.ts:11–66`) — detalji u §M6/T39.
+- Arhiviranje je automatika: default `afterClosedDays: 30`, `archivedReadOnly: true`, `searchable: true`
+  (`archive/archive.constants.ts:1–6`), sweep svakih 15 minuta (`archive/ticket-archive.job.constants.ts:18–29`),
+  a zapis na arhiviranom tiketu se odbija (`archive/assert-ticket-writable.ts:5–17`).
+- Ponovno otvaranje: `RESOLVED|CLOSED` u roku od 7 dana (`reopen/reopen.constants.ts:1–10`), uz dvije politike —
+  isti tiket ili novi tiket povezan s originalom (`reopen-same-ticket.ts`, `create-reopened-ticket.ts`).
+- Waiting-for-user: podsjetnik nakon 2 dana i automatsko zatvaranje nakon 7 dana (`settings/definitions/
+  ticket-waiting-and-reopen-settings.ts:14–47`), sweep svakih 15 minuta u slotu `:05`
+  (`waiting-for-user/waiting-for-user.job.constants.ts:21`), uz povratak u obradu na odgovor korisnika
+  (`resume-waiting-for-user-on-reply.ts`).
+
+### 4.6 Saradnja, spajanje i dijeljenje
+
+- Učesnici: dodavanje/uklanjanje s ulogama, `FOLLOWER` ne dobija pristup (`add-ticket-participant.ts`,
+  `resolve-ticket-actor-access.ts:54–62`); poruke se šalju kroz `POST /tickets/:id/messages` s tipovima poruka.
+- **Merge:** najviše 50 djece, najviše 10 kandidata, zabranjen merge sa samim sobom, zabranjena djeca u
+  `CLOSED|ARCHIVED`, zabranjeno miješanje povjerljivog i nepovjerljivog (`MERGE_CONFIDENTIAL_MISMATCH`),
+  obavezan razlog (3–500 znakova) — `merge/merge.constants.ts:4–22`, `merge/assert-merge-allowed.ts:29–61`;
+  roditelj propagira status na djecu (`propagate-merged-status.ts`), a `unmerge` vraća dijete
+  (`unmerge-ticket.ts`).
+- **Split:** 2–10 djece, obavezan razlog do 2000 znakova, konfiguracija `allowAttachmentMove: false`,
+  `allowMessageCopy: true`, `requireReason: true` (`split/split.constants.ts:1–12`); dijete se kreira s
+  naslovom/opisom/servisom/grupom po izboru, a **prenose se samo eksplicitno odabrane poruke i prilozi**
+  (`split/dto/split-ticket-child.dto.ts:23–33`).
+- **Forwarding:** samo otvoreni statusi (`UNROUTED|PENDING|ASSIGNED|IN_PROGRESS|WAITING_FOR_USER`), cross-OU
+  dozvoljen, obavezan razlog (min 10 znakova po defaultu), prethodni handleri po defaultu **ne** ostaju
+  watchersi (`forwarding/forwarding.constants.ts:4–25`).
+
+### 4.7 Bulk akcije, saved views, prilozi, vrijeme i izvoz
+
+- **Bulk:** `POST /tickets/bulk` i `POST /tickets/bulk/preview` (`bulk/tickets-bulk.controller.ts:39–47`);
+  defaulti: uključeno, SuperAdmin smije cross-OU, ista OU **i** grupa za ostale, bulk close zabranjen, allow-lista
+  akcija iz `ticketBulkActionTypes`, broadcast s in-app i email kanalom, obaveznim pregledom, limitom 10/min i
+  strukturiranim poljima `what_happened|who_affected|eta` (+ opcioni workaround i linkovi), batch id u auditu
+  (`bulk/bulk.constants.ts:4–25`); scope se provjerava prije izvršenja (`bulk/assert-bulk-ticket-scope.ts:6–29`),
+  najviše 100 tiketa i razlog do 2000 znakova (`bulk/bulk.constants.ts:21–25`).
+- **Saved views:** per-user, najviše 20, default view dozvoljen, dijeljenje isključeno
+  (`saved-views/saved-views.constants.ts:1–18`); rute `GET/POST/PATCH/DELETE /tickets/saved-views`
+  (`saved-views/tickets-saved-views.controller.ts:43–65`).
+- **Prilozi:** politika (MIME allow-lista, ekstenzije, blocklista opasnih ekstenzija, max 25 MB, limiti po
+  tiketu/poruci) se primjenjuje pri uploadu (`attachments/validate-ticket-attachment.ts:19–53`), klasifikacija
+  se nasljeđuje od tiketa i zabranjeno je „spuštanje“ klasifikacije (`inherit-attachment-classification.ts:5–19`),
+  a upload ide uz skeniranje (`scan-attachment-with-clamav.ts`).
+- **Vrijeme:** start/stop/heartbeat/ručni unos/ispravka/brisanje (`time-tracking/tickets-time-tracking.controller.ts:
+  53–140`), pravila: auto-pauza nakon neaktivnosti, maksimalna dužina sesije, jedan aktivan tajmer po korisniku,
+  minimalni razmak heartbeatova 20 s i tolerancija 2 min (`time-tracking/time-tracking.constants.ts:6–34`),
+  sweep zatvara napuštene tajmere (`sweep-time-logs.ts`).
+- **Izvoz:** CSV s najviše 5000 redova (`export/export.constants.ts:1–5`) uz vlastitu kapiju
+  (`export/assert-can-export-tickets.ts`).
+- **Realtime mapiranje:** system eventi se prevode u promjene (`updated|assignment|priority|status|resolved|
+  closed|archived|reopened|approval`) — `map-ticket-realtime-change.ts:5–30`.
+
+### 4.8 Frontend
+
+- Četiri ekrana: `tickets-page.tsx`, `ticket-list-page.tsx`, `ticket-create-page.tsx`, `ticket-detail-page.tsx` i
+  **60 komponenti** u `frontend/src/components/tickets/`.
+- Liste imaju poglede **Grupni inbox · Dodijeljeni meni · Nedodijeljeni · Moji zahtjevi · Svi tiketi**
+  (`i18n tickets.views`), filtere (`ticket-list-filters.tsx`), sačuvane poglede (`ticket-saved-views-menu.tsx`),
+  kolone (`tickets.columns`) i tab **Neusmjereni red** (v. §M7).
+- Detalj je organizovan u sekcije-paneele (`ticket-detail-workspace.tsx`, `detail-sections`), uključujući
+  vremensku liniju, učesnike, priloge, vrijeme, SLA, CSAT, odobrenja i „povezane“ zapise; indikator aktivnog
+  tajmera je u zaglavlju aplikacije (`components/layout/active-timer-indicator.tsx`).
+- i18n: **198 ključeva** u sekciji `tickets` s podsekcijama za status, prioritet, split, bulk, saved views,
+  priloge, vrijeme, forwarding, merge, povjerljivost i dr. (`frontend/src/i18n/locales/bs/common.json`).
+- E2E: **20 od 33** scenarija dira tikete, uključujući `01-ticket-create`, `05-bulk-broadcast`, `06-confidential`,
+  `10-forward-cross-ou`, `14-time-tracking` i `15-workflow-unrouted-realtime`.
+
+## 5. Gap analiza
+
+| # | Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|---|
+| 1 | Statusi i prelasci (`:54`) | tok kao podatak, akteri i čuvari | `ticketWorkflowTransitions` + izvedeni `allowedTicketStatusTransitions` | Implementirano |
+| 2 | Grupni inbox: grupa, ne pojedinac (`:55–57`) | rutanje u grupu, preuzimanje iz grupe | routing daje `assignedGroupId`, `POST /tickets/:id/claim`, grupni inbox | Implementirano |
+| 3 | „service → request type → due date“ (`:54`) | eksplicitno polje tipa zahtjeva i rok | nema tih polja; tip zahtjeva nose forma i polja po usluzi | Odstupa |
+| 4 | Dedup/merge u parent uz broadcast (`:136`) | merge s parent/child, propagacijom i razlogom | merge/unmerge, propagacija statusa, zabrana miješanja povjerljivosti | Implementirano |
+| 5 | Split uz izbor sadržaja i audit (`:137–143`) | 2+ djece, link, razlog, audit | split 2–10 djece, eksplicitni `messageIds`/`attachmentIds`, `SYSTEM_EVENT` | Implementirano |
+| 6 | Bulk scope, bez close-a (`:144–146`) | ista OU/grupa, zabrana bulk close | `assertBulkTicketScope`, `disallowBulkClose: true` | Implementirano |
+| 7 | Bulk set akcija (`:147–153`) | assign/status/priority/broadcast/merge uz audit | sve navedene akcije + preview + batch audit + rate limit | Implementirano (uz B2) |
+| 8 | Structured broadcast (`:152`) | obavezna polja „šta/koga/ETA“, workaround | `broadcastRequiredFields: ['what_happened','who_affected','eta']`, workaround i linkovi | Implementirano |
+| 9 | Saved views per-user (`:154–158`) | lični filteri/sort/kolone, default view | `TicketSavedView` s filterima/sortom/kolonama, max 20, default view | Implementirano (uz B3) |
+| 10 | Mjerenje vremena i anti-abuse (`:160`) | start/stop, auto-pauza, bez „beskonačnih“ sesija | tajmeri s heartbeatom, idle pravilo, sweep, jedan aktivan po korisniku | Implementirano |
+| 11 | Prilozi s OU-scope i klasifikacijom (`:129`, `:246–247`) | politika priloga + nasljeđivanje klasifikacije | MIME/ekstenzije/veličina/blocklista, nasljeđivanje bez „spuštanja“ klase | Implementirano |
+| 12 | Waiting-for-user automatika (`:500–502`) | podsjetnik pa auto-close | 2 dana podsjetnik, 7 dana auto-close, sweep 15 min | Implementirano |
+| 13 | Reopen u roku (`:503–504`) | reopen do 7 dana | `RESOLVED|CLOSED`, prozor 7 dana, dvije politike | Implementirano |
+| 14 | Arhiviranje i izvoz | zatvoreno → arhiva, izvoz liste | arhiva nakon 30 dana i read-only, CSV do 5000 redova | Implementirano |
+| 15 | OU izolacija upita (`:410`) | svi upiti scoped po OU | vidljivost kroz `buildTicketVisibilityWhere` + D1 grupa | Implementirano |
+| 16 | Filteri i indeksi (`:412`) | filteri status/OU/servis/agent/prioritet | server-side filteri + `@@index` u šemi tiketa | Implementirano |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+Ovo je najveći i najzreliji modul u aplikaciji. Tok statusa je **podatak**, a ne niz `if`-ova; vidljivost se
+računa jednom i to kroz `WHERE` klauzule, pa lista i detalj ne mogu odati različite skupove tiketa; povjerljivi
+tiketi imaju vlastitu matricu u kojoj čak i SuperAdmin prolazi kroz grant/break-glass; bulk akcije imaju scope,
+allow-listu, zabranu close-a i batch audit. Posebno je dobra odluka da grupni inbox ne prikazuje naručiocu
+vlastite tikete — inbox je radni red, ne „moji tiketi“.
+
+Slabosti su na ivicama postavki i performansi: tri postavke su registrovane a nemaju efekta (`attachments.
+retentionDays`, `savedViews.allowSharing`, djelimično `changeLog.routing.enabled` iz §M7), rate limiter
+broadcasta živi u memoriji procesa bez evikcije, a ukupan broj u listi može zaostajati do 30 sekundi zbog
+namjernog keša. Nijedna od tih stvari ne ruši osnovni tok, ali svaka može iznenaditi administratora.
+
+Kod je dosljedan u imenovanju i testiran je gusto: 498 backend spec fajlova ukupno, a modul tiketa ima
+najveći broj scoped spec-ova (routing, priority, merge, split, bulk, time tracking, waiting-for-user, archive,
+export, saved views).
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — `private.ticket.attachments.retentionDays` se čita, ali se ne primjenjuje
+
+- **Fajl/linija:** `backend/src/modules/tickets/attachments/ticket-attachment-configuration.loader.ts:36–38`,
+  `parse-ticket-attachment-configuration.ts:43–46`, default `attachments.constants.ts:46` (`retentionDays: 365`);
+  stvarno brisanje priloga izvodi privacy retention (`backend/src/modules/privacy/retention/retention-executors.ts:157–180`,
+  kategorija `attachments`).
+- **Opis:** vrijednost ulazi u konfiguraciju priloga, ali je nijedan izvršni kod ne čita (pretraga backendа daje
+  samo loader/parser/default); brisanje zavisi isključivo od `privacy.retention.*` postavki.
+- **Uticaj:** administrator koji smanji ovaj rok neće dobiti brisanje starih priloga; dva roka za istu stvar
+  mogu se razilaziti.
+- **Fix:** mapirati vrijednost na privacy kategoriju `attachments` ili ukloniti postavku i dokumentovati da
+  retentionom upravlja modul privatnosti.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — Rate limiter broadcasta je u memoriji procesa i bez evikcije
+
+- **Fajl/linija:** `backend/src/modules/tickets/bulk/bulk-broadcast-rate-limiter.ts:1–18` (module-level `Map`,
+  `consume` nikad ne uklanja ključ), limit iz postavke `bulk.constants.ts:13` (`broadcastRateLimitPerMinute: 10`).
+- **Opis:** brojači su lokalni za proces i nikad se ne čiste, pa je limit „10 u minuti“ tačan samo za jednu
+  instancu, a mapa raste sa svakim korisnikom koji je ikada poslao broadcast.
+- **Uticaj:** u horizontalno skaliranom deploymentu stvarni limit je `N × 10`; memorija procesa raste
+  (sporo, ali neograničeno).
+- **Fix:** brojač u Redis-u (ili DB) s TTL-om ključa.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — NISKO — `private.ticket.savedViews.allowSharing` se validira, ali se vrijednost odbacuje
+
+- **Fajl/linija:** `backend/src/modules/tickets/saved-views/parse-ticket-saved-views-configuration.ts:15–29`
+  (validira `allowSharing` kao boolean, a vraća `allowSharing: false` bez obzira na vrijednost).
+- **Opis:** postavka je registrovana i validirana, ali je izlazna konfiguracija uvijek `false`; uključivanje u
+  postavkama ne mijenja ništa (dijeljenje pogleda nije implementirano).
+- **Uticaj:** administrator može uključiti postavku i očekivati funkciju koja ne postoji.
+- **Fix:** ukloniti postavku ili je uvažiti kad se dijeljenje implementira; do tada je označiti kao rezervisanu.
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Lista tiketa po defaultu prikazuje i spojenu djecu
+
+- **Fajl/linija:** `backend/src/modules/tickets/list/list-tickets.types.ts:27–28` (`hideMerged` je opcion),
+  `frontend/src/components/tickets/ticket-list-filters.tsx:183–186` (prekidač je isključen po defaultu).
+- **Opis:** roditelj i njegova spojena djeca stoje u istoj listi dok korisnik ručno ne uključi
+  **Sakrij spojene**.
+- **Uticaj:** lista izgleda duplo za incidente s mnogo duplikata.
+- **Fix:** uključiti filter po defaultu kad je tiket spojen, ili prikazati djecu kao podredne redove.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Ukupan broj tiketa u listi može zaostajati do 30 sekundi
+
+- **Fajl/linija:** `backend/src/modules/tickets/list-tickets.ts:20–50` (single-flight keš `ticketListTotals`,
+  TTL 30 s, ključ = korisnik + filteri + arhiva + povjerljivost).
+- **Opis:** redovi su uvijek svježi, ali „N tiketa“ se ponovo koristi do 30 s.
+- **Uticaj:** mali, ali vidljiv nesklad kod brzih izmjena; namjerno zbog COUNT-a na 100k tiketa.
+- **Fix:** nije potreban; dokumentovati ponašanje (ili skratiti TTL kad COUNT bude jeftiniji).
+- **Ozbiljnost:** NISKO.
+
+### B6 — NISKO — Filter `hideMerged` i „Neusmjereni red“ nisu dio istog obrasca
+
+- **Fajl/linija:** `frontend/src/lib/tickets/filter-tickets.ts:19`, `frontend/src/lib/tickets/inbox-view-tabs.ts:44–46`
+  (usporedi s §M7 B4).
+- **Opis:** dio stanja liste (spojena djeca, neusmjereni tiketi) uređuje se kroz različite mehanizme — jedan kroz
+  filter listе, drugi kroz tab iznad liste — pa isti tiket može izgledati „skriven“ na jednom mjestu, a
+  prisutan na drugom.
+- **Uticaj:** kognitivno opterećenje i nejasna očekivanja; nije greška u podacima.
+- **Fix:** jedinstveni „prikaži/sakrij“ obrazac i jedan izvor istine za stanje liste.
+- **Ozbiljnost:** NISKO.
+
+### B7 — NISKO — `reopen.enabled` ne ulazi u računanje dozvoljenih akcija za UI
+
+- **Fajl/linija:** `backend/src/modules/tickets/reopen/resolve-ticket-reopen-policy.ts:16–38` (server poštuje
+  `enabled` i vraća `mode: 'same_ticket' | 'new_ticket'`), dok `backend/src/modules/tickets/context/
+  resolve-ticket-allowed-actions.ts` **ne sadrži nijednu referencu na reopen** (pretraga: 0 pogodaka);
+  `TicketReopenConfigurationLoader` koriste samo bulk, CSAT, forwarding, merge i reopen servisi
+  (`tickets-bulk.service.ts:152`, `tickets-csat.service.ts:30`, `tickets-forwarding.service.ts:35`,
+  `tickets-merge.service.ts:32`).
+- **Opis:** lista dozvoljenih akcija koju dobija detalj tiketa ne zavisi od postavke `private.ticket.reopen.enabled`,
+  pa UI može ponuditi **Ponovo otvori** i kada je funkcija isključena; server tada odbija s `REOPEN_DISABLED`.
+- **Uticaj:** mrtav klik i zbunjujuća poruka umjesto sakrivene akcije.
+- **Fix:** uračunati reopen konfiguraciju u `resolve-ticket-allowed-actions` (ili vratiti akciju s razlogom
+  isključenja).
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/*` — postojeća stranica `prosljedjivanje-tiketa.md` pokriva samo forwarding;
+osnovni tok tiketa (kreiranje, liste, detalj, statusi, merge/split, bulk, vrijeme, prilozi) nije bio dokumentovan.
+
+**Dodato (M8):**
+
+- `docs/user-guide/tiketi.md` — nova stranica: čemu služi, kome je namijenjen (tabela rola), kako se dolazi,
+  korak-po-korak (prijava tiketa, preuzimanje iz grupnog inboxa, rad u detalju, promjena statusa, spajanje,
+  dijeljenje, skupne akcije, sačuvani pogledi, mjerenje vremena, prilozi, arhiva, ponovno otvaranje), tabele
+  statusa i polja, česta pitanja i poruke grešaka, poznata ograničenja (B1–B5) i povezani moduli.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T48–T56**: tok statusa kao podatak; grupni inbox i vidljivost; pravila
+  zatvaranja (close code, obavezna polja, resolution note); spajanje i razdvajanje; dijeljenje tiketa; skupne
+  akcije; sačuvani pogledi; mjerenje vremena; prilozi.
+- `REVIEW_ANALIZA.md` §M8 — planirano/idealno/preporuka, stanje u kodu (model, API, kreiranje i vidljivost,
+  lista, tok statusa i arhiva, saradnja, bulk/saved views/prilozi/vrijeme/izvoz, frontend), gap tabela sa 16
+  redova, recenzija, nalazi **B1–B7**, ocjene **F9 / K8 / S8** i red tabele iteracija „2 … M8 ✅ · M9 u toku“.
+
+**Ostaje otvoreno:** nema novih `[NEJASNO]` stavki za ovaj modul; jedini otvoreni termin iz §M6
+(`private.ticket.forms.schemaRegistryJson`) i dalje čeka odgovor i ne spominje se u dokumentaciji.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **9 / 10** | Kreiranje s routingom, grupni inbox i preuzimanje, tok statusa s čuvarima, merge/split, bulk s preview-om i structured broadcastom, saved views, mjerenje vremena s anti-abuse, arhiva, reopen i izvoz — sve radi i pokriveno je testovima. Umanjuje jedino odstupanje od RAW-a u poljima „request type/due date“ i nalazi B1–B4. |
+| Kvalitet koda | **8 / 10** | Tok statusa kao podatak, vidljivost izvedena iz aktera, transakcije i audit na svim promjenama, precizni kodovi grešaka, keš samo za brojeve. Umanjuju: tri postavke bez efekta (B1–B3), memorijski rate limiter (B2) i sitni nedostaci u konzistentnosti filtera (B4–B6). |
+| Sigurnost | **8 / 10** | OU/servis scope + D1 grupa, povjerljivi tiketi s vlastitom matricom (SuperAdmin bez implicitnog pristupa), break-glass uz audit, OU izolacija u upitima liste, klasifikacija priloga bez „spuštanja“, bulk scope i zabrana bulk close-a. Umanjuju: B1 (retention bez primjene) i B2 (limit po instanci). |

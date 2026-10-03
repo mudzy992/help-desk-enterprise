@@ -297,3 +297,49 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   `components/tickets/{ticket-priority-panel,ticket-detail-sidebar,ticket-inbox-*}.tsx`,
   `lib/tickets/{inbox-view-tabs,use-ticket-list,calculate-ticket-priority,lookup-ticket-priority}.ts`,
   `services/routing-api.ts`) i e2e (`02-routing-fallback`, `13-priority-merge`, `15-workflow-unrouted-realtime`).
+
+---
+
+## M8 — Tiketi (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/tiketi.md` — novi vodič kroz cijeli tok: prijava tiketa, rad iz grupnog inboxa, detalj tiketa
+  (poruke, učesnici, prilozi, vrijeme, prioritet), spajanje i razdvajanje, dijeljenje (split), skupne akcije,
+  sačuvani pogledi, tabele statusa i dozvoljenih prelazaka, automatika i rokovi, česta pitanja i poruke grešaka,
+  poznata ograničenja (B1–B5, B7) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M8 — planirano/idealno/preporuka, stanje u kodu (model i kontrakti, API, kreiranje i
+  vidljivost, lista i filteri, tok statusa/arhiva/reopen, saradnja, bulk/saved views/prilozi/vrijeme/izvoz,
+  frontend), gap tabela sa 16 redova, recenzija, nalazi **B1–B7**, ocjene **F9 / K8 / S8** i red tabele iteracija
+  „2 … M8 ✅ · M9 u toku“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T48–T56**: tok statusa kao podatak; vidljivost iz aktera; pravila zatvaranja;
+  merge/unmerge; split; skupne akcije; sačuvani pogledi; mjerenje vremena; prilozi.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — `prosljedjivanje-tiketa.md` ostaje zasebna stranica za forwarding i
+  nije mijenjan.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Osnovni tok tiketa nije bio dokumentovan, a tri stvari se lako pogrešno razumiju: (1) grupni inbox je radni red
+  grupe i ne prikazuje naručiocu njegove tikete, (2) zatvaranje ima najstrože provjere i traži close code,
+  napomenu i obavezna polja, i (3) skupno zatvaranje **nije** dozvoljeno. Vodič i teze zato te dijelove navode
+  eksplicitno, uz nalaze B1–B5 i B7.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/tickets/*` (`workflow/ticket-workflow-definition.ts`,
+  `tickets.controller.ts`, `assert-patch-ticket-status.ts`, `authorize-ticket-actor.ts`,
+  `resolve-ticket-actor-access.ts`, `list/build-ticket-visibility-where.ts`, `list-tickets.ts`,
+  `list/list-tickets.types.ts`, `apply-ticket-lifecycle-timestamps.ts`, `merge/*`, `split/*`, `bulk/*`,
+  `saved-views/*`, `attachments/*`, `time-tracking/*`, `archive/*`, `reopen/*`, `waiting-for-user/*`, `export/*`,
+  `context/*`, `map-ticket-realtime-change.ts`), `backend/src/modules/settings/definitions/ticket-*.ts`,
+  `backend/src/modules/privacy/retention/retention-executors.ts`, `backend/prisma/schema/{ticketing,enums}.prisma`,
+  te frontend (`pages/ticket-*.tsx`, `components/tickets/*`, `lib/tickets/*`) i e2e
+  (`01-ticket-create`, `05-bulk-broadcast`, `06-confidential`, `10-forward-cross-ou`, `14-time-tracking`,
+  `15-workflow-unrouted-realtime`).

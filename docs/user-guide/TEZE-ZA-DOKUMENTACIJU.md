@@ -965,6 +965,186 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B2: `private.changeLog.routing.enabled` je bez potrošača)
 - **Wiki stranica:** Usmjeravanje → Postavke i konfiguracija
 
+### T48 — Tok statusa tiketa je podatak, a ne niz uslova
+
+- **Modul / paket:** Tiketi
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Dozvoljeni prelasci statusa definisani su kao tabela s akterom (`STAFF|REQUESTER|APPROVER|SYSTEM`),
+  okidačem (`status_change|claim|forward|approval|reopen|automation`) i čuvarima (`close_code`,
+  `required_fields`, `resolution_note`, `reopen_window`, `waiting_auto_close`, `archive_after`, `group_required`,
+  `playbook_steps`). Iz te tabele se izvodi lista dozvoljenih prelazaka koju koriste i serverske provjere i
+  administratorski ekran **Tok statusa**. Prelaz iz `PENDING_APPROVAL` traži odluku odobrenja, prelaz **u**
+  `PENDING_APPROVAL` je zabranjen, a povratak iz Riješeno/Zatvoreno u obradu ide isključivo kroz ponovno
+  otvaranje.
+- **Zašto:** tok mora biti jedinstven za sve ulaze (UI, automatika, integracije) i čitljiv adminu bez čitanja koda.
+- **Primjer:** `PENDING → RESOLVED` nije dozvoljen; agent mora prvo preuzeti tiket.
+- **Postavke / permisije:** promjena statusa traži AGENT/ADMIN rolu; pojedina polja i čuvari zavise od postavki.
+- **Ekran:** detalj tiketa → izbor statusa; **Administracija → Tok statusa**.
+- **Izvori:** `backend/src/modules/tickets/workflow/ticket-workflow-definition.ts:32–92`,
+  `assert-ticket-status-transition.ts:5–21`, `assert-patch-ticket-status.ts:7–34`,
+  `tickets.constants.ts:49–52`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Tok statusa
+
+### T49 — Vidljivost tiketa se izvodi iz aktera, nikad iz upita
+
+- **Modul / paket:** Tiketi
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Ko vidi tiket određuju OU/servis scope, **članstvo u trenutnoj handler grupi** i učesništvo (pratilac
+  ne dobija pristup), a povjerljivi tiketi imaju dodatnu matricu pristupa (naručilac, dodijeljeni, handler grupa,
+  učesnik, izričit grant, dozvoljena rola/grupa u scope-u ili aktivan break-glass). SuperAdmin **nema**
+  automatski pristup povjerljivim tiketima. Liste koriste istu logiku, izraženu kao `WHERE` uslov, pa lista i
+  detalj ne mogu prikazati različite skupove; grupni inbox ne prikazuje naručiocu njegove vlastite tikete, jer je
+  to radni red grupe.
+- **Zašto:** sigurnost ne smije zavisiti od toga koji je ekran otvoren ni od filtera u URL-u.
+- **Primjer:** Agent iz OU Zenica, član grupe u OU Direkcija, radi na tiketu proslijeđenom u tu grupu; kada tiket
+  ode dalje, to pravo prestaje.
+- **Postavke / permisije:** `private.ticket.confidential.*`, OU/servis scope iz RBAC-a.
+- **Ekran:** **Tiketi** (pogledi) i detalj tiketa.
+- **Izvori:** `backend/src/modules/tickets/authorize-ticket-actor.ts:8–111`,
+  `resolve-ticket-actor-access.ts:24–67`, `list/build-ticket-visibility-where.ts:23–50`,
+  `confidential/assert-confidential-ticket-access.ts`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Ko vidi koji tiket
+
+### T50 — Zatvaranje provjerava close code, napomenu i obavezna polja
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT / ADMIN
+- **Tip:** Pravilo
+- **Teza:** Pri prelasku u **Riješeno** ili **Zatvoreno** provjeravaju se, po redu: close code (ako je
+  konfigurisan), napomena o rješenju, globalna i po-servisu obavezna polja, te obavezna polja iz šeme forme kada je
+  `enforceSchemaRequiredFields` uključen. Ako nešto nedostaje, prelaz se odbija i vraća se lista polja koja
+  nedostaju.
+- **Zašto:** podaci ne smiju ostati nepotpuni, a odbijanje mora biti objašnjivo.
+- **Primjer:** Agent ne može zatvoriti tiket bez ispravnog close code-a i napomene.
+- **Postavke / permisije:** `private.ticket.closeCodes.*`, `private.workflow.requiredFields.*`,
+  `private.ticket.forms.requireStructuredFields`.
+- **Ekran:** detalj tiketa → promjena statusa u **Riješeno** / **Zatvoreno**.
+- **Izvori:** `backend/src/modules/tickets/close-codes/apply-ticket-resolution.ts:34–53`,
+  `required-fields/collect-missing-required-fields.ts:11–66`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Zatvaranje tiketa
+
+### T51 — Spajanje i razdvajanje tiketa (merge/unmerge)
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT / ADMIN
+- **Tip:** Pravilo
+- **Teza:** Merge povezuje do 50 djece u parent tiket uz obavezan razlog (3–500 znakova) i najviše 10 kandidata u
+  izboru; nije dozvoljeno spojiti tiket sa samim sobom, ni tiket u `CLOSED|ARCHIVED`, niti miješati povjerljiv i
+  nepovjerljiv tiket. Djeca preuzimaju status roditelja i postaju **samo za čitanje** (izmjena se odbija porukom da
+  je tiket spojen), a **unmerge** vraća dijete u samostalan tiket.
+- **Zašto:** duplikati ne smiju stvarati paralelne tokove, ali spajanje mora biti reverzibilno.
+- **Primjer:** Incident s deset prijava spaja se u jedan parent tiket; sve odluke i poruke vode se na jednom mjestu.
+- **Postavke / permisije:** staff rola (AGENT/ADMIN) + pristup tiketima.
+- **Ekran:** detalj tiketa → **Spoji** / **Razdvoji**.
+- **Izvori:** `backend/src/modules/tickets/merge/merge.constants.ts:4–22`,
+  `merge/assert-merge-allowed.ts:29–61`, `merge/propagate-merged-status.ts`, `merge/unmerge-ticket.ts`,
+  `merge/assert-ticket-editable.ts:13–20`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Spajanje i razdvajanje
+
+### T52 — Dijeljenje tiketa u pod-tikete (split)
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT / ADMIN
+- **Tip:** Pravilo
+- **Teza:** Split pravi 2–10 pod-tiketa uz obavezan razlog (do 2000 znakova). Svako dijete može dobiti vlastiti
+  naslov, opis, servis i grupu, a iz originala se **prenose samo eksplicitno odabrane poruke i prilozi** (bez
+  odabira dijete dobija samo referencu). Događaj se auditira kao sistemski zapis s razlogom i listom kreirane
+  djece, a svako dijete dobija svoju grupu po rutanju ili ručno.
+- **Zašto:** jedan tiket s više tema mora se razdvojiti bez gubitka konteksta i bez slučajnog prenošenja sadržaja.
+- **Primjer:** Tiket „Novi laptop + VPN + pristup štampi“ dijeli se na tri zahtjeva, svaki u svoju grupu.
+- **Postavke / permisije:** `private.ticket.split.*` (`allowMessageCopy`, `allowAttachmentMove`, `requireReason`).
+- **Ekran:** detalj tiketa → **Podijeli tiket**.
+- **Izvori:** `backend/src/modules/tickets/split/split.constants.ts:1–12`,
+  `split/split-ticket.ts:22–…`, `split/create-split-child-ticket.ts:13–…`,
+  `split/dto/split-ticket-child.dto.ts:23–33`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Dijeljenje tiketa
+
+### T53 — Skupne akcije: ista OU i grupa, bez zatvaranja, uz pregled i limit
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT (u svojoj grupi), ADMIN, SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Skupna akcija obuhvata najviše 100 tiketa i zahtijeva da svi tiketi budu u **istoj OU i istoj grupi**;
+  SuperAdmin smije preko OU granica ako je to dozvoljeno postavkom. **Zatvaranje tiketa skupno nije dozvoljeno.**
+  Dozvoljene akcije su na allow-listi (dodjela grupe/agenta, promjena statusa, promjena prioriteta, strukturirani
+  broadcast i spajanje u parent), svaka akcija traži razlog, a broadcast ima obavezna polja, pregled broja
+  primalaca i ograničenje slanja. Svaka izmjena se auditira s identifikatorom serije.
+- **Zašto:** skupna akcija je najbrži način da se napravi šteta u više tiketa odjednom.
+- **Primjer:** Odabir 12 tiketa iz dvije različite grupe se odbija; isto tako i pokušaj skupnog zatvaranja.
+- **Postavke / permisije:** `private.ticket.bulkActions.*`.
+- **Ekran:** **Tiketi** → izbor redova → panel skupnih akcija.
+- **Izvori:** `backend/src/modules/tickets/bulk/bulk.constants.ts:4–25`,
+  `bulk/assert-bulk-ticket-scope.ts:6–29`, `bulk/apply-bulk-broadcast.ts`,
+  `bulk/bulk-broadcast-rate-limiter.ts:1–18`, `bulk/tickets-bulk.controller.ts:39–47`.
+- **Status:** Važi (uz B2: rate limit je po procesu)
+- **Wiki stranica:** Tiketi → Skupne akcije
+
+### T54 — Sačuvani pogledi su lični, s limitom i opcionim defaultom
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT / ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Agent ili admin može sačuvati filtere, sort i izbor kolona kao **lični** pogled; najviše 20 po
+  korisniku, jedan može biti **podrazumijevani**. Pogledi **ne mijenjaju sigurnost** — vidljivost se i dalje
+  računa iz aktera. Dijeljenje pogleda je isključeno.
+- **Zašto:** brz pristup čestim kombinacijama filtera bez globalnih, dijeljenih „pametnih“ pogleda.
+- **Primjer:** Pogled „Moja grupa + Visok prioritet + Prekoračeno“ otvara se jednim klikom.
+- **Postavke / permisije:** `private.ticket.savedViews.*` (`enabled`, `maxPerUser`, `allowDefaultView`).
+- **Ekran:** **Tiketi** → meni sačuvanih pogleda (**Sačuvaj pogled**).
+- **Izvori:** `backend/src/modules/tickets/saved-views/saved-views.constants.ts:1–18`,
+  `saved-views/tickets-saved-views.controller.ts:43–65`,
+  `saved-views/parse-ticket-saved-views-configuration.ts:15–29`.
+- **Status:** Važi (uz B3: `allowSharing` nema efekta)
+- **Wiki stranica:** Tiketi → Sačuvani pogledi
+
+### T55 — Mjerenje vremena s automatskom pauzom i sweep-om
+
+- **Modul / paket:** Tiketi
+- **Publika:** AGENT / ADMIN
+- **Tip:** Pravilo
+- **Teza:** Tajmer se pokreće i zaustavlja na tiketu, jedan je aktivan po korisniku, a rad se potvrđuje
+  **heartbeatom** (minimalni razmak 20 s). Ako nema heartbeatova, sweep zatvara tajmer na zadnjem otkucaju uz
+  dodatnu toleranciju od 2 minute; dodatno postoje ograničenje dužine sesije, automatsko nastavljanje i pravila za
+  ručni unos (dozvoljeno backdatiranje i maksimalno trajanje). Tajmeri ne rade na riješenim, zatvorenim i
+  arhiviranim tiketima.
+- **Zašto:** mjerenje mora odražavati stvarni rad i ne smije se moći „pustiti u beskonačno“.
+- **Primjer:** Agent zatvori tab; nakon isteka idle roka tajmer se sam zaustavlja i vrijeme se knjiži do zadnjeg
+  otkucaja.
+- **Postavke / permisije:** `private.ticket.timeTracking.*` (`idleAutoPauseMinutes`, `autoResume`,
+  `maxSessionHours`, `manualEntryEnabled`, `maxBackdateDays`, `manualMaxMinutes`).
+- **Ekran:** detalj tiketa → panel **Vrijeme**; indikator aktivnog tajmera u zaglavlju aplikacije.
+- **Izvori:** `backend/src/modules/tickets/time-tracking/time-tracking.constants.ts:6–34`,
+  `heartbeat-ticket-time-log.ts:16–40`, `sweep-time-logs.ts:9–45`,
+  `time-tracking/tickets-time-tracking.controller.ts:53–140`.
+- **Status:** Važi
+- **Wiki stranica:** Tiketi → Mjerenje vremena
+
+### T56 — Prilozi: politika, klasifikacija i skeniranje
+
+- **Modul / paket:** Tiketi
+- **Publika:** svi (upload), ADMIN (politika)
+- **Tip:** Pravilo
+- **Teza:** Prilog se prihvata samo ako prolazi politiku: uključeni prilozi, dozvoljeni MIME tipovi i ekstenzije,
+  veličina (podrazumijevano 25 MB), broj po tiketu i po poruci, te lista opasnih ekstenzija. Klasifikacija priloga
+  se **nasljeđuje od tiketa** i ne može se spustiti na nižu razinu; fajl se provjerava i skenira prije nego postane
+  dostupan. Skidanje priloga prolazi istu provjeru pristupa kao i tiket.
+- **Zašto:** prilog je najčešći kanal za iznošenje podataka i za zlonamjerne fajlove.
+- **Primjer:** `.exe` se odbija bez obzira na MIME; PDF naslijeđuje klasu tiketa „Interno“.
+- **Postavke / permisije:** `private.ticket.attachments.*`.
+- **Ekran:** detalj tiketa → **Prilozi**.
+- **Izvori:** `backend/src/modules/tickets/attachments/attachments.constants.ts:3–46`,
+  `validate-ticket-attachment.ts:19–53`, `inherit-attachment-classification.ts:5–19`,
+  `scan-attachment-with-clamav.ts`, `download-ticket-attachment.ts`.
+- **Status:** Važi (uz B1: `retentionDays` nema efekta; brisanjem upravlja modul Privatnost)
+- **Wiki stranica:** Tiketi → Prilozi
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
