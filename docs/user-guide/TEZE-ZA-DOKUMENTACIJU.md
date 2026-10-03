@@ -611,25 +611,31 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Administracija → Uloge i permisije
 
-### T31 — Default mapping rola → permisije postoji u kodu, ali nije upisan pri instalaciji
+### T31 — Default mapping rola → permisije upisuje se pri instalaciji, a seed je aditivan
 
 - **Modul / paket:** RBAC
 - **Publika:** SUPER_ADMIN / instalater
-- **Tip:** Ograničenje
-- **Teza:** Standardni mapping iz zadatka (USER/AGENT/ADMIN) definisan je u kodu
-  (`defaultRolePermissionKeys`), ali se **ne upisuje** u bazu pri instalaciji niti pri kreiranju role; tabele
-  `Permission`/`RolePermission` pune se tek kada SUPER_ADMIN sačuva permisije na ekranu **Permisije** ili kad se
-  primijeni policy paket. Do tada ADMIN i AGENT ne mogu izvršavati akcije koje traže permisiju.
-- **Zašto:** dokumentacija ne smije tvrditi da su defaulti aktivni odmah.
-- **Primjer:** Nakon instalacije, ADMIN klikom na **Grupe** → **Nova grupa** dobija 403 dok SuperAdmin ne
-  sačuva permisije role ADMIN.
-- **Postavke / permisije:** `defaultRolePermissionKeys`, `permissionKeys.groupManage`, `settings.write`.
-- **Ekran:** Administracija → **Permisije**.
-- **Izvori:** `backend/src/modules/authorization/authorization.constants.ts:205–217`;
-  `backend/src/modules/rbac/replace-role-permissions.ts:36–44`;
-  `backend/src/modules/policy-packs/ensure-policy-pack-catalog.ts:83–95`;
-  odsustvo upisa u `backend/prisma/migrations/20260909180000_init_enterprise_schema` i u `modules/install`.
-- **Status:** Privremeno (nalaz B1, `REVIEW_ANALIZA.md` §M4)
+- **Tip:** Pravilo
+- **Teza:** U instalacijskom koraku 4 (*Početni podaci*) sistem upisuje sedam sistemskih rola i njihove default
+  permisije iz `defaultRolePermissionKeys` (USER 4, AGENT 22, ADMIN 58, SUPER_ADMIN 63, ASSET_MANAGER 6,
+  PROBLEM_MANAGER 4, CHANGE_MANAGER 4 — ukupno 161 veza). Isti seed se poziva i pri ponovljenom koraku
+  čarobnjaka. Postupak je **aditivan i idempotentan**: dodaje role, `Permission` redove i `RolePermission` veze
+  koje nedostaju, a **nikad ne briše**. Zato permisija koju je administrator svjesno uklonio može biti vraćena
+  ako se seed ponovo pokrene — zato CLI ima `--dry-run` koji ispiše spisak prije upisa.
+- **Zašto:** dokumentacija mora pokazati i da su defaulti aktivni odmah i da seed ne „poštuje“ ručno uklonjene
+  permisije; to je cijena idempotencije i korisnik je mora znati prije nego pokrene alat.
+- **Primjer:** Svježa instalacija — rola ADMIN odmah nosi `group.manage` i `settings.write` (akcija prolazi
+  ako dodjela role nije ograničena OU scope-om — vidi T28), rola USER nosi `ticket.message.send`. Postojeća instalacija bez permisija — `npm run cli:seed-role-permissions --dry-run`
+  ispiše npr. `ADMIN: existing 0, would add 58`, pa se bez `--dry-run` upiše i ostavlja audit zapis.
+- **Postavke / permisije:** `defaultRolePermissionKeys`, `authorizationRoleNames`, `permissionKeys.groupManage`,
+  `settings.write`.
+- **Ekran:** Instalacija → korak 4 (**Početni podaci**); Administracija → **Permisije**.
+- **Izvori:** `backend/src/modules/install/seed-install-minimum.ts:27–31`;
+  `backend/src/modules/rbac/seed-default-role-permissions.ts:52–133`;
+  `backend/src/cli/seed-default-role-permissions.ts:26–75`;
+  `backend/src/modules/authorization/authorization.constants.ts:21–30`;
+  `backend/src/modules/users/ensure-system-role.ts:2–14`.
+- **Status:** Riješeno (val 0, nalaz B1 iz `REVIEW_ANALIZA.md` §M4 — prije popravke mapping se nije upisivao)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
 ### T32 — Paket politika dodjeljuje role i permisije scoped na ciljnu OJ/servis, uz idempotenciju i audit

@@ -85,9 +85,13 @@ Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jed
 
 - **„Zašto ADMIN ne vidi neku akciju iako ima rolu ADMIN?“** — Role i permisije su odvojeni. Rola otvara meni,
   a akcije traže permisiju. Provjerite u **Permisije** šta rola stvarno ima; meni se prilagođava sesiji.
-- **„Nakon instalacije ADMIN ne može otvoriti Grupe/Postavke.“** — Očekivano ponašanje trenutne verzije:
-  default mapping permisija nije upisan u bazu, pa SuperAdmin treba da ih sačuva na ekranu **Permisije** ili da
-  primijeni policy paket. Vidi *Poznata ograničenja*.
+- **„Nakon instalacije ADMIN ne može otvoriti Grupe/Postavke.“** — Na svježoj instalaciji role dobijaju svoje
+  default permisije odmah (korak 4, *Početni podaci*). Ako je instalacija starija, default mapping nije bio
+  upisan: pokrenite seed (`npm run cli:seed-role-permissions --dry-run`, pa bez `--dry-run`) ili neka
+  SuperAdmin sačuva permisije na ekranu **Permisije**. Vidi *Poznata ograničenja*.
+- **„Uklonio sam permisiju roli, a poslije je opet tu.“** — Seed default mappinga je **aditivan**: nikad ne
+  briše, ali vraća ono što nedostaje. Ako permisija ne treba da se vrati, ne pokrećite seed (prvo `--dry-run`
+  ispiše šta bi bilo dodato).
 - **„Ne mogu sačuvati permisije.“** — Dugme **Potvrdi i sačuvaj** postoji samo nakon **Pregled uticaja**; prvo
   pokrenite pregled.
 - **„Promjena nije vidljiva odmah.“** — Za nove zahtjeve je vidljiva odmah (keš nosioca role se invalidira);
@@ -99,9 +103,11 @@ Osim role i permisije, svaka dodjela može imati **OU scope** (organizacionu jed
 
 ## Poznata ograničenja
 
-- **Default mapping rola → permisije nije upisan u bazu** pri instalaciji. Na svježoj instalaciji ADMIN i AGENT
-  imaju rolu, ali nemaju nijednu permisiju dok ih SuperAdmin ne sačuva ili ne primijeni **IT Standard** policy
-  paket. (Nalaz B1 iz `REVIEW_ANALIZA.md` §M4.)
+- **Default mapping se upisuje pri instalaciji, ali je aditivan.** Od vala 0 (2026-10-03) korak 4 upisuje
+  sistemske role s default permisijama (USER 4, AGENT 22, ADMIN 58, SUPER_ADMIN 63, ASSET_MANAGER 6,
+  PROBLEM_MANAGER 4, CHANGE_MANAGER 4). Postupak **nikad ne briše**, pa ponovno pokretanje seeda (instalacija
+  ili CLI na starijim instalacijama) može vratiti permisiju koju je administrator svjesno uklonio — zato prvo
+  `--dry-run`. (Bivši nalaz B1 iz `REVIEW_ANALIZA.md` §M4.)
 - **Preview uticaja nije obavezan na serveru** — UI ne dopušta čuvanje bez pregleda, ali API to ne provjerava.
   (Nalaz B2.)
 - **Razlog promjene se ne pamti**; u audit logu je samo diff dodanih/uklonjenih permisija. (Nalaz B2.)

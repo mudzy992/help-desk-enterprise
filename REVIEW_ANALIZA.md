@@ -25,6 +25,7 @@
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
 | 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
+| 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · otvoreni ostaju B2 (`SREDNJE`) i B3–B5 (`NISKO`) — vidi `# Val 0 — popravka M4/B1` |
 
 ---
 
@@ -900,7 +901,7 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 |---|---|---|---|
 | Granularne permisije (`:174–176`) | 60+ permisija, provjera na svakoj ruti | 63 permisije, `@RequirePermissions` + `RoleGuard`/`OuAccessGuard` | **Implementirano** |
 | Minimalni set iz RAW-a (`:177–194`) | Sve navedene permisije postoje i koriste se | Postoje (i više od liste); `reports.controller.ts:48` koristi dvije zajedno (ANY-of) | **Implementirano** |
-| Default mapping (`:195–216`) | Standardni mapping aktivan odmah | **Nije upisan u bazu** — vidi B1 | **Odstupa** |
+| Default mapping (`:195–216`) | Standardni mapping aktivan odmah | Upisuje se pri instalaciji (`install/seed-install-minimum.ts:31`, val 0) + CLI za postojeće instalacije | **Implementirano** |
 | Premošćivanje scope-a zabranjeno (`:222,229`) | Scoped dodjela ne prolazi globalnu provjeru | Fail-closed pravilo u `evaluate-authorization-access.ts:62–68`; jedina scope-agnostička permisija `onCallRead` | **Implementirano** |
 | SUPER_ADMIN globalno uz audit (`:217–220`) | Bypass + trag o cross-OU akcijama | Bypass postoji (`:120–125`, uz `isLocalOnly`); sam bypass se ne auditira | **Djelimično** |
 | Mapping izmjenjiv kroz UI + change log s reason + diff (`:223`) | UI + obavezan razlog + diff u audit logu | UI i diff u auditu postoje; **nema razloga** u `ReplaceRolePermissionsDto` (`dto/replace-role-permissions.dto.ts:3–7`) | **Djelimično** |
@@ -927,8 +928,8 @@ koristi u aplikaciji (hijerarhija odobravanja?); polje `User.managerUserId` post
 
 ## 7. Otkriveni bug-ovi i neusklađenosti
 
-**B1 — `VISOKO` — default mapping rola → permisije se nikad ne upisuje u bazu; svježa instalacija daje
-ADMIN/AGENT naloge bez ijedne permisije.**
+**B1 — `RIJEŠENO` *(val 0, 2026-10-03; prijavljen kao `VISOKO`)* — default mapping rola → permisije se nikad
+nije upisivao u bazu; svježa instalacija davala je ADMIN/AGENT naloge bez ijedne permisije.**
 `defaultRolePermissionKeys` (`authorization.constants.ts:205–217`) koriste samo
 `policy-packs/policy-pack.registry.ts:11–12`, `assert-policy-pack-definition.ts:61` i test harness
 (`knowledge-base/seed-knowledge-base-harness-actors.ts:103`). Nijedna migracija ne upisuje bazne redove: init
@@ -944,6 +945,13 @@ SLA, izvještaji/izvoz (`reports.export`, `audit.export`), bulk akcije; dobijaju
 sačuva permisije u UI-u ili ne primijeni policy paket. To je direktno protivno RAW default mapiranju
 (`RAW_PROJECT.md:195–216`). **Fix:** idempotentno upisati `defaultRolePermissionKeys` u okviru instalacije
 (`ensureInstallSuperAdminRole`/seed) i dodati migraciju za postojeće instalacije.
+**Riješeno (val 0):** `install/seed-install-minimum.ts:31` poziva `seedDefaultRolePermissions`
+(`rbac/seed-default-role-permissions.ts:52–133`) odmah poslije minimalnog seed-a, pa i svježa instalacija i
+ponovljen korak čarobnjaka upisuju role s default permisijama; za postojeće instalacije postoji
+`npm run cli:seed-role-permissions [--dry-run]` (`cli/seed-default-role-permissions.ts:26–75`). Postupak je
+aditivan i idempotentan (nikad ne briše), o upisu ostavlja audit `role_permission.replace` s
+`via: 'seed-default-role-permissions'`, a `authorizationRoleNames` (`authorization.constants.ts:21–30`) postao
+je jedini izvor naziva sistemskih rola. Detalji i dokazi: `# Val 0 — popravka M4/B1` na kraju dokumenta.
 
 **B2 — `SREDNJE` — preview uticaja nije serverska kapija, a razlog promjene se ne pamti.**
 `roles.controller.ts:69–82` prima `PUT` i odmah mijenja permisije; `dto/replace-role-permissions.dto.ts:3–7` nema
@@ -1002,7 +1010,7 @@ imao teze za RBAC; postojeći modulski fajlovi spominju permisije samo usput (np
 
 | Kriterij | Ocjena | Obrazloženje |
 |---|---|---|
-| Funkcionalnost | **7 / 10** | Sve komponente postoje (63 permisije, scope po OU/servisu, preview, read-only režim, sesija s dozvolama), ali B1 čini RBAC praktično neupotrebljivim za ADMIN/AGENT na svježoj instalaciji dok se mapping ručno ne uspostavi. |
+| Funkcionalnost | **9 / 10** | *Re-ocjena u valu 0 (2026-10-03; prije 7).* Sve komponente postoje (63 permisije, scope po OU/servisu, preview, read-only režim, sesija s dozvolama), a B1 je riješen — default mapping se upisuje pri instalaciji, pa ADMIN/AGENT rade odmah. Preostaje serverski neobavezan preview (B2). |
 | Kvalitet koda | **9 / 10** | Decision-core odvojen od I/O-a, razlozi odluka, izuzetna test pokrivenost, čist preview kroz stvarni evaluator. Zamjerke su male: nedokumentovana ANY-of semantika i dvostruko čitanje pravila u komentarima umjesto u kodu. |
 | Sigurnost | **8 / 10** | Fail-closed scope pravilo, `isLocalOnly` uslov za SuperAdmin bypass, read-only režim fail-closed, revizija promjena kroz audit. Umanjuju: serverski neobavezan preview (B2), neauditovan bypass (B5) i implikacije B4. |
 
@@ -4878,7 +4886,7 @@ jednokoračno odobrenje.
 | M1 Instalacija (prvi start) | 8 | 9 | 7 | 0 / 1 / 4 | `user-guide/instalacija.md` |
 | M2 Prijava i MFA | 9 | 8 | 8 | 0 / 2 / 4 | `user-guide/prijava-i-mfa.md` |
 | M3 Korisnici, OJ i grupe | 8 | 8 | 7 | 0 / 4 / 3 | `user-guide/korisnici-oj-i-grupe.md` |
-| M4 RBAC | 7 | 9 | 8 | **1** / 1 / 3 | `user-guide/uloge-i-permisije.md` |
+| M4 RBAC | 7 → **9** | 9 | 8 | **1** / 1 / 3 → poslije vala 0: 0 / 1 / 3 | `user-guide/uloge-i-permisije.md` |
 | M5 Policy paketi | 6 | 8 | 8 | 0 / 4 / 2 | `user-guide/policy-paketi.md` |
 | M6 Katalog usluga i forme | 7 | 8 | 7 | 0 / 5 / 4 | `user-guide/katalog-usluga-i-forme.md` |
 | M7 Usmjeravanje i prioritet | 8 | 8 | 8 | 0 / 4 / 5 | `user-guide/usmjeravanje-i-prioritet.md` |
@@ -4891,9 +4899,12 @@ jednokoračno odobrenje.
 | M14 Baza znanja | 8 | 7 | 7 | 0 / 1 / 6 | `user-guide/baza-znanja.md` |
 | M15 Nadzorna ploča i izvještaji | 8 | 8 | 8 | 0 / 2 / 4 | `user-guide/nadzorna-ploca-i-izvjestaji.md` |
 | **Prosjek (15 modula)** | **7,8** | **8,2** | **7,7** | **1 / 38 / 53** | **15 vodiča** |
+| *M4 poslije vala 0 (2026-10-03)* | *9* | *9* | *8* | *0 / 1 / 3* | *isti vodič* |
 
 Raspodjela ozbiljnosti: **1 VISOKO** (M4 B1 — default mapping rola → permisije se nikad ne upisuje u bazu),
-**38 SREDNJE**, **53 NISKO**, **0 KRITIČNO**. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
+**38 SREDNJE**, **53 NISKO**, **0 KRITIČNO**. Poslije vala 0 (2026-10-03) jedini `VISOKO` je zatvoren:
+otvoreno je **0 KRITIČNO / 0 VISOKO / 38 SREDNJE / 53 NISKO**, a M4 ide na **F9 / K9 / S8**
+(prosjek F **7,9**); tabela iznad zadržava prvobitne ocjene kao zapis stanja prije popravke. Od 236 redova gap tabela: **151 ispunjeno**, **65 djelimično**,
 **15 svjesnih odstupanja**, **4 nedostaje**, **1 van opsega** — dakle RAW je u najvećoj mjeri isporučen, a
 problemi su koncentrisani u *posljedicama* (šta se dešava kad se funkcija ne koristi kako je zamišljena),
 ne u tome da funkcija ne postoji.
@@ -4905,7 +4916,7 @@ modula):
 
 | # | RAW | Šta nedostaje | Modul |
 |---|---|---|---|
-| 1 | `:195–216` | Default mapping rola → permisije nikad se ne upisuje, pa svježa instalacija daje prazne role (B1, jedini VISOKO) | M4 |
+| 1 | `:195–216` | ~~Default mapping rola → permisije nikad se ne upisuje, pa svježa instalacija daje prazne role~~ — **riješeno u valu 0** (2026-10-03, bio jedini `VISOKO`) | M4 |
 | 2 | `:296`, `:670–672` | Policy paket se ne može dodijeliti servisu **ili** OU; postavke `private.policyPacks.*` ne postoje; paket ne nosi SLA/obavezna polja/klasifikaciju/odobrenja | M5 |
 | 3 | `:54` | „service → request type → due date“ nema tip zahtjeva ni rok kao polja; forme to nose posredno | M8 |
 | 4 | `:269`, `:356–357` | Preview rutanja postoji kao endpoint, ali ga ekran za prijavu tiketa ne koristi | M7 |
@@ -4992,3 +5003,71 @@ zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa
   Redis ACL) — te teme su u modulima dotaknute samo tamo gdje ih kod otkriva.
 - **Ocjene su recenzentske**, na skali 1–10, i odražavaju ravnotežu isporučenog i propusta; ne treba ih
   čitati kao mjerenje, već kao poređenje s idealom opisanim u §2 svakog modula.
+
+---
+
+# Val 0 — popravka M4/B1 (2026-10-03)
+
+Prvi val popravki iz zaključka Faze 2 (§4, val 0 `[MIŠLJENJE]` ~0,5 RD) i **jedini nalaz sa ozbiljnošću
+`VISOKO`** u cijelom auditu: default mapping rola → permisije (`defaultRolePermissionKeys`) postoji u kodu, ali
+ga nijedna migracija ni instalacijski korak nije upisivao u bazu — svježa instalacija je davala ADMIN/AGENT
+naloge bez ijedne permisije (§M4 B1).
+
+## 1. Šta je promijenjeno
+
+| # | Promjena | Fajl (putanja:linije) |
+|---|---|---|
+| 1 | Nova idempotentna seed funkcija `seedDefaultRolePermissions(prisma, { dryRun, roleKeys })`; po roli vraća `roleKey`, `roleName`, `roleCreated`, `existing`, `added`, `addedPermissionKeys`, uz ukupan `addedTotal` | `backend/src/modules/rbac/seed-default-role-permissions.ts:52–133` |
+| 2 | Dry-run ne piše ništa i ne pravi `Permission` redove; čita samo postojeće, a ostatak prijavljuje kao „would add“ (`if (permissionId !== undefined && existingIds.has(permissionId)) continue;`) | `backend/src/modules/rbac/seed-default-role-permissions.ts:102–120,139–152` |
+| 3 | Poziv iz instalacije: poslije transakcije minimalnog seed-a (pokriva i ponovljen korak čarobnjaka) | `backend/src/modules/install/seed-install-minimum.ts:27–31` |
+| 4 | CLI za postojeće instalacije: `npm run cli:seed-role-permissions [--dry-run]`; ispisuje po roli `existing`/`added`, a za role s dodatkom upisuje audit `role_permission.replace` (`entityId` = ključ role, `metadata.via = 'seed-default-role-permissions'`, `actorUserId: null`) | `backend/src/cli/seed-default-role-permissions.ts:26–75`; `backend/package.json:22` |
+| 5 | Nazivi sistemskih rola na jednom mjestu (`authorizationRoleNames`) — koriste ih seed i `ensureSystemRole`; lokalna kopija `systemRoleNames` uklonjena | `backend/src/modules/authorization/authorization.constants.ts:16–30`; `backend/src/modules/users/ensure-system-role.ts:2,10` |
+| 6 | In-memory instalacijski harness dobio `permission`/`rolePermission` delegate i `getRoleByKey`/`listRolePermissionKeys` (isti kao users harness) da instalacijski testovi mogu tvrditi stvarne veze | `backend/src/modules/install/create-in-memory-install-super-admin-prisma.ts:224–226`; `backend/src/modules/install/create-in-memory-install-seed-prisma.ts:45,101–102`; `backend/src/modules/install/in-memory-install-super-admin.types.ts:24–31` |
+| 7 | Novi testovi: 4 testa seed funkcije (prazna baza → sve role i veze; drugi prolaz ne dodaje ništa; postojeći link se ne duplira; dry-run ne piše) + 1 test instalacijskog toka (role imaju default permisije poslije seed-a) | `backend/src/modules/rbac/seed-default-role-permissions.spec.ts`; `backend/src/modules/install/install-seed.service.spec.ts` |
+
+**Obim upisa na praznoj bazi (stvarni brojevi iz `defaultRolePermissionKeys`):** 7 rola i **161 veza** —
+USER 4, AGENT 22, ADMIN 58, ASSET_MANAGER 6, PROBLEM_MANAGER 4, CHANGE_MANAGER 4, SUPER_ADMIN 63.
+
+**Odluka (nesimulirana posljedica):** seed je **aditivan i nikad ne briše**. Permisija koju je administrator
+svjesno uklonio roli može se vratiti ponovnim pokretanjem, zato CLI ima `--dry-run` i ispisuje tačan spisak
+(`addedPermissionKeys`) prije upisa, a upis ostavlja audit trag. Alternativa (migracija koja upisuje veze) je
+odbijena jer bi ponovno pokretanje `prisma migrate deploy` bilo jednokratno, a ne rješavalo install tok.
+
+## 2. Dokazi (izvršeno u ovom okruženju)
+
+| Provjera | Komanda | Rezultat |
+|---|---|---|
+| Cijeli backend test suite | `NODE_OPTIONS="--max-old-space-size=3072" npx jest --ci --coverage=false --runInBand` | **494 uspješna suitea / 499** (5 preskočeno), **2 341 test / 2 372** (31 preskočen), 0 padova |
+| Ciljani moduli (RBAC, instalacija, autorizacija, korisnici, audit) | isti runner, pet direktorija | **71 suite / 267 testova**, 0 padova |
+| Typecheck | `npx tsc --noEmit -p tsconfig.json` | exit 0 |
+| Lint (izmijenjeni fajlovi) | `npx eslint <7 fajlova>` | 0 grešaka, 0 upozorenja |
+| Build (uklj. novi CLI u `dist/`) | `npm run build` | exit 0; `dist/src/cli/seed-default-role-permissions.js` postoji |
+| CLI bez `DATABASE_URL` | `node dist/src/cli/seed-default-role-permissions.js --dry-run` | ispis „DATABASE_URL is required“, exit 2 |
+| Statičke provjere repozitorija | `check-a11y-static`, `check-client-neutral`, `check-env-example`, `check-hooks-order`, `check-pulse-design-system`, `check-theme-contrast`, `check-ticket-id-leaks` | **7/7 OK** |
+
+Nije izvršeno (nema pristupa): seed na **stvarnoj** bazi i na stagingu — CLI je pokrenut samo protiv
+nedostupne baze radi provjere izlaznog koda. Zato je za postojeće instalacije prvi korak `--dry-run`.
+
+## 3. Dokumentacija uz popravku
+
+| Dokument | Promjena |
+|---|---|
+| `docs/user-guide/uloge-i-permisije.md` | Česta pitanja: „Nakon instalacije ADMIN ne može otvoriti Grupe/Postavke“ prepisano (svježa instalacija radi; za starije instalacije CLI) i dodat par o vraćanju uklonjene permisije; poznata ograničenja: B1 zamijenjen stvarnim ograničenjem *aditivnog* seeda |
+| `docs/user-guide/instalacija.md` | Korak 4 (**Početni podaci**): dodato da se uz minimum upisuju i sistemske role s default permisijama |
+| `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` | **T31** prepisan iz „ograničenje/prisutno“ u pravilo koje opisuje stvarno ponašanje i CLI (izvori i status ažurirani) |
+| `DOCS_CHANGELOG.md` | Nova sekcija **Val 0** + red u pregledu |
+
+## 4. Re-ocjena M4 i šta ostaje
+
+| Kriterij | Prije | Poslije | Obrazloženje |
+|---|---|---|---|
+| Funkcionalnost | 7 | **9** | RBAC radi odmah nakon instalacije; ostaje B2 (preview uticaja nije serverska kapija) |
+| Kvalitet koda | 9 | **9** | Seed je izdvojen u jednu funkciju s injektiranim Prisma klijentom, bez dupliranja naziva rola |
+| Sigurnost | 8 | **8** | Nalaz nije bio sigurnosni (fail-closed), pa se ocjena ne mijenja: i dalje je umanjuju B2 i neauditovan SuperAdmin bypass (B5) |
+
+**Otvoreno u M4 (nije dio vala 0):** B2 `SREDNJE` — serverski neobavezan preview i razlog promjene koji se ne
+pamti; B3, B4, B5 `NISKO`. Po kriteriju „gotov modul“ M4 **još nije zatvoren** dok se B2 ne riješi ili izričito
+ne prihvati kao odluka.
+
+**Ukupno poslije vala 0 (15 modula):** nalaza otvoreno **0 KRITIČNO / 0 VISOKO / 38 SREDNJE / 53 NISKO**;
+prosjek ocjena **F 7,9 · K 8,2 · S 7,7**.

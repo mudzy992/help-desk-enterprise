@@ -64,6 +64,9 @@ posljednjeg, gdje je **Završi**).
   **Opšti zahtjev** sa formom (polje „Dodatne informacije“) i routing pravilo koje taj servis vodi na grupu
   Fallback.
 - Poslije snimanja prikazuje se potvrda da se origin OU i servis razrješavaju na fallback grupu.
+- Uz minimum se upisuju i **sistemske role s default permisijama** (USER, AGENT, ADMIN, ASSET_MANAGER,
+  PROBLEM_MANAGER, CHANGE_MANAGER, SUPER_ADMIN — ukupno 161 veza), pa ADMIN i AGENT mogu raditi odmah nakon
+  instalacije. Postupak je aditivan i ponavlja se bezbjedno; detaljno: `uloge-i-permisije.md`.
 
 ### 5. Dodaci
 

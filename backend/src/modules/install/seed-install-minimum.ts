@@ -1,5 +1,6 @@
 import { invalidateConfigurationCachesAfter } from '../settings/invalidate-configuration-caches';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { seedDefaultRolePermissions } from '../rbac/seed-default-role-permissions';
 import { routingOutcomes } from '../routing/routing.constants';
 import { resolveTicketRouting } from '../routing/resolve-ticket-routing';
 import type { RoutingResolution } from '../routing/routing.types';
@@ -20,9 +21,15 @@ export async function seedInstallMinimum(
   prisma: PrismaService,
   context: InstallSeedContext,
 ): Promise<InstallSeedResult> {
-  return invalidateConfigurationCachesAfter(prisma.$transaction((transaction) =>
+  const seeded = await invalidateConfigurationCachesAfter(prisma.$transaction((transaction) =>
     seedInstallMinimumWithClient(transaction as PrismaService, context),
   ));
+  // Val 0 (finding M4/B1): the system roles and their default permission mapping
+  // used to be created nowhere, so a fresh installation handed out 403s to
+  // ADMIN/AGENT. Seeded right after the minimum data, before the wizard lets
+  // anyone log in; additive and idempotent, so a repeated seed step is harmless.
+  await seedDefaultRolePermissions(prisma);
+  return seeded;
 }
 
 async function seedInstallMinimumWithClient(

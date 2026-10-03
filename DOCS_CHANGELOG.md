@@ -28,6 +28,7 @@
 | M14 | 2026-10-03 | Baza znanja | `user-guide/baza-znanja.md` (nov), `TEZE` (+T88–T94) | Portal znanja, ocjene i ciklus pregleda |
 | M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
 | **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
+| **Val 0** | 2026-10-03 | **RBAC — popravka B1** | `REVIEW_ANALIZA.md` (§M4 + `# Val 0`), `user-guide/uloge-i-permisije.md`, `user-guide/instalacija.md`, `TEZE` (T31), ovaj dokument | **Default mapping rola → permisije upisuje se pri instalaciji + CLI za postojeće instalacije** |
 
 ---
 
@@ -817,3 +818,55 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
 - **Stanje vodiča (provjereno):** 13 vodiča (M3–M15) ima obaveznu strukturu od osam sekcija; `instalacija.md`
   i `prijava-i-mfa.md` imaju šest sekcija (pisani prije usvajanja strukture) i predloženi su za poravnanje
   u Fazi 3.
+
+---
+
+## Val 0 — RBAC: popravka nalaza M4/B1 (2026-10-03)
+
+**Dodato**
+
+- U `REVIEW_ANALIZA.md`: nova sekcija `# Val 0 — popravka M4/B1` (šta je promijenjeno, dokazi iz izvršenih
+  provjera, dokumentacija uz popravku, re-ocjena M4 i šta ostaje otvoreno), red u tabeli *Stanje po iteracijama*
+  i oznaka `RIJEŠENO` na nalazu B1 u §M4.
+- U `docs/user-guide/uloge-i-permisije.md`: česta pitanja „Uklonio sam permisiju roli, a poslije je opet tu“ i
+  tehnički put za starije instalacije (`npm run cli:seed-role-permissions --dry-run`).
+- U `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md`: **T31** je prepisan iz ograničenja u pravilo (detalji ispod).
+
+**Izmijenjeno**
+
+- `REVIEW_ANALIZA.md` §M4: gap red *Default mapping* prelazi iz **Odstupa** u **Implementirano**; ocjena
+  funkcionalnosti M4 **7 → 9** (uz obrazloženje re-ocjene); sumarna tabela zaključka dobila red
+  „M4 poslije vala 0“ i napomenu da je jedini `VISOKO` zatvoren (otvoreno: 0 / 0 / 38 / 53).
+- `REVIEW_ANALIZA.md` §2 zaključka: must-have stavka 1 precrtana kao riješena.
+- `docs/user-guide/uloge-i-permisije.md` → *Česta pitanja*: tvrdnja „Nakon instalacije ADMIN ne može otvoriti
+  Grupe/Postavke — očekivano ponašanje“ zamijenjena stvarnim stanjem (svježa instalacija radi; starije
+  instalacije popravljaju CLI-em).
+- `docs/user-guide/uloge-i-permisije.md` → *Poznata ograničenja*: nalaz B1 zamijenjen stvarnim ograničenjem
+  **aditivnog** seeda (nikad ne briše, pa se uklonjena permisija može vratiti).
+- `docs/user-guide/instalacija.md` → korak 4 (**Početni podaci**): dodato da instalacija upisuje i sistemske
+  role s default permisijama (ADMIN 58, AGENT 22, SUPER_ADMIN 63, ostale 4–6 — ukupno 161 veza).
+- `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` **T31**: naslov i teza više ne tvrde da mapping „nije upisan“;
+  teza sada opisuje upis pri instalaciji, aditivnost, `--dry-run`, audit `role_permission.replace` i nove
+  izvore (`seed-install-minimum.ts:27–31`, `rbac/seed-default-role-permissions.ts:52–133`,
+  `cli/seed-default-role-permissions.ts:26–75`, `authorization.constants.ts:21–30`); status
+  „Privremeno (nalaz B1)“ → „Riješeno (val 0)“.
+- Ovaj dokument: red **Val 0** u tabeli *Pregled*.
+
+**Uklonjeno**
+
+- Ništa. Nalaz B1 nije izbrisan iz §M4 — ostaje zapisan kao stanje prije popravke, s oznakom da je riješen.
+
+**Zašto**
+
+- B1 je bio jedini nalaz `VISOKO` u auditu i činio je RBAC neupotrebljivim za ADMIN/AGENT na svježoj
+  instalaciji (403 na svakoj akciji koja traži permisiju, suprotno RAW `:195–216`). Dokumentacija je do sada
+  morala opisivati to odstupanje kao „očekivano ponašanje“ — sada opisuje stvarno ponašanje.
+- Seed je **aditivan**, pa dokumentacija mora objasniti i cijenu: ručno uklonjena permisija može se vratiti
+  ponovnim pokretanjem. Bez te rečenice vodič bi prešutio stvarno svojstvo alata.
+
+**Napomena o dokazima**
+
+- Brojevi u ovoj sekciji (`161` veza; ADMIN 58 / AGENT 22 / SUPER_ADMIN 63; 494 suitea i 2 341 test) izvedeni su
+  iz koda i iz stvarnog izvršavanja u razvojnom okruženju 2026-10-03, ne iz planova.
+- **Nije provjereno na stvarnoj bazi:** seed i CLI su pokrenuti samo u in-memory harnessu (testovi) i protiv
+  nedostupne baze (provjera izlaznog koda). Zato je za postojeće instalacije prvi korak `--dry-run`.

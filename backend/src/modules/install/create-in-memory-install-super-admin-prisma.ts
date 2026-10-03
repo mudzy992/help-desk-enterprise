@@ -1,7 +1,9 @@
 import { authenticationConstants } from '../authentication/authentication.constants';
 import {
   pickInstallSelectedFields,
+  type InMemoryInstallPermission,
   type InMemoryInstallRole,
+  type InMemoryInstallRolePermission,
   type InMemoryInstallUser,
   type InMemoryInstallUserRole,
 } from './in-memory-install-super-admin.types';
@@ -14,6 +16,10 @@ export function createInMemoryInstallSuperAdminPrisma() {
   const users = new Map<string, InMemoryInstallUser>();
   const roles = new Map<string, InMemoryInstallRole>();
   const userRoles: InMemoryInstallUserRole[] = [];
+  // Val 0 (finding M4/B1): the install seed now creates system roles with their
+  // default permissions, so the harness carries those two tables as well.
+  const permissions = new Map<string, InMemoryInstallPermission>();
+  const rolePermissions: InMemoryInstallRolePermission[] = [];
   let nextIdentifier = 1;
   const prisma = {
     user: {
@@ -137,12 +143,97 @@ export function createInMemoryInstallSuperAdminPrisma() {
         return pickInstallSelectedFields(created, select);
       },
     },
+    permission: {
+      findUnique: async ({
+        where,
+        select,
+      }: {
+        where: { key: string };
+        select?: Record<string, boolean>;
+      }) => {
+        const matched =
+          [...permissions.values()].find(
+            (permission) => permission.key === where.key,
+          ) ?? null;
+        return matched === null
+          ? null
+          : pickInstallSelectedFields(matched, select);
+      },
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where?: { key?: { in?: readonly string[] } };
+        select?: Record<string, boolean>;
+      }) => {
+        const keys = where?.key?.in;
+        return [...permissions.values()]
+          .filter((permission) =>
+            keys === undefined ? true : keys.includes(permission.key),
+          )
+          .map((permission) => pickInstallSelectedFields(permission, select));
+      },
+      create: async ({
+        data,
+        select,
+      }: {
+        data: Omit<InMemoryInstallPermission, 'id'> & { id?: string };
+        select?: Record<string, boolean>;
+      }) => {
+        const created: InMemoryInstallPermission = {
+          id: data.id ?? `permission-${nextIdentifier++}`,
+          key: data.key,
+        };
+        permissions.set(created.id, created);
+        return pickInstallSelectedFields(created, select);
+      },
+    },
+    rolePermission: {
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where: { roleId: string };
+        select?: Record<string, boolean>;
+      }) =>
+        rolePermissions
+          .filter((link) => link.roleId === where.roleId)
+          .map((link) => pickInstallSelectedFields(link, select)),
+      create: async ({
+        data,
+        select,
+      }: {
+        data: Omit<InMemoryInstallRolePermission, 'id'> & { id?: string };
+        select?: Record<string, boolean>;
+      }) => {
+        const created: InMemoryInstallRolePermission = {
+          id: data.id ?? `role-permission-${nextIdentifier++}`,
+          roleId: data.roleId,
+          permissionId: data.permissionId,
+        };
+        rolePermissions.push(created);
+        return pickInstallSelectedFields(created, select);
+      },
+    },
     $transaction: async <T>(
       callback: (client: unknown) => Promise<T>,
     ): Promise<T> => callback(prisma),
   };
   return {
     prisma,
+    getRoleByKey: (roleKey: string) =>
+      [...roles.values()].find((role) => role.key === roleKey),
+    listRolePermissionKeys: (roleKey: string): readonly string[] => {
+      const role = [...roles.values()].find((item) => item.key === roleKey);
+      if (role === undefined) {
+        return [];
+      }
+      const keys = rolePermissions
+        .filter((link) => link.roleId === role.id)
+        .map((link) => permissions.get(link.permissionId)?.key)
+        .filter((key): key is string => key !== undefined);
+      return keys.sort((left, right) => left.localeCompare(right));
+    },
     seedUser: (user: InMemoryInstallUser, roleKey?: string) => {
       users.set(user.id, user);
       if (roleKey === undefined) {
