@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
-| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 u toku |
+| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
 
 ---
 
@@ -4485,3 +4485,380 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Sve RAW stavke postoje i rade: intercept, jedan glas po korisniku koji utiče na rangiranje, vlasnik (korisnik ili grupa), review due date, podsjetnik i „stale“ oznaka, plus sve postavke sa traženim zadanim vrijednostima; portal iz paketa 2.9 dodaje kategorije, FAQ, ocjene 1–5, preglede, uvide i „članak iz odgovora“. Minus za tri stvari: „pomoglo“ ne zaustavlja kreiranje tiketa (B3), pregledi se broje bez pravila od 5 s (B4) i uvidi ne ulaze u izvoz „Znanje“ kako plan traži (stopa odbijanja po članku se nigdje ne prikazuje). |
 | **Kvalitet koda** | **7/10** | Struktura je čista (jedna funkcija vidljivosti, mali fajlovi sa jasnom odgovornošću, transakcije tamo gdje treba), a komentari objašnjavaju odluke (HLL umjesto redova, dedup po roku, zašto ocjena isključuje `±10`). Ocjenu snižavaju B5 (neograničeni upiti i provjera vidljivosti po članku), B6 (kolona koja nikad nije `true`) i B2 (tip obavještenja koji klijent ne prepoznaje — jedina od 42). |
 | **Sigurnost** | **7/10** | Vidljivost je centralizovana i poštuje klasifikaciju, OU i uslugu; povjerljivi tiketi ne mogu biti izvor članka; uvidi traže pravo; komentari su vidljivi samo vlasniku i recenzentu; grupa vlasnika se pravilno razrješava. Minus za B1 (zamjena ličnih podataka samo na putu pregleda, pa upis može primiti sirov tekst koji završi u `INTERNAL` članku vidljivom svim korisnicima) i B3 (rezolucija presretanja bez provjere opsega). |
+
+# M15 — Nadzorna ploča (dashboard, izvještaji i uska grla)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Dashboard/KPI:** „tiketi po OU, **avg resolution**, **opterećenje admina**, **KB resolution rate**
+  (target ≥ 30%)“ (`RAW_PROJECT.md:171`, ponovljeno u fazi 12 kao „osnovni KPI prikazi (tickets by OU,
+  avg resolution, workload, KB resolution rate)“, `:1031`).
+- **CSAT u nadzoru:** „CSAT ulazi u KPI/dashboard **po OU/servisu/grupi**“ (`RAW_PROJECT.md:360`), uz
+  „CSAT: forma ocjene nakon resolve/close + prikaz u dashboardu“ (`:1047`).
+- **Bottleneck dashboard (enterprise ops):** prikazuje gdje tiketi „stoje“ — `PENDING_APPROVAL`,
+  `WAITING_FOR_USER`, `UNROUTED`, `OVERDUE` — „breakdown po **OU / service / priority**, **trend kroz
+  vrijeme**“, sa svrhom identifikacije uskih grla (`RAW_PROJECT.md:280–283`), te „Admin UI: bottleneck
+  dashboard …“ (`:1039`, kapacitet `dashboard-bottlenecks` na `:814`).
+- **Predefinisani izvještaji i izvoz:** „predefinisani set izvještaja/exporta (CSV/JSON) sa OU scoping-om,
+  npr. 'Monthly KPI', 'Overdue by service', 'Top close codes', 'KB helpfulness'“, „dostupno Admin/SuperAdmin
+  uz permission `audit.export`/`reports.export`“ (`RAW_PROJECT.md:278–279`). Napomena: ta dva reda stoje
+  **unutar** odjeljka „Config versioning + rollback“, iako opisuju izvještaje — formatiranje u RAW-u
+  `[MIŠLJENJE]`.
+- **Close codes u analitici:** „code se upisuje na resolve i ulazi u analytics“ (`RAW_PROJECT.md:1000`,
+  kapacitet `ticket-close-codes-analytics` na `:805`).
+- **Postavke:** `private.dashboard.bottlenecks.enabled` (boolean, default true) i
+  `private.dashboard.bottlenecks.defaultWindowDays` (number, default 30) (`RAW_PROJECT.md:660–661`).
+- **NFR koji dodiruje modul:** „response time < 300ms; ≥1000 simultanih korisnika“ (`RAW_PROJECT.md:172`).
+- **Planovi (paketi) koji su ovo gradili:** `docs/plans/modules/1.6-izvjestaji-ui.md` (paketi izvještaja,
+  pregled prije preuzimanja, audit izvoza, prag ping-ponga; §6 izričito ostavlja „zakazane izvještaje,
+  grafikone trendova i PDF izvoz“ za paket 2.5) i `docs/plans/modules/2.5-izvjestavanje-i-analitika.md`
+  (trendovi, zakazani izvještaji, PDF, sanacija dashboarda; §7.1 navodi četiri taba — **Pregled, Trendovi,
+  Paketi izvještaja, Zakazani** — bez ekrana za uska grla). Nijedan plan ne predviđa **ekran** uskih
+  grla; `GET /reports/bottlenecks` postoji kao zatečeni endpoint koji plan 2.5 samo sanira (§13.1), a
+  njegov ekran traži RAW (`:280–284`, `:1039`). Prihvatanje iz plana 2.5 (§11.1, §11.5) je ispunjeno i
+  dokumentovano mjerenjima (§13.3): trend 36 mjeseci < 1 s, dashboard ≤ 8 upita (6), parity s
+  `monthly_kpi` paketom.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+- **Brojači se računaju tamo gdje se podaci i filtriraju.** Svaki KPI dolazi iz agregata nad **istim**
+  pravilom vidljivosti koje važi za liste tiketa; ako se brojač računa iz prve stranice, broj je pogrešan
+  čim korisnik ima više tiketa od stranice.
+- **Jedan broj, jedno mjesto.** „Koliko je tiketa izbjegnuto bazom znanja“ mora imati isto značenje u
+  presretanju, na nadzornoj ploči i u izvještaju; ako se formula mijenja po ekranu, brojevi se razilaze.
+- **Usko grlo je akciono.** Ako ekran pokaže gdje tiketi stoje, isti ekran mora ponuditi put do tih tiketa
+  (filtar ili link) i razrez po jedinici, servisu i prioritetu prema kojem se odlučuje.
+- **Izvoz je nadzor, ne prečica.** Svaki izvoz ostavlja trag (ko, šta, koji period, koliko redova, koji
+  fajl), a prag i period su ograničeni postavkom; tabela prije preuzimanja pokazuje isto što i fajl.
+- **Pouzdanost je dio dizajna.** Brojači smiju biti do minute stari, ali ne smiju biti odsječeni; keš je
+  „best effort“ (pad keša = sporije, ne prazno), a skupi upiti se spajaju (single-flight), da prva stranica
+  ne pokrene deset identičnih skenova.
+- **Prazno stanje je dio funkcionalnosti.** Nova instalacija mora imati jasan put: „nema podataka → evo
+  kako nastaje prvi tiket“, a ne prazne grafikone.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Uključiti razrez po OU u ekran.** RAW traži „tiketi po OU“; dodati seriju/kolonu po jedinici u
+   pregled izvještaja (postoji na bottleneck endpointu i u trendovima po servisu, ali ne za OU).
+2. **Iskoristiti `bottlenecksEnabled`.** Vezati ga na sve što prikazuje uska grla (i na grafikon u
+   pregledu), ili ga ukloniti iz registra postavki — sada isključuje samo API bez ekrana.
+3. **Otvoriti postojeći bottleneck API u UI.** `GET /reports/bottlenecks` već vraća tačno ono što RAW
+   traži (brojači, razrez OU/servis/prioritet, trend po danu); nedostaje samo tab ili sekcija.
+4. **Ponuditi prelaz iz broja u listu.** Na svaki brojač (kritični, prekoračeni, neusmjereni, čeka
+   korisnika, čeka odobrenje) staviti link na odgovarajući pogled tiketa, da nadzorna ploča vodi u rad.
+5. **Povezati CSAT sa dimenzijama.** Prikazati CSAT po servisu i grupi (danas postoji ukupan prosjek i
+   vremenska serija), jer RAW traži razrez po OU/servisu/grupi.
+6. **Ukloniti mrtve elemente.** Dugme **Izvještaji** na `/` je trajno onemogućeno uz poruku „biće
+   dostupni kad se doda ruta“ iako ruta postoji; ili ga ukloniti, ili uključiti kao link.
+7. **Rezervisati mjesto za opterećenje.** „Opterećenje admina“ danas postoji samo kao izvoz
+   (`time_tracking`, sati po agentu i servisu); na nadzornoj ploči nema ni pločice ni ekrana, pa je
+   jedina veza „Bez izvršioca“ i „Dodijeljeni meni“.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Nadzorna ploča kao početna stranica
+
+- Ruta `/` prikazuje `DashboardPage` (128 linija): zaglavlje sa podnaslovom „Operativni pregled tiketa
+  kojima imate pristup.“ (`frontend/src/pages/dashboard-page.tsx:39–64`, i18n `dashboard.intro`), a tijelo
+  čine četiri sekcije — brojači (`DashboardMetricGrid`, 192 linije), grafikoni (`DashboardCharts`),
+  tri panela za osoblje (SLA nadzor, grupni inbox, aktivnost) i tabele „Tiketi koji zahtijevaju vašu
+  pažnju“ i „Nedavni tiketi“ (`:80–124`).
+- **Brojači dolaze sa servera:** `GET /reports/dashboard/summary?scope=all`
+  (`frontend/src/lib/dashboard/use-dashboard-summary.ts:74–83`), a iz prve stranice tiketa
+  (`GET /tickets?pageSize=50`) samo pogledi: 14-dnevni tok, osam nedavnih, SLA lista i lista pažnje
+  (`frontend/src/lib/dashboard/compose-dashboard-summary.ts:14–46`).
+- **Kada korisnik nema nijedan tiket**, prikazuje se prazno stanje sa dugmetom **Kreiraj tiket**
+  (`dashboard-page.tsx:69–79`).
+
+### 4.2 Brojači: jedna istina iz liste tiketa
+
+- `ReportSummaryService` ne prepisuje pravila vidljivosti: opseg gradi `buildTicketListWhere` sa praznim
+  upitom (isti RBAC i OU/SLA filtri kao `GET /tickets`, uz skrivanje arhiviranih)
+  (`backend/src/modules/reports/report-summary.service.ts:24–34,155–181`).
+- Keš je **60 sekundi** po korisniku i opsegu (ključ sadrži i vremensku zonu, jer brojač „danas“ zavisi od
+  nje), uz `single-flight` da istovremeni zahtjevi jednog korisnika ne pokrenu više skenova
+  (`report-summary.service.ts:36–47,62–81`, `summary/report-summary-cache.ts:25,40–75`). TTL je podesiv
+  preko `REPORT_SUMMARY_CACHE_TTL_SECONDS`, a komentar u kodu bilježi da je plan dozvoljavao 15–30 s i da
+  je prihvatanje bilo „brojači se osvježavaju u roku od 30 s“: na 15 s promašaj je ulazio u p95 (k6,
+  100 000 tiketa, 2026-09-25), pa je **vlasnik odobrio 60 s** (`summary/report-summary-cache.ts:2–18`) —
+  dakle prihvatanje je svjesno promijenjeno, što je i zapisano u kodu.
+- **Zona izvještavanja** se čita iz postavke (`private.reports.timeZone`, zadano `Europe/Sarajevo`), a ne
+  iz procesa (`report-summary.service.ts:145–153`, `settings/definitions/reports-settings.ts:60–66`).
+- Brojači su: ukupno, otvoreno, kritično, prekoračeno, danas otvoreno, čeka korisnika, čeka odobrenje,
+  riješeno, zatvoreno, neusmjereno, bez izvršioca, dodijeljeno meni, moji zahtjevi, te raspodjela po
+  statusu i prioritetu (`summary/report-summary.types.ts:24–55`).
+- **Opseg (`scope`)** može biti `all`, `assignedToMe`, `requestedByMe` ili `unassigned`
+  (`summary/report-summary.types.ts:11–22`), ali ekran uvijek traži `all`; kolone „Dodijeljeni meni“ i
+  „Moji zahtjevi“ dolaze iz istog odgovora (vidi i B4).
+
+### 4.3 SLA nadzor
+
+- Zaseban agregat `GET /reports/sla/summary` vraća ukupnu izloženost (otvoreno, u roku, na granici,
+  prekoračeno) i razrez po SLA profilu i prioritetu (`backend/src/modules/reports/summary/report-summary.types.ts:57–80`),
+  sa kešom po korisniku (`report-summary.service.ts:114–143`). Klijent ga koristi preko
+  `frontend/src/lib/sla/sla-exposure-index.ts:16`.
+
+### 4.4 Izvještaji (`/reports`) — pregled, trendovi, paketi, zakazani
+
+- **Pristup:** ruta `/reports` traži pravo izvoza izvještaja ili audita
+  (`frontend/src/lib/session/route-access.ts:63–70`), a kontroler i ulogu i prava:
+  `admin`/`superAdmin` + `reports.export`/`audit.export`
+  (`backend/src/modules/reports/reports.controller.ts:45–56`). Bez prava se prikazuje poruka
+  „Izvještaji i izvoz dostupni su administratorima s reports.export ili audit.export.“
+  (i18n `reports.forbiddenBody`).
+- **Četiri taba:** `Pregled`, `Trendovi`, `Paketi izvještaja` i `Zakazani` (posljednji samo uz pravo
+  zakazivanja; stanje taba je u URL-u `?tab=`; `frontend/src/pages/reports-page.tsx:52–64,252–257`).
+- **Pregled** (`GET /reports/dashboard`) vraća KPI kartice i četiri prikaza: prosječno rješenje po grupi
+  (sa oznakom „usko grlo: …“), obim po usluzi, tok i starenje backloga, te broj tiketa
+  (`backend/src/modules/reports/dashboard/build-reports-dashboard.ts:31–40`). KPI su: kreirano (sa
+  procentom promjene prema prethodnom periodu), prosječan prvi odgovor (uzorak), prosječno rješenje
+  (uzorak), CSAT prosjek (uzorak, skala 5) i **KB resolution rate** uz broj izbjegnutih tiketa
+  (`dashboard/aggregate-report-dashboard-kpis.ts:4–18,63–87`), pri čemu je formula
+  `pomoglo / (pomoglo + kreirani)`, a cilj „≥ 30%“ stoji u opisu kartice (i18n `reports.hintKbResolution`).
+- **Trendovi** (`GET /reports/trends`) vraćaju sve serije odjednom: dolazni, riješeni, neto, backlog,
+  SLA odziv i rješavanje, medijana i p90 rješenja, medijana prvog odziva, CSAT prosjek i udio zadovoljnih
+  (ocjena ≥ 4), najčešći servisi; granularnost je automatska (do 31 dan dnevno, do 183 dana sedmično,
+  inače mjesečno) uz ručni izbor i predefinisane raspone 30 d / 90 d / 6 m / 12 m / 24 m / 36 m
+  (`backend/src/modules/reports/trends/report-trends.constants.ts:3–43`, `report-trends.types.ts:72–103`).
+  Ograničenja su postavke: `maxMonths` 36, `cacheSeconds` 600, `slaTargetPercent` 90,
+  `csatMinSample` 5 (`reports.constants.ts`-par u `settings/definitions/reports-settings.ts:81–121`).
+  Izvoz je CSV ili JSON (`GET /reports/trends/export`, audit `report.trends.exported`), a „štampa“ je PDF iz
+  pregledača uz zapis `report.pdf.exported` (`reports.controller.ts:151–189`,
+  `audit-log/audit-log.constants.ts:60–61`).
+- **Paketi izvještaja:** zadano je uključeno šest paketa — `monthly_kpi`, `overdue_by_service`,
+  `top_close_codes`, `kb_helpfulness`, `forward_ping_pong`, `time_tracking`
+  (`settings/definitions/reports-settings.ts:10–17`), a uz CMDB/probleme/promjene uključuju se i njihovi
+  paketi (`reports.constants.ts:3–63`). Svaki paket ima **pregled** (prvih N redova) i **preuzimanje** u
+  CSV ili JSON (`reports.controller.ts:78–121`), period je ograničen po paketu
+  (`reportPackLimits.maxWindowDays`), a svaki izvoz se bilježi u audit (akcija `reports.export`,
+  `audit-log/audit-log.constants.ts:31`) sa formatom, brojem redova, jedinicom, periodom i imenom fajla
+  (`record-report-export-audit.ts:9–41`). Paket „Korisnost baze znanja“
+  nosi ocjene i preglede (`backend/src/modules/reports/packs/build-kb-helpfulness-report.ts:4–16,43–73`),
+  a „Najčešći kodovi zatvaranja“ broji kodove iz riješenih/zatvorenih tiketa u periodu
+  (`packs/build-top-close-codes-report.ts:4–25`).
+- **Zakazani izvještaji:** lista, editor, „Pošalji test meni“, „Pošalji sada“, historija izvršenja (do 50
+  zapisa, čuvanje 180 dana), sedmično ponedjeljkom ili mjesečno prvog dana, sekcije e-maila (KPI, trend
+  12 perioda, najčešći servisi, prekoračenja), prilozi do 10 MB
+  (`backend/src/modules/reports/schedules/report-schedule.constants.ts:1–35`); posao ide na svakih
+  pet minuta (`*/5 * * * *`) i obrađuje do 20 rasporeda po prolazu. Razlozi preskakanja primaoca i
+  izostavljanja priloga su evidentirani i prevedeni u UI (`report-schedule.constants.ts:37–65`, i18n
+  `reports.schedules.skip/omit/runError`).
+- **Bottleneck API** (`GET /reports/bottlenecks`, `reports.controller.ts:123–130`) vraća tačno ono što RAW
+  traži: brojače `PENDING_APPROVAL`/`WAITING_FOR_USER`/`UNROUTED`/`OVERDUE`, razrez po organizacionoj
+  jedinici, servisu i prioritetu, i dnevni trend (`bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
+  SQL verzija `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`). **Nema ga nijedna stranica**
+  (provjereno pretragom frontenda) — vidi B2.
+
+### 4.5 Postavke i veza s modulima
+
+- Postavke modula: 16 ključeva `private.reports.*` (uključen, paketi, formati, zona, ping-pong prag,
+  trendovi, zakazani) i dvije `private.dashboard.bottlenecks.*`
+  (`backend/src/modules/settings/setting-keys.ts:439–453`, `definitions/reports-settings.ts:36–185`);
+  zadani formati su `csv,json`, a prag ping-ponga 3.
+- **`defaultWindowDays`** (zadano 30) koristi i bottleneck i **paketi izvještaja** kao podrazumijevani
+  period (`reports.service.ts:130–136,164–170`), iako opis u registru kaže „Default rolling window in days
+  for bottleneck trends“ — vidi B3.
+- Izvoz i pregledi poštuju OU opseg preko `resolveReportOrganizationalUnitScope`
+  (`reports.service.ts:138–141,171–174`).
+
+### 4.6 Testovi
+
+- **Backend: 85 `.ts` fajlova (24 spec, 2 810 linija)** — među njima `build-reports-dashboard.spec.ts`,
+  `aggregate-bottleneck-dashboard.spec.ts`, `report-summary.service.spec.ts`, `report-summary-cache.spec.ts`,
+  `load-dashboard-summary-counts.spec.ts`, `load-sla-summary-counts.spec.ts`, `report-trends.spec.ts`,
+  po jedan spec za gotovo svaki paket (`packs/*.spec.ts`), `report-schedules.spec.ts`,
+  `parse-reports-configuration.spec.ts` i `serialize-report-export.spec.ts`.
+- **Frontend: 5 spec fajlova / 319 linija** u `lib/reports/*` (`report-window`, `report-trends-view`,
+  `report-pack-table`, `report-schedule-form`, `report-format`) + dva u `lib/dashboard/*`
+  (`compose-dashboard-summary` 164, `dashboard-ticket-sets` 121).
+- **e2e: četiri scenarija** — `12-reports-packs` (paket → pregled → CSV → audit), `17-reports-trends`,
+  `18-reports-schedules`, `19-reports-print`; nadzorna ploča nema vlastiti scenario, pokrivena je a11y
+  skeniranjem kao korisnik i kao agent (`tests/22-accessibility.spec.ts:64,79`).
+
+## 5. Gap analiza
+
+| Zadatak (RAW / plan) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Dashboard/KPI (RAW `:171`, `:1031`) | Brojači iz agregata nad istim pravima | `GET /reports/dashboard/summary` + pločice, uz `buildTicketListWhere` | ✅ |
+| Tiketi po OU (RAW `:171`, `:1031`) | Razrez po jedinici, uporedivo | OU je samo **filtar**; nema serije ni kolone po jedinici | ⚠️ gap |
+| Avg resolution (RAW `:171`) | Prosjek i trend | Prosječno rješenje (KPI + serija + medijana/p90) | ✅ |
+| Opterećenje admina (RAW `:171`) | Po agentu, na ekranu | Postoji kao izvoz `time_tracking` (sati po agentu i servisu); nema pločice ni ekrana | ⚠️ gap |
+| KB resolution rate, cilj ≥ 30% (RAW `:171`) | Formula i cilj vidljivi | `pomoglo / (pomoglo + kreirani)`, cilj u opisu kartice | ✅ |
+| CSAT u KPI po OU/servisu/grupi (RAW `:360`, `:1047`) | Razrez po tri dimenzije | Ukupan prosjek (KPI) + serija kroz vrijeme; **nema** po servisu/grupi | ⚠️ gap |
+| Bottleneck: gdje tiketi stoje (RAW `:280–281`) | Brojači po statusima i prekoračenjima | API vraća tačno to; ekran prikazuje samo prosječno rješenje po grupi | ⚠️ B2 |
+| Breakdown po OU/servisu/prioritetu (RAW `:282`) | Tri razreza | Postoje u API-ju (`/reports/bottlenecks`), **bez ekrana** | ⚠️ B2 |
+| Trend kroz vrijeme (RAW `:282`) | Dnevna serija | Postoji u API-ju (dnevni trend) i u trendovima rada; nije prikazan za uska grla | ⚠️ B2 |
+| Postavke `dashboard.bottlenecks.*` (RAW `:660–661`) | Dvije postavke sa efektom | Postoje; `enabled` **ne utiče** na ploču (vidi B1), `defaultWindowDays` dijeli pakete (B3) | ⚠️ |
+| Predefinisani paketi CSV/JSON + OU scoping (RAW `:278–279`) | Šest paketa, dva formata, OU opseg, audit | Sve to, uz pregled prije preuzimanja i zapis u audit | ✅ |
+| „Monthly KPI“, „Overdue by service“, „Top close codes“, „KB helpfulness“ (RAW `:279`) | Sva četiri | Sva četiri postoje kao paketi (uz još `forward_ping_pong` i `time_tracking`) | ✅ |
+| Pristup Admin/SuperAdmin uz `reports.export`/`audit.export` (RAW `:279`) | Uloga + pravo | `@RequireRoles(admin, superAdmin)` + oba prava u dekoratoru; ruta isto | ✅ |
+| Close codes u analitici (RAW `:1000`) | Kodovi u izvještaju | Paket „Najčešći kodovi zatvaranja“ (riješeni/zatvoreni u periodu) | ✅ |
+| Trendovi, zakazani izvještaji, PDF (plan 2.5) | Sve u jednom modulu | Četiri taba sa izvozom, zakazivanjem i štampom uz audit | ✅ |
+| Brojači na ploči uvijek tačni | Bez brojanja u pregledaču | Server agregat + keš 60 s (svjesno produžen sa 15 s, uz odobrenje) | ✅ |
+| Prihvatanje plana 2.5 (§11.1, §11.5) | Trend < 1 s, dashboard ≤ 8 upita, parity s `monthly_kpi` | Mjerenja u planu §13.3: trend 36 mj. p95 395 ms / max 938 ms, dashboard 6 upita i p95 77 ms | ✅ |
+| Usko grlo vodi u akciju | Iz broja u filtriranu listu | Pločice su brojevi; samo „Neusmjereni“ vodi na listu | ⚠️ gap |
+| Tok zadnjih 14 dana i liste (plan 2.4) | Izvor je agregat ili cijeli skupljeni skup | Counterski dio je server agregat; **grafik i liste** računaju se iz prve strane od 50 tiketa | ⚠️ B6 |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Najbolja odluka u modulu je da brojači ne dupliraju pravila.** `ReportSummaryService` poziva
+  `buildTicketListWhere` sa praznim upitom, pa nadzorna ploča ne može pokazati tiket koji korisnik ne smije
+  otvoriti; keš je dokumentovan, po korisniku, sa zonom u ključu, a pad keša je „propuštaj“, nikad greška.
+  Single-flight je tu zbog stvarnog nalaza sa staginga (hladan keš → deset identičnih skenova), što je
+  primjer dobrog komentara uz kod.
+- **Pregled izvještaja drži prave metrike:** KPI nosi uzorak uz svaki prosjek (da se ne vjeruje broju iz
+  dva tiketa), CSAT i KB stopa imaju definisanu formulu i cilj, a period se mjeri u zoni instalacije, ne u
+  zoni procesa.
+- **Kvalitet izvoza je iznad očekivanog:** pregled prije preuzimanja, ograničenje perioda po paketu, dva
+  formata, zapis u audit sa periodom i imenom fajla, razlozi preskakanja primaoca i izostavljenih priloga
+  prevedeni u UI. To je dio koji se u ovakvim sistemima obično preskoči.
+- **Gdje sam našao prazninu:** najkorisniji dio RAW-a o uskim grlima — brojači po statusima i razrez po
+  OU/servisu/prioritetu — postoji kao **API bez ekrana** (B2), pa nadzorna ploča prikazuje samo „prosječno
+  rješenje po grupi“. Uz to postavka `private.dashboard.bottlenecks.enabled` isključuje samo taj nevidljivi
+  API, a ne grafikon koji korisnik gleda (B1), i „Izvještaji“ dugme na ploči je trajno onemogućeno uz
+  poruku koja više nije tačna (B5).
+- **Gdje je neslaganje unutar iste ploče:** brojači su tačni (server agregat), a grafik i liste iznad
+  kojih stoje dolaze iz prve strane od 50 tiketa — pa ploča može pokazati „3 prekoračenja“ i praznu listu
+  nadzora (B6).
+- **Mrtve površine:** `scope` parametar sažetka (četiri pogleda) klijent ne koristi (B4), a prijevodi
+  `reports.exportAction` i `reports.exportDisabledHint` („Izvoz paketa dolazi u Fazi 8.“) nemaju nijednu
+  upotrebu u kodu — ostatak ranije faze koji zbunjuje pri čitanju.
+- **Sve u svemu**, modul je tehnički najzreliji dio dosadašnjeg audita (agregati, keš, zona, audit izvoza,
+  zakazani izvještaji), ali mu RAW-ova namjena „identifikacija uskih grla“ nije dovršena do ekrana.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Postavka za uska grla ne isključuje ono što korisnik vidi
+
+- **Fajl:** `backend/src/modules/reports/reports.service.ts:155–163` (bottleneck) prema `:183–199`
+  (dashboard), `backend/src/modules/settings/definitions/reports-settings.ts:169–176`,
+  `frontend/src/components/reports/reports-charts.tsx:44–62`,
+  i18n `settings.registry.keys.private.dashboard.bottlenecks.enabled`
+  („Uključi agregacije uskih grla na kontrolnoj tabli“)
+- **Opis:** postavka `private.dashboard.bottlenecks.enabled` provjerava se **samo** u `bottleneck()`, dok
+  `dashboard()` (čiji `bottleneckByGroup` crta grafikon „Bottleneck: prosj. rješenje po grupi“) nikad ne
+  čita `configuration.bottlenecksEnabled`.
+- **Uticaj:** administrator isključi „agregacije uskih grla na kontrolnoj tabli“, a kontrolna tabla ih i
+  dalje prikazuje; jedini endpoint koji poštuje postavku nema nijedan ekran. Postavka trenutno djeluje
+  suprotno od svog opisa.
+- **Fix:** u `dashboard()` preskočiti `bottleneckByGroup` kad je postavka isključena (i sakriti grafikon),
+  ili ukloniti provjeru iz `bottleneck()` ako postavka treba čuvati samo taj API.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — Bottleneck izvještaj (razrez po OU/servisu/prioritetu i trend) nema ekran
+
+- **Fajl:** `backend/src/modules/reports/reports.controller.ts:123–130`,
+  `backend/src/modules/reports/reports.service.ts:155–181`,
+  `backend/src/modules/reports/bottleneck/aggregate-bottleneck-dashboard.ts:23–41`,
+  `backend/src/modules/reports/bottleneck/sql-bottleneck-dashboard-store.ts:30–40`
+- **Opis:** API `GET /reports/bottlenecks` vraća brojače `PENDING_APPROVAL`, `WAITING_FOR_USER`,
+  `UNROUTED`, `OVERDUE`, razrez po organizacionoj jedinici, servisu i prioritetu te dnevni trend — tačno
+  ono što RAW traži (`:281–282`) — ali ga **nijedna stranica ne poziva**: u `frontend/src` ne postoji ni
+  funkcija klijenta ni komponenta za tu rutu, a `reports-page.tsx` tab „Pregled“ koristi samo
+  `/reports/dashboard`.
+- **Uticaj:** korisnik ne može vidjeti gdje tiketi stoje ni po kojoj dimenziji, pa RAW-ova svrha
+  („identifikacija uskih grla i optimizacija procesa/SLA“) ostaje neispunjena; odgovor postoji, ali se do
+  njega može samo ručno, preko API-ja.
+- **Fix:** dodati sekciju/tab „Uska grla“ u `/reports` (brojači + tri razreza + trend, uz OU filter), ili
+  uključiti razrez u postojeći pregled.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — NISKO — Jedna postavka opisana kao „bottleneck“ određuje i period paketa izvještaja
+
+- **Fajl:** `backend/src/modules/reports/reports.service.ts:130–136` (`buildPack`, `mode: 'month'`) i
+  `:164–170` (`bottleneck`, `mode: 'rolling'`),
+  `backend/src/modules/reports/reports-configuration.loader.ts:28–33`,
+  `backend/src/modules/settings/definitions/reports-settings.ts:177–185`
+- **Opis:** `private.dashboard.bottlenecks.defaultWindowDays` (zadano 30) čita se u jedinstvenu
+  `configuration.defaultWindowDays` i koristi kao podrazumijevani period i za `GET /reports/dashboard`,
+  i za `GET /reports/bottlenecks`, i za **pregled/preuzimanje paketa izvještaja** (`mode: 'month'`), dok
+  opis u registru i prijevod kažu da je „podrazumijevani vremenski prozor (dani) za trendove uskih grla“.
+- **Uticaj:** promjena „prosjeka za uska grla“ tiho mijenja period paketa (npr. „Mjesečni KPI“), pa
+  administrator koji isključi uska grla i dalje pomjera izvještaje; naziv postavke navodi na pogrešan
+  zaključak.
+- **Fix:** razdvojiti postavke (npr. `private.reports.defaultWindowDays` za pakete, a postojeći ključ
+  ostaviti uskim grlima) ili uskladiti opis i prijevod sa stvarnim dometom.
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Opseg sažetka (`scope`) postoji u API-ju, ali ga klijent ne koristi
+
+- **Fajl:** `backend/src/modules/reports/summary/report-summary.types.ts:11–22,52–55`,
+  `backend/src/modules/reports/report-summary.controller.ts:45–54`,
+  `frontend/src/services/report-summary-api.ts:75–82`,
+  `frontend/src/lib/dashboard/use-dashboard-summary.ts:74–83`
+- **Opis:** endpoint prima `scope=all|assignedToMe|requestedByMe|unassigned` i ima keš-ključ po opsegu,
+  ali nadzorna ploča uvijek traži `all`; kolone „Dodijeljeni meni“ i „Moji zahtjevi“ su brojači unutar
+  odgovora, pa se četiri opsega nikad ne koriste.
+- **Uticaj:** mrtva površina u API-ju i kešu (četiri puta više mogućih ključeva), a odgovor na pitanje
+  „kako ploča izgleda kad je fokusiran na mene“ ostaje neisproban; pri budućem povezivanju filtera lako se
+  zaboravi da keš već razlikuje opsege.
+- **Fix:** povezati opseg sa izborom na ploči (npr. segment „Sve / Dodijeljeno meni / Moji zahtjevi /
+  Bez izvršioca“) ili ukloniti parametar iz API-ja.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Dugme „Izvještaji“ na ploči je trajno onemogućeno uz zastarjelu poruku
+
+- **Fajl:** `frontend/src/pages/dashboard-page.tsx:45–56`,
+  `frontend/src/lib/navigation.ts:61–66`, i18n `dashboard.reportsActionDisabledHint`
+  („Izvještaji će biti dostupni kad se doda ruta.“)
+- **Opis:** dugme je `disabled` sa `aria-disabled` i fiksnim naslovom, iako ruta `/reports` postoji i
+  nalazi se u navigaciji (za korisnike s pravom izvoza). Uz to, prijevodi `reports.exportAction`
+  („Izvoz paketa“) i `reports.exportDisabledHint` („Izvoz paketa dolazi u Fazi 8.“) nemaju nijednu
+  upotrebu u kodu (provjereno pretragom `frontend/src`).
+- **Uticaj:** administratoru koji dođe na ploču nudi se onemogućena radnja sa netačnim objašnjenjem, a
+  funkcionalnost koja postoji (paketi izvještaja) izgleda nedovršeno; mrtvi prijevodi zbunjuju pri
+  održavanju.
+- **Fix:** zamijeniti onemogućeno dugme linkom na `/reports` uz isto pravilo pristupa (ili ga ukloniti i
+  ostaviti navigaciju), i obrisati nekorištene ključeve.
+- **Ozbiljnost:** NISKO.
+
+### B6 — NISKO — Grafik zadnjih 14 dana i liste računaju se iz prve strane od 50 tiketa
+
+- **Fajl:** `frontend/src/lib/dashboard/use-dashboard-summary.ts:71–90`,
+  `frontend/src/lib/dashboard/build-volume-14d.ts:11–25`,
+  `frontend/src/lib/dashboard/dashboard-ticket-sets.ts:28–35,60–80`,
+  `frontend/src/pages/dashboard-page.tsx:80–124`
+- **Opis:** brojači dolaze iz SQL agregata, ali 14-dnevni grafik toka, „SLA nadzor“, „Nedavni tiketi“ i
+  „Tiketi koji zahtijevaju vašu pažnju“ računaju se iz **prve strane liste tiketa** (`pageSize: 50`,
+  sortirano po najnovijem). Podnaslov grafikona to i priznaje („iz istog niza tiketa“), ali broj kreiranih
+  u danu koji ima više od 50 tiketa u međuvremenu je manji od stvarnog, a tiket izvan prvih 50 ne može
+  ući u listu pažnje ni u SLA nadzor.
+- **Uticaj:** na aktivnoj instalaciji grafik i liste mogu tiho potcijeniti stanje (npr. prekoračenje koje
+  nije u prvih 50 tiketa neće se pojaviti u „Najugroženiji tajmeri“), dok brojači iznad njih pokazuju
+  tačan broj — pa se ista ploča na dva mjesta ne slaže.
+- **Fix:** prebaciti grafik i liste na serverski agregat (npr. `volumeSeries` iz `GET /reports/dashboard`
+  već postoji i pokriva isti period), a liste na `scope` opsege sažetka (`assignedToMe`, `unassigned`) ili
+  na ciljane list-upite sa `take`.
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/nadzorna-ploca-i-izvjestaji.md`** po obaveznoj strukturi: čemu modul
+  služi (brzi pregled rada na `/` i izvještaji/uska grla na `/reports`), kome je namijenjen (svaki
+  prijavljeni korisnik vidi ploču sa svojim tiketima; osoblje dodatno SLA nadzor i grupni inbox;
+  administratori sa `reports.export`/`audit.export` vide izvještaje), kako se dolazi (meni **Nadzorna
+  ploča**, meni **Izvještaji**; tabovi **Pregled**, **Trendovi**, **Paketi izvještaja**, **Zakazani**),
+  korak po korak (čitanje brojača, SLA nadzor, pregled izvještaja sa periodom i jedinicom, trendovi sa
+  granularnošću i filterima, izvoz/štampa, paketi i preuzimanje, zakazani izvještaji i historija),
+  tabele (značenje svakog brojača, KPI formule i uzorci, paketi i periodi, formati i audit, postavke),
+  česta pitanja („zašto se broj ne mijenja odmah“, „zašto ne vidim izvještaje“, „odakle razlika između
+  kartice i liste“), poznata ograničenja (**B1–B6** i gapovi: nema razreza po OU, CSAT-a po servisu/grupi,
+  uskih grla na ekranu) i povezane module (Tiketi, SLA, Baza znanja, Odobrenja/CSAT, Evidentiranje
+  vremena, Zakazani izvještaji).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T95–T101** — (T95) nadzorna ploča i izvor brojača; (T96) SLA nadzor i
+  izloženost; (T97) KPI formule (prosjeci, uzorci, KB stopa i CSAT); (T98) trendovi i granularnost;
+  (T99) paketi izvještaja, formati i audit izvoza; (T100) uska grla (API i razrez); (T101) zakazani
+  izvještaji i historija izvršenja.
+- **`REVIEW_ANALIZA.md`:** §M15 (ovaj tekst) i **red tabele iteracija 3** → „M11 ✅ · M12 ✅ · M13 ✅ ·
+  M14 ✅ · M15 ✅ (iteracija 3 završena)“.
+- **`DOCS_CHANGELOG.md`:** sekcija M15 sa izvorima, nalazima B1–B5 i napomenom da su dva RAW reda o
+  predefinisanim izvještajima (`:278–279`) zapisana unutar odjeljka o verzionisanju konfiguracije i da
+  prihvatanje brojača bilo je 30 s, dok kod radi 60 s (odobrena odluka, dokumentovana u komentaru `summary/report-summary-cache.ts:2–18`).
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Brojači, SLA nadzor, KPI sa uzorcima i formulama (uključujući KB stopu sa ciljem ≥ 30%), trendovi sa svim serijama, šest paketa u dva formata uz audit, zakazani izvještaji sa testnim slanjem i historijom — sve to radi i pokriveno je testovima. Minus za tri stvari iz RAW-a koje nisu došle do ekrana: razrez po OU, CSAT po servisu/grupi i **uska grla** (API postoji, ekran ne; B2), te za neefektivnu postavku (B1). |
+| **Kvalitet koda** | **8/10** | Agregati, keš sa zonom u ključu i single-flight, jasna podjela na „brojači sa servera / pogledi iz prve stranice“, mali fajlovi i komentari koji bilježe i mjerenja (k6) i odluke (TTL 60 s). Ocjenu snižavaju mrtve površine (B4, B5), jedna postavka sa dvostrukim dometom (B3), nevidljivi endpoint (B2) i to što dio ploče i dalje računa u pregledaču iz prve strane od 50 tiketa (B6). |
+| **Sigurnost** | **8/10** | Brojači se ne mogu zaobići (isti `buildTicketListWhere`), izvještaji traže i ulogu i pravo (`reports.export`/`audit.export`), svaki izvoz ostavlja zapis u audit sa periodom i fajlom, OU opseg se poštuje u svim paketima i trendovima, a u paketu prosljeđivanja naslovi povjerljivih tiketa zamjenjuju se oznakom `[confidential]`, koju pregled prevodi u `[povjerljivo]` (`backend/src/modules/reports/packs/build-forward-ping-pong-report.ts:19,38`, `frontend/src/lib/reports/report-pack-table.ts:54–55`). Minus za B1 (postavka koja ne isključuje prikaz, što je više dosljednost nego rizik) i za nedostatak e2e provjere same nadzorne ploče. |

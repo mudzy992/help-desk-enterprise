@@ -1891,6 +1891,153 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B1 i B7)
 - **Wiki stranica:** Baza znanja → Kako doći
 
+### T95 — Nadzorna ploča: brojači sa servera, pogledi iz prve strane
+
+- Nadzorna ploča (`/`) svakom prijavljenom korisniku prikazuje brojače (ukupno, otvoreno, kritično,
+  prekoračeno, danas otvoreno, čeka korisnika/odobrenje, riješeno, zatvoreno, neusmjereno, bez izvršioca,
+  dodijeljeno meni, moji zahtjevi, raspodjela po statusu i prioritetu), a osoblju dodatno **SLA nadzor**,
+  **Grupni inbox** i **Aktivnost**.
+- **Brojači su serverski agregati**, ne brojanje u pregledaču: `GET /reports/dashboard/summary?scope=` ide
+  kroz istu funkciju vidljivosti kao lista tiketa (`buildTicketListWhere`), pa ploča ne može prikazati
+  tiket koji korisnik ne smije otvoriti.
+- Keš je **60 sekundi** po korisniku i opsegu (ključ nosi i vremensku zonu jer brojač „danas“ zavisi od
+  nje), uz spajanje istovremenih promašaja; pad keša je promašaj, nikad greška. Plan je dozvoljavao 15–30 s,
+  ali je poslije k6 mjerenja (100 000 tiketa) vlasnik odobrio 60 s.
+- **Pogledi** (grafik zadnjih 14 dana, SLA nadzor, „Tiketi koji zahtijevaju vašu pažnju“, „Nedavni tiketi“)
+  dolaze iz prve strane liste (`pageSize: 50`), pa mogu potcijeniti stanje kad korisnik ima više od 50
+  vidljivih tiketa (B6). Opseg `scope` API podržava, ali ga ekran uvijek šalje kao `all` (B4).
+- Dugme **Izvještaji** u zaglavlju ploče je trajno onemogućeno uz tekst „Izvještaji će biti dostupni kad se
+  doda ruta.“, iako ruta `/reports` postoji (B5).
+- **Izvori:** `backend/src/modules/reports/report-summary.controller.ts`,
+  `report-summary.service.ts:24–34,36–47,145–153,155–181`,
+  `summary/report-summary-cache.ts:2–22`, `summary/load-dashboard-summary-counts.ts:53`,
+  `frontend/src/lib/dashboard/use-dashboard-summary.ts:71–90`,
+  `frontend/src/lib/dashboard/build-volume-14d.ts:11–25`,
+  `frontend/src/lib/dashboard/dashboard-ticket-sets.ts:13–14,28–35`,
+  `frontend/src/pages/dashboard-page.tsx:39–124`, i18n `dashboard.*`.
+- **Status:** Važi (uz B4, B5, B6)
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 1
+
+### T96 — SLA nadzor i grupni inbox na ploči
+
+- `GET /reports/sla/summary` vraća ukupnu izloženost (otvoreno, u roku, na granici, prekoračeno) i razrez
+  po SLA profilu i prioritetu, sa kešom po korisniku; koristi ga **SLA nadzor** na ploči („Najugroženiji
+  tajmeri“, do 5 tiketa) i SLA ekran.
+- **Grupni inbox** prikazuje nepreuzete tikete po grupama; ako postoji neusmjereni tiket stariji od roka za
+  čišćenje, prikazuje se crveno upozorenje koje vodi na filtriranu listu tiketa.
+- Broj prekoračenih neusmjerenih tiketa dolazi iz `GET /tickets/counts` (`unroutedOverdue`,
+  `unroutedCleanupHours`), ne iz izvještaja — ista vrijednost se koristi u listi filterom
+  `unroutedOverdue=true`.
+- **Izvori:** `backend/src/modules/reports/summary/report-summary.types.ts:57–80`,
+  `summary/load-sla-summary-counts.ts:57`, `reports/report-summary.service.ts:114–143`,
+  `frontend/src/components/dashboard/dashboard-sla-watchlist.tsx:28–45`,
+  `frontend/src/components/dashboard/dashboard-inbox-snapshot.tsx:29–99`,
+  `frontend/src/lib/sla/use-sla-page-data.ts:67`; plan 1.7 §U3 (brojač i filter).
+- **Status:** Važi
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 2
+
+### T97 — KPI pregled izvještaja: formule, uzorci i KB stopa
+
+- Tab **Pregled** (`GET /reports/dashboard`) prikazuje KPI kartice **Kreirano (period)**, **Prosj. prvi
+  odgovor**, **Prosj. rješenje**, **CSAT (zadovoljstvo)** i **KB resolution rate**.
+- Uz svaki prosjek ide **broj uzoraka**; CSAT je na skali 1–5; **KB resolution rate** je
+  *pomoglo u interceptu / (pomoglo + kreirani tiketi)* sa ciljem **≥ 30 %** u opisu kartice.
+- „Kreirano“ nosi promjenu prema **prethodnom periodu iste dužine**; podrazumijevani period je 30 dana i
+  dolazi iz postavke koju dijeli s uskim grlima (B3).
+- Grafikoni pregleda: uska grla po grupi (prosječno rješenje, oznaka „usko grlo“), obim po usluzi, tok i
+  starenje backloga, starost otvorenih tiketa; dugme **Izvezi PDF** otvara dijalog za štampu i bilježi
+  `report.pdf.exported`.
+- Period se računa u zoni instalacije (`private.reports.timeZone`, zadano `Europe/Sarajevo`), ne u zoni
+  procesa ni pregledača.
+- **Izvori:** `backend/src/modules/reports/dashboard/build-reports-dashboard.ts:31–40,76,121`,
+  `dashboard/aggregate-report-dashboard-kpis.ts:4–18,63–87`, `reports.controller.ts:96–121,151–189`,
+  `settings/definitions/reports-settings.ts:26–32`, `frontend/src/components/reports/reports-metric-grid.tsx:33–112`,
+  `frontend/src/components/reports/reports-charts.tsx:42–112`; plan 2.5 §2.1, §13.3.
+- **Status:** Važi (uz B3)
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 3
+
+### T98 — Trendovi: serije, granularnost i izvoz
+
+- `GET /reports/trends` vraća **sve serije u jednom odgovoru**: dolazni, riješeni, neto, backlog (stanje na
+  kraju perioda, uz napomenu da je aproksimacija za ponovno otvorene tikete), SLA odziv i rješavanje,
+  medijana i p90 rješenja, medijana prvog odziva, CSAT prosjek i udio zadovoljnih (**ocjena ≥ 4**), te
+  najčešći servisi (do 8 prije „Ostali“).
+- Granularnost je automatska (do 31 dan dnevno, do 183 dana sedmično, inače mjesečno) uz ručni izbor i
+  ograničenja po granularnosti (dan 92, sedmica 104 bucket-a, mjesec iz postavke `maxMonths`, zadano 36).
+- Ostale postavke: keš 600 s, ciljna SLA linija 90 %, minimalni uzorak za CSAT 5; tekući (nepotpuni)
+  period je označen isprekidano, a svaka kartica ima objašnjenje „Kako se računa?“ i tabelarni prikaz.
+- Izvoz ide u CSV/JSON (`GET /reports/trends/export`, audit `report.trends.exported`), a „štampa“ kroz PDF
+  prikaz (audit `report.pdf.exported`). Dugme **Zakaži ovaj izvještaj** otvara formu rasporeda s
+  popunjenim filterima.
+- **Izvori:** `backend/src/modules/reports/trends/report-trends.constants.ts:1–43`,
+  `trends/report-trends.types.ts:72–103`, `reports.controller.ts:151–189`,
+  `audit-log/audit-log.constants.ts:60–61`, `frontend/src/components/reports/trends/report-trends-panel.tsx:198–345`,
+  `frontend/src/services/report-trends-api.ts:120–135`; plan 2.5 §3, §7.2, §11.1, §13.3.
+- **Status:** Važi
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 4
+
+### T99 — Paketi izvještaja: pregled, formati, limiti i audit
+
+- Zadano je uključeno šest paketa: `monthly_kpi`, `overdue_by_service`, `top_close_codes`,
+  `kb_helpfulness`, `forward_ping_pong`, `time_tracking`; uz uključene module (CMDB, problemi, promjene)
+  pojavljuju se i njihovi paketi.
+- Tok je **paket → period → jedinica → Prikaži** (pregled prvih redova, `truncated` sa porukom „Prikazano
+  prvih …“), pa **Preuzmi CSV** ili **Preuzmi JSON**; preuzimanje sadrži sve redove dozvoljenog perioda.
+- Ograničenja: period po paketu najviše 366 dana, pregled 200 redova, dozvoljeni formati `csv,json`;
+  u paketu prosljeđivanja naslovi povjerljivih tiketa zamjenjuju se oznakom `[confidential]` koju pregled
+  prevodi u `[povjerljivo]`.
+- Svaki izvoz se bilježi u audit (akcija `reports.export`) sa formatom, brojem redova, paketom,
+  organizacionom jedinicom, periodom i imenom fajla; CSV ima BOM i zaštitu od injekcije formule.
+- **Izvori:** `backend/src/modules/reports/reports.constants.ts:3–63,115,117`,
+  `settings/definitions/reports-settings.ts:10–20`, `reports.controller.ts:78–121`,
+  `record-report-export-audit.ts:9–41`, `packs/build-forward-ping-pong-report.ts:19,38`,
+  `packs/build-top-close-codes-report.ts:4–25`, `packs/build-kb-helpfulness-report.ts:4–16,43–73`,
+  `audit-log/audit-log.constants.ts:31`,
+  `frontend/src/components/reports/report-packs-panel.tsx:245–270`,
+  `frontend/src/lib/reports/report-pack-table.ts:54–55`; plan 1.6 §3–§5.
+- **Status:** Važi
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 5
+
+### T100 — Uska grla: API postoji, ekran ne
+
+- `GET /reports/bottlenecks` vraća brojače `PENDING_APPROVAL`, `WAITING_FOR_USER`, `UNROUTED` i
+  `OVERDUE`, razrez po **organizacionoj jedinici, servisu i prioritetu** te **dnevni trend** (UTC dan,
+  prema datumu kreiranja) — tačno ono što RAW traži za identifikaciju uskih grla.
+- Postavka `private.dashboard.bottlenecks.enabled` provjerava se **samo** u tom endpointu; grafik u
+  pregledu izvještaja („Bottleneck: prosj. rješenje po grupi“) čita se iz `GET /reports/dashboard` i ne
+  poštuje je (B1). Postavka `defaultWindowDays` dijeli se s paketima izvještaja (B3).
+- Frontend **nema** ni funkciju klijenta ni komponentu za ovu rutu, pa se brojači i razrez mogu vidjeti
+  samo ručno, preko API-ja (B2); RAW-ova svrha („identifikacija uskih grla i optimizacija procesa/SLA“)
+  time nije dovršena do ekrana. Nijedan plan (1.6 ni 2.5) ne predviđa taj ekran.
+- **Izvori:** `backend/src/modules/reports/reports.controller.ts:123–130`,
+  `reports.service.ts:155–181`, `bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
+  `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`,
+  `settings/definitions/reports-settings.ts:169–185`; RAW `:280–284`, `:1039`.
+- **Status:** Važi (uz B1, B2, B3)
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Poznata ograničenja
+
+### T101 — Zakazani izvještaji: raspored, primaoci i historija
+
+- Raspored ima **naziv, učestalost** (`WEEKLY` — ponedjeljak, `MONTHLY` — 1. u mjesecu), **vrijeme slanja u
+  zoni instalacije**, **sekcije e-maila** (`kpi`, `trend`, `topServices`, `overdue`), **priloge (CSV)** i
+  **primaoce** (samo interni korisnici s pristupom izvještajima i opsegu jedinice, uz pretragu).
+- Posao se izvršava cron-om `*/5 * * * *` i obrađuje do 20 rasporeda po prolazu; termin se preskače ako je
+  raspored isključen, korisnik neaktivan, izgubio pristup ili je e-mail kanal isključen — **razlog se
+  upisuje u historiju** i prikazuje u UI. Prilozi se izostavljaju iznad limita redova ili 10 MB ukupno,
+  uz napomenu u e-mailu.
+- Historija izvršenja prikazuje do 50 zapisa (čuvanje 180 dana), period, broj poslanih od ukupno
+  primalaca i razloge; **Pošalji test meni** šalje probni izvještaj pokretaču, a **Pošalji sada** pokreće
+  pravo slanje uz potvrdu.
+- Zakazani se administriraju na tabu **Zakazani** (samo uz `reports.schedule.manage`), a svaka izmjena i
+  slanje bilježe se u audit (`report.schedule.created/updated/deleted/sent/test_sent`).
+- **Izvori:** `backend/src/modules/reports/schedules/report-schedule.constants.ts:1–65`,
+  `schedules/report-schedules.controller.ts`, `schedules/report-schedules.service.ts`,
+  `schedules/scheduled-report.runner.ts`, `schedules/report-schedules.processor.ts`,
+  `schedules/report-schedule-calendar.ts`, `audit-log/audit-log.constants.ts:60–66`,
+  `frontend/src/pages/reports-page.tsx:54–64`, i18n `reports.schedules.*`; plan 2.5 §5, §7.3, §13.1.
+- **Status:** Važi
+- **Wiki stranica:** Nadzorna ploča i izvještaji → Korak po korak 6
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

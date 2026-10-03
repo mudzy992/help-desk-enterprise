@@ -691,3 +691,73 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   odstupanja (K1)“ — postoje samo za K2 (§3.4) i K4 (§5.4) — a u §2.4 opisuje prelazak na klasifikaciju
   `PUBLIC`, koja u modelu ne postoji (`DataClassification` = INTERNAL, CONFIDENTIAL, RESTRICTED,
   `backend/prisma/schema/enums.prisma:122–126`).
+
+## M15 — Nadzorna ploča i izvještaji (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/nadzorna-ploca-i-izvjestaji.md` — novi vodič: čemu modul služi (brzi pregled rada na
+  **Nadzornoj ploči** i nadzor kroz **Izvještaje**), kome je namijenjen (tabela rola: korisnik, agent,
+  ADMIN/SUPER_ADMIN sa `reports.export`/`audit.export` i `reports.schedule.manage`), kako se dolazi (meni
+  **Nadzorna ploča**, meni **Izvještaji**, tabovi **Pregled**, **Trendovi**, **Paketi izvještaja**,
+  **Zakazani**, dugme **Zakaži ovaj izvještaj** iz Trendova), korak-po-korak (čitanje brojača i
+  grafikona, SLA nadzor i grupni inbox, KPI pregled i PDF, trendovi sa filterima i izvozom, paketi sa
+  pregledom i preuzimanjem, zakazani izvještaji sa testnim slanjem i historijom), tabele (značenje
+  brojača, KPI formule i uzorci, sadržaj paketa, poruke i greške), česta pitanja (keš brojača, razlika
+  između brojača i lista, pristup izvještajima, prigušeni CSAT, razlozi preskakanja primalaca), poznata
+  ograničenja (**B1–B6** i gapovi prema RAW-u) i povezane module.
+- `REVIEW_ANALIZA.md` §M15 — planirano (RAW `:171`, `:258–262`, `:278–284`, `:360`, `:660–661`, `:805`,
+  `:814`, `:1000`, `:1031`, `:1039`, `:1047`), idealno i preporuka, stanje u kodu (nadzorna ploča i
+  izvor brojača, SLA nadzor, četiri taba izvještaja, KPI, trendovi, paketi, usko grlo API, zakazani,
+  postavke, testovi), gap tabela, recenzija, nalazi **B1–B6**, ocjene **F8 / K8 / S8** i ažuriran red
+  tabele iteracija 3 („M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena)“).
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T95–T101**: nadzorna ploča i izvor brojača; SLA nadzor i grupni inbox;
+  KPI formule, uzorci i KB stopa; trendovi, granularnost i izvoz; paketi izvještaja, limiti i audit;
+  uska grla (API bez ekrana); zakazani izvještaji, primaoci i historija.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama; u `REVIEW_ANALIZA.md` i `TEZE-ZA-DOKUMENTACIJU.md` samo
+  dodate sekcije (bez izmjena ranijih modula).
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul nosi RAW zahtjeve za KPI nadzor (tiketi po OU, prosječno rješenje, KB stopa, CSAT), uska grla i
+  predefinisane izvještaje sa izvozom i OU opsegom, a do sada nije imao nijednu stranicu za krajnjeg
+  korisnika; uz to su kroz pakete 1.6 i 2.5 dodati trendovi, zakazani izvještaji i PDF, što treba opisati
+  tačnim nazivima dugmadi.
+- Najvažnije je razdvojiti **brojače sa servera** (tačni, keširani 60 s) od **pogleda koji se računaju u
+  pregledaču iz prve strane od 50 tiketa** (B6), objasniti formule (KB stopa = pomoglo / (pomoglo +
+  kreirani), zadovoljan CSAT = ocjena ≥ 4) i navesti stvarna ograničenja: uska grla postoje kao API ali ne
+  i kao ekran (B2), postavka uskih grla ne djeluje na prikaz (B1), jedna postavka perioda dijeli se s
+  paketima (B3), `scope` sažetka se ne koristi (B4) i dugme **Izvještaji** na ploči je trajno onemogućeno
+  (B5).
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/reports/*` (109 `.ts`, 24 spec / 2 810 linija —
+  `report-summary.{controller,service}.ts`, `summary/report-summary-cache.ts:2–22`,
+  `summary/report-summary.types.ts`, `summary/load-dashboard-summary-counts.ts`,
+  `summary/load-sla-summary-counts.ts`, `dashboard/build-reports-dashboard.ts:31–40`,
+  `dashboard/aggregate-report-dashboard-kpis.ts:4–18,63–87`, `dashboard/report-dashboard.cache.ts`,
+  `bottleneck/aggregate-bottleneck-dashboard.ts:23–41,71–116`,
+  `bottleneck/sql-bottleneck-dashboard-store.ts:30–40`, `trends/report-trends.constants.ts:1–43`,
+  `schedules/report-schedule.constants.ts:1–65`, `packs/build-{top-close-codes,kb-helpfulness,forward-ping-pong}-report.ts`,
+  `reports.controller.ts:45–56,78–130,151–189`, `reports.service.ts:130–199`,
+  `record-report-export-audit.ts:9–41`), `backend/src/modules/settings/definitions/reports-settings.ts`,
+  `setting-keys.ts:439–453`, `audit-log/audit-log.constants.ts:31,59–66`, te frontend
+  (`pages/dashboard-page.tsx:39–124`, `pages/reports-page.tsx:52–64,252–257`,
+  `lib/dashboard/use-dashboard-summary.ts:71–90`, `lib/dashboard/build-volume-14d.ts:11–25`,
+  `lib/dashboard/dashboard-ticket-sets.ts:13–35`, `lib/session/route-access.ts:58–71`,
+  `components/reports/*`) i e2e (`tests/12-reports-packs.spec.ts`, `17-reports-trends`, `18-reports-schedules`,
+  `19-reports-print`, `22-accessibility.spec.ts:64,79`); planovi `docs/plans/modules/1.6-izvjestaji-ui.md`
+  i `2.5-izvjestavanje-i-analitika.md` §7.1, §11, §13 i RAW `RAW_PROJECT.md:171,258–262,278–284,360,660–661,805,814,1000,1031,1039,1047`.
+- **Nalaz o dokumentima (samo evidentirano, `docs/plans/**` se ne dira):** nijedan plan ne predviđa
+  **ekran** za uska grla (`/reports/bottlenecks` je zatečeni endpoint koji plan 2.5 §13.1 samo sanira,
+  a tabovi u §7.1 su Pregled/Trendovi/Paketi/Zakazani); dva RAW reda o predefinisanim izvještajima
+  (`RAW_PROJECT.md:278–279`) zapisana su unutar odjeljka „Config versioning + rollback“, a ne u odjeljku
+  o analitici. Obje stvari su nalazi u `REVIEW_ANALIZA.md` §M15, bez izmjena planova.
