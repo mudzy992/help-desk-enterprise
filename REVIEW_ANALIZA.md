@@ -5374,10 +5374,17 @@ Korisnik je na stagingu dobio `400 VALIDATION: pageSize must not be greater than
   `dashboardVolumePageSize` je sada izveden iz `ticketListMaxPageSize`
   (`frontend/src/lib/tickets/ticket-constants.ts`), pa se brojevi ne mogu razići bez izmjene na jednom mjestu.
 - **Zaštita da se ne ponovi:** nova CI provjera `scripts/check-ticket-list-page-size.mjs` (frontend konstanta
-  mora biti jednaka backend maksimumu; nijedan `listTicketsPage({ pageSize: <broj> })` ne smije preko nje),
-  uključena u `.github/workflows/ci.yml` uz ostale `check-*` provjere. Test:
+  mora biti jednaka backend maksimumu; **nijedan numerički `pageSize` literal u `frontend/src`** ne smije
+  preko nje — u frontend-u drugih takvih literala nema, pa nema izuzetaka), uključena u
+  `.github/workflows/ci.yml` uz ostale `check-*` provjere. Test:
   `frontend/src/lib/dashboard/load-dashboard-volume.spec.ts` (6 testova, uključujući „nikad ne traži više od
   onoga što API prihvata“ i „puna zadnja dozvoljena stranica znači donju granicu“).
+- **Zapis o sopstvenoj grešci u istom danu:** prvi commit popravke (`596d102`) nosio je i **test-otpadak**
+  (`const _temp = { pageSize: 100 }`) — dokaz da je provjera hvatala regresiju, ali je ostao u fajlu jer
+  provjera tada nije gledala numeričke literale izvan fajlova koji zovu `listTicketsPage`. Otpadak je uklonjen
+  odmah, a provjera je **proširena na cijeli `frontend/src`**; pad provjere na vraćenom otpatku je provjeren
+  (`load-dashboard-volume.ts:12 traži pageSize 100, a server prihvata najviše 50`). `tsc` i `vitest` ovo nisu
+  mogli uhvatiti jer je neželjeni kod bio sintaksno ispravan i nekorišten.
 - **Lekcija za dalje (NISKO, proces):** val 1 je imao testove logike i statičke provjere, ali nijedan test
   nije prolazio kroz **DTO validaciju** — jedini sloj koji je ovdje pao. Zato je dogovor za sljedeće valove:
   svaki novi zahtjev prema postojećem endpointu dobija bar jedan test/e2e scenario protiv stvarnog servera ili

@@ -9,9 +9,6 @@ import { ticketListMaxPageSize } from "@/lib/tickets/ticket-constants";
  * (`backend/src/modules/tickets/dto/list-tickets-query.dto.ts`, `@Max`).
  */
 export const dashboardVolumePageSize = ticketListMaxPageSize;
-// TEMP
-const _temp = { pageSize: 100 };
-void _temp;
 
 /**
  * Koliko se stranica najviše dohvati za grafik. Šest stranica × 50 = 300

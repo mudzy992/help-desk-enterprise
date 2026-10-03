@@ -41,13 +41,14 @@ if (backendMax !== null && frontendMax !== null && backendMax !== frontendMax) {
   );
 }
 
+// Nema izuzetaka: u frontend-u nema nijednog drugog numeričkog `pageSize`
+// literala, pa svaki preko granice jeste greška (i test-otpadak se hvata).
 const limit = frontendMax ?? backendMax ?? 50;
 for (const file of walk(join(root, "frontend/src"))) {
   if (!/\.tsx?$/.test(file) || file.endsWith(".spec.ts") || file.endsWith(".spec.tsx")) {
     continue;
   }
   const source = readFileSync(file, "utf8");
-  if (!source.includes("listTicketsPage(")) continue;
   for (const [index, line] of source.split("\n").entries()) {
     const match = /pageSize:\s*(\d+)/.exec(line);
     if (match === null) continue;
