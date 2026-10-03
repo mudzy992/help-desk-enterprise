@@ -22,7 +22,7 @@
 
 | Iteracija | Moduli | Stanje |
 |---|---|---|
-| 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 u toku |
+| 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 
 ---
 
@@ -1003,3 +1003,224 @@ imao teze za RBAC; postojeći modulski fajlovi spominju permisije samo usput (np
 | Funkcionalnost | **7 / 10** | Sve komponente postoje (63 permisije, scope po OU/servisu, preview, read-only režim, sesija s dozvolama), ali B1 čini RBAC praktično neupotrebljivim za ADMIN/AGENT na svježoj instalaciji dok se mapping ručno ne uspostavi. |
 | Kvalitet koda | **9 / 10** | Decision-core odvojen od I/O-a, razlozi odluka, izuzetna test pokrivenost, čist preview kroz stvarni evaluator. Zamjerke su male: nedokumentovana ANY-of semantika i dvostruko čitanje pravila u komentarima umjesto u kodu. |
 | Sigurnost | **8 / 10** | Fail-closed scope pravilo, `isLocalOnly` uslov za SuperAdmin bypass, read-only režim fail-closed, revizija promjena kroz audit. Umanjuju: serverski neobavezan preview (B2), neauditovan bypass (B5) i implikacije B4. |
+
+---
+
+# M5 — Policy paketi (bundles konfiguracije)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Definicija** (`RAW_PROJECT.md:294–295`): „paket konfiguracije koji kombinuje: **permissions/scopes + SLA
+  profile + required fields + classification policy + approvals defaults**“.
+- **Ciljna dodjela** (`RAW_PROJECT.md:296`): „policy pack se može dodijeliti **servisu ili cijeloj OU** (admin
+  bira), i služi za standardizaciju između službi“.
+- **Default paketi** (`RAW_PROJECT.md:297–299`): `PACK_IT_STANDARD`, `PACK_HR_RESTRICTED`,
+  `PACK_FINANCE_RESTRICTED`.
+- **Postavke** (`RAW_PROJECT.md:670–672`): `private.policyPacks.enabled` (boolean, default true),
+  `private.policyPacks.defaultPacksJson` (secret — definicija default paketa) i
+  `private.policyPacks.assignmentJson` (secret — mapiranje OU/service → pack, default prazno).
+- **Efekat** (`RAW_PROJECT.md:985`): pack se dodjeljuje servisu/OU i **utiče na default konfiguraciju**
+  (SLA / required fields / classification / approvals / permission scopes).
+- **Veza s wizardom** (`RAW_PROJECT.md:356`): onboarding servisa predlaže default routing target i fallback
+  „prema OU i/ili **policy pack-u**“, uz potvrdu admina.
+- **Shadow permission check** (`RAW_PROJECT.md:230–232`) traži preview uticaja prije aktivacije promjena
+  permissions/scopes — za pakete to znači da se i njihov efekat vidi prije primjene.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Pack je verzionisan dokument.** Definicija (SLA profil, required fields, classification, approvals,
+   permisije) dolazi iz konfiguracije, ima verziju i vidi se diff između primijenjenog i predloženog stanja.
+2. **Dodjela je eksplicitna i reverzibilna.** Pack se veže na OU *ili* servis, jasno se vidi šta je vezano i
+   čime, a uklanjanje paketa vraća prethodno stanje (ili ga bar prikazuje i traži potvrdu).
+3. **Primjena je predvidiva.** Prije primjene korisnik vidi šta dobija/gubi (permisije, role, SLA, obavezna
+   polja, klasifikaciju), a primjena je idempotentna.
+4. **Sve što pack nosi je stvarno primijenjeno** na tiket/servis tokom rada, a ne samo zapisano u bazu.
+5. **Ne može se zaobići RBAC**: pack ne smije dodijeliti SUPER_ADMIN ni permisiju koju rola po pravilima ne
+   smije imati.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+- Zadržati postojeći obrazac (registry definicija → resolve target → plan → transakcija → audit → invalidacija);
+  on je čitljiv i idempotentno napisan. Dodati, po prioritetu:
+  1. **Proširiti definiciju pack-a** na ono što RAW traži: `slaProfileKey`, `requiredFieldKeys`,
+     `classificationPolicy` (danas samo `defaultClassification`), `approvals` (danas samo `requiresApproval`) —
+     i potrošače u ticket/service tokovima, inače polja ostaju mrtva.
+  2. **Omogućiti dodjelu samo na servis** (DTO i UI), jer to RAW izričito dopušta.
+  3. **Uvesti `unapply`/rebind** s diff-om i auditom; ako potpuni rollback nije moguć, prikazati šta ostaje i
+     tražiti potvrdu.
+  4. **Preview prije primjene** (isti obrazac kao `roles/:roleKey/permissions/preview`), povezan s validate
+     rezultatom.
+  5. **Postavke `private.policyPacks.*`** (enabled, defaultPacksJson, assignmentJson) ili svjesna odluka da
+     definicije ostaju u kodu — ali onda to i zapisati u dokumentaciju.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Definicije i registar
+
+- `policy-pack.constants.ts:1–15`: tri ključa (`PACK_IT_STANDARD`, `PACK_HR_RESTRICTED`,
+  `PACK_FINANCE_RESTRICTED`), grant scopeovi `none`|`target`, lista default paketa.
+- `policy-pack.registry.ts:14–92`: **IT Standard** — ADMIN i AGENT s punim default permisijama
+  (`defaultRolePermissionKeys`), OU scope = target, servis = none, klasifikacija `INTERNAL`,
+  `requiresApproval: false`; **HR Restricted** — AGENT s `ticket.attachments.upload/download`, OU i servis =
+  target, `RESTRICTED`, `requiresApproval: true`; **Finance Restricted** — ADMIN (`audit.export`,
+  `routing.write`, `sla.write`) i AGENT (attachments + `ticket.merge`), OU i servis = target, `CONFIDENTIAL`,
+  `requiresApproval: true`.
+- `policy-pack.types.ts:14–21`: `PolicyPackDefinition` nosi **samo** `key`, `name`, `description`,
+  `defaultClassification`, `requiresApproval` i `grants` (roleKey, permissionKeys, OU scope, service scope).
+  SLA profil, required fields i approvals pravila **nisu** dio definicije.
+- `assert-policy-pack-definition.ts:29–71`: zabranjuje grant SUPER_ADMIN-a (`SUPER_ADMIN_GRANT_FORBIDDEN`),
+  dozvoljava samo role USER/AGENT/ADMIN, provjerava da su scopeovi `none`/`target`, da nema duplih grantova i da
+  je svaka permisija iz kataloga i **dozvoljena za tu rolu po `defaultRolePermissionKeys`**
+  (`PERMISSION_NOT_ALLOWED_FOR_ROLE`).
+- `PolicyPack` model (`backend/prisma/schema/identity.prisma:212–225`) ima i `slaProfileId` te relacije
+  `organizationalUnits`/`services`; `ensure-policy-pack-catalog.ts:52–68` upisuje samo `defaultClassification` i
+  `requiresApproval` — `slaProfileId` se **nikad ne postavlja**, a `defaultClassification`/`requiresApproval`
+  **niko ne čita** van `list-policy-packs.ts:8–9`.
+
+### 4.2 API i servis
+
+- `policy-packs.controller.ts:28–69`: `@Controller('policy-packs')` sa `SessionAuthenticationGuard` na klasi;
+  `GET /policy-packs` traži ADMIN + `settings.write`; `POST /policy-packs/validate` (označen
+  `@AdminReadOperation`, dozvoljen i u read-only režimu) i `POST /policy-packs/apply` traže **ADMIN** +
+  `settings.write` + `OuAccessGuard` + `@RequireOrganizationalUnitScope({ field: 'organizationalUnitId' })`;
+  `apply` prosljeđuje aktera i request ID u audit.
+- `dto/apply-policy-pack.dto.ts:10–30`: `packKey` (obavezno), **`organizationalUnitId` obavezno**,
+  `serviceId` opcionalno, `userIds` opcionalno (unikatni).
+- `policy-packs.service.ts:24–49`: `list` (iz registra), `validate`, `apply` (uz invalidaciju pogođenih
+  korisnika kroz `PrincipalContextInvalidator`).
+- `resolve-policy-pack-apply-target.ts:13–59`: provjerava da pack postoji, da OU postoji i ima `ouPath`, da
+  servis postoji i da **svi** `userIds` postoje (`UNKNOWN_USER`).
+- `plan-policy-pack-apply.ts:20–88`: `packRequiresOrganizationalUnit`/`packRequiresService` izvode obaveznost iz
+  grant scopeova (`MISSING_ORGANIZATIONAL_UNIT`, `MISSING_SERVICE`), a `planPolicyPackAssignments` za svakog
+  korisnika gradi po jednu dodjelu za svaki grant (OU/servis scope prema `target`).
+- `apply-policy-pack.ts:19–79`: u jednoj transakciji `ensurePolicyPackCatalog` (upsert packa, rola, permisija i
+  `RolePermission`), `bindPolicyPackTargets`, `applyPolicyPackUserGrants`, pa audit `policyPackApply` s ključem
+  paketa, servisom, OU-om i brojevima; **poslije** transakcije invalidira keš svakog pogođenog korisnika
+  (`:73–77`).
+- `apply-policy-pack-user-grants.ts:24–52`: idempotentno — postojeća dodjela (`userId`+`roleId`+OU+servis) se
+  broji, nova se kreira; vraća `affectedUserIds`.
+- `bind-policy-pack-targets.ts:10–22`: upisuje `policyPackId` na OU (uz `invalidateOrganizationalUnitScopeCache`)
+  i na servis.
+- `map-policy-pack-error.ts:9–39`: 11 kodova; `UNKNOWN_*` → 404, ostalo → 400 (`MISSING_SERVICE`, `UNKNOWN_USER`,
+  `PERMISSION_NOT_ALLOWED_FOR_ROLE`, …).
+- **Primjena je jednosmjerna**: ne postoji `DELETE`/`unapply`, niti kod koji bi uklonio `policyPackId` ili
+  povukao dodijeljene role/permisije.
+
+### 4.3 Frontend
+
+- `pages/users-page.tsx:8,112` i `pages/admin-page.tsx:134`: panel **PolicyPacksPanel** se renderuje na vrhu taba
+  **Korisnici i uloge** unutar ekrana **Administracija** (`<UsersPage embedded />`).
+- `components/policy-packs/policy-packs-panel.tsx:20–28`: panel se prikazuje **samo** ako je sesija
+  SuperAdmin (`isSuperAdmin === true || hasRole(SUPER_ADMIN)`), inače vraća `null`.
+- `components/policy-packs/policy-pack-apply-form.tsx:29–48,118`: forma **Primijeni paket na OJ / servis** —
+  `packKey` i `unitId` su obavezni (`:37`), `serviceId` je opcionalan; dugme **Primijeni paket** /
+  **Primjena…**.
+- `components/policy-packs/policy-pack-cards.tsx` + i18n `policyPacks.*`: kartice paketa s brojem dozvola i
+  redom `{{role}} → {{count}} dozvola`; tekstovi tvrde **„Samo SuperAdmin“** (`forbiddenTitle/forbiddenBody`).
+
+## 5. Gap analiza
+
+| Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Bundle: permisije/scopes + SLA + required fields + classification + approvals (`:294–295`) | Definicija i potrošači za sve dijelove | Radi **samo** permisije/scopes + dodjela rola; `defaultClassification`/`requiresApproval` se samo zapisuju, `slaProfileId` se ne postavlja, required fields ne postoje | **Djelimično** |
+| Dodjela servisu **ili** OU (`:296`) | Oba načina, admin bira | OU je obavezan u DTO-u i UI-u; servis samo dodatno | **Odstupa** |
+| Default paketi IT/HR/Finance (`:297–299`) | Tri default paketa | Postoje, s traženim ključevima i sadržajem permisija | **Implementirano** |
+| Postavke `private.policyPacks.*` (`:670–672`) | enabled + defaultPacksJson + assignmentJson | Nijedan ključ ne postoji (`grep policyPacks` u `settings/setting-keys.ts` = 0); definicije su hardkodirane | **Nedostaje** |
+| Uticaj na default konfiguraciju (`:985`) | SLA/required fields/classification/approvals reaguju na pack | Nema potrošača; pack danas mijenja samo role/permisije i `policyPackId` na OU/servisu | **Djelimično** |
+| Preview prije aktivacije (`:230–232`) | Preview/diff prije primjene | Postoji `POST /policy-packs/validate` s `plannedAssignments`, ali `apply` ga ne zahtijeva i nema potvrde | **Djelimično** |
+| Standardizacija i idempotencija | Ponovljena primjena ne pravi duplikate | Idempotentno (`apply-policy-pack-user-grants.ts:29–41`, `ensure-policy-pack-catalog.ts:83–97`), pokriveno `policy-packs.idempotency.spec.ts` | **Implementirano** |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Dobra strana.** Lanac „definicija → provjera → plan → transakcija → audit → invalidacija“ je uzoran:
+  definicije su provjerene prije primjene (`assert-policy-pack-definition.ts`), planiranje je čista funkcija
+  (`plan-policy-pack-apply.ts:66–88`), primjena je idempotentna, a keš dozvola se invalidira **poslije** commit-a
+  (`apply-policy-pack.ts:73–77`) — što je tačno mjesto gdje većina implementacija pogriješi.
+- **Glavna zamjerka.** Paket je zamišljen kao *bundle konfiguracije*, a implementiran je kao *bundle permisija*.
+  Polja koja obećavaju ostalo (`defaultClassification`, `requiresApproval`, `slaProfileId` u šemi) postoje, ali
+  ih niko ne čita — što je gore od njihovog odsustva, jer izgledaju kao da rade.
+- **Druga zamjerka.** Prezentacija („Samo SuperAdmin“) i backend (ADMIN + `settings.write`) ne govore isto; u
+  kombinaciji s nalazom B1 iz §M4 trenutno se to ne vidi u praksi, ali će se vidjeti čim se permisije upišu.
+- **Treća zamjerka.** Primjena je jednosmjerna. Za „standardizaciju između službi“ to je prihvatljivo na kratak
+  rok, ali svaka greška (pogrešan pack, pogrešna OJ) ostaje trajno i zahtijeva ručno čišćenje dodjela.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+**B1 — `SREDNJE` — pack ne nosi SLA/required fields/classification/approvals koje RAW obećava.**
+`PolicyPackDefinition` (`policy-pack.types.ts:14–21`) ima samo grants + dvije oznake; `PolicyPack` model ima
+`slaProfileId` (`identity.prisma:219`) i relacije, ali `ensure-policy-pack-catalog.ts:52–68` ga ne postavlja, a
+`defaultClassification`/`requiresApproval` se samo vraćaju na `GET /policy-packs`
+(`list-policy-packs.ts:4–16`) — nigdje ih ne čita nijedan servis tiketa/SLA. **Uticaj:** administrator očekuje da
+pack „podesi“ klasifikaciju i odobravanja (RAW `:295`, `:985`), a dobija samo role i permisije.
+**Fix:** proširiti definiciju i uvesti potrošače (SLA profil pri kreiranju servisa/tiketa, required fields u
+formama, approvals u toku odobrenja) ili skinuti polja iz modela i dokumentovati stvarni obim.
+
+**B2 — `SREDNJE` — postavke `private.policyPacks.*` ne postoje; paketi su hardkodirani.**
+RAW `:670–672` traži `enabled` (default true), `defaultPacksJson` i `assignmentJson`. `settings/setting-keys.ts`
+ne sadrži nijedan `policyPacks` ključ (provjereno), a registar je fiksan
+(`policy-pack.registry.ts:88–111`). **Uticaj:** ne može se isključiti modul, ni dodati paket bez izmjene koda i
+deploya; mapiranje OU/service → pack postoji samo kao `policyPackId` u bazi (nije `assignmentJson` iz zadatka).
+**Fix:** odluka (implementirati postavke ili dokumentovati da definicije ostaju u kodu) + vidljiv `enabled`
+prekidač.
+
+**B3 — `SREDNJE` — dodjela samo servisu nije moguća iako je RAW izričito dopušta.**
+`dto/apply-policy-pack.dto.ts:15–17` čini `organizationalUnitId` obaveznim; UI zahtijeva `unitId`
+(`policy-pack-apply-form.tsx:37`), dok domenski sloj dozvoljava `null`
+(`policy-pack.types.ts:23–28`) i obaveznost izvodi iz grant scopeova (`plan-policy-pack-apply.ts:53–58`).
+**Uticaj:** „policy pack se može dodijeliti servisu ili cijeloj OU (admin bira)“ (RAW `:296`) nije moguće
+izvesti za servis bez OU-a. **Fix:** `organizationalUnitId` učiniti opcionalnim u DTO-u/UI-u i pustiti
+`packRequires*` da odluči.
+
+**B4 — `NISKO` — UI tvrdi da je primjena „Samo SuperAdmin“, API dozvoljava ADMIN-a.**
+Panel se renderuje samo SuperAdminu (`policy-packs-panel.tsx:22–26`), a i18n tekst to ponavlja, dok
+`policy-packs.controller.ts:51–52,60–62` traži rolu ADMIN + `settings.write`. **Uticaj:** nejasna politika; kad
+se (po §M4 B1) upišu permisije, ADMIN će moći zvati `POST /policy-packs/apply` iako UI tvrdi suprotno.
+**Fix:** uskladiti jedno s drugim (najvjerovatnije podići API na SUPER_ADMIN, jer paketi mijenjaju dozvole).
+
+**B5 — `SREDNJE` — primjena paketa je nepovratna.**
+Ne postoji `unapply`: `bind-policy-pack-targets.ts:10–22` samo upisuje `policyPackId`, a
+`apply-policy-pack-user-grants.ts:42–49` kreira obične `UserRole` redove koji se ne razlikuju od ručnih; nema
+audit akcije za povlačenje. **Uticaj:** pogrešno primijenjen paket (npr. na pogrešnu OJ) ostavlja dodijeljene
+role i permisije zauvijek; jedini oporavak je ručno uklanjanje dodjela i permisiја po roli.
+**Fix:** `POST /policy-packs/unapply` s istim plan/audit obrascima i jasnim ishodom.
+
+**B6 — `NISKO` — `apply` ne zahtijeva prethodnu validaciju.**
+`POST /policy-packs/validate` vraća `plannedAssignments` (`validate-policy-pack-apply.ts:9–24`), ali
+`apply` prima isti DTO nezavisno od toga da li je validacija izvršena; nema preview potvrde ni diff-a u
+odgovoru. **Uticaj:** klijent može primijeniti paket „naslijepo“; RAW-ov shadow-check duh (`:230–232`) nije
+ispunjen za pakete. **Fix:** zahtijevati validaciju u istoj sesiji (token) ili barem vratiti plan u odgovoru
+`validate` koji UI mora prikazati prije potvrde.
+
+**Napomena (nije bug):** `PERMISSION_NOT_ALLOWED_FOR_ROLE` (`assert-policy-pack-definition.ts:60–70`) sprečava
+da paket dodijeli roli permisiju koju ona nema po `defaultRolePermissionKeys`; to je dobra brana, ali znači i da
+paket **ne može** biti jedini izvor novih dozvola — svaka nova permisija mora prvo ući u default mapping u kodu.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/` nije imao stranicu o policy paketima; `TEZE-ZA-DOKUMENTACIJU.md` nije imao
+teze za njih. Postojeći tekstovi spominju „policy pack“ samo u kontekstu wizarda i SLA/klasifikacije
+(`RAW_PROJECT.md:356`, `:985` — nije dio `user-guide`).
+
+**Dodato:**
+- `docs/user-guide/policy-paketi.md` — čemu služi, kome je namijenjen (SuperAdmin u UI-u), kako se dolazi
+  (Administracija → **Korisnici** → panel **Paketi politika**), korak-po-korak (odabir paketa, OU, opcionalni
+  servis, **Primijeni paket**), šta paket stvarno mijenja (role, permisije, `policyPackId`), tri default paketa,
+  validacije i greške, poznata ograničenja (B1–B6) i veze na RBAC i korisnike.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T32** (paket dodjeljuje role i permisije scoped na ciljnu OJ/servis, uz
+  idempotenciju i audit), **T33** (default paketi i šta oni stvarno nose — samo permisije), **T34** (primjena je
+  jednosmjerna i ne postoji povlačenje), **T35** (paket ne može dodijeliti SUPER_ADMIN ni permisiju van
+  default mappinga role).
+
+**Ispravljeno:** ništa (tema nije bila dokumentovana).
+
+**Ostaje otvoreno:** `[NEJASNO]` — da li je predviđeno da paket nosi SLA profil/required fields/approvals
+(RAW `:295`) u ovoj fazi; polje `slaProfileId` u šemi postoji, ali nijedan tok ga ne koristi, pa nije jasno da li
+je u pitanju nedovršen rad ili rezervisano mjesto.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **6 / 10** | Primjena tri default paketa radi ispravno i idempotentno, ali paket nosi samo permisije/role; SLA, required fields, klasifikacija i approvals iz zadatka nisu implementirani, a dodjela samo servisu nije moguća. |
+| Kvalitet koda | **8 / 10** | Čista i dobro testirana podjela (plan/apply/validate/registry), korektna invalidacija keša poslije commit-a, konzistentno mapiranje grešaka. Gube bodovi zbog mrtvih polja u modelu i nedostatka reverzne operacije. |
+| Sigurnost | **8 / 10** | Zabrana SUPER_ADMIN granta, allowlist permisija po roli, OU-scope guard na primjeni, audit s akterom i transparentnost. Umanjuju: B4 (UI/API politika) i B5 (nepovratnost bez traga o povlačenju). |

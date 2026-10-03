@@ -632,6 +632,82 @@ To je kriterij kompletnosti.
 - **Status:** Privremeno (nalaz B1, `REVIEW_ANALIZA.md` §M4)
 - **Wiki stranica:** Administracija → Uloge i permisije
 
+### T32 — Paket politika dodjeljuje role i permisije scoped na ciljnu OJ/servis, uz idempotenciju i audit
+
+- **Modul / paket:** Policy paketi
+- **Publika:** SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Primjena paketa je transakciona i idempotentna: osigurava zapis paketa, role i permisije
+  (`RolePermission`), veže `policyPackId` na organizacionu jedinicu (i na servis ako je izabran) i za prosleđene
+  korisnike kreira dodjele rola sa scope-om iz definicije paketa. Ponovna primjena ne pravi duplikate; sve ulazi
+  u audit (`policy_pack.apply`), a keš dozvola pogođenih korisnika se invalidira odmah nakon commita.
+- **Zašto:** standardizacija pristupa između službi bez ručnog rada i bez duplih zapisa.
+- **Primjer:** Primjena **IT Standard** na OJ kreira/upotpuni permisije rola ADMIN i AGENT i veže paket na OJ;
+  drugi klik prijavljuje postojeće zapise, bez novih duplikata.
+- **Postavke / permisije:** `permissionKeys.settingsWrite` (API); UI: samo SuperAdmin.
+- **Ekran:** Administracija → **Korisnici** → **Paketi politika** → **Primijeni paket**.
+- **Izvori:** `backend/src/modules/policy-packs/apply-policy-pack.ts:19–79`,
+  `apply-policy-pack-user-grants.ts:16–57`, `bind-policy-pack-targets.ts:5–22`,
+  `ensure-policy-pack-catalog.ts:48–104`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Policy paketi
+
+### T33 — Tri default paketa nose samo permisije; SLA, obavezna polja i odobrenja još nisu dio primjene
+
+- **Modul / paket:** Policy paketi
+- **Publika:** SUPERADMIN / administratori
+- **Tip:** Ograničenje
+- **Teza:** `PACK_IT_STANDARD`, `PACK_HR_RESTRICTED` i `PACK_FINANCE_RESTRICTED` postoje, ali njihov sadržaj su
+  **isključivo** grantovi (rola + permisije + OU/servis scope). Polja `defaultClassification` i
+  `requiresApproval` se zapisuju na paket, a `slaProfileId` u šemi se ne postavlja; nijedan tok tiketa, servisa
+  ili SLA ih ne čita. Dokumentacija ne smije tvrditi da paket mijenja SLA, obavezna polja ili odobrenja.
+- **Zašto:** sprječava pogrešna očekivanja administratora.
+- **Primjer:** Nakon primjene **HR Restricted**, novi tiketi u toj OJ nemaju automatski drukčiju SLA politiku ni
+  obavezna polja.
+- **Postavke / permisije:** `defaultRolePermissionKeys` (sadržaj grantova).
+- **Ekran:** Administracija → **Korisnici** → **Paketi politika**.
+- **Izvori:** `backend/src/modules/policy-packs/policy-pack.types.ts:14–21`,
+  `policy-pack.registry.ts:14–92`, `backend/prisma/schema/identity.prisma:212–225`.
+- **Status:** Privremeno (nalaz B1, `REVIEW_ANALIZA.md` §M5)
+- **Wiki stranica:** Administracija → Policy paketi
+
+### T34 — Primjena paketa je jednosmjerna; povlačenje ne postoji
+
+- **Modul / paket:** Policy paketi
+- **Publika:** SUPERADMIN
+- **Tip:** Ograničenje
+- **Teza:** Ne postoji `unapply`: paket se može primijeniti, ali ne i povući. `policyPackId` na OJ/servisu se
+  postavlja, a dodjele kreirane paketom su obični `UserRole` zapisi koji se ne razlikuju od ručnih. Jedini način
+  da se efekat ukloni je ručno uklanjanje dodjela (**Korisnici → Upravljaj ulogama → Ukloni**) i ručna izmjena
+  permisija role (**Permisije**).
+- **Zašto:** administrator mora znati da greška pri primjeni ostaje trajno.
+- **Primjer:** Paket primijenjen na pogrešnu OJ ostavlja role i permisije na toj OJ dok se ručno ne uklone.
+- **Postavke / permisije:** `policyPackId` na `OrganizationalUnit`/`Service`.
+- **Ekran:** Administracija → **Korisnici** → **Paketi politika** (nema akcije povlačenja).
+- **Izvori:** `bind-policy-pack-targets.ts:10–22`, `apply-policy-pack-user-grants.ts:42–49`,
+  `policy-packs.controller.ts:40–69` (nema DELETE rute).
+- **Status:** Privremeno (nalaz B5, `REVIEW_ANALIZA.md` §M5)
+- **Wiki stranica:** Administracija → Policy paketi
+
+### T35 — Paket ne može dodijeliti SUPER_ADMIN ni permisiju van default mappinga role
+
+- **Modul / paket:** Policy paketi
+- **Publika:** SUPERADMIN
+- **Tip:** Pravilo
+- **Teza:** Definicija paketa se provjerava prije primjene: grant za `SUPER_ADMIN` je zabranjen
+  (`SUPER_ADMIN_GRANT_FORBIDDEN`), dozvoljene su samo role USER/AGENT/ADMIN, a svaka permisija mora postojati u
+  katalogu i biti u `defaultRolePermissionKeys` te role (`PERMISSION_NOT_ALLOWED_FOR_ROLE`). Paket zato ne može
+  biti put da rola dobije dozvolu koju joj standardni mapping ne predviđa.
+- **Zašto:** čuva granicu između paketa i SuperAdmin ovlaštenja.
+- **Primjer:** Paket koji bi roli AGENT dodijelio `audit.export` odbija se s
+  `PERMISSION_NOT_ALLOWED_FOR_ROLE`.
+- **Postavke / permisije:** `defaultRolePermissionKeys`, `allPermissionKeys`.
+- **Ekran:** Administracija → **Korisnici** → **Paketi politika**.
+- **Izvori:** `backend/src/modules/policy-packs/assert-policy-pack-definition.ts:29–71`,
+  `map-policy-pack-error.ts:9–29`.
+- **Status:** Važi
+- **Wiki stranica:** Administracija → Policy paketi
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

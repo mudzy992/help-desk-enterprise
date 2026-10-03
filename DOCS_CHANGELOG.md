@@ -152,3 +152,44 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
    odluka da li se dodaje obavezno polje razloga pri promjeni permisija.
 2. RAW `:479` navodi `entra_groups` kao vrijednost `private.auth.roleSource`, a kod poznaje `local_db` i
    `ad_groups` — potrebno je potvrditi da li je riječ samo o nazivu.
+
+---
+
+## M5 — Policy paketi (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/policy-paketi.md` — novi vodič: čemu modul služi, kome je namijenjen (SuperAdmin u UI-u),
+  kako se dolazi (Administracija → **Korisnici** → panel **Paketi politika**), korak-po-korak primjena, tabela tri
+  default paketa sa sadržajem grantova, tabela polja/validacija/poruka, česta pitanja i greške, poznata
+  ograničenja i povezani moduli.
+- `REVIEW_ANALIZA.md` §M5 — gap tabela (7 redova), recenzija koda, nalazi B1–B6, ocjene **F6 / K8 / S8** i red
+  iteracije 1 prebačen u „M5 ✅ (iteracija 1 završena)“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T32** (transakciona, idempotentna primjena uz audit i invalidaciju keša),
+  **T33** (default paketi nose samo permisije; SLA/required fields/approvals nisu implementirani), **T34**
+  (primjena je jednosmjerna, povlačenja nema), **T35** (paket ne može dodijeliti SUPER_ADMIN ni permisiju van
+  default mappinga role).
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — policy paketi do sada nisu bili dokumentovani.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul je bio nedokumentovan i lako ga je pogrešno razumjeti: naziv „paket politika“ i polja u zapisu paketa
+  (`defaultClassification`, `requiresApproval`, `slaProfileId`) sugerišu da paket mijenja SLA, obavezna polja i
+  odobrenja, dok stvarna primjena mijenja **samo role i permisije** te vezu paketa na OJ/servis. Dokumentacija i
+  teze sada eksplicitno razdvajaju ta dva pojma i navode nalaze B1–B6.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/policy-packs/*` (`policy-pack.registry.ts`,
+  `policy-pack.types.ts`, `assert-policy-pack-definition.ts`, `apply-policy-pack.ts`,
+  `apply-policy-pack-user-grants.ts`, `bind-policy-pack-targets.ts`, `ensure-policy-pack-catalog.ts`,
+  `list-policy-packs.ts`, `policy-packs.controller.ts`, `dto/apply-policy-pack.dto.ts`),
+  `frontend/src/components/policy-packs/*`, `frontend/src/pages/users-page.tsx` i
+  `backend/prisma/schema/identity.prisma`.
