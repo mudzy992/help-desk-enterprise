@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
-| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 u toku |
+| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 u toku |
 
 ---
 
@@ -3390,3 +3390,381 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Sve RAW-om tražene klase događaja postoje (tiketi, poruke, obavještenja, postavke, admin konfiguracija, edge), in-app model je kompletan (lista, nepročitano, pročitano, retencija), a skaliranje na više instanci je riješeno adapterom i bridge-om; minus za B1 (sobe se ne revalidiraju), B2 (join bez limitera), odsutan `ticket.attachment.created` i prelazni režim koji je još uključen. |
 | **Kvalitet koda** | **9/10** | Čiste funkcije za emit i mapiranje keševa, jasna podjela hub/gateway/fan-out, tipizovani payload-i sa `eventId`, komentari koji objašnjavaju zašto (kvarljivi klijent, ACL probe, reset brojača), 13 + 26 backend i 9 frontend spec fajlova; zamjerke su mrtvi izvoz (B5) i metrika bez alarma (B3). |
 | **Sigurnost** | **8/10** | Handshake autentikacija je obavezna, sobe tiketa se dobijaju **samo** poslije autorizacije, interne bilješke nikad ne izlaze iz staff sobe, povjerljiv tiket u obavještenju nosi samo broj, a postavke se emituju po dozvoljenoj listi ključeva; minus za B1 (pravo se provjerava samo pri spajanju), B2 (neograničen join) i za to što grupni emit nosi listu `excludedUserIds` (identifikatori kolega) — niska osjetljivost, ali nepotreban podatak u dijeljenoj sobi. |
+
+# M12 — Pošta (e-mail kanal, šabloni i dolazna pošta)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **E-mail je kanal Notification engine-a**, uz in-app i edge: „Notifikacije: in-app + email (Office 365) +
+  Edge/Windows toast“ (`RAW_PROJECT.md:162`), a engine „isporučuje in-app + (po settings) email + WS events“
+  (`:951`). Postavke kanala: `private.notifications.email.enabled` (`:692`, default **false**) i
+  `private.notifications.edge.enabled` (`:693`).
+- **Scope slanja** (`:761–767`): e-mail **internal-only** po defaultu (`private.notifications.email.internalOnly`,
+  `:713`, default **true**), a eksterni primaoci samo izuzetno — kroz allow-listu domena
+  (`:714`) i pojedinačnih adresa (`:715`).
+- **Pouzdanost isporuke** (`:866`, `:953`): „outgoing integracije (email/edge/teams) idu kroz **durable queue**
+  sa retry/backoff + DLQ; UI omogućava pregled i **ručni retry**“, a tipovi u redu se biraju postavkom
+  `private.integrations.queue.typesCsv` (default `email,edge,teams`, `:546`).
+- **Šabloni i jezik** (`:351`): „EN postoji kao fallback/infrastruktura (UI copy + **email templates** + public
+  settings copy)“, pa e-mail šablon mora postojati na bosanskom i na engleskom.
+- **Bulk broadcast** (`:152`, `:208`, `:927`): in-app + **e-mail** uz **preview broja primaoca i rate limit**;
+  uključivanje e-maila je opcija (`private.ticket.bulkActions.broadcast.enableEmail`, `:534`, default **true**).
+- **Eskalacije** (`:516`, `:1126`): e-mail za eskalacije je **opcija** (`private.ticket.sla.escalations.emailEnabled`,
+  default **false**), a osnovno pravilo je „Eskalacije idu samo in-app (bez email), settings-driven“.
+- **Install wizard** (`:1063`) prikuplja SMTP postavke i označava auth mode; `private.smtp.*` je izvor
+  transporta (`private.smtp.enabled`, host, port, TLS, korisnik, lozinka, From adresa, provider).
+- **Odgovor e-mailom** nije propisan u RAW-u; dolazi iz paketa 1.5 (odluka **E8-B**: zajednički sandučić,
+  `Reply-To`) i razrađen je u `docs/plans/modules/2.3-odgovor-emailom.md` (§4, odluke R1–R14): tri konektora
+  (Graph, IMAP, Gmail API nije isporučen), potpisani token u `Message-ID`, anti-loop, idempotencija, nadzor i
+  retencija.
+- **Notifikacije po mjeri** (`docs/plans/modules/2.2-notifikacije-po-mjeri.md`): lične postavke po tipu
+  (kanal i način: odmah / u sažetku / isključeno), tihi sati, dnevni sažetak i zaključani tipovi — sve uz
+  zadano ponašanje koje je jednako današnjem.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+- **Jedan izlazni kompozitor i jedan „izlazak iz sistema“.** Svaki e-mail — obavještenje, broadcast, sažetak,
+  izvještaj, obavijest o dolaznoj pošti — prolazi isti put: sastavljanje iz šablona, escape, redakcija
+  osjetljivih podataka, pravilo za povjerljivo, potpisani `Message-ID` i isti transport. Nema puta koji
+  „preskoči“ zaštitu zato što je nastao u drugoj funkciji.
+- **Idempotencija sa rokom.** Zapis o isporuci nije samo „ključ postoji“ nego **zahtjev sa rokom**: ako
+  isporuka ne uspije u razumnom vremenu, zahtjev se preuzima ponovo. Tako pad procesa u trenutku slanja ne
+  pretvara e-mail u tiho izgubljenu poruku, a DLQ i nadzorna tabla prikazuju upravo taj slučaj.
+- **Kanali kao adapteri, isporuka kao mjerljiv događaj.** Transport je singleton sa pulom veza; brojači
+  (poslano / odbijeno domenom / neuspjelo / zaglavljeno) su vidljivi administratoru, a zastoj kanala je alarm,
+  ne detalj u logu.
+- **Primalac se ne „preskače“ tiho.** Kad e-mail ne ode, administrator može vidjeti razlog (domena nije
+  dozvoljena, korisnik je isključio tip, tihi sat, kanal isključen) — bez toga „e-mail ne radi“ ostaje
+  nerješiva prijava.
+- **Dolazna pošta je karantena sa dokazima.** Konektor je port (`Graph`, `IMAP`), prepoznavanje tiketa je
+  kriptografski potpisano, a obrada je idempotentna po ID-u kod provajdera; original se čuva do isteka roka,
+  odbijene poruke imaju razlog, a sve je iza jednog auth guarda.
+- **Testovi bez živog sandučeta.** Port `InboundMailboxConnector` omogućava testni „lažni“ sandučić, pa se
+  cijeli tok (poruka → tiket → prilog) provjerava i u CI-ju, a ne samo na staging instalaciji.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Rok na zahtjev za isporuku.** Uz `NotificationEmailDelivery` uvesti `claimedAt` i pravilo „preuzmi
+   ponovo ako je `CLAIMED` stariji od N minuta“ (ili noćno čišćenje starih `CLAIMED` redova uz brojač), i
+   prikazati taj brojač u nadzornoj tabli pored „posljednji e-mail“.
+2. **Jedan izlazni filter.** Redakcija (`redactSensitiveText` sa `enabled: true`) primijeniti na **svaki** tekst
+   koji izlazi iz sistema e-mailom — uključujući bulk broadcast i izvještaje — i tamo gdje se tekst upisuje
+   kao poruka tiketa; uz to upozorenje u change logu kad je uzorak nađen.
+3. **Transport sa pulom.** `SmtpMailTransport` držati kao jedan objekat (keš po `host:port:korisnik`) i
+   uključiti `pool: true`, umjesto nove veze za svaku poruku; promjena postavki treba invalidirati keš.
+4. **Vidljivost odluke po primaocu.** U admin kartici e-maila (ili u detalju tiketa) prikazati zašto primalac
+   nije dobio e-mail; danas se takvi primaoci samo preskaču (`continue`) bez traga.
+5. **Lokalizovane oznake u bulk tekstu.** Oznake „What happened / Who is affected / ETA / Workaround“ prevesti
+   ili generisati iz šablona po jeziku primaoca, kao što je urađeno za sve ostale e-mailove.
+6. **Metrika i alarm kanala u `ops-health`.** Pored „posljednji poslani e-mail“ pratiti i broj neuspjelih i
+   zaglavljenih isporuka u 24 h, te upozoriti kad kanal ćuti (nema `SENT` reda duže od X, a ima događaja).
+7. **e2e za dolaznu poštu i sažetak.** Iskoristiti `InboundMailboxConnector` kao zamjenu u testu i dodati
+   scenarije koji danas ne postoje: odgovor e-mailom na zatvoren tiket, odbijen prilog, sažetak na kraju tihih
+   sati.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Odluka da li e-mail uopšte ide
+
+- `load-email-channel-configuration.ts:69–126` čita postavke i sastavlja `EmailChannelConfiguration`:
+  `smtpEnabled`, `emailAddonEnabled`, `notificationsEmailEnabled`, `slaEscalationEmailEnabled`,
+  `templatesEnabled`, `internalOnly`, tri allow-liste, šablone, SMTP i „presentation“ (naziv aplikacije,
+  brend, `APP_PUBLIC_URL`, boja, isječak, način odgovora, jezici).
+- Stvarni prekidač je `resolve-email-channel-enabled.ts:8–13`: e-mail radi samo ako je uključen **addon** i
+  SMTP i `private.notifications.email.enabled` (`resolve-email-addon-enabled`).
+- **Transport se čita samo ako je SMTP uključen** (`:123`); ako nema hosta ili From adrese, `smtp` je `null`
+  (`:149–151`) i kanal je mrtav bez greške.
+- **Preseti provajdera** (`:131–148`, `email-template.constants.ts:134–140`) popunjavaju host/port/TLS samo dok
+  admin nije upisao host — upisane vrijednosti imaju prednost (odluka E10).
+- **Način odgovora** (`:172–224`): ako je tražen `shared_mailbox`, a `Reply-To` adresa nije upisana, sistem
+  **tiho pada na `no_reply`** (`:183–184`), a razlika je vidljiva u admin pregledu (`configuredReplyMode`).
+- **Lozinka SMTP-a ide kroz `getSecretForInternalUse`** (`:162–166`) — nikad u običan API odgovor.
+- **Linkovi zavise od okruženja** (`readPublicAppUrl`, `:227–241`): bez `APP_PUBLIC_URL` (ili sa neispravnim)
+  e-mail ide bez dugmeta i bez linka za upravljanje obavještenjima.
+- **Allow-lista adresa** (`is-allowed-notification-email-address.ts:14–31`): normalizacija, provjera domene i
+  oblika; kad je `internalOnly` isključen, propušta svaku sintaksno ispravnu adresu; interne domene su
+  postavka, ne konstanta. Na novoj instalaciji domenu superadmina upisuje instalacijski korak
+  (`install/seed-install-internal-email-domain.ts:16–32`), i to samo ako postavka nije već popunjena.
+
+### 4.2 Sastavljanje poruke i render
+
+- `compose-ticket-email.ts:64–162` gradi jedan e-mail: jezik primaoca (`resolveEmailLocale`, `:47–62`),
+  link na tiket (`:84–87`), redakcija opisa (`redactForEmail`, `:165–170`), isječak poruke (samo za javne
+  odgovore, i uvijek za broadcast, `:123–125`), te `manageUrl` na `/account/notifications` osim za broadcast.
+- **Povjerljivo** (`:37–44`): `isConfidential` ili klasifikacija `CONFIDENTIAL`/`RESTRICTED` uključuju režim u
+  kojem render prikazuje **broj tiketa i link**, bez naslova, usluge i isječka.
+- **`Message-ID`** (`:134–147`): u režimu zajedničkog sandučeta to je **potpisani token**
+  (`reply-token.ts:43–54`, `<r.<tiket>.<primalac>.<nonce>.<potpis>@domena>`), inače hash `dedupeKey:primalac`
+  — stabilan kroz ponovne pokušaje.
+- **Zaglavlja** (`:152–160`): `In-Reply-To`/`References` na stabilni korijen `<ticket-<id>@domena>`,
+  `Auto-Submitted: auto-generated`, `X-Auto-Response-Suppress: All` i `X-Service-Desk-Ticket` sa brojem.
+- `render-email-message.ts` je jedan renderer za sve tipove (tabelarni HTML za Outlook + tekstualna
+  alternativa): escape svih varijabli (`:464–471`), uklanjanje kontrolnih znakova (`:493–499`), naslov uvijek
+  u jednom redu (`:502–504`), isječak ograničen na 600 znakova (`:506–511`), samo apsolutni `http(s)` linkovi
+  (`safeUrl`, `:521–530`), te blokovi za sažetak (digest) i izvještaj (`:34–80`).
+- **Blok „povjerljivo“ je u rendereru, ne u šablonu** — i naslov i tijelo dobijaju generičku varijantu, pa
+  izmjena šablona ne može iscuriti podatke.
+
+### 4.3 Isporuka, idempotencija i queue
+
+- `deliver-notification-email.ts:24–68` prvo **preuzima zahtjev** (`claimNotificationEmailDelivery`), pa šalje,
+  pa označava `SENT`; u slučaju greške **oslobađa** zahtjev (`:62–67`) da ponovni pokušaj prođe.
+- `persist-notification-email-delivery.ts:12–30` je claim preko jedinstvenog `(userId, dedupeKey)`: drugi
+  pokušaj sa istim ključem vraća `false` i **ne šalje ništa**; `:42–53` briše claim samo ako je još `CLAIMED`.
+- **Queue put** (`notifications-fan-out.service.ts:144–165`): ako je `email` u `typesCsv` i queue je uključen,
+  posao se upisuje u `IntegrationJobType.EMAIL`; inače se šalje inline. Payload se validira
+  (`parse-email-integration-job-payload.ts:3–33`), a zaglavlja prolaze filter imena i zabranu prelaska u novi
+  red (`:35–46`).
+- Worker: `process-email-integration-job.service.ts:17–34` ponovo učitava konfiguraciju i **baca grešku** ako
+  kanal nije spreman — pa posao ide u retry/backoff, a na kraju u DLQ (`compute-integration-job-backoff.ts`,
+  `handle-integration-job-failure.ts`, retencija DLQ-a 30 dana).
+- **Ručni retry postoji** (`integration-queue.controller.ts:63–68`, `POST /integrations/queue/:jobId/retry`),
+  iza `integrationsQueueManage` permisije; frontend ima tabelu reda (`components/queue/integration-queue-*`).
+
+### 4.4 Fan-out po događaju i lične postavke
+
+- Događaj sa tiketa ide kroz `NotificationsFanOutService.ingest` (`:67–72`): prvo in-app, pa e-mail; greška u
+  jednom kanalu se loguje i ne ruši drugi (`:93–98`, `:117–122`).
+- `fan-out-email-notifications.ts:30–157`: mapiranje događaja u tip (`map-ticket-event-to-notification.ts:33–60`),
+  izlaz ako tip nije e-mail šablon (`:43–45`), **SLA gate** (`:171–183`: e-mail samo za eskalacije i samo ako
+  je `slaEscalationEmailEnabled`), pa primaoci (`resolveNotificationRecipients`), jedan upit za sve primaocе i
+  aktera (`:67–80`), jedna provjera dozvoljene adrese i lične odluke po primaocu (`:100–128`).
+- **Lične odluke** (`resolve-delivery-decisions.ts:29–70`): bez zapisa → `IMMEDIATE`; `OFF` preskače; `DIGEST`
+  i `QUIET` idu u `NotificationDigestItem` (`hold-for-digest.ts:24–43`, `skipDuplicates`), pa ih šalje
+  `NotificationDigestService` (`notification-digest.service.ts:62–112`) u intervalu od 5 minuta
+  (`notification-digest.constants.ts:1–11`, čuvanje stavki 7 dana).
+- **Sažetak** (`compose-digest-email.ts:28–119`) grupiše stavke po tiketu, prikazuje najnoviji događaj i broj
+  događaja, povjerljive prikazuje **bez naslova** (`:54`), a spisak ograničava uz „i još N“.
+- E-mail adresa se provjerava **prije** odluke o kanalu, pa korisnik sa nedozvoljenom domenom ne dobija ni
+  stavku u sažetku.
+
+### 4.5 Bulk broadcast
+
+- `apply-bulk-broadcast.ts:27–61`: preview obavezan po postavci, rate limiter, formatiranje teksta; ako je
+  in-app uključen, tekst ide kao `AGENT_REPLY` poruka (koja dalje pokreće normalan fan-out), a ako je in-app
+  isključen, a e-mail uključen — tekst se predaje kanalu (`broadcast-email-channel.ts:8–29`,
+  `dispatchBroadcastEmail`).
+- `send-broadcast-emails.ts:12–98`: primaoci su **naručilac i dodijeljeni agent**, bez pošiljaoca (`:25–27`);
+  šablon je `ticket.broadcast`, isječak je uvijek tekst broadcasta (`:79`), `dedupeKey` uključuje `batchId`
+  (`:51`).
+
+### 4.6 Šabloni i administratorski ekran
+
+- **Registry v2** (`parse-email-template-registry.ts:35–52`) prima i stari v1 oblik; svako polje koje nije
+  upisano dolazi iz ugrađenih tekstova; neispravna vrijednost **pada pri upisu**, ne pri slanju (`:24–34`).
+- Ugrađeno je **29 ključeva × 2 jezika** (`default-email-templates.ts:32,247,462`; `email-template.constants.ts:1–41`),
+  a `emailLayoutLabels` daje prijevode statusa, prioriteta i kategorija sažetka (`:38,91`).
+- Admin pregled (`email-templates.service.ts:74–99`) vraća šablone, zadane vrijednosti, **samo razlike**
+  (`diffEmailTemplateRegistry`) i stanje kanala (uključen, SMTP, provider, From, način odgovora, ima li
+  `APP_PUBLIC_URL`). Spremanje upisuje samo razlike i traži razlog (`:103–115`, uz audit).
+- **Preview i test** (`:117–190`): pregled koristi **isti renderer** kao pravo slanje, a testno pismo ide
+  isključivo na adresu prijavljenog administratora, uz limit **5 slanja u 10 minuta**.
+- Ekran: `settings-page.tsx:74–81` (kartice SMTP, šabloni, dolazna pošta) i zasebna ruta
+  `admin/email-templates` (`app/router.tsx:261–269`, pravo `canOpenEmailTemplatesPage`); pregled se prikazuje
+  u `iframe sandbox=""` (`email-templates-editor.tsx:329–333`), pa HTML iz šablona ne može doći do aplikacije.
+
+### 4.7 Dolazna pošta (odgovor e-mailom)
+
+- **Konfiguracija** (`inbound-email-configuration.ts:11–29,37–48`): provider `graph`|`imap`, adresa, interval
+  (30–600 s, default 60), Entra aplikacija, IMAP (host/port/TLS/korisnik/lozinka/način prijave), folderi,
+  `requireAuthPass`, `createTickets`, `defaultServiceId`, rokovi čuvanja, limit po pošiljaocu i po prolazu.
+  `inboundConfigurationProblems` (`:37–48`) vraća konkretne nedostatke koji se prikazuju u admin kartici.
+- **Zakazivanje** (`inbound-email.constants.ts:1–10`, `inbound-email.scheduler.service.ts:21–37`): tick svakih
+  30 s (stvarni interval provjerava servis), retencija noću u 03:20; procesor je jedan po redu
+  (`inbound-email.processor.ts:45–63`).
+- **Prolaz** (`inbound-email.service.ts:107–162`): provjera da li je vrijeme (`runDue`, uz backoff poslije
+  grešaka), pa `runOnce` — otvaranje konektora, čitanje do `maxMessagesPerRun` poruka, obrada jedne po jedne.
+- **Idempotencija** (`:188–254`): red po `(mailboxKey, providerMessageId)`; već odlučena poruka se samo
+  premješta, prekinuta se označava `FAILED` i **nikad ne ponavlja** (da se odgovor ne udvostruči), a poruka
+  koja je potrošila 3 pokušaja ide u „odbijeno“. Duplikat po `Message-ID` se ignoriše (`:247–254`).
+- **Pravila obrade** (`process-inbound-message.ts:85–159`, odluke R4–R11):
+  `detectAutoReply` (`detect-auto-reply.ts:17–39` — out-of-office, bounce, liste, sopstvene adrese),
+  limit po pošiljaocu (`:95–96`), provjera autentičnosti poruke (`check-sender-authentication.ts:12–24` —
+  DMARC ili SPF+DKIM ili interni Exchange),
+  domena pošiljaoca (`:98`), aktivan korisnik (`:100–102`), uklanjanje citata i potpisa
+  (`extract-reply-text.ts:23–62`), prepoznavanje cilja (`resolve-inbound-target.ts:13–22`: token → thread →
+  `[T-…]` u naslovu → novi e-mail), spajanje na roditelja ako je tiket merge-ovan (`:126–129`), zatvoren tiket
+  (`:135–138`), ponovno otvaranje riješenog (`:142–144`), tip poruke `USER_REPLY`, uz pad na `AGENT_REPLY` za
+  osoblje i **nikad internu bilješku** (`inbound-email.service.ts:312–321`), prilozi kroz iste provjere kao
+  upload uz sistemsku bilješku o odbijenom prilogu (`process-inbound-message.ts:161–178`).
+- **Konektori** (`mailbox/inbound-mailbox.ts:1–22`, `create-inbound-mailbox.ts:6–19`): port sa `list/move/close`;
+  `GraphInboundMailbox` (`graph-mailbox.ts:17–88`) koristi Entra token i sam kreira foldere; `ImapInboundMailbox`
+  (`imap-mailbox.ts:27–90`) radi sa UID-om oblika `<UIDVALIDITY>:<UID>`, podržava lozinku i OAuth2 (jer je
+  Exchange Online ugasio basic auth). Token se kešira do isteka (`entra-token.ts:4–34`).
+- **Čuvanje originala** (`inbound-raw-store.ts:15–45`): `.eml` se gzip-uje u `inbound-raw/<mjesec>/`, sa
+  dozvolama `0600`; stariji mjeseci se brišu u cjelini. Retencija metapodataka je 180 dana
+  (`inbound-email.service.ts:164–186`), a iste redove čisti i modul privatnosti (politika `emailDeliveries`,
+  180 dana — `privacy/retention/retention-plan.ts:81`, `retention-executors.ts:97–125`).
+- **Nadzor** (`inbound-email-admin.controller.ts:20–38`, `inbound-email-admin.service.ts:52–118`): status
+  konektora, zadnja greška i broj uzastopnih padova, brojevi u 24 h, posljednjih 50 obrađenih **bez tijela
+  poruke**, te „Testiraj konekciju“. Kad sandučić padne tri puta zaredom, svi aktivni administratori dobijaju
+  jedno in-app obavještenje (`inbound-email.service.ts:398–431`).
+- **Uputstvo za postavljanje** postoji u `docs/ops/inbound-email.md` (124 linije: Entra aplikacija, RBAC
+  ograničenje na jedan sandučić, IMAP varijanta, tajna tokena).
+
+### 4.8 Testovi
+
+- Brojevi: `notifications/email/` **33 fajla, 10 spec** (4425 linija), `inbound-email/` **25 fajlova, 2 spec**
+  (1940 linija), `notifications/preferences/` 2 spec; e2e `tests/11-email-templates.spec.ts` ima **2 testa**
+  (preview + čuvanje sa vraćanjem zadanih vrijednosti) i ne dira dolaznu poštu.
+- Pokriveni su ključni putevi: `compose-ticket-email.spec.ts` (povjerljivo, jezik, isječak),
+  `render-email-message.spec.ts`, `fan-out-email-notifications.spec.ts` (318 linija),
+  `sla-escalation-email.spec.ts` (gate za eskalacije), `parse-email-template-registry.spec.ts`,
+  `inbound-email.spec.ts` (285 linija — pravila obrade kroz portove).
+
+## 5. Gap analiza
+
+| Zadatak (RAW / plan) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| E-mail kao kanal istog engine-a (RAW `:951`) | Jedan fan-out, kanali po postavkama | `NotificationsFanOutService.ingest` zove in-app pa e-mail (`notifications-fan-out.service.ts:67–72`) | ✅ |
+| Uključivanje kanala postavkom (RAW `:692`) | Tri prekidača (addon, SMTP, kanal) bez skrivenih stanja | `resolve-email-channel-enabled.ts:8–13` + `load-email-channel-configuration.ts:97–123` | ✅ |
+| Internal-only + allow-liste (RAW `:713–715`) | Zadano interno, eksterno samo izuzetno | `is-allowed-notification-email-address.ts:14–31`; interne domene kao postavka, seed iz instalacije | ✅ |
+| Durable queue + retry/backoff + DLQ (RAW `:866,:953`) | Nijedan e-mail se ne izgubi bez traga | Queue po tipu, backoff, DLQ 30 dana, ručni retry | ✅ |
+| Ručni retry iz UI (RAW `:953`) | Administrator ponovo pokreće neuspjeli e-mail | `POST /integrations/queue/:jobId/retry` + tabela u UI | ✅ |
+| Šabloni na BS i EN (RAW `:351`) | Pad na drugi jezik kad prijevoda nema | 29 ključeva × bs/en, `resolveEmailLocale` + fallback locale | ✅ |
+| Uređivanje šablona sa pregledom (plan 1.5 E1) | Admin ne može pokvariti prikaz ni ubaciti HTML | Registry v2, validacija na upisu, escape, `iframe sandbox=""` | ✅ |
+| Povjerljiv tiket (plan 1.5 E3) | Samo broj i link | `compose-ticket-email.ts:37–44`, renderer režim „confidential“ | ✅ |
+| Redakcija sadržaja koji izlazi (plan 1.5 E4) | Svaki izlazni tekst prođe redakciju | Poruke i opis tiketa prolaze; **bulk broadcast ne** | ⚠️ B2 |
+| Threading i zaštita od petlji (plan 1.5 E6/E7) | Jedan razgovor po tiketu, bez OOF petlji | Stabilan korijen + `Auto-Submitted` + `X-Auto-Response-Suppress` | ✅ |
+| Isporuka tačno jednom (plan 1.5/2.2) | Ponovni pokušaj ne šalje dvaput | Claim `(userId, dedupeKey)`; **bez roka za zaglavljeni claim** | ⚠️ B1 |
+| Eskalacije e-mailom kao opcija (RAW `:516,:1126`) | Podrazumijevano isključeno | Gate `slaEscalationEmailEnabled` (`fan-out-email-notifications.ts:171–183`) | ✅ |
+| Bulk broadcast e-mail (RAW `:152,:534`) | In-app i/ili e-mail, bez dupliranja | `apply-bulk-broadcast.ts:27–61` (in-app put pokreće fan-out; e-mail put ide kanalom) | ✅ |
+| Lične postavke i tihi sati (plan 2.2) | Korisnik bira kanal i način, bez gubitka događaja | `resolve-delivery-decisions.ts`, `hold-for-digest.ts`, sažetak svakih 5 min | ✅ |
+| Odgovor e-mailom: konektori (plan 2.3 R1) | Graph + IMAP, bez SDK-a, tajne šifrovane | `graph-mailbox.ts`, `imap-mailbox.ts`, keširan Entra token | ✅ |
+| Prepoznavanje tiketa bez oslanjanja na naslov (R4) | Potpisan token, uz rezervne puteve | `reply-token.ts` (HMAC + rotacija + naslijeđena tajna) | ✅ |
+| Pošiljalac mora biti aktivan korisnik sa pravom pisanja (R5) | Ista pravila kao u aplikaciji | `process-inbound-message.ts:97–102` + `TicketsCollaborationService.createMessage` | ✅ |
+| Anti-loop (R11) | Nula automatskih odgovora na automate | `detect-auto-reply.ts` + limit 20/h po pošiljaocu | ✅ |
+| Idempotencija dolazne obrade (R12) | Ista poruka nikad dva puta | Red po provajder-ID-u i po `Message-ID`, „prekinuto“ se ne ponavlja | ✅ |
+| Nadzor i test konekcije (R13) | Stanje, brojevi, razlozi odbijanja | `admin/inbound-email/status` i `test-connection`, bez tijela poruka | ✅ |
+| Retencija (R14) | Original i metapodaci sa rokom | 30 dana `.eml.gz`, 180 dana metapodaci; dodatno privacy politika 180 dana | ✅ |
+| Testno slanje (plan 1.5 §5) | Ograničeno i revidirano | 5/10 min **u memoriji instance**, uz audit | ⚠️ B4 |
+| Prolaznost bez čekanja (plan 1.5) | Jedna veza ili pul za više primalaca | Nova SMTP veza po svakoj poruci | ⚠️ B3 |
+| Jezik teksta broadcasta (RAW `:351`) | Tekst u jeziku primaoca | Oznake polja su hardkodirane na engleskom | ⚠️ B5 |
+| Mjerenje i alarm kanala (RAW `:1050–1053`) | Kanali imaju metrike i alarm | `ops-health` prikazuje samo posljednji `SENT` | ⚠️ B1 (dio) |
+| e2e pokrivenost pošte | Odgovor e-mailom i sažetak u CI-ju | 2 testa za šablone; dolazna pošta bez e2e | ⚠️ gap (NISKO) |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Najjači dio modula je disciplina na izlazu iz sistema.** Jedan renderer za sve tipove e-maila, escape svake
+  varijable, naslov uvijek u jednom redu, samo apsolutni `http(s)` linkovi, povjerljivi režim u rendereru (pa
+  ga izmjena šablona ne može zaobići) i redakcija opisa i isječka. To je tačno skup pravila koji se u praksi
+  najčešće preskoči, a ovdje je u srcu, ne u dokumentaciji.
+- **Idempotencija i queue su na mjestu.** Claim po `(korisnik, ključ događaja)`, stabilan `Message-ID` kroz
+  ponovne pokušaje, posao u redu sa backoff-om, DLQ sa rokom i ručni retry iz UI-ja — to je „radi tačno
+  jednom“ nivo. Jedina prava rupa je **claim bez roka** (B1), koja je posljedica toga da tabela nema polje
+  vremena preuzimanja.
+- **Dolazna pošta je napisana kao port, ne kao integracija.** `InboundMailboxConnector` sa Graph i IMAP
+  implementacijom, čista funkcija obrade (`processInboundMessage`) sa pravilima R4–R11 koja se testiraju bez
+  sandučeta i baze, i admin stranica koja nikad ne vraća tijelo poruke — to je arhitektura koja se može
+  održavati i nakon promjene provajdera e-pošte.
+- **Sitnice koje odaju zrelost:** `Message-ID` nosi potpisani token **i** rotaciju tajne
+  (`INBOUND_EMAIL_TOKEN_SECRET_PREVIOUS` + naslijeđeni HKDF label), prekinuta poruka se **namjerno** ne
+  ponavlja, prilog odbijen u ClamAV-u ostavlja sistemsku bilješku, a `inboundEmailLimits` grupiše pragove na
+  jednom mjestu.
+- **Gdje bih tražio više:** (1) bulk broadcast je jedini izlazni put koji ne prolazi redakciju (B2); (2)
+  `SmtpMailTransport` otvara novu vezu za svaku poruku (B3); (3) odluka „e-mail ne ide“ nije nigdje zapisana
+  po primaocu, pa je „nisam dobio e-mail“ nemoguće ispitati iz aplikacije; (4) e2e ne dodiruje dolaznu poštu
+  iako port za testiranje već postoji.
+- **Higijena:** tipizovano bez `any`, imena funkcija kazuju odluku (`isAllowedNotificationEmailAddress`,
+  `resolveEmailLocale`, `detectAutoReply`), a komentari objašnjavaju razlog (zašto broadcast uvijek nosi tekst,
+  zašto se prekinuta poruka ne obrađuje ponovo, zašto preset ne pregazi upisani host). Zamjerka je sitna:
+  `inbound-email.service.ts:113–116` koristi `Math.max(maxBackoffSeconds, pollSeconds)` za gornju granicu
+  backoff-a, što je kroz dozvoljeni raspon (30–600 s) uvijek isto — izraz je nejasan, ne štetan.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Zaglavljen zahtjev za isporuku trajno gubi e-mail, bez alarma
+
+- **Fajl:** `backend/src/modules/notifications/email/persist-notification-email-delivery.ts:12–30,42–53`,
+  `backend/src/modules/notifications/email/deliver-notification-email.ts:34–42`,
+  `backend/src/modules/ops-health/ops-health.service.ts:98–100`
+- **Opis:** isporuka se prvo „preuzima“ upisom reda sa statusom `CLAIMED` preko jedinstvenog
+  `(userId, dedupeKey)`; ako je red već tu, funkcija vraća `false` i `deliverNotificationEmail` izlazi **bez
+  greške**. Claim se oslobađa samo u `catch` bloku istog procesa. Ako proces umre između upisa i slanja (OOM,
+  `kill -9`, redeploy), red ostaje `CLAIMED` trajno, a svaki ponovni pokušaj — uključujući retry iz durable
+  queue-a — je **tihi no-op**. Nadzorna tabla gleda samo redove sa statusom `SENT`, pa je stanje „zdravo“.
+- **Uticaj:** pojedinačna obavještenja (i digest/sažetak koji koriste isti claim) mogu biti trajno izgubljena
+  bez ikakvog traga u UI-ju; greška je rijetka ali neponištiva.
+- **Fix:** dodati `claimedAt` i pravilo „preuzmi ponovo ako je `CLAIMED` stariji od N minuta“ (ili noćno
+  čišćenje starih `CLAIMED` redova), te brojač zaglavljenih prikazati u `ops-health`.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — Bulk broadcast ne prolazi redakciju osjetljivih podataka
+
+- **Fajl:** `backend/src/modules/tickets/bulk/apply-bulk-broadcast.ts:41–61`,
+  `backend/src/modules/tickets/bulk/format-bulk-broadcast-message.ts:26–40`,
+  `backend/src/modules/notifications/email/send-broadcast-emails.ts:79`
+- **Opis:** tekst broadcasta se upisuje kao `AGENT_REPLY` poruka direktno kroz Prisma, a u e-mail putu ide kao
+  `excerpt` u šablon. Ni u jednom putu se ne poziva `redactSensitiveText`, dok svaka druga poruka prolazi
+  redakciju kroz `createTicketMessage` (`tickets-collaboration.service.ts:139,153–161`) i svaki drugi e-mail
+  kroz `redactForEmail` (`compose-ticket-email.ts:165–170`).
+- **Uticaj:** uzorak osjetljivog podatka (broj kartice, lozinka, lični podatak) koji administrator prepiše iz
+  tiketa u broadcast odlazi **cijeloj grupi i naručiocu e-mailom**, bez upozorenja u change logu — tačno ono
+  što redakcija postoji da spriječi.
+- **Fix:** primijeniti `redactForEmail` (ili `redactSensitiveText` sa `enabled: true`) na formatirani tekst
+  prije upisa i prije slanja, i upisati upozorenje (`recordRedactionWarning`) kad je uzorak nađen.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — NISKO — Nova SMTP veza za svaki e-mail
+
+- **Fajl:** `backend/src/modules/notifications/email/smtp-mail-transport.ts:7–17,38–40`
+- **Opis:** `createTransport` se poziva **unutar** `send`, a `transporter.close()` u `finally` — nema
+  keširanja transportera ni `pool: true`. Svaka poruka plaća novi TCP i TLS handshake prema SMTP serveru.
+- **Uticaj:** fan-out na više desetina primalaca (broadcast, dnevni sažetak, zakazani izvještaj) stvara isti
+  broj veza prema Office 365/Gmail-u; to povećava latenciju i rizik od throttle-a provajdera, a queue radi
+  sporije nego što bi morao.
+- **Fix:** držati transporter po konfiguraciji (`host:port:korisnik`) i koristiti `pool: true`; promjena
+  postavki treba invalidirati keš.
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Ograničenje testnog slanja postoji samo u memoriji instance
+
+- **Fajl:** `backend/src/modules/notifications/email-templates/email-templates.service.ts:61–66,159`,
+  `backend/src/modules/notifications/email-templates/email-templates.controller.ts:75–83`
+- **Opis:** limit „5 testnih e-mailova u 10 minuta“ čuva se u `Map` polju servisa. Restart procesa ga resetuje,
+  a kod više API instanci svaka ima svoj brojač, pa stvarni limit iznosi 5 × broj instanci.
+- **Uticaj:** zaštita od zloupotrebe SMTP-a od strane administratora je slabija nego što ekran sugeriše; nema
+  trajnog traga o tome koliko je testova poslano.
+- **Fix:** brojač u Redis-u sa TTL-om (obrazac kao kod ostalih limitera) ili red `NotificationEmailDelivery`
+  sa ključem `test:<admin>:<slot>`.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Oznake polja u broadcast tekstu su hardkodirane na engleskom
+
+- **Fajl:** `backend/src/modules/tickets/bulk/format-bulk-broadcast-message.ts:26–33`,
+  `backend/src/modules/notifications/email/send-broadcast-emails.ts:79`
+- **Opis:** tekst poruke se sastavlja sa fiksnim oznakama `What happened:`, `Who is affected:`, `ETA:`,
+  `Workaround:` bez prijevoda, a taj isti tekst ide i kao tijelo e-maila primaocu na bosanskom (šablon
+  `ticket.broadcast` je lokalizovan, tijelo nije).
+- **Uticaj:** naručilac i grupa dobijaju miješani jezik u najosjetljivijem trenutku (incident/obavijest), a
+  i zapis u tiketa ostaje na engleskom bez obzira na jezik aplikacije.
+- **Fix:** lokalizovati oznake (po `preferredLocale` primaoca, kao kod ostalih e-mailova) ili strukturu
+  polja predati šablonu umjesto gotovog teksta.
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/posta.md`** po obaveznoj strukturi: čemu modul služi (obavještenja e-mailom,
+  odgovor na e-mail, sažetak), kome je namijenjen (svi primaoci; administrator za postavke i administraciju
+  šablona), kako se dolazi (Postavke → E-mail; za korisnika „Moj profil“ → obavještenja), korak po korak
+  (uključi kanal, provjeri From i Reply-To, uredi šablon uz pregled, pošalji test, odgovori na e-mail, provjeri
+  dnevnik dolazne pošte), tabele (postavke kanala i njihovo značenje, polja šablona i dozvoljeni placeholderi,
+  razlozi odbijanja dolazne poruke, šta se nikad ne šalje za povjerljiv tiket), česta pitanja („nisam dobio
+  e-mail“, „zašto nema linka“, „zašto je odgovor u Odbijeno“, „zašto ne mogu odgovoriti“), poznata ograničenja
+  (**B1–B5** + činjenica da `APP_PUBLIC_URL` kontroliše linkove) i povezani moduli (Realtime i obavještenja,
+  Tiketi, SLA, Odobrenja/CSAT, Postavke, Privatnost).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T74–T80** — (T74) izlazni kanal: tri prekidača i pravilo dozvoljenih adresa;
+  (T75) sastavljanje poruke: šablon, escape, povjerljivi režim, isječak, redakcija; (T76) isporuka: queue,
+  idempotencija, DLQ i ručni retry; (T77) lične postavke, tihi sati i dnevni sažetak; (T78) dolazna pošta:
+  konektori i prepoznavanje tiketa potpisanim tokenom; (T79) dolazna pošta: pravila prihvatanja, anti-loop i
+  prilozi; (T80) nadzor, retencija i operativni zahtjevi kanala.
+- **`REVIEW_ANALIZA.md`:** §M12 (ovaj tekst) i **red tabele iteracija 3** → „M11 ✅ · M12 ✅ · M13 u toku“.
+- **`DOCS_CHANGELOG.md`:** sekcija M12 sa izvorima i B1–B5.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Pokriveno je sve što RAW traži za izlazni kanal (uključivanje postavkom, internal-only + allow-liste, šabloni na dva jezika, povjerljivi režim, threading, queue sa retry/backoff i DLQ, ručni retry, bulk broadcast) i gotovo sve iz plana 2.3 za dolaznu poštu (Graph i IMAP konektor, potpisani token, anti-loop, idempotencija, nadzor, retencija, „novi e-mail → tiket“ uz uključivanje postavkom); minus za B1 i B2 (izgubljena isporuka i broadcast bez redakcije), za Gmail API konektor koji plan predviđa a kod nema, i za odsustvo e2e pokrivenosti dolazne pošte. |
+| **Kvalitet koda** | **9/10** | Jedan renderer i jedan kompozitor za sve tipove, čiste funkcije (`isAllowedNotificationEmailAddress`, `resolveInboundTarget`, `extractReplyText`, `detectAutoReply`) koje se testiraju bez baze, port za sandučić sa dvije implementacije, konzistentni kodovi grešaka i razloga, idempotencija na oba kraja (izlaz i ulaz) i 12 spec fajlova za 58 izvornih fajlova; zamjerke su B3 (transport bez pula), B4 (limiter u memoriji) i nejasan izraz gornje granice backoff-a. |
+| **Sigurnost** | **8/10** | Eksterni e-mail je zadano isključen uz allow-listu domena i adresa, povjerljivi tiket nikad ne nosi naslov ni isječak, interni sadržaj ne izlazi, tajne (SMTP lozinka, Entra klijent, IMAP lozinka) se čitaju samo interno, preview je u pješčaniku, a dolazna pošta provjerava DMARC/SPF/DKIM, aktivnog korisnika i pravo pisanja, uz zaštitu od petlji i od ponovne obrade iste poruke; minus za B2 (broadcast bez redakcije), B1 (tiha isporuka) i za to što je Gmail API iz plana izostavljen, pa instalacije na Google Workspaceu zavise od IMAP lozinke ili OAuth2 puta. |

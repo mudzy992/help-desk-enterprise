@@ -1517,6 +1517,175 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B3: metrika bez alarma)
 - **Wiki stranica:** Realtime i obavještenja → Operacije
 
+### T74 — Izlazni e-mail kanal: tri prekidača i pravilo dozvoljenih adresa
+
+- **Modul / paket:** Pošta
+- **Publika:** svi (posljedica), ADMIN (postavke)
+- **Tip:** Pravilo
+- **Teza:** E-mail obavještenja rade **samo** kad su uključena sva tri prekidača: addon e-mail, SMTP i sam kanal
+  obavještenja. Prijemnik mora proći pravilo dozvoljenih adresa: dok je režim „samo interno“ uključen (zadano),
+  e-mail ide isključivo internim domenama i izuzecima sa liste; isključen režim propušta svaku ispravnu adresu.
+  Interne domene su postavka — na novoj instalaciji prva domena dolazi iz adrese superadministratora.
+- **Zašto:** obavještenja sadrže poslovne podatke; zadano ponašanje mora biti „ne izlazi iz organizacije“.
+- **Primjer:** na instalaciji bez upisane interne domene nijedan e-mail ne izlazi — to nije kvar nego pravilo,
+  i rješava se upisom domene.
+- **Postavke / permisije:** `private.smtp.*`, `private.addons.email`, `private.notifications.email.enabled`,
+  `private.notifications.email.internalOnly`, `internalDomainsCsv`, `allowedExternalDomainsCsv`,
+  `allowedExternalEmailsCsv`; izmjene idu kroz `settingsWrite`.
+- **Ekran:** Postavke → E-mail → **SMTP i dostava**.
+- **Izvori:** `backend/src/modules/notifications/email/resolve-email-channel-enabled.ts:8–13`,
+  `load-email-channel-configuration.ts:69–126,131–148`,
+  `is-allowed-notification-email-address.ts:14–31`, `install/seed-install-internal-email-domain.ts:16–32`.
+- **Status:** Važi
+- **Wiki stranica:** Pošta → Uključivanje kanala
+
+### T75 — Sastavljanje poruke: šabloni, escape, povjerljivi režim i redakcija
+
+- **Modul / paket:** Pošta
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Svaki e-mail se sastavlja na jednom mjestu i na jednom rendereru: tekst dolazi iz šablona (29
+  događaja × bs/en), sve varijable se escapeuju, naslov je uvijek u jednom redu, linkovi moraju biti apsolutni
+  `http(s)`, a tekst koji izlazi prolazi redakciju osjetljivih podataka. Kod **povjerljivog** tiketa (oznaka ili
+  klasifikacija CONFIDENTIAL/RESTRICTED) e-mail sadrži **samo broj tiketa i link** — bez naslova, usluge i
+  isječka poruke.
+- **Zašto:** e-mail napušta aplikaciju; pravilo mora biti u kodu koji šalje, ne u tekstu šablona koji se može
+  urediti.
+- **Primjer:** izmjena šablona ne može iscuriti naslov povjerljivog tiketa jer renderer u tom režimu ne koristi
+  polja sa podacima.
+- **Postavke / permisije:** `private.notifications.email.includeMessageExcerpt`,
+  `private.notifications.email.accentColor`, javni URL aplikacije; uređivanje šablona traži `settingsWrite`.
+- **Ekran:** sam e-mail; pregled u **Šabloni e-mailova** → **Uredi tekstove**.
+- **Izvori:** `backend/src/modules/notifications/email/compose-ticket-email.ts:37–44,64–170`,
+  `render-email-message.ts:108–160,464–530`, `parse-email-template-registry.ts:24–52`,
+  `default-email-templates.ts:32,247,462`, `email-template.constants.ts:1–41`.
+- **Status:** Važi, uz izuzetak: bulk obavijest (broadcast) ne prolazi redakciju (B2, §M12)
+- **Wiki stranica:** Pošta → Kako izgleda e-mail
+
+### T76 — Isporuka: queue, idempotencija, DLQ i ručni retry
+
+- **Modul / paket:** Pošta
+- **Publika:** ADMIN / operacije
+- **Tip:** Arhitektura
+- **Teza:** Slanje e-maila je **posao**, ne sporedna radnja: ako je tip `email` u postavci reda, e-mail ide kroz
+  izdržljivi red sa ponovnim pokušajima i eksponencijalnim čekanjem, a poslije iscrpljenih pokušaja u mrtvo
+  slovo (DLQ) sa rokom čuvanja. Isporuka je idempotentna po ključu `(korisnik, događaj)` i stabilnom
+  `Message-ID`-u, pa ponovni pokušaj ne šalje isti e-mail dvaput. Administrator može ponovo pokrenuti neuspjeli
+  posao iz pregleda reda.
+- **Zašto:** bez reda i idempotencije kratki prekid SMTP-a znači izgubljena ili duplirana obavještenja.
+- **Primjer:** pad SMTP servera na dvije minute ne gubi obavještenja — poslovi čekaju i šalju se kad se veza
+  vrati.
+- **Postavke / permisije:** `private.integrations.queue.enabled`, `typesCsv`, `maxAttempts`,
+  `initialBackoffSeconds`, `maxBackoffSeconds`, `deadLetterAfterAttempts`,
+  `deadLetterRetentionDays`; retry traži `integrationsQueueManage`.
+- **Ekran:** Postavke → Integracije → **Red integracija** (lista, ponovni pokušaj); `ops-health` prikazuje
+  posljednji poslani e-mail.
+- **Izvori:** `backend/src/modules/notifications/fan-out/notifications-fan-out.service.ts:143–165`,
+  `backend/src/modules/integration-queue/process-email-integration-job.service.ts:17–34`,
+  `parse-email-integration-job-payload.ts:3–46`, `integration-queue.controller.ts:63–68`,
+  `backend/src/modules/notifications/email/deliver-notification-email.ts:24–68`.
+- **Status:** Važi, uz ograničenje: zapis o isporuci nema rok, pa zaglavljen zahtjev gubi e-mail (B1)
+- **Wiki stranica:** Pošta → Pouzdanost slanja
+
+### T77 — Lične postavke, tihi sati i dnevni sažetak
+
+- **Modul / paket:** Pošta
+- **Publika:** svi
+- **Tip:** Pravilo
+- **Teza:** Za svaki tip događaja korisnik bira kanal (u aplikaciji / e-mail) i način (odmah / u sažetku /
+  isključeno). Ako ništa ne mijenja, ponašanje je kao i prije. U tihim satima e-mail se ne šalje odmah nego se
+  stavka čuva i šalje na kraju perioda; sažetak se sastavlja po tiketu (najnoviji događaj i broj događaja) i
+  povjerljivi tiketi u njemu nemaju naslov. Neke kategorije su **uvijek uključene** i prikazuju se samo kao
+  informacija.
+- **Zašto:** agent u velikoj grupi mora moći smanjiti broj e-mailova, a sigurnosna i operativna obavještenja ne
+  smiju nestati.
+- **Primjer:** agent uključi „U sažetku“ za nove tikete i dobija jedan e-mail dnevno umjesto trideset.
+- **Postavke / permisije:** lične postavke i raspored po korisniku; globalno `preferencesEnabled`,
+  `quietHoursEnabled` i zadane vrijednosti po kategoriji.
+- **Ekran:** **Moj profil** → **Obavještenja**; admin pregled kategorija.
+- **Izvori:** `backend/src/modules/notifications/preferences/resolve-delivery-decisions.ts:29–70`,
+  `notification-preference-catalog.ts:34–122`, `hold-for-digest.ts:24–43`,
+  `notification-digest.service.ts:62–112`, `notification-digest.constants.ts:1–11`,
+  `compose-digest-email.ts:28–119`.
+- **Status:** Važi
+- **Wiki stranica:** Pošta → Sažetak i tihi sati
+
+### T78 — Dolazna pošta: konektori i prepoznavanje tiketa potpisanim tokenom
+
+- **Modul / paket:** Pošta
+- **Publika:** ADMIN (postavljanje), svi (korištenje)
+- **Tip:** Arhitektura
+- **Teza:** Worker periodično čita zajednički sandučić preko jednog od dva konektora — **Microsoft Graph**
+  (aplikacijska dozvola ograničena na jedan sandučić) ili **IMAP** (lozinka ili OAuth2 sa Entra ID-om). Tiket se
+  prepoznaje po **potpisanom tokenu** u zaglavljima odgovora (`Message-ID` naše poruke nosi
+  `<r.<tiket>.<primalac>.<nonce>.<potpis>@domena>`), a rezervno po stabilnom korijenu razgovora i po broju
+  tiketa `[T-000123]` u naslovu. Tajna se može rotirati bez gubitka starih odgovora.
+- **Zašto:** naslov e-maila je korisnički tekst i ne smije biti jedini način da se pogodi na koji tiket odgovor
+  ide; potpis sprječava da se odgovor pripiše tuđem tiketu.
+- **Primjer:** odgovor sa „RE: [T-000123]“ i bez zaglavlja i dalje stiže na tiket, ali strože provjeren —
+  pošiljalac mora biti aktivan korisnik sa pravom pisanja.
+- **Postavke / permisije:** `private.inbound.*` (uključeno, provajder, adresa, interval, Entra aplikacija,
+  IMAP pristup, folderi); tajna `INBOUND_EMAIL_TOKEN_SECRET` ili izvedena iz ključa za MFA.
+- **Ekran:** Postavke → E-mail → **Dolazna pošta**; obrada se vidi kroz status i dnevnik.
+- **Izvori:** `backend/src/modules/inbound-email/inbound-email-configuration.ts:11–29,37–48`,
+  `mailbox/create-inbound-mailbox.ts:6–19`, `mailbox/graph-mailbox.ts:17–88`, `mailbox/imap-mailbox.ts:27–90`,
+  `mailbox/entra-token.ts:7–34`, `notifications/email/reply-token.ts:43–109`,
+  `inbound-email/resolve-inbound-target.ts:13–22`.
+- **Status:** Važi (Gmail API konektor iz plana nije isporučen — koristi se IMAP)
+- **Wiki stranica:** Pošta → Odgovor e-mailom
+
+### T79 — Dolazna pošta: pravila prihvatanja, anti-loop i prilozi
+
+- **Modul / paket:** Pošta
+- **Publika:** svi (posljedica), ADMIN (nadzor)
+- **Tip:** Pravilo
+- **Teza:** Poruka se prihvata samo ako je pošiljalac **aktivan korisnik** čija je domena dozvoljena, ako je
+  poruka prošla provjeru autentičnosti (DMARC ili SPF+DKIM, uz interni Exchange kao izuzetak) i ako nije
+  prekoračila limit po satu. Automatske poruke (out-of-office, bounce, liste) se ignorišu i nikad ne dobijaju
+  automatski odgovor. Tekst se čisti od citata i potpisa, prilozi prolaze iste provjere kao upload (tip,
+  veličina, antivirus), a zaražen ili nedozvoljen prilog se odbija uz sistemsku bilješku na tiketu. Odgovor
+  nikad ne postaje **interna bilješka** — osoblje piše javni odgovor.
+- **Zašto:** e-mail je javni kanal; pogrešno prihvaćena poruka može otvoriti tiket, a pogrešno kreiran odgovor
+  može poslati interni tekst napolje.
+- **Primjer:** „Out of office“ odgovor ne otvara ništa i ne dobija odgovor; poruka sa zaraženim prilogom ide na
+  tiket sa napomenom koji je prilog odbijen.
+- **Postavke / permisije:** `requireAuthPass`, `maxPerSenderPerHour`, `maxMessagesPerRun`,
+  `createTickets`, `defaultServiceId`, folderi „obrađeno“/„odbijeno“; pristup tiketu po standardnim pravilima.
+- **Ekran:** detalj tiketa (poruka sa oznakom da je došla e-mailom, bilješka o odbijenom prilogu);
+  Postavke → E-mail → **Dolazna pošta**.
+- **Izvori:** `backend/src/modules/inbound-email/process-inbound-message.ts:85–178`,
+  `detect-auto-reply.ts:17–39`, `check-sender-authentication.ts:12–24`, `extract-reply-text.ts:23–72`,
+  `inbound-email.service.ts:296–371`.
+- **Status:** Važi
+- **Wiki stranica:** Pošta → Pravila prihvatanja
+
+### T80 — Nadzor, retencija i operativni zahtjevi kanala
+
+- **Modul / paket:** Pošta
+- **Publika:** ADMIN / SUPER_ADMIN / operacije
+- **Tip:** Pravilo
+- **Teza:** Administrator ima **status konektora** (zadnji uspjeh, zadnja greška, broj uzastopnih padova),
+  brojeve obrade u 24 h i dnevnik posljednjih 50 poruka **bez tijela poruke**, uz dugme za test veze. Kad
+  sandučić padne tri puta zaredom, svi aktivni administratori dobijaju jedno in-app obavještenje. Original
+  poruke (`.eml`) čuva se **30 dana** kompresovan, metapodaci **180 dana**, a iste redove čisti i modul
+  privatnosti; sve to je podesivo. Za dolaznu poštu ne postoji „webhook“ — čita se periodično (zadano 60 s),
+  pa obrada kasni najviše jedan ciklus.
+- **Zašto:** e-mail kanal radi „u pozadini“ i bez vidljivosti se kvarovi otkriju tek kad korisnik prijavi da
+  nikome ništa ne stiže.
+- **Primjer:** tri uzastopna neuspjeha prijave na sanduče vide administratori u aplikaciji, a ne samo u logu
+  workera.
+- **Postavke / permisije:** `private.inbound.pollSeconds`, `rawRetentionDays`, `metadataRetentionDays`,
+  `maxMessagesPerRun`; politika privatnosti za zapise o isporuci (180 dana); pristup statusu traži ADMIN rolu.
+- **Ekran:** Postavke → E-mail → **Dolazna pošta** (status, brojevi, dnevnik, test konekcije);
+  `ops-health` prikazuje zadnji poslani e-mail.
+- **Izvori:** `backend/src/modules/inbound-email/inbound-email.constants.ts:1–10`,
+  `inbound-email.scheduler.service.ts:21–37`, `inbound-email.processor.ts:45–63`,
+  `inbound-email.service.ts:164–186,398–431`, `inbound-email-admin.controller.ts:20–38`,
+  `inbound-email-admin.service.ts:52–118`, `inbound-raw-store.ts:15–45`,
+  `privacy/retention/retention-plan.ts:81`, `privacy/retention/retention-executors.ts:97–125`.
+- **Status:** Važi (uz B1: zaglavljena isporuka nije vidljiva u nadzoru)
+- **Wiki stranica:** Pošta → Nadzor i čuvanje
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

@@ -501,3 +501,57 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   te frontend (`services/helpdesk-socket.ts`, `services/ticket-socket.ts`, `lib/realtime/*`,
   `lib/notifications/use-inbox-notifications.ts`, `components/layout/notifications-*.tsx`) i e2e
   (`tests/04-realtime-notifications.spec.ts`, `tests/15-workflow-unrouted-realtime.spec.ts`).
+
+---
+
+## M12 — Pošta (e-mail kanal, šabloni i dolazna pošta) (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/posta.md` — novi vodič: čemu modul služi (obavještenja e-mailom, odgovor e-mailom, tekstovi
+  e-mailova, sažetak i tihi sati), kome je namijenjen (tabela rola), kako se dolazi (Postavke → E-mail;
+  **Uredi tekstove**; **Dolazna pošta**; **Moj profil** → Obavještenja), korak-po-korak (uključivanje kanala i
+  domene, uređivanje šablona uz pregled i testno slanje, odgovor iz mail klijenta, pregled dolazne pošte),
+  tabele (postavke kanala, polja šablona, statusi i razlozi odbijanja dolazne poruke, kada e-mail stiže odmah
+  a kada u sažetku), česta pitanja i poznata ograničenja (**B1–B5**, Gmail API nije isporučen, obrada kasni do
+  jednog ciklusa) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M12 — planirano/idealno/preporuka, stanje u kodu (odluka o slanju, sastavljanje i
+  render, isporuka i queue, fan-out i lične postavke, bulk broadcast, šabloni i admin ekran, dolazna pošta,
+  testovi), gap tabela sa 27 redova, recenzija, nalazi **B1–B5**, ocjene **F8 / K9 / S8** i ažuriran red
+  tabele iteracija 3 („M11 ✅ · M12 ✅ · M13 u toku“).
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T74–T80**: izlazni kanal i dozvoljene adrese; sastavljanje poruke (šabloni,
+  escape, povjerljivi režim, redakcija); isporuka (queue, idempotencija, DLQ, ručni retry); lične postavke,
+  tihi sati i sažetak; dolazna pošta: konektori i potpisani token; pravila prihvatanja, anti-loop i prilozi;
+  nadzor, retencija i operativni zahtjevi.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Najvažnije je objasniti **tri prekidača** koja moraju biti uključena da e-mail uopšte ode, pravilo
+  **dozvoljenih adresa** (zadano samo interno), da **povjerljiv tiket nosi samo broj**, i da se **odgovor
+  e-mailom** vezuje za tiket potpisanim `Message-ID`-om, a ne naslovom. Uz to su navedena stvarna ograničenja
+  (B1–B5): zapis o isporuci bez roka, bulk obavijest bez redakcije, nova SMTP veza po poruci, limiter testnog
+  slanja u memoriji i engleske oznake polja u bulk tekstu.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/notifications/email/*` (33 `.ts`, 10 spec —
+  `load-email-channel-configuration.ts`, `compose-ticket-email.ts`, `render-email-message.ts`,
+  `deliver-notification-email.ts`, `persist-notification-email-delivery.ts`, `fan-out-email-notifications.ts`,
+  `send-broadcast-emails.ts`, `compose-digest-email.ts`, `reply-token.ts`, `default-email-templates.ts`,
+  `smtp-mail-transport.ts`), `notifications/email-templates/*`, `notifications/preferences/*` (digest, tihi
+  sati, preferencije), `backend/src/modules/inbound-email/*` (25 `.ts`, 2 spec — servis, procesor, scheduler,
+  port i dva konektora, `process-inbound-message.ts`, `reply-token` verifikacija, raw store, admin servis),
+  `backend/src/modules/integration-queue/process-email-integration-job.service.ts`,
+  `backend/src/modules/tickets/bulk/*`, `backend/src/modules/settings/definitions/{smtp,notification-email,inbound-email}-settings.ts`,
+  `backend/src/modules/privacy/retention/*`, te frontend (`components/settings/{smtp-email-settings-card,
+  email-templates-card,email-templates-editor,inbound-email-card}.tsx`, `pages/email-templates-page.tsx`,
+  `app/router.tsx`) i e2e `tests/11-email-templates.spec.ts`; planovi `docs/plans/modules/{1.5,2.2,2.3}*.md`
+  i `docs/ops/inbound-email.md`.
