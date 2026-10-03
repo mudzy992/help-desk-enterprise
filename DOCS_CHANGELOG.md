@@ -243,3 +243,57 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   (`pages/services-page.tsx`, `components/services/*`, `components/tickets/service-form-fields.tsx`,
   `components/tickets/ticket-form-data-view.tsx`, `lib/tickets/validate-service-form.ts`,
   `services/service-catalog-api.ts`, `lib/services/use-service-catalog.ts`, i18n `services.*`).
+
+---
+
+## M7 — Usmjeravanje i prioritet (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/usmjeravanje-i-prioritet.md` — novi vodič: čemu modul služi, kome je namijenjen (tabela rola i
+  permisija), kako se dolazi (**Administracija → Usmjeravanje**, **SLA → Matrica prioriteta**, detalj tiketa,
+  grupni inbox), korak-po-korak (novo pravilo, izmjena/brisanje s prikazom „prije → poslije“, matrica pokrivanja,
+  test rezolucije, matrica prioriteta, ručna promjena prioriteta), tabele polja/ishoda/prioriteta/statusa s
+  tačnim nazivima iz UI-a, česta pitanja i poruke grešaka, poznata ograničenja (B1–B6, B9) i povezani moduli.
+- `REVIEW_ANALIZA.md` §M7 — planirano/idealno/preporuka, stanje u kodu (model, API, servisni sloj, prioritet,
+  UNROUTED tok, konfiguracija i realtime, frontend), gap tabela sa 16 redova, recenzija, nalazi **B1–B9**, ocjene
+  **F8 / K8 / S8** i novi red tabele iteracija „2 … M7 ✅ · M8 u toku“.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T42** (rutanje kao deterministička odluka iz para OU + usluga), **T43** (pravilo:
+  jedinstven par, obavezan razlog, before/after zapis), **T44** (matrica pokrivanja i `requireCoverage`),
+  **T45** (neusmjereni red: ciljna grupa, vlasnik, rok, digest), **T46** (prioritet: matrica i override s
+  auditom), **T47** (konfiguracija rutanja: žive postavke, validacija snapshot-a, realtime, read-only).
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama — usmjeravanje i prioritet do sada nisu bili dokumentovani.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul nosi odluke koje se lako pogrešno razumiju: rutanje određuje **grupu, nikad agenta**; tiket bez pravila
+  **nije izgubljen** (neusmjereni red ili podešena ciljna grupa); prioritet je izveden iz matrice, a ručna
+  promjena je izuzetak koji se auditira i pomjera SLA rokove. Vodič i teze zato eksplicitno razdvajaju ta stanja i
+  navode nalaze B1–B6 i B9.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/routing/*` (`resolve-ticket-routing.ts`,
+  `compute-routing-coverage.ts`, `evaluate-service-routing-coverage.ts`, `persist-routing-rule-change.ts`,
+  `update/delete-routing-rule.ts`, `assert-routing-*.ts`, `read-required-routing-reason.ts`,
+  `routing.controller.ts`, `dto/routing.dto.ts`, `routing-configuration.loader.ts`,
+  `parse-routing-configuration.ts`, `routing-onboarding-support.ts`),
+  `backend/src/modules/tickets/*` (`apply-create-ticket-routing.ts`, `create-ticket.ts`, `update-ticket.ts`,
+  `resolve-ticket-priority.ts`, `calculate-ticket-priority.ts`, `priority/override-ticket-priority.ts`,
+  `routing-preview/*`, `unrouted/*`, `counts/*`, `list/build-ticket-list-filters.ts`),
+  `backend/src/modules/sla/*` (`priority-matrix.controller.ts`, `list/patch-priority-matrix.ts`,
+  `default-priority-matrix.ts`), `backend/src/modules/settings/*` (`setting-keys.ts`,
+  `definitions/ticket-routing-settings.ts`, `routing-dead-settings.spec.ts`),
+  `backend/src/modules/config-versioning/validate-routing-snapshot.ts`,
+  `backend/src/common/admin-realtime/*`, `backend/prisma/schema/{catalog,ticketing,enums}.prisma`, te frontend
+  (`pages/routing-page.tsx`, `components/routing/*`, `components/sla/priority-matrix-panel.tsx`,
+  `components/tickets/{ticket-priority-panel,ticket-detail-sidebar,ticket-inbox-*}.tsx`,
+  `lib/tickets/{inbox-view-tabs,use-ticket-list,calculate-ticket-priority,lookup-ticket-priority}.ts`,
+  `services/routing-api.ts`) i e2e (`02-routing-fallback`, `13-priority-merge`, `15-workflow-unrouted-realtime`).

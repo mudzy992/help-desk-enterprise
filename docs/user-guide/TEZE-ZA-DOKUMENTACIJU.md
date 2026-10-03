@@ -833,6 +833,138 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Katalog usluga → Dostupnost i prekidi
 
+### T42 — Rutanje je deterministička odluka iz para (origin OU + usluga)
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** ADMIN / SUPER_ADMIN (uređivanje), svi (posljedica pri kreiranju tiketa)
+- **Tip:** Pravilo
+- **Teza:** Novi tiket dobija **grupu** (nikad agenta) na osnovu para *organizacijska jedinica porijekla +
+  usluga*. Motor hoda lanac od OU-a prema korijenu: prvi pogođeni predak daje grupu; pogodak na samoj OU je
+  ishod **Tačno**, pogodak na pretku **Naslijeđeno**, a bez pogotka tiket je **UNROUTED**. Isti ulaz uvijek daje
+  isti ishod, a uz odluku uvijek idu `fallbackDepth`, `fallbackPath` i `matchedRuleId` (bez njih admin ne bi
+  mogao objasniti zašto je tiket otišao baš tamo).
+- **Zašto:** rutanje ne smije zavisiti od trenutka, opterećenja ni od agenta na dužnosti.
+- **Primjer:** Usluga „VPN“ ima pravilo za OU „Zenica“. Tiket korisnika iz podjedinice Zenice ide toj grupi s
+  ishodom **Naslijeđeno**; tiket iz OU-a bez pravila u lancu ide u neusmjereni red.
+- **Postavke / permisije:** `private.ticket.unroutedQueue.*`, `private.ticket.routing.requireCoverage`; čitanje
+  ruta traži rolu ADMIN, izmjene i `routing.write`.
+- **Ekran:** **Administracija → Usmjeravanje** → tab **Test rezolucije**.
+- **Izvori:** `backend/src/modules/routing/resolve-ticket-routing.ts:11–89`,
+  `load-organizational-unit-ancestors.ts:5–38`, `routing.constants.ts:1–5`,
+  `backend/src/modules/tickets/apply-create-ticket-routing.ts:7–37`.
+- **Status:** Važi
+- **Wiki stranica:** Usmjeravanje → Kako se odlučuje grupa
+
+### T43 — Pravilo usmjeravanja: jedinstven par (OU + servis), obavezan razlog, before/after zapis
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Za jedan par (origin OU + usluga) postoji **najviše jedno** pravilo; drugi unos se odbija kao
+  duplikat. Svaka izmjena i brisanje traže **razlog izmjene**, izvode se u transakciji i ostavljaju zapis u
+  change logu s akterom i **before/after rezolucijom**; brisanje se prije potvrde može provjeriti kroz prikaz
+  „prije → poslije“ (koja bi grupa tada preuzela tiket).
+- **Zašto:** promjena rutanja je operativno osjetljiva — mora biti objašnjiva i provjerljiva unaprijed.
+- **Primjer:** Brisanje pravila za (OU Finansije + usluga Računi) prikazuje da bi tiket poslije brisanja pao na
+  pravilo matične OU ili u neusmjereni red.
+- **Postavke / permisije:** `routing.write` + OU scope (`originUnitId`) + service scope (`serviceId`).
+- **Ekran:** **Administracija → Usmjeravanje** → **Pravila** (**Novo pravilo**, **Uredi**, **Obriši**).
+- **Izvori:** `backend/prisma/schema/catalog.prisma:116–130`, `create-routing-rule.ts:9–28`,
+  `persist-routing-rule-change.ts:20–59`, `update-routing-rule.ts:21–79`, `delete-routing-rule.ts:27–94`,
+  `assert-routing-rule-scope.ts:4–20`, `assert-routing-targets-exist.ts:4–48`,
+  `read-required-routing-reason.ts:8–20`.
+- **Status:** Važi
+- **Wiki stranica:** Usmjeravanje → Pravila
+
+### T44 — Matrica pokrivanja i blokada aktivacije bez pokrića
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Matrica pokrivanja prikazuje sve kombinacije (usluga × OU) i za svaku označava da li pravilo postoji
+  **tačno**, da li je **naslijeđeno** ili je kombinacija **neusmjereno** (rupa), uz statistiku i detalj putanje
+  fallbacka. Ako je postavka `requireCoverage` uključena, usluga se **ne može aktivirati** bez ijednog pravila;
+  ako je isključena, dobija se samo meko upozorenje `ROUTING_COVERAGE_MISSING`.
+- **Zašto:** aktivacija usluge bez rutanja proizvodi neusmjerene tikete od prvog dana.
+- **Primjer:** Usluga bez pravila pri prelasku u **Aktivna** vraća grešku i ostaje u nacrtu.
+- **Postavke / permisije:** `private.ticket.routing.requireCoverage`; rola ADMIN za pregled.
+- **Ekran:** **Administracija → Usmjeravanje** → tab **Matrica pokrivanja**.
+- **Izvori:** `backend/src/modules/routing/compute-routing-coverage.ts:12–54`,
+  `evaluate-service-routing-coverage.ts:12–34`, `service-catalog.service.ts:154–155`,
+  `config-versioning/validate-routing-snapshot.ts:57–58`.
+- **Status:** Važi (uz ograničenje B1: matrica nema filtere i uključuje neaktivne usluge)
+- **Wiki stranica:** Usmjeravanje → Matrica pokrivanja
+
+### T45 — Neusmjereni red: ciljna grupa, vlasnik, rok i digest
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** ADMIN / SUPER_ADMIN (podešavanje), SUPER_ADMIN (vlasnik reda po pravilu)
+- **Tip:** Pravilo
+- **Teza:** Tiket bez pronađenog pravila **nikad se ne izgubi**: ili ostaje u statusu `UNROUTED`, ili — ako je
+  podešena **ciljna grupa** — dobija status `PENDING` u toj grupi s oznakom da je preusmjeren. Red ima
+  **vlasničku rolu**, **rok obrade** (`cleanupSlaHours`, 0 isključuje upozorenja) i opciju **sedmičnog digest-a**;
+  prekoračenje roka šalje jedno upozorenje po tiketu (bez ponavljanja) i ponedjeljkom u 08:00 zbirni pregled.
+- **Zašto:** „rupa u rutanju“ mora biti vidljiva i imati vlasnika, a ne tiho izgubljena.
+- **Primjer:** Tiket iz OU-a bez pravila stoji 9 sati u neusmjerenom redu (rok je 8 h) → vlasnička rola dobija
+  upozorenje; ponedjeljak u 08:00 dobija i zbirni pregled svih takvih tiketa.
+- **Postavke / permisije:** `private.ticket.unroutedQueue.enabled|ownerRole|targetGroupId|cleanupSlaHours|weeklyDigest`.
+- **Ekran:** **Grupni inbox** → tab **Neusmjereni red**; filter **Nerutirani preko roka** u listi tiketa; bedž na
+  nadzornoj ploči.
+- **Izvori:** `backend/src/modules/tickets/unrouted/build-unrouted-overdue-where.ts:8–26`,
+  `unrouted-sweep.job.constants.ts:6–18`, `unrouted-sweep.service.ts:40–95`, `counts/counts.types.ts:22–33`,
+  `list/build-ticket-list-filters.ts:81–88`.
+- **Status:** Važi (uz B4: tab prikazuje samo status `UNROUTED`, dok upozorenja uključuju i preusmjerene tikete)
+- **Wiki stranica:** Usmjeravanje → Neusmjereni red
+
+### T46 — Prioritet: matrica uticaj × hitnost, ručni override s auditom
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** svi (izračun), AGENT/ADMIN (override uz permisiju)
+- **Tip:** Pravilo
+- **Teza:** Prioritet tiketa se izvodi iz para **uticaj × hitnost** po matrici koju admin uređuje; ako ćelija
+  nije podešena, koristi se ugrađena formula (zbir rangova). Ručna promjena zamjenjuje matricu, traži
+  **razlog**, upisuje se u change log i audit (`from`, `to`, `resetToMatrix`) i **preračunava SLA rokove**;
+  dugme **Vrati na matricu** vraća izračunatu vrijednost. Matrica se ponovo primjenjuje samo kad se promijeni
+  uticaj ili hitnost i tiket nije ručno postavljen.
+- **Zašto:** prioritet mora biti predvidiv, a svako odstupanje objašnjivo i popravljivo.
+- **Primjer:** Agent podigne hitnost s Niske na Kritičnu: prioritet skoči iz matrice; prethodno ručno postavljen
+  prioritet ostaje nepromijenjen dok ga agent eksplicitno ne vrati na matricu.
+- **Postavke / permisije:** `ticket.priority.override`; izmjena matrice traži `sla.write` (ekran **SLA**).
+- **Ekran:** detalj tiketa → **Promjena prioriteta**; **Administracija → SLA → Matrica prioriteta**.
+- **Izvori:** `backend/src/modules/tickets/resolve-ticket-priority.ts:22–34`,
+  `calculate-ticket-priority.ts:8–23`, `priority/override-ticket-priority.ts:41–134`,
+  `update-ticket.ts:139–164`, `backend/src/modules/sla/list-priority-matrix.ts:24–50`,
+  `sla/patch-priority-matrix.ts:30–60`, `backend/prisma/schema/catalog.prisma:132–141`.
+- **Status:** Važi (uz B5: nema prekidača za matricu)
+- **Wiki stranica:** Usmjeravanje → Prioritet i matrica
+
+### T47 — Konfiguracija rutanja: žive postavke, validacija snapshot-a, realtime i read-only
+
+- **Modul / paket:** Usmjeravanje i prioritet
+- **Publika:** ADMIN / SUPER_ADMIN
+- **Tip:** Pravilo
+- **Teza:** Rutanje čita šest živih postavki (pet za neusmjereni red i `requireCoverage`); loader je strog i
+  neispravnu vrijednost pretvara u grešku `UNAVAILABLE`, dok je loader neusmjerenog reda tolerantan i pada na
+  zadate vrijednosti. Rutanje i matrica prioriteta ulaze u konfiguracioni snapshot i prolaze validaciju bez
+  side-effecta; promjena kroz administraciju šalje adminima realtime događaj `admin.config.updated`, a modul se
+  može zaključati režimom samo za čitanje. Postavke `private.ticket.routing.fallbackGroupId` i
+  `private.routing.strictOuIsolation` **namjerno ne postoje** (zamijenjene su ciljnom grupom i scope
+  dekoratorima).
+- **Zašto:** konfiguracija mora biti provjerljiva prije primjene, a neispravna vrijednost ne smije srušiti
+  kreiranje tiketa.
+- **Primjer:** Neispravna vrijednost `requireCoverage` daje `RoutingError UNAVAILABLE` i kreiranje tiketa se
+  zaustavlja s `ROUTING_UNAVAILABLE`, umjesto da tiket tiho prođe bez rutanja.
+- **Postavke / permisije:** `private.ticket.unroutedQueue.*`, `private.ticket.routing.requireCoverage`,
+  `private.readOnlyMode.modulesCsv`, `private.configVersioning.scopesCsv`.
+- **Ekran:** **Administracija → Postavke** (kartica neusmjerenog reda) i **Administracija → Verzije konfiguracije**.
+- **Izvori:** `backend/src/modules/settings/setting-keys.ts:103–108`,
+  `settings/definitions/ticket-routing-settings.ts:7–60`, `settings/routing-dead-settings.spec.ts:7–33`,
+  `routing/routing-configuration.loader.ts:12–45`, `unrouted/unrouted-queue-configuration.loader.ts:9–53`,
+  `common/admin-realtime/admin-config-domain.decorator.ts:7–16`,
+  `config-versioning/validate-routing-snapshot.ts:57–58`.
+- **Status:** Važi (uz B2: `private.changeLog.routing.enabled` je bez potrošača)
+- **Wiki stranica:** Usmjeravanje → Postavke i konfiguracija
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

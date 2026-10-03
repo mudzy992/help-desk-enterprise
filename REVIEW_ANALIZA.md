@@ -23,7 +23,7 @@
 | Iteracija | Moduli | Stanje |
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
-| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 u toku |
+| 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 u toku |
 
 ---
 
@@ -1594,3 +1594,411 @@ keš. Do odgovora dokumentacija ne spominje tu postavku.
 | Funkcionalnost | **7 / 10** | Katalog, forme, verzionisanje, lifecycle, dostupnost/prekidi i onboarding wizard rade i pokriveni su testovima; padaju serverska validacija vrijednosti forme, vidljivost nacrta po roli, aktivacija bez forme i dvije postavke bez efekta. |
 | Kvalitet koda | **8 / 10** | Parser i validacija šeme su uzorni, transakcije i change log konzistentni, greške precizne. Umanjuju: mrtav kod (`bindTicketFormVersionRef`/`resolveTicketFormVersion`, `SLUG_IMMUTABLE`), nepotpun diff u change logu i N+1 na ekranu kataloga. |
 | Sigurnost | **7 / 10** | Role + permisije + service scope + read-only režim + audit pokrivaju sve rute, a confidential/approval polja se ne mogu slučajno promijeniti. Umanjuju: B2 (nacrti i šeme vidljivi svakom korisniku) i B1 (proizvoljan JSON u podacima tiketa). |
+
+# M7 — Usmjeravanje i prioritet
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Routing po (origin_unit + service_type) preko DB pravila:** „Kritično: automatski routing tiketa na osnovu
+  (origin_unit + service_type) preko DB-driven routing pravila“ (`RAW_PROJECT.md:63`); u istom bloku: tiket se
+  inicijalno dodjeljuje **handler grupi**, ne pojedincu (`:56–58`).
+- **Priority (impact/urgency) matrica:** korisnik bira impact i urgency, sistem predlaže
+  `LOW|MEDIUM|HIGH|CRITICAL`, Admin/SuperAdmin podešava pravila, agent/admin može override **uz audit**
+  (`RAW_PROJECT.md:59–62`).
+- **SLA baseline po prioritetu** kao rezerva kad servis nema svoj override (`RAW_PROJECT.md:99–102`).
+- **Bulk priority update** (Admin/SuperAdmin, obavezno obrazloženje, audit) (`RAW_PROJECT.md:151`).
+- **Permisije i OU scope:** `routing.write` (`:190`, `:207`, `:209`), OU scope npr. „`routing.write` samo za
+  OU=Podružnica Zenica“ (`:226`), cross-OU uz audit (`:219`).
+- **Config verzije:** scopes uključuju `routing` (`:265`, `:650`), dry-run validacija uključuje „routing coverage
+  check + fallback pravila“ (`:269–270`), shadow mode za nova routing pravila (`:274–276`).
+- **Bottleneck dashboard:** `UNROUTED` među stanjima gdje tiketi „stoje“, breakdown po OU / service / priority
+  (`RAW_PROJECT.md:281–282`).
+- **Onboarding wizard:** koraci „servis → forma → routing → SLA profil → approvals → availability“ (`:353`),
+  wizard predlaže default routing target grupu i fallback **uz obaveznu potvrdu admina** i upozorava ako servis
+  nema routing coverage (`:356–357`).
+- **Postavke:** `private.ticket.routing.fallbackGroupId` (`:494`), `private.ticket.routing.requireCoverage`
+  (`:495`), `private.ticket.priorityMatrix.enabled|impactOptionsCsv|urgencyOptionsCsv|rulesJson` (`:496–499`),
+  `private.ticket.unroutedQueue.enabled|ownerRole|targetGroupId|cleanupSlaHours` (`:554–557`),
+  `private.services.onboardingWizard.autoFillRouting.enabled|requireConfirm` (`:620–621`),
+  `private.routing.strictOuIsolation` (`:724`), `private.changeLog.routing.enabled` (`:726`).
+- **Read-only moduli:** routing je među modulima koje admin može privremeno zaključati (`:678`, `:307`).
+- **Realtime:** `ticket.updated` (status/priority/assignment) i `routing.rules.updated` za admine
+  (`RAW_PROJECT.md:743`, `:749`).
+- **Baza znanja (stubovi):** članci `ticket-priority-impact-urgency-matrix`, `routing-rules`,
+  `routing-fallback-and-coverage` (`RAW_PROJECT.md:777–779`).
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+1. **Jedan deterministički izvor odluke.** Rutanje mora biti čista funkcija ulaza (origin OU + servis) — bez
+   slučajnosti i bez stanja; svaki potrošač (kreiranje, preview, tester, coverage, konfiguraciona validacija)
+   mora zvati isti motor. U kodu je to zaista tako (`resolveTicketRouting` je jedina tačka odluke).
+2. **Tiket se nikad ne izgubi.** Kad nema pravila, ishod je eksplicitan (`UNROUTED` red ili konfigurisana ciljna
+   grupa), a ne „tiho“ dodijeljena grupa. Kod to ispunjava kroz dvije grane.
+3. **Odluka je objašnjiva.** Uz rezoluciju idu `fallbackDepth`, `fallbackPath`, `matchedRuleId`, pa admin u
+   testeru vidi **zašto** je tiket otišao baš toj grupi — kod to ispunjava.
+4. **Prioritet je izveden, ne prepisan.** Matrica je podatak (admin je mijenja), override je izuzetak s
+   obaveznim razlogom i auditom, a povratak na matricu je eksplicitna akcija — kod to ispunjava, ali bez
+   mogućnosti da se matrica isključi.
+5. **Promjena je provjerena prije primjene.** Pokrivenost se mjeri prije aktivacije, a konfiguraciona verzija se
+   validira bez side-effecta — kod to ispunjava na nivou servisa i snapshot validacije.
+6. **„Neusmjereno“ ima jedno značenje.** U zrelom sistemu isti pojam („unrouted“) ne smije značiti dva različita
+   skupa tiketa na dva ekrana; kod trenutno ima dvije definicije (status `UNROUTED` vs. preusmjereno u ciljnu
+   grupu).
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Prvo uskladiti pojam „neusmjereno“** (nalaz B4): tab „Neusmjereni red“ i brojači treba da koriste isti
+   `buildUnroutedOverdueWhere`-porodični filter ili jasno razdvoje „bez pravila“ i „preusmjereno u ciljnu grupu“.
+2. **Uvesti filtere u matricu pokrivanja** (B1): `lifecycle` usluge, opseg OU-a i paginacija; matrica je jedini
+   ekran koji raste kao `OU × usluga`.
+3. **Uključiti preview rutanja u ekran za prijavu** (B3) — ruta postoji i poštuje iste kapije; korisnik treba da
+   vidi upozorenje prije slanja, kao što RAW traži.
+4. **Odlučiti sudbinu dvije mrtve/postavke bez potrošača** (B2, B5): ili ih čitati, ili ih ukloniti iz registra i
+   dokumentovati odluku (`private.ticket.routing.fallbackGroupId`, `private.routing.strictOuIsolation` su već
+   namjerno izostavljene i pokrivene spec-om `routing-dead-settings.spec.ts`).
+5. **Ujediniti izračun prioriteta na jednom mjestu** (B8): server vraća prioritet u preview-u, klijent ne
+   duplira pragove.
+6. **Dodati filtere na serveru za pravila i change log** (B6): čitanje pravila je danas admin-only bez OU scope
+   oznake i bez filtera po OU/servisu.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model i kontrakti
+
+- `RoutingRule`: `id`, `originUnitId`, `serviceId`, `groupId`, relacije s `onDelete: Restrict`, jedinstven par
+  `@@unique([originUnitId, serviceId])`, indeksi po `serviceId` i `groupId`
+  (`backend/prisma/schema/catalog.prisma:116–130`).
+- `PriorityMatrixRule`: `impact`, `urgency`, `priority`, `@@unique([impact, urgency])`
+  (`backend/prisma/schema/catalog.prisma:132–141`).
+- Tiket nosi `status TicketStatus @default(PENDING)` (`backend/prisma/schema/ticketing.prisma:8`), `priority`,
+  `impact`, `urgency` (`:9–11`), `routedByUnroutedFallback` (`:38`), `unroutedWarnedAt` (`:40`),
+  `priorityOverridden|priorityOverriddenAt|priorityOverriddenById` (`:43–46`).
+- Statusi uključuju `UNROUTED` (`backend/prisma/schema/enums.prisma:9–19`); ose prioriteta su
+  `LOW|MEDIUM|HIGH|CRITICAL` (`enums.prisma:28–40`); strategije auto-dodjele `NONE|LEAST_BUSY|ROUND_ROBIN`
+  (`enums.prisma:135–139`).
+- Tipovi: `RoutingConfiguration { unroutedQueueEnabled, unroutedQueueOwnerRole, requireCoverage }`
+  (`routing.types.ts:7–11`), `RoutingResolution { outcome, groupId, matchedRuleId, matchedOriginUnitId,
+  fallbackDepth, fallbackPath, unroutedQueue }` (`:64–74`), `RoutingCoverageItem` (`:93–100`).
+- Ishod: `EXACT | PARENT_FALLBACK | UNROUTED` (`routing.constants.ts:1–5`); kod za blokadu pokrivenosti
+  `ROUTING_COVERAGE_MISSING` (`:15`); defaulti `unroutedQueueEnabled: true`, `ownerRole: 'SUPER_ADMIN'`,
+  `requireCoverage: true` (`:9–13`).
+
+### 4.2 API
+
+- `RoutingController` (`@Controller('routing')`, `SessionAuthenticationGuard` + `RoleGuard`, rola ADMIN na
+  nivou kontrolera, `ValidationPipe` s `whitelist`/`forbidNonWhitelisted`): `routing.controller.ts:46–56`.
+  - `POST /routing/rules` (`:60–71`), `PATCH /routing/rules/:ruleId` (`:73–85`),
+    `DELETE /routing/rules/:ruleId` (`:87–99`) — svi traže `permissionKeys.routingWrite`,
+    `@RequireOrganizationalUnitScope({ field: 'originUnitId' })` i `@RequireServiceScope({ field: 'serviceId' })`.
+  - `GET /routing/rules/:ruleId/delete-impact` (`:101–106`), `GET …/changes` (`:108–113`), `GET /routing/changes`
+    (`:115–118`), `GET /routing/groups` (`:120–123`), `GET /routing/rules` (`:125–130`),
+    `GET /routing/resolve` (`:132–137`, s OU i service scope lokatorom), `GET /routing/coverage` (`:139–144`) —
+    **bez** `@RequirePermissions` i **bez** OU scope oznake (osim `resolve`).
+- DTO (`dto/routing.dto.ts`): `CreateRoutingRuleDto` (`:4–21`), `UpdateRoutingRuleDto` (`:23–40`),
+  `DeleteRoutingRuleDto` (`:42–55`) — svi nose obavezan `reason` uz `@MinLength(1)` i
+  `@MaxLength(maximumChangeReasonLength)`; `ListRoutingRulesQueryDto` (`:57–67`) prima samo
+  `originUnitId`/`serviceId`; `ResolveRoutingQueryDto` (`:69–77`) traži oba polja; `ListRoutingCoverageQueryDto`
+  (`:79+`) prima iste opcione filtere.
+- Prioritetna matrica je izložena iz SLA modula: `PriorityMatrixController` (`@Controller('priority-matrix')`) —
+  `GET /priority-matrix` dopušten svim rolama (`user|agent|admin|superAdmin`,
+  `sla/priority-matrix.controller.ts:40–49`), `GET /priority-matrix/changes` traži rolu ADMIN (`:51–55`),
+  a `PATCH /priority-matrix` traži rolu ADMIN **i** `permissionKeys.slaWrite` (`:57–68`).
+- Tiketi: `POST /tickets/routing-preview` vraća `TicketRoutingPreview { outcome, groupName, fallbackDepth,
+  autoAssign, approvalSteps, slaProfileName }` bez internih id-eva
+  (`tickets/routing-preview/routing-preview.types.ts:4–13`, `tickets.controller.ts:62–72`).
+
+### 4.3 Servisni sloj (rutanje)
+
+- `RoutingService` objedinjuje sve operacije i prevodi greške (`mapRoutingError`) — `routing.service.ts:44–236`.
+- **Rezolucija:** `resolveTicketRouting` prvo provjerava da servis postoji (`SERVICE_NOT_FOUND`), učitava
+  pretke OU-a (`loadOrganizationalUnitAncestors`), čita pravila tog servisa čiji je `originUnitId` u lancu
+  predaka i gradi mapu `ruleByOrigin` (`resolve-ticket-routing.ts:11–47`).
+  `resolveFromAncestorChain` hoda lanac od OU-a do korijena: prvi pogodak je `EXACT` na dubini 0, inače
+  `PARENT_FALLBACK` s `fallbackDepth` i `fallbackPath`; bez pogotka vraća `UNROUTED` s opisom reda
+  (`:49–89`).
+- **Pokrivenost:** `computeRoutingCoverage` učitava **sve** OU-e, **sve** servise i **sva** pravila, pa gradi
+  `OU × servis` stavke s `hasExactRule` i punom rezolucijom (`compute-routing-coverage.ts:12–54`); nema filtera
+  po lifecycleu servisa ni paginacije.
+- **Aktivacija:** `evaluateServiceRoutingCoverage` + `assertOrWarnActivationRoutingCoverage` bacaju
+  `ROUTING_COVERAGE_MISSING` kad `requireCoverage` i nema pravila, inače vraćaju kod kao meko upozorenje
+  (`evaluate-service-routing-coverage.ts:12–34`); poziv je vezan na prelaz u `ACTIVE`
+  (`service-catalog/service-catalog.service.ts:154–155`).
+- **Izmjene su transakcione i logovane:** create/update/delete rade u `$transaction`, uz
+  `buildRoutingChangeSnapshot` prije/poslije i `recordChangeLog` s `reason` i `actorUserId`
+  (`persist-routing-rule-change.ts:20–59`, `update-routing-rule.ts:21–79`, `delete-routing-rule.ts:59–94`);
+  `buildChangeLogDiff` nosi `action`, `resourceType`, `resourceId` (`:49–55`).
+- **Validacije meta:** `assertRoutingTargetsExist` provjerava OU/servis/grupu
+  (`assert-routing-targets-exist.ts:4–35`), a `isDuplicateRoutingRuleConstraint` prepoznaje P2002 na paru
+  (`:37–48`); `assertRoutingRuleScope` sprječava izmjenu tuđeg pravila (`assert-routing-rule-scope.ts:4–20`);
+  `readRequiredRoutingReason` prevodi `ChangeLogError` u `REASON_REQUIRED` (`read-required-routing-reason.ts:8–20`).
+- **UNROUTED ciljna grupa:** `resolveUnroutedTargetGroupId` čita postavku i provjerava da grupa još postoji
+  (`routing.service.ts:157–178`, `routing-configuration.loader.ts:33–45`).
+- **Onboarding:** `suggestOnboardingReference`/`acceptsOnboardingReference` daju i provjeravaju referencu
+  (`routing-onboarding-support.ts:7–33`), a provider je vezuje na onboarding korak
+  (`service-onboarding/persisted-onboarding-routing.provider.ts:16–39`).
+
+### 4.4 Prioritet
+
+- Matrica: `resolveTicketPriority` čita `PriorityMatrixRule` za par (impact, urgency); ako ćelija ne postoji,
+  koristi formulu `calculateTicketPriority` (score = rang(impact) + rang(urgency), granice ≤2 LOW, ≤4 MEDIUM,
+  ≤6 HIGH, inače CRITICAL) — `resolve-ticket-priority.ts:22–34`, `calculate-ticket-priority.ts:8–23`,
+  `tickets.constants.ts:42–47`.
+- Sadržaj matrice: `GET /priority-matrix` lijeno dopunjava nedostajuće ćelije (`upsert` po ćeliji) i vraća sve
+  ćelije (`sla/list-priority-matrix.ts:24–50`, `sla/default-priority-matrix.ts:18–26`); `PATCH` prvo odbija
+  duple ćelije (`DUPLICATE_PRIORITY_MATRIX_CELL`), pa u transakciji mijenja ćelije i bilježi SLA change log sa
+  razlogom i before/after stanjem (`sla/patch-priority-matrix.ts:30–60`), a snapshot to prenosi u konfiguracionu
+  verziju (`config-versioning/collect-config-snapshot.ts:36`, `apply-sla-snapshot.ts:103`).
+- Pri kreiranju tiketa prioritet se izvodi iz matrice (`tickets/create-ticket.ts:181–185`).
+- Pri izmjeni: matrica se primjenjuje **samo** ako su impact ili urgency promijenjeni i prioritet nije ručno
+  postavljen (`update-ticket.ts:139–146`, zatim `:162–164`).
+- Override: `POST /tickets/:id/priority` zahtijeva `ticket.priority.override` i staff pristup
+  (`priority/override-ticket-priority.ts:60–66`), obavezan razlog (`:68–75`), upisuje `priorityOverridden` /
+  `priorityOverriddenAt` / `priorityOverriddenById` ili resetuje na matricu (`:80–95`), piše change log
+  (`:96–104`), audit s `from`/`to`/`resetToMatrix`/`reason` (`:105–117`), system event (`:118–125`) i ponovo
+  računa SLA tajmere ako se prioritet promijenio (`:128–134`).
+
+### 4.5 UNROUTED tok
+
+- Pri kreiranju: rezolucija ide kroz `applyCreateTicketRouting`; `UNROUTED` ili `groupId === null` vodi u
+  ciljnu grupu (status `PENDING`, `routedByUnroutedFallback: true`) ili ostaje `UNROUTED` ako ciljne grupe
+  nema (`apply-create-ticket-routing.ts:7–37`); eksplicitno zadana grupa pobjeđuje fallback
+  (`create-ticket.ts:116–130`).
+- Rok i obuhvat: `buildUnroutedOverdueWhere` pokriva `status = UNROUTED` **i**, kad je ciljna grupa
+  konfigurisana, `PENDING` tikete te grupe bez dodijeljenog agenta; `unroutedCutoff` računa rok iz
+  `cleanupSlaHours` (`unrouted/build-unrouted-overdue-where.ts:8–26`).
+- Sweep: svakih 15 minuta u slotu `:02` (`0 2,17,32,47 * * * *`), serija do 200 tiketa, 2 pokušaja, timeout 5
+  min (`unrouted/unrouted-sweep.job.constants.ts:6–18`); šalje jedno upozorenje po tiketu i ponedjeljak-08:00
+  digest u zoni `Europe/Sarajevo`, s dedupe ključevima
+  (`unrouted/unrouted-sweep.service.ts:40–95`, `sendDigest` na `:97`, `isDigestSlot` na `:190`).
+- Brojači i filteri: `TicketCounts.unrouted` (`counts/counts.types.ts:22`), `unroutedOverdue` +
+  `unroutedCleanupHours` (`:29–32`); lista podržava `unroutedOverdue` (`list/list-tickets.types.ts:39–44`,
+  `list/build-ticket-list-filters.ts:81–88`); bottleneck dashboard broji `status::text = 'UNROUTED'`
+  (`reports/bottleneck/sql-bottleneck-dashboard-store.ts:50`).
+
+### 4.6 Konfiguracija, verzionisanje i realtime
+
+- Registrovane postavke rutanja: `unroutedQueue.enabled|ownerRole|targetGroupId|cleanupSlaHours|weeklyDigest` i
+  `routing.requireCoverage` (`settings/setting-keys.ts:103–108`,
+  `settings/definitions/ticket-routing-settings.ts:7–60`), uz validaciju 0–168 za `cleanupSlaHours` (`:41–45`).
+- Namjerno **neregistrovane** postavke iz RAW-a: `private.ticket.routing.fallbackGroupId` i
+  `private.routing.strictOuIsolation` — spec ih eksplicitno zabranjuje i navodi samo „žive“ ključeve
+  (`settings/routing-dead-settings.spec.ts:7–33`).
+- Loader rutanja je strog (bilo koja neispravna vrijednost ⇒ `RoutingError('UNAVAILABLE')`,
+  `routing-configuration.loader.ts:12–31`, `parse-routing-configuration.ts:5–...`), dok je loader UNROUTED reda
+  tolerantan i pada na defaulte (`unrouted/unrouted-queue-configuration.loader.ts:9–53`).
+- Konfiguracione verzije: routing ulazi u snapshot i validaciju; `validate-routing-snapshot.ts:57–58` blokira
+  snapshot koji bi ostavio neusmjerene tikete bez uključenog reda.
+- Realtime: kontroleri rutanja i matricem su označeni `@AdminConfigDomains('routing')` odnosno `('sla')`, pa
+  svaki uspješan mutirajući zahtjev šalje adminima `admin.config.updated { domain }`
+  (`common/admin-realtime/admin-config-domain.decorator.ts:7–16`, `admin-config-realtime.types.ts:2`).
+- Read-only režim: routing je među modulima koje je moguće zaključati (`setting-keys.ts`, `private.readOnlyMode.modulesCsv`).
+
+### 4.7 Frontend
+
+- Stranica `routing-page.tsx` ima četiri taba — **Matrica pokrivanja**, **Test rezolucije**, **Pravila**,
+  **Change log** (`pages/routing-page.tsx:37–72`); dolazak s linka `?originUnitId=…&serviceId=…` otvara tab
+  Pravila s popunjenim poljima (`:15–23`).
+- Matrica: `RoutingCoveragePanel` + `RoutingCoverageTable`/`Cell`/`Tooltip`, statistika „exact · naslijeđeno ·
+  neusmjereno“ i legenda (`i18n bs common.json → routing.coverageStats|legend*`); prazno stanje nudi unos
+  pravila (`routing.coverageEmpty*`).
+- Tester: `RoutingResolutionTester` poziva `GET /routing/resolve` i prikazuje ishod, grupu, dubinu i putanju
+  fallbacka (`components/routing/routing-resolution-tester.tsx:16–24`; `routing-api.ts:69–76`), uz napomenu da
+  rutanje nikad ne dodjeljuje agenta (`routing.testerNote`).
+- Pravila: tabela + forme za create/edit i dijalog za brisanje s prikazom „prije → poslije“ rezolucije
+  (`components/routing/routing-rules-*.tsx`, `create-routing-rule-form.tsx`, `edit-routing-rule-form.tsx`,
+  `delete-routing-rule-dialog.tsx`); razlog je obavezan (`routing.reasonHint`), duplikat se najavljuje
+  (`routing.duplicateWarning`).
+- Change log: `routing-change-log-tab.tsx`/`routing-change-log-panel.tsx` prikazuju polje/prije/poslije i
+  nepoznatog aktera (`routing.changeUnknownActor`).
+- Prioritet: matrica se uređuje na SLA ekranu (`components/sla/priority-matrix-panel.tsx:28–60, 148`), a u
+  detalju tiketa postoji panel za ručni override s obaveznim razlogom i dugmetom za povratak na matricu
+  (`components/tickets/ticket-priority-panel.tsx:25–127`); klijentska formula je preslikana
+  (`lib/tickets/calculate-ticket-priority.ts:3–25`, `lib/tickets/lookup-ticket-priority.ts:5–17`).
+- UNROUTED u UI-u: tab „Neusmjereni red“ u grupnim tiketima (`lib/tickets/inbox-view-tabs.ts:39–56`), učitava
+  se upitom `status: "UNROUTED"` (`lib/tickets/use-ticket-list.ts:135–140`), baner i brojač na listi
+  (`components/tickets/ticket-inbox-unrouted-banner.tsx`), bedž u detalju i prečica „Kreiraj pravilo za ovu
+  kombinaciju“ koja vodi na `/routing?…` (`components/tickets/ticket-detail-sidebar.tsx:45–51, 77–84, 152–160`),
+  te baner na nadzornoj ploči (`components/dashboard/dashboard-inbox-snapshot.tsx:34–96`).
+- E2E pokriva: rutanje u grupu i `UNROUTED` ishod (`e2e/tests/02-routing-fallback.spec.ts:12–42`), override
+  prioriteta (`13-priority-merge.spec.ts:22–57`), ciljnu grupu, prečicu do pravila i realtime do admin sobe
+  (`15-workflow-unrouted-realtime.spec.ts:60–100`).
+
+## 5. Gap analiza
+
+| # | Zadatak (RAW) | Idealno | Trenutno | Status |
+|---|---|---|---|---|
+| 1 | DB-driven pravilo po (origin OU + servis) (`:63`) | jedno pravilo po paru, jedinstveno | `RoutingRule @@unique([originUnitId, serviceId])`, `DUPLICATE_RULE` na P2002 | Implementirano |
+| 2 | Fallback kad nema matcha (`:494`) | konfigurisana fallback grupa ili eksplicitan red | `unroutedQueue.targetGroupId`; `fallbackGroupId` namjerno nije registrovan | Implementirano (drugi naziv) |
+| 3 | Parent fallback i objašnjivost odluke (`:63`, idealno) | exact → parent → rupa, s putanjom | `EXACT`/`PARENT_FALLBACK`/`UNROUTED`, `fallbackDepth`, `fallbackPath`, `matchedRuleId` | Implementirano |
+| 4 | `requireCoverage` blokira aktivaciju (`:495`) | blokada bez pokrića | `ROUTING_COVERAGE_MISSING` na prelazu u ACTIVE, inače meko upozorenje | Implementirano |
+| 5 | Coverage provjera u config verziji (`:269–270`) | validacija bez side-effecta | `validate-routing-snapshot.ts:57–58` | Implementirano |
+| 6 | Matrica pokrivanja za admine (`:269`, UI) | prikaz rupa po OU × usluga | matrica s 4 taba i statistikom; bez filtera/paginacije, uključuje neaktivne usluge | Djelimično (B1) |
+| 7 | Priority matrica koju admin podešava (`:59–61`, `:496–499`) | podesiva matrica + `enabled` prekidač + definisane ose | tabela `PriorityMatrixRule` + PATCH, lijeni seed; nema `private.ticket.priorityMatrix.*`; ose su LOW…CRITICAL umjesto `self/team/unit/company` | Djelimično (B5) |
+| 8 | Override prioriteta uz audit (`:62`) | razlog + audit + SLA preračun | `POST /tickets/:id/priority` s razlogom, auditom, system eventom i SLA tajmerima | Implementirano |
+| 9 | UNROUTED red, vlasnik, rok, digest (`:281`, `:554–557`) | first-class red + upozorenja | status `UNROUTED`, `targetGroupId`, `ownerRole`, `cleanupSlaHours`, `weeklyDigest`, sweep svakih 15 min | Implementirano |
+| 10 | Upozorenje korisniku prije slanja (`:356–357`) | preview ishoda rutanja | `POST /tickets/routing-preview` postoji, frontend ga ne poziva | Djelimično (B3) |
+| 11 | Wizard predlaže routing referencu uz potvrdu (`:620–621`) | predlog + obavezna potvrda | `suggestOnboardingReference`/`acceptsOnboardingReference` + provider | Implementirano |
+| 12 | Postavka change loga za routing (`:726`) | prekidač zapisa | ključ registrovan, nema potrošača; zapis je uvijek uključen | Odstupa (B2) |
+| 13 | OU scope za `routing.write` (`:226`) | scope na svim rutama | create/update/delete/resolve imaju lokator; GET rute nemaju | Djelimično (B6) |
+| 14 | `strictOuIsolation` (`:724`) | enforce OU izolacije | namjerno neregistrovan; spec ga zabranjuje | Odstupa (dokumentovano) |
+| 15 | Realtime `routing.rules.updated` (`:749`) | obavijest adminima | `admin.config.updated { domain: 'routing' }` preko interceptorа | Implementirano (drugi naziv) |
+| 16 | Bulk priority update (`:151`) | bulk izmjena uz obrazloženje | nije predmet ovog modula (M8 — tiketi) | Van opsega M7 |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+Kod rutanja je najdisciplinovaniji dio koji sam do sada pregledao: odluka je jedna čista funkcija, ishod je
+uvijek eksplicitan, a svaka izmjena pravila je transakciona i ostavlja before/after snapshot u change logu.
+Dvije stvari posebno valja istaći: (1) `resolveFromAncestorChain` je odvojen od pristupa bazi, pa je testiranje
+trivijalno i ponašanje determinističko; (2) `computeRoutingRuleDeleteImpact` unaprijed pokazuje šta bi se
+dogodilo s rezolucijom — to je rijedak i koristan detalj.
+
+Slabosti su na ivicama: matrica pokrivanja nema filtere i raste kao `OU × usluga`, a ne uključuje status
+usluge; „neusmjereno“ znači dva različita skupa na dva ekrana; preview rutanja je implementiran ali nije
+povezan s ekranom za prijavu; dvije postavke postoje bez potrošača (jedna od njih namjerno). Formula prioriteta
+je duplirana na klijentu, što je klasičan izvor tihog razilaženja.
+
+„Miris“ koda je mali i lokalizovan: `resolveUnroutedTargetGroupId` provjerava da li metoda postoji na sopstvenom
+loaderu (odbrambeni `typeof`) — vjerovatno zbog test-double-a, ali u produkcijskom kodu zbunjuje.
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Matrica pokrivanja bez filtera i bez statusa usluge
+
+- **Fajl/linija:** `backend/src/modules/routing/compute-routing-coverage.ts:17–27` (`prisma.service.findMany({
+  select: { id, name } })` bez `where`), `:33–52` (dvostruka petlja servis × OU); `frontend/src/services/routing-api.ts:61–63`
+  (`listRoutingCoverage()` bez parametara).
+- **Opis:** matrica učitava **sve** usluge (uključujući `DRAFT` i `DEPRECATED`) i **sve** OU-e i vraća
+  `servis × OU` stavke u jednom odgovoru, bez paginacije; klijent ne šalje ni `originUnitId` ni `serviceId`
+  iako ih API podržava.
+- **Uticaj:** „rupe“ u pokriću uključuju usluge koje korisnici ne mogu izabrati, pa se prave rupe gube u šumu;
+  na 300 OU × 150 usluga to je 45.000 redova u jednom JSON odgovoru.
+- **Fix:** filtrirati aktivne usluge (ili vratiti kolonu statusa), dodati server-side filtere i paginaciju.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — SREDNJE — `private.changeLog.routing.enabled` je registrovana, ali je niko ne čita
+
+- **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts:209`,
+  `backend/src/modules/settings/definitions/change-log-settings.ts:16`; zapis se izvodi bez provjere u
+  `backend/src/modules/routing/persist-routing-rule-change.ts:44–56`, `update-routing-rule.ts:64–76`,
+  `delete-routing-rule.ts:79–91`.
+- **Opis:** RAW (`:726`) traži prekidač „change log za routing pravila (default true)“, ali nijedan potrošač ne
+  čita ključ; svaka izmjena pravila se uvijek bilježi.
+- **Uticaj:** admin koji isključi zapis ne dobija nikakvu promjenu ponašanja — tiha neusklađenost postavke i
+  stvarnog rada.
+- **Fix:** čitati postavku u tri mutacije prije `recordChangeLog` ili ukloniti ključ i dokumentovati odluku.
+- **Ozbiljnost:** SREDNJE.
+
+### B3 — SREDNJE — Preview rutanja postoji, ali ga ekran za prijavu ne koristi
+
+- **Fajl/linija:** `backend/src/modules/tickets/routing-preview/preview-ticket-routing.ts:15–59`,
+  `backend/src/modules/tickets/tickets.controller.ts:62–72`; u `frontend/src` nema nijednog poziva
+  (`routingPreview`/`routing-preview` — nula pogodaka).
+- **Opis:** ruta `POST /tickets/routing-preview` vraća ishod, ime grupe, dubinu fallbacka, auto-dodjelu, broj
+  koraka odobrenja i SLA profil bez internih id-eva i uz iste kapije kao kreiranje, ali je UI ne poziva.
+- **Uticaj:** korisnik prije slanja ne vidi da će tiket pasti u `UNROUTED`/ciljnu grupu, iako su i RAW
+  (`:356–357`) i postojeći API to predviđali.
+- **Fix:** pozvati preview na koraku pregleda u `create-ticket-form`/`create-ticket-review-view`.
+- **Ozbiljnost:** SREDNJE.
+
+### B4 — SREDNJE — „Neusmjereno“ znači dva različita skupa tiketa
+
+- **Fajl/linija:** `backend/src/modules/tickets/counts/counts.types.ts:22` (broj `unrouted`),
+  `backend/src/modules/reports/bottleneck/sql-bottleneck-dashboard-store.ts:50` (`status::text = 'UNROUTED'`),
+  nasuprot `backend/src/modules/tickets/unrouted/build-unrouted-overdue-where.ts:12–21` (uključuje i
+  `PENDING` + `routedByUnroutedFallback`) i `frontend/src/lib/tickets/use-ticket-list.ts:135–140` (tab učitava
+  samo `status: "UNROUTED"`).
+- **Opis:** tiket preusmjeren u `unroutedQueue.targetGroupId` ima status `PENDING` i oznaku
+  „Bez pravila rutiranja“ (`frontend/src/components/tickets/ticket-detail-sidebar.tsx:47, 82`), ali se **ne**
+  pojavljuje u tabu „Neusmjereni red“ niti u brojaču `unrouted`; pojavljuje se samo u `unroutedOverdue`
+  filtrima i upozorenjima.
+- **Uticaj:** admin može zaključiti da je UNROUTED red prazan dok tiketi bez pravila stoje u ciljnoj grupi;
+  dva ekrana daju različite brojeve za isti pojam.
+- **Fix:** uskladiti definicije (tab prikazuje oba skupa uz jasne oznake) ili preimenovati brojače.
+- **Ozbiljnost:** SREDNJE.
+
+### B5 — NISKO — Postavke `private.ticket.priorityMatrix.*` ne postoje, a ose se razlikuju od RAW-a
+
+- **Fajl/linija:** `backend/src/modules/settings/setting-keys.ts` (nema nijednog `priorityMatrix` ključa);
+  `backend/src/modules/tickets/resolve-ticket-priority.ts:26–34` (uvijek čita tabelu, fallback na formulu);
+  `backend/prisma/schema/enums.prisma:28–40` (`TicketImpact`/`TicketUrgency` = `LOW|MEDIUM|HIGH|CRITICAL`).
+- **Opis:** RAW (`:496–499`) traži `enabled`, CSV liste osa i `rulesJson`; u kodu je matrica tabela bez
+  prekidača, a ose su numeričke umjesto `self,team,unit,company` / `low,medium,high`.
+- **Uticaj:** matrica se ne može isključiti; očekivanja iz RAW-a o osama nisu ispunjena (kod je sam sa sobom
+  konzistentan, uključujući validaciju i snapshot).
+- **Fix:** dodati `enabled` postavku ili dokumentovati odluku o osama i odsustvu prekidača.
+- **Ozbiljnost:** NISKO.
+
+### B6 — NISKO — Čitanje rutanja nije vezano na permisiju ni OU scope
+
+- **Fajl/linija:** `backend/src/modules/routing/routing.controller.ts:46–49` (rola ADMIN na nivou kontrolera),
+  `:60–99` (mutacije imaju `routingWrite` + OU + service scope), `:101–144` (GET rute bez permisije i bez
+  OU scope lokatora, osim `resolve` na `:132–137`).
+- **Opis:** `delete-impact`, `changes`, `groups`, `rules` i `coverage` traže samo rolu ADMIN; admin bez
+  `routing.write` (ili s OU ograničenjem) vidi sva pravila, interne id-jeve i punu matricu pokrivanja.
+- **Uticaj:** ograničen — pristup je i dalje admin-only i read-only — ali ruši model „permisija + OU scope“ koji
+  je ostatak modula usvojio.
+- **Fix:** dodati permisiju za čitanje i primijeniti OU scope na listama (ili dokumentovati izuzetak).
+- **Ozbiljnost:** NISKO.
+
+### B7 — NISKO — `resolveUnroutedTargetGroupId` radi „duck-typing“ na sopstvenom loaderu
+
+- **Fajl/linija:** `backend/src/modules/routing/routing.service.ts:162–169` (`as Partial<RoutingConfigurationLoader>`
+  i `typeof loader.loadUnroutedTargetGroupId !== 'function'`), dok metoda postoji na loaderu
+  (`routing-configuration.loader.ts:33–45`).
+- **Opis:** umjesto direktnog poziva, servis provjerava da li metoda postoji i poziva je preko `call`.
+- **Uticaj:** skriva greške u DI-ju i čita se kao mrtva grana; nema funkcionalne posljedice.
+- **Fix:** pozvati `this.configurationLoader.loadUnroutedTargetGroupId()` direktno.
+- **Ozbiljnost:** NISKO.
+
+### B8 — NISKO — Duplirana formula prioriteta (backend i frontend)
+
+- **Fajl/linija:** `frontend/src/lib/tickets/calculate-ticket-priority.ts:3–25` (komentar „Same score bands“)
+  nasuprot `backend/src/modules/tickets/calculate-ticket-priority.ts:8–23` i
+  `backend/src/modules/tickets/tickets.constants.ts:42–47`.
+- **Opis:** pragovi i rangovi postoje na dva mjesta; klijent ih koristi kad matrica nije dostupna
+  (`frontend/src/lib/tickets/lookup-ticket-priority.ts:5–17`).
+- **Uticaj:** promjena pragova na jednom mjestu tiho razilazi prikaz i server.
+- **Fix:** vratiti prioritet u preview-u/kreiranju i koristiti ga na klijentu, ili generisati dijeljeni modul.
+- **Ozbiljnost:** NISKO.
+
+### B9 — NISKO — `GET /priority-matrix` upisuje u bazu
+
+- **Fajl/linija:** `backend/src/modules/sla/list-priority-matrix.ts:34–50` (`upsert` nedostajućih ćelija unutar
+  GET operacije).
+- **Opis:** čitanje matrice lijeno „seeduje“ tabelu; prvi GET je write.
+- **Uticaj:** GET nije bez side-effecta (zaključavanje redova, iznenađenje u read-only kontekstu i pri
+  snapshotima); skup je 16 redova pa je stvarni rizik mali.
+- **Fix:** seedovati matricu instalacijom/migracijom, a GET ostaviti čistim.
+- **Ozbiljnost:** NISKO.
+
+**Napomena o terminu:** u kodu se koristi `UNROUTED` (status) i `routedByUnroutedFallback` (oznaka). U
+dokumentaciji i UI-u srpski izraz treba biti dosljedan: „neusmjereno“ za `UNROUTED`, a „preusmjereno u ciljnu
+grupu“ za fallback granu — vidi B4.
+
+## 8. Ažuriranje dokumentacije
+
+**Pregledano:** `docs/user-guide/*` (14 stranica) i `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md` — nijedan
+dokument ne pokriva rutanje ni prioritet; jedini spomen je u `docs/user-guide/prosljedjivanje-tiketa.md`.
+
+**Dodato (M7):**
+
+- `docs/user-guide/usmjeravanje-i-prioritet.md` — nova stranica: čemu služi, kome je namijenjen (tabela rola),
+  kako se dolazi (**Usmjeravanje**), korak-po-korak (pravilo, matrica pokrivanja, test rezolucije, change log,
+  prioritet i override), tabele polja/statusa/validacija s tačnim nazivima iz UI-a, česta pitanja i poruke
+  grešaka, poznata ograničenja (B1–B6) i povezani moduli.
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T42–T47**: rutanje kao deterministička odluka (exact → parent → rupa);
+  pravila i validacije (jedinstven par, obavezan razlog, before/after); matrica pokrivanja i `requireCoverage`;
+  UNROUTED red (vlasnik, rok, digest, ciljna grupa); prioritet (matrica, override, audit, SLA preračun);
+  konfiguracija i verzionisanje rutanja.
+
+**Ostaje otvoreno:** RAW-ova postavka `private.ticket.priorityMatrix.impactOptionsCsv/urgencyOptionsCsv`
+(`RAW_PROJECT.md:497–498`) opisuje ose koje u kodu ne postoje; do odluke (dodati ih ili odbaciti) dokumentacija
+navodi samo stvarne ose `Nizak…Kritičan`.
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| Funkcionalnost | **8 / 10** | Rutanje, parent fallback, pokrivenost, UNROUTED red sa sweep-om i digestom, matrica prioriteta, override s auditom i SLA preračunom — sve radi i pokriveno je testovima (uklj. tri e2e scenarija). Umanjuju: matrica bez filtera (B1), preview koji UI ne koristi (B3) i dvostruko značenje „neusmjereno“ (B4). |
+| Kvalitet koda | **8 / 10** | Jedna tačka odluke, čiste funkcije za rezoluciju, transakcione izmjene s before/after snapshotom, precizne greške i dosljedni loaderi. Umanjuju: mrtva postavka (B2), duplirana formula (B8), `typeof` provjera na sopstvenom loaderu (B7) i GET koji upisuje (B9). |
+| Sigurnost | **8 / 10** | Mutacije su trostruko zaštićene (rola + `routing.write` + OU/servis scope), svaka izmjena je auditovana kroz change log s razlogom i akterom, tiket nikad ne završi bez grupe ili s pogrešnom grupom. Umanjuje: čitanje ruta bez permisije i OU scope-a (B6) i nedostatak `enabled` prekidača za matricu (B5). |
