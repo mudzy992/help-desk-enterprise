@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 | M1 Instalacija · M2 Prijava/MFA · M3 Korisnici/OJ/grupe · M4 RBAC · M5 Policy paketi | M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅ (iteracija 1 završena) |
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
-| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 u toku |
+| 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 u toku |
 
 ---
 
@@ -4079,3 +4079,409 @@ jednokoračno odobrenje.
 | **Funkcionalnost** | **8/10** | Sve što RAW traži postoji: šabloni po servisu, playbook kao checklista, upotreba u rješavanju, administracija sa revizijom i uključivanje postavkom; dodatno su riješeni jezik, opsezi, rangiranje, snimka i nadogradnja checkliste i tri režima obaveznih koraka. Minus za B1 (deaktiviran/interni šablon se ipak može poslati), B4 (nema uvođenja na tikete u toku) i za to što `registryJson` iz RAW-a nije zamijenjen ničim što bi omogućilo uvoz/izvoz šablona izvan baze. |
 | **Kvalitet koda** | **7/10** | Model i prava su čisti i dobro razdvojeni (`template-scope`, `template-placeholders`, `normalize-*`, `ticket-playbook-snapshot`), transakcije sa zaključavanjem su na pravim mjestima, a greške imaju kodove; ocjenu snižavaju **testovi** (jedan spec za 23 fajla, servisi bez testova), B2 (upiti sa fiksnim `take` bez redoslijeda) i B5 (statistika prije upisa). |
 | **Sigurnost** | **7/10** | Prava su provjerena na serveru, OU scope se poštuje kroz `loadAccessibleTicket`, lični šabloni su vidljivi samo vlasniku, checklista je staff-only, a opseg zajedničkih šablona je ograničen za administratore vezane na servis; minus za B1, gdje jedina zaštita tipa i aktivnosti šablona živi u interfejsu, i za B3 (nedostatak baze kao garanta jedinstvenosti). |
+
+# M14 — Baza znanja (članci, portal, ocjene i review cycle)
+
+## 1. Planirano u RAW projektnom zadatku
+
+- **Self-service baza znanja je dio opisa proizvoda**: „Centralizovan, skalabilan i 'inteligentan' HelpDesk
+  sistem … sa SSO preko Microsoft Entra ID, OU-hijerarhijom, automatskim routingom tiketa, **self-service
+  knowledge base**, real-time komunikacijom i naprednom analitikom“ (`RAW_PROJECT.md:8`).
+- **Presretanje pri kreiranju tiketa**: „Knowledge Base intercept prije kreiranja: predloži članke;
+  **'pomoglo' ⇒ ne kreira se tiket**“ (`RAW_PROJECT.md:71`).
+- **Povratna sprega ocjena**: „'pomoglo / nije pomoglo' se bilježi **per user i per članak**“ i „feedback
+  **utiče na rangiranje** sličnih KB rezultata u intercept-u“ (`RAW_PROJECT.md:130–132`).
+- **Vlasništvo i ciklus pregleda**: „svaki KB članak ima **owner-a (user ili grupa)** i **'review due date'**“,
+  „sistem **podsjeti owner-a** kad članak treba review; nakon isteka članci mogu biti označeni kao **'stale'**
+  (UX oznaka)“ (`RAW_PROJECT.md:133–135`).
+- **Postavke** (`RAW_PROJECT.md:632–634`): `private.knowledgeBase.reviewCycle.enabled` (default true),
+  `…defaultReviewDays` (180), `…staleAfterDays` (365); (`RAW_PROJECT.md:683–685`):
+  `private.knowledgeBase.feedback.enabled`, `…oneVotePerUserPerArticle`, `…ranking.useFeedbackWeight`
+  (sve default true).
+- **Moduli u katalogu kapaciteta** (`RAW_PROJECT.md:780–781`, `:824`): `knowledge-base-intercept`,
+  `knowledge-base-feedback-ranking`, `knowledge-base-ownership-review-cycle`.
+- **Van RAW-a (uvedeno odlukom, nije nalaz):** kategorije neovisne o usluzi, stranica „Najčešća pitanja“,
+  ocjena 1–5, broj pregleda i lista „Uvidi“, te „pretvori odgovor u članak“ — sve to dolazi iz paketa 2.9
+  (K1, `docs/plans/modules/2.9-dodatne-nadogradnje.md` §2), koji je korisnik odobrio 2026-09-29.
+
+## 2. Stvarnost — kako bi ovo izgledalo u zrelom sistemu `[MIŠLJENJE]`
+
+- **Vidljivost je jedno mjesto, ne pet filtera.** Ko smije vidjeti članak zavisi od klasifikacije, OU-a i
+  usluge; ta odluka mora biti u jednoj funkciji koju zovu lista, pretraga, presretanje, brojanje pregleda i
+  izvještaji — inače negdje ostane rupa.
+- **Presretanje je stvarna kapija, ne savjet.** Ako je svrha da korisnik ne otvori tiket koji mu ne treba,
+  krajnji ishod mora biti mjerljiv: korisnik potvrdi da je članak riješio problem i tiket se **zaista** ne
+  kreira; ako ipak otvori tiket, u statistici se to vidi kao „nije pomoglo“.
+- **Ocjene i pregledi su agregati, ne redovi po kliku.** Brojanje ide u dnevne agregate (ili keš), a ocjena je
+  jedan glas po korisniku po članku koji se može promijeniti; ocjena utiče na rangiranje kroz izglađen
+  prosjek, ne kroz sirov zbir.
+- **Ciklus pregleda ima vlasnika i rok.** Objava postavlja `reviewDueAt`, podsjetnik ide vlasniku (korisniku
+  ili svim članovima grupe) prije roka i ne ponavlja se za isti rok, pregled pomjera rok, a „zastario“ je
+  izvedena oznaka koju vidi i urednik i korisnik.
+- **Sve što nastane iz tiketa prvo se očisti.** Članak iz javnog odgovora nosi tuđe lične podatke; tekst
+  mora proći kroz zamjenu **na serveru, pri upisu**, jer klijentski pregled je udobnost, a ne garancija.
+- **Lični podaci i statistika ne idu zajedno.** Komentar „šta nedostaje“ je lični podatak: vidi ga vlasnik i
+  recenzent, ne drugi korisnici, i ne pojavljuje se u izvozima.
+
+## 3. Preporučena implementacija `[MIŠLJENJE]`
+
+1. **Ponoviti zamjenu ličnih podataka na serveru** u `POST /knowledge-base/portal/from-reply`: proći kroz
+   isti `scrubReplyPersonalData` (i vratiti brojače u odgovoru), da zaštita ne zavisi od klijenta.
+2. **Vezati presretanje za članak koji je stvarno pomogao.** Umjesto `suggestions[0]`, poslati brojač i id
+   članka na koji je korisnik kliknuo; na neuspjeh prikazati grešku, a ne „zabilježeno“.
+3. **Presresti ponovno kreiranje uz odgovor.** Kad korisnik izabere „Članak je riješio moj problem“, ostaviti
+   svjesnu opciju „ipak otvori tiket“ i u tom slučaju zabilježiti ishod „nije pomoglo“ — da statistika
+   odražava odluku, ne tok ekrana.
+4. **Uvesti rok za pregled u izvještaj i podsjetnik.** Izvoz „Znanje“ proširiti pregledima po članku
+   (najgledanije, najlošije ocijenjene, bez pregleda 90 dana) i (ako ostaje) stopom odbijanja tiketa po
+   članku iz `KnowledgeInterceptResolution` — sada se te rezolucije vide samo kao jedan broj na
+   nadzornoj ploči.
+5. **Ukloniti ili napuniti kolonu `isStale`.** Ili je postaviti pri review-cycle poslu, ili je izbaciti iz
+   odgovora i osloniti se isključivo na izračunatu svježinu.
+6. **Ograničiti liste na serveru.** U listi članaka i u presretanju uvesti `take`/stranicu i filtriranje
+   vidljivosti u upitu (npr. po OU i klasifikaciji), da broj upita ne raste s brojem članaka.
+7. **Dodati e2e za portal** (kategorije → FAQ → ocjena → uvidi → članak iz odgovora), kako plan 2.9 §10 i
+   predviđa; danas postoje samo jedinični testovi i a11y prolaz.
+
+## 4. Trenutna implementacija u kodu `[ČINJENICA]`
+
+### 4.1 Model, statusi i postavke
+
+- `KnowledgeArticle` ima `slug`, naslov, tijelo, `status` (**DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED**),
+  `classification` (`INTERNAL` / `CONFIDENTIAL` / `RESTRICTED`, zadano `INTERNAL`), `isStale`, `reviewDueAt`,
+  `publishedAt`, `lastReviewedAt`, vlasnika (korisnik **ili** grupa), recenzenta, obaveznu uslugu i OU,
+  `searchVector` (tsvector + GIN), te K1 polja: `categoryId`, `isFaq`, `faqOrder`, `ratingCount`, `ratingSum`,
+  `viewCount`, `lastViewedAt`, `sourceTicketId`, `sourceMessageId`
+  (`backend/prisma/schema/knowledge.prisma:1–58`).
+- Dozvoljeni prelasci statusa su tabela `DRAFT→IN_REVIEW`, `IN_REVIEW→{DRAFT,PUBLISHED}`,
+  `PUBLISHED→{IN_REVIEW,DRAFT,ARCHIVED}`, `ARCHIVED→∅` (`knowledge-base.constants.ts:7–21`).
+- Zadane vrijednosti: presretanje uključeno, review cycle uključen, `defaultReviewDays` 180,
+  `staleAfterDays` 365, **`remindDaysBefore` 14** (dodatak koji RAW ne traži), feedback uključen, jedan glas
+  po korisniku, težina feedbacka uključena (`knowledge-base.constants.ts:23–32`); granice su naslov 200,
+  tijelo 20 000, slug 80, upit 500, presretanje 8 (`:34–40`).
+- Postavke se čitaju u osam ključeva (`parse-knowledge-base-configuration.ts:51–60`) i prevode u
+  konfiguraciju sa sigurnim zadanim vrijednostima (`:16–48`); uz njih postoji i
+  `private.knowledgeBase.portal.faqMaxItems` (zadano 8, dozvoljeno 1–20,
+  `knowledge-portal.service.ts:624–627`, `settings/definitions/knowledge-base-settings.ts:65–68`).
+
+### 4.2 Ko smije vidjeti članak
+
+- **Jedna funkcija odlučuje** (`can-read-knowledge-article.ts:27–56`): SUPER_ADMIN vidi sve; vlasnik i
+  imenovani recenzent vide svoj članak u svim statusima; neobjavljen članak vide samo nosioci prava
+  pisanja/pregleda/objave u opsegu; **`INTERNAL` objavljen članak vidi svaki prijavljeni korisnik**;
+  `CONFIDENTIAL` traži ulogu i OU+uslugu; `RESTRICTED` traži **ADMIN** ulogu u OU+usluzi (`:43–56`).
+- Opseg se puni OU putem i provjerom da usluga postoji (`load-knowledge-article-scope.ts:10–47`), a
+  vidljivost se koristi u listi, presretanju, presretanju-rezoluciji, ocjenama i pregledima
+  (`list-knowledge-articles.ts:18–27`, `intercept-knowledge-articles.ts:41–51`,
+  `knowledge-portal.service.ts:336–355`).
+
+### 4.3 Presretanje pri kreiranju tiketa
+
+- `POST /knowledge-base/intercept` traži uslugu; ako je presretanje isključeno postavkom, vraća prazno
+  (`intercept-knowledge-articles.ts:30–36`). Čita **objavljene** članke te usluge, označi svježinu, zadrži
+  samo vidljive, pa rangira (`:38–69`) i vraća **do 8** prijedloga sa kratkim uvodom u tijelo, oznakom
+  „zastario“ i prethodnim glasom korisnika (`:70–80`).
+- Rangiranje je tekst × 100 (naslov 2, tijelo 1 po pojmu) uz `+10 × (pomoglo − nije pomoglo)` i Bayesov
+  bonus ocjene (prior 3,5 uz težinu 5 glasova, skala 8) kad je uključena težina feedbacka; neriješeno se lomi
+  po datumu objave pa po `id` (`rank-knowledge-articles.ts:15–27,38–61,70–103`).
+- **Ocjenjene glasove** (1–5) presretanje ne broji dvaput: oni ulaze kroz Bayesov bonus, a stari „pomoglo“
+  glasovi kroz `+10` po glasu (`intercept-knowledge-articles.ts:92–105`).
+- Rezolucija se bilježi na `POST /knowledge-base/intercept/resolve` sa uslugom, OU-om i opcionalnim
+  člankom, i to je broj „koliko je tiketa izbjegnuto“ (`resolve-knowledge-intercept.ts:19–49`), koji
+  nadzorna ploča koristi kao `kbHelpedCount` (`reports/dashboard/build-reports-dashboard.ts:64–67,137–151`).
+- **Ekran:** korak 2 wizarda za novi tiket prikazuje prijedloge; kartica „Članak je riješio moj problem“ šalje
+  rezoluciju i poručuje „Tiket se neće kreirati“, a drugi izbor vodi na slanje tiketa
+  (`knowledge-intercept-panel.tsx:156–191`, `create-ticket-form.tsx:166–173`,
+  i18n `tickets.helpedResolvedHint`, `tickets.helpedSkip`).
+
+### 4.4 Ocjene, komentari i pregledi
+
+- Ocjena je 1–5; **komentar („Šta nedostaje?“) samo uz ocjenu ≤ 2** i najviše 500 znakova; `isHelpful` se
+  izvodi kao `rating >= 4` (`submit-knowledge-feedback.ts:89–111`). Bez ocjene (samo palac gore/dolje)
+  glas ne pregazi postojeću ocjenu ni komentar (`:55–71`).
+- Jedan glas po korisniku po članku je zadan i čuva se u bazi jedinstvenim parom
+  (`knowledge.prisma:76`), a ukupan zbir članka se ponovno izračuna poslije glasa
+  (`submit-knowledge-feedback.ts:113–127`).
+- **Pregledi se ne pišu po otvaranju.** U Redis se po danu vodi HyperLogLog jedinstvenih pregledača i brojač,
+  a jednom dnevno (kroz posao podsjetnika, svakih 15 minuta) gotovi dani se upisuju u
+  `KnowledgeArticleView` i `viewCount` u istoj transakciji; bez Redisa pregled ide direktno u bazu
+  (`portal/knowledge-article-views.ts:5–31,33–62,64–97,99–122`).
+- **Klijent šalje pregled odmah po otvaranju objavljenog članka** (`knowledge-article-detail-page.tsx:30–37`),
+  pa pravilo iz plana 2.9 §2.3 („broji se tek kad je članak otvoren duže od 5 s ili je skrolan“) nije
+  primijenjeno; server uz to ne provjerava da je prošlo 5 sekundi (`knowledge-portal.service.ts:336–355`).
+
+### 4.5 Vlasništvo i ciklus pregleda
+
+- Vlasnik može biti korisnik **ili** grupa; ako je grupa, podsjetnik ide **svim članovima**
+  (`knowledge-base-review-reminder.service.ts:77–92`).
+- Posao `knowledge-base-review-reminder-scan` ide po cronu `0 10,25,40,55 * * * *`, sa 2 pokušaja, backoffom
+  30 s i `lockDuration` 120 s u workeru (`knowledge-base-review-reminder.job.constants.ts:19–31`,
+  `…processor.ts:18–23`); unutar istog posla se flush-uju i pregledi (`…processor.ts:40–49`).
+- Posao traži objavljene članke sa rokom u narednih `remindDaysBefore` dana i šalje **in-app** obavještenje
+  vlasniku; ključ za deduplikaciju sadrži i `reviewDueAt`, pa se isti rok ne ponavlja
+  (`knowledge-base-review-reminder.service.ts:23–74`).
+- **Zastario** je izvedena oznaka: članak je zastario ako je review cycle uključen, status je `PUBLISHED` i
+  prošao je `reviewDueAt` **ili** `staleAfterDays` od posljednjeg pregleda/objave
+  (`evaluate-knowledge-article-freshness.ts:6–23`). Objava zahtijeva prethodni pregled
+  (`lastReviewedAt !== null`, inače `PUBLISH_REVIEW_REQUIRED`) i ne prepisuje postojeći rok
+  (`publish-knowledge-article.ts:30–39`); odobrenje pregleda postavlja `lastReviewedAt = sada`,
+  novi `reviewDueAt` i `isStale = false` (`review-knowledge-article.ts:34–38`).
+
+### 4.6 Portal znanja (K1): kategorije, FAQ, uvidi i „članak iz odgovora“
+
+- **Rute:** `GET /knowledge-base/portal` (početna), `…/categories`, `…/categories/:id/articles`,
+  `POST/PATCH` kategorija, `…/categories/:id/archive|restore`, `PATCH …/articles/:id/placement`,
+  `POST …/articles/:id/view`, `GET …/insights`, `POST …/feedback/:id/resolve`,
+  `POST …/from-reply/preview` i `POST …/from-reply` (`portal/knowledge-portal.controller.ts:38–116`).
+  Kontroler drži samo provjeru prijave, a svaka radnja provjerava pravo u servisu (`:27–34`, `:617–622`);
+  čitanje početne, kategorija i liste unutar kategorije **nema** dodatnog prava (svaki prijavljeni korisnik).
+- **Početna** vraća kategorije sa brojem vidljivih objavljenih članaka (korijenska kategorija sabira i
+  potkategorije), broj nekategorizovanih i FAQ listu (najviše `faqMaxItems`) sa punim tekstom
+  (`knowledge-portal.service.ts:150–192`). FAQ se prikazuje kao `<details>/<summary>` harmonika bez JS-a
+  (`knowledge-portal-home.tsx:134–156`).
+- **Kategorije:** najviše **dva nivoa** — roditelj mora biti korijen i aktivan, a kategorija sa djecom ne
+  može promijeniti roditelja niti biti arhivirana dok ima aktivne potomke
+  (`portal/knowledge-categories.ts:181–207,117–145`); arhiviranje je pravilo umjesto brisanja.
+- **Smještaj članka** (kategorija, FAQ, redoslijed) traži razlog i dozvoljen je vlasniku ili
+  recenzentu/izdavaocu u opsegu (`knowledge-portal.service.ts:290–333`).
+- **Uvidi (samo urednici):** najgledaniji u 30 dana, najlošije ocijenjeni (najmanje 5 glasova), bez pregleda
+  90 dana i otvoreni komentari uz ocjenu ≤ 2; pragovi su fiksni (`minRatings 5`, `notViewedDays 90`,
+  `listSize 10`) i vraćaju se u odgovoru (`knowledge-portal.service.ts:94–106,128–129,359–439`). Komentar
+  može označiti riješenim samo neko ko smije pisati u taj članak (`:441–461`).
+- **„Pretvori odgovor u članak“:** meni je na javnom odgovoru agenta, traži pravo pisanja i **nije dostupan
+  na povjerljivom tiketu** (`ticket-detail-conversation.tsx:40–47`). Prikaz (`preview`) vraća naslov i tijelo
+  sa zamijenjenim ličnim podacima (e-mail, ime i login učesnika, IPv4, telefon) i brojače po vrsti
+  (`knowledge-portal.service.ts:465–487`, `portal/scrub-reply-personal-data.ts:29–71`). Izvor mora biti
+  **javni odgovor agenta** (`AGENT_REPLY`) na tiketu koji nije povjerljiv (`:522–585`), a upis kreira
+  `DRAFT` sa klasifikacijom `INTERNAL` (ako nije zadana druga), vezom na tiket i poruku i **internim**
+  sistemskim događajem na tiketu (`:489–518`, `create-knowledge-article.ts:79–107`).
+
+### 4.7 Autorizacija, ekrani i prijevodi
+
+- **Prava:** `knowledge.article.write`, `knowledge.article.review`, `knowledge.article.publish`,
+  `knowledge.category.manage` (`authorization.constants.ts:61–65`); **agent** dobija pravo pisanja
+  (`authorization.constants.ts:112–136`, unos na `:121`), a **administrator** dodaje pregled, objavu i
+  upravljanje kategorijama (`:160–161,187–189`).
+- **Ekrani:** ruta `/knowledge-base` (početna i detalj članka) je u navigaciji svim prijavljenim korisnicima
+  (`lib/navigation.ts:89–94`, `app/router.tsx:159–162`); stranica ima tri taba — **Portal** (zadano),
+  **Svi članci** i **Uvidi** (vidljiv samo ako korisnik ima pravo pisanja ili pregleda/objave,
+  `knowledge-base-page.tsx:37–49,171–182`).
+- **Prijevodi:** grana `knowledgeBase` ima 152 ključa na bosanskom i 147 na engleskom; razlika su samo
+  oblici množine (`_few`) koji engleski ne koristi — paritet je potpun.
+
+### 4.8 Testovi
+
+- **Backend: 11 spec fajlova / 1 166 linija** u modulu — `knowledge-base.authorization.spec.ts` (136),
+  `knowledge-base.lifecycle.spec.ts` (131), `knowledge-base.feedback.spec.ts`,
+  `knowledge-base.intercept.spec.ts` (121), `knowledge-base.list-filters.spec.ts`,
+  `rank-knowledge-articles.spec.ts`, `evaluate-knowledge-article-freshness.spec.ts`,
+  `knowledge-base-review-reminder.dedupe.spec.ts` (168, sa in-memory Prisma zamjenama),
+  `portal/knowledge-portal.service.spec.ts` (267), `portal/knowledge-portal.from-reply.spec.ts` (108) i
+  `portal/scrub-reply-personal-data.spec.ts` (33).
+- **Frontend:** 7 spec fajlova uz `lib/knowledge-base/*` (`filter-knowledge-articles`, `knowledge-portal`,
+  `knowledge-lifecycle-actions`, `map-knowledge-article-error`) i `can-continue-after-intercept.spec.ts`.
+- **e2e:** nema posebnog scenarija za portal; presretanje je pokriveno samo prolazom kroz kreiranje tiketa
+  (`tests/01-ticket-create.spec.ts:23–28`), a portal samo kroz a11y skeniranje kao korisnik
+  (`tests/22-accessibility.spec.ts:69`) i navigaciju (`:115–116`). Plan 2.9 §10 predviđao je
+  `23-knowledge-portal`.
+
+## 5. Gap analiza
+
+| Zadatak (RAW / plan) | Idealno | Trenutno | Status |
+|---|---|---|---|
+| Self-service baza znanja (RAW `:8`) | Korisnik sam traži i čita | Portal sa kategorijama, FAQ-om i pretragom; vidljiv svim prijavljenim | ✅ |
+| Presretanje pri kreiranju (RAW `:71`) | „pomoglo“ ⇒ tiket se ne kreira | Prijedlozi + rezolucija; tiket se ne kreira **samo ako korisnik ne klikne dalje** | ⚠️ B3 |
+| Glas per user i per članak (RAW `:131`) | Jedan tekući glas po korisniku | Upsert po `(articleId,userId)`, može se mijenjati | ✅ |
+| Feedback utiče na rangiranje (RAW `:132`) | Ocjene mijenjaju redoslijed | `+10` po glasu i Bayesov bonus ocjene (prior 3,5 / 5 glasova) | ✅ |
+| Vlasnik članka: korisnik ili grupa (RAW `:134`) | Oba oblika | `ownerUserId` ili `ownerGroupId` (+ provjera da je tačno jedan) | ✅ |
+| Review due date (RAW `:134`) | Rok i njegovo pomjeranje | `reviewDueAt` uz objavu i odobrenje pregleda | ✅ |
+| Podsjetnik vlasniku (RAW `:135`) | Prije roka, jednom po roku | In-app podsjetnik sa dedupom po `reviewDueAt`; grupa → svi članovi | ✅ |
+| „Stale“ UX oznaka (RAW `:135`) | Vidljiva u listi i na članku | Izračunata svježina u listi, detalju i presretanju | ✅ |
+| Postavke review cycle (RAW `:632–634`) | Tri ključa sa tim defaultima | Postoje svi + `remindDaysBefore` (14) kao dodatak | ✅ |
+| Postavke feedbacka (RAW `:683–685`) | Tri ključa sa tim defaultima | Postoje svi | ✅ |
+| Kategorije neovisne o usluzi (plan §2.1) | Najviše dva nivoa, arhiviranje | Dva nivoa, arhiviranje, key + bs/en naziv + ikona | ✅ |
+| Arhiviranje kategorije sa člancima (plan §2.1 / uputa u UI) | Jasno pravilo | Server dozvoljava arhiviranje s člancima; uputa tvrdi suprotno | ⚠️ B7 |
+| FAQ na portalu (plan §2.2) | Harmonika, max 8 | `<details>` sekcija, `faqMaxItems` 1–20 (zadano 8) | ✅ |
+| Ocjene 1–5 + komentar ≤ 2 (plan §2.3) | Jedan glas, komentar samo uz nisku ocjenu | Ocjena, izvedeni `isHelpful`, komentar ≤ 2 / 500 znakova | ✅ |
+| Pregledi bez reda po pregledu (plan §2.3) | Redis HLL + noćni flush | HLL + brojač, flush u dnevnom poslu, pad na bazu bez Redisa | ✅ |
+| Pregled se broji poslije 5 s ili skrola (plan §2.3) | Bez prefetch/botova | Broji se odmah pri otvaranju | ⚠️ B4 |
+| Rang bonus za ocjenu (plan §2.3) | Bez divljanja jednog glasa | Bayesov bonus, ocjene isključene iz `±10` zbira | ✅ |
+| Izvještaj „Znanje“ po članku (plan §2.3) | Najgledanije, najlošije, bez pregleda, stopa odbijanja | Uvidi postoje u portalu; izvoz ima ocjene i preglede, **ali ne** stopu odbijanja po članku | ⚠️ B5 |
+| „Pretvori odgovor u članak“ (plan §2.4) | Samo javni odgovor agenta, bez povjerljivih, DRAFT | Sve to, uz interni sistemski događaj i vezu na izvor | ✅ |
+| Zaštita ličnih podataka pri nastanku članka (plan §2.4) | Zamjena prije upisa | Zamjena **samo u pregledu**; upis prima tekst klijenta | ⚠️ B1 |
+| Samo urednici vide uvide (plan §2.3) | Provjera prava | `canCurate` (pisanje/pregled/objava) — inače `FORBIDDEN` | ✅ |
+| Kolona `isStale` | Odražava stvarno stanje | Nikad se ne postavlja na `true`; odgovori mutacija je vraćaju iz baze | ⚠️ B6 |
+| e2e za portal (plan §10) | Scenarij portal → ocjena → članak | Samo a11y prolaz i presretanje u toku kreiranja | ⚠️ gap (NISKO) |
+
+## 6. Mišljenje i recenzija koda `[MIŠLJENJE]`
+
+- **Vidljivost je riješena kako treba.** Jedna funkcija (`canReadKnowledgeArticle`) pokriva listu, detalj,
+  presretanje, ocjene i preglede, a klasifikacije imaju smislenu ljestvicu (INTERNAL za sve prijavljene,
+  CONFIDENTIAL za osoblje u opsegu, RESTRICTED za ADMIN-a). To je mjesto gdje ovakav modul najčešće procuri,
+  pa je vrijedno što je centralizovano i pokriveno testom autorizacije.
+- **Šteta je što presretanje nije tvrda kapija.** RAW kaže „'pomoglo' ⇒ ne kreira se tiket“, a ekran nudi
+  nastavak; posljedica je da KPI izbjegnutih tiketa mjeri klik, ne ishod. Uz to, rezolucija se veže na prvi
+  prijedlog (`suggestions[0]`), a greška poziva se guta (`.finally`), pa je statistika pomjerena i kad
+  korisnik zaista odustane.
+- **Ciklus pregleda je uredan**: podsjetnik ne ponavlja isti rok, grupa obavještava sve članove, odobrenje
+  pregleda pomjera rok, a objava bez pregleda je nemoguća (`PUBLISH_REVIEW_REQUIRED`) — to su prave
+  invarijante.
+- **„Članak iz odgovora“ je najbolje zamišljen, a najslabije zaštićen dio.** Ideja (javni odgovor agenta,
+  bez povjerljivih tiketa, DRAFT, interni trag) je tačna, ali se zaštita ličnih podataka izvodi **samo na
+  putu pregleda**; sam upis prihvata naslov i tijelo iz zahtjeva. Pregled je udobnost, ne kontrola.
+- **Ono što bih popravio prije svega:** (1) zamjena ličnih podataka i na serveru pri upisu (B1); (2) vezivanje
+  rezolucije za stvarno odabrani članak i prijava greške (B3); (3) brojanje pregleda po pravilu iz plana
+  (B4). Zatim sitnice: kolona `isStale` koja nikad nije `true` (B6), obavještenje o pregledu koje klijent ne
+  prepoznaje (B2), i liste bez `take` koje po svakom članku rade dodatne upite.
+- **Sitnica koja se vidi u interfejsu:** polje `ownerUserId`/`reviewerUserId` u bs prijevodu nosi naziv
+  „Reviewer“ (`knowledgeBase.reviewerUserId`), pa je jedina engleska riječ na formi članka — vrijedi je
+  prevesti pri sljedećoj izmjeni te grane prijevoda.
+- **Higijena je iznad prosjeka:** komentari objašnjavaju „zašto“ (zašto HLL, zašto agregat po danu, zašto
+  dedup ključ sadrži rok), a testovi pokrivaju pravila (autorizacija, lifecycle, presretanje, ocjene,
+  dedupe, zamjena ličnih podataka).
+
+## 7. Otkriveni bug-ovi i neusklađenosti
+
+### B1 — SREDNJE — Zaštita ličnih podataka postoji samo u pregledu, ne i pri upisu članka
+
+- **Fajl:** `backend/src/modules/knowledge-base/portal/knowledge-portal.service.ts:465–487` (pregled),
+  `:489–518` (upis), `backend/src/modules/knowledge-base/portal/knowledge-portal.dto.ts:88–97` (DTO prima
+  naslov i tijelo), `backend/src/modules/knowledge-base/create-knowledge-article.ts:64–65,80–97`
+- **Opis:** `draftFromReply` zamjenjuje lične podatke i vraća brojače, ali `createFromReply` uzima
+  `title`/`body` iz zahtjeva i **ne prolazi ih ponovo kroz `scrubReplyPersonalData`**; servis iz izvora čita
+  samo broj tiketa i OU/uslugu. Klijent šalje ono što je korisnik vidio u pregledu (i što je mogao izmijeniti,
+  `article-from-reply-sheet.tsx:94,105–106`), ali server to ne provjerava.
+- **Uticaj:** zahtjev koji zaobiđe pregled (izmijenjen klijent, skripta, „vrati“ lični podatak u editor)
+  upisuje tuđe ime, e-mail, telefon ili IP u članak koji je po zadatku `INTERNAL`, a takav objavljen članak
+  vidi **svaki prijavljeni korisnik**. Plan 2.9 §2.4 tu zamjenu naziva obaveznom.
+- **Fix:** u `createFromReply` (ili u `createKnowledgeArticle` kad je prisutan `sourceTicketId`) primijeniti
+  `scrubReplyPersonalData` sa istim `people` skupom i vratiti brojače u odgovoru; editor neka prikaže
+  razliku ako je bilo naknadnih izmjena.
+- **Ozbiljnost:** SREDNJE.
+
+### B2 — NISKO — Obavještenje o roku pregleda članka stiže bez naslova i bez odredišta
+
+- **Fajl:** `backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts:50–64`,
+  `frontend/src/lib/notifications/notification-kind.ts:3–16,79–85,133–219`
+- **Opis:** podsjetnik se upisuje sa tipom `knowledge.reviewDue` i `ticketId: null`, a u klijentu ne postoji
+  grana za taj tip: `notificationTitleKey` vraća `notifications.items.unknown` („Obavještenje“), a
+  `notificationTicketPath` nema odredište pa klik ne vodi nikuda. (Za sve ostale tipove iz
+  `notifications.constants.ts` mapiranje postoji; provjereno uporednim spiskom od 42 tipa.)
+- **Uticaj:** vlasnik članka dobija obavještenje bez naslova — iako prijevod
+  `notifications.items.knowledgeReviewDue` („Pregled KB članka dospijeva“) postoji — i ne može iz njega
+  otvoriti članak; mora ga tražiti ručno, pa se podsjetnik lako previdi.
+- **Fix:** dodati granu za `knowledge.reviewDue` u `notificationTitleKey` i odredište prema članku
+  (npr. `/knowledge-base/<articleId>`), uz `articleId` u `payload`.
+- **Ozbiljnost:** NISKO.
+
+### B3 — NISKO — „Pomoglo“ ne zaustavlja kreiranje tiketa i ne pamti koji je članak pomogao
+
+- **Fajl:** `frontend/src/components/tickets/create-ticket-form.tsx:166–173`,
+  `frontend/src/components/tickets/knowledge-intercept-panel.tsx:156–191`,
+  `backend/src/modules/knowledge-base/resolve-knowledge-intercept.ts:19–49`
+- **Opis:** kartica „Članak je riješio moj problem“ samo bilježi rezoluciju sa `suggestions[0]?.id` i postavlja
+  `helped = true`; korisnik i dalje može kliknuti „Nastavi sa slanjem“ i tiket nastaje. Poziv je vezan preko
+  `.finally(...)` **bez** `catch`, pa se i neuspjeh prikazuje kao uspjeh („Označili ste da je članak pomogao“).
+  Na serveru se uz to ne provjerava ni pravo ni opseg pri upisu rezolucije (postojanje usluge/OU-a i članka se
+  samo potvrđuje), pa je moguće upisati rezoluciju za tuđu organizacionu jedinicu i time pomjeriti KPI
+  `kbHelpedCount` (`reports/dashboard/build-reports-dashboard.ts:137–151`).
+- **Uticaj:** RAW-ov ishod („pomoglo ⇒ ne kreira se tiket“) ne važi automatski; statistika izbjegnutih tiketa
+  mjeri prvi prijedlog, a ne članak koji je pomogao, i može se uvećati pozivima van stvarnog toka. Uz to,
+  korisnik sa više prijedloga nikada ne može zabilježiti da je pomogao **drugi** članak.
+- **Fix:** vezati rezoluciju za kliknuti članak i uhvatiti grešku; uvesti eksplicitnu radnju „ipak otvori
+  tiket“ (i tada upisati ishod „nije pomoglo“); na serveru provjeriti da su usluga i OU u opsegu korisnika i
+  da članak smije čitati.
+- **Ozbiljnost:** NISKO.
+
+### B4 — NISKO — Pregledi se broje odmah pri otvaranju, bez pravila iz plana
+
+- **Fajl:** `frontend/src/pages/knowledge-article-detail-page.tsx:30–37`,
+  `backend/src/modules/knowledge-base/portal/knowledge-portal.service.ts:336–355`,
+  `backend/src/modules/knowledge-base/portal/knowledge-article-views.ts:33–62`
+- **Opis:** klijent šalje `POST …/view` čim se objavljeni članak otvori (bez čekanja od 5 sekundi i bez
+  provjere skrolovanja), a server prihvata svaki poziv prijavljenog korisnika koji smije čitati članak.
+  Plan 2.9 §2.3 izričito traži da se pregled broji **tek** nakon 5 s ili skrolovanja, da se botovi i
+  pretpregledi ne broje.
+- **Uticaj:** `viewCount` i izvještaj „Znanje“ (`reports/packs/build-kb-helpfulness-report.ts:64`) broje i
+  otvaranja koja traju djelić sekunde i automatizovane posjete; uvidi „najgledanije“ i „bez pregleda 90 d“
+  su zbog toga manje pouzdani.
+- **Fix:** na klijentu poslati pregled nakon 5 s ili prvog skrola (i pri izlasku otkazati), a na serveru
+  opcionalno zahtijevati minimalno vrijeme u zahtjevu; zadržati dnevni agregat kakav jeste.
+- **Ozbiljnost:** NISKO.
+
+### B5 — NISKO — Liste i presretanje ne ograničavaju upit, a vidljivost provjeravaju po članku
+
+- **Fajl:** `backend/src/modules/knowledge-base/list-knowledge-articles.ts:18–27`,
+  `backend/src/modules/knowledge-base/fetch-knowledge-articles-for-list.ts:30–33`,
+  `backend/src/modules/knowledge-base/intercept-knowledge-articles.ts:38–51`
+- **Opis:** `fetchKnowledgeArticlesForList` prvo čita **sve** članke koji odgovaraju filterima
+  (`findMany` bez `take`, pa filtriranje po tekstu u memoriji kad nema punog teksta), a zatim se za svaki
+  članak pojedinačno računa vidljivost — što znači dodatne upite za OU put, uslugu i članove grupe vlasnika
+  (`load-knowledge-article-scope.ts:10–47`). Isto radi i presretanje nad svim objavljenim člancima usluge.
+- **Uticaj:** vrijeme odgovora liste i presretanja raste linearno s brojem članaka i brojem upita; na većem
+  fondu (hiljade članaka) pretraga bez pojma i presretanje postaju najsporije rute modula, a stranica „Svi
+  članci“ nema paginaciju.
+- **Fix:** uvesti `take`/stranicu i redoslijed u upit, filtriranje vidljivosti prenijeti u `where`
+  (klasifikacija + OU + usluga + vlasnik), a pojedinačnu provjeru zadržati samo kao posljednju bravu.
+- **Ozbiljnost:** NISKO.
+
+### B6 — NISKO — Kolona `isStale` se nikad ne postavlja na `true`, a vraća se u odgovorima mutacija
+
+- **Fajl:** `backend/prisma/schema/knowledge.prisma:9`, `backend/src/modules/knowledge-base/to-knowledge-article-response.ts:14,51`,
+  `backend/src/modules/knowledge-base/publish-knowledge-article.ts:35–39`, `review-knowledge-article.ts:34–38`,
+  `backend/src/modules/knowledge-base/knowledge-base.service.ts:147–163`
+- **Opis:** u kodu postoji samo `isStale: false` (objava i odobrenje pregleda); nijedan posao je ne postavlja
+  na `true`. Stvarna svježina se računa u memoriji (`evaluate-knowledge-article-freshness.ts:6–23`) i
+  primjenjuje u listi, detalju, portalu i presretanju, ali **odgovori mutacija** (izmjena članka, promjena
+  statusa) vraćaju vrijednost iz baze, pa je uvijek `false`.
+- **Uticaj:** poslije izmjene ili objave klijent nakratko prikaže članak kao „svjež“ i kad je stvarno
+  zastario (do sljedećeg čitanja); svaki vanjski upit ili izvještaj koji se osloni na kolonu dobija pogrešan
+  odgovor.
+- **Fix:** u odgovorima mutacija primijeniti `withKnowledgeArticleFreshness` (kao što rade lista i detalj) ili
+  kolonu ukloniti iz sheme i svuda koristiti izračunatu vrijednost.
+- **Ozbiljnost:** NISKO.
+
+### B7 — NISKO — Uputa tvrdi da se kategorija s člancima ne može arhivirati, a server to dozvoljava
+
+- **Fajl:** `backend/src/modules/knowledge-base/portal/knowledge-categories.ts:118–142`,
+  `frontend/src/i18n/locales/bs/common.json` (`knowledgeBase.portal.categories.hint`),
+  `backend/src/modules/knowledge-base/portal/knowledge-portal.service.ts:162–167,204–205`
+- **Opis:** arhiviranje se odbija **samo** ako kategorija ima aktivnih podkategorija (`:124–130`), dok uputa u
+  panelu kaže: „Najviše dva nivoa. Kategorija s člancima ili podkategorijama ne može se arhivirati.“ Članci
+  zadržavaju `categoryId` arhivirane kategorije, pa ih portal poslije arhiviranja broji i prikazuje kao
+  **„Bez kategorije“** (`home()` ih svrstava u `uncategorizedCount`, a `categoryArticles('uncategorized')` ih
+  uključuje).
+- **Uticaj:** administrator vjeruje da je zaštita jača nego što jeste; članci tiho „isplivaju“ iz kategorije u
+  zajedničku gomilu, pa navigacija portalom gubi smisao dok se sadržaj ručno ne premjesti.
+- **Fix:** ili odbiti arhiviranje i kad kategorija ima objavljenih članaka (i to reći u grešci), ili uskladiti
+  uputu i pri arhiviranju premjestiti članke (uz razlog i zapis u istoriji članka).
+- **Ozbiljnost:** NISKO.
+
+## 8. Ažuriranje dokumentacije
+
+- **Nova stranica `docs/user-guide/baza-znanja.md`** po obaveznoj strukturi: čemu modul služi (self-service
+  članci, presretanje pri kreiranju, ocjene i ciklus pregleda), kome je namijenjen (korisnik čita i ocjenjuje,
+  agent piše i pravi članke iz odgovora, administrator uređuje kategorije i uvide), kako se dolazi (meni
+  **Baza znanja**; korak 2 novog tiketa; meni „⋯“ na javnom odgovoru → **Napravi članak**), korak po korak
+  (pretraga i čitanje, ocjena i komentar, presretanje pri kreiranju, pisanje članka, objava kroz pregled,
+  kategorije i FAQ, uvidi, članak iz odgovora), tabele (polja i klasifikacije, statusi i prelazi, postavke sa
+  zadanim vrijednostima, poruke grešaka), česta pitanja („zašto ne vidim članak“, „zašto ne mogu objaviti“,
+  „šta znači zastario“, „gdje ide komentar ‘šta nedostaje’“), poznata ograničenja (**B1–B7**) i povezani
+  moduli (Tiketi, Šabloni i playbooks, Verzije konfiguracije, Izvještaji, Privatnost).
+- **`TEZE-ZA-DOKUMENTACIJU.md`: T88–T94** — (T88) model članka, statusi i klasifikacije; (T89) vidljivost i
+  opseg; (T90) presretanje pri kreiranju i rezolucija; (T91) ocjene, komentari i rangiranje; (T92) pregledi i
+  dnevni agregat; (T93) vlasništvo i ciklus pregleda; (T94) portal (kategorije, FAQ, uvidi) i „članak iz
+  odgovora“.
+- **`REVIEW_ANALIZA.md`:** §M14 (ovaj tekst) i **red tabele iteracija 3** → „M11 ✅ · M12 ✅ · M13 ✅ ·
+  M14 ✅ · M15 u toku“.
+- **`DOCS_CHANGELOG.md`:** sekcija M14 sa izvorima, nalazima B1–B7 i napomenom da plan 2.9 nema odjeljak
+  „Implementacija i odstupanja (K1)“ (postoje samo za K2 i K4) i da u njemu stoji `PUBLIC` klasifikacija koja
+  u modelu ne postoji (klasifikacije su INTERNAL/CONFIDENTIAL/RESTRICTED).
+
+## 9. Ocjena modula
+
+| Kriterij | Ocjena | Obrazloženje |
+|---|---|---|
+| **Funkcionalnost** | **8/10** | Sve RAW stavke postoje i rade: intercept, jedan glas po korisniku koji utiče na rangiranje, vlasnik (korisnik ili grupa), review due date, podsjetnik i „stale“ oznaka, plus sve postavke sa traženim zadanim vrijednostima; portal iz paketa 2.9 dodaje kategorije, FAQ, ocjene 1–5, preglede, uvide i „članak iz odgovora“. Minus za tri stvari: „pomoglo“ ne zaustavlja kreiranje tiketa (B3), pregledi se broje bez pravila od 5 s (B4) i uvidi ne ulaze u izvoz „Znanje“ kako plan traži (stopa odbijanja po članku se nigdje ne prikazuje). |
+| **Kvalitet koda** | **7/10** | Struktura je čista (jedna funkcija vidljivosti, mali fajlovi sa jasnom odgovornošću, transakcije tamo gdje treba), a komentari objašnjavaju odluke (HLL umjesto redova, dedup po roku, zašto ocjena isključuje `±10`). Ocjenu snižavaju B5 (neograničeni upiti i provjera vidljivosti po članku), B6 (kolona koja nikad nije `true`) i B2 (tip obavještenja koji klijent ne prepoznaje — jedina od 42). |
+| **Sigurnost** | **7/10** | Vidljivost je centralizovana i poštuje klasifikaciju, OU i uslugu; povjerljivi tiketi ne mogu biti izvor članka; uvidi traže pravo; komentari su vidljivi samo vlasniku i recenzentu; grupa vlasnika se pravilno razrješava. Minus za B1 (zamjena ličnih podataka samo na putu pregleda, pa upis može primiti sirov tekst koji završi u `INTERNAL` članku vidljivom svim korisnicima) i B3 (rezolucija presretanja bez provjere opsega). |

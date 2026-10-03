@@ -1784,6 +1784,113 @@ To je kriterij kompletnosti.
 - **Status:** Važi (uz B2 i B5: fiksni `take` bez redoslijeda; brojač raste prije upisa poruke)
 - **Wiki stranica:** Šabloni i playbooks → Kako doći
 
+### T88 — Model članka, statusi i klasifikacije
+
+- Članak ima `slug`, naslov i tijelo, status `DRAFT → IN_REVIEW → PUBLISHED → ARCHIVED`, klasifikaciju
+  (`INTERNAL` zadano, `CONFIDENTIAL`, `RESTRICTED`), vlasnika (korisnik **ili** grupa), recenzenta, obaveznu
+  uslugu i organizacionu jedinicu, `searchVector` (tsvector + GIN) te polja portala (kategorija, FAQ,
+  ocjene, pregledi, izvor iz tiketa).
+- Prelasci statusa su tabela, a `ARCHIVED` je završno stanje; trajno brisanje je soft-verski ograničeno na
+  SUPER_ADMIN-a i briše i ocjene članka.
+- Svaka promjena (kreiranje, izmjena, status, smještaj) nosi obavezan razlog i ide u istoriju članka.
+- **Izvori:** `backend/prisma/schema/knowledge.prisma:1–58,60–79`,
+  `backend/src/modules/knowledge-base/knowledge-base.constants.ts:7–21,23–32,34–40`,
+  `create-knowledge-article.ts:79–107`, `record-knowledge-article-change.ts`,
+  `knowledge-base.service.ts:165–173`.
+- **Status:** Važi
+- **Wiki stranica:** Baza znanja → Polja, validacije i statusi
+
+### T89 — Vidljivost članka: jedna odluka za sve ulaze
+
+- Ko smije vidjeti članak računa jedna funkcija: SUPER_ADMIN uvijek; vlasnik i imenovani recenzent uvijek;
+  neobjavljen članak nosioci prava pisanja/pregleda/objave u opsegu; objavljen `INTERNAL` svaki prijavljeni
+  korisnik; `CONFIDENTIAL` osoblje u opsegu OU + servisa; `RESTRICTED` samo ADMIN u tom opsegu.
+- Ista funkcija se koristi u listi, detalju, presretanju, ocjenama i brojanju pregleda, pa nema puta koji bi
+  zaobišao pravilo.
+- **Izvori:** `backend/src/modules/knowledge-base/can-read-knowledge-article.ts:27–56`,
+  `load-knowledge-article-scope.ts:10–68`, `list-knowledge-articles.ts:18–27`,
+  `intercept-knowledge-articles.ts:41–51`,
+  `knowledge-portal.service.ts:336–355`; test `knowledge-base.authorization.spec.ts`.
+- **Status:** Važi
+- **Wiki stranica:** Baza znanja → Kome je namijenjen
+
+### T90 — Presretanje pri kreiranju tiketa i rezolucija
+
+- Pri kreiranju tiketa sistem traži objavljene i vidljive članke odabrane usluge, rangira ih (tekst, glasovi
+  „pomoglo/nije pomoglo“, izglađena ocjena) i vraća **do 8** prijedloga; ako je presretanje isključeno
+  postavkom, lista je prazna.
+- Rezolucija se bilježi kao zaseban zapis (usluga, OJ, opcionalni članak) i nadzorna ploča je koristi kao
+  broj „izbjegnutih tiketa“; sama radnja ne sprječava slanje tiketa i vezana je na prvi prijedlog (B3).
+- **Izvori:** `backend/src/modules/knowledge-base/intercept-knowledge-articles.ts:30–80`,
+  `rank-knowledge-articles.ts:15–27,38–103`, `resolve-knowledge-intercept.ts:19–49`,
+  `backend/src/modules/reports/dashboard/build-reports-dashboard.ts:137–151`,
+  `frontend/src/components/tickets/knowledge-intercept-panel.tsx:73,156–191`,
+  `frontend/src/components/tickets/create-ticket-form.tsx:166–173`; RAW `RAW_PROJECT.md:71` i `:132`.
+- **Status:** Važi (uz B3: ishod „pomoglo“ nije obavezujući, rezolucija bez provjere opsega)
+- **Wiki stranica:** Baza znanja → Korak po korak
+
+### T91 — Ocjene, komentari i rangiranje
+
+- Ocjena je 1–5; `isHelpful` se izvodi kao `rating >= 4` (radi starih izvještaja), glas je jedan po korisniku
+  po članku i može se promijeniti, a glas bez ocjene ne briše raniju ocjenu ni komentar.
+- Komentar („Šta nedostaje?“) moguć je **samo uz ocjenu ≤ 2**, najviše 500 znakova, vidi ga vlasnik i
+  recenzent, i označava se riješenim u uvidima.
+- Prilikom glasa ponovno se računa zbir članka; u presretanju ocjene ulaze kroz Bayesov bonus (prior 3,5 /
+  težina 5 / skala 8), a stari glasovi kroz `+10` po glasu.
+- **Izvori:** `backend/src/modules/knowledge-base/submit-knowledge-feedback.ts:55–71,89–127`,
+  `rank-knowledge-articles.ts:15–27`, `intercept-knowledge-articles.ts:92–105`,
+  `knowledge-portal.service.ts:441–461`, i18n `knowledgeBase.portal.rating.*`; RAW `RAW_PROJECT.md:130–132`.
+- **Status:** Važi
+- **Wiki stranica:** Baza znanja → Korak po korak
+
+### T92 — Pregledi: dnevni agregat bez reda po otvaranju
+
+- Pregledi se ne pišu kao pojedinačni redovi: u Redis se po UTC danu vodi HyperLogLog jedinstvenih
+  pregledača i brojač, a jednom u 15 minuta (posao podsjetnika) gotovi dani se upisuju u `KnowledgeArticleView`
+  i `viewCount` u istoj transakciji; bez Redisa pregled ide direktno u bazu.
+- Klijent šalje pregled čim se objavljeni članak otvori — pravilo iz plana („poslije 5 sekundi ili skrola“)
+  nije primijenjeno (B4), pa brojevi uključuju i kratka otvaranja.
+- **Izvori:** `backend/src/modules/knowledge-base/portal/knowledge-article-views.ts:5–31,33–97,99–122`,
+  `portal/knowledge-view-flush.service.ts:47–65`, `…review-reminder.processor.ts:40–49`,
+  `knowledge-portal.service.ts:336–355`,
+  `frontend/src/pages/knowledge-article-detail-page.tsx:30–37`; plan 2.9 §2.3.
+- **Status:** Važi (uz B4)
+- **Wiki stranica:** Baza znanja → Poznata ograničenja
+
+### T93 — Vlasništvo i ciklus pregleda
+
+- Vlasnik je korisnik ili grupa; kad je grupa, podsjetnik dobijaju svi njeni članovi.
+- Objava zahtijeva prethodni pregled (`PUBLISH_REVIEW_REQUIRED`) i ne prepisuje postojeći rok; odobrenje
+  pregleda postavlja `lastReviewedAt`, novi `reviewDueAt` i skida oznaku zastarjelosti.
+- Posao `knowledge-base-review-reminder-scan` ide po cronu `0 10,25,40,55 * * * *` (2 pokušaja, backoff 30 s,
+  `lockDuration` 120 s) i šalje **in-app** obavještenje sa dedup ključem koji sadrži rok, pa se isti rok ne
+  ponavlja. „Zastarjelo“ se računa pri čitanju (rok prošao ili više od `staleAfterDays` od pregleda/objave).
+- **Izvori:** `backend/src/modules/knowledge-base/knowledge-base-review-reminder.service.ts:23–92`,
+  `…job.constants.ts:19–31`, `…processor.ts:18–49`, `evaluate-knowledge-article-freshness.ts:6–35`,
+  `publish-knowledge-article.ts:30–39`, `review-knowledge-article.ts:34–38`; RAW `RAW_PROJECT.md:133–135`,
+  `:632–634`.
+- **Status:** Važi (uz B6: kolona `isStale` se ne održava)
+- **Wiki stranica:** Baza znanja → Polja, validacije i statusi
+
+### T94 — Portal znanja i „članak iz odgovora“
+
+- Portal je dostupan svim prijavljenim korisnicima i ima tri taba (Portal, Svi članci, Uvidi — treći samo uz
+  pravo pisanja/pregleda/objave); početna prikazuje FAQ harmoniku (`<details>`), kategorije sa brojem
+  vidljivih članaka i broj nekategorizovanih.
+- Kategorije imaju najviše dva nivoa, arhiviraju se umjesto brisanja, a arhiviranje blokiraju samo aktivne
+  podkategorije (uputa u UI tvrdi i „s člancima“ — B7).
+- „Napravi članak“ stoji na javnom odgovoru agenta, nije dostupan na povjerljivom tiketu, vraća nacrt sa
+  zamijenjenim ličnim podacima (ime i login učesnika, e-mail, IPv4, telefon) i upisuje `DRAFT` sa vezom na
+  tiket i poruku; zamjena se ponavlja **samo u pregledu**, ne i pri upisu (B1).
+- **Izvori:** `backend/src/modules/knowledge-base/portal/knowledge-portal.controller.ts:38–116`,
+  `portal/knowledge-portal.service.ts:150–222,290–333,359–439,465–518,522–585`,
+  `portal/knowledge-categories.ts:118–142,181–207`, `portal/scrub-reply-personal-data.ts:29–71`,
+  `frontend/src/components/knowledge-base/portal/*`,
+  `frontend/src/components/tickets/ticket-detail-conversation.tsx:40–47`,
+  `frontend/src/lib/navigation.ts:89–94`, `frontend/src/app/router.tsx:159–162`; plan 2.9 §2.
+- **Status:** Važi (uz B1 i B7)
+- **Wiki stranica:** Baza znanja → Kako doći
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.

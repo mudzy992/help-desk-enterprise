@@ -618,3 +618,76 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   `components/tickets/ticket-message-composer.tsx`, `services/templates-api.ts`, `app/router.tsx:274–335`,
   `lib/templates/*`) i e2e `tests/16-templates-playbooks.spec.ts`; plan `docs/plans/modules/1.4-sabloni-playbooks.md`
   i RAW `RAW_PROJECT.md:104–105,681–682,784,929–930`.
+
+---
+
+## M14 — Baza znanja (članci, portal, ocjene i review cycle) (2026-10-03)
+
+**Dodato**
+
+- `docs/user-guide/baza-znanja.md` — novi vodič: čemu modul služi (self-service članci, presretanje pri
+  kreiranju, ocjene, vlasništvo i ciklus pregleda, članak iz odgovora), kome je namijenjen (tabela rola:
+  korisnik, agent, reviewer, ADMIN/SUPER_ADMIN), kako se dolazi (meni **Baza znanja**; korak **Baza znanja**
+  u wizardu; meni **⋯** → **Napravi članak**; tab **Uvidi**; grupa **Baza znanja** u postavkama),
+  korak-po-korak (pretraga i čitanje, ocjena i komentar, presretanje, pisanje i objava kroz pregled,
+  kategorije i FAQ, uvidi, članak iz odgovora), tabele (polja članka, klase i statuse sa dozvoljenim
+  prelazima, osam postavki sa zadanim vrijednostima, poruke grešaka), česta pitanja i poznata ograničenja
+  (**B1–B7**) i povezane module.
+- `REVIEW_ANALIZA.md` §M14 — planirano/idealno/preporuka, stanje u kodu (model i postavke, vidljivost,
+  presretanje, ocjene i pregledi, ciklus pregleda, portal i „članak iz odgovora“, autorizacija i ekrani,
+  testovi), gap tabela sa 23 reda, recenzija, nalazi **B1–B7**, ocjene **F8 / K7 / S7** i ažuriran red tabele
+  iteracija 3 („M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 u toku“).
+- `TEZE-ZA-DOKUMENTACIJU.md` — **T88–T94**: model članka, statusi i klasifikacije; vidljivost i opseg;
+  presretanje i rezolucija; ocjene, komentari i rangiranje; pregledi kao dnevni agregat; vlasništvo i ciklus
+  pregleda; portal znanja i „članak iz odgovora“.
+
+**Izmijenjeno**
+
+- Ništa u postojećim `user-guide` stranicama.
+
+**Uklonjeno**
+
+- Ništa.
+
+**Zašto**
+
+- Modul je nosio tri RAW zahtjeva (self-service baza znanja, presretanje sa ishodom „pomoglo“ i povratna
+  sprega ocjena sa review cycle-om), a u međuvremenu je kroz paket 2.9 (K1) dobio i portal sa kategorijama,
+  FAQ-om, ocjenama 1–5, pregledima i uvide — sve to treba opisati tačnim nazivima dugmadi i stvarnim
+  ograničenjima.
+- Najvažnije je objasniti **tri različite klase vidljivosti**, da se **ocjena može promijeniti** i da
+  **komentar „šta nedostaje“ vide samo urednici**, te da **objava traži prethodni pregled**. Uz to su
+  navedena stvarna ograničenja (B1–B7): zamjena ličnih podataka samo u pregledu, obavještenje o roku bez
+  naslova i odredišta, „pomoglo“ koje ne sprječava tiket i veže se na prvi predlog, brojanje pregleda bez
+  pravila od pet sekundi, neograničene liste sa provjerom vidljivosti po članku, kolona `isStale` koja se
+  nikad ne postavlja, i arhiviranje kategorije sa člancima koje uputa zabranjuje a server dozvoljava.
+
+**Napomena o izvorima**
+
+- Sve tvrdnje su provjerene u kodu: `backend/src/modules/knowledge-base/*` (73 `.ts`, 11 spec —
+  `knowledge-base.controller.ts`, `knowledge-base-workflow.{controller,service}.ts`,
+  `create-knowledge-article.ts`, `update-knowledge-article.ts`, `publish-knowledge-article.ts`,
+  `review-knowledge-article.ts`, `submit-knowledge-feedback.ts`, `intercept-knowledge-articles.ts`,
+  `rank-knowledge-articles.ts`, `resolve-knowledge-intercept.ts`, `can-read-knowledge-article.ts`,
+  `load-knowledge-article-scope.ts`, `list-knowledge-articles.ts`, `fetch-knowledge-articles-for-list.ts`,
+  `evaluate-knowledge-article-freshness.ts`, `with-knowledge-article-freshness.ts`,
+  `knowledge-base-review-reminder.{service,processor,scheduler.service}.ts`, `knowledge-base.constants.ts`,
+  `parse-knowledge-base-configuration.ts`, `dto/*` i `portal/*` (`knowledge-portal.controller.ts` sa 13 ruta,
+  `knowledge-portal.service.ts` 682 linije, `knowledge-categories.ts` 253, `knowledge-article-views.ts` 126,
+  `scrub-reply-personal-data.ts` 71, `update-article-counters.ts` 68)),
+  `backend/prisma/schema/knowledge.prisma` (`KnowledgeArticle`, `KnowledgeFeedback`,
+  `KnowledgeInterceptResolution`, `KnowledgeCategory`, `KnowledgeArticleView`),
+  `backend/src/modules/authorization/authorization.constants.ts:61–65,112–136,160–161,187–189`,
+  `backend/src/modules/settings/{setting-keys.ts:328–342,definitions/knowledge-base-settings.ts}`,
+  `backend/src/modules/reports/{dashboard/build-reports-dashboard.ts:137–151,packs/build-kb-helpfulness-report.ts}`,
+  te frontend (`pages/knowledge-base-page.tsx`, `pages/knowledge-article-detail-page.tsx`,
+  `components/knowledge-base/**` (10 komponenti + 6 portal komponenti),
+  `components/tickets/{knowledge-intercept-panel,create-ticket-intercept-view,create-ticket-form,ticket-detail-conversation}.tsx`,
+  `lib/knowledge-base/*`, `lib/notifications/notification-kind.ts`, `lib/navigation.ts:89–94`,
+  `app/router.tsx:159–162`, `services/knowledge-base-api.ts`) i e2e (`tests/01-ticket-create.spec.ts:23–28`,
+  `tests/22-accessibility.spec.ts:69,115–116`); plan `docs/plans/modules/2.9-dodatne-nadogradnje.md` §2 i §10
+  i RAW `RAW_PROJECT.md:8,71,130–135,632–634,683–685,780–781,824`.
+- **Nalaz o planu (samo evidentirano, `docs/plans/**` se ne dira):** plan 2.9 nema odjeljak „Implementacija i
+  odstupanja (K1)“ — postoje samo za K2 (§3.4) i K4 (§5.4) — a u §2.4 opisuje prelazak na klasifikaciju
+  `PUBLIC`, koja u modelu ne postoji (`DataClassification` = INTERNAL, CONFIDENTIAL, RESTRICTED,
+  `backend/prisma/schema/enums.prisma:122–126`).
