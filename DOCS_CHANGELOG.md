@@ -29,6 +29,7 @@
 | M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
 | **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
 | **Val 0** | 2026-10-03 | **RBAC — popravka B1** | `REVIEW_ANALIZA.md` (§M4 + `# Val 0`), `user-guide/uloge-i-permisije.md`, `user-guide/instalacija.md`, `TEZE` (T31), ovaj dokument | **Default mapping rola → permisije upisuje se pri instalaciji + CLI za postojeće instalacije** |
+| **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
 ---
 
@@ -870,3 +871,57 @@ objašnjavao ni šta je permisija ni kako se mijenja. Analiza: `REVIEW_ANALIZA.m
   iz koda i iz stvarnog izvršavanja u razvojnom okruženju 2026-10-03, ne iz planova.
 - **Nije provjereno na stvarnoj bazi:** seed i CLI su pokrenuti samo u in-memory harnessu (testovi) i protiv
   nedostupne baze (provjera izlaznog koda). Zato je za postojeće instalacije prvi korak `--dry-run`.
+
+---
+
+## Faza 3 — korak (a): dizajn Docs modula (2026-10-03)
+
+**Dodato**
+
+- `docs/DOCS_MODULE.md` (nov): dizajn modula **Dokumentacija** u aplikaciji — svrha i obim, potvrđene odluke
+  (single source of truth, backend + ogledalo, provjera uloge na serveru, proširenje `simple-markdown.ts`,
+  tehničke stranice samo za ADMIN/SUPER_ADMIN, BS/EN), šema frontmattera, generisano ogledalo i manifest,
+  mapiranje 23 vodiča u šest dijelova wikija, navigacija i elementi stranice, backend (fajlovi, endpointi,
+  učitavanje sadržaja), autorizacija i sigurnost (XSS, path traversal, tajne), renderer i pretraga, frontend,
+  build/CI provjere, Faza 2 modula, koraci (b)–(d), **9 kriterija prihvatanja**, rizici R1–R9.
+- `REVIEW_ANALIZA.md`: nova sekcija `# Faza 3 — korak (a)` (isporuke, nalaz **N1**, zavisnosti za korak (b)) i
+  red **5** u tabeli *Stanje po iteracijama*.
+- `docs/user-guide/instalacija.md` i `docs/user-guide/prijava-i-mfa.md`: poravnati sa obaveznom strukturom od
+  osam sekcija (detalji pod *Izmijenjeno*).
+
+**Izmijenjeno**
+
+- `docs/user-guide/instalacija.md`: dodate sekcije **Čemu služi ovaj modul**, **Kome je namijenjen**, **Kako doći**
+  (sa `### Prije početka` i `### Otključavanje`, koji su prije bili samostalne sekcije), nova
+  **Polja, validacije i statusi** (tabela polja po koracima wizarda, statusi `SETUP_REQUIRED`/`INSTALL_LOCKED` i
+  izričito „šta se ne provjerava“), **Česta pitanja i greške** (četiri pitanja + postojeća tabela kodova grešaka,
+  ranije „Poruke i kodovi grešaka“) i **Povezani moduli** (ranije „Povezano“). Nijedna tvrdnja nije mijenjana;
+  sadržaj je samo raspoređen u propisane sekcije.
+- `docs/user-guide/prijava-i-mfa.md`: dodate sekcije **Čemu služi ovaj modul** i **Kome je namijenjen** (tekst je
+  bio u uvodu bez naslova), **Kako doći** (ranije „Kako doći do modula“) i **Povezani moduli** (ranije
+  „Povezano“); ostale sekcije su već odgovarale propisanoj strukturi.
+- `REVIEW_ANALIZA.md` §5 zaključka: tvrdnja da dva vodiča „imaju skraćenu strukturu“ i da je poravnanje „posao
+  za Fazu 3“ zamijenjena stanjem poslije koraka (a).
+- `DOCS_MODULE.md`: rizik **R8** (8 tematskih vodiča bez propisane strukture — nalaz N1) i **R9** (shallow klon
+  i `updatedAt`/sinhronizacija) dodati u tabelu rizika.
+- Ovaj dokument: red **F3 (a)** u tabeli *Pregled* i ova sekcija.
+
+**Uklonjeno**
+
+- Ništa. Nalaz N1 nije prepravljan u izvorima — osam tematskih vodiča je za sada **netaknuto** i čeka odluku
+  (poravnati ih u koraku (b) ili voditi ih kao tematske stranice).
+
+**Zašto**
+
+- Modul Dokumentacija je jedina preostala isporuka zadatka; bez dizajna (izvor sadržaja, frontmatter, autorizacija
+  i provjere) implementacija bi krenula u pogrešnom smjeru — npr. dupliranjem sadržaja u kodu, što je izričito
+  zabranjeno odlukom D1.
+- Dokumentacija mora biti jednaka kroz cijeli modul: dva vodiča iz Faze 2 nisu imala sve sekcije, pa bi u
+  aplikaciji izgledala drugačije od ostalih i imala slabiju pretragu (nema sekcije „Česta pitanja“).
+
+**Napomena o dokazima**
+
+- Tvrdnje o strukturi vodiča su **provjerene skriptom** nad stvarnim fajlovima u `docs/user-guide/` (23 vodiča,
+  naslovi `^## `) 2026-10-03: 15 vodiča ima propisanih osam sekcija, osam ima tematske naslove.
+- Kod modula **još ne postoji**; sve što u `DOCS_MODULE.md` stoji o endpointima, fajlovima i ponašanju je dizajn,
+  ne opis stanja — zato u koracima (b)–(d) svaka stavka dobija dokaz iz izvršavanja (test, provjera, build).

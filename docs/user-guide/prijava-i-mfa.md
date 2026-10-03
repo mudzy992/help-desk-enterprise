@@ -1,13 +1,17 @@
 # Prijava i potvrda u dva koraka (MFA)
 
+## Čemu služi ovaj modul
+
 Prijava je ulaz u aplikaciju: korisničko ime je **email**, a uz lozinku može biti tražena i **potvrda u dva
 koraka** (jednokratni kod iz aplikacije na telefonu). Uz prijavu ide i **„Sigurnost naloga“**, stranica na kojoj
 svaki korisnik mijenja lozinku, upravlja potvrdom u dva koraka i pregleda svoje aktivne prijave.
 
+## Kome je namijenjen
+
 Namijenjeno **svim korisnicima** (prijava i sopstveni nalog), a dijelovi su namijenjeni **agentima** i
 **administratorima** (reset potvrde u dva koraka i odjava sesija drugom korisniku).
 
-## Kako doći do modula
+## Kako doći
 
 - **Prijava:** adresa `/login`, ili automatski preusmjerenje kad pristupite bilo kojoj stranici bez sesije.
 - **Sigurnost naloga:** klik na svoje ime (donji lijevi ugao) → **Sigurnost naloga** (`/account/security`).
@@ -140,7 +144,7 @@ Kategorija **Prijava i direktorij** sadrži pravila koja važe za sve:
 - **Jeftino je samo za korisnika:** ako ostane bez telefona i rezervnih kodova, put je preko administratora
   (**Reset MFA**), bez samoopsluživanja.
 
-## Povezano
+## Povezani moduli
 
 - Instalacija (prvi SuperAdmin i način prijave): `docs/user-guide/instalacija.md`
 - Korisnici i uloge: **Korisnici**, **Uloge i dozvole**

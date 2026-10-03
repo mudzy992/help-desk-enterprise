@@ -26,6 +26,7 @@
 | 2 | M6 Katalog usluga i forme · M7 Routing i prioritet · M8 Tiketi · M9 Odobrenja/CSAT · M10 SLA | M6 ✅ · M7 ✅ · M8 ✅ · M9 ✅ · M10 ✅ · iteracija 2 završena |
 | 3 | M11 Realtime i obavještenja · M12 Pošta · M13 Šabloni · M14 Baza znanja · M15 Nadzorna ploča | M11 ✅ · M12 ✅ · M13 ✅ · M14 ✅ · M15 ✅ (iteracija 3 završena) |
 | 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · otvoreni ostaju B2 (`SREDNJE`) i B3–B5 (`NISKO`) — vidi `# Val 0 — popravka M4/B1` |
+| 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
 
 ---
 
@@ -4970,8 +4971,9 @@ zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa
   modul M1–M15) napisano je u Fazi 2, a sa nazivima dugmadi tačno kako stoje u interfejsu. **Trinaest ih
   je po obaveznoj strukturi od osam sekcija** (čemu služi, kome je namijenjen, kako se dolazi, korak po
   korak, polja/validacije/poruke, česta pitanja, poznata ograničenja, povezani moduli) — svi od M3 do M15;
-  **dva vodiča iz ranije faze (`instalacija.md`, `prijava-i-mfa.md`) imaju skraćenu strukturu od šest
-  sekcija** (bez tabele rola i bez tabele polja), pa ih Faza 3 može poravnati sa ostalima. Preostalih osam
+  **dva vodiča iz ranije faze (`instalacija.md`, `prijava-i-mfa.md`) imala su skraćenu strukturu od šest
+  sekcija** i **poravnata su sa ostalima u Fazi 3, korak (a), 2026-10-03** — vidi
+  `# Faza 3 — korak (a)` na kraju dokumenta. Preostalih osam
   vodiča pokrivaju module izvan audita (dežurstva, imovina, najave, prečice i pristupačnost, problemi,
   promjene, prosljeđivanje tiketa, statusi/incidenti/planirani prekidi).
 - **`TEZE-ZA-DOKUMENTACIJU.md` — 101 teza (T1–T101)** i 15 blokova odluka korisnika (paketi, CMDB, Teams,
@@ -4989,7 +4991,7 @@ zatvoriti u jednoj iteraciji. Val 5 je širenje funkcionalnosti, ne popravka, pa
   verifikacije na stagingu i odobrenje paketa 4.1 — sve troje čeka odluke ili termine vlasnika, ne
   dokumentaciju.
 - **Poravnanje dva stara vodiča** (`instalacija.md`, `prijava-i-mfa.md`) sa strukturom od osam sekcija je
-  posao za Fazu 3, kad se dokumentacija ionako čita kroz aplikaciju.
+  **završeno u Fazi 3, korak (a), 2026-10-03**.
 - **Pravilo koje Faza 3 treba preuzeti:** izmjena funkcionalnosti povlači izmjenu Docs stranice; predlog
   je CI provjera frontmattera, jedinstvenih slugova i linkova (dogovoreno u pravilima sesije).
 
@@ -5071,3 +5073,49 @@ ne prihvati kao odluka.
 
 **Ukupno poslije vala 0 (15 modula):** nalaza otvoreno **0 KRITIČNO / 0 VISOKO / 38 SREDNJE / 53 NISKO**;
 prosjek ocjena **F 7,9 · K 8,2 · S 7,7**.
+
+---
+
+# Faza 3 — korak (a): dizajn Docs modula (2026-10-03)
+
+Prvi korak treće faze zadatka: **dizajn modula Dokumentacija u aplikaciji** i, usput, poravnanje dva vodiča iz
+Faze 2 sa obaveznom strukturom od osam sekcija. Kod modula još nije pisan — koraci (b) backend, (c) frontend i
+(d) Faza 2 modula slijede.
+
+## 1. Isporučeno u koraku (a)
+
+| # | Isporuka | Fajl |
+|---|---|---|
+| 1 | Dizajn dokument: svrha, potvrđene odluke, izvor sadržaja i frontmatter, ogledalo i generator, navigacija, backend (endpointi, učitavanje, autorizacija), renderer, pretraga, frontend, build/CI, Faza 2 modula, koraci (b)–(d), 9 kriterija prihvatanja, rizici | `docs/DOCS_MODULE.md` (nov) |
+| 2 | `instalacija.md` poravnat na osam sekcija: dodate `Čemu služi ovaj modul`, `Kome je namijenjen`, `Kako doći` (sa `Prije početka` i `Otključavanje` kao podsekcijama), nova sekcija `Polja, validacije i statusi` (polja po koracima + šta se ne provjerava), `Česta pitanja i greške` (pitanja + postojeća tabela kodova), `Povezani moduli` | `docs/user-guide/instalacija.md` |
+| 3 | `prijava-i-mfa.md` poravnat na osam sekcija: `Čemu služi ovaj modul`, `Kome je namijenjen`, `Kako doći`, `Povezani moduli` | `docs/user-guide/prijava-i-mfa.md` |
+| 4 | Evidencija: sekcija **Faza 3 — korak (a)** i red u tabeli *Stanje po iteracijama* | ovaj dokument |
+| 5 | Evidencija dokumentacije: red **Faza 3 (a)** u pregledu i nova sekcija | `DOCS_CHANGELOG.md` |
+
+**Provjera (stvarna):** svi `.md` fajlovi u `docs/user-guide/` (23 vodiča) sada imaju osam obaveznih sekcija u
+propisanom redu, osim **osam tematskih vodiča iz ranije faze** (`dezurstva`, `imovina`, `najave`,
+`precice-i-pristupacnost`, `problemi`, `promjene`, `prosljedjivanje-tiketa`, `status-incidenti-i-planirani-prekidi`),
+koji imaju tematske naslove („Za korisnike“, „Za administratore“…) — to je **novi nalaz** i otvorena odluka
+(vidi §2).
+
+## 2. Nalaz i otvorena odluka
+
+**N1 — `NISKO`** *(novi nalaz iz Faze 3, van 92 nalaza audita — ne mijenja ocjene modula)* **— osam vodiča nema obaveznu strukturu od osam sekcija.**
+Provjera nad `docs/user-guide/*.md` (23 fajla, `grep '^## '`) pokazuje da 15 vodiča ima propisanih osam
+sekcija, a osam vodiča iz ranije faze ima tematske sekcije: `dezurstva.md` („Šta je dežurstvo“, „Za agente“,
+„Za administratore“), `imovina.md` („Za sve korisnike“, „Za upravitelje imovine i agente“, „Za administratore“),
+`najave.md`, `precice-i-pristupacnost.md`, `problemi.md`, `promjene.md`, `prosljedjivanje-tiketa.md`,
+`status-incidenti-i-planirani-prekidi.md`. **Uticaj:** u Docs modulu te stranice izgledaju drugačije od ostalih
+(nema jedinstvenih sekcija za česta pitanja i poznata ograničenja), pa pretraga i TOC nemaju istu strukturu.
+**Predlog (za potvrdu):** poravnati i njih u koraku (b), istim redoslijedom sekcija i bez novih tvrdnji —
+sadržaj se samo raspoređuje u sekcije. **Alternativa:** ostaviti ih kao tematske stranice i u frontmatteru
+označiti vrstu (`layout: topic`).
+
+## 3. Zavisnosti koje korak (b) mora riješiti prvo
+
+1. **Frontmatter na 23 + 6 stranica** (šema: `docs/DOCS_MODULE.md` §3.2) — bez njega generator ne može
+   napraviti navigaciju ni filter po ulozi.
+2. **Generator ogledala** `scripts/generate-docs-content.mjs` + `backend/content/docs/**` (committed).
+3. **Dockerfile** — `COPY --from=builder /usr/app/content ./content` u runtime stage (`backend/Dockerfile`),
+   inače modul u kontejneru vraća 503.
+4. **Odluka o mjestu stavke u meniju** (predlog: dio **Pregled**) i o **osam tematskih vodiča** (N1).

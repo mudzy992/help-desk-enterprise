@@ -1,13 +1,23 @@
 # Instalacija (prvi start)
 
+## Čemu služi ovaj modul
+
 Instalacija je **jednokratni tok** koji se vodi na adresi `/install` neposredno nakon prvog deploya aplikacije.
 Njime nastaju prvi nalog (SuperAdmin), način prijave, odlazni e-mail i minimalni podaci za rad tiketa. Dok
 instalacija nije završena, aplikacija ne radi ništa drugo: svaki zahtjev dobija odgovor „Instalacija još nije
 završena“ (`SETUP_REQUIRED`).
 
+## Kome je namijenjen
+
 Stranica je namijenjena **administratoru/operativi koja postavlja aplikaciju**, ne krajnjim korisnicima.
 
-## Prije početka
+## Kako doći
+
+Instalacija se otvara na adresi `/install` neposredno nakon prvog deploya. Dok nije završena, pristup bilo kojoj
+drugoj stranici se preusmjerava na wizard. Prvo što se pojavi je ekran **„Instalacijski token“**, pa se wizard
+otključava tek kad je token ispravan.
+
+### Prije početka
 
 1. **Token za otključavanje.** U Coolify → Environment postavite `INSTALL_TOKEN` (najmanje 16 znakova). Bez njega
    je wizard zatvoren: ekran prikazuje poruku da token nije podešen. Token se ne čuva u bazi i ne treba ga
@@ -16,7 +26,7 @@ Stranica je namijenjena **administratoru/operativi koja postavlja aplikaciju**, 
 3. **SMTP je opcion.** Ako ga preskočite, e-mail kanal ostaje isključen i ne može se uključiti dok se SMTP ne
    podesi (kasnije u Admin → Postavke).
 
-## Otključavanje
+### Otključavanje
 
 Na `/install` se prvo pojavljuje ekran **„Instalacijski token“** sa poljem za token i dugmetom **Otključaj**.
 Unesite vrijednost iz `INSTALL_TOKEN`. Ako token nije ispravan, prikazuje se „Token nije ispravan.“; ako u
@@ -85,7 +95,34 @@ posljednjeg, gdje je **Završi**).
   idu kroz **Admin → Postavke** (i odgovarajuće administratorske stranice).
 - Uklonite `INSTALL_TOKEN` iz okruženja nakon završetka.
 
-## Poruke i kodovi grešaka
+## Polja, validacije i statusi
+
+Polja po koracima wizarda i pravila koja se primjenjuju:
+
+| Korak | Polja | Validacija / pravilo |
+|---|---|---|
+| 1. SuperAdmin nalog | **Email**, **Ime i prezime**, **Lozinka**, **Potvrda lozinke** | Lozinka 12–128 znakova, najmanje jedan znak koji nije razmak, ne smije biti jednaka emailu; nalog je **uvijek lokalni** |
+| 2. Način prijave | prekidač provajdera (**Lokalni nalozi** / **Microsoft Entra AD**), **Entra tenant ID**, **Entra client ID** ili **LDAPS URL-ovi (CSV)**, **LDAPS bind DN**, **LDAPS bind lozinka** | Bira se tačno jedan provajder; za Entra su obavezna oba ID-a ili kompletni LDAPS podaci; prazno polje tajne zadržava postojeću vrijednost |
+| 3. SMTP | **SMTP omogućen**, **SMTP host**, **SMTP port** (zadano 587), **TLS** (zadano uključen), **SMTP korisnik**, **SMTP lozinka**, **From adresa** | Ako je prekidač isključen, polja nisu obavezna i e-mail dodatak ostaje ugašen; inače su host, port, korisnik, lozinka i validna from adresa obavezni; prazna lozinka zadržava postojeću vrijednost |
+| 4. Početni podaci | bez polja | Kreiraju se OU **Direkcija**, grupa **Fallback**, kategorija **Opšte**, servis **Opšti zahtjev** s formom i routing pravilo, uz sistemske role i default permisije |
+| 5. Dodaci | prekidači po modulu | Jezgro (tiketi, usmjeravanje, inbox, RBAC, audit, in-app obavijesti, prilozi) je uvijek uključeno; **Email** se ne može uključiti bez podešenog SMTP-a |
+| 6. Završi podešavanje | dugme **Završi** | Zaključava wizard; dalje izmjene idu kroz **Admin → Postavke** |
+
+**Statusi instalacije:** dok traje — zahtjevi van `/install` dobijaju `SETUP_REQUIRED` (HTTP 503); poslije
+**Završi** — instalacijski koraci vraćaju `INSTALL_LOCKED`.
+
+**Šta se ne provjerava:** veza prema SMTP-u, LDAPS-u i Entra-u se **ne testira** (ni formatom van obaveznih
+polja) — greška u vezi vidi se tek pri prvoj upotrebi. Vidi *Poznata ograničenja*.
+
+## Česta pitanja i greške
+
+- **„Moram li ponovo unositi SMTP lozinku?“** — Ne. Sačuvane tajne se ne prikazuju; prazno polje zadržava
+  postojeću vrijednost.
+- **„Kreiraju li se demo tiketi?“** — Ne; kreira se samo minimum za rad (korak 4).
+- **„Ostavio sam `INSTALL_TOKEN` u okruženju.“** — Uklonite ga nakon završetka. Rute su zaključane
+  (`INSTALL_LOCKED`), ali token nije potreban i ne treba stajati trajno.
+- **„Prekinuo sam instalaciju poslije koraka 2.“** — Osvježavanje vraća na korak **Način prijave**; već sačuvane
+  vrijednosti ostaju (vidi *Poznata ograničenja*).
 
 | Situacija | Šta korisnik vidi / dobija |
 |---|---|
@@ -108,7 +145,7 @@ posljednjeg, gdje je **Završi**).
 - **Stanje dodataka** je nakon završetka instalacije čitljivo i bez prijave (tehnički detalj; ne unosi nikakve
   tajne u nazive dodataka).
 
-## Povezano
+## Povezani moduli
 
 - Postavljanje infrastrukture: `ops/COOLIFY.md`, `docs/ops/staging-checklist.md`
 - Sigurnost naloga (MFA, promjena lozinke): *Sigurnost naloga* i `docs/user-guide/TEZE-ZA-DOKUMENTACIJU.md`
