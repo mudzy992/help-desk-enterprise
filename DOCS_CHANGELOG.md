@@ -29,6 +29,7 @@
 | M15 | 2026-10-03 | Nadzorna ploča i izvještaji | `user-guide/nadzorna-ploca-i-izvjestaji.md` (nov), `TEZE` (+T95–T101) | Ploča, izvještaji, trendovi i zakazani |
 | **Z** | 2026-10-03 | **Zaključak Faze 2** | `REVIEW_ANALIZA.md` (zaključak), ovaj dokument | **Sumarne ocjene, must-have, roadmap i stanje dokumentacije** |
 | **Val 0** | 2026-10-03 | **RBAC — popravka B1** | `REVIEW_ANALIZA.md` (§M4 + `# Val 0`), `user-guide/uloge-i-permisije.md`, `user-guide/instalacija.md`, `TEZE` (T31), ovaj dokument | **Default mapping rola → permisije upisuje se pri instalaciji + CLI za postojeće instalacije** |
+| **F3 (c)** | 2026-10-03 | **Docs modul — `/docs` UI** | `frontend/src/pages/docs-page.tsx` (nov), `frontend/src/components/docs/**` (nov), `frontend/src/lib/docs/**` (nov), `frontend/src/services/docs-api.ts` (nov), `frontend/src/lib/navigation.ts`, `frontend/src/lib/session/route-access.ts`, `frontend/src/app/router.tsx`, `frontend/src/i18n/locales/{bs,en}/common.json`, `frontend/src/lib/privacy/simple-markdown.ts`, `frontend/src/components/privacy/markdown-view.tsx`, `backend/src/modules/docs/**`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (c)`), ovaj dokument | **Meni Dokumentacija, ruta `/docs`, nav/TOC/breadcrumbs/pager, pretraga sa isticanjem, filter po publici, 404 i prazno stanje, prošireni renderer; i18n BS/EN** |
 | **F3 (b)** | 2026-10-03 | **Docs modul — sadržaj, backend i ogledalo** | `scripts/generate-docs-content.mjs` (nov), `scripts/check-docs-content.mjs` (nov), `backend/content/docs/**` (nov), `backend/src/modules/docs/**` (nov), `backend/Dockerfile`, `.github/workflows/ci.yml`, `docs/user-guide/*.md` (29 stranica), `docs/DOCS_MODULE.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (b)`), ovaj dokument | **Ogledalo + manifest, backend `/docs` rute sa serverskom provjerom uloga, 18 testova, Dockerfile i CI provjera; nalaz N1 zatvoren** |
 | **F3 (a)** | 2026-10-03 | **Docs modul — dizajn** | `DOCS_MODULE.md` (nov), `user-guide/instalacija.md`, `user-guide/prijava-i-mfa.md`, `REVIEW_ANALIZA.md` (`# Faza 3 — korak (a)`), ovaj dokument | **Dizajn modula Dokumentacija + poravnanje dva vodiča na 8 sekcija; nalaz N1 o 8 tematskih vodiča** |
 
@@ -984,3 +985,54 @@ bez serverske provjere uloga tehničke stranice bi bile dostupne svakome.
   Dockerfilea, a putanja resolve-a (`dist/src/modules/docs → /usr/app/content/docs`) odgovara.
 - UI još ne postoji: `/docs` ekran, meni i renderer dolaze u koraku (c), pa u aplikaciji modul trenutno nije
   vidljiv korisnicima (rute postoje i rade).
+
+---
+
+## Faza 3 — korak (c): `/docs` UI (2026-10-03)
+
+**Zašto:** sadržaj i backend su bili spremni u koraku (b), ali modul nije bio vidljiv korisnicima; korak (c) je
+jedina korisnička površina — meni, ruta, čitanje, pretraga i filter.
+
+**Dodato**
+
+- `frontend/src/pages/docs-page.tsx` — jedna stranica za `/docs` i `/docs/:slug`: preusmjerava `/docs` na prvu
+  dostupnu stranicu, drži `?q=` u URL-u (pretraga je dublja od 250 ms), prikazuje breadcrumbs, datum izmjene iz
+  `updatedAt`, TOC na `xl` ekranima i prethodnu/sljedeću stranicu.
+- `frontend/src/components/docs/` — `docs-sidebar` (dijelovi i stranice, filtrirano po publici),
+  `docs-toc` (`IntersectionObserver` prati aktivnu sekciju), `docs-search` (rezultati sa `excerptParts` kao
+  `<mark>`, filtrirani po publici), `docs-breadcrumbs`, `docs-pager`, `docs-role-filter` (Sve/Korisnik/Agent/
+  Administrator), `docs-empty-state` (prazno stanje, 404, nedostupno ogledalo — uvijek sa linkom na `/docs`).
+- `frontend/src/services/docs-api.ts` + `frontend/src/lib/docs/use-docs.ts` — tipovi i hookovi
+  (`useDocsNavigation`, `useDocsPage`, `useDocsSearch`); `docs-audience.ts` (filter po publici),
+  `docs-labels.ts` (naziv dijela uz BS fallback), `slugify-heading.ts` (isti algoritam kao generator).
+- Renderer: `simple-markdown.ts` je dobio **tabele**, **fenced code blokove** sa isticanjem
+  (`json`, `ts`, `bash`, `sql`), **calloute** (`> **Napomena:**`, `> **Upozorenje:**`, `> **Namjena:**`) i
+  **slike** (samo relativne putanje); `markdown-view.tsx` dodaje `id` i klizni `#` link naslovima `##`/`###`
+  koristeći `manifest.json`, uz iste Tailwind tokene kao ostatak aplikacije.
+
+**Izmijenjeno**
+
+- `frontend/src/lib/navigation.ts` — nova stavka `docs` u dijelu **Pregled** (`navigation.docs`).
+- `frontend/src/lib/session/route-access.ts` — `navigationAccessKinds.docs` i `canOpenDocs`
+  (svaki prijavljeni korisnik; filtriranje sadržaja je na serveru).
+- `frontend/src/app/router.tsx` — rute `docs` i `docs/:slug` (lazy `DocsPage`).
+- `frontend/src/i18n/locales/{bs,en}/common.json` — `navigation.docs` i `docs.*` (29 ključeva po jeziku).
+- `frontend/src/lib/command-palette/build-navigation-commands.spec.ts` — očekivanja dopunjena za novu stavku
+  (komandna paleta prati sidebar).
+- `backend/src/modules/docs/` — `roles` u stavkama navigacije i rezultatima pretrage, da klijentski filter po
+  publici radi i nad pretragom.
+- `backend/content/docs/manifest.json` — regenerisan: šest stranica iz koraka (b) dobilo je `updatedAt` iz gita
+  (prije commita su bile `null`).
+
+**Uklonjeno**
+
+- Ništa. Modul ne dira postojeće ekrane; `simple-markdown` proširenja su aditivna (privatnost se renderuje isto).
+
+**Napomena o dokazima**
+
+- Provjere su izvršene 2026-10-03 u razvojnom okruženju: frontend **151 test fajl / 594 testa**, `npx tsc -b` i
+  `npm run build` bez grešaka, svih **8 `check-*`** prolazi; backend `npx jest src/modules/docs` 4/18.
+- **Živa provjera ekrana nije rađena u ovom okruženju** (nema baze): ponašanje je provjereno testovima logike,
+  statičkim provjerama i buildom, a prvi pregled u browseru treba uraditi na stagingu.
+- EN sadržaj stranica (prevod) je odvojen posao iz koraka (d)/budućnosti; sada su prevedeni UI okviri, a sadržaj
+  je BS — kako dizajn §10 i predviđa.

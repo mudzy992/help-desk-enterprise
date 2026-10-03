@@ -45,6 +45,7 @@ export class DocsService {
               title: page.title,
               module: page.module,
               order: page.order,
+              roles: page.roles,
               updatedAt: page.updatedAt,
             })),
         })),

@@ -28,6 +28,7 @@
 | 4 | **Val 0** — popravka M4/B1 (default mapping rola → permisije) | M4 🔧 B1 riješen 2026-10-03 · otvoreni ostaju B2 (`SREDNJE`) i B3–B5 (`NISKO`) — vidi `# Val 0 — popravka M4/B1` |
 | 5 | **Faza 3** — Docs modul u aplikaciji (korak (a): dizajn i poravnanje vodiča) | ✅ Korak (a) zatvoren 2026-10-03 · koraci (b)–(d) slijede — vidi `# Faza 3 — korak (a)` |
 | 6 | **Faza 3** — Docs modul u aplikaciji (korak (b): sadržaj, backend i ogledalo) | ✅ Korak (b) isporučen 2026-10-03 · koraci (c)–(d) slijede — vidi `# Faza 3 — korak (b)` |
+| 7 | **Faza 3** — Docs modul u aplikaciji (korak (c): `/docs` UI) | ✅ Korak (c) isporučen 2026-10-03 · korak (d) slijedi — vidi `# Faza 3 — korak (c)` |
 
 ---
 
@@ -5168,3 +5169,55 @@ odnosu na radnu verziju su zapisane u `docs/DOCS_MODULE.md` §3.4.
 
 **Napomena:** u koraku (b) nijedan bug iz audita nije popravljan (pravilo Faze 3); `docsSlug` mapa ekran→stranica i
 sve što zavisi od UI-a dolaze u (c)/(d).
+
+---
+
+# Faza 3 — korak (c): `/docs` UI (2026-10-03)
+
+Korak (c) iz `docs/DOCS_MODULE.md` §11 je isporučen: stavka menija **Dokumentacija**, ruta `/docs`, lijevi nav,
+desni TOC, breadcrumbs, prethodna/sljedeća, pretraga sa isticanjem, filter po publici, 404 i prazno stanje, uz
+prošireni renderer (tabele, code, callouti, slike, anchori).
+
+## 1. Isporučeno
+
+| # | Isporuka | Fajlovi |
+|---|---|---|
+| 1 | Meni i vidljivost | `frontend/src/lib/navigation.ts` (`navigation.docs`, stavka u dijelu **Pregled**), `frontend/src/lib/session/route-access.ts` (`navigationAccessKinds.docs`, `canOpenDocs`) |
+| 2 | Ruta | `frontend/src/app/router.tsx` (`docs` i `docs/:slug`, lazy `DocsPage`) |
+| 3 | Stranica | `frontend/src/pages/docs-page.tsx` (jedna stranica za `/docs` i `/docs/:slug`, `?q=` pretraga, dvije kolone + TOC na `xl`, responzivni sidebar) |
+| 4 | Komponente | `frontend/src/components/docs/{docs-sidebar,docs-toc,docs-search,docs-breadcrumbs,docs-pager,docs-role-filter,docs-empty-state}.tsx` |
+| 5 | Podaci i hookovi | `frontend/src/services/docs-api.ts`, `frontend/src/lib/docs/{use-docs,docs-audience,docs-labels,slugify-heading}.ts` |
+| 6 | Renderer | `frontend/src/lib/privacy/simple-markdown.ts` (+ tabele, fenced code sa isticanjem `json/ts/bash/sql`, callouti, relativne slike, bez sirovog HTML-a), `frontend/src/components/privacy/markdown-view.tsx` (+ `id`/anchori iz `manifest.json`) |
+| 7 | i18n BS/EN | `frontend/src/i18n/locales/{bs,en}/common.json` (`navigation.docs` + `docs.*`: 29 ključeva po jeziku) |
+| 8 | Backend dopuna | `backend/src/modules/docs/{docs.types,docs.service,docs-content.repository}.ts` — `roles` u stavkama navigacije i rezultatima pretrage (za klijentski filter po publici) |
+| 9 | Ogledalo | `backend/content/docs/manifest.json` — regenerisan poslije commita koraka (b): šest novih stranica sada ima `updatedAt` iz gita umjesto `null` |
+
+## 2. Dokazi (izvršeno 2026-10-03 u ovom okruženju)
+
+- `npx vitest run` (frontend) — **151 fajl, 594 testa, 0 padova**; prije koraka (c) 150 fajlova / 585 testova.
+- Novi testovi: `src/lib/docs/slugify-heading.spec.ts` (3), `src/lib/docs/docs-audience.spec.ts` (3) i šest testova
+  u `src/lib/privacy/simple-markdown.spec.ts` za tabele, code blokove, calloute, slike i isticanje koda.
+- `npx tsc -b` — 0 grešaka; `npm run build` (tsc + vite) — 0.
+- Svih **8 `check-*` skripti prolazi**: `check-client-neutral`, `check-env-example`, `check-ticket-id-leaks`,
+  `check-pulse-design-system`, `check-theme-contrast`, `check-a11y-static`, `check-hooks-order`,
+  `check-docs-content` (7 provjera sadržaja, 29 stranica).
+- Backend: `npx jest src/modules/docs` — 4 suitea / 18 testova, 0 padova (poslije dopune sa `roles`).
+
+## 3. Sigurnost i ponašanje
+
+- **Server filtrira uloge** i za navigaciju i za pretragu; klijent nikad ne dobija tuđe stranice, pa filter po
+  publici u UI-u samo sužava prikaz (priznato u dizajnu §7.3).
+- **Nepoznat i nedozvoljen slug** daju isti 404; kad ogledalo nije učitano, stranica prikazuje poseban ekran
+  („Dokumentacija trenutno nije dostupna“) sa dugmetom za ponovni pokušaj.
+- Renderer i dalje **ne emituje HTML**: `<`, `>` i `&` idu kroz React tekst, linkovi su ograničeni na
+  `http(s)`/`mailto`, slike samo na relativne putanje bez `..` i shema.
+
+## 4. Šta ostaje za korak (d)
+
+- Faza 2 modula: kontekstualna „?“ pomoć (`docs-slug.ts` mapa ekran→stranica + `docsSlug(...)` literali),
+  feedback („je li stranica pomogla?“), nedavno posjećeno, štampa/PDF, i18n okvir za EN sadržaj.
+- Pravilo u `README.md`/`CONTRIBUTING.md`: izmjena funkcionalnosti povlači izmjenu Docs stranice u istom commitu.
+- Završna evidencija: sažetak, nove ocjene i `DOCS_CHANGELOG.md` (red **F3 (d)**).
+
+**Napomena:** korak (c) je dokazan statičkim provjerama, testovima i buildom; živu ručnu provjeru ekrana
+(pregled u browseru na stvarnoj bazi) treba uraditi na stagingu pri prvom deployu.

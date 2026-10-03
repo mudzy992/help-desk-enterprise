@@ -98,6 +98,7 @@ export class DocsContentRepository implements OnModuleInit {
         title: page.title,
         part: page.part,
         module: page.module,
+        roles: page.roles,
         excerptParts: this.excerptPartsFor(page.slug, needles),
         matches: hits,
         score: score + exactBonus,

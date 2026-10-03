@@ -24,6 +24,7 @@ export const navigationLabelKeys = {
   myAssets: "navigation.myAssets",
   problems: "navigation.problems",
   changes: "navigation.changes",
+  docs: "navigation.docs",
 } as const;
 
 export type NavigationLabelKey =
@@ -145,6 +146,14 @@ export const privacyNavigationItem: NavigationItem = {
   access: { kind: navigationAccessKinds.privacy },
 };
 
+/** Faza 3 (c): dokumentacija u aplikaciji — svaki prijavljeni korisnik. */
+export const docsNavigationItem: NavigationItem = {
+  path: "/docs",
+  labelKey: navigationLabelKeys.docs,
+  end: false,
+  access: { kind: navigationAccessKinds.docs },
+};
+
 /** Paket 2.7 (§8): service status and incidents, every signed-in user. */
 export const statusNavigationItem: NavigationItem = {
   path: "/status",
@@ -204,7 +213,7 @@ export const changesNavigationItem: NavigationItem = {
 export const navigationSections: readonly NavigationSection[] = [
   {
     labelKey: navigationSectionKeys.overview,
-    items: [dashboardNavigationItem, reportsNavigationItem],
+    items: [dashboardNavigationItem, reportsNavigationItem, docsNavigationItem],
   },
   {
     labelKey: navigationSectionKeys.tickets,

@@ -15,6 +15,7 @@ export const navigationAccessKinds = {
   myAssets: "myAssets",
   problems: "problems",
   changes: "changes",
+  docs: "docs",
 } as const;
 
 export type NavigationAccessKind =
@@ -123,6 +124,11 @@ export function canOpenChanges(capabilities: SessionCapabilities): boolean {
   return session.isSuperAdmin || capabilities.hasPermission(permissionKeys.changeRead);
 }
 
+/** Faza 3 (c): Dokumentacija je dostupna svakom prijavljenom korisniku. */
+export function canOpenDocs(capabilities: SessionCapabilities): boolean {
+  return capabilities.session !== null;
+}
+
 export function canOpenRouting(capabilities: SessionCapabilities): boolean {
   return canOpenAdminArea(capabilities);
 }
@@ -201,6 +207,8 @@ export function canAccessNavigationItem(
       return canOpenProblems(capabilities);
     case navigationAccessKinds.changes:
       return canOpenChanges(capabilities);
+    case navigationAccessKinds.docs:
+      return canOpenDocs(capabilities);
     default:
       return false;
   }

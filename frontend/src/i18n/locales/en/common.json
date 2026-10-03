@@ -29,7 +29,8 @@
     "assets": "Assets",
     "myAssets": "My equipment",
     "problems": "Problems",
-    "changes": "Changes"
+    "changes": "Changes",
+    "docs": "Documentation"
   },
   "feedback": {
     "dismiss": "Dismiss message"
@@ -7631,6 +7632,50 @@
       "simulatorOff": "The simulator works only in simulator mode with the addon on.",
       "forbidden": "You are not allowed to do this.",
       "generic": "Something went wrong. Please try again."
+    }
+  },
+  "docs": {
+    "title": "Documentation",
+    "navigationLabel": "Documentation pages",
+    "toc": "On this page",
+    "tocLabel": "Page contents",
+    "breadcrumbsLabel": "Breadcrumbs",
+    "pagerLabel": "Page navigation",
+    "previous": "Previous",
+    "next": "Next",
+    "searchLabel": "Search documentation",
+    "searchPlaceholder": "Search the documentation…",
+    "searchHint": "Search covers titles, text and tags; type at least two characters.",
+    "searching": "Searching…",
+    "noResults": "No results for “{{query}}”.",
+    "loading": "Loading documentation…",
+    "updatedAt": "Updated: {{date}}",
+    "updatedAtUnknown": "Updated: —",
+    "retry": "Try again",
+    "backToDocs": "Back to documentation",
+    "emptyTitle": "No pages available",
+    "emptyBody": "Your role currently sees no documentation pages.",
+    "emptyFilter": "No page matches the selected audience.",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page does not exist or your role cannot open it.",
+    "unavailableTitle": "Documentation is currently unavailable",
+    "unavailableBody": "The documentation content was not loaded on the server. Try again later or report it to an administrator.",
+    "errorTitle": "Could not load the documentation",
+    "hiddenByFilter": "This page is not part of the selected audience.",
+    "audience": {
+      "label": "Audience",
+      "all": "All",
+      "user": "Requester",
+      "agent": "Agent",
+      "admin": "Administrator"
+    },
+    "parts": {
+      "pocetak": "Getting started",
+      "korisnik": "Requester",
+      "agent": "Agent",
+      "administrator": "Administrator",
+      "operativa": "Operations",
+      "referenca": "Reference"
     }
   }
 }

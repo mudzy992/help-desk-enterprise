@@ -1,4 +1,11 @@
-/** Tipovi Docs modula (Faza 3, korak b) — ogledalo manifesta iz `scripts/generate-docs-content.mjs`. */
+import { apiRequest } from "@/services/api";
+
+/**
+ * Faza 3 (c): `/docs/*`. Types mirror `backend/src/modules/docs`.
+ *
+ * Server filtrira po ulozi pozivaoca — klijent prikazuje samo ono što dobije,
+ * pa filter po publici u UI-u ne može otkriti skrivene stranice.
+ */
 
 export type DocsHeading = {
   readonly level: number;
@@ -6,37 +13,12 @@ export type DocsHeading = {
   readonly id: string;
 };
 
-export type DocsPageRecord = {
-  readonly slug: string;
-  readonly title: string;
-  readonly module: string;
-  readonly part: string;
-  readonly audience: readonly string[];
-  readonly roles: readonly string[];
-  readonly order: number;
-  readonly tags: readonly string[];
-  readonly updatedAt: string | null;
-  readonly headings: readonly DocsHeading[];
-  readonly wordCount: number;
-  readonly source: string;
-};
-
-export type DocsManifest = {
-  readonly parts: readonly { readonly key: string; readonly order: number; readonly pages: readonly string[] }[];
-  readonly pages: readonly DocsPageRecord[];
-};
-
-export type DocsPageContent = {
-  readonly page: DocsPageRecord;
-  readonly markdown: string;
-};
-
 export type DocsNavigationItem = {
   readonly slug: string;
   readonly title: string;
   readonly module: string;
   readonly order: number;
-  /** Role iz frontmattera — klijentski filter po publici (Faza 3, korak (c)). */
+  /** Role iz frontmattera; `[]` znači „svi prijavljeni“ (filter po publici). */
   readonly roles: readonly string[];
   readonly updatedAt: string | null;
 };
@@ -56,7 +38,7 @@ export type DocsPageLink = {
   readonly title: string;
 };
 
-export type DocsPageResponse = {
+export type DocsPage = {
   readonly slug: string;
   readonly title: string;
   readonly module: string;
@@ -71,13 +53,12 @@ export type DocsPageResponse = {
   readonly next: DocsPageLink | null;
 };
 
-/** Isječak kao podaci: klijent gradi `<mark>` za dijelove sa `match: true`. */
 export type DocsExcerptPart = {
   readonly text: string;
   readonly match: boolean;
 };
 
-export type DocsSearchMatch = {
+export type DocsSearchResult = {
   readonly slug: string;
   readonly title: string;
   readonly part: string;
@@ -91,5 +72,21 @@ export type DocsSearchMatch = {
 export type DocsSearchResponse = {
   readonly query: string;
   readonly total: number;
-  readonly results: readonly DocsSearchMatch[];
+  readonly results: readonly DocsSearchResult[];
 };
+
+export function getDocsNavigation(): Promise<DocsNavigation> {
+  return apiRequest<DocsNavigation>("/docs/navigation");
+}
+
+export function getDocsPage(slug: string): Promise<DocsPage> {
+  return apiRequest<DocsPage>(`/docs/pages/${encodeURIComponent(slug)}`);
+}
+
+export function searchDocs(query: string, limit?: number): Promise<DocsSearchResponse> {
+  const params = new URLSearchParams({ q: query });
+  if (limit !== undefined) {
+    params.set("limit", String(limit));
+  }
+  return apiRequest<DocsSearchResponse>(`/docs/search?${params.toString()}`);
+}

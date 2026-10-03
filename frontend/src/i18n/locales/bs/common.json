@@ -29,7 +29,8 @@
     "assets": "Imovina",
     "myAssets": "Moja oprema",
     "problems": "Problemi",
-    "changes": "Promjene"
+    "changes": "Promjene",
+    "docs": "Dokumentacija"
   },
   "feedback": {
     "dismiss": "Zatvori poruku"
@@ -7706,6 +7707,50 @@
       "simulatorOff": "Simulator radi samo u režimu simulatora uz uključen addon.",
       "forbidden": "Nemate pravo na ovu akciju.",
       "generic": "Došlo je do greške. Pokušajte ponovo."
+    }
+  },
+  "docs": {
+    "title": "Dokumentacija",
+    "navigationLabel": "Stranice dokumentacije",
+    "toc": "Na ovoj stranici",
+    "tocLabel": "Sadržaj stranice",
+    "breadcrumbsLabel": "Putanja",
+    "pagerLabel": "Listanje stranica",
+    "previous": "Prethodna",
+    "next": "Sljedeća",
+    "searchLabel": "Pretraga dokumentacije",
+    "searchPlaceholder": "Pretraži dokumentaciju…",
+    "searchHint": "Pretraga pokriva naslove, tekst i tagove; upisujte najmanje dva znaka.",
+    "searching": "Pretraga…",
+    "noResults": "Nema rezultata za „{{query}}“.",
+    "loading": "Učitavanje dokumentacije…",
+    "updatedAt": "Ažurirano: {{date}}",
+    "updatedAtUnknown": "Ažurirano: —",
+    "retry": "Pokušaj ponovo",
+    "backToDocs": "Na početak dokumentacije",
+    "emptyTitle": "Nema dostupnih stranica",
+    "emptyBody": "Vaša uloga trenutno ne vidi nijednu stranicu dokumentacije.",
+    "emptyFilter": "Nijedna stranica ne odgovara odabranoj publici.",
+    "notFoundTitle": "Stranica nije pronađena",
+    "notFoundBody": "Stranica ne postoji ili joj vaša uloga nema pristup.",
+    "unavailableTitle": "Dokumentacija trenutno nije dostupna",
+    "unavailableBody": "Sadržaj dokumentacije nije učitan na serveru. Pokušajte kasnije ili prijavite administratoru.",
+    "errorTitle": "Greška pri učitavanju dokumentacije",
+    "hiddenByFilter": "Ova stranica ne pripada odabranoj publici.",
+    "audience": {
+      "label": "Publika",
+      "all": "Sve",
+      "user": "Korisnik",
+      "agent": "Agent",
+      "admin": "Administrator"
+    },
+    "parts": {
+      "pocetak": "Početak",
+      "korisnik": "Korisnik",
+      "agent": "Agent",
+      "administrator": "Administrator",
+      "operativa": "Operativa",
+      "referenca": "Referenca"
     }
   }
 }
