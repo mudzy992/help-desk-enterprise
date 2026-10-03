@@ -371,6 +371,98 @@ To je kriterij kompletnosti.
 - **Status:** Važi
 - **Wiki stranica:** Operativa → Instalacija
 
+### T18 — SUPER_ADMIN uvijek ima drugi faktor, ADMIN po postavci
+
+- **Modul / paket:** Prijava i MFA · 2.1
+- **Publika:** Administrator | Svi korisnici
+- **Tip:** Pravilo
+- **Teza:** Nalog `SUPER_ADMIN` mora imati upisanu potvrdu u dva koraka (TOTP) — ne može je isključiti. Nalog
+  `ADMIN` je obavezan samo dok je uključena postavka za administratore; ostali lokalni nalozi je uključuju sami.
+  Nalozi bez lokalne lozinke (Entra) ovdje nemaju obavezu jer drugi faktor vodi Microsoft.
+- **Zašto:** najprivilegovaniji nalog je i break-glass ulaz u sistem, pa je drugi faktor na njemu obavezan.
+- **Primjer:** ADMIN pokuša isključiti potvrdu u dva koraka → dugme je skriveno, a server vraća
+  `MFA_REQUIRED_CANNOT_DISABLE`.
+- **Postavke / permisije:** `private.auth.mfa.requiredForAdmins`, `private.auth.mfa.allowOptional`.
+- **Ekran:** Prijava → **Potvrda u dva koraka**; Moj profil → **Sigurnost naloga**.
+- **Izvori:** `backend/src/modules/authentication/security/account-security-rules.ts:16–22`,
+  `security/mfa.service.ts:182–190`
+- **Status:** Važi
+- **Wiki stranica:** Početak → Prijava i MFA
+
+### T19 — Redoslijed prijave: lozinka → promjena lozinke → drugi faktor
+
+- **Modul / paket:** Prijava i MFA · 2.1
+- **Publika:** Svi korisnici
+- **Tip:** Pravilo
+- **Teza:** Poslije ispravne lozinke prvo ide prisilna promjena lozinke (ako je privremena ili istekla), pa
+  potvrda u dva koraka. Međukorak promjene lozinke traje 15 minuta, a međukorak drugog faktora 5 minuta i
+  jednokratan je; istekom se vraća na početak prijave.
+- **Zašto:** korisnik koji mora promijeniti lozinku ne dobija sesiju prije nego što to uradi, a kratki tokeni
+  ograničavaju prozor zloupotrebe.
+- **Primjer:** Korisnik sa privremenom lozinkom i uključenom potvrdom prolazi oba koraka prije nego što vidi
+  aplikaciju.
+- **Postavke / permisije:** bez postavke (konstante u kodu).
+- **Ekran:** `/login` — **Promijenite lozinku**, zatim **Potvrda u dva koraka**.
+- **Izvori:** `backend/src/modules/authentication/authentication.service.ts:204–271`,
+  `authentication.constants.ts:7,11`
+- **Status:** Važi
+- **Wiki stranica:** Početak → Prijava i MFA
+
+### T20 — Rezervni kodovi se prikazuju jednom i vrijede jednokratno
+
+- **Modul / paket:** Prijava i MFA · 2.1
+- **Publika:** Svi korisnici
+- **Tip:** Zamka
+- **Teza:** Poslije upisa potvrde u dva koraka dobija se 10 rezervnih kodova formata `xxxxx-xxxxx`. Prikazuju se
+  samo tada; svaki je jednokratan. Novi kodovi se generišu uz potvrdu kodom iz aplikacije i time stari prestaju
+  važiti.
+- **Zašto:** rezervni kodovi su jedini ulaz kad telefon nije dostupan; ako se ne sačuvaju, ostaje samo reset kod
+  administratora.
+- **Primjer:** Korisnik iskoristi jedan rezervni kod pri prijavi — taj kod više ne radi, a preostali broj se vidi
+  na **Sigurnost naloga**.
+- **Postavke / permisije:** bez postavke; koristi se kod upisa, prijave i regeneracije.
+- **Ekran:** Prijava → **Rezervni kodovi** (**Kopiraj**, **Preuzmi .txt**); Moj profil → **Sigurnost naloga** →
+  **Novi rezervni kodovi**.
+- **Izvori:** `backend/src/modules/authentication/security/recovery-codes.ts:3–26`,
+  `security/mfa.service.ts:216–228`
+- **Status:** Važi
+- **Wiki stranica:** Početak → Prijava i MFA
+
+### T21 — Entra nalozi: drugi faktor vodi Microsoft
+
+- **Modul / paket:** Prijava i MFA · 1.8 / 2.1
+- **Publika:** Svi korisnici | Administratori
+- **Tip:** Pravilo
+- **Teza:** Kada je način prijave `entra_ad`, korisnici se prijavljuju Microsoft nalogom, a pravila pristupa i
+  drugi faktor podešava Microsoft; naš TOTP se za te naloge ne primjenjuje (na stranici **Sigurnost naloga** to
+  piše umjesto polja za lozinku). Lokalni SuperAdmin ostaje break-glass ulaz.
+- **Zašto:** dupliranje drugog faktora bi zbunilo korisnike i oslabilo jedinstvenu politiku pristupa.
+- **Primjer:** Korisnik bez lokalne lozinke na **Sigurnost naloga** vidi „Vaš nalog nema lokalnu lozinku —
+  lozinkom upravlja Microsoft.“ i nema dugme za upis potvrde.
+- **Postavke / permisije:** `private.auth.mode`; `private.auth.entra.*`.
+- **Ekran:** `/login` — **Prijava preko Microsoft naloga**; Moj profil → **Sigurnost naloga**.
+- **Izvori:** `backend/src/modules/authentication/authentication.service.ts:215–218`,
+  `authentication-providers.service.ts:30–59`, `frontend/src/components/account-security/mfa-section.tsx:33–35`
+- **Status:** Važi
+- **Wiki stranica:** Početak → Prijava i MFA
+
+### T22 — Neuspjela prijava: 5 pokušaja u 15 minuta, bez otkrivanja naloga
+
+- **Modul / paket:** Prijava i MFA · 2.1
+- **Publika:** Svi korisnici
+- **Tip:** Pravilo
+- **Teza:** Neuspjeli pokušaji prijave broje se 15 minuta (5 pokušaja), a poruka je uvijek ista bez obzira na to
+  postoji li email adresa. Poslije prekoračenja prijava se odbija 15 minuta; uspješna prijava poništava brojač.
+- **Zašto:** sprječava pogađanje lozinke i ne otkriva postoji li nalog.
+- **Primjer:** Pet pogrešnih lozinki za isti email daje **429** i poruku o previše pokušaja; tačna lozinka poslije
+  toga ne prolazi dok prozor ne istekne.
+- **Postavke / permisije:** nije postavka (konstanta); brojač živi u Redisu.
+- **Ekran:** `/login` — poruka ispod forme.
+- **Izvori:** `backend/src/modules/authentication/login-attempt-limiter.ts:17–30`,
+  `frontend/src/i18n/locales/bs/common.json` (`session.errorRateLimited`)
+- **Status:** Važi
+- **Wiki stranica:** Početak → Prijava i MFA
+
 ## Paket 2.9 – K1 portal znanja (implementirano)
 
 - Baza znanja otvara se na kartici **Portal**: FAQ, kategorije (najviše dva nivoa) i članci bez kategorije. Kartica **Svi članci** zadržava dosadašnju pretragu; **Uvidi** vide samo urednici.
