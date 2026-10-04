@@ -5479,3 +5479,57 @@ navedeni u §3 ili u redu prioriteta; nijedan nije KRITIČNO ni VISOKO, pa val 2
 Val 2 — **sigurnost i vidljivost** (`# Zaključak Faze 2`, §4): serverska provjera šablona pri slanju
 (M13 B1), zamjena ličnih podataka pri upisu članka (M14 B1), redakcija broadcasta (M12 B2), `DRAFT` samo
 adminima (M6 B2), kapija odobrenja za `UNROUTED` (M9 B1)... redoslijed je u tabeli valova.
+
+# Val 2 — sigurnost i vidljivost (2026-10-04)
+
+Drugi val popravki iz zaključka Faze 2 (`# Zaključak Faze 2`, §4): deset nalaza koji su svi govorili isto —
+**sistem je znao pravi podatak, ali ga nije provjeravao (šablon, lični podaci, nacrt usluge), nije ga
+dostavljao (obavještenje o odobrenju, eskalacija) ili ga uopšte nije zapisivao (retention priloga, prvi
+odgovor).** Sve popravke su u kodu, sa testovima i statičkim provjerama; ništa nije „pripremljeno“ bez
+izvršnog puta.
+
+## 1. Šta je popravljeno
+
+| Nalaz | Popravka | Dokaz (kod) |
+|---|---|---|
+| **M13 B1** (`SREDNJE`) — deaktiviran ili „interni“ šablon može se poslati kao javni odgovor | Novi `assert-response-template-usable.ts` provjerava **postojanje, aktivnost i vrstu** šablona prije nego što se poruka upiše; `create-ticket-message.ts` mapira greške u `RESPONSE_TEMPLATE_NOT_FOUND` / `_INACTIVE` / `_KIND_MISMATCH`, a `usageCount` se povećava **samo** za upotrebljen šablon | `backend/src/modules/templates/assert-response-template-usable.ts` (nov), `tickets/create-ticket-message.ts`, `tickets/{tickets.error.ts,map-ticket-error.ts}`, `templates/{response-templates.service.ts,dto/templates.dto.ts,response-templates.controller.ts}`, `knowledge-base/portal/knowledge-portal.service.ts` |
+| **M14 B1** (`SREDNJE`) — zaštita ličnih podataka postoji u pregledu, ne i pri upisu članka | `createFromReply` ponovo zamjenjuje lične podatke pri upisu članka i vraća `sanitized` / `replacements`; radnja ide u audit (`knowledge.article.reply_redacted`) | `backend/src/modules/knowledge-base/portal/knowledge-portal.service.ts` (+ `knowledge-portal.from-reply.spec.ts`), `frontend/src/components/knowledge-base/portal/article-from-reply-sheet.tsx`, `frontend/src/services/knowledge-portal-api.ts` |
+| **M12 B2** (`SREDNJE`) — bulk broadcast ne prolazi redakciju | Novi `redact-bulk-broadcast.ts`: `rawBody` se skenira `scanTicketContent` poljem `chat_message`, crveni `redactSensitiveText`; pogoci se bilježe sistemskim događajem `ticket_redaction_warned:<patternId>` **po tiketu**, prije in-app i e-mail kanala | `backend/src/modules/tickets/bulk/redact-bulk-broadcast.ts` (nov), `bulk/apply-bulk-broadcast.ts`, `bulk/apply-bulk-broadcast.email.spec.ts` |
+| **M6 B2** (`SREDNJE`) — `DRAFT` usluge i njihove forme vidljive svakom prijavljenom korisniku | Novi `service-visible-lifecycles.ts` (ADMIN/SUPER_ADMIN: sva stanja; AGENT: `ACTIVE|DEPRECATED`; korisnik: `ACTIVE`); `list-services` filtrira `lifecycle: { in: … }`, a `get-service` / `get-service-form(-version)` vraćaju `NOT_FOUND` za skriveno stanje; kontroleri su **fail-closed** (`roleKeys ?? []`) | `backend/src/modules/service-catalog/service-visible-lifecycles.ts` (nov, + spec), `list-services.ts`, `get-service.ts`, `get-service-form.ts`, `get-service-form-version.ts`, `service-catalog.service.ts`, `service-forms.service.ts`, `services.controller.ts`, `service-forms.controller.ts`, `create-in-memory-service-delegate.ts` |
+| **M8 B1** (`SREDNJE`) — `private.ticket.attachments.retentionDays` se čita, ali se ne primjenjuje | Konfiguracija priloga **više ne nosi** rok (tip, default, parser, loader) — drugi rok ne postoji; brisanje pripada isključivo modulu privatnosti (`private.privacy.retention.attachmentsDays`, kategorija `attachments`); stara postavka ostaje registrovana, ali sa opisom „zastarjelo i bez dejstva“ (i18n bs/en) | `backend/src/modules/tickets/attachments/{attachments.types.ts,attachments.constants.ts,parse-ticket-attachment-configuration.ts,ticket-attachment-configuration.loader.ts}` (+ `attachments.constants.spec.ts`), `settings/definitions/ticket-attachment-settings.ts`, `frontend/src/i18n/locales/{bs,en}/common.json` |
+| **M9 B1** (`SREDNJE`) — obavještenje o odobrenju ne može stići nikome | Novi `resolve-approval-notification-recipients.ts`: primaoci zahtjeva su nosioci `defaultApproverRole` **unutar OU/servis scope-a tiketa** (ista pravila kao `canDecideTicketApproval`), uz postojeće `APPROVER` učesnike; kad nijedan ne pokriva scope → grupa tiketa; odluka se vraća naručiocu | `backend/src/modules/notifications/fan-out/resolve-approval-notification-recipients.ts` (nov, + spec), `resolve-notification-recipients.ts`, `fan-out-in-app-notifications.ts`, `email/fan-out-email-notifications.ts`, `notifications-fan-out.service.ts` (`loadApprovals`), `tickets/tickets.module.ts` |
+| **M9 B2** (`SREDNJE`) — tiket koji počne kao `UNROUTED` nikad ne prolazi odobrenje | Novi `ensure-ticket-approval-gate.ts` (idempotentno: servis traži odobrenje + nema nijednog zapisa odobrenja → `PENDING_APPROVAL` + zapis + `ticket_approval_requested`); zove se pri izlasku iz `UNROUTED` u `applyTicketForward`, i za pojedinačni i za bulk `assign_group` | `backend/src/modules/tickets/approvals/ensure-ticket-approval-gate.ts` (nov, + spec), `forwarding/forward-ticket.ts`, `forwarding/tickets-forwarding.service.ts`, `bulk/{bulk.types.ts,apply-bulk-assign.ts,tickets-bulk.service.ts}`, `create-tickets-governance-harness.ts` |
+| **M10 B1** (`SREDNJE`) — eskalacija iz implicitnog pravila ne obavještava nikoga | Kad `SlaEscalationRule` ne postoji (ugrađeno pravilo `default`), primaoci su **zaduženi korisnik i članovi grupe tiketa** umjesto prazne liste | `backend/src/modules/notifications/fan-out/resolve-sla-notification-recipients.ts`, `resolve-sla-escalation-recipients.spec.ts` |
+| **M10 B2** (`SREDNJE`) — satovi se ne uspostavljaju retroaktivno | Novi `backfill-missing-ticket-sla-states.ts`: svaki ciklus skenera uspostavi sat za **ograničen batch** (25) otvorenih tiketa bez stanja; sat počinje od `createdAt`, događaj je neutralni `scanned` (ne izmišlja prvi odgovor); `TicketSlaTimersService.scanDue` spaja due stanja i backfill | `backend/src/modules/sla/backfill-missing-ticket-sla-states.ts` (nov, + spec), `sla/ticket-sla-timers.service.ts`, `sla/sla.constants.ts` (`slaBackfillBatchSize = 25`) |
+| **M10 B4** (`SREDNJE`) — `ticket.firstResponseAt` postoji samo ako SLA modul radi | `create-ticket-message.ts` upisuje `firstResponseAt` na **prvi `AGENT_REPLY`**, nezavisno od SLA-a (idempotentno; SLA nastavlja po svom putu) | `backend/src/modules/tickets/create-ticket-message.ts`, `tickets/tickets.messages.spec.ts` |
+
+**Nove i izmijenjene stranice u vodiču:** `docs/user-guide/odobrenja-i-csat.md` (kome stiže obavještenje i
+kada se otvara kapija), `user-guide/sla.md` (eskalacije bez pravila, retroaktivno uspostavljanje satova, prvi
+odgovor bez SLA-a), `user-guide/tiketi.md` (retencija priloga), `user-guide/baza-znanja.md` (zamjena ličnih
+podataka pri upisu članka), `user-guide/posta.md` (redakcija broadcasta), `user-guide/katalog-usluga-i-forme.md`
+(vidljivost nacrta) i `DOCS_CHANGELOG.md`.
+
+## 2. Dokazi (izvršeno u ovom okruženju)
+
+- **Backend:** `npx tsc --noEmit` → **0** poslije svake popravke; `jest src/modules/notifications` → **27
+  suita / 139 testova** (4 nova u `resolve-approval-notification-recipients.spec.ts`); `jest src/modules/tickets`
+  → **96 suita / 541 test** (3 nova u `ensure-ticket-approval-gate.spec.ts`, 1 u `tickets.messages.spec.ts`);
+  `jest src/modules/sla src/modules/tickets src/modules/notifications` → **148 suita / 750 testova**; ranije u
+  istom valu: `jest src/modules/tickets/attachments` → 3 / 13 (2 nova u `attachments.constants.spec.ts`),
+  `jest src/modules/tickets src/modules/privacy src/modules/settings` → 126 / 667, `jest src/modules/bulk` → 3 / 7,
+  `jest src/modules/service-catalog` → 20 / 78 (s bulk 24 / 88), `jest src/modules/templates` → 20,
+  `jest src/modules/knowledge-base` → 40.
+- **Frontend:** `npx vitest run` → **157 fajlova / 627 testova, 0 padova**; `npx tsc -b` → 0.
+- **Statičke provjere:** svi `scripts/check-*.mjs` prolaze, uključujući `check-workflows-yaml`, `check-docs-content`
+  (poslije regeneracije ogledala) i `check-ticket-id-leaks`.
+- **Sopstvene greške u istom valu (zapisane da se ne ponove):** prva verzija `M10 B2` testa je očekivala
+  `Date` u polju gdje odgovor servisa nosi `string`; prva verzija `M9 B2` testa je koristila
+  `memory.ticketApprovals` (mapa nije izložena iz `create-in-memory-tickets-prisma`) i nepostojeći
+  `seedGroupMembershipForGate`; prva verzija `M10 B4` testa je čitala `reply.ticket` (response nema to polje).
+  Sve tri su ispravljene prije commit-a.
+
+## 3. Šta ostaje otvoreno iz vala 2
+
+| # | Stavka | Zašto nije zatvorena | Procjena |
+|---|---|---|---|
+| 1 | **18 registriranih postavki bez ijedne reference van definicija** — `publicMaintenance*` (7), `privateChangeLog*` (5), `privateAddons*` (4), `privateIntegrationsTeamsAppShortName` / `…AppDescription` | Nije greška u ponašanju (nijedan ekran ih ne obećava), ali je mrtva površina u registru postavki; uklanjanje je odluka vlasnika (neke su priprema za Teams/održavanje). Zabilježeno ovdje da se ne otkriva ponovo | ~0,5 RD (odluka + uklanjanje ili oznaka) |
