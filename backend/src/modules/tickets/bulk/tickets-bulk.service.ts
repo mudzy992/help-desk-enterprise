@@ -1,5 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { TemplatesConfigurationLoader } from '../../templates/templates-configuration.loader';
+import { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
 import { TicketForwardingConfigurationLoader } from '../forwarding/ticket-forwarding-configuration.loader';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
@@ -42,6 +43,7 @@ export class TicketsBulkService {
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
     private readonly forwardingConfigurationLoader: TicketForwardingConfigurationLoader,
+    private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
     @Optional()
     private readonly templatesLoader?: TemplatesConfigurationLoader,
   ) {}
@@ -140,6 +142,10 @@ export class TicketsBulkService {
           configuration:
             body.actionType === 'assign_group'
               ? await this.forwardingConfigurationLoader.load()
+              : null,
+          approvals:
+            body.actionType === 'assign_group'
+              ? await this.approvalsConfigurationLoader.load()
               : null,
         },
         playbookMode:

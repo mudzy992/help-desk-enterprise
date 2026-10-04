@@ -5,6 +5,7 @@ import { buildNotificationContent } from './build-notification-content';
 import { insertGroupNotification } from './insert-group-notification';
 import { mapTicketEventToNotification } from './map-ticket-event-to-notification';
 import { insertNotificationBatch } from './insert-notification-batch';
+import type { TicketApprovalsConfiguration } from '../../tickets/approvals/approvals.types';
 import { resolveNotificationAudience } from './resolve-notification-recipients';
 import type { NotificationPreferencePolicy } from '../preferences/notification-preference-policy';
 import {
@@ -30,6 +31,8 @@ export async function fanOutInAppNotifications(
   payload: TicketRealtimeMessagePayload,
   /** Paket 2.2: personal preferences; absent = everyone as before. */
   policy?: NotificationPreferencePolicy,
+  /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
+  approvals?: TicketApprovalsConfiguration,
 ): Promise<FannedOutNotifications> {
   const mapped = mapTicketEventToNotification(payload);
   if (mapped === null) {
@@ -48,6 +51,7 @@ export async function fanOutInAppNotifications(
     event: mapped.event,
     messageBody: payload.body,
     messageId: payload.id,
+    approvals,
   });
   const content = buildNotificationContent(
     mapped,

@@ -23,6 +23,10 @@ import {
 } from './dispatch-sla-runtime-notification';
 import { fanOutInAppNotifications } from './fan-out-in-app-notifications';
 import { publishCreatedNotifications } from './publish-created-notifications';
+import { TicketApprovalsConfigurationLoader } from '../../tickets/approvals/ticket-approvals-configuration.loader';
+import type { TicketApprovalsConfiguration } from '../../tickets/approvals/approvals.types';
+import { notificationTypes } from '../notifications.constants';
+import { mapTicketEventToNotification } from './map-ticket-event-to-notification';
 import { NotificationUnreadCountCache } from '../notification-unread-count.cache';
 import { enqueueEdgeNotificationEvents } from './enqueue-edge-notification-events';
 import {
@@ -44,6 +48,7 @@ export class NotificationsFanOutService
     private readonly enqueueIntegrationJobService: EnqueueIntegrationJobService,
     @Inject(MAIL_TRANSPORT) private readonly mailTransport: MailTransport,
     private readonly unreadCountCache: NotificationUnreadCountCache,
+    private readonly approvalsConfigurationLoader: TicketApprovalsConfigurationLoader,
   ) {}
 
   onModuleInit(): void {
@@ -71,12 +76,43 @@ export class NotificationsFanOutService
     await this.deliverEmail(payload, policy);
   }
 
+  /**
+   * Val 2 (M9/B1): only `ticket.approval` needs to know who may approve; every
+   * other event must not pay for a settings round-trip. A configuration that
+   * cannot be loaded degrades to the built-in defaults instead of dropping the
+   * notification (see `resolveApprovalNotificationRecipients`).
+   */
+  private async loadApprovals(
+    payload: TicketRealtimeMessagePayload,
+  ): Promise<TicketApprovalsConfiguration | undefined> {
+    if (
+      mapTicketEventToNotification(payload)?.type !==
+      notificationTypes.ticketApproval
+    ) {
+      return undefined;
+    }
+    try {
+      return await this.approvalsConfigurationLoader.load();
+    } catch (error) {
+      this.logger.warn(
+        `Could not load the approvals configuration for ticket ${payload.ticketId}`,
+        error instanceof Error ? error.message : String(error),
+      );
+      return undefined;
+    }
+  }
+
   private async persistInApp(
     payload: TicketRealtimeMessagePayload,
     policy: NotificationPreferencePolicy,
   ): Promise<void> {
     try {
-      const created = await fanOutInAppNotifications(this.prisma, payload, policy);
+      const created = await fanOutInAppNotifications(
+        this.prisma,
+        payload,
+        policy,
+        await this.loadApprovals(payload),
+      );
       await publishCreatedNotifications(
         this.prisma,
         this.ticketRealtimeHub,
@@ -113,6 +149,7 @@ export class NotificationsFanOutService
         payload,
         await this.emailWorkHandler(configuration),
         policy,
+        await this.loadApprovals(payload),
       );
     } catch (error) {
       this.logger.error(

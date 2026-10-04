@@ -74,6 +74,7 @@ export function createTicketsGovernanceHarness(input: {
     input.accessPolicies,
     input.realtimeHub,
     { load: async () => ({ ...forwardingConfig }) } as never,
+    input.approvalsLoader as never,
   );
   const savedViews = new TicketsSavedViewsService(
     input.prisma as never,

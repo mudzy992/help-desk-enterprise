@@ -177,6 +177,7 @@ import { TicketPresenceService } from './collaboration-extras/presence/ticket-pr
     TicketRealtimeHub,
     TicketAccessPolicyBinder,
     TicketCloseCodesConfigurationLoader,
+    TicketApprovalsConfigurationLoader,
   ],
 })
 export class TicketsModule {}

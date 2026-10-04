@@ -2,6 +2,7 @@ import type { TicketPriority, TicketStatus } from '../../../generated/prisma/enu
 import type { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import type { TicketForwardingConfiguration } from '../forwarding/forwarding.types';
 import type { TicketResponse } from '../tickets.types';
+import type { TicketApprovalsConfiguration } from '../approvals/approvals.types';
 
 export const ticketBulkActionTypes = [
   'assign_group',
@@ -77,4 +78,9 @@ export type BulkForwardingDependencies = {
   readonly authorizationContextLoader: AuthorizationContextLoader;
   /** Loaded only for `assign_group`; null for the other action types. */
   readonly configuration: TicketForwardingConfiguration | null;
+  /**
+   * Val 2 (M9/B2): loaded only for `assign_group`, so a bulk hand-over of an
+   * `UNROUTED` ticket cannot slip past the approval gate either.
+   */
+  readonly approvals: TicketApprovalsConfiguration | null;
 };

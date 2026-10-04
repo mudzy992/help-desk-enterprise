@@ -4,6 +4,7 @@ import type { TicketRealtimeMessagePayload } from '../../tickets/collaboration.t
 import { notificationTypes } from '../notifications.constants';
 import { mapTicketEventToNotification } from '../fan-out/map-ticket-event-to-notification';
 import { resolveNotificationRecipients } from '../fan-out/resolve-notification-recipients';
+import type { TicketApprovalsConfiguration } from '../../tickets/approvals/approvals.types';
 import type { EmailChannelConfiguration } from './load-email-channel-configuration';
 import { isAllowedNotificationEmailAddress } from './is-allowed-notification-email-address';
 import type { MailTransport } from './mail-transport';
@@ -35,6 +36,8 @@ export async function fanOutEmailNotifications(
   workHandler?: OutboundEmailWorkHandler,
   /** Paket 2.2: personal preferences; absent = everyone immediately (as before). */
   policy?: NotificationPreferencePolicy,
+  /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
+  approvals?: TicketApprovalsConfiguration,
 ): Promise<void> {
   if (!configuration.deliveryEnabled || configuration.smtp === null) {
     return;
@@ -59,6 +62,7 @@ export async function fanOutEmailNotifications(
     event: mapped.event,
     messageBody: payload.body,
     messageId: payload.id,
+    approvals,
   });
   if (recipientIds.length === 0) {
     return;

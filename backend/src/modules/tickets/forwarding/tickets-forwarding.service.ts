@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuthorizationContextLoader } from '../../authorization/authorization-context.loader';
 import { TicketAssignmentService } from '../assignment/ticket-assignment.service';
+import { TicketApprovalsConfigurationLoader } from '../approvals/ticket-approvals-configuration.loader';
 import { TicketCloseCodesConfigurationLoader } from '../close-codes/ticket-close-codes-configuration.loader';
 import type { TicketPersistedMessageSink } from '../collaboration.types';
 import { executeTicketOperation } from '../execute-ticket-operation';
@@ -34,6 +35,7 @@ export class TicketsForwardingService {
     private readonly redactionLoader: TicketRedactionConfigurationLoader,
     private readonly reopenLoader: TicketReopenConfigurationLoader,
     private readonly closeCodesLoader: TicketCloseCodesConfigurationLoader,
+    private readonly approvalsLoader: TicketApprovalsConfigurationLoader,
     private readonly ticketAssignmentService: TicketAssignmentService,
     private readonly accessPolicies: TicketAccessPolicyBinder,
     private readonly realtimeHub: TicketRealtimeHub,
@@ -46,12 +48,14 @@ export class TicketsForwardingService {
   ) {
     return executeTicketOperation(async () => {
       const gated = await this.accessPolicies.bind(context);
-      const [configuration, redaction, reopen, closeCodes] = await Promise.all([
-        this.configurationLoader.load(),
-        this.redactionLoader.load(),
-        this.reopenLoader.load(),
-        this.closeCodesLoader.load(),
-      ]);
+      const [configuration, redaction, reopen, closeCodes, approvals] =
+        await Promise.all([
+          this.configurationLoader.load(),
+          this.redactionLoader.load(),
+          this.reopenLoader.load(),
+          this.closeCodesLoader.load(),
+          this.approvalsLoader.load(),
+        ]);
       const before = await this.prisma.ticket.findUnique({
         where: { id: ticketId },
         select: { assignedGroupId: true, assignedUserId: true },
@@ -66,6 +70,7 @@ export class TicketsForwardingService {
         body: input,
         context: gated,
         messages,
+        approvals,
       });
       // The target group's own auto-assign strategy applies, as for a new ticket.
       const assigned: TicketRecord =

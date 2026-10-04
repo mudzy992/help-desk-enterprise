@@ -27,6 +27,8 @@ import { syncHandlerGroupParticipant } from '../sync-handler-group-participant';
 import { ticketChangeLogReasons } from '../tickets.constants';
 import { TicketsError } from '../tickets.error';
 import type { TicketMutationContext, TicketRecord } from '../tickets.types';
+import { ensureTicketApprovalGate } from '../approvals/ensure-ticket-approval-gate';
+import type { TicketApprovalsConfiguration } from '../approvals/approvals.types';
 import {
   forwardableTicketStatuses,
   ticketForwardingConstants,
@@ -70,6 +72,8 @@ export async function forwardTicket(input: {
   readonly body: ForwardTicketInput;
   readonly context: TicketMutationContext;
   readonly messages: TicketPersistedMessageSink;
+  /** Val 2 (M9/B2): approval gate for a ticket entering processing. */
+  readonly approvals?: TicketApprovalsConfiguration;
 }): Promise<TicketRecord> {
   const loaded = await loadAccessibleTicket(
     input.prisma,
@@ -104,6 +108,7 @@ export async function forwardTicket(input: {
     keepMeAsWatcher: input.body.keepMeAsWatcher === true,
     viaBulk: false,
     messages: input.messages,
+    approvals: input.approvals,
   });
 }
 
@@ -180,6 +185,8 @@ export async function applyTicketForward(input: {
   readonly viaBulk: boolean;
   readonly batchId?: string | null;
   readonly messages: TicketPersistedMessageSink;
+  /** Val 2 (M9/B2): approval gate for a ticket entering processing. */
+  readonly approvals?: TicketApprovalsConfiguration;
 }): Promise<TicketRecord> {
   const { plan } = input;
   const before = plan.ticket;
@@ -209,6 +216,14 @@ export async function applyTicketForward(input: {
             }),
       },
     })) as TicketRecord;
+    const gated = await applyApprovalGate({
+      prisma: tx,
+      ticket: after,
+      before,
+      approvals: input.approvals,
+      actorUserId: input.actorUserId,
+      messages: input.messages,
+    });
     await rewriteParticipants(tx, {
       before,
       after,
@@ -275,8 +290,40 @@ export async function applyTicketForward(input: {
         detail: event.id,
       }),
     );
-    return after;
+    return gated;
   });
+}
+
+/**
+ * A forward is the only transition out of `UNROUTED` (workflow definition:
+ * `UNROUTED → PENDING`, trigger `forward`). When the service asks for an
+ * approval and the ticket never got one, the gate closes here — before the new
+ * group starts working.
+ */
+async function applyApprovalGate(input: {
+  readonly prisma: PrismaService;
+  readonly ticket: TicketRecord;
+  readonly before: TicketRecord;
+  readonly approvals: TicketApprovalsConfiguration | undefined;
+  readonly actorUserId: string;
+  readonly messages: TicketPersistedMessageSink;
+}): Promise<TicketRecord> {
+  if (input.approvals === undefined || input.before.status !== 'UNROUTED') {
+    return input.ticket;
+  }
+  const service = await input.prisma.service.findUnique({
+    where: { id: input.ticket.serviceId },
+    select: { requiresApproval: true },
+  });
+  const result = await ensureTicketApprovalGate({
+    prisma: input.prisma,
+    ticket: input.ticket,
+    configuration: input.approvals,
+    serviceRequiresApproval: service?.requiresApproval ?? false,
+    actorUserId: input.actorUserId,
+    messages: input.messages,
+  });
+  return result.ticket;
 }
 
 export function assertForwardableTicket(ticket: TicketRecord): void {

@@ -107,6 +107,7 @@ async function forwardBulkTickets(input: {
         viaBulk: true,
         batchId: input.batchId,
         messages: input.messages,
+        approvals: input.forwarding.approvals ?? undefined,
       }),
     );
   }

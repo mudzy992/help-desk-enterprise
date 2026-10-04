@@ -11,6 +11,8 @@ import {
   notificationTypes,
   type NotificationType,
 } from '../notifications.constants';
+import type { TicketApprovalsConfiguration } from '../../tickets/approvals/approvals.types';
+import { resolveApprovalNotificationRecipients } from './resolve-approval-notification-recipients';
 import { resolveSlaNotificationRecipients } from './resolve-sla-notification-recipients';
 import { filterFollowersWithAccess } from './follower-access-filter';
 
@@ -24,6 +26,8 @@ export async function resolveNotificationRecipients(
     readonly messageBody?: string;
     /** Paket 2.4: the triggering message (an internal note's @mentions). */
     readonly messageId?: string;
+    /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
+    readonly approvals?: TicketApprovalsConfiguration;
   },
 ): Promise<readonly string[]> {
   const recipients = await collectRecipients(prisma, input);
@@ -64,6 +68,8 @@ export async function resolveNotificationAudience(
     readonly messageBody?: string;
     /** Paket 2.4: the triggering message (an internal note's @mentions). */
     readonly messageId?: string;
+    /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
+    readonly approvals?: TicketApprovalsConfiguration;
   },
 ): Promise<NotificationAudience> {
   const groupId = input.ticket.assignedGroupId;
@@ -194,6 +200,8 @@ async function collectRecipients(
     readonly messageBody?: string;
     /** Paket 2.4: the triggering message (an internal note's @mentions). */
     readonly messageId?: string;
+    /** Val 2 (M9/B1): who may approve — needed for `ticket.approval` recipients. */
+    readonly approvals?: TicketApprovalsConfiguration;
   },
 ): Promise<readonly string[]> {
   switch (input.type) {
@@ -209,7 +217,11 @@ async function collectRecipients(
     case notificationTypes.ticketClosed:
       return [input.ticket.requesterId, ...(await followerUserIds(prisma, input.ticket.id))];
     case notificationTypes.ticketApproval:
-      return participantUserIds(prisma, input.ticket.id, 'APPROVER');
+      return resolveApprovalNotificationRecipients(prisma, {
+        ticket: input.ticket,
+        event: input.event,
+        configuration: input.approvals,
+      });
     case notificationTypes.ticketSla:
       return resolveSlaNotificationRecipients(prisma, input);
     case notificationTypes.remoteRequested:
