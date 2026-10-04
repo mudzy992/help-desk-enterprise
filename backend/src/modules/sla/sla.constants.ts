@@ -35,6 +35,13 @@ export const defaultSlaEscalationRuleId = 'default';
  */
 export const slaScanBatchSize = 2000;
 
+/**
+ * Val 2 (M10/B2): how many open tickets without an SLA state one scan cycle
+ * backfills. Deliberately small — each backfill starts a clock (service,
+ * profile, rules, calendar), so the rest waits for the next cycle.
+ */
+export const slaBackfillBatchSize = 25;
+
 export const slaConstants = {
   maximumKeyLength: 64,
   maximumNameLength: 120,

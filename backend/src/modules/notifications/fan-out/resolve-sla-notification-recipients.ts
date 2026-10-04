@@ -24,7 +24,7 @@ export async function resolveSlaNotificationRecipients(
     if (ruleId === null) {
       return [];
     }
-    return resolveEscalationTargetRecipients(prisma, ruleId, input.ticket.id);
+    return resolveEscalationTargetRecipients(prisma, ruleId, input.ticket);
   }
   return [
     ...(input.ticket.assignedUserId === null
@@ -48,7 +48,7 @@ function parseEscalationRuleId(messageBody: string | undefined): string | null {
 async function resolveEscalationTargetRecipients(
   prisma: PrismaService,
   ruleId: string,
-  ticketId: string,
+  ticket: TicketRecord,
 ): Promise<readonly string[]> {
   const rule = await prisma.slaEscalationRule.findUnique({
     where: { id: ruleId },
@@ -60,7 +60,14 @@ async function resolveEscalationTargetRecipients(
     },
   });
   if (rule === null) {
-    return [];
+    // Val 2 (M10/B1): a profile without escalation rules fires the implicit
+    // rule (`id: 'default'`), which has no row in the database. The recipients
+    // were therefore empty and the escalation reached nobody. Fall back to the
+    // people actually handling the ticket.
+    return [
+      ...(ticket.assignedUserId === null ? [] : [ticket.assignedUserId]),
+      ...(await groupMemberUserIds(prisma, ticket.assignedGroupId)),
+    ];
   }
   if (rule.targetUserId !== null) {
     return [rule.targetUserId];
@@ -80,7 +87,7 @@ async function resolveEscalationTargetRecipients(
       await recordAuditEntry(prisma as unknown as AuditLogTransactionalClient, {
         action: auditLogActions.onCallEscalationNotified,
         entityType: auditLogEntityTypes.ticket,
-        entityId: ticketId,
+        entityId: ticket.id,
         metadata: { ruleId, groupId: rule.targetGroupId, userId: onCallUserId },
         actorUserId: null,
       }).catch(() => undefined);

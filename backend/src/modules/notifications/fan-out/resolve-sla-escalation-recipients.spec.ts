@@ -42,6 +42,35 @@ describe('resolveNotificationRecipients SLA escalation targets', () => {
     expect(recipients).toEqual([ticketsTestIds.agentIt]);
   });
 
+  it('val 2 (M10/B1): implicitno pravilo bez reda u bazi obavjestava grupu i zaduzenog', async () => {
+    const harness = createTicketsServiceHarness();
+    harness.memory.seedGroupMember({
+      groupId: ticketsTestIds.groupIt,
+      userId: ticketsTestIds.agentIt,
+    });
+    const recipients = await resolveNotificationRecipients(
+      harness.memory.prisma as never,
+      {
+        type: notificationTypes.ticketSla,
+        event: ticketSystemEventActions.slaResponseEscalated,
+        // Profil bez eksplicitnih pravila: `listDueSlaEscalations` tada koristi
+        // ugradjeno pravilo `default`, koje nema red u `SlaEscalationRule`.
+        messageBody: `${ticketSystemEventActions.slaResponseEscalated}:default`,
+        actorUserId: null,
+        ticket: {
+          id: 'ticket-1',
+          assignedUserId: ticketsTestIds.agentItPeer,
+          assignedGroupId: ticketsTestIds.groupIt,
+          requesterId: ticketsTestIds.requester,
+        } as never,
+      },
+    );
+    expect(recipients).toEqual([
+      ticketsTestIds.agentItPeer,
+      ticketsTestIds.agentIt,
+    ]);
+  });
+
   it('notifies the configured user target for an escalation', async () => {
     const harness = createTicketsServiceHarness();
     const rule = await harness.memory.prisma.slaEscalationRule.create({
