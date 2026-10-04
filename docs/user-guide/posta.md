@@ -174,10 +174,14 @@ tags: [email, smtp, sabloni, dolazna-posta, broadcast, odsustvo]
 
 ## Poznata ograničenja
 
+- **Sadržaj broadcasta prolazi redakciju osjetljivih podataka** prije nego što ode primaocima: isto skeniranje i
+  ista pravila kao za odgovor u tiketu. Ako se pogodak nađe, tekst se u poruci zamjenjuje oznakom `[REDACTED]`,
+  a u tiket se upisuje sistemski događaj upozorenja (`ticket_redaction_warned`) — po tiketu, ne po primaocu.
+
 - **Zapis o isporuci nema rok.** Ako proces padne tačno između preuzimanja i slanja, taj e-mail se neće poslati
   ni pri ponovnom pokušaju, a nigdje se ne prikazuje kao neuspjeh. (Nalaz B1 iz §M12.)
-- **Bulk obavijest (broadcast) ne prolazi redakciju osjetljivih podataka.** Ostale poruke i e-mailovi prolaze.
-  (Nalaz B2.)
+- **Bulk obavijest (broadcast)** skenira se i rediguje prije slanja; pogodak se u tiketu bilježi kao sistemski
+  događaj upozorenja. (Nalaz B2 iz §M12 — zatvoren u valu 2.)
 - **Svaki e-mail otvara novu vezu prema SMTP serveru** — kod većeg broja primalaca to je sporije i povećava
   rizik od ograničenja provajdera. (Nalaz B3.)
 - **Ograničenje testnog slanja (pet u deset minuta) vrijedi po pokrenutom procesu**, pa se restartom resetuje.

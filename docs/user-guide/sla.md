@@ -211,22 +211,23 @@ tags: [sla, rokovi, kalendari, pravila, eskalacije, pauze]
 - **„Dosegnut je maksimalni broj nivoa eskalacije za ovaj profil.“** — obrišite ili izmijenite postojeće
   pravilo, ili podignite postavku maksimalnog broja nivoa.
 - **„Eskalacija je u tiketu, ali niko nije dobio obavještenje.“** — ako profil nema nijedno eskalaciono pravilo,
-  sistem bilježi eskalaciju po ugrađenom pravilu koje **nema metu** (vidi *Poznata ograničenja*).
+  sistem koristi ugrađeno pravilo; obavještenje tada ide **zaduženom agentu i članovima handler grupe** tiketa.
 - **„Nemam pristup SLA pravilima.“** — stranica je administratorska; poruka **Nema pristupa SLA** znači da
   korisnik nije u administratorskoj roli.
 
 ## Poznata ograničenja
 
-- **Eskalacija iz ugrađenog pravila ne obavještava nikoga.** Ako profil nema nijedno eskalaciono pravilo,
-  eskalacija se evidentira odmah u trenutku prekoračenja, ali bez primaoca — događaj je vidljiv u tiketu, a
-  obavještenje ne stiže ni grupi ni odgovornima. (Nalaz B1 iz §M10.)
-- **Satovi se ne uspostavljaju retroaktivno.** Tiket koji je kreiran prije nego što je servis dobio profil
-  (ili pravilo/kalendar) ostaje bez SLA stanja do sljedećeg događaja na tiketu; pozadinski skener samo
-  osvježava **postojeća** stanja. (Nalaz B2.)
+- **Eskalacija iz ugrađenog pravila** (profil bez eskalacionih pravila) obavještava zaduženog agenta i članove
+  handler grupe; eksplicitna pravila i dalje imaju prednost i svoje mete (rola, grupa, korisnik, dežurni).
+  (Nalaz B1 iz §M10 — zatvoren u valu 2.)
+- **Satovi se uspostavljaju i retroaktivno, u ograničenom batchu.** Pozadinski skener u svakom ciklusu uzme do
+  25 otvorenih tiketa **bez** SLA stanja i uspostavi sat od `createdAt`; tiket koji je propustio kreiranje
+  (servis tada nije imao profil/pravilo/kalendar) zato ulazi u nadzor najkasnije nekoliko ciklusa kasnije.
+  Zatvoreni i arhivirani tiketi se ne diraju. (Nalaz B2 — zatvoren u valu 2.)
 - **Izvještaj usklađenosti je samo po profilu i samo za završene tikete.** Nema razrade po organizacionoj
   jedinici, servisu ni grupi, a tiketi koji su prekoračili rok i još su otvoreni ne ulaze u procenat. (Nalaz B3.)
-- **„Prvi odgovor“ na tiketu zavisi od SLA modula.** Ako je SLA isključen ili tiket nema tajmere, kolona
-  **Prvi odgovor** ostaje prazna i pored agentskih odgovora. (Nalaz B4.)
+- **„Prvi odgovor“ na tiketu** bilježi se pri **prvom agentskom odgovoru**, nezavisno od SLA modula; SLA tajmer
+  i dalje računa svoj rok od tog trenutka. (Nalaz B4 — zatvoren u valu 2.)
 - **Polja iz RAW specifikacije za konfiguraciju kao JSON postavku ne postoje** — kalendari, profili, pravila i
   eskalacije se čuvaju u bazi i uređuju kroz ovu stranicu, a ne kroz `calendarsJson`/`profilesJson`/`rulesJson`.
   Postavka `escalations.inAppEnabled` takođe ne postoji: in-app obavještenje je uvijek uključeno, dok

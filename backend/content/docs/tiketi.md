@@ -173,8 +173,10 @@ povjerljive tikete određuju ko šta vidi (SuperAdmin **nema** automatski pristu
 
 ## Poznata ograničenja
 
-- **Politika zadržavanja priloga iz modula tiketa nema efekta**: postavka se čita, ali brisanje starih priloga
-  izvodi modul **Privatnost** prema svojim kategorijama zadržavanja. (Nalaz B1 iz §M8.)
+- **Politiku zadržavanja priloga vodi isključivo modul Privatnost** (kategorija *Prilozi*). Postavka
+  *Zadržavanje priloga* u modulu Tiketi je označena kao **zastarjela i bez dejstva** i ne briše ništa — ako je
+  trebate, uključite kategoriju u **Zaštita ličnih podataka → zadržavanje**. (Nalaz B1 iz §M8 — zatvoren u valu 2.)
+- **Kolona „Prvi odgovor“** puni se pri prvom agentskom odgovoru i ne zavisi od SLA modula.
 - **Ograničenje slanja broadcasta je po procesu**, pa u okruženju s više instanci stvarni limit može biti veći od
   podešenog. (Nalaz B2.)
 - **Dijeljenje sačuvanih pogleda je isključeno** bez obzira na postavku; pogledi su uvijek lični. (Nalaz B3.)

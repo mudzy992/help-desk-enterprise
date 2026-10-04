@@ -170,6 +170,11 @@ upozorenje. Varijabla bez vrijednosti postaje prazna i prijavljuje se prije slan
 
 ## Poznata ograničenja
 
+- **Šablon se provjerava u trenutku slanja, ne samo pri odabiru.** Deaktiviran šablon, tuđi šablon ili šablon
+  pogrešne vrste (npr. interni kao javni odgovor) server odbija kodovima `RESPONSE_TEMPLATE_NOT_FOUND`,
+  `RESPONSE_TEMPLATE_INACTIVE` i `RESPONSE_TEMPLATE_KIND_MISMATCH`; brojač korištenja raste **samo** kad je
+  odgovor zaista poslan s tim šablonom.
+
 - **Slanje ne provjerava tip i aktivnost šablona.** Pregled nudi samo aktivne šablone koji odgovaraju načinu
   pisanja, ali server pri slanju ne ponavlja tu provjeru — deaktiviran ili „interni“ šablon može se poslati
   kao javni odgovor ako se pozove direktno. (Nalaz B1 iz §M13.)

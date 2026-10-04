@@ -159,6 +159,10 @@
 
 ## Poznata ograničenja
 
+- **Nacrt usluge i nacrt forme vidljivi su samo administratorima.** Agenti vide aktivne i povučene
+  (`DEPRECATED`) usluge, a korisnici samo aktivne; ako se nacrt zatraži direktno preko API-ja, odgovor je
+  **nije pronađeno** — ne otkriva ni postojanje zapisa.
+
 - **Forma se na serveru provjerava samo pri pisanju.** Server provjerava da je šema ispravna, ali **ne
   provjerava vrijednosti** koje korisnik pošalje uz tiket; to radi samo ekran za prijavu. (Nalaz B1 iz §M6.)
 - **Nacrti usluga su dostupni preko API-ja.** Ekran prikazuje samo aktivne usluge, ali tehnički je i nacrt

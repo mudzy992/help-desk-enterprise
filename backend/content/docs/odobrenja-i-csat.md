@@ -43,8 +43,9 @@ rolu.
    grupu**.
 3. U tiketu se pojavljuje sistemski zapis o zahtjevu za odobrenje, a u panelu **Odobrenja** jedan korak sa
    statusom **Na čekanju**.
-4. Napomena: ako za uslugu **ne postoji** routing pravilo, tiket se otvara kao **Nije usmjereno** i **ne dobija**
-   zahtjev za odobrenje (vidi *Poznata ograničenja*).
+4. Napomena: ako za uslugu **ne postoji** routing pravilo, tiket se otvara kao **Nije usmjereno**. Zahtjev za
+   odobrenje se tada otvara **pri prvom rutiranju** — kad agent ili administrator proslijedi tiket u grupu,
+   tiket prelazi u **Čeka odobrenje** i dobija zapis i sistemski događaj kao i rutirani tiket.
 
 ### 2. Odluka o odobrenju
 
@@ -112,9 +113,10 @@ rolu.
   razlog odbijanja stoji u panelu **Odobrenja**.
 - **„Odobrio sam, ali tiket stoji.“** — nakon odobrenja tiket ide u **Na čekanju** i čeka da ga agent preuzme iz
   grupe; odobrenje samo otvara put, ne dodjeljuje agenta.
-- **„Nemamo obavještenje o tiketu koji čeka odobrenje.“** — poznato ograničenje: obavještenje tipa
-  *„Čeka odobrenje“* postoji u postavkama, ali u praksi nema primaoca; tikete pratite preko nadzorne ploče i
-  filtera (vidi *Poznata ograničenja*).
+- **„Kome stiže obavještenje da tiket čeka odobrenje?“** — nosiocima role odobravaoca iz postavke
+  (*Podrazumijevana rola odobravaoca*), ali **samo unutar OU/servis opsega tiketa** — istim pravilima po kojima
+  se odlučuje i ko smije odobriti. Ako nijedan nosilac ne pokriva opseg, obavještava se **handler grupa** tiketa;
+  tako zahtjev za odobrenje nikad ne ostaje bez primaoca. Odluka (odobreno/odbijeno) vraća se **naručiocu**.
 - **„Ne vidim CSAT traku.“** — traka se prikazuje samo naručiocu, samo za `Riješeno`/`Zatvoreno` po postavci, i
   samo ako tiket nije izostavljen uzorkovanjem.
 - **„Već sam poslao ocjenu, mogu li je promijeniti?“** — ne; ocjena je konačna.
@@ -123,11 +125,11 @@ rolu.
 
 ## Poznata ograničenja
 
-- **Obavještenje „Čeka odobrenje“ u praksi ne stiže nikome:** primaoci se traže među učesnicima s ulogom
-  *odobravalac*, a ta uloga nastaje tek pri odluci; pri kreiranju se dodaju samo naručilac i handler grupa.
-  (Nalaz B1 iz §M9.)
-- **Tiket koji počne kao „Nije usmjereno“ ne dobija zahtjev za odobrenje** čak i kad usluga traži odobrenje; ako
-  se kasnije proslijedi u grupu, odobrenje se ne kreira. (Nalaz B2.)
+- **Obavještenje „Čeka odobrenje“** stiže nosiocima role odobravaoca u OU/servis opsegu tiketa, a ako ih nema —
+  handler grupi; u oba slučaja poštuju se lične preference obavještenja. (Nalaz B1 iz §M9 — zatvoren u valu 2.)
+- **Tiket koji počne kao „Nije usmjereno“** dobija zahtjev za odobrenje pri prvom rutiranju (prosljeđivanjem u
+  grupu), prije nego što grupa počne raditi; ako je odobrenje već postojalo, ne otvara se ponovo. (Nalaz B2 —
+  zatvoren u valu 2.)
 - **CSAT po jedinici, servisu i grupi** prikazuje se na tabu **CSAT** u izvještajima (popravljeno u valu 1);
   ostaje ograničenje da taj razrez poštuje **vaše vidno polje**, a ne filtre perioda — CSAT nema period u
   API-ju. Za razrez po vremenu koristite tab **Trendovi** (serije).

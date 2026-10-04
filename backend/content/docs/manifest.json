@@ -81,7 +81,7 @@
         "obavjestenja",
         "pomoc"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -148,7 +148,7 @@
         "smtp",
         "dodaci"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -254,7 +254,7 @@
         "sesija",
         "rezervni-kodovi"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -359,7 +359,7 @@
         "citac-ekrana",
         "kontrast"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -444,7 +444,7 @@
         "navigacija",
         "stranice"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -510,7 +510,7 @@
         "povjerljivi-tiketi",
         "saved-views"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -613,7 +613,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1708,
+      "wordCount": 1745,
       "source": "docs/user-guide/tiketi.md"
     },
     {
@@ -635,7 +635,7 @@
         "komentar",
         "nps"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -708,7 +708,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1382,
+      "wordCount": 1440,
       "source": "docs/user-guide/odobrenja-i-csat.md"
     },
     {
@@ -729,7 +729,7 @@
         "odrzavanje",
         "dostupnost"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -809,7 +809,7 @@
         "ocjene",
         "review-cycle"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -907,7 +907,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2055,
+      "wordCount": 2064,
       "source": "docs/user-guide/baza-znanja.md"
     },
     {
@@ -929,7 +929,7 @@
         "teams",
         "podsjetnik"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1007,7 +1007,7 @@
         "razlog",
         "preraspodjela"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1096,7 +1096,7 @@
         "varijable",
         "checklist"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1194,7 +1194,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1518,
+      "wordCount": 1561,
       "source": "docs/user-guide/sabloni-i-playbooks.md"
     },
     {
@@ -1216,7 +1216,7 @@
         "sazetak",
         "kanali"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1325,7 +1325,7 @@
         "ical",
         "eskalacija"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1401,7 +1401,7 @@
         "dostupnost",
         "onboarding"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1489,7 +1489,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1542,
+      "wordCount": 1580,
       "source": "docs/user-guide/katalog-usluga-i-forme.md"
     },
     {
@@ -1513,7 +1513,7 @@
         "neusmjereno",
         "override"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1632,7 +1632,7 @@
         "eskalacije",
         "pauze"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1745,7 +1745,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 2139,
+      "wordCount": 2164,
       "source": "docs/user-guide/sla.md"
     },
     {
@@ -1769,7 +1769,7 @@
         "ad-sync",
         "uloge"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1867,7 +1867,7 @@
         "read-only",
         "preview"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -1949,7 +1949,7 @@
         "audit",
         "scope"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2030,7 +2030,7 @@
         "broadcast",
         "odsustvo"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2118,7 +2118,7 @@
           "id": "povezani-moduli"
         }
       ],
-      "wordCount": 1715,
+      "wordCount": 1775,
       "source": "docs/user-guide/posta.md"
     },
     {
@@ -2144,7 +2144,7 @@
         "uska-grla",
         "sla"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2271,7 +2271,7 @@
         "ugovori",
         "ad"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2356,7 +2356,7 @@
         "workaround",
         "problem-grupa"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2457,7 +2457,7 @@
         "konflikti",
         "kalendar"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2567,7 +2567,7 @@
         "scope",
         "pristup"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2632,7 +2632,7 @@
         "poruke",
         "pomoc"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2753,7 +2753,7 @@
         "csat",
         "cmdb"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,
@@ -2817,7 +2817,7 @@
         "izdanja",
         "changelog"
       ],
-      "updatedAt": "2026-10-03",
+      "updatedAt": "2026-10-04",
       "headings": [
         {
           "level": 2,

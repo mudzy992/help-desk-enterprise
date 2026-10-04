@@ -189,10 +189,10 @@ tags: [baza-znanja, clanci, kategorije, ocjene, review-cycle]
 
 ## Poznata ograničenja
 
-- **Zaštita ličnih podataka pri nastanku članka postoji samo u pregledu.** Panel „Članak iz odgovora“
-  zamjenjuje imena, e-mailove, telefone i IP adrese, ali server pri upisu ne ponavlja tu zamjenu — ako se
-  pošalje tekst bez pregleda, lični podaci mogu ući u članak koji je po zadatku vidljiv svim prijavljenim
-  korisnicima. (Nalaz B1.)
+- **Zaštita ličnih podataka pri nastanku članka radi i na serveru.** Panel „Članak iz odgovora“ zamjenjuje
+  imena, e-mailove, telefone i IP adrese, a **server ponavlja istu zamjenu pri upisu** — čak i ako se pošalje
+  tekst bez pregleda, lični podaci ne ulaze u članak; odgovor nosi spisak zamjena, a radnja ide u audit.
+  (Nalaz B1 iz §M14 — zatvoren u valu 2.)
 - **Obavještenje „Pregled KB članka dospijeva“ se prikazuje bez naslova** (kao generičko „Obavještenje“) i klik
   ne vodi na članak. (Nalaz B2.)
 - **„Članak je riješio moj problem“ ne sprječava slanje tiketa** i bilježi se uz **prvi** predlog, ne uz
